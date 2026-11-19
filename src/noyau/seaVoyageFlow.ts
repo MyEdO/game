@@ -1794,6 +1794,10 @@ export function continueSeaDayAfterExposure(get: Get, set: Set, doneSteps?: Casc
   continueSeaDayAfterExhaustion(get, set);
 }
 
+export function poserLesActivitesDuNavire(set: Set, pendingSeaActivities: Jeu['pendingSeaActivities']): void {
+  set({ pendingSeaActivities });
+}
+
 /**
  * PHASE 3/3 (#272 résiduel) : recap du jour, arrivée (port) ou halte de nuit — même fin qu'avant la
  * scission. Lit `sea.lines` FRAIS (les phases 1/2 ont `tell()` toute leur journalisation, inline OU
@@ -1853,7 +1857,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   // Personnage a l'occasion d'effectuer une Activité » — la 8ᵉ journée révolue ouvre le choix (modale),
   // la halte de nuit suit à la confirmation (le recap du jour lui est transmis).
   if (daysAtSea > 0 && daysAtSea % 8 === 0) {
-    set({ pendingSeaActivities: { picks: {}, day: recapDay } });
+    poserLesActivitesDuNavire(set, { picks: {}, day: recapDay });
     return;
   }
   openSeaHalt(get, set, recapDay);

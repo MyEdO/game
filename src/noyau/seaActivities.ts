@@ -31,7 +31,7 @@ import {
 } from './rollSeam';
 import {
   blessuresDeCoqueARestaurer, coqueDuNavireDeCampagne, debiterPiecesDetachees, encDePiecesDetachees,
-  noteSeaLine, openSeaHalt, patchSea, setVesselHull,
+  noteSeaLine, openSeaHalt, patchSea, poserLesActivitesDuNavire, setVesselHull,
 } from './seaVoyageFlow';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
@@ -185,7 +185,7 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
 function validerLaSemaine(get: Get, set: Set): void {
   const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'Activités du navire ouvertes');
   const { steps, file } = buildSeaActivitiesCascade(get, set, pending.picks);
-  set({ pendingSeaActivities: { ...pending, file } });
+  poserLesActivitesDuNavire(set, { ...pending, file });
   if (!steps.length || openSequence(get, set, { title: t('sact.weekTitle'), icon: 'voyage/ancre', purpose: 'seaActivities', steps })) {
     continueSeaActivitiesAfterCascade(get, set);
   }
@@ -214,7 +214,7 @@ export function continueSeaActivitiesAfterCascade(get: Get, set: Set): void {
   if (!pending) return;
   const [pid, ...reste] = pending.file ?? pending.opportunityQueue ?? [];
   if (pid !== undefined) {
-    set({ pendingSeaActivities: { ...pending, file: reste } });
+    poserLesActivitesDuNavire(set, { ...pending, file: reste });
     const hero = get().party.find((h) => h.id === pid && !h.dead && !h.outOfRencontre);
     const pick = pending.picks[pid];
     const def = pick ? activityById(pick.activityId) : undefined;
@@ -225,7 +225,7 @@ export function continueSeaActivitiesAfterCascade(get: Get, set: Set): void {
     continueSeaActivitiesAfterCascade(get, set);
     return;
   }
-  set({ pendingSeaActivities: null });
+  poserLesActivitesDuNavire(set, null);
   if (!pending.day) return;
   const plan = get().travelPlan;
   const activityLines = plan?.sea?.lines ?? [];
@@ -247,7 +247,7 @@ export function creerActionsDesActivitesEnMer(get: Get, set: Set) {
       const refus = refusDeGesteSurLeGroupe(s) ?? refusAQuai(s);
       if (refus || !port) { refuserGeste(get, set, refus ?? t('sact.entretienSansPort')); return; }
       if (s.pendingSeaActivities || s.pendingCascade || s.mode !== 'exploration') { refuserGeste(get, set, t('barre.mainTenue')); return; }
-      set({ pendingSeaActivities: { picks: {}, escale: port.placeId } });
+      poserLesActivitesDuNavire(set, { picks: {}, escale: port.placeId });
     },
   };
 }
@@ -260,7 +260,7 @@ export function creerActionsDesActivitesEnMer(get: Get, set: Set) {
 export function choixDeLaSemaineEnMer(get: Get, set: Set) {
   const choisir = (pid: string, pick: SeaActivityPick | null) => {
     const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
-    set({ pendingSeaActivities: { ...pending, picks: { ...pending.picks, [pid]: pick } } });
+    poserLesActivitesDuNavire(set, { ...pending, picks: { ...pending.picks, [pid]: pick } });
   };
   const choisie = (pid: string): SeaActivityPick => garanti(get().pendingSeaActivities?.picks[pid], pid, 'Activité choisie');
   return {
