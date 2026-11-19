@@ -205,6 +205,7 @@ import {
   type FreeConsLine,
 } from './rollSeam';
 import { rollLine, type RollLineDecl } from './ligneDeJet';
+import { ligneDeContraction } from './contraction';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, jouerLaJournee, pushStep, type CascadeApplier, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
@@ -1560,7 +1561,7 @@ function buildSeasicknessSteps(get: Get, sea: SeaVoyageState): BuiltCascadeStep[
     id, kind: 'mer-mal-de-mer', label,
     stake: voyageStakeRef('mer-mal-de-mer', { disease: diseaseLabel('mal-de-mer') }),
     difficulty,
-    porteurs: appeles.map((h) => ({ actor: h, ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } })),
+    porteurs: appeles.map((h) => ({ actor: h, ligne: ligneDeContraction(h, 'mal-de-mer'), menace: 'maladie' })),
   });
   const out: BuiltCascadeStep[] = [];
   if (firstDay) pousseSi(out, bande('mer-mal-de-mer-premier', t('sv.seasickFirst'), 'complexe'));

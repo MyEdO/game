@@ -106,7 +106,6 @@ import {
   DEFENSE_LABEL,
   type DefenseMode,
   attackHandGate,
-  conditionModLines,
   canFireWhileEngaged,
   ligneDuCoup,
   freeAttackWeapon,
@@ -689,6 +688,7 @@ import {
   type TableSpec,
 } from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
+import { ligneDeContraction } from './contraction';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel, psychologyLabel, structureCriticalsLabel } from '../data';
@@ -7276,17 +7276,8 @@ export function castContextMods(
  */
 export type ContractionEntry = 'infection' | 'contagion' | 'chirurgie';
 
-/** Un Test de Contraction de fin de combat DÛ pour un héros (LDB 18/20) : l'entrée de règle qui
- *  l'appelle, la maladie, sa difficulté de Résistance (les crans de l'exposition — Contagieux : 2 plus
- *  difficile — DÉJÀ appliqués) et le libellé d'exposition. `instant` (Contagieux, EDO App.2 l.230) :
- *  contractée → incubation « Instantanée ». Le `resistVal` (Résistance effective) est figé à la décision. */
+/** LDB 18 l.298 ; LDB 20 l.25, l.51, l.90 ; EDO App.2 l.228-230 */
 interface CombatEndDiseaseTest { entry: ContractionEntry; disease: string; difficulty: Difficulty; label: PlayerText; instant?: boolean }
-
-/** Valeur de Résistance d'un héros pour les Tests de Contraction (E + avances de Résistance) — figée à la
- *  décision pour rester stable entre la pose de l'étape et sa résolution. */
-function combatEndResistVal(c: Combatant): number {
-  return effectiveChar(c, 'endurance') + (c.skills?.find((s) => s.id === 'resistance')?.advances ?? 0);
-}
 
 /**
  * DÉCIDE et CONSOMME les Tests de fin de combat DUS pour le PERSONNAGE `c` (héros, ou combattant flagué
@@ -7442,15 +7433,14 @@ function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Comb
   for (const c of combattants) {
     if (!followsCharacterRules(c) || c.dead) continue; // #143 : RAW « Personnage » (LDB 18 l.5, LDB 20 l.14/206) — les créatures génériques et les défaits n'ont pas de jet de maladie/Corruption de fin de combat
     const decided = decideCombatEndHeroTests(c, corr?.level ?? null);
-    const resVal = combatEndResistVal(c);
     for (const d of decided.diseases) {
       // L'id porte l'ENTRÉE DE RÈGLE en plus de la maladie : l'Infection post-critique et la Contagion
       // peuvent viser la MÊME maladie chez le MÊME personnage (LDB 20 l.90 vs l.25/l.51) — deux étapes de
       // même id étaient injoignables (la surface de rangée keye par id nu).
       const step = monoStep({
         id: `maladieDeFinDeCombat-${c.id}-${d.entry}-${d.disease}`, kind: 'maladieDeFinDeCombat', actor: c, icon: 'medical/infection',
-        rollLabel: 'Résistance', difficulty: d.difficulty,
-        ligne: { valeur: resVal, surLaCible: conditionModLines(c, { skill: 'resistance', disease: d.disease }) },
+        difficulty: d.difficulty,
+        ligne: { ...ligneDeContraction(c, d.disease), combat: { kind: 'test' } },
         label: d.label, meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
         stake: combatStakeRef('combat-fin-maladie', { entryId: d.disease }),
         menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
@@ -7528,11 +7518,7 @@ function bandeDeFinDeCombat(
   };
 }
 
-/** Ouvre une cascade INFLUENÇABLE à UNE bande de Contraction de maladie pour `patient` (Test de
- *  Résistance `difficulty` → `applyContraction` à la validation, via l'applier `maladieDeFinDeCombat`) —
- *  HORS combat. Réutilisé par la Chirurgie (infection post-opératoire, LDB 10 l.184) : Chance/Résilience
- *  + auto-succès Résistance (Menace : Maladie) offerts, jamais un jet silencieux. `combatEndResistVal`
- *  fige la Résistance. Une bande d'UN porteur — la forme est celle de l'applier, pas celle du nombre. */
+/** Ouvre le Test de Contraction du patient après une Chirurgie. LDB 10 l.184 */
 export function openContractionCascade(get: Get, set: SetFn, patient: Combatant, disease: string, difficulty: Difficulty, title: string): void {
   ouvrirLaBandeDeContraction(get, set, [patient], { entry: 'chirurgie', disease, difficulty }, title);
 }
@@ -7547,7 +7533,7 @@ function ouvrirLaBandeDeContraction(
     label: dataLabel(title), menace: 'maladie', meta: { entry, disease, ...(instant ? { instant: true } : {}) },
     stake: combatStakeRef('combat-fin-maladie', { entryId: disease }),
     difficulty,
-    porteurs: porteurs.map((p) => ({ actor: p, ligne: { valeur: combatEndResistVal(p), surLaCible: conditionModLines(p, { skill: 'resistance', disease }) }, label: 'Résistance', menace: 'maladie' as const })),
+    porteurs: porteurs.map((p) => ({ actor: p, ligne: ligneDeContraction(p, disease), menace: 'maladie' })),
     title, purpose: 'test',
   });
 }
@@ -9583,7 +9569,7 @@ export const TABLES = {
       // L'étape de révélation porte déjà ces lignes quand elle est poussée : pas de doublon de rangée.
       return fin.affichee ? undefined : { consequences: freeCons(fin.lines) };
     },
-    /** Conséquence d'une RANGÉE de bande `maladieDeFinDeCombat` (LDB 18/20) : Test de Résistance RÉSOLU →
+    /** Conséquence d'une RANGÉE de bande `maladieDeFinDeCombat` (LDB 18/20) : Test de Contraction RÉSOLU →
      *  échec = contracte la maladie (`applyContraction`). La maladie et l'incubation « Instantanée »
      *  (Contagieux) sont lues dans la charge de rangée, la bande portant l'entrée de règle commune. */
     maladieDeFinDeCombat: bandeDeFinDeCombat((_get, _set, _band, row, hero, meta) => {
