@@ -103,7 +103,7 @@ describe('Poursuite terrestre (#95)', () => {
       partyRole: 'pursuing', distance: 4, skill, foes: [{ id: 'moritz-valgeir' }],
     });
     const fiche = findCreatureById('moritz-valgeir')!;
-    // Middenheim 02 l.692-698 ; LDB 61 l.5, l.21, l.38 ; CRB 085 l.41, l.47
+    // Middenheim 02 l.692-698 ; LDB 61 l.5, l.21, l.38
     const malusEncombrement = -10;
     expect(fiche.skills.find((s) => s.id === skill)?.value).toBe(valeurImprimee);
     expect(pursuitOf(banc.getState())!.foes[0].skill).toBe(valeurImprimee + malusEncombrement);
