@@ -232,12 +232,13 @@ export function installAmount(
   part: InstallBareme,
   coque: CoqueAEquiper | number,
   units = 1,
+  milieu?: MilieuDeNavigation,
 ): number | null {
   if (part === 'modele') return null;
   const { id, ship } = typeof coque === 'number'
     ? { id: undefined, ship: { lengthM: coque, fluvialLengthM: undefined } }
     : coque;
-  const lengthM = (part.milieu === 'fluvial' ? ship.fluvialLengthM : undefined) ?? ship.lengthM;
+  const lengthM = (milieu === 'fluvial' ? ship.fluvialLengthM : undefined) ?? ship.lengthM;
   const base = bandValue(part.bands, lengthM, id);
   if (part.per === '5m') return base * Math.max(1, Math.ceil(lengthM / 5));
   if (part.per === '10m') return base * Math.max(1, Math.ceil(lengthM / 10)); // MSRC 12 « pour 10 mètres » (Coque de course l.23)
@@ -248,8 +249,8 @@ export function installAmount(
 /** Coût et poids de pose d'une Amélioration navale. MDG 12 l.195-364 ; MSRC 12 l.21-25, l.54-135. PUR. */
 export function installCost(install: NavalInstall, coque: CoqueAEquiper | number, units = 1): { gold: number | null; enc: number | null } {
   return {
-    gold: installAmount(install.installation, coque, units),
-    enc: install.weightEnc ? installAmount(install.weightEnc, coque, units) : 0,
+    gold: installAmount(install.installation, coque, units, install.milieu),
+    enc: install.weightEnc ? installAmount(install.weightEnc, coque, units, install.milieu) : 0,
   };
 }
 

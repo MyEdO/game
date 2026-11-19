@@ -25,7 +25,7 @@
  *       • divers : effrayant (sort↔talent), pistolet (qualité↔possession), resistance (compétence↔talent),
  *           filet (trapping « Filet » ZI 2 l.174 ↔ qualité « Filet » ZI 2 l.176 — l'arme PORTE la qualité
  *           qui pose son Empêtré),
- *           poudre-impregnee-d-aqshy (trapping ↔ qualité, AA 08 l.544 — la munition PORTE la qualité
+ *           poudre-impregnee-d-aqshy (trapping ↔ qualité, AA 08 l.542 — la munition PORTE la qualité
  *           qui pose son seuil de Maladresse élargi {8,9}, même patron que `filet`).
  *       • créature↔trapping : une créature existe aussi comme trapping ORDINAIRE (objet de sac, hors
  *           bestiaire possédable) — vers. Les trappings-bêtes MONTABLES homonymes

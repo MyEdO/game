@@ -51,7 +51,7 @@ import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedT
 import { caracDuCombattant, evaluer, slBonus, valeurSansTirage, type Referent } from './formule';
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
-import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
+import { attachMutation, easeExposure, corruptionEaseSteps, recoitLaCorruption } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { deDeTirageDe } from '../data/rangees';
 // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
@@ -2417,7 +2417,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           lines.push(t('op.corruptionRetiree', { name: target.label, delta: target.corruption - before, total: target.corruption }));
         } else if (ctx.onCorruption) {
           lines.push(...ctx.onCorruption(target, amount, o.align));
-        } else {
+        } else if (recoitLaCorruption(target)) {
           // Sans contexte store (moteur pur, tests unitaires) : simple incrément — align ignoré.
           target.corruption = (target.corruption ?? 0) + amount;
           lines.push(t('op.corruptionAjoutee', { name: target.label, amount, s: amount > 1 ? 's' : '', total: target.corruption }));

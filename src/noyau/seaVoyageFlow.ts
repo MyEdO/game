@@ -2759,7 +2759,9 @@ export function devisDAmelioration(vessel: CampaignVessel | null, traitId: strin
   if (!entry.install) return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeNoPrice', { label }) };
   const coque = { id: v.id, ship: v.ship };
   const { gold, enc } = installCost(entry.install, coque, units);
-  const duree: Formula = vessel.constructeurDEscale?.duree ?? (entry.install.jours && installAmount(entry.install.jours, coque)) ?? REPARATION.joursDePose;
+  const duree: Formula = vessel.constructeurDEscale?.duree
+    ?? (entry.install.jours && installAmount(entry.install.jours, coque, 1, entry.install.milieu))
+    ?? REPARATION.joursDePose;
   if (gold == null) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeEmbedded', { label }) };
   if (entry.install.chantierSpecialise && !(portRef && findNavalPortById(portRef)?.chantierNavalSpecialise)) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeNeedsShipyard', { label }) };
   if (refusDuQuai) return { traitId, label, gold, enc, duree, refus: refusDuQuai };

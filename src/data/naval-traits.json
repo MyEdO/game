@@ -888,9 +888,9 @@
       }
     ],
     "install": {
+      "milieu": "fluvial",
       "installation": {
         "per": "10m",
-        "milieu": "fluvial",
         "bands": [
           {
             "maxLengthM": null,
@@ -900,7 +900,6 @@
       },
       "weightEnc": {
         "per": "10m",
-        "milieu": "fluvial",
         "bands": [
           {
             "maxLengthM": null,

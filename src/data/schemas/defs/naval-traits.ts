@@ -36,19 +36,19 @@ const installBaremeSchema = z.union([
       });
     }),
     per: z.enum(['5m', '10m', 'unite']).optional(),
-    milieu: enumNomme({ maritime: 'Maritime', fluvial: 'Fluvial' }).optional(),
-  }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' }, milieu: { label: 'Gabarit de référence' } }, { label: 'barème' }),
+  }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' } }, { label: 'barème' }),
   nommerNoeud(z.literal('modele'), { label: 'ceux du modèle embarqué' }),
 ]);
 
 const navalInstallSchema = nommerChamps(z.strictObject({
+  milieu: enumNomme({ maritime: 'Maritime', fluvial: 'Fluvial' }).optional(),
   installation: installBaremeSchema,
   weightEnc: installBaremeSchema.optional(),
   /** MDG 12 l.230 ; MDG 12 l.293 */
   jours: installBaremeSchema.optional(),
   /** MDG 12 l.230 */
   chantierSpecialise: z.boolean().optional(),
-}), { installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose (jours)' }, chantierSpecialise: { label: 'Exige un chantier naval spécialisé' } });
+}), { milieu: { label: 'Gabarit de référence' }, installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose (jours)' }, chantierSpecialise: { label: 'Exige un chantier naval spécialisé' } });
 
 const doc = document(
   'naval-traits',

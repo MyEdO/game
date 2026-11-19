@@ -91,9 +91,10 @@ describe('mutationKindFor — le tableau corps ou esprit de la race de l’espè
     expect(natureDeMutationDe('nain').id).toBe('mutation-nature-nain');
     expect(mutationKindFor('nain', 6)).toBe('mentale');
   });
-  it('espèce absente ou sans race couverte : le document de la race `humain`', () => {
-    expect(natureDeMutationDe(undefined).id).toBe('mutation-nature-humain');
-    expect(natureDeMutationDe('guerrier-du-chaos').id).toBe('mutation-nature-humain');
+  it.each([undefined, 'race-sans-tableau'])('nomme la race non couverte : %s', (race) => {
+    expect(() => natureDeMutationDe(race)).toThrow(
+      `[document de la nature de la mutation pour la race] « ${String(race)} »`,
+    );
   });
 });
 
