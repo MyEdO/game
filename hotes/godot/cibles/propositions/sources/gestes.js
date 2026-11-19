@@ -207,8 +207,8 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const rond = (contenu, taille = 'moyen', { ferme = false, arme = false, survol = false } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'} ${taille}${arme ? ' arme' : ''}${survol ? ' survol' : ''}"><div>${PICTOS[contenu] ? picto(contenu, ROND[taille][0], undefined, ROND[taille][1]) : `<b>${contenu}</b>`}</div></div>`;
   /* la plaque : `taille` appel, moyenne ou petite ; `numero` : sa touche, en tête ; `prix` à droite */
   const plaque = (libelle, { armee = false, fermee = false, survol = false, icone = null, numero = null, prix = null, taille = 'moyenne', classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}${survol ? ' survol' : ''} ${classe}" style="${style}"><div>${numero == null ? '' : `<b class="numero">${numero}</b>`}${icone ? picto(icone, 19, undefined, 1.7) : ''}${libelle}${prix ? `<span class="prix chiffres">${prix}</span>` : ''}</div></div>`;
-  /* choisir par carte : la plaque haute, un portrait et deux lignes */
-  const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c">${sous}</div></div></div></div>`;
+  /* choisir par carte : la plaque haute, un portrait et deux lignes ; `refus` : la bulle de la carte fermée survolée */
+  const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '', refus = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c">${sous}</div></div></div>${refus ? raison(refus) : ''}</div>`;
   /* l'outil : un rond et son libellé ; `ouvert` : son écran est posé ; `taille` du rond, `grand` hors du jeu */
   const outil = (nom, libelle, { ouvert = false, ferme = false, taille = 'petit' } = {}) => `<div class="outil${ouvert ? ' ouvert' : ''}">${rond(nom, taille, { ferme, arme: ouvert })}<span class="rubrique">${libelle}</span></div>`;
   /* le médaillon à pictogramme : `taille` grand, moyen, petit ; `inerte` : il ne se presse pas */
@@ -232,12 +232,43 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const ranger = () => document.querySelectorAll('.cartes').forEach((r) => {
     const n = r.querySelectorAll(':scope>.carte').length;
     r.classList.toggle('liste', n > 3 || r.clientWidth < n * 200 + (n - 1) * 9);
+    r.querySelectorAll(':scope>.carte').forEach((c) => {
+      c.classList.remove('deux-lignes');
+      const l = c.querySelector('.c');
+      if (r.classList.contains('liste') && l && l.scrollHeight > 1.5 * parseFloat(getComputedStyle(l).lineHeight)) c.classList.add('deux-lignes');
+    });
   });
   /* aucun clou du haut d'un cadre à moins de 12 px de son ruban, queues comprises : le clou se retire */
   const degager = () => document.querySelectorAll('.cadre>.ruban').forEach((r) => {
     const q = r.getBoundingClientRect();
     r.parentElement.querySelectorAll(':scope>.clou[style*="top"]').forEach((c) => { const k = c.getBoundingClientRect(); if (k.right > q.left - 12 && k.left < q.right + 12) c.remove(); });
   });
+  /* la bulle de refus reste dans son cadre (dans la vue hors cadre) et ne couvre aucun texte hors de l'élément refusé :
+     au-dessus de lui, décalée de côté pour rester dans le cadre ; sinon dessous ; sinon posée sur lui, au bout de sa
+     ligne, puis à sa largeur */
+  const poserLesBulles = () => {
+    const textes = [...document.querySelectorAll('#ui *')].filter((e) => !e.closest('.bulle-refus') && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && e.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
+    document.querySelectorAll('.bulle-refus').forEach((b) => {
+      const refuse = b.parentElement, bord = (b.closest('.cadre') ?? document.getElementById('ui')).getBoundingClientRect(), r = refuse.getBoundingClientRect();
+      const lignes = textes.filter((e) => !refuse.contains(e)).flatMap((e) => { const g = document.createRange(); g.selectNodeContents(e); return [...g.getClientRects()].filter((l) => l.width && l.height); });
+      const libre = (q, [x, y]) => q.left + x >= bord.left && q.right + x <= bord.right && q.top + y >= bord.top && q.bottom + y <= bord.bottom
+        && !lignes.some((l) => Math.min(l.right, q.right + x) - Math.max(l.left, q.left + x) > 1 && Math.min(l.bottom - l.height / 4, q.bottom + y) - Math.max(l.top + l.height / 4, q.top + y) > 1);
+      /* le décalage de côté qui garde la bulle `q`, déplacée de `x`, dans le cadre */
+      const dans = (q, x = 0) => x + Math.max(bord.left + 6 - q.left - x, Math.min(0, bord.right - 6 - q.right - x));
+      const milieu = (q) => (r.top + r.bottom) / 2 - (q.top + q.bottom) / 2;
+      const places = [
+        ['dessus', (q) => [dans(q), 0]],
+        ['dessous', (q) => [dans(q), r.bottom + 11 - q.top]],
+        ['dedans', (q) => [r.right - 10 - q.right, milieu(q)]],
+        ['dedans', (q) => [dans(q, (r.left + r.right) / 2 - (q.left + q.right) / 2), milieu(q)], () => Object.assign(b.style, { whiteSpace: 'normal', width: `${Math.max(r.width - 12, 140)}px`, textAlign: 'center' })],
+      ];
+      const pose = places.find(([, ou, regler]) => { regler?.(); const q = b.getBoundingClientRect(); if (libre(q, ou(q))) return true; b.style.removeProperty('white-space'); b.style.removeProperty('width'); b.style.removeProperty('text-align'); return false; }) ?? places[0];
+      const [x, y] = pose[1](b.getBoundingClientRect());
+      b.style.translate = `${x}px ${y}px`;
+      b.style.setProperty('--pointe', `${-x}px`);
+      b.classList.add(pose[0]);
+    });
+  };
   /* les clous d'un meuble (barre, jet, arrêt), ou d'un bandeau de `cases` héros : aux bords et entre deux cases */
   const MEUBLE = [[.0593, .2797, .7203, .9407], [.0593, .2797, .5, .7203, .9407]];
   const clouer = (cases = null) => (cases ? [0, 1].map(() => [.05, ...Array.from({ length: cases - 1 }, (_, k) => (k + 1) / cases), .945]) : MEUBLE)
@@ -278,7 +309,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* pose les pièces ; une fois les polices chargées, range les cartes et dégage les rubans de leurs clous ; passe le grain */
   const monter = (pieces) => {
     document.getElementById('ui').innerHTML = pieces.join('');
-    document.fonts.ready.then(() => { ranger(); degager(); });
+    document.fonts.ready.then(() => { ranger(); degager(); poserLesBulles(); });
     document.getElementById('grain').style.backgroundImage = svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`);
   };
 
@@ -295,15 +326,16 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* régler une quantité : − et +, la valeur réglée entre les deux ; un bord atteint se ferme */
   const moinsPlus = ({ moins = true, plus = true, entre = '' } = {}) => `<div class="moins-plus">${rond('moins', 'menu', { ferme: !moins })}${entre}${rond('plus', 'menu', { ferme: !plus })}</div>`;
   /* fiche `user-arbitrage-raison-de-refus-au-survol-jamais-inline` : la bulle du geste fermé que le curseur survole */
-  const raison = (texte) => `<span class="bulle-refus parchemin">${texte}</span>`;
+  const raison = (texte) => `<span class="bulle-refus parchemin" data-dessus>${texte}</span>`;
   /* #3004. Acte individuel : `bourse({ heros, avoir })`, la bourse de celui qui agit. Entreprise commune ou tarif par
      personne : `bourse({ parts: [[nom, part, avoir]], total })`, la part de chacun réglable avant validation ;
      `reglable: false` pour qui regarde sans régler (l'invité d'une partie à plusieurs). */
   const bourse = ({ heros, avoir, parts, total, reglable = true }) => `<div class="qui-paie${parts ? ' parts' : ''}">${medaillon('bourse', { taille: 'moyen' })}<div class="q">${parts
     ? `<span class="rubrique">Bourses du groupe</span>${parts.map(([nom, part, reste]) => `<div class="part"><span>${nom}</span>${reglable ? moinsPlus({ entre: `<b class="chiffres">${part}</b>` }) : `<b class="chiffres">${part}</b>`}<i>sur ${reste}</i></div>`).join('')}<div class="total"><span class="rubrique">Total</span><b class="chiffres">${total}</b></div>`
     : `<span class="rubrique">Bourse de ${heros}</span><b class="chiffres">${avoir}</b>`}</div></div>`;
-  /* saisir un texte : le libellé de rubrique s'il y en a un, la valeur et son curseur, ou l'attente d'un champ vide */
-  const champ = (libelle, valeur, { attente = '', classe = '' } = {}) => `<label class="champ ${classe}">${libelle ? `<span class="rubrique">${libelle}</span>` : ''}<b class="${valeur ? '' : 'vide'}">${valeur || attente}${valeur ? '<i class="curseur-texte"></i>' : ''}</b></label>`;
+  /* saisir un texte : le libellé de rubrique s'il y en a un, la valeur et son curseur, ou l'attente d'un champ vide ;
+     `defile` : la valeur, plus haute que le champ, y défile */
+  const champ = (libelle, valeur, { attente = '', classe = '', defile = false } = {}) => `<label class="champ ${classe}">${libelle ? `<span class="rubrique">${libelle}</span>` : ''}<b class="${valeur ? '' : 'vide'}"${defile ? ' data-defile' : ''}>${valeur || attente}${valeur ? '<i class="curseur-texte"></i>' : ''}</b></label>`;
 
   Object.assign(globalThis, {
     W, H, alea, melange,

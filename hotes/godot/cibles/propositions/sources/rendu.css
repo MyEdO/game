@@ -12,6 +12,9 @@
 #jet .camp .n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal;line-height:normal;margin-top:-4px}
 #jet .camp.droite .n{justify-content:flex-end}
 #jet .camp .n .modif{margin-top:0}
+/* des dés réglables tiennent au-dessus des réserves : leurs boutons mordent la marge transparente du dé */
+#jet .des.regles .moins-plus{gap:0}
+#jet .des.regles .moins-plus .bouton-rond{margin:-3px 0}
 #verdict .sous{display:flex;justify-content:center;align-items:center;gap:7px}
 #verdict .sous .point{width:3px;height:3px;border-radius:50%;background:currentColor}
 #verdict .sous .rubrique{font-size:12.5px;color:#4a3420}
@@ -19,14 +22,26 @@
 #jet .annonce .dr{line-height:normal}
 #jet .fond.debut>.camp{flex:none}
 #jet .groupe{flex:1 1 auto;min-width:0}
+/* les réactions d'une défense tiennent dans le centre : à la ligne quand elles n'y tiennent pas côte à côte */
+#jet .reactions{flex-wrap:wrap;row-gap:6px}
+#jet .reactions .plaque.carte.courte{flex:1 1 auto;min-width:0}
 #verdict .groupe{margin-top:6px}
+/* le centre d'un jet avant le dé tient entre les deux camps : ses choix rétrécissent, une bascule ou une note passe à la ligne */
+#verdict .rangee .choix{min-width:0}
+#verdict .choix .bascule{white-space:normal;line-height:15px}
+#verdict .choix .bas{flex-wrap:wrap;row-gap:4px;margin-top:4px}
+#jet #verdict .choix p{white-space:normal}
 #jet:has(.fond.consigne){top:auto;height:170px}
 #jet:has(.cartes.liste){height:266px}
 #jet .fond.consigne{grid-template-columns:auto minmax(0,1fr)}
 #jet .fond.critique{grid-template-columns:auto minmax(0,1fr)}
 #jet .fond.critique.duel{grid-template-columns:auto minmax(0,1fr) auto}
+/* une règle du centre tient sur sa ligne : son libellé passe à la ligne, ses options et son motif gardent leur largeur */
 #verdict .regle{gap:6px}
-#jet #verdict .regle .options .plaque>div{padding:0 6px;letter-spacing:.2px}
+#verdict .regle .l{white-space:normal;line-height:13px;letter-spacing:.4px;min-width:0}
+#verdict .regle>.modif,#verdict .regle>.options{flex:none}
+#jet #verdict .regle .options{gap:4px}
+#jet #verdict .regle .options .plaque>div{padding:0 4px;letter-spacing:0}
 #verdict.sort.reglages{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-auto-rows:max-content;column-gap:14px;align-content:start}
 #verdict.sort.reglages>:not(.rangee){grid-column:1}
 #verdict.sort.reglages>.rangee{grid-column:2;grid-row:1/span 4;align-self:center}
@@ -45,7 +60,16 @@
 #critique .dr{line-height:normal}
 #critique .tirage .sceau b{font-size:14px}
 #jet .fond.enjeu{grid-template-columns:auto minmax(0,1fr) 262px}
+/* les rangées d'un Test d'équipage tiennent au-dessus des suites : leur intitulé sur une ligne, une rangée à la hauteur de son portrait */
+#jet .rangees:not(.chansons){max-width:272px}
+#jet .rangees .t{letter-spacing:.5px}
+#jet .rangees .rangee{height:32px}
+/* une ligne de butin à la hauteur de ses portraits */
+#jet .ligne-b{height:34px}
 #jet .enjeu{padding-left:14px}
+/* les deux natures d'une Corruption tiennent dans leur colonne : les cartes s'y partagent la largeur, leur ligne passe à la ligne */
+#jet .nature .carte{min-width:0}
+#jet .nature .carte .qui{white-space:normal}
 #jet .enjeu table{font-size:13px;line-height:17px}
 #jet .enjeu td:first-child{white-space:nowrap;padding-right:8px}
 #jet .enjeu td:last-child{font-size:12px;white-space:normal}
@@ -57,12 +81,11 @@
 #preferences .fond{overflow-y:auto;scrollbar-width:none}
 #registre{right:186px;width:auto;top:60px;bottom:24px;height:auto}
 #registre .feuille{min-width:0;overflow-y:auto;scrollbar-width:none}
-#registre .regle{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+#registre .regle{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;min-height:0;padding-top:6px;padding-bottom:6px}
 #registre .regle .t{flex:1 1 190px;min-width:0}
 #registre .regle .c{margin-left:auto}
 #registre .regle .aide,#registre .regle .action{flex:1 0 100%;margin-top:0}
 #registre .feuille .tete{gap:0 12px;height:auto;flex-wrap:wrap}
-#registre .regle .c .bulle-refus{width:240px}
 #registre .regle .action .plaque{width:100%}
 #registre .regle .action .plaque>div{font-size:12.5px;letter-spacing:.3px;padding:0 8px;gap:8px}
 #registre .feuille .tete .rubrique{font-size:13px;color:#5a2a12;white-space:nowrap}
@@ -102,8 +125,21 @@
 #scene-du-commerce.en-deux{width:468px;flex-wrap:wrap;align-content:flex-start;column-gap:16px}
 #scene-du-commerce .hote{position:relative;left:auto !important;top:auto !important}
 #page{left:auto;right:24px;top:20px;width:480px}
-#page>.fond{max-height:518px;overflow-y:auto;scrollbar-width:none}
+#page>.fond{max-height:518px;overflow-y:auto;scrollbar-width:none;padding-top:16px}
 #ui:has(>#jet) #page>.fond{max-height:442px}
+#page .filet{margin:6px 0}
+#page .r{margin-bottom:3px}
+#page .porteur{padding-top:5px;padding-bottom:6px}
+#page .porteur span{margin-bottom:4px}
+#page .plaque.conclure{margin-top:8px}
+#page .note{margin-top:5px}
+/* une ligne à régler : son complément sous son nom, le prix et la quantité à droite des deux */
+#page .lignes .ligne{grid-template-columns:minmax(0,1fr) 84px 96px;height:auto;min-height:27px;padding-top:2px;padding-bottom:2px}
+#page .lignes .ligne .c{grid-column:1;line-height:13px;margin-top:-3px}
+#page .lignes .ligne .px{grid-column:2;grid-row:1 / span 2}
+#page .lignes .ligne>:is(.moins-plus,.n){grid-column:3;grid-row:1 / span 2}
+/* pendant le Marchandage, la quantité est arrêtée : son curseur se retire, le compte la dit */
+#ui:has(>#jet) #page :is(.quantite,.r:has(+.quantite),.filet:has(+.r+.quantite)){display:none}
 #carte-du-lieu{left:auto;right:24px;top:20px;width:360px;height:238px}
 #partir{left:auto;right:24px;top:330px;width:360px}
 
@@ -208,7 +244,7 @@
    haut, au-dessus du Mouvement qu'ils annulent */
 #barre{left:calc(50% - 480px);top:auto;bottom:8px;width:960px;height:138px}
 #barre>.onglets{left:479px}
-#barre>#tour-outils{left:22px;top:-17px;flex-direction:row;gap:9px}
+#barre>#tour-outils{left:22px;top:-17px;flex-direction:row;gap:9px;z-index:1}
 #ecran #barre #etat{left:13px;top:10px;width:282px;grid-template-columns:150px 114px;column-gap:18px;row-gap:5px}
 #etat .mesure .jauge{margin-top:4px}
 #etat .pas{gap:5px}
@@ -361,6 +397,13 @@
 #categories{left:24px;top:136px;width:400px}
 #registre .entree{height:36px;line-height:36px;font-size:16px}
 #posee{right:10px;top:6px;bottom:10px;width:440px;z-index:2}
+/* la page de gauche s'arrête avant la fiche posée, qui dit la source de l'entrée pointée : ses entrées n'y gardent que
+   leur nom */
+#registre:has(>#posee) .feuille.g{flex:none;width:calc(100% - 445px);box-sizing:border-box;padding-left:14px;padding-right:14px}
+#registre:has(>#posee) .feuille.g .entree{height:34px;line-height:34px}
+#registre:has(>#posee) .feuille.g .entree em{display:none}
+#registre:has(>#posee) .feuille.g .pied{flex-wrap:wrap;justify-content:space-between;gap:0;height:auto}
+#registre:has(>#posee) .feuille.g .pied .folio{order:-1;flex:1 0 100%;text-align:center}
 #posee>.feuille{height:100%;box-sizing:border-box;padding:16px 22px 10px;border-radius:3px}
 #posee .fiche{overflow-y:auto;scrollbar-width:none}
 #posee>.croix{right:12px;top:12px}

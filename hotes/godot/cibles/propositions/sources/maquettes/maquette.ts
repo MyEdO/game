@@ -879,14 +879,13 @@ export interface Part {
 }
 
 /** Une voie offerte sur une page de service (un soin, une vente, un travail) : son id (son pictogramme), son nom, son
- *  Test, ce qu'elle fait, son prix ; `maison`, un prix de valeur maison ; `prise`, la voie choisie ; fermée, sa raison. */
+ *  Test, ce qu'elle fait, son prix ; `prise`, la voie choisie ; fermée, sa raison. */
 export interface Voie {
   id: string;
   nom: string;
   test: string;
   texte?: string;
   prix?: Sous;
-  maison?: true;
   prise?: true;
   refus?: string;
 }
