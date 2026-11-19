@@ -79,7 +79,7 @@ import { loadRegister, objetSourceDeLArme, aRecharger, chambrePleine, type Weapo
 import { nextEntityId } from '../lib/entityId';
 import type { FabriqueDId } from './fabriqueDId';
 import type { TraitInstance } from './statEntry';
-import { armesDuProfil, armourFromTraits } from './creatureEquip';
+import { armesDuProfil, armourFromTraits, uidDeLArmeDuTrait, weaponFromTrait } from './creatureEquip';
 import type { InventaireDAuteur } from '../data/schemas/defs-scenes/scene';
 
 /** Contexte explicite de la naissance d’un objet (#2948). */
@@ -921,6 +921,8 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
   return groupeDeSiege(it.subType) || hasQuality(it, 'equipe');
 }
 
+type ProfilDArmePorte = Pick<Weapon, 'damage' | 'range' | 'traitsConferes'>;
+
 /**
  * PROJECTION UNIQUE `ItemInstance` → `Weapon` : la SEULE dérivation d'une arme jouable depuis une
  * Possession, quel qu'en soit le canal — loadout de héros (`recomputeLoadout`), poste d'artillerie servi
@@ -932,18 +934,21 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
  * Les VETOS de port restent chez l'appelant : arme détruite et machine à Équipe (`objetDeSlot`),
  * amputation (`recomputeLoadout`, `mannedPosteWeapon`).
  */
-export function weaponFromItem(it: ItemInstance, hand?: Main, ctx?: ContexteDeManiement): Weapon {
-  return applyEnchants(buildWeapon({
+export function weaponFromItem(it: ItemInstance, hand?: Main, ctx?: ContexteDeManiement, profil?: ProfilDArmePorte): Weapon {
+  const arme = buildWeapon({
     ...copierIntrinseques(it, true),
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'distance',
     // Possession de catalogue SANS profil de Dégâts (munitions de trait) : Dégâts « – ».
     // Convention UNIQUE du profil d'arme — elle vit ICI, plus aucun appelant ne la redéclare.
-    damage: it.damage ?? { aucun: true },
+    damage: profil?.damage ?? it.damage ?? { aucun: true },
+    ...(profil?.range != null ? { range: profil.range } : {}),
     qualities: it.qualities, subType: it.subType, weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo,
     reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
     ...(it.teinte ? { teinte: it.teinte } : {}), apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it),
-  }), it.enchants ?? []);
+  });
+  if (profil?.traitsConferes) arme.traitsConferes = profil.traitsConferes;
+  return applyEnchants(arme, it.enchants ?? []);
 }
 
 /** Objet qu'un slot `main`/`secondaire` d'un set désigne par `uid`, s'il peut y être : présent dans l'inventaire,
@@ -964,6 +969,23 @@ export const peutEtreTenu = (i: GabaritDObjet): boolean =>
  *  l'armure des Traits du porteur s'y ajoutent (`armesDuProfil`, `armourFromTraits`). #3684 */
 export function recomputeLoadout(c: Combatant): void {
   const items = c.items ?? [];
+  const armesDeFiche = new Map<string, TraitInstance>();
+  if (c.traits) {
+    const portees = new Set(items.map((i) => i.uid));
+    c.traits = c.traits.filter((t) => {
+      const uid = uidDeLArmeDuTrait(t);
+      if (!uid) return true;
+      if (!portees.has(uid)) return false;
+      armesDeFiche.set(uid, t);
+      return true;
+    });
+  }
+  const profilDe = (it: ItemInstance): ProfilDArmePorte | undefined => {
+    const t = armesDeFiche.get(it.uid);
+    if (!t) return undefined;
+    const w = weaponFromTrait(t);
+    return w ? { damage: w.damage, ...(t.range != null ? { range: t.range } : {}), traitsConferes: w.traitsConferes } : undefined;
+  };
   // Auto-prune : un slot dont l'objet ne peut plus y être (`objetDeSlot`) est vidé, sur TOUS les loadouts.
   const slotDead = (uid?: string) => uid != null && !objetDeSlot(c, uid);
   for (const lo of c.loadouts ?? []) {
@@ -974,7 +996,7 @@ export function recomputeLoadout(c: Combatant): void {
   const toWeapon = (it: ItemInstance, hand: Main, uneSeuleMain = false): Weapon | null => {
     const ctx = contexteDuPorteur(c, it, uneSeuleMain || cannotWieldTwoHanded(c));
     if (weaponHands(it, ctx) === 2 && cannotWieldTwoHanded(c)) return null; // LDB 18 l.263
-    return weaponFromItem(it, hand, ctx);
+    return weaponFromItem(it, hand, ctx, profilDe(it));
   };
 
   // UN SEUL modèle : tout combattant porteur d'armes passe par un loadout (auto-généré si absent).
@@ -1006,7 +1028,14 @@ export function recomputeLoadout(c: Combatant): void {
   // Dague » en mêlée) — DÉCLARATIF sur le trapping (`derivedWeapon`).
   for (const i of items) {
     const dw = i.equipped && !i.destroyed ? i.derivedWeapon : undefined;
-    if (dw) weapons.push({ hand: 'main', ...dw, uid: uidDArme(`${i.uid}-arme`, weapons), derivedFromItem: i.uid, ...(i.trappingId ? { source: { kind: 'objet' as const, id: i.trappingId } } : {}) }); // #2907
+    if (dw) weapons.push({
+      hand: 'main',
+      ...dw,
+      ...profilDe(i),
+      uid: uidDArme(`${i.uid}-arme`, weapons), // #2907
+      derivedFromItem: i.uid,
+      ...(i.trappingId ? { source: { kind: 'objet' as const, id: i.trappingId } } : {}),
+    });
   }
   // Armes des Traits du porteur (`weaponFromTrait`), hors de ceux qui la portent en `grantNaturalWeapon` (ci-dessous).
   // Une arme sans objet garde son état (charge, usure) sur son instance (`loadRegister`) : l'instance déjà

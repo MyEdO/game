@@ -28,6 +28,8 @@ import {
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import {
   findCreatureById,
+  estDotationDObjet,
+  estMention,
   byId,
   findTalentById,
   tailleDuProfil,
@@ -56,12 +58,18 @@ import {
   contexteDeNaissanceDObjet,
   deciderApparencesDesArmes,
   equipConflicts,
+  ensureDefaultLoadout,
   hydratePoste,
+  loadoutSetActive,
   loadWeapon,
   objetsDeLInventaire,
+  objetDeSlot,
   recomputeLoadout,
+  weaponFromItem,
 } from '../../engine/items';
 import { argentDuPnj, porterAuParcours } from '../../engine/pnjDeCarriere';
+import { doterLePorteur } from '../../engine/bourse';
+import { itemCapability } from '../../engine/capabilities';
 import { lierLesComposants } from '../../engine/magic';
 import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
@@ -74,7 +82,7 @@ import { rollMutation, mutationById } from '../../data/mutations';
 import { makeRNG, type RNG } from '../../engine/dice';
 import { attachMutation, type Mutation } from '../../engine/corruption';
 import { groupsFor } from '../../engine/groups';
-import { weaponsFromTraits, armourFromTraits, traitsDevantLEquipement } from '../../engine/creatureEquip';
+import { weaponsFromTraits, armourFromTraits, ajusterTraitsDuProfil } from '../../engine/creatureEquip';
 import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
 import { estPoseParSesPonts } from '../planDeNavire';
@@ -482,19 +490,46 @@ function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehic
   return c;
 }
 
-/** Le personnage `c` porte, après ses objets de dotation, l'inventaire d'auteur `inventaire` (uid
- *  `<id>-objet-<trappingId>`), dont un objet porté ôte les dotations qu'il chevauche (`equipConflicts`) : ses Traits
- *  cèdent à l'équipement réel (`traitsDevantLEquipement`), puis il s'équipe comme un héros (`recomputeLoadout`).
- *  LDB 77 l.7 ; #3684 */
-function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur): void {
-  const dotations = c.items ?? [];
-  const auteur = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), findTrappingById, contexteDeNaissanceDObjet(c));
-  for (const o of auteur) if (o.equipped) for (const x of equipConflicts({ items: dotations }, o)) x.equipped = false;
-  c.items = [...dotations, ...auteur];
-  const restent = traitsDevantLEquipement(c.traits ?? [], c.items);
-  const cedes = new Set((c.traits ?? []).filter((t) => !restent.includes(t)));
-  c.traits = restent;
-  if (c.liveTraits) c.liveTraits = c.liveTraits.filter((t) => !cedes.has(t));
+/** LDB 77 l.7 ; #3684 ; #4348. */
+function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur, trappings: CreatureData['trappings'] = []): void {
+  const contexte = contexteDeNaissanceDObjet(c);
+  const refs = trappings.filter((r) => estDotationDObjet(r) || estMention(r));
+  let n = 0;
+  const fiche = doterLePorteur(refs, makeRNG(hashSeed(`dotations-de-fiche:${c.id}`)), () => `${c.id}-fiche-${n++}`, contexte);
+  if (fiche.mentions) c.mentions = [...c.mentions ?? [], ...fiche.mentions];
+  const carriere = c.items ?? [];
+  const auteur = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), findTrappingById, contexte);
+  if (!carriere.length && !fiche.items.length && !auteur.length) return;
+
+  for (const o of fiche.items) {
+    if (itemCapability(o, 'armureDeMonture')) o.equipped = !equipConflicts({ items: fiche.items }, o).length;
+    if (o.equipped && equipConflicts({ items: carriere }, o).length) o.equipped = false;
+  }
+  const auteurSeul = [];
+  const redefinis = [];
+  for (const o of auteur) {
+    const index = fiche.items.findIndex((i) => i.trappingId === o.trappingId);
+    if (index < 0) auteurSeul.push(o);
+    else {
+      const original = fiche.items[index];
+      const redefini = { ...original, uid: o.uid, equipped: o.equipped, apparence: o.apparence ?? original.apparence };
+      fiche.items[index] = redefini;
+      redefinis.push(redefini);
+    }
+  }
+  const dotations = [...carriere, ...fiche.items];
+  for (const o of [...auteurSeul, ...redefinis]) {
+    if (o.equipped) for (const x of equipConflicts({ items: dotations }, o)) x.equipped = false;
+  }
+  c.items = [...dotations, ...auteurSeul];
+  ajusterTraitsDuProfil(c, fiche.items, [...carriere, ...auteurSeul]);
+  const armeDEquipe = fiche.items.find((o) => o.bouclierDEquipe && objetDeSlot(c, o.uid));
+  if (armeDEquipe) {
+    ensureDefaultLoadout(c);
+    // ZI 13 l.193.
+    const panoplie = c.loadouts?.find((set) => set.main === armeDEquipe.uid);
+    if (panoplie) loadoutSetActive(c, panoplie.id);
+  }
   recomputeLoadout(c);
 }
 
@@ -527,7 +562,10 @@ export function spawnEnemy(
   if (a && Object.values(a).some((v) => v !== undefined)) c.appearanceOverride = a;
   // Tenue d'auteur (id) → `Combatant.career`, en combat comme en exploration.
   if (a?.tenue) c.career = a.tenue;
-  if (c.items?.length || Object.keys(opts?.inventaire ?? {}).length) equiperDeLInventaire(c, opts?.inventaire ?? {});
+  const trappings = (porteur.presetCreature ?? findCreatureById(porteur.ref))?.trappings;
+  if (trappings?.length || c.items?.length || Object.keys(opts?.inventaire ?? {}).length) {
+    equiperDeLInventaire(c, opts?.inventaire ?? {}, trappings);
+  }
   if (porteur.parcours) argentDuPnj(c);
   lierLesComposants(c);
   deciderApparencesDesArmes(findTrappingById, c.weapons, c.appearanceOverride, c.creatureId, c.items);
@@ -536,5 +574,15 @@ export function spawnEnemy(
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).
   const spawnRanged = c.weapons.find((w) => w.type === 'distance');
   if (spawnRanged) loadWeapon(c, spawnRanged);
+  if (trappings?.some(estDotationDObjet)) {
+    const chargees = new Set([spawnRanged?.uid]);
+    for (const set of c.loadouts ?? []) for (const uid of [set.main, set.secondaire]) {
+      if (chargees.has(uid)) continue;
+      const item = objetDeSlot(c, uid);
+      if (item?.kind !== 'distance') continue;
+      loadWeapon(c, weaponFromItem(item));
+      chargees.add(uid);
+    }
+  }
   return structuredClone(c); // #2097
 }

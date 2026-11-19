@@ -5530,14 +5530,8 @@
     "traits": [
       {
         "id": "armure",
-        "parLocalisation": {
-          "tete": 3,
-          "brasG": 3,
-          "brasD": 3,
-          "corps": 3,
-          "jambeG": 1,
-          "jambeD": 1
-        }
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "belliqueux"
@@ -12450,8 +12444,7 @@
         "id": "coiffe-de-mailles"
       },
       {
-        "id": "arme-simple",
-        "spec": "massue"
+        "id": "massue"
       },
       {
         "id": "coup-de-poing"
@@ -12637,8 +12630,7 @@
         "id": "pansiere-ogre"
       },
       {
-        "id": "arme-simple",
-        "spec": "massue"
+        "id": "massue"
       },
       {
         "id": "arc"
@@ -18979,7 +18971,7 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Crochet"
+        "arg": "crochet"
       },
       {
         "id": "arme",
@@ -19283,7 +19275,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Crochet"
+        "arg": "crochet"
       },
       {
         "id": "arme",

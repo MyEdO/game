@@ -4,7 +4,7 @@
  * Vit dans `engine` (pur, ne dépend de rien d'en haut) → importable par le noyau ET par le rendu
  * (`scripts/guards/lib/couches.mjs`).
  */
-import type { Weapon, ArmourPoints } from './types';
+import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
 import {
   buildWeapon,
@@ -136,7 +136,7 @@ export function armourFromTraits(traits: TraitList): ArmourPoints {
 /** Armes des Traits `traits` que compose `recomputeLoadout` : `renderWeaponsFromTraits`, hors des Traits dont la def
  *  porte déjà l'arme en `grantNaturalWeapon`. */
 export const armesDuProfil = (traits: TraitList): Weapon[] =>
-  renderWeaponsFromTraits(traits.filter((t) => !findTraitById(t.id)?.passive?.some((op) => op.op === 'grantNaturalWeapon')));
+  renderWeaponsFromTraits(traits.filter((t) => !uidDeLArmeDuTrait(t) && !findTraitById(t.id)?.passive?.some((op) => op.op === 'grantNaturalWeapon')));
 
 /** Les Traits `traits` qui restent devant les objets réels `objets` : le Trait Armure cède à une armure portée hors armure
  *  de monture (`armureDeMonture`, arbitrage du 2026-11-16, #4135), un
@@ -150,4 +150,58 @@ export function traitsDevantLEquipement(traits: readonly TraitInstance[], objets
     const w = weaponFromTrait(t, resolveTrapping);
     return !(w && estUneVraieArme(w) && tenus.has(w.type));
   });
+}
+
+/** Le Trait imprimé passe sur l'objet désigné lorsqu'il nomme le même matériel. LDB 85 l.31-39 ; #773. */
+export function ajusterTraitsDuProfil(c: Combatant, profil: readonly ItemInstance[], autres: readonly ItemInstance[]): void {
+  const traits = c.traits ?? [];
+  const restent = new Set(autres.length ? traitsDevantLEquipement(traits, autres) : traits);
+  const couvertes = new Set(profil.flatMap(localisationsDeLArmure));
+  if (couvertes.size) {
+    for (const i of autres) if (i.equipped) for (const lieu of localisationsDeLArmure(i)) couvertes.add(lieu);
+  }
+  const armes = new Set<string>();
+  const retenus = new Map<TraitInstance, TraitInstance>();
+  for (const t of traits) {
+    const lie = !t.src && !c.liveTraits?.includes(t) ? lierArmeDuProfil(t, profil, armes) : undefined;
+    let reste = lie ?? (restent.has(t) ? t : undefined);
+    if (armureDuTrait([t])) {
+      if (t.matiere === 'peau') reste = t;
+      else if (couvertes.size) reste = armureRestante(t, couvertes);
+    }
+    if (reste) retenus.set(t, reste);
+  }
+  c.traits = [...retenus.values()];
+  if (c.liveTraits) c.liveTraits = c.liveTraits.flatMap((t) => retenus.get(t) ?? []);
+}
+
+const localisationsDeLArmure = (i: ItemInstance): readonly HitLocation[] =>
+  i.kind === 'armor' && !itemCapability(i, 'armureDeMonture') ? i.locs ?? [] : [];
+
+const PREFIXE_SOURCE_ARME_DE_FICHE = 'arme-de-fiche:';
+
+/** UID de l'arme qui concrétise le Trait du statbloc. LDB 85 l.31-35 ; #773. */
+export function uidDeLArmeDuTrait(t: TraitInstance): string | undefined {
+  return t.src?.kind === 'objet' && t.src.id.startsWith(PREFIXE_SOURCE_ARME_DE_FICHE)
+    ? t.src.id.slice(PREFIXE_SOURCE_ARME_DE_FICHE.length) : undefined;
+}
+
+function lierArmeDuProfil(t: TraitInstance, profil: readonly ItemInstance[], armes: Set<string>): TraitInstance | undefined {
+  const w = weaponFromTrait(t);
+  if (!w || !estUneVraieArme(w)) return undefined;
+  const objet = profil.find((i) => !armes.has(i.uid) && (
+    (w.trappingId != null && i.trappingId === w.trappingId && peutEtreTenu(i))
+    || (t.arg != null && i.trappingId === t.arg && i.derivedWeapon?.type === w.type)
+  ));
+  if (!objet) return undefined;
+  armes.add(objet.uid);
+  return { ...t, src: { kind: 'objet', id: `${PREFIXE_SOURCE_ARME_DE_FICHE}${objet.uid}` } };
+}
+
+/** LDB 85 l.37-39 ; #773. */
+function armureRestante(t: TraitInstance, couvertes: ReadonlySet<HitLocation>): TraitInstance | undefined {
+  if (!t.parLocalisation) return undefined;
+  const parLocalisation = { ...t.parLocalisation };
+  for (const lieu of couvertes) parLocalisation[lieu] = 0;
+  return Object.values(parLocalisation).some((pa) => pa > 0) ? { ...t, parLocalisation } : undefined;
 }

@@ -28,7 +28,7 @@ import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 import { effectiveTalents } from '../engine/talentEffects';
 import { itemCapability } from '../engine/capabilities';
-import { recomputeLoadout } from '../engine/items';
+import { equipConflicts, recomputeLoadout } from '../engine/items';
 
 /** Ce combattant chevauche-t-il une monture (= cavalier) ? */
 export const isRider = (c: Combatant): boolean => !!c.mountId;
@@ -202,13 +202,14 @@ export function mountUp(rider: Combatant, mount: Combatant): void {
   if (mount.pos) rider.pos = { ...mount.pos };
 }
 
-/** Le cavalier `rider` d'une rencontre authorée harnache sa monture `mount` : ses objets `armureDeMonture` passent,
- *  portés, sur la bête. AA 09 l.184 ; #4135 */
+/** AA 09 l.184 ; #4135. */
 export function harnacher(rider: Combatant, mount: Combatant): void {
   const bardes = (rider.items ?? []).filter((it) => itemCapability(it, 'armureDeMonture'));
   if (!bardes.length) return;
   rider.items = (rider.items ?? []).filter((it) => !bardes.includes(it));
-  mount.items = [...(mount.items ?? []), ...bardes.map((it) => ({ ...it, equipped: true }))];
+  const items = [...mount.items ?? []];
+  for (const it of bardes) items.push({ ...it, equipped: !equipConflicts({ items }, it).length });
+  mount.items = items;
   recomputeLoadout(rider);
   recomputeLoadout(mount);
 }
