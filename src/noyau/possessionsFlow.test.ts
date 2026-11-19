@@ -50,7 +50,7 @@ const barge = (ownerId: string): Omit<NavirePossession, 'uid'> => ({
   ownerId,
   location: { kind: 'avec-le-groupe' },
   items: [],
-  vehicleId: 'barge',
+  vehicleId: 'barge-fluviale',
   naval: { morale: { score: 0, lastMoraleWeek: 0, factors: [] } },
 });
 

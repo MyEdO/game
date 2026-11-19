@@ -90,7 +90,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
         { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } },
         { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } },
       ],
-      routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
+      routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge-fluviale', 'pied'], river: true, inns: true, perilDie: 0 }],
     };
     const quai = (id: string) => buildScene({ id, label: id, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
     seedBattleRng(7);
@@ -101,7 +101,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], flags: {}, scheduledEffects: [] });
     creditBourse(get, set, gunnar.id, { gold: 500, silver: 0, brass: 0 });
     const t0 = armeLEcheance();
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
+    get().partirEnVoyage('r-reik', 'barge-fluviale', { cadence: 'jourParJour' });
     const exposes = draineEtapes(get, 80, (etape) => (etape.kind === 'contagion' ? 1 : undefined))
       .filter((etape) => etape.kind === 'contagion').flatMap((etape) => etape.participants!.map((r) => r.id));
     attendQueLEcheanceTire(t0);

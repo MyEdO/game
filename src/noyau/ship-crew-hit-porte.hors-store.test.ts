@@ -72,10 +72,10 @@ function baseState(party: Combatant[]): void {
 /** Voyage FLUVIAL minimal : une barge, l'équipage à bord, le vent posé. */
 function fleuve(party: Combatant[]): void {
   baseState(party);
-  const coque = vehicleCombatant(findVehicleById('barge')!)!;
+  const coque = vehicleCombatant(findVehicleById('barge-fluviale')!)!;
   set({
     travelPlan: {
-      routeId: 'r1', km: 45, mode: 'barge', vehicle: coque,
+      routeId: 'r1', km: 45, mode: 'barge-fluviale', vehicle: coque,
       river: { windForce: 'modere', windDir: 'cote', daysAfloat: 1 },
     },
   } as never);

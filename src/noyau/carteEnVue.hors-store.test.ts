@@ -35,6 +35,6 @@ describe('le départ d’un trajet (`trajetsDepuis`) : un geste par mode, sans c
   it('au fleuve', () => {
     const fleuve = fluvial.construire(idsDeTest).worldMap!;
     const descente = fleuve.routes.find((r) => r.river)!;
-    expect(departs(fleuve, descente.id, descente.a.id).find((g) => g.args[1] === 'barge'), 'la barge').toEqual(partir(descente.id, 'barge'));
+    expect(departs(fleuve, descente.id, descente.a.id).find((g) => g.args[1] === 'barge-fluviale'), 'la barge').toEqual(partir(descente.id, 'barge-fluviale'));
   });
 });

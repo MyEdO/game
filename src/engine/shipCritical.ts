@@ -19,11 +19,12 @@ import { findTableEntry } from './tables';
 import { applyOps, type GameOp } from './ops';
 import { shipHitLocation, type ShipRig, type ShipLocation } from './combat';
 import { poserEnjeu, type FlowTestNode } from './flowCore';
-import { categorieDeLaNiche, combatStakeRef, findShipStation, type StakeRef } from '../data';
+import { categorieDeLaNiche, combatStakeRef, findShipStation, findVehicleById, type StakeRef } from '../data';
 import { suiteAvecPas } from '../data/schemas/grammaire/cle-d-espace';
 import { hullNavalTraits, shipHasNavalTrait } from './navalTraits';
 import type { Combatant, NavalTraitRef } from './types';
-import { SHIP_CRIT_SET, shipCritSet, type ShipCritSet, type ShipCritKey, type ShipCrewHit, type CrewTarget } from '../data/shipCriticals';
+import { milieuNavalDeclare, type CoqueAvecContexteNaval, type ContexteDeTrajetNaval } from './coque';
+import { RIVER_CRIT_SET, SHIP_CRIT_SET, shipCritSet, type ShipCritSet, type ShipCritKey, type ShipCrewHit, type CrewTarget } from '../data/shipCriticals';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 
@@ -43,6 +44,18 @@ export const shipLocationLabel = (loc: ShipLocation): PlayerText => t(SHIP_LOC_K
 /** Réfs de tables data-driven d'une coque (MDG naval par défaut / MSRC fluvial) — `hull.locationTable` (colonne
  *  de Localisation) + `hull.criticalTable` (jeu de Critiques). Absentes → jeu naval MDG (comportement historique). */
 export interface HullCritOpts { locationTable?: string | null; criticalTable?: string | null }
+
+/** MSRC 07 l.48–58, l.72–94 ; MDG 13 l.571–582, l.656–664. */
+export function optsDeCritiqueDeCoque(
+  coque: CoqueAvecContexteNaval,
+  trajet?: ContexteDeTrajetNaval,
+): HullCritOpts {
+  const milieu = milieuNavalDeclare(coque, trajet);
+  if (milieu === 'fluvial') return { locationTable: 'navire-fluvial', criticalTable: RIVER_CRIT_SET.id };
+  if (milieu === 'maritime') return {};
+  const coqueDeCatalogue = findVehicleById(coque.creatureId ?? '')?.hull;
+  return { locationTable: coqueDeCatalogue?.locationTable, criticalTable: coqueDeCatalogue?.criticalTable };
+}
 
 /** Catégorie Codex EXACTE d'une rangée de Critique de coque, par jeu × Localisation : celle de la niche
  *  `tables.<Localisation>` du fichier du jeu (`categorieDeLaNiche`) — jumelle de `critEntryCodexCategory`

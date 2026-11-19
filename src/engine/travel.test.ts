@@ -58,7 +58,7 @@ describe('vitesse de voyage (LDB 51 l.193 : Déplacement = km/h, le plus lent du
   });
   it('diligence M6 / barge M8 (l.210-215), override modèle rapide (M+1, l.208)', () => {
     expect(travelSpeed([hero()], [], 'diligence')).toBe(6);
-    expect(travelSpeed([hero()], [], 'barge')).toBe(8);
+    expect(travelSpeed([hero()], [], 'barge-fluviale')).toBe(8);
     expect(travelSpeed([hero()], [], 'diligence', 7)).toBe(7);
   });
 });
@@ -93,8 +93,8 @@ describe('transportCost — billet implicite (LDB 51 l.178 : prix par km par pas
   });
   it('diligence Extérieur 1 sou/km ; barge Cabine 5 / Pont 2', () => {
     expect(toBrass(transportCost(implicite(10, 'diligence'), 'exterieur', 1))).toBe(10);
-    expect(toBrass(transportCost(implicite(10, 'barge'), 'cabine', 1))).toBe(50);
-    expect(toBrass(transportCost(implicite(10, 'barge'), 'pont', 1))).toBe(20);
+    expect(toBrass(transportCost(implicite(10, 'barge-fluviale'), 'cabine', 1))).toBe(50);
+    expect(toBrass(transportCost(implicite(10, 'barge-fluviale'), 'pont', 1))).toBe(20);
   });
   it('km fractionnaires arrondis au sou supérieur', () => {
     expect(toBrass(transportCost(implicite(2.5, 'diligence'), 'exterieur', 1))).toBe(3);
@@ -155,7 +155,7 @@ describe('défauts RAW', () => {
     expect(TRAVEL_DEFAULTS.hoursPerDay).toBe(6);
     expect(TRAVEL_DEFAULTS.perilDie).toBe(8);
     expect(vehicleTravel('diligence')!.movement).toBe(6);
-    expect(vehicleTravel('barge')!.movement).toBe(8);
+    expect(vehicleTravel('barge-fluviale')!.movement).toBe(8);
   });
 });
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildShip, shipSizeOfLength, installCost, rollPortRepair,
-  steamBreakdownFor, steamBreakdownTriggered,
+  propulsionDuNavire, steamBreakdownFor, steamBreakdownTriggered,
 } from './shipBuild';
 import { findNavalTrait } from '../data';
 import type { RNG } from './dice';
@@ -57,6 +57,29 @@ describe('buildShip — CONSTRUIRE UN NAVIRE en 4 étapes (MDG 12 l.108-164)', (
     expect(war.costGold).toBe(700); // 500 × (1 + 0,2 + 0,2)
     const cheap = buildShip({ size: 'petite', primary: 'voile', traits: [{ id: 'peu-maniable', level: 3 }] });
     expect(cheap.costGold).toBe(140); // 200 × 0,7
+  });
+});
+
+describe('propulsionDuNavire — gabarits fluvial et maritime', () => {
+  // MSRC 07 l.174, l.176 ; MDG 12 l.87, l.89
+  it.each([
+    ['barque-fluviale', 'avirons', 4],
+    ['barge-fluviale', 'voile', 8],
+    ['barge-fluviale', 'avirons', 8],
+  ] as const)('%s aux %s conserve son mode et prend le Mouvement du milieu', (id, mode, mouvementFluvial) => {
+    expect(propulsionDuNavire(id, undefined, 'fluvial', mode)).toMatchObject({ mode, m: mouvementFluvial });
+    expect(propulsionDuNavire(id, undefined, 'maritime', mode)).toMatchObject({ mode, m: 3 });
+  });
+
+  // MSRC 12 l.255 ; MDG 12 l.311
+  it('la vapeur utilise le Mouvement fluvial du gabarit et le M4 maritime', () => {
+    const upgrades = [{ id: 'propulsion-a-vapeur' }];
+    expect(propulsionDuNavire('barge-fluviale', upgrades, 'fluvial')).toMatchObject({ mode: 'vapeur', m: 8 });
+    expect(propulsionDuNavire('barge-fluviale', upgrades, 'maritime')).toMatchObject({ mode: 'vapeur', m: 4 });
+  });
+
+  it('une coque sans gabarit fluvial garde le Mouvement de son gréement', () => {
+    expect(propulsionDuNavire('cogue', undefined, 'fluvial')).toMatchObject({ mode: 'voile', m: 5 });
   });
 });
 

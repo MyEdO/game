@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
 import { useOwns } from './ownership';
 import { maneuverCrewTotal, deriveManeuverFromCrew } from '../noyau/shipManeuver';
-import { milieuDuVoyage } from '../engine/shipBuild';
+import { milieuDeLaCoque } from '../engine/coque';
 import { RollShell, type RollAction } from './RollShell';
 import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
@@ -40,11 +40,12 @@ export function ShipManeuverModal() {
   const force = useGesteDeJet('jetForcerLaReussite', 'manoeuvreDuNavire');
   const confirm = useGesteDeJet('jetValider', 'manoeuvreDuNavire');
   const cancel = useGesteDeJet('jetAnnuler', 'manoeuvreDuNavire');
-  const milieu = useGame((s) => milieuDuVoyage(s.travelPlan));
+  const travelPlan = useGame((s) => s.travelPlan);
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);
   if (!ship) return null;
 
+  const milieu = milieuDeLaCoque(ship, travelPlan);
   const allRolled = p.participants.every((x) => x.result);
   const rollAll = rollAllUnrolledRows(p.participants, roll, (x) => !!x.interactive && owns(x.id));
   const total = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR);

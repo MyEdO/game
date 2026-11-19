@@ -30,8 +30,8 @@ import { reparationTemporaireApresLaManoeuvre } from './seaVoyageFlow';
 import { t } from '../i18n';
 import { refuserGeste } from './refusVisible';
 import { findCrewRoleById, type CrewRoleData } from '../data';
-import { profilNavalDe, estNavire } from '../engine/coque';
-import { propulsionDuNavire, milieuDuVoyage, type MilieuDeNavigation } from '../engine/shipBuild';
+import { profilNavalDe, estNavire, milieuDeLaCoque } from '../engine/coque';
+import { propulsionDuNavire, type MilieuDeNavigation } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { RNG } from '../engine/dice';
 import type { Combatant, Difficulty } from '../engine/types';
@@ -228,7 +228,7 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const battle = get().battle;
   const ship = inBattleId(battle, shipId);
   if (!battle || !ship) return null;
-  const params = shipManeuverParams(ship, milieuDuVoyage(get().travelPlan));
+  const params = shipManeuverParams(ship, milieuDeLaCoque(ship, get().travelPlan));
   const crew = (ship.crewIds ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c);
@@ -320,7 +320,9 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
         const opp = rotateDir8(dir, 4);
         const vf = facing[victim.id];
         const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
-        for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }, battleRng(), get().forgerUnId).lines) get().ecrireAuJournal(line);
+        const milieu = milieuDeLaCoque(hull, get().travelPlan);
+        const retour = applyShipCollision(hull, victim, milieu, { ramProue: true, frontal }, battleRng(), get().forgerUnId);
+        for (const line of retour.lines) get().ecrireAuJournal(line);
       }
       if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
       return moved;
