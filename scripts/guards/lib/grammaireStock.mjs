@@ -42,10 +42,6 @@ const e = (raison, lot) => ({ raison, lot, date: DATE });
 
 export const GRAMMAIRE_STOCK = {
   // ── Graphies historiques de COMPÉTENCE (`skill`, `skillId`) ──────────────────────────────────
-  // #1467 L1b V-FLIP-ENTITE-b : la ligne REVIT sous le binding `doc` — l'adoption de `document()`
-  // l'avait fait sortir du scan (l'argument `champs` n'était pas visité), pas de la déclaration.
-  // Le champ `skill` est toujours là, la donnée n'a pas bougé.
-  'src/data/schemas/defs/miscast.ts:jsonOpSchema|alias|skill': e('Op de maléfice portant un test par `skill` (non migré).', L2),
   // AUCUNE entrée pour les graphies portées par `src/data/schemas/grammaire/` : ce module n'est scanné
   // que pour `.extend` (`PERIMETRE_FABRIQUES`, `sansRedeclaration`), ses littéraux ÉTANT le canon. La
   // liste nominative de ces graphies et son cardinal sont tenus par le test « les graphies de la
@@ -58,7 +54,6 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs/river-perils.ts:doc.perils|alias|ref': e('Péril fluvial désignant son entité (créature/structure) par une enveloppe `ref`.', L3),
   'src/data/schemas/defs-scenes/scene.ts:authoredShipPosteSchema|alias|trappingId': e('Poste d’artillerie désignant sa pièce par `trappingId`, graphie persistée (scènes, `hydratePoste`) sortie de son `z.custom` (#3606 M1f).', L3),
   'src/data/schemas/defs-scenes/effets.ts:giveTrappingSchema|alias|trappingId': e('Effet `giveTrapping` désignant l’objet donné par `trappingId` (migration de LIBELLÉ soldée en T3-b, la graphie reste).', L3),
-  'src/data/schemas/defs-scenes/effets.ts:pursuitFoeSchema|alias|ref': e('Adversaire de Poursuite désignant sa fiche (bête ou statbloc) par l’enveloppe `ref` — la MÊME `livingRefSchema` que `givePossession`.', L3),
   'src/data/schemas/defs-scenes/effets.ts:givePossessionSchema|alias|ref': e('Effet `givePossession` désignant la possession par une enveloppe `ref`.', L3),
   'src/data/schemas/defs-scenes/worldmap.ts:portProfileSchema|alias|ref': e('Profil de port désignant son entité par une enveloppe `ref`.', L3),
 

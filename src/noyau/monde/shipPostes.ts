@@ -11,11 +11,11 @@ import { hasWeaponGroupSkill } from '../../engine/combat';
 import { exposedCrew } from '../../engine/shipCritical';
 import { canTakeAction, isOutOfAction } from '../../engine/conditions';
 import { aRecharger } from '../../engine/weaponLoad';
-import { combatDistance, footprintN, footprintTiles } from './footprint';
+import { distanceDeContact, footprintN, footprintTiles } from './footprint';
 import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from '../../geometry/dir8';
-import { isWalkable, tileAt, type Scene } from './scene';
+import { dansLaZoneJouable, isWalkable, tileAt, type Scene } from './scene';
 import { pointDeCase, tileKey } from './path';
-import { estAbsent, terrainHorsGrille } from './terrain';
+import { estAbsent } from './terrain';
 import { casesTenues, findFreeTile } from './combatGeometry';
 import { placeCombatant } from './spawn';
 import type { Combatant, ShipPoste, FireArc, Weapon } from '../../engine/types';
@@ -50,31 +50,39 @@ export function placementPenalty(mounts: MountWeight[], capacity: number): Place
   return { m: 0, man: 0, navDR: 0 };
 }
 
-/** Translate une FORMATION RIGIDE du MÊME `delta` : la coque, puis chaque membre positionné de `crewIds` (ADE II 8
- *  l.258 ; MDG 13), posé par `placeCombatant` à son étage. Les postes, sans position, suivent la coque. La
- *  translation est ENTIÈRE ou refusée : `null`, sans rien déplacer, si l'empreinte d'arrivée d'un membre sort de
- *  la scène (`tileAt` hors grille ou absente) ou couvre une case tenue par un combattant hors formation
- *  (`casesTenues`). La poussée d'un engin (`targetingModes`), l'avance d'un navire
- *  (`shipManeuver`) et l'outillage de recette l'appellent. Rend chaque déplacé avec sa case de départ. */
-export function translaterFormation(combatants: Combatant[], scene: Scene | null | undefined, coque: Combatant, crewIds: Iterable<string>, delta: Pt): { mobile: Combatant; depart: NonNullable<Combatant['pos']> }[] | null {
+type TranslationDeFormation = { mobile: Combatant; depart: NonNullable<Combatant['pos']>; arrivee: ReturnType<typeof pointDeCase> };
+
+/** ADE II 08 l.258 ; MDG 13. */
+export function planifierTranslationFormation(combatants: Combatant[], scene: Scene | null | undefined, coque: Combatant, crewIds: Iterable<string>): (delta: Pt) => TranslationDeFormation[] | null {
   const equipage = [...new Set(crewIds)].filter((id) => id !== coque.id);
   const mobiles = [coque, ...equipage.map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c)]
     .filter((c): c is Combatant & { pos: NonNullable<Combatant['pos']> } => !!c.pos);
   const ids = new Set(mobiles.map((m) => m.id));
   const prises = casesTenues(combatants, (c) => !ids.has(c.id));
-  const arrivee = (m: (typeof mobiles)[number]) => pointDeCase(m.pos.x + delta.x, m.pos.y + delta.y, m.pos.z ?? 0);
   const caseValide = (x: number, y: number, z: number) => {
     if (prises.has(tileKey(x, y, z))) return false;
     if (!scene) return true;
-    const terrain = tileAt(scene, x, y, z);
-    return terrain !== terrainHorsGrille() && !estAbsent(terrain);
+    return dansLaZoneJouable(scene, x, y) && !estAbsent(tileAt(scene, x, y, z));
   };
-  if (!mobiles.every((m) => { const a = arrivee(m); return footprintTiles(a, footprintN(m)).every((t) => caseValide(t.x, t.y, a.z ?? 0)); })) return null;
-  return mobiles.map((mobile) => {
-    const depart = { ...mobile.pos };
-    placeCombatant(mobile, scene, arrivee(mobile));
+  return (delta) => {
+    const translation = mobiles.map((mobile) => ({
+      mobile,
+      depart: { ...mobile.pos },
+      arrivee: pointDeCase(mobile.pos.x + delta.x, mobile.pos.y + delta.y, mobile.pos.z ?? 0),
+    }));
+    return translation.every(({ mobile, arrivee }) =>
+      footprintTiles(arrivee, footprintN(mobile)).every(({ x, y }) => caseValide(x, y, arrivee.z ?? 0)),
+    ) ? translation : null;
+  };
+}
+
+/** Applique une translation de toute la formation ou rend null si une arrivée est interdite. */
+export function translaterFormation(combatants: Combatant[], scene: Scene | null | undefined, coque: Combatant, crewIds: Iterable<string>, delta: Pt): { mobile: Combatant; depart: NonNullable<Combatant['pos']> }[] | null {
+  const translation = planifierTranslationFormation(combatants, scene, coque, crewIds)(delta);
+  return translation?.map(({ mobile, depart, arrivee }) => {
+    placeCombatant(mobile, scene, arrivee);
     return { mobile, depart };
-  });
+  }) ?? null;
 }
 
 /** Le Combattant-coque dont l'équipage (`crewIds`) inclut `crewId`, parmi `combatants` — le SUPPORT naval du
@@ -398,11 +406,11 @@ export function rechargeDuTour(
  *  d'équipe : on peut être plusieurs à servir) — `serveAtPoste` décide ensuite chef-vs-support. KIND-AGNOSTIQUE
  *  (héros/PNJ/ennemi) — SOURCE UNIQUE de la disponibilité « Servir cette pièce », consommée par l'affordance
  *  JOUEUR ET l'énumération IA. PUR. */
-export function servablePostes(actor: Combatant, combatants: Combatant[]): { hull: Combatant; poste: ShipPoste }[] {
+export function servablePostes(scene: Scene | null, actor: Combatant, combatants: Combatant[]): { hull: Combatant; poste: ShipPoste }[] {
   if (!actor.pos || isOutOfAction(actor)) return [];
   const out: { hull: Combatant; poste: ShipPoste }[] = [];
   for (const hull of combatants) {
-    if (!hull.postes?.length || !hull.pos || combatDistance(actor, hull) > 1) continue;
+    if (!hull.postes?.length || !hull.pos || distanceDeContact(scene, actor, hull) > 1) continue;
     for (const poste of hull.postes) if (!(poste.crewIds ?? []).includes(actor.id)) out.push({ hull, poste });
   }
   return out;
@@ -412,9 +420,9 @@ export function servablePostes(actor: Combatant, combatants: Combatant[]): { hul
  *  1er poste servable de `hull` pour `actor`. `undefined` si `actor` sert déjà une pièce (parité hotbar
  *  `!mannedPoste`) ou si `hull` n'offre aucun poste servable. SOURCE UNIQUE consommée par l'affordance de
  *  survol, le commit de clic et le tooltip d'équipe. PUR. */
-export function serveTargetPoste(actor: Combatant, hull: Combatant, combatants: Combatant[]): ShipPoste | undefined {
+export function serveTargetPoste(scene: Scene | null, actor: Combatant, hull: Combatant, combatants: Combatant[]): ShipPoste | undefined {
   if (actor.mannedPoste) return undefined;
-  return servablePostes(actor, combatants).find((sp) => sp.hull.id === hull.id)?.poste;
+  return servablePostes(scene, actor, combatants).find((sp) => sp.hull.id === hull.id)?.poste;
 }
 
 /**

@@ -1,0 +1,13 @@
+{
+  "model": "decor--etabli-2x1.glb",
+  "model_sha256": "0432326263062b30d9dfafa82cae527aecbdc21cc09b68ebc622b502ecb5f4a7",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

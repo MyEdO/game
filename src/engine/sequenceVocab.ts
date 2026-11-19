@@ -7,6 +7,7 @@
  */
 import type { CharKey, Difficulty } from './types';
 import type { GameOp } from './ops';
+import type { DiceSpec } from './dice';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { JetFixe } from './flowCore';
 
@@ -88,7 +89,7 @@ export interface SequencePotRow {
 /** RÈGLES DE POT d'une séquence, en donnée. */
 export interface SequencePotRules {
   /** Le dé d'un tour, lu par `deDeLaTableTiree` (`src/engine/tables.ts`). */
-  die: string;
+  die: DiceSpec;
   /** Plage dans laquelle se choisit le NOMBRE CIBLE, quand la séquence en joue un. Absente : aucune
    *  cible n'est annoncée, et les effets qui la lisent ne se déclarent pas. */
   targetRange?: { min: number; max: number };

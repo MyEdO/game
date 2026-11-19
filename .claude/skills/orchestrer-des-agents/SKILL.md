@@ -18,7 +18,7 @@ l'annexe au moment de son déclencheur.
 |---|---|
 | Étape 7 : commit, push, fusion de `main`, `ops:publier`, suite en fond ; avant tout `checkout`/`restore`/`reset`/`stash` ; avant de lancer un outil `scripts/ops/` qu'un agent édite | `.claude/skills/orchestrer-des-agents/publication.md` |
 | Étape 8 : fermer un ticket ou une phase, annoncer une vague ; écrire un ticket sur un socle | `.claude/skills/orchestrer-des-agents/fermeture.md` |
-| Lancer, briefer, surveiller ou fermer une session Claude ou Codex ; lire son rendu, committer son diff | skill `orchestrer-des-sessions` |
+| Lancer, briefer, surveiller ou fermer une session et vérifier sa livraison | skill `orchestrer-des-sessions` |
 | Choisir le type, le modèle et l'effort d'un agent ou d'un `agent()` ; un codeur ou un workflow multi-agents | `.claude/skills/orchestrer-des-agents/calibrage.md` |
 | Agents rendus, composer le prochain lot, remonter ou non un sujet à l'utilisateur, défaut dans un autre chantier, plan approuvé à déclarer fini, frictions, validation utilisateur en attente, épique, métriques | `.claude/skills/orchestrer-des-agents/regime-de-vague.md` |
 | Question, `AskUserQuestion`, réponse ou retour de l'utilisateur, demande de permission d'outil qui l'atteint | `.claude/skills/orchestrer-des-agents/repondre-a-l-utilisateur.md` |
@@ -40,7 +40,7 @@ l'annexe au moment de son déclencheur.
 - **Il tient dans son BUDGET** (`BUDGET_DU_SUIVI`) : un lot qui le dépasse ET grossit est refusé avec ses
   gestes de condensation.
 - **Chaque lecture le CONFRONTE à la mesure** (`confronter`) : le lecteur ne mesure jamais, il demande
-  `aMesurer` (mod `harnais` ; Codex : `--mesurer` à la main). Chaque anomalie se corrige, ou, ACCEPTÉE,
+  `aMesurer` au mod `harnais` quand il est chargé et lance `--mesurer` autrement. Chaque anomalie se corrige, ou, ACCEPTÉE,
   se tait par `--ignorer-anomalie <genre> <clé> <motif>`.
 - **Un ticket prévu = un item** (`--ajouter-item`, ou `--enfiler` puis `--demarrer`), d'état `actif |
   attente | gare | clos` ; ses étapes (`--ajouter-etape`, `--cocher <ticket>.<n>`) s'écrivent AU FIL DE

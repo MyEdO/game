@@ -1,6 +1,6 @@
 *Pages PDF 259-267*
 
-# **MAGIE DU CHAOS**
+# <span id="page-258-0" data-folio="257"></span>**MAGIE DU CHAOS**
 
 Trois des quatre Grandes Puissances du Chaos possèdent un Domaine de Magie unique — seul Khorne, le dieu du Sang, qui exècre la Magie et tout ce qui s'y rapporte, ne possède pas de Domaine. Vous trouverez ici un Sort pour chacun de ces Domaines du Chaos, afin de pouvoir apporter de la consistance à vos cultistes du Chaos et les ajouter aux Sorts d'Arcane et du Domaine de Démonologie.
 
@@ -246,4 +246,4 @@ Récompenser les Joueurs par des Points de Destin ou de Résilience est égaleme
 | Performance    | Récompense en PX | Performance    | Récompense en PX | Performance     | Récompense en PX |
 | Insuffisante   | 75               | Insuffisante   | 100              | Insuffisante    | 150              |
 | Bonne          | 100              | Bonne          | 150              | Bonne           | 200              |
-| Exceptionnelle | 125              | Exceptionnelle | 200              | Exceptionnelle  | 250              |
+| Exceptionnelle | 125              | Exceptionnelle | 200              | Exceptionnelle  | 250              |<span id="page-266-0" data-folio="265"></span>

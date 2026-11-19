@@ -6,14 +6,27 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, installerLAmelioration, portCareenVessel, portRepairVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
+import {
+  applyVesselCritical,
+  buildSeaPlan,
+  continueSeaDayAfterCascade,
+  finalizePortArrivalTo,
+  installerLAmelioration,
+  portCareenVessel,
+  portRepairVessel,
+  runSeaDay,
+  vesselManann,
+} from './seaVoyageFlow';
 import { rollPortRepair } from '../engine/shipBuild';
 import { REPARATION } from '../engine/seaNavigation';
 import { findVehicleById } from '../data';
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG, rollDice, type RNG } from '../engine/dice';
 import { imposerLesD100 } from './battleRng.testkit';
-import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { WORLD_STEP_OWNER } from './pendings';
+import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
+import { testScene } from '../scenes/test-fixture';
+import { avanceEtapeCascade, draineCascade, membresHorsDifficulte } from './cascade.testkit';
 import { acheterAuMarche } from './cargaison.testkit';
 import { applierDe } from './cascade';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
@@ -25,9 +38,10 @@ import { setDataset, resetData } from '../data/overrides';
 import { BOARD_EVENTS, FAST_VOYAGE_PALIERS, PORT_EVENTS } from '../engine/seaVoyage';
 import { lierLesTirages, tiragesDuFlow, type Flow } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
-import type { Combatant } from '../engine/types';
+import type { Combatant, Difficulty } from '../engine/types';
 import { itemFromTrappingById } from '../engine/items';
 import { shipboardSouls } from './shipCrew';
+import { PORT_A_CHANTIER } from '../data/navalPorts.testkit';
 import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import { applyOps, nomDeSource, type GameOp } from '../engine/ops';
@@ -37,10 +51,12 @@ import { formatMoney, fromBrass, toBrass } from '../engine/money';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { checkBattleOver } from './combatFlow';
 import { humanizeFlow } from './codex/humanize';
-import { currentPort, devisDAchatEnPort, ouvrirLePort, vivresAchetables } from './portFlow';
+import { currentPort, devisDAchatEnPort, ouvrirLePort, recruterLEquipage, rolesRecrutables, vivresAchetables } from './portFlow';
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
-import type { VivresDeCale } from '../engine/provisions';
+import type { QuantitesDeVivres } from '../engine/provisions';
+import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { setVesselSchema, adjustVesselSchema } from '../data/schemas/defs-scenes/effets';
+import { chargerLaSave, snapshotSave } from './persistance/save';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -63,12 +79,13 @@ function etatFrais(): void {
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: carte, lieu: 'A', travelPlan: null, pendingCascade: null, suspendedCascades: [],
     flags: {}, journal: [],
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   });
 }
 
 const FRAIS = 'nourriture-courses-journee', PRESERVEE = 'ration-nourriture-preservee', BISCUITS = 'ration-biscuits-de-mer';
-const vivres = (v: Record<string, number>) => v as VivresDeCale;
+const vivres = (v: Record<string, number>) => lotsDeCale(v, get().gameTime);
+const commande = (v: Record<string, number>) => v as QuantitesDeVivres;
 
 const drapeau = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag, value: true } as Effect as never });
 
@@ -227,16 +244,19 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
     expect(get().vessel!.criticals).toHaveLength(3);
   });
 
-  it('Ouragan : la difficulté Difficile (–20) descend au Test d’équipage en −2 DR plats (l.144 ; MDG 14 l.13)', () => {
+  it('Ouragan : chaque membre jette son Test individuel Difficile (–20), aucun DR plat sur le total (l.144 ; MDG 14 l.13)', () => {
     const ouragan = BOARD_EVENTS.find((e) => e.id === 'ouragan')!.consequence as Extract<Flow, { kind: 'test' }>;
     expect(ouragan.test).toMatchObject({ crewTestType: 'affaler', difficulty: 'difficile' });
-    const drPlats = (difficulty: string): number => {
+    const testDEquipage = (difficulty: Difficulty) => {
       etatFrais();
       consequenceDeBord('ouragan', { ...ouragan, test: { ...ouragan.test, difficulty } } as Flow);
       jour('ouragan');
-      return Number(etape('testDEquipage')?.meta?.aggregateFlatDR ?? 0);
+      return etape('testDEquipage')!;
     };
-    expect(drPlats('difficile')).toBe(drPlats('intermediaire') - 2);
+    const intermediaire = testDEquipage('intermediaire');
+    const difficile = testDEquipage('difficile');
+    expect(membresHorsDifficulte(difficile, 'difficile')).toEqual([]);
+    expect(difficile.meta?.aggregateFlatDR).toBe(intermediaire.meta?.aggregateFlatDR);
   });
 
   it('Ouragan : l’équipage affale à temps, aucun Coup Critique (l.144-145)', () => {
@@ -273,7 +293,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   });
 
   it('le carénage lève les modificateurs « jusqu’au carénage », pas les autres (l.185)', () => {
-    set({ vessel: { ...get().vessel!, modificateurs: [{ label: 'Crabes', m: -1, manDR: -1, jusqua: 'carenage' }, { label: 'Détour', m: -2, jusqua: ilYA(1) }] } });
+    set({ vessel: { ...get().vessel!, escale: 'A', modificateurs: [{ label: 'Crabes', m: -1, manDR: -1, jusqua: 'carenage' }, { label: 'Détour', m: -2, jusqua: ilYA(1) }] } });
     creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
     portCareenVessel(get, set);
     expect(get().vessel!.modificateurs).toEqual([expect.objectContaining({ label: 'Détour' })]);
@@ -291,9 +311,9 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   });
 
   it('Calme plat : la météo imposée tient au lendemain, puis expire (l.189)', () => {
-    consequenceDeBord('calme-plat', surLeNavire([{ op: 'meteoImposee', jours: 3, meteo: { vent: 'calme-plat' } }]));
+    consequenceDeBord('calme-plat', surLeNavire([{ op: 'meteoImposee', jours: 3, meteo: { vent: { id: 'calme-plat' } } }]));
     jour('calme-plat');
-    expect(get().vessel!.meteosImposees).toEqual([expect.objectContaining({ jusqua: ilYA(3), meteo: { vent: 'calme-plat' } })]);
+    expect(get().vessel!.meteosImposees).toEqual([expect.objectContaining({ jusqua: ilYA(3), meteo: { vent: { id: 'calme-plat' } } })]);
     draineCascade(get);
     expect(get().travelPlan!.sea!.weather.vent).toBe('calme-plat');
   });
@@ -301,7 +321,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   it('une météo imposée au navire tient dès l’appareillage, et pas au-delà de son échéance', () => {
     const vent = (jusqua: number) => {
       etatFrais();
-      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Calme plat', jusqua, meteo: { vent: 'calme-plat' } }] } });
+      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Calme plat', jusqua, meteo: { vent: { id: 'calme-plat' } } }] } });
       return buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!.sea!.weather.vent;
     };
     expect(vent(ilYA(2))).toBe('calme-plat');
@@ -311,7 +331,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   it('Tempête : chaque matin, 1d10 ≥ 8 aggrave en Violente tempête (l.248)', () => {
     const vent = (de: number) => {
       etatFrais();
-      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Tempête', jusqua: ilYA(2), meteo: { vent: 'vent-violent' }, aggravation: { de, seuil: 8, meteo: { vent: 'violente-tempete' } } }] } });
+      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Tempête', jusqua: ilYA(2), meteo: { vent: { id: 'vent-violent' } }, aggravation: { de, seuil: 8, meteo: { vent: { id: 'violente-tempete' } } } }] } });
       return buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!.sea!.weather.vent;
     };
     expect(vent(8)).toBe('violente-tempete');
@@ -414,7 +434,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
       vessel: { ...get().vessel!, provisions: vivres({ [FRAIS]: 41, [PRESERVEE]: 7, [BISCUITS]: 1 }) },
     });
     applyEffects(get, set, [surLeNavire([{ op: 'provisions', gateesPct: 50 }])]);
-    expect(get().vessel!.provisions).toEqual({ [FRAIS]: 21, [PRESERVEE]: 4, [BISCUITS]: 1 });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [FRAIS]: 21, [PRESERVEE]: 4, [BISCUITS]: 1 });
     expect(get().party.map(rations)).toEqual([2, 2, 0]);
   });
 
@@ -431,7 +451,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     const equipage = shipboardSouls(get()).crew;
     expect(equipage).toBeGreaterThan(0);
     applyEffects(get, set, [surLeNavire([{ op: 'provisions', jours: 3, vivre: { id: FRAIS } }])]);
-    expect(get().vessel!.provisions).toEqual({ [PRESERVEE]: 5, [FRAIS]: 3 * equipage });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [PRESERVEE]: 5, [FRAIS]: 3 * equipage });
   });
 
   it('manne de Manann jouée en mer : des vivres frais entrent en cale et le Moral monte (l.235-236)', () => {
@@ -487,16 +507,47 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
       { type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 40 } as never,
       { type: 'ops', on: 'navire', ops: [{ op: 'provisions', rations: 12, vivre: { id: FRAIS } }] } as never,
     ]);
-    expect(get().vessel!.provisions).toEqual({ [BISCUITS]: 40, [FRAIS]: 12 });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 40, [FRAIS]: 12 });
     applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 3 } as never]);
-    expect(get().vessel!.provisions).toEqual({ [BISCUITS]: 40, [FRAIS]: 3 });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 40, [FRAIS]: 3 });
     expect(get().journal).toContain(t('eff.navireModifie', { parts: t('eff.navireProvisions', { n: 43 }) }));
+  });
+
+  it('setVessel au lieu portuaire du groupe pose le navire à quai : l’embauche y est acceptée (MDG 15 l.129)', () => {
+    set({ vessel: null, lieu: 'B' });
+    applyEffects(get, set, [{ type: 'setVessel', vehicleId: 'cogue' } as never]);
+    expect(get().vessel!.escale).toBe('B');
+    const role = rolesRecrutables()[0]!.id;
+    recruterLEquipage(get, set, role);
+    expect(get().vessel!.crew).toEqual([{ roleId: role, count: 1 }]);
+  });
+
+  it('setVessel hors d’un lieu portuaire pose le navire hors de tout quai (MDG 15 l.129)', () => {
+    set({ vessel: null, lieu: 'A' });
+    applyEffects(get, set, [{ type: 'setVessel', vehicleId: 'cogue' } as never]);
+    expect(get().vessel).not.toHaveProperty('escale');
+  });
+
+  it('la pénurie gâte chaque vivre du lot le plus vieux au plus jeune (MDG 15 l.169-170)', () => {
+    const now = get().gameTime;
+    set({ vessel: { ...get().vessel!, provisions: [{ vivre: FRAIS, entre: now, rations: 10 }, { vivre: FRAIS, entre: now - 2 * MINUTES_PER_DAY, rations: 10 }] } });
+    applyEffects(get, set, [surLeNavire([{ op: 'provisions', gateesPct: 50 }])]);
+    expect(get().vessel!.provisions).toEqual([{ vivre: FRAIS, entre: now, rations: 10 }]);
+  });
+
+  it('adjustVessel embarque l’écart daté de maintenant, sans rajeunir le vieux frais, et retire du plus vieux au plus jeune (MDG 14 l.238)', () => {
+    const now = get().gameTime, vieux = now - 2 * MINUTES_PER_DAY;
+    set({ vessel: { ...get().vessel!, provisions: [{ vivre: FRAIS, entre: vieux, rations: 10 }] } });
+    applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 15 } as never]);
+    expect(get().vessel!.provisions).toEqual([{ vivre: FRAIS, entre: vieux, rations: 10 }, { vivre: FRAIS, entre: now, rations: 5 }]);
+    applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 4 } as never]);
+    expect(get().vessel!.provisions).toEqual([{ vivre: FRAIS, entre: now, rations: 4 }]);
   });
 
   it('adjustVessel sur une cale non suivie active le suivi du vivre nommé', () => {
     expect(get().vessel!.provisions).toBeUndefined();
     applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: PRESERVEE }, provisions: 8 } as never]);
-    expect(get().vessel!.provisions).toEqual({ [PRESERVEE]: 8 });
+    expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [PRESERVEE]: 8 });
   });
 
   it('manne de Manann sans vivres d’équipage suivis : le journal le dit, le Moral monte quand même', () => {
@@ -541,9 +592,16 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
   });
 
   it('un recueilli ne dépasse pas l’effectif nominal, et le journal le dit', () => {
-    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 1 }])]);
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 1, role: { id: 'navigateur' }, sansSolde: 'jusquAuPort' }])]);
     expect(get().vessel!.crewLost ?? 0).toBe(0);
+    expect(get().vessel!.recueillisSansSolde).toBeUndefined();
     expect(get().journal).toContain(t('eff.equipageComplet'));
+  });
+
+  it('recueil multiple : le registre reçoit seulement les marins qui ont pu embarquer', () => {
+    perdus(1);
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 3, role: { id: 'navigateur' }, sansSolde: 'jusquAuPort' }])]);
+    expect(get().vessel).toMatchObject({ crewLost: 0, recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }] });
   });
 
   it('une perte d’équipage retire des marins à l’effectif', () => {
@@ -551,11 +609,20 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
     expect(get().vessel!.crewLost).toBe(2);
   });
 
+  it('la perte des derniers marins vide les deux registres et annule la solde', () => {
+    set({ vessel: { ...get().vessel!, crewLost: 12,
+      crew: [{ roleId: 'timonier', count: 2 }], recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    } });
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: -3 }])]);
+    expect(get().vessel).toMatchObject({ crewLost: 15, crew: [], recueillisSansSolde: [] });
+    expect(weeklyCrewWageBrass(get().vessel!.crew)).toBe(0);
+  });
+
   it('Canot de sauvetage : la donnée porte les rescapés du livre et leur rôle maison (l.213-218)', () => {
     const c = consequence('canot-de-sauvetage') as Extract<Flow, { kind: 'choix' }>;
     expect(c.invite).toBe('Recueillir les rescapés');
     const table = (c.oui as Extract<Flow, { kind: 'effet' }>).effet.ops[0] as Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
-    expect(table.die).toBe('1d10');
+    expect(table.die).toEqual({ n: 1, sides: 10 });
     expect(table.entries.map((r) => [r.min, r.max, r.ops])).toEqual([
       [1, 3, [{ op: 'equipage', delta: 2 }]],
       [4, 6, [{ op: 'equipage', delta: 1 }]],
@@ -568,7 +635,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
 
   it('une table d’ops de navire se tire à la portée du navire (l.213-218)', () => {
     perdus(5);
-    applyEffects(get, set, [surLeNavire([{ op: 'rollTable', die: '1d10', entries: [{ min: 1, max: 10, ops: [{ op: 'equipage', delta: 2 }] }] }])]);
+    applyEffects(get, set, [surLeNavire([{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 10, ops: [{ op: 'equipage', delta: 2 }] }] }])]);
     expect(get().vessel!.crewLost).toBe(3);
   });
 
@@ -797,8 +864,8 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   const finance = (co: number) => creditBourse(get, set, get().party[0].id, { gold: co, silver: 0, brass: 0 });
   const surLeGroupe = (ops: unknown[]): Effect => ({ type: 'ops', on: 'groupe', ops } as never);
   const escale = (id: string) => {
-    const c = PORT_EVENTS.find((e) => e.id === id)!.consequence;
-    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, consequence: c })) as never);
+    const { consequence, liaisonEquipage } = PORT_EVENTS.find((e) => e.id === id)!;
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, consequence, liaisonEquipage })) as never);
     finalizePortArrivalTo(get, set, carte.places[1], true);
   };
   const choixOuvert = () => get().pendingCascade?.participants.find((s) => s.kind === 'choixDeFlux' && s.chosen == null);
@@ -880,17 +947,49 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
 
   it('Embrigadement : la rançon payée ramène les MÊMES marins enlevés', () => {
     finance(30);
+    const crew = [{ roleId: 'mousse', count: 14 }, { roleId: 'timonier', count: 1 }];
+    set({ vessel: { ...get().vessel!, crew } });
     escale('embrigadement');
     const enleves = get().vessel!.crewLost!;
     expect(enleves).toBeGreaterThanOrEqual(2);
+    expect(get().vessel!.crew!.reduce((n, h) => n + h.count, 0)).toBe(15 - enleves);
+    set({ pendingCascade: JSON.parse(JSON.stringify(get().pendingCascade)) });
     tranche('Tenter de récupérer l’équipage enlevé', true);
     joueLeTest(true);
     tranche('Payer la rançon', true);
     expect(get().vessel!.crewLost).toBe(0);
+    expect([...get().vessel!.crew!].sort((a, b) => a.roleId.localeCompare(b.roleId))).toEqual(crew);
     const rancon = 30 * 240 - enSous();
     expect(rancon % 240).toBe(0);
     expect(rancon / 240).toBeGreaterThanOrEqual(2);
     expect(rancon / 240).toBeLessThanOrEqual(20);
+  });
+
+  it('Embrigadement : une liaison inconnue est refusée avant de retirer l’équipage', () => {
+    const { consequence } = PORT_EVENTS.find((e) => e.id === 'embrigadement')!;
+    setDataset('seaPortEvents', PORT_EVENTS.map((e) => ({ ...e, consequence, liaisonEquipage: 'enlevés-introuvables' })) as never);
+    set({ vessel: { ...get().vessel!, crew: [{ roleId: 'mousse', count: 10 }], crewLost: 2 } });
+    const avant = get().vessel!;
+    expect(() => finalizePortArrivalTo(get, set, carte.places[1], true)).toThrow(/enlevés-introuvables/);
+    expect(get().vessel).toMatchObject({ crewLost: avant.crewLost, crew: avant.crew });
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('Embrigadement : une ancienne sauvegarde récupère aussi les rôles visibles dans l’ancien registre', () => {
+    finance(30);
+    const crew = [{ roleId: 'mousse', count: 12 }, { roleId: 'timonier', count: 3 }];
+    set({ vessel: { ...get().vessel!, crew } });
+    const { consequence, label } = PORT_EVENTS.find((e) => e.id === 'embrigadement')!;
+    jouerFlowEntier(runFlow(get, set, consequence!, label));
+    const pertes = get().vessel!.crewLost!;
+    set({ vessel: { ...get().vessel!, crew } });
+    set(chargerLaSave(snapshotSave(get(), 'x')).etat);
+    expect(get().vessel!.crewLost).toBe(pertes);
+    expect(get().vessel!.crew!.reduce((n, h) => n + h.count, 0)).toBe(15 - pertes);
+    tranche('Tenter de récupérer l’équipage enlevé', true);
+    joueLeTest(true);
+    tranche('Payer la rançon', true);
+    expect(get().vessel).toMatchObject({ crewLost: 0, crew });
   });
 
   /** 1d10 de plus, plafonnés à l'effectif nominal de la cogue (15). */
@@ -902,12 +1001,17 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   };
 
   it('Embrigadement : sans payer, la Discrétion réussie les libère tous', () => {
+    const crew = [{ roleId: 'mousse', count: 1 }, { roleId: 'timonier', count: 1 }];
+    set({ vessel: { ...get().vessel!, crew, crewLost: 13 } });
     escale('embrigadement');
+    expect(get().vessel!.crewLost).toBe(15);
+    expect(get().vessel!.crew).toEqual([]);
     tranche('Tenter de récupérer l’équipage enlevé', true);
     joueLeTest(true);
     tranche('Les libérer en douce', true);
     joueLeTest(true);
-    expect(get().vessel!.crewLost).toBe(0);
+    expect(get().vessel!.crewLost).toBe(13);
+    expect([...get().vessel!.crew!].sort((a, b) => a.roleId.localeCompare(b.roleId))).toEqual(crew);
   });
 
   it('Embrigadement : la Discrétion échouée coûte 1d10 marins de plus', () => {
@@ -929,10 +1033,12 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   });
 
   it('Embrigadement : renoncer ne coûte que les enlevés', () => {
+    set({ vessel: { ...get().vessel!, crew: [{ roleId: 'mousse', count: 15 }] } });
     escale('embrigadement');
     const perte = get().vessel!.crewLost!;
     tranche('Tenter de récupérer l’équipage enlevé', false);
     expect(get().vessel!.crewLost).toBe(perte);
+    expect(weeklyCrewWageBrass(get().vessel!.crew)).toBe((15 - perte) * weeklyCrewWageBrass([{ roleId: 'mousse', count: 1 }]));
     expect(get().pendingCascade).toBeNull();
   });
 
@@ -990,7 +1096,7 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
 
 describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194-198, l.230-232)', () => {
   beforeEach(etatFrais);
-  afterEach(() => resetData());
+  afterEach(() => { resetData(); resetRule('maladie-mode'); vi.restoreAllMocks(); });
 
   const sansMarins = () => set({ vessel: { ...get().vessel!, crewLost: 99 } });
   const consequence = (id: string): Flow => BOARD_EVENTS.find((e) => e.id === id)!.consequence!;
@@ -1033,11 +1139,91 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     expect(bandeDeContraction()?.participants).toHaveLength(1);
   });
 
-  it('`membreAuHasard` : un marin PNJ tiré ne touche aucun héros, le journal le dit', () => {
+  const bandeDeLEquipage = () => get().pendingCascade?.participants.find((s) => s.kind === 'maladieDeLEquipage');
+  const maladiesDeLEquipage = () => (get().vessel!.porteurDeLEquipage?.diseases ?? []).map((d) => d.id);
+  const feuilleAuHasard = (ops: GameOp[], sl?: number) =>
+    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops } as never }, 'Rats', sl));
+  /** La table de l'Infestation de rats géants : 30 % d'exposition à la fièvre du rongeur. MDG 15 l.161 */
+  const fievreA30: GameOp = { op: 'rollTable', die: { n: 1, sides: 100 }, entries: [
+    { min: 1, max: 30, ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] }, { min: 31, max: 100, ops: [] },
+  ] };
+  /** Le dé 1d10 + |DR négatif| (`addNegativeSL`) : 6 et plus expose. MSRC 16 l.90 */
+  const parLeDRNegatif: GameOp = { op: 'rollTable', die: { n: 1, sides: 10 }, addNegativeSL: true, entries: [
+    { min: 1, max: 5, ops: [] }, { min: 6, max: 99, ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] },
+  ] };
+
+  it('un marin tiré, dé 1-30 : la bande de l’équipage seul ; son échec lui donne la fièvre du rongeur (MDG 15 l.161)', () => {
+    imposerLesD100(100, 30);
+    feuilleAuHasard([fievreA30]);
+    const bande = bandeDeLEquipage();
+    expect(bande?.meta).toEqual({ disease: 'fievre-du-rongeur' });
+    expect(bande?.participants?.map((p) => p.id)).toEqual([WORLD_STEP_OWNER]);
+    draineCascade(get, 20, (_e, rangee) => (rangee ? 100 : undefined));
+    expect(maladiesDeLEquipage()).toEqual(['fievre-du-rongeur']);
+    expect(get().journal).not.toContain(t('eff.membreAuHasardMarin'));
+  });
+
+  it('un marin tiré, dé 1-30 : sa réussite le laisse sain (MDG 15 l.161)', () => {
+    imposerLesD100(100, 30);
+    feuilleAuHasard([fievreA30]);
+    expect(bandeDeLEquipage()?.participants?.map((p) => p.id)).toEqual([WORLD_STEP_OWNER]);
+    draineCascade(get, 20, (_e, rangee) => (rangee ? 1 : undefined));
+    expect(maladiesDeLEquipage()).toEqual([]);
+  });
+
+  it('un marin tiré, dé 31-100 : ni bande ni ligne « marin » (MDG 15 l.161)', () => {
+    const avant = get().journal.length;
+    imposerLesD100(100, 31);
+    feuilleAuHasard([fievreA30]);
+    expect(get().pendingCascade).toBeNull();
+    expect(get().journal.slice(avant)).toEqual([]);
+  });
+
+  it('aucune âme à bord : ni bande ni ligne « marin »', () => {
     set({ party: [] });
-    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] } as never }, 'Rats'));
-    expect(bandeDeContraction()).toBeUndefined();
-    expect(get().journal.some((l) => String(l).includes(t('eff.membreAuHasardMarin', { label: 'Rats' })))).toBe(true);
+    sansMarins();
+    const avant = get().journal.length;
+    feuilleAuHasard([fievreA30]);
+    expect(get().pendingCascade).toBeNull();
+    expect(get().journal.slice(avant)).toEqual([]);
+  });
+
+  it('une table à `addNegativeSL` se lit pareil sur un héros et sur l’équipage (MSRC 16 l.90)', () => {
+    set({ party: get().party.slice(0, 1) });
+    sansMarins();
+    imposerLesD100(50, 10);
+    feuilleAuHasard([parLeDRNegatif], -5);
+    expect(bandeDeContraction()?.participants?.map((p) => p.id)).toEqual([get().party[0].id]);
+    etatFrais();
+    set({ party: [] });
+    imposerLesD100(50, 10);
+    feuilleAuHasard([parLeDRNegatif], -5);
+    expect(bandeDeLEquipage()?.participants?.map((p) => p.id)).toEqual([WORLD_STEP_OWNER]);
+  });
+
+  it('un marin tiré, `contractDisease` : l’équipage porte la maladie sans bande (`contractDisease`, #4448)', () => {
+    imposerLesD100(100);
+    feuilleAuHasard([{ op: 'contractDisease', disease: 'fievre-du-rongeur' }]);
+    expect(maladiesDeLEquipage()).toEqual(['fievre-du-rongeur']);
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('`maladie-mode` désactivée : l’équipage tiré n’est pas exposé (LDB 20 l.35)', () => {
+    setRule('maladie-mode', 'off');
+    imposerLesD100(100, 30);
+    feuilleAuHasard([fievreA30]);
+    expect(get().pendingCascade).toBeNull();
+    expect(maladiesDeLEquipage()).toEqual([]);
+  });
+
+  it('en bataille : la maladie tirée sur l’équipage se refuse, l’équipage reste sain', () => {
+    const { vessel } = get();
+    heroFaceAUnEnnemi(banc, testScene());
+    set({ vessel });
+    expect(get().battle).toBeTruthy();
+    imposerLesD100(100, 30);
+    expect(() => applyEffects(get, set, [{ type: 'ops', on: 'membreAuHasard', ops: [fievreA30] } as never])).toThrow(t('eff.maladieDeLEquipageEnCombat'));
+    expect(maladiesDeLEquipage()).toEqual([]);
   });
 
   it('Infestations : la donnée porte la RAW (Complexe 25 DR / 3d10 Enc / 30 % ; Intermédiaire 10 DR / 1d10 Enc / 15 %)', () => {
@@ -1089,9 +1275,9 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     const caisses = (v.cargo ?? []).reduce((s, l) => s + l.enc, 0);
     expect(caisses).toBeGreaterThanOrEqual(2);
     expect(caisses).toBeLessThanOrEqual(20);
-    expect(Object.keys(v.provisions!)).toEqual([BISCUITS]);
-    expect(v.provisions![BISCUITS as keyof VivresDeCale]).toBeGreaterThanOrEqual(1);
-    expect(v.provisions![BISCUITS as keyof VivresDeCale]).toBeLessThanOrEqual(100);
+    expect(Object.keys(quantitesDeCale(v.provisions))).toEqual([BISCUITS]);
+    expect(quantitesDeCale(v.provisions)[BISCUITS]).toBeGreaterThanOrEqual(1);
+    expect(quantitesDeCale(v.provisions)[BISCUITS]).toBeLessThanOrEqual(100);
     expect(v.waterLitres! % 145).toBe(0);
     expect(v.waterLitres! / 145).toBeGreaterThanOrEqual(2);
     expect(v.waterLitres! / 145).toBeLessThanOrEqual(20);
@@ -1135,18 +1321,18 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     const combat = (id: string, nombre = 1, extra: object = {}) => ({ op: 'combatEnMer', adversaire: { id, nombre, ...extra }, repousseAPct: 50 });
     expect(consequence('triton')).toEqual(surLeNavire([{ // l.136-139
       op: 'combatEnMer', adversaire: { id: 'triton', nombre: 1 },
-      victoire: surLeNavire([{ op: 'rollTable', die: '1d10', entries: [
+      victoire: surLeNavire([{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [
         { min: 1, max: 5, ops: [{ op: 'manann', delta: { sign: 1, ...d(2, 10) } }] },
         { min: 6, max: 10, ops: [{ op: 'manann', delta: { sign: -1, ...d(2, 10) } }] },
       ] }]),
     }]));
-    expect(consequence('puissant-monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: '1d10', entries: [ // l.142-143
+    expect(consequence('puissant-monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [ // l.142-143
       { min: 1, max: 3, ops: [combat('hydre-d-os')] },
       { min: 4, max: 5, ops: [combat('sangsue-des-abysses')] },
       { min: 6, max: 9, ops: [combat('gargantuan')] },
       { min: 10, max: 10, ops: [combat('leviathan-noir')] },
     ] }]));
-    expect(consequence('monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: '1d10', entries: [ // l.165-168
+    expect(consequence('monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [ // l.165-168
       { min: 1, max: 3, ops: [combat('kharibde')] },
       { min: 4, max: 5, ops: [combat('anguille-macheprise', 1, { optionals: [{ id: 'nuee' }] })] },
       { min: 6, max: 9, ops: [combat('syrene-bleue', 3)] },
@@ -1372,8 +1558,9 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     expect(get().vessel!.constructeurDEscale).toBeUndefined();
   });
 
-  it('Constructeur de navires itinérant : chaque Amélioration qu’il pose tire ses 1d10 jours, même le Blindage (l.255)', () => {
+  it('Constructeur de navires itinérant : chaque Amélioration qu’il pose tire ses 1d10 jours, même le Blindage, au port à chantier naval spécialisé (l.255 ; MDG 12 l.230)', () => {
     escale('constructeur-de-navires-itinerant');
+    set({ worldMap: { ...deuxPorts, places: deuxPorts.places.map((p, i) => (i === 1 ? { ...p, port: { ...p.port!, ref: PORT_A_CHANTIER } } : p)) } });
     creditBourse(get, set, get().party[0].id, { gold: 100000, silver: 0, brass: 0 });
     const poser = (traitId: string, d100: number) => {
       imposerLesD100(d100);
@@ -1394,13 +1581,13 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     set({ vessel: { ...get().vessel!, provisions: vivres({ [PRESERVEE]: 10 }), waterLitres: 100 } });
     creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
   };
-  const cale = () => ({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) });
+  const cale = () => ({ provisions: quantitesDeCale(get().vessel!.provisions), eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) });
   const RATION_PRESERVEE = 2 * 12, RATION_BISCUITS = 12, TONNEAU = 8 * 12 + 6;
 
   it('Avitaillement à quai : biscuits et préservée au prix du catalogue, tonneaux à 8/6, chaque vivre à sa part de la cale (MDG 14 l.242, l.248-252)', () => {
     aQuai(null);
     const avant = cale();
-    get().avitaillerLeNavire(vivres({ [BISCUITS]: 3, [PRESERVEE]: 5 }), 2);
+    get().avitaillerLeNavire(commande({ [BISCUITS]: 3, [PRESERVEE]: 5 }), 2);
     expect(cale()).toEqual({
       provisions: { [PRESERVEE]: 15, [BISCUITS]: 3 },
       eau: avant.eau! + 2 * 145,
@@ -1411,12 +1598,13 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   it('Avitaillement à quai : les vivres achetables sont ceux qui tiennent en mer, le frais n’en est pas (MDG 14 l.238)', () => {
     aQuai(null);
     expect(vivresAchetables(get().vessel!)).toEqual([
+      { id: 'ration-soupe-chou-fermente', prix: { gold: 0, silver: 3, brass: 0 } },
       { id: PRESERVEE, prix: { gold: 0, silver: 2, brass: 0 } },
       { id: BISCUITS, prix: { gold: 0, silver: 1, brass: 0 } },
     ]);
     set({ journal: [] });
     const avant = cale();
-    get().avitaillerLeNavire(vivres({ [FRAIS]: 4 }), 0);
+    get().avitaillerLeNavire(commande({ [FRAIS]: 4 }), 0);
     expect(cale()).toEqual(avant);
     expect(get().journal).toEqual([t('port.vivreHorsVente', { vivre: 'Nourriture, courses/journée' })]);
   });
@@ -1424,7 +1612,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   it('Avitaillement hors quai : refus nommé, rien ne change', () => {
     set({ vessel: { ...get().vessel!, provisions: vivres({ [PRESERVEE]: 10 }), waterLitres: 100 }, journal: [] });
     const avant = cale();
-    get().avitaillerLeNavire(vivres({ [PRESERVEE]: 5 }), 2);
+    get().avitaillerLeNavire(commande({ [PRESERVEE]: 5 }), 2);
     expect(cale()).toEqual(avant);
     expect(get().journal).toEqual([t('port.pasAQuai')]);
   });
@@ -1434,7 +1622,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     set({ journal: [] });
     const avant = cale();
     const rations = Math.floor(avant.bourse / RATION_PRESERVEE) + 1;
-    get().avitaillerLeNavire(vivres({ [PRESERVEE]: rations }), 0);
+    get().avitaillerLeNavire(commande({ [PRESERVEE]: rations }), 0);
     expect(cale()).toEqual(avant);
     expect(get().journal).toEqual([t('port.avitaillementTropCher', { cost: formatMoney(fromBrass(rations * RATION_PRESERVEE)) })]);
   });
@@ -1442,7 +1630,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   it('Bonne pêche : le frais s’achète à 3 sous de cuivre la ration-jour à l’escale, plus après l’appareillage ; la préservée garde son prix (MDG 15 l.262)', () => {
     aQuai('bonne-peche');
     let avant = cale();
-    get().avitaillerLeNavire(vivres({ [FRAIS]: 4, [PRESERVEE]: 1 }), 0);
+    get().avitaillerLeNavire(commande({ [FRAIS]: 4, [PRESERVEE]: 1 }), 0);
     expect(cale()).toEqual({ ...avant, provisions: { [PRESERVEE]: 11, [FRAIS]: 4 }, bourse: avant.bourse - 4 * 3 - RATION_PRESERVEE });
     set({ lieu: 'B' });
     get().partirEnVoyage('r1', 'mer');
@@ -1450,7 +1638,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     escale(null);
     set({ journal: [] });
     avant = cale();
-    get().avitaillerLeNavire(vivres({ [FRAIS]: 4 }), 0);
+    get().avitaillerLeNavire(commande({ [FRAIS]: 4 }), 0);
     expect(cale()).toEqual(avant);
     expect(get().journal).toEqual([t('port.vivreHorsVente', { vivre: 'Nourriture, courses/journée' })]);
   });
@@ -1582,14 +1770,14 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
       oui: { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [
         { op: 'provisions', eauTonneaux: { dice: { n: 2, sides: 10 } } },
         { op: 'provisions', jours: { dice: { n: 1, sides: 10 } }, vivre: { id: FRAIS } },
-        { op: 'rollTable', die: '1d10', entries: [{ min: 1, max: 2, ops: [{ op: 'perilDeMer', collision: { id: 'bas-fonds' } }] }, { min: 3, max: 10, ops: [] }] },
+        { op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 2, ops: [{ op: 'perilDeMer', collision: { id: 'bas-fonds' } }] }, { min: 3, max: 10, ops: [] }] },
       ] } },
     });
     set({ vessel: { ...get().vessel!, waterLitres: 0, provisions: vivres({}) } });
     jour('ile-inconnue');
     avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().vessel!.waterLitres).toBeGreaterThanOrEqual(2 * 145);
-    expect(get().vessel!.provisions![FRAIS as keyof VivresDeCale]).toBeGreaterThan(0);
+    expect(quantitesDeCale(get().vessel!.provisions)[FRAIS]).toBeGreaterThan(0);
   });
 
   it('`marcheDuPort` est inerte dans `applyOps` (op du monde)', () => {

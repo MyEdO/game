@@ -2,10 +2,11 @@ extends SceneTree
 
 ## Une campagne jouée depuis l'accueil (#3009, `hotes/godot/pont/CONTRAT.md`, section « Méthodes ») : sur le pont de
 ## l'arbre, l'accueil (`scenes/Accueil.tscn`) publie ses entrées ; « Options » ouvre le panneau des réglages, où une
-## préférence se règle et repose le volume des bus ; « Jouer » ouvre le combat sur une partie au groupe, sans
+## préférence se règle, au curseur ou au bouton, et repose le volume des bus ; « Jouer » ouvre le combat sur une partie au groupe, sans
 ## scène, ses pré-tirés et ses campagnes montrés ; deux pré-tirés recrutés à leur bouton entrent au groupe, chacun en
-## carte avec son renvoi ; « Lancer » de la Diligence pose sa scène ; « Sauvegardes » ouvre le panneau des
-## emplacements, l'emplacement 1 écrit à son bouton se charge ensuite ; « Quitter la partie » rend l'accueil ;
+## carte avec son renvoi ; « Lancer » de la Diligence pose sa scène et sa pastille du menu de la partie ; « Sauvegardes »
+## du menu ouvre le panneau des emplacements, l'emplacement 1 écrit à son bouton se charge ensuite ; « Quitter la
+## partie » du menu rend l'accueil ;
 ## « Reprendre » montre les sauvegardes, l'automatique gardée en quittant, et l'emplacement 1 chargé rend la partie, son
 ## groupe et sa scène ; quittée, « Jouer » de nouveau, un pré-tiré recruté, l'Arène lancée, sans relancer le processus du
 ## noyau ; quittée, « Jouer » montre au roster le héros créé et engagé par le pont avant le premier clic, « Recruter »
@@ -17,6 +18,8 @@ const ACCUEIL := "res://scenes/Accueil.tscn"
 const COMBAT := "res://scenes/Combat.tscn"
 ## L'attente la plus longue d'un état : le lancement du processus du noyau compris.
 const ATTENTE_S := 120.0
+## Les mouvements de la souris d'un glissement, du centre au bout droit d'une piste.
+const PAS_DU_GLISSEMENT := 6
 var _fautes: Array[String] = []
 ## Chaque panne et chaque refus signalés par le pont.
 var _signales: Array[String] = []
@@ -35,12 +38,11 @@ func _recetter() -> void:
 	var ouvert := await _pont.rejoindre(func(message: String) -> void: _signales.append("refus : " + message), func(message: String) -> void: _signales.append("panne : " + message))
 	var cree := _creer_un_heros() if ouvert else ""
 	if cree != "" and await _regler_a_l_accueil() and await _jouer_une_campagne(2, "la-diligence") and await _sauvegarder_puis_reprendre():
-		_cliquer(_publie("bouton/quitter"))
-		if await _attendre(func() -> bool: return _au_menu(), "l'accueil après « Quitter la partie »"):
+		if await _presser_au_menu("quitter") and await _attendre(func() -> bool: return _au_menu(), "l'accueil après « Quitter la partie »"):
 			print("[campagne] partie quittée : l'accueil")
 			if await _jouer_une_campagne(1, "arene"):
-				_cliquer(_publie("bouton/quitter"))
-				await _composer_du_roster(cree)
+				if await _presser_au_menu("quitter"):
+					await _composer_du_roster(cree)
 	_fautes.append_array(_signales)
 	current_scene.queue_free()
 	await create_timer(Foyer.SON_LIBERE_S).timeout
@@ -50,18 +52,28 @@ func _recetter() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## « Options » pressé à l'accueil, le panneau des réglages montre les préférences : la boîte à nombre du volume de la
-## musique posée à 0.25 et son formulaire joué, le pont dit la préférence réglée et le bus de la musique prend ce
-## volume, puis celui d'avant de même ; « Oui » des dés fixés pressé, le pont dit la préférence réglée ; « Non » la
-## remet, et « Fermer » rend l'accueil.
+## « Options » pressé à l'accueil, le panneau des réglages montre les préférences : la musique à son volume par défaut,
+## un clic au centre de la piste de son curseur la règle à mi-volume, la glissière tirée de là à son bout droit ne règle
+## rien tant que le bouton est tenu et la remet au plein volume une fois relâchée (`_glisser_la_musique`), puis 0.35
+## saisi à sa boîte à nombre et validé, puis le plein volume de même, le pont disant chaque fois la préférence réglée
+## et le bus de la musique prenant ce volume (#4081) ; « Oui » des dés fixés pressé, le pont dit la
+## préférence réglée ; « Non » la remet, et « Fermer » rend l'accueil.
 func _regler_a_l_accueil() -> bool:
 	if not await _attendre(func() -> bool: return _au_menu(), "l'accueil avant les réglages"):
 		return false
 	_cliquer(_texte("Options"))
-	if not await _attendre(func() -> bool: return _publie("bouton/preference/des-fixes/true") != null, "le panneau des réglages"):
+	if not await _attendre(func() -> bool: return _publie("bouton/preference/des-fixes/true") != null and _curseur_de_la_musique() != null, "le panneau des réglages"):
 		return false
-	var avant := AudioServer.get_bus_volume_linear(AudioServer.get_bus_index("musique"))
-	if not await _regler_la_musique(avant, 0.25) or not await _regler_la_musique(0.25, avant):
+	if not _musique_a(1.0):
+		_fautes.append("la musique ne part pas de son volume par défaut")
+		return false
+	var piste: Dictionary = _curseur_de_la_musique()
+	_presser_au_point(Vector2((piste.gauche + piste.droite) / 2.0, piste.y))
+	if not await _attendre(func() -> bool: return _musique_a(0.5), "la musique et son bus à 0.5 après un clic au centre de la piste"):
+		return false
+	if not await _glisser_la_musique(piste):
+		return false
+	if not await _saisir_la_musique(0.35) or not await _saisir_la_musique(1.0):
 		return false
 	_cliquer(_publie("bouton/preference/des-fixes/true"))
 	if not await _attendre(func() -> bool: return _pont.appeler("preferences").preferences["des-fixes"] == true, "les dés fixés réglés au panneau"):
@@ -72,30 +84,58 @@ func _regler_a_l_accueil() -> bool:
 	_cliquer(_publie("bouton/fermer"))
 	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _au_menu(), "l'accueil après « Fermer »"):
 		return false
-	print("[campagne] réglages : le volume de la musique réglé au formulaire puis remis, le bus de la musique à sa suite ; les dés fixés réglés puis remis")
+	print("[campagne] réglages : le volume de la musique réglé au curseur, au clic sur sa piste, en glissant puis à sa boîte à nombre, le bus de la musique à sa suite ; les dés fixés réglés puis remis")
 	return true
 
 
-## La boîte à nombre du volume de la musique, montrée à `de`, posée à `a`, puis son formulaire joué : si le pont dit la
-## préférence à `a` et si le bus de la musique prend ce volume.
-func _regler_la_musique(de: float, a: float) -> bool:
-	var formulaire: Variant = _publie("formulaire/preference/volume-musique")
-	if formulaire == null:
-		_fautes.append("le formulaire du volume de la musique n'est pas à l'écran")
-		return false
-	if not await _attendre(func() -> bool: return _boite_de_la_musique() != null and is_equal_approx(_boite_de_la_musique().value, de), "la boîte à nombre du volume de la musique à %s" % de):
-		return false
-	_boite_de_la_musique().value = a
-	_cliquer(formulaire)
-	return await _attendre(func() -> bool: return is_equal_approx(_pont.appeler("preferences").preferences["volume-musique"], a) and is_equal_approx(AudioServer.get_bus_volume_linear(AudioServer.get_bus_index("musique")), a), "le volume de la musique et son bus à %s après le formulaire" % a)
+## Si le pont dit la préférence du volume de la musique à `volume`, et si le bus de la musique le prend.
+func _musique_a(volume: float) -> bool:
+	return is_equal_approx(_pont.appeler("preferences").preferences["volume-musique"], volume) and is_equal_approx(AudioServer.get_bus_volume_linear(AudioServer.get_bus_index("musique")), volume)
 
 
-## La boîte à nombre de la saisie du volume de la musique, `null` hors de l'écran.
-func _boite_de_la_musique() -> SpinBox:
-	for boite in current_scene.find_children("*", "SpinBox", true, false):
-		if boite.get_children().any(func(n: Node) -> bool: return n is Saisie and n.get("_element").get("id") == "preference/volume-musique/valeur"):
-			return boite as SpinBox
+## Le curseur publié du volume de la musique, `null` hors de l'écran.
+func _curseur_de_la_musique() -> Variant:
+	for curseur: Dictionary in _pont.ecran.get("curseurs", []):
+		if curseur.element == "curseur/preference/volume-musique":
+			return curseur
 	return null
+
+
+## Le composant qui porte le curseur du volume de la musique.
+func _composant_de_la_musique() -> Node:
+	return current_scene.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.get_meta(Zone.META, "") == "curseur/preference/volume-musique").front()
+
+
+## La glissière du volume de la musique tirée du centre de sa piste publiée `piste` à son bout droit, bouton gauche
+## tenu : tant qu'il l'est, la glissière suit jusqu'au maximum et la musique reste à mi-volume ; relâché, si le pont dit
+## la préférence au plein volume et si le bus de la musique le prend.
+func _glisser_la_musique(piste: Dictionary) -> bool:
+	var glissiere := _composant_de_la_musique().get_node("Reglette/Glissiere") as HSlider
+	var centre := Vector2((piste.gauche + piste.droite) / 2.0, piste.y)
+	var bout := Vector2(piste.droite - 1.0, piste.y)
+	_bouton_au_point(centre, true)
+	for pas in PAS_DU_GLISSEMENT:
+		var mouvement := InputEventMouseMotion.new()
+		mouvement.button_mask = MOUSE_BUTTON_MASK_LEFT
+		mouvement.position = centre.lerp(bout, float(pas + 1) / PAS_DU_GLISSEMENT)
+		mouvement.global_position = mouvement.position
+		mouvement.relative = (bout - centre) / PAS_DU_GLISSEMENT
+		root.push_input(mouvement, true)
+		await process_frame
+	var tenue := is_equal_approx(glissiere.value, 100.0) and _musique_a(0.5)
+	if not tenue:
+		_fautes.append("bouton tenu au bout droit de la piste : glissière à %s, préférence à %s ; attendu la glissière à 100 et la musique encore à 0.5" % [glissiere.value, _pont.appeler("preferences").preferences["volume-musique"]])
+	_bouton_au_point(bout, false)
+	return tenue and await _attendre(func() -> bool: return _musique_a(1.0), "la musique et son bus à 1 après le glissement relâché au bout droit de la piste")
+
+
+## `volume` écrit en pour cent dans la boîte à nombre du curseur du volume de la musique et validé, comme l'Entrée le
+## valide : si le pont dit la préférence à `volume` et si le bus de la musique le prend.
+func _saisir_la_musique(volume: float) -> bool:
+	var boite := _composant_de_la_musique().get_node("Reglette/Nombre") as SpinBox
+	boite.get_line_edit().text = str(roundi(volume * 100))
+	boite.apply()
+	return await _attendre(func() -> bool: return _musique_a(volume), "la musique et son bus à %s saisis à la boîte à nombre" % volume)
 
 
 ## « Jouer » pressé à l'accueil, `nombre` pré-tirés recrutés à leur bouton, puis la campagne `campagne` lancée : si sa
@@ -120,7 +160,7 @@ func _jouer_une_campagne(nombre: int, campagne: String) -> bool:
 	if not await _attendre(func() -> bool: return _publie("bouton/lancer/" + campagne) != null, "« Lancer » de %s" % campagne):
 		return false
 	_cliquer(_publie("bouton/lancer/" + campagne))
-	if not await _attendre(func() -> bool: return current_scene.get("_vue").projection.scene != null and _publie("bouton/quitter") != null and _renvois() == 0 and _recrues().is_empty(), "la scène de %s, « Quitter la partie » offert, la composition retirée" % campagne):
+	if not await _attendre(func() -> bool: return current_scene.get("_vue").projection.scene != null and _publie("entite/menu") != null and _renvois() == 0 and _recrues().is_empty(), "la scène de %s, le menu de la partie offert, la composition retirée" % campagne):
 		return false
 	vue = current_scene.get("_vue")
 	print("[campagne] %s lancée : scène %s" % [campagne, vue.projection.scene.id])
@@ -143,7 +183,7 @@ func _creer_un_heros() -> String:
 			break
 		for id: String in ["tirage", "defaut", "bourse", "nom", "physique"]:
 			var tirage: Variant = _element(zones["creation.corps"], id)
-			if tirage != null and tirage.type == "bouton" and tirage.refus == null:
+			if tirage != null and tirage.type == Noyau.TypeDElement.BOUTON and tirage.refus == null:
 				zones = _creation(zones, tirage)
 		for e: Dictionary in zones["creation.corps"]:
 			if str(e.id).begins_with("augmentation/"):
@@ -191,7 +231,7 @@ func _a_trancher(corps: Array) -> Dictionary:
 	for e: Dictionary in corps:
 		if e.type in ["choix", "liste"] and not e.valeurs.any(func(b: Dictionary) -> bool: return b.presse):
 			return e.valeurs.filter(func(b: Dictionary) -> bool: return b.refus == null)[0]
-	return corps.filter(func(e: Dictionary) -> bool: return e.type == "bouton" and not e.presse and e.refus == null)[0]
+	return corps.filter(func(e: Dictionary) -> bool: return e.type == Noyau.TypeDElement.BOUTON and not e.presse and e.refus == null)[0]
 
 
 ## « Jouer » pressé à l'accueil, la carte du héros `nom` au roster : « Recruter » de sa carte le fait entrer au groupe,
@@ -236,16 +276,18 @@ func _id_au_roster(nom: String) -> String:
 ## depuis « Reprendre » de l'accueil : si elle revient, son groupe et sa scène ceux d'avant.
 func _sauvegarder_puis_reprendre() -> bool:
 	var avant: Dictionary = current_scene.get("_vue")
-	_cliquer(_publie("bouton/sauvegardes"))
+	if not await _presser_au_menu("sauvegardes"):
+		return false
 	if not await _attendre(func() -> bool: return _publie("bouton/sauvegarder/1") != null, "le panneau des sauvegardes, l'emplacement 1 à écrire"):
 		return false
 	_cliquer(_publie("bouton/sauvegarder/1"))
 	if not await _attendre(func() -> bool: return _publie("bouton/charger/1") != null, "l'emplacement 1 écrit, qui se charge"):
 		return false
 	_cliquer(_publie("bouton/fermer"))
-	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _publie("bouton/quitter") != null, "le panneau fermé sur la partie"):
+	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _publie("entite/menu") != null, "le panneau fermé sur la partie"):
 		return false
-	_cliquer(_publie("bouton/quitter"))
+	if not await _presser_au_menu("quitter"):
+		return false
 	if not await _attendre(func() -> bool: return _au_menu(), "l'accueil après la sauvegarde"):
 		return false
 	_cliquer(_texte("Reprendre"))
@@ -262,12 +304,21 @@ func _sauvegarder_puis_reprendre() -> bool:
 	return true
 
 
-## Si le combat est la scène courante, une partie en scène montrée, « Quitter la partie » publié.
+## Si le combat est la scène courante, une partie en scène montrée, la pastille du menu de la partie publiée.
 func _en_partie() -> bool:
 	if current_scene == null or current_scene.scene_file_path != COMBAT:
 		return false
 	var vue: Dictionary = current_scene.get("_vue")
-	return not vue.is_empty() and vue.projection.scene != null and _publie("bouton/quitter") != null
+	return not vue.is_empty() and vue.projection.scene != null and _publie("entite/menu") != null
+
+
+## Le geste `geste` de la partie pressé dans son menu, ouvert à sa pastille : si le menu l'a offert.
+func _presser_au_menu(geste: String) -> bool:
+	_cliquer(_publie("entite/menu"))
+	if not await _attendre(func() -> bool: return _publie("bouton/" + geste) != null, "« %s » au menu de la partie ouvert" % geste):
+		return false
+	_cliquer(_publie("bouton/" + geste))
+	return true
 
 
 ## Si l'accueil est la scène courante et publie « Jouer ».
@@ -311,13 +362,23 @@ func _renvois() -> int:
 
 ## Un clic gauche au centre du bouton publié `bouton`, comme un joueur.
 func _cliquer(bouton: Dictionary) -> void:
+	_presser_au_point(Vector2(bouton.x, bouton.y))
+
+
+## Un clic gauche au point `point` de l'écran, appui puis relâché, comme un joueur.
+func _presser_au_point(point: Vector2) -> void:
 	for appuye in [true, false]:
-		var clic := InputEventMouseButton.new()
-		clic.button_index = MOUSE_BUTTON_LEFT
-		clic.pressed = appuye
-		clic.position = Vector2(bouton.x, bouton.y)
-		clic.global_position = clic.position
-		root.push_input(clic, true)
+		_bouton_au_point(point, appuye)
+
+
+## Le bouton gauche de la souris appuyé (`appuye`) ou relâché au point `point` de l'écran.
+func _bouton_au_point(point: Vector2, appuye: bool) -> void:
+	var clic := InputEventMouseButton.new()
+	clic.button_index = MOUSE_BUTTON_LEFT
+	clic.pressed = appuye
+	clic.position = point
+	clic.global_position = clic.position
+	root.push_input(clic, true)
 
 
 ## Si `tenu` se tient avant `ATTENTE_S` et avant toute panne ou tout refus signalé.

@@ -12,13 +12,22 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { deDeTirageSchema, idDIconeSchema, maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
+import {
+  deDeTirageSchema,
+  idDIconeSchema,
+  maisonSchema,
+  sourceRefSchema,
+  secondarySourceRefSchema,
+  variantOf,
+  type variantWhenSchema,
+  type GenreDeFragment,
+} from './valeurs';
 import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
 import { marquerProduit } from './interne/produits';
 import { champsProse, refineAdapteDe, refineProse, type PorteurDeProse } from './prose';
-import { marquerCollection, marqueDeListe, marqueDeRecord, refusDeCharge, type EspaceDeNoms } from './collection-cle';
+import { marquerCollection, marqueDeListe, marqueDeRecord, ouvrirLesPorteesSansCollection, refusDeCharge, type EspaceDeNoms } from './collection-cle';
 import { estObjet } from '../../../lib/objet.mjs';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
@@ -60,19 +69,20 @@ export type CleCharge = 'entries' | 'die';
  */
 export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
   entries: { label: 'Rangées', hint: 'Contenu du document, dans l’ordre authoré' },
-  die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour tirer une rangée (ex. « 1d10 », « d100 »)' },
+  die: { label: 'Dé de tirage', hint: 'Dé lancé pour tirer une rangée : nombre de dés et faces (ex. 1 dé à 100 faces)' },
 };
 
 /**
  * TABLE TIRÉE nichée dans un document : la charge d'un document à rangées tiré au dé
  * (`options.rangee` + `options.deDeTirage`), posée sous un champ — son dé `die` (`deDeTirageSchema`) et
  * ses rangées `entries` (au moins une), nommés par `META_CHARGE`. L'`enveloppe` apporte les champs propres à la table
- * (`weather.json › seasons[]` : `id`, `label`, `source`), chacun avec sa méta.
+ * (`weather.json › seasons[]` : `id`, `label`, `source`), chacun avec sa méta. `espace` fait des ids de ses rangées un
+ * espace de noms (`EspaceDeNoms`), comme les rangées d'un document `config`.
  */
-export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record<never, never>>(rangee: R, enveloppe?: { champs: E; meta: MetaDesChamps<E> }) {
+export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record<never, never>>(rangee: R, enveloppe?: { champs: E; meta: MetaDesChamps<E> }, espace?: EspaceDeNoms) {
   const champs = enveloppe?.champs ?? ({} as E);
   const meta = { ...enveloppe?.meta, ...META_CHARGE } as MetaDesChamps<E & Record<CleCharge, z.ZodType>>;
-  return marquerProduit(nommerChamps(z.strictObject({ ...champs, die: deDeTirageSchema, entries: rangeesDeCharge(z.array(rangee).min(1)) }), meta), 'tableTiree', 'table', champs);
+  return marquerProduit(nommerChamps(z.strictObject({ ...champs, die: deDeTirageSchema, entries: rangeesDeCharge(z.array(rangee).min(1), espace) }), meta), 'tableTiree', 'table', champs);
 }
 
 /**
@@ -81,7 +91,7 @@ export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record
  * `deDeLaTableTiree` (`src/engine/tables.ts`). #1667
  */
 export const sousTirage = nommerChamps(z.strictObject({ die: deDeTirageSchema }), {
-  die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour ce sous-tirage (ex. « d10 »)' },
+  die: { label: 'Dé de tirage', hint: 'Dé lancé pour ce sous-tirage : nombre de dés et faces (ex. 1 dé à 10 faces)' },
 });
 
 /** Les RANGÉES d'une charge (`entries`), collection à clé `id` quand la rangée en déclare un, sous l'`espace` de
@@ -137,31 +147,121 @@ type EnveloppeDuDocument<T extends string, O extends OptionsDocument> = Omit<Env
 } & Required<Pick<EnveloppeDocument, ExigeesAuType<O>>>;
 type ExigeesAuType<O extends OptionsDocument> = O extends { readonly exiges: readonly (infer K extends CleExigible)[] } ? Exclude<K, 'desc'> : never;
 
-/** La CHARGE que la fabrique pose (`entries`, `die`), au type de `options.rangee` ou `options.valeurRecord`. */
-type ChargeDuDocument<O extends OptionsDocument> = O extends { readonly rangee: z.ZodType<infer R> }
-  ? { entries: R[] } & (O extends { readonly deDeTirage: true } ? { die: z.output<typeof deDeTirageSchema> } : unknown)
+/** La CHARGE que la fabrique pose (`entries`, `die`), au type de `options.rangee` ou `options.valeurRecord` ; les
+ *  rangées d'un document `config` y prennent la charge par discriminant de son espace (`ChargeDiscriminee`). */
+type ChargeDuDocument<F extends FamilleDocument, O extends OptionsDocument> = O extends { readonly rangee: z.ZodType<infer R> }
+  ? { entries: (F extends 'config' ? ChargeDiscriminee<R, EspaceDe<O>> : R)[] } & (O extends { readonly deDeTirage: true } ? { die: z.output<typeof deDeTirageSchema> } : unknown)
   : O extends { readonly valeurRecord: z.ZodType<infer V> }
     ? { entries: Record<O extends { readonly cleRecord: z.ZodType<infer K extends string> } ? K : string, V> }
     : unknown;
 
-/** L'ENTRÉE d'un document au type : enveloppe, champs du def, charge. */
-type EntreeDuDocument<T extends string, C extends Record<string, z.ZodType>, O extends OptionsDocument> = EnveloppeDuDocument<T, O> &
-  z.output<z.ZodObject<C>> &
-  ChargeDuDocument<O>;
+/** Les champs du def au type ; aucun champ n'en ajoute aucun (`z.output` d'un objet vide est une signature d'index à
+ *  `never`, qui ôterait toute clé à un `Omit` de l'entrée, `EntreeVivante`). */
+type ChampsDuDocument<C extends Record<string, z.ZodType>> = [keyof C] extends [never] ? unknown : z.output<z.ZodObject<C>>;
+
+/** L'espace de noms que le document déclare (`options.espace`). */
+type EspaceDe<O extends OptionsDocument> = O extends { readonly espace: infer E extends EspaceDeNoms } ? E : never;
+
+/** Le champ qui partitionne la charge de l'espace `S` : son `champDeCharge`, ou son `discriminant` unique (`champDeCharge`,
+ *  `grammaire/collection-cle.ts`). */
+type ChampDeChargeDe<S> = S extends { readonly champDeCharge: infer C extends string } ? C : S extends { readonly discriminant: infer D extends string } ? D : never;
+
+/** Les clés d'une liste de clés. */
+type ClesDeLaListe<L> = L extends readonly (infer K extends string)[] ? K : never;
+
+/** Toutes les clés de charge de la table `Tb`. */
+type ClesDeCharge<Tb> = { [Cas in keyof Tb]: ClesDeLaListe<Tb[Cas]> }[keyof Tb];
+
+/** Les clés EXIGÉES du cas `Cas` : celles de `requisesParDiscriminant`, toute sa charge à défaut (`refusDeCharge`). */
+type ExigeesDuCas<Tb, Rq, Cas extends keyof Tb> = Cas extends keyof Rq ? ClesDeLaListe<Rq[Cas]> : ClesDeLaListe<Tb[Cas]>;
+
+/** L'objet `T` à plat. */
+type APlat<T> = { [K in keyof T]: T[K] };
+
+/** Les clés de `T`, absentes. */
+type Absentes<T> = { [K in keyof T]?: never };
+
+/** L'entrée `E` du cas `Cas` : son champ de charge `Ch` à ce cas, ses clés exigées requises, le reste de sa charge
+ *  optionnel, la charge des autres cas absente. Chaque clé est prise à `E` (`Pick`, mappés homomorphes) : elle garde
+ *  la déclaration de son schéma, que lit `scripts/guards/lib/fieldConsumers.mjs`. */
+type BrancheDeCharge<E, Tb, Rq, Ch extends keyof E, Cas extends keyof Tb> = APlat<
+  Omit<E, ClesDeCharge<Tb> | Ch> &
+    Pick<E, Ch> & { [K in Ch]: Cas } &
+    Required<Pick<E, ExigeesDuCas<Tb, Rq, Cas> & keyof E>> &
+    Partial<Pick<E, Exclude<ClesDeLaListe<Tb[Cas]>, ExigeesDuCas<Tb, Rq, Cas>> & keyof E>> &
+    Absentes<Pick<E, Exclude<ClesDeCharge<Tb>, ClesDeLaListe<Tb[Cas]>> & keyof E>>
+>;
+
+/** L'entrée `E` dont le champ de charge `Ch` vaut un cas hors de la table : `refusDeCharge` n'y borne rien. */
+type HorsDeLaTable<E, Tb, Ch extends keyof E> = [Exclude<E[Ch], keyof Tb>] extends [never]
+  ? never
+  : Omit<E, Ch> & Pick<E, Ch> & { [K in Ch]: Exclude<E[Ch], keyof Tb> };
+
+/**
+ * L'entrée `E` sous la CHARGE PAR DISCRIMINANT de l'espace `S` (`chargeParDiscriminant`, `requisesParDiscriminant`,
+ * `champDeCharge`) : l'union de ses cas, que `refusDeCharge` (`grammaire/collection-cle.ts`) garantit au parse.
+ * Une table aux cas non littéraux, ou sans champ de charge parmi les clés de `E`, rend `never` : ses lecteurs rougissent.
+ */
+type ChargeDiscriminee<E, S> = [S] extends [never]
+  ? E
+  : [S] extends [{ readonly chargeParDiscriminant: infer Tb extends Readonly<Record<string, readonly string[]>> }]
+    ? string extends keyof Tb
+      ? never
+      : ChampDeChargeDe<S> extends infer Ch extends keyof E
+        ?
+            | { [Cas in keyof Tb]: BrancheDeCharge<E, Tb, S extends { readonly requisesParDiscriminant: infer Rq } ? Rq : Record<never, never>, Ch, Cas> }[keyof Tb]
+            | HorsDeLaTable<E, Tb, Ch>
+        : never
+    : E;
+
+/** `T` sans ses signatures d'index, cas par cas. */
+type SansIndex<T> = T extends unknown ? { [K in keyof T as string extends K ? never : number extends K ? never : symbol extends K ? never : K]: T[K] } : never;
+
+/** Ce que la sortie d'`options.affinerEntree` garantit EN PLUS de l'entrée `E` (un `refine` à prédicat de type), restreint
+ *  aux clés de `E` : un prédicat ne déclare aucun champ que le schéma ne porte pas. Rien sans affinage, ou d'un affinage
+ *  qui ne rétrécit pas la forme. */
+type SortieAffinee<O extends OptionsDocument, E> = O extends { readonly affinerEntree: (entree: never) => infer S extends z.ZodType }
+  ? unknown extends z.output<S>
+    ? unknown
+    : SurLesClesDe<SansIndex<z.output<S>>, keyof E>
+  : unknown;
+
+/** `T` réduit, cas par cas, à ses clés de `K`. */
+type SurLesClesDe<T, K extends PropertyKey> = T extends unknown ? { [P in keyof T as P extends K ? P : never]: T[P] } : never;
+
+/** Les `variants` que la fabrique compose depuis `options.variantes` (`variantOf`) : chaque variante, les champs
+ *  déclarés de l'entrée `E` en partiel, et sa garde `when`. Rien sans `options.variantes`. */
+type VariantesDuDocument<E, O extends OptionsDocument> = O extends { readonly variantes: readonly (infer K extends string)[] }
+  ? { variants?: (Partial<Pick<E, K & keyof E>> & { when: z.output<typeof variantWhenSchema> })[] }
+  : unknown;
+
+/** L'entrée d'un document avant son affinage, sans sa charge : enveloppe, champs du def. */
+type EntreeSansCharge<T extends string, C extends Record<string, z.ZodType>, O extends OptionsDocument> = EnveloppeDuDocument<T, O> & ChampsDuDocument<C>;
+
+/** L'entrée d'un document avant son affinage : enveloppe, champs du def, variantes, charge, sous la charge par
+ *  discriminant de son espace (une entrée de liste). */
+type EntreeBrute<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = F extends 'entite'
+  ? ChargeDiscriminee<EntreeSansCharge<T, C, O> & VariantesDuDocument<EntreeSansCharge<T, C, O>, O> & ChargeDuDocument<F, O>, EspaceDe<O>>
+  : EntreeSansCharge<T, C, O> & VariantesDuDocument<EntreeSansCharge<T, C, O>, O> & ChargeDuDocument<F, O>;
+
+/** L'ENTRÉE d'un document au type : son entrée brute, et ce que son affinage garantit. */
+type EntreeDuDocument<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = EntreeBrute<T, F, C, O> &
+  SortieAffinee<O, EntreeBrute<T, F, C, O>>;
 
 /**
  * Le DATASET d'un document au type, tel que son fichier le porte : liste d'entrées (`entite`), l'entrée
- * seule (`config`, `record`). Hors type : `variants` (`options.variantes`) et ce qu'`affinerEntree`/
- * `affinerDataset` transformeraient — leurs nœuds rendent `z.ZodType<unknown>`.
+ * seule (`config`, `record`). Hors type : ce qu'`affinerDataset` transformerait — son nœud rend
+ * `z.ZodType<unknown>`.
  */
 export type DatasetDuDocument<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = F extends 'entite'
-  ? EntreeDuDocument<T, C, O>[]
-  : EntreeDuDocument<T, C, O>;
+  ? EntreeDuDocument<T, F, C, O>[]
+  : EntreeDuDocument<T, F, C, O>;
 
 /**
  * Vue TS d'un document à RANGÉES (`options.rangee`) : l'enveloppe, plus la charge que la fabrique
  * pose. Un def qui exporte la vue TS de son document la compose ICI — `DocumentARangees<z.infer<typeof
- * saRangee>>` —, sans jamais re-taper `entries` (un document à `deDeTirage` y ajoute `& { die: string }`).
+ * saRangee>>` —, sans jamais re-taper `entries` (un document à `deDeTirage` y ajoute `& { die: DiceSpec }`, aux seuls cas qui le portent quand
+ * `espace.chargeParDiscriminant` le nomme).
  */
 export type DocumentARangees<L> = EnveloppeDocument & { entries: L[] };
 
@@ -176,12 +276,12 @@ export type ExpositionCodex =
 
 type ExpositionEditHorsNiche =
   | { readonly dataset: string }
-  | { readonly object: 'unique' | 'parCle' }
+  | { readonly object: 'unique' }
   | { readonly none: string; readonly dataset?: string };
 type ExpositionNiche = { readonly niche: { readonly categories: Readonly<Record<string, string>> } };
 /**
  * Ce que l'ÉDITEUR édite : le dataset-liste dont ce document est une entrée, l'OBJET de configuration
- * qu'il forme à lui seul (`unique`) ou dont il est une valeur (`parCle`), les TABLEAUX NICHÉS qu'il
+ * qu'il forme à lui seul (`unique`), les TABLEAUX NICHÉS qu'il
  * porte (`niche`), ou rien (`none`, raison exigée — vraie lecture seule, aucune route d'édition).
  * Un document `none` dont les entrées SONT un dataset-liste de la mémoire (`src/data/overrides.ts`
  * `ARRAYS`) le nomme par `dataset` : sans route d'édition, il garde son fichier, et sa clé de dataset
@@ -225,8 +325,9 @@ export interface OptionsDocument {
    */
   readonly rangee?: z.ZodType<object>;
   /**
-   * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis, `deDeTirageSchema`) avec sa
-   * méta FR (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
+   * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (`deDeTirageSchema`) avec sa
+   * méta FR (`META_CHARGE`), requis — ou porté par les seuls cas qui le nomment dans
+   * `espace.chargeParDiscriminant` (`refusDeCharge`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
    * ferait de `die` une clé DÉCLARÉE JAMAIS OBSERVÉE sur les documents qui n'en ont pas (inventaire
    * `STRUCTURES_DEFAUT`, `scripts/guards/lib/inventaireDeDette.mts`). Exige `rangee`.
    */
@@ -268,6 +369,8 @@ export interface OptionsDocument {
    * a donc pas de second chemin à éteindre, c'est une conséquence de la forme, pas un branchement.
    */
   readonly exiges?: readonly CleExigible[];
+  /** Exige exactement une provenance parmi `source` et `maison`. */
+  readonly provenanceExclusive?: true;
   /**
    * Genres de fragment qu'une `descRef` de CE document admet (`descRefSchemaDe`, `grammaire/valeurs.ts`) — défaut :
    * tous. Un genre absent est refusé au parse, à l'adresse de l'entrée.
@@ -285,6 +388,8 @@ export interface OptionsDocument {
    * (`superRefine` de document).
    * En famille `record`, l'ENTRÉE est le DOCUMENT ENTIER (enveloppe + `entries`) : le raffinement
    * reçoit donc l'objet qui parse le fichier, `entries` comprise.
+   * Sa SORTIE au type rétrécit l'entrée (`SortieAffinee`) : une garantie de FORME s'y écrit en `refine` à
+   * prédicat de type (`(e): e is X => …`), un contrôle de VALEUR en `superRefine`.
    */
   readonly affinerEntree?: (entree: z.ZodObject<z.ZodRawShape>) => z.ZodType<unknown>;
   /**
@@ -297,13 +402,15 @@ export interface OptionsDocument {
    * Paramètres de l'ESPACE DE NOMS de racine (`discriminant`, `marqueurs` : `EspaceDeNoms`,
    * `grammaire/collection-cle.ts`) — ouvert par les familles `entite`/`record`, et par un document
    * `config` à rangées sur ses `entries` (`<fichier>#entries`) : ses rangées portent un id qu'une
-   * référence désigne, et leur charge par discriminant y est bornée au parse de chaque rangée.
+   * référence désigne, et leur charge par discriminant y est bornée au parse de chaque rangée. Une table
+   * de charge aux cas et aux listes LITTÉRAUX (`as const`) fait de l'entrée l'union de ses cas
+   * (`ChargeDiscriminee`).
    */
   readonly espace?: EspaceDeNoms;
 }
 
 /** Handle FERMÉ d'un document : ce que le registre, l'éditeur et les gardes consomment. */
-export interface DocumentHandle<T extends string, S = unknown> {
+export interface DocumentHandle<T extends string, S = unknown, E = unknown> {
   /**
    * LE DATASET tel qu'il vit dans son fichier, emballé PAR FAMILLE (#1467) : `entite` →
    * `z.array(entrée)`, `config` → l'entrée seule, `record` → enveloppe + `entries`. Un def n'écrit
@@ -317,11 +424,12 @@ export interface DocumentHandle<T extends string, S = unknown> {
    * L'ENTRÉE SCELLÉE seule — pour l'EMBARQUEMENT (statblocks, table posée dans un autre fichier),
    * jamais pour l'UI, qui consomme le dataset. En famille `record`, l'entrée EST le document entier
    * (enveloppe + `entries`) : `schema` y est `entree`, marquée collection à clé de ses `entries`. Sur un document à `rangee`,
-   * l'entrée porte l'enveloppe ET ses rangées.
+   * l'entrée porte l'enveloppe ET ses rangées. Sa sortie `E` est l'entrée au type (`EntreeDuDocument`).
    */
-  readonly entree: z.ZodType<unknown>;
+  readonly entree: z.ZodType<E>;
   /**
-   * L'entrée en PATCH (tous champs optionnels), dérivée AVANT le sceau puis SCELLÉE à son tour :
+   * L'entrée en PATCH (tous champs optionnels, sans l'`id` : une surcharge n'a pas d'identité),
+   * dérivée AVANT le sceau puis SCELLÉE à son tour :
    * `.partial()` rend un `ZodObject` NU, que `.extend` rouvrirait — la fabrique n'expose aucun nœud
    * extensible, fût-il voisin. `.optional()`/`safeParse` restent servis.
    * Consommateur mesuré : `narratif.ts` (`presetPnjSchema.profil`, profil de PNJ embarqué) — il
@@ -437,6 +545,12 @@ const DOCUMENT_DE_L_ENTREE_PARTIELLE = new WeakMap<object, z.ZodType<unknown>>()
 export const documentDeLEntreePartielle = (noeud: unknown): z.ZodType<unknown> | undefined =>
   noeud !== null && typeof noeud === 'object' ? DOCUMENT_DE_L_ENTREE_PARTIELLE.get(noeud) : undefined;
 
+const SCHEMAS_A_PROVENANCE_EXCLUSIVE = new WeakSet<z.ZodType>();
+
+/** Le schéma final exige-t-il une provenance exclusive à la racine de ses entrées ? */
+export const exigeProvenanceExclusive = (schema: z.ZodType | undefined): boolean =>
+  schema !== undefined && SCHEMAS_A_PROVENANCE_EXCLUSIVE.has(schema);
+
 /** Le nœud porte-t-il, à travers ses enveloppes transparentes (`ouverts`), une entrée partielle marquée ? */
 const porteUneEntreePartielle = (noeud: unknown): boolean => ouverts([noeud]).some((n) => documentDeLEntreePartielle(n) !== undefined);
 
@@ -502,9 +616,9 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   meta: MetaDesChamps<C>,
   declaration: DeclarationExposition,
   options?: OptionsDocument & O,
-): DocumentHandle<T, DatasetDuDocument<T, F, C, O>> {
+): DocumentHandle<T, DatasetDuDocument<T, F, C, O>, EntreeDuDocument<T, F, C, O>> {
   const opts: OptionsDocument = options ?? {};
-  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = opts;
+  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], provenanceExclusive, fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = opts;
   if (idDocument && idDocument.safeParse('').success) {
     throw new Error(
       `document('${type}') : \`idDocument\` admet la CHAÎNE VIDE — l'enveloppe ferme l'id à \`.min(1)\`, un schéma d'id ne le ré-ouvre pas.`,
@@ -556,6 +670,9 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   // ses RANGÉES (`config`), dont la charge par discriminant se borne alors au parse de chaque rangée.
   const espaceDesRangees = famille === 'config' ? opts.espace : undefined;
   const espaceDuDocument = famille === 'config' ? {} : espace;
+  /** Le dé est une clé de CHARGE par discriminant dès qu'un cas de `espace.chargeParDiscriminant` le nomme :
+   *  la fabrique le pose alors optionnel, et `refusDeCharge` l'exige des cas qui le déclarent, le refuse aux autres. */
+  const deParDiscriminant = Object.values(espaceDuDocument.chargeParDiscriminant ?? {}).some((cles) => cles.includes('die'));
   const refusDeRangee = espaceDesRangees && rangee && refusDeCharge(type, espaceDesRangees, rangee instanceof z.ZodObject ? Object.keys(rangee.shape) : []);
   const rangeeChargee = rangee && refusDeRangee
     ? nommerChamps((rangee as z.ZodObject<z.ZodRawShape>).superRefine((v, ctx) => refusDeRangee(v as Record<string, unknown>, ctx)), metaDesChamps(rangee) ?? {})
@@ -608,50 +725,55 @@ export function document<T extends string, F extends FamilleDocument, C extends 
       : rangee
         ? marquerProduit(z.strictObject({
             ...complet.shape,
-            ...(deDeTirage ? { die: deDeTirageSchema } : {}),
+            ...(deDeTirage ? { die: deParDiscriminant ? deDeTirageSchema.optional() : deDeTirageSchema } : {}),
             entries: rangeesDeCharge(z.array(rangeeChargee!), espaceDesRangees),
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
-  // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206).
-  const partielle = marquerProduit(corps.partial(), 'document', 'entreePartielle', champsDuDef).superRefine(
+  // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206). Une
+  // surcharge ne porte pas l'identité de ce qu'elle surcharge : l'`id` n'est pas un champ du patch.
+  const partielle = marquerProduit(corps.omit({ id: true }).partial(),'document', 'entreePartielle', champsDuDef).superRefine(
     refineProse({ type, exigeProse: false, porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
-  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, noms).pipe(z.transform((v) => v));
+  const { id: _identite, ...nomsDuPatch } = noms;
+  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, nomsDuPatch).pipe(z.transform((v) => v));
   const clesEntree: readonly string[] = Object.keys(corps.shape);
   // Un MARQUEUR d'espace est un champ de l'entrée : un nom hors de ses clés ouvrirait une sous-liste
   // qu'aucune donnée ne saurait jamais remplir (`gen-espaces` admet une sous-liste marquée VIDE).
   for (const marqueur of espaceDuDocument.marqueurs ?? [])
     if (!clesEntree.includes(marqueur))
       throw new Error(`document('${type}') : le marqueur d’espace « ${marqueur} » n’est aucun champ de l’entrée.`);
-  // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
-  // interdite — elle doit DIRE pourquoi. `exigeSource` consulte l'UNION `SANS_PROVENANCE_EXIGEE`
-  // (`SANS_LIVRE_DEFINITIF` ∪ `SOURCE_EN_PROFONDEUR`) : sont hors régime les documents SANS aucun livre comme
-  // ceux dont le livre est cité par SOUS-ENTRÉE — dans les deux cas rien n'est exigible à l'entrée de
-  // racine. Refine PRÉ-sceau : `superRefine` rend un `ZodObject` encore extensible (mesuré zod
-  // 4.4.3), donc `affinerEntree` reçoit bien un objet.
-  // `exiges: ['source']` rend `source` structurellement requise : le refine ci-dessous ne s'exécute
-  // alors que sur un objet dont `source` est déjà validée et ne peut JAMAIS lever — inatteignable par
-  // construction, donc rien à éteindre ici (mesuré : un branchement qui l'éteindrait est inobservable).
-  const avecProvenance = !exigeSource(type)
-    ? corps
-    : (corps.superRefine((v, ctx) => refuserSansProvenance(v as Provenance, ctx, 'de l’entrée')) as z.ZodObject<z.ZodRawShape>);
+  // Les documents qui exigent une provenance admettent `source` et `maison` ensemble par défaut.
+  const avecProvenance = !provenanceExclusive && exigeSource(type)
+    ? corps.superRefine((v, ctx) => refuserSansProvenance(v, ctx, 'de l’entrée'))
+    : corps;
   // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
   const avecProse = avecProvenance.superRefine(
     refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   // CHARGE par discriminant (`espace.chargeParDiscriminant`) : bornée au parse de l'entrée d'une liste,
-  // au même stade que la provenance et la prose. Un record porte sa charge par CLÉ, jamais par cas.
+  // au même stade que la prose. Un record porte sa charge par CLÉ, jamais par cas.
   if (famille === 'record' && espace.chargeParDiscriminant)
     throw new Error(`document('${type}') : \`chargeParDiscriminant\` partitionne les ENTRÉES d’une liste — un record porte sa charge par clé.`);
   const refusCharge = refusDeCharge(type, espaceDuDocument, clesEntree);
   const avecCharge = refusCharge
     ? (avecProse.superRefine((v, ctx) => refusCharge(v as Record<string, unknown>, ctx)) as z.ZodObject<z.ZodRawShape>)
     : avecProse;
-  const affine = affinerEntree ? affinerEntree(avecCharge) : avecCharge;
+  // PORTÉES LOCALES sans collection : une feuille `idDe(…, { portee })` du document y vaut son catalogue seul.
+  const affine = ouvrirLesPorteesSansCollection(affinerEntree ? affinerEntree(avecCharge) : avecCharge, `document('${type}')`);
   nommerChamps(affine as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affine) });
-  const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
+  const sceau = z.transform((v) => v);
+  // La provenance exclusive se juge à la validation du document. Le nœud objet du brouillon permet de
+  // retirer la provenance courante avant d’en choisir une autre.
+  const sceauAvecProvenance = provenanceExclusive ? sceau.superRefine((v, ctx) => {
+    const provenance = v as Provenance;
+    refuserSansProvenance(provenance, ctx, 'de l’entrée');
+    if (provenance.source !== undefined && provenance.maison !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['maison'], message: 'provenance double : choisis la référence au livre ou la raison maison.' });
+    }
+  }) : sceau;
+  const entreeScellee: z.ZodType<unknown> = affine.pipe(sceauAvecProvenance);
 
   // EMBALLAGE par FAMILLE (#1467) : le dataset est ce que le FICHIER porte — une LISTE d'entrées
   // (`entite`), ou l'entrée elle-même (`config`, `record`).
@@ -667,11 +789,12 @@ export function document<T extends string, F extends FamilleDocument, C extends 
         : affineDataset;
   const metaPubliee = { ...(meta as Record<string, MetaChamp>), ...tableTotale(clesPosees, (k) => META_CHARGE[k]) };
   DOCUMENT_DE_L_ENTREE_PARTIELLE.set(entreePartielle, schema);
+  if (provenanceExclusive) SCHEMAS_A_PROVENANCE_EXCLUSIVE.add(schema);
   return {
     // Le nœud SCELLÉ (`.pipe(z.transform)`) sort `unknown` : sa sortie au type se déclare ici, depuis
     // les mêmes `champs` et `options` qui l'ont composé.
     schema: schema as z.ZodType<DatasetDuDocument<T, F, C, O>>,
-    entree: entreeScellee,
+    entree: entreeScellee as z.ZodType<EntreeDuDocument<T, F, C, O>>,
     entreePartielle,
     cles: clesEntree,
     type,

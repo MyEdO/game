@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { memoByDeps, memoByRef, memoByRefDeps } from './sceneMemo';
+import { emptyScene, type Scene } from './scene';
+import { seatSlotsOf } from './seating';
+import { bumperDataset } from '../../data/versionDataset';
+import { datasetArray, setDataset } from '../../data/overrides';
 
 describe('memoByRef — le contrat d’identité, tenu par le gel en développement et en test', () => {
   it('une clé mémorisée est gelée en profondeur : une écriture en place LÈVE', () => {
@@ -26,6 +30,61 @@ describe('memoByRef — le contrat d’identité, tenu par le gel en développem
     cle.dejaVus.add('a');
     expect(Object.isFrozen(index)).toBe(false);
     expect(index.get('a')).toBe(1);
+  });
+});
+
+describe('memoByRef et memoByRefDeps — datés par la version des datasets (#4044)', () => {
+  it('memoByRef rend la même valeur sans rappeler le constructeur tant que rien n’est écrit, et rebâtit CHAQUE clé après une écriture au catalogue', () => {
+    let appels = 0;
+    const lire = memoByRef((_k: object) => (appels++, {}));
+    const a = {};
+    const b = {};
+    const [va, vb] = [lire(a), lire(b)];
+    expect(lire(a)).toBe(va);
+    expect(lire(b)).toBe(vb);
+    expect(appels).toBe(2);
+    bumperDataset('materials');
+    const apres = lire(a);
+    expect(apres, 'la clé lue la première, rebâtie').not.toBe(va);
+    expect(lire(b), 'l’autre clé, rebâtie elle aussi').not.toBe(vb);
+    expect(lire(a)).toBe(apres);
+    expect(appels).toBe(4);
+  });
+
+  it('memoByRefDeps de même, à clés et dépendances égales', () => {
+    let appels = 0;
+    const lire = memoByRefDeps<object, object>();
+    const a = {};
+    const b = {};
+    const dep = {};
+    const bati = () => (appels++, {});
+    const [va, vb] = [lire(a, [dep], bati), lire(b, [dep], bati)];
+    expect(lire(a, [dep], bati)).toBe(va);
+    expect(lire(b, [dep], bati)).toBe(vb);
+    expect(appels).toBe(2);
+    bumperDataset('materials');
+    const apres = lire(a, [dep], bati);
+    expect(apres, 'la clé lue la première, rebâtie').not.toBe(va);
+    expect(lire(b, [dep], bati), 'l’autre clé, rebâtie elle aussi').not.toBe(vb);
+    expect(lire(a, [dep], bati)).toBe(apres);
+    expect(appels).toBe(4);
+  });
+
+  it('les places d’un meuble (`seatSlotsOf`, mémo de `seating.ts`) suivent chaque écriture au catalogue des décors, sur la même scène', () => {
+    const avant = [...datasetArray('props')];
+    const tabouret = avant.find((p) => p.id === 'tabouret')!;
+    const siege = { ...tabouret, id: 'siege-de-fixture', seatSlots: [{ id: 'place-1', anchor: { xM: 0, yM: 0, hM: 0.45 }, facing: 'S' as const, approach: { x: 0, y: -1 } }] };
+    const s: Scene = { ...emptyScene('places', 6, 6), entities: [{ id: 'siege', kind: 'prop', decor: { id: siege.id }, pos: { x: 2, y: 2 } }] };
+    const places = () => seatSlotsOf(s, 'siege').length;
+    expect(places(), 'décor absent du catalogue').toBe(0);
+    try {
+      setDataset('props', [...avant, siege]);
+      expect(places(), 'décor écrit au catalogue').toBe(1);
+      setDataset('props', [...avant, { ...siege, seatSlots: [] }]);
+      expect(places(), 'sa place retirée au catalogue').toBe(0);
+    } finally {
+      setDataset('props', avant);
+    }
   });
 });
 

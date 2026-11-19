@@ -1,6 +1,6 @@
 *Pages PDF 310*
 
-# **POSSESSIONS DIVERSES**
+# <span id="page-309-0" data-folio="308"></span>**POSSESSIONS DIVERSES**
 
 Si les Joueurs souhaitent acheter quelque chose qui n'est pas inclus dans cette liste, le MJ peut se référer à des objets similaires pour les indications de prix et de disponibilité.
 

@@ -1,0 +1,72 @@
+/* Voyage (#3935, #4411) : les pièces de la famille au-dessus de la feuille commune ; leur place vit dans `../rendu.css`. */
+#titre.temps{height:104px}
+#titre.temps .fond{gap:16px;padding:0 20px 0 16px}
+#titre.temps .n{font-size:29px;line-height:42px;margin:-9px 0 -9px}
+#titre.temps .m{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13.5px;color:#e6dabd}
+#trajet .fond{overflow:hidden}
+#trajet .fond>svg{position:absolute;inset:0;width:100%;height:100%}
+#frise{position:absolute;height:44px}
+#frise .reste{position:absolute;right:10px;top:-14px;font-size:14px;color:#f0e2c2;white-space:nowrap}
+#frise .reste b{font-size:22px}
+#titre.temps~#recit{top:144px}
+.ligne{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;line-height:23px;color:#eadfc4}
+.ligne .rubrique{font-size:12.5px;color:var(--creme-2);white-space:nowrap}
+.parchemin .ligne{color:var(--encre)}.parchemin .ligne .rubrique{color:var(--encre-2)}
+.filet{margin:11px 0 8px}
+/* le carton d'un arrêt : parchemin dans un cadre de chêne ferré, vignette, texte, sceau du dé, choix */
+#evenement .fond{display:flex;gap:24px;padding:22px 26px 0 20px}
+#evenement .vignette{flex:none;width:254px;height:254px;padding:5px;background:#2a1d12;box-shadow:0 2px 6px rgba(40,20,5,.6);margin-top:2px}
+#evenement .vignette svg{display:block;width:100%;height:100%}
+#evenement .corps{flex:1;min-width:0;display:flex;flex-direction:column;padding-bottom:13px}
+#evenement .tete{display:flex;align-items:baseline;gap:14px}
+#evenement h2{margin:-9px 0 -7px;font-family:"Grenze Gotisch";font-weight:600;font-size:34px;line-height:50px;color:#3a1a10;letter-spacing:.3px;white-space:nowrap}
+#evenement .tete span{font-size:12.5px;color:#5a2a12}
+#evenement .corps>p{margin:4px 80px 6px 0;font-size:16px;line-height:22px;color:#2a1d12}
+#evenement .sceau.de{position:absolute;right:26px;top:16px}
+.heros .attend.sombre{color:var(--or);background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #150d04,0 0 0 2px rgba(226,192,106,.55),0 2px 4px rgba(0,0,0,.6)}
+/* panneau de bord, à droite */
+.bord{position:absolute}
+.bord>.fond{padding:24px 16px 14px}
+.bord .t{font-size:12.5px;color:var(--or);margin-bottom:5px}
+/* le lieu d'arrivée : le récit du trajet */
+#recit.lieu p{font-size:16px;line-height:23px}
+#navire .jauge,#bord .jauge{margin:1px 0 7px}
+/* l'arrêt dont le Test s'ouvre au bandeau du jet : le carton se resserre */
+#evenement.court .vignette{width:196px;height:196px}
+#ui:has(.testeurs) #evenement.court .vignette{width:160px;height:160px}
+/* un choix de l'événement : deux cartes, puis la plaque qui commet */
+#evenement .choix{display:flex;gap:12px;margin-top:10px}
+#evenement .plaque.carte{flex:1;width:auto;height:76px}
+#evenement .plaque.commet{flex:none;align-self:center;width:300px;margin-top:auto}
+/* la Chance au pied d'un billet de jet */
+.apercu .chance{display:flex;align-items:center;gap:14px;font-style:normal}
+/* la cadence du voyage, dans l'objet du temps */
+#titre.temps .cadence{margin-left:auto;display:flex;flex-direction:column;gap:5px;padding-left:16px;border-left:1px solid rgba(201,185,149,.22)}
+#titre.temps .cadence span{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+#titre.temps .cadence .plaque{flex:none;width:148px}
+#titre.temps .cadence .plaque>div{font-size:12.5px;padding:0 8px}
+/* les arrêts de la mer : les paies du conseil et leur règlement */
+#evenement .choix.paies .plaque.carte{width:auto;min-width:0;height:54px}
+#evenement .choix.paies .plaque.carte>div{padding:0 10px}
+#evenement .choix.paies .plaque.carte .n{font-size:14.5px;line-height:20px;white-space:nowrap}
+#evenement .choix.paies .plaque.carte .c{font-size:11.5px;white-space:nowrap}
+#evenement .choix.paies .carte .c br{display:none}
+#evenement .choix.paies .carte .c .sep{display:inline}
+#evenement:has(.reglement) .vignette{width:140px;height:140px}
+.reglement{display:flex;align-items:flex-start;gap:14px;margin-top:22px}
+#evenement .reglement .choix.paies{flex:none;display:grid;grid-template-columns:172px 172px;gap:10px;margin:0}
+.reglement .qui{flex:1;min-width:0}
+.reglement .cadre{position:relative}
+.reglement .cadre .fond{position:static;padding:7px 12px 6px;color:#eadfc4}
+#evenement .reglement .plaque.commet{grid-column:1 / 3;justify-self:center;margin:0}
+/* la station à bord du héros choisi, sous le dossier du navire */
+#station .fond{padding:22px 14px 10px}
+.stations{display:flex;gap:7px}
+.stations .plaque{flex:1}
+.stations .plaque>div{font-size:13px;padding:0 6px}
+#station p{margin:9px 2px 0;font-style:italic;font-size:13px;line-height:17px;color:#e6dabd}
+/* les Activités de la semaine en mer : les réglages de la semaine et sa validation */
+#bord.semaine .reglage{display:flex;justify-content:space-between;align-items:center;margin:2px 0 4px;font-size:14px;color:#eadfc4}
+#bord.semaine .moins-plus b{min-width:56px;text-align:center;font-size:13.5px;color:#f4e8ca}
+#bord.semaine .plaque{margin-top:4px}
+.poste.ferme .et .bulle-refus{z-index:3;font-weight:400;white-space:normal;width:310px;margin:0;font-size:13px;line-height:17px;color:#2a1d12;text-align:center}

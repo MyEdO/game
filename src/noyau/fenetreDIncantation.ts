@@ -16,7 +16,7 @@ import { aiDriven, influencesLocally } from './netOwnership';
 import { ventsAnnonces } from './combatOrParty';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { fermetureDuReglage } from './rollFlowSpecs';
-import { castOvercastAxes, effectiveSpellOf, overcastTargetCandidates, previewCast } from './combatFlow';
+import { ancreDeLaZdE, castOvercastAxes, effectiveSpellOf, overcastTargetCandidates, previewCast } from './combatFlow';
 import { resultLine, freeCons } from './rollSeam';
 import { libelleDeLaFermeture, libelleDuReglage } from './libelles';
 import { gesteDuReglage, type ChoixNomme } from './reglages';
@@ -152,6 +152,8 @@ export function refusDeLaPose(s: Jeu, on: boolean): string | null {
   const pc = s.pendingCast;
   if (!pc?.zone || pc.zone.center || !s.battle) return libelleDeLaFermeture('nonOffert');
   if (!on) return pc.zone.placing ? null : libelleDeLaFermeture('nonOffert');
+  const spell = effectiveSpellOf(pc);
+  if (!spell || ancreDeLaZdE(spell) !== 'point') return libelleDeLaFermeture('nonOffert');
   if (!pc.result) return libelleDeLaFermeture('jetNonLance');
   if (!castAfterCrit(pc.result, pc.critChoice)) return t('incantation.refus.sortNonLance');
   return influencesLocally(s, pc.casterId) ? null : libelleDeLaFermeture('rangeeTemoin');
@@ -184,7 +186,7 @@ function surincantationEnVue(s: Jeu): SurincantationEnVue | null {
     cibles: e.axes.includes('targets') && capacite > 0
       ? {
           capacite, designees: pc.extraTargetIds?.length ?? 0, surLaCarte: !!s.battle,
-          candidats: overcastTargetCandidates(pool, lanceur, pc.targetId, sort, !!pc.missile, source, oc.range).map((c) => c.id),
+          candidats: overcastTargetCandidates(s.scene, pool, lanceur, pc.targetId, sort, !!pc.missile, source, oc.range).map((c) => c.id),
         }
       : null,
     bonusDeDegats: missileOvercastDamageBonus(source, oc.damage),
@@ -211,8 +213,9 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
   const montre = (reglage: ReglageDu<'incantation'>): boolean => seMontre(s, reglage);
   const choix = <V extends string | number | boolean>(reglage: ReglageDu<'incantation'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> =>
     ({ geste: gesteDuReglage('incantation', reglage), libelle: libelleDuReglage('incantation', reglage), choisie, options });
-  const zoneAPoser = !!pc.zone && !pc.zone.center;
-  const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneAPoser } });
+  const zoneNonResolue = !!pc.zone && !pc.zone.center;
+  const zoneAPoser = zoneNonResolue && ancreDeLaZdE(sort) === 'point';
+  const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneNonResolue } });
   const formes = conjureFormOptions(lanceur);
   const refusDeForme = refusDuReglage(s, 'formeConjuree');
   const fermetures = fermeturesDuFlux(s, 'incantation');

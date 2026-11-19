@@ -1,11 +1,15 @@
 {
   "model": "humanoide--accessoire--baudrier.glb",
-  "model_sha256": "77508f31b4b94ff99dc4d2f8e912153ef804facb36bf6f6ba351de4d135c8664",
-  "importe_le": "2026-11-05",
+  "model_sha256": "332bf3d388895cc233dc3fa4c02761513af547e4c620f4d089420ca85f2119e4",
+  "importe_le": "2026-11-15",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

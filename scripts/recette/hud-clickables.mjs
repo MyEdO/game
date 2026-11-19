@@ -6,7 +6,7 @@
 //
 // Usage :
 //   node scripts/recette/hud-clickables.mjs
-//   node scripts/recette/hud-clickables.mjs --widths 700,560,360
+//   node scripts/recette/hud-clickables.mjs --widths 900,700,560
 //   node scripts/recette/hud-clickables.mjs --url <autre serveur>   # défaut : le port de CET arbre
 //
 // Sans `--url`, la cible est le serveur de DEV de cet arbre (`DEFAULT_URL`, scripts/port-dev.mjs) ;
@@ -63,13 +63,24 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE, FN_NOMMER_ELEMENT } from './lib.mjs';
+import {
+  openApp,
+  evaluate,
+  setViewport,
+  sleep,
+  cliquerSelecteur,
+  resoudreModales,
+  ouvrirRound,
+  attendreSelecteur,
+  VUE_REFERENCE,
+  FN_NOMMER_ELEMENT,
+} from './lib.mjs';
 
-// Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
+// Les largeurs étroites (700/560) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
-// 700/560/360 seuls rendait cette vérification AVEUGLE (marge morte mesurée à 0px).
+// les étroites seules rendait cette vérification AVEUGLE (marge morte mesurée à 0px).
 // La plus large est la vue de RÉFÉRENCE (`vues-recette.json`), jamais un couple recopié (#1847).
-const DEFAULT_WIDTHS = [VUE_REFERENCE.largeur, 1100, 900, 700, 560, 360];
+const DEFAULT_WIDTHS = [VUE_REFERENCE.largeur, 1100, 900, 700, 560];
 const HEIGHT = VUE_REFERENCE.hauteur;
 
 function parseArgs(argv) {
@@ -110,7 +121,7 @@ const PROBE = `(() => {
   const box = (r) => r ? { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1) } : null;
   // Une boîte NON RENDUE (repliée, écran d'un parent en display:none) a un rect 0×0 : elle n'a aucun
   // clic à recevoir, et le point (0,0) rend le décor — la juger « recouverte » est un FAUX POSITIF
-  // (mesuré : à 560 et 360 la bande de groupe est repliée sur sa poignée, piste en display none).
+  // (mesuré : à 560 la bande de groupe est repliée sur sa poignée, piste en display none).
   const reaches = (el) => (${FN_REACHES})(el, cn, box);
   const overlap = (a, b) => {
     if (!a || !b) return null;

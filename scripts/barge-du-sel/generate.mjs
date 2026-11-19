@@ -192,9 +192,9 @@ scenes.push(scene({
       surprise: 'groupe',
       // Reddition à 40 % de Blessures (VictoryCondition.woundsThreshold, doc §8) : la cogue pirate amène
       // son pavillon avant le naufrage complet.
-      victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', atOrBelowPercent: 40 },
+      victoryCondition: { type: 'woundsThreshold', targetId: { id: 'cogue-pirate' }, atOrBelowPercent: 40 },
       members: [
-        { entityId: 'louve-grise', side: 'allie' },
+        { entityId: 'louve-grise', side: 'allie', navireDeCampagne: true },
         { entityId: 'cogue-pirate', side: 'ennemi' },
         { entityId: 'pirate-1', side: 'ennemi' },
         { entityId: 'pirate-2', side: 'ennemi' },

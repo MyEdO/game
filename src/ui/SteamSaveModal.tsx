@@ -8,6 +8,8 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /**
@@ -19,6 +21,7 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function SteamSaveModal() {
   const p = useGame((s) => s.pendingSteamSave);
   const party = useGame((s) => s.party);
+  const nom = useGame((s) => (s.pendingSteamSave ? nomEnVue(s, s.pendingSteamSave.actorId) : null));
   const roll = useGesteDeJet('jetLancer', 'fuiteDeVapeur');
   const reroll = useGesteDeJet('jetRelancer', 'fuiteDeVapeur');
   const bonusSL = useGesteDeJet('jetAjouterUnDR', 'fuiteDeVapeur');
@@ -27,6 +30,7 @@ export function SteamSaveModal() {
   const confirm = useGesteDeJet('jetValider', 'fuiteDeVapeur');
   if (!p) return null;
   const actor = party.find((c) => c.id === p.actorId);
+  const qui = garanti(nom, p.actorId, 'mécanicien');
   const rolled = p.roll != null;
 
   const actorRow: BuiltRollRow = buildRollRow({
@@ -48,7 +52,7 @@ export function SteamSaveModal() {
   const actions: RollAction[] = [{ key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' }];
   const text = !rolled
     ? 'Un jet de vapeur jaillit de la chaudière — Test d’Initiative ou ébouillanté.'
-    : p.success ? `${p.actorName} esquive le jet de vapeur.` : `${p.actorName} est ébouillanté par le jet de vapeur !`;
+    : p.success ? `${qui} esquive le jet de vapeur.` : `${qui} est ébouillanté par le jet de vapeur !`;
 
   return (
     <RollShell

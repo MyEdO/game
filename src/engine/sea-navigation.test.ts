@@ -82,7 +82,7 @@ describe('Orientation — Repères & Changement de cap (MDG 13 l.307-331)', () =
   it('Changement de cap se tire au `die` VIVANT de sa table (MDG 13 l.326 ; #1667)', () => {
     const imprime = structuredClone(datasetObject('seaNavigation'));
     try {
-      setObjectDataset('seaNavigation', { ...imprime, orientation: { ...imprime.orientation, changementDeCap: { ...imprime.orientation.changementDeCap, die: 'd3' } } });
+      setObjectDataset('seaNavigation', { ...imprime, orientation: { ...imprime.orientation, changementDeCap: { ...imprime.orientation.changementDeCap, die: { n: 1, sides: 3 } } } });
       expect(rollCourseChange(deMax), 'd3 au max → 3 : Sans conséquences').toMatchObject({ roll: 3, outcome: 'aucun' });
     } finally {
       setObjectDataset('seaNavigation', imprime);
@@ -92,15 +92,21 @@ describe('Orientation — Repères & Changement de cap (MDG 13 l.307-331)', () =
 
 describe('Phares & clochers (MDG 13 l.333-351)', () => {
   it('Voir la lumière : ≤5 milles Facile (+40) ; 5-10 Intermédiaire ; 10-15 Difficile ; au-delà : invisible', () => {
-    expect(lighthouseSpotDifficulty(3)).toBe('facile');
-    expect(lighthouseSpotDifficulty(8)).toBe('intermediaire');
-    expect(lighthouseSpotDifficulty(14)).toBe('difficile');
-    expect(lighthouseSpotDifficulty(20)).toBeNull();
+    expect(lighthouseSpotDifficulty(3, false)).toBe('facile');
+    expect(lighthouseSpotDifficulty(8, false)).toBe('intermediaire');
+    expect(lighthouseSpotDifficulty(14, false)).toBe('difficile');
+    expect(lighthouseSpotDifficulty(20, false)).toBeNull();
   });
 
   it('clocher : distances divisées par 2 (l.351) → une cloche à 8 milles se juge comme une lumière à 16 (inaudible)', () => {
     expect(lighthouseSpotDifficulty(8, true)).toBeNull();
     expect(lighthouseSpotDifficulty(4, true)).toBe('intermediaire');
+  });
+
+  it('clocher : l’arrondi suit la division — 2,2 milles ≤ 2,5 Facile, 7,2 ≤ 7,5 Difficile, 7,6 inaudible (l.351)', () => {
+    expect(lighthouseSpotDifficulty(2.2, true)).toBe('facile');
+    expect(lighthouseSpotDifficulty(7.2, true)).toBe('difficile');
+    expect(lighthouseSpotDifficulty(7.6, true)).toBeNull();
   });
 
   it('bonus d’Orientation : phare = premier chiffre de Savoir (Océans) (l.335) ; clocher = +2 DR forfaitaires (l.351)', () => {
@@ -133,8 +139,18 @@ describe('Longs voyages & Poursuite (MDG 15 l.53-78 ; ch.13 l.354-420)', () => {
   it('milles/jour = 18 × M ; ÷2 sans voguer de nuit ; ±10 % par DR de Progression', () => {
     expect(seaMilesPerDay(5, true)).toBe(90);
     expect(seaMilesPerDay(5, false)).toBe(45);
-    expect(seaMilesPerDay(5, true, 2)).toBeCloseTo(108); // +20 %
-    expect(seaMilesPerDay(5, true, -3)).toBeCloseTo(63); // −30 %
+    expect(seaMilesPerDay(5, true, 2)).toBe(108); // +20 %
+    expect(seaMilesPerDay(5, true, -3)).toBe(63); // −30 %
+  });
+
+  // #4419 : les demi-milles sont EXACTS, l'arrondi au mille des appelants les monte (31,5 → 32).
+  it.each([
+    [-9, 4.5],
+    [-7, 13.5],
+    [-3, 31.5],
+  ] as const)('M 5 sans voguer de nuit, Progression %s DR → %s milles exacts', (dr, milles) => {
+    expect(seaMilesPerDay(5, false, dr)).toBe(milles);
+    expect(Math.round(seaMilesPerDay(5, false, dr))).toBe(milles + 0.5);
   });
 
   it('Poursuite : Distance gagnée = mètres ÷ 10 (min 1) ±1/−2 selon la bande de DR (l.378-397)', () => {

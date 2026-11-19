@@ -287,7 +287,7 @@ describe('#1004 T1 / #997 — Tir rapide en interruption : l’attente annoncée
   for (const interrupt of [false, true]) {
     it(`${interrupt ? 'INTERRUPTION' : 'tir NORMAL'} (Bout Portant) : attente affichée ET fenêtre de Défense réellement ouverte`, () => {
       const { enemy, hero, pa } = playAttack(3, { ...RANGED }, interrupt ? { interrupt: true } : {});
-      expect(surfacedDefensePending(useGame.getState(), enemy, hero, attackWeaponOf(useGame.getState().battle!, enemy, hero, pa), pa)).toBe(true);
+      expect(surfacedDefensePending(useGame.getState(), enemy, hero, attackWeaponOf(useGame.getState().scene, useGame.getState().battle!, enemy, hero, pa), pa)).toBe(true);
       act(() => { root.render(<AttackModal />); });
       expect(host.textContent).toContain('En attente de la Défense de Grunni.');
       act(() => { useGame.getState().jetValider('attaque'); });
@@ -309,8 +309,8 @@ describe('#1026 SONDE2 — une seule vérité d’ARME entre l’écran et l’a
   it('divergence FORGÉE : les deux résolutions d’arme rendaient des verdicts opposés', () => {
     const { enemy, hero, pa } = playAttack(3, { ...NATURAL }, PA);
     const battle = useGame.getState().battle!;
-    const wShared = attackWeaponOf(battle, enemy, hero, pa);
-    const wLegacy = firedWeapon(enemy, hero, pa.weaponUid, battle.combatants);
+    const wShared = attackWeaponOf(useGame.getState().scene, battle, enemy, hero, pa);
+    const wLegacy = firedWeapon(useGame.getState().scene, enemy, hero, pa.weaponUid, battle.combatants);
     expect([wShared.type, wLegacy.type], 'la fixture DOIT opposer arme naturelle et arme de jet').toEqual(['melee', 'distance']);
     expect(surfacedDefensePending(useGame.getState(), enemy, hero, wShared, pa), 'Morsure au contact : une fenêtre s’ouvre').toBe(true);
     expect(surfacedDefensePending(useGame.getState(), enemy, hero, wLegacy, pa), 'Fléchette hors Bout Portant : aucun mode RAW').toBe(false);

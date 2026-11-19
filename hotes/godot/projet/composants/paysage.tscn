@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/dessin.gd" id="1_dessin"]
 
 [node name="Paysage" type="TextureRect"]
-custom_minimum_size = Vector2(720, 270)
+custom_minimum_size = Vector2(720, 405)
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6

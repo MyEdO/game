@@ -1,9 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { CASES_PAR_MORCEAU, couronnesDuMonde, retraitDuMonde, toitsDuMonde, toitsLeves, volumeDuMonde, type MorceauDuMonde, type RetraitDuMonde, type VolumeDuMonde } from './volume';
-import { nappeKey } from './toits';
+import {
+  CASES_PAR_MORCEAU,
+  couronnesDuMonde,
+  posesDesDecors,
+  retraitDuMonde,
+  toitsDuMonde,
+  toitsLeves,
+  volumeDuMonde,
+  type MorceauDuMonde,
+  type RetraitDuMonde,
+  type VolumeDuMonde,
+  blocDeLaCase,
+} from './volume';
+import { clearedSpace, nappeKey, shelterField } from './toits';
 import { perimeterWallSegs } from '../../sceneEdit.testkit';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../scene';
+import { emptyScene, parapetTilesAbove, sceneMetresPerTile, setDoorOpen, setStructureDown, setTileCollapsed, type Scene } from '../scene';
+import { decorDuTerrain, terrainAbsent } from '../terrain';
+import { paintTiles, setEdgeWall } from '../../sceneEdit';
+import { bumperDataset } from '../../../data/versionDataset';
+import { datasetArray, setDataset, type DatasetKey } from '../../../data/overrides';
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
+import { scenario as siegeEnceinte } from '../../../scenes/test-scenarios/siege-enceinte';
+import { scenario as scenarioDiligence } from '../../../scenes/test-scenarios/diligence';
 import { edgeKey } from '../facades';
+import { ancreDuDecor } from '../footprint';
 import { METRES_PER_LEVEL } from '../relief';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { parseHex } from '../../../lib/couleurHex';
@@ -11,6 +31,7 @@ import { depuisBase64 } from '../../../lib/base64';
 import { triangles, trianglesDuVolume, trianglesMontres } from './volume.testkit';
 import { buildScene } from '../../mapSpec';
 import { poserLesNavires, provenanceDesNavires } from '../../planDeNavire';
+import { buildOpaque } from '../vision';
 import { capsSolid } from './floors';
 import type { MaterialRef } from '../../../data/materials.types';
 
@@ -136,6 +157,48 @@ describe('volumeDuMonde (#3476)', () => {
     const tris = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.matiere.startsWith('prop--'));
     expect(tris.map((t) => t.matiere)).toContain('prop--feuillage');
     expect(new Set(tris.map((t) => t.case.join(',')))).toEqual(new Set(['1,0,0']));
+  });
+});
+
+describe('les décors posés du volume (#4335)', () => {
+  /** Un bois en (1, 0), un tonneau au cap E sur la case haussée (2, 0), un tonneau au cap diagonal en (3, 0), qui ne se
+   *  dessine pas en volume. */
+  function decors(): Scene {
+    const s = emptyScene('scene-test', 4, 1);
+    s.layers[0].tiles = ['herbe', 'bois', 'herbe', 'herbe'];
+    s.layers[0].height = [0, 0, 0.5, 0];
+    s.entities.push({ id: 'tonneau-e', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 2, y: 0 }, facing: 'E' });
+    s.entities.push({ id: 'tonneau-ne', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 3, y: 0 }, facing: 'NE' });
+    return s;
+  }
+
+  /** Le décor que le bois pose sur sa case (1, 0, 0) : l'essence et le cap que tire `decorDuTerrain`. */
+  const duBois = () => decorDuTerrain('bois', 1, 0, 0)!;
+
+  it('chaque surface d’un décor porte `decor`, l’id de son type : l’essence du bois, le tonneau de l’entité ; le sol, aucun', () => {
+    const tris = trianglesDuVolume(volumeDuMonde(decors()));
+    const deDecor = tris.filter((t) => t.matiere.startsWith('prop--'));
+    expect(new Set(deDecor.map((t) => `${t.case.join(',')} ${t.surface.decor}`))).toEqual(new Set([`1,0,0 ${duBois().prop}`, '2,0,0 tonneau']));
+    expect(new Set(tris.filter((t) => !t.matiere.startsWith('prop--')).map((t) => t.surface.decor))).toEqual(new Set([undefined]));
+  });
+
+  it('les poses sont celles dont le volume pose les faces : clé, ancre, cap résolu, pied et case de ses triangles', () => {
+    const s = decors();
+    const tonneau = s.entities.find((e) => e.id === 'tonneau-e')!;
+    expect(posesDesDecors(s)).toEqual([
+      { cle: 'terrain/1,0,0', prop: duBois().prop, ancre: { x: 1, y: 0 }, cap: duBois().cap, piedM: 0, case: { x: 1, y: 0, z: 0 } },
+      { cle: 'entite/tonneau-e', prop: 'tonneau', ancre: ancreDuDecor(tonneau, sceneMetresPerTile(s)), cap: 'E', piedM: 0.5, case: { x: 2, y: 0, z: 0 }, entId: 'tonneau-e' },
+    ]);
+    const tris = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.surface.decor === 'tonneau');
+    expect(Math.min(...tris.flatMap((t) => t.ys))).toBeCloseTo(0.5, 2);
+  });
+
+  it('un décor qui éclaire porte `luminaire` à sa pose comme à ses surfaces', () => {
+    const s = decors();
+    const eclaire = { ...s, entities: s.entities.map((e) => (e.id === 'tonneau-e' ? { ...e, light: { radiusM: 5 } } : e)) };
+    expect(posesDesDecors(eclaire).find((p) => p.entId === 'tonneau-e')?.luminaire).toBe(true);
+    const tris = trianglesDuVolume(volumeDuMonde(eclaire)).filter((t) => t.surface.decor === 'tonneau');
+    expect(new Set(tris.map((t) => t.surface.luminaire))).toEqual(new Set([true]));
   });
 });
 
@@ -384,3 +447,198 @@ describe('la crénelure du volume (#3476)', () => {
   });
 });
 
+
+describe('la tuile effondrée, absente du volume (#4044)', () => {
+  const siege = poserLesNavires(siegeEnceinte.construire(idsDeTest).scene);
+  const porteDeVille = siege.walls!.find((w) => w.x === 14 && w.y === 37 && w.side === 'N' && (w.z ?? 0) === 0)!;
+  const abattu = () => parapetTilesAbove(siege, porteDeVille).reduce((s, c) => setTileCollapsed(s, c.x, c.y, c.z), setStructureDown(siege, 14, 37, 'N', 0, true));
+  const empreintes = (v: VolumeDuMonde) => new Map(v.morceaux.map((m) => [m.cle, m.empreinte]));
+  const surLaCase = (v: VolumeDuMonde) => trianglesDuVolume(v).filter((t) => t.case.join(',') === '14,37,1');
+
+  it('siege-enceinte, la porte de ville (14, 37, N) abattue : aucun triangle à la case effondrée (14, 37, 1), son morceau change d’empreinte, les autres gardent la leur', () => {
+    expect(porteDeVille.structure).toBe('porte-de-ville');
+    expect(parapetTilesAbove(siege, porteDeVille)).toEqual([{ x: 14, y: 37, z: 1 }]);
+    const [avant, apres] = [volumeDuMonde(siege), volumeDuMonde(abattu())];
+    expect(surLaCase(avant).length, 'le chemin de ronde intact').toBeGreaterThan(0);
+    expect(surLaCase(apres)).toEqual([]);
+    const [ea, eb] = [empreintes(avant), empreintes(apres)];
+    expect([...eb.keys()].sort()).toEqual([...ea.keys()].sort());
+    const bloc = blocDeLaCase({ x: 14, y: 37, z: 1 });
+    expect(eb.get(`sol/${bloc}`)).not.toBe(ea.get(`sol/${bloc}`));
+    for (const [cle, empreinte] of eb) if (!cle.endsWith(`/${bloc}`)) expect(empreinte, cle).toBe(ea.get(cle));
+  });
+
+  it('la tuile effondrée est une case où rien n’est bâti : même volume que la case absente de sa couche, qui garde sa crénelure', () => {
+    const absente = setStructureDown(siege, 14, 37, 'N', 0, true);
+    const k = 37 * siege.dimensions.w + 14;
+    const etage = absente.layers.find((l) => l.z === 1)!;
+    const couche = { ...etage, tiles: etage.tiles.map((t, i) => (i === k ? terrainAbsent() : t)) };
+    expect(etage.crenellated![k], 'la case effondrée était crénelée').not.toBeNull();
+    expect(empreintes(volumeDuMonde(abattu()))).toEqual(empreintes(volumeDuMonde({ ...absente, layers: absente.layers.map((l) => (l.z === 1 ? couche : l)) })));
+  });
+});
+
+type Arete = { x: number; y: number; side: 'N' | 'E'; z: number };
+/** `scene`, le mur de l'arête `a` abattu et sa passerelle effondrée (`parapetTilesAbove`). */
+const murAbattu = (scene: Scene, a: Arete): Scene =>
+  parapetTilesAbove(scene, a)
+    .reduce((s, c) => setTileCollapsed(s, c.x, c.y, c.z), setStructureDown(scene, a.x, a.y, a.side, 0, true));
+/** `scene`, sa première porte ouverte. */
+const porteOuverte = (scene: Scene): Scene => {
+  const porte = scene.walls!.find((w) => w.door)!;
+  return setDoorOpen(scene, porte.x, porte.y, porte.side, porte.z ?? 0, true);
+};
+
+/** Les scènes du #4044, chacune avec la famille qu'elle porte (0 : nappes, 1 : couronnes) et ses écritures de
+ *  drapeaux : la diligence porte des nappes et des portes, siege-enceinte des couronnes et sa herse. */
+const SCENES_RETENUES = [
+  ['diligence', scenarioDiligence, 0, (s: Scene) => [murAbattu(s, { x: 22, y: 12, side: 'E', z: 0 }), porteOuverte(s)]],
+  ['siege-enceinte', siegeEnceinte, 1, (s: Scene) => [murAbattu(s, { x: 14, y: 37, side: 'N', z: 0 })]],
+] as const;
+
+describe.each(SCENES_RETENUES)('toits et couronnes retenus sur ce qu’ils lisent (#4044) — %s', (
+  _, sc, fam, ecrit,
+) => {
+  const scene = poserLesNavires(sc.construire(idsDeTest).scene);
+  const retenus = (s: Scene) => [toitsDuMonde(s), couronnesDuMonde(s)];
+
+  it('la scène porte sa famille', () => {
+    expect(retenus(scene)[fam].length).toBeGreaterThan(0);
+  });
+
+  it('un mur abattu, sa passerelle effondrée, une porte ouverte : les mêmes tableaux', () => {
+    const avant = retenus(scene);
+    for (const ecrite of ecrit(scene)) {
+      expect(ecrite.flags).not.toBe(scene.flags);
+      retenus(ecrite).forEach((t, i) => expect(t).toBe(avant[i]));
+    }
+  });
+
+  it('une tuile peinte, un mur posé : des tableaux neufs, ceux de la scène clonée', () => {
+    for (const [quoi, retouche] of [
+      ['tuile', paintTiles(scene, { x: 3, y: 3 }, 'dalle', 1, 0)],
+      ['mur', setEdgeWall(scene, 2, 2, 'N', 0, 'wall')],
+    ] as const) {
+      const avant = retenus(scene);
+      const apres = retenus(retouche);
+      apres.forEach((t, i) => expect(t, quoi).not.toBe(avant[i]));
+      expect(apres, quoi).toEqual(retenus(structuredClone(retouche)));
+    }
+  });
+
+  it('une écriture d’un catalogue lu : des tableaux neufs, au même contenu', () => {
+    const avant = retenus(scene);
+    bumperDataset('materials');
+    const apres = retenus({ ...scene });
+    apres.forEach((t, i) => expect(t).not.toBe(avant[i]));
+    expect(apres).toEqual(avant);
+  });
+});
+
+describe('une écriture au catalogue, sur la même scène : volume, nappes, couronnes, couvert, dégagement, navires et opacité datés (#4044)', () => {
+  type Entree<K extends DatasetKey> = ReturnType<typeof datasetArray<K>>[number];
+  /** Joue `f` entre l'écriture d'un dataset et sa restauration (`setDataset`, l'écrivain réel). */
+  const entre = <T,>(ecrire: () => void, restaurer: () => void, f: () => T): T => {
+    try {
+      ecrire();
+      return f();
+    } finally {
+      restaurer();
+    }
+  };
+  const sousLesTerrains = <T,>(reecrire: (t: Entree<'terrains'>) => Entree<'terrains'>, f: () => T): T => {
+    const avant = [...datasetArray('terrains')];
+    return entre(() => setDataset('terrains', avant.map(reecrire)), () => setDataset('terrains', avant), f);
+  };
+  const sousLesMatieres = <T,>(reecrire: (m: Entree<'materials'>) => Entree<'materials'>, f: () => T): T => {
+    const avant = [...datasetArray('materials')];
+    return entre(() => setDataset('materials', avant.map(reecrire)), () => setDataset('materials', avant), f);
+  };
+  const sousLesVehicules = <T,>(reecrire: (v: Entree<'vehicles'>) => Entree<'vehicles'>, f: () => T): T => {
+    const avant = [...datasetArray('vehicles')];
+    return entre(() => setDataset('vehicles', avant.map(reecrire)), () => setDataset('vehicles', avant), f);
+  };
+  const absent = (id: string) => (t: Entree<'terrains'>): Entree<'terrains'> => ({ ...t, absence: t.id === id ? true : t.absence });
+  const MAISON = { x: 2, y: 2, w: 4, h: 3 };
+  /** La maison `MAISON` murée, d'un corps sans masse authorée, à l'étage de planches : sa masse se dérive
+   *  (`deriveArchitectureMasses`), sur deux niveaux tant que les planches sont un plancher. */
+  const maisonAEtage = (): Scene => {
+    const s: Scene = {
+      ...emptyScene('abri', 10, 8),
+      walls: perimeterWallSegs([MAISON]),
+      architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [] }],
+    };
+    const tiles = s.layers[0].tiles.map((_, i) => {
+      const [x, y] = [i % 10, Math.floor(i / 10)];
+      return x >= MAISON.x && x < MAISON.x + MAISON.w && y >= MAISON.y && y < MAISON.y + MAISON.h ? 'planches' : terrainAbsent();
+    });
+    return { ...s, layers: [...s.layers, { z: 1, tiles, height: tiles.map(() => METRES_PER_LEVEL) }] };
+  };
+  const empreintesDe = (l: { cle: string; empreinte: string }[]) => new Map(l.map((m) => [m.cle, m.empreinte]));
+
+  it('le volume : le terrain des planches de l’étage devenu l’absence retire leur sol ; restauré, les empreintes du départ', () => {
+    const s = deuxEtages();
+    const depart = empreintesDe(volumeDuMonde(s).morceaux);
+    const cle = `sol/${blocDeLaCase({ x: 3, y: 3, z: 1 })}`;
+    const sous = sousLesTerrains(absent('planches'), () => empreintesDe(volumeDuMonde(s).morceaux));
+    expect(sous.get(cle)).not.toBe(depart.get(cle));
+    expect(empreintesDe(volumeDuMonde(s).morceaux)).toEqual(depart);
+  });
+
+  it('les nappes : la couleur de la tuile (`materials`) ; restaurée, les empreintes du départ', () => {
+    const s: Scene = {
+      ...emptyScene('toits', 10, 8),
+      walls: perimeterWallSegs([MAISON]),
+      architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [{ id: 'maison', z: 0, footprint: [MAISON], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' } }] }],
+    };
+    const depart = empreintesDe(toitsDuMonde(s));
+    const sous = sousLesMatieres((m) => (m.id === 'tuile' && m.domain === 'roof' ? { ...m, N: '#000000' } : m), () => empreintesDe(toitsDuMonde(s)));
+    expect(sous.get(nappeKey('bourg', 'maison'))).not.toBe(depart.get(nappeKey('bourg', 'maison')));
+    expect(empreintesDe(toitsDuMonde(s))).toEqual(depart);
+  });
+
+  it('les couronnes : le sol au pied du rempart devenu l’absence le hausse ; restauré, les empreintes du départ', () => {
+    const rempart = { x: 1, y: 1, side: 'N' as const, structure: 'mur-en-pierre' };
+    const s: Scene = { ...emptyScene('rempart', 3, 3), walls: [rempart] };
+    s.layers[0] = { ...s.layers[0], tiles: s.layers[0].tiles.map((t, i) => (i === 1 ? 'dalle' : t)), height: [0, 1, 0, 0, 2, 0, 0, 0, 0] };
+    const depart = empreintesDe(couronnesDuMonde(s));
+    const sous = sousLesTerrains(absent('dalle'), () => empreintesDe(couronnesDuMonde(s)));
+    expect(sous.get(edgeKey(rempart))).not.toBe(depart.get(edgeKey(rempart)));
+    expect(empreintesDe(couronnesDuMonde(s))).toEqual(depart);
+  });
+
+  it('le couvert (`shelterField`) : les planches de l’étage devenues l’absence abaissent la nappe dérivée ; restauré, le couvert du départ', () => {
+    const s = maisonAEtage();
+    const niveau = () => shelterField(s).get('3,3')?.topZ;
+    expect(niveau()).toBe(1);
+    expect(sousLesTerrains(absent('planches'), niveau)).toBe(0);
+    expect(niveau()).toBe(1);
+  });
+
+  it('le dégagement (`clearedSpace`) : les planches de l’étage devenues l’absence retirent l’étage de l’espace de l’allié ; restauré, celui du départ', () => {
+    const s = maisonAEtage();
+    const allies = [{ x: 3, y: 3, z: 0 }];
+    const espace = () => [...clearedSpace(s, allies).roomlessCells].sort();
+    const depart = espace();
+    expect(depart).toContain('3,3,1');
+    expect(sousLesTerrains(absent('planches'), espace)).not.toContain('3,3,1');
+    expect(espace()).toEqual(depart);
+  });
+
+  it('les navires posés (`poserLesNavires`) : l’empreinte de la caraque (`vehicles`) élargie déplace ses ponts ; restaurée, ceux du départ', () => {
+    const s = buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 6 }, facing: 'O' }] });
+    const ponts = () => JSON.stringify(poserLesNavires(s).entities.filter((e) => e.id.startsWith('c1-')).map((e) => e.pos));
+    const depart = ponts();
+    const elargie = sousLesVehicules((v) => (v.id === 'caraque' && v.ship && v.ship.footprint !== undefined ? { ...v, ship: { ...v.ship, footprint: v.ship.footprint + 2 } } : v), ponts);
+    expect(elargie).not.toBe(depart);
+    expect(ponts()).toBe(depart);
+  });
+
+  it('l’opacité (`buildOpaque`) : la dalle (`terrains`) rendue opaque bloque la vue ; restaurée, l’opacité du départ', () => {
+    const s = paintTiles(emptyScene('opacite', 4, 4), { x: 1, y: 1 }, 'dalle', 1, 0);
+    const bloque = () => buildOpaque(s).g[1 * 4 + 1];
+    expect(bloque()).toBe(0);
+    expect(sousLesTerrains((t) => (t.id === 'dalle' ? { ...t, opaque: true } : t), bloque)).toBe(1);
+    expect(bloque()).toBe(0);
+  });
+});

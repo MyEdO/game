@@ -18,7 +18,8 @@ import { initialNet } from './etat';
 function mkStore(vessel: CampaignVessel | null) {
   const hero = ensureBourse({ id: 'h1', label: 'h1', items: [] } as unknown as Combatant, idsDeTest);
   bourseInstanceOf(hero)!.money = fromBrass(100000);
-  let state = { vessel, party: [hero], journal: [] as string[], net: initialNet() };
+  const worldMap = { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Port', pos: { x: 0, y: 0 } }], routes: [] };
+  let state = { vessel, party: [hero], journal: [] as string[], net: initialNet(), lieu: 'A', worldMap };
   const log = (msg: string | string[]) => {
     state = { ...state, journal: [...state.journal.slice(-40), ...(Array.isArray(msg) ? msg : [msg])] };
   };
@@ -28,7 +29,7 @@ function mkStore(vessel: CampaignVessel | null) {
 }
 
 const baseVessel = (crew?: CampaignVessel['crew']): CampaignVessel => ({
-  vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...(crew ? { crew } : {}),
+  vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A', ...(crew ? { crew } : {}),
 });
 
 describe('recruterLEquipage / renvoyerLEquipage (#228)', () => {
@@ -59,6 +60,28 @@ describe('recruterLEquipage / renvoyerLEquipage (#228)', () => {
     expect(v.crew).toEqual([{ roleId: 'timonier', count: 1 }, { roleId: 'mousse', count: 1 }]);
     // Mousse : 1 CO 4 PA = 240 + 48 = 288 ; total 864 + 288 = 1152.
     expect(weeklyCrewWageBrass(v.crew)).toBe(1152);
+  });
+
+  it('l’embauche comble les places vacantes dans la limite du complément nominal', () => {
+    const { get, set, read } = mkStore({
+      ...baseVessel([{ roleId: 'mousse', count: 12 }]),
+      crewLost: 2,
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    });
+    recruterLEquipage(get, set, 'timonier', 5);
+    expect(read().vessel).toMatchObject({
+      crewLost: 0,
+      crew: [{ roleId: 'mousse', count: 12 }, { roleId: 'timonier', count: 2 }],
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    });
+    recruterLEquipage(get, set, 'timonier', 1);
+    expect(read().vessel!.crew).toEqual([{ roleId: 'mousse', count: 12 }, { roleId: 'timonier', count: 2 }]);
+    renvoyerLEquipage(get, set, 'timonier', 5);
+    expect(read().vessel).toMatchObject({
+      crewLost: 2,
+      crew: [{ roleId: 'mousse', count: 12 }],
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    });
   });
 
   it('débarquement décrémente puis SUPPRIME le poste à 0', () => {

@@ -1,0 +1,38 @@
+{
+  "attaque-jet-tombe": {
+    "chemin": "maquettes/attaque-jet-tombe.png",
+    "sha256": "0fdf69525fc6ed66d366e5e5bfd43e92dd0d833f14840207f7b14d2975d7ece8",
+    "facteur": 1,
+    "date": "2026-11-13"
+  },
+  "combat-barre-de-l-actif": {
+    "chemin": "maquettes/combat-barre-de-l-actif.png",
+    "sha256": "e68618eaa90cce09b93a3f7f41ece9df2339be88610784036b98813a6d38d268",
+    "facteur": 1,
+    "date": "2026-11-13"
+  },
+  "accueil": {
+    "chemin": "maquettes/accueil.png",
+    "sha256": "3b3360cf354f9055db0462527a115ed545e7a80a14cfc6fe6198befd6c9ed0b8",
+    "facteur": 1,
+    "date": "2026-11-17"
+  },
+  "options": {
+    "chemin": "maquettes/options.png",
+    "sha256": "73ceee59561d33e99fffbfa0a8eecd753c95f2416cf6a40a3e4b5a3f6cd32f00",
+    "facteur": 1,
+    "date": "2026-11-18"
+  },
+  "options-chance": {
+    "chemin": "maquettes/options-chance.png",
+    "sha256": "4e90eb52032a59afeaff1e9463ebfb823dc8cfc97005e0c67eff14344a27b7a0",
+    "facteur": 1,
+    "date": "2026-11-18"
+  },
+  "options-verrou": {
+    "chemin": "maquettes/options-verrou.png",
+    "sha256": "973bac82ab0c5b8a09bc0d6d527e00a323b5d2e16d45f8e3a094e9ab333cebd7",
+    "facteur": 1,
+    "date": "2026-11-18"
+  }
+}

@@ -19,11 +19,20 @@ import { interludeCatalog } from '../noyau/interludeFlow';
 import { refusDeRevenus, refusDOuvertureDActivite } from '../noyau/verdictsDInterlude';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
 import { ciblePsy } from '../engine/psych/ciblage';
-import { ACTIVITIES, activityById, cleDEntrainement, craftCatalog, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderCatalog } from '../engine/activities';
-import careers from '../data/careers.json';
-import { findTrappingById } from '../data';
+import {
+  activityById,
+  cleDEntrainement,
+  craftCatalog,
+  craftSpecOf,
+  entrainementOptions,
+  learnableTalents,
+  metierOf,
+  orderCatalog,
+} from '../engine/activities';
+import { ACTIVITIES, careers, findTrappingById } from '../data';
 import type { Combatant } from '../engine/types';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { testValue } from '../engine/skills';
@@ -88,6 +97,14 @@ describe('InterludeScreen — refonte LOT 6', () => {
     expect(html).toContain('Événement'); // hint de phase
     expect(html).toContain('Passer aux Activités');
     expect(html).not.toContain('Clore'); // pas de clôture sur la phase d'intro
+  });
+
+  it('le sceau de la chronique dit le dé de la table des Événements', () => {
+    const seam = buildSeam();
+    sousLeDe('interludeEvents', { n: 1, sides: 10 }, () => {
+      const html = renderToStaticMarkup(<InterludeScreen seam={seam} />);
+      expect(html).toContain('<span class="parchment-seal-label">1d10</span>');
+    });
   });
 
   it('phase « tirage » (#942 L7) : le héros dont le dé n’est pas posé ATTEND — ni plantage, ni dé menteur, ni Activités ouvertes', () => {
@@ -829,7 +846,7 @@ describe('InterludeScreen — la porte de chaque volet dédié est celle du gest
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  const CARRIERES = (careers as { id: string }[]).map((c) => c.id);
+  const CARRIERES = careers.map((c) => c.id);
   /** Variantes : 0 valide, 1 Inconscient (LDB 16 l.113 : il ne peut tenter aucun Test). */
   it.each(CARRIERES.flatMap((c) => [0, 1].map((n) => [c, n] as const)))('%s, variante %s : Revenus, ouvrage en cours, Apprentissage', (careerId, n) => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId, label: careerId, seed: 3000 + CARRIERES.indexOf(careerId) });

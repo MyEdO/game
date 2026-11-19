@@ -10,16 +10,17 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { buildEncounter } from '../noyau/monde/encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from '../noyau/worldMap';
-import { campaignStart, toDate } from '../engine/clock';
+import { campaignStart } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { resetCadence } from '../engine/cadence';
-import { seasonOfMonth } from '../engine/travelStages';
+import { currentSeason } from '../engine/travelStages';
 import { t } from '../i18n';
 import { activeDayWeather } from '../noyau/combatFlow';
 import { tableStepDef } from '../noyau/cascade';
 import { voyageDayCards } from '../ui/VoyageScreen';
-import { draineCascade } from '../noyau/cascade.testkit';
+import { draineCascade, type PoseDe } from '../noyau/cascade.testkit';
+import { PERIPETIES } from '../data/peripeties';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -67,10 +68,16 @@ function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Comb
 /** POSE le dé de Météo d'Étape (« Dés fixés ») sur la rangée `id` de la table de la saison courante. */
 function poseMeteo(id: string): void {
   const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'etape-meteo')!;
-  const saison = seasonOfMonth(toDate(get().gameTime).month);
+  const saison = currentSeason(get().gameTime);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
 }
+
+/** La route tend son embuscade (`ambush`) dans la scène de départ, sur « Attaqués ! » (table d10). */
+const embuscadeDeRoute: Partial<MapRouteTrace> = { perilDie: 8, ambush: { scene: { id: 'scene-depart' }, encounter: 'enc-brigands' } };
+const attaques = PERIPETIES.find((p) => p.kind === 'attaque')!;
+/** POSE le seuil atteint puis « Attaqués ! » sur la table des péripéties ; tout autre dé tombe de lui-même. */
+const poseEmbuscade: PoseDe = (etape) => (etape.kind === 'perilATerre' ? 8 : etape.kind === 'perilATerreTable' ? attaques.roll : undefined);
 
 beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });
 afterEach(() => { resetDesFixes(); resetCadence(); resetRule('voyage-etapes'); resetRule('voyage-attraper-froid'); });
@@ -80,16 +87,16 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
   function jourInterrompu(): unknown {
     setRule('voyage-etapes', true);
     setDesFixes(true);
-    setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
-    get().partirEnVoyage('r1', 'pied');
+    setup(map({ km: 60, ...embuscadeDeRoute }), 'clair');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('pluie-diluvienne');
-    draineCascade(get);
+    draineCascade(get, 200, poseEmbuscade);
     const jours = get().travelPlan!.recap!.days;
     const jour = structuredClone(jours[jours.length - 1]);
     get().fenetreFermer('recitDeVoyage');
     set({ battle: null, mode: 'exploration' });
     const wm = get().worldMap!;
-    set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
+    set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perilDie: 0 })) } });
     return jour;
   }
 

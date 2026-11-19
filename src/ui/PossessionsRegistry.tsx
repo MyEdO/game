@@ -32,12 +32,13 @@ import { woundsTone } from './gaugeTones';
 import { findVehicleById } from '../data';
 import { Row } from './Layout';
 
-export const NATURE_ORDER: Possession['nature'][] = ['bete', 'vehicule', 'navire', 'serviteur', 'immeuble'];
+export const NATURE_ORDER: Possession['nature'][] = ['bete', 'vehicule', 'navire', 'engin', 'serviteur', 'immeuble'];
 
 export const NATURE_TITLE: Record<Possession['nature'], string> = {
   bete: 'Montures & bêtes',
   vehicule: 'Véhicules',
   navire: 'Navires',
+  engin: 'Engins de siège',
   serviteur: 'Serviteurs',
   immeuble: 'Immeubles',
 };
@@ -46,6 +47,7 @@ export const NATURE_ICON: Record<Possession['nature'], IconId> = {
   bete: 'voyage/en-selle',
   vehicule: 'voyage/charrette',
   navire: 'voyage/navire-a-voile',
+  engin: 'scenario/siege',
   serviteur: 'outil-de-carte/personnage',
   immeuble: 'repos/chez-soi',
 };
@@ -74,23 +76,25 @@ export function prefixOf(p: Possession): ReactNode {
 
 export function labelOf(p: Possession): ReactNode {
   const label = possessionLabel(p);
-  if ((p.nature === 'bete' || p.nature === 'serviteur') && 'id' in p.ref) {
-    return <CodexRef category="creatures" id={p.ref.id} label={label} />;
-  }
-  if ((p.nature === 'vehicule' || p.nature === 'navire')) {
-    return <CodexRef category="vehicles" id={p.vehicleId} label={label} />;
-  }
-  return label;
+  const ref = codexRefOf(p);
+  return ref ? <CodexRef category={ref.category} id={ref.id} label={label} /> : label;
 }
 
-/** Catégorie/id Codex d'une possession, ou `null` sans fiche catalogue (ex. immeuble) — factorisé de
- *  `labelOf` pour poser le lien Codex en SIBLING d'une ligne cliquable (jamais imbriqué). */
+/** Catégorie/id Codex d'une possession, ou `null` sans fiche catalogue (immeuble, statbloc custom) — lu par
+ *  `labelOf`, et en SIBLING d'une ligne cliquable (jamais imbriqué). */
 function codexRefOf(p: Possession): { category: string; id: string } | null {
-  if ((p.nature === 'bete' || p.nature === 'serviteur') && 'id' in p.ref) {
-    return { category: 'creatures', id: p.ref.id };
+  switch (p.nature) {
+    case 'bete':
+    case 'serviteur':
+      return 'id' in p.ref ? { category: 'creatures', id: p.ref.id } : null;
+    case 'vehicule':
+    case 'navire':
+      return { category: 'vehicles', id: p.vehicleId };
+    case 'engin':
+      return { category: 'siegeEngines', id: p.trappingId };
+    case 'immeuble':
+      return null;
   }
-  if (p.nature === 'vehicule' || p.nature === 'navire') return { category: 'vehicles', id: p.vehicleId };
-  return null;
 }
 
 function PossessionRow({ p, allPossessions, onOpen }: { p: Possession; allPossessions: Possession[]; onOpen: (uid: string) => void }) {

@@ -30,7 +30,14 @@ describe('faces d’affichage : le texte FR de la donnée', () => {
     const choix: TrappingRef = { pick: 1, of: [{ id: 'dague' }, { id: 'baton-de-combat' }] };
     expect(trappingRefLabel(choix)).toBe('Dague ou Bâton de combat');
     expect(trappingRefLabel({ wildcard: 'arme' })).toBe('Arme (au choix)');
-    expect(trappingRefLabel({ id: 'dague', qualityChoice: true })).toBe('Dague (qualité au choix)');
+    expect(trappingRefLabel({ id: 'dague', qualityChoice: 'qualite' })).toBe('Dague (qualité au choix)');
+    expect(trappingRefLabel({ id: 'costume-de-cour', count: { fixed: 4 }, qualityChoice: 'haute' })).toBe('Habit de cour (4) (Haute Qualité au choix)');
+  });
+
+  it('dotation : lot, joker d’un Groupe d’armes, joker à Atout au choix', () => {
+    expect(trappingRefLabel({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }, { id: 'fleche', count: { fixed: 10 } }] }] })).toBe('Dague ou Arc et Flèche (10)');
+    expect(trappingRefLabel({ wildcard: 'arme', groupe: { id: 'deux-mains' } })).toBe('Arme du groupe Deux-mains (au choix)');
+    expect(trappingRefLabel({ wildcard: 'arme', qualityChoice: 'qualite' })).toBe('Arme (au choix) (qualité au choix)');
   });
 });
 
@@ -41,14 +48,24 @@ describe('faces d’affichage : le liant suit SA clé de message', () => {
     expect(choixLabel('skills', 'corps-a-corps', ['fleau', 'deux-mains'])).toBe('Corps à corps (Fléau or Deux-mains)');
   });
 
-  it('`ref.motAuChoix`, `ref.armeAuChoix`, `ref.qualiteAuChoix`, `ref.talentsAleatoires`', () => {
+  it('`ref.armeDuGroupeAuChoix`, `liste.et`', () => {
+    catalogue['ref.armeDuGroupeAuChoix'] = '{groupe} weapon (any)';
+    catalogue['liste.et'] = '{debut} and {fin}';
+    expect(trappingRefLabel({ wildcard: 'arme', groupe: { id: 'deux-mains' } })).toBe('Deux-mains weapon (any)');
+    expect(trappingRefLabel({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }, { id: 'fleche' }] }] })).toBe('Dague ou Arc and Flèche');
+  });
+
+  it('`ref.motAuChoix`, `ref.armeAuChoix`, `ref.qualiteAuChoix`, `ref.hauteQualiteAuChoix`, `ref.talentsAleatoires`', () => {
     catalogue['ref.motAuChoix'] = 'Any';
     catalogue['ref.armeAuChoix'] = 'Weapon (any)';
     catalogue['ref.qualiteAuChoix'] = '{base} (any quality)';
+    catalogue['ref.hauteQualiteAuChoix'] = '{base} (best quality)';
     catalogue['ref.talentsAleatoires'] = '{n} random Talents';
     expect(choixLabel('skills', 'savoir', true)).toBe('Savoir (Any)');
     expect(trappingRefLabel({ wildcard: 'arme' })).toBe('Weapon (any)');
-    expect(trappingRefLabel({ id: 'dague', qualityChoice: true })).toBe('Dague (any quality)');
+    expect(trappingRefLabel({ id: 'dague', qualityChoice: 'qualite' })).toBe('Dague (any quality)');
+    expect(trappingRefLabel({ wildcard: 'arme', qualityChoice: 'qualite' })).toBe('Weapon (any) (any quality)');
+    expect(trappingRefLabel({ id: 'dague', qualityChoice: 'haute' })).toBe('Dague (best quality)');
     expect(advancementLabel('talents', { random: 3 })).toBe('3 random Talents');
   });
 });

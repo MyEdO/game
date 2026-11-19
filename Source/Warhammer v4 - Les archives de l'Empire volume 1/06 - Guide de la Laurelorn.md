@@ -252,7 +252,7 @@ La capitale de la Laurelorn est l'un des rares derniers exemples de l'architectu
 La cité est dominée par trois immenses tours en marbre. La plus haute des trois est la Tour d'Argent. Elle contient la salle du trône de la Reine, et est lourdement gardée. La deuxième plus haute, la Tour des Dragons, est vide. Elle servait autrefois de lieu de résidence pour des dragons, comme le prouve son intérieur calciné. Le prince Aesryn souhaite restaurer la Tour des Dragons pour lui rendre sa gloire d'antan. Enfin, la Tour d'Hippocrène est elle aussi abandonnée, cette fois, sur ordre de la Reine. Jadis, elle était habitée par un grand prophète du nom de Sarriel, aujourd'hui révéré par les Éonirs comme un demi-dieu.
 
 
-Le Grand Conseil de Tor Lithanel se rassemble en extérieur, dans l'Agora, où pousse un unique *lornalim*. Les délibérations du conseil sont publiques, et les citoyens sont encouragés à y assister. Juste à côté de l'Agora se trouve le Temple d'Asuryan, où le culte du dieu du soleil entretient une flamme éternelle. Mais le bâtiment le plus intrigant de Tor Lithanel est sans doute la Bibliothèque des Lamentations, qui contient des manuscrits qui remontent à aussi loin que la Déchirure. La bibliothèque abrite la plus grande collection connue de parchemins qui décrivent les expériences des Anciens des légendes.
+<span id="page-81-0" data-folio="81"></span>Le Grand Conseil de Tor Lithanel se rassemble en extérieur, dans l'Agora, où pousse un unique *lornalim*. Les délibérations du conseil sont publiques, et les citoyens sont encouragés à y assister. Juste à côté de l'Agora se trouve le Temple d'Asuryan, où le culte du dieu du soleil entretient une flamme éternelle. Mais le bâtiment le plus intrigant de Tor Lithanel est sans doute la Bibliothèque des Lamentations, qui contient des manuscrits qui remontent à aussi loin que la Déchirure. La bibliothèque abrite la plus grande collection connue de parchemins qui décrivent les expériences des Anciens des légendes.
 
 #### **Le Bois des Souhaits (***Verdan Lithridrom***)**
 
@@ -277,7 +277,7 @@ Quiconque s'introduit dans le Bois des Souhaits et s'y arrête pour se reposer d
 - 0 Une agitatrice forestière du nom d'Ellanor Denaris tente de pousser les citoyens à dénoncer les traditions antiques qui excluent les membres de son lignage du Grand Conseil. Tout Personnage Éonir qui exprime un peu de sympathie pour la cause d'Ellanor pourrait se faire filer par des agents secrets des élites des Citadins. La liberté d'expression n'offre aucune protection contre la diffamation, les coups montés et les fausses accusations…
 
 
-#### **La cascade Arc-en-ciel (***Ystin Vaul Menluith Qhaysh***)**
+#### <span id="page-82-0" data-folio="82"></span>**La cascade Arc-en-ciel (***Ystin Vaul Menluith Qhaysh***)**
 
 Du haut des plus hautes tours de Tor Lithanel, on peut voir une cascade majestueuse aux couleurs chatoyantes. Jadis, d'immenses obélisques se tenaient de part et d'autre de la cascade. Mais ils se sont effondrés à cause d'un tremblement de terre, et ont basculé sur la crête de la chute. Les eaux infusées de magie du fleuve Demst tombent en cascade depuis l'amoncellement de pierres gardiennes brisées, et réfractent les huit couleurs des Vents de Magie au cours de leur chute.
 
@@ -368,7 +368,7 @@ Les villages, forts et auberges-relais aux abords de la Laurelorn peuvent servir
 
 **La Roue Brisée :** les diplomates elfes en route pour Salzenmund se rencontrent souvent dans cette taverne.
 
-**L'Orc Entravé :** cette auberge est tenue par un nain, Gudbru, qui finance une petite troupe de mercenaires qui l'aident à se débarrasser des monstres de la Drakwald. Il reste en permanence aux aguets dans l'espoir d'entendre des rumeurs de trésors elfiques perdus, et souhaite lancer une expédition dans la Laurelorn.
+**L'Orc Entravé :** cette auberge est tenue par un nain, Gudbru, qui finance une petite troupe de mercenaires qui l'aident à se débarrasser des monstres de la Drakwald. Il reste en permanence aux aguets dans l'espoir d'entendre des rumeurs de trésors elfiques perdus, et souhaite lancer une expédition dans la Laurelorn.<span id="page-86-0" data-folio="86"></span>
 
 
-<span id="page-86-0" data-folio="86"></span>Yanick Bedard - pumpkinhead83@hotmail.fr
+

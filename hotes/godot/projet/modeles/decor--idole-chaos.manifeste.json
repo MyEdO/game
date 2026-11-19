@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "idole-chaos"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "os",
+      "palette": "corps",
+      "matiere": "prop--os"
+    },
+    {
+      "nom": "corne",
+      "palette": "accent",
+      "matiere": "prop--corne"
+    },
+    {
+      "nom": "chaos",
+      "palette": "corps",
+      "matiere": "prop--pierre-chaos"
+    },
+    {
+      "nom": "rune",
+      "palette": "accent",
+      "matiere": "prop--rune-chaos"
+    }
+  ],
+  "glb": {
+    "sha256": "387035ad50ca7d9551c1f35c5e0f1d72b13a8be2ed7038a614458de09233fc23",
+    "octets": 104032
+  }
+}

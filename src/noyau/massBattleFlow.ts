@@ -25,7 +25,17 @@ import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../engin
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
 import { d100, rollDice, type RNG } from '../engine/dice';
-import { testValue, skillBaseValue, bestForTests, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail, type TestDesigne } from '../engine/skills';
+import {
+  testValue,
+  skillBaseValue,
+  bestForTests,
+  bestForCombined,
+  bestAssistedOption,
+  peutTenter,
+  refusPersonneNePeutTenter,
+  type SupportDetail,
+  type TestDesigne,
+} from '../engine/skills';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
@@ -185,8 +195,8 @@ export interface MassBattleState {
   outcome?: BattleOutcome;
   /** Scène de combat tactique en attente de reprise (lancerLeCombat). */
   combatScene?: MassBattleCombatScene;
-  /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
-  sceneEncounters?: Record<string, string>;
+  /** Rencontres de la scène à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène). */
+  sceneEncounters?: MassBattleSpec['sceneEncounters'];
   /** État PERSISTANT par Scène entre Rounds (générique) — ex. Point de rupture d'une « Tenez votre
    *  position » (`HoldState`, l.161). Clé = id de Scène. */
   sceneState: Record<string, HoldState>;
@@ -885,7 +895,9 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
 function startBattleCombat(get: Get, set: Set, scene: ActivityDef): void {
   const mb = get().massBattle;
   if (!mb) return;
-  const encId = mb.sceneEncounters?.[scene.id] ?? scene.encounter;
+  // Lue par l'id de l'Activité courante, une chaîne : la table des rencontres s'élargit à ses clés.
+  const rencontres: Partial<Record<string, { id: string }>> = mb.sceneEncounters ?? {};
+  const encId = rencontres[scene.id]?.id ?? scene.encounter;
   const enc = encId && get().scene?.encounters.find((e) => e.id === encId);
   if (!enc) {
     get().ecrireAuJournal(t('mbf.noEncounter', { scene: scene.label, enc: encId ?? '?' }));

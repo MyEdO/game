@@ -3,7 +3,19 @@ import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { effectCtxOf } from './EffectList';
 import { WorldMap, emptyWorldMap, placeById } from '../../noyau/worldMap';
-import { ajouterLieu, basculerMode, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, type PatchDeCarte, type PatchDeLieu, type PatchDeRoute } from '../../noyau/worldMapEdit';
+import {
+  ajouterLieu,
+  basculerMode,
+  lierLieux,
+  majCarte,
+  majLieu,
+  majRoute,
+  supprimerLieu,
+  supprimerRoute,
+  type PatchDeCarte,
+  type PatchDeLieu,
+  type PatchDeRoute,
+} from '../../noyau/worldMapEdit';
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';
 import { allAxes, coreAxisIds } from '../../data';
 import { Icon, IconG } from '../Icon';

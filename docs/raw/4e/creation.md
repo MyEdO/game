@@ -21,6 +21,7 @@ Ce fichier couvre le **processus complet de création de Personnage** (étapes 1
 - [Étape 9 — Progression (dépense des PX bonus)](#étape-9--progression)
 - [Supplément Middenheim — 3 origines humaines](#supplément-middenheim--3-origines-humaines)
 - [Supplément ADE I — Nouvelles Carrières de départ](#supplément-ade-i--nouvelles-carrières-de-départ)
+- [Suppléments AA et VDM — Seconds jets de Carrière](#suppléments-aa-et-vdm--seconds-jets-de-carrière)
 - [Option 100 Points (création par points)](#option-100-points)
 - [Prétirés officiels — fiches imprimées](#prétirés-officiels--fiches-imprimées)
 - [Sources RAW](#sources-raw)
@@ -552,7 +553,7 @@ Les personnages originaires du **nord de l'Empire** (Middenheim, Middenland, Nor
 | GUERRIERS | Tueur | — | — | — |
 | GUERRIERS | Prêtre guerrier | 100 | 100 | 100 |
 
-**Note Frère Loup :** la Carrière Frère Loup est exclusive aux personnages nordiques. Un résultat Flagellant (Middenheimer) peut être remplacé par Frère Loup. Voir section suivante. `Middenheim ANNEXE II l.96`
+**Note Frère Loup :** la Carrière Frère Loup est exclusive aux personnages nordiques. « Un Personnage qui tombe sur la Carrière Frère Loup peut à la place choisir de devenir Flagellant (voir **WFJDR**, p. 80). » Voir section suivante. `Middenheim ANNEXE II l.57`
 
 ### Humains de Middenheim
 
@@ -583,7 +584,7 @@ Les personnages originaires du **nord de l'Empire** (Middenheim, Middenland, Nor
 
 Humain, Bronze 0. Zélotes solitaires d'Ulric, vivent dans la nature, affrontent leurs ennemis en combat individuel. Pas d'uniforme, pas de prédication.
 
-**Alternative Flagellant :** un Personnage qui tombe sur Frère Loup peut à la place choisir de devenir Flagellant. `Middenheim ANNEXE II l.96`
+**Alternative Flagellant :** un Personnage qui tombe sur Frère Loup peut à la place choisir de devenir Flagellant. `Middenheim ANNEXE II l.57`
 
 **Schéma de progression :** CC ☐, F ☐, E ☐ (sans bordure de niveau).
 
@@ -607,7 +608,7 @@ Compétences : Natation, Soin aux animaux.
 Talents : Contrôle de la Frénésie, Effrayant, Ferveur ardente, Sans peur (Hommes-bêtes).
 Possessions : arme simple, haillons, respect des autres Frères Loups.
 
-**Règle Carrières plus longues :** certaines Carrières (dont Frère Loup) proposent plus de 8 Compétences au N1 ; il suffit d'en augmenter 8 pour passer au niveau suivant, dont obligatoirement la Compétence pour Gagner de l'argent (italique). `Middenheim ANNEXE II l.93-94`
+**Règle Carrières plus longues :** certaines Carrières (dont Frère Loup) proposent plus de 8 Compétences au N1 ; il suffit d'en augmenter 8 pour passer au niveau suivant, dont obligatoirement la Compétence pour Gagner de l'argent (italique). `Middenheim ANNEXE II l.61-63`
 
 ---
 
@@ -655,6 +656,59 @@ Ces Carrières peuvent aussi être choisies librement à la création. `ADE I AN
 
 ---
 
+## Suppléments AA et VDM — Seconds jets de Carrière
+
+> « Plusieurs nouvelles Carrières sont proposées dans ce livre. Si vous utilisez les tableaux de Carrières aléatoires des pages 30-31 de **WFJDR** pour générer une Carrière, reportez-vous au tableau suivant pour voir si la Carrière générée offre d'autres options. Si c'est le cas, relancez le dé pour voir si l'une des Carrières de cet ouvrage s'applique à la place. »
+> — `AA 02 l.109`
+
+> « Un Joueur peut toujours choisir de conserver la première Carrière générée, donc s'il génère un Colporteur, il peut décider d'en rester là. Mais, il peut aussi tenter de voir s'il peut devenir un suiveur de camp. En outre, les Carrières sont toutes communes à l'Empire, et les joueurs peuvent y accéder en fonction de leur expérience et des circonstances. »
+> — `AA 02 l.111`
+
+> « *Exemple : Gerd Braun est un Personnage généré aléatoirement. Lors de son jet de Carrière, Gerd obtient un 98, ce qui signifie qu'il est Soldat. Gerd décide de relancer le dé pour voir de quel type. Son deuxième jet est de 47, donc Gerd est un archer.* »
+> — `AA 02 l.113`
+
+### Jet optionnel d'AA (verbatim)
+
+`AA 02 l.115-128`
+
+| Carrière | Jet optionnel |
+|----------|---------------|
+| Cavalier | 01 – 75 : Cavalier ; 76 – 00 : Cavalier léger |
+| Chevalier | 01 – 55 : Chevalier ; 56 – 65 : Chevalier errant ; 66 – 70 : Chevalier du Soleil flamboyant ; 71 – 85 : Chevalier du Loup Blanc ; 86 – 00 : Chevalier Panthère |
+| Prêtre Guerrier | 01 – 85 : Prêtre Guerrier ; 86 – 00 : Prêtre de Myrmidia |
+| Soldat | 01 – 40 : Soldat ; 41 – 50 : Archer ; 51 – 70 : Hallebardier ; 71 – 85 : Arquebusier ; 86 – 90 : Joueur d'épée ; 91 – 96 : Piquier ; 97 – 00 : Spécialiste de siège |
+| Colporteur | 01 – 75 : Colporteur ; 76 – 00 : Suiveur de camp |
+| Érudit | 01 – 85 : Érudit ; 86 – 00 : Cartographe |
+| Ingénieur | 01 – 75 : Ingénieur ; 76 – 00 : Artilleur |
+
+### Personnages tiléens (verbatim)
+
+> « Quand vous générez une Carrière pour un Personnage tiléen, utilisez le *Tableau des Classes et Carrières aléatoires*  des pages 30-31 du **Livre de Règles WFJDR**, mais avec les modifications suivantes.
+>
+> - Un flagellant a peu de chances de venir de Tilée, ou de s'y rendre. Si un Joueur génère un Personnage flagellant, il peut choisir une nonne ou un prêtre vénérant Myrmidia, Morr, Verena, Shallya ou Ranald.
+> - Un cavalier peut choisir d'être plutôt un cavalier léger.
+> - Un soldat peut choisir d'être plutôt un piquier.
+> - Un prêtre guerrier peut choisir d'être plutôt un prêtre de Myrmidia. »
+> — `AA 05 l.135-140`
+
+### Second lancer du VDM (verbatim)
+
+> « Si vous vous servez du tableau des Carrières aléatoires de **WFJDR** (pages 30–31) pour en choisir une, référez-vous au tableau ci-dessous pour voir si elle peut donner lieu à plus d'options. Si c'est le cas, lancez à nouveau les dés pour voir si celles de ce livre s'appliquent à la place. »
+> — `VDM 03 l.17`
+
+`VDM 03 l.23-31`
+
+| Carrière existante | Second lancer |
+|--------------------|---------------|
+| Apothicaire | 01-15 : Alchimiste ordinaire ; 16-00 : Apothicaire |
+| Sorcier | 01–95 : Choisissez la Carrière de Sorcier dans le Livre de Règles de WFJDR ou bien l'une de celles spécifiques à un Collège (Hiérophante, Alchimiste, Druide, Astromancien, Umbramancien, Spirite, Pyromancien ou Chamane). 96–00 : Magister Vigilant |
+| Garde | 01–15 : Bedeau ; 16–00 : Garde |
+| Mystique | 01–10 : Devin ; 11–00 : Mystique |
+
+**Portée :** les « tableaux des pages 30-31 » sont les colonnes Humain, Nain, Halfling, Haut Elfe et Elfe sylvain du [Tableau des Classes et Carrières aléatoires](#tableau-des-classes-et-carrières-aléatoires-verbatim) (portions Côtiers comprises, `MDG 09 l.9`). Les colonnes Middenheimer, Middenlander et Nordlander les reçoivent en valeur maison (`AA 02 l.111` ; « Globalement, les Middenlanders ont le même type d'occupation que les Reiklanders » `Middenheim 09 l.51` ; #3908) ; la table norse (`MDG 07 l.271-303`), distincte, non.
+
+---
+
 ## Prétirés officiels — fiches imprimées
 
 Les compagnons de campagne et *Le Zoo impérial* impriment des Personnages prêts à jouer, sans tirage : ligne « Initiales », « Augmentation » et « Courantes », Compétences et Talents à leur Augmentation, possessions, « Richesse de départ » (un nombre de d10 d'une monnaie), « Apparence et personnalité », « Historique » et « Secrets ». Où vit chaque fiche :
@@ -690,6 +744,9 @@ Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493
 | `LDB 10 l.714` | Livre de Base VF corrigé, chapitre 10 — Magie mineure à la création |
 | `Middenheim ANNEXE II l.XX` | Middenheim la Cité du Loup Blanc, Annexe II |
 | `ADE I ANNEXE I l.XX` | Archives de l'Empire vol. 1, Annexe I |
+| `AA 02 l.XX` | Aux Armes, chapitre 02 — Introduction |
+| `AA 05 l.XX` | Aux Armes, chapitre 05 — La Tilée et les personnages tiléens |
+| `VDM 03 l.XX` | Les Vents de Magie, chapitre 03 — Travaux arcaniques |
 | `EDOC 16 l.XX` | L'Ennemi dans l'Ombre — Compagnon, chapitre 12 — prétirés |
 | `MSRC 19 l.XX` | Mort sur le Reik — Compagnon, chapitre 17 — prétiré |
 | `PDTP 01 l.XX` | Le Pouvoir derrière le Trône — Prétirés |

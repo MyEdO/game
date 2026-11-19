@@ -84,6 +84,8 @@ export const EXEMPTIONS = [
   { fichier: MIGRATION_1699, motif: /^\.filter\(\(e\) => e\.isFile\(\) && e\.name\.toLowerCase\(\)\.endsWith\(/, raison: `${RAISON_1699}FILTRE d’extension des PDF de \`Source/\` qu’elle renomme, n’en nomme aucun` },
   { fichier: 'scripts/raw/_lib.mjs', motif: /^return markerDe\(`\$\{id\}\./, raison: 'LA construction de la couture : copie de travail `_marker/<id>.<ext>` (`copieMarkerDe`)' },
   { fichier: 'src/data/schemas/defs/books.ts', motif: /^pdf: z\.string\(\)\.endsWith\(/, raison: 'schéma du champ `pdf` du registre : la FORME exigée à la donnée, aucun chemin' },
+  { fichier: 'src/data/field-consumers.test.ts', motif: /^BookData: \[/, raison: 'stock des zéros du registre des livres : le NOM du champ `pdf`, aucun chemin' },
+  { fichier: 'src/data/field-consumers.test.ts', motif: /par `scripts\/raw\/_lib\.mjs#pdfDe`',$/, raison: 'raison du zéro du champ `pdf` du registre : son nom et sa couture, aucun chemin' },
   { fichier: 'scripts/docs/build-reprise.mjs', motif: /^quoi: `PDFs de/, raison: 'motif `.gitignore` de TOUS les PDF, cité par le doc de reprise — aucun livre' },
   { fichier: 'scripts/docs/build-reprise.mjs', motif: /^Compress-Archive -Path "Source/, raison: 'commande de SAUVEGARDE de tous les PDF de `Source/` imprimée au doc de reprise — aucun livre' },
   { fichier: 'scripts/gates/toutes.mjs', motif: /écartés par extension/, raison: 'prose de la raison de gate : l’extension écartée par la copie du corpus' },

@@ -1,19 +1,38 @@
-## Un geste (#3328, `Bouton`, `Choix`, `Formulaire` de `src/hote/elements.ts`) : le contrôle qui le porte, son parent,
-## joue l'intention de l'élément que sa zone pose, par la zone (`Zone.geste`). Un bouton joue son `jeu` ; une liste
-## déroulante, le `jeu` de la valeur choisie ; le bouton d'un formulaire, son verbe et les arguments saisis sous le
-## composant (`Saisie.arguments`). Le geste en `focus` le prend : l'Entrée le joue. Un bouton à bascule garde l'état
-## que la vue lui donne (`presse`) : seule une vue suivante le change, jamais le clic ni son refus.
+## Un geste (#3328, `Bouton`, `Choix`, `Curseur`, `Formulaire`, `Puce` de `src/hote/elements.ts`) : le contrôle qui le
+## porte, son parent, joue l'intention de l'élément que sa zone pose, par la zone (`Zone.geste`). Un bouton, ou une puce
+## qui se presse, joue son `jeu` ;
+## une liste déroulante, le `jeu` de la valeur choisie ; le bouton d'un formulaire, son verbe et les arguments saisis
+## sous le composant (`Saisie.arguments`) ; la glissière d'un curseur, son verbe, ses arguments et la valeur que le
+## joueur lui donne, un glissement fini (#4081) ou tout autre changement hors glissement (sa boîte à nombre, les
+## flèches) ; la molette ne la règle pas, elle défile la liste qui la porte ; refusé, le curseur ne se règle pas et se
+## trace fermé (`FERME`). Le geste en `focus` le prend : l'Entrée le joue. La
+## touche d'un bouton (`touche`, une action de l'`InputMap`) le joue comme son clic, son contrôle montré, quand aucun
+## contrôle ne l'a prise avant lui (`_unhandled_input`) ; un bouton refusé la joue aussi, et le noyau dit son refus. Un
+## bouton à bascule garde l'état que la vue lui donne (`presse`) : seule une vue suivante le change, jamais le clic ni
+## son refus.
 class_name Geste
 extends Node
 
+## Ce que trace un curseur refusé : gris et estompé (`art/ferme.gdshader`).
+const FERME := preload("res://art/ferme.tres")
+
+## La boîte à nombre d'un curseur, reliée à sa glissière (`Range.share`).
+@export var boite: SpinBox
 var _element: Dictionary = {}
 var _zone: Zone = null
+var _glisse := false
 
 
 func _ready() -> void:
 	var cible := get_parent()
 	if cible is OptionButton:
 		(cible as OptionButton).item_selected.connect(func(i: int) -> void: _jouer(_element.valeurs[i].jeu))
+	elif cible is Slider:
+		var glissiere := cible as Slider
+		boite.share(glissiere)
+		glissiere.drag_started.connect(func() -> void: _glisse = true)
+		glissiere.drag_ended.connect(_finir_le_glissement)
+		glissiere.value_changed.connect(_changer)
 	else:
 		(cible as BaseButton).pressed.connect(_presser)
 
@@ -21,7 +40,14 @@ func _ready() -> void:
 func poser(element: Dictionary, zone: Zone) -> void:
 	_element = element
 	_zone = zone
-	if element.focus:
+	if get_parent() is Slider:
+		var ouvert: bool = element.refus == null
+		(get_parent() as Slider).editable = ouvert
+		boite.editable = ouvert
+		for trace: CanvasItem in [get_parent(), boite, boite.get_line_edit()]:
+			trace.material = null if ouvert else FERME
+		return
+	if element.get("focus") == true:
 		_prendre_le_focus.call_deferred()
 
 
@@ -35,10 +61,35 @@ func _presser() -> void:
 	var cible := get_parent() as BaseButton
 	if cible.toggle_mode:
 		cible.set_pressed_no_signal(_element.presse)
-	if _element.type == "formulaire":
+	if _element.type == Noyau.TypeDElement.FORMULAIRE:
 		_jouer({type = _element.verbe, args = Saisie.arguments(owner, _element.champs)})
 	else:
 		_jouer(_element.jeu)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var touche: Variant = _element.get("touche")
+	if touche != null and event.is_action_pressed(touche) and (get_parent() as Control).is_visible_in_tree():
+		get_viewport().set_input_as_handled()
+		_presser()
+
+
+func _changer(_valeur: float) -> void:
+	if not _glisse:
+		_regler()
+
+
+func _finir_le_glissement(change: bool) -> void:
+	_glisse = false
+	if change:
+		_regler()
+
+
+## Le geste du curseur à la valeur de sa glissière.
+func _regler() -> void:
+	var args: Array = _element.arguments.duplicate()
+	args.append((get_parent() as Range).value)
+	_jouer({type = _element.verbe, args = args})
 
 
 func _jouer(jeu: Dictionary) -> void:

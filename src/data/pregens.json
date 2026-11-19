@@ -21,7 +21,7 @@
     },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 113,
+      "page": 115,
       "note": "EDOC 16 l.549"
     },
     "species": {
@@ -125,7 +125,7 @@
         }
       },
       {
-        "text": "Gamelles"
+        "id": "gamelles"
       },
       {
         "id": "pilon-et-mortier"
@@ -140,7 +140,7 @@
         "id": "vetements"
       },
       {
-        "text": "assortiment d’herbes"
+        "id": "assortiment-d-herbes"
       }
     ],
     "spells": [],
@@ -182,7 +182,7 @@
     },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 113,
+      "page": 117,
       "note": "EDOC 16 l.704"
     },
     "species": {
@@ -274,7 +274,8 @@
         "id": "besace"
       },
       {
-        "id": "flasque"
+        "id": "flasque",
+        "spec": "de tisane"
       },
       {
         "id": "chapeau"
@@ -289,10 +290,11 @@
         "id": "heaume"
       },
       {
-        "text": "Manteau à capuche"
+        "id": "cape",
+        "spec": "à capuche"
       },
       {
-        "text": "Poche"
+        "id": "bourse"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -301,10 +303,7 @@
         "id": "vetements"
       },
       {
-        "text": "le déjeuner"
-      },
-      {
-        "text": "tisane"
+        "id": "dejeuner"
       }
     ],
     "spells": [],
@@ -346,7 +345,7 @@
     },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 113,
+      "page": 119,
       "note": "EDOC 16 l.855"
     },
     "species": {
@@ -436,7 +435,7 @@
         "id": "necessaire-d-ecriture"
       },
       {
-        "id": "feuille-de-parchemin",
+        "id": "parchemin",
         "count": {
           "roll": {
             "n": 1,
@@ -448,7 +447,7 @@
         "id": "bourse"
       },
       {
-        "text": "ingrédients de sorts"
+        "id": "composant-d-incantation"
       }
     ],
     "spells": [
@@ -470,7 +469,8 @@
           "sides": 10
         }
       }
-    }
+    },
+    "maison": "Un composant pour la « Besace contenant des ingrédients de sorts » (EDOC 16 l.794) : Wanda ne connaît que de la Magie mineure, sans composant (arbitrage du 2026-11-16) ; le composant attend le premier Sort d'Arcane qu'elle apprend. Valeur d'adaptation du ticket #4132 (https://github.com/MyEdO/game/issues/4132)."
   },
   {
     "id": "johann-dassbut",
@@ -494,7 +494,7 @@
     },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 113,
+      "page": 121,
       "note": "EDOC 16 l.1012"
     },
     "species": {
@@ -572,7 +572,8 @@
         "id": "besace"
       },
       {
-        "id": "flasque"
+        "id": "flasque",
+        "spec": "d'alcool"
       },
       {
         "id": "dague"
@@ -591,9 +592,6 @@
       },
       {
         "id": "vetements"
-      },
-      {
-        "text": "alcool"
       }
     ],
     "spells": [],
@@ -635,7 +633,7 @@
     },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 113,
+      "page": 123,
       "note": "EDOC 16 l.1167"
     },
     "species": {
@@ -797,7 +795,7 @@
     },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 113,
+      "page": 125,
       "note": "EDOC 16 l.1315"
     },
     "species": {
@@ -904,7 +902,7 @@
         "id": "pied-de-biche"
       },
       {
-        "text": "Pochette"
+        "id": "bourse"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -1217,7 +1215,10 @@
         "id": "baton-de-combat"
       },
       {
-        "text": "Besace de composants"
+        "id": "composant-d-incantation",
+        "count": {
+          "fixed": 4
+        }
       },
       {
         "id": "bourse"
@@ -1238,7 +1239,8 @@
         "id": "parchemin",
         "count": {
           "fixed": 9
-        }
+        },
+        "spec": "vierge"
       }
     ],
     "spells": [
@@ -1268,7 +1270,8 @@
           "sides": 10
         }
       }
-    }
+    },
+    "maison": "Quatre composants pour la « Besace de composants » (PDTP 01 l.87) : un par Sort d'Arcane ou de Domaine connu. Valeur d'adaptation du ticket #4132 (https://github.com/MyEdO/game/issues/4132)."
   },
   {
     "id": "golthog",
@@ -1516,13 +1519,19 @@
         "id": "dague"
       },
       {
-        "id": "vetements"
+        "id": "vetements",
+        "qualities": [
+          {
+            "id": "raffine"
+          }
+        ]
       },
       {
-        "text": "Trousse de toilette"
+        "id": "trousse-de-toilette"
       },
       {
-        "text": "Rames de papier"
+        "id": "parchemin",
+        "spec": "rames de papier"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -1534,7 +1543,11 @@
         "id": "outils-professionnels-artiste"
       },
       {
-        "text": "Lettres adressées à son père (jamais envoyées)"
+        "id": "parchemin",
+        "spec": "lettre adressée à son père (jamais envoyée)",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "arc-court"
@@ -1693,7 +1706,8 @@
         }
       },
       {
-        "text": "Livre (à moitié rédigé)"
+        "id": "livre",
+        "spec": "à moitié rédigé"
       },
       {
         "id": "potion-de-guerison"
@@ -1708,7 +1722,7 @@
         "id": "outils-professionnels-apothicaire"
       },
       {
-        "text": "Canne à pêche"
+        "id": "canne-a-peche"
       },
       {
         "id": "arme-simple"
@@ -1866,7 +1880,10 @@
         }
       },
       {
-        "text": "Pièges à animal"
+        "id": "piege-a-animaux",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "arc-elfique"
@@ -2035,13 +2052,17 @@
         }
       },
       {
-        "text": "Livres de référence"
+        "id": "livre",
+        "spec": "de référence",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "sac-a-dos"
       },
       {
-        "text": "Alcool"
+        "id": "alcool"
       },
       {
         "id": "rapiere"
@@ -2319,7 +2340,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "tente"

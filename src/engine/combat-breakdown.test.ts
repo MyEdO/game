@@ -1,6 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { parseQualityInstance } from '../data/refFormatLivre';
-import { resolveMelee, resolveRanged, rangeBandModifier, rangeBandName, attackModifiers, psychDRAdjust, resolveStrayRangedHit, defenseModifiers, rollMeleeDefender, finishMelee, resolveMeleePassive, freeAttackWeapon, resolveBackstabAttack, rederivePassiveAttack, frozenDifficulty, REDERIVATIONS, attackTestLabel, type ModLine, type RollBreakdown } from './combat';
+import {
+  resolveMelee,
+  resolveRanged,
+  rangeBandModifier,
+  rangeBandName,
+  attackModifiers,
+  psychDRAdjust,
+  resolveStrayRangedHit,
+  defenseModifiers,
+  rollMeleeDefender,
+  finishMelee,
+  resolveMeleePassive,
+  freeAttackWeapon,
+  resolveBackstabAttack,
+  rederivePassiveAttack,
+  frozenDifficulty,
+  REDERIVATIONS,
+  attackTestLabel,
+  type ModLine,
+  type RollBreakdown,
+} from './combat';
 import { evaluateTest, hydrateTR, bumpSL } from './tests';
 import { makeRNG } from './dice';
 import { Combatant, Weapon, DIFFICULTY_MODIFIERS } from './types';
@@ -79,11 +99,11 @@ describe('parade : pénalité de main secondaire + exception Parade/Défensive (
 describe('Taille en combat (T1) + env injecté — attackModifiers (LDB 14 l.118-131 / 85 l.301-303)', () => {
   // bow portée 60, distanceTiles 28 → 56 m ≤ 60 = Moyenne (+0, pas de ligne de portée) : isole la Taille.
   it('tir : mod de Taille de la cible (Grande → +20)', () => {
-    const mods = attackModifiers(mk(), mk({ size: 'grande' }), bow, { kind: 'distance', distanceTiles: 28, env: [] });
+    const mods = attackModifiers(mk(), mk({ size: 'grande' }), bow, { kind: 'distance', distanceTiles: 28, metresPerTile: 2, env: [] });
     expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])?.value).toBe(20);
   });
   it('tir : env injecté (Couvert -20) figure dans les mods', () => {
-    const mods = attackModifiers(mk(), mk(), bow, { kind: 'distance', distanceTiles: 28, env: [{ label: 'Couvert (moyenne)', value: -20, famille: 'circonstance', ref: RULE_REF['cible-sous-couverture'] }] });
+    const mods = attackModifiers(mk(), mk(), bow, { kind: 'distance', distanceTiles: 28, metresPerTile: 2, env: [{ label: 'Couvert (moyenne)', value: -20, famille: 'circonstance', ref: RULE_REF['cible-sous-couverture'] }] });
     expect(ligneDe(mods, RULE_REF['cible-sous-couverture'])?.value).toBe(-20);
   });
   it('+10 au plus petit en mêlée (attaquant Petite vs cible Moyenne, LDB 85 l.366)', () => {
@@ -91,12 +111,12 @@ describe('Taille en combat (T1) + env injecté — attackModifiers (LDB 14 l.118
     expect(ligneDe(mods, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
   });
   it('tir : +10 plus petit ET mod de cible se cumulent (halfling Petite tire un ogre Grande)', () => {
-    const mods = attackModifiers(mk({ size: 'petite' }), mk({ size: 'grande' }), bow, { kind: 'distance', distanceTiles: 28, env: [] });
+    const mods = attackModifiers(mk({ size: 'petite' }), mk({ size: 'grande' }), bow, { kind: 'distance', distanceTiles: 28, metresPerTile: 2, env: [] });
     expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])?.value).toBe(20);
     expect(ligneDe(mods, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
   });
   it('Moyenne par défaut (size absent des deux côtés) : aucun mod de Taille', () => {
-    const mods = attackModifiers(mk(), mk(), bow, { kind: 'distance', distanceTiles: 28, env: [] });
+    const mods = attackModifiers(mk(), mk(), bow, { kind: 'distance', distanceTiles: 28, metresPerTile: 2, env: [] });
     expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])).toBeUndefined();
     expect(ligneDe(mods, refDeRegle('taille-modificateurs-en-combat'))).toBeUndefined();
   });
@@ -232,7 +252,7 @@ describe('AttackResult — détail des jets (breakdown) pour la modale', () => {
   });
 
   it('distance : détaille l’attaquant, pas de défenseur (non opposé)', () => {
-    const res = resolveRanged(mk({ label: 'Tir' }), mk({ label: 'Cible' }), bow, makeRNG(3));
+    const res = resolveRanged(mk({ label: 'Tir' }), mk({ label: 'Cible' }), bow, makeRNG(3), undefined, undefined, undefined, undefined, 2);
     expect(res.attackerDetail!.label).toBe('Projectiles');
     expect(res.defenderDetail).toBeUndefined();
   });
@@ -320,16 +340,16 @@ describe('attackTestLabel — libellé du Test SUIT combatValue, ne ment jamais 
 
 describe('Bandes de portée (table des Difficultés, 14 - _GoBack.md l.82-118)', () => {
   // Arc portée 60 m ; échelle 1 case = 2 m → distanceTiles × 2 = mètres.
-  it('Bout portant ≤ Portée÷10 → +40', () => expect(rangeBandModifier(2, 60)).toBe(40)); // 4 m ≤ 6
-  it('Courte ≤ Portée÷2 → +20', () => expect(rangeBandModifier(10, 60)).toBe(20)); // 20 m ≤ 30
-  it('Moyenne ≤ Portée → +0', () => expect(rangeBandModifier(28, 60)).toBe(0)); // 56 m ≤ 60
-  it('Longue ≤ Portée×2 → −10 (corrige l’ancien 0)', () => expect(rangeBandModifier(50, 60)).toBe(-10)); // 100 m ≤ 120
-  it('Extrême ≤ Portée×3 → −30', () => expect(rangeBandModifier(80, 60)).toBe(-30)); // 160 m ≤ 180
-  it('hors de portée → null', () => expect(rangeBandModifier(100, 60)).toBeNull()); // 200 m > 180
+  it('Bout portant ≤ Portée÷10 → +40', () => expect(rangeBandModifier(2, 60, 2)).toBe(40)); // 4 m ≤ 6
+  it('Courte ≤ Portée÷2 → +20', () => expect(rangeBandModifier(10, 60, 2)).toBe(20)); // 20 m ≤ 30
+  it('Moyenne ≤ Portée → +0', () => expect(rangeBandModifier(28, 60, 2)).toBe(0)); // 56 m ≤ 60
+  it('Longue ≤ Portée×2 → −10 (corrige l’ancien 0)', () => expect(rangeBandModifier(50, 60, 2)).toBe(-10)); // 100 m ≤ 120
+  it('Extrême ≤ Portée×3 → −30', () => expect(rangeBandModifier(80, 60, 2)).toBe(-30)); // 160 m ≤ 180
+  it('hors de portée → null', () => expect(rangeBandModifier(100, 60, 2)).toBeNull()); // 200 m > 180
   it('rangeBandName cohérent', () => {
-    expect(rangeBandName(2, 60)).toBe('Bout portant');
-    expect(rangeBandName(10, 60)).toBe('Courte portée');
-    expect(rangeBandName(50, 60)).toBe('Longue');
+    expect(rangeBandName(2, 60, 2)).toBe('Bout portant');
+    expect(rangeBandName(10, 60, 2)).toBe('Courte portée');
+    expect(rangeBandName(50, 60, 2)).toBe('Longue');
   });
 });
 
@@ -353,24 +373,24 @@ describe('Bandes de portée — échelle métrique de la Scène (#249, metresPer
     const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 3, metresPerTile: 10 });
     expect(mods).toContainEqual(ligneDeRegle('portee-d-une-arme', 'courte'));
   });
-  it('sans metresPerTile (défaut 2, terrestre) : même distanceTiles=3 reste Bout Portant/hors-Courte, comportement BYTE-IDENTIQUE', () => {
-    const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 3 });
-    expect(mods).toContainEqual(ligneDeRegle('portee-d-une-arme', 'bout-portant')); // 6 m ≤ 6, comme avant le câblage
+  it('à 2 m par case (LDB 15 l.12) : même distanceTiles=3 reste Bout Portant/hors-Courte', () => {
+    const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 3, metresPerTile: 2 });
+    expect(mods).toContainEqual(ligneDeRegle('portee-d-une-arme', 'bout-portant')); // 6 m ≤ 6
   });
 });
 
 describe('attackModifiers — modificateurs étiquetés (source unique)', () => {
   it('tir à courte portée → mod « Courte portée » +20', () => {
-    const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 10 });
+    const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 10, metresPerTile: 2 });
     expect(mods).toContainEqual(ligneDeRegle('portee-d-une-arme', 'courte'));
   });
   it('tireur qui a Visé → mod « Viser » +20 (action Viser, l.90)', () => {
-    const mods = attackModifiers(mk({ label: 'A', aiming: true }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 28 });
+    const mods = attackModifiers(mk({ label: 'A', aiming: true }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 28, metresPerTile: 2 });
     // La ligne porte SA règle : la chip du breakdown ouvre `regles/viser` (#1078).
     expect(mods).toContainEqual(ligneDeRegle('viser', 'viser'));
   });
   it('viser une localisation → mod « Localisation visée » −20 (« Une attaque ou un tir qui cherche à atteindre une Localisation particulière », LDB 14 l.73)', () => {
-    const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 28, location: 'tete' });
+    const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'distance', distanceTiles: 28, metresPerTile: 2, location: 'tete' });
     expect(mods).toContainEqual(ligneDeRegle('viser-une-localisation', 'localisation'));
   });
   it('mêlée vs cible À Terre → la ligne NOMME l’État qui expose la cible (+20 À Terre, lié au Codex)', () => {
@@ -443,7 +463,7 @@ describe('TIR + Chance : la re-dérivation dit la MÊME Difficulté que la réso
       const a = mk({ id: 'a', weapons: [bow] });
       const repli = REDERIVATIONS.recomposees; // aucune re-composition ne doit s'ajouter (#1153 L4, R5)
       const c = mk({ id: 'c' });
-      const origine = resolveRanged(a, c, bow, makeRNG(9), dist).attackerDetail!;
+      const origine = resolveRanged(a, c, bow, makeRNG(9), dist, undefined, undefined, undefined, 2).attackerDetail!;
       expect(origine.difficulty, 'la fixture doit VRAIMENT composer un palier').toBe(palier);
       expect(inexplique(origine)).toBe(0);
       const re = rederivePassiveAttack(a, c, bow, bumpSL(hydrateTR(origine)), 'distance', { rng: makeRNG(1595) }, undefined, false, frozenDifficulty(origine));
@@ -499,7 +519,7 @@ describe('PIÉTINEMENT et TIR DÉVIÉ : la ligne s’explique aussi (#1153 L4)',
 
   it('tir DÉVIÉ : la cible chargée porte sa ligne nommée, jamais un `mods: []` muet', () => {
     const a = mk({ id: 'a', weapons: [bow] });
-    const origine = resolveRanged(a, mk({ id: 'c' }), bow, makeRNG(9), 80).attackerDetail!; // bande Extrême (−30)
+    const origine = resolveRanged(a, mk({ id: 'c' }), bow, makeRNG(9), 80, undefined, undefined, undefined, 2).attackerDetail!; // bande Extrême (−30)
     // Le tir dévie vers l'allié intercalé : cible SANS le −20 du tir dans la mêlée (LDB 14 l.116).
     const d = resolveStrayRangedHit(a, mk({ id: 'x2' }), bow, origine.roll, origine.target + 20, { rng: makeRNG(1595) }, origine).attackerDetail!;
     expect(d.difficulty, 'même jet, même Difficulté').toBe(origine.difficulty);
@@ -535,8 +555,8 @@ describe('Re-dérivation passive = résolution passive au même dé (LDB 85 l.36
     const a = mk({ id: 'a', weapons: [w] });
     const c = cible();
     const rng = makeRNG(5);
-    let origine = resolveRanged(a, c, w, rng, 10);
-    while (!origine.hit) origine = resolveRanged(a, c, w, rng, 10);
+    let origine = resolveRanged(a, c, w, rng, 10, undefined, undefined, undefined, 2);
+    while (!origine.hit) origine = resolveRanged(a, c, w, rng, 10, undefined, undefined, undefined, 2);
     const re = rederivePassiveAttack(a, c, w, hydrateTR(origine.attackerDetail!), 'distance', { rng: makeRNG(1595) }, undefined, false, frozenDifficulty(origine.attackerDetail));
     expect(re).toEqual(origine);
   });
@@ -558,8 +578,8 @@ describe('Re-dérivation passive au même dé : Charge montée, Pratique/Peu fia
       const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [parseQualityInstance(q)!] };
       const a = mk({ id: 'a', weapons: [arc] });
       const rng = makeRNG(5);
-      let o = resolveRanged(a, cible(), arc, rng, 10);
-      while (o.hit) o = resolveRanged(a, cible(), arc, rng, 10);
+      let o = resolveRanged(a, cible(), arc, rng, 10, undefined, undefined, undefined, 2);
+      while (o.hit) o = resolveRanged(a, cible(), arc, rng, 10, undefined, undefined, undefined, 2);
       expect(o.netSL).toBe(o.attackerDetail!.sl + delta);
       const re = rederivePassiveAttack(a, cible(), arc, hydrateTR(o.attackerDetail!), 'distance', { rng: makeRNG(1595) }, undefined, false, frozenDifficulty(o.attackerDetail));
       expect(re).toEqual(o);

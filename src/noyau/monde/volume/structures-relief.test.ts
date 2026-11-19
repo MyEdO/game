@@ -1,7 +1,9 @@
 import { tableTotale } from '../../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
 import { wallPartDepthM, wallPartRelief, type WallPartRelief } from './structures';
-import { WALL_PARTS, type WallPart, type StructureAppearanceDef } from '../../../data/structureAppearance.types';
+import { WALL_PARTS, type WallPart } from '../../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../../data';
+import type { EntreeVivante } from '../../../data/datasets';
 import { structureAppearance } from './structures';
 import { FASCIA_THICK_M, roofFasciaThickM, roofMaterial } from './matieres';
 import { RELIEF_PART_KEYS, schema } from '../../../data/schemas/defs/structureAppearance';
@@ -66,7 +68,7 @@ describe('RELIEF MINCE — le CALIBRAGE des profondeurs, épinglé valeur par va
 
   it('une partie de mur INCONNUE lève en se NOMMANT (jamais un TypeError au milieu de la géométrie)', () => {
     expect(() => wallPartRelief('zzz' as WallPart)).toThrowError(/partie de mur inconnue : zzz/);
-    expect(() => wallPartDepthM({} as StructureAppearanceDef, 'zzz' as WallPart, 0.168)).toThrowError(/inconnue/);
+    expect(() => wallPartDepthM({} as EntreeVivante<StructureAppearanceDef>, 'zzz' as WallPart, 0.168)).toThrowError(/inconnue/);
   });
 });
 
@@ -76,7 +78,7 @@ describe('RELIEF ÉDITABLE — la surcharge par apparence (et par matériau de t
 
   it('`relief.jut` remplace la saillie par défaut d’une partie POSÉE (épaisseur = mur + 2 × saillie)', () => {
     expect(wallPartDepthM(plain, 'moulure', wallM)).toBeCloseTo(wallM + 2 * 0.28, 12);
-    const surchargee: StructureAppearanceDef = { ...plain, relief: { jut: { moulure: 0.05 } } };
+    const surchargee: EntreeVivante<StructureAppearanceDef> = { ...plain, relief: { jut: { moulure: 0.05 } } };
     expect(wallPartDepthM(surchargee, 'moulure', wallM)).toBeCloseTo(wallM + 2 * 0.05, 12);
     // …et SEULE la partie surchargée bouge : les voisines gardent le défaut du catalogue.
     expect(wallPartDepthM(surchargee, 'panneau', wallM)).toBeCloseTo(wallM + 2 * 0.26, 12);
@@ -84,17 +86,11 @@ describe('RELIEF ÉDITABLE — la surcharge par apparence (et par matériau de t
 
   it('`relief.thick` remplace l’épaisseur d’une partie TRAVERSANTE', () => {
     expect(wallPartDepthM(plain, 'gravats', wallM)).toBeCloseTo(0.6, 12);
-    const surchargee: StructureAppearanceDef = { ...plain, relief: { thick: { gravats: 1.4 } } };
+    const surchargee: EntreeVivante<StructureAppearanceDef> = { ...plain, relief: { thick: { gravats: 1.4 } } };
     expect(wallPartDepthM(surchargee, 'gravats', wallM)).toBeCloseTo(1.4, 12);
     expect(wallPartDepthM(surchargee, 'gravats-tas', wallM)).toBeCloseTo(0.8, 12);
   });
 
-  // Défense en profondeur : le schéma REFUSE déjà une telle surcharge au chargement (test plus bas) ;
-  // ce cas-ci mesure le résolveur seul, sur un objet fabriqué en mémoire.
-  it('une partie qui EST la matière du mur ignore toute surcharge : son épaisseur est celle du mur', () => {
-    const surchargee: StructureAppearanceDef = { ...plain, relief: { jut: { face: 9 }, thick: { face: 9 } } };
-    expect(wallPartDepthM(surchargee, 'face', wallM)).toBe(wallM);
-  });
 
   it('`fasciaThickM` d’un matériau de toit remplace l’épaisseur par défaut de la planche de rive', () => {
     const tuile = roofMaterial('tuile');

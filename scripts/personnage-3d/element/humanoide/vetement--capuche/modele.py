@@ -22,7 +22,7 @@ from mathutils.kdtree import KDTree
 
 from formes import decalages, poser_la_cle
 from seuils import SOL_TOLERANCE_M
-from tissu import Maillage, emprunter, enveloppe_convexe, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
+from tissu import Maillage, direction_spatiale, emprunter, enveloppe_convexe, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
 
 
 def unitaire(x):
@@ -74,10 +74,6 @@ def surface_de(X, faces):
 
 # ---------------------------------------------------------------- capuchon
 
-def direction(phi, e):
-    a, b = math.radians(phi), math.radians(e)
-    return np.array([math.cos(b) * math.sin(a), -math.cos(b) * math.cos(a), math.sin(b)])
-
 
 def demi_ouverture(c, e):
     """Demi-ouverture (degrés d'azimut) du visage à l'élévation `e` : pleine sous le milieu, en ellipse jusqu'au bord haut."""
@@ -93,7 +89,7 @@ def capuchon(D, b, M, contournees):
     n, m = c['colonnes'], c['rangs']
     phis = [-180.0 + 360.0 * k / n for k in range(n)]
     elevations = list(np.linspace(c['elevation_bas'], c['elevation_haut'], m))
-    dirs = [[direction(p, e) for p in phis] for e in elevations] + [[np.array([0.0, 0.0, 1.0])]]
+    dirs = [[direction_spatiale(p, e) for p in phis] for e in elevations] + [[np.array([0.0, 0.0, 1.0])]]
 
     def touche(d):
         h = contournees.exterieur(C, d, c['portee'], c['jeu_min'])
@@ -165,7 +161,7 @@ def capuchon(D, b, M, contournees):
         for k in range(n):
             if any(((j - dj, (k - dk) % n) in ouvertes) for dj in (0, 1) for dk in (0, 1)):
                 phi, e = sur_le_bord(phis[k] if phis[k] != -180.0 else 180.0, elevations[j])
-                d = direction(phi, e)
+                d = direction_spatiale(phi, e)
                 points[j][k] = C + max(rayon_interpole(phi, e), touche(d)) * d
     index = {}
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ambiance } from '../../data';
 import { sonDEffet } from '../../data/sons/registre';
-import { MAX_PRECIP, meteoDuRegard, openSkyRuns, sceneGroundSpan, scenePrecip, sceneWeatherFx } from './meteo';
+import { MAX_PRECIP, meteoDuRegard, meteoSurLesBandes, openSkyRuns, sceneGroundSpan, scenePrecip, sceneWeatherFx } from './meteo';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from './scene';
 import { isSheltered, shelterField } from './volume/toits';
 
@@ -120,5 +120,21 @@ describe('meteoDuRegard', () => {
       expect([...cotes]).toEqual([3 + brume.layers[i].hM]);
     });
     expect(meteoDuRegard(scene, 'immersion')!.nappes).toEqual([]);
+  });
+});
+
+describe('meteoSurLesBandes, sans scène (#4081)', () => {
+  it('la pluie tombe sur la bande donnée, du plafond au-dessus du sol le plus haut jusqu’au plus bas', () => {
+    const precip = ambiance.iso.weather.pluie!.precip!;
+    const pluie = meteoSurLesBandes(ambiance.iso.weather.pluie!, [{ y: 1, x0: 0, x1: 4 }], 2, { groundM: -1, topGroundM: 3 }, 'tactique').pluie!;
+    expect(pluie.averses).toEqual([{ centre: [4, 3 + precip.ceilingM, 2], demiEtendue: [5, 0, 1], nombre: Math.round(precip.density * 5 * 4) }]);
+    expect(pluie.dureeS).toBeCloseTo((4 + precip.ceilingM) / precip.fallMs, 9);
+  });
+
+  it('la météo d’une scène est celle de ses bandes, de ses cases et de son sol', () => {
+    const scene = { ...sceneCouverte('brouillard') };
+    expect(meteoDuRegard(scene, 'tactique')).toEqual(
+      meteoSurLesBandes(ambiance.iso.weather.brouillard!, openSkyRuns(scene), sceneMetresPerTile(scene), sceneGroundSpan(scene), 'tactique'),
+    );
   });
 });

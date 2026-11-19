@@ -4,39 +4,66 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, IdDeCouche, PageDeCreation } from '../noyau/index';
+import type { CreatorDraft, GesteDEdition, GesteDuCompendium, GesteDuBrouillon, IdDeCouche, PageDeCreation } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import type { AnySlot, SaveSlot } from './sauvegardes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 
-/** Le ton d'un élément : le nom d'une variation du thème de l'hôte. */
-export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
+/** Les tons qu'une variation du thème de l'hôte dessine, chacun à son nom. */
+export const TONS_DU_THEME = ['reussite', 'echec', 'alerte'] as const;
 
-/** Une ligne de texte. `detail` : ce qu'elle tait, montré à la demande. */
-export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string; detail: string | null }
+/** Le ton d'un élément : `neutre`, le style propre du contrôle ; une variation du thème (`TONS_DU_THEME`) ; `ferme`, la
+ *  valeur lue d'un contrôle refusé, qui se montre fermée avec lui. */
+export type Ton = 'neutre' | (typeof TONS_DU_THEME)[number] | 'ferme';
+
+/** Une ligne de texte. `detail` : ce qu'elle tait, montré à la demande ; `touche` : la touche qu'elle imprime sans la
+ *  jouer (la case libre d'un emplacement rapide). */
+export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string; detail: string | null; touche: Touche | null }
+
+/** Les touches des emplacements rapides, rang par rang : des actions d'entrée de l'hôte. */
+export const TOUCHES_RAPIDES = ['rapide_1', 'rapide_2', 'rapide_3', 'rapide_4', 'rapide_5', 'rapide_6'] as const;
+
+/** Le nom d'une action d'entrée de l'hôte (son `InputMap`), qui dit la touche qu'il y lie. */
+export type Touche = (typeof TOUCHES_RAPIDES)[number] | 'fin_de_tour';
 
 /** Une puce : un libellé et sa valeur (un État et son nombre, un modificateur et son signe). `detail` : ce qu'elle
- *  change, montré à la demande. */
-export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null; detail: string | null }
+ *  change, montré à la demande ; `jeu` : ce qu'elle joue, pressée (le terme d'une fiche ouvre le Compendium sur
+ *  l'entrée qu'il désigne), `null` si elle ne se presse pas. */
+export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null; detail: string | null; jeu: Jeu | null }
 
 /** Une jauge : sa valeur courante sur son maximum, et ce qu'elle dit. */
 export interface Jauge { type: 'jauge'; id: string; ton: Ton; libelle: string; courant: number; max: number; texte: string }
 
-/** Un jet : un Test, un tirage sur table ou un dé nu. Chaque partie est déjà dite (`null` : sans objet, `resultat`
- *  avant le dé) ; le ton dit le verdict. À l'écran, le nombre à atteindre, le dé et ses modificateurs ; `detail` : la
- *  composition de la cible (base, Difficulté et ses paliers, écrêtage) et ce que le dé deviendrait, montrés à la
- *  demande, une ligne par part. */
+/**
+ * @contrat Vue
+ * Un jet : un Test, un tirage sur table ou un dé nu. Chaque partie est déjà dite (`null` : sans objet, `resultat` avant le
+ * dé). À l'écran, le nombre à atteindre, le dé et ses modificateurs.
+ */
 export interface Jet {
+  /** `jet`. */
   type: 'jet';
+  /** stable dans sa zone. */
   id: string;
+  /** le verdict. */
   ton: Ton;
+  /** le nom de qui jette ; `null` quand ce qui le montre le dit déjà. */
   qui: string | null;
+  /** l'id de qui jette, dont l'hôte montre le portrait (`Portrait`) ; `null` : nul ne jette, ou il est hors de vue. */
+  combattant: string | null;
+  /** le Test, la table ou le dé. */
   libelle: string;
+  /** le nombre à atteindre. */
   cible: string | null;
+  /** le dé tombé. */
   resultat: string | null;
+  /** les Degrés de Réussite. */
   dr: string | null;
+  /** la réussite ou l'échec, ou ce que la table ou le dé lit. */
   verdict: string | null;
+  /** ce qui compose la cible, une puce par part. */
   modificateurs: Puce[];
+  /** la composition de la cible (base, Difficulté et ses paliers, écrêtage) et ce que le dé deviendrait, une ligne par part. */
   detail: string | null;
 }
 
@@ -67,9 +94,9 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
  *  (`importer`), puis en importer le texte (`importe`, `null` si le joueur renonce). */
 export type GesteDuRoster = { recruter: string } | { retirer: string } | { exporter: string } | { importer: true } | { importe: string | null };
 
-/** Une entrée de l'accueil de l'hôte : le jeu au groupe à composer, les sauvegardes à reprendre, le combat d'un
- *  scénario de test, l'atelier, l'éditeur de carte. */
-export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'combat' | 'atelier' | 'editeur';
+/** Une entrée de l'accueil de l'hôte : le jeu au groupe à composer, les sauvegardes à reprendre, le salon à
+ *  rejoindre, le combat d'un scénario de test, l'atelier, l'éditeur de carte, le Compendium. */
+export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'atelier' | 'editeur' | 'compendium';
 
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, celui d'une offre de l'actif compris
  *  (`Offre.geste`), une suite de verbes
@@ -79,17 +106,58 @@ export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'combat' | 'atelier' | 'e
  *  (`scenarios.ts`), le groupe composé, l'id de la campagne du jeu à lancer, la partie à quitter, un geste sur le
  *  roster de l'hôte (`groupe.ts`), le panneau des sauvegardes à ouvrir ou à fermer, l'emplacement à charger ou celui
  *  où sauvegarder (`sauvegardes.ts`), le panneau des réglages à ouvrir ou à fermer (`reglages.ts`), l'entrée de
- *  l'accueil à suivre (`accueil.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil };
+ *  l'accueil à suivre (`accueil.ts`), le panneau du salon à ouvrir ou à fermer, le salon à quitter (`salon.ts`). */
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { compendium: GesteDuCompendium } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: boolean | 'quitter' };
 
-/** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
- *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
-export interface Bouton { type: 'bouton'; id: string; libelle: string; jeu: Jeu; presse: boolean; focus: boolean; refus: string | null }
+/**
+ * @contrat Vue
+ * Un geste d'un clic.
+ */
+export interface Bouton {
+  /** `bouton`. */
+  type: 'bouton';
+  /** stable dans sa zone. */
+  id: string;
+  /** ce qu'il fait. */
+  libelle: string;
+  /** l'intention qu'il joue. */
+  jeu: Jeu;
+  /** la valeur courante d'un choix, ou l'offre que l'actif vise. */
+  presse: boolean;
+  /** le geste que la fenêtre joue à l'Entrée. */
+  focus: boolean;
+  /** pourquoi il ne se joue pas, `null` s'il se joue. */
+  refus: string | null;
+  /** ce que son libellé tait, montré au survol avant son refus (jamais le refus recopié) ; `null` : rien. */
+  detail: string | null;
+  /** l'action d'entrée de l'hôte qui le joue comme un clic, imprimée sur lui ; `null` : aucune. */
+  touche: Touche | null;
+  /** l'id de son dessin au registre des icônes (`src/data/icons`), absent sans dessin. */
+  icone?: string;
+}
 
-/** Un choix parmi des valeurs, chacune un bouton ; `liste` quand elles sont trop nombreuses pour une rangée. `focus` :
- *  la liste que la fenêtre attend maintenant (une rangée de choix ne le prend jamais) ; `refus` : pourquoi le choix ne
- *  se joue pas, chacune de ses valeurs refusée avec lui. */
-export interface Choix { type: 'choix' | 'liste'; id: string; ton: Ton; libelle: string; focus: boolean; refus: string | null; valeurs: Bouton[] }
+/**
+ * @contrat Vue
+ * Un choix parmi des valeurs, chacune un bouton.
+ */
+export interface Choix {
+  /** `liste` quand ses valeurs sont trop nombreuses pour une rangée. */
+  type: 'choix' | 'liste';
+  /** stable dans sa zone. */
+  id: string;
+  /** la variation du thème de son libellé. */
+  ton: Ton;
+  /** ce qu'il choisit. */
+  libelle: string;
+  /** la liste que la fenêtre attend maintenant ; une rangée de choix ne le prend jamais. */
+  focus: boolean;
+  /** pourquoi il ne se joue pas, chacune de ses valeurs refusée avec lui. */
+  refus: string | null;
+  /** ses valeurs. */
+  valeurs: Bouton[];
+  /** l'id de son dessin au registre des icônes (`src/data/icons`), absent sans dessin. */
+  icone?: string;
+}
 
 /** Une valeur d'une saisie à choix : ce qu'elle dit, ce qu'elle vaut, si elle est la valeur courante, pourquoi elle
  *  est refusée. */
@@ -109,6 +177,38 @@ export type Saisie =
  *  pas. */
 export interface Formulaire { type: 'formulaire'; id: string; libelle: string; verbe: string; focus: boolean; refus: string | null; champs: Saisie[] }
 
+/**
+ * @contrat Vue
+ * Un curseur : un nombre réglé en glissant ou saisi, sans bouton (#4081).
+ */
+export interface Curseur {
+  /** `curseur`. */
+  type: 'curseur';
+  /** stable dans sa zone. */
+  id: string;
+  /** la variation du thème de son libellé. */
+  ton: Ton;
+  /** ce qu'il règle. */
+  libelle: string;
+  /** sa valeur courante. */
+  valeur: number;
+  /** sa borne basse. */
+  min: number;
+  /** sa borne haute. */
+  max: number;
+  /** l'écart entre deux valeurs voisines. */
+  pas: number;
+  /**
+   * le verbe du geste joué à chaque valeur que le joueur lui donne :
+   * `{ type: verbe, args: [...arguments, valeur] }`.
+   */
+  verbe: string;
+  /** les arguments de son geste, avant la valeur. */
+  arguments: unknown[];
+  /** pourquoi il ne se règle pas, `null` s'il se règle. */
+  refus: string | null;
+}
+
 /** Un point du plan : son nom, sa position dans le cadre du plan (0..1 sur chaque axe), son ton, et les éléments
  *  qui se posent sous lui. */
 export interface PointDuPlan { type: 'point'; id: string; nom: string; x: number; y: number; ton: Ton; elements: Element[] }
@@ -116,8 +216,9 @@ export interface PointDuPlan { type: 'point'; id: string; nom: string; x: number
 /** Un trait du plan, d'un point à l'autre (leurs ids), à son ton. */
 export interface TraitDuPlan { id: string; de: string; vers: string; ton: Ton }
 
-/** Un plan : des points nommés posés dans un cadre, et les traits qui les relient. */
-export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[] }
+/** Un plan : des points nommés posés dans un cadre, et les traits qui les relient ; `unites`, ce que vaut le côté du
+ *  cadre au pointeur qui joue sur lui, absent quand aucun n'y joue. */
+export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[]; unites?: number }
 
 /** Le portrait d'un combattant : son corps, celui que l'hôte monte au plateau (`combattant`, son id), vu en buste. */
 export interface Portrait { type: 'portrait'; id: string; combattant: string }
@@ -133,7 +234,7 @@ export interface Fond { type: 'fond'; id: string; fond: string }
 export interface Paysage { type: 'paysage'; id: string; paysage: IdDeCouche[] }
 
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Icone | Fond | Paysage | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Icone | Fond | Paysage | Bouton | Choix | Curseur | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */
@@ -145,8 +246,18 @@ const DESCRIPTION_AU_DETAIL = 300;
 /** Le premier paragraphe d'une description, coupé au mot (`coupeAuMot`) : le détail se lit d'un coup d'œil. */
 export const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
 
+/** Un bouton qui joue `jeu`. */
+export const bouton = (id: string, libelle: string, jeu: Jeu, presse = false, refus: string | null = null): Bouton => ({
+  type: 'bouton', id, libelle, jeu, presse, focus: false, detail: null, touche: null, refus,
+});
+
+/** Un choix (ou une liste) parmi les boutons `valeurs`. */
+export const choix = (id: string, libelle: string, valeurs: Bouton[], type: Choix['type'] = 'choix'): Choix => ({
+  type, id, ton: 'neutre', libelle, focus: false, refus: null, valeurs,
+});
+
 /** Une ligne. */
-export const ligne = (id: string, texte: string, ton: Ton = 'neutre', detail: string | null = null): Ligne => ({ type: 'ligne', id, ton, texte, detail });
+export const ligne = (id: string, texte: string, ton: Ton = 'neutre', detail: string | null = null): Ligne => ({ type: 'ligne', id, ton, texte, detail, touche: null });
 
 /** Les arguments du geste `g`, l'argument `nom` valant `valeur` : chaque argument posé par la fenêtre, puis la valeur
  *  courante de chaque argument requis ; un argument optionnel sans valeur clôt la liste. */
@@ -161,11 +272,11 @@ function argumentsAvec(g: GesteDeLaFenetre, nom: string, valeur: unknown): unkno
 }
 
 /** Les valeurs de l'argument à choisir `a` du geste `g`, chacune un bouton qui joue le geste avec elle, refusée avec
- *  le geste. */
+ *  le geste ; son id, la clé du geste et la valeur sérialisée, ne dépend pas de son rang ni de son libellé. */
 const valeursDuChoix = (g: GesteDeLaFenetre, a: ArgumentDuGeste): Bouton[] =>
-  (a.valeurs ?? []).map((v, i): Bouton => ({
-    type: 'bouton', id: `${g.cle}/${i}`, libelle: v.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, a.nom, v.valeur) },
-    presse: v.valeur === a.valeur, focus: false, refus: v.refus ?? g.raison,
+  (a.valeurs ?? []).map((v): Bouton => ({
+    type: 'bouton', id: `${g.cle}/${jsonCanonique(v.valeur)}`, libelle: v.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, a.nom, v.valeur) },
+    presse: v.valeur === a.valeur, focus: false, detail: null, touche: null, refus: v.refus ?? g.raison,
   }));
 
 /** La saisie de l'argument `a`, sous l'id `id`. */
@@ -192,7 +303,7 @@ export function elementsDesGestes(gestes: readonly GesteDeLaFenetre[]): (Bouton 
   return ouverts.map((g) => {
     const enFocus = g === focus;
     switch (g.rendu) {
-      case 'bouton': return { type: 'bouton', id: g.cle, libelle: g.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, '', null) }, presse: false, focus: enFocus, refus: g.raison };
+      case 'bouton': return { type: 'bouton', id: g.cle, libelle: g.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, '', null) }, presse: false, focus: enFocus, detail: null, touche: null, refus: g.raison };
       case 'choix':
       case 'liste': return { type: g.rendu, id: g.cle, ton: 'neutre', libelle: g.libelle, focus: enFocus, refus: g.raison, valeurs: valeursDuChoix(g, g.arguments.find((a) => a.nom === g.aChoisir)!) };
       case 'formulaire': return { type: 'formulaire', id: g.cle, libelle: g.libelle, verbe: g.verbe, focus: enFocus, refus: g.raison, champs: g.arguments.map((a) => saisie(`${g.cle}/${a.nom}`, a)) };

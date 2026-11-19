@@ -20,6 +20,8 @@ const PLANCHES := "terrain--planches"
 const ROUGE := "#ff0000"
 const VERT := "#00ff00"
 var _fautes: Array[String] = []
+## Les matières locales de ses scènes (`MontageDeComposition.materiau_local`).
+var _locaux: Dictionary = {}
 
 
 func _initialize() -> void:
@@ -36,9 +38,9 @@ func _recetter() -> void:
 	var canon := _scene([BOIS, CUIR])
 	root.add_child(coque)
 	var embleme := ImageTexture.create_from_image(Image.create(2, 2, false, Image.FORMAT_RGBA8))
-	if not MontageDeVehicule.peindre_l_element(coque, "coque", {bois = ROUGE}, embleme):
+	if not MontageDeVehicule.peindre_l_element(coque, "coque", {bois = ROUGE}, embleme, _locaux):
 		_fautes.append("l'emblème du véhicule n'est posé sur aucune surface")
-	if MontageDeVehicule.peindre_l_element(canon, "canon", {bois = VERT}, null):
+	if MontageDeVehicule.peindre_l_element(canon, "canon", {bois = VERT}, null, _locaux):
 		_fautes.append("une pièce peinte sans emblème en porte un")
 	MontageDeVehicule.monter_au_poste(coque, canon, {position = [0.0, 1.0, 0.0], bord = "tribord"})
 	_attendre(coque, 0, Color(ROUGE), "bois de la coque")

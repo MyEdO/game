@@ -77,7 +77,8 @@ export function nouvelEntete(scenario: string, options: Parameters<typeof nouvel
 function preference(id: IdDePreference, v: unknown): PrefValue {
   const valeur = valeurDEntree(id, v);
   if (valeur === undefined) {
-    const options = preferenceDef(id)?.options;
+    const forme = preferenceDef(id);
+    const options = forme?.kind === 'mode' ? forme.options : null;
     throw new ErreurDeGeste('validation', `${id} non conforme : ${JSON.stringify(v)}${options ? ` (${options.join(', ')})` : ''}`);
   }
   return valeur;

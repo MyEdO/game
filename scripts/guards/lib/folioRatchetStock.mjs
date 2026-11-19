@@ -118,13 +118,10 @@ export const FOLIO_RATCHET = new Set([
   'trappings.json:arme-simple', // p.294 -> 296
   'trappings.json:arquebuse-a-double-canon', // p.100 -> 101
   'trappings.json:arquebuse-a-meche', // p.100 -> 101
-  'trappings.json:balle-de-gros-calibre-et-poudre', // p.102 -> 103
   'trappings.json:bombe-incendiaire-mortier', // p.106 -> 101
   'trappings.json:boussole', // p.127 -> 126
   'trappings.json:canne-pistolet', // p.100 -> 103
   'trappings.json:canon-crache-plomb', // p.29 -> 30
-  'trappings.json:cartouche-en-papier', // p.102 -> 104
-  'trappings.json:cartouche-et-poudre-de-precision', // p.102 -> 104
   'trappings.json:catapulte-grande', // p.122 -> 123
   'trappings.json:catapulte-moyenne', // p.122 -> 123
   'trappings.json:catapulte-petite', // p.122 -> 123
@@ -133,12 +130,10 @@ export const FOLIO_RATCHET = new Set([
   'trappings.json:gantelet-a-pointes', // p.90 -> 94
   'trappings.json:grande-lance', // p.29 -> 30
   'trappings.json:grande-massue-ogre', // p.29 -> 30
-  'trappings.json:grappin-munition', // p.102 -> 104
   'trappings.json:hache-arquebuse', // p.100 -> 101
   'trappings.json:hallebarde-arquebuse', // p.100 -> 102
   'trappings.json:haquebute', // p.100 -> 102
   'trappings.json:huile-de-lampe', // p.308 -> 309+
-  'trappings.json:jezail-a-malepierre', // p.45 -> 94
   'trappings.json:lampe-tempete', // p.308 -> 309+
   'trappings.json:livre-medecine', // p.304 -> 305+
   'trappings.json:livre-religion', // p.304 -> 305+
@@ -154,7 +149,6 @@ export const FOLIO_RATCHET = new Set([
   'trappings.json:pistolet-patte-de-griffon', // p.100 -> 102
   'trappings.json:poing-de-fer', // p.29 -> 30
   'trappings.json:poivriere', // p.100 -> 103
-  'trappings.json:poudre-impregnee-d-aqshy', // p.102 -> 104
   'trappings.json:ration-biscuits-de-mer', // p.127 -> 126
   'trappings.json:ration-nourriture-preservee', // p.127 -> 126
   'trappings.json:ration-soupe-chou-fermente', // p.127 -> 126

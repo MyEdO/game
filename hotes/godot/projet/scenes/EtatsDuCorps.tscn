@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/etats_du_corps.gd" id="1_etats"]
+[ext_resource type="AnimationNodeStateMachine" path="res://animation/corps.tres" id="2_corps"]
+
+[node name="Etats" type="AnimationTree"]
+active = false
+tree_root = ExtResource("2_corps")
+script = ExtResource("1_etats")

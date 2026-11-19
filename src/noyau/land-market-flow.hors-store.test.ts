@@ -69,8 +69,8 @@ function tradeMap(): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
     places: [
-      { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'marche-a' }, market: profile() },
-      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'marche-b' }, market: profile() },
+      { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'marche-a' }, taille: 4, market: { richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'] } },
+      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'marche-b' }, taille: 4, market: { richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'] } },
     ],
     routes: [],
   };
@@ -154,6 +154,18 @@ describe('#99 — génération au marché : la rumeur vise un AUTRE Lieu de la c
     expect(board[0].placeId).not.toBe('A');
     expect(board[0].mult).toBe(2);
     expect(board[0].biens.length).toBeGreaterThan(0);
+  });
+});
+
+describe('#3387 — la rumeur commerciale se joue en Ragot Complexe (MSRC 13 l.180, LDB 12 l.149)', () => {
+  it('le Test de Ragot ouvert au marché porte la Difficulté complexe (−10), cible = Ragot − 10', () => {
+    launchAtA();
+    seedBattleRng(7);
+    ouvrirLeMarche(get, set);
+    get().jetValider('etalLot');
+    const st = get().pendingCascade!.participants[0];
+    expect(st.difficulty).toBe('complexe');
+    expect(st.target).toBe(st.base! - 10);
   });
 });
 

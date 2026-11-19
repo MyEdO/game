@@ -1,6 +1,6 @@
 *Pages PDF 17-39*
 
-## **LES OGRES**
+## <span id="page-16-0" data-folio="15"></span>**LES OGRES**
 
 Pour la plupart des habitants de l'Empire, les ogres représentent une menace obscure, mais âprement discutée, venant de terres lointaines. Dans le Vieux Monde, les ogres font presque toujours partie de compagnies de mercenaires, au sein desquelles ils sont recrutés pour leur force, leur taille et leur férocité inégalables. Ceux qui y ont déjà eu affaire ne savent que trop bien qu'il faut les aborder avec prudence.
 
@@ -672,7 +672,7 @@ Utilisés par les chasseurs ogres pourchassant les grandes bêtes des Montagnes 
 
 Utilisé pour chasser des proies, le lance-harpon tire une énorme flèche de la taille d'une lance, attachée à une longue corde. Il n'est pas doté d'un mécanisme permettant de ramener la corde automatiquement, l'ogre doit donc saisir la corde et tirer sa proie à la main. Le lance-harpon peut être utilisé avec les
 
-Clément Gauche - gauche.c@gmail.com
+
 
 Compétences Projectiles (Arbalète) ou Projectiles (Entraves) sans pénalité. Si la corde est séparée de la flèche, la portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante.
 
@@ -764,7 +764,7 @@ Vous croquez bruyamment quelques os tout en grommelant une malédiction visant u
 
 Vous trempez votre lame favorite dans le sang d'un ennemi fraîchement tombé, ce qui vous donne plus de puissance et éveille la soif de sang chez vos alliés. Toutes les créatures de votre choix dans la Zone d'Effet gagnent le Trait de Créature Vampirique (**WFJDR** p. 343) pour la durée de ce sort. La cible n'a pas besoin de mordre ses adversaires pour bénéficier des avantages de ce Trait, il lui suffit de les blesser au corps à corps. Elle peut également bénéficier de soins provenant d'autres sources. Si une créature souhaite résister à ce sort, elle peut tenter un Test de **Résistance Difficile (-20)** pour en ignorer les effets.
 
-Clément Gauche - gauche.c@gmail.com
+
 
 
 <span id="page-34-0" data-folio="33"></span>Pendant la durée de ce sort, le sang des ennemis jaillit vers les personnes affectées, coulant le long de leurs lames, sur leurs bras et dans leurs bouches. Les ogres ne sont pas gênés par cet effet (la plupart s'en délectent), mais les autres créatures trouvent généralement cette situation fort déstabilisante. Lorsque le sort prend fin, les non-ogres qui ont blessé au moins un adversaire au corps à corps tandis qu'ils étaient sous l'effet du sort doivent réussir un Test de **Calme Intermédiaire (+0)** ou gagner l'État *Assommé*. De plus, s'ils blessent un adversaire qui possède les Traits de créature Infecté ou Maladie, tout Test effectué pour en éviter les effets négatifs subit une pénalité de -30.

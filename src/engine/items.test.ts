@@ -1,6 +1,57 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, itemsEncumbrance, damageString, gabaritDObjet, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
+import {
+  apparencesCandidates,
+  recomputeLoadout,
+  totalEncumbrance,
+  maxEncumbrance,
+  itemFromTrappingById,
+  weaponWithAmmo,
+  compatibleAmmo,
+  selectedAmmo,
+  emptyArmour,
+  damageArmour,
+  deviatableArmourAt,
+  endommagerLEquipementPorte,
+  buildWeapon,
+  weaponHands,
+  activeLoadout,
+  ensureDefaultLoadout,
+  unarmedWeapon,
+  loadoutCreate,
+  loadoutDelete,
+  loadoutSetActive,
+  loadoutSetSlot,
+  setADeuxMains,
+  loadoutLabel,
+  isOffHandEligible,
+  armourLayer,
+  equipConflicts,
+  isCapeItem,
+  emplacementDArmure,
+  emplacementDeCape,
+  buildInventory,
+  itemsEncumbrance,
+  damageString,
+  gabaritDObjet,
+  hydratePoste,
+  mannedPosteWeapon,
+  itemLabel,
+  customTrapping,
+  wornArmourPoints,
+  isWearable,
+  reachIdOf,
+  reachRankOf,
+  isUnarmed,
+  weaponFromItem,
+  lacherLArme,
+  tientUneArme,
+  porteeDeTir,
+  loadWeapon,
+  loadedAmmo,
+  chargeLArme,
+  ammoFamily,
+} from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
@@ -451,12 +502,18 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('buildInventory n’équipe qu’UNE pièce par couche × localisation (meilleure PA)', () => {
-    const items = buildInventory(['justaucorps-de-cuir', 'veste-de-cuir', 'chemise-de-mailles', 'plastron'].map((id) => ({ id })), makeRNG(1), idsDeTest);
+    const items = buildInventory((['justaucorps-de-cuir', 'veste-de-cuir', 'chemise-de-mailles', 'plastron'] as const).map((id) => ({ id })), makeRNG(1), idsDeTest);
     const worn = items.filter((i) => i.equipped).map((i) => i.trappingId);
     // Justaucorps et Veste sont tous deux Cuir souple sur le Corps → une seule des deux portée.
     expect(worn).toContain('chemise-de-mailles');
     expect(worn).toContain('plastron');
     expect(worn.filter((id) => id === 'justaucorps-de-cuir' || id === 'veste-de-cuir')).toHaveLength(1);
+  });
+
+  it('buildInventory garde au sac, sans l’équiper, l’armure de monture d’une dotation (#4135)', () => {
+    const items = buildInventory([{ id: 'justaucorps-de-cuir' }, { id: 'barde' }], makeRNG(1), idsDeTest);
+    expect(items.map((i) => [i.trappingId, i.equipped])).toEqual([['justaucorps-de-cuir', true], ['barde', false]]);
+    expect(wornArmourPoints(items)).toEqual(wornArmourPoints(buildInventory([{ id: 'justaucorps-de-cuir' }], makeRNG(1), idsDeTest)));
   });
 
   it('buildInventory fusionne les Atouts ATTACHÉS de la ref (`qualities`) aux qualités de base du catalogue (#657 Lot 1)', () => {
@@ -475,7 +532,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
 
 describe('buildInventory — vêtements et accessoires portés par défaut (LDB 61 l.21)', () => {
   it('vêtements, première cape et bottes portés, seconde cape au sac ; Encombrement réduit de 1 par objet porté', () => {
-    const items = buildInventory(['vetements', 'cape', 'cape', 'bottes'].map((id) => ({ id })), makeRNG(1), idsDeTest);
+    const items = buildInventory((['vetements', 'cape', 'cape', 'bottes'] as const).map((id) => ({ id })), makeRNG(1), idsDeTest);
     expect(items.map((i) => [i.trappingId, !!i.equipped])).toEqual([['vetements', true], ['cape', true], ['cape', false], ['bottes', true]]);
     const attendu = items.reduce((s, i) => s + Math.max(0, (i.enc ?? 0) - (i.equipped ? 1 : 0)), 0);
     expect(itemsEncumbrance(items)).toBe(attendu);
@@ -491,6 +548,9 @@ describe('buildInventory — quantité d’une dotation (LDB 74 l.41 ; `merchant
   it('une munition garde sa quantité en un seul paquet', () => {
     const items = buildInventory([{ id: 'fleche', count: { fixed: 12 } }], makeRNG(5), idsDeTest);
     expect(items.map((i) => i.qty)).toEqual([12]);
+  });
+  it('Petites munitions et poudre : un lot de 12 à l’achat (AA 08 l.499)', () => {
+    expect(itemFromTrappingById('petites-munitions-et-poudre', idsDeTest)!.qty).toBe(12);
   });
 });
 
@@ -756,7 +816,7 @@ describe('Dégâts d’armure (LDB 63 l.19-21)', () => {
 
 /** Mutation fabriquée : `ap` partout, marquée hors Déviation ou non. */
 const mutationAP = (id: string, amount: number, noDeviation?: boolean): Mutation =>
-  ({ id, label: id, desc: '', kind: 'physique', roll: 0, passive: [{ op: 'ap', amount, ...(noDeviation ? { noDeviation } : {}) }] });
+  ({ id, type: 'mutations', label: id, desc: '', kind: 'physique', roll: 0, passive: [{ op: 'ap', amount, ...(noDeviation ? { noDeviation } : {}) }] });
 
 /** LDB 85 l.325, l.447 ; LDB 63 l.19 ; LDB 62 l.135 */
 describe('endommagerLEquipementPorte — toutes les Armures et Armes portées subissent 1 Dégât', () => {
@@ -891,6 +951,30 @@ describe('Munitions & rechargement', () => {
     // La Flèche n'a pas de modificateur de Dégâts → reste +9.
     expect(damageString(w.damage)).toBe('+9');
   });
+  describe('weaponWithAmmo : qualité de la munition majorée (+N) ou à Indice (#4346, #4361)', () => {
+    const arme = (id: string) => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
+    const tir = (armeId: string, munitionId: string) => weaponWithAmmo(arme(armeId), itemFromTrappingById(munitionId, idsDeTest)!);
+    const indice = (w: Weapon, id: string) => w.qualities.find((q) => q.id === id)?.value;
+    it.each([
+      ['tromblon', 'petites-munitions-et-poudre', 'a-explosion', 4], // Explosion 3 + 1 : LDB 62 l.123, arbitrage #4346 « +1 (Recommandé) »
+      ['tromblon-a-meche', 'petites-munitions-et-poudre', 'a-explosion', 1], // arme sans Explosion : arbitrage #4346 « La qualité à N (Recommandé) »
+      ['tromblon-a-meche', 'ferraille-et-poudre', 'tir-de-zone', 6], // Tir de zone 3 + 3 : AA 08 l.496
+      ['mortier-a-main', 'grappin-munition', 'recharge', 4], // Recharge 2 + 2 : AA 08 l.497
+      ['mortier-ade2', 'bombe-incendiaire-mortier', 'a-explosion', 4], // la munition remplace : arbitrage #4361 « Celle de la munition (Recommandé) »
+      ['canon-ade2', 'boulet-et-poudre', 'a-explosion', 2],
+    ])('%s + %s : %s %d, et l’arme tirée ne porte aucune majoration', (armeId, munitionId, qualite, attendu) => {
+      const w = tir(armeId, munitionId);
+      expect(indice(w, qualite)).toBe(attendu);
+      expect(w.qualities.filter((q) => q.majoration != null)).toEqual([]);
+    });
+    it('`reload` de l’arme tirée suit la Recharge fusionnée : mortier à main + grappin → 4 (AA 08 l.497 ; #4417)', () => {
+      expect(tir('mortier-a-main', 'grappin-munition').reload).toBe(4);
+    });
+    it('une qualité de munition sans Indice laisse celle de l’arme inchangée (Empaleuse de la Flèche)', () => {
+      const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'empaleuse' }], subType: 'arc', reload: 0 };
+      expect(weaponWithAmmo(arc, itemFromTrappingById('fleche', idsDeTest)!).qualities).toEqual([{ id: 'empaleuse' }]);
+    });
+  });
   it('compatibleAmmo filtre par subType et qty>0', () => {
     const c = { items: [itemFromTrappingById('fleche', idsDeTest), itemFromTrappingById('carreau', idsDeTest)] } as unknown as Combatant;
     const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [], subType: 'arc', reload: 0 };
@@ -909,6 +993,80 @@ describe('Munitions & rechargement', () => {
     const c = { items: ['carreau-de-baliste', 'mitraille-et-poudre', 'bombe-de-mortier'].map((id) => itemFromTrappingById(id, idsDeTest)) } as unknown as Combatant;
     const canon = weaponFromItem(itemFromTrappingById('canon-moyen', idsDeTest)!);
     expect(compatibleAmmo(c, canon).map((a) => a.trappingId)).toEqual(['mitraille-et-poudre']);
+  });
+  describe('munitions d’Aux Armes : chacune se charge dans sa famille d’arme (AA 08 l.366-381, l.486-500 ; #4356)', () => {
+    const MUNITIONS_AA = ['baton-pointu', 'fleche-barbelee', 'fleche-bodkin', 'bille-de-plomb', 'caillou', 'balle-de-gros-calibre-et-poudre', 'bombe-explosive', 'cartouche-en-papier', 'cartouche-et-poudre-de-precision', 'ferraille-et-poudre', 'grappin-munition', 'poudre-impregnee-d-aqshy'];
+    const porteur = () => ({ items: MUNITIONS_AA.map((id) => itemFromTrappingById(id, idsDeTest)!) }) as unknown as Combatant;
+    const arme = (id: string) => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
+    const chargees = (id: string) => compatibleAmmo(porteur(), arme(id)).map((a) => a.trappingId);
+    it('Arc : bâton pointu, flèches barbelée et bodkin, rien d’autre (AA 08 l.372-376)', () => {
+      expect(chargees('arc').sort()).toEqual(['baton-pointu', 'fleche-barbelee', 'fleche-bodkin']);
+    });
+    it('Fronde : bille de plomb et caillou, rien d’autre (AA 08 l.378-380)', () => {
+      expect(chargees('fronde').sort()).toEqual(['bille-de-plomb', 'caillou']);
+    });
+    it.each([
+      ['tromblon', ['ferraille-et-poudre']], // AA 08 l.482
+      ['arquebuse', ['cartouche-en-papier', 'cartouche-et-poudre-de-precision', 'poudre-impregnee-d-aqshy']], // AA 08 l.528-530, l.544
+      ['haquebute', ['balle-de-gros-calibre-et-poudre']], // AA 08 l.517
+      ['mortier-a-main', ['balle-de-gros-calibre-et-poudre', 'bombe-explosive', 'grappin-munition']], // AA 08 l.517, l.521, l.534
+    ])('%s charge %j (AA 08 l.487)', (id, attendues) => {
+      expect(chargees(id)).toEqual(expect.arrayContaining(attendues));
+    });
+    it('Porte : la Ferraille chargée dans un tromblon part au tir avec ses Dégâts, Infecté et sa Portée moitié (AA 08 l.495, l.532)', () => {
+      const c = porteur();
+      const tromblon = { ...arme('tromblon'), ammoUid: c.items!.find((a) => a.trappingId === 'ferraille-et-poudre')!.uid };
+      loadWeapon(c, tromblon);
+      const munition = loadedAmmo(c, tromblon)!;
+      expect(munition.trappingId).toBe('ferraille-et-poudre');
+      const tir = weaponWithAmmo(tromblon, munition);
+      expect(damageString(tir.damage)).toBe('+7');
+      expect(tir.qualities.some((q) => q.id === 'infecte')).toBe(true);
+      expect(porteeDeTir(c, tromblon)).toBe(10);
+    });
+  });
+  describe('chargeLArme : une arme qui nomme ses munitions ne charge qu’elles ; les autres, leur famille moins les munitions nommées (#4360)', () => {
+    const objet = (id: string) => itemFromTrappingById(id, idsDeTest)!;
+    const distances = trappings.filter((t) => t.categorie === 'distance');
+    const munitions = trappings.filter((t) => t.categorie === 'ammunition');
+    const charge = (armeId: string, munitionId: string) => chargeLArme(objet(munitionId), objet(armeId));
+    const armesQuiChargent = (munitionId: string) => distances.filter((a) => charge(a.id, munitionId)).map((a) => a.id).sort();
+    it('Pistolet : balle et poudre seule parmi les munitions à poudre que le livre réserve (LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; ADE II 02 l.665)', () => {
+      expect(charge('pistolet', 'balle-et-poudre')).toBe(true);
+      for (const m of ['petites-munitions-et-poudre', 'munitions-improvisees-et-poudre', 'ferraille-et-poudre', 'balle-crache-plomb', 'boulet-crache-plomb', 'grappin-munition', 'bombe-explosive'])
+        expect(charge('pistolet', m), m).toBe(false);
+    });
+    it.each(['tromblon', 'tromblon-a-meche'])('%s : petites munitions, ferraille, munitions improvisées (LDB 62 l.131 ; AA 08 l.482)', (id) => {
+      for (const m of ['petites-munitions-et-poudre', 'ferraille-et-poudre', 'munitions-improvisees-et-poudre']) expect(charge(id, m), m).toBe(true);
+    });
+    it.each([
+      ['grappin-munition', ['mortier-a-main']], // AA 08 l.534
+      ['bombe-explosive', ['mortier-a-main']], // AA 08 l.521-523
+      ['balle-de-gros-calibre-et-poudre', ['haquebute', 'mortier-a-main']], // AA 08 l.517
+      ['balle-crache-plomb', ['canon-crache-plomb']], // ADE II 02 l.665
+      ['boulet-crache-plomb', ['canon-crache-plomb']], // ADE II 02 l.665
+    ])('les armes à distance qui chargent %s : exactement %j', (munitionId, attendues) => {
+      expect(armesQuiChargent(munitionId)).toEqual(attendues);
+    });
+    it.each([
+      ['tromblon', 'petites-munitions-et-poudre'], // AA 08 l.482
+      ['mortier-a-main', 'bombe-explosive'], // AA 08 l.509
+      ['canon-crache-plomb', 'balle-crache-plomb'], // ADE II 02 l.665
+    ])('%s : sa munition représentative est %s', (armeId, munitionId) => {
+      expect(objet(armeId).defaultAmmo).toBe(munitionId);
+    });
+    it('une arme qui nomme ses munitions charge exactement sa liste, siège compris (AA 10 l.150 ; MDG 12 l.410-424)', () => {
+      for (const a of distances.filter((t) => t.munitions))
+        expect(munitions.filter((m) => charge(a.id, m.id)).map((m) => m.id).sort(), a.id).toEqual([...a.munitions!].sort());
+    });
+    it('une arme sans liste charge sa famille moins les munitions qu’une arme nomme', () => {
+      const nommees = new Set(trappings.flatMap((t) => t.munitions ?? []));
+      for (const a of distances.filter((t) => !t.munitions)) {
+        const famille = ammoFamily(a.subType?.id);
+        const attendues = munitions.filter((m) => famille !== '' && ammoFamily(m.subType?.id) === famille && !nommees.has(m.id)).map((m) => m.id);
+        expect(munitions.filter((m) => charge(a.id, m.id)).map((m) => m.id), a.id).toEqual(attendues);
+      }
+    });
   });
   it('recomputeLoadout dérive reload depuis « Recharge N » + subType', () => {
     const c = {
@@ -934,8 +1092,8 @@ describe('Munitions & rechargement', () => {
     expect(full).toBe(60);
     expect(withAmmo).toBe(30);
     // À 6 m (distanceTiles 3) la fourchette se décale : « Bout portant » (pleine) → « Courte portée » (½).
-    expect(rangeBandName(3, full!)).toBe('Bout portant');
-    expect(rangeBandName(3, withAmmo!)).toBe('Courte portée');
+    expect(rangeBandName(3, full!, 2)).toBe('Bout portant');
+    expect(rangeBandName(3, withAmmo!, 2)).toBe('Courte portée');
   });
   it('recomputeLoadout : Arc (sans « Recharge ») → reload 0', () => {
     const c = {

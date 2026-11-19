@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { volumeDepuis, volumeDuMonde, type EtatDuVolume, type VolumeDuMonde } from './volume';
-import { emptyScene, setTileCollapsed, structureDownKey, type Scene, type SceneEntity } from '../scene';
+import { collapsedTileKey, emptyScene, setTileCollapsed, structureDownKey, type Scene, type SceneEntity } from '../scene';
 import { buildScene } from '../../mapSpec';
 import { poserLesNavires, provenanceDesNavires } from '../../planDeNavire';
 import { bumperDataset } from '../../../data/versionDataset';
@@ -90,9 +90,21 @@ describe('volumeDepuis : la reprise rend le calcul entier (#3993)', () => {
     reprendEgal(moveEntityTo(s, 'tonneau-1', { x: 5, y: 10 }), avant.etat, 'tonneau déplacé');
     reprendEgal(moveEntityTo(s, 'table-1', { x: 12, y: 3 }), avant.etat, 'table déplacée');
     const releve = paintHeight(s, { x: 10, y: 5 }, 0.8, 1, 0);
-    const lettre = (e: EtatDuVolume) => e.decorsDEntite.get('lettre-1')!;
-    expect(lettre(entier(releve).etat).pied, 'le pied de la lettre suit son support').not.toBe(lettre(avant.etat).pied);
+    const lettre = (e: EtatDuVolume) => e.decors.get('entite/lettre-1')!.pose;
+    expect(lettre(entier(releve).etat).piedM, 'le pied de la lettre suit son support').not.toBe(lettre(avant.etat).piedM);
     reprendEgal(releve, avant.etat, 'support relevé');
+  });
+
+  it('un décor tourné sur place se reprend tourné', () => {
+    const scene = (facing?: 'E' | 'S'): Scene => {
+      const c = emptyScene('cap', 4, 1);
+      c.entities.push({ id: 't', kind: 'prop', decor: { id: 'arbre-mort' }, pos: { x: 1, y: 0 }, ...(facing ? { facing } : {}) });
+      return c;
+    };
+    const avantCap = entier(scene());
+    const repris = reprendEgal(scene('E'), avantCap.etat, 'décor tourné');
+    expect(repris.volume, 'le cap change le volume').not.toEqual(avantCap.volume);
+    expect(repris.etat.decors.get('entite/t')!.pose.cap).toBe('E');
   });
 
   it('un décor qui s’allume puis s’éteint : ses surfaces portent `luminaire` exactement quand il éclaire', () => {
@@ -148,6 +160,40 @@ describe('volumeDepuis : la reprise rend le calcul entier (#3993)', () => {
       etat = repris.etat;
     }
     for (const [k, vu] of vus.entries()) expect(vu.volume, `volume ${k} relu`).toEqual(entier(vu.scene).volume);
+  });
+
+  it('effondré puis intact (drapeau rendu à `false`), et deux scènes aux mêmes couches dont les effondrements diffèrent, en alternance (#4044)', () => {
+    const a = setTileCollapsed(s, 4, 7, 1);
+    const b = setTileCollapsed(s, 5, 8, 1);
+    const intacte: Scene = { ...a, flags: { ...a.flags, [collapsedTileKey(4, 7, 1)]: false } };
+    for (const t of [a, b, intacte]) expect(t.layers, 'mêmes couches').toBe(s.layers);
+    let etat = avant.etat;
+    for (const [k, scene] of [a, intacte, a, b, a, b, s].entries()) etat = reprendEgal(scene, etat, `pas ${k}`).etat;
+  });
+
+  it('deux scènes aux mêmes couches, une tuile d’étage effondrée chacune, calculées l’une après l’autre : le sol de la seconde suit ses seuls effondrements (#4044)', () => {
+    const trianglesDeSol = (v: VolumeDuMonde, x: number, y: number, z: number) =>
+      v.morceaux.filter((m) => m.cle.startsWith('sol/')).reduce((n, m) => n + m.cases.filter((_, k) => k % 3 === 0 && m.cases[k] === x && m.cases[k + 1] === y && m.cases[k + 2] === z).length, 0);
+    const a = setTileCollapsed(s, 4, 7, 1);
+    const b = setTileCollapsed(s, 5, 8, 1);
+    expect(b.layers, 'mêmes couches').toBe(a.layers);
+    entier(a);
+    const v = entier(b).volume;
+    expect(trianglesDeSol(v, 5, 8, 1), 'la tuile effondrée de b').toBe(0);
+    expect(trianglesDeSol(v, 4, 7, 1), 'la tuile intacte de b').toBeGreaterThan(0);
+  });
+
+  it('une tuile crénelée du chemin de ronde effondrée : ses crêtes tombent, aucune ne ceint le trou ; la reprise reste le calcul entier (#4044)', () => {
+    let ronde = s;
+    for (let y = 7; y <= 8; y++) for (let x = 3; x <= 6; x++) ronde = paintCrenellated(ronde, { x, y }, 'mur-en-pierre', 1, 1);
+    const effondree = setTileCollapsed(ronde, 5, 8, 1);
+    const cretes = (t: Scene) => [...entier(t).etat.cretes.keys()].sort();
+    const avant = cretes(ronde);
+    const cleDeLaCase = '5,8,1|';
+    expect(avant.some((c) => c.startsWith(cleDeLaCase)), 'la tuile porte des crêtes avant').toBe(true);
+    expect(cretes(effondree), 'celles d’avant, moins celles de la tuile effondrée').toEqual(avant.filter((c) => !c.startsWith(cleDeLaCase)));
+    let etat = entier(ronde).etat;
+    for (const [k, scene] of [effondree, ronde, effondree].entries()) etat = reprendEgal(scene, etat, `pas ${k}`).etat;
   });
 
   it('la scène à navire : une case d’eau peinte, la mer reprise', () => {

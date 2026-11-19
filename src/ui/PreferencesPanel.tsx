@@ -34,7 +34,7 @@ export function PreferencesPanel() {
                 )}
                 {p.kind === 'mode' && (
                   <select aria-label={p.label} value={String(val)} onChange={(e) => change(p.id, e.target.value)}>
-                    {(p.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+                    {p.options.map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 )}
                 {p.kind === 'param' && (

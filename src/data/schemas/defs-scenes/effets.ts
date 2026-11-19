@@ -14,19 +14,44 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  * (transition/dialogue/combat…) et sur `conditionSchema` : aucune structure n'est recopiée.
  */
 import { z } from 'zod';
-import { validerApparenceDonnee } from '../grammaire/valeurs';
+import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { cell2Schema, chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
-import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
+import {
+  cell2Schema,
+  chaosAlignSchema,
+  enumNomme,
+  exposureLevelSchema,
+  hitLocationSchema,
+  moneyPartialSchema,
+  natureDInfluenceSchema,
+  qualiteDeReposSchema,
+} from '../grammaire/valeurs';
+import {
+  arbreDeFlow,
+  conditionSchema,
+  effectOpSchema,
+  executeesDe,
+  extendedTestSchema,
+  refuserLeVivreDuNavire,
+  testDeSceneSchema,
+} from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
-import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
+import { idDe, recordDIds, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
+import {
+  customStatblockSchema,
+  DIALOGUES_DE_LA_SCENE,
+  MARCHANDS_DE_LA_SCENE,
+  PERSONNAGES_DE_LA_SCENE,
+  ptSchema,
+  RENCONTRES_DE_LA_SCENE,
+  SCENES_DU_PROJET,
+  wallSideSchema,
+} from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
+import type { EffectOp, Flow as CoreFlow } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -55,16 +80,6 @@ export const favorLevelSchema = enumNomme({
 });
 /** `CrewHire` (`engine/crewMorale.ts`) — un rôle d'équipage salarié et son effectif. */
 export const crewHireSchema = nommerChamps(z.strictObject({ roleId: idDe('crewRole', undefined, { nue: true }), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
-/** `PursuitFoeRef` (`noyau/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
- *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
- *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
- *  (`noyau/pursuitFlow`). `id` est posé à l'ouverture quand l'auteur n'en écrit pas — il sert aux
- *  décisions de camp (`PursuitPolicy.prioritaires`). */
-/** LDB 15 l.94 */
-export const pursuitFoeSchema = nommerChamps(z.strictObject({
-  id: z.string().optional(),
-  ref: livingRefSchema,
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, ref: { label: "référence" } });
 /** LDB 15 l.94. */
 export const pursuitPolicySchema = nommerChamps(z.strictObject({
   sacrifice: z.enum(['jamais', 'toujours', 'si-ecart']).optional(),
@@ -87,8 +102,8 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   /** ADE II 8 l.128. */
   situations: z.array(z.array(z.string())).optional(),
   situationSize: z.number().optional(),
-  /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
-  sceneEncounters: z.record(z.string(), z.string()).optional(),
+  /** Rencontres de la scène à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène). */
+  sceneEncounters: recordDIds('activity', ref(RENCONTRES_DE_LA_SCENE)).optional(),
   /** ADE II 8 l.81. */
   modificateurAllie: z.number().optional(),
 }), { nomDesAllies: { label: "nom des alliés" , texte: { regime: "designation"} }, nomDesEnnemis: { label: "nom des ennemis" , texte: { regime: "designation"} }, puissanceAlliee: { label: "puissance alliée" }, puissanceEnnemie: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, modificateurAllie: { label: "modificateur allié" } }), 'massBattle.terrain');
@@ -134,13 +149,13 @@ export const clearObjectiveSchema = nommerChamps(z.strictObject({ type: z.litera
 
 /** Objet donné par `giveTrapping` : feuille OUVERTE de `INSTANCIABLE_PAR_ID`, FORME DE SORTIE déclarée
  *  nue (patron `sortSchema`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
-const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true });
+const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET });
 
 /** Donne un objet à un héros (défaut : le premier). `trappingId` = objet à stats de la campagne
  *  (`narratif.objets`) ou du catalogue, feuille OUVERTE de `INSTANCIABLE_PAR_ID` ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
  *  stats. L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities` AJOUTÉES
  *  (Atout/Défaut), `identified:false` = qualités masquées jusqu'à Évaluation (#2), `teinte` = recoloration. */
-export const giveTrappingSchema = nommerChamps(z.strictObject({
+export const giveTrappingSchema = nommerChamps(avecApparenceDObjetDonne(z.strictObject({
   type: z.literal('giveTrapping'),
   trappingId: objetDonneSchema.optional(),
   custom: z.string().optional(),
@@ -158,7 +173,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-}).superRefine(validerApparenceDonnee), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+})), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que
@@ -184,7 +199,7 @@ export const giveMoneySchema = nommerChamps(z.strictObject({
  *  authore ses propres octrois via cette action, à tout point narratif (victoire, objectif, dialogue…). */
 export const giveXpSchema = nommerChamps(z.strictObject({ type: z.literal('giveXp'), amount: z.number() }), { type: { label: "type"  }, amount: { label: "quantité" } });
 
-export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: z.string() }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
+export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: ref(RENCONTRES_DE_LA_SCENE) }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
 
 /** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
@@ -275,7 +290,7 @@ export const restSchema = nommerChamps(z.strictObject({
   type: z.literal('rest'),
   days: z.number().optional(),
   lodging: z.enum(['auberge', 'maison', 'camp']).optional(),
-  quality: z.enum(['normale', 'pietre']).optional(),
+  quality: qualiteDeReposSchema.optional(),
 }), { type: { label: "type"  }, days: { label: "jours" }, lodging: { label: "couchage"  }, quality: { label: "qualité"  } });
 
 /** LDB 18 l.338 */
@@ -393,8 +408,10 @@ export const moveEntitySchema = nommerChamps(z.strictObject({
   remove: z.boolean().optional(),
 }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, to: { label: "destination" }, remove: { label: "retirer" } });
 
+/** Le son joué, au registre audio : FORME DE SORTIE déclarée nue (patron `sortSchema`). */
+const sonJoueSchema: z.ZodType<string, string> = idDe('son');
 /** Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). */
-export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: z.string() }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
+export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: sonJoueSchema }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
 
 /** LDB 40 l.25-29, l.36, l.46 */
 export const giveSinSchema = nommerChamps(z.strictObject({
@@ -481,8 +498,8 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   distance: z.number(),
   escapeAt: z.number().optional(),
   skill: refOuSpec('skill'),
-  foes: listeCle(pursuitFoeSchema, 'id'),
-  encounter: z.string().optional(),
+  foes: z.array(livingRefSchema),
+  encounter: ref(RENCONTRES_DE_LA_SCENE).optional(),
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });
 
@@ -562,30 +579,28 @@ export const petitePriereSchema = z.strictObject({
 /** Effet PROGRAMMÉ (Lot 0, étendu #668) — l'une des DEUX variantes dont le corps reste manuscrit :
  *  elle porte un `Flow`, donc elle est MUTUELLEMENT récursive avec l'union `Effect`, et ce
  *  corps est l'ANNOTATION de `delayedEffectSchema`. */
-export type DelayedEffect = { type: 'delayedEffect'; flow: Flow; cancelFlag?: string } & ScheduleSpec;
+export type DelayedEffect = { type: 'delayedEffect'; flow: FlowDeScene; cancelFlag?: string } & ScheduleSpec;
 
 /** « Petites Prières » — seconde variante récursive (son `reward` est un `Flow`) ; ANNOTE
  *  `petitePriereSchema`. */
-export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow };
+export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: FlowDeScene };
 
-/** Flow de SCÈNE/campagne : la feuille `do` porte l'union `Effect` COMPLÈTE. Spécialise le `Flow<E>`
- *  générique de `engine/flowCore`. */
+/** Flow JOUABLE de la couche monde : feuille `Effect` complète, Test et coût du moteur (`FlowTest`, enjeu de
+ *  catalogue ; `$indice`). Un `FlowDeScene` en est une instance ; l'inverse n'est pas vrai. */
 export type Flow = CoreFlow<Effect>;
-
-/** Effet DÉCLENCHÉ de scène : son `flow` peut porter tout `Effect` (≠ `EffectOp`, défaut du noyau).
- *  Spécialise le `TriggeredEffect<E>` générique de `engine/flowCore`. */
-export type TriggeredEffect = CoreTriggeredEffect<Effect>;
+/** Le Test d'un document de scène : la sortie de `testDeSceneSchema`. */
+export type TestDeScene = z.output<typeof testDeSceneSchema>;
+/** Le Flow d'un document de scène : la sortie de `sceneFlowSchema`. */
+export type FlowDeScene = z.output<typeof sceneFlowSchema>;
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
-/** L'Effet `extendedTest` : sa décision (`difficulty`, `CHAMPS_DE_DECISION`) est celle d'un `FlowTest`, que
- *  `resoudreFlowTest` (`engine/decisionDuTest.ts`) lit seule. */
-export type TestEtendu = Omit<z.infer<typeof extendedTestSchema>, ChampDeDecision | 'difficulty'> & Pick<FlowTest, ChampDeDecision | 'difficulty'>;
+/** L'Effet `extendedTest`. */
+export type TestEtendu = z.infer<typeof extendedTestSchema>;
 
 /**
  * Union des variantes d'effet de scène + la feuille `ops`. Chaque variante est le
- * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites) et `TestEtendu`
- * (décision typée par `FlowTest`). `EffectOp` (`type:'ops'`) est le membre POSSÉDÉ par le moteur
+ * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites). `EffectOp` (`type:'ops'`) est le membre POSSÉDÉ par le moteur
  * (feuille par défaut du `Flow<E>` générique).
  */
 export type Effect =
@@ -721,9 +736,10 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   ]),
 );
 
-/** `Flow<Effect>` (`engine/flowCore.ts:559`) — l'arbre `arbreDeFlow` de feuille `do` l'union `Effect`
- *  de scène, au coût de `choice` littéral (le template `$indice` n'a pas de porteur en scène). */
-export const sceneFlowSchema: z.ZodType<Flow> = arbreDeFlow(effectSchema, conditionSchema, z.number());
+/** L'arbre `arbreDeFlow` (`grammaire/mecanique.ts`) de feuille l'union `Effect`, de Test `testDeSceneSchema`
+ *  et de coût de `choix` littéral (le template `$indice` n'a pas de porteur en scène) : sa sortie est
+ *  `FlowDeScene`. */
+export const sceneFlowSchema = arbreDeFlow(effectSchema, conditionSchema, z.number(), testDeSceneSchema);
 
 function nommerEffet<N extends z.ZodType>(noeud: N, label: string): N {
   return nommerNoeud(noeud, { label, nom: `effet ${label}` });

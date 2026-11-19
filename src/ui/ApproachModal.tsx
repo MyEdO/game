@@ -7,6 +7,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeApproach } from '../noyau/flowOutcomes';
+import { nomEnVue } from '../noyau/visionDuGroupe';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { FLOWS, ligneDuTestNomme } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
@@ -20,6 +21,7 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function ApproachModal() {
   const pa = useGame((s) => s.pendingApproach);
   const battle = useGame((s) => s.battle);
+  const nomDeLaSource = useGame((s) => (s.pendingApproach ? nomEnVue(s, s.pendingApproach.sourceId) : null));
   const roll = useGesteDeJet('jetLancer', 'approche');
   const reroll = useGesteDeJet('jetRelancer', 'approche');
   const darkPact = useGesteDeJet('jetPactiser', 'approche');
@@ -65,7 +67,7 @@ export function ApproachModal() {
       title={<><Icon id="drapeau/peur" size="sm" /> Affronter sa Peur</>}
       subtitle={
         <>
-          <strong>{c.label}</strong> ose approcher {pa.sourceName}
+          <strong>{c.label}</strong> ose approcher {nomDeLaSource}
         </>
       }
       rows={[actorRow]}

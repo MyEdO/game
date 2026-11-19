@@ -167,7 +167,7 @@ Il dispose de plusieurs espions qu'il envoie à l'École impériale d'ingénieri
 
 **Traits :** À distance (Mousquet à malepierre) +10, Arme +6, Armure 2, Infecté, Nerveux, Vision nocturne
 
-**Possessions :** armure complète de mailles, 3 globes de vent toxique, arme simple (épée), mousquet à malepierre et 12 balles
+**Possessions :** armure complète de mailles, 3 globes de vent toxique, arme simple (épée), mousquet à malepierre et 12 balles<span id="page-207-0" data-folio="205"></span>
 
 
-Ludovic Paulet - ludovicmad@wanadoo.fr
+

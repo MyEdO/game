@@ -259,9 +259,9 @@ affichée se pose par \`enumNomme\`** (\`src/data/schemas/grammaire/valeurs.ts\`
 \`{ option: 'Libellé FR' }\` SUR LE NŒUD — jamais un Record de libellés côté UI (ce serait une seconde
 vérité, et l'atelier ne saurait pas la lire en profondeur).
 
-**PROVENANCE** : une entrée porte \`source\` **ou** \`maison\` (la raison de l'arbitrage en clair),
-jamais ni l'un ni l'autre — le refus est posé par la fabrique elle-même, pas par une garde
-secondaire. Une entrée sans folio n'est pas interdite : elle doit DIRE pourquoi.
+**PROVENANCE** : quand la fabrique exige une provenance, l'entrée porte au moins une
+\`source\` ou une raison \`maison\`. Le def \`src/data/schemas/defs/reglesOptionnelles.ts\`
+exige exactement l'une des deux.
 
 ## 5. Chaque champ = Source ⊕ convention voisine
 

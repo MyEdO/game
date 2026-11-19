@@ -131,13 +131,19 @@
       "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre/00 - Index.md",
       "ref": "EDO 0 folio 1",
       "occurrence": 1,
-      "pdfChars": 1105
+      "pdfChars": 1068
     },
     {
       "fichier": "Source/Warhammer v4 - 2.0 Mort sur le Reik Compagnon/00 - Index.md",
       "ref": "MSRC 0 folio 1",
       "occurrence": 1,
       "pdfChars": 1083
+    },
+    {
+      "fichier": "Source/Warhammer v4 - 2.0 Mort sur le Reik/00 - Index.md",
+      "ref": "MSR 0 folio 1",
+      "occurrence": 1,
+      "pdfChars": 932
     }
   ]
 }

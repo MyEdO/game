@@ -16,6 +16,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { estMonoTable } from './lib/monoTable.mjs';
+import { estUnDeDeTirage } from './lib/deDeTirage.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIER = 'peripeties.json';
@@ -29,7 +30,7 @@ const arret = (raison) => {
   process.exit(1);
 };
 if (brut !== serializeDataset(doc)) arret('forme non canonique');
-if (!estMonoTable(doc) || doc.type !== 'peripeties' || typeof doc.die !== 'string') arret('ni le document mono-table `peripeties` ni son `die`');
+if (!estMonoTable(doc) || doc.type !== 'peripeties' || !estUnDeDeTirage(doc.die)) arret('ni le document mono-table `peripeties` ni son `die`');
 if (doc.tirageQuotidien !== undefined) {
   console.log(`migration 1667 (d) : ${FICHIER} porte déjà son \`tirageQuotidien\`, rien à écrire.`);
   process.exit(0);

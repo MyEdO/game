@@ -1,16 +1,22 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, son lacet à un azimut, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
-## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
+## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses
+## pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
-## appui sur ce qui est porté et sa place à côté des autres objets du même point, le coin d'une bulle au-dessus
-## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
-## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
-## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
+## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
+## d'un point, les deux faces d'un d100, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du
+## tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de
+## bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le
+## plateau et
+## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
+## sa case, le coin de ce qui se pose sous un lieu, la
 ## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
 ## morceau ou d'une nappe) et à celui de la vision, la part d'un fondu de la vision après un pas de temps, l'état fondu
-## d'une case et le plus grand de deux, la teinte d'instance d'un état, et l'abscisse
-## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
+## d'une case et le plus grand de deux, la teinte d'instance d'un état, le relief d'un matériau à son facteur, et l'abscisse
+## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend,
+## l'échelle du tracé d'une icône et l'onglet à un pas d'un autre. Seul
 ## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
 ## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
@@ -30,6 +36,9 @@ const ZOOM_MAXIMAL := 3.0
 const TOLERANCE_D_IMAGE := 0.001
 ## Le jeu, en mètres, entre les boîtes de deux objets rangés côte à côte au même point (`decalage_a_cote`).
 const JEU_ENTRE_RANGES := 0.02
+## Le tour, autour de l'axe de son os, au-delà duquel un objet rangé à côté des précédents d'un point passerait de
+## l'autre côté du corps : il s'empile alors sur eux (`tour_dans_la_place`, #4254).
+const PLACE_DU_POINT := QUART_DE_TOUR
 ## Le jeu, en mètres, entre un objet rangé et ce qui est porté dessous (`recul_d_appui`, `pivot_sur_la_case`).
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
@@ -71,6 +80,14 @@ const LACETS_DES_CAPS := {N = 0.0, NO = PI / 4.0, O = PI / 2.0, SO = 3.0 * PI / 
 const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord = PI / 2.0}
 ## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
 const ECART_DE_BULLE := 12.0
+## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
+const ECART_DU_MEUBLE := 8.0
+## La largeur la plus grande d'un bandeau de jet, en pixels.
+const LARGEUR_DU_BANDEAU := 1091.0
+## La largeur la plus étroite de la chronique posée sur la scène en combat, sa pastille comprise, en pixels.
+const LARGEUR_DE_LA_CHRONIQUE := 310.0
+## La hauteur au-delà de laquelle la liste ouverte d'une pastille défile, en pixels.
+const HAUTEUR_DE_LISTE := 320.0
 ## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
 const LARGEUR_DE_BULLE := 420.0
 ## La hauteur, au-dessus du sol de sa case, du nom d'une entité de la scène.
@@ -87,6 +104,10 @@ const ECART_DES_MARQUES := 0.3
 const HAUTEUR_DU_VISUEL_DE_MARQUE := 0.9
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
+## La marge (cases) dont le sol du hors-carte déborde le plateau de chaque côté, au-delà de toute brume.
+const MARGE_DU_HORS_CARTE := 400.0
+## La profondeur (unités de plateau) du sol du hors-carte sous le zéro de la scène, que le sol d'une case recouvre.
+const ENFOUISSEMENT_DU_HORS_CARTE := 0.02
 ## Les pixels de la texture d'un dessin par pixel d'écran : l'écran étire l'interface (`window/stretch`).
 const FINESSE_DE_DESSIN := 2.0
 ## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
@@ -116,6 +137,12 @@ static func cadrage_en_buste(tete: float) -> Vector2:
 ## `LARGEUR_DE_BULLE`.
 static func largeur_de_bulle(largeur: float) -> float:
 	return minf(LARGEUR_DE_BULLE, ceilf(largeur))
+
+
+## Le rang du premier des `nombre` éléments qui se montre quand seuls les `derniers` se montrent (`0` : tous,
+## `Zone.derniers`).
+static func premier_des_derniers(nombre: int, derniers: int) -> float:
+	return maxf(0.0, nombre - derniers) if derniers else 0.0
 
 
 ## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).
@@ -154,6 +181,14 @@ static func longueur_d_arete(sens: Vector2) -> float:
 ## posée sur une arête qui court selon `sens`, haute de `hauteur` mètres, sur un plateau de `metres_par_case`.
 static func echelle_de_piece(sens: Vector2, hauteur: float, metres_par_case: float) -> Vector3:
 	return Vector3(longueur_d_arete(sens), hauteur_au_plateau(hauteur, metres_par_case), echelle_metrique(metres_par_case))
+
+
+## L'échelle d'une pièce d'un modèle d'arête long de `long` mètres et haut de `haut` mètres posée sur une arête qui
+## court selon `sens`, haute de `hauteur` mètres, sur un plateau de `par_case` mètres par case (#4471) : en longueur
+## celle qui le porte à la longueur de l'arête (`longueur_d_arete`), en hauteur celle qui porte son sommet à celle de
+## l'arête, et métrique en épaisseur.
+static func echelle_d_arete_servie(sens: Vector2, hauteur: float, long: float, haut: float, par_case: float) -> Vector3:
+	return Vector3(longueur_d_arete(sens) / long, hauteur_au_plateau(hauteur, par_case) / haut, echelle_metrique(par_case))
 
 
 ## L'échelle qui porte un modèle mesuré en mètres sur un plateau de `metres_par_case` mètres par case.
@@ -269,10 +304,22 @@ static func texel_de_nappe(case: Vector2i, couche: int, rangees_par_plan: int) -
 	return texel_du_masque(case, 2 * couche * rangees_par_plan)
 
 
+## La première rangée, dans le masque du retrait (`RetraitDuMonde`, deux plans de `rangees_par_plan` rangées par
+## couche), du plan `pose` de la couche d'indice `couche`, celui qui suit son plan `sol` (`texel_de_nappe`).
+static func rangee_de_pose(couche: int, rangees_par_plan: int) -> float:
+	return (2 * couche + 1) * rangees_par_plan
+
+
 ## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan de `rangees_par_plan` rangées par couche), de la case
 ## `case` de la couche d'indice `couche`.
 static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
 	return Vector2i(case.x, case.y + couche * rangees_par_plan)
+
+
+## La taille d'une image rangée comme le masque de la vision (`texel_de_vision`) : `largeur` cases de large, `couches`
+## plans de `rangees_par_plan` rangées.
+static func taille_du_masque(largeur: int, couches: int, rangees_par_plan: int) -> Vector2i:
+	return Vector2i(largeur, couches * rangees_par_plan)
 
 
 ## La part, de 0 à 1, d'un fondu de `duree` secondes parvenu à la part `part`, `secondes` secondes plus tard.
@@ -291,13 +338,20 @@ static func plus_grand_etat(etat: float, autre: float) -> float:
 	return maxf(etat, autre)
 
 
-## La teinte, en sRGB, de l'instance d'une pièce à l'état `etat` (de 0 à 1) sous les teintes `teintes` (inconnue,
-## explorée, vue) : sa part de lumière (`art/monde.gdshader`, `part_de_lumiere`) portée en sRGB (`en_srgb`).
-static func teinte_d_instance(etat: float, teintes: Vector3) -> float:
+## La part de lumière linéaire, de 0 à 1, de ce qui est à l'état `etat` (de 0 à 1) sous les teintes `teintes`
+## (inconnue, explorée, vue) : la jumelle de `part_de_lumiere` de `art/vision.gdshaderinc`.
+static func part_de_lumiere(etat: float, teintes: Vector3) -> float:
 	var exploree := 128.0 / 255.0
-	var sous := lerpf(teintes.x, teintes.y, clampf(etat / exploree, 0.0, 1.0))
-	var dessus := lerpf(teintes.y, teintes.z, clampf((etat - exploree) / (1.0 - exploree), 0.0, 1.0))
-	return Color(sous, sous, sous).linear_to_srgb().r if etat < exploree else Color(dessus, dessus, dessus).linear_to_srgb().r
+	if etat < exploree:
+		return lerpf(teintes.x, teintes.y, clampf(etat / exploree, 0.0, 1.0))
+	return lerpf(teintes.y, teintes.z, clampf((etat - exploree) / (1.0 - exploree), 0.0, 1.0))
+
+
+## La teinte, en sRGB, de l'instance d'une pièce à l'état `etat` (de 0 à 1) sous les teintes `teintes` (inconnue,
+## explorée, vue) : sa part de lumière (`part_de_lumiere`) portée en sRGB.
+static func teinte_d_instance(etat: float, teintes: Vector3) -> float:
+	var part := part_de_lumiere(etat, teintes)
+	return Color(part, part, part).linear_to_srgb().r
 
 
 ## L'abscisse du point `point` sur le rayon de sens `-rayon.z` (unitaire), comptée depuis l'abscisse `depuis`.
@@ -347,6 +401,12 @@ static func centre_de_case(case: Vector2i, sol: float) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, sol, case.y + DEMI_CASE)
 
 
+## Le point du sol d'une case que l'écran publie, de son centre `centre` : poussé à l'est assez pour quitter l'arête
+## des deux triangles du sol, trop peu pour changer ce que le point désigne (`Monde.points`).
+static func point_publie(centre: Vector3) -> Vector3:
+	return centre + Vector3(DEMI_CASE / 32.0, 0.0, 0.0)
+
+
 ## Le point du plateau au-dessus du point (`x`, `y`) de la carte, en cases continues (une case centrée sur l'entier), à
 ## `hauteur`.
 static func point_de_la_carte(x: float, y: float, hauteur: float) -> Vector3:
@@ -356,6 +416,12 @@ static func point_de_la_carte(x: float, y: float, hauteur: float) -> Vector3:
 ## Le sens où éclaire une lumière directionnelle qui vient de `direction` (vers la source).
 static func sens_d_eclairage(direction: Vector3) -> Vector3:
 	return -direction
+
+
+## L'énergie posée sur le soleil d'énergie `energie` dont le rendu en cours garde la part `part`
+## (`Lumiere.part_du_soleil`).
+static func energie_du_soleil(energie: float, part: float) -> float:
+	return energie * part
 
 
 ## La profondeur, depuis la caméra, de ce qui est à `cases` au-delà du point qu'elle vise à `distance`.
@@ -370,7 +436,24 @@ static func energie_vacillante(energie: float, amplitude: float, hz: float, seco
 
 ## Le centre du sol d'un plateau de `taille` cases.
 static func centre_du_plateau(taille: Vector2i) -> Vector3:
-	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
+	return centre_de_la_zone(0, 0, taille.x, taille.y)
+
+
+## Le centre du sol du rectangle de `w` × `h` cases depuis la case (`x`, `y`) (la zone jouable, `plateau.zoneJouable`).
+static func centre_de_la_zone(x: int, y: int, w: int, h: int) -> Vector3:
+	return Vector3(x + w / 2.0, 0.0, y + h / 2.0)
+
+
+## Le centre du sol du hors-carte (`Lumiere`) d'un plateau de `taille` cases : sous le centre du plateau, enfoui de
+## `ENFOUISSEMENT_DU_HORS_CARTE`.
+static func centre_du_hors_carte(taille: Vector2i) -> Vector3:
+	return centre_du_plateau(taille) + Vector3.DOWN * ENFOUISSEMENT_DU_HORS_CARTE
+
+
+## L'étirement du plan d'une unité de côté du sol du hors-carte d'un plateau de `taille` cases, qui le déborde de
+## `MARGE_DU_HORS_CARTE` cases de chaque côté.
+static func etendue_du_hors_carte(taille: Vector2i) -> Vector3:
+	return Vector3(taille.x + 2.0 * MARGE_DU_HORS_CARTE, 1.0, taille.y + 2.0 * MARGE_DU_HORS_CARTE)
 
 
 ## Le point de la carte, en cases continues (une case centrée sur l'entier), sous le lieu `lieu` du plateau : celui que
@@ -456,6 +539,28 @@ static func echelle_d_image(largeur_voulue: float, largeur: int) -> float:
 ## pixels d'écran, sa texture `FINESSE_DE_DESSIN` fois plus fine que l'écran.
 static func echelle_de_dessin(largeur: float, hauteur: float, largeur_du_cadre: float, hauteur_du_cadre: float) -> float:
 	return FINESSE_DE_DESSIN * maxf(largeur / largeur_du_cadre, hauteur / hauteur_du_cadre)
+
+
+## L'échelle du tracé d'une icône de `taille` unités de côté, à l'échelle `ecran` de la fenêtre, au cadre de sa
+## famille de `largeur_du_cadre` sur `hauteur_du_cadre` unités.
+static func echelle_d_icone(taille: float, ecran: Vector2, largeur_du_cadre: float, hauteur_du_cadre: float) -> float:
+	return echelle_de_dessin(taille * ecran.x, taille * ecran.y, largeur_du_cadre, hauteur_du_cadre)
+
+
+## L'échelle du tracé carré de `cote_du_trace` pixels d'une icône de `taille` unités de côté.
+static func echelle_du_trace(cote_du_trace: float, taille: float) -> float:
+	return cote_du_trace / taille
+
+
+## Le vecteur `v` à l'échelle `echelle`.
+static func a_l_echelle(v: Vector2, echelle: float) -> Vector2:
+	return v * echelle
+
+
+## Le rang de l'onglet à `pas` de l'onglet `rang` parmi `nombre`, -1 hors des onglets.
+static func onglet_a_pas(rang: int, pas: int, nombre: int) -> float:
+	var vise := rang + pas
+	return vise if vise >= 0 and vise < nombre else -1
 
 
 ## Le pas d'image d'un clip de `duree` secondes, sa piste suivante de `cles` clés réparties sur le clip retenue si son pas
@@ -577,6 +682,12 @@ static func echelle_composee(echelle_du_squelette: float, echelle: float) -> flo
 	return echelle_du_squelette * echelle
 
 
+## L'intensité `relief` de la carte de normales d'un matériau (`normal_scale`) portée au facteur `facteur` de sa surface
+## (`reliefs` de la composition, #4002).
+static func relief_au_facteur(relief: float, facteur: float) -> float:
+	return relief * facteur
+
+
 ## L'échelle de l'orbite qui cadre un corps de sommet `sommet` comme elle cadre, à l'échelle 1, le corps neutre de sommet
 ## `sommet_neutre`.
 static func echelle_de_cadrage(sommet: float, sommet_neutre: float) -> float:
@@ -690,6 +801,13 @@ static func tour_a_cote(emplacement: Basis, point: Vector3, tour: float, sens: f
 	return tour + debut_precedent - jeu - fin
 
 
+## Le tour `tour` d'un objet rangé à côté des précédents d'un point, gardé s'il reste dans la place du point
+## (`PLACE_DU_POINT`), nul sinon : l'objet s'empile alors sur eux. Un rouleau large, à côté d'un bâton au dos, passait
+## devant la poitrine, une faux à côté d'un bâton à l'épaule se couchait en travers des épaules (#4254).
+static func tour_dans_la_place(tour: float) -> float:
+	return tour if absf(tour) <= PLACE_DU_POINT else 0.0
+
+
 ## L'azimut du point `point` autour de l'axe Y de son os (atan2 de x sur z), compté depuis l'azimut `depuis`, dans
 ## ]-π, π].
 static func azimut(point: Vector3, depuis: float) -> float:
@@ -751,9 +869,78 @@ static func pivot_sur_la_case(angle: float, case: Vector2i, haut: float, dessus:
 	return maxf(angle, atan2(manque, y)) if y > haut + APPUI_DE_RANGEMENT and y > 0.0 and manque > 0.0 else angle
 
 
+## Les faces des deux dés à dix faces qui donnent `resultat` au d100 : celle des dizaines (`x` : 0 à 90) et celle des
+## unités (`y` : 0 à 9) ; 100 se lit 00 et 0.
+static func faces_du_d100(resultat: int) -> Vector2i:
+	return Vector2i(resultat % 100 - resultat % 10, resultat % 10)
+
+
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
 static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> Vector2:
 	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)
+
+
+## Le coin d'une bulle de `largeur` sur `hauteur`, alignée à droite du point `point` de l'écran, au-dessus de lui.
+static func bulle_au_dessus_a_droite(point: Vector2, largeur: float, hauteur: float) -> Vector2:
+	return Vector2(point.x - largeur, point.y - hauteur - ECART_DE_BULLE)
+
+
+## Le décalage vertical du bas d'une fenêtre posée en bas de la scène, au-dessus d'un meuble de `hauteur` (0 : aucun
+## meuble), à `ECART_DU_MEUBLE` de lui et du bas de la scène.
+static func au_dessus_du_meuble(hauteur: float) -> float:
+	return -ECART_DU_MEUBLE - (hauteur + ECART_DU_MEUBLE if hauteur > 0.0 else 0.0)
+
+
+## Le décalage horizontal du poste de l'actif, de `largeur`, posé au centre d'une scène de `largeur_de_scene` qui part de
+## `origine` (abscisses de l'écran) : nul tant que ce centre le tient entre `gauche`, le bord droit de l'ordre du tour, et `droite`, le bord gauche de la fin du
+## tour, à `ECART_DU_MEUBLE` de chacun ; sinon, ce qui le centre dans cette place.
+static func decalage_du_poste(origine: float, largeur_de_scene: float, largeur: float, gauche: float, droite: float) -> float:
+	var debut := gauche + ECART_DU_MEUBLE
+	var fin := droite - ECART_DU_MEUBLE
+	var centre := origine + largeur_de_scene / 2.0
+	if centre - largeur / 2.0 >= debut and centre + largeur / 2.0 <= fin:
+		return 0.0
+	return (debut + fin) / 2.0 - centre
+
+
+## La largeur d'un bandeau de jet centré sur une scène qui commence à `origine` (abscisses de l'écran) et fait
+## `largeur_de_scene` de large, sans couvrir `gauche`, le bord droit de l'ordre du tour, ni `droite`, le bord gauche de la
+## fin du tour ou de la scène, à `ECART_DU_MEUBLE` de chacun : au plus `LARGEUR_DU_BANDEAU`. Centré, il garde sa place
+## quel que soit le jet.
+static func largeur_du_bandeau(origine: float, largeur_de_scene: float, gauche: float, droite: float) -> float:
+	var centre := origine + largeur_de_scene / 2.0
+	var demi := minf(centre - gauche, droite - centre) - ECART_DU_MEUBLE
+	return minf(LARGEUR_DU_BANDEAU, 2.0 * demi)
+
+
+## La place libre, en pixels, entre le bord droit d'un poste de `largeur` décalé de `decalage` du centre d'une scène de
+## `largeur_de_scene` et le bord droit de la scène, à `ECART_DU_MEUBLE` de l'un et de l'autre.
+static func libre_a_droite_du_poste(largeur_de_scene: float, largeur: float, decalage: float) -> float:
+	return largeur_de_scene / 2.0 - largeur / 2.0 - decalage - 2.0 * ECART_DU_MEUBLE
+
+
+## Le bord gauche, compté du bord droit de la scène, de la chronique ancrée à ce bord à `ECART_DU_MEUBLE` : la place
+## `libre` à droite du poste de l'actif, au moins `LARGEUR_DE_LA_CHRONIQUE`.
+static func gauche_de_la_chronique(libre: float) -> float:
+	return -ECART_DU_MEUBLE - maxf(libre, LARGEUR_DE_LA_CHRONIQUE)
+
+
+## Le décalage vertical du bas de la chronique, à `ECART_DU_MEUBLE` au-dessus de la fin du tour, de `hauteur_du_tour`,
+## posée au bas de la scène à `ECART_DU_MEUBLE` ; au-dessus du poste de l'actif, de `hauteur_du_poste` et posé de même,
+## quand la place `libre` à sa droite est plus étroite que `LARGEUR_DE_LA_CHRONIQUE`.
+static func bas_de_la_chronique(libre: float, hauteur_du_poste: float, hauteur_du_tour: float) -> float:
+	return -2.0 * ECART_DU_MEUBLE - (hauteur_du_tour if libre >= LARGEUR_DE_LA_CHRONIQUE else maxf(hauteur_du_poste, hauteur_du_tour))
+
+
+## Le coin haut-gauche d'une liste de `taille` ouverte au-dessus d'un socle dont le haut est à `haut`, à
+## `ECART_DU_MEUBLE` de lui, son bord gauche à `gauche`, tenue dans un écran de `largeur`.
+static func coin_de_la_liste(gauche: float, haut: float, largeur: float, taille: Vector2) -> Vector2:
+	return Vector2(clampf(gauche, 0.0, largeur - taille.x), maxf(haut - ECART_DU_MEUBLE - taille.y, 0.0))
+
+
+## La hauteur du défilement d'une liste ouverte dont le contenu mesure `contenu`, bornée à `HAUTEUR_DE_LISTE`.
+static func hauteur_de_liste(contenu: float) -> float:
+	return minf(contenu, HAUTEUR_DE_LISTE)
 
 
 ## L'échelle de projection d'une texture du sol dans le repère du volume, en mètres : un motif tous les
@@ -762,10 +949,29 @@ static func echelle_de_motif() -> Vector3:
 	return Vector3.ONE / METRES_PAR_MOTIF
 
 
+## L'échelle de projection d'une texture de matière dans le repère de la pièce d'un modèle d'arête mesuré en mètres,
+## étirée de `etirement` sur un plateau de `metres_par_case` (`echelle_d_arete_servie`, #4471) : un motif tous les
+## `METRES_PAR_MOTIF` de la pièce posée, sur chaque axe, quel que soit son étirement.
+static func echelle_de_motif_etire(etirement: Vector3, metres_par_case: float) -> Vector3:
+	return echelle_de_motif() * etirement * metres_par_case
+
+
 ## Le point d'un plan de `taille` pixels où se pose un point placé en (`x`, `y`) de son cadre (0..1 sur chaque axe),
 ## la marge du plan autour.
 static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
 	return Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) + Vector2(x, y) * (taille - Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) * 2.0)
+
+
+## Le point du cadre d'un plan de `largeur` sur `hauteur` pixels sous son point `ou`, l'inverse de `point_du_plan`, en
+## `unites` par côté du cadre.
+static func point_sous_le_plan(largeur: float, hauteur: float, ou: Vector2, unites: float) -> Vector2:
+	var marge := Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN)
+	return (ou - marge) / (Vector2(largeur, hauteur) - marge * 2.0) * unites
+
+
+## La case entière qui contient le point `f`.
+static func case_du_point(f: Vector2) -> Vector2i:
+	return Vector2i(floori(f.x), floori(f.y))
 
 
 ## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, de rayon `rayon`, gardé dans

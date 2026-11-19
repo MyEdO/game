@@ -1,35 +1,21 @@
 import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `etats.json` — dérivé de l'inventaire COMPLET des clés (script node, n=20/20) et de
- * `StatusData`/`EtatData` (`src/data/index.ts`). `effects` (`TriggeredEffect[]`) et
+ * Schéma de `etats.json`, d'où dérive `EtatData` (`src/data/index.ts`). `effects` (`TriggeredEffect[]`) et
  * son `Flow` récursif : MÊME algèbre que talents.json (`engine/flowCore.ts`), PROMUE dans
  * `grammaire/mecanique.ts` (`flowSchema`/`conditionSchema`/`triggeredEffectSchema`).
  * `icon` et `maison` sont des clés d'ENVELOPPE, posées par la fabrique.
  */
 import { z } from 'zod';
-import { difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
+import { couleurHexSchema, difficultySchema, gatingDeStatutSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { conditionSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 import { ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
-import { couleurHexSchema } from '../grammaire/valeurs';
 import { visuelDeLumiereSchema } from './lightTones';
 
 export const file = 'etats.json';
 export const famille = 'entite';
 
-/** `StatusData.gating` (`src/data/index.ts`) — restriction Action/Mouvement/défense. */
-const gatingSchema = nommerChamps(z.strictObject({
-  action: z.literal('none').optional(),
-  movement: z.enum(['none', 'half', 'crawl']).optional(),
-  cannotDefend: z.literal(true).optional(),
-}), {
-  action: { label: 'action' },
-  movement: { label: 'mouvement' },
-  cannotDefend: { label: 'défense impossible' },
-});
-
-/** `EtatData.recover` (`src/data/index.ts`). */
 const recoverSchema = nommerChamps(z.strictObject({
   ...jetSchema.shape,
   opposedBy: z.literal('source').optional(),
@@ -64,7 +50,7 @@ const doc = document(
   {
     passive: passifsDe().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
-    gating: gatingSchema.optional(),
+    gating: gatingDeStatutSchema.optional(),
     severity: z.number().optional(),
     aiThreat: z.number().optional(),
     perStack: z.boolean().optional(),

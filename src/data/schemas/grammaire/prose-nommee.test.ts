@@ -8,7 +8,8 @@ import { indiceStadeSchema, documentNarratifSchema } from '../defs-scenes/narrat
 import { designerHerosSchema, ouvertureSchema, sousTitreOuvertureSchema, sousTitreClotureSchema } from './campagne';
 import { massBattleSpecSchema, setObjectiveSchema, grantFavorSchema, journalSchema, sceneFlowSchema } from '../defs-scenes/effets';
 import { dialogueNodeSchema, messageIntroductionSchema } from '../defs-scenes/scene';
-import { mapPlaceSchema, refusRouteSchema } from '../defs-scenes/worldmap';
+import { mapPlaceSchema } from '../defs-scenes/worldmap';
+import { refusDAccesSchema } from './acces';
 import { authoredStakeSchema, OP_DEFS, gameOpSchema, OPS_NON_TYPEES } from './mecanique';
 import { coDescendre, descendre, enfantsDe, declarationDEnfants, defDe } from './descente';
 import { fautesProseFinale, classificationsProseLocale } from '../../../../scripts/guards/lib/proseNommee.mjs';
@@ -26,7 +27,7 @@ const SITES: Record<keyof typeof PROSES_NOMMEES, { schema: z.ZodType; nu: Record
   'narratif.documents[].prose': { schema: documentNarratifSchema, nu: { id: 'document', titre: 'Titre', prose: 'Texte.' } },
   'massBattle.terrain': { schema: massBattleSpecSchema, nu: { puissanceAlliee: 50, puissanceEnnemie: 50, terrain: 'Texte.' } },
   'scenes[].startMessage.texte': { schema: messageIntroductionSchema, nu: { texte: 'Texte.' } },
-  'worldMap.routes[].refus.texte': { schema: refusRouteSchema, nu: { texte: 'Texte.' } },
+  'acces.refus.texte': { schema: refusDAccesSchema, nu: { texte: 'Texte.' } },
   'worldMap.places[].prose': { schema: mapPlaceSchema, nu: { id: 'lieu', label: 'Lieu', pos: { x: 10, y: 10 }, scene: { id: 's1' }, prose: 'Texte.' } },
   'narratif.ouverture.sousTitre.texte': { schema: sousTitreOuvertureSchema, nu: { texte: 'Texte.' } },
   'narratif.cloture.sousTitre.texte': { schema: sousTitreClotureSchema, nu: { texte: 'Texte.' } },
@@ -144,7 +145,7 @@ describe('prose nommée — déclaration et provenance locales', () => {
     });
     expect(trouves).toEqual(['Journal maison.', 'Narration maison.']);
   });
-  it.each(['scenes[].startMessage.texte', 'worldMap.routes[].refus.texte', 'narratif.ouverture.sousTitre.texte', 'narratif.cloture.sousTitre.texte'] as const)('%s refuse l’ancienne chaîne', chemin => {
+  it.each(['scenes[].startMessage.texte', 'acces.refus.texte', 'narratif.ouverture.sousTitre.texte', 'narratif.cloture.sousTitre.texte'] as const)('%s refuse l’ancienne chaîne', chemin => {
     expect(SITES[chemin].schema.safeParse('Texte.').success).toBe(false);
     expect(SITES[chemin].schema.safeParse({ texte: '   ' }).success).toBe(false);
   });

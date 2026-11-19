@@ -155,6 +155,9 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
               <span className="rm-note" data-ton="discret">{vue.sansLaCorde.note}</span>
             </Row>
           )}
+          {vue.sansEquipe && (
+            <span className="rm-note" data-ton="etat"><Icon id="interface/attention" size="sm" /> {vue.sansEquipe}</span>
+          )}
           {vue.retenirSesCoups && (
             <Row gap="md" align="center">
               {bascule(vue.retenirSesCoups, 'melee/retenir-ses-coups', setWithhold)}

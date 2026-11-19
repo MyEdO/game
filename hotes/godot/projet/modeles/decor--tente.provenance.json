@@ -1,0 +1,13 @@
+{
+  "model": "decor--tente.glb",
+  "model_sha256": "7da2fcd806abf63e3d054f9e64c19b5518ce7196436d81e31fe4454df02e7fcc",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

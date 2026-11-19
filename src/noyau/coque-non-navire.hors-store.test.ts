@@ -33,8 +33,7 @@ describe('coque routière (EDOC 07 l.334) : ni Critique, ni collision, ni IA de 
     poser([dil]);
     const avant = { conditions: [...dil.conditions], criticalWounds: dil.criticalWounds };
     const log: string[] = [];
-    const mort = applyCriticalToTarget(dil, 'corps', 0, log, banc.setState, { get: banc.getState });
-    expect(mort).toBe(false);
+    expect(applyCriticalToTarget(dil, 'corps', 0, log, banc.setState, { get: banc.getState })).toBe('aucune');
     expect(dil.criticalWounds).toBe(avant.criticalWounds);
     expect(dil.conditions).toEqual(avant.conditions);
     expect(log).toEqual([t('cf.coqueSansCritique', { name: dil.label })]);

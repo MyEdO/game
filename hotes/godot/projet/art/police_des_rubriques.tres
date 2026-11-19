@@ -1,11 +1,11 @@
 [gd_resource type="FontVariation" load_steps=5 format=3]
 
-[ext_resource type="FontFile" path="res://polices/OpenSans-SemiBold.ttf" id="1_texte"]
+[ext_resource type="FontFile" path="res://polices/RubriquesVieuxMonde-Regular.ttf" id="1_rubriques"]
 [ext_resource type="FontFile" path="res://polices/NotoSans-SemiBold.ttf" id="2_lettres"]
 [ext_resource type="FontFile" path="res://polices/NotoSansMath-Regular.ttf" id="3_maths"]
 [ext_resource type="FontFile" path="res://polices/NotoSansSymbols2-Regular.ttf" id="4_symboles"]
 
 [resource]
-base_font = ExtResource("1_texte")
+base_font = ExtResource("1_rubriques")
 fallbacks = Array[Font]([ExtResource("2_lettres"), ExtResource("3_maths"), ExtResource("4_symboles")])
 spacing_glyph = 1

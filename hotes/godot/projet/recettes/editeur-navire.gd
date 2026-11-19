@@ -4,11 +4,12 @@ extends SceneTree
 ## (`scripts/editeur.gd`) ouvert sur un pont figé (`PontFige`, sur l'éditeur du navire figé par la sonde,
 ## `hotes/godot/recettes/editeur.ts`), qui sert le listage et les GLB du projet et répond à chaque entrée de `editer`
 ## et de `morceaux` que la sonde a figée. L'outil Navire pressé offre la caraque, choisie en tête de sa liste ; le cap à l'est pressé,
-## l'appui sur le monde la pose : son modèle se monte (`MontageDesNavires`), son origine au point de la carte sous son
+## l'appui sur le monde la pose : son modèle se monte (`MontageDesModeles`), son origine au point de la carte sous son
 ## centre servi, sa proue tournée vers l'est. Glissée à l'outil de sélection, la caraque se repose sous son centre
 ## déplacé, sans se recharger. Le pont du dessus choisi, sa plus haute couche, le monde touche le sol de chaque case de
-## ce pont (`Monde.sol_sous`) sur cette couche : ses ponts se visent. Aucune entrée n'est hors du figé, aucun refus ni
-## aucune panne ne se dit.
+## ce pont (`Monde.sol_sous`) sur cette couche : ses ponts se visent. L'outil Zone pris à sa sorte « Zone jouable », le
+## rectangle tiré sur ce pont pose le contour de la zone jouable en plaques (`Monde.ITEM_ATTEIGNABLE`) sur chaque case
+## du bord que la surcouche sert (#4392). Aucune entrée n'est hors du figé, aucun refus ni aucune panne ne se dit.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/editeur-navire.json"
@@ -60,7 +61,7 @@ func _derouler(lu: Dictionary, editeur: Node) -> void:
 	var pointes: Array = lu.pointes
 	_pointer(editeur, pointes[0])
 	var id: String = lu.navire.id
-	var navires: MontageDesNavires = editeur.get_node("Navires")
+	var navires: MontageDesModeles = editeur.get_node("Modeles")
 	if not await _attendre(func() -> bool: return id in navires.poses(), "le modèle de %s posé" % id):
 		return
 	var modele: Node3D = navires.get("_montes")[id].scene
@@ -87,6 +88,23 @@ func _derouler(lu: Dictionary, editeur: Node) -> void:
 		var case := Vector3i(int(c.x), int(c.y), int(c.z))
 		var touche: Variant = monde.sol_sous(MiseEnPage.centre_de_case(Vector2i(case.x, case.y), AU_DESSUS))
 		_verifier(touche != null and touche.case == case, "le pont de %s en %s : touché %s" % [id, case, null if touche == null else touche.case])
+	await _tracer_la_zone_jouable(lu.zone, editeur, monde)
+
+
+## La zone jouable figée `zone` tracée à l'outil Zone de l'éditeur `editeur` : chaque case de son contour servi porte
+## la plaque `Monde.ITEM_ATTEIGNABLE` sur le monde `monde`.
+func _tracer_la_zone_jouable(zone: Dictionary, editeur: Node, monde: Monde) -> void:
+	_presser(editeur, "outil/zone")
+	_presser(editeur, "zone/jouable")
+	for pointe in zone.pointes:
+		_pointer(editeur, pointe)
+	var attendue := monde.surbrillances.get_item_mesh(Monde.ITEM_ATTEIGNABLE)
+	var contour: Array = zone.contour.map(func(c: Dictionary) -> Vector3i: return Vector3i(int(c.x), int(c.y), int(c.z)))
+	var bordees := func() -> Array:
+		return monde.get_node("Surbrillance").get_children().filter(func(plaque: MeshInstance3D) -> bool: return plaque.mesh == attendue).map(func(plaque: MeshInstance3D) -> Vector3i: return plaque.get_meta("case"))
+	if not await _attendre(func() -> bool: return contour.all(func(c: Vector3i) -> bool: return c in bordees.call()), "le contour de la zone jouable en plaques"):
+		return
+	print("[editeur-navire] zone jouable : %d cases de contour en plaques" % contour.size())
 
 
 ## Le geste du pointeur figé `pointe` joué par l'éditeur, sa case en entiers comme le monde la touche.

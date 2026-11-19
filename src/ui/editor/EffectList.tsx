@@ -13,11 +13,24 @@ import { tableTotale } from '../../lib/tableTotale';
 import { EncounterDef, Dialogue, Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { Icon } from '../Icon';
-import { EMPTY_FLOW } from '../../engine/flowCore';
+import { EMPTY_FLOW, type EffectOp } from '../../engine/flowCore';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, genreDeCible, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
-import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
+import {
+  spells,
+  trappingDesObjetsPuisDuCatalogue,
+  refLabel,
+  WATER_EXPOSURE,
+  vehicles,
+  findVehicleById,
+  crewRoles,
+  memoParVersion,
+  creatureSemee,
+  vehiculeSeme,
+  libelleOuAbsence,
+  type TrappingData,
+} from '../../data';
 import { useId } from 'react';
 import { ObjetDonneField } from './ObjetDonneField';
 import { type Effect } from '../../data/schemas/defs-scenes/effets';
@@ -32,14 +45,20 @@ import { ScheduleSpecFields } from './ScheduleSpecFields';
 import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/refField/RefField';
 import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../../noyau/codex/libellesNarratifs';
 import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
-import { chaosAlignSchema, NATURES_D_INFLUENCE, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
+import {
+  charKeySchema,
+  chaosAlignSchema,
+  NATURES_D_INFLUENCE,
+  qualiteDeReposSchema,
+  type NatureDInfluence,
+  type QualiteDeRepos,
+} from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { POWER_ESTIMATE, clampMight, type MassBattleSpec } from '../../engine/massBattle';
@@ -136,7 +155,7 @@ export interface Ctx {
   cibles: TableDeCibles;
   /** Narratif du projet, que désignent les références narratives (`REFERENCES_NARRATIVES`), et dont
    *  l'Effet `giveTrapping` résout les objets avant le catalogue (`trappingDesObjetsPuisDuCatalogue`).
-   *  Absent = racine de CATALOGUE : ni objet de projet, ni Effect à référence narrative (`menuDEffets`). */
+   *  Absent = racine de CATALOGUE : ni objet de projet, ni autre feuille que `ops` (`menuDEffets`). */
   narratif?: NarratifBlock;
   /** La famille mécanique du porteur (`familleDesEffets`) : Conditions et ops qu'il admet. Absent = famille fermée. */
   famille?: FamilleMecanique;
@@ -173,19 +192,17 @@ export const EFFECT_MENU_GROUPS: TypeMenuGroup[] = EFFECT_GROUPS.map(([g, types]
   items: types.map((t) => ({ key: t, label: <><Icon id={EFFECT_ICON[t]} size="sm" /> {EFFECT_LABEL[t]}</> })),
 }));
 
-/** Types d'Effet dont la fabrique pose une référence narrative (clé de `REFERENCES_NARRATIVES`). */
-const TYPES_A_REF_NARRATIVE: ReadonlySet<Effect['type']> = new Set(
-  EFFECT_TYPES.filter((t) => Object.keys(EFFECT_HANDLERS[t].make()).some((k) => k in REFERENCES_NARRATIVES)),
-);
+/** La seule feuille qu'admet une racine de CATALOGUE : son Flow est `flowSchema` (`grammaire/mecanique.ts`), à feuilles
+ *  `EffectOp` — aucun Effect de scène, aucune référence narrative (#679 R4). */
+const FEUILLE_DE_CATALOGUE: EffectOp['type'] = 'ops';
 
-/** Le vocabulaire d'une racine SANS narratif (catalogue, #679 R4) : un Effect qui désignerait un document
- *  de campagne romprait la portabilité du paquet de catalogue. */
-const MENU_SANS_NARRATIF: TypeMenuGroup[] = EFFECT_MENU_GROUPS
-  .map((g) => ({ ...g, items: g.items.filter((it) => !TYPES_A_REF_NARRATIVE.has(it.key as Effect['type'])) }))
+/** Le vocabulaire d'une racine de catalogue : la seule feuille `ops`. */
+const MENU_DE_CATALOGUE: TypeMenuGroup[] = EFFECT_MENU_GROUPS
+  .map((g) => ({ ...g, items: g.items.filter((it) => it.key === FEUILLE_DE_CATALOGUE) }))
   .filter((g) => g.items.length > 0);
 
 /** Les types d'Effet que propose une racine — lu par « + Effet », « + Bloc » et le changement de type. */
-export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_SANS_NARRATIF);
+export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_DE_CATALOGUE);
 
 /** Ce que révèle un `revealClue` sans stade (`revealClue`, `noyau/monde/clues.ts`) : `title` du champ ; le résumé
  *  d'une rangée en porte la forme COURTE. */
@@ -273,12 +290,12 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       const n = e.reward ? (e.reward.kind === 'sequence' ? e.reward.etapes.length : 1) : 0;
       return `Petites Prières (site sacré)${e.heroId ? ` → ${e.heroId}` : ''} · ${n} bloc(s) si exaucée`;
     }
-    case 'rest': return `Repos ${e.days ?? 1} nuit(s) (${e.lodging ?? 'maison'}${e.quality === 'pietre' ? ', piètre' : ''})`;
+    case 'rest': return `Repos ${e.days ?? 1} nuit(s) (${e.lodging ?? 'maison'}${e.quality ? `, ${libelleDeValeur(qualiteDeReposSchema, e.quality)}` : ''})`;
     case 'mealParty': return `Repas du groupe`;
     case 'interlude': return `Interlude : ${e.weeks ?? 1} semaine(s)`;
     case 'grantFavor': return `Faveur ${e.level} envers ${e.owedTo || '?'} (${e.heroId || '1ᵉʳ héros'})`;
-    case 'startCombat': return `Combat : ${e.encounter || '?'}`;
-    case 'startPursuit': return `Poursuite (${e.partyRole === 'pursuing' ? 'groupe poursuit' : 'groupe fuit'}) — Distance ${e.distance ?? 4}, ${(e.foes ?? []).length} adversaire(s)${e.encounter ? ` → ${e.encounter}` : ''}`;
+    case 'startCombat': return `Combat : ${e.encounter?.id || '?'}`;
+    case 'startPursuit': return `Poursuite (${e.partyRole === 'pursuing' ? 'groupe poursuit' : 'groupe fuit'}) — Distance ${e.distance ?? 4}, ${(e.foes ?? []).length} adversaire(s)${e.encounter ? ` → ${e.encounter.id}` : ''}`;
     case 'startMassBattle': {
       const b: MassBattleSpec = e.battle ?? {};
       const rounds = b.plannedRounds ?? 1;
@@ -372,8 +389,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'clearObjective' && (
           <input placeholder="id de l'objectif à retirer (vide = tous)" value={e.id ?? ''} onChange={(ev) => upd({ id: ev.target.value || undefined })} />
         )}
-        {TYPES_A_REF_NARRATIVE.has(effect.type) && !ctx.narratif && (
-          <p className="hint">Ce catalogue ne connaît aucune campagne : cet Effet ne s’y pose pas.</p>
+        {effect.type !== FEUILLE_DE_CATALOGUE && !ctx.narratif && (
+          <p className="hint">Ce catalogue n’admet que des opérations : cet Effet ne s’y pose pas.</p>
         )}
         {(effect.type === 'poserEtat' || effect.type === 'designerHeros') && ctx.narratif && (
           <RefField
@@ -542,9 +559,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             </label>
             <label className="dr">
               Qualité
-              <select value={e.quality ?? 'normale'} onChange={(ev) => upd({ quality: ev.target.value === 'pietre' ? 'pietre' : undefined })}>
-                <option value="normale">Normale</option>
-                <option value="pietre">Piètre (½ prix, à risque)</option>
+              <select value={e.quality ?? 'normale'} onChange={(ev) => upd({ quality: ev.target.value === 'normale' ? undefined : (ev.target.value as QualiteDeRepos) })}>
+                {optionsDuNoeud(qualiteDeReposSchema).map(([q, l]) => <option key={q} value={q}>{l}</option>)}
               </select>
             </label>
             <label className="dr">Nuits <NumberField variant="nu" label="Nuits" min={1} value={e.days ?? 1} onChange={(days) => upd({ days })} /></label>
@@ -872,7 +888,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           </div>
         )}
         {effect.type === 'startCombat' && (
-          <select value={e.encounter ?? ''} onChange={(ev) => upd({ encounter: ev.target.value })}>
+          <select value={e.encounter?.id ?? ''} onChange={(ev) => upd({ encounter: { id: ev.target.value } })}>
             <option value="">— rencontre —</option>
             {ctx.encounters.map((en) => (
               <option key={en.id} value={en.id}>
@@ -897,24 +913,21 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             </label>
             <RefField cfg={{ ds: 'skills', single: true, spec: true }} label="Compétence de Mouvement" value={e.skill} onChange={(v) => upd({ skill: (v as { id: string; spec?: string }) || { id: '' } })} />
             <label>Rencontre au rattrapage
-              <select value={e.encounter ?? ''} onChange={(ev) => upd({ encounter: ev.target.value })}>
+              <select value={e.encounter?.id ?? ''} onChange={(ev) => upd({ encounter: ev.target.value ? { id: ev.target.value } : undefined })}>
                 <option value="">— aucune (dénouement narratif) —</option>
                 {ctx.encounters.map((en) => <option key={en.id} value={en.id}>{en.id}</option>)}
               </select>
             </label>
             <div className="eff-list-head">Adversaires
-              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { ref: { id: creatureSemee() } }] })}>+ adversaire</button>
+              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { id: creatureSemee() }] })}>+ adversaire</button>
             </div>
             <span className="branch-label">Chaque adversaire est une créature du bestiaire : son Mouvement et sa valeur de Test se lisent sur SA fiche.</span>
-            {(e.foes ?? []).map((f: { id?: string; ref: { id?: string } }, i: number) => {
-              const patchFoe = (patch: Partial<typeof f>) => upd({ foes: (e.foes ?? []).map((x: typeof f, k: number) => (k === i ? { ...x, ...patch } : x)) });
-              return (
-                <div key={i} className="eff-row">
-                  <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={f.ref?.id ?? ''} onChange={(v) => { if (v) patchFoe({ ref: { id: v as string } }); }} />
-                  <button type="button" className="btn small" onClick={() => upd({ foes: (e.foes ?? []).filter((_: typeof f, k: number) => k !== i) })}>×</button>
-                </div>
-              );
-            })}
+            {(e.foes ?? []).map((f: { id?: string }, i: number) => (
+              <div key={i} className="eff-row">
+                <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={f.id ?? ''} onChange={(v) => { if (v) upd({ foes: (e.foes ?? []).map((x: typeof f, k: number) => (k === i ? { id: v as string } : x)) }); }} />
+                <button type="button" className="btn small" onClick={() => upd({ foes: (e.foes ?? []).filter((_: typeof f, k: number) => k !== i) })}>×</button>
+              </div>
+            ))}
           </div>
         )}
         {effect.type === 'startMassBattle' && (
@@ -1045,7 +1058,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             <div className="tf-row">
               <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="Compétence" value={e.skill} onChange={(v) => upd({ skill: (v as { id: string; spec?: string } | null) ?? undefined })} nullable />
               <label className="dr">Carac.
-                <select value={e.characteristic ?? ''} onChange={(ev) => upd({ characteristic: (ev.target.value || undefined) as CharKey | undefined })}>
+                <select value={e.characteristic ?? ''} onChange={(ev) => upd({ characteristic: charKeySchema.safeParse(ev.target.value).data })}>
                   <option value="">— (de la compétence) —</option>
                   {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
                 </select>
@@ -1083,11 +1096,11 @@ function firstUnusedScene(used: string[]): string {
 
 /** Scènes de COMBAT/MENACE référencées (catalogue effectif ∪ situations ∪ enchaînements déterministes)
  *  → celles pour lesquelles l'auteur peut mapper une rencontre de la scène courante. */
-function referencedCombatScenes(b: MassBattleSpec): string[] {
+function referencedCombatScenes(b: MassBattleSpec): (keyof NonNullable<MassBattleSpec['sceneEncounters']>)[] {
   const pool = b.scenes && b.scenes.length ? b.scenes : BATTLE_SCENES().map((s) => s.id);
   const ids = new Set<string>([...pool, ...((b.situations ?? []).flat())]);
   for (const id of [...ids]) for (const c of sceneChainIds(id)) ids.add(c);
-  return [...ids].filter((id) => { const k = battleSceneById(id)?.sceneKind; return k === 'combat' || k === 'threat'; });
+  return [...ids].filter((id): id is keyof NonNullable<MassBattleSpec['sceneEncounters']> => { const k = battleSceneById(id)?.sceneKind; return k === 'combat' || k === 'threat'; });
 }
 
 /** Multi-sélection de Scènes de bataille (patron de `ListRefField` sur le catalogue des Scènes de Round) :
@@ -1165,10 +1178,10 @@ function MassBattleFields({ identite, battle, onChange, ctx }: { identite: strin
           <div key={id} className="fieldrow">
             <span className="dr" style={{ minWidth: 140 }}>{battleSceneById(id)?.label ?? id}</span>
             <select
-              value={b.sceneEncounters?.[id] ?? ''}
+              value={b.sceneEncounters?.[id]?.id ?? ''}
               onChange={(ev) => {
                 const next = { ...(b.sceneEncounters ?? {}) };
-                if (ev.target.value) next[id] = ev.target.value; else delete next[id];
+                if (ev.target.value) next[id] = { id: ev.target.value }; else delete next[id];
                 set({ sceneEncounters: Object.keys(next).length ? next : undefined });
               }}
             >

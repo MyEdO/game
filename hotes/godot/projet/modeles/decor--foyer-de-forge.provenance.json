@@ -1,0 +1,13 @@
+{
+  "model": "decor--foyer-de-forge.glb",
+  "model_sha256": "9ae62da7e829c5448d81dcccdb5ace91bbce8f8f8f01827f3d15e8c13e577553",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -1,6 +1,6 @@
 *Pages PDF 33-113*
 
-### MIDDENHEIM GUIDE DU VISITEUR
+### <span id="page-32-0" data-folio="30"></span>MIDDENHEIM GUIDE DU VISITEUR
 
 Dans les provinces méridionales, Middenheim est souvent oubliée, considérée plutôt comme une forteresse que comme une véritable cité, et placée dans l'ombre de métropoles de plus grande envergure comme Altdorf et Nuln. Les visiteurs qui explorent Middenheim découvrent bien vite qu'elle recèle des lieux attrayants derrière sa façade lugubre.
 
@@ -659,7 +659,7 @@ Les Valgeir constituent une famille aristocratique importante de Middenheim depu
 Actuellement, Emil Valgeir jouit de son poste de Grand Maître de la branche des Chevaliers du Loup Blanc de Middenheim, tandis que son cadet Jarrick est l'actuel Ar-Ulric. Les deux hommes exercent leurs fonctions avec assiduité et honneur, mais bon nombre de Middenheimers se demandent discrètement si Emil ne ferait pas un meilleur Grand prêtre. Des deux hommes, il est considéré comme le plus franc et le plus menaçant, et le peuple estime qu'il serait plus efficace pour remettre des éléments comme les indisciplinés Fils d'Ulric à leur place tout en réprouvant les sigmarites qui oseraient rabaisser la fierté ulricaine.
 
 
-### **Wulfric Tore**
+### <span id="page-54-0" data-folio="52"></span>**Wulfric Tore**
 
 Wulfric est un jeune marchand avec une incapacité remarquable à progresser, que ce soit physiquement ou intellectuellement. Wilhelm Tore, le magnat du verre, est son père. Même si Wulfric a fait preuve d'un talent de base pour la comptabilité, il peine à s'épanouir parmi les négociateurs et les entrepreneurs sans pitié qui côtoient son père. À vrai dire, Wulfric a honte d'être riche, et estime être indigne de l'immense héritage qui doit lui revenir.
 

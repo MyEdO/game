@@ -7,7 +7,8 @@
 > Conventions d'abréviation : voir [`sources.md`](../sources.md).
 >
 > **Périmètre de ce fichier** : Mouvement hors combat (règles générales), voyage entre lieux, montures
-> et véhicules, Encombrement et fatigue de voyage, poursuites, Calendrier Impérial (le compte des jours).
+> et véhicules, Encombrement et fatigue de voyage, poursuites, Calendrier Impérial (le compte des jours),
+> essences des forêts du Reikland traversées.
 > Les règles de Charge, Désengagement, Fuite, Escalade, Saut et Chute *en combat* sont dans
 > [`combat.md`](combat.md) §§ correspondants — ce fichier les renvoie sans les re-transcrire.
 > Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
@@ -18,6 +19,7 @@
 - [Course hors combat (sprint)](#course-hors-combat)
 - [Escalade, Saut, Chute — voir combat.md](#escalade-saut-chute)
 - [Voyage à pied : vitesse, durée, marche forcée](#voyage-à-pied)
+- [Forêts du Reikland (couleur locale) : les essences](#forêts-du-reikland-couleur-locale)
 - [Transports payants : Diligence, Barge, Fiacre, Ferry](#transports-payants)
 - [Montures : allures, endurance, incidents, sellerie](#montures)
 - [Véhicules tirés : conduite, incidents, tableau](#véhicules)
@@ -149,6 +151,17 @@ Ces règles s'appliquent en et hors combat.
 
 > « La vitesse d'une barge peut augmenter ou diminuer jusqu'à 30 % si elle est en aval ou en
 > amont, si vous jugez que c'est approprié. »
+
+---
+
+## Forêts du Reikland (couleur locale)
+
+**Source :** LDB 52 l.73
+
+> « Des kilomètres de chênes, de pins, d'ormes et de hêtres vertigineux non cartographiés
+> dissimulent bien plus que des bandits désespérés et des animaux sauvages. »
+
+- Les quatre essences des forêts du Reikland : chêne, pin, orme, hêtre.
 
 ---
 
@@ -528,6 +541,89 @@ Complexe (−10) ; les deux manquants → Difficile (−20). Hiver ou printemps 
 commun** (EDOC 08 l.110-122).
 
 **Implémente :** [État calculé](../implemente.generated.md#4edeplacementoption-attraper-froid)
+
+### Rencontres d'Étape
+
+**Source :** EDOC 08 l.182-233 (règle de tirage par catégorie l.188, l.203, l.221 ; tables l.190-198,
+l.205-216, l.223-233) ; EDOC 09 l.3-5 (usage facultatif, nombre par Étape).
+
+- **Quand :** une Rencontre se résout au cours de chaque Étape, après Météo et Activités (EDOC 08 l.9,
+  l.15-19).
+- **Combien :** « il est rarement conseillé d'utiliser plus d'une Rencontre au cours d'une Étape
+  d'un voyage » (EDOC 09 l.5) — un conseil, pas un plafond.
+- **Facultatif :** « Leur usage est entièrement facultatif, et les résultats constituent plutôt des
+  conseils » ; le MJ peut choisir une autre Rencontre, ou aucune (EDOC 09 l.3).
+- **Déclencheurs par catégorie** (au MJ ou au résultat des Tests ; les trois textes se recoupent) :
+  - Positives : Succès Impressionnant ou mieux lors d'un voyage, ou récompense du MJ (EDOC 08 l.188).
+  - Fortuites : « si le Personnage n'a pas obtenu un Succès Impressionnant ou a eu un Échec
+    Impressionnant lors d'une Activité de voyage », ou couleur locale au gré du MJ (EDOC 08 l.203).
+  - Dangereuses : « Si l'un des Personnages, ou la majorité des Personnages, échouent dans leur
+    Activité de voyage, l'une des mésaventures suivantes peut advenir » (EDOC 08 l.221).
+
+**Rencontres positives (d100)**
+
+| d100 | Rencontre | Réf | Effet |
+|:---:|---|---|---|
+| 01–25 | **Bonne compagnie** | EDOC 08 l.192 | Voyageurs honnêtes rencontrés ; aucun effet chiffré — au MJ. |
+| 26–45 | **Voilà qui est utile !** | EDOC 08 l.193 | Découverte utile à l'aventure (ragot, message, scène) — contenu d'aventure, au MJ. |
+| 46–60 | **Un merveilleux hébergement** | EDOC 08 l.194 | Contre « quelques pièces » (montant non chiffré), auberge-relais : corps guéri de tout État persistant. Ligne Source défectueuse (« auberge Exténué relais »). |
+| 61–75 | **Temps libre** | EDOC 08 l.195 | Chaque Personnage peut effectuer une Activité de voyage supplémentaire. |
+| 76–90 | **Un mot gentil** | EDOC 08 l.196 | Au moins un PNJ de la destination a une bonne opinion d'eux — au MJ. |
+| 91–95 | **Raccourci** | EDOC 08 l.197 | Ils peuvent sauter l'Étape suivante. |
+| 96–00 | **Voyage tranquille** | EDOC 08 l.198 | Ils peuvent guérir toutes les Blessures et récupérer de tous les États *Exténué*. |
+
+**Rencontres fortuites (d100)**
+
+| d100 | Rencontre | Réf | Effet |
+|:---:|---|---|---|
+| 1–10 | **Environnement suspect** | EDOC 08 l.207 | Ambiance ; aucun effet chiffré — au MJ. |
+| 11–20 | **Champ de bataille** | EDOC 08 l.208 | Site de bataille à piller ; coupables à proximité incertaine — au MJ. |
+| 21–30 | **Déplacement de masse** | EDOC 08 l.209 | Procession pouvant cacher une menace — au MJ. |
+| 31–40 | **Oh non, pas eux !** | EDOC 08 l.210 | Rival ou source d'ennui ; renvoi à Delberz Trötte (page 52) — contenu d'aventure, au MJ. |
+| 41–50 | **Tentations sur la route** | EDOC 08 l.211 | Détour tentant, dangers cachés — au MJ. |
+| 51–65 | **Mauvaise influence !** | EDOC 08 l.212 | Un voyageur lésé répand des rumeurs sur le groupe ; aucun effet chiffré — au MJ. |
+| 66–75 | **Route à péage** | EDOC 08 l.213 | Péage aux frais « en fonction de leur Statut social », ou évasion ; renvoi Postes de péages (page 40). |
+| 76–80 | **La chose qui ne devrait pas être** | EDOC 08 l.214 | Phénomène étrange, rumeurs — au MJ. |
+| 81–90 | **La Providence** | EDOC 08 l.215 | Présage divin ; Test de Savoir (Théologie) possible pour plus d'informations (difficulté non dite). |
+| 91–00 | **Un ami dans le besoin** | EDOC 08 l.216 | Voyageurs à aider ou escorter ; gratitude à l'arrivée — au MJ. |
+
+**Rencontres dangereuses (d100)**
+
+| d100 | Rencontre | Réf | Effet |
+|:---:|---|---|---|
+| 1–10 | **Voyage fatigant !** | EDOC 08 l.225 | Route bloquée : un Personnage fait un Test de **Survie en extérieur Accessible (+20)** ; sinon tout le monde reçoit un État *Exténué*. |
+| 11–20 | **Voleurs !** | EDOC 08 l.226 | Biens dérobés ; le voleur est revu pendant la Phase d'arrivée ; renvois Wolmar Rotte (page 47), Wilhelm Kind (page 53) — au MJ. |
+| 21–30 | **Territoire hostile** | EDOC 08 l.227 | Traverser : chaque Personnage réussit un Test de **Discrétion (Rural) Intermédiaire (+0)** ou tombe dans une embuscade ; contourner : État *Exténué*. Ligne Source défectueuse (« en sans quoi »). |
+| 31–40 | **Terre empoisonnée** | EDOC 08 l.228 | Approvisionnement, achats ou séjour prolongé exposent à poisons, maladies, peut-être Corruption — non chiffré, au MJ. |
+| 41–50 | **Même la nature vous déteste !** | EDOC 08 l.229 | Danger naturel : affrontement, État ou confrontation mineure, au choix ; créatures des Bêtes du Reikland (LDB 78) suggérées — au MJ. |
+| 51–70 | **Très mauvais temps** | EDOC 08 l.230 | +40 au prochain jet de Météo ; à la dernière Étape, les intempéries frappent la destination. |
+| 71–80 | **Équipement essentiel endommagé** | EDOC 08 l.231 | Un équipement de voyage crucial perdu ou détruit (exemples : ciré, tente, roue) ; réparations, ou Test d'Exposition (WFJDR p.181). Objet non désigné — au MJ. |
+| 81–90 | **Conditions répugnantes !** | EDOC 08 l.232 | Tous les Personnages exposés à la Vérole du Tanneur (contraction : LDB 20 l.107-112). |
+| 91–00 | **Monture en fuite** | EDOC 08 l.233 | Une monture s'enfuit ; la récupérer coûte un État *Exténué* à un Personnage, plus un Test d'Exposition de nuit sous pluie, neige ou blizzard. |
+
+**Implémente :** [État calculé](../implemente.generated.md#4edeplacementrencontres-d-etape)
+
+### Phase d'arrivée
+
+**Source :** EDOC 09 l.11-29 (section « ARRIVER AVEC… CLASSE ? ») ; place dans le voyage : EDOC 08 l.9, l.19.
+
+- **Quand :** la Phase d'arrivée a lieu lorsque les Personnages atteignent leur destination, à la dernière
+  Étape (EDOC 08 l.9, l.19).
+- **Exténué à l'arrivée :** un Personnage arrivé avec un État *Exténué* doit « se rendre présentable » ou
+  subir une pénalité aux Tests de Sociabilité selon son Échelon : Or −20, Argent −10, Bronze aucune
+  (EDOC 09 l.19). Le texte ne dit ni comment se rendre présentable, ni combien de temps dure la pénalité.
+- **Maladies en incubation :** toute maladie contractée sur la route avec une période d'Incubation se
+  déclare pendant la Phase d'arrivée (EDOC 09 l.21) ; le Rhume commun de l'option « Attraper Froid » y
+  renvoie (EDOC 08 l.92).
+- **Fournitures et services :** Test de **Savoir (Région) Accessible (+20)** réussi → le meilleur endroit
+  pour les trouver est identifié ; sinon, demander autour de soi, sans Test ni effet chiffré (EDOC 09 l.23).
+- **Rumeurs :** Test de **Ragot Intermédiaire (+0)** réussi → le Personnage en apprend plus sur les bruits
+  qui courent ; le contenu (rumeurs de L'Ennemi dans l'Ombre p.15 et p.57) est renvoyé au MJ (EDOC 09 l.23).
+- **Au MJ :** description de l'arrivée, rumeurs qui précèdent le groupe, opinions des habitants,
+  retournements ou accueil à la destination (EDOC 09 l.13-17, l.25-29) — conseil de narration, aucun effet
+  chiffré. La phrase de l.13 s'arrête sans point dans le Source.
+
+**Implémente :** [État calculé](../implemente.generated.md#4edeplacementphase-d-arrivee)
 
 ### Activités de Voyage (1 par Étape)
 
@@ -1015,9 +1111,37 @@ Réparation permanente : **Test de Métier (Constructeur de navires)** (ou **Mé
 
 **Réparations temporaires** : sans cale sèche, **Métier (Constructeur de navires/Charpentier)** de **Complexe (–10)** à **Très Difficile (–30)** ; succès = 1 heure, restaure **1d10 Blessures**. Mais le navire fait ensuite un **Test d'Endurance** par jour complet de voyage et à chaque Test de Manœuvre ; chaque échec inflige **1d10–4 Dégâts** (la réparation cède). `MDG 13 l.647-651`
 
+**Réparation par le groupe au chantier** : à quai, le meilleur réparateur du groupe (Soutien compris) fait un Test de **Métier (Constructeur de navires)**, ou de **Métier (Charpentier)** sous la pénalité de –10 ; matériaux = pièces détachées de navire au barème de l'Entretien (**2 Enc par tranche de 5 Blessures**, +50 % sur coque lissée), outils fournis par le chantier (`maison`). `MDG 13 l.641` ; `MDG 15 l.306` ; `MDG 14 l.283` ; `MDG 12 l.295`
+
+> « Si votre bateau a perdu des Blessures, vous pouvez les réparer pour un coût de 2 points d'Encombrement de pièces détachées de navire par tranche de 5 Blessures restaurées. » — `MDG 15 l.306`
+
+**Durée des réparations temporaires** (`maison`) : l'heure de chaque réparation temporaire s'écoule dans la journée de voyage, dont l'horloge court jusqu'au crépuscule, ou de 24 h à l'arrivée ; aucune horloge propre ne s'y ajoute. `MDG 13 l.649`
+
 **Voir aussi :** [Salissures de coque (MDG)](#salissures-de-coque-mdg), [Entretien du navire (Activité en mer) (MDG)](#entretien-du-navire-activité-en-mer-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg) (Entretien).
 
 **Implémente :** [État calculé](../implemente.generated.md#4edeplacementreparer-un-navire-mdg)
+
+---
+
+## Réparer des bateaux (MSRC)
+
+**Source :** MSRC 7 l.107-117
+
+> « Des Dégâts subis par un bateau peuvent être réparés définitivement avec un Test de **Métier (Construction de bateaux)**. Il est possible de remplacer ce Test par un Test de **Métier (Charpentier)**, mais avec un malus de –10 à tous les lancers de dés. » — `MSRC 7 l.109`
+
+> « Les dégâts à la coque ne peuvent être réparés de façon permanente que si le bateau est tiré hors de l'eau et placé sur une cale sèche, par exemple. » — `MSRC 7 l.109`
+
+Un constructeur de bateaux PNJ (Artisan, Métier (Construction de bateaux)) installé sur les cours d'eau fréquentés répare pour **1 CO par point de Dégât** restauré ; chaque Test réussi prend **1d10 heures** et restaure **1d10 Dégâts**. `MSRC 7 l.111`
+
+**Réparations temporaires** : sans mise au sec, **Métier (Construction de bateaux)** ou **Métier (Charpentier)** de **Complexe (–10)** à **Très Difficile (–30)** ; succès = **20 minutes**, restaure **1d10 Dégâts**. Le bateau fait ensuite un **Test d'Endurance Accessible (+20)** par jour de voyage, chaque échec infligeant **1d10–4 Dégâts**. `MSRC 7 l.115-117`
+
+> « Si le Test est réussi, chaque réparation prend 20 minutes et restaure 1d10 Dégâts. Cependant, le bateau doit faire un Test d'**Endurance Accessible (+20)** par jour de voyage : chaque échec inflige 1d10-4 Dégâts au bateau, là où la réparation temporaire se fragilise. » — `MSRC 7 l.117`
+
+**Durée des réparations temporaires** (`maison`) : les 20 minutes s'écoulent dans la journée de voyage, dont l'horloge court jusqu'au crépuscule, ou de 24 h à l'arrivée. `MSRC 7 l.117`
+
+**Voir aussi :** [Réparer un navire (MDG)](#réparer-un-navire-mdg).
+
+**Implémente :** [État calculé](../implemente.generated.md#4edeplacementreparer-des-bateaux-msrc)
 
 ---
 
@@ -1033,6 +1157,8 @@ Un Personnage tenant un rôle lance pour tous ceux du même rôle ; si les PJ ti
 
 **Types** (rôle essentiel *en italique*) : Progression (*Capitaine*) ; Progression en Poursuite (*Mousse*) ; Manœuvres (*Timonier*) ; Perception (*Vigie*) ; Orientation (*Navigateur*) ; Affaler les voiles (*Mousse*) ; Extermination des nuisibles (*Mousse* ; test étendu, nid de rats = Intermédiaire (+0)/10 DR ; Ratier en rôle essentiel via Projectiles (Fronde), chat/chien +1 DR) ; **Rude épreuve** (*Cuisinier* ; DR négatifs → réduit le Moral d'autant) ; **Entretien** (*Mousse* ; **–2 DR** s'il remplace Métier (Charpentier/Tailleur)) ; Tir de batterie (*Artilleur*). `MDG 14 l.61-130`
 
+**Durée de l'Extermination des nuisibles** : chaque Test prend **1d10 heures**. `MDG 14 l.100` Comme pour les [réparations temporaires](#réparer-un-navire-mdg), la durée tirée s'écoule dans la journée de voyage, y compris le jour d'arrivée (`maison`).
+
 **Voir aussi :** [Moral de l'équipage (MDG)](#moral-de-léquipage-mdg), [Réparer un navire (MDG)](#réparer-un-navire-mdg), [Course-poursuite navale (MDG)](#course-poursuite-navale-mdg).
 
 **Implémente :** [État calculé](../implemente.generated.md#4edeplacementtests-d-equipage-mdg)
@@ -1046,6 +1172,10 @@ Un Personnage tenant un rôle lance pour tous ceux du même rôle ; si les PJ ti
 Le **Moral** mesure la confiance de l'équipage envers son capitaine ; on peut l'ignorer si la majorité est très investie (ex. PJ ou dévotion fervente). Il débute en général à **75** et est **recalculé une fois par semaine**. `MDG 14 l.135-143`
 
 Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** ; faveur de Manann probable, ≥1 officier pour 10, capitaine vaillant, nourriture > rations, bon présage, paie régulière, relâche à terre → **+1d10** ; manque de bras, pas de port depuis une semaine, mauvais présage, paie irrégulière, eaux non cartographiées, monstre marin vu, biscuits seuls → **–1d10** ; pas de relâche après accostage, eaux hostiles, < 1 officier pour 30, déplaisir de Manann, sous-ration, maladie, capitaine lâche/irrespectueux/incompétent, paie chiche → **–2d10** ; pas de paie, < 1 officier pour 50 → **–3d10**. `MDG 14 l.149-179`
+
+**Nourriture** : les trois facteurs de la nourriture s'excluent ; le repas du dernier jour avant le recalcul les choisit : « La nourriture ne se résume pas à de simples rations de base | +1d10 » (`MDG 14 l.156`) quand le seul frais de la cale nourrit tout l'équipage, « La nourriture est uniquement composée de biscuits de mer | –1d10 » (`MDG 14 l.166`) quand ce sont les seuls biscuits, « La nourriture n'est même pas suffisante pour constituer une ration de base | –2d10 » (`MDG 14 l.171`) quand la cale est à court.
+
+**Maladie** : « La maladie fait rage au sein de l'équipage | –2d10 » (`MDG 14 l.172`) ne dit pas quand il s'applique ; « Si un membre d'équipage souffre d'une maladie comportant le symptôme toux et éternuements, tout le monde à bord y est exposé » (`MDG 14 l.208`). Règle maison `mer-moral-maladie-contagieuse-a-bord` (défaut actif) : le facteur entre au recalcul de la semaine, sans se persister, dès qu'un Personnage vivant porte une maladie contagieuse déclarée (incubation exclue) ; les Personnages comptent au Moral (`MDG 14 l.143`). L'équipage PNJ est un porteur de maladies collectif (`CampaignVessel.porteurDeLEquipage`), qui teste sa Résistance à la valeur maison `mer-resistance-de-l-equipage` ; toute maladie déclarée de ce porteur pose aussi le facteur, sous le drapeau `maladieFaitRage` de la donnée du Moral, hors de la règle maison qui ne vise que les Personnages. `MDG 14 l.172`, `MDG 14 l.208-209`, `MDG 14 l.230`
 
 **Effets du Moral** : 101+ → Tests de Commandement du capitaine +2 DR, tous les Tests d'équipage +1 DR ; 76-100 → Commandement +1 DR ; 51-75 → équipage satisfait (1d100 par membre en relâche, ≤04 ne revient pas) ; 50 ou moins → Commandement –1 DR, Tests d'équipage –1 DR, ≤16 ne revient pas en relâche. `MDG 14 l.186-202`
 
@@ -1065,7 +1195,7 @@ Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** 
 
 **Scorbut** : pour chaque mois sans nourriture correcte, **Test de Résistance Intermédiaire (+0)** (**Facile (+40)** si soupe de chou fermenté régulière) ; persiste 1d10 jours après reprise de fruits/légumes frais. Symptômes : blessé, intoxication alimentaire, malaise, nausée ; 1 % de perdre une dent/jour. `MDG 14 l.224-234`
 
-**Provisions** : un **Tonneau d'eau douce** = 145 L ; un marin boit 2-3 L/jour. La **petite bière** remplace l'eau (anti-contamination). **Biscuits de mer** évitent la famine mais régime médiocre. Table : Tonneau d'eau douce 8/6 (Enc 9) ; Tonneau de petite bière 11/– ; ration biscuits 1/– ; ration préservée 2/– ; soupe de chou fermenté 3/– ; Boussole 10/– ; Peau de phoque 1 CO 10/– ; Pièces détachées de navire 10/–. `MDG 14 l.242-255`
+**Provisions** : un **Tonneau d'eau douce** = 145 L ; un marin boit 2-3 L/jour. La **petite bière** remplace l'eau (anti-contamination). **Biscuits de mer** évitent la famine mais régime médiocre, et « ne se gâte pas avant très longtemps » (`MDG 14 l.263`). La nourriture du marché « va vite pourrir » (`MDG 14 l.238`) : sans durée au RAW, la règle maison `mer-vivres-frais-peremption-jours` (défaut 7 jours, voisin LDB 47 l.93-97 Conservation) jette le lot de frais embarqué depuis cette durée. Table : Tonneau d'eau douce 8/6 (Enc 9) ; Tonneau de petite bière 11/– ; ration biscuits 1/– ; ration préservée 2/– ; soupe de chou fermenté 3/– ; Boussole 10/– ; Peau de phoque 1 CO 10/– ; Pièces détachées de navire 10/–. `MDG 14 l.242-255`
 
 **Voir aussi :** [Provisions et équipement de navigation (MDG)](#provisions-et-équipement-de-navigation-mdg), [`traumatisme.md`](traumatisme.md#13-faim-et-soif) (Faim et Soif), [`maladies.md`](maladies.md#provisions-et-privations-en-mer--eau-rations-faim-mdg) (rations en mer).
 
@@ -1112,6 +1242,8 @@ Chaque jour en mer, on tient un **total cumulé d'Humeur de Manann** (chaque mod
 **Effet sur l'Humeur** (extrait) : vaincre des suivants de Stromfels +3d10 ; grand sacrifice à Manann +5+2d10 ; coiffe de naissance +2d10 ; prêtre de Manann sans Péché +5+1d10 ; prières à chaque quart +5 à +1d10 ; Mannslieb pleine +1d10 ; chat du navire heureux +1d10 ; ciel rouge –5 ; chapeau perdu par-dessus bord –5 ; voyage commencé un Festag –1d10 ; cargaison de bananes –1d10 ; invoquer d'autres dieux que Manann –(5+1d10) ; insulter la mer –2d10 ; tuer un albatros –(5+2d10) ; invoquer les Puissances de la Ruine/Stromfels –5d10. `MDG 15 l.99-124`
 
 **Événements de bord** (d100 modifié par l'Humeur, extrait) : ≤–65 Triton ; –60/–64 Maelstrom ; –50/–53 Ouragan (Test d'équipage **Affaler les voiles Difficile (–20)** sinon 3 Critiques au Gréement) ; –35/–39 Bateau endommagé (Critique aléatoire) ; –6/–10 Infestation de rats (Test étendu Extermination Intermédiaire (+0)/10 DR) ; 00/05 Collision soudaine ; 06/09 crabes boxeurs (–1 M, –1 DR Man) ; 48/80 Navigation ordinaire ; 96/98 Rafale de Ghyran (+2 DR Focalisation (Ghyran)/Guérison/Résistance) ; 131/134 Vents favorables (+1 M). `MDG 15 l.134-236`
+
+**Infestations** : rats géants (–29/–30), Test d'équipage étendu d'Extermination des nuisibles **Complexe (–10)** pour 25 DR, 3d10 Enc de cargaison gâtés chaque nuit et **30 %** de chances qu'un membre d'équipage teste la fièvre du rongeur ; rats (–6/–10), **Intermédiaire (+0)** pour 10 DR, 1d10 Enc et **15 %**. Le membre tiré au hasard l'est au prorata des âmes à bord, héros vivants et effectif présent, en un seul tirage sur les âmes fois les postes du bord (les inscrits aux registres, ou l'effectif présent s'il est plus nombreux) : chaque héros en tient autant que de postes, chaque poste autant que l'effectif présent, si bien qu'un rôle pèse son compte au registre même quand les inscrits dépassent l'effectif présent. Les registres de l'équipage par rôle (salariés, puis recueillis) remplissent les postes dans leur ordre, un poste par inscrit. Règle maison : un poste hors registre tient le rôle par défaut de Mousse (`parDefaut` de `crew-roles.json`), `MDG 14 l.15` ne le disant que des Personnages. Un membre de l'équipage tiré expose l'équipage collectif, qui fait son Test de Contraction hors bataille. Une étape à DR négatif livre le membre tiré à 1d10 attaques (CC 35, Arme +5 ; ou CC 25, Arme +4) : un membre de l'équipage s'y défend au profil d'un mercenaire de bord (`MDG 14 l.305-380`) ; Règle maison : la correspondance rôle → profil, taguée `maison` dans `crew-roles.json` ; mort, il quitte l'effectif et son rôle au registre ; sinon il retourne à son poste, et ses Blessures, Critiques et États ne persistent pas (l'équipage collectif n'a pas de fiche). Rats géants : « Quiconque est blessé par une telle attaque doit effectuer un Test pour éviter de contracter la fièvre du rongeur. » (l.164) ; un héros blessé par la série teste la fièvre du rongeur à sa fermeture, un membre de l'équipage blessé fait tester l'équipage collectif. `MDG 15 l.159-164, l.174-178`
 
 **Événements d'escale au port** (2d10, ±1 selon Humeur, extrait) : 1 Embrigadement ; 2 Prêtre de Manann ; 3 Contrôle à quai (10 % de douane) ; 4 Tempête ; 9-12 Pas d'événement ; 13 Constructeur de navires itinérant ; 17 Rumeurs commerciales ; 18 Fête de Manann (+2d10 Humeur). `MDG 15 l.129, l.243-263`
 

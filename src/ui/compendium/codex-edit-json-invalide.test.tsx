@@ -31,11 +31,10 @@ function saisir(champ: HTMLTextAreaElement, valeur: string) {
   });
 }
 
-type Domaine = { id: string; label: string; windModifiers?: Record<string, unknown>[] };
 
 describe('atelier du Codex — JSON invalide en saisie', () => {
   it('marqué, expliqué, et Enregistrer bloqué tant qu’il reste invalide', () => {
-    const domaines = datasetArray('domains') as Domaine[];
+    const domaines = datasetArray('domains');
     const d = domaines.find((x) => (x.windModifiers?.length ?? 0) >= 1);
     expect(d, 'aucun domaine à rangée windModifiers — la mesure ne porte sur rien').toBeTruthy();
     // Un sous-champ tableau-de-tableaux n'a pas de gabarit : il retombe sur `JsonField`.

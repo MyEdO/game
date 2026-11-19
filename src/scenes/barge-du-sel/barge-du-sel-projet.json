@@ -989,7 +989,8 @@
      "members": [
       {
        "entityId": "louve-grise",
-       "side": "allie"
+       "side": "allie",
+       "navireDeCampagne": true
       },
       {
        "entityId": "cogue-pirate",
@@ -1062,7 +1063,9 @@
      },
      "victoryCondition": {
       "type": "woundsThreshold",
-      "targetId": "cogue-pirate",
+      "targetId": {
+       "id": "cogue-pirate"
+      },
       "atOrBelowPercent": 40
      }
     }

@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { CampaignVessel } from '../noyau/etat';
-import type { VivresDeCale } from '../engine/provisions';
+import { lotsDeCale } from '../engine/caleDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import { ShipDossierView } from './ShipDossier';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { contractDisease } from '../engine/disease';
+import { makeRNG } from '../engine/dice';
 
 const hero = (id: string): Combatant => (blessuresSurLeProfil({
   id, label: `Héros ${id}`, kind: 'heros',
@@ -33,7 +35,7 @@ const vessel = (): CampaignVessel => ({
 });
 
 const render = (initialTab: 'apercu' | 'cargaison' | 'equipage' = 'apercu') =>
-  renderToStaticMarkup(<ShipDossierView vessel={vessel()} party={[hero('h1'), hero('h2')]} onClose={() => {}} initialTab={initialTab} />);
+  renderToStaticMarkup(<ShipDossierView now={0} vessel={vessel()} party={[hero('h1'), hero('h2')]} onClose={() => {}} initialTab={initialTab} />);
 
 describe('ShipDossier — dossier de navire persistant (#227)', () => {
   it('en-tête : nom d’instance, type et gréement', () => {
@@ -71,11 +73,12 @@ describe('ShipDossier — dossier de navire persistant (#227)', () => {
   });
 
   it('Vivres d’équipage : le total en jours-homme et le détail par vivre de la cale, dans l’ordre de la liste (MDG 14 l.245-252)', () => {
-    const html = renderToStaticMarkup(<ShipDossierView vessel={{ ...vessel(), provisions: { 'ration-biscuits-de-mer': 40, 'nourriture-courses-journee': 12 } as VivresDeCale }} party={[hero('h1')]} onClose={() => {}} initialTab="apercu" />);
+    const html = renderToStaticMarkup(<ShipDossierView now={0} vessel={{ ...vessel(), provisions: lotsDeCale({ 'ration-biscuits-de-mer': 40, 'nourriture-courses-journee': 12 }, 0) }} party={[hero('h1')]} onClose={() => {}} initialTab="apercu" />);
     expect(html).toContain('Vivres d’équipage : <b>52 jour(s)-homme</b>');
     const detail = html.match(/<ul class="ship-dossier-list" aria-label="Vivres de la cale">([\s\S]*?)<\/ul>/)?.[1];
     expect(detail?.match(/<li>[^<]*<b>\d+<\/b>/g)).toEqual([
       '<li>Nourriture, courses/journée : <b>12</b>',
+      '<li>Ration de soupe de chou fermenté pour un jour : <b>0</b>',
       '<li>Ration de nourriture préservée pour un jour : <b>0</b>',
       '<li>Ration de biscuits de mer pour un jour : <b>40</b>',
     ]);
@@ -108,12 +111,23 @@ describe('ShipDossier — dossier de navire persistant (#227)', () => {
   });
 
   it('Équipage : un facteur de Moral en cours listé par son libellé et son effet en dés (MDG 14 l.166)', () => {
-    const html = renderToStaticMarkup(<ShipDossierView vessel={{ ...vessel(), morale: { score: 62, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } }} party={[]} onClose={() => {}} initialTab="equipage" />);
+    const html = renderToStaticMarkup(<ShipDossierView now={0} vessel={{ ...vessel(), morale: { score: 62, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } }} party={[]} onClose={() => {}} initialTab="equipage" />);
     expect(html).toContain('<li>La nourriture est uniquement composée de biscuits de mer (−1d10)</li>');
+  });
+
+  it('Équipage : chaque maladie du porteur collectif par son libellé et sa phase, rien quand il est sain (MDG 14 l.172)', () => {
+    const rng = makeRNG(1);
+    const diseases = ['scorbut', 'fievre-du-rongeur'].map((id) => contractDisease(id, rng)!);
+    const malade = renderToStaticMarkup(<ShipDossierView now={0} vessel={{ ...vessel(), porteurDeLEquipage: { diseases } }} party={[]} onClose={() => {}} initialTab="equipage" />);
+    const sante = malade.match(/<ul class="ship-dossier-list" aria-label="Santé de l&#x27;équipage">([\s\S]*?)<\/ul>/)?.[1];
+    expect(sante?.match(/<li>/g)).toHaveLength(2);
+    expect(sante).toMatch(/Scorbut<\/[^>]+>(?:<[^>]+>)* — déclarée/);
+    expect(sante).toMatch(/Fièvre du Rongeur<\/[^>]+>(?:<[^>]+>)* — en incubation/);
+    expect(render('equipage')).not.toContain('Santé de l');
   });
 
   it('type sans facette navire : composant nul', () => {
     const notAShip = { ...vessel(), vehicleId: 'diligence' };
-    expect(renderToStaticMarkup(<ShipDossierView vessel={notAShip} party={[]} onClose={() => {}} />)).toBe('');
+    expect(renderToStaticMarkup(<ShipDossierView now={0} vessel={notAShip} party={[]} onClose={() => {}} />)).toBe('');
   });
 });

@@ -1,7 +1,7 @@
 // Rendu d'un générateur SOUS win32 (#1801) — module `node --import`, composé par la garde du rendu
-// sous win32 (`renduSousWin32` de `plateforme-win32.test.mjs`) devant `rendre-seul.mjs`, seul : ce
-// rendu se compare et ne se mesure pas, l'enregistreur de lectures n'y est pas. Il se pose AVANT
-// `tsx/esm`.
+// sous win32 (`rendusEnProcessus` de `scripts/corpus/docs/manual-docs-ratchet.test.mjs`) devant
+// `rendre-ensemble.mjs` ou `rendre-seul.mjs`, seul : ce rendu se compare et ne se mesure pas,
+// l'enregistreur de lectures n'y est pas. Il se pose AVANT `tsx/esm`.
 //
 // Ce que voit le code du dépôt : `node:path` = `path.win32` et `fileURLToPath` en graphie Windows
 // (`plateforme-win32-hooks.mjs`), `process.cwd()` sous le lecteur `C:`. Le code de `node_modules`,
@@ -148,7 +148,7 @@ for (const nom of ['exec', 'execSync']) {
 syncBuiltinESMExports()
 
 const racine = process.env.WFRP_PLATEFORME_RACINE
-if (!racine) throw new Error('plateforme-win32 : WFRP_PLATEFORME_RACINE absent — ce module se compose par `renduSousWin32` de scripts/corpus/docs/plateforme-win32.test.mjs')
+if (!racine) throw new Error('plateforme-win32 : WFRP_PLATEFORME_RACINE absent — ce module se compose par `rendusEnProcessus` de scripts/corpus/docs/manual-docs-ratchet.test.mjs')
 const depot = urlDuDepot(racine)
 const racineReelle = fs.realpathSync(racine)
 

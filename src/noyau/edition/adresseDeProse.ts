@@ -11,20 +11,17 @@
  */
 import type { ChapitreManifeste, Manifeste } from '../../data/source/chapitres';
 import {
-  MAX_FRAGMENTS, MIN_FRAGMENT, estErreur, estGraphieDeChapitre, fragmentBlocs, fragmentCellule, memeTexte, resoudreAdresse, scelle, stripSpans, tablesDeLaLigne, tablesOf,
+  MAX_FRAGMENTS, MIN_FRAGMENT, estErreur, estGraphieDeChapitre, fragmentBlocs, fragmentCellule, memeTexte, parseChapitre, resoudreAdresse, scelle, stripSpans, tablesDeLaLigne, tablesOf,
   type ChapitreParse, type CodeErreur, type DescRef, type ErreurResolution, type Fragment, type Section, type TableDeSection,
 } from '../../data/source/decoupe';
 import { estAdresseDeProse } from '../../data/schemas/grammaire/valeurs';
 import { coDescendre, estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
-import { estObjet } from '../../lib/objet.mjs';
+import { auChemin, estObjet } from '../../lib/objet.mjs';
 import type { ChoixDuContexte } from '../codex/editFields';
-import { gestesDeLaListe } from '../valeursNeuves';
+import type { Segment } from './formulaire';
 import { t } from '../../i18n';
-
-/** Un pas d'un chemin de donnée. */
-type Segment = string | number;
 
 /**
  * Ce que chaque code de refus du parseur veut dire À L'AUTEUR, et ce qu'il doit faire. La table est
@@ -62,7 +59,7 @@ export function libelleTable(t: TableDeSection, toutes: TableDeSection[]): strin
 
 /** Une section SANS titre est le PRÉAMBULE d'extraction (« Pages PDF 27-47 »), pas un passage du
  *  livre : elle se nomme comme tel et passe en fin de liste (`sectionsOrdonnees`). */
-export const libelleSection = (s: Section) => `${cleSection(s.slug, s.occ)} — ${s.title || t('ecran.editeur.adresse.preambule')}`;
+export const libelleSection = (s: Section) => `${cleSection(s.slug, s.occ)} — ${s.title || t('ecran.formulaire.adresse.preambule')}`;
 /** Sections TITRÉES d'abord, préambule en dernier — l'ordre du document est conservé dans chaque groupe. */
 export const sectionsOrdonnees = (l: Section[]): Section[] => [...l.filter((s) => s.title), ...l.filter((s) => !s.title)];
 
@@ -74,6 +71,33 @@ export const libelleChapitre = (c: ChapitreManifeste) => `${c.ch} — ${c.titre 
 export interface SourceDeLEdition {
   manifeste: Manifeste | null;
   chapitres: Readonly<Record<string, ChapitreParse | null>>;
+}
+
+/** Le `Source/` qu'une session d'édition tient de l'hôte : sa source (`SourceDeLEdition`) et le chapitre que l'hôte
+ *  charge, `null` sans chargement en cours (`avecLeChapitreDemande`). */
+export interface SourceServie extends SourceDeLEdition {
+  chapitreEnAttente: { book: string; ch: string } | null;
+}
+
+/** Le `Source/` d'index `manifeste` (`null` : l'hôte ne le sert pas), sans aucun chapitre chargé ni attendu. */
+export const sourceServie = (manifeste: Manifeste | null): SourceServie => ({ manifeste, chapitres: {}, chapitreEnAttente: null });
+
+/** La source `source` où l'issue du chargement du chapitre `ch` du livre `book` est reçue : son texte parsé
+ *  (`parseChapitre`), ou `null` s'il n'a pas pu se charger, plus rien d'attendu ; `source` elle-même si ce n'est pas le
+ *  chapitre qu'elle attend. */
+export function avecLeChapitreRecu(source: SourceServie, book: string, ch: string, texte: string | null): SourceServie {
+  const attendu = source.chapitreEnAttente;
+  if (attendu?.book !== book || attendu.ch !== ch) return source;
+  return { ...source, chapitreEnAttente: null, chapitres: { ...source.chapitres, [cleDuChapitre(book, ch)]: texte === null ? null : parseChapitre(texte) } };
+}
+
+/** La source `source`, le chapitre qu'elle attend posé si elle n'en attend aucun et que l'hôte la sert : celui de la
+ *  première des adresses `adresses` dont le chapitre est choisi et absent des chapitres reçus. Un échec de chargement
+ *  reste reçu (`null`) : il ne se redemande pas. */
+export function avecLeChapitreDemande(source: SourceServie, adresses: readonly Pick<DescRef, 'book' | 'ch'>[]): SourceServie {
+  if (source.chapitreEnAttente || !source.manifeste) return source;
+  const manquante = adresses.find((a) => estGraphieDeChapitre(a.ch) && !(cleDuChapitre(a.book, a.ch) in source.chapitres));
+  return manquante ? { ...source, chapitreEnAttente: { book: manquante.book, ch: manquante.ch } } : source;
 }
 
 /** Le nœud `noeud` d'un champ est-il celui d'une adresse de prose, à travers ses enveloppes (`ouverts`) ? */
@@ -102,10 +126,6 @@ export function adressesDe(schema: unknown, donnee: unknown): AdresseAuChemin[] 
   });
   return adresses;
 }
-
-/** La valeur de `o` au chemin `chemin`, `undefined` hors de lui. */
-const auChemin = (o: unknown, chemin: readonly Segment[]): unknown =>
-  chemin.reduce<unknown>((v, pas) => (estObjet(v) || Array.isArray(v) ? (v as Record<Segment, unknown>)[pas] : undefined), o);
 
 /** `o` où la valeur au chemin `[cle, ...reste]` vaut `v`. */
 function pose(o: unknown, [cle, ...reste]: readonly Segment[], v: unknown): unknown {
@@ -272,14 +292,6 @@ function choixDuFragment(chapitre: ChapitreParse, f: Fragment | undefined): Choi
   ];
 }
 
-/** Les fragments `parts` d'une adresse après chacun de leurs gestes (`gestesDeLaListe`) : retiré, monté, et, sur le
- *  chapitre chargé `chapitre`, chaque fragment neuf ajouté (`choixDuFragment`). */
-function choixDesFragments(chapitre: ChapitreParse | null | undefined, parts: readonly Fragment[]): ChoixDuContexte[] {
-  const { elements } = gestesDeLaListe(parts, undefined);
-  const ajouts = chapitre ? choixDuFragment(chapitre, undefined).map((c) => choix([...parts, c.valeur], c.libelle)) : [];
-  return [...ajouts, ...elements.flatMap(({ retirer, monter }) => [retirer, ...(monter ? [monter] : [])]).map((l) => choix(l, ''))];
-}
-
 /** Les slugs des sections adressables, chacun une fois, sous le libellé de sa première occurrence. */
 const choixDesSections = (chapitre: ChapitreParse): ChoixDuContexte[] =>
   sectionsAdressables(chapitre).filter((s, i, l) => l.findIndex((u) => u.slug === s.slug) === i).map((s) => choix(s.slug, libelleSection(s)));
@@ -310,7 +322,8 @@ function choixDeLaCellule(section: Section, f: Extract<Fragment, { kind: 'cellul
 /**
  * Les choix que l'adresse de prose `adresse` (`undefined` : absente) pose au chemin `reste` sous elle, sur la source
  * `source` ; `undefined` : ceux de son nœud. Absente, chaque livre servi, à composer ; son livre, chaque livre servi ;
- * son chapitre, chaque chapitre du livre ; sous ses fragments, rien sans chapitre chargé, sinon le fragment au rang
+ * son chapitre, chaque chapitre du livre ; ses fragments entiers, aucun (chacun s'écrit à son rang) ; sous ses
+ * fragments, rien sans chapitre chargé, sinon le fragment au rang
  * (`choixDuFragment`), sa section, son occurrence, ses bornes de blocs, et la ligne, la colonne et la table d'une
  * cellule (`choixDeLaCellule`). Un fragment choisi est bâti scellé (`fragmentBlocs`, `fragmentCellule`), l'écriture
  * le rescelle s'il change (`adressesScellees`).
@@ -322,9 +335,9 @@ export function choixDeLAdresse(source: SourceDeLEdition, adresse: DescRef | und
   if (cle === 'book' && rang === undefined) return livres().map(({ book, abbr }) => choix(book, abbr));
   if (cle === 'ch' && rang === undefined) return (source.manifeste?.[adresse.book]?.chapitres ?? []).map((c) => choix(c.ch, libelleChapitre(c)));
   if (cle !== 'parts' || plus.length) return undefined;
-  const chapitre = chapitreDeLAdresse(source, adresse);
-  if (rang === undefined) return choixDesFragments(chapitre, adresse.parts);
+  if (rang === undefined) return [];
   if (typeof rang !== 'number') return undefined;
+  const chapitre = chapitreDeLAdresse(source, adresse);
   if (!chapitre) return [];
   const f = adresse.parts[rang];
   if (champ === undefined) return choixDuFragment(chapitre, f);

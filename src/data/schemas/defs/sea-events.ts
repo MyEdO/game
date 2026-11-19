@@ -2,10 +2,10 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.83-129 */
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
-import { ecartsDeCouverture, effetSigneSchema, maisonSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { deDuParse, ecartsDeCouverture, effetSigneSchema, maisonSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
-import { parseDice, totalDuDe } from '../../../engine/dice';
-import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
+import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
+import { facesDuDe } from '../../../engine/tables';
 import { flowSchema } from '../grammaire/mecanique';
 
 export const file = 'sea-events.json';
@@ -37,6 +37,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   relache: z.literal(true).optional(),
   taillePortMax: z.number().int().min(1).optional(),
   consequence: flowSchema.optional(),
+  liaisonEquipage: z.string().min(1).optional(),
   maison: maisonSchema.optional(),
   source: sourceRefSchema,
 }), {
@@ -47,6 +48,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   relache: { label: 'Relâche à terre requise' },
   taillePortMax: { label: 'Taille de port maximale' },
   consequence: { label: 'Conséquence' },
+  liaisonEquipage: { label: 'Liaison du retour', texte: { regime: 'technique' } },
   maison: { label: 'Arbitrage maison' },
   source: { label: 'Source' },
 });
@@ -116,15 +118,23 @@ const doc = document(
     // patron `structure-criticals.ts`.
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
-        type Bande = { id?: string; min?: number | null; max?: number | null };
-        type Table = { die: string; entries: Bande[] };
+        type Bande = Partial<Pick<z.input<typeof seaEventDef>, 'id' | 'min' | 'max' | 'liaisonEquipage'>>;
+        type Table = { die: DiceSpec; entries: Bande[] };
         const d = v as { boardEvents?: Table; fastVoyage?: Table; portEvents?: Table; manann?: { portEventMod?: number } };
+        const bord = d.boardEvents?.entries ?? [];
+        for (const [i, evenement] of bord.entries()) {
+          if (evenement.liaisonEquipage === undefined) continue;
+          ctx.addIssue({
+            code: 'custom', path: ['boardEvents', 'entries', i, 'liaisonEquipage'],
+            message: 'La liaison de retour de l’équipage s’emploie dans un événement de port.',
+          });
+        }
         const modDePort = d.manann?.portEventMod ?? 0;
-        const deDePort = d.portEvents && parseDice(d.portEvents.die) ? deDeLaTableTiree(d.portEvents) : null;
+        const deDePort = d.portEvents ? deDuParse(d.portEvents) : null;
         const tables: [(string | number)[], string, Bande[], number | 'ouverte', number | 'ouverte'][] = [
-          [['boardEvents', 'entries'], "le jet d'Événement de bord", d.boardEvents?.entries ?? [], 'ouverte', 'ouverte'],
-          [['fastVoyage', 'entries'], `le ${d.fastVoyage?.die} du Voyage rapide`, d.fastVoyage?.entries ?? [], 'ouverte', 'ouverte'],
-          ...(deDePort ? [[['portEvents', 'entries'], `le ${d.portEvents!.die} de l'escale, Humeur de Manann comprise`, d.portEvents!.entries, totalDuDe(deDePort, deDePort.n) - modDePort, facesDuDe(deDePort) + modDePort] as [(string | number)[], string, Bande[], number, number]] : []),
+          [['boardEvents', 'entries'], "le jet d'Événement de bord", bord, 'ouverte', 'ouverte'],
+          [['fastVoyage', 'entries'], `le ${d.fastVoyage ? formatDice(d.fastVoyage.die) : ''} du Voyage rapide`, d.fastVoyage?.entries ?? [], 'ouverte', 'ouverte'],
+          ...(deDePort ? [[['portEvents', 'entries'], `le ${formatDice(deDePort)} de l'escale, Humeur de Manann comprise`, d.portEvents!.entries, totalDuDe(deDePort, deDePort.n) - modDePort, facesDuDe(deDePort) + modDePort] as [(string | number)[], string, Bande[], number, number]] : []),
         ];
         for (const [path, domaine, bandes, depuis, jusqua] of tables) {
           const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la bande « ${b.id} »`);

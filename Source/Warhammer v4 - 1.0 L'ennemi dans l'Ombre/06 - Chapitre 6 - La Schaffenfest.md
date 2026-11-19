@@ -230,7 +230,7 @@ Les aventuriers voient passer une patrouille de quatre hommes du Guet de la Scha
 
 Un ou plusieurs saltimbanques (Citadins) ont mis en place un spectacle improvisé et sont en train de quémander. Il s'agit en général de troupes d'acteurs, de mimes, de montreurs d'animaux, d'artistes de l'évasion, de cracheurs
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 #### **Vendeurs ambulants**
 

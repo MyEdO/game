@@ -19,6 +19,7 @@ import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
+import { itemCapabilitiesSchema } from './valeurs';
 import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
@@ -92,7 +93,7 @@ const NOMMES = [
   // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
-  'colombage|pierre|cloture',
+  'colombage|pierre|moellons|pierres-seches|porterie|cloture',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
@@ -121,6 +122,8 @@ const NOMMES = [
   'vue|ouie',
   'action|free|charge',
   'base|avancee',
+  // `modificateur` (`reglesOptionnelles.ts`) : la lecture signée d'une règle chiffrée, bonus tel quel, malus en négatif.
+  'bonus|malus',
   'capacite-de-combat|capacite-de-tir',
   // `charKeySchema` (#3606) : les 10 Caractéristiques, nommées par `CHAR_LABELS`.
   'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
@@ -138,8 +141,10 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal',
   'physique|mentale',
+  // `offreDAubergeSchema` (#4277) : les offres d'auberge d'un hébergement (LDB 66 l.12-16, l.28).
+  'commune|chambre|grande|repas',
   // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
   // Disponibilité (LDB 59) et récolte (ZI 13 l.286), en ids nommés.
   'commune|limitee|rare|exotique',
@@ -149,19 +154,32 @@ const NOMMES = [
   // `settlementSchema` (LDB 59 l.25-34) et `marketModeSchema` (#3606) : la taille d'agglomération d'un
   // marché et le mode de marché d'un marchand de scène.
   'village|ville|cite',
+  // La clé d'indice de Taille de lieu de `disponibilite.json` › `colonneParTaille` (MSRC 13 l.44-50, #4277).
+  '1|2|3|4',
   'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
+  'pietre|normale|grande',
   'prop|roof|relief|objet|couleur',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
   'cran|difficulte',
-  // `typeDePossessionSchema` (#3012) : le `type` d'une dotation de POSSESSION, bête ou véhicule.
+  // `typeDePossessionSchema` (#3012) : le `type` de la référence d'un effet `givePossession`, bête ou véhicule.
   'creature|vehicle',
+  // `typeDeDotationDePossessionSchema` (#4143) : le `type` d'une dotation de POSSESSION, bête, véhicule ou engin de siège.
+  'creature|vehicle|engin',
+  // `classeDeQualiteSchema` (#4110) : la classe de qualité d'une dotation dont les Atouts sont au choix (LDB 60 l.7 ; LDB 60 l.11).
+  'qualite|haute',
   // `difficultySchema` (#1921) : l'échelle canon des Difficultés (LDB 12 l.143-151, EDO App.2), nommée
   // par `DIFFICULTY_LABELS` ; `couvertDifficultySchema` en est le sous-univers de couvert (AA 10 l.28-51).
   'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
   'intermediaire|complexe|difficile|tresDifficile',
   'lame1m|escrime|lourde2m|hampe|lance_cav|fleau|parade|poings|arc|arbalete|arme_feu|fronde|jet|entraves|explosif|cornes',
+  // `depuisSchema` (`dispersion.ts`) : l'origine du décalage d'une rangée de Dispersion, LDB 14 l.142-151.
+  'lanceur|cible',
+  // `statutSchema.tier` (#4056) : l'Échelon d'un Statut (`ECHELONS_DE_STATUT`), LDB 08 l.9.
+  'bronze|argent|or',
+  // `issueDeReactionSchema` (`reaction-au-statut.ts`) : l'issue d'une rangée de Réaction au Statut, LDB 08 l.43-45.
+  'braver-le-statut|reactions-classiques|opinions-extremes',
   // `teneurSchema` (#1825 lot E) : ce que contiennent les chapitres d'un livre non couverts par une
   // fiche de l'Atlas — absente = livre de règles (`defs/books.ts`).
   'scenario|mixte',
@@ -236,6 +254,8 @@ const NOMMES = [
   'medicalAid|surgery|magic',
   // `refDEtatSchema` (`grammaire/mecanique.ts`, #3606 M2a2) : les marqueurs narratifs, réserve de la référence d'État.
   'petrifie',
+  // `signalDuPortSchema` (#4357) : le signal d'un port, phare ou clocher (MDG 13 l.333-351).
+  'phare|clocher',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
   // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.
@@ -246,8 +266,16 @@ const NOMMES = [
   'groupe|heros|navire|membreAuHasard|target|caster',
   // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
+  // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
+  Object.keys(itemCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
-  'personne|immeuble|titre|intangible',
+  'personne|bete|vehicule|immeuble|titre|intangible',
+  // `topUpAdvantage.amount` (`grammaire/mecanique.ts`, `ouReserve`) : le gabarit d'instance `INDICE_TEMPLATE`
+  // (`engine/flowCore`), réservé à côté de la formule et nommé « valeur de l'indice ».
+  '$indice',
+  // `cleDeTableDuDomaineSchema` (`defs/domains.ts`) : la clé de rôle d'une table d'un Domaine (`tables`), visée par
+  // `domainTable` d'une rangée de miscast, VDM 02 l.238.
+  'arcaneMark',
 ].sort();
 
 /**
@@ -271,15 +299,12 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'armyMight',
   'arriere|cote|contraire',
   'auberge|maison|camp',
-  'aucune|legeres|abondantes|tres-abondantes',
   'aucun|retard|quart-de-tour|demi-tour',
   'bete|serviteur|vehicule',
   'bete|vehicule-terrestre',
   'blessures|hemorragie|traumatisme|chirurgie',
   'bout-portant|courte|moyenne|longue|extreme',
   'brasPrincipal|random',
-  'calme-plat|legere-brise|brise-fraiche|vent-modere|vent-violent|violente-tempete',
-  'caniculaire|chaude|mediane|froide|glaciale',
   'cargaison|greement|coque|avirons|equipements|gouvernail|superstructure',
   'chaleur|froid',
   'classe|relais|compagnie|peage|patrouille',
@@ -292,7 +317,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'declare|tirage',
   'deduite-du-set|geste-d-etat|grille|gouttiere-arche|selecteur-de-sets|coin-de-tour|bandeau-de-phase|interlude|pastille-etat|pastille-entite|frise|geste-secondaire',
   'defense|attaque|lesDeux',
-  'degage|brume|brouillard|puree-de-pois',
   'dominant|nord|sud|ouest|est',
   'douleur|mobilite|structurel|sensoriel|maladie|faim|magique|etat|ivresse|intrinseque',
   'dr|dr-ecrete|toute-la-reserve|points-de-la-ligne|points-de-la-ligne-suivante|chiffres-du-de|gain-au-choix|aucun-gain|termine-le-passage',
@@ -329,7 +353,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'navire|navire-fluvial',
   'nuit|voyage|meteo|flux|activite|combat',
   'none|half|crawl',
-  'normale|pietre',
   'oppose|etendu',
   'groupe|ennemis',
   'groupe|heros',
@@ -347,7 +370,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'ship-criticals|river-criticals',
   'sort|rituel',
   'source|group|any',
-  'sort|priere|talent|trait|objet|qualite|maladie|symptome|mutation|etat|psychologie|manoeuvre|creature|activite|regle|jeuDeTaverne|imparfaiteMineure|imparfaiteMajeure|imparfaiteMineureVdm|imparfaiteMajeureVdm|colereDesDieux',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',

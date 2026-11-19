@@ -13,9 +13,9 @@ import { mountProfileForCreature } from './mountTravel';
 import type { MountInjury } from './mountTravel';
 import { mountIncidentEffects } from './travelTables';
 import type { CrewHire, ShipMoraleState } from './crewMorale';
-import type { VivresDeCale } from './provisions';
+import type { LotDeVivres } from './provisions';
 import type { ManannMood, MeteoImposeeDuNavire, ModificateurDuNavire } from './seaVoyage';
-import { findVehicleById, findCreatureById, tailleDuProfil } from '../data';
+import { findVehicleById, findCreatureById, findTrappingById, tailleDuProfil } from '../data';
 import { SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
 
 export type PossessionLocation =
@@ -43,13 +43,14 @@ interface PossessionCommon {
 export interface NavalPossessionState {
   morale: ShipMoraleState;
   fouling?: { level: number; lastWeek: number };
+  reparationTemporaire?: true;
   manann?: ManannMood;
   saboteurDR?: number;
   criticals?: string[];
   modificateurs?: ModificateurDuNavire[];
   meteosImposees?: MeteoImposeeDuNavire[];
   waterLitres?: number;
-  provisions?: VivresDeCale;
+  provisions?: LotDeVivres[];
   lastVoyageMilles?: number;
   crewLost?: number;
   wagesOwed?: number;
@@ -96,6 +97,11 @@ export type Possession = PossessionCommon &
         nature: 'immeuble';
         buildingId: string;
       }
+    | {
+        // Engin de siège possédé, servi en poste, jamais un objet de sac (#4143). AA 02 l.335-339
+        nature: 'engin';
+        trappingId: string; // trappings.json, sous-liste ENGINS_DE_SIEGE
+      }
   );
 
 /** Distribution GÉNÉRIQUE (`U` = type param NU, seule forme que TS distribue réellement sur une union
@@ -123,6 +129,8 @@ export function possessionCapacity(p: Possession): number | undefined {
       return findVehicleById(p.vehicleId)?.ship?.capacity;
     case 'immeuble':
       return undefined; // pas de capacité de bât (T4, #356)
+    case 'engin':
+      return undefined;
   }
 }
 
@@ -163,6 +171,8 @@ export function possessionLabel(p: Possession): string {
       return findVehicleById(p.vehicleId)?.label ?? p.vehicleId;
     case 'immeuble':
       return p.buildingId; // catalogue immeuble = T4 (#356), pas encore de label
+    case 'engin':
+      return findTrappingById(p.trappingId)?.label ?? p.trappingId;
   }
 }
 
@@ -174,7 +184,8 @@ function livingSize(ref: LivingRef): SizeCategory {
 
 /** Poids PROPRE d'une possession (hors items/cargo/embarquées) — véhicule/navire : `enc` du catalogue
  *  (`vehicles.json`, LDB 70/MDG 12) ; bête/serviteur : Enc qu'occupe un ÊTRE selon sa Taille à bord
- *  (`SIZE_SHIPBOARD_ENC`, MDG 12 l.25-33) ; immeuble : 0 (jamais transporté comme fret). */
+ *  (`SIZE_SHIPBOARD_ENC`, MDG 12 l.25-33) ; engin : `enc` numérique de `trappings.json` (AA 10 l.175-193),
+ *  0 sans lui ; immeuble : 0 (jamais transporté comme fret). */
 function ownEnc(p: Possession): number {
   switch (p.nature) {
     case 'vehicule':
@@ -185,6 +196,10 @@ function ownEnc(p: Possession): number {
       return SIZE_SHIPBOARD_ENC[livingSize(p.ref)];
     case 'immeuble':
       return 0;
+    case 'engin': {
+      const enc = findTrappingById(p.trappingId)?.enc;
+      return typeof enc === 'number' ? enc : 0;
+    }
   }
 }
 

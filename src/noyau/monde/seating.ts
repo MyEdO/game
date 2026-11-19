@@ -21,7 +21,7 @@
  * déclaré d'un meuble voisin posait deux corps sur la même case).
  *
  * ATTEIGNABLE, pas seulement marchable : l'abord d'une place est une case d'où l'on s'assoit, donc
- * une case voisine du SIÈGE qu'aucune CLOISON n'en sépare (`abordsDuSiege` — `isWalkable` pour le
+ * une case voisine du SIÈGE qu'aucune CLOISON n'en sépare (`abordsDuSiege` — `solPraticable` pour le
  * terrain, l'empreinte des décors solides et les cases effondrées ; `wallBetween` pour les arêtes
  * murées et les portes). Un abord marchable derrière un mur est dans une AUTRE pièce : personne n'y
  * prendra jamais ce siège. Une place dont AUCUNE case voisine du siège n'est atteignable est la
@@ -38,7 +38,7 @@ import { findPropById } from '../../data';
 import { caseDe, cransDepuisCapIdentite, placesLocalesDuProp } from '../../data/props.types';
 import { DIR8_DELTA, DIR8_ORDER, rotateDir8, type Dir8 } from '../../geometry/dir8';
 import { PARTY_MAX } from './combatants';
-import { isWalkable, sceneMetresPerTile, wallBetween, type Scene, type SceneEntity } from './scene';
+import { solPraticable, sceneMetresPerTile, wallBetween, type Scene, type SceneEntity } from './scene';
 import { memoByRef } from './sceneMemo';
 import type { Pt } from './path';
 import { piedDuDecor } from './poseDuDecor';
@@ -194,11 +194,11 @@ function cloisonEntre(scene: Scene, a: { x: number; y: number }, b: { x: number;
  */
 function abordsDuSiege(scene: Scene, siege: { x: number; y: number }, z: number): Set<string> {
   const out = new Set<string>();
-  if (isWalkable(scene, siege.x, siege.y, z)) out.add(cleCase(siege, z));
+  if (solPraticable(scene, siege.x, siege.y, z)) out.add(cleCase(siege, z));
   for (const dir of DIR8_ORDER) {
     const { gx, gy } = DIR8_DELTA[dir];
     const candidate = { x: siege.x + gx, y: siege.y + gy };
-    if (isWalkable(scene, candidate.x, candidate.y, z) && !cloisonEntre(scene, siege, candidate, z))
+    if (solPraticable(scene, candidate.x, candidate.y, z) && !cloisonEntre(scene, siege, candidate, z))
       out.add(cleCase(candidate, z));
   }
   return out;

@@ -269,7 +269,7 @@ Une patrouille de la Garde arrive dans les 5-10 minutes après l'altercation et 
 Si les voyous ont pu s'échapper, le groupe pourrait bien se faire surprendre quelques jours plus tard. Avec quatre complices, Antonia et Bruno leur tendront une embuscade dans une allée sombre. Tous les voyous portent alors des masques. À ce moment-là de l'aventure, il se pourrait que les Personnages soient plongés au cœur de l'intrigue principale, et s'imaginer que l'attaque vient d'ailleurs.
 
 
-### **Les gamins des rues**
+### <span id="page-66-0" data-folio="64"></span>**Les gamins des rues**
 
 V
 
@@ -639,7 +639,7 @@ Au Collège royal de Musique Ce Marktag, à deux sons de cloches après Midi & c
 Elle sera suivie d'une exposition de minéraux inspirants & d'un récital de vieilles rancunes sacrées Sur réservation uniquement
 
 
-|           |           | LES JARDINS ROYAUX                              |
+<span id="page-74-0" data-folio="72"></span>|           |           | LES JARDINS ROYAUX                              |
 |-----------|-----------|-------------------------------------------------|
 | Jour      | Heure     | Spectacle                                       |
 | Wellentag | 14h – 16h | Exhibition de gymnastes elfes                   |

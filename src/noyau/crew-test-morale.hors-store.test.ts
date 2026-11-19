@@ -43,7 +43,7 @@ describe('Rude épreuve : un Test d’équipage de VOYAGE, jamais une action de 
       party: [cook()], facing: { ship: 'N' },
     });
     const s = banc.getState();
-    const offres = offresDeLActif({ active: s.battle!.combatants[0], battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s });
+    const offres = offresDeLActif({ scene: s.scene, active: s.battle!.combatants[0], battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s });
     expect(offres.length, 'le navire n’a aucune offre').toBeGreaterThan(0);
     expect(offres.filter((o) => o.def.rule?.id === 'test-equipage-rude-epreuve').map((o) => o.actionId)).toEqual([]);
   });

@@ -28,6 +28,7 @@ import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import type { GenreDEtape } from './tablesPosees';
 import { tablesDuJeu } from './tablesDuJeu';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { fixtureText } from '../i18n/fixtureText';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -169,7 +170,7 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
 });
 
 describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () => {
-  const decl = { kind: 'peur' as const, sourceId: 'goule', sourceName: 'la Goule', indice: 1 };
+  const decl = { kind: 'peur' as const, sourceId: 'goule', sourceName: fixtureText('la Goule'), indice: 1 };
   const bande = (cle: 'psychologieDeRencontre' | 'psychologieDeCombat'): CascadeStep => {
     const champ = cle === 'psychologieDeRencontre' ? 'psychologieDeRencontre' : 'psychologieDeCombat';
     const hero = banc.getState().party[0];

@@ -2,7 +2,29 @@ import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, idDuCorps, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, dupliquerLEntite, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
+import {
+  resizeGrid,
+  editEntity,
+  TypeNonNomme,
+  IdentiteNonPatchable,
+  type Pt,
+  type ProjectScenes,
+  deleteSel,
+  dupliquerLEntite,
+  nudgeSel,
+  pasteEntity,
+  addLayer,
+  removeLayer,
+  addArchitectureBody,
+  addStoreyAbove,
+  addArchitecturePart,
+  addBuildingMass,
+  addProjectScene,
+  duplicateProjectScene,
+  deleteProjectScene,
+  switchProjectScene,
+  poseBlocsAvances,
+} from '../../noyau/sceneEdit';
 import { placeStairFlight } from '../../noyau/stairFlight';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../../noyau/validateScene';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../../noyau/planDefects';
@@ -426,7 +448,7 @@ export function Editor({
     const active = p.scenes[rang];
     const apres = p.scenes.slice(rang + 1);
     const memes = (a: Scene[], b: Scene[]) => a.length === b.length && a.every((s, i) => s === b[i]);
-    if (renommage) reecrireHistorique((s) => renommeRef({ scenes: [s] }, renommage.cible, renommage.nouveau).scenes[0]);
+    if (renommage) reecrireHistorique((s) => renommeRef({ scenes: [s] }, renommage.cible, renommage.nouveau, []).scenes[0]);
     if (active !== scene) setSceneNoHistory(active);
     if (!memes(avant, voisines.avant) || !memes(apres, voisines.apres)) setVoisines({ avant, apres });
     if (p.worldMap !== worldMap) setWorldMap(p.worldMap);

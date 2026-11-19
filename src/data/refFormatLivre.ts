@@ -13,7 +13,23 @@
  * (« Savoir (Zorglub) » persiste « Zorglub »), faute d'id à désigner. Doctrine « toute LOGIQUE est
  * keyée par id STABLE » (AGENTS.md).
  */
-import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, qualityIdByLabel, specCatalogOf, specIdByLabel, specLabel, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from './index';
+import {
+  byId,
+  caracDuSigle,
+  findSkill,
+  findTalent,
+  findTalentById,
+  findTraitById,
+  qualityIdByLabel,
+  specCatalogOf,
+  specIdByLabel,
+  specLabel,
+  traitIdByLabel,
+  emplacementsDesPiecesDuCatalogue,
+  type SkillRef,
+  type TalentRef,
+  type TraitData,
+} from './index';
 import { ARG_JOKER, traitAdmet } from './schemas/grammaire/reference';
 import { specAuCatalogue } from './schemas/grammaire/ref';
 import { slugId } from './slug';
@@ -218,9 +234,10 @@ export function relireTraits(texts: readonly string[], avant: readonly TraitPose
 
 /** Sépare un éventuel Indice de fin (« X 3 » / « X (3) » / « X (1A) ») du libellé. L'UNITÉ qui suit la valeur
  *  (`QualityData.indice.unite`, rendue par `qualityRefLabel`, `AA 08 l.136` « Taillade (1A) ») est absorbée :
- *  sans ça, un aller-retour prose→structure perdrait l'Indice de Taillade. */
+ *  sans ça, un aller-retour prose→structure perdrait l'Indice de Taillade. Une majoration (« X +1 », munition seule,
+ *  #4346) n'est pas un Indice : le libellé reste entier, et `parseQuality` la refuse. */
 export function splitIndice(raw: string): { label: string; indice?: number } {
-  const m = raw.trim().match(/^(.*?)\s*\(?(\d+)\s*[A-Za-zÀ-ÿ]*\)?\s*$/);
+  const m = raw.trim().match(/^(.*?[^\s+])\s*\(?(\d+)\s*[A-Za-zÀ-ÿ]*\)?\s*$/);
   if (m && m[2] != null && m[1].trim()) return { label: m[1].trim(), indice: parseInt(m[2], 10) };
   return { label: raw.trim() };
 }

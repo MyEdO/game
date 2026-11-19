@@ -190,13 +190,13 @@ describe('Combat monté AUTHORÉ — `mount` / `ridesEntityId` au spawn (LDB 14 
     expect(cavalier.mountId).toBeUndefined();
   });
 
-  it('`ridesEntityId` vers une entité ABSENTE : `validateScene` nomme la monture inexistante, et le spawn rend les deux combattants sans appairage', () => {
+  it('`ridesEntityId` vers une entité ABSENTE : `validateScene` la dit absente des montures de la rencontre, et le spawn rend les deux combattants sans appairage', () => {
     const { scene, montureId, cavalierId } = cavalerieScene(false);
     const membres = scene.encounters[0].members!;
-    membres[1] = { ...membres[1], ridesEntityId: 'monture-absente' };
+    membres[1] = { ...membres[1], ridesEntityId: { id: 'monture-absente' } };
 
     const fautes = validateScene([scene]).filter((w) => w.scope === 'encounter' && w.refId === ENC_CAVALERIE);
-    expect(fautes.some((f) => f.level === 'error' && f.message.includes('monture-absente'))).toBe(true);
+    expect(fautes.some((f) => f.level === 'error' && f.message.includes('« monture-absente » est absent du catalogue des montures de la rencontre'))).toBe(true);
 
     const battle = startCavalerie(scene);
     const monture = battle.combatants.find((c) => c.id === montureId)!;
@@ -204,5 +204,25 @@ describe('Combat monté AUTHORÉ — `mount` / `ridesEntityId` au spawn (LDB 14 
     expect(monture.riderId).toBeUndefined();
     expect(cavalier.mountId).toBeUndefined();
     expect(monture.mountable).toBe(true); // `mount: true` du membre tient : seul l'appairage manque
+  });
+});
+
+describe('Barde authorée au cavalier : le couple pré-monté la passe à sa monture (AA 09 l.184 ; #4135)', () => {
+  it('la barde du cavalier, portée par le demigriffon, s’ajoute à son Trait Armure', () => {
+    const enc = buildEncounter({
+      id: ENC_CAVALERIE,
+      enemies: [
+        { creature: { id: 'demigriffon' }, pos: { x: 16, y: 11 }, mount: true },
+        { creature: { id: 'mutant' }, pos: { x: 19, y: 11 }, rides: 0, inventaire: { barde: false } },
+      ],
+    });
+    const scene: Scene = { ...testScene(), id: 'test-barde', entities: [...testScene().entities.filter((e) => e.kind === 'heroStart'), ...enc.entities], encounters: [enc.encounter] };
+    const battle = startCavalerie(scene);
+
+    const monture = battle.combatants.find((c) => c.id === enc.entities[0].id)!;
+    const cavalier = battle.combatants.find((c) => c.id === enc.entities[1].id)!;
+    expect(monture.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(monture.items?.map((i) => [i.trappingId, i.equipped])).toEqual([['barde', true]]);
+    expect(cavalier.items).toEqual([]);
   });
 });

@@ -79,7 +79,7 @@ describe('#990 site 1 — défense réactive : l’attaque figée est masquée j
     const enemy = mk('e', 'ennemi', [sword]);
     const hero = mk('h', 'heros', [sword]);
     putBattle([enemy, hero], ['e', 'h']);
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
+    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero, enemy.weapons[0])).toBe(true);
     const atk = useGame.getState().pendingDefense!.atk;
 
     act(() => { root.render(<CascadeBody />); });

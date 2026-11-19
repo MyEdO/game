@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { evaluateTest } from '../engine/tests';
 import { seedBattleRng } from './battleRng';
@@ -134,7 +135,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   protection: { make: (win) => ({ battle: arena(), pendingWard: { attackerId: 'A', result: win ? WIN : LOSE } }) },
   // ── Tests numériques « jet propre » (soin/rechargement/évaluation/corruption/activité/test) ──
   rechargement: { make: (win) => ({ battle: arena(), pendingReload: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
-  mainEnsanglantee: { make: (win) => ({ battle: arena(), pendingHandGate: { attackerId: 'A', actorName: 'A', hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: win ? 8 : 95, target: 60, sl: win ? 3 : -5, success: win, pa: { attackerId: 'A', targetId: 'B', location: null, result: null }, title: 'Attaque', icon: 'action/attaquer' } }) },
+  mainEnsanglantee: { make: (win) => ({ battle: arena(), pendingHandGate: { attackerId: 'A', hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: win ? 8 : 95, target: 60, sl: win ? 3 : -5, success: win, pa: { attackerId: 'A', targetId: 'B', location: null, result: null }, title: 'Attaque', icon: 'action/attaquer' } }) },
   soins: { make: (win) => ({ battle: arena(), pendingHeal: { healerId: 'A', mode: 'first-aid', test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   chirurgie: { make: (win) => ({ battle: arena(), pendingSurgery: { healerId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   evaluation: { make: (win) => ({ battle: arena(), pendingAppraise: { actorId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
@@ -145,7 +146,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
     // métier ne l'est pas. L'issue canonique doit rester celle du d100 (`LDB 12 l.11`).
     composite: () => ({ battle: arena(), pendingTest: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 3, roll: 8, sl: 1, success: false } }),
   },
-  fuiteDeVapeur: { make: (win) => ({ battle: arena(), pendingSteamSave: { actorId: 'A', actorName: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, scaldOps: [{ op: 'wounds', amount: 1, ignoreAP: true }], roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }) },
+  fuiteDeVapeur: { make: (win) => ({ battle: arena(), pendingSteamSave: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, scaldOps: [{ op: 'wounds', amount: 1, ignoreAP: true }], roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }) },
   activite: { make: (win) => ({ battle: arena(), pendingActivity: { heroId: 'A', kind: 'catalog', label: 'x', skillLabel: 'x', skillValue: 40, difficulty: 'intermediaire', mod: 0, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   chansonDeMarin: { make: (win) => ({ battle: arena(), pendingShanty: { singerId: 'A', shantyId: 'x', result: win ? WIN : LOSE } }) },
   // ── Opposés « joueur vs figé » avec re-résolution dédiée (récupération / marchandage) ──
@@ -182,7 +183,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
     battle: arena(),
     pendingCascade: cascadeDeTest([{
       id: 'b1', kind: 'testDeclencheEnBande', aggregate: 'none',
-      meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: 'B' } },
+      meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: fixtureText('B') } },
       participants: [{ id: 'A', interactive: true, base: 40, target: 40, result: { roll: 8, target: 40, sl: win ? 9 : 1, success: win } }],
     }], { purpose: 'combat' }),
   }) },

@@ -1,22 +1,23 @@
 /** Types partagés du moteur de règles WFRP v4. */
-import type { IconId } from '../data/icons';
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
 import { t } from '../i18n';
 import type { EntreeDe } from '../data/datasets';
 import type * as structuresDef from '../data/schemas/defs/structures';
+import type * as vehiclesDef from '../data/schemas/defs/vehicles';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
-import type { Money } from './money';
 import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { CibleEtendue, NatureDeMention, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
+import type { CibleEtendue, NatureDeMention } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
+import type { RegimeDeBord } from './disease';
 import type { ActionId, NightStakeId } from '../data/index';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
 /**
@@ -56,19 +57,7 @@ export type ReachValue = (typeof REACH_LABELS)[ReachId] | typeof REACH_VARIABLE;
  *  l'exception qui invitait l'imitation) : l'affichage (abréviation/libellé) vient de
  *  `characteristics.json`/`CHAR_LABELS`, jamais du littéral de la clé — une clé ne se rend JAMAIS
  *  telle quelle à l'écran. */
-export type CharKey =
-  | 'capacite-de-combat'
-  | 'capacite-de-tir'
-  | 'force'
-  | 'endurance'
-  | 'initiative'
-  | 'agilite'
-  | 'dexterite'
-  | 'intelligence'
-  | 'force-mentale'
-  | 'sociabilite';
-
-export const CHAR_KEYS: CharKey[] = [
+export const CHAR_KEYS = [
   'capacite-de-combat',
   'capacite-de-tir',
   'force',
@@ -79,7 +68,10 @@ export const CHAR_KEYS: CharKey[] = [
   'intelligence',
   'force-mentale',
   'sociabilite',
-];
+] as const satisfies readonly IdsParEspace['characteristics.json'][];
+export type CharKey = (typeof CHAR_KEYS)[number];
+/** `k` est-il l'une des 10 Caractéristiques (`CHAR_KEYS`) ? */
+export const estCharKey = (k: string): k is CharKey => (CHAR_KEYS as readonly string[]).includes(k);
 
 // Libellés FR dérivés du catalogue i18n (source unique des textes — plan évacué → #320).
 export const CHAR_LABELS: Record<CharKey, string> = {
@@ -170,9 +162,6 @@ export const APPRAISED_AVAILABILITIES = ['rare', 'exotique'] as const satisfies 
  *  attelage ; fleuve/mer : voiles/avirons/coque). EDOC 7 (terrestre), MoR ch.5 (fluvial), MDG 13 (maritime). */
 export type Propulsion = 'terrestre' | 'fluvial' | 'maritime';
 
-/** Classe de voyage payant d'un véhicule : prix RAW en sous (PA) par km ET par passager (LDB 51 l.180-189). */
-export interface VehicleTravelClass { id: string; label: string; brassPerKm: number; }
-
 /**
  * Véhicule / embarcation à coque — FOYER UNIQUE de la donnée (`src/data/vehicles.json`), data-driven.
  * Le même enregistrement porte TROIS facettes indépendantes (fin des doublons transports/trappings) :
@@ -190,65 +179,7 @@ export interface VehicleTravelClass { id: string; label: string; brassPerKm: num
  *  (résolu pour l'affichage via `findNavalTrait(id)?.label`). Même esprit que `TraitInstance`, registre distinct. */
 export type NavalTraitRef = import('zod').z.input<typeof import('../data/schemas/grammaire/reference').navalTraitRefSchema>;
 
-export interface VehicleData {
-  /** id STABLE (slug) — cible de `TravelMode`/réfs de scène. */
-  id: string;
-  type: 'vehicles';
-  label: string;
-  /** Pictogramme d'affichage (registre `src/data/icons/`, famille `voyage/*`) — donnée, pas de ternaire
-   *  par id en dur. */
-  icon?: IconId;
-  source?: { book: string; page: number };
-  /** Encombrement de l'objet véhicule (LDB 61) — généralement `null` (on ne porte pas une diligence) ;
-   *  un coracle se porte (`enc` chiffré). */
-  enc?: number | null;
-  /** Chargement (EDOC 07 l.233-243) : Points d'Enc que la section bagages contient — véhicules
-   *  TERRESTRES uniquement (charrette 25, chariot 30, diligence 80). Capacité de porteur (`CargoCarrier`,
-   *  engine/cargo.ts) ; champ parallèle à `ship.capacity` (Contenance navale), même concept. */
-  chargement?: number;
-  /** Description (LDB) — reprise sur l'`ItemInstance` à l'achat/possession. */
-  desc?: string;
-  /** Facette ACHAT (marché / possession de carrière). `availability` absent pour les navires (MDG ne
-   *  donne pas de Disponibilité). */
-  purchase?: { price: Money; availability?: Availability };
-  /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `movement` = Déplacement du véhicule (km/h).
-   *  `medium` = milieu du TRAJET PAYÉ — INDÉPENDANT de `hull.propulsion` (un véhicule peut être
-   *  bi-milieu : la Barge navigue le fleuve, LDB 51 l.185/197, tout en figurant à la table navale MDG 12
-   *  avec `propulsion:'maritime'` — jamais l'un dérivé de l'autre) ; absent = terrestre implicite.
-   *  `draft` = ATTELAGE (bêtes qui tirent, réf `montures.json`) — requis pour l'allure forcée EDOC 07
-   *  l.229 (« pas de course ») ; `count` = nombre de bêtes (Tests de Résistance sur échec du conducteur). */
-  travel?: { movement: number; medium?: Propulsion; draft?: { montureId: string; count: number }; classes: VehicleTravelClass[] };
-  /** Facette COQUE (entité à PV). `char.endurance` = Endurance, `char.B` = Blessures. `bodyShape` = 'vehicule'.
-   *  `locationTable`/`criticalTable` = réfs de tables data-driven (branchées aux dalles fluvial/maritime). */
-  hull?: {
-    char: { endurance: number; B: number };
-    bodyShape: 'vehicule';
-    propulsion: Propulsion;
-    traits?: { id: string; value?: number; arg?: string }[];
-    locationTable?: string | null;
-    criticalTable?: string | null;
-  };
-  /** Facette NAVIRE (profil naval MDG 12) : caractéristiques de navigation/équipage du vaisseau.
-   *  `manoeuvre` = modificateur de DR (Man) ; `sail`/`oars` = Mouvement (M) + équipage minimum (É) ;
-   *  `lengthM` = Taille (longueur, m) ; `capacity` = Contenance ; `traits` = Traits de construction (réfs par id). */
-  ship?: {
-    crew: number;
-    manoeuvre: number;
-    lengthM: number;
-    /** EMPREINTE du navire sur la grille (côté N×N), AUTORÉE par navire (≈ sa longueur à l'échelle Mer : ~10 m → 1,
-     *  ~20 m → 2, ~30 m → 3, ~40 m+ → 4). Posée sur `c.footprint` par `vehicleCombatant`. DÉCOUPLÉE de la Taille
-     *  créature : un navire occupe ses cases (grille + rendu) sans être une créature (aucune Peur de Taille). */
-    footprint?: number;
-    capacity: number;
-    sail?: ProfilDeVoile;
-    oars?: ProfilDePropulsion;
-    traits: NavalTraitRef[];
-  };
-  /** Ponts d'un navire qu'on visite (#3686) : les cartes box-drawing de ses ponts, du plus bas au plus haut
-   *  (`MOTS_DES_PONTS`, `src/data/schemas/grammaire/carte-ascii.ts`), et la hauteur (m, depuis la flottaison) de
-   *  chaque glyphe de case (`defautsDesPonts`). */
-  ponts?: [cartes: string[], hauteurs: Record<string, number>];
-}
+export type VehicleData = EntreeDe<typeof vehiclesDef>;
 
 /**
  * Structure DESTRUCTIBLE de siège (ADE II 8 « Le théâtre de la guerre », table « Barricades et
@@ -303,6 +234,8 @@ export type { ArmourBypass };
  *  `damageString` ; remplace la chaîne « +BF+4 » re-parsée par regex au runtime. */
 export type WeaponDamageSpec =
   | { literal: string }
+  /** Dégâts « – » imprimés : une touche sans prise (`SansPrise` 'sans-degats'). LDB 62 l.76 ; AA 10 l.192 ; #4202. */
+  | { aucun: true }
   | { plusBF: boolean; flat: number; bare?: true; bfInclus?: true };
 
 /** Portée d'arme à distance (LDB 62) : `number` = mètres FIXES (arc/arbalète/arme à feu) ; `{ bf }` =
@@ -327,13 +260,20 @@ export type RangeBandId = RangeeDe<'portee-d-une-arme'>;
  *  registre + Indice éventuel) — miroir runtime de `QualityRef` de la donnée, sans l'aplatissement en
  *  chaîne « id value » re-parsée par regex. `value` = Indice (Solide N, Recharge N, Protectrice N) OU
  *  magnitude d'une pénalité de port (`en-discretion` −10). Affichage dérivé par `qualityRefLabel`. */
-export interface QualityInstance {
+export type QualityInstance = {
   /** id STABLE du registre de qualités (`QualityData.id` / `QualityRef.id`) — jamais un libellé FR. */
   id: string;
   /** Indice / magnitude éventuelle (Solide 3, Recharge 2, Taillade 1A — `AA 08 l.87` —, « -10% en
    *  Discrétion » → −10). L'UNITÉ d'affichage vit dans le registre (`QualityData.indice.unite`). */
   value?: number;
-}
+  majoration?: never;
+} | {
+  id: string;
+  /** Qualité MAJORÉE d'une munition (« Explosion +1 ») : s'ajoute à l'Indice de la même qualité de l'arme à la fusion
+   *  `weaponWithAmmo`, qui ne la transmet jamais. #4346 */
+  majoration: number;
+  value?: never;
+};
 
 /** Les côtés de montage d'une pièce d'artillerie sur un navire (`FireArc`), dans l'ordre horaire depuis la proue. */
 export const FIRE_ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
@@ -361,7 +301,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   subType?: string;
   /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
    *  poudre-noire, AA 10 l.178-193) quand `subType` porte la catégorie de catalogue (« armes-de-siege »).
-   *  Résolu par `acceptableSpecs` (`weaponGroup ?? subType`) → Spé de tir du chef ET décompte d'équipage
+   *  Résolu par `acceptableSpecs` (`groupeDeLArme`) → Spé de tir du chef ET décompte d'équipage
    *  (servants à la bonne Projectiles, AA 10 l.230). Absent = `subType` EST le Groupe (armes normales). */
   weaponGroup?: string;
   /** Bloque la fusion des qualités de FAMILLE du Groupe (`resolveQualities`, `WeaponGroupData.qualities`)
@@ -374,6 +314,9 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  MÊME vocabulaire que le `passive` d'un Atout/Défaut du registre, lus au MÊME point (`weaponPassiveOps`,
    *  engine/qualities/dispatch). VDM 05 Défaut : « −1 DR à tous les Tests pour attaquer avec elle ». */
   passive?: import('./ops').OpPassive[];
+  /** Passifs d'ARME portés en DONNÉE par le catalogue (`TrappingData.passifDArme`), lus au MÊME point
+   *  (`weaponPassiveOps`). ZI 13 l.199 */
+  passifDArme?: import('./ops').OpPassive[];
   /** Qualités NEUTRALISÉES sur cette arme par id (altération `augmentWeapon.removeQualities`) — retirées
    *  APRÈS la fusion des qualités de FAMILLE (`resolveQualities`), qui sont sur le même plan RAW. */
   removedQualities?: string[];
@@ -382,13 +325,14 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  liste d'ids en dur. VDM 05 *Défaut* : « Tous les Atouts de l'arme disparaissent ». Le nom du champ
    *  d'op reste `removeType` : il est PERSISTÉ en donnée, son rename appartient à #1468 (L1c). */
   removedTypes?: ('atout' | 'defaut')[];
-  /** `id` de munition REPRÉSENTATIVE d'une arme de siège (la première de `TrappingData.munitions`) — discrimine la
-   *  bonne famille de munition (pierrier/canon/baliste/mortier) là où `subType` seul ne le fait pas. Lu par
-   *  `ammoFamilyLabel` pour le hint joueur. */
+  /** `id` de munition REPRÉSENTATIVE de l'arme (la première de `TrappingData.munitions`), là où `subType` seul ne
+   *  la nomme pas. Lu par `ammoFamilyLabel` pour le hint joueur. */
   defaultAmmo?: string;
-  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN SEUL servant
-   *  valide → l'arme perd TOUS ses Atouts (conserve ses Défauts). Lu par `crewedFireWeapon`. Absent = non. */
-  soloSimple?: boolean;
+  /** Qualités que l'arme perd tirée sans équipe (`armeSansEquipe`, `WeaponContext.sansEquipe`). AA 10 l.148 ;
+   *  ZI 13 l.193 */
+  perteSansEquipe?: PerteSansEquipe;
+  /** Bouclier que tient le partenaire au contact du tireur de cette arme (`bouclierDuBinome`). ZI 13 l.193 ; #4202 */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169-171) : peut viser une CASE au sol
    *  (pas forcément un combattant) ; son Atout Explosion/Tir de zone frappe le rayon autour de la case. Lu
    *  par `availableAttacks` (ciblage de case vs combattant). Absent = tir DIRECT (canon, baliste, pierrier). */
@@ -506,6 +450,10 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
  *  arme invoquée — Épée ardente de Rhuin). PORTÉ PAR L'OBJET (`ItemInstance.enchants`, source de
  *  vérité) et replié dans l'arme dérivée par `recomputeLoadout` (`applyEnchants`). `id` : identité
  *  pour le retrait ciblé à l'expiration (un `ActiveEffect.enchantRef` le temporise). */
+/** Qualités perdues par une arme tirée sans équipe, au vocabulaire des retraits de `WeaponEnchant` : par id
+ *  STABLE, ou tous les Atouts (polarité lue au registre). AA 10 l.148 ; ZI 13 l.193 */
+export type PerteSansEquipe = Pick<WeaponEnchant, 'removeQualities'> & { removeType?: 'atout' };
+
 export interface WeaponEnchant {
   id: string;
   /** Atouts ajoutés en ids STABLES de qualité (`QualityRef.id` — « magique » → touche l'Éthéré ;
@@ -1144,13 +1092,15 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   subType?: string;
   /** Groupe de Projectiles d'une arme de siège (cf. `Weapon.weaponGroup`) — propagé à l'arme dérivée. */
   weaponGroup?: string;
-  /** Munition REPRÉSENTATIVE d'une arme de siège (cf. `Weapon.defaultAmmo`) — propagé à l'arme dérivée. */
+  /** Munition REPRÉSENTATIVE de l'arme (cf. `Weapon.defaultAmmo`) — propagé à l'arme dérivée. */
   defaultAmmo?: string;
   /** Arme DÉRIVÉE conférée tant que l'objet est équipé (`TrappingData.derivedWeapon`, armée à la naissance
    *  par `armeDeLaDonnee`). */
   derivedWeapon?: Weapon;
-  /** Pièce « relativement simple » (baliste, cf. `Weapon.soloSimple`) — propagé à l'arme dérivée. */
-  soloSimple?: boolean;
+  /** Cf. `Weapon.perteSansEquipe` — propagé à l'arme dérivée. */
+  perteSansEquipe?: PerteSansEquipe;
+  /** Cf. `Weapon.bouclierDEquipe`. */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte, cf. `Weapon.indirect`) — propagé à l'arme dérivée. */
   indirect?: boolean;
   /** LDB 62 l.278 — approximation MAISON, propagé à l'arme dérivée (cf. `Weapon.bladed`). */
@@ -1165,6 +1115,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   minRangeBand?: RangeBandId;
   /** #2967 */
   apparence?: string;
+  /** Composant d'incantation (`isSpellComponent`) : id du Sort qu'il favorise ; absent, le composant reste à lier. LDB 46 l.113 */
+  sortLie?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;
   /** Quantité (paquet de munitions, ex. « (12) » → 12). */
@@ -1297,7 +1249,7 @@ export interface EntreeBarre {
  *  Record = laissé au pré-remplissage déduit. Objet creux, jamais un tableau à trous : le snapshot de
  *  partie sérialise en JSON, où un trou deviendrait `null` — donc « vidée ».
  *  UN modèle pour les trois zones — le set au poing n'est qu'une dimension de l'adresse de l'arsenal.
- *  Lecture/écriture : le validateur `poserDansBarre` de l'hôte. */
+ *  Lecture/écriture : le validateur `poserDansBarre` du noyau (`src/noyau/dispositionConsole.ts`). */
 export interface DispositionConsole {
   /** Arsenal, par `WeaponLoadout.id` : commuter le set affiche SA disposition. */
   arsenal?: Record<string, Record<number, EntreeBarre | null>>;
@@ -1546,16 +1498,10 @@ export interface Combatant {
   /** DISPOSITION de la console de combat, PAR ADRESSE de case (spec HUD zone 6 : la barre est
    *  éditable, la déduction ne fait que pré-remplir). Donnée du PORTEUR : elle voyage avec lui
    *  (save, roster, coop) sans table annexe ni clé de partie. Porte unique d'écriture :
-   *  `poserDansBarre`, chez l'hôte. */
+   *  `poserDansBarre`, au noyau. */
   barre?: DispositionConsole;
   /** Sorts/prières connus — `id` de `src/data/spells.json`, résolus par `findSpellById`. */
   spells?: string[];
-  /** Composants d'incantation possédés (LDB 46 l.107-113) — `id` des Sorts d'Arcane/Domaine pour
-   *  lesquels le héros a acheté un composant (coût = NI pistoles d'argent, « acheté pour un Sort
-   *  spécifique »). Sous la règle optionnelle `magie-composant`, le composant absorbe les pires
-   *  effets du contrecoup : Imparfaite Majeure → Mineure, Mineure → annulée ; consommé à l'incantation
-   *  (succès OU échec, Imparfaite OU PAS). Persisté entre combats. */
-  componentSpells?: string[];
   /** Points de Péché (LDB 40 l.30-36) — Bienheureux ayant violé les commandements de
    *  son dieu. Octroyés par le MJ/l'auteur (Effet `giveSin`), jamais inventés ; pas de
    *  maximum ; chaque jet de Colère des dieux en retire 1 (l.53). Persisté entre combats. */
@@ -1582,7 +1528,7 @@ export interface Combatant {
    *  PERSISTÉE AU HÉROS (survit à la clôture d'un interlude — `InterludeState.perHero` est
    *  reconstruit à neuf à CHAQUE ouverture, `ouvrirLInterlude`). `trappingId` = id de l'objet
    *  fabriqué ; `atouts`/`defauts` = ids de qualité (runtime). */
-  craft?: { trappingId: string; tier: import('./money').StatusTier; avail: Availability; atouts: string[]; defauts: string[]; drDone: number; drTarget: number; difficulty: Difficulty };
+  craft?: { trappingId: import('../data/schemas/grammaire/ref').Id<'trapping'>; tier: import('./money').StatusTier; avail: Availability; atouts: string[]; defauts: string[]; drDone: number; drTarget: number; difficulty: Difficulty };
   /** Rituel en cours de Focalisation (Activité « Accomplir un Rituel », `VDM 02 l.777`) — DONNÉE
    *  PERSISTÉE AU HÉROS (même raison que `craft` ci-dessus). DR cumulé par Round, un Round par
    *  Activité, jusqu'à `drTarget` (NI réduit de moitié, arrondi sup., l.777). Composants/Conditions/
@@ -1645,6 +1591,8 @@ export interface Combatant {
   /** Maladies et infections en cours (LDB 20) — incubation/durée décomptées au repos ; symptômes =
    *  donnée (`symptoms.json`) lus par `diseasePassiveOps` (fièvre…) / `rest.ts` (Malaise→Exténué, Blessé). */
   diseases?: import('./disease').Disease[];
+  /** Régime de bord : vivres frais et soupe de chou mangés. MDG 14 l.230-232 */
+  regimeDeBord?: RegimeDeBord;
   /** Faim (LDB 18 l.337-343) : jours sans manger, Tests tentés (−10 cumulatif), échecs (malus de
    *  caracs lus par `hungerCharPenalties`). Absent = nourri. Entretien quotidien : `dailyFoodUpkeep`. */
   hunger?: import('./provisions').HungerState;
@@ -1780,7 +1728,7 @@ export interface Combatant {
   /** Précipitations du jour de mer sous lesquelles ce combattant agit (MDG 13 l.185, #1936) : posées à
    *  l'ouverture d'un combat survenant pendant un voyage maritime. SEULE source du canal
    *  `precipitationTestMods` en combat. Transitoire (non persistée hors combat). */
-  envPrecipitation?: import('./seaWeather').SeaPrecipitationId;
+  envPrecipitation?: string;
   /** Adversaires avec qui ce combattant est Engagé en mêlée (LDB 13 l.169-171).
    *  Relationnel et symétrique ; purgé par paire en fin de Round si aucune attaque échangée. */
   engagedWith?: string[];

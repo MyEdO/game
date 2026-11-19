@@ -299,9 +299,30 @@ export function indexCode(racines = RACINES_DU_CODE, abbrMap = null) {
   return { impl, tests, fileLines, nonCommentText, folioStats }
 }
 
+const PLUSIEURS_FICHIERS = Symbol('plusieurs fichiers')
+const motsParTextes = new WeakMap() // index.nonCommentText -> Map<mot \w+, rel | PLUSIEURS_FICHIERS>
+
+/** Mots (suites maximales de `\w`) du texte hors commentaire des fichiers non-test, chacun avec son
+ *  fichier unique ou `PLUSIEURS_FICHIERS` ; dressé une fois par `nonCommentText`. */
+function motsDuCorpus(nonCommentText) {
+  let mots = motsParTextes.get(nonCommentText)
+  if (mots) return mots
+  mots = new Map()
+  for (const [rel, text] of nonCommentText) {
+    for (const [mot] of text.matchAll(/\w+/g)) {
+      const vu = mots.get(mot)
+      if (vu === undefined) mots.set(mot, rel)
+      else if (vu !== rel) mots.set(mot, PLUSIEURS_FICHIERS)
+    }
+  }
+  motsParTextes.set(nonCommentText, mots)
+  return mots
+}
+
 /** Un symbole EXPORTÉ est « sans appelant » ssi aucune occurrence `\b<nom>\b` HORS commentaire dans
  *  un autre fichier src non-test, NI dans son propre fichier en dehors de sa déclaration. Un symbole
- *  non exporté (usage local uniquement) n'est JAMAIS flagué. */
+ *  non exporté (usage local uniquement) n'est JAMAIS flagué. Un nom fait de `\w` seuls se cherche
+ *  dans l'index des mots du corpus (`motsDuCorpus`). */
 export function isDeadExport(name, defFile, index) {
   const defLines = index.fileLines.get(defFile)
   if (!defLines) return false
@@ -316,6 +337,10 @@ export function isDeadExport(name, defFile, index) {
   for (let i = 0; i < defLines.length; i++) {
     if (i === declIdx || COMMENT_OR_BLANK.test(defLines[i])) continue
     if (re.test(defLines[i])) return false // appelant local (hors commentaire, hors déclaration)
+  }
+  if (/^\w+$/.test(name)) {
+    const fichier = motsDuCorpus(index.nonCommentText).get(name)
+    return fichier === undefined || fichier === defFile
   }
   for (const [rel, text] of index.nonCommentText) {
     if (rel === defFile) continue

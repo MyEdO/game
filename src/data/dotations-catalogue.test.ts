@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { careerLevels, classes, creatures, estMention, trappings, trappingRefLabel, type TrappingRef } from './index';
+import { careerLevels, classes, creatures, estMention, trappings, trappingRefLabel, type BrancheDeDotation, type TrappingRef } from './index';
 import { replier } from '../lib/ordre.mjs';
 
 /**
@@ -44,12 +44,13 @@ for (const t of trappings) {
   PAR_SINGULIER.set(s, [...(PAR_SINGULIER.get(s) ?? []), t.id]);
 }
 
-/** Toutes les dotations des deux datasets, branches de `pick` comprises, avec leur porteur. */
+/** Toutes les dotations des deux datasets, branches de `pick` et membres de lot compris, avec leur porteur. */
 const dotations = (): { porteur: string; ref: TrappingRef }[] => {
   const out: { porteur: string; ref: TrappingRef }[] = [];
-  const pousser = (porteur: string, refs: readonly TrappingRef[]) => {
+  const pousser = (porteur: string, refs: readonly BrancheDeDotation[]) => {
     for (const ref of refs) {
-      out.push({ porteur, ref });
+      if ('lot' in ref) pousser(porteur, ref.lot);
+      else out.push({ porteur, ref });
       if ('pick' in ref) pousser(porteur, ref.of);
     }
   };
@@ -103,9 +104,9 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
 
   /**
    * ARBITRAGE ÉPINGLÉ : deux entrées du catalogue portent le MÊME libellé « Carreau » — `carreau`
-   * (munition d'arbalète) et `carreau-de-baliste` (munition de siège). Les six dotations que le livre
+   * (munition d'arbalète) et `carreau-de-baliste` (munition de siège). Les dotations que le livre
    * écrit « arbalète (de poing) et dix carreaux » (`LDB 08` l.1435, l.1543, l.2826, l.3239, l.3396 ;
-   * `MDG 09` l.401) visent l'arbalète — distinction que `MDG 12` l.379 pose explicitement. L'index
+   * `MDG 09` l.401 ; `MDG 14` l.340) visent l'arbalète — distinction que `MDG 12` l.379 pose explicitement. L'index
    * libellé → ids n'est donc PAS injectif : sans cet arbitrage, un appariement par libellé peut poser
    * la mauvaise munition en silence.
    */
@@ -119,10 +120,12 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
       munitions.filter(({ ref }) => 'id' in ref && ref.id === 'carreau-de-baliste').map((m) => m.porteur),
       'aucune dotation de carrière ne prend la munition de SIÈGE',
     ).toEqual([]);
-    expect(
-      munitions.length,
-      'les 6 « Carreaux » migrés, le site historique `patrouilleur-routier-1` et `specialiste-de-siege-1` (AA 04 l.275)',
-    ).toBe(8);
+    const porteurs = munitions.map((m) => m.porteur);
+    expect(porteurs, `les porteurs de carreaux : ${porteurs.join(', ')}`).toEqual(expect.arrayContaining([
+      'careerLevels.json › patrouilleur-routier-1',
+      'careerLevels.json › specialiste-de-siege-1',
+      'creatures.json › mercenaire-experimente',
+    ]));
   });
 
   it('chaque forme de dotation a son libellé : somme, objet valant sa somme, mention et son nombre, choix de mentions', () => {

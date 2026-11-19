@@ -45,6 +45,14 @@
     "label": "Gobelin",
     "gabarit": {
       "id": "gremlin"
+    },
+    "couleurs": {
+      "peau": {
+        "id": "peau-vert-jaune"
+      },
+      "yeux": {
+        "id": "yeux-rouges"
+      }
     }
   },
   {
@@ -139,6 +147,14 @@
     "label": "Orc",
     "gabarit": {
       "id": "trapu-massif"
+    },
+    "couleurs": {
+      "peau": {
+        "id": "peau-verte-sombre"
+      },
+      "yeux": {
+        "id": "yeux-rouges"
+      }
     }
   },
   {

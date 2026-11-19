@@ -272,7 +272,7 @@ describe('Projectile magique — une étape PAR CIBLE, rien roulé en silence', 
     setBattle([gardien, cible, mage]);
     const spell = missileSpell();
     const cast: CastResult = { cast: true, roll: 44, target: 60, sl: 4, isCritical: false, isFumble: false, log: '' };
-    applyCast(banc.getState, banc.setState, mage, cible, spell, evaluateMissile(mage, cible, spell, cast), true, false, undefined, undefined);
+    applyCast(banc.getState, banc.setState, mage, [cible], spell, evaluateMissile(mage, cible, spell, cast), true, false, undefined, undefined);
     const st = etapeCourante()!;
     expect(st.kind, 'la touche magique EST un coup reçu (LDB 85 l.98)').toBe('sauvegarde');
     expect(st.de?.seuil).toEqual({ indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true });
@@ -464,7 +464,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     banc.getState().jetLancer('cascadeTirage', dev[0].id);
     const apres = etapesDeviation()[0];
     expect(apres.deviation?.mode === 'melee' ? apres.deviation.suite : undefined, 'le PLI post-dé reconduit la suite dans la `PendingDeviation`').toEqual({ deferAttackerAdvantage: true });
-    resolveDeviation(banc.getState, banc.setState, apres.deviation!, true);
+    resolveDeviation(banc.getState, banc.setState, apres.id, apres.deviation!, true);
     expect(brute.advantage, 'Avantage DIFFÉRÉ (LDB 10 l.767-773) : la reprise d’après-Déviation ne le crédite pas').toBe(0);
     expect(etapesDeviation(), 'une seule fenêtre de Critique pour ce coup').toHaveLength(1);
   });

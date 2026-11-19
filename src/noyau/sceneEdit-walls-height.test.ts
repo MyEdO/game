@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, structureAt, type WallSeg } from './monde/scene';
+import { canonEdge, emptyScene, structureAt, type WallSeg } from './monde/scene';
 import { wallBetween } from './monde/scene';
-import { canonEdge, edgeWallState, nearestEdge, pickWallEdge } from './sceneEditLecture';
+import { edgeWallState, nearestEdge, pickWallEdge } from './sceneEditLecture';
 import { toggleEdgeWall, toggleDiagonalWall, paintHeight, patchWall, deleteSel } from './sceneEdit';
 
 /**
@@ -45,6 +45,11 @@ describe('édition de scène — outil MURS (arêtes)', () => {
     expect(edgeWallState(s, 1, 1, 'E')).toBe('door');
   });
 
+  it('l’état d’une arête se lit à SON étage, au premier segment du document', () => {
+    const s = { ...emptyScene('scene-test', 5, 5), walls: [{ x: 1, y: 1, side: 'E' }, { x: 1, y: 1, side: 'E', z: 1, door: true }, { x: 1, y: 1, side: 'E', z: 1 }] } satisfies ReturnType<typeof emptyScene>;
+    expect([0, 1, 2].map((z) => edgeWallState(s, 1, 1, 'E', z))).toEqual(['wall', 'door', 'none']);
+  });
+
   it('z>0 conservé sur la cloison ; z=0 omis (convention)', () => {
     const s = toggleEdgeWall(emptyScene('scene-test', 5, 5), 0, 0, 'E', 2, 'wall');
     expect(s.walls![0]).toEqual({ x: 0, y: 0, side: 'E', z: 2 });
@@ -59,6 +64,13 @@ describe('édition de scène — outil MURS (diagonales)', () => {
     expect(s.walls![0]).toMatchObject({ x: 3, y: 3, side: '\\' });
     expect(toggleDiagonalWall(s, 3, 3, '\\', 0).walls ?? []).toHaveLength(0);
   });
+  it('une diagonale se bascule à SON étage : la même au rez ne l’enlève pas à l’étage', () => {
+    const rez = toggleDiagonalWall(emptyScene('scene-test', 5, 5), 3, 3, '\\', 0);
+    const deux = toggleDiagonalWall(rez, 3, 3, '\\', 1);
+    expect(deux.walls).toEqual([{ x: 3, y: 3, side: '\\' }, { x: 3, y: 3, side: '\\', z: 1 }]);
+    expect(toggleDiagonalWall(deux, 3, 3, '\\', 1).walls).toEqual([{ x: 3, y: 3, side: '\\' }]);
+  });
+
   it('basculer \\ → / remplace (une seule diagonale par case)', () => {
     let s = toggleDiagonalWall(emptyScene('scene-test', 5, 5), 3, 3, '\\', 0);
     s = toggleDiagonalWall(s, 3, 3, '/', 0);

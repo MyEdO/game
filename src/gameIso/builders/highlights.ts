@@ -31,7 +31,7 @@ export type HighlightEl = { key: string; cell: { x: number; y: number; z: number
  *  SIGNE — > 0 (Bout Portant/Courte) → `bonus`, = 0 (Moyenne) → `neutre`, < 0 (Longue/Extrême) → `malus` ;
  *  hors de portée (au-delà de Portée×3) → `null`. Répond directement à « dois-je bouger pour améliorer
  *  mon jet ? », affiché au survol d'un tireur (`combatHighlightObjs`). */
-export function rangeBandTone(distanceTiles: number, rangeMeters: number, metresPerTile = 2): 'bonus' | 'neutre' | 'malus' | null {
+export function rangeBandTone(distanceTiles: number, rangeMeters: number, metresPerTile: number): 'bonus' | 'neutre' | 'malus' | null {
   const mod = rangeBandModifier(distanceTiles, rangeMeters, metresPerTile);
   if (mod == null) return null;
   return mod > 0 ? 'bonus' : mod < 0 ? 'malus' : 'neutre';
@@ -134,12 +134,12 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
       out.push({ key: `cand-${id}`, cell: { x: t.pos.x, y: t.pos.y, z: tz }, h: hAt(t.pos.x, t.pos.y, tz), kind: 'anneau', tone });
     }
   // Bandes de portée (Bout Portant→Extrême) du tireur SURVOLÉ, au sol autour de sa position — distance
-  // de Chebyshev en cases (même métrique que `combatDistance`, 1x1). Rayon = Portée×3 (hors de portée),
+  // de Chebyshev en cases (même métrique que `distanceDeCombat`, 1x1). Rayon = Portée×3 (hors de portée),
   // BORNÉ à la carte : le semis ne peint jamais hors des `scene.dimensions` (plafond = w×h cases).
   if (view.rangeBandSource) {
     const { pos, rangeM } = view.rangeBandSource;
     const mpt = sceneMetresPerTile(scene);
-    const maxTiles = Math.ceil((rangeM * 3) / mpt); // 1 case = mpt m (défaut 2, LDB 15 l.12)
+    const maxTiles = Math.ceil((rangeM * 3) / mpt); // LDB 15 l.12
     const x0 = Math.max(0, pos.x - maxTiles), x1 = Math.min(sw - 1, pos.x + maxTiles);
     const y0 = Math.max(0, pos.y - maxTiles), y1 = Math.min(sh - 1, pos.y + maxTiles);
     const z = pos.z ?? 0;

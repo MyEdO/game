@@ -17,59 +17,27 @@
  * aucune simulation de péril approchant à distance décroissante n'existe côté état (le tirage de bord est
  * un jet unique « sans prévenir ») — cf. rapport #444.
  */
-import seaPerilsJson from '../data/sea-perils.json';
 import type { Difficulty } from './types';
-import type { JetFixe } from './flowCore';
-import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
-import type { ShipSize } from '../data';
+import { seaPerils, type SeaPerilsData, type ShipSize } from '../data';
 import type { ModLine } from './combat';
 import type { CodexTarget } from './ruleRefs';
 import { t } from '../i18n';
 
 const SIZE_ORDER: ShipSize[] = ['minuscule', 'tres-petite', 'petite', 'moyenne', 'grande', 'enorme', 'monstrueuse'];
 
-export interface SeaHazardDef {
-  id: string;
-  label: string;
-  m?: number;
-  ic: number;
-  strandChancePct?: number;
-  entangleChancePct?: number;
-  entanglePenalties?: { minSize?: ShipSize; maxSize?: ShipSize; manDR: number; mMod: number }[];
-  freeTest?: { test: JetFixe<'difficulty'> } & CibleEtendue;
-  desc: string;
-}
+/** Un péril de navigation (MDG 13 l.475-499). */
+export type SeaHazardDef = SeaPerilsData['hazards'][number];
+/** Un tourbillon (MDG 13 l.514-537). */
+export type WhirlpoolDef = SeaPerilsData['tourbillons'][number];
 
-export interface StraitDef { id: string; label: string; m: number; navDR: number }
-
-export interface WhirlpoolDef {
-  id: string;
-  label: string;
-  m: number;
-  zoneRadiusM: number;
-  zoneSpiralM: number;
-  manDR: number;
-  ic: number;
-  evasion: { difficulty: Difficulty } & CibleEtendue;
-}
-
-const DATA = seaPerilsJson as unknown as {
-  echouer: { desc: string };
-  hazards: SeaHazardDef[];
-  detroits: StraitDef[];
-  tourbillons: WhirlpoolDef[];
-  tourbillonSwim: { test: JetFixe<'skill' | 'difficulty'> };
-  gestionDesPerils: { distanceM: number; spot: Difficulty; avoid: Difficulty }[];
-};
-
-export const SEA_HAZARDS = DATA.hazards;
-export const findSeaHazard = (id: string): SeaHazardDef | undefined => DATA.hazards.find((h) => h.id === id);
-export const findWhirlpool = (id: string): WhirlpoolDef | undefined => DATA.tourbillons.find((w) => w.id === id);
+export const SEA_HAZARDS = seaPerils.hazards;
+export const findSeaHazard = (id: string): SeaHazardDef | undefined => seaPerils.hazards.find((h) => h.id === id);
+export const findWhirlpool = (id: string): WhirlpoolDef | undefined => seaPerils.tourbillons.find((w) => w.id === id);
 
 /** Difficultés de GESTION D'UN PÉRIL à `distanceM` (MDG 13 l.429-436) : Perception pour le repérer, Manœuvre
  *  pour l'éviter — la ligne la plus proche ≥ distance (100 m et plus = la plus permissive). PUR. */
 export function perilManagement(distanceM: number): { spot: Difficulty; avoid: Difficulty } {
-  const rows = [...DATA.gestionDesPerils].sort((a, b) => a.distanceM - b.distanceM);
+  const rows = [...seaPerils.gestionDesPerils].sort((a, b) => a.distanceM - b.distanceM);
   for (const r of rows) if (distanceM <= r.distanceM) return { spot: r.spot, avoid: r.avoid };
   return { spot: rows[rows.length - 1].spot, avoid: rows[rows.length - 1].avoid };
 }

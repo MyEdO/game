@@ -1,7 +1,7 @@
 /**
  * Le formulaire tiré du schéma (#3606) : la description d'une zone d'effet et de la condition d'entrée d'un déclencheur
  * (`formulaireDe`, `champsOfferts`), leurs unions choisies par variante nommée (`unionDuNoeud`, `variantesAChoisir`),
- * leurs listes élément par élément (`elementDuNoeud`, `champDeLElement`, `gestesDeLaListe`), la valeur neuve d'un nœud
+ * leurs listes élément par élément (`elementDuNoeud`, `champDeLElement`, `monteeAuFormulaire`), la valeur neuve d'un nœud
  * et d'une op (`valeurNeuveDe`, `newOp`), et le geste `valeur` de la session, qui écrit, change de variante, ajoute,
  * retire et monte un élément de liste, retire (un conteneur vidé part avec son dernier champ), refuse ce que le
  * formulaire n'offre pas en disant pourquoi (`refusDeLaValeur`), et entre dans l'historique. Les choix d'une union
@@ -10,28 +10,87 @@
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import type { SourceDeLEdition } from './adresseDeProse';
+import { cleDuChapitre, type SourceDeLEdition } from './adresseDeProse';
+import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
+import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { emptyNarratif } from '../monde/campaignNarratif';
-import { emptyScene, type Scene } from '../monde/scene';
-import { addEffectZone, addTrigger, avecLaValeur, type Segment } from '../sceneEdit';
-import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
-import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
+import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
+import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
+import { addEffectZone, addTrigger, avecLaValeurDuPorteur } from '../sceneEdit';
+import {
+  avecLaValeur,
+  champsDuFormulaire,
+  ecritureAuFormulaire,
+  ecritureOfferte,
+  monteeAuFormulaire,
+  type FormeDuFormulaire,
+  type Segment,
+} from './formulaire';
+import {
+  choixDuChamp,
+  formulaireDe,
+  porteurDeLaPortee,
+  porteurDeLaSel,
+  porteurDuProjet,
+  porteursDuProjet,
+  projetAvecLePorteur,
+  type AccesDuPorteur,
+  type CadreDuPorteur,
+  type DonneeDuPorteur,
+  type ProjetDEdition,
+  type Sel,
+  type SorteDePorteur,
+} from '../sceneEditLecture';
+import { emptyWorldMap, type MapPlace, type WorldMap } from '../worldMap';
+import { newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
-import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
-import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
+import { givePossessionSchema, playSfxSchema } from '../../data/schemas/defs-scenes/effets';
+import { entree as objetDeCampagneSchema } from '../../data/schemas/defs/trappings';
+import {
+  bornesAuPoint,
+  champDeLElement,
+  champsDeclares,
+  champsDuRecord,
+  champsOfferts,
+  choixDuNoeud,
+  clesPosees,
+  elementDuNoeud,
+  formeAuPoint,
+  identiteTenue,
+  inferFields,
+  kindDuNoeud,
+  recordDuNoeud,
+  unionDuNoeud,
+  varianteCourante,
+  type FieldDesc,
+} from '../codex/editFields';
 import { ouverts } from '../../data/schemas/grammaire/descente';
+import { listeCle } from '../../data/schemas/grammaire/collection-cle';
 import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
-import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
-import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
+import {
+  conditionSchema,
+  flowTestSchema,
+  menaceSchema,
+  OP_DEFS,
+  OP_LABEL,
+  OPS_NON_TYPEES,
+  porteurDeTestFixe,
+  testFixeSchema,
+} from '../../data/schemas/grammaire/mecanique';
+import { entreeOuverte, idDe, idsDe, idsDeLaSousListe, refOuSpec, specDe, TYPES, type TypeEntite } from '../../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
+import { VOCABULAIRES } from '../../data/schemas/grammaire/vocabulaires';
 import { CONDITION_TOUJOURS, recast, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import type { Condition } from '../../engine/flowCore';
 import type { GameOp } from '../../engine/ops';
-import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
+import { choixDeLaSpec, choixDeLaFeuilleDId, creatureSemee, findCreatureById, seaPerils } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
+import { trappingRefSchema } from '../../data/schemas/grammaire/reference';
+import { dialogueNodeSchema, dialogueSchema, encounterDefSchema, victoryConditionSchema } from '../../data/schemas/defs-scenes/scene';
+import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
@@ -73,7 +132,15 @@ describe('la description du formulaire d’une zone d’effet', () => {
     for (const liste of champs.slice(1, 3)) expect(unionDuNoeud(elementDuNoeud(liste.noeud))?.discriminant, liste.key).toBe('op');
   });
 
-  it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu choisi par variante', () => {
+  it('barrée, elle offre aussi les groupes qu’elle bloque, chacun au catalogue des Groupes qu’une appartenance cible', () => {
+    const z = zone({ barrier: {} });
+    const champs = formulaireDe('zone', z, CADRE_VIDE);
+    expect(champs.map((c) => c.key)).toEqual(['crossTest', 'onCross', 'perRound', 'rendu', 'barrier']);
+    const groupes = champ(champs, z, 'barrier', 'blockGroups');
+    expect(choixDuNoeud(elementDuNoeud(groupes.noeud))?.map((o) => o.valeur)).toEqual(idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE));
+  });
+
+  it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu authoré (#4056)', () => {
     const z = zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } });
     const champs = formulaireDe('zone', z, CADRE_VIDE);
     const competence = champ(champs, z, 'crossTest', 'skill', 'id');
@@ -90,14 +157,22 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(unionDuNoeud(champ(champs, z, 'crossTest', 'gate').noeud)?.discriminant).toBe('kind');
     expect(valeurNeuveDe(elementDuNoeud(champ(champs, z, 'crossTest', 'difficultyBy').noeud))).toEqual({ cond: CONDITION_TOUJOURS, difficulty: 'tresFacile' });
     const enjeu = champ(champs, z, 'crossTest', 'stake');
-    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit par ses branches, de clé leur rang').toEqual([undefined, ['0', '1', '2'], undefined]);
+    expect([champsDeclares(enjeu.noeud)?.map(([cle]) => cle), unionDuNoeud(enjeu.noeud)], 'l’enjeu d’un Test de scène est la phrase que la scène écrit').toEqual([['authored', 'source', 'adapteDe'], undefined]);
   });
 
   it('une référence se choisit dans la sous-liste que sa feuille déclare', () => {
     const schema = z.strictObject({ groupe: idDe('groupe', CIBLE_D_APPARTENANCE) });
     const hors = [...idsDe('groupe')].find((id) => !idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE).includes(id))!;
     expect(valeurNeuveDe(schema)).toEqual({ groupe: idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE)[0] });
-    expect(avecLaValeur(schema, { groupe: 'x' }, ['groupe'], hors), 'hors de la sous-liste').toEqual({ ok: false, refus: 'horsSorte' });
+    expect(avecLaValeur(schema, { groupe: 'x' }, ['groupe'], hors), 'hors de la sous-liste, refusée par le message de sa feuille').toEqual({ ok: false, refus: { regle: schema.shape.groupe.safeParse(hors).error?.issues[0].message } });
+  });
+
+  it('une spécialisation nue d’une entrée fermée se choisit au catalogue de son entrée, celle d’une entrée ouverte se saisit (LDB 10 l.1014-1020)', () => {
+    const choix = (type: TypeEntite, id: string) => choixDeLaSpec({ type, id }).map((e) => ({ valeur: e.id, libelle: e.label }));
+    expect(choix('talent', 'resistance').length, 'la Menace a un catalogue').toBeGreaterThan(0);
+    expect(choixDuNoeud(menaceSchema.optional()), 'la Menace, `specFermeeDe`').toEqual(choix('talent', 'resistance'));
+    expect(choixDuNoeud(specDe('skill', 'voile')), 'la Spécialisation de Voile, `specDe`').toEqual(choix('skill', 'voile'));
+    expect([entreeOuverte('skill', 'metier'), choixDuNoeud(specDe('skill', 'metier'))], 'Métier, entrée ouverte').toEqual([true, undefined]);
   });
 
   it('une op se choisit parmi toutes, chacune nommée, neuve par `newOp` ; typée, elle se décrit champ par champ, son `op` tenu par le choix', () => {
@@ -125,6 +200,13 @@ describe('la description du formulaire d’une zone d’effet', () => {
   });
 });
 
+describe('la référence au catalogue d’un type', () => {
+  it('s’offre en choix pour tout type : les ids qu’admet sa validation, chacun au libellé de son entrée', () => {
+    for (const type of Object.keys(TYPES) as TypeEntite[]) expect(choixDuNoeud(idDe(type))?.map((o) => o.valeur).sort(), type).toEqual([...idsDe(type)].sort());
+    expect(choixDuNoeud(idDe('seaHazard'))).toEqual(seaPerils.hazards.map((h) => ({ valeur: h.id, libelle: h.label })));
+  });
+});
+
 describe('`newOp`', () => {
   it('sans fabrique, une op typée prend la valeur neuve de son payload, ses références vides, une op non typée son seul nom ; une op inconnue lève', () => {
     expect(newOp('incomingAttackMod')).toEqual(valeurNeuveDe(OP_DEFS.incomingAttackMod));
@@ -142,8 +224,8 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
     const champs = formulaireDe('declencheur', d, CADRE_VIDE);
     expect(champs.map((c) => [c.key, c.nullable]), 'la condition d’entrée, absente admise, puis le flux, requis').toEqual([['when', true], ['flow', false]]);
     const variantes = variantesAChoisir(champs[0].noeud, when)!;
-    expect(variantes).toHaveLength(35);
-    expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(35);
+    expect(new Set(variantes.map((v) => v.cle)).size, 'une variante par sorte de Condition').toBe(variantes.length);
+    expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(variantes.length);
     expect(['all', 'any', 'not'].map((k) => variantes.find((v) => v.cle === k)?.libelle)).toEqual(['TOUS (ET)', 'AU MOINS UN (OU)', 'NON']);
     expect(variantes.find((v) => v.cle === 'not')!.valeur, 'NON enveloppe la courante (`recast`)').toEqual({ kind: 'not', of: when });
     expect(variantes.find((v) => v.courante)?.cle).toBe('all');
@@ -183,9 +265,15 @@ describe('la valeur neuve d’un nœud', () => {
 describe('l’écriture bornée par le formulaire', () => {
   const schema = z.strictObject({ a: z.strictObject({ id: z.string(), n: z.number().optional(), b: z.strictObject({ m: z.number().optional() }).optional() }).optional() });
 
-  it('refuse une clé `id` d’identité, qui se change par son geste dédié ; une référence `idDe` s’écrit', () => {
-    expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'id'], 'y')).toEqual({ ok: false, refus: 'nonOffert' });
+  it('une clé `id` hors de toute liste-clé est une désignation, qui s’écrit ; la clé d’une liste-clé est une identité, qui se change par son geste dédié, sauf la référence', () => {
+    expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'id'], 'y')).toEqual({ ok: true, valeur: { a: { id: 'y' } } });
     expect(avecLaValeur(schema, { a: { id: 'x' } }, ['a', 'n'], 2)).toEqual({ ok: true, valeur: { a: { id: 'x', n: 2 } } });
+    const identifiee = z.strictObject({ l: listeCle(z.strictObject({ nom: z.string(), n: z.number().optional() }), 'nom').optional() });
+    expect([avecLaValeur(identifiee, { l: [{ nom: 'x' }] }, ['l', 0, 'nom'], 'y'), avecLaValeur(identifiee, { l: [{ nom: 'x' }] }, ['l', 0, 'n'], 2)])
+      .toEqual([{ ok: false, refus: 'nonOffert' }, { ok: true, valeur: { l: [{ nom: 'x', n: 2 }] } }]);
+    const [premiere, seconde] = choixDeLaFeuilleDId({ type: 'skill' });
+    const designee = z.strictObject({ l: listeCle(z.strictObject({ skill: idDe('skill') }), 'skill').optional() });
+    expect(avecLaValeur(designee, { l: [{ skill: premiere.id }] }, ['l', 0, 'skill'], seconde.id), 'la clé qui est une référence se choisit').toEqual({ ok: true, valeur: { l: [{ skill: seconde.id }] } });
   });
 
   it('un conteneur vidé par le retrait de son dernier champ part avec lui, de proche en proche, tant que son absence est admise', () => {
@@ -204,17 +292,38 @@ describe('l’écriture bornée par le formulaire', () => {
     expect(avecLaValeur(z.strictObject({ r: z.number() }), { r: 1 }, ['r'], null), 'un JSON illisible arrive `null`').toEqual({ ok: false, refus: 'illisible' });
   });
 
-  it('un rang de liste s’écrit au chemin, entier, dans la liste présente ; la liste s’écrit entière par l’un de ses gestes', () => {
+  it('un rang de liste s’écrit au chemin, entier, dans la liste présente ; un élément s’ajoute au rang qui suit le dernier, se retire et monte à son rang ; la liste s’écrit entière si elle se parse', () => {
     const liste = z.strictObject({ l: z.array(z.strictObject({ n: z.number(), t: z.string().optional() })).optional() });
     const l = [{ n: 1 }, { n: 2 }];
     expect(avecLaValeur(liste, { l }, ['l', 1, 'n'], 5)).toEqual({ ok: true, valeur: { l: [{ n: 1 }, { n: 5 }] } });
     for (const rang of [2, -1, 0.5, '1']) expect(avecLaValeur(liste, { l }, ['l', rang, 'n'], 5), String(rang)).toEqual({ ok: false, refus: 'nonOffert' });
-    const gestes = gestesDeLaListe(l, { n: 0 });
-    expect(gestes).toEqual({ ajouter: [...l, { n: 0 }], elements: [{ retirer: [{ n: 2 }], monter: null }, { retirer: [{ n: 1 }], monter: [{ n: 2 }, { n: 1 }] }] });
-    for (const jouee of [gestes.ajouter, gestes.elements[0].retirer, gestes.elements[1].monter]) expect(avecLaValeur(liste, { l }, ['l'], jouee)).toEqual({ ok: true, valeur: { l: jouee } });
-    expect(avecLaValeur(liste, { l }, ['l'], [{ n: 1 }, { n: 'deux' }])).toEqual({ ok: false, refus: 'horsSorte' });
+    expect(avecLaValeur(liste, { l }, ['l', 2], { n: 0 }), 'la valeur neuve au rang qui suit le dernier').toEqual({ ok: true, valeur: { l: [...l, { n: 0 }] } });
+    expect(avecLaValeur(liste, {}, ['l', 0], { n: 0 }), 'au rang 0 d’une liste absente').toEqual({ ok: true, valeur: { l: [{ n: 0 }] } });
+    expect(avecLaValeur(liste, { l }, ['l', 0], undefined), 'le premier retiré').toEqual({ ok: true, valeur: { l: [{ n: 2 }] } });
+    expect(avecLaValeur(liste, { l }, ['l', 2], undefined), 'aucun élément au rang').toEqual({ ok: false, refus: 'horsSorte' });
+    const forme = { noeud: liste, champs: [['l']], retraits: [] };
+    expect(monteeAuFormulaire(forme, { l }, ['l', 1], () => undefined, SANS_SOURCE)).toEqual({ ok: true, valeur: { l: [{ n: 2 }, { n: 1 }] } });
+    for (const rang of [0, 2, '1']) expect(monteeAuFormulaire(forme, { l }, ['l', rang], () => undefined, SANS_SOURCE), `le rang ${String(rang)} ne monte pas`).toEqual({ ok: false, refus: 'nonOffert' });
+    expect(monteeAuFormulaire({ ...forme, champs: [['l', 0, 'n']] }, { l }, ['l', 1], () => undefined, SANS_SOURCE), 'une liste que le formulaire n’écrit pas entière').toEqual({ ok: false, refus: 'nonOffert' });
+    expect(avecLaValeur(liste, { l }, ['l'], [{ n: 2 }, { n: 1 }])).toEqual({ ok: true, valeur: { l: [{ n: 2 }, { n: 1 }] } });
+    expect(avecLaValeur(liste, { l }, ['l'], [{ n: 1 }, { n: 'deux' }]), 'refusée par le message de son parse').toEqual({ ok: false, refus: { regle: 'Entrée invalide : nombre attendu, chaîne de caractères reçu' } });
     expect(avecLaValeur(liste, { l: [{ n: 1 }] }, ['l'], []), 'vidée, la liste dont l’absence est admise part').toEqual({ ok: true, valeur: {} });
     expect(avecLaValeur(z.strictObject({ l: z.array(z.number()) }), { l: [1] }, ['l'], []), 'requise, elle reste vide').toEqual({ ok: true, valeur: { l: [] } });
+  });
+
+  it('un retrait refuse la faute qu’il fait naître au parse de l’objet, dite ; un retrait sans faute neuve et un ajout incomplet s’écrivent (#3606, décision 3)', () => {
+    const noeud = (id: string, next?: string) => ({ ...(valeurNeuveDe(dialogueNodeSchema) as object), id, desc: `Réplique ${id}.`, choices: next ? [{ id: `${id}-suite`, label: 'suite', next: { id: next } }] : [] });
+    const dialogue = { id: 'd', start: { id: 'a' }, nodes: [noeud('a', 'c'), noeud('b'), noeud('c', 'mort')] };
+    const deja = dialogueSchema.safeParse(dialogue).error?.issues.map((i) => i.path.slice(0, 5));
+    expect(deja, 'la référence morte du nœud `c` est une faute préexistante').toEqual([['nodes', 2, 'choices', 0, 'next']]);
+    const [sansA, sansB, sansC] = dialogue.nodes.map((_, rang) => dialogue.nodes.filter((_, i) => i !== rang));
+    const fauteAu = (nodes: unknown[], chemin: Segment[]) => dialogueSchema.safeParse({ ...dialogue, nodes }).error!.issues.find((i) => jsonCanonique(i.path.slice(0, chemin.length)) === jsonCanonique(chemin))!.message;
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes', 0], undefined), 'le nœud de départ').toEqual({ ok: false, refus: { regle: fauteAu(sansA, ['start']) } });
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes', 2], undefined), 'le nœud suivant d’une réponse').toEqual({ ok: false, refus: { regle: fauteAu(sansC, ['nodes', 0, 'choices', 0, 'next']) } });
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes', 1], undefined), 'non référencé : la faute de `c` passe du rang 2 au rang 1, déjà là').toEqual({ ok: true, valeur: { ...dialogue, nodes: sansB } });
+    const ajoutes = [...dialogue.nodes, valeurNeuveDe(dialogueNodeSchema)];
+    expect(dialogueSchema.safeParse({ ...dialogue, nodes: ajoutes }).error?.issues.length, 'le nœud neuf porte une faute neuve').toBeGreaterThan(deja!.length);
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes', dialogue.nodes.length], valeurNeuveDe(dialogueNodeSchema))).toEqual({ ok: true, valeur: { ...dialogue, nodes: ajoutes } });
   });
 });
 
@@ -234,6 +343,13 @@ describe('le geste `valeur` de la session', () => {
   const laZone = (s: SessionDEdition) => sceneEditee(s).effectZones![0];
   const leWhen = (s: SessionDEdition) => sceneEditee(s).triggers.find((t) => t.id === trig)!.when;
 
+  it('le retrait d’un élément sous une liste absente ne s’écrit pas : le Retirer de la dernière op, rejoué, ne lève pas', () => {
+    const une = jouer(jouer(depart, ['onCross', 0], newOp('corruption')), ['onCross', 0]);
+    expect(laZone(une).onCross, 'la liste vidée quitte la zone').toBeUndefined();
+    expect(jouer(une, ['onCross', 0]), 'rejoué, le Retirer ne change rien').toBe(une);
+    expect(jouer(une, ['onCross', 0, 'value']), 'un champ sous l’élément absent non plus').toBe(une);
+  });
+
   it('ajoute le Test vide, y écrit chaque champ de sa sorte, retire le dernier avec le Test ; annuler et rétablir le suivent', () => {
     const ajoute = jouer(depart, ['crossTest'], {});
     expect(laZone(ajoute).crossTest).toEqual({});
@@ -252,20 +368,20 @@ describe('le geste `valeur` de la session', () => {
   it('ajoute, change de variante, remplit, monte et retire les ops d’une liste ; la liste vidée quitte la zone', () => {
     const element = elementDuNoeud(formulaireDe('zone', laZone(depart), CADRE_VIDE)[1].noeud);
     const neuve = valeurNeuveDe(element);
-    const ajoutee = jouer(depart, ['onCross'], gestesDeLaListe([], neuve).ajouter);
+    const ajoutee = jouer(depart, ['onCross', 0], neuve);
     expect(laZone(ajoutee).onCross).toEqual([neuve]);
     const corruption = jouer(ajoutee, ['onCross', 0], newOp('corruption'));
     expect(laZone(corruption).onCross, 'changer de variante pose l’op neuve choisie').toEqual([newOp('corruption')]);
-    const deux = jouer(jouer(corruption, ['onCross'], gestesDeLaListe(laZone(corruption).onCross!, neuve).ajouter), ['onCross', 1], newOp('charMod'));
+    const deux = jouer(jouer(corruption, ['onCross', 1], neuve), ['onCross', 1], newOp('charMod'));
     const remplie = jouer(jouer(deux, ['onCross', 0, 'amount'], 3), ['onCross', 1, 'characteristic'], 'agilite');
     expect(laZone(remplie).onCross).toEqual([{ ...newOp('corruption'), amount: 3 }, { ...newOp('charMod'), characteristic: 'agilite' }]);
     expect(jouer(remplie, ['onCross', 1, 'op'], 'corruption'), 'le discriminant se change par le choix de la variante').toBe(remplie);
     const ops = laZone(remplie).onCross!;
-    const montee = jouer(remplie, ['onCross'], gestesDeLaListe(ops, neuve).elements[1].monter);
+    const montee = editer(remplie, { geste: 'monter', porteur, chemin: ['onCross', 1] });
     expect(laZone(montee).onCross).toEqual([ops[1], ops[0]]);
-    const une = jouer(montee, ['onCross'], gestesDeLaListe(laZone(montee).onCross!, neuve).elements[0].retirer);
+    const une = jouer(montee, ['onCross', 0]);
     expect(laZone(une).onCross).toEqual([ops[0]]);
-    expect(laZone(jouer(une, ['onCross'], [])).onCross, 'vidée, elle quitte la zone').toBeUndefined();
+    expect(laZone(jouer(une, ['onCross', 0])).onCross, 'vidée, elle quitte la zone').toBeUndefined();
   });
 
   it('écrit la condition d’un déclencheur : ET enveloppe la courante, une variante NON s’y choisit, une variante interne se choisit au même chemin, la condition se retire', () => {
@@ -288,21 +404,22 @@ describe('le geste `valeur` de la session', () => {
     expect('when' in sceneEditee(retiree).triggers.find((t) => t.id === trig)!, 'sans clé laissée à `undefined`').toBe(false);
   });
 
-  it('refuse une valeur hors de la sorte de son champ, un champ que le formulaire n’offre pas, un porteur absent, et dit pourquoi', () => {
+  it('refuse une valeur hors de la sorte de son champ, par le message de son parse, un champ que le formulaire n’offre pas, un porteur absent, et dit pourquoi', () => {
     const ajoute = jouer(depart, ['crossTest'], {});
+    const opInconnue = { regle: "GameOp « pas-une-op » : op inconnue de OP_DEFS et de OPS_NON_TYPEES (src/data/schemas/grammaire/mecanique.ts) — la typer, ou l'inscrire à la liste avec sa raison mesurée." };
     for (const [chemin, valeur, refus] of [
-      [['crossTest', 'characteristic'], 'vigueur', 'horsSorte'],
-      [['crossTest', 'requireSL'], 'deux', 'horsSorte'],
-      [['crossTest', 'requireSL'], Number.POSITIVE_INFINITY, 'horsSorte'],
-      [['crossTest', 'label'], 3, 'horsSorte'],
+      [['crossTest', 'characteristic'], 'vigueur', { regle: 'Option invalide : une valeur parmi "capacite-de-combat"|"capacite-de-tir"|"force"|"endurance"|"initiative"|"agilite"|"dexterite"|"intelligence"|"force-mentale"|"sociabilite" attendue' }],
+      [['crossTest', 'requireSL'], 'deux', { regle: 'Entrée invalide : nombre attendu, chaîne de caractères reçu' }],
+      [['crossTest', 'requireSL'], Number.POSITIVE_INFINITY, { regle: 'Entrée invalide : nombre attendu, nombre reçu' }],
+      [['crossTest', 'label'], 3, { regle: 'Entrée invalide : chaîne de caractères attendu, nombre reçu' }],
       [['crossTest', 'easierIf'], { steps: 1 }, 'horsSorte'],
       [['crossTest', 'skill', 'id'], 'athletisme', 'nonOffert'],
-      [['perRound'], [{ op: 'pas-une-op' }], 'horsSorte'],
+      [['perRound'], [{ op: 'pas-une-op' }], opInconnue],
       [['label'], 'Autre', 'nonOffert'],
       [['id'], 'autre', 'nonOffert'],
-    ] as [Segment[], unknown, string][]) {
+    ] as [Segment[], unknown, unknown][]) {
       expect(jouer(ajoute, chemin, valeur), `${chemin.join('/')} ← ${String(valeur)}`).toBe(ajoute);
-      expect(refusDeLaValeur(ajoute, geste(porteur, chemin, [valeur])), chemin.join('/')).toBe(refus);
+      expect(refusDeLaValeur(ajoute, geste(porteur, chemin, [valeur])), chemin.join('/')).toEqual(refus);
     }
     expect(refusDeLaValeur(ajoute, geste({ sorte: 'zone', id: 'nulle-part' }, ['crossTest', 'characteristic'], ['force']))).toBe('nonOffert');
     expect(laZone(jouer(jouer(ajoute, ['crossTest', 'skill'], valeurNeuveDe(refOuSpec('skill'))), ['crossTest', 'skill', 'id'], 'athletisme')).crossTest, 'la référence de Compétence se choisit').toEqual({ skill: { id: 'athletisme' } });
@@ -310,7 +427,7 @@ describe('le geste `valeur` de la session', () => {
     const avecOps = jouer(depart, ['onCross'], [{ op: 'statusMod', amount: 1 }]);
     expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'statusMod', amount: 2 })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'statusMod', amount: 2 }]);
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [null])), 'un JSON illisible').toBe('illisible');
-    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [{ op: 'pas-une-op' }]))).toBe('horsSorte');
+    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [{ op: 'pas-une-op' }]))).toEqual(opInconnue);
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'amount'], [3])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
     const avecHas = surDeclencheur(depart, ['when'], recast(CONDITION_TOUJOURS, 'has'));
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'what'], ['trait'])), 'un discriminant se change par le choix de la variante').toBe('nonOffert');
@@ -414,15 +531,169 @@ describe('une union sans discriminant se lit à la forme de ses branches : la Bo
   });
 });
 
-/** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`), toutes branches ouvertes,
- *  sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) : `variantes` d'une union nommée, `ajouter`
- *  ou `json` d'une liste, `json` d'une op sans forme déclarée, sinon celle de la feuille (`choix`, `nombre`, `texte`,
- *  `json`). Un nœud déjà descendu ne se redescend pas. */
+/** Un dialogue à deux nœuds : le départ `a` porte une réponse gardée, payante, à effet, qui mène à `b`. */
+const DIALOGUE: Dialogue = {
+  id: 'd',
+  start: { id: 'a' },
+  nodes: [
+    { id: 'a', choices: [{ id: 'suivre', label: 'Suivre', when: { kind: 'flag', expr: 'x' }, cost: { gold: 1 }, flow: { kind: 'effet', effet: { type: 'fall', target: 'groupe', metres: 4 } }, next: { id: 'b' } }] },
+    { id: 'b', choices: [] },
+  ],
+};
+
+/** Une scène qui déclare `DIALOGUE`, un personnage `pnj` et un décor `table`. */
+const SCENE_DU_DIALOGUE: Scene = {
+  ...emptyScene('s', 4, 4),
+  dialogues: [DIALOGUE],
+  entities: [{ kind: 'personnage', id: 'pnj', pos: { x: 0, y: 0 }, creature: { id: 'humain' } }, { kind: 'prop', id: 'table', ref: 'x', pos: { x: 1, y: 1 } }] as Scene['entities'],
+};
+
+/** Le cadre de `DIALOGUE`, dans sa scène. */
+const CADRE_DU_DIALOGUE: CadreDuPorteur = { ...CADRE_VIDE, scene: SCENE_DU_DIALOGUE };
+
+describe('le formulaire d’un dialogue (#3606 M3b1a)', () => {
+  it('offre son nœud de départ, ses nœuds et les entrées qu’il couvre', () => {
+    expect(formulaireDe('dialogue', DIALOGUE, CADRE_DU_DIALOGUE).map((c) => c.key)).toEqual(['start', 'nodes', 'couvre']);
+  });
+
+  it('le nœud de départ et le nœud suivant d’une réponse se choisissent parmi ses nœuds, posés `{ id }` ; le locuteur parmi les personnages de la scène (#3606)', () => {
+    const noeuds = [{ valeur: { id: 'a' }, libelle: 'a', refus: null }, { valeur: { id: 'b' }, libelle: 'b', refus: null }];
+    expect(choixDuChamp('dialogue', DIALOGUE, ['start'], CADRE_DU_DIALOGUE)).toEqual(noeuds);
+    expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 0, 'choices', 0, 'next'], CADRE_DU_DIALOGUE)).toEqual(noeuds);
+    expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 1, 'speakerId'], CADRE_DU_DIALOGUE)?.map((c) => c.valeur)).toEqual([{ id: 'pnj' }]);
+  });
+
+  it('au rang qui suit le dernier, le nœud neuf et le choix neuf ont un id frais, posés par leur id ; ailleurs, aucun (#3606)', () => {
+    const pris = { ...DIALOGUE, nodes: [...DIALOGUE.nodes, { id: 'n3', choices: [] }] };
+    expect(choixDuChamp('dialogue', pris, ['nodes', 3], CADRE_DU_DIALOGUE)).toEqual([{ valeur: { id: 'n4', choices: [] }, libelle: 'n4', refus: null }]);
+    expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 0, 'choices', 1], CADRE_DU_DIALOGUE)).toEqual([{ valeur: { id: 'choix-0', label: '' }, libelle: 'choix-0', refus: null }]);
+    expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 1, 'choices', 0], CADRE_DU_DIALOGUE)?.[0].valeur).toEqual({ id: 'choix-0', label: '' });
+    for (const chemin of [['nodes', 1], ['nodes', 0, 'choices', 0], ['nodes', 5, 'choices', 0]] as Segment[][]) expect(choixDuChamp('dialogue', DIALOGUE, chemin, CADRE_DU_DIALOGUE), chemin.join('/')).toBeUndefined();
+  });
+
+  it('la sélection d’un dialogue désigne son porteur, comme celle d’un déclencheur, d’une zone, d’une entité ; une entrée, aucun ; aucune sélection, la scène ouverte', () => {
+    expect(([{ type: 'dialogue', id: 'd' }, { type: 'trigger', id: 't' }, { type: 'effectZone', id: 'z' }, { type: 'entity', id: 'e' }, { type: 'entry', id: 'p' }, null] as Sel[]).map((sel) => porteurDeLaSel(sel, 'scene', 'salle'))).toEqual([
+      { sorte: 'dialogue', id: 'd' }, { sorte: 'declencheur', id: 't' }, { sorte: 'zone', id: 'z' }, { sorte: 'entite', id: 'e' }, undefined, { sorte: 'scene', id: 'salle' },
+    ]);
+  });
+
+  describe('le geste `valeur` sur un dialogue', () => {
+    const depart = ouvrirLEdition({ scenes: [SCENE_DU_DIALOGUE], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+    const jouer = (s: SessionDEdition, chemin: Segment[], ...valeur: unknown[]): SessionDEdition =>
+      editer(s, { geste: 'valeur', porteur: { sorte: 'dialogue', id: 'd' }, chemin, ...(valeur.length ? { valeur: valeur[0] } : {}) });
+    const leDialogue = (s: SessionDEdition) => sceneEditee(s).dialogues[0];
+    const laReponse = (s: SessionDEdition) => leDialogue(s).nodes[0].choices[0];
+
+    it('écrit le départ, ajoute un nœud et une réponse, écrit son libellé, son suivant, le locuteur, le coût et la condition d’une réponse, les entrées couvertes', () => {
+      const [neuf] = choixDuChamp('dialogue', DIALOGUE, ['nodes', 2], CADRE_DU_DIALOGUE)!;
+      const ajoute = jouer(depart, ['nodes', 2], neuf.valeur);
+      const [reponse] = choixDuChamp('dialogue', leDialogue(ajoute), ['nodes', 2, 'choices', 0], CADRE_DU_DIALOGUE)!;
+      const ecrit = ([
+        [['start'], { id: 'n3' }],
+        [['nodes', 2, 'choices', 0], reponse.valeur],
+        [['nodes', 2, 'choices', 0, 'label'], 'Partir'],
+        [['nodes', 2, 'choices', 0, 'next'], { id: 'a' }],
+        [['nodes', 2, 'speakerId'], { id: 'pnj' }],
+        [['nodes', 0, 'choices', 0, 'cost', 'silver'], 3],
+        [['nodes', 0, 'choices', 0, 'when', 'expr'], 'y'],
+        [['couvre'], ['EDO-01#beat1']],
+      ] as [Segment[], unknown][]).reduce((s, [chemin, valeur]) => jouer(s, chemin, valeur), ajoute);
+      expect(leDialogue(ecrit)).toEqual({
+        ...DIALOGUE,
+        start: { id: 'n3' },
+        couvre: ['EDO-01#beat1'],
+        nodes: [
+          { id: 'a', choices: [{ ...DIALOGUE.nodes[0].choices[0], when: { kind: 'flag', expr: 'y' }, cost: { gold: 1, silver: 3 } }] },
+          DIALOGUE.nodes[1],
+          { id: 'n3', speakerId: { id: 'pnj' }, choices: [{ id: 'choix-0', label: 'Partir', next: { id: 'a' } }] },
+        ],
+      });
+    });
+
+    it('un coût dont la dernière clé est retirée et un enchaînement retiré quittent la réponse', () => {
+      const sansCout = jouer(jouer(depart, ['nodes', 0, 'choices', 0, 'cost', 'gold']), ['nodes', 0, 'choices', 0, 'flow']);
+      expect(Object.keys(laReponse(sansCout))).toEqual(['id', 'label', 'when', 'next']);
+    });
+  });
+});
+
+/** La rencontre `enc` : `cavalier` y chevauche la monture `cheval`, `archer` va à pied ; sa victoire, au seuil de 50 %. */
+const RENCONTRE: EncounterDef = {
+  id: 'enc',
+  members: [{ entityId: 'cavalier', ridesEntityId: { id: 'cheval' } }, { entityId: 'cheval', mount: true }, { entityId: 'archer' }],
+  victoryCondition: { type: 'woundsThreshold', atOrBelowPercent: 50 },
+};
+
+/** Le cadre de `RENCONTRE`, dans une scène où `badaud` est un personnage hors de la rencontre. */
+const CADRE_DE_LA_RENCONTRE: CadreDuPorteur = {
+  ...CADRE_VIDE,
+  scene: {
+    ...emptyScene('s', 4, 4),
+    encounters: [RENCONTRE],
+    entities: ['cavalier', 'cheval', 'archer', 'badaud'].map((id) => ({ kind: 'personnage', id, pos: { x: 0, y: 0 }, creature: { id: 'humain' } })) as Scene['entities'],
+  },
+};
+
+describe('le formulaire d’une rencontre (#3606 M4b)', () => {
+  it('offre ses circonstances, sa fin, les entrées qu’elle couvre, et de chaque membre seulement sa monture (#3606)', () => {
+    const champs = formulaireDe('rencontre', RENCONTRE, CADRE_DE_LA_RENCONTRE);
+    expect(champs.map((c) => c.key)).toEqual(['victoryCondition', 'onVictory', 'surprise', 'maneuverability', 'threat', 'terrain', 'banRanged', 'siege', 'couvre', 'members']);
+    const offert = champs.find((c) => c.key === 'members')!.contexte!.offert;
+    const sousLeMembre = (rang: number) => ['entityId', 'side', 'ai', 'mount', 'ridesEntityId'].filter((cle) => offert(['members', rang, cle]));
+    expect([sousLeMembre(0), sousLeMembre(2)]).toEqual([['mount', 'ridesEntityId'], ['mount', 'ridesEntityId']]);
+  });
+
+  it('la cible de la victoire se choisit parmi les membres, la monture chevauchée parmi les montures, posées `{ id }` ; le parse refuse les autres (#3606)', () => {
+    const vise = (chemin: Segment[]) => choixDuChamp('rencontre', RENCONTRE, chemin, CADRE_DE_LA_RENCONTRE)?.map((c) => c.valeur);
+    expect(vise(['victoryCondition', 'targetId'])).toEqual([{ id: 'cavalier' }, { id: 'cheval' }, { id: 'archer' }]);
+    expect(vise(['members', 2, 'ridesEntityId'])).toEqual([{ id: 'cheval' }]);
+    const fautes = (enc: EncounterDef) => encounterDefSchema.safeParse(enc).error?.issues.map((i) => i.message) ?? [];
+    expect(fautes({ ...RENCONTRE, victoryCondition: { type: 'woundsThreshold', targetId: { id: 'badaud' }, atOrBelowPercent: 50 } }))
+      .toEqual([expect.stringContaining('« badaud » est absent du catalogue des membres de la rencontre')]);
+    expect(fautes({ ...RENCONTRE, members: [RENCONTRE.members![0], { entityId: 'cheval' }, RENCONTRE.members![2]] }))
+      .toEqual([expect.stringContaining('« cheval » est absent du catalogue des montures de la rencontre')]);
+    expect(fautes(RENCONTRE)).toEqual([]);
+  });
+
+  it('une écriture sur le chemin d’un champ offert descend une liste élément par élément : la liste des membres et un membre entiers ne sont pas offerts, sa monture l’est (#3606)', () => {
+    const offerts = [['members', 0, 'mount'], ['members', 0, 'ridesEntityId'], ['members', 1, 'mount'], ['members', 1, 'ridesEntityId']] as const;
+    const [cavalier, cheval] = RENCONTRE.members!;
+    expect(ecritureOfferte(offerts, ['members'], [cavalier, cheval])).toBe(false);
+    expect(ecritureOfferte(offerts, ['members', 1], cheval)).toBe(false);
+    expect(ecritureOfferte(offerts, ['members', 1, 'mount'], true)).toBe(true);
+    expect(ecritureOfferte([['usable', 'actions']], ['usable'], { actions: [{ id: 'a' }] }), 'une liste sous un champ offert s’écrit entière').toBe(true);
+  });
+
+  it('chaque objectif de victoire se choisit par variante nommée ; la valeur neuve de chacune passe le parse de la rencontre (décision 3)', () => {
+    const variantes = variantesAChoisir(victoryConditionSchema, undefined)!;
+    expect(variantes.map((v) => [v.cle, v.libelle, v.valeur])).toEqual([
+      ['allEnemiesDead', 'Tous les ennemis hors d’action', { type: 'allEnemiesDead' }],
+      ['destroyStructure', 'Détruire une structure', { type: 'destroyStructure', edge: { x: 0, y: 0, side: 'N' } }],
+      ['surviveRounds', 'Survivre N Rounds', { type: 'surviveRounds', rounds: 0 }],
+      ['reachZone', 'Atteindre une zone', { type: 'reachZone', rect: { x: 0, y: 0, w: 1, h: 1 } }],
+      ['woundsThreshold', 'Sortie à seuil de dommage', { type: 'woundsThreshold', atOrBelowPercent: 0 }],
+      ['firstBlood', 'Duel judiciaire — premier sang', { type: 'firstBlood' }],
+    ]);
+    for (const v of variantes) expect(encounterDefSchema.safeParse({ ...RENCONTRE, victoryCondition: v.valeur }).success, v.cle).toBe(true);
+  });
+
+  it('la sélection d’une rencontre désigne son porteur', () => {
+    expect(porteurDeLaSel({ type: 'encounter', id: 'enc' }, 'scene', 'salle')).toEqual({ sorte: 'rencontre', id: 'enc' });
+  });
+});
+
+/** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`) de chaque porteur de
+ *  `PORTEURS`, toutes branches ouvertes, sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) :
+ *  `variantes` d'une union nommée, puis chaque variante, `ajouter` ou `json` d'une liste, `ajouter` d'un record dont les clés sont posées
+ *  (`clesPosees`), puis sa première entrée, ou `aucune` s'il n'en pose aucune, `json` d'une op sans forme déclarée, sinon
+ *  celle de la feuille (`choix`, `nombre`, `texte`, `json`), sauf d'un champ exigé à formes objet, toujours présent,
+ *  dont l'hôte rend les champs de la forme que dessine sa valeur (`formeAuPoint`). Un nœud déjà descendu ne se redescend
+ *  pas. */
 function saisiesDesFormulaires(): Map<string, string> {
   const saisies = new Map<string, string>();
   const vus = new Set<unknown>();
   const sous = (noeud: unknown, tenus: readonly string[] = []): FieldDesc[] => (champsDeclares(noeud) ?? [])
-    .filter(([cle, n]) => !tenus.includes(cle) && cleOfferte(cle, n))
+    .filter(([cle]) => !tenus.includes(cle))
     .map(([cle, n]) => inferFields([{}], { noeud, niveau: 'profondeur' }).find((c) => c.key === cle) ?? { key: cle, label: cle, kind: kindDuNoeud(cle, n), nullable: true, noeud: n });
   const objet = (noeud: unknown, f: FieldDesc, chemin: string, tenus: readonly string[] = []) => {
     if (vus.has(noeud)) return;
@@ -430,8 +701,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     for (const c of sous(noeud, tenus)) champ({ ...c, contexte: f.contexte }, `${chemin}/${c.key}`);
   };
   const feuille = (f: FieldDesc, chemin: string) => {
-    const segments = chemin.replace(/<[^>]*>|\{\d*\}/g, '').split('/').slice(1).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
-    const choix = f.contexte?.choix(segments) ?? choixDuNoeud(f.noeud);
+    const choix = f.contexte?.choix(segmentsDe(chemin)) ?? choixDuNoeud(f.noeud);
     const nombre = f.kind === 'number' || bornesAuPoint(f.noeud, undefined) !== undefined;
     saisies.set(chemin, choix ? 'choix' : nombre ? 'nombre' : f.kind === 'text' || f.kind === 'textarea' ? 'texte' : 'json');
   };
@@ -439,7 +709,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     if (champsDeclares(f.noeud)) return objet(f.noeud, f, chemin, tenus);
     const u = unionDuNoeud(f.noeud);
     if (u) {
-      if (!tenus.length) saisies.set(chemin, 'variantes');
+      if (!chemin.endsWith('>')) saisies.set(chemin, 'variantes');
       if (vus.has(u.noeud)) return;
       vus.add(u.noeud);
       for (const v of u.variantes) {
@@ -447,6 +717,7 @@ function saisiesDesFormulaires(): Map<string, string> {
         if (v.noeud === undefined) saisies.set(ici, 'json');
         else if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
         else if (champsDeclares(v.noeud)) objet(v.noeud, f, ici, [...tenus, u.discriminant]);
+        else if (elementDuNoeud(v.noeud) !== undefined) champ({ ...f, noeud: v.noeud }, ici);
         else feuille({ ...f, noeud: v.noeud, kind: kindDuNoeud('', v.noeud) }, ici);
       }
       return;
@@ -454,25 +725,61 @@ function saisiesDesFormulaires(): Map<string, string> {
     const element = elementDuNoeud(f.noeud);
     if (element !== undefined) {
       saisies.set(chemin, valeurNeuveDe(element) !== undefined || choixDuNoeud(element) ? 'ajouter' : 'json');
-      if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`);
+      if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`, identiteTenue(f.noeud, undefined));
       return;
     }
-    const record = recordDuNoeud(f.noeud);
-    if (record && champsDuRecord(f, {}, []).length) return champ({ ...f, key: '{}', kind: kindDuNoeud('', record.valeur), noeud: record.valeur }, `${chemin}/{}`);
+    if (clesPosees(f, segmentsDe(chemin))) {
+      const [entree] = champsDuRecord(f, {}, segmentsDe(chemin));
+      saisies.set(chemin, entree ? 'ajouter' : 'aucune');
+      return entree && champ(entree, `${chemin}/${entree.key}`);
+    }
     const formes = ouverts([f.noeud]).filter((n) => champsDeclares(n));
-    feuille(f, chemin);
+    if (f.nullable || !formes.length) feuille(f, chemin);
     formes.forEach((n, i) => objet(n, f, `${chemin}{${i}}`));
   }
   const vide = emptyScene('s', 4, 4);
-  const porteurs = [
-    ['zone', zone()],
-    ['declencheur', declencheur()],
-    ['entite', { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } }],
-    ['entite', { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } }],
-  ] as const;
-  for (const [sorte, donnee] of porteurs) for (const f of formulaireDe(sorte, donnee as never, { ...CADRE_VIDE, scene: vide })) champ(f, `${sorte}/${f.key}`);
+  const cadre: CadreDuPorteur = { ...CADRE_VIDE, scene: vide, projet: { scenes: [vide], narratif: NARRATIF_VIDE, worldMap: CARTE_DES_PORTEURS } };
+  for (const sorte of Object.keys(PORTEURS) as SorteDePorteur[]) {
+    for (const donnee of PORTEURS[sorte]) for (const f of formulaireDe(sorte, donnee as never, cadre)) champ(f, `${sorte}/${f.key}`);
+  }
   return saisies;
 }
+
+/** Le chemin de données d'un chemin de `saisiesDesFormulaires`, sans ses variantes (`<…>`) ni ses formes (`{N}`), privé
+ *  de sa sorte de porteur. */
+const segmentsDe = (chemin: string): Segment[] => chemin.replace(/<[^>]*>|\{\d*\}/g, '').split('/').slice(1).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
+
+/** La carte où vivent les porteurs de la carte de `PORTEURS` : deux lieux, reliés par une route à pied et en diligence. */
+const CARTE_DES_PORTEURS: WorldMap = {
+  ...emptyWorldMap('monde'),
+  places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 's' } }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 's' } }],
+  routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied', 'diligence'] }],
+};
+
+/** Les données de chaque sorte de porteur que descend `saisiesDesFormulaires` : la table est totale. */
+const PORTEURS: { readonly [S in SorteDePorteur]: readonly DonneeDuPorteur[S][] } = {
+  zone: [zone()],
+  declencheur: [declencheur()],
+  entite: [
+    { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } } as DonneeDuPorteur['entite'],
+    { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } } as unknown as DonneeDuPorteur['entite'],
+  ],
+  dialogue: [DIALOGUE],
+  rencontre: [RENCONTRE],
+  scene: [emptyScene('s', 4, 4)],
+  lieu: CARTE_DES_PORTEURS.places,
+  route: CARTE_DES_PORTEURS.routes,
+  carte: [CARTE_DES_PORTEURS],
+  projet: [{ id: 'projet' }],
+  affaires: [{ id: 'aff', titre: 'La route' }],
+  indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lue', prose: 'a' }] }],
+  presetsPnj: [{ id: 'pnj-1', base: { id: creatureSemee() } }],
+  documents: [{ id: 'doc', titre: 'L’affiche', prose: 'VOYAGEURS' }],
+  etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
+  objets: [objetDeCampagne()],
+  ecart: [{ entree: 'EDO-01#x', motif: 'm' }],
+  narratif: [NARRATIF_VIDE],
+};
 
 describe('chaque feuille des formulaires tirés du schéma a un contrôle typé (#3606 M2e)', () => {
   const saisies = saisiesDesFormulaires();
@@ -492,10 +799,342 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(horsObjet.map((c) => saisies.get(`${c}<forme=0>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
   });
 
-  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, et chaque op non typée', () => {
-    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
-      'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
-      ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
-    ].sort());
+  it('les modes d’une route se choisissent ; ses billets et sa vitesse, l’apparence des objets du profil d’un PNJ s’ajoutent par clé posée ; ses dotations et le choix d’une spécialisation se choisissent par variante nommée (#3606 L6)', () => {
+    const attendues: Record<string, string> = {
+      'route/modes/0': 'choix',
+      'route/billets': 'ajouter',
+      'route/billets/diligence/prix': 'ajouter',
+      'route/billets/diligence/prix/interieur': 'nombre',
+      'route/billets/diligence/suite/0': 'choix',
+      'route/billets/diligence/depuis/id': 'choix',
+      'route/billets/diligence/marchandage/presetId': 'choix',
+      'route/billets/diligence/marchandage/paliers/0/prix/interieur': 'nombre',
+      'route/speed': 'ajouter',
+      'route/speed/pied': 'nombre',
+      'presetsPnj/profil/appearance/apparencesObjets': 'aucune',
+      'presetsPnj/profil/trappings': 'ajouter',
+      'presetsPnj/profil/trappings/0': 'variantes',
+      'presetsPnj/profil/trappings/0<forme=0>/of/0': 'variantes',
+      'presetsPnj/profil/skills/0/choix': 'variantes',
+      'presetsPnj/profil/skills/0/choix<forme=1>': 'ajouter',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    expect(unionDuNoeud(trappingRefSchema)?.variantes.map((v) => v.libelle)).toEqual(['une parmi', 'objet du catalogue', 'ligne de texte', 'mention', 'possession', 'somme d’argent', 'arme au choix']);
+  });
+
+  it('un champ d’un objet de campagne qui admet `null` se saisit comme sa forme non nulle : les formes d’une union par variante nommée, une allonge parmi ses valeurs, au profil d’arme dérivé comme à l’objet (#4171)', () => {
+    const attendues: Record<string, string> = {
+      'objets/ammoRangeMod': 'variantes',
+      'objets/damage': 'variantes',
+      'objets/price': 'variantes',
+      'objets/price<forme=1>': 'choix',
+      'objets/reach': 'choix',
+      'objets/derivedWeapon/reach': 'choix',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    expect(unionDuNoeud(new Map(champsDeclares(objetDeCampagneSchema)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
+  });
+
+  it('une référence à un vocabulaire se choisit parmi ses ids, nommés par sa table ; les rencontres d’une bataille rangée s’ajoutent par activité offerte, chacune désignée comme la rencontre d’un `startCombat` (#4234)', () => {
+    const rencontres = 'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters';
+    const attendues: Record<string, string> = {
+      'declencheur/flow<kind=effet>/effet<type=playSfx>/id': 'choix',
+      'lieu/backdrop/id': 'choix',
+      'lieu/market/backdrop/id': 'choix',
+      [rencontres]: 'ajouter',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    // La rencontre d'une activité est une référence locale à la scène : même saisie que celle d'un `startCombat`.
+    expect(saisies.get(`${rencontres}/${choixDeLaFeuilleDId({ type: 'activity' })[0].id}/id`)).toBe(saisies.get('declencheur/flow<kind=effet>/effet<type=startCombat>/encounter/id'));
+    expect(choixDuNoeud(idDe('son'))).toEqual(Object.entries(VOCABULAIRES.sons).map(([valeur, libelle]) => ({ valeur, libelle })));
+    expect(choixDuNoeud(idDe('colonneDuMarchand'))).toEqual(Object.entries(VOCABULAIRES.colonnesDuMarchand).map(([valeur, libelle]) => ({ valeur, libelle })));
+  });
+
+  it('la carrière et l’espèce d’une Condition se choisissent à leur catalogue (#4234)', () => {
+    const attendues: Record<string, string> = {
+      'zone/crossTest/gate<kind=career>/id': 'choix',
+      'zone/crossTest/gate<kind=species>/id': 'choix',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+  });
+
+  it('la carrière et l’espèce d’une Condition, le son d’un effet refusent au parse un id hors de leur catalogue (#4234)', () => {
+    const [son] = idsDe('son');
+    expect([
+      conditionSchema.safeParse({ kind: 'career', id: 'soldat' }).success,
+      conditionSchema.safeParse({ kind: 'career', id: 'inconnue' }).success,
+      conditionSchema.safeParse({ kind: 'species', id: 'halflings' }).success,
+      conditionSchema.safeParse({ kind: 'species', id: 'inconnue' }).success,
+      playSfxSchema.safeParse({ type: 'playSfx', id: son }).success,
+      playSfxSchema.safeParse({ type: 'playSfx', id: 'inconnu' }).success,
+    ]).toEqual([true, false, true, false, true, false]);
+  });
+
+  it('se saisit encore en JSON EXACTEMENT : chaque op non typée', () => {
+    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual(OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`).sort());
+  });
+});
+
+describe('l’accès d’un porteur à son document du projet (#3606)', () => {
+  const MURS = [{ x: 1, y: 2, side: 'N' as const }, { x: 3, y: 0, side: 'E' as const, z: 1 }];
+  const SCENE: Scene = { ...emptyScene('salle', 4, 4), walls: MURS };
+  const CARTE: WorldMap = { ...emptyWorldMap('carte'), routes: [{ id: 'route', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'] }] };
+  const projet = (worldMap?: WorldMap) => ({ scenes: [SCENE], narratif: NARRATIF_VIDE, ...(worldMap ? { worldMap } : {}) }) as unknown as ProjetDEdition;
+  type Route = WorldMap['routes'][number];
+  type Mur = NonNullable<Scene['walls']>[number];
+  const ROUTES: AccesDuPorteur<Route> = { document: 'carte', collection: 'routes' };
+  const LA_CARTE: AccesDuPorteur<WorldMap> = { document: 'carte' };
+
+  it('un porteur de collection s’identifie par la clé que le schéma de son document déclare à la collection', () => {
+    const murs: AccesDuPorteur<Mur> = { document: 'scene', collection: 'walls' };
+    expect(porteurDuProjet<Mur>(murs, projet(), 'salle', '3,0,E,1')).toEqual({ donnee: MURS[1], chemin: ['walls', 1] });
+    const plein = { ...MURS[0], kind: 'door' as const };
+    expect(projetAvecLePorteur<Mur>(murs, projet(), 'salle', MURS[0], plein).scenes[0].walls).toEqual([plein, MURS[1]]);
+  });
+
+  it('un porteur d’un document absent du projet n’a aucun porteur ; présent, ceux de sa collection', () => {
+    expect([porteursDuProjet<Route>(ROUTES, projet(), 'salle'), porteursDuProjet<WorldMap>(LA_CARTE, projet(), 'salle')]).toEqual([[], []]);
+    expect(porteursDuProjet<Route>(ROUTES, projet(CARTE), 'salle')).toEqual(CARTE.routes);
+  });
+
+  it('le porteur singulier d’un document est le document, identifié par lui, au chemin vide ; le narratif, sans identifiant, en est un', () => {
+    expect(porteurDuProjet<WorldMap>(LA_CARTE, projet({ ...CARTE, id: 'autre' }), 'salle', 'carte')).toEqual({ donnee: { ...CARTE, id: 'autre' }, chemin: [] });
+    const renommee = { ...CARTE, label: 'Le Reikland' };
+    const ecrit = projetAvecLePorteur<WorldMap>(LA_CARTE, projet(CARTE), 'salle', CARTE, renommee);
+    expect([ecrit.worldMap, ecrit.scenes[0]]).toEqual([renommee, SCENE]);
+    type Narratif = ProjetDEdition['narratif'];
+    const LE_NARRATIF: AccesDuPorteur<Narratif> = { document: 'narratif' };
+    expect([porteurDuProjet<Narratif>(LE_NARRATIF, projet(), 'salle', 'narratif'), porteurDuProjet<Narratif>(LE_NARRATIF, projet(), 'salle', 'salle')]).toEqual([{ donnee: NARRATIF_VIDE, chemin: [] }, undefined]);
+    const enrichi = { ...NARRATIF_VIDE, presetsPnj: [] };
+    expect(projetAvecLePorteur<Narratif>(LE_NARRATIF, projet(), 'salle', NARRATIF_VIDE, enrichi).narratif).toBe(enrichi);
+    expect([porteurDeLaSel(null, 'scene', 'salle'), porteurDeLaSel(null, 'narratif', 'salle')], 'sans sélection, le singulier du document ouvert, le narratif compris (#3606 B3)').toEqual([{ sorte: 'scene', id: 'salle' }, { sorte: 'narratif', id: 'narratif' }]);
+  });
+});
+
+describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', () => {
+  const SALLE: Scene = { ...emptyScene('salle', 4, 4), entryPoints: { porte: { x: 0, y: 0 } } };
+  const POI = { id: 'temple', label: 'Temple', pos: { x: 1, y: 1 }, sceneId: { id: 'salle' } };
+  const CARTE: WorldMap = {
+    ...emptyWorldMap('monde'),
+    places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 'salle' }, poi: [POI] }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 'salle' } }],
+    routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'] }],
+  };
+  const projet = { scenes: [SALLE], narratif: NARRATIF_VIDE, worldMap: CARTE } as unknown as ProjetDEdition;
+  const cadre: CadreDuPorteur = { scene: SALLE, projet, source: { manifeste: null, chapitres: {} } };
+  const cles = (fs: FieldDesc[]) => fs.map((f) => f.key);
+
+  it('une sélection d’un lieu ou d’une route désigne son porteur ; sans sélection, la carte ouverte désigne la carte', () => {
+    expect([porteurDeLaSel({ type: 'place', id: 'x' }, 'carte', 'salle'), porteurDeLaSel({ type: 'route', id: 'r' }, 'scene', 'salle'), porteurDeLaSel(null, 'carte', 'salle')])
+      .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }]);
+  });
+
+  it('le lieu offre chaque champ de son schéma hors de son identifiant, de sa position, de ses établissements et de ses points d’intérêt ; d’un établissement, son nom et son repos ; d’un point d’intérêt, son icône et, vers une scène, son nom', () => {
+    expect(cles(formulaireDe('lieu', CARTE.places[0], cadre))).toEqual(['label', 'scene', 'entry', 'icon', 'taille', 'port', 'market', 'backdrop', 'when', 'couvre', 'prose', 'source', 'adapteDe', 'poi']);
+    const lieu: MapPlace = { ...CARTE.places[0], services: [{ id: 'auberge', kind: { id: 'auberge' } }], poi: [POI, { id: 'forge', pos: { x: 2, y: 2 }, service: { id: 'auberge' } }] };
+    const offert = (c: Segment[], v: unknown) => avecLaValeurDuPorteur('lieu', lieu, c, v, cadre).ok;
+    expect([offert(['poi', 0, 'label'], 'Chapelle'), offert(['poi', 1, 'label'], 'Forge'), offert(['poi', 0, 'pos'], { x: 2, y: 2 }), offert(['poi', 0, 'id'], 'x'), offert(['poi', 0, 'sceneId'], { id: 'salle' }), offert(['poi'], [])]).toEqual([true, false, false, false, false, false]);
+    expect([offert(['services', 0, 'label'], 'Le Cerf'), offert(['services', 0, 'rest'], {}), offert(['services', 0, 'id'], 'x'), offert(['services', 0, 'kind'], { id: 'temple' }), offert(['services'], [])]).toEqual([true, true, false, false, false]);
+  });
+
+  it('la route offre chaque champ de son schéma hors de son identifiant, de ses extrémités et de son sens ; la carte, son libellé, son fond et ses réglages', () => {
+    expect(cles(formulaireDe('route', CARTE.routes[0], cadre))).toEqual(['km', 'modes', 'billets', 'speed', 'perilDie', 'perils', 'ambush', 'inns', 'sea', 'seaHeading', 'river', 'riverPerils', 'when', 'refus', 'riverExposure', 'couvre', 'provenances']);
+    expect(cles(formulaireDe('carte', CARTE, cadre))).toEqual(['label', 'background', 'params']);
+  });
+
+  it('les choix d’un porteur restreignent ceux d’une référence locale : le départ d’un billet d’une route à sens unique, son seul lieu de départ, parmi les lieux de la carte', () => {
+    const sensUnique = { ...CARTE.routes[0], from: { id: 'y' }, modes: ['pied', 'diligence'], billets: { diligence: { prix: {}, depuis: { id: 'y' } } } };
+    expect(choixDuChamp('route', sensUnique, ['billets', 'diligence', 'depuis'], cadre)?.map((c) => [c.valeur, c.libelle])).toEqual([[{ id: 'y' }, 'Y']]);
+    const horsCarte = { ...sensUnique, from: { id: 'w' } };
+    expect(choixDuChamp('route', horsCarte, ['billets', 'diligence', 'depuis'], cadre), 'un départ que la carte n’a pas ne s’offre pas').toEqual([]);
+  });
+
+  it('un avertissement de la carte désigne le lieu ou la route qui porte son élément ; sans élément, la carte ; un point d’intérêt, aucun porteur', () => {
+    expect([porteurDeLaPortee('worldMap', 'x', projet, 'salle'), porteurDeLaPortee('worldMap', 'r', projet, 'salle'), porteurDeLaPortee('worldMap', undefined, projet, 'salle'), porteurDeLaPortee('worldMap', 'temple', projet, 'salle')])
+      .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }, undefined]);
+  });
+});
+
+describe('les porteurs du narratif : une entrée de chaque registre créable, un écart, le narratif (#3606 M6)', () => {
+  const NARRATIF = {
+    ...NARRATIF_VIDE,
+    affaires: [{ id: 'aff', titre: 'La route' }, { id: 'aff-2', titre: 'Le fleuve' }],
+    indices: [
+      { id: 'ind-lettre', affaireId: 'aff', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lue', prose: 'a' }, { id: 'dechiffree', prose: 'b' }] },
+      { id: 'ind-sceau', affaireId: 'aff', kind: 'indice', titre: 'Le sceau', refs: ['ind-lettre'], stades: [{ id: 'vu', prose: 'c' }] },
+      { id: 'ind-carte', affaireId: 'aff-2', kind: 'rumeur', titre: 'La carte', stades: [{ id: 'dite', prose: 'd' }] },
+    ],
+    documents: [{ id: 'doc-affiche', titre: 'L’affiche', prose: 'VOYAGEURS' }],
+    etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
+    ecartes: [{ entree: 'EDO-01#x', motif: 'm' }],
+  } as typeof NARRATIF_VIDE;
+  const cadre: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF }, source: SANS_SOURCE };
+  const cles = (fs: FieldDesc[]) => fs.map((f) => f.key);
+  const [lettre, sceau] = NARRATIF.indices;
+  const valeurs = (sorte: Parameters<typeof choixDuChamp>[0], donnee: unknown, chemin: Segment[]) => choixDuChamp(sorte, donnee as never, chemin, cadre)?.map((c) => c.valeur);
+
+  it('une sélection d’une entrée d’un registre créable ou d’un écart désigne son porteur, sous la clé de sa collection', () => {
+    expect([porteurDeLaSel({ type: 'indices', id: 'ind-lettre' }, 'narratif', 's'), porteurDeLaSel({ type: 'ecart', id: 'EDO-01#x' }, 'narratif', 's')])
+      .toEqual([{ sorte: 'indices', id: 'ind-lettre' }, { sorte: 'ecart', id: 'EDO-01#x' }]);
+  });
+
+  it('chaque entrée offre les champs de son schéma hors de son identifiant ; un indice, ses stades par rang ; un écart, son motif ; le narratif, son ouverture et sa clôture', () => {
+    expect(cles(formulaireDe('affaires', NARRATIF.affaires[0], cadre))).toEqual(['titre', 'desc']);
+    expect(cles(formulaireDe('documents', NARRATIF.documents[0], cadre))).toEqual(['titre', 'prose', 'source']);
+    expect(cles(formulaireDe('indices', lettre, cadre))).toEqual(['affaireId', 'kind', 'titre', 'refs', 'couvre', 'stades']);
+    expect(cles(formulaireDe('etats', NARRATIF.etats[0], cadre))).toEqual(['label', 'source', 'maison', 'forme']);
+    expect(cles(formulaireDe('ecart', NARRATIF.ecartes![0], cadre))).toEqual(['motif']);
+    expect(cles(formulaireDe('narratif', NARRATIF, cadre))).toEqual(['ouverture', 'cloture']);
+    expect([['stades', 1, 'prose'], ['stades', 1, 'documentId'], ['stades', 1, 'id'], ['stades']].map((c) => avecLaValeurDuPorteur('indices', lettre, c as Segment[], c[2] === 'documentId' ? 'doc-affiche' : 'z', cadre).ok))
+      .toEqual([true, true, false, false]);
+  });
+
+  it('les références du narratif reçoivent leurs choix : l’affaire d’un indice, le document d’un stade, par le registre ; ses renvois, les autres indices hors des renvoyés', () => {
+    expect(valeurs('indices', lettre, ['affaireId'])).toEqual(['aff', 'aff-2']);
+    expect(valeurs('indices', lettre, ['stades', 0, 'documentId'])).toEqual(['doc-affiche']);
+    expect(valeurs('indices', lettre, ['refs', 0])).toEqual(['ind-sceau', 'ind-carte']);
+    expect(valeurs('indices', sceau, ['refs', 1]), 'le renvoi posé ne se repropose pas').toEqual(['ind-carte']);
+    expect(valeurs('indices', sceau, ['refs', 0]), 'le renvoi courant reste offert').toEqual(['ind-lettre', 'ind-carte']);
+  });
+
+  it('au rang qui suit le dernier stade, le stade neuf, d’identifiant frais ; au rang qui suit la dernière valeur d’un état, la valeur neuve', () => {
+    expect(valeurs('indices', lettre, ['stades', 2])).toEqual([{ id: 'stade-3', prose: '' }]);
+    expect(valeurs('etats', NARRATIF.etats[0], ['forme', 'valeurs', 1])).toEqual([{ id: 'valeur-2', label: 'Valeur 2' }]);
+    expect(avecLaValeurDuPorteur('indices', lettre, ['stades', 2], { id: 'autre', prose: '' }, cadre).ok, 'seul l’élément neuf s’ajoute').toBe(false);
+  });
+
+  it('un état héros reçoit son identité neuve absente, puis le repère neuf au rang qui suit le dernier ; seul ce repère s’y ajoute', () => {
+    const heros = { id: 'elu', label: 'Élu', maison: 'fixture', forme: { kind: 'heros' } } as unknown as (typeof NARRATIF.etats)[number];
+    const [neuve] = valeurs('etats', heros, ['forme', 'identite']) as { reperes: unknown[] }[];
+    expect(neuve).toEqual({ ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [] });
+    const avec = { ...heros, forme: { kind: 'heros', identite: neuve } } as typeof heros;
+    expect([valeurs('etats', avec, ['forme', 'identite']), valeurs('etats', avec, ['forme', 'identite', 'reperes', 1])]).toEqual([undefined, [{ id: 'repere-2', fragment: '' }]]);
+    expect(avecLaValeurDuPorteur('etats', avec, ['forme', 'identite', 'reperes', 1], { id: 'autre', fragment: '' }, cadre).ok).toBe(false);
+  });
+
+  it('l’identité posée s’écrit par ses champs, jamais ses repères ni ses lignes entiers ni le repère d’une valeur ; elle et chacune de ses lignes se retirent entières, déclarées ; un rang non déclaré, non', () => {
+    const identite = { ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'repere-1', valeur: 'Otto' }] }] };
+    const avec = { id: 'elu', label: 'Élu', maison: 'fixture', forme: { kind: 'heros', identite } } as unknown as (typeof NARRATIF.etats)[number];
+    const ici = (...chemin: Segment[]) => ['forme', 'identite', ...chemin];
+    const ecrit = (chemin: Segment[], v?: unknown) => avecLaValeurDuPorteur('etats', avec, chemin, v, cadre);
+    expect([ecrit(ici('ancres'), ['Nom', 'Baron']), ecrit(ici('reperes', 0, 'fragment'), 'Baron Nom'), ecrit(ici('lignes', 0, 'sexe'), 'F'), ecrit(ici('lignes', 0, 'valeurs', 0, 'valeur'), 'Karl')].map((e) => e.ok))
+      .toEqual([true, true, true, true]);
+    expect([ecrit(ici('lignes', 0, 'valeurs', 0, 'repere'), 'autre'), ecrit(ici('reperes'), []), ecrit(ici('lignes'), []), ecrit(ici(), { ...identite, lignes: [] }), ecrit(ici('reperes', 0, 'id'), 'autre')].map((e) => (e.ok ? 'ok' : e.refus)))
+      .toEqual(['nonOffert', 'nonOffert', 'nonOffert', 'nonOffert', 'nonOffert']);
+    const sansLigne = ecrit(ici('lignes', 0));
+    const sansIdentite = ecrit(ici());
+    expect([sansLigne.ok && (sansLigne.valeur.forme as typeof avec.forme & { identite: typeof identite }).identite.lignes, sansIdentite.ok && sansIdentite.valeur.forme]).toEqual([[], { kind: 'heros' }]);
+    const refus = [ecrit(ici('reperes', 0)), avecLaValeurDuPorteur('indices', lettre, ['stades', 0], undefined, cadre)];
+    expect(refus.map((e) => (e.ok ? 'ok' : e.refus)), 'un rang qu’aucun formulaire ne déclare, de la liste qu’il n’écrit pas entière, ne se retire pas').toEqual(['nonOffert', 'nonOffert']);
+  });
+});
+
+describe('l’adresse de prose d’un porteur hors scène : le profil d’un PNJ du narratif (#3606 M6)', () => {
+  const TEXTE = ['# Les Armures', '', 'Une armure protège son porteur des coups, au prix de sa discrétion.', ''].join('\n');
+  const LIVRE = 'livre-de-base';
+  const CHARGEE: SourceDeLEdition = {
+    manifeste: { [LIVRE]: { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armures.md', titre: 'Les Armures', octets: TEXTE.length }] } },
+    chapitres: { [cleDuChapitre(LIVRE, '01')]: parseChapitre(TEXTE) },
+  };
+  const ARMURES: Fragment = { kind: 'blocs', sec: 'les-armures', secOcc: 1, b0: 0, b1: 0, sum: '' };
+  const preset = { id: 'pnj-1', base: { id: creatureSemee() } };
+  const cadre = (source: SourceDeLEdition): CadreDuPorteur => ({ scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: { ...NARRATIF_VIDE, presetsPnj: [preset] } }, source });
+
+  it('l’adresse écrite au profil d’un PNJ se scelle sur le chapitre chargé, comme sous un porteur de la scène ; sans lui, elle n’est pas offerte', () => {
+    const vide = { ...preset, profil: { descRef: { book: LIVRE, ch: '01', parts: [] } } } as unknown as PresetPnj;
+    const PARTS: Segment[] = ['profil', 'descRef', 'parts'];
+    const choisie = choixDuChamp('presetsPnj', vide, [...PARTS, 0], cadre(CHARGEE))?.map((c) => c.valeur).find((v) => (v as Fragment).kind === 'blocs');
+    const ecrite = avecLaValeurDuPorteur('presetsPnj', vide, [...PARTS, 0], choisie, cadre(CHARGEE));
+    expect(ecrite.ok && (ecrite.valeur.profil as { descRef: DescRef }).descRef.parts).toEqual([{ ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }]);
+    expect(avecLaValeurDuPorteur('presetsPnj', vide, [...PARTS, 0], { ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }, cadre({ ...CHARGEE, chapitres: {} })), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
+  });
+});
+
+describe('une sous-référence se choisit parmi les sous-entrées de l’entrée que désigne sa référence sœur (`SOUS_REFERENCES`)', () => {
+  const NARRATIF = {
+    ...NARRATIF_VIDE,
+    etats: [
+      { id: 'humeur', label: 'Humeur', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }, { id: 'colere', label: 'Colère' }] } },
+      { id: 'meneur', label: 'Meneur', forme: { kind: 'heros' } },
+    ],
+    indices: [{ id: 'piste', affaireId: 'a', kind: 'indice', titre: 'Piste', stades: [{ id: 'vu', prose: '' }, { id: 'compris', prose: '' }] }],
+  } as unknown as typeof NARRATIF_VIDE;
+  const CADRE: CadreDuPorteur = { ...CADRE_VIDE, projet: { scenes: [], narratif: NARRATIF } };
+  const VALEURS = [{ valeur: 'calme', libelle: 'Calme', refus: null }, { valeur: 'colere', libelle: 'Colère', refus: null }];
+  const avecEffet = (effet: object): Declencheur => ({ ...declencheur(), flow: { kind: 'effet', effet } }) as Declencheur;
+
+  it('la valeur comparée de la clôture, la valeur posée d’un effet et la valeur d’une condition de déclencheur : les valeurs déclarées de l’état désigné', () => {
+    const narratif = { ...NARRATIF, cloture: { when: { kind: 'etat', etat: 'humeur' }, titre: '' } } as typeof NARRATIF;
+    expect(choixDuChamp('narratif', narratif, ['cloture', 'when', 'value'], CADRE)).toEqual(VALEURS);
+    expect(choixDuChamp('declencheur', avecEffet({ type: 'poserEtat', etat: 'humeur', valeur: 'calme' }), ['flow', 'effet', 'valeur'], CADRE)).toEqual(VALEURS);
+    expect(choixDuChamp('declencheur', declencheur({ kind: 'etat', etat: 'humeur' } as Condition), ['when', 'value'], CADRE)).toEqual(VALEURS);
+  });
+
+  it('le stade d’un indice révélé : ses stades, libellés de leur rang ; un état sans valeurs déclarées n’en offre aucune', () => {
+    expect(choixDuChamp('declencheur', avecEffet({ type: 'revealClue', indiceId: 'piste' }), ['flow', 'effet', 'stade'], CADRE)).toEqual([{ valeur: 'vu', libelle: 'stade 1', refus: null }, { valeur: 'compris', libelle: 'stade 2', refus: null }]);
+    expect(choixDuChamp('declencheur', declencheur({ kind: 'etat', etat: 'meneur' } as Condition), ['when', 'value'], CADRE)).toEqual([]);
+  });
+});
+
+describe('le Test qu’un porteur fixe (`porteurDeTestFixe`)', () => {
+  /** Un porteur d'un Test, et sa donnée : une compétence, une caractéristique et une difficulté posées. */
+  const porteur = z.strictObject({ test: testFixeSchema, fallM: z.number() });
+  const donnee = { r: { test: { skill: { id: 'chevaucher' }, characteristic: 'agilite', difficulty: 'complexe' }, fallM: 2 } };
+  /** Le formulaire d'un champ facultatif `r` de nœud `noeud`. */
+  const forme = (noeud: z.ZodType): FormeDuFormulaire => ({ noeud: z.strictObject({ r: noeud.optional() }), champs: [['r']], retraits: [] });
+  /** Le champ `cle` du Test au formulaire `f` : exigé par son porteur, que le contexte du formulaire n'offre pas au
+   *  retrait (`ContexteDuChamp.exige`), et l'issue de son retrait. */
+  const retrait = (f: FormeDuFormulaire, cle: string) => {
+    const chemin = ['r', 'test', cle];
+    const ecrite = ecritureAuFormulaire(f, donnee, chemin, undefined, () => undefined, SANS_SOURCE);
+    const [r] = champsDuFormulaire(f, donnee, () => undefined, SANS_SOURCE);
+    return [cle, r.contexte!.exige(chemin) ? 'exigé' : 'libre', ecrite.ok ? 'retiré' : ecrite.refus];
+  };
+
+  it('n’offre pas le retrait de la compétence ni de la difficulté qu’il exige, et le refuse requis ; un porteur nu les retire', () => {
+    const fixe = forme(porteurDeTestFixe(porteur, 'skill', 'difficulty'));
+    expect(['skill', 'difficulty', 'characteristic'].map((cle) => retrait(fixe, cle))).toEqual([['skill', 'exigé', 'requis'], ['difficulty', 'exigé', 'requis'], ['characteristic', 'libre', 'retiré']]);
+    expect(['skill', 'difficulty'].map((cle) => retrait(forme(porteur), cle)), 'porteur nu').toEqual([['skill', 'libre', 'retiré'], ['difficulty', 'libre', 'retiré']]);
+  });
+});
+
+describe('le retrait d’un champ nullable requis', () => {
+  /** Un objet nullable requis `r`, un nombre requis `n` et sa donnée. */
+  const forme: FormeDuFormulaire = { noeud: z.strictObject({ r: z.strictObject({ a: z.number() }).nullable(), n: z.number() }), champs: [['r'], ['n']], retraits: [] };
+  const donnee = { r: { a: 1 }, n: 2 };
+  const retire = (chemin: Segment[]) => {
+    const ecrite = ecritureAuFormulaire(forme, donnee, chemin, undefined, () => undefined, SANS_SOURCE);
+    return ecrite.ok ? ecrite.valeur : ecrite.refus;
+  };
+
+  it('écrit le vide de son nœud, `null`, lui ou le champ requis qu’il porte retiré ; un champ requis sans vide reste refusé', () => {
+    expect(retire(['r']), 'le champ même').toEqual({ r: null, n: 2 });
+    expect(retire(['r', 'a']), 'son seul champ requis, qui le vide').toEqual({ r: null, n: 2 });
+    expect(retire(['n']), 'un nombre requis').toBe('requis');
+  });
+});
+
+describe('un record à clé ouverte', () => {
+  /** Une rampe : un offset en pourcentage vers une couleur, deux arrêts au moins. */
+  const rampe = z.record(z.string().regex(/^\d+%$/), z.string().regex(/^#[0-9a-f]{6}$/)).refine((r) => Object.keys(r).length >= 2, { message: 'deux arrêts au moins' });
+  const forme: FormeDuFormulaire = { noeud: z.strictObject({ r: rampe }), champs: [['r']], retraits: [] };
+  const deux = { r: { '0%': '#000000', '100%': '#ffffff' } };
+  const ecrire = (donnee: typeof deux, chemin: Segment[], valeur?: unknown) => {
+    const ecrite = ecritureAuFormulaire(forme, donnee, chemin, valeur, () => undefined, SANS_SOURCE);
+    return ecrite.ok ? ecrite.valeur : ecrite.refus;
+  };
+  const exige = (donnee: typeof deux, cle: string) => champsDuFormulaire(forme, donnee, () => undefined, SANS_SOURCE)[0].contexte!.exige(['r', cle]);
+
+  it('ajoute une clé que son nœud de clé admet, à la valeur neuve de son nœud de valeur, puis l’écrit ; refuse une clé hors de son nœud', () => {
+    const ajoutee = ecrire(deux, ['r', '50%'], valeurNeuveDe(recordDuNoeud(rampe)!.valeur)) as typeof deux;
+    expect(ajoutee.r).toEqual({ '0%': '#000000', '100%': '#ffffff', '50%': '' });
+    expect(ecrire(ajoutee, ['r', '50%'], '#808080'), 'sa valeur').toEqual({ r: { '0%': '#000000', '100%': '#ffffff', '50%': '#808080' } });
+    expect(ecrire(deux, ['r', 'milieu'], ''), 'une clé hors de son nœud').toBe('nonOffert');
+  });
+
+  it('exige la clé dont le retrait enfreint le record, et refuse ce retrait ; au-delà du minimum, la retire', () => {
+    const trois = { r: { ...deux.r, '50%': '#808080' } };
+    expect([exige(deux, '0%'), exige(trois, '0%')]).toEqual([true, false]);
+    expect(ecrire(deux, ['r', '0%']), 'deux arrêts').toEqual({ regle: 'deux arrêts au moins' });
+    expect(ecrire(trois, ['r', '0%']), 'trois arrêts').toEqual({ r: { '100%': '#ffffff', '50%': '#808080' } });
   });
 });

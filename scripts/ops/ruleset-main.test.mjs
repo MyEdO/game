@@ -320,7 +320,7 @@ test('`--dry-run` n’émet AUCUN appel `gh` — ni lecture, ni écriture — et
   assert.deepEqual(appels, [], 'le mode qui n’écrit rien ne doit pas non plus interroger le dépôt')
   assert.match(dit.join(''), /rien n’a été écrit sur GitHub/)
   assert.match(dit.join(''), /"enforcement": "active"/)
-  assert.deepEqual(JSON.parse(dit[0]), { allow_auto_merge: true })
+  assert.deepEqual(JSON.parse(dit[0]), { allow_auto_merge: true, merge_commit_title: 'MERGE_MESSAGE', merge_commit_message: 'PR_TITLE' })
   assert.equal(JSON.parse(dit[1]).name, NOM)
 })
 
@@ -352,7 +352,7 @@ test('hors `--dry-run`, le dépôt active auto-merge puis le ruleset EXISTANT pa
   })
   assert.deepEqual(appels[0], ['api', `repos/${DEPOT}/rulesets`])
   assert.deepEqual(appels[1].slice(0, 4), ['api', '-X', 'PATCH', `repos/${DEPOT}`])
-  assert.deepEqual(corps[0], { allow_auto_merge: true })
+  assert.deepEqual(corps[0], { allow_auto_merge: true, merge_commit_title: 'MERGE_MESSAGE', merge_commit_message: 'PR_TITLE' })
   assert.equal(corps[1].name, NOM)
   assert.deepEqual(appels[2].slice(0, 4), ['api', '-X', 'PUT', `repos/${DEPOT}/rulesets/77`])
   assert.equal(appels.length, 3)

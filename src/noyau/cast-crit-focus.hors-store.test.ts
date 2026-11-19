@@ -44,7 +44,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     banc.setState({ party: [w] as Combatant[] });
     const spell = findSpellById('choc')!; // sort non-missile ? Choc est ZdE missile — prendre un sort de soutien
     const armure = findSpellById('armure-aethyrique')!;
-    applyCast(banc.getState, banc.setState, w, w, armure, critRes(true, 4), false, false);
+    applyCast(banc.getState, banc.setState, w, [w], armure, critRes(true, 4), false, false);
     // Le contrecoup est une ÉTAPE : il se dit quand elle se joue, sur elle autant qu'au journal.
     expect(draineEtLit(banc.getState).join('\n')).toMatch(/Incantation Imparfaite/);
     expect(spell).toBeTruthy();
@@ -55,7 +55,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     w.talents.push({ talentId: 'diction-instinctive', times: 1 });
     banc.setState({ party: [w] as Combatant[] });
     const armure = findSpellById('armure-aethyrique')!;
-    applyCast(banc.getState, banc.setState, w, w, armure, critRes(true, 4), false, false);
+    applyCast(banc.getState, banc.setState, w, [w], armure, critRes(true, 4), false, false);
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Diction instinctive/);
     expect(j).not.toMatch(/Incantation Imparfaite Mineure \(/);
@@ -65,7 +65,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     const w = wiz();
     banc.setState({ party: [w] as Combatant[] });
     const armure = findSpellById('armure-aethyrique')!; // NI 2 — DR 0 insuffisant
-    applyCast(banc.getState, banc.setState, w, w, armure, critRes(false, 0), false, false, 'puissance');
+    applyCast(banc.getState, banc.setState, w, [w], armure, critRes(false, 0), false, false, 'puissance');
     expect(banc.getState().journal.join('\n')).toMatch(/Puissance totale/);
   });
 
@@ -73,7 +73,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     const priest = herosDeScenario(idsDeTest, 'pretre');
     banc.setState({ party: [priest] as Combatant[] });
     const ben = findSpellById('benediction-de-guerison')!;
-    applyCast(banc.getState, banc.setState, priest, priest, ben, critRes(true, 2), false, false);
+    applyCast(banc.getState, banc.setState, priest, [priest], ben, critRes(true, 2), false, false);
     expect(draineEtLit(banc.getState).join('\n')).not.toMatch(/Incantation Imparfaite/);
   });
 
@@ -300,9 +300,9 @@ describe('Convergence de Domaine (+1 Avantage, l.176)', () => {
     banc.setState({ battle, party: [] });
     const feu = { label: 'Trait de feu', type: 'Magie des Arcanes', subType: 'Feu', domainId: { id: 'feu' }, cn: 0, desc: 'buff', target: 1 } as never;
     const ok: CastResult = { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(banc.getState, banc.setState, w, target, feu, ok, false, false);
+    applyCast(banc.getState, banc.setState, w, [target], feu, ok, false, false);
     expect(w.advantage).toBe(0); // premier sort : pas de convergence
-    applyCast(banc.getState, banc.setState, w2, target, feu, ok, false, false);
+    applyCast(banc.getState, banc.setState, w2, [target], feu, ok, false, false);
     expect(w2.advantage).toBe(1); // le Vent de Feu converge
   });
 });

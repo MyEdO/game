@@ -35,7 +35,6 @@ import {
   qualityRefLabel,
   findQualityById,
   advancementLabel,
-  armesChoisissables,
   type TrappingRef,
   estDotationDObjet,
   levelsForCareer,
@@ -61,7 +60,20 @@ import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cl
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
 import { formatDice } from '../../engine/dice';
-import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import {
+  brancheChoisie,
+  dotationsDuHeros,
+  emplacementsDeDotation,
+  estEmplacementDeDotation,
+  estEmplacementRacine,
+  idChoisi,
+  libelleDeLaValeur,
+  sousEmplacement,
+  valeursDeLEmplacement,
+  type ChoixDeDotation,
+  type EmplacementDeDotation,
+  type PorteurDArme,
+} from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -113,6 +125,7 @@ import {
   CreatorDraft,
   newDraft,
   draftSpecies,
+  draftPorteur,
   draftLevel,
   withSpecies,
   withCareer,
@@ -195,7 +208,7 @@ import {
   xpTotal,
 } from '../../noyau/creation/brouillon';
 import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_CHARS_KEPT, XP_CHARS_REASSIGNED, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } from '../../engine/creation';
-import { formuleDeRevenus } from '../../engine/money';
+import { formuleDeRevenus, libelleDuStatut, memeStatut } from '../../engine/money';
 import { t as msg } from '../../i18n'; // `msg` : alias local — `t` nomme aussi un trapping ou une minuterie dans ce module
 import { PARTY_MAX } from '../../noyau/monde/combatants';
 import { GatedAction, raisonSi } from '../GatedAction';
@@ -325,7 +338,7 @@ export function CharacterCreator() {
     const c = findCareerById(d.careerId);
     if (!c) return null;
     const lvl1 = levelsForCareer(d.careerId).find((l) => l.level === 1);
-    return msg('createur.resumeDeCarriere', { classe: libelleDeClasse(c.class.id), carriere: c.label, niveau: lvl1?.label ?? '—', statut: lvl1?.status ?? '' });
+    return msg('createur.resumeDeCarriere', { classe: libelleDeClasse(c.class.id), carriere: c.label, niveau: lvl1?.label ?? '—', statut: lvl1 ? libelleDuStatut(lvl1.status) : '' });
   };
 
   // Une réf Codex cliquée ouvre la fiche en MODALE par-dessus l'assistant (cf. CodexOverlay) : le
@@ -671,7 +684,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
   // Encrier de tirage CARRIÈRE (#393 P2, même patron que Race #393 P3) : rangée unique recherche +
   // encrier, le résultat vit dans l'encrier rendu (plus de mur de boutons de borne). LDB 05 l.208-212 :
   // 1ᵉʳ jet gardé = +50 PX ; pas convaincu → deux jets de plus (3 bornes au choix) = +25 PX ; au-delà,
-  // relances libres = 0 PX (mécanique `rollDraftCareer`/`careerXp`, INCHANGÉE).
+  // relances libres = 0 PX (mécanique `rollDraftCareer`/`careerXp`).
   const rolledLast = d.careerRolls[d.careerRolls.length - 1];
   const kept = careerXp(d) > 0;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftCareer(d)));
@@ -789,9 +802,9 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
           )}
           <span className="chip">Départ <b>{lvl1.label}</b></span>
           <MetalStatus status={lvl1.status} size="chip" />
-          {lvlMax && lvlMax.status !== lvl1.status && (
+          {lvlMax && !memeStatut(lvlMax.status, lvl1.status) && (
             <span className="chip">
-              {lvl1.status} → {lvlMax.status}
+              {libelleDuStatut(lvl1.status)} → {libelleDuStatut(lvlMax.status)}
             </span>
           )}
         </>
@@ -1820,10 +1833,11 @@ export function PettySpellsSection({ d, setD }: StepProps) {
   );
 }
 
-/** Picker d'arme de l'emplacement `{wildcard:'arme'}` — icône + libellé (`MediaSelect`, MÊME rendu
- *  que le Sac/`EquipmentPanel`), filtrable (`SearchFilterField`, 100+ armes). */
-function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
-  const { search, setSearch, filtered } = useFilteredList(armesChoisissables(), (w) => w.label);
+/** Picker d'arme de l'emplacement `{wildcard:'arme'}` `emplacement` parmi ses valeurs offertes au porteur `porteur` (`valeursDeLEmplacement`) —
+ *  icône + libellé (`MediaSelect`, MÊME rendu que le Sac/`EquipmentPanel`), filtrable (`SearchFilterField`, 100+ armes). */
+function WeaponWildcardPicker({ emplacement, porteur, value, onChange }: { emplacement: EmplacementDeDotation; porteur: PorteurDArme; value?: string; onChange: (v: string) => void }) {
+  const armes = valeursDeLEmplacement(emplacement, porteur).map((v) => ({ id: String(v), label: libelleDeLaValeur(emplacement, v) }));
+  const { search, setSearch, filtered } = useFilteredList(armes, (w) => w.label);
   const options: MediaOption[] = filtered.map((w) => {
     const item = gabaritDObjet(w.id);
     return { key: w.id, media: item ? <ItemIcon item={item} size="sm" /> : undefined, label: w.label };
@@ -1838,13 +1852,14 @@ function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (
 
 /** Un emplacement de dotation (`emplacementsDeDotation`) — rendu RÉCURSIF : `{choice}` →
  *  `OptionChooser` (une branche = un bouton ; l'emplacement que porte la branche choisie se déroule
- *  dessous) ; `{wildcard:'arme'}` → `WeaponWildcardPicker` (valeur = l'`id` d'arme) ;
+ *  dessous) ; `{wildcard:'arme'}` → `WeaponWildcardPicker` (valeur = l'`id` d'arme, offerte au porteur `porteur`) ;
  *  `{id,qualityChoice:true}` → un Atout de Fabrication (LDB 60 l.9-32) parmi `fabricationAtouts`,
  *  libellé + effet verbatim (`QualityData.desc`) en hint — `DEFAULT_FABRICATION_ATOUT` pré-sélectionné
  *  tant qu'aucun choix n'est stocké (défaut du résolveur). Une autre catégorie de joker n'a pas de
  *  sélecteur. */
-export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
+export function TrappingChoiceSlot({ emplacement, porteur, choices, onChoicesChange }: {
   emplacement: EmplacementDeDotation;
+  porteur: PorteurDArme;
   choices: ChoixDeDotation;
   onChoicesChange: (adresse: AdresseDeCreation, value: number | string) => void;
 }) {
@@ -1861,13 +1876,13 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
     return (
       <>
         <OptionChooser layout="grid" options={options} />
-        {sous && <TrappingChoiceSlot emplacement={sous} choices={choices} onChoicesChange={onChoicesChange} />}
+        {sous && <TrappingChoiceSlot emplacement={sous} porteur={porteur} choices={choices} onChoicesChange={onChoicesChange} />}
       </>
     );
   }
   const value = idChoisi(emplacement, choices);
   if (emplacement.sorte === 'joker') {
-    if (emplacement.ref.wildcard === 'arme') return <WeaponWildcardPicker value={value} onChange={(v) => onChoicesChange(adresse, v)} />;
+    if (emplacement.ref.wildcard === 'arme') return <WeaponWildcardPicker emplacement={emplacement} porteur={porteur} value={value} onChange={(v) => onChoicesChange(adresse, v)} />;
     return <p className="hint">Aucun catalogue d'objets pour la catégorie « {emplacement.ref.wildcard} » : cet emplacement ne peut pas être choisi.</p>;
   }
   const options = fabricationAtouts().map((atoutId) => {
@@ -1952,7 +1967,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
           le cas Bronze 1 (2 dés) quand le RAW en pose jusqu'à 2×Standing (10 pour Bronze 5), qu'un
           plateau ancré à droite (`white-space: nowrap`) ferait déborder. */}
       <Band
-        title={<>La bourse<small>statut {level.status} — {purseFormula}</small></>}
+        title={<>La bourse<small>statut {libelleDuStatut(level.status)} — {purseFormula}</small></>}
         right={d.wealthRoll && !rolling && !landed ? <b><Coins money={wealth} /></b> : null}
       >
         {rolling || landed ? (
@@ -1994,7 +2009,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
       <p className="hint" style={{ marginTop: 0 }}>
         {/* Carrière/niveau entre parenthèses, jamais « du {label} » : le libellé est une DONNÉE (« du
             Agitateur », et toute carrière à initiale vocalique casserait l'élision). */}
-        Le statut <b>{level.status}</b> ({career.label} — {level.label}) fixe la bourse de départ ({purseFormula} × Standing) et le
+        Le statut <b>{libelleDuStatut(level.status)}</b> ({career.label} — {level.label}) fixe la bourse de départ ({purseFormula} × Standing) et le
         train de vie entre les aventures. Chaque objet reçu s'ouvre sur sa fiche du Codex — encombrement et qualités comprises.
       </p>
 
@@ -2012,6 +2027,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
           <Band key={e.adresse} title={trappingRefLabel(e.ref)}>
             <TrappingChoiceSlot
               emplacement={e}
+              porteur={draftPorteur(d)}
               choices={d.trappingChoices ?? {}}
               onChoicesChange={(adresse, v) => setD(withTrappingChoice(d, adresse, v))}
             />

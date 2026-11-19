@@ -9,9 +9,8 @@
  * Fixtures SYNTHÉTIQUES contre le VRAI corpus, patron déjà établi par `secondary-ref-integrity.test.ts`.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { schema } from './schemas/defs/domains';
+import { findDomainById } from './index';
 import { auditFolio } from '../../scripts/guards/lib/folioIntegrity.mjs';
 
 const BOOK = 'vents-de-la-magie';
@@ -58,9 +57,7 @@ const mod = (dr: number, when: string[], page: number, desc: string) => ({
 
 /** `source` d'ancrage du Domaine, LUE dans `domains.json` — jamais un folio inventé : la fabrique
  *  exige désormais une provenance par entrée, et ces 7 fixtures rejouent des Domaines RÉELS. */
-const sourceReelle = (id: string) =>
-  (JSON.parse(readFileSync(fileURLToPath(new URL('./domains.json', import.meta.url)), 'utf8')) as { id: string; source: unknown }[])
-    .find((d) => d.id === id)!.source;
+const sourceReelle = (id: string) => findDomainById(id)?.source;
 
 /** Les 7 Vents restants, tels qu'ils devront être curés par leurs lots. */
 const SEPT_VENTS = [
@@ -152,13 +149,10 @@ describe('windModifiers — le champ accueille les HUIT Vents sans modification 
   });
 
   it('les Vents DÉJÀ curés dans domains.json portent EXACTEMENT la rubrique transcrite ici', () => {
-    const reels: { id: string; windModifiers?: unknown }[] = JSON.parse(
-      readFileSync(fileURLToPath(new URL('./domains.json', import.meta.url)), 'utf8'),
-    );
-    const cures = SEPT_VENTS.filter((v) => reels.find((d) => d.id === v.id)?.windModifiers);
+    const cures = SEPT_VENTS.filter((v) => findDomainById(v.id)?.windModifiers);
     expect(cures.map((v) => v.id)).toEqual(['metal', 'vie', 'cieux', 'ombres', 'mort', 'feu', 'bete']);
     for (const v of cures) {
-      expect(reels.find((d) => d.id === v.id)?.windModifiers).toEqual(v.windModifiers);
+      expect(findDomainById(v.id)?.windModifiers).toEqual(v.windModifiers);
     }
   });
 

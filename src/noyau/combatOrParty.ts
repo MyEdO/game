@@ -22,15 +22,15 @@ import type { Get, PatchDeFlux } from './flowTypes';
 import { currentTargetingMode, type OptionsDuClic } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
-import type { SeaWind } from '../engine/domainAttributes';
 import { inBattleId } from './monde/combatants';
 import { combatantAtTile } from './monde/combatGeometry';
 import { pointDeCase, type Pt } from './monde/path';
 import { champAttendSaFenetre } from './targetingHolder';
+import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
- *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et l'assaillant de la série
- *  d'attaques subies (`serieSubie`). */
+ *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et la série d'attaques subies,
+ *  l'hôte de ses combattants (`combattantsDeLaSerie`). */
 export function touchActors(state: Jeu): PatchDeFlux {
   if (state.battle) return { battle: { ...state.battle, combatants: [...state.battle.combatants] } };
   return { party: [...state.party], ...(state.serieSubie ? { serieSubie: { ...state.serieSubie } } : {}) };
@@ -39,15 +39,15 @@ export function touchActors(state: Jeu): PatchDeFlux {
 /**
  * Contexte « Magie des mers » (MDG 02 l.178-186, `DomainData.seaModifier`) pour `resolveFocus`/
  * `resolveCasting` : en mer = en VOYAGE maritime (`travelPlan.mode === 'mer'`) OU en COMBAT
- * d'abordage sur le NAVIRE DE CAMPAGNE (sa coque, `vessel.vehicleId`, est un combattant du combat
+ * d'abordage sur le NAVIRE DE CAMPAGNE (sa coque est un combattant du combat
  * en cours — même détection que la persistance de coque en fin de combat, `combatFlow.ts`
  * `finishBattle`). `wind` = la météo du jour du voyage maritime (`travelPlan.sea.weather.vent`,
  * seule source de vent connue de l'état) ; `undefined` hors voyage maritime actif (silence RAW —
  * `domainSeaIncantationDR` neutralise déjà un vent inconnu).
  */
-export function seaMagicContext(state: Jeu): { atSea: boolean; wind: SeaWind | undefined } {
+export function seaMagicContext(state: Jeu): { atSea: boolean; wind: string | undefined } {
   const vessel = state.vessel;
-  const boarding = !!vessel && !!state.battle?.combatants.some((c) => c.creatureId === vessel.vehicleId);
+  const boarding = !!state.battle?.combatants.some((c) => estLeNavireDeCampagne(c, vessel));
   const atSea = state.travelPlan?.mode === 'mer' || boarding;
   return { atSea, wind: atSea ? state.travelPlan?.sea?.weather.vent : undefined };
 }
@@ -107,7 +107,7 @@ export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): 
 
 /** Le clic du champ sur le combattant `id` : `cliquerLaCase` sur sa case, le combattant désigné, et `true` ; rien sans
  *  case au combat, `false`. Le verbe se lit dans l'état AU MOMENT du clic (chez l'invité coop, il porte l'enrobage
- *  d'intention, `hote/coop/salon.ts`). */
+ *  d'intention, `reseau.ts`). */
 export function cliquerSurLeCombattant(get: Get, id: string, opts?: OptionsDuClic): boolean {
   const pos = inBattleId(get().battle, id)?.pos;
   if (!pos) return false;

@@ -13,6 +13,9 @@ import { ACTION_CANDIDATES } from './actionRegistry';
 import { resetRule, setRule } from '../engine/policy';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
+import { draineEtapes } from './cascade.testkit';
+import { PSY } from '../engine/psychology';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -79,18 +82,23 @@ describe('ecrireActeur — chaque handler migré écrit là où le jeu lit (#231
     });
   }
 
-  it('ambitionLost en combat : le Trauma acquis atteint le combattant ET le groupe', () => {
+  it('ambitionLost en combat : le Trauma choisi atteint le combattant, puis le héros du groupe après finalizeBattle', () => {
     setRule('psycho-acquisition-optionnelle', true);
     try {
       const hero = poserGroupe();
       entrerEnCombat();
+      const traumaOuvert = () => !!banc.getState().pendingCascade?.participants.some((e) => e.kind === 'traitDeTraumatisme');
       // Le Test de Calme se tire au dé de bataille : on rejoue jusqu'au premier échec.
-      for (let graine = 1; graine < 200 && !(auCombat(hero.id).psychTraits ?? []).length; graine++) {
+      for (let graine = 1; graine < 200 && !traumaOuvert(); graine++) {
         seedBattleRng(graine);
         jouer({ type: 'ambitionLost', heroId: hero.id });
       }
-      expect(auCombat(hero.id).psychTraits?.length).toBeGreaterThan(0);
-      expect(auGroupe(hero.id).psychTraits).toEqual(auCombat(hero.id).psychTraits);
+      expect(traumaOuvert()).toBe(true);
+      draineEtapes(() => banc.getState(), 20, undefined, (e) => (e.kind === 'traitDeTraumatisme' ? PSY.haine : e.kind === 'cibleAcquise' ? ciblePsy.groupe('mutants') : undefined));
+      const haine = [{ type: PSY.haine, cible: ciblePsy.groupe('mutants') }];
+      expect(auCombat(hero.id).psychTraits).toEqual(haine);
+      finalizeBattle(() => banc.getState(), banc.setState);
+      expect(auGroupe(hero.id).psychTraits).toEqual(haine);
     } finally {
       resetRule('psycho-acquisition-optionnelle');
     }

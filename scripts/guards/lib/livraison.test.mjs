@@ -9,7 +9,15 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { depotDe } from './gitPorte.mjs'
-import { SUBSTANTIVE_MIN_LINES, apportDeLaResolution, apportsDesTickets, fusionsNonJugees, messagePorte, sectionDeLivraison, verdictDePublication } from './livraison.mjs'
+import {
+  SUBSTANTIVE_MIN_LINES,
+  apportDeLaResolution,
+  apportsDesTickets,
+  fusionsNonJugees,
+  messagePorte,
+  sectionDeLivraison,
+  verdictDePublication,
+} from './livraison.mjs'
 
 test('#2285 consommateurs livraison : diagnostic autonome et erreur programme par identité', () => {
   const sha = 'a'.repeat(40)

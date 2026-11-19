@@ -23,16 +23,17 @@ import { findTableEntry, tableOuverte, type DeDeTable } from './tables';
 import { rule } from './policy';
 import { categorieDeLaNiche, findDomainById, combatStakeRef } from '../data';
 import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
-import { GameOp, Formula } from './ops';
+import type { GameOp } from './ops';
+import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource, type EffectSourceKind } from './types';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // Type-only (effacé à la compilation, comme `domainAttributes`/`ops` importent déjà `TriggeredEffect`) :
 // le nœud de Test imbriqué d'une entrée de table EST un nœud de Flow `test` — la STRUCTURE de logique
 // partagée du jeu (noyau engine `flowCore`, feuille EffectOp), exécutée cadence-aware par `runCombatFlow`.
 // AUCUNE dépendance runtime au store : les tables restent du moteur pur (`rollMiscast` testable seul).
 import { poserEnjeu, type Flow, type FlowTest } from './flowCore';
 import miscastJson from '../data/miscast.json';
-import { deDeTirageDe } from '../data/rangees';
+import { deDeTirageDe, type RangeeDe } from '../data/rangees';
+import { datasetDe, type EntreeDe } from '../data/datasets';
 import type * as miscastDef from '../data/schemas/defs/miscast';
 import { DATASET_DE_LA_CATEGORIE, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
 import { memoParVersion } from '../data/versionDataset';
@@ -85,188 +86,28 @@ interface NestedTest {
   onFailHard?: { dr: number; ops: GameOp[] };
 }
 
-// ---------------------------------------------------------------------------
-// Types de la donnée JSON — sur-ensembles de GameOp/Formula qui encodent le paramétrage par Péché
-// ---------------------------------------------------------------------------
+/** Une rangée de table telle que la donnée la porte. */
+type JsonRow = RangeeDe<typeof miscastDef>;
 
-/** Terme « (Points de Péché) » d'une formule authorée (LDB 40 l.58/62/65/68/73/75) — porte zod
- *  `sinPointsSchema` (`src/data/schemas/grammaire/valeurs.ts`). */
-interface SinPoints {
-  sinPoints: true;
+/** Une op de rangée telle que la donnée la porte, ses formules au dialecte du Péché (`opsAuPecheSchema`). */
+type OpAuPeche = NonNullable<JsonRow['ops']>[number];
+
+/** `valeur` où chaque terme `{sinPoints:true}` est remplacé par `sin`, à toute profondeur. */
+function lierLePeche(valeur: unknown, sin: number): unknown {
+  if (Array.isArray(valeur)) return valeur.map((v) => lierLePeche(v, sin));
+  if (valeur === null || typeof valeur !== 'object') return valeur;
+  if ('sinPoints' in valeur) return sin;
+  return Object.fromEntries(Object.entries(valeur).map(([k, v]) => [k, lierLePeche(v, sin)]));
 }
 
 /**
- * `Formula` telle qu'elle apparaît dans le JSON : la `Formula` du moteur, où le terme `{sinPoints}`
- * peut prendre la place d'un terme quelconque (« 1d10 + (PP) » = `{sum:[{dice}, {sinPoints}]}`,
- * « 1 + (PP) » = `{sum:[1, {sinPoints}]}`).
+ * Les ops d'une rangée, le Péché lié à `sin`, lues par le vocabulaire canonique (`gameOpSchema`). C'est le SEUL
+ * endroit où le Péché entre dans la chaîne des ops : la liaison se fait à l'EXPANSION de la rangée
+ * (`rollMiscast`), et non à l'application de l'op, car `noyau/combatFlow.ts` expie le Péché avant `applyOps`.
+ * LDB 40 l.46
  */
-export type JsonFormula =
-  | Formula
-  | SinPoints
-  | { sum: JsonFormula[] }
-  | { times: { of: JsonFormula; factor: JsonFormula } };
-
-/**
- * Un `GameOp` unique tel que stocké dans le JSON. Miroir de l'union `GameOp` runtime, avec
- * `JsonFormula` à la place de `Formula` — `durationRounds` est un champ du `GameOp` `condition`
- * lui-même (`engine/ops.ts`).
- */
-type JsonOp = {
-  op: string;
-  // condition
-  id?: { id: string };
-  value?: JsonFormula;
-  durationRounds?: JsonFormula;
-  /** `GameOp['condition'].perRound` / gate d'État — LITTÉRAUX (pas des formules) : recopiés tels quels. */
-  perRound?: true;
-  unlessCondition?: { id: string };
-  /** `GameOp['condition'].escapeStrength` (Empêtré : force de désengagement, ex. Tenue indisciplinée
-   *  LDB 46) — déjà une `Formula` runtime valide, jamais sin-paramétrée : copiée telle quelle. */
-  escapeStrength?: Formula;
-  // wounds / corruption
-  amount?: JsonFormula;
-  /** Mitigation déclarée du `wounds` (LDB 46 / LDB 40) — recopiée telle quelle dans le `GameOp`. */
-  ignoreTB?: boolean;
-  ignoreAP?: boolean;
-  // castPenalty
-  skill?: RefDesignee;
-  mod?: number;
-  blocked?: boolean;
-  maxZeroDR?: boolean;
-  rounds?: JsonFormula;
-  hours?: JsonFormula;
-  minutes?: JsonFormula;
-  days?: JsonFormula;
-  // suppressTalents, deitySkillMod, deityBan
-  talents?: { id: string }[];
-  durationDays?: JsonFormula;
-  // deitySkillMod
-  pick?: 'all' | 'random';
-  durationHours?: JsonFormula;
-};
-
-/** Spec d'un test imbriqué telle que stockée dans le JSON (même forme que `NestedTest`, en `JsonOp[]`). */
-interface JsonNestedTest {
-  test: FlowTest;
-  onFail: JsonOp[];
-  onFailHard?: { dr: number; ops: JsonOp[] };
-}
-
-/** Une rangée de table telle que stockée dans le JSON. `id` (#422, exposition Codex) est l'identité
- *  d'affichage/navigation — jamais lue par ce module. */
-interface JsonRow {
-  id: string;
-  min: number;
-  /** `null` : « 151+ » (LDB 40 l.89). */
-  max: number | null;
-  label: string;
-  ops?: JsonOp[];
-  /** Ops appliqués aux CIBLES de l'incantation qui a déclenché le tirage (`MiscastResult.targetOps`). */
-  targetOps?: JsonOp[];
-  test?: JsonNestedTest;
-  reroll?: 'majeure' | 'mineure-x2';
-  /** CLÉ d'une table déclarée par le Domaine du lanceur (`domains.json` → `tables`) : la rangée tire
-   *  sur la table de SON Vent (`VDM 02 l.238`). Résolue en op `rollTable`/`tableId` à la RÉSOLUTION,
-   *  quand le Domaine est connu — le lien Domaine→table vit en donnée, jamais dans ce fichier. */
-  domainTable?: string;
-}
-
-// ---------------------------------------------------------------------------
-// JSON → résolution runtime
-// ---------------------------------------------------------------------------
-
-/**
- * Résout une `JsonFormula` en `Formula` runtime (`engine/ops`) : le terme `{sinPoints:true}` est
- * SUBSTITUÉ par sa valeur, à toute profondeur de l'arbre ; le reste est rendu tel quel.
- *
- * La substitution se fait ICI, à l'EXPANSION de la rangée (`rollMiscast`), et non à l'application de
- * l'op : `noyau/combatFlow.ts` expie le Péché avant d'appeler `applyOps`, une résolution paresseuse
- * lirait donc `sin − 1`.
- */
-function resolveJsonFormula(f: JsonFormula, sin: number): unknown {
-  if (typeof f !== 'object' || f === null) return f;
-  if ('sinPoints' in f) return sin;
-  if ('sum' in f) return { sum: f.sum.map((t) => resolveJsonFormula(t, sin)) };
-  if ('times' in f) return { times: { of: resolveJsonFormula(f.times.of, sin), factor: resolveJsonFormula(f.times.factor, sin) } };
-  return f;
-}
-
-/**
- * Déplie un `JsonOp` unique en `GameOp` runtime, en liant `sinPoints` sur tous les champs
- * paramétrés par le Péché. C'est le SEUL endroit où le Péché entre dans la chaîne des ops.
- */
-function expandOp(op: JsonOp, sin: number): GameOp {
-  switch (op.op) {
-    case 'condition': {
-      // `value` nue → résolution de la formule ; absente → omise (op à `durationRounds` seul)
-      const base: Record<string, unknown> = { op: 'condition', id: op.id };
-      if (op.value !== undefined) {
-        base.value = resolveJsonFormula(op.value, sin);
-      }
-      if (op.durationRounds !== undefined) {
-        base.durationRounds = resolveJsonFormula(op.durationRounds, sin);
-      }
-      if (op.perRound) base.perRound = true;
-      if (op.unlessCondition !== undefined) base.unlessCondition = op.unlessCondition;
-      if (op.escapeStrength !== undefined) {
-        base.escapeStrength = op.escapeStrength;
-      }
-      return base as unknown as GameOp;
-    }
-    case 'wounds':
-      return {
-        op: 'wounds', amount: resolveJsonFormula(op.amount!, sin),
-        ...(op.ignoreTB !== undefined ? { ignoreTB: op.ignoreTB } : {}),
-        ...(op.ignoreAP !== undefined ? { ignoreAP: op.ignoreAP } : {}),
-      } as unknown as GameOp;
-    case 'corruption':
-      return { op: 'corruption', amount: op.amount as number } as unknown as GameOp;
-    case 'reduceToZero':
-      return { op: 'reduceToZero' } as unknown as GameOp;
-    case 'castPenalty': {
-      const base: Record<string, unknown> = { op: 'castPenalty', skill: op.skill };
-      if (op.mod !== undefined) base.mod = op.mod;
-      if (op.blocked) base.blocked = true;
-      if (op.maxZeroDR) base.maxZeroDR = true;
-      if (op.rounds !== undefined) base.rounds = resolveJsonFormula(op.rounds, sin);
-      if (op.hours !== undefined) base.hours = resolveJsonFormula(op.hours, sin);
-      if (op.minutes !== undefined) base.minutes = resolveJsonFormula(op.minutes, sin);
-      if (op.days !== undefined) base.days = resolveJsonFormula(op.days, sin);
-      return base as unknown as GameOp;
-    }
-    case 'suppressTalents':
-      return { op: 'suppressTalents', talents: op.talents, durationDays: resolveJsonFormula(op.durationDays!, sin) } as unknown as GameOp;
-    case 'deitySkillMod':
-      return {
-        op: 'deitySkillMod', pick: op.pick, mod: op.mod,
-        ...(op.durationHours !== undefined ? { durationHours: resolveJsonFormula(op.durationHours, sin) } : {}),
-        ...(op.durationDays !== undefined ? { durationDays: resolveJsonFormula(op.durationDays, sin) } : {}),
-      } as unknown as GameOp;
-    case 'deityBan':
-      return { op: 'deityBan', durationDays: resolveJsonFormula(op.durationDays!, sin) } as unknown as GameOp;
-    case 'prayerForAction':
-      return { op: 'prayerForAction', durationRounds: resolveJsonFormula(op.durationRounds!, sin) } as unknown as GameOp;
-    default:
-      return op as unknown as GameOp;
-  }
-}
-
-/** Déplie un `JsonOp[]` en `GameOp[]`, en substituant les sinPoints. */
-function expandOps(jsonOps: JsonOp[], sin: number): GameOp[] {
-  return jsonOps.map((o) => expandOp(o, sin));
-}
-
-/** Déplie un `JsonNestedTest` en `NestedTest` runtime, en liant les sinPoints (un test n'emploie
- *  jamais le Péché directement). */
-function expandNestedTest(t: JsonNestedTest): NestedTest {
-  const result: NestedTest = {
-    test: t.test,
-    onFail: expandOps(t.onFail, 0), // les ops onFail d'un test ne référencent jamais le Péché
-  };
-  if (t.onFailHard) {
-    result.onFailHard = { dr: t.onFailHard.dr, ops: expandOps(t.onFailHard.ops, 0) };
-  }
-  return result;
+function lierLesOps(ops: readonly OpAuPeche[], sin: number): GameOp[] {
+  return ops.map((op) => gameOpSchema.parse(lierLePeche(op, sin)));
 }
 
 // ---------------------------------------------------------------------------
@@ -284,7 +125,7 @@ interface Row {
   /** Ops IMMÉDIATS aux cibles de l'incantation, closés sur les Points de Péché. */
   targetOps?: (sin: number) => GameOp[];
   /** Clé de table déclarée par le Domaine du lanceur (`JsonRow.domainTable`). */
-  domainTable?: string;
+  domainTable?: JsonRow['domainTable'];
   /** Test imbriqué de l'entrée (« … ou Sonné »), résolu cadence-aware. */
   test?: NestedTest;
   /** Relance : sur le Tableau Majeur (cascade) ou deux fois sur le Mineur (multiplication). */
@@ -292,21 +133,19 @@ interface Row {
 }
 
 /** Bâtit un `Row` runtime à partir d'un `JsonRow`. */
-function buildRow(jr: JsonRow & { max: number }): Row {
+function buildRow(jr: JsonRow & { min: number; max: number }): Row {
   const row: Row = { id: jr.id, min: jr.min, max: jr.max, label: jr.label };
   if (jr.reroll) row.reroll = jr.reroll;
   if (jr.domainTable) row.domainTable = jr.domainTable;
   if (jr.ops && jr.ops.length > 0) {
-    const jsonOps = jr.ops;
-    row.ops = (sin: number) => expandOps(jsonOps, sin);
+    const ops = jr.ops;
+    row.ops = (sin: number) => lierLesOps(ops, sin);
   }
   if (jr.targetOps && jr.targetOps.length > 0) {
-    const jsonTargetOps = jr.targetOps;
-    row.targetOps = (sin: number) => expandOps(jsonTargetOps, sin);
+    const targetOps = jr.targetOps;
+    row.targetOps = (sin: number) => lierLesOps(targetOps, sin);
   }
-  if (jr.test) {
-    row.test = expandNestedTest(jr.test);
-  }
+  if (jr.test) row.test = jr.test;
   return row;
 }
 
@@ -317,17 +156,7 @@ function buildRow(jr: JsonRow & { max: number }): Row {
 /** UN DOCUMENT de `miscast.json` : une table tirable, son identité STABLE, son libellé JOUEUR, sa
  *  provenance et ses rangées. Identité et charge sont le MÊME objet : aucun pointeur ne les relie plus
  *  (#1467 L1b). La catégorie Codex de ses LIGNES se lit par `categorieDeLaNiche` (`src/data`). */
-export interface MiscastTableDef {
-  id: string;
-  label: string;
-  /** Dé de tirage du document (`options.deDeTirage`), lu par `miscastDie`. */
-  die: string;
-  /** Folio du TABLEAU source dont cette table est le tirage. */
-  source: { book: string; page: number; note?: string };
-  entries: JsonRow[];
-}
-
-const data = miscastJson as unknown as MiscastTableDef[];
+type MiscastTableDef = EntreeDe<typeof miscastDef>;
 
 /** Une ligne de table d'Imparfaite/Colère telle que la DONNÉE la porte : fourchette + id STABLE +
  *  libellé. Forme de `TableStepRow` (noyau/cascade) — les rangées entrent aux tables tirables PAR
@@ -343,7 +172,7 @@ export interface MiscastTableRow {
  *  d'étape, rangées portées, libellé JOUEUR — sans marque de livre (`docs/charte-ui.md`) : le jeu de
  *  tables en vigueur est une RÈGLE, pas une information d'écran.
  *  Une table de plus est un DOCUMENT de plus dans le fichier, aucune ligne de code. */
-export const MISCAST_TABLES: MiscastTableDef[] = data;
+export const MISCAST_TABLES: MiscastTableDef[] = datasetDe<typeof miscastDef>(miscastJson);
 
 const TABLE_IDS_LDB: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure', majeure: 'miscast-majeure', colere: 'miscast-colere' };
 const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure-vdm', majeure: 'miscast-majeure-vdm', colere: 'miscast-colere' };
@@ -362,7 +191,7 @@ export const MISCAST_DATASETS: readonly CleDeDataset[] = Object.values(DATASET_D
   .filter((d) => d.fichier === FICHIER_DES_MISCAST)
   .map((d) => d.cle);
 
-/** Rangées RUNTIME par table (ops closées sur les Points de Péché, Tests dépliés) — MÉMOÏSÉES sur
+/** Rangées RUNTIME par table (ops closées sur les Points de Péché) — MÉMOÏSÉES sur
  *  les datasets de rangées du seam (#1692) : un dépliage figé à l'import faisait jouer à `rollMiscast`
  *  la rangée d'AVANT une édition au Codex pendant que `miscastRowAt` servait déjà la nouvelle — deux
  *  vérités sur le même tirage. */

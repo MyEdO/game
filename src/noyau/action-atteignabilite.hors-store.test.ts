@@ -59,12 +59,12 @@ describe('registre des actions — cohérence interne', () => {
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as Parameters<typeof actionGate>[1]['battle'];
     const muets = ACTIONS.filter((a) => {
-      const v = actionGate(a.id, { active, battle, gameTime: 0 });
+      const v = actionGate(a.id, { scene: banc.getState().scene, active, battle, gameTime: 0 });
       return typeof v.ok !== 'boolean' || (!v.ok && !v.reason);
     }).map((a) => a.id);
     expect(muets, `Action(s) dont le gate ne rend pas un verdict motivé :\n  ${muets.join('\n  ')}`).toEqual([]);
     // Fail-closed : un id inconnu ne « passe » jamais.
-    expect(actionGate('id-inexistant', { active, battle, gameTime: 0 }).ok).toBe(false);
+    expect(actionGate('id-inexistant', { scene: banc.getState().scene, active, battle, gameTime: 0 }).ok).toBe(false);
   });
 });
 

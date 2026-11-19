@@ -4,10 +4,10 @@
  */
 import { vi } from 'vitest';
 import { useGame } from './store';
-import { heroFaceAUnEnnemi as ouvrirLeDuel } from '../noyau/combatDeTest.testkit';
+import { heroFaceAUnEnnemi as heroFaceAUnEnnemiDuNoyau } from '../noyau/combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
 export function heroFaceAUnEnnemi(): { H: Combatant; E: Combatant } {
-  return ouvrirLeDuel({ getState: useGame.getState, setState: (patch) => useGame.setState(patch), abandonner: () => vi.clearAllTimers() }, testScene());
+  return heroFaceAUnEnnemiDuNoyau({ getState: useGame.getState, setState: (patch) => useGame.setState(patch), abandonner: () => vi.clearAllTimers() }, testScene());
 }

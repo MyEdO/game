@@ -16,7 +16,7 @@ import { Inspector } from './Inspector';
 import { LogicDock, type LogicTab } from './LogicDock';
 import type { Sel } from '../../noyau/sceneEditLecture';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
-import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
+import type { Effect, FlowDeScene } from '../../data/schemas/defs-scenes/effets';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { GameOp } from '../../engine/ops';
 
@@ -41,7 +41,7 @@ function monter(el: JSX.Element) {
 
 /** Une op SANS éditeur dédié : ses paramètres s'éditent au `JsonField` (repli de `GameOpEditor`). */
 const opJson = (amount: number): GameOp => ({ op: 'statusMod', amount } as GameOp);
-const fluxJson = (amount: number): Flow => ({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', ops: [opJson(amount)] } as unknown as Effect }] } as Flow);
+const fluxJson = (amount: number): FlowDeScene => ({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', ops: [opJson(amount)] } as unknown as Effect }] });
 const BROUILLON = '{ "op": "statusMod", "amount": ';
 
 /** Les `JsonField` des paramètres d'op montés. */

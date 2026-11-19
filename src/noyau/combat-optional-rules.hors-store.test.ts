@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { draineCascade } from './cascade.testkit';
-import { applyAttackResult, applyCoupCritiqueSec, attackEnv } from './combatFlow';
+import { applyAttackResult, applyCoupCritiqueSec, instantaneAvantLeCoup, attackEnv } from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { setRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
@@ -132,7 +132,7 @@ describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.3
     const e = enemy({ armour: { ...armoured }, criticalWounds: 0 });
     const h = hero({});
     setBattle([h, e]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: h.id }, [], h);
+    applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: h.id }, [], h, instantaneAvantLeCoup(e));
     const ee = banc.getState().battle!.combatants.find((c) => c.id === 'e1')!;
     expect(ee.criticalWounds ?? 0).toBe(0); // Critique dévié
     expect(apSum(ee)).toBe(17);             // une zone −1 PA
@@ -143,7 +143,7 @@ describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.3
     const e = enemy({ armour: { ...armoured }, criticalWounds: 0 });
     const h = hero({});
     setBattle([h, e]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: h.id }, [], h);
+    applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: h.id }, [], h, instantaneAvantLeCoup(e));
     const ee = banc.getState().battle!.combatants.find((c) => c.id === 'e1')!;
     expect(ee.criticalWounds ?? 0).toBe(1); // Critique subi (pas d'auto-déviation)
     expect(apSum(ee)).toBe(18);             // PA toute intacte

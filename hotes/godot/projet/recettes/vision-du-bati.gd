@@ -43,10 +43,10 @@ func _recetter() -> void:
 	## Un groupe de trois murs : `a` sépare une case inconnue de sa voisine vue, `b` est à l'étage, explorée, `c`
 	## inconnue ; et la boîte d'une porte, seule dans son groupe, explorée.
 	var aretes := [
-		_arete("a", "mur", Vector2(1.0, 1.5), [Vector3i(1, 2, 0), Vector3i(1, 1, 0)]),
-		_arete("b", "mur", Vector2(2.0, 1.5), [Vector3i(2, 2, 1), Vector3i(2, 1, 1)]),
-		_arete("c", "mur", Vector2(3.0, 3.5), [Vector3i(3, 3, 0)]),
-		_arete("p", "porte-fermee", Vector2(4.0, 1.5), [Vector3i(4, 2, 0), Vector3i(4, 1, 0)]),
+		_arete("a", Noyau.Piece.MUR, Vector2(1.0, 1.5), [Vector3i(1, 2, 0), Vector3i(1, 1, 0)]),
+		_arete("b", Noyau.Piece.MUR, Vector2(2.0, 1.5), [Vector3i(2, 2, 1), Vector3i(2, 1, 1)]),
+		_arete("c", Noyau.Piece.MUR, Vector2(3.0, 3.5), [Vector3i(3, 3, 0)]),
+		_arete("p", Noyau.Piece.PORTE_FERMEE, Vector2(4.0, 1.5), [Vector3i(4, 2, 0), Vector3i(4, 1, 0)]),
 	]
 	var etats := {Vector3i(1, 1, 0): VUE, Vector3i(2, 2, 1): EXPLOREE, Vector3i(2, 1, 1): INCONNUE, Vector3i(4, 1, 0): EXPLOREE, Vector3i(4, 2, 0): INCONNUE}
 	volume.poser_les_aretes(aretes)
@@ -66,13 +66,13 @@ func _recetter() -> void:
 	volume.voir(_vision(LARGEUR, HAUTEUR, 2, etats.merged({Vector3i(0, 0, 0): VUE})))
 	if volume.part_du_fondu() == 1.0:
 		_fautes.append("aucun fondu en cours au changement de scène")
-	var petite := [_dalles("sol/0/0/0", PETITE, Rect2i(0, 0, PETITE, PETITE), 0, 0.0).merged({rangee = 0, empreinte = "petite"})]
+	var petite := [_dalles("sol/0/0/0", PETITE, Rect2i(0, 0, PETITE, PETITE), 0, 0.0).merged({rangee = 0, empreinte = "petite"}, true)]
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [_plat(0, PETITE, PETITE)], morceaux = petite}, toits = [], couronnes = []},
 		{volume = petite, toits = [], couronnes = []})
 	var etats_neufs := {Vector3i(0, 1, 0): EXPLOREE}
 	volume.voir(null)
 	volume.voir(_vision(PETITE, PETITE, 1, etats_neufs))
-	volume.poser_les_aretes([_arete("n", "mur", Vector2(0.0, 0.5), [Vector3i(0, 1, 0), Vector3i(0, 0, 0)])])
+	volume.poser_les_aretes([_arete("n", Noyau.Piece.MUR, Vector2(0.0, 0.5), [Vector3i(0, 1, 0), Vector3i(0, 0, 0)])])
 	RenderingServer.frame_pre_draw.emit()
 	_teintes(monde, "autre scène", [], etats_neufs)
 	for faute in _fautes:
@@ -136,7 +136,9 @@ func _teinte_attendue(a: Dictionary, etats: Dictionary) -> Color:
 
 
 func _arete(cle: String, piece: String, milieu: Vector2, cases: Array) -> Dictionary:
-	return {cle = cle, bloc = "0/0/0", famille = null, piece = piece, sens = {x = 1.0, y = 0.0}, hauteurM = 3.0, pied = 0.0, milieu = {x = milieu.x, y = milieu.y},
+	return {cle = cle, bloc = "0/0/0", famille = null, piece = piece,
+		position = Noyau.Position.SEULE, sens = {x = 1.0, y = 0.0}, hauteurM = 3.0,
+		palette = {}, pied = 0.0, milieu = {x = milieu.x, y = milieu.y},
 		cases = cases.map(func(c: Vector3i) -> Dictionary: return {x = c.x, y = c.y, z = c.z})}
 
 

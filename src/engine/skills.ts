@@ -11,7 +11,16 @@ import type { PlayerText } from '../i18n/playerText';
 import { itemCapability } from './capabilities';
 import { effectiveChar, bonusDe } from './characteristics';
 import { assistBonus } from './tests';
-import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill, isOutOfAction } from './conditions';
+import {
+  testStatePenalty,
+  testStatePenaltyParts,
+  activeCharTestMod,
+  activeCharTestModParts,
+  passivePartLine,
+  isMovementSkill,
+  isOutOfAction,
+  type EtatTestCtx,
+} from './conditions';
 import { agilityTestPenalty } from './encumbrance';
 import { traumaSkillPenalty, traumaSkillPenaltyParts, passiveSkillSum, passiveSkillParts, passiveTestMod, passiveTestModParts } from './trauma';
 import type { GameOp, PairedSense } from './ops';
@@ -26,9 +35,8 @@ import { maxBy } from './pick';
  *  (`SkillData.altChar` : `gatedByRule` + `from` + `chars` par valeur de règle) — Métier comme Savoir
  *  (LDB 09 l.358), Intimidation (LDB 09 l.294). Une compétence de plus = une entrée de donnée, zéro
  *  ligne ici. Renvoie la CharKey à utiliser (inchangée si aucune règle ne s'applique).
- *  (Les carac alternatives PAR ENTITÉ — ex. lanceur ogre : Langue (Magick) sur Endurance, ADE II 2 l.728 —
- *  sont portées par la DONNÉE — `SkillInstance.characteristic` — lue par effectiveSkillCharKey en amont,
- *  pas ici : aucun sniff d'espèce dans le moteur.) */
+ *  (Une carac alternative PAR ENTITÉ est portée par la DONNÉE — `SkillInstance.characteristic`, lue par
+ *  effectiveSkillCharKey en amont — ou, pour l'incantation, par un Trait (`castingChar`, `castingCharKey`).) */
 function altCharKey(c: Combatant, skillId: string, ck: CharKey): CharKey {
   const alt = byId('skill', skillId)?.altChar;
   if (!alt || (alt.from && ck !== alt.from)) return ck;
@@ -65,8 +73,8 @@ export function effectiveSkillCharKey(c: Combatant, sujet: SujetDuJet, fallback:
  *  l'appelant/la scène, cf. Talent Sens aiguisé `manual:true`) ; restreint les `skillMod` sense-scopés
  *  (Surdité, LDB 18 — `traumaSkillPenalty`). Absent = comportement historique (le RAW n'est pas levé
  *  faute d'info sur le Test précis). */
-export function testValue(c: Combatant, sujet: SujetDuJet, sense?: PairedSense): number {
-  const { skill: ref, characteristic } = sujet;
+export function testValue(c: Combatant, sujet: SujetContextualise, sense?: PairedSense): number {
+  const { skill: ref, characteristic, disease } = sujet;
   if (!ref && !characteristic) return 0;
   // `ref.id` = skillId STABLE (multilingue : jamais un libellé). La compétence possédée est trouvée par id ;
   // `ref.spec` cible une spécialisation précise (Savoir (Magie), Métier (Forgeron)…) quand le héros en possède
@@ -76,7 +84,7 @@ export function testValue(c: Combatant, sujet: SujetDuJet, sense?: PairedSense):
   // Caractéristique : POINT UNIQUE partagé avec castingValue (carac d'instance data-driven + carac alternative).
   const ck = effectiveSkillCharKey(c, sujet);
   const base = effectiveChar(c, ck);
-  const states = testStatePenalty(c, skill, { sense });
+  const states = testStatePenalty(c, skill, { sense, disease });
   const enc = ck === 'agilite' ? agilityTestPenalty(c) : 0; // charge : couche d'ÉTAT orthogonale (≠ passif d'élément)
   const traumaSkill = traumaSkillPenalty(c, skill, sense); // séquelle permanente (fracture Langue l.300 ; Surdité l.363)
   // Passifs INTRINSÈQUES d'élément (Σ), tous via le collecteur unifié : compétence nommée + port d'armure
@@ -95,6 +103,8 @@ export function testValue(c: Combatant, sujet: SujetDuJet, sense?: PairedSense):
  *  seule Caractéristique. */
 export type TestDesigne = { readonly skill: RefDesignee; readonly characteristic?: undefined } | { readonly characteristic: CharKey; readonly skill?: undefined };
 
+export type SujetContextualise = SujetDuJet & Pick<EtatTestCtx, 'disease'>;
+
 /**
  * DÉCOMPOSITION EXHAUSTIVE de `testValue` en composantes NOMMÉES — LE socle d'affichage de tout Test
  * hors combat, et la garantie que l'écran annonce ce que le moteur calcule. INVARIANT vérifié par la
@@ -107,13 +117,13 @@ export type TestDesigne = { readonly skill: RefDesignee; readonly characteristic
  * collecteur `passiveMods`, via `passivePartLine`/`refLabel`) : aucun branchement par id d'entité.
  * L'ORDRE des postes suit celui de `testValue`, poste pour poste.
  */
-export function testValueParts(c: Combatant, sujet: SujetDuJet, sense?: PairedSense): ModLine[] {
-  const { skill: ref, characteristic } = sujet;
+export function testValueParts(c: Combatant, sujet: SujetContextualise, sense?: PairedSense): ModLine[] {
+  const { skill: ref, characteristic, disease } = sujet;
   if (!ref && !characteristic) return []; // ni compétence ni caractéristique : `testValue` rend 0
   const skill = ref?.id;
   const ck = effectiveSkillCharKey(c, sujet);
   const out: ModLine[] = [];
-  out.push(...testStatePenaltyParts(c, skill, { sense })); // États + Sort global + symptôme global (LDB 16 / MSRC 16)
+  out.push(...testStatePenaltyParts(c, skill, { sense, disease })); // LDB 16 l.13, l.105
   // Encombrement (LDB 61 « Surchargé ») : ne pèse QUE sur un Test d'Agilité — aucune source d'entité à
   // nommer (la charge est un état du sac, pas un élément), d'où la règle elle-même en renvoi Codex.
   const enc = ck === 'agilite' ? agilityTestPenalty(c) : 0;
@@ -164,8 +174,8 @@ export function skillBaseValue(c: Combatant, sujet: SujetDuJet): number {
  *  (`combatTestPenalty`) UNE SEULE fois, sans double-compte. = Caractéristique effective + avances + passifs
  *  intrinsèques + Encombrement/Traumatisme, SANS la pénalité d'État (réappliquée en version combat par
  *  l'appelant). Utilisée par les Tests de RÉCUPÉRATION d'États (Empoisonné… : −10 d'État compté une fois). */
-export function rawCombatTestBase(c: Combatant, sujet: SujetDuJet): number {
-  return testValue(c, sujet) - testStatePenalty(c, sujet.skill?.id);
+export function rawCombatTestBase(c: Combatant, sujet: SujetContextualise, sense?: PairedSense): number {
+  return testValue(c, sujet, sense) - testStatePenalty(c, sujet.skill?.id, { sense, disease: sujet.disease });
 }
 
 /** Le personnage possède-t-il la compétence `skillId` (et, si `spec` fourni, cette spécialisation —
@@ -394,7 +404,7 @@ export function supportSplit(value: number, support?: SupportDetail): { base: nu
 export function testValueSplit(
   c: Combatant | undefined,
   value: number,
-  opts?: { support?: SupportDetail; sujet?: SujetDuJet; sense?: PairedSense; fused?: number },
+  opts?: { support?: SupportDetail; sujet?: SujetContextualise; sense?: PairedSense; fused?: number },
 ): { base: number; mods: ModLine[]; exact: boolean } {
   const sup = supportSplit(value, opts?.support);
   const sujet = opts?.sujet;

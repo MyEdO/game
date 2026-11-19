@@ -11,21 +11,51 @@ import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetS
 import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
 import { editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
-import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
-import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
+import {
+  metaPourFichier,
+  chargeDiscriminee,
+  champDeProvenanceEcarte,
+  valeurDeProvenanceAuBrouillon,
+  brouillonNeuf,
+  noeudDuChamp,
+  noeudObjet,
+  noeudDeLEntree,
+  RangeeSansNoeud,
+  rapportDeFautes,
+} from '../../../data/schemas/validate';
 import { enfantsDe, ouverts } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
-import type { ActivityContext, OutcomeBand, BattleOutcome, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
+import type {
+  ActivityContext,
+  OutcomeBand,
+  BattleOutcome,
+  BattleOutcomeTarget,
+  BattleOutcomeScale,
+  BattleCond,
+  ActivityResolver,
+  ResolverOwner,
+} from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
-import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
+import { BORNES_DE_LA_SUBSTITUTION } from '../../../data/schemas/defs/careers';
+import { charKeySchema, equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg } from '../../compendium/refField/RefField';
+import {
+  ChoixDeSpec,
+  RefField,
+  SaisieSuggeree,
+  reposerLId,
+  cfgDeLaFeuille,
+  cfgDeLaListe,
+  cfgDuNoeudASpec,
+  cfgDuNoeudType,
+  refFieldCfg,
+} from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
@@ -36,7 +66,7 @@ import { ProseField } from '../../ProseField';
 import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../../SourceRefField';
 import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField';
-import { type DiceSpec, formatDice, parseDice, totalDuDe } from '../../../engine/dice';
+import { type DiceSpec, formatDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema, type RaceKey } from '../../../data/schemas/grammaire/valeurs';
@@ -44,34 +74,57 @@ import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../
 import { armesDEntite } from '../../../noyau/equipementDessine';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
 import { ctxDeCatalogue } from '../EffectList';
-import { GameOpEditor, FormulaField } from '../GameOpEditor';
+import { GameOpEditor, FormulaField, DeDeTirageField } from '../GameOpEditor';
 import type { GameOp } from '../../../engine/ops';
 import type { ConsumableDuration } from '../../../engine/consumables';
 import { JsonField } from '../JsonField';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
-import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
-import { EMPTY_FLOW, type EffectTrigger, type FlowTest } from '../../../engine/flowCore';
+import type { Flow } from '../../../data/schemas/defs-scenes/effets';
+import { EMPTY_FLOW, flowDeFeuilles, type EffectOp, type EffectTrigger, type FlowTest, type TriggeredEffect } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
-import type { DetailText, ManeuverDef, ManeuverMeasure } from '../../../data';
+import { ChipDeRefus } from '../../ChipDeRefus';
+import { maladies, type DetailText, type ManeuverDef, type ManeuverMeasure, type SteamBreakdownEntry } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
 import type { ArmeDerivee } from '../../../data';
-import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
+import {
+  SymptomsField,
+  SymptomTickField,
+  DiseaseDailyTestField,
+  type DiseaseDailyTest,
+  ShipCrewHitField,
+  type ShipCrewHitValue,
+  TalentTestField,
+  CombatField,
+  AdvancementRefField,
+  TrappingRefField,
+  CharKeysField,
+  DomainEffectsField,
+  TraitListField,
+  OptionalsListField,
+  HarvestField,
+  SpecsField,
+  RuleValueField,
+  RuleActionField,
+  type RuleShape,
+} from './StructFields';
 import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
 import type { DomainData, EffectTableRow } from '../../../data';
-import type { CharKey, Difficulty, Trauma, VehicleData } from '../../../engine/types';
+import type { Difficulty, Trauma, VehicleData } from '../../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
-import { deDeTirageSchema, specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
+import { specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../../../data/refFormatLivre';
-import type { SecondaryRef, SourceRef, Variant } from '../../../data/schemas/grammaire/valeurs';
+import type { SecondaryRef, SourceRef } from '../../../data/schemas/grammaire/valeurs';
+import type { VarianteReglee } from '../../../engine/variants';
+import type { EnveloppeDocument } from '../../../data/schemas/grammaire/document';
 import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/policy';
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../../data/schemas/defs/spells';
@@ -177,7 +230,7 @@ const porteAlsoIn = (categoryKey: string): boolean => {
   const ds = editableDataset(categoryKey);
   if (ds !== undefined) return noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
   const objet = editableObjectDataset(categoryKey);
-  return objet?.mode === 'unique' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
+  return objet !== undefined && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
 };
 
 /**
@@ -193,7 +246,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
   const add = (...keys: string[]) => keys.forEach((x) => k.add(x));
   if (categoryKey === 'creatures') add('appearance');
-  if (['spells', 'traits', 'qualities', 'domains', 'talents', 'maneuvers', 'etats', 'psychologies', 'symptoms', 'mutations'].includes(categoryKey)) add('effects');
+  if (['spells', 'traits', 'qualities', 'domains', 'talents', 'maneuvers', 'etats', 'psychologies', 'symptoms', 'mutations', 'trappings'].includes(categoryKey)) add('effects');
   if (categoryKey === 'maneuvers') add(...MANEUVER_PROFILE_KEYS);
   if (['traits', 'qualities', 'mutations', 'talents', 'etats', 'trappings', 'psychologies', 'navalTraits'].includes(categoryKey)) add('passive');
   if (categoryKey === 'races') add('traits'); // Traits posés → réutilise TraitListField (comme creatures) — Trait racial d'espèce (encombrance/consommation), #572
@@ -231,6 +284,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'creatures') add('skills', 'talents');
   if (categoryKey === 'pregens') add('trappings', 'talents'); // MÊMES refs que la créature : `TalentRef[]` et dotations (id catalogue ou texte)
   if (categoryKey === 'careerLevels') add('characteristics');
+  if (categoryKey === 'careers') add(...BORNES_DE_LA_SUBSTITUTION); // présentés avec `aLaPlaceDe` seulement (refine de `defs/careers.ts`)
   if (categoryKey === 'domains') add('castBonus', 'missile', 'casterOps');
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
   if (categoryKey === 'domains') add('windModifiers');
@@ -350,9 +404,9 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isSpell = categoryKey === 'spells';
   // Porteurs d'effets DÉCLENCHÉS (mêmes `TriggeredEffect` éditables) : Traits, Atouts d'arme, Domaines
   // (riders « à la touche »…) ET Talents (Assaut féroce onHit, Frappe réactive onCharged…).
-  // États psychologiques (`psychologies`, LDB 21, #157) ÉTENDENT le même `StatusData` que les États
-  // (`passive`/`effects` mutualisés) — même patron de rendu.
-  const isTriggered = categoryKey === 'traits' || categoryKey === 'qualities' || categoryKey === 'domains' || categoryKey === 'talents' || categoryKey === 'etats' || categoryKey === 'psychologies' || categoryKey === 'symptoms' || categoryKey === 'mutations';
+  // États psychologiques (`psychologies`, LDB 21, #157) : mêmes `passive`/`effects` que les États
+  // (`defs/psychology.ts`, `defs/etats.ts`) — même patron de rendu.
+  const isTriggered = categoryKey === 'traits' || categoryKey === 'qualities' || categoryKey === 'domains' || categoryKey === 'talents' || categoryKey === 'etats' || categoryKey === 'psychologies' || categoryKey === 'symptoms' || categoryKey === 'mutations' || categoryKey === 'trappings';
   // Manœuvre = ENTITÉ de 1ʳᵉ classe : profil dédié + ses effets AUTHORÉS (Dégâts + États) en GameOp.
   const isManeuver = categoryKey === 'maneuvers';
   // Porteurs de modificateurs PASSIFS continus (`GameOp[]`) édités par ops (GameOpEditor), comme un sort.
@@ -386,7 +440,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isWeather = categoryKey === 'weather';
   // Table d'effets : ses `entries` (plages de son dé → opérations) ont leur éditeur dédié (#1667).
   const isEffectTable = categoryKey === 'effectTables';
-  const deDeLEntree = typeof entry.die === 'string' ? parseDice(entry.die) : null;
+  const deDeLEntree = entry.die as DiceSpec | undefined;
   // Arme DÉRIVÉE (WeaponField) : portée par une Mutation (Tentacule…) OU une Possession (prothèse-arme).
   const hasDerivedWeapon = categoryKey === 'mutations' || categoryKey === 'trappings';
   const hasConsumable = categoryKey === 'trappings';
@@ -483,14 +537,20 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const typeFige = !!metaPourFichier(src.file);
   const fields = useMemo(() => {
     const handled = dedicatedFieldKeys(categoryKey);
+    const provenanceEcartee = champDeProvenanceEcarte(src.file, entry);
     return allFields
       // Un champ DÉRIVÉ de l'entrée ÉDITÉE ne s'offre pas à la saisie (`estDerive`, `editFields.ts`) :
       // le filtre est sur `entry`, pas sur l'échantillon du dataset — une entrée à la prose ADRESSÉE
       // n'expose pas son `desc` matérialisé, sa voisine à prose inline garde le sien.
-      .filter((f) => !handled.has(f.key) && !estDerive(entry, f.key) && (!charge || f.key === charge.champ || charge.duCas.includes(f.key) || !charge.toutes.includes(f.key)))
+      .filter((f) => f.key !== provenanceEcartee && !handled.has(f.key) && !estDerive(entry, f.key))
+      .filter((f) => !charge || f.key === charge.champ || charge.duCas.includes(f.key) || !charge.toutes.includes(f.key))
       .map((f) => (typeFige && f.key === 'type' ? { ...f, fige: true } : f));
-  }, [allFields, categoryKey, charge, entry, typeFige]);
-  const edit = (key: string, v: unknown) => { setEntry((e) => ({ ...e, [key]: v })); setDirty(true); setSchemaError(null); };
+  }, [allFields, categoryKey, charge, entry, src.file, typeFige]);
+  const edit = (key: string, v: unknown) => {
+    setEntry((e) => ({ ...e, [key]: valeurDeProvenanceAuBrouillon(src.file, key, v) }));
+    setDirty(true);
+    setSchemaError(null);
+  };
   // Erreurs BLOQUANTES avant persist (identité + refs résolvables) — pas de validation des
   // datasets-objet (`details`, fiches de règle : pas d'identité par entrée).
   const errors = useMemo(() => (obj ? [] : validateEntry(categoryKey, entry, src.entries, src.index)), [obj, categoryKey, entry, src]);
@@ -500,6 +560,12 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // IDENTITÉ de l'entrée éditée : racine des `chemin` de ses champs.
   const porteurEntree = identiteDEntree(categoryKey, id, isNew);
   const chemin = (champ: string): string => `${porteurEntree}/${champ}`;
+  const champInfere = (f: FieldDesc) => {
+    const cfg = refFieldCfg(categoryKey, f.key);
+    return cfg
+      ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
+      : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
+  };
 
   const save = async () => {
     // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
@@ -636,13 +702,13 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isDisease && <DiseaseDailyTestField value={entry.dailyTest as DiseaseDailyTest | undefined} onChange={(v) => edit('dailyTest', v)} />}
         {hasCombat && <TalentTestField value={entry.test as TalentTest | undefined} onChange={(v) => edit('test', v)} />}
         {hasCombat && <CombatField value={entry.combat as Partial<CombatFeature> | undefined} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('combat', v)} />}
-        {variantFields && <VariantsField chemin={chemin('variants')} value={entry.variants as Variant[] | undefined} resolved={variantFields} entryFields={allFields} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('variants', v.length ? v : undefined)} />}
+        {variantFields && <VariantsField chemin={chemin('variants')} value={entry.variants as VarianteEditee[] | undefined} resolved={variantFields} entryFields={allFields} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('variants', v.length ? v : undefined)} />}
         {hasAlsoIn && <AlsoInField chemin={chemin('alsoIn')} value={entry.alsoIn as SecondaryRef[] | undefined} onChange={(v) => edit('alsoIn', v.length ? v : undefined)} />}
         {hasSpecs && <SpecsField value={entry.specs as SpecEntry[] | undefined} onChange={(v) => edit('specs', v)} />}
         {hasAdvancement && <AdvancementRefField ds="skills" label="Compétences" value={entry.skills as AdvancementRef[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAdvancement && <AdvancementRefField ds="talents" label="Talents" value={entry.talents as AdvancementRef[] | undefined} onChange={(v) => edit('talents', v)} />}
         {hasTrappings && <TrappingRefField value={entry.trappings as TrappingRef[] | undefined} onChange={(v) => edit('trappings', v)} />}
-        {hasCharKeys && <CharKeysField value={entry.characteristics as CharKey[] | undefined} onChange={(v) => edit('characteristics', v)} />}
+        {hasCharKeys && <CharKeysField value={charKeySchema.array().safeParse(entry.characteristics).data} onChange={(v) => edit('characteristics', v)} />}
         {hasStarSub && (
           <PlageField
             label="Sous-tirage"
@@ -746,12 +812,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
             <GameOpEditor noeud={noeudDe(fieldKey)} ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
           </div>
         ))}
-        {fields.map((f) => {
-          const cfg = refFieldCfg(categoryKey, f.key);
-          return cfg
-            ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
-            : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
-        })}
+        {fields.map(champInfere)}
+        {categoryKey === 'careers' && entry.aLaPlaceDe !== undefined && allFields.filter((f) => (BORNES_DE_LA_SUBSTITUTION as readonly string[]).includes(f.key)).map(champInfere)}
       </div>
       </SuiviDesSaisies>
     </div>
@@ -823,6 +885,7 @@ function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onCha
  *  record `traits.json`/`qualities.json` au save → `noyau/triggeredEffects` les applique en jeu. */
 function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclenchés (déclencheur → Flow d’ops, comme un sort)' }: { value: TriggeredEffect[] | undefined; onChange: (v: TriggeredEffect[]) => void; noeud?: unknown; label?: string }) {
   const ctx = useMemo(() => ({ ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeud) }), [noeud]);
+  const [refus, setRefus] = useState<string>();
   const list = value ?? [];
   const set = (i: number, patch: Partial<TriggeredEffect>) => onChange(list.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const add = () => onChange([...list, { trigger: 'onHit', on: 'victime', flow: EMPTY_FLOW }]);
@@ -830,6 +893,7 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
   return (
     <div className="ed-field">
       <span>{label}</span>
+      {refus && <ChipDeRefus refus={{ message: refus }} />}
       {list.map((eff, i) => (
         <div className="ed-subfield trait-effect" key={cles[i]}>
           <div className="tf-row">
@@ -850,11 +914,17 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
               </select>
             </label>
             {typeof eff.on === 'object' && 'near' in eff.on && (
-              <label className="dr">à ≤ <NumberField variant="nu" label="Rayon de la zone (m)" min={1} width="3.4em" value={eff.on.radiusMeters} onChange={(radiusMeters) => set(i, { on: { near: (eff.on as ZoneDEffet).near, radiusMeters } })} /> m de
-              <select value={eff.on.near} onChange={(e) => set(i, { on: { near: e.target.value as ZoneDEffet['near'], radiusMeters: (eff.on as { radiusMeters: number }).radiusMeters } })}>
+              <label className="dr">à ≤ <NumberField variant="nu" label="Rayon de la zone (m)" min={1} width="3.4em" value={eff.on.radiusMeters} onChange={(radiusMeters) => set(i, { on: { ...(eff.on as ZoneDEffet), radiusMeters } })} /> m de
+              <select value={eff.on.near} onChange={(e) => set(i, { on: { ...(eff.on as ZoneDEffet), near: e.target.value as ZoneDEffet['near'] } })}>
                 <option value="victime">la victime</option>
                 <option value="soi">soi</option>
               </select></label>
+            )}
+            {typeof eff.on === 'object' && 'near' in eff.on && (
+              <label className="dr">au-delà de <NumberField variant="nu" label="Rayon intérieur de la couronne (m)" min={0} width="3.4em" value={eff.on.radiusInnerMeters ?? 0}
+                onChange={(m) => { const { radiusInnerMeters: _r, ...zone } = eff.on as ZoneDEffet; set(i, { on: m > 0 ? { ...zone, radiusInnerMeters: m } : zone }); }} /> m
+              <input type="checkbox" checked={!!eff.on.centreCompris}
+                onChange={(e) => { const { centreCompris: _c, ...zone } = eff.on as ZoneDEffet; set(i, { on: e.target.checked ? { ...zone, centreCompris: true } : zone }); }} /> centre compris</label>
             )}
             {typeof eff.on === 'object' && 'pick' in eff.on && (
               <label className="dr">max <NumberField variant="nu" label="Nombre maximum de cibles" min={1} width="3.4em" value={eff.on.max} onChange={(max) => set(i, { on: { pick: 'engages', ...((eff.on as SelectionDEffet).sizeAtMost ? { sizeAtMost: 'soi' as const } : {}), max } })} />
@@ -865,7 +935,11 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => {
+            const admis = flowDeFeuilles(flow, (e): e is EffectOp => e.type === 'ops');
+            setRefus(admis ? undefined : 'Un effet déclenché n’enchaîne que des opérations : cet Effet est refusé, le Flow reste inchangé.');
+            if (admis) set(i, { flow });
+          }} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>
@@ -896,7 +970,7 @@ function MeasureField({ label, value, onChange }: { label: string; value: Maneuv
   };
   return (
     <label className="dr">{label}
-      <select value={v.bonusOf ?? ''} onChange={(e) => upd({ bonusOf: (e.target.value || undefined) as CharKey | undefined })}>
+      <select value={v.bonusOf ?? ''} onChange={(e) => upd({ bonusOf: charKeySchema.safeParse(e.target.value).data })}>
         <option value="">— (aucun)</option>
         {CHAR_KEYS.map((k) => <option key={k} value={k}>Bonus de {CHAR_LABELS[k]}</option>)}
       </select>
@@ -1122,12 +1196,14 @@ function TraumaListField({ value, onChange }: { value: string[] | undefined; onC
   );
 }
 
-/** Variantes RÉGLÉES d'une entrée sous une règle optionnelle (`variants: Variant[]`, #563/#564) —
+/** Variantes RÉGLÉES d'une entrée sous une règle optionnelle (`variants`, #563/#564) —
  *  `when.rule` est un id du registre `OPTIONAL_RULES` (`engine/policy.ts`, SELECT peuplé, jamais une
  *  saisie libre : pas de gate fantôme, doctrine id/label). Les champs republiables sont ceux que le
  *  DATASET résout (`resolved` = sa `VARIANT_RESOLVED_FIELDS`) : `combat` réutilise `CombatField`,
  *  `effects` le même éditeur de Flow que l'entrée de base, et tout autre champ (NI, Durée…) reprend
  *  son gabarit inféré (`entryFields`) — aucune liste de champs écrite à la main ici. */
+/** Une variante sous l'éditeur, de dataset inconnu : sa garde, sa prose, et les champs que ce dataset republie. */
+type VarianteEditee = VarianteReglee & Partial<Pick<EnveloppeDocument, 'desc' | 'source'>> & Record<string, unknown>;
 /** Coerce la valeur SAISIE de `when.equals` au type que la règle compare au runtime (`activeVariant`
  *  fait `rule(id) === equals`, stricte égalité) : `flag`→boolean, `param`→number, `mode`/défaut→string.
  *  Sans ça une chaîne « true »/« 2 » ne serait jamais `===` au boolean/number réel — gate cassé en silence. */
@@ -1138,9 +1214,9 @@ function coerceRuleValue(raw: string, kind: RuleKind | undefined): RuleValue | u
   return raw;
 }
 
-function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onChange }: { chemin: string; value: Variant[] | undefined; resolved: readonly string[]; entryFields: FieldDesc[]; allFeatures: (Partial<CombatFeature> | undefined)[]; onChange: (v: Variant[]) => void }) {
+function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onChange }: { chemin: string; value: VarianteEditee[] | undefined; resolved: readonly string[]; entryFields: FieldDesc[]; allFeatures: (Partial<CombatFeature> | undefined)[]; onChange: (v: VarianteEditee[]) => void }) {
   const list = value ?? [];
-  const set = (next: Variant[]) => onChange(next);
+  const set = (next: VarianteEditee[]) => onChange(next);
   const patch = (i: number, key: string, v: unknown) => set(list.map((x, j) => (j === i ? { ...x, [key]: v } : x)));
   // Champs republiables SANS éditeur bespoke ci-dessous : rendus par le gabarit de l'entrée de base.
   const generic = entryFields.filter((f) => resolved.includes(f.key) && !['desc', 'source', 'combat', 'effects'].includes(f.key));
@@ -1199,7 +1275,7 @@ function ChampsDuTest({ test, index, onChange, difficulteFacultative = false }: 
       {test.skill
         ? <ChoixDeSpec type="skill" id={test.skill.id} value={test.skill.spec} ariaLabel={`Spécialisation — Test ${index + 1}`} onChange={(spec) => onChange({ skill: { id: test.skill!.id, spec } })} />
         : (
-          <select value={test.characteristic ?? ''} onChange={(e) => onChange({ characteristic: (e.target.value || undefined) as CharKey | undefined })}>
+          <select value={test.characteristic ?? ''} onChange={(e) => onChange({ characteristic: charKeySchema.safeParse(e.target.value).data })}>
             <option value="">— (choisir une Caractéristique) —</option>
             {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
           </select>
@@ -1299,7 +1375,6 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
   const de = deDeLaTableTiree(value);
   const [bas, haut] = [totalDuDe(de, de.n), facesDuDe(de)];
   const libelleDe = formatDice(de);
-  const maladieOpts = datasetArray('maladies') as { id: string; label: string }[];
   const poser = (entries: WaterExposureData['diseases']['entries']) => onChange({ die, entries });
   const set = (i: number, patch: Partial<WaterExposureData['diseases']['entries'][number]>) => poser(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
@@ -1309,15 +1384,14 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <label className="dr">{libelleDe}&nbsp;<NumberField variant="nu" label={`Plage ${libelleDe} — borne basse`} min={bas} max={haut} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label={`Plage ${libelleDe} — borne haute`} min={bas} max={haut} value={r.max} onChange={(max) => set(i, { max })} /></label>
-          <select value={r.disease} onChange={(e) => set(i, { disease: e.target.value })}>
-            <option value="">— (choisir une maladie) —</option>
-            {maladieOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          <select value={r.disease} onChange={(e) => { const m = maladies.find((o) => o.id === e.target.value); if (m) set(i, { disease: m.id }); }}>
+            {maladies.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <label className="dr"><input type="checkbox" checked={!!r.rerollUnlessWounded} onChange={(e) => set(i, { rerollUnlessWounded: e.target.checked || undefined })} /> relance si indemne</label>
           <button className="btn small danger" title="Retirer" onClick={() => poser(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: '' }])}>+ Maladie</button>
+      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: maladies[0].id }])}>+ Maladie</button>
     </div>
   );
 }
@@ -1518,21 +1592,8 @@ function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefin
  *  `BY_ID.get(range.mutation)`). */
 interface MutationRange { min: number; max: number; mutation: string; }
 
-/** DOMAINE d'une plage tirée au dé de sa table (`die`) : son nom et ses bornes de saisie — aucun tant
- *  que la chaîne en cours d'édition ne se lit pas (le schéma la refuse à l'enregistrement). */
-/** Saisie du DÉ DE TIRAGE d'une table (`deDeTirageSchema`) : une expression illisible n'est pas retenue. */
-function DeDeTirageField({ value, onChange }: { value: string; onChange: (die: string) => void }) {
-  return (
-    <label className="dr">Dé
-      <SaisieEnBrouillon
-        ariaLabel="Dé de tirage" placeholder="ex. d10, 2d10" value={value} afficher={(d) => d}
-        relire={(texte, avant) => (deDeTirageSchema.safeParse(texte.trim()).success ? texte.trim() : avant)}
-        onChange={onChange} />
-    </label>
-  );
-}
-
-function domaineDuDe(spec: DiceSpec | null): PlageDomaine {
+/** DOMAINE d'une plage tirée au dé de sa table (`die`) : son nom et ses bornes de saisie — aucun quand l'entrée ne porte pas de dé. */
+function domaineDuDe(spec: DiceSpec | undefined): PlageDomaine {
   return spec ? { nom: formatDice(spec), min: totalDuDe(spec, spec.n), max: totalDuDe(spec, spec.n * spec.sides) } : {};
 }
 

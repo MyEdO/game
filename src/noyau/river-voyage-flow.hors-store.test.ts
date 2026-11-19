@@ -104,12 +104,13 @@ describe('buildRiverPlan — la descente exige un batelier et une embarcation', 
   // MSRC 07 l.74, l.90
   it('coque à 0 Blessure + batelier → descente jouée ; sans batelier → repli', () => {
     const r = get().worldMap!.routes[0];
-    set({ vessel: { vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 0, max: 60 } } });
+    set({ vessel: { uid: 'navire-1', vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 0, max: 60 } } });
     try {
       expect(descenteJouee(get, r, 'barge')).toBe(true);
       const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', r);
       expect(plan).not.toBeNull();
       expect(plan!.vehicle!.wounds.current).toBe(0);
+      expect(plan!.vehicle!.navireDeCampagneUid).toBe('navire-1');
       set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((s) => s.id !== 'ramer' && s.id !== 'voile') })) });
       expect(descenteJouee(get, r, 'barge')).toBe(false);
       expect(buildRiverPlan(get, 'r-reik', 'A', 'B', r)).toBeNull();
@@ -229,7 +230,7 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
   it('cadence COMMANDÉE (#2545) : le choix sans défaut rouvre la fenêtre du JOUR, et le jour reprend après lui', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'barrage', chancePct: 100 }] });
     seedBattleRng(7);
-    get().partirEnVoyage('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'commande' });
     const pc = get().pendingCascade!;
     expect(pc.purpose, 'le pilote du jour s’arrête sur la décision, en fenêtre de JOUR').toBe('travelDay');
     const cur = pc.participants[pc.cursor];
@@ -244,7 +245,7 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
   it('cadence COMMANDÉE (#2545) : après la décision, la suite du jour (Débris) se résout d’un bloc — aucun jet n’attend le joueur', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'barrage', chancePct: 100 }, { perilId: 'debris', chancePct: 100 }] });
     seedBattleRng(7);
-    get().partirEnVoyage('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'commande' });
     const pc = get().pendingCascade!;
     const choix = pc.participants[pc.cursor];
     expect(choix.kind, 'le jour s’arrête sur la décision').toBe('fleuveChoixDObstacle');
@@ -365,7 +366,7 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
   it('route COMMANDÉE : tirage garanti → aucune fenêtre, une ligne de Résistance au journal par héros exposé', () => {
     launch(false, 45, { riverExposure: { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 100 } });
     seedBattleRng(4);
-    get().partirEnVoyage('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'commande' });
     expect(get().pendingCascade, 'ni la fenêtre du jour, ni celle du dé, ni celle des Tests').toBeNull();
     const exposes = get().party.filter((h) => !h.dead);
     const lignes = lignesDeResistance();
@@ -833,7 +834,7 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
     for (const f of regles.filter((r) => ids.has(r.id))) {
       expect(f.source.book).toBe('mort-sur-le-reik-compagnon');
       expect(f.source.note).toMatch(/^MSRC 7 l\.\d+$/);
-      expect(f.desc.length, 'le verbatim est présent').toBeGreaterThan(60);
+      expect(f.desc?.length, 'le verbatim est présent').toBeGreaterThan(60);
     }
   });
 });

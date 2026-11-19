@@ -40,10 +40,11 @@ import { isStructure, structureImmune } from '../engine/structures';
 import { overcastSourceOf } from '../engine/overcast';
 import { tileKey, type Pt } from './monde/path';
 import { sceneMetresPerTile } from './monde/scene';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { targetArc } from './monde/fireArc';
 import { bearingPostes } from './monde/shipBattery';
-import { serveTargetPoste, isPosteManned, translaterFormation, posteDeLaBataille } from './monde/shipPostes';
+import { serveTargetPoste, isPosteManned } from './monde/shipPostes';
+import { executerPoussee } from './pousseeDeCombat';
 import { spellOps } from '../engine/flowCore';
 import { mountOf, mountMovement, attackGeomOf, combatGeomOf, pickAttackWeapon } from './mount';
 import { pilotedByHuman } from './netOwnership';
@@ -57,13 +58,13 @@ import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
-import { chebyshev } from '../engine/grid';
 import {
   attackPlan, previewAttack, previewCast, firedAttackBlock, outOfSightTargetIds, castOutOfSightTargetIds, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
 } from './combatFlow';
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
-import { captureMoveSnapshot } from './monde/combatGeometry';
+import { captureMoveSnapshot, campAuContact } from './monde/combatGeometry';
 import { displaceSmaller, applyZoneCrossings } from './combatPlacement';
+import { placeCombatant } from './monde/spawn';
 import type { IdDIntention } from './designations';
 
 export type HoverTargeting =
@@ -87,8 +88,6 @@ export type HoverTargeting =
       line: 'dashed' | 'solid';
       /** Nom de l'arme ou du sort. */
       title: string;
-      /** Nom AFFICHÉ du combattant ciblé (retour playtest #201) — la cible déjà résolue par l'affordance. */
-      targetName: string;
       /** Libellé de la compétence employée (« Projectiles (Arcs) », « Langue (Magick) »…). */
       skill: string;
       /** Valeur de compétence NUE, et l'écart `base → cible` que le réticule affiche à côté : `mod`
@@ -147,7 +146,7 @@ export interface TargetingMode {
   commitCombatant?(get: Get, set: Set, active: Combatant, id: string, opts?: BattleClickOpts): void;
   /** Ce clic-token, sur CETTE cible, n'ouvre-t-il qu'un CHOIX D'ÉCRAN — le paramètre borné qui reste
    *  à demander — sans rien commettre au jeu ? PUR. Vrai = le geste se joue ENTIER chez l'ÉMETTEUR :
-   *  `netFlow` ne l'envoie pas à l'hôte (`INTENT_ELECTION_LOCALE`), au même titre que l'intention
+   *  `emettreIntentInvite` (`reseau.ts`) ne l'envoie pas à l'hôte (`INTENT_ELECTION_LOCALE`), au même titre que l'intention
    *  armée est un mode d'écran qui ne voyage pas. Absent = tout clic de ce mode est un geste de jeu. */
   electionLocale?(get: Get, id: string): boolean;
   tileValidAt?(get: Get<Jeu>, active: Combatant, pt: Pt): boolean;
@@ -238,7 +237,7 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   const mpt = sceneMetresPerTile(get().scene);
   const gbf = () => bonusDeForce(ship); // paresseux : la portée navale est fixe (number) → BF jamais évalué
   const maxRange = Math.max(...postes.map((p) => effectiveRange(p.item.range, gbf) ?? 0)); // mètres — la plus longue pièce du bord
-  if (maxRange && rangeBandModifier(combatDistance(ship, target), maxRange, mpt) == null)
+  if (maxRange && rangeBandModifier(distanceDeCombat(get().scene, ship, target), maxRange, mpt) == null)
     return { reason: 'range', detail: t('cs.refusBordeeHorsPortee', { ship: ship.label }) };
   return null;
 }
@@ -250,7 +249,7 @@ function batteryAffordance(get: Get, active: Combatant, target: Combatant): Hove
   const block = batteryBlock(get, active, target);
   if (block) return { kind: 'invalid', reason: block.reason };
   const side = targetArc(get().facing[active.id] ?? 'N', active.pos!, target.pos!);
-  return { kind: 'ok', line: 'dashed', title: `Bordée ${side}`, targetName: target.label, skill: 'Tir de batterie', base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'dashed', title: `Bordée ${side}`, skill: 'Tir de batterie', base: 0, mod: 0, dmg: null };
 }
 
 /** Mode incantation : mêmes gates que castSpell (équipe → portée → LdV). */
@@ -271,7 +270,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   // Portée puis Ligne de Vue : la MÊME mesure que le clic et que `castSpell` (`castTargetBlock`) — une
   // 2ᵉ écriture ferait diverger ce que le survol montre de ce que le geste fait.
   const horsAtteinte = castTargetBlock(get, active, spell, target);
-  if (horsAtteinte) return { kind: 'invalid', reason: horsAtteinte.reason };
+  if (horsAtteinte) return horsAtteinte.reason === 'cible-invalide' ? { kind: 'none' } : { kind: 'invalid', reason: horsAtteinte.reason };
   const pv = previewCast(active, spell, {
     missile,
     focused: focalisationAboutie(active, spell),
@@ -284,7 +283,6 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
     kind: 'ok',
     line: 'dashed',
     title: spell.label,
-    targetName: target.label,
     skill: testSkillLabel(castInfo(spell)),
     base: pv.base,
     mod: pv.target - pv.base,
@@ -307,7 +305,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
  */
 export function gesteAuTestDArme(get: Get, active: Combatant, target: Combatant, option: AttackOption): boolean {
   const battle = get().battle;
-  if (target.postes?.length && battle && serveTargetPoste(active, target, battle.combatants)) return false;
+  if (target.postes?.length && battle && serveTargetPoste(get().scene, active, target, battle.combatants)) return false;
   return option.targeting === 'melee';
 }
 
@@ -336,7 +334,7 @@ export function previewDifficultyOf(get: Get): DifficultyShown | undefined {
   const active = activeCombatant(battle);
   const target = inBattleId(battle, pv.targetId);
   if (!active || !target) return undefined;
-  const option = selectedAttackOption(active, battle);
+  const option = selectedAttackOption(get().scene, active, battle);
   if (!option || !gesteAuTestDArme(get, active, target, option)) return undefined;
   return difficultyOf(apercuDuGeste(get, active, target, option, 'dest' in pv ? pv.dest : undefined));
 }
@@ -357,7 +355,7 @@ export function refusDAttaque(get: Get, active: Combatant, target: Combatant, op
   if (horsDAgir) return { reason: 'hors-d-etat', texte: horsDAgir };
   const ft = isFrenzied(active) ? frenzyTarget(get, active) : null;
   if (ft && ft.id !== target.id) return { reason: 'frenesie-cible', texte: t('cs.frenzyMustAttack', { name: active.label, foe: ft.label }) };
-  if (option.freeKind && !freeAttackTargetOk(battle, active, option.freeKind, target)) {
+  if (option.freeKind && !freeAttackTargetOk(get().scene, battle, active, option.freeKind, target)) {
     return { reason: 'cible-gratuite', texte: t('cs.refusCibleGratuite', { name: target.label, attaque: option.label }) };
   }
   if (!plan) return null;
@@ -391,12 +389,12 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   // servi, renfort sinon) → réticule « Servir » ; le clic rejoint l'équipe (jamais une attaque futile sur l'engin
   // inerte). Prioritaire. SOURCE `serveTargetPoste` (= hotbar/IA). Le tooltip d'ÉQUIPE (IsoStage) montre le détail.
   if (target.postes?.length) {
-    const p = serveTargetPoste(active, target, battle.combatants);
+    const p = serveTargetPoste(get().scene, active, target, battle.combatants);
     if (!p) return { kind: 'none' };
     const join = isPosteManned(p, battle.combatants);
-    return { kind: 'ok', line: 'solid', title: `${join ? 'Renfort' : 'Servir'} : ${p.item.label}`, targetName: target.label, skill: join ? "Renfort d'équipe" : 'Chef de pièce', base: 0, mod: 0, dmg: null };
+    return { kind: 'ok', line: 'solid', title: `${join ? 'Renfort' : 'Servir'} : ${p.item.label}`, skill: join ? "Renfort d'équipe" : 'Chef de pièce', base: 0, mod: 0, dmg: null };
   }
-  const option = selectedAttackOption(active, battle);
+  const option = selectedAttackOption(get().scene, active, battle);
   if (!option) return { kind: 'none' }; // mode non-attaque (cast/heal/…) ou aucune attaque abordable
   if (target.kind === active.kind || isOutOfAction(target)) return { kind: 'none' };
   // Structure (mur/porte) : le réticule tombe (none) quand AUCUNE arme du porteur ne peut l'abîmer
@@ -412,14 +410,14 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   const refus = refusDAttaque(get, active, target, option, plan, { approche: chargeArmee(intentionLocale(get)) });
   if (refus) return { kind: 'invalid', reason: refus.reason };
   if (option.targeting === 'zone') // Souffle/Vomi/Langue/Regard/Étreinte : réticule simple (portée/LdV au résolveur moteur)
-    return { kind: 'ok', line: 'dashed', title: option.label, targetName: target.label, skill: 'Capacité de Combat', base: 0, mod: 0, dmg: null };
+    return { kind: 'ok', line: 'dashed', title: option.label, skill: 'Capacité de Combat', base: 0, mod: 0, dmg: null };
   if (option.targeting === 'aucontact') // « Au Contact » (LDB 62 l.176) : Test opposé de Corps à corps, pas une frappe
     return auContactEligible(active, target)
-      ? { kind: 'ok', line: 'dashed', title: 'Au contact', targetName: target.label, skill: 'Corps à corps', base: 0, mod: 0, dmg: null }
+      ? { kind: 'ok', line: 'dashed', title: 'Au contact', skill: 'Corps à corps', base: 0, mod: 0, dmg: null }
       : { kind: 'none' };
   if (option.targeting === 'grapple') // Empoignade (LDB 14 l.161) : Test opposé de Force, pas une frappe
     return grappleActionEligible(active, target)
-      ? { kind: 'ok', line: 'dashed', title: 'Empoignade', targetName: target.label, skill: 'Force', base: 0, mod: 0, dmg: null }
+      ? { kind: 'ok', line: 'dashed', title: 'Empoignade', skill: 'Force', base: 0, mod: 0, dmg: null }
       : { kind: 'none' };
   // === MÊLÉE (Arme + gratuites) : approche-puis-frappe — chemin réel + réticule au survol (le clic commet) ;
   // l'aperçu est calculé depuis la case d'ARRIVÉE. Seul geste dont la Difficulté se compose depuis une arme
@@ -434,7 +432,6 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
     // Gratuite (Morsure/Caudale/Tentacule) = toujours mêlée (trait solide) ; Arme = tir pointillé si à distance.
     line: option.freeKind ? 'solid' : p.kind === 'distance' ? 'dashed' : 'solid',
     title: p.weapon.label,
-    targetName: target.label,
     skill: attackTestLabel(active, p.weapon, p.kind),
     base: p.base,
     // L'aperçu porte DÉJÀ sa cible plafonnée et écrêtée (`previewAttack` → `rollLine`) : le réticule
@@ -449,9 +446,11 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   };
 }
 
-/** Alliés soignables à portée de `active` (soi + adjacents, son camp). */
-const soignablesAPortee = (get: Get<Jeu>, active: Combatant): Combatant[] =>
-  healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true });
+/** Alliés soignables à portée de `active` (soi et son camp au contact). */
+const soignablesAPortee = (get: Get<Jeu>, active: Combatant): Combatant[] => {
+  const battle = get().battle;
+  return battle ? healableTargets(campAuContact(get().scene, battle, active)) : [];
+};
 
 /** Mode SOIN (Guérison, LDB 09 ; Dextérité sous Bandages, LDB 74 l.41) : réticule « Soigner » sur soi + alliés
  *  adjacents qu'un soin de combat ouvert par `active` atteint (`modesDOuverture`) ; à portée sans soin de combat, la
@@ -461,7 +460,7 @@ function healAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   const mode = modesDOuverture(target, active)[0];
   if (!mode) return { kind: 'invalid', reason: 'sans-soin-de-combat' };
   const test = garanti(soinDOuverture(active, mode), mode, 'soin ouvert').test;
-  return { kind: 'ok', line: 'solid', title: 'Soigner', targetName: target.label, skill: libelleDeTest(test), base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'solid', title: 'Soigner', skill: libelleDeTest(test), base: 0, mod: 0, dmg: null };
 }
 
 /** Sorts permanents dissipables PORTÉS par un combattant donné (regroupés par (sort, lanceur) —
@@ -478,7 +477,7 @@ export function dispellableOnCarrier(get: Get<Jeu>, carrierId: string): Dispella
  *  tait, et le clic dit sa raison (`DISPEL_MODE.commitCombatant`). */
 function dispelAffordance(get: Get, _active: Combatant, target: Combatant): HoverTargeting {
   if (dispellableOnCarrier(get, target.id).length === 0) return { kind: 'invalid', reason: 'sans-sort-dissipable' };
-  return { kind: 'ok', line: 'dashed', title: 'Dissiper', targetName: target.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'dashed', title: 'Dissiper', skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
 /** Mode SURINCANTATION (+Cible, LDB 47 l.28) : cibles supplémentaires éligibles (portée/éveillées/LdV). */
@@ -488,8 +487,8 @@ function overcastAffordance(get: Get, _active: Combatant, target: Combatant): Ho
   const pool = s.battle?.combatants ?? s.party;
   const caster = pool.find((c) => c.id === pc.casterId);
   const spell = findSpellById(pc.spellId);
-  if (!caster || !spell || !overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === target.id)) return { kind: 'none' };
-  return { kind: 'ok', line: 'dashed', title: spell.label, targetName: target.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
+  if (!caster || !spell || !overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === target.id)) return { kind: 'none' };
+  return { kind: 'ok', line: 'dashed', title: spell.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
 /** Mode FRAPPE MORTELLE (cleave, LDB 14 l.9) : enchaînements adjacents non encore frappés. */
@@ -498,12 +497,12 @@ function cleaveAffordance(get: Get, _active: Combatant, target: Combatant): Hove
   const battle = s.battle!;
   const pc = s.pendingCleave!;
   const atk = inBattleId(battle, pc.attackerId);
-  if (!atk || !cleaveTargets(battle, atk, pc.hitIds).some((c) => c.id === target.id)) return { kind: 'none' };
-  const weapon = firedWeapon(atk, target, undefined, battle.combatants); // MÊME résolution que la chaîne (resolveAttack, aucun weaponUid)
+  if (!atk || !cleaveTargets(s.scene, battle, atk, pc.hitIds).some((c) => c.id === target.id)) return { kind: 'none' };
+  const weapon = firedWeapon(s.scene, atk, target, undefined, battle.combatants); // MÊME résolution que la chaîne (resolveAttack, aucun weaponUid)
   // L'enchaînement est une VRAIE frappe : son réticule porte la valeur et la Difficulté du jet qu'il
   // ouvrira, comme le ciblage ordinaire (`attackAffordance`) — un interlude n'est pas un ciblage aveugle.
   const p = previewAttack(get, atk, target);
-  return { kind: 'ok', line: 'solid', title: 'Frappe Mortelle', targetName: target.label, skill: attackTestLabel(atk, weapon, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
+  return { kind: 'ok', line: 'solid', title: 'Frappe Mortelle', skill: attackTestLabel(atk, weapon, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
 }
 
 /** Mode 2ᵉ FRAPPE (deux armes, LDB 10 l.767-773) : cibles à portée de la main secondaire. */
@@ -513,11 +512,11 @@ function dualAffordance(get: Get, _active: Combatant, target: Combatant): HoverT
   const ds = s.pendingDualStrike!;
   const atk = inBattleId(battle, ds.attackerId);
   const off = atk?.weapons.find((w) => w.uid === ds.offWeaponUid);
-  if (!atk || !off || !dualStrikeTargets(battle, atk, off).some((c) => c.id === target.id)) return { kind: 'none' };
+  if (!atk || !off || !dualStrikeTargets(s.scene, battle, atk, off).some((c) => c.id === target.id)) return { kind: 'none' };
   // 2ᵉ frappe = une frappe : le réticule porte la valeur et la Difficulté de SON jet — celui de la main
   // SECONDAIRE (`LDB 14 l.181`, pénalité comprise), pas celui de l'arme principale déjà résolue.
   const p = previewAttack(get, atk, target, undefined, { weaponUid: off.uid });
-  return { kind: 'ok', line: 'solid', title: 'Deux armes', targetName: target.label, skill: attackTestLabel(atk, off, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
+  return { kind: 'ok', line: 'solid', title: 'Deux armes', skill: attackTestLabel(atk, off, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -535,12 +534,12 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Pièce de siège : un clic REJOINT l'équipe (chef/renfort) au lieu d'attaquer l'engin inerte — MÊME chemin que le
   // bouton hotbar (`servirLePoste`) et l'IA (`serveAtPoste`). `serveTargetPoste` = source unique de la cible.
   if (target.postes?.length) {
-    const p = serveTargetPoste(active, target, battle.combatants);
+    const p = serveTargetPoste(get().scene, active, target, battle.combatants);
     if (p) { get().servirLePoste(p.item.uid); return; }
   }
   // ATTAQUE unifiée : l'`AttackOption` armée (`selectedAttack`, défaut 'arme' ; les modes
   // maneuver/tentacle mappent sur leur option).
-  const option = selectedAttackOption(active, battle);
+  const option = selectedAttackOption(get().scene, active, battle);
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
   const plan = planDuGeste(get, active, target, option);
@@ -588,7 +587,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Résilience) → il DIFFÈRE la déclaration derrière `pendingWard`. `wardCleared` = ce gate a déjà été
   // franchi pour CE clic (relance) → on le saute.
   if (!opts?.wardCleared && hasActiveFlag(target, 'attackWardFM')) {
-    set({ pendingWard: { attackerId: active.id, targetId: target.id, targetName: target.label, intentionId: opts?.intentionId, result: null }, battle: { ...get().battle!, preview: null } });
+    set({ pendingWard: { attackerId: active.id, targetId: target.id, intentionId: opts?.intentionId, result: null }, battle: { ...get().battle!, preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
     return;
   }
@@ -618,8 +617,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     const geom = mountOf(battle, active) ?? active;
     approachPath = plan.path;
     const chargeFrom = { ...active.pos! };
-    active.pos = { ...plan.dest };
-    if (geom !== active) geom.pos = { ...plan.dest }; // la monture charge sous le cavalier
+    placeCombatant(active, get().scene, plan.dest);
+    if (geom !== active) placeCombatant(geom, get().scene, plan.dest); // la monture charge sous le cavalier
     displaceSmaller(get, geom); // charge d'un grand : idem dégage les plus petits (85 l.373-374)
     get().orienterSelonLeChemin(active.id, approachPath);
     if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
@@ -639,8 +638,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       const geom = mountOf(b, active) ?? active;
       approachPath = plan.path;
       const moveFrom = { ...active.pos! };
-      active.pos = { ...plan.dest };
-      if (geom !== active) geom.pos = { ...plan.dest };
+      placeCombatant(active, get().scene, plan.dest);
+      if (geom !== active) placeCombatant(geom, get().scene, plan.dest);
       displaceSmaller(get, geom);
       get().orienterSelonLeChemin(active.id, approachPath);
       if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
@@ -661,8 +660,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       // #BUG-A : une arme personnelle n'hérite jamais de l'allonge de la coque servie) — PAS weapons[0],
       // sinon un héros mixte mêlée+distance ne pourrait jamais tirer une cible éloignée (LDB Armes l.297-298).
       const battleNow = get().battle!;
-      const w = pickAttackWeapon(battleNow, active, target, option.weaponUid);
-      if (w.type === 'melee' && combatDistance(attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
+      const w = pickAttackWeapon(get().scene, battleNow, active, target, option.weaponUid);
+      if (w.type === 'melee' && distanceDeContact(get().scene, attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w, sceneMetresPerTile(get().scene))) {
         refuserGesteDuSiege(get, set, t('cs.meleeOutOfRange')); // aucune arme à distance dispo → mêlée hors de portée
         return;
       }
@@ -713,8 +712,8 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   if (!battle.reachable.has(k)) return;
   const from = { ...active.pos! };
   const mount = mountOf(battle, active);
-  active.pos = { ...pt };
-  if (mount) mount.pos = { ...pt }; // couple cavalier↔monture solidaire (comme le déplacement)
+  placeCombatant(active, get().scene, pt);
+  if (mount) placeCombatant(mount, get().scene, pt); // couple cavalier↔monture solidaire (comme le déplacement)
   displaceSmaller(get, mount ?? active); // un grand qui se téléporte dégage aussi les plus petits sous son empreinte (LDB 85 l.373-374)
   get().orienterSelonLeChemin(active.id, [from, pt]);
   bus.emit(EVT.ANIM_MOVE, { id: active.id, path: [{ ...pt }] });
@@ -723,44 +722,9 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   bus.emit(EVT.SCENE_DIRTY);
 }
 
-/** POUSSÉE d'un engin de siège CREWÉ (ADE II 8 l.258, Lot 2 #156) : le CHEF choisit sa case
- *  d'arrivée parmi les cases en surbrillance (`battle.reachable`, posé par `pousserLEngin` — plafonné
- *  à `rule('engin-de-siege-vitesse-de-poussee')`) — mouvement SIMPLE, aucun jet. Le delta (case cliquée − position
- *  du chef) est appliqué à l'ENGIN et à TOUS les servants du poste (`ShipPoste.crewIds`, chef inclus) :
- *  formation RIGIDE (`translaterFormation`). Consomme l'Action du chef (comme `servirLePoste`) ; l'engin reste SANS tour (`inert`,
- *  jamais ajouté à `battle.order`) — seul le rendu de la pièce suit (`posteAnchor` lit `hull.pos`).
- *  La case du CHEF passe `battle.reachable` ; la formation entière se refuse (`refuserGeste`) quand
- *  `translaterFormation` juge une case d'arrivée invalide. */
 function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
-  const battle = get().battle;
-  const scene = get().scene;
-  if (!battle || !scene || !active.pos) return;
-  const k = tileKey(pt.x, pt.y, pt.z);
-  if (!battle.reachable.has(k)) return;
-  const poste = active.mannedPoste;
-  const hull = poste && posteDeLaBataille(poste.item.uid, battle.combatants)?.porteur;
-  if (!poste || !hull?.pos) return;
-  // Annulation (#199) : au PREMIER segment du Tour (`movementUsed === 0`), capture l'état AVANT de
-  // pousser — MÊME snapshot que cliquerLaCaseDuCombat/moveAttack (positions + facing + movedPreAction +
-  // loseNextMovement des servants), pour que `annulerLeDeplacement` défasse aussi une poussée.
-  const snapshot = (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
-  const delta = { x: pt.x - active.pos.x, y: pt.y - active.pos.y };
-  const deplaces = translaterFormation(battle.combatants, scene, hull, poste.crewIds ?? [], delta);
-  if (!deplaces) { refuserGeste(get, set, t('cs.refusFormationBloquee')); return; }
-  for (const { mobile, depart } of deplaces) bus.emit(EVT.ANIM_MOVE, { id: mobile.id, path: [depart, { ...mobile.pos! }] });
-  const dist = chebyshev(delta, { x: 0, y: 0 });
-  // Pousser = le MOUVEMENT de TOUT l'équipage (LDB 13 l.106 : locomotion, aucun Test → le Mouvement, pas
-  // l'Action). Le chef dépense son Mouvement MAINTENANT ; chaque autre servant dépensera le sien à son tour
-  // (`loseNextMovement`) — tous poussent, tous en paient le Mouvement. L'Action du chef reste libre (il peut
-  // assener la porte le même Round une fois au contact).
-  for (const id of poste.crewIds ?? []) {
-    if (id === active.id) continue;
-    const c = inBattleId(battle, id);
-    if (c) c.loseNextMovement = true;
-  }
-  const log = [...battle.log, ev('deplacement', t('cs.pushEngine', { name: active.label, weapon: hull.label, n: dist, s: dist > 1 ? 's' : '' }), active.id)];
-  set({ battle: { ...get().battle!, moveSnapshot: snapshot, movementUsed: mountMovement(get().battle!, active), action: null, reachable: new Map(), preview: null, log } });
-  bus.emit(EVT.SCENE_DIRTY);
+  if (!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z))) return;
+  if (!executerPoussee(get, set, active, pt)) refuserGeste(get, set, t('cs.refusFormationBloquee'));
 }
 
 /** Sort de ZONE sélectionné : le clic-case OUVRE la modale — le centre se choisit APRÈS le jet.
@@ -836,7 +800,7 @@ const OVERCAST_MODE = {
     const caster = pc && pool.find((c) => c.id === pc.casterId);
     const spell = pc && findSpellById(pc.spellId);
     if (!pc || !caster || !spell) return [];
-    return overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
+    return overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
   },
   commitCombatant: (get, _set, _active, id) => { get().jetRegler('incantation', 'ciblesSupplementaires', ciblesBasculees(get().pendingCast?.extraTargetIds, id)); },
 } satisfies TargetingMode;
@@ -847,7 +811,7 @@ const CLEAVE_MODE = {
     const battle = s.battle;
     const pc = s.pendingCleave;
     const atk = battle && pc && inBattleId(battle, pc.attackerId);
-    return battle && pc && atk ? cleaveTargets(battle, atk, pc.hitIds) : [];
+    return battle && pc && atk ? cleaveTargets(s.scene, battle, atk, pc.hitIds) : [];
   },
   commitCombatant: (get, _set, _active, id) => { get().frapperEnBalayage(id); },
 } satisfies TargetingMode;
@@ -859,7 +823,7 @@ const DUAL_MODE = {
     const ds = s.pendingDualStrike;
     const atk = battle && ds && inBattleId(battle, ds.attackerId);
     const off = atk && ds && atk.weapons.find((w) => w.uid === ds.offWeaponUid);
-    return battle && atk && off ? dualStrikeTargets(battle, atk, off) : [];
+    return battle && atk && off ? dualStrikeTargets(s.scene, battle, atk, off) : [];
   },
   commitCombatant: (get, _set, _active, id) => { get().frapperDeLaSecondeArme(id); },
 } satisfies TargetingMode;
@@ -979,7 +943,7 @@ export function ciblageEntiteArme(get: Get): boolean {
 /**
  * GESTES CONSOMMÉS CHEZ L'ÉMETTEUR (coop) — jumelle de `INTENTION_JOINTE_AUX_ARGS` (`localIntent.ts`) :
  * une action de clic, la façon de savoir si CE clic-là n'est qu'un choix d'ÉCRAN. Table déclarative,
- * jamais un `if (action === …)` au fil de `netFlow` ; les intents absents d'ici voyagent tous.
+ * jamais un `if (action === …)` au fil de `emettreIntentInvite` ; les intents absents d'ici voyagent tous.
  *
  * Le verdict se lit au MODE de ciblage courant (`electionLocale`) : c'est lui qui sait ce que son
  * clic-token fait, et le mode est le même des deux côtés du fil pour un ciblage armé localement.

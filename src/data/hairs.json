@@ -2,7 +2,10 @@
   "id": "couleur-des-cheveux",
   "type": "hairs",
   "label": "Tableau de couleur des cheveux",
-  "die": "2d10",
+  "die": {
+    "n": 2,
+    "sides": 10
+  },
   "source": {
     "book": "livre-de-base",
     "page": 40,

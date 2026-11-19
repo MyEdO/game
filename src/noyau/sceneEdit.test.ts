@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { crenellatedAt, DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, DEFAULT_TERRAIN, emptyScene, tileAt, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type Scene } from './monde/scene';
+import type { RectDeCases } from '../data/schemas/grammaire/valeurs';
+import {
+  crenellatedAt,
+  DEFAULT_RELIEF_DEFAULTS,
+  DEFAULT_ROOF_DEFAULTS,
+  DEFAULT_TERRAIN,
+  emptyScene,
+  tileAt,
+  type ArchitectureBody,
+  type BuildingMass,
+  type Scene,
+} from './monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { semencesDeScene } from '../data';
 import { METRES_PER_LEVEL } from './monde/relief';
@@ -47,14 +58,14 @@ import diligenceProjet from '../scenes/diligence/diligence-projet.json';
 /** Scène d'un corps unique dont le plancher du rez est délimité par des MURS clos (la règle
  *  d'`interiorCells`/`realFloorAt` à `z=0`, #881), sans aucune masse authorée : tout est à dériver.
  *  AUCUNE zone déclarée — les murs seuls suffisent (le point du ticket #881). */
-function corpsScene(size: number, pieces: ArchitectureRect[], body: Partial<ArchitectureBody> = {}): Scene {
+function corpsScene(size: number, pieces: RectDeCases[], body: Partial<ArchitectureBody> = {}): Scene {
   const scene = emptyScene('scene-test', size, size);
   scene.walls = perimeterWallSegs(pieces);
   scene.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [], ...body }];
   return scene;
 }
 
-const cellsOf = (footprint: readonly ArchitectureRect[]): Set<string> => {
+const cellsOf = (footprint: readonly RectDeCases[]): Set<string> => {
   const out = new Set<string>();
   for (const rect of footprint)
     for (let y = rect.y; y < rect.y + rect.h; y++)
@@ -524,15 +535,15 @@ describe('deriveArchitectureMasses — une colonne OUVERTE au sommet adopte la n
 });
 
 const S = 10;
-const dans = (rect: ArchitectureRect, x: number, y: number) =>
+const dans = (rect: RectDeCases, x: number, y: number) =>
   x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
 
 /** Bâti à N couches : chaque couche pose `pierre` sur ses rectangles, moins ses `trous`. `cotes`
  *  cote le rez (palier haut d'une volée à `METRES_PER_LEVEL`). */
 function bati(
-  couches: { z: number; rects: ArchitectureRect[]; trous?: string[] }[],
+  couches: { z: number; rects: RectDeCases[]; trous?: string[] }[],
   cotes: Record<string, number>,
-  emprise: ArchitectureRect[],
+  emprise: RectDeCases[],
 ): Scene {
   let scene = emptyScene('scene-test', S, S);
   for (const couche of couches) {

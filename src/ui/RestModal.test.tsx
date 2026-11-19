@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { RestBody } from './RestModal';
+import { offresDeLAubergeDeScene } from '../noyau/worldMap';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
@@ -33,7 +34,7 @@ function halte(pleinAir: boolean): string {
   const plan: TravelPlan = { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'pied', hoursPerDay: 6, km: 60, kmDone: 24, interrupted: false, log: [jour] };
   useGame.setState({
     party: [hero], travelPlan: plan,
-    pendingRest: { places: { camp: true }, lieu: fixtureText('sur la route de A à B'), quality: 'normale', days: 1, perHero: { h: { lodging: 'dehors', food: 'rien' } }, phase: 'setup', travelHalt: true } as never,
+    pendingRest: { places: { camp: true }, offres: [], lieu: fixtureText('sur la route de A à B'), quality: 'normale', days: 1, perHero: { h: { lodging: 'dehors', food: 'rien' } }, phase: 'setup', travelHalt: true } as never,
   });
   const el = document.createElement('div');
   root = createRoot(el);
@@ -64,7 +65,7 @@ describe('RestBody — avertissement de récupération (LDB 18 l.338)', () => {
     const assoiffe = { ...structuredClone(hero), wounds: { ...hero.wounds, current: hero.wounds.max - 5 }, thirst: { days: 1, tests: 0, failures: 0 } } as Combatant;
     useGame.setState({
       party: [assoiffe], travelPlan: null,
-      pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'commune', food: 'repas' } }, phase: 'setup' } as never,
+      pendingRest: { places: { auberge: true }, offres: structuredClone(offresDeLAubergeDeScene()), lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'commune', food: 'repas' } }, phase: 'setup' } as never,
     });
     const el = document.createElement('div');
     root = createRoot(el);
@@ -77,12 +78,34 @@ describe('RestBody — la note d’auberge que la bourse ne couvre pas (LDB 66)'
   it('bourse vide, chambre privée : le total est « over » et Dormir se ferme sur le refus du geste', () => {
     useGame.setState({
       party: [hero], travelPlan: null, net: { ...useGame.getState().net, mode: 'local' },
-      pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'privee', food: 'rien' } }, phase: 'setup' } as never,
+      pendingRest: { places: { auberge: true }, offres: structuredClone(offresDeLAubergeDeScene()), lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'chambre-1', food: 'rien' } }, phase: 'setup' } as never,
     });
     const el = document.createElement('div');
     root = createRoot(el);
     act(() => root!.render(<RestBody />));
     expect(el.querySelector('.rest-cost.over')).not.toBeNull();
     expect(el.querySelector('#rest-sleep-reason')?.textContent).toBe(t('jet.ferme.noteNonCouverte'));
+  });
+});
+
+describe('RestBody — « Pour toute la troupe », les chambres de la nuit (LDB 66 l.28)', () => {
+  it('auberge à 4 héros : en « Commune » puis « Chambres », la troupe revient à chambre-1 ×2, chambre-2 ×2', () => {
+    const troupe = ['a', 'b', 'c', 'd'].map((id) => ({ ...hero, id, label: id }));
+    useGame.setState({ party: troupe, battle: null, travelPlan: null, pendingRest: null, net: { ...useGame.getState().net, mode: 'local' } });
+    useGame.getState().offrirLeRepos({ lieu: fixtureText('Auberge'), places: { auberge: true } });
+    const couchages = () => troupe.map((h) => useGame.getState().pendingRest!.perHero[h.id].lodging);
+    const parDefaut = couchages();
+    expect(parDefaut).toEqual(['chambre-1', 'chambre-1', 'chambre-2', 'chambre-2']);
+    const el = document.createElement('div');
+    root = createRoot(el);
+    act(() => root!.render(<RestBody />));
+    const entree = (libelle: string) => [...el.querySelectorAll<HTMLButtonElement>('.rest-master button')].find((b) => b.textContent?.trim() === libelle)!;
+    expect(entree(t('rf.chambres')).getAttribute('aria-pressed')).toBe('true');
+    act(() => entree(t('valeur.couchage.commune')).click());
+    expect(couchages()).toEqual(['commune', 'commune', 'commune', 'commune']);
+    expect(entree(t('rf.chambres')).getAttribute('aria-pressed')).toBe('false');
+    act(() => entree(t('rf.chambres')).click());
+    expect(couchages()).toEqual(parDefaut);
+    expect(entree(t('rf.chambres')).getAttribute('aria-pressed')).toBe('true');
   });
 });

@@ -1,0 +1,13 @@
+{
+  "model": "decor--epave-carrosse.glb",
+  "model_sha256": "b7cdc18f1c2688c8d96e25b2ba7dafaee3afffee8ce7384ece9d0c6834d700f2",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

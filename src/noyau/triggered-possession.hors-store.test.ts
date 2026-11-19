@@ -159,13 +159,13 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
   it('porteur INCONSCIENT d’un autre siège : son étape existe quand même (#1265 — aucune harmonisation)', () => {
     const { H } = setupCoop();
     addCondition(H, COND.inconscient, 1);
-    const eff = {
+    const eff: TriggeredEffect = {
       trigger: 'onWoundLoss', on: 'soi',
       // `source` : l'entité porteuse, telle que `withSource` la tague au dispatcher — c'est d'elle que
       // l'étape DÉRIVE son enjeu (#1262 V2 L6d). Une fixture sans porteur ne serait pas le chemin réel.
       source: { kind: 'etat', id: 'empoisonne' },
-      flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire', label: 'Tenir bon' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
-    } as unknown as TriggeredEffect;
+      flow: { kind: 'test', test: { skill: { id: 'resistance' }, difficulty: 'intermediaire', label: 'Tenir bon' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
+    };
 
     expect(isOutOfAction(H), 'sonde inerte sans ça : le porteur DOIT être hors d’action').toBe(true);
     expect(surfaceOf(g, H.id), 'et rester surfacé — hors d’action ne veut pas dire sans joueur').toBe(true);
@@ -208,10 +208,10 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
    */
   it('dispatcher : un effet OPT-IN atteint le porteur d’un autre siège au lieu d’être jeté', () => {
     const { H } = setupCoop();
-    const eff = {
+    const eff: TriggeredEffect = {
       trigger: 'onHit', on: 'soi', optional: true,
-      flow: { kind: 'test', test: { skill: 'calme', difficulty: 'intermediaire', label: 'Se ressaisir' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
-    } as unknown as TriggeredEffect;
+      flow: { kind: 'test', test: { skill: { id: 'calme' }, difficulty: 'intermediaire', label: 'Se ressaisir' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
+    };
 
     applyTriggeredEffects(g, H, [eff], 'onHit', { rng: desDuTest, set: banc.setState });
 

@@ -81,8 +81,8 @@ describe('Naufrage — Natation montée par `rollStep` (#1153 L3)', () => {
 
 describe('Nuit — contagion / cauchemars / entretien différé montés par `rollStep` (#1153 L3)', () => {
   const restPending = (party: Combatant[]): PendingRest => ({
-    places: { lodging: [], food: [] }, quality: 'normale', days: 1, phase: 'setup',
-    perHero: Object.fromEntries(party.map((h) => [h.id, { lodging: 'auberge', food: 'repas' }])),
+    places: { auberge: true }, quality: 'normale', days: 1, phase: 'setup',
+    perHero: Object.fromEntries(party.map((h) => [h.id, { lodging: 'chambre-1', food: 'repas' }])),
   } as never);
 
   it('Contagion + Cauchemars : cible = valeur RAW + Difficulté, et rien d’anonyme', () => {
@@ -93,7 +93,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     fresh([dormeur]);
     const { steps } = buildNightCascade(get, set, restPending([dormeur]), {
       fedDaily: true,
-      extraContagion: [{ heroId: dormeur.id, diseaseName: 'courante-galopante', difficulty: 'accessible' }],
+      extraContagion: [{ porteurId: dormeur.id, diseaseName: 'courante-galopante', difficulty: 'accessible' }],
     } as never);
 
     const contagion = jetDe(steps.find((s) => s.kind === 'contagion')!);
@@ -222,7 +222,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
  */
 describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 volet A)', () => {
   const restPending = (party: Combatant[], lodging: string): PendingRest => ({
-    places: { lodging: [], food: [] }, quality: 'normale', days: 1, phase: 'setup',
+    places: { auberge: true }, quality: 'normale', days: 1, phase: 'setup',
     perHero: Object.fromEntries(party.map((h) => [h.id, { lodging, food: 'repas' }])),
   } as never);
 
@@ -235,7 +235,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
   it('Marche forcée : base NUE, État nommé, cible = valeur JETÉE (Résistance +0, LDB 51 l.195)', () => {
     const marcheur = campeur({ id: 'mar', label: 'Marcheur' });
     fresh([marcheur]);
-    const p = { ...restPending([marcheur], 'auberge'), travelMarch: [marcheur.id] } as never as PendingRest;
+    const p = { ...restPending([marcheur], 'chambre-1'), travelMarch: [marcheur.id] } as never as PendingRest;
     const { steps } = buildNightCascade(get, set, p, { fedDaily: true });
     const st = jetDe(steps.find((s) => s.kind === 'marche-forcee')!);
     const nue = skillBaseValue(marcheur, { skill: { id: 'resistance' }, characteristic: 'endurance' });
@@ -252,7 +252,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     // la porte compte (`LDB 16 l.125`), et c'est ce que ce test mesure (#1685).
     const blesse = campeur({ id: 'ble', label: 'Blessé', wounds: blessuresDeBase(12, 4), conditions: [{ id: 'extenue', value: 1 }] as never });
     fresh([blesse]);
-    const { steps } = buildNightCascade(get, set, restPending([blesse], 'auberge'), { fedDaily: true });
+    const { steps } = buildNightCascade(get, set, restPending([blesse], 'chambre-1'), { fedDaily: true });
     const st = jetDe(steps.find((s) => s.kind === 'recuperation')!);
     const nue = skillBaseValue(blesse, { skill: { id: 'resistance' } });
     const jetee = testValue(blesse, { skill: { id: 'resistance' } });
@@ -318,7 +318,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     });
     fresh([ivre]);
     set({ lastUpkeepDay: -1 } as never);
-    const { steps } = buildNightCascade(get, set, restPending([ivre], 'auberge'), { fedDaily: true });
+    const { steps } = buildNightCascade(get, set, restPending([ivre], 'chambre-1'), { fedDaily: true });
     const desso = steps.find((s) => s.kind === 'dessoulage')!;
     desso.participants![0].result = { roll: 50, target: desso.participants![0].target, sl: 0, success: true } as never;
     const out = applierDe('dessoulage')!(get, set, desso, get().party[0], { steps, index: 0 } as never);
@@ -370,7 +370,8 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
       id: 'act', skills: [{ id: 'ragot', advances: 20, characteristic: 'sociabilite' }] as never,
       conditions: [{ id: 'empoisonne', value: 1 }] as never,
     });
-    const pick = travelActivitySpec(h, { id: 'ragot-complexe', label: 'Ragot', contexts: ['interlude'], tests: [{ skill: { id: 'ragot' }, difficulty: 'complexe' }] } as ActivityDef)!;
+    const activite: ActivityDef = { id: 'ragot-complexe', type: 'activities', label: 'Ragot', icon: 'navigation/activite', source: { book: 'livre-de-base', page: 1 }, contexts: ['interlude'], tests: [{ skill: { id: 'ragot' }, difficulty: 'complexe' }] };
+    const pick = travelActivitySpec(h, activite)!;
     expect(pick.value).toBe(testValue(h, { skill: { id: 'ragot' } }));
     expect(pick.target).toBe(clampTarget(pick.value + DIFFICULTY_MODIFIERS.complexe).target);
   });

@@ -3,13 +3,27 @@
   "type": "river-navigation",
   "label": "Navigation fluviale",
   "windForces": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "id": "calme",
         "label": "Calme",
         "min": 1,
         "max": 2,
+        "effet": {
+          "arriere": {
+            "derive": true
+          },
+          "cote": {
+            "derive": true
+          },
+          "contraire": {
+            "derive": true
+          }
+        },
         "source": {
           "book": "mort-sur-le-reik-compagnon",
           "page": 29,
@@ -21,6 +35,17 @@
         "label": "Léger",
         "min": 3,
         "max": 4,
+        "effet": {
+          "arriere": {
+            "pourcentage": 5
+          },
+          "cote": {
+            "pourcentage": 0
+          },
+          "contraire": {
+            "pourcentage": -5
+          }
+        },
         "source": {
           "book": "mort-sur-le-reik-compagnon",
           "page": 29,
@@ -32,6 +57,18 @@
         "label": "Modéré",
         "min": 5,
         "max": 6,
+        "effet": {
+          "arriere": {
+            "pourcentage": 10
+          },
+          "cote": {
+            "pourcentage": 5,
+            "louvoyage": true
+          },
+          "contraire": {
+            "pourcentage": -10
+          }
+        },
         "source": {
           "book": "mort-sur-le-reik-compagnon",
           "page": 29,
@@ -43,6 +80,18 @@
         "label": "Fort",
         "min": 7,
         "max": 8,
+        "effet": {
+          "arriere": {
+            "pourcentage": 20
+          },
+          "cote": {
+            "pourcentage": 10,
+            "louvoyage": true
+          },
+          "contraire": {
+            "pourcentage": -20
+          }
+        },
         "source": {
           "book": "mort-sur-le-reik-compagnon",
           "page": 29,
@@ -54,6 +103,18 @@
         "label": "Très fort",
         "min": 9,
         "max": 10,
+        "effet": {
+          "arriere": {
+            "pourcentage": 25
+          },
+          "cote": {
+            "risqueDeChavirage": true
+          },
+          "contraire": {
+            "pourcentage": -25,
+            "risqueDeGreement": true
+          }
+        },
         "source": {
           "book": "mort-sur-le-reik-compagnon",
           "page": 29,
@@ -63,7 +124,10 @@
     ]
   },
   "windDirections": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "id": "arriere",
@@ -102,66 +166,6 @@
   },
   "windTickThreshold": 1,
   "windTicksPerDay": 4,
-  "windEffect": {
-    "calme": {
-      "arriere": {
-        "derive": true
-      },
-      "cote": {
-        "derive": true
-      },
-      "contraire": {
-        "derive": true
-      }
-    },
-    "leger": {
-      "arriere": {
-        "pourcentage": 5
-      },
-      "cote": {
-        "pourcentage": 0
-      },
-      "contraire": {
-        "pourcentage": -5
-      }
-    },
-    "modere": {
-      "arriere": {
-        "pourcentage": 10
-      },
-      "cote": {
-        "pourcentage": 5,
-        "louvoyage": true
-      },
-      "contraire": {
-        "pourcentage": -10
-      }
-    },
-    "fort": {
-      "arriere": {
-        "pourcentage": 20
-      },
-      "cote": {
-        "pourcentage": 10,
-        "louvoyage": true
-      },
-      "contraire": {
-        "pourcentage": -20
-      }
-    },
-    "tres-fort": {
-      "arriere": {
-        "pourcentage": 25
-      },
-      "cote": {
-        "risqueDeChavirage": true
-      },
-      "contraire": {
-        "pourcentage": -25,
-        "risqueDeGreement": true
-      }
-    }
-  },
   "driftPctOfSpeed": 25,
   "driftNavPenalty": -10,
   "navBaseDifficulty": "intermediaire",
@@ -194,19 +198,26 @@
     }
   },
   "temporaryRepair": {
-    "difficulty": "complexe",
-    "charpentierPenalty": -10,
     "woundsPerRepair": {
       "dice": {
         "n": 1,
         "sides": 10
       }
     },
+    "enduranceDifficulty": "accessible",
+    "failDamage": {
+      "dice": {
+        "n": 1,
+        "sides": 10,
+        "plus": -4
+      }
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 30,
       "note": "ch.5 « Navigation fluviale » — Réparations temporaires (l.113-117)."
-    }
+    },
+    "maison": "La durée d’une réparation temporaire (MSRC 7 l.117) s’écoule dans la journée de voyage : l’horloge du jour court jusqu’au crépuscule, ou de 24 h à l’arrivée."
   },
   "source": {
     "book": "mort-sur-le-reik-compagnon",

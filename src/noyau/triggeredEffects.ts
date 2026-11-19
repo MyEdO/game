@@ -9,13 +9,26 @@
  * place et renvoie le journal. Le référent des formules « (X) » est le PORTEUR (`caster` = la créature
  * qui frappe) — donc « Force de la source » = sa Force.
  */
+import { nomDe } from '../engine/nom';
 import { type Combatant, type Weapon, type HitLocation, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
-import type { OpsCtx, GameOp } from '../engine/ops';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
+import { nomDeSource, type OpsCtx, type GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHasFreeAttack, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps } from '../engine/flowCore';
+import {
+  ARG_TEMPLATE,
+  INDICE_TEMPLATE,
+  type EffectTrigger,
+  flowHasTest,
+  flowHasFreeAttack,
+  flowHasImpureOp,
+  spellEffectOps,
+  EMPTY_FLOW,
+  reecrireFlow,
+  reecrireLesOps,
+  type TriggeredEffect,
+} from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
@@ -27,12 +40,23 @@ import { surfaceOf } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { isEngagedWith, isEngaged } from '../engine/engagement';
 import { SIZE_ORDER, effectiveSize } from '../engine/size';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat } from './monde/footprint';
 import { chebyshev } from '../engine/grid';
 import { tileSeenByFoe } from './monde/lineOfSight';
 import { smokeOf, combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
 import { sceneMetresPerTile } from './monde/scene';
-import { findTraitById, findQualityById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, testSkillLabel } from '../data';
+import {
+  findTraitById,
+  findQualityById,
+  findTalentById,
+  findConditionById,
+  findPsychologyById,
+  findSymptomById,
+  findMutationById,
+  findTrappingById,
+  testSkillLabel,
+} from '../data';
+import { isHeld } from '../engine/capabilities';
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
 import { difficulteDeLArg, rollTest } from '../engine/tests';
@@ -44,7 +68,8 @@ import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
 import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
-import { routeTriggeredTest } from './combat/triggeredTest';
+import { crochetsDeCorruption } from './corruptionFlow';
+import { routeTriggeredTest, runCombatFlow } from './combat/triggeredTest';
 
 /** TAGUE des effets authorés de l'ENTITÉ dont ils sont tirés — « les GameOps sont rattachés à quelque
  *  chose » (arbitrage user 2026-07-18). Cette identité voyage jusqu'à l'`OpsCtx` du dispatch, où
@@ -81,7 +106,7 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
     for (const k in out) { if (out[k] === ARG_TEMPLATE) out[k] = arg; else if (out[k] === INDICE_TEMPLATE) out[k] = value; }
     return out as unknown as GameOp;
   };
-  const visit = (f: Flow): Flow => {
+  const visit = (f: TriggeredEffect['flow']): TriggeredEffect['flow'] => {
     if (f.kind === 'test') {
       // Nœud Flow `test` dont la difficulté vient de l'arg d'instance (Venin, `LDB 85 l.423`) : on
       // substitue `test.difficulty` (mêmes sémantique/gate que l'ancienne op `test.argDifficulty`).
@@ -100,18 +125,23 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
 
 /**
  * SOURCE UNIQUE d'énumération des sources d'effet DÉCLENCHÉ d'un combattant — TOUS les KINDS en UN endroit :
- * Atouts d'arme (`weapon.onHitEffects`), Traits, Qualités d'arme, Talents, symptômes, MUTATIONS, ÉTATS,
+ * Atouts d'arme (`weapon.onHitEffects`), objets portés ou tenus (`TrappingData.effects`), Traits, Qualités d'arme, Talents, symptômes, MUTATIONS, ÉTATS,
  * états PSY. Chaque source
  * est taguée `key`/`cap`/`label` (+ `stacks` pour les statuts, pions réduits d'une capacité de la cible).
  * TOUT le reste en DÉRIVE (zéro énumérateur parallèle) : `fireTriggers` (via `effectsOf` non-statut +
  * `fireConditionEffects`/`firePsychEffects`), `resolveFreeAttacks` (via `freeAttackSourcesOf`), et le
  * COLLECTEUR jumeau de fin de Round (`collectRoundEndTestSteps`, combat/triggeredTest — les Tests d'un
  * héros MANUEL deviennent des étapes de cascade au lieu d'être joués inline). AJOUTER UN
- * KIND = ICI seulement. Ordre FIGÉ (enchant → traits → atouts → talents → symptômes → mutations →
+ * KIND = ICI seulement. Ordre FIGÉ (enchant → objets portés → traits → atouts → talents → symptômes → mutations →
  * États → psy) = déroulé RNG déterministe. */
 export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSource[] {
   const out: TriggerSource[] = [];
   if (weapon?.onHitEffects?.length) { const wid = weaponIdentity(weapon); out.push({ effects: withSource(weapon.onHitEffects, { kind: 'objet', id: wid }), cap: 1, key: `weapon:${wid}`, label: weapon.label }); }
+  // Objets PORTÉS ou TENUS (`isHeld`) : leurs `effects` lus au catalogue par id stable. #4202
+  for (const it of actor.items ?? []) {
+    const d = it.trappingId && isHeld(actor, it) ? findTrappingById(it.trappingId) : undefined;
+    if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'objet', id: d.id }), cap: 1, key: `item:${it.uid}`, label: d.label });
+  }
   // Traits du porteur, puis ceux que confère l'attaque de la touche (`Weapon.traitsConferes`, ZI 03 l.75, l.77) :
   // un Trait conféré ne tire qu'aux touches de l'attaque qui le confère.
   for (const tr of [...(actor.traits ?? []), ...(weapon?.traitsConferes ?? [])]) { const d = findTraitById(tr.id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, tr.arg, tr.value), { kind: 'trait', id: tr.id }), cap: 1, key: `trait:${tr.id}`, label: d.label ?? tr.id }); }
@@ -165,9 +195,9 @@ function effectsOf(actor: Combatant, weapon?: Weapon): TriggeredEffect[] {
 
 /** Ops d'un déclencheur `trigger` portées par le combattant (Traits/Talents/Atouts), à plat, CHACUNE
  *  AVEC L'ENTITÉ qui la porte (`source`, taguée par `withSource`). Sert à RÉSOUDRE les ops IMPURES
- *  (summon, zone : grille/initiative) au SITE du trigger — elles sont inertes dans `applyOps` (moteur
- *  pur) et n'étaient résolues qu'au lancement de sort. GÉNÉRIQUE (pas limité à summon) : l'appelant
- *  (state) filtre par `op.op` et dispatche vers le résolveur idoine (applySummon, placeZoneFromOp…).
+ *  (summon, scheduleRespawn : grille/initiative/horloge) au SITE du trigger — elles sont inertes dans `applyOps`
+ *  (moteur pur). GÉNÉRIQUE (pas limité à summon) : l'appelant (state) filtre par `op.op` et dispatche vers le
+ *  résolveur idoine (applySummon, scheduleRespawnFromOp).
  *  Sur CE chemin, le `on` de la feuille n'est pas lu : l'op impure se résout au site du porteur, chez
  *  l'appelant (`combatFlow.ts`). Le dispatcher général (`applyTriggeredEffects`) distingue, lui, la
  *  cible `t` du porteur `actor`.
@@ -220,19 +250,24 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
         c.id !== actor.id && c.kind !== actor.kind && !isOutOfAction(c)
         && isEngagedWith(c, actor.id) && !held.includes(c.id)
         && (on.sizeAtMost !== 'soi' || SIZE_ORDER[effectiveSize(c.size)] <= selfSize));
-      eligible.sort((a, b) => combatDistance(actor, a) - combatDistance(actor, b)); // les plus proches d'abord
+      eligible.sort((a, b) => distanceDeCombat(get().scene, actor, a) - distanceDeCombat(get().scene, actor, b)); // les plus proches d'abord
       return eligible.slice(0, capacity);
     }
     // GÉOMÉTRIE : tous les combattants à portée d'un centre (arc d'Azyr, Trait/Talent d'aire)
     const center = on.near === 'soi' ? actor : victim;
     if (!center?.pos) return [];
-    const radius = porteeEnCases(on.radiusMeters, sceneMetresPerTile(get().scene));
+    const mpt = sceneMetresPerTile(get().scene);
+    const radius = porteeEnCases(on.radiusMeters, mpt);
+    const inner = on.radiusInnerMeters === undefined ? undefined : porteeEnCases(on.radiusInnerMeters, mpt);
+    const dist = (c: Combatant) => distanceDeCombat(get().scene, center, c);
+    const inclus = on.centreCompris ? center.id : undefined; // #4202
     // ORCHESTRATEUR d'aire PARTAGÉ (combatantsWithinRadius), distance d'EMPREINTE (la Taille compte) : un effet
     // déclenché SOURCE-AGNOSTIQUE (Trait/Talent/Atout/État portant `on:{near,radiusMeters}`) applique son Flow
     // de GameOps à TOUTES les cibles du rayon — MÊME collecte que munitions/zoneBlast/manœuvres.
     return combatantsWithinRadius(center.pos, radius, battle.combatants,
-      (c) => c.id !== center.id && c.id !== actor.id && !isOutOfAction(c),
-      (_ctr, c) => combatDistance(center, c));
+      (c) => (c.id === inclus || (c.id !== center.id && c.id !== actor.id)) && !isOutOfAction(c)
+        && (inner === undefined || dist(c) > inner),
+      (_ctr, c) => dist(c));
   }
   return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engages'
 }
@@ -273,6 +308,9 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
   attackType?: 'melee' | 'distance';
   /** D'où naît la Blessure critique (`onCrit`) — filtre les effets `coupCritique` par `estUnCoupCritique`. */
   origine?: OrigineCritique;
+  /** Le Critique ne pose aucune Blessure critique (`onCrit`) — seuls les effets `coupCritique` s'exercent.
+   *  EDOC 07 l.334 ; #4202. */
+  sansBlessureCritique?: boolean;
   /** `set` du store — fourni quand un Test de trigger peut être routé en cascade influençable (héros
    *  manuel) ou résolu inline (ennemi/auto). Câblé sur tous les `fireTriggers` de combat (onHit/
    *  onWoundLoss/onKill/onStartled/onRoundStart/Domaine + manœuvres) ; INERTE tant qu'aucune donnée de
@@ -340,7 +378,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   const rng = ctx.rng;
   const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.reussite : flow.echec;
-  const lines = [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
+  const lines = [traceLineOf({ who: nomDe(c), label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes
   // abdominales, MSRC 16 l.152). La garde de RÉ-ENTRANCE de `fireOwnTestFailed` empêche un sous-Test résolu
   // ICI pendant le traitement (FM de palier 2) de ré-émettre. `get` absent (appelant sans store) ⇒ inerte.
@@ -410,7 +448,7 @@ function mesurerCibleEnVue(get: Get, actor: Combatant, affliction: PsychAfflicti
  *  quel que soit son émetteur. */
 export function ciblesDeLEffet(
   get: Get, actor: Combatant, eff: TriggeredEffect, trigger: EffectTrigger,
-  ctx: Pick<TriggerCtx, 'victim' | 'conditionName' | 'attackType' | 'origine'>,
+  ctx: Pick<TriggerCtx, 'victim' | 'conditionName' | 'attackType' | 'origine' | 'sansBlessureCritique'>,
 ): Combatant[] {
   if (eff.trigger !== trigger) return [];
   // Filtre `onGainCondition` : ne réagit qu'à l'État effectivement gagné (Mâchoires → 'sonne').
@@ -418,6 +456,7 @@ export function ciblesDeLEffet(
   // Filtre par TYPE d'attaque (onHit/onWoundLoss) : un effet `attackType` ne réagit qu'à ce type.
   if (eff.attackType && eff.attackType !== ctx.attackType) return [];
   if (eff.coupCritique && !estUnCoupCritique(ctx.origine)) return [];
+  if (ctx.sansBlessureCritique && !eff.coupCritique) return [];
   return targetsFor(get, actor, eff.on, ctx.victim).filter((t) =>
     // On n'applique pas un effet à une cible DÉJÀ hors de combat (pas d'éclaboussure sur un cadavre) —
     // SAUF le PORTEUR réagissant à SON PROPRE événement (`on:'self'`) : une unité doit pouvoir réagir à
@@ -443,7 +482,8 @@ export function flowOffert(eff: TriggeredEffect): Flow {
 }
 
 /** CŒUR d'application : applique une LISTE d'effets `TriggeredEffect` de `actor` correspondant à
- *  `trigger`, chacun via `runPureFlowLines` aux cibles résolues (`on`). Source UNIQUE : utilisé par
+ *  `trigger`, chacun via `runPureFlowLines` aux cibles résolues (`on`) — via `runCombatFlow` s'il porte une op
+ *  IMPURE (`flowHasImpureOp`) et que le contexte porte `set`. Source UNIQUE : utilisé par
  *  `fireTriggers` (effets de traits/atouts) ET par les manœuvres (effets du profil de manœuvre).
  *  Un effet dont le Flow est un nœud `test` ET pour lequel `ctx.set` est fourni (hook
  *  `onGainCondition`) est ROUTÉ vers la voie cadence-aware (jamais la branche succès silencieuse).
@@ -477,6 +517,7 @@ export function applyTriggeredEffects(
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `si`.
       const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
+        ...(ctx.set ? crochetsDeCorruption(get, ctx.set) : {}),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).
         ...(trigger === 'onOwnTestFailed' ? { noReentryOwnTestFailed: true } : {}) };
@@ -499,6 +540,12 @@ export function applyTriggeredEffects(
         if (ctx.set) { routeTriggeredTest(get, ctx.set, t, actor, flowOffert(eff), flowCtx); continue; }
         if (eff.optional) continue; // opt-in SANS voie de choix (entretien hors combat) → non exercé
         lines.push(...resoudreSansRouteur(t, actor, eff.flow, flowCtx, get));
+        continue;
+      }
+      // Op IMPURE (`zone`…) : le walker de COMBAT la résout par son crochet, le chemin pur l'avalerait. Son journal
+      // part dans la file différée (`queueLines`), drainée par l'émetteur.
+      if (ctx.set && flowHasImpureOp(eff.flow)) {
+        runCombatFlow({ get, set: ctx.set, target: t, caster: actor, label: nomDeSource(flowCtx), opsCtx: flowCtx }, eff.flow);
         continue;
       }
       lines.push(...runPureFlowLines(t, actor, eff.flow, flowCtx));
@@ -559,7 +606,7 @@ export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { s
   }
 }
 
-/** CŒUR GÉNÉRIQUE du folding des STATUTS portés (`StatusData` : États OU psy) : applique les `effects` de
+/** CŒUR GÉNÉRIQUE du folding des STATUTS portés (États OU psy) : applique les `effects` de
  *  chaque statut pour `trigger`, avec son nombre de pions (`stacks`). SOURCE UNIQUE — `fireConditionEffects`
  *  et `firePsychEffects` y délèguent (zéro copie du cœur `applyTriggeredEffects`). Le `[...snapshot]` côté
  *  appelant protège l'itération d'une auto-dissipation (`removeCondition`/`endPsych`) qui mute la collection. */

@@ -13,7 +13,7 @@ import {
   DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuChoixNomme, declarationDuReglageNomme, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDeDetermination, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
   libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, voyageEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, VERBES_DU_JET_PSY, reposEnVue, interludeEnVue,
   stepInteraction,
-  VERBES_D_INTERACTION, type FlowKey, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
+  VERBES_D_INTERACTION, type Designation, type FlowKey, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
 import { garanti } from '../lib/garanti';
 import { proprietaireDeLaFenetre, type ProprietaireDeLaFenetre } from './projection';
@@ -148,12 +148,6 @@ function reglagesDeLaFenetre(etat: Jeu, fenetre: NonNullable<ReturnType<typeof f
   };
 }
 
-/** Une désignation du noyau (`DESIGNATIONS`) : les ids que l'état désigne, et le nom de l'élément d'un id. */
-interface DesignationLue {
-  lire: (s: Jeu) => readonly string[];
-  nom: (s: Jeu, id: string) => string | null;
-}
-
 /** Les valeurs que la forme `f` de l'argument `nom` énumère, chacune nommée ; `null` : la forme n'en énumère pas, ou
  *  l'une n'a pas de nom. */
 function valeursDeLaForme(etat: Jeu, nom: string, f: Forme): ValeurDuReglage[] | null {
@@ -163,9 +157,10 @@ function valeursDeLaForme(etat: Jeu, nom: string, f: Forme): ValeurDuReglage[] |
     case 'null': return nommer(null, libelleDuLitteral(null));
     case 'booleen': return [...nommer(true, libelleDuLitteral(true))!, ...nommer(false, libelleDuLitteral(false))!];
     case 'chaine': {
-      const designation: DesignationLue | null = f.designe && f.designe.cle in DESIGNATIONS ? DESIGNATIONS[f.designe.cle as keyof typeof DESIGNATIONS] : null;
+      const designation: Designation | null = f.designe && f.designe.cle in DESIGNATIONS ? DESIGNATIONS[f.designe.cle as keyof typeof DESIGNATIONS] : null;
       if (!designation) return null;
-      const valeurs = designation.lire(etat).map((id) => nommer(id, designation.nom(etat, id)));
+      const nomDe = designation.nom(etat);
+      const valeurs = designation.lire(etat).map((id) => nommer(id, nomDe(id)));
       return valeurs.every((v) => v !== null) ? valeurs.flat() : null;
     }
     case 'union': {

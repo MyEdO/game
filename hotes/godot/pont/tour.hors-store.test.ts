@@ -7,12 +7,16 @@
  * calcule rien.
  */
 import { describe, it, expect } from 'vitest';
-import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
+import { corpsDe, drainer, erreurDe, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
 import { clicDuCombattant, type Suite } from './pont';
-import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
-import type { Bouton, Choix, Jet, Ligne } from '../../../src/hote/elements';
+import { ACTIONS, CLIC_DU_CHAMP } from '../../../src/noyau/index';
+import type { Bouton, Choix, Entite, Jet, Ligne, Puce } from '../../../src/hote/elements';
+import { t } from '../../../src/i18n';
 
 const { appel: appelNu } = table();
+
+/** Les rangs de l'ordre du tour (`combat.ordre`), sans la ligne du round qui commence. */
+const rangsDeLOrdre = (s: Suite): Entite[] => s.vue.zones['combat.ordre'].filter((r): r is Entite => r.type === 'entite');
 
 /** Les fenêtres vues au fil du tour, par leur clé et l'étape de séquence qu'elles tiennent. */
 const vues = new Set<string>();
@@ -53,12 +57,37 @@ const valeurDe = (b: Bouton): unknown => ('args' in b.jeu ? b.jeu.args[b.jeu.arg
 
 const actifDe = (s: Suite) => s.vue.projection.combat!.actif!;
 
+/** Les offres de la barre, chaque choix par son id, chacun de ses boutons par son id, sa raison et son jeu. */
+const offresDe = (s: Suite) => s.vue.zones['combat.offres'].map((c) => [c.id, c.valeurs.map((b) => [b.id, b.refus, b.jeu])]);
+
+/** Ce que sert la barre fermée de la raison `raison` (A2, J1 de `hotes/godot/cibles/combat.md`). */
+const finDuTourFermee = (raison: string) => [['economie/aucun', [['fin-de-tour', raison, { suite: [] }]]]];
+
 /** La fin du tour par le verbe de son offre, confirmée par le même verbe quand la vue la dit armée (`finDeTourArmee`). */
 function finirLeTour(): ReturnType<typeof jouer> {
   const arme = jouer({ type: 'terminerLeTour', args: [] });
   if (!arme.suite.vue.projection.combat!.finDeTourArmee) return arme;
   const fin = jouer({ type: 'terminerLeTour', args: [] });
   return { suite: fin.suite, journal: [...arme.journal, ...fin.journal], lignes: [...arme.lignes, ...fin.lignes], effets: [...arme.effets, ...fin.effets] };
+}
+
+/** Le meuble de l'actif de `s` (`combat.actif`) : son portrait, chaque élément de son Mouvement à son ton, le ton de son
+ *  Action. */
+function meubleDe(s: Suite) {
+  const [actif] = s.vue.zones['combat.actif'];
+  const mouvement = actif.elements.find((e): e is Entite => e.type === 'entite' && e.id === 'mouvement');
+  return {
+    portrait: actif.elements.find((e) => e.type === 'portrait'),
+    jetons: (mouvement?.elements ?? []).map((e) => [e.id, 'ton' in e ? e.ton : null]),
+    action: actif.elements.find((e): e is Puce => e.id === 'action' && e.type === 'puce')?.ton,
+  };
+}
+
+/** Le Mouvement de l'actif de `s` tel que la projection le compte (`mouvement`, `[restant, total]`) : un jeton par case,
+ *  plein (`reussite`) tant qu'il reste, puis ce qui reste. */
+function jetonsAttendus(s: Suite): (string | null)[][] {
+  const [restant, total] = s.vue.projection.combat!.actif!.mouvement;
+  return [...Array.from({ length: total }, (_, i) => [`jeton/${i}`, i < restant ? 'reussite' : 'neutre']), ['reste', 'neutre']];
 }
 
 describe('un tour complet par le pont', () => {
@@ -72,12 +101,29 @@ describe('un tour complet par le pont', () => {
     expect(heros.camp).toBe('heros');
     expect(suite.vue.projection.combat!.barre).toEqual({ forme: 'ouverte', raison: null });
     expect(suite.vue.champ, 'la barre ouverte, le champ se clique en combat').toBe(CLIC_DU_CHAMP);
+    expect(erreurDe(appel('jouer', { type: suite.vue.champ, args: [{ x: 18, y: 8 }] }))).toEqual({
+      categorie: 'regle', message: 'Case hors d’atteinte pour ce Tour.',
+    });
     const economie = (id: string) => suite.vue.zones['combat.offres'].find((o): o is Choix => o.type === 'choix' && o.valeurs.some((v) => v.id === id));
     expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
     expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');
     expect(economie('fin-de-tour'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
+    expect(economie('fin-de-tour')!.valeurs.find((v) => v.id === 'fin-de-tour'), 'au tour du héros, la fin du tour est ouverte et finit le tour')
+      .toMatchObject({ refus: null, touche: 'fin_de_tour', jeu: { type: 'terminerLeTour' } });
+    const action = economie('attaque')!.valeurs;
+    expect(action.map((v) => [v.id, v.icone]), 'chaque offre de l’Action porte le dessin de son action en donnée').toEqual(action.map((v) => [v.id, ACTIONS.find((a) => a.id === v.id)!.icon]));
+    expect(action.every((v) => typeof v.icone === 'string'), 'chaque offre de l’Action a un dessin').toBe(true);
     expect(suite.vue.zones['combat.actif'][0]?.nom, 'le panneau nomme l’actif').toBe(heros.nom);
-    expect(suite.vue.zones['combat.ordre'].filter((p) => p.ton === 'alerte').map((p) => p.libelle), 'le bandeau de l’ordre met en avant celui qui joue, lui seul').toEqual([heros.nom]);
+    expect(meubleDe(suite), 'le meuble de l’actif : son portrait, son Mouvement en jetons, pleins tant qu’il en reste, son Action entière').toEqual({
+      portrait: { type: 'portrait', id: 'portrait', combattant: heros.id }, jetons: jetonsAttendus(suite), action: 'reussite',
+    });
+    const ordre = rangsDeLOrdre(suite);
+    expect(ordre.filter((r) => r.ton === 'alerte').map((r) => r.nom), 'l’ordre met en avant celui qui joue, lui seul').toEqual([heros.nom]);
+    expect(ordre[ordre.length - 1]?.id, 'celui qui joue, en bas de la colonne').toBe(`ordre/${heros.id}`);
+    expect(ordre[ordre.length - 1]?.elements.slice(0, 2), 'son rang : son portrait, puis ses Blessures en jauge').toEqual([
+      { type: 'portrait', id: 'portrait', combattant: heros.id },
+      expect.objectContaining({ type: 'jauge', id: 'blessures', courant: expect.any(Number), max: expect.any(Number) }),
+    ]);
     ({ suite } = jouer({ type: 'armerLIntention', args: ['charge'] }));
     expect(suite.vue.projection.combat!.intention, 'l’offre arme son intention').toBe('charge');
     expect(suite.vue.zones['combat.offres'].flatMap((o) => o.valeurs).find((o) => o.presse)?.id, 'l’offre armée est pressée').toBe('charge');
@@ -87,11 +133,15 @@ describe('un tour complet par le pont', () => {
     ({ suite } = jouer(clicDuCombattant(suite.vue, cible)!));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDAttaque' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attaque');
+    expect(suite.vue.projection.combat!.barre, 'pendant le jet, la fenêtre tient la main').toEqual({ forme: 'tenue', raison: t('barre.mainTenue') });
+    expect(offresDe(suite), 'pendant le jet, la barre ne sert que la fin du tour, fermée de sa raison').toEqual(finDuTourFermee(t('barre.mainTenue')));
     expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attaque#localisation');
+    expect([corpsDe(suite.vue, 'jet'), corpsDe(suite.vue, 'defense')].map((j) => j && 'combattant' in j && j.combattant), 'chaque camp du jet porte l’id de son combattant en vue')
+      .toEqual([heros.id, cible]);
     expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetLancer@attaque');
     expect(corpsDe(suite.vue, 'degats'), 'les Dégâts de l’arme, à part').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^\+\d+$/) });
     expect(corpsDe(suite.vue, 'cible'), 'la fenêtre nomme la cible').toMatchObject({ type: 'ligne', texte: expect.stringContaining(nomDeLaCible) });
-    expect(corpsDe(suite.vue, 'jet'), 'le jet de l’attaquant, à lancer').toMatchObject({ type: 'jet', qui: heros.nom, cible: expect.stringMatching(/\d+$/), resultat: null, verdict: null, detail: expect.stringMatching(/^base \d+/) });
+    expect(corpsDe(suite.vue, 'jet'), 'le jet de l’attaquant, à lancer').toMatchObject({ type: 'jet', qui: heros.nom, combattant: heros.id, cible: expect.stringMatching(/\d+$/), resultat: null, verdict: null, detail: expect.stringMatching(/^base \d+/) });
     expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetLancer@attaque');
 
     const localiser = () => {
@@ -113,16 +163,35 @@ describe('un tour complet par le pont', () => {
     const confirmee = presser(bouton(suite, attendu(suite)));
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('jetDAttaque');
+    expect(meubleDe(suite), 'la charge jouée : ses cases de Mouvement vidées, son Action jouée').toEqual({ ...meubleDe(suite), jetons: jetonsAttendus(suite), action: 'neutre' });
+    expect(meubleDe(suite).jetons.filter(([, ton]) => ton === 'reussite').length, 'la charge a vidé des cases').toBeLessThan(meubleDe(suite).jetons.length - 1);
     expect(confirmee.lignes.map((l) => l.texte), 'l’issue confirmée entre au journal de l’écran').toContain((issue as Ligne).texte);
     const barre = suite.vue.zones['combat.offres'];
-    const offres = [...barre.flatMap((o) => o.valeurs), ...barre.filter((c) => c.id.startsWith('offre/')).map((c) => ({ ...c, id: c.id.slice('offre/'.length) }))];
     const fermees = suite.vue.projection.combat!.offres!.liste.filter((o) => o.refus !== null);
-    expect(fermees.length, 'l’Action jouée, des offres se ferment').toBeGreaterThan(0);
-    expect(fermees.map((o) => offres.find((b) => b.id === o.id)?.refus), 'chaque offre fermée reste à la barre, son bouton ou le choix de ses candidats refusé avec sa raison').toEqual(fermees.map((o) => o.refus));
+    const fixe = (o: (typeof fermees)[number]) => !o.candidats.length && o.geste !== null && (o.economie === 'action' || o.economie === 'aucun');
+    expect(fermees.filter(fixe).length, 'l’Action jouée, des plaques se ferment').toBeGreaterThan(0);
+    expect(fermees.filter((o) => !fixe(o)).length, 'l’Action jouée, des offres hors emplacement fixe se ferment').toBeGreaterThan(0);
+    expect(fermees.filter(fixe).map((o) => barre.find((c) => c.id === `economie/${o.economie}`)?.valeurs.find((b) => b.id === o.id)?.refus), 'une offre fermée d’un emplacement fixe reste, refusée avec sa raison').toEqual(fermees.filter(fixe).map((o) => o.refus));
+    const montres = [...barre.map((c) => c.id), ...barre.flatMap((c) => c.valeurs.map((b) => b.id))];
+    expect(fermees.filter((o) => !fixe(o)).filter((o) => montres.includes(o.id) || montres.includes(`offre/${o.id}`)).map((o) => o.id), 'une offre fermée hors emplacement fixe quitte la barre').toEqual([]);
+    expect(barre.filter((c) => c.id !== 'economie/action' && c.id !== 'economie/aucun').flatMap((c) => [c, ...c.valeurs]).filter((x) => x.refus !== null).map((x) => x.id), 'une liste ouverte ne porte que des valeurs ouvertes').toEqual([]);
+    expect(barre.filter((c) => !c.valeurs.length).map((c) => c.id), 'aucun choix sans valeur').toEqual([]);
     ({ suite } = finirLeTour());
 
     const second = actifDe(suite);
     expect(second.id).not.toBe(heros.id);
+    const colonne = suite.vue.zones['combat.ordre'];
+    const ids = colonne.map((r) => r.id);
+    expect(ids[ids.length - 1], 'le suivant joue, en bas de la colonne').toBe(`ordre/${second.id}`);
+    expect(colonne.filter((r) => r.type === 'ligne'), 'une ligne sépare les deux rounds, elle seule').toEqual([
+      expect.objectContaining({ type: 'ligne', id: 'round', texte: t('ecran.round', { round: suite.vue.projection.combat!.round + 1 }) }),
+    ]);
+    const famille = (id: string) => id.slice(0, id.indexOf('/') + 1) || id;
+    expect([...new Set(ids.map(famille))], 'l’ordre du round suivant en haut, le round qui commence, puis qui reste à jouer').toEqual(['suite/', 'round', 'ordre/']);
+    expect(ids, 'qui a joué ce round ne reste qu’à l’ordre du round suivant ; qui joue y est aussi').toEqual(expect.arrayContaining([`suite/${heros.id}`, `suite/${second.id}`]));
+    expect(ids.includes(`ordre/${heros.id}`), 'qui a joué ce round n’est plus de ceux qui restent à jouer').toBe(false);
+    expect(rangsDeLOrdre(suite).map((r) => [r.id, r.elements.find((e) => e.type === 'bouton')?.id]), 'chaque rang porte le bouton de la fiche de son combattant')
+      .toEqual(rangsDeLOrdre(suite).map((r) => [r.id, r.id.startsWith('suite/') ? `fiche/${r.id}` : r.id.replace('ordre/', 'fiche/')]));
     const vers = suite.vue.cases.find((c) => c.zone === 'marche' && c.cout === 1)!.case;
     ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
     expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'deplacement', cible: null, case: [vers.x, vers.y, vers.z ?? 0] });
@@ -140,8 +209,11 @@ describe('un tour complet par le pont', () => {
     expect(adversaire.camp, 'les jetons repris, le noyau joue l’adversaire').toBe('ennemi');
     const defense = suite.vue.projection.fenetre!;
     expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDeDefense' } });
+    const raison = t('barre.nonPilote', { name: adversaire.nom });
+    expect(suite.vue.projection.combat!.barre, 'au tour de l’adversaire, la barre est spectatrice').toEqual({ forme: 'spectatrice', raison });
+    expect(offresDe(suite), 'au tour de l’adversaire, la fin du tour reste servie, fermée de sa raison').toEqual(finDuTourFermee(raison));
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense dit qui attaque').toMatchObject({ type: 'ligne', texte: expect.stringContaining(adversaire.nom) });
-    const etape = suite.vue.zones['fenetre.etape'][0]?.texte;
+    const etape = suite.vue.zones['fenetre.etape'];
     expect(suite.vue.disposition, 'la Défense se dispose par sa clé et son jet').toBe('cascade/defense');
     const reaction = corpsDe(suite.vue, 'defense/jet');
     expect(reaction, 'avant le dé, la réaction dit son score à atteindre').toMatchObject({ type: 'jet', cible: expect.stringMatching(/\d+$/), resultat: null, detail: expect.stringMatching(/^base \d+/) });
@@ -161,7 +233,8 @@ describe('un tour complet par le pont', () => {
     const vise = suite.vue.projection.combat!.voisins.liste.find((v) => attaque!.de === 'combat' && v.id === attaque!.evenement.targetId)!;
     expect(vise.camp, 'l’adversaire vise un héros').toBe('heros');
     expect(defense.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: vise.nom });
-    expect(etape, 'l’étape nomme le héros qui se défend').toContain(vise.nom);
+    expect([(reaction as Jet).combattant, (reaction as Jet).qui], 'le jet de son camp porte le portrait et le nom du héros qui se défend').toEqual([vise.id, vise.nom]);
+    expect(etape, 'l’étape de la Défense, dont le jet nomme le héros, est exactement vide').toEqual([]);
     expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['debutDuRound', 'cascade:jetDAttaque', 'cascade:jetDeDefense']));
     expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [] });
   });

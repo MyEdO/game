@@ -22,7 +22,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { serializeDataset } from '../../../src/data/serialize.ts';
-import { estObjet } from '../../../src/lib/objet.mjs';
+import { auChemin, estObjet } from '../../../src/lib/objet.mjs';
 
 /**
  * @typedef {{ collection: string, ouvreur?: string }} CibleLocale
@@ -52,7 +52,7 @@ const remplacer = (doc, chemin, valeur) => {
 /** `doc` où la clé au bout de `chemin` devient `cle`, de valeur `valeur`, à son rang. */
 const renommer = (doc, chemin, cle, valeur) => {
   const vieille = chemin.at(-1);
-  const parent = Object.entries(valeurAu(doc, chemin.slice(0, -1))).map(([k, v]) => (k === vieille ? [cle, valeur] : [k, v]));
+  const parent = Object.entries(auChemin(doc, chemin.slice(0, -1))).map(([k, v]) => (k === vieille ? [cle, valeur] : [k, v]));
   return remplacer(doc, chemin.slice(0, -1), Object.fromEntries(parent));
 };
 
@@ -67,9 +67,6 @@ const cheminsDe = (x, segments) => {
   return Array.isArray(x[champ]) ? x[champ].flatMap((el, i) => cheminsDe(el, reste).map((c) => [champ, i, ...c])) : [];
 };
 
-/** La valeur de `x` au bout du chemin concret `chemin`. */
-const valeurAu = (x, chemin) => chemin.reduce((v, pas) => v[pas], x);
-
 /** Le nom d'une cible dans un refus : son type, la collection de sa portée sous son ouvreur, ou ses destinations. */
 const nomDeLaCible = (cible) =>
   typeof cible === 'string' ? cible : cible.vers ? cible.vers.map((d) => `${d.cle}:${d.type}`).join(' | ') : `${cible.ouvreur ?? '(entrée)'} › ${cible.collection}`;
@@ -80,7 +77,7 @@ const admisPour = (catalogues, entree, cle, cheminDeCle, cible) => {
   if (typeof cible === 'string') return catalogues[cible];
   const segments = cible.ouvreur === undefined ? [] : cible.ouvreur.split('.');
   if (segments.some((s, i) => cle.split('.')[i] !== s) || segments.length >= cle.split('.').length) return undefined;
-  const ouvreur = valeurAu(entree, cheminDeCle.slice(0, segments.reduce((n, s) => n + (s.endsWith('[]') ? 2 : 1), 0)));
+  const ouvreur = auChemin(entree, cheminDeCle.slice(0, segments.reduce((n, s) => n + (s.endsWith('[]') ? 2 : 1), 0)));
   return new Set(estObjet(ouvreur) && Array.isArray(ouvreur[cible.collection]) ? ouvreur[cible.collection].map((e) => e.id) : []);
 };
 
@@ -115,7 +112,7 @@ export function migrerLesIdsNus({ racine, lot, porteurs, catalogues, parPorteur,
       continue;
     }
     const chemin = collection === undefined ? [] : collection.split('.');
-    const entrees = objet ? (estObjet(doc) ? [doc] : undefined) : chemin.reduce((v, champ) => (estObjet(v) ? v[champ] : undefined), doc);
+    const entrees = objet ? (estObjet(doc) ? [doc] : undefined) : auChemin(doc, chemin);
     const prefixe = collection === undefined ? '' : `${collection}[].`;
     if (!Array.isArray(entrees)) {
       fautes.push(`${rel} › ${prefixe || '(racine)'} : les entrées ne sont pas ${objet ? 'un objet' : 'une liste'}`);
@@ -127,7 +124,7 @@ export function migrerLesIdsNus({ racine, lot, porteurs, catalogues, parPorteur,
       for (const [cle, cible] of Object.entries(cles)) {
         for (const cheminDeCle of cheminsDe(entree, cle.split('.'))) {
           const ou = `${rel} › ${entree.id} › ${cheminDeCle.join('.')}`;
-          const v = valeurAu(entree, cheminDeCle);
+          const v = auChemin(entree, cheminDeCle);
           if (v === null) continue;
           if (estObjet(v) && Object.keys(v).length === 1 && typeof v.id === 'string') continue;
           if (typeof v !== 'string') {
@@ -135,7 +132,7 @@ export function migrerLesIdsNus({ racine, lot, porteurs, catalogues, parPorteur,
             continue;
           }
           if (cible.vers) {
-            const tenant = valeurAu(entree, cheminDeCle.slice(0, -1));
+            const tenant = auChemin(entree, cheminDeCle.slice(0, -1));
             const destinations = cible.vers.filter((d) => Object.entries(d.si ?? {}).every(([k, x]) => tenant[k] === x) && catalogues[d.type].has(v));
             if (destinations.length !== 1) {
               fautes.push(`${ou} : « ${v} » a ${destinations.length} destination(s) parmi \`${nomDeLaCible(cible)}\``);

@@ -2,19 +2,21 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/siege-enceinte';
-import { combatDistance } from '../../noyau/monde/footprint';
+import { distanceDeContact } from '../../noyau/monde/footprint';
 import { lineOfSightCover } from '../../noyau/monde/lineOfSight';
 import { isWalkable, wallBetween, setStructureDown, heightAt } from '../../noyau/monde/scene';
 import { placeCombatant } from '../../noyau/monde/spawn';
 import { reachable, pathTo } from '../../noyau/monde/path';
-import { buildAiInput } from '../../noyau/combatFlow';
+import { buildAiInput, etatDeTourNeuf, runEnemyAI } from '../../noyau/combatFlow';
+import { weaponLoaded } from '../../engine/weaponLoad';
 import { servingCrewPresent } from '../../noyau/monde/shipPostes';
-import { chooseEnemyAction } from '../../noyau/monde/ai';
+import { adversairesDe, chooseEnemyAction } from '../../noyau/monde/ai';
 import { isStructure } from '../../engine/structures';
 import { woundsFromHit } from '../../engine/woundsCalc';
 import type { SceneEntity } from '../../noyau/monde/scene';
 import type { Weapon } from '../../engine/types';
 import { encounterDefSchema } from '../../data/schemas/defs-scenes/scene';
+import { findTrappingById } from '../../data';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -27,7 +29,7 @@ const scenarioConstruit = scenario.construire(idsDeTest);
  * une ZONE REMPART sur z1 (bloc solide à 4 m + chemin de ronde marchable + crénelure) → le z0 sous la bande est
  * IMPASSABLE (on ne traverse plus la « jupe »), SAUF le TUNNEL de la porte (z0 passable, herse sur la bouche
  * extérieure). Champ profond, rivière+pont, chemin de ronde épais garni de pièces/archers PNJ alliés-IA, RAMPE au
- * flanc gauche (déportée de la porte), batterie qui brèche la porte, combat vertical.
+ * flanc gauche (déportée de la porte), batterie qui pilonne la porte, combat vertical.
  */
 const MOUTH_ROW = 37; // rangée de bande côté CHAMP : l'arête N porte la HERSE (bouche extérieure du tunnel)
 const INNER_ROW = 38; // rangée de bande côté COUR (le tunnel traverse les deux)
@@ -172,7 +174,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     placeCombatant(hero, scene, hero.pos);            // RAFRAÎCHIT pos.h depuis le relief (4 m) — comme en production
     const foot = { x: 8, y: MOUTH_ROW - 1, h: heightAt(scene, 8, MOUTH_ROW - 1, 0) }; // assaillant au pied du mur (z=0, 0 m)
     // Δhauteur 4 m ÷ 2 m/case = 2 cases de séparation verticale → distance 2 (mêlée refusée à travers le vide).
-    expect(combatDistance(hero, { pos: foot } as never)).toBe(2);
+    expect(distanceDeContact(banc.getState().scene, hero, { pos: foot } as never)).toBe(2);
     expect(lineOfSightCover(scene, hero.pos, { x: 8, y: 10 }, []).blocked).toBe(false); // pilonne le champ
   });
 
@@ -205,7 +207,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(() => encounterDefSchema.parse({ id: 'e', members: [], sieges: true } as never)).toThrow();
   });
 
-  it('BATTERIE assaillante : le canon de siège BRÈCHE la porte tout seul (IA cible la structure)', () => {
+  it('BATTERIE assaillante : le canonnier tire sa PIÈCE SERVIE sur la porte (décision, télégraphe, coup) (#4187)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
@@ -213,7 +215,8 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!; // mercenaire qui SERT le canon assaillant
-    expect(canonnier.weapons.some((w) => w.type === 'distance')).toBe(true); // pièce servie au spawn (poste de l'affût)
+    const piece = canonnier.weapons.find((w) => w.uid === canonnier.mannedPoste?.item.uid)!;
+    expect(piece.type).toBe('distance'); // pièce servie au spawn (poste de l'affût)
     const affutEnt = emplWithCrew('brg-canon'); // l'emplacement dont l'équipage est le mercenaire-canonnier
     const affut = b.combatants.find((c) => c.id === affutEnt.id)!;
     expect(affut.inert).toBe(true);
@@ -226,8 +229,77 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(input.structures?.some((st) => st.creatureId === 'porte-de-ville')).toBe(true); // la porte est une cible
     const action = chooseEnemyAction(input);
     expect(action.kind).toBe('tir');
-    const tgt = b.combatants.find((c) => c.id === (action as { targetId: string }).targetId);
+    const { targetId, weaponUid } = action as Extract<typeof action, { kind: 'tir' }>;
+    const tgt = b.combatants.find((c) => c.id === targetId);
     expect(tgt && isStructure(tgt)).toBe(true); // … et c'est bien la STRUCTURE (porte) qui est visée
+    expect(weaponUid, 'la décision désigne la pièce évaluée').toBe(piece.uid);
+    expect(weaponLoaded(canonnier, piece)).toBe(true);
+    // Le tour du canonnier, joué par le flux du jeu.
+    banc.setState({ battle: { ...b, ...etatDeTourNeuf(), turn: b.order.indexOf(canonnier.id) } });
+    runEnemyAI(banc.getState, banc.setState, canonnier.id);
+    expect(banc.getState().actorAim, 'télégraphe du tir').toEqual({ fromId: canonnier.id, toId: targetId, kind: 'tir' });
+    banc.jusquA((s) => (s.battle?.log ?? []).some((e) => e.kind === 'tir' && e.actorId === canonnier.id), 20);
+    const apres = banc.getState().battle!;
+    expect(apres.log.some((e) => e.kind === 'tir' && e.actorId === canonnier.id && e.targetId === targetId), 'le tir part sur la porte').toBe(true);
+    const tireur = apres.combatants.find((c) => c.id === canonnier.id)!;
+    expect(weaponLoaded(tireur, piece), 'la pièce est déchargée par le tir').toBe(false);
+  });
+
+  it('CANON DE REMPART : son empreinte tient entière sur le chemin de ronde (aucune case sur le vide de z1) (#4187)', () => {
+    const s = scenarioConstruit.scene;
+    const affut = emplWithCrew('crew-canon');
+    const fp = findTrappingById(affut.engin!.id)!.siegeFootprint!;
+    expect(fp).toBe(2);
+    const z1 = s.layers.find((l) => l.z === 1)!;
+    expect(affut.z).toBe(1);
+    for (let dy = 0; dy < fp; dy++) for (let dx = 0; dx < fp; dx++) {
+      const x = affut.pos.x + dx;
+      const y = affut.pos.y + dy;
+      expect(z1.tiles[y * s.dimensions.w + x], `case (${x},${y}) de l'empreinte`).not.toBe('vide');
+      expect(isWalkable(s, x, y, 1)).toBe(true);
+    }
+  });
+
+  it('CANON DE REMPART : son servant, mené par l\'IA, tire sa pièce en contrebas (décision, télégraphe, coup) (#4187)', () => {
+    banc.setState({ party: scenario.construire(idsDeTest).party });
+    banc.getState().lancerLaScene(scenarioConstruit.scene);
+    banc.getState().lancerLeCombat('assaut');
+    banc.getState().fenetreValider('debutDuRound');
+    banc.abandonner();
+    const b = banc.getState().battle!;
+    const servant = b.combatants.find((c) => c.id === 'crew-canon')!;
+    const piece = servant.weapons.find((w) => w.uid === servant.mannedPoste?.item.uid)!;
+    expect(piece.type).toBe('distance');
+    expect(servant.pos?.z).toBe(1);
+    const action = chooseEnemyAction(buildAiInput(servant, banc.getState));
+    expect(action.kind).toBe('tir');
+    const { targetId, weaponUid } = action as Extract<typeof action, { kind: 'tir' }>;
+    expect(weaponUid, 'la décision désigne la pièce servie').toBe(piece.uid);
+    const cible = b.combatants.find((c) => c.id === targetId)!.pos!;
+    expect(cible.z ?? 0, 'la cible est en contrebas').toBe(0);
+    expect(weaponLoaded(servant, piece)).toBe(true);
+    // Le tour du servant, joué par le flux du jeu.
+    banc.setState({ battle: { ...b, ...etatDeTourNeuf(), turn: b.order.indexOf(servant.id) } });
+    runEnemyAI(banc.getState, banc.setState, servant.id);
+    expect(banc.getState().actorAim, 'télégraphe du tir').toEqual({ fromId: servant.id, toId: targetId, kind: 'tir' });
+    banc.jusquA((s) => (s.battle?.log ?? []).some((e) => e.kind === 'tir' && e.actorId === servant.id), 20);
+    const apres = banc.getState().battle!;
+    expect(apres.log.some((e) => e.kind === 'tir' && e.actorId === servant.id && e.targetId === targetId), 'le tir part sur la cible').toBe(true);
+    const tireur = apres.combatants.find((c) => c.id === servant.id)!;
+    expect(weaponLoaded(tireur, piece), 'la pièce est déchargée par le tir').toBe(false);
+  });
+
+  it('PERCEPTION : un servant du rempart (z1) perçoit ses adversaires au sol (#4187)', () => {
+    banc.setState({ party: scenario.construire(idsDeTest).party });
+    banc.getState().lancerLaScene(scenarioConstruit.scene);
+    banc.getState().lancerLeCombat('assaut');
+    banc.getState().fenetreValider('debutDuRound');
+    banc.abandonner();
+    const servant = banc.getState().battle!.combatants.find((c) => c.id === 'crew-canon')!;
+    expect(servant.pos?.z).toBe(1);
+    const input = buildAiInput(servant, banc.getState);
+    const percus = adversairesDe(input).filter((h) => h.pos && input.perceived?.has(`${h.pos.x},${h.pos.y},0`));
+    expect(percus.length, 'adversaires au sol perçus depuis le rempart').toBeGreaterThan(0);
   });
 
   it('CONTRAT NÉGATIF : le MÊME canonnier, siège retiré → aucune structure en entrée, aucune décision de structure', () => {

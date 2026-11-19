@@ -5,14 +5,22 @@
  */
 import { Combatant, type Difficulty, type TestIds } from './types';
 import { hasSurgery } from './combatFeatures/dispatch';
-import { loseWounds, addCondition, removeCondition, reprendreConnaissance, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions, stacks } from './conditions';
+import {
+  loseWounds,
+  addCondition,
+  removeCondition,
+  reprendreConnaissance,
+  recoveredStacks,
+  hasSurgeryLockedCondition,
+  syncDerivedConditions,
+  stacks,
+} from './conditions';
 import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwaitingAid } from './trauma';
 import { contractDisease } from './disease';
 import { isAstoundingFailure } from './tests';
 import { rule } from './policy';
 import { t } from '../i18n';
 import type { RNG } from './dice';
-import { chebyshev } from './grid';
 import { isStructure } from './structures';
 import { possesses } from './skills';
 import { objetDuTrapping } from './items';
@@ -155,15 +163,9 @@ export function modesDOuverture(target: Combatant, soigneur: Combatant): HealMod
   return HEAL_MODES.filter((m) => raisonDeModeDeSoinEnCombat(target, m) === null && soinDOuverture(soigneur, m) !== null);
 }
 
-/** Cibles soignables atteignables par `healer`. En combat : soi + adjacents (Chebyshev ≤ 1).
- *  Hors combat : tout le `pool`. */
-export function healableTargets(healer: Combatant, pool: Combatant[], opts: { adjacency: boolean }): Combatant[] {
-  return pool.filter((t) => {
-    if (!isHealable(t)) return false;
-    if (!opts.adjacency || t.id === healer.id) return true;
-    if (!healer.pos || !t.pos) return false;
-    return chebyshev(healer.pos, t.pos) <= 1;
-  });
+/** Les cibles soignables de `pool` (`isHealable`) ; l'appelant borne `pool` à ce que `healer` atteint. */
+export function healableTargets(pool: Combatant[]): Combatant[] {
+  return pool.filter(isHealable);
 }
 
 /** Soin de Blessures (LDB 09 l.260) : succès ⇒ BI+DR (plancher 0) ; échec ⇒ si BI+DR<0, perte de

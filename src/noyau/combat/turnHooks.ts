@@ -12,6 +12,7 @@
  * Ces hooks ne tournent que pour l'ENNEMI actif (`runEnemyAI` est enemy-only) ; les fonctions ont en
  * plus leurs propres gardes `kind`/capacité internes (no-op pour un héros), comportement conservé.
  */
+import { nomDe } from '../../engine/nom';
 import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { ev } from '../combatLog';
@@ -22,7 +23,8 @@ import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement } from '../mount';
-import { isFrenzied, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
+import { materialiserLaBarre } from '../dispositionConsole';
+import { isFrenzied, PSY, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
 import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
 import { combatStakeRef } from '../../data';
 import { hasRage } from '../../engine/traits/dispatch';
@@ -40,8 +42,13 @@ const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
 /** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`) — point unique
  *  appelé par `advanceTurn` (tour suivant du Round) ET `lancerLeRound` (1ᵉʳ combattant du Round),
  *  pour ne pas dupliquer le déclenchement. Inerte tant qu'aucune donnée ne porte un effet `onTurnStart`.
- *  Journalisé en `detail` (kind agnostique — l'IA comme le héros). No-op si hors d'action. */
+ *  Journalisé en `detail` (kind agnostique — l'IA comme le héros). No-op si hors d'action. Il matérialise d'abord la
+ *  barre du combattant (`materialiserLaBarre`), avant tout rendu de son tour. */
 export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant | undefined): void {
+  if (c && !isOutOfAction(c)) {
+    const { barre } = materialiserLaBarre(c);
+    if (barre !== c.barre) c.barre = barre;
+  }
   fireTurnEdgeTriggers(get, set, c, 'onTurnStart');
   // Mode « Avantage de groupe » : un octroi d'Avantage par OP au début du tour (Redoutable, ZI : complète
   // jusqu'à l'Indice — op `topUpAdvantage`) écrit sur la projection ; on relève la réserve du camp (adverse
@@ -108,7 +115,7 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
       continue;
     }
     const res = rollSansPilote(get, c, rawCombatTestBase(c, { characteristic: char }), 'intermediaire', battleRng(), combatTestPenalty(c));
-    out.lines.push(traceLineOf({ who: c.label, label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
+    out.lines.push(traceLineOf({ who: nomDe(c), label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
     if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.testDAgirGardeLAction', { name: c.label })); }
   }
   return out;
@@ -132,7 +139,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   // perturbation du flux `battleRng` quand on diffère, golden RNG préservé sinon.
   if (aiJetteraitUnSort(get, enemy.id)) return;
   if (resolveFrenzyEntry(testValue(enemy, { characteristic: 'force-mentale' }), battleRng()).success) {
-    (enemy.psychState ??= []).push({ type: 'frenesie' });
+    (enemy.psychState ??= []).push({ type: PSY.frenesie });
     set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
   }
 }
@@ -193,16 +200,16 @@ export const TABLES = {
         const adv = enemy.advantage ?? 0;
         if (adv >= 3) {
           campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
-          (enemy.psychState ??= []).push({ type: 'frenesie' });
+          (enemy.psychState ??= []).push({ type: PSY.frenesie });
           battle.log.push(ev('frenesie', t('turn.rageEnter', { name: enemy.label }), enemy.id));
           set({ battle: { ...battle } });
           return;
         }
         if (adv < 1) return;
-        if ((enemy.psychState ?? []).some((p) => p.type === 'haine' && p.active === true && p.cible === HAINE_DE_RAGE)) return;
+        if ((enemy.psychState ?? []).some((p) => p.type === PSY.haine && p.active === true && p.cible === HAINE_DE_RAGE)) return;
         if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, sourceCombattant(f), 'appartenance', enemy))) return;
         campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
-        (enemy.psychState ??= []).push({ type: 'haine', cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
+        (enemy.psychState ??= []).push({ type: PSY.haine, cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
         battle.log.push(ev('peur', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
         set({ battle: { ...battle } });
       },

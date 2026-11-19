@@ -45,7 +45,7 @@ const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.me
  *  (`OptionalEntry`, #174) porte `note` (et jamais `id`/`value` de premier niveau) → accès via ce shape. */
 type RawTraitInstance = { id?: string; note?: string; value?: unknown; arg?: unknown; range?: unknown; count?: unknown };
 
-const byId = new Map(traits.map((t) => [t.id, t] as const));
+const byId = new Map<string, TraitData>(traits.map((t) => [t.id, t]));
 
 interface Row { inst: RawTraitInstance; def: TraitData | undefined; where: string; }
 

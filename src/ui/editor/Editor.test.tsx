@@ -10,8 +10,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Editor } from './Editor';
 import { Inspector } from './Inspector';
-import { allBuiltinCampaigns } from '../../scenes/campaign';
-import diligenceProjet from '../../scenes/diligence/diligence-projet.json';
+import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { emptyScene, type Scene, type WallSeg } from '../../noyau/monde/scene';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import { readFileSync } from 'node:fs';
@@ -641,7 +640,7 @@ describe('Editor v2 — authoring architectural', () => {
     // La Diligence : 37 zones de pièce couvrent le plan et AUCUN corps ne porte de partie, de masse
     // ni de façade — aucun clic carte ne peut donc désigner le corps. La désignation de cible de la
     // palette est le chemin, et elle doit valoir sélection.
-    const initialScene = (diligenceProjet as unknown as { scenes: Scene[] }).scenes[0];
+    const initialScene = paquetDuJeu(diligenceCampaign).scenes[0];
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root: Root = createRoot(container);

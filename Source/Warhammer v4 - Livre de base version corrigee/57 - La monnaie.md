@@ -1,6 +1,6 @@
 *Pages PDF 290*
 
-# **LA MONNAIE**
+# <span id="page-289-0" data-folio="288"></span>**LA MONNAIE**
 
 Avant de pouvoir acheter de nouvelles Possessions, vous devez d'abord comprendre comment fonctionne la monnaie de l'Empire.
 

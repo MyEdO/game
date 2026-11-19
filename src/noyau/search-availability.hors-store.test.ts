@@ -5,6 +5,7 @@
  * Disponibilité (LDB 59 l.50) — cumulable avec la Carrière cohérente jusqu'au plafond +20 %.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene } from './monde/scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -34,7 +35,7 @@ const gossiper = (soc: number): Combatant =>
 
 const merchantScene = () => {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
+  sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, settlement: 'ville' } } as never);
   return sc;
 };
 
@@ -68,7 +69,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
     expect(d100, 'un seul d100 : le Ragot').toHaveLength(1);
     const jet = evaluateTest(d100[0], cibleDuTest(partyAssisted([h], { skill: { id: 'ragot' }, characteristic: 'sociabilite' })!.value));
     const journal = banc.getState().journal.map(String);
-    const de = journal.indexOf(traceLineOf({ who: h.label, label: refLabel('skills', { id: 'ragot' }), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }));
+    const de = journal.indexOf(traceLineOf({ who: fixtureText(h.label), label: refLabel('skills', { id: 'ragot' }), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }));
     expect(de, journal.join(' | ')).toBeGreaterThanOrEqual(0);
     expect(journal.slice(de + 1), journal.join(' | ')).toContain(String(stepDetail(dataLabel(h.label), t(jet.success ? 'mf.rechercheReussie' : 'mf.rechercheRatee'))));
   });

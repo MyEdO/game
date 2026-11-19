@@ -6,9 +6,9 @@ import type { TestScenario } from './_shared';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 /** Où le groupe entre : au milieu de la salle, entre les tables (zone `zone-S-z0`) — case LIBRE, hors
- *  du passage d'entrée traversant (colonne 12), hors de l'allée de service du tenancier (à l'ouest du
+ *  du passage d'entrée traversant (colonne 20), hors de l'allée de service du tenancier (à l'ouest du
  *  comptoir) et hors de tout abord de place. */
-const DEPART = { x: 13, y: 14 };
+const DEPART = { x: 21, y: 20 };
 
 /** Un convive AUTHORÉ : son id stable, son nom, et l'apparence choisie (espèce/sexe/tenue civile).
  *  La PLACE qu'il tient est donnée par `TABLES` ci-dessous, dans le même ordre. */

@@ -143,7 +143,7 @@ describe('MassBattleView — affectation aux Scènes (ADE II 8)', () => {
   it('7. « Tirer un facteur » nomme le dé de la table, lu sur la donnée à chaque rendu (ADE II 08 l.311)', () => {
     const tirer = (el: HTMLElement) => [...el.querySelectorAll('button')].find((b) => b.textContent?.startsWith('Tirer un facteur'));
     expect(tirer(monter())?.textContent).toBe('Tirer un facteur (1d10)');
-    sousLeDe('massBattleHazards', '1d12', () => {
+    sousLeDe('massBattleHazards', { n: 1, sides: 12 }, () => {
       act(() => root?.unmount()); container?.remove();
       expect(tirer(monter())?.textContent).toBe('Tirer un facteur (1d12)');
     });

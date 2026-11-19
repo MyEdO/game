@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "cadavre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "peau",
+      "palette": "corps",
+      "matiere": "prop--peau-morte"
+    },
+    {
+      "nom": "sang",
+      "palette": "accent",
+      "matiere": "prop--sang-repandu"
+    },
+    {
+      "nom": "drap",
+      "palette": "vet1",
+      "matiere": "prop--drap-terne"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    },
+    {
+      "nom": "cheveux",
+      "palette": "accent",
+      "matiere": "prop--chevelure"
+    }
+  ],
+  "glb": {
+    "sha256": "f660ce1383323da112865ffea24162a8ca893ab45df68263a20069de02b883b6",
+    "octets": 76144
+  }
+}

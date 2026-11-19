@@ -13,7 +13,7 @@ import {
 import { isSheltered, shelterField } from '../../../noyau/monde/volume/toits';
 import { MAX_PRECIP } from '../../../noyau/monde/meteo';
 import { AMBIANCE } from '../../catalog/ambiance';
-import type { WeatherPrecipDef } from '../../../data/ambiance.types';
+import type { WeatherPrecipDef } from '../../../data';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
 
 /**

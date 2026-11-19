@@ -107,7 +107,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
     } as never);
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0] as never, { cadence: 'commande' })!, party: aTerre(get().party) });
     const h = get().party[0];
-    set({ pendingSteamSave: { actorId: h.id, actorName: h.label, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 5, success: true, sl: 3 } });
+    set({ pendingSteamSave: { actorId: h.id, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 5, success: true, sl: 3 } });
     get().jetValider('fuiteDeVapeur');
     expect(issue()).toEqual(DEFAITE);
     expect(get().party.flatMap((x) => x.diseases ?? []), 'la clôture du jour s’est jouée avant la défaite').toEqual([]);

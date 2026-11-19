@@ -9,7 +9,17 @@ import { TRAITS } from './registry';
 import { isOptionalNote, type TraitList, type TraitsDesignes, type OptionalEntry } from '../statEntry';
 import { ARG_JOKER, type TraitPose } from '../../data/schemas/grammaire/reference';
 import { formaterIndiceRelatif, formaterParLocalisation } from '../classementDeTrait';
-import { charAbr, findTraitById, findQualityById, findDamageTypeById, findConditionById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
+import {
+  charAbr,
+  findTraitById,
+  findQualityById,
+  findDamageTypeById,
+  findConditionById,
+  SPEC_SOURCES,
+  type SpecsSource,
+  type TraitCapabilities,
+  type TraitData,
+} from '../../data';
 import type { PassiveMod } from '../ops';
 import { t, type MsgKey } from '../../i18n';
 import { cibleDeLArg, libelleDeCible, type NomDIndividu } from '../psych/ciblage';
@@ -359,7 +369,7 @@ export function hasClimbFullSpeed(traits: TraitList | undefined): boolean {
 }
 
 /** Rampant (MSRC 15 l.171) : « Elle ne peut pas réaliser d'Action de Course. » Capacité NON exprimable
- *  en GameOp → drapeau `capabilities.noRun`, interrogé par `runMultiplier`. */
+ *  en GameOp → drapeau `capabilities.noRun`, interrogé par `runMultiplier` et `refusSansCourse` (noyau). */
 export function hasNoRun(traits: TraitList | undefined): boolean {
   return (traits ?? []).some((t) => !!findTraitById(t.id)?.capabilities?.noRun);
 }

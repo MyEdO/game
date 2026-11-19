@@ -22,19 +22,22 @@
   "surfaces": [
     {
       "nom": "cuir",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     },
     {
       "nom": "fourrure",
-      "palette": "fourrure"
+      "palette": "fourrure",
+      "matiere": "prop--fourrure"
     },
     {
       "nom": "clous",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     }
   ],
   "glb": {
-    "sha256": "4626ff45452c2778b8441175a7fa21cf552382515b2e3b9f2c4438577c9a3282",
-    "octets": 705020
+    "sha256": "914fe822814c6703188ae791233594238225bc349b1a886c87d719cb31c85060",
+    "octets": 525724
   }
 }

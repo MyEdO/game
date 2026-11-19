@@ -1,6 +1,6 @@
 /**
  * Maladies et infections — Livre de base, « Maladies et infections » (20-Maladies et infections.md).
- * Moteur PUR : on NE modélise QUE ce que la source quantifie. Les valeurs (Résistance) sont passées par
+ * Moteur PUR : les valeurs de Test sont passées par
  * l'appelant ; `trauma.ts` lit `diseasePassiveOps` d'ici. N'importe `ops`
  * qu'en TYPE (`GameOp`), jamais `applyOps` — les conséquences `onFail` sont appliquées CÔTÉ STATE
  * (`restFlow`, via `applyOps`) → pas de cycle ops↔disease. Seule liaison croisée : `conditions.ts`
@@ -25,19 +25,27 @@
  *    (Blessé/Gangrène), `amputation` (Gangrène), `contagious` (Toux),
  *    `nausea` (combat), `endTest` (Persistant).
  */
-import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type ModLine, type TestIds } from './types';
+import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type DiseaseExposure, type ModLine, type TestIds } from './types';
 import type { Duration } from './duration';
 import { RNG, roll, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { findTableEntry } from './tables';
 import { spellOps, type FlowTestNode } from './flowCore';
-import locJson from '../data/localisation.json';
-// Table de Localisation CANONIQUE (`src/data/localisation.json`, humanoïde) via la primitive `findTableEntry`
-// — MÊME source/lookup que `engine/combat.hitLocation`, réutilisée ici sans cycle (json + tables = feuilles).
-const HUMANOID_LOC = (locJson as { personnage: { shapes: Record<string, { min: number; max: number; loc: HitLocation }[]> } }).personnage.shapes.humanoide;
-const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(HUMANOID_LOC, roll(1, 100, rng)).loc;
-import { rollTest } from './tests';
-import { maladies, diseaseLabel, findSymptomById, symptomLabel, conditionLabel, SYMPTOM_SEVERITIES, memoParVersion, type SymptomCapabilities } from '../data';
+// Table de Localisation CANONIQUE (`tablesDeLocalisation`, humanoïde) via la primitive `findTableEntry` — MÊME
+// source/lookup que `engine/combat.hitLocation`, lue à l'appel.
+const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(tablesDeLocalisation.personnage.shapes.humanoide, roll(1, 100, rng)).loc;
+import {
+  maladies,
+  tablesDeLocalisation,
+  diseaseLabel,
+  findSymptomById,
+  symptomLabel,
+  conditionLabel,
+  SYMPTOM_SEVERITIES,
+  memoParVersion,
+  type SymptomCapabilities,
+  type DiseaseDef,
+} from '../data';
 import type { GameOp, OpPassive, PassiveMod } from './ops';
 import type { PsychTrait } from './psychology';
 import { traitOctroye } from './psych/opsPsy';
@@ -46,7 +54,8 @@ import { fateSaveOrDie } from './fortune';
 import { addCondition } from './conditions';
 import { sourceSuspended, suspendSource } from './suspension'; // module FEUILLE : suspension GÉNÉRALE d'une source passive
 import type { CodexTarget } from './ruleRefs';
-import type { DiseaseDef, DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
+import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
+import type { SujetContextualise } from './skills';
 
 /** Unité d'un temps de maladie (incubation/durée). La base de calcul/stockage reste la MINUTE (`clock.ts`). */
 const UNIT_MINUTES: Record<DiseaseTime['unit'], number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };
@@ -97,6 +106,8 @@ export interface Disease {
   /** Jours pleins écoulés en PHASE ACTIVE — cadence les cycles `onTick.afterDays`/`once` (Vers de carie
    *  J+7, Vers du Reik éclatement au 7ᵉ jour, MSRC 16). Incrémenté à chaque journée pleine active. */
   activeDaysElapsed?: number;
+  /** Minutes actives du jour en cours pour les porteurs sans fiche. EDOC 08 l.122 */
+  minutesActivesDuJour?: number;
   /** MINUTES totales écoulées depuis la CONTRACTION (toutes phases) — base de la rampe « −5 par période
    *  complète de 30 jours d'infection » des passifs d'infection (Vers du Reik, MSRC 16 l.138). */
   infectedMinutes?: number;
@@ -105,6 +116,19 @@ export interface Disease {
   blisterLocation?: import('./types').HitLocation;
 }
 
+/** Régime de bord d'un porteur. MDG 14 l.230-232 */
+export interface RegimeDeBord {
+  /** Minutes de vivre frais mangé, à décompter de la Durée d'une maladie à `dureeAuFrais` au fil de l'horloge
+   *  (`noterLeRepas` les acquiert, `avancerLesMaladies` les consomme). MDG 14 l.232 */
+  minutesAuFrais?: number;
+  /** Jours sans vivre frais, à terre comme en mer, remis à 0 par un vivre frais mangé (`noterLeRepas`). */
+  joursSansVivreFrais: number;
+  /** Jours de soupe de chou fermenté mangée depuis le dernier vivre frais ou le dernier Test de scorbut. */
+  joursDeSoupe: number;
+}
+
+/** Ce que le cycle d'une maladie lit et écrit de son porteur, PJ ou équipage sans fiche. Précédent : `PorteurDeGroupes` (`groups.ts`). */
+export type PorteurDeMaladies = Pick<Combatant, 'label' | 'diseases' | 'diseaseImmunities' | 'regimeDeBord'>;
 
 // Registre des maladies CÂBLÉES — DÉRIVÉ de `maladies.json` (data app-owned, éditable au Codex), keyé
 // par `id`. Les valeurs verbatim (LDB 20) vivent dans la donnée ; le COMPORTEMENT (cycle,
@@ -112,6 +136,13 @@ export interface Disease {
 export const diseaseDefs = memoParVersion('maladies', (): Record<string, DiseaseDef> => Object.fromEntries(
   maladies.map((m) => [m.id, m]),
 ));
+
+const RESISTANCE_DE_CONTRACTION = { skill: { id: 'resistance' }, characteristic: 'endurance' } as const;
+
+/** LDB 20 l.25, l.41, l.51, l.64, l.90 ; LDB 16 l.105 */
+export function sujetDeContraction(disease: string): SujetContextualise {
+  return { ...(diseaseDefs()[disease]?.testDeContraction ?? RESISTANCE_DE_CONTRACTION), disease };
+}
 
 /** Construit une instance de maladie (tire incubation/durée → MINUTES). `opts.incubation`/`opts.duration`
  *  figent les jets EN JOURS (tests, ou contraction « instantanée » depuis un autre symptôme — l.32 :
@@ -211,8 +242,7 @@ export function diseaseTestModLines(c: Combatant, diseaseName: string): ModLine[
   if (c.residualDiseaseTestMod) lignes.push({ label: t('dz.residualMod'), famille: 'jet', value: -c.residualDiseaseTestMod, ref: { category: 'maladies', id: diseaseName } });
   return lignes;
 }
-/** Σ des lignes ci-dessus — la VALEUR seule, pour les sites qui n'affichent pas de ligne (Test de
- *  CONTRACTION roulé au moteur, `rollContraction`). Dérivée, jamais recalculée en parallèle. */
+/** Somme des modificateurs de `diseaseTestModLines`. */
 export function activeDiseaseTestMod(c: Combatant, diseaseName: string): number {
   return diseaseTestModLines(c, diseaseName).reduce((s, m) => s + m.value, 0);
 }
@@ -295,9 +325,7 @@ export function symptomOnTick(inst: DiseaseSymptom, severite: 'moderee' | 'grave
   };
   if (!tick.test) return { onFail: tick.ops ?? [], ...cadence };
   const bySeverity = severite && tick.difficultyBySeverity?.[severite];
-  // `difficulty` REQUISE au schéma du cycle (`noeudTest(…, { difficulteRequise: true })`, defs/symptoms) —
-  // `FlowTest` la laisse optionnelle pour les jets dont elle vient d'ailleurs.
-  const difficulty = bySeverity || tick.test.test.difficulty!;
+  const difficulty = bySeverity || tick.test.test.difficulty;
   return { difficulty, test: idsDuNoeud(tick.test), onFail: opsDeLEchec(tick.test), ...cadence };
 }
 
@@ -443,46 +471,22 @@ export function hasActiveCapability(c: Combatant, cap: keyof SymptomCapabilities
   return (c.diseases ?? []).some((d) => maladieDeclaree(d) && diseaseHasCapability(d, cap));
 }
 
-/**
- * Test de CONTRACTION d'une maladie (LDB 20) : un Test de Résistance `difficulty` raté la fait contracter
- * (dédoublonnée par nom). `resistVal` = Résistance effective, passée par l'appelant (cycle évité). Mute
- * `c.diseases`, renvoie le journal. Sert au post-critique (Très Facile +60, l.72) ET à la Chirurgie
- * (Accessible +20, talent Chirurgie / l.365). Réussite ou maladie déjà présente → rien.
- */
 /** Un Test de Contraction de `diseaseName` tomberait-il pour `c` ? (Non si déjà porteur ou immunisé.)
  *  Sépare la DÉCISION du jet (pour différer en cascade) de sa résolution. */
-export function contractionDue(c: Combatant, diseaseName: string): boolean {
+export function contractionDue(c: PorteurDeMaladies, diseaseName: string): boolean {
   if ((c.diseases ?? []).some((d) => d.id === diseaseName)) return false;
-  return !(c.diseaseImmunities ?? []).includes(diseaseName); // Vérole Urticante (l.97) : pas deux fois
+  return !(c.diseaseImmunities ?? []).includes(diseaseName); // LDB 20 l.127
 }
 
 /** Applique le RÉSULTAT d'un Test de Contraction DIFFÉRÉ : échec → contracte la maladie. Mute `c.diseases`.
  *  `opts.instant` (Contagieux (Type), EDO App.2 l.230 : « son incubation est changée en “Instantanée” ») :
  *  la maladie contractée démarre ACTIVE (incubation 0). */
-export function applyContraction(c: Combatant, diseaseName: string, success: boolean, rng: RNG, opts?: { instant?: boolean }): string[] {
+export function applyContraction(c: PorteurDeMaladies, diseaseName: string, success: boolean, rng: RNG, opts?: { instant?: boolean }): string[] {
   if (success || !contractionDue(c, diseaseName)) return [];
   const dz = contractDisease(diseaseName, rng, opts?.instant ? { incubation: 0 } : undefined);
   if (!dz) return [];
   c.diseases = [...(c.diseases ?? []), dz];
   return [t('dz.contract', { name: c.label, disease: diseaseLabel(diseaseName) })];
-}
-
-/**
- * Test de CONTRACTION d'une maladie (LDB 20) : un Test de Résistance `difficulty` raté la fait contracter
- * (dédoublonnée par nom). `resistVal` = Résistance effective, passée par l'appelant (cycle évité). Mute
- * `c.diseases`, renvoie le journal. Sert au post-critique (Très Facile +60, l.72) ET à la Chirurgie
- * (Accessible +20, talent Chirurgie / l.365). Réussite ou maladie déjà présente → rien.
- */
-export function rollContraction(
-  c: Combatant,
-  diseaseName: string,
-  resistVal: number,
-  difficulty: Difficulty,
-  rng: RNG,
-): string[] {
-  if (!contractionDue(c, diseaseName)) return [];
-  // Bonus d'effets actifs aux Tests liés à CETTE maladie (Fleur de lune +30 vs Peste noire…).
-  return applyContraction(c, diseaseName, rollTest(resistVal + activeDiseaseTestMod(c, diseaseName), difficulty, rng).success, rng);
 }
 
 /** Nombre de maladies actives bloquant la guérison d'1 PB (capacité `blocksHealing` — Blessé + Gangrène). */
@@ -491,8 +495,22 @@ export function diseaseBlesseCount(c: Combatant): number {
 }
 
 /** Maladies ACTIVES contagieuses (capacité `contagious` — Toux & éternuements, l.206) — contagion au repos. */
-export function contagiousDiseases(c: Combatant): Disease[] {
+export function contagiousDiseases(c: PorteurDeMaladies): Disease[] {
   return (c.diseases ?? []).filter((d) => maladieDeclaree(d) && diseaseHasCapability(d, 'contagious'));
+}
+
+/** Les `expositions` après l'op `exposeDisease` `o` : entrée neuve, ou fusion avec celle de la même maladie
+ *  qui garde la plus dure (cran le plus bas, `instant` si l'une l'impose). PUR. LDB 20 l.25/51 ; EDO App.2 l.228-230 */
+export function exposerALaMaladie(expositions: readonly DiseaseExposure[] | undefined, o: Extract<GameOp, { op: 'exposeDisease' }>): DiseaseExposure[] {
+  const entry: DiseaseExposure = { disease: o.disease, ...(o.difficultyShift ? { difficultyShift: o.difficultyShift } : {}), ...(o.incubation === 'instant' ? { instant: true } : {}) };
+  const prev = (expositions ?? []).find((e) => e.disease === o.disease);
+  if (!prev) return [...(expositions ?? []), entry];
+  const shift = Math.min(prev.difficultyShift ?? 0, entry.difficultyShift ?? 0);
+  return (expositions ?? []).map((e) => e !== prev ? e : {
+    disease: e.disease,
+    ...(shift !== 0 ? { difficultyShift: shift } : {}),
+    ...(e.instant || entry.instant ? { instant: true } : {}),
+  });
 }
 
 /** Exposition d'un personnage à une maladie. Mute `c.diseases` directement (appelé HORS itération —
@@ -505,7 +523,7 @@ export function contagiousDiseases(c: Combatant): Disease[] {
  *  - `contraction` : `false` n'ouvre QUE la ré-exposition (l'appelant sait que la condition de
  *    contraction neuve n'est pas réunie — saison de l'Exposition de voyage). */
 export function contractDiseaseOnce(
-  c: Combatant,
+  c: PorteurDeMaladies,
   name: string,
   rng: RNG,
   opts?: { incubation?: 'instantanee' | 'raw'; message?: MsgKey; contraction?: boolean },
@@ -527,7 +545,7 @@ export function contractDiseaseOnce(
  *  d'incubation et la Localisation de lésion (MSRC 16 l.140) est tirée si un symptôme la gate.
  *  SOURCE UNIQUE de cette bascule — `tickDisease` (incubation épuisée) et la Phase d'arrivée d'un
  *  voyage (EDOC 09 l.21) passent par ici. No-op sur une maladie déjà active. */
-export function declareDisease(c: Combatant, dz: Disease, rng: RNG): string[] {
+export function declareDisease(c: PorteurDeMaladies, dz: Disease, rng: RNG): string[] {
   if (dz.phase !== 'incubation') return [];
   dz.phase = 'active';
   dz.minutesLeft = dz.durationMinutes;
@@ -538,7 +556,7 @@ export function declareDisease(c: Combatant, dz: Disease, rng: RNG): string[] {
 /** Prolonge la DURÉE d'une maladie EN COURS de `days` jours. La durée active porte l'allonge ; si la
  *  maladie est encore en incubation, seul le capital de durée grossit (le décompte d'incubation, lui,
  *  reste celui qui a été tiré). Renvoie `false` si la maladie n'est pas portée. */
-export function prolongDisease(c: Combatant, name: string, days: number): boolean {
+export function prolongDisease(c: PorteurDeMaladies, name: string, days: number): boolean {
   const dz = (c.diseases ?? []).find((d) => d.id === name);
   if (!dz || days <= 0) return false;
   const extra = days * MINUTES_PER_DAY;
@@ -560,6 +578,14 @@ export function applyDiseaseGangrene(c: Combatant, diseaseName: string, success:
   return [t('dz.gangreneProgress', { name: c.label, fails: dz.gangreneFails })];
 }
 
+/** LDB 20 l.127-129 */
+function guerison(p: PorteurDeMaladies, dz: Disease): string {
+  if (diseaseDefs()[dz.id]?.immuneAfterCure) {
+    p.diseaseImmunities = [...(p.diseaseImmunities ?? []), dz.id];
+  }
+  return t('dz.cured', { name: p.label, disease: diseaseLabel(dz.id) });
+}
+
 /** Conséquence du Test « persistant » de fin de durée DIFFÉRÉ (l.162) : réussite → guérison ;
  *  DR ≤ −6 → Infection du Sang ; ≤ −2 → Blessure Purulente ; sinon → +1d10 jours. La maladie en
  *  attente (`endTestPending`) est retirée (ou prolongée). Mute `c.diseases`. */
@@ -569,11 +595,121 @@ export function applyDiseasePersist(c: Combatant, diseaseName: string, success: 
   dz.endTestPending = undefined;
   const log: string[] = [];
   const remove = () => { c.diseases = (c.diseases ?? []).filter((d) => d !== dz); };
-  const cure = () => { remove(); log.push(t('dz.cured', { name: c.label, disease: diseaseLabel(dz.id) })); if (diseaseDefs()[dz.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), dz.id]; };
+  const cure = () => { remove(); log.push(guerison(c, dz)); };
   if (success) cure();
   else if (sl <= -6) { remove(); log.push(t('dz.degenerate', { name: c.label, disease: diseaseLabel(dz.id) })); log.push(...contractDiseaseOnce(c, 'infection-du-sang', rng)); }
   else if (sl <= -2) { remove(); log.push(t('dz.infects', { name: c.label, disease: diseaseLabel(dz.id) })); log.push(...contractDiseaseOnce(c, 'blessure-purulente', rng)); }
   else { const extra = roll(1, 10, rng); dz.minutesLeft = extra * MINUTES_PER_DAY; log.push(t('dz.persists', { name: c.label, disease: diseaseLabel(dz.id), days: extra })); }
+  return log;
+}
+
+/** Ce que le cycle d'une FICHE ajoute au pas de temps (`avancerLesMaladies`) ; un porteur sans fiche n'en a pas. */
+export interface CycleDeFiche {
+  /** EDOC 09 l.21 */
+  peutDeclarer?(maladieId: string): boolean;
+  /** Journée pleine de phase active, après l'incrément de `activeDaysElapsed` : Tests de cycle de la fiche.
+   *  `contractOnce` contracte une maladie à la fin du pas (incubation instantanée, LDB 20 l.27). */
+  journeeActive(dz: Disease, contractOnce: (name: string) => boolean, log: string[]): void;
+  /** Fin de Durée : `true` = la maladie reste portée (Test de fin différé) ; sinon elle guérit. */
+  finDeDuree(dz: Disease): boolean;
+}
+
+/** Consomme au régime de `p` les minutes de vivre frais que couvre un pas de `pas` minutes ; RENVOIE les minutes de
+ *  Durée au frais du pas, jamais plus que le pas. MDG 14 l.232 */
+function decompterLeFrais(p: PorteurDeMaladies, pas: number): number {
+  const r = p.regimeDeBord;
+  const auFrais = Math.min(pas, r?.minutesAuFrais ?? 0);
+  if (!r || auFrais === 0) return 0;
+  const { minutesAuFrais: _consommees, ...reste } = r;
+  p.regimeDeBord = r.minutesAuFrais! > auFrais ? { ...reste, minutesAuFrais: r.minutesAuFrais! - auFrais } : reste;
+  return auFrais;
+}
+
+/**
+ * PAS DE TEMPS d'une maladie, sans fiche : incubation → `declareDisease` → décompte de la Durée →
+ * guérie, et la mue (EDOC 08 l.122). Source unique de la progression : `tickDisease` l'appelle pour un PJ
+ * avec son `CycleDeFiche`, un porteur sans fiche sans lui. Mute `p.diseases`, renvoie le journal.
+ *
+ * Le délai est découpé en PAS : autant de JOURNÉES PLEINES (`MINUTES_PER_DAY`) que possible, puis un
+ * reliquat sous-journalier ; le cycle de fiche ne tombe que sur une journée pleine (LDB 20, Tests « par
+ * jour »). Une maladie à `dureeAuFrais` ne décompte de sa Durée que les minutes de vivre frais que le pas consomme
+ * au régime de bord (`decompterLeFrais`), MDG 14 l.232.
+ */
+export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: RNG, fiche?: CycleDeFiche): string[] {
+  if (minutes <= 0 || !p.diseases?.length) return [];
+  const log: string[] = [];
+  // Les maladies contractées en cours de pas (mue, Blessure Purulente…) n'évoluent qu'aux pas suivants.
+  const contracted: Disease[] = [];
+  const contractOnce = (name: string) => {
+    if (p.diseases!.some((d) => d.id === name) || contracted.some((d) => d.id === name)) return false;
+    const dz = contractDisease(name, rng, { incubation: 0 }); // LDB 20 l.27
+    if (dz) {
+      contracted.push(dz);
+      log.push(t('dz.develop', { name: p.label, disease: diseaseLabel(name) }));
+    }
+    return true;
+  };
+
+  const fullDays = Math.floor(minutes / MINUTES_PER_DAY);
+  const remainder = minutes - fullDays * MINUTES_PER_DAY;
+  const steps: number[] = [];
+  for (let i = 0; i < fullDays; i++) steps.push(MINUTES_PER_DAY);
+  if (remainder > 0) steps.push(remainder);
+
+  for (const stepMin of steps) {
+    const auFrais = decompterLeFrais(p, stepMin);
+    const survivors: Disease[] = [];
+    for (const dz of p.diseases) {
+      dz.infectedMinutes = (dz.infectedMinutes ?? 0) + stepMin; // MSRC 16 l.138
+      if (dz.phase === 'incubation') {
+        dz.minutesLeft = Math.max(0, dz.minutesLeft - stepMin);
+        if (dz.minutesLeft === 0 && fiche?.peutDeclarer?.(dz.id) !== false) log.push(...declareDisease(p, dz, rng));
+        survivors.push(dz);
+        continue;
+      }
+      const minutesActives = stepMin + (fiche ? 0 : dz.minutesActivesDuJour ?? 0);
+      if (!fiche) {
+        const reliquat = minutesActives % MINUTES_PER_DAY;
+        if (reliquat) dz.minutesActivesDuJour = reliquat;
+        else delete dz.minutesActivesDuJour;
+      }
+      if (minutesActives >= MINUTES_PER_DAY) {
+        dz.activeDaysElapsed = (dz.activeDaysElapsed ?? 0) + 1; // MSRC 16 l.90, l.142
+        fiche?.journeeActive(dz, contractOnce, log);
+        // EDOC 08 l.122 : la maladie muée quitte la liste, que `into` soit neuve ou déjà portée.
+        const mut = diseaseDefs()[dz.id]?.mutation;
+        if (mut && dz.activeDaysElapsed > mut.afterDays) {
+          log.push(contractOnce(mut.into)
+            ? t('dz.mutates', { name: p.label, from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) })
+            : t('dz.mutatesAbsorbed', { name: p.label, from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) }));
+          continue;
+        }
+      }
+      const ecoule = diseaseDefs()[dz.id]?.dureeAuFrais ? auFrais : stepMin;
+      if (ecoule === 0) {
+        survivors.push(dz);
+        continue;
+      }
+      dz.minutesLeft -= ecoule;
+      if (dz.minutesLeft > 0) {
+        survivors.push(dz);
+        continue;
+      }
+      // MSRC 16 l.90-101 : capacité `persistentActive`, la Durée épuisée se réarme.
+      if (diseaseHasCapability(dz, 'persistentActive')) {
+        dz.minutesLeft = dz.durationMinutes;
+        survivors.push(dz);
+        continue;
+      }
+      if (fiche?.finDeDuree(dz)) {
+        survivors.push(dz);
+        continue;
+      }
+      log.push(guerison(p, dz));
+    }
+    p.diseases = survivors;
+  }
+  p.diseases = [...p.diseases, ...contracted];
   return log;
 }
 
@@ -583,14 +719,12 @@ export function applyDiseasePersist(c: Combatant, diseaseName: string, success: 
  * journal. `beForGangrene` = Bonus d'Endurance (seuil de Gangrène, l.176), passé par l'appelant (cycle
  * évité). AUCUNE valeur de Test n'entre ici : le nœud NOMME ce qu'il teste, la porte le calcule.
  *
- * Le délai est découpé en PAS : autant de JOURNÉES PLEINES (`MINUTES_PER_DAY`) que possible, puis un
- * reliquat sous-journalier. Par pas :
- *  - incubation : −`pas` minutes ; à ≤0 → symptômes ACTIFS (durée mémorisée → `durationMinutes`) ;
- *  - active : sur une JOURNÉE PLEINE seulement (Tests RAW « par jour »), symptômes à `onTick` (Blessé,
- *             Toxine) → Test de cycle quotidien, et capacité `amputation` (Gangrène) → Test journalier ;
- *             puis −`pas` minutes ; à ≤0 → résolution (capacité `endTest`/`persistDifficulty`, l.162),
- *             sinon guérison. Une durée sous-journalière (heures/minutes) s'épuise donc DANS la journée,
- *             sans déclencher de Test « quotidien ».
+ * La progression (pas, incubation, Durée, mue) est `avancerLesMaladies` ; ce qui exige une fiche vit ici :
+ *  - active, sur une JOURNÉE PLEINE : symptômes à `onTick` (Blessé, Toxine) → Test de cycle quotidien,
+ *    `dailyTest` de la maladie, capacité `amputation` (Gangrène) → Test journalier ;
+ *  - fin de Durée : capacité `endTest`/`persistDifficulty` (l.162) → Test de fin, sinon guérison avec
+ *    résidu d'infection ;
+ *  - décroissance du résidu post-infection.
  *
  * `defer` (#1657 B3-3) : TOUT Test du cycle (`onTick` de symptôme, `dailyTest` de maladie, gangrène,
  * fin de Durée) est COLLECTÉ — le moteur n'en roule AUCUN. Il DIT ce qui est testé (`test`, ids lus au
@@ -600,131 +734,66 @@ export function applyDiseasePersist(c: Combatant, diseaseName: string, success: 
  * est appliquée par l'applier `maladie-test-quotidien` côté state (restFlow) ; gangrène/persistant par
  * `applyDiseaseGangrene/Persist`.
  */
-export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: UpkeepDeferTest, beForGangrene = 0, emit?: ConditionEmit): string[] {
+export function tickDisease(
+  c: Combatant, minutes: number, rng: RNG, defer: UpkeepDeferTest, beForGangrene = 0,
+  emit?: ConditionEmit, peutDeclarer?: CycleDeFiche['peutDeclarer'],
+): string[] {
   if (minutes <= 0) return [];
-  // Décroissance du RÉSIDU post-infection : −1 par jour plein (Vers du Reik « réduite de 1 point par jour
-  // après la mort du ver », MSRC 16 l.138) — indépendante de toute maladie en cours.
+  // Décroissance du RÉSIDU post-infection : −1 par jour plein (MSRC 16 l.138), indépendante de toute maladie en cours.
   const fullDaysAll = Math.floor(minutes / MINUTES_PER_DAY);
   if (c.residualDiseaseTestMod && fullDaysAll > 0) c.residualDiseaseTestMod = Math.max(0, c.residualDiseaseTestMod - fullDaysAll) || undefined;
-  if (!c.diseases?.length) return [];
-  const log: string[] = [];
-  // On boucle par PAS (journées pleines + reliquat) ; les nouvelles maladies (Blessure Purulente /
-  // Infection du Sang) sont accumulées puis ajoutées en fin de tick (elles n'évoluent qu'aux pas suivants).
-  const contracted: Disease[] = [];
-  const contractOnce = (name: string) => {
-    if (c.diseases!.some((d) => d.id === name) || contracted.some((d) => d.id === name)) return false;
-    const dz = contractDisease(name, rng, { incubation: 0 }); // « instantanée » depuis un autre symptôme (l.32)
-    if (dz) {
-      contracted.push(dz);
-      log.push(t('dz.develop', { name: c.label, disease: diseaseLabel(name) }));
-    }
-    return true;
-  };
-
-  // Pas d'avancement : N journées pleines (cycle de Tests RAW « par jour ») + reliquat sous-journalier.
-  const fullDays = Math.floor(minutes / MINUTES_PER_DAY);
-  const remainder = minutes - fullDays * MINUTES_PER_DAY;
-  const steps: number[] = [];
-  for (let i = 0; i < fullDays; i++) steps.push(MINUTES_PER_DAY);
-  if (remainder > 0) steps.push(remainder);
-
-  for (const stepMin of steps) {
-    const isFullDay = stepMin === MINUTES_PER_DAY; // Tests de cycle RAW « par jour » : journée pleine uniquement
-    const survivors: Disease[] = [];
-    for (const dz of c.diseases) {
-      dz.infectedMinutes = (dz.infectedMinutes ?? 0) + stepMin; // temps depuis la contraction (rampe d'incubation, l.138)
+  return avancerLesMaladies(c, minutes, rng, {
+    peutDeclarer,
+    journeeActive(dz, contractOnce, log) {
       // Bonus/malus d'effets scopés à CETTE maladie (op `diseaseTestMod` — Fleur de lune +30 vs Peste
       // noire, Tonique digestif +20) : lignes NOMMÉES remises à la porte, qui les pose sur la cible.
       const mods = diseaseTestModLines(c, dz.id);
-      if (dz.phase === 'incubation') {
-        dz.minutesLeft -= stepMin;
-        if (dz.minutesLeft <= 0) log.push(...declareDisease(c, dz, rng));
-        survivors.push(dz);
-        continue;
-      }
-      // active — symptômes à cycle quotidien (`onTick` : Blessé, Toxine). DONNÉE-DRIVEN : `symptomOnTick`
-      // lit le nœud `test` du symptôme (ce qu'il teste, sa Difficulté, les ops de sa branche d'ÉCHEC) ou
-      // ses `ops` certaines. Le jet part à la porte (`defer`), qui l'ouvre et passe l'échec à `applyOps`.
-      // Cadence RAW « par jour » → uniquement sur une JOURNÉE PLEINE (une durée sous-journalière
-      // s'épuise sans Test « quotidien »).
-      if (isFullDay) {
-        dz.activeDaysElapsed = (dz.activeDaysElapsed ?? 0) + 1; // Jᵉ jour de phase active (MSRC 16 : cadence des Vers)
-        const activeDay = dz.activeDaysElapsed;
-        for (const inst of dz.symptoms) {
-          if (symptomSuppressed(c, inst.symptomId)) continue; // symptôme suspendu (Racine de terre) : pas de Test de cycle
-          const tick = symptomOnTick(inst, severiteEffective(c, dz.id, inst));
-          if (!tick) continue;
-          // Cadence de phase active : `afterDays` = ne démarre qu'au Jᵉ jour ; `once` = uniquement CE jour-là
-          // (Vers du Reik éclate au 7ᵉ ; Vers de carie teste chaque jour ≥ J+7 — MSRC 16 l.90/142).
-          if (tick.afterDays != null && activeDay < tick.afterDays) continue;
-          if (tick.once && activeDay !== tick.afterDays) continue;
-          if (tick.difficulty == null) {
-            // Conséquence INCONDITIONNELLE (pas de jet — éclatement du Vers du Reik, issue invariante,
-            // MSRC 16 l.142) : appliquée DIRECTEMENT ici, via l'interprète inline restreint.
-            applyOnFailInline(c, tick.onFail, contractOnce, log, emit);
-          } else {
-            defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, opsEchec: tick.onFail } });
-          }
-        }
-        // Gangrène (l.176) : capacité `amputation` — Test de Résistance Accessible (+20) journalier ; plus
-        // d'échecs que le Bonus d'Endurance → la Localisation est PERDUE (Amputation). Machinerie stateful.
-        if (diseaseHasCapability(dz, 'amputation') && !dz.gangreneLost) {
-          defer({ kind: 'maladie-gangrene', label: symptomLabel('gangrene'), test: TEST_RESISTANCE, difficulty: 'accessible', ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: 'gangrene', be: beForGangrene } });
-        }
-        // Test de cycle quotidien porté par la MALADIE (EDOC 08 l.104-108) — même canal différé que les
-        // `onTick` de symptôme (`maladie-test-quotidien`), donc influençable.
-        // ÉCART MESURÉ à `EDOC 08 l.104`, #674 (2026-08-31) : la condition de déclenchement citée là-bas
-        // porte sur les journées d'EFFORT, signal que le moteur n'a pas — `effortRounds`
-        // (`engine/types.ts:1507`) compte des ROUNDS de combat, pas des journées d'activité. Faute de ce
-        // signal, le Test tombe à CHAQUE journée d'entretien : régime plus dur que celui de la source.
-        // La suspension du symptôme NOMMÉ gate ce Test comme elle gate les `onTick` (l.565) — arbitrage
-        // d'ingénierie #674, hors source (`LDB 72 l.28` ne porte que sur les effets du symptôme).
-        const daily = structuredClone(diseaseDefs()[dz.id]?.dailyTest); // #2097
-        if (daily && !symptomSuppressed(c, daily.symptomId)) {
-          // `difficulty` REQUISE au schéma du porteur (`noeudTest(…, { difficulteRequise: true })`,
-          // `defs/maladies.ts`) — `FlowTest` la laisse optionnelle pour les jets dont elle vient d'ailleurs.
-          const difficulty = daily.test.test.difficulty!;
-          const onFail = opsDeLEchec(daily.test);
-          defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(daily.symptomId), precision: diseaseLabel(dz.id) }), test: idsDuNoeud(daily.test), difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: daily.symptomId, opsEchec: onFail } });
-        }
-        // MUE (EDOC 08 l.122) : au-delà de `afterDays` jours de phase active, la maladie CÈDE la place
-        // à `into` — propriété de la DONNÉE, aucun id codé ici.
-        const mut = diseaseDefs()[dz.id]?.mutation;
-        if (mut && (dz.activeDaysElapsed ?? 0) > mut.afterDays) {
-          // La maladie muée quitte la liste dans les DEUX cas (pas de `survivors.push`) ; seule change la
-          // ligne de journal : `into` déjà portée → rien n'apparaît, la porteuse cède simplement la place.
-          log.push(contractOnce(mut.into)
-            ? t('dz.mutates', { name: c.label, from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) })
-            : t('dz.mutatesAbsorbed', { name: c.label, from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) }));
-          continue;
+      const activeDay = dz.activeDaysElapsed ?? 0;
+      // Symptômes à cycle quotidien (`onTick` : Blessé, Toxine). DONNÉE-DRIVEN : `symptomOnTick` lit le
+      // nœud `test` du symptôme ou ses `ops` certaines. Le jet part à la porte (`defer`).
+      for (const inst of dz.symptoms) {
+        if (symptomSuppressed(c, inst.symptomId)) continue; // symptôme suspendu (Racine de terre) : pas de Test de cycle
+        const tick = symptomOnTick(inst, severiteEffective(c, dz.id, inst));
+        if (!tick) continue;
+        // Cadence de phase active : `afterDays` = ne démarre qu'au Jᵉ jour ; `once` = uniquement CE jour-là (MSRC 16 l.90/142).
+        if (tick.afterDays != null && activeDay < tick.afterDays) continue;
+        if (tick.once && activeDay !== tick.afterDays) continue;
+        if (tick.difficulty == null) {
+          // Conséquence INCONDITIONNELLE (pas de jet, MSRC 16 l.142) : appliquée DIRECTEMENT ici, via l'interprète inline restreint.
+          applyOnFailInline(c, tick.onFail, contractOnce, log, emit);
+        } else {
+          defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, opsEchec: tick.onFail } });
         }
       }
-      dz.minutesLeft -= stepMin;
-      if (dz.minutesLeft > 0) {
-        survivors.push(dz);
-        continue;
+      // Gangrène (l.176) : capacité `amputation`, Test journalier. Machinerie stateful.
+      if (diseaseHasCapability(dz, 'amputation') && !dz.gangreneLost) {
+        defer({ kind: 'maladie-gangrene', label: symptomLabel('gangrene'), test: TEST_RESISTANCE, difficulty: 'accessible', ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: 'gangrene', be: beForGangrene } });
       }
-      // Phase active PERSISTANTE (Vers de carie, MSRC 16 l.90-101) : la dégénérescence quotidienne ne cesse
-      // JAMAIS de mort naturelle — la maladie ne guérit pas à l'épuisement de la « Durée » (installation),
-      // elle reste active (seule la Mort de la table, ou un retrait joueur, la termine).
-      if (diseaseHasCapability(dz, 'persistentActive')) {
-        dz.minutesLeft = dz.durationMinutes;
-        survivors.push(dz);
-        continue;
+      // Test de cycle quotidien porté par la MALADIE (EDOC 08 l.104-108) — même canal différé que les
+      // `onTick` de symptôme (`maladie-test-quotidien`), donc influençable.
+      // ÉCART MESURÉ à `EDOC 08 l.104`, #674 (2026-08-31) : la condition de déclenchement citée là-bas
+      // porte sur les journées d'EFFORT, signal que le moteur n'a pas — `effortRounds`
+      // (`engine/types.ts:1507`) compte des ROUNDS de combat, pas des journées d'activité. Faute de ce
+      // signal, le Test tombe à CHAQUE journée d'entretien : régime plus dur que celui de la source.
+      // La suspension du symptôme NOMMÉ gate ce Test comme elle gate les `onTick` — arbitrage
+      // d'ingénierie #674, hors source (`LDB 72 l.28` ne porte que sur les effets du symptôme).
+      const daily = structuredClone(diseaseDefs()[dz.id]?.dailyTest); // #2097
+      if (daily && !symptomSuppressed(c, daily.symptomId)) {
+        const difficulty = daily.test.test.difficulty;
+        const onFail = opsDeLEchec(daily.test);
+        defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(daily.symptomId), precision: diseaseLabel(dz.id) }), test: idsDuNoeud(daily.test), difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: daily.symptomId, opsEchec: onFail } });
       }
-      // Fin de Durée — résolution (DIFFÉRÉE en cascade : la maladie reste en attente).
+    },
+    finDeDuree(dz) {
+      // Fin de Durée — résolution DIFFÉRÉE en cascade : la maladie reste en attente (l.162).
       if (dz.persistDifficulty) {
+        const mods = diseaseTestModLines(c, dz.id);
         dz.endTestPending = true;
         defer({ kind: 'maladie-persistance', label: t('dz.endStep', { disease: diseaseLabel(dz.id) }), test: TEST_RESISTANCE, difficulty: dz.persistDifficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: 'persistant' } });
-        survivors.push(dz);
-      } else {
-        log.push(t('dz.cured', { name: c.label, disease: diseaseLabel(dz.id) }));
-        snapshotInfectionResidual(c, dz); // Vers du Reik : la pénalité de Résistance survit et décroît −1/jour (l.138)
-        if (diseaseDefs()[dz.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), dz.id]; // Vérole Urticante (l.97)
+        return true;
       }
-    }
-    c.diseases = survivors;
-  }
-  c.diseases = [...c.diseases, ...contracted];
-  return log;
+      snapshotInfectionResidual(c, dz); // MSRC 16 l.138
+      return false;
+    },
+  });
 }

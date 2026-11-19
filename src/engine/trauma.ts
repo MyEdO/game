@@ -10,7 +10,23 @@
  * defenseModifiers — et ne s'applique qu'aux jets d'arme qui IMPLIQUENT la main blessée (jamais un charMod
  * CC/CT global). Le trauma est enregistré (label+note) même sans effet modélisé.
  */
-import { Combatant, CharKey, CHAR_LABELS, HitLocation, ItemInstance, Trauma, Difficulty, UpkeepDeferTest, Weapon, effectRef, locationLabel, type BodyShape, type ModFamille, type Main } from './types';
+import {
+  Combatant,
+  CharKey,
+  CHAR_KEYS,
+  CHAR_LABELS,
+  HitLocation,
+  ItemInstance,
+  Trauma,
+  Difficulty,
+  UpkeepDeferTest,
+  Weapon,
+  effectRef,
+  locationLabel,
+  type BodyShape,
+  type ModFamille,
+  type Main,
+} from './types';
 import { RNG } from './dice';
 import type { Duration } from './duration';
 import type { CritEscalation } from '../data/criticals';
@@ -32,11 +48,14 @@ import { resolveFormula, applyActiveEffect } from './ops';
 import { removeActiveEffects } from './conditions';
 import { valeurSansTirage, type LectureDeCarac, type Referent } from './formule';
 import traumasJson from '../data/traumas.json';
+import { datasetDe, type EntreeDe } from '../data/datasets';
+import type * as traumasDef from '../data/schemas/defs/traumas';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
+import { isHeld } from './capabilities';
 
-export type TraumaKind = 'dechirure' | 'fracture';
-export type TraumaSeverity = 'mineur' | 'majeur';
+export type TraumaKind = NonNullable<TraumaFiche['kind']>;
+export type TraumaSeverity = NonNullable<TraumaFiche['severity']>;
 
 const LEG: HitLocation[] = ['jambeG', 'jambeD'];
 
@@ -66,59 +85,16 @@ export function plaieDAmputation(location: HitLocation): SequelleNeuve {
 }
 
 /**
- * Règle de COMPTAGE/AGRÉGATION d'une séquelle CUMULATIVE, déclarée sur SON entrée de `traumas.json` —
- * LDB 18 l.247 (dents), l.251 (doigts), l.273 (œil), l.277 (oreille), l.281 (orteils). Le moteur
- * (`permanentAmputations`, `consolidateAmputations`) applique la règle DÉCLARÉE : il n'énumère aucune
- * séquelle par id.
- */
-export interface TraumaCumul {
-  /** Regroupement des occurrences : par Localisation (LDB 18 l.251 « cette main », l.281 orteils — le
-   *  membre reste identifiable à l'écran) ou sur le PORTEUR (l.247 dents, l.273/277 organes pairés).
-   *  La QUANTITÉ perdue, elle, n'est pas ici : elle est portée par la LIGNE de Critique
-   *  (`Amputation.unites`, « Perdez 1d10 dents »). */
-  portee: 'localisation' | 'porteur';
-  /** Ops appliquées PAR PALIER de `taille` unités : leur amplitude (`mod`) est multipliée par le
-   *  nombre de paliers atteints (`floor(total / taille)`). */
-  parPalier?: { taille: number; ops: OpPassive[] };
-  /** Seuil au-delà duquel la séquelle `versTraumaId` s'applique — `remplace` (LDB 18 l.251) retire les
-   *  occurrences comptées, `ajoute` (l.273/277) les conserve. */
-  escalade?: { atLeast: number; versTraumaId: string; mode: 'remplace' | 'ajoute' };
-}
-
-/**
  * Fiche de Traumatisme (registre `traumas.json`, app-owned) : mécanique = `ops` (OpPassive[]), `desc` =
  * texte canon LDB 18 VERBATIM (DISPLAY-ONLY, jamais parsé). Couvre déchirures/fractures par localisation
  * et toutes les séquelles permanentes d'amputation (+ Cécité/Surdité agrégées). `kind`/`severity` portés
  * pour la convalescence à étapes ; `prosthesis` = annulateurs (LDB 73).
  */
-export interface TraumaFiche {
-  id: string;
-  type: 'traumas';
-  label: string;
-  desc: string;
-  ops?: OpPassive[];
-  kind?: TraumaKind;
-  severity?: TraumaSeverity;
-  prosthesis?: Trauma['prosthesis'];
-  /** Séquelle CUMULATIVE : sa règle de comptage/agrégation, en donnée (LDB 18 l.247/251/273/277/281). */
-  cumul?: TraumaCumul;
-  needsSurgery?: boolean;
-  /** Séquelle COSMÉTIQUE (cicatrice) : n'est PAS une Blessure critique comptée (`criticalWounds`) — cf. `Trauma.cosmetic`. */
-  cosmetic?: boolean;
-  /** Séquelle d'AMPUTATION/perte de membre-organe (LDB 18 l.239-285) — tag STABLE distinguant les
-   *  pénalités « qui découlent d'amputations » (LDB 85 l.195, cf. `painlessIgnores`) de toute autre
-   *  pénalité de Blessure critique. Porté par la FICHE (`Trauma` n'a pas de champ propre) — relu via
-   *  `t.traumaId` par `isAmputationTrauma`. */
-  amputation?: boolean;
-  /** Surcharge du `kind` passif (défaut : `traumaOpKind`) — cf. `Trauma.passiveKind`. */
-  passiveKind?: import('./ops').PassiveKind;
-  /** Note MAISON (règle stricte 7) — trace éditable d'un arbitrage d'un point que le RAW laisse au contexte
-   *  (« certains Tests sociaux » / « en fonction du contexte »). DISPLAY/DOC only, jamais lu pour la mécanique. */
-  maison?: string;
-}
+export type TraumaFiche = EntreeDe<typeof traumasDef>;
 
-const FICHES = traumasJson as TraumaFiche[];
-const ficheById = indexParId('traumas', FICHES);
+/** Les fiches de `traumas.json`, lues ici seul : le seam (`data/overrides.ts`) les importe. */
+export const TRAUMA_FICHES = datasetDe<typeof traumasDef>(traumasJson);
+const ficheById = indexParId('traumas', TRAUMA_FICHES);
 
 /** Fiche de Traumatisme par id STABLE (`traumas.json`). Lève si l'id est inconnu (réf cassée = bug data). */
 export function traumaFicheById(id: string): TraumaFiche {
@@ -421,8 +397,8 @@ export function amputationCombatPenalty(c: Combatant, weapon: Weapon): number {
   return penalty;
 }
 
-/** Fiches à règle de cumul déclarée (`TraumaCumul`) — l'ordre du registre fixe l'ordre de consolidation. */
-const cumulFiches = memoParVersion('traumas', () => FICHES.filter((f) => f.cumul));
+/** Fiches à règle de cumul déclarée (`TraumaFiche['cumul']`) — l'ordre du registre fixe l'ordre de consolidation. */
+const cumulFiches = memoParVersion('traumas', () => TRAUMA_FICHES.filter((f) => f.cumul));
 const IS_CUMUL = (t: Trauma): boolean => cumulFiches().some((f) => f.id === t.traumaId);
 
 /** Séquelle cumulative agrégée : `total` unités à `loc`, ops recalculées ; le libellé porte la
@@ -975,15 +951,15 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   }
   const faim = { kind: 'faim' as const, src: RULE_REF['faim-et-soif'] };
   if (c.hunger && modSurvives(c, 'faim')) {
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of hungerCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
+    for (const key of CHAR_KEYS) for (const mod of hungerCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
   }
   if (c.thirst && modSurvives(c, 'faim')) { // Soif (LDB 18 l.340) : même privation (kind `faim` — « Plus besoin de manger/boire »)
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
+    for (const key of CHAR_KEYS) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
   }
   // Ivresse (LDB 09 l.475) : kind `ivresse`. Gaté à la
   // SOURCE par la Détermination : « ignorer les modificateurs négatifs de l'ivresse » (flag `drunkIgnore`).
   if (c.drunk && !hasActiveFlag(c, 'drunkIgnore')) {
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, kind: 'ivresse', label: tr('tra.kindIvresse'), src: { category: 'skills', id: 'resistance-a-l-alcool' } });
+    for (const key of CHAR_KEYS) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, kind: 'ivresse', label: tr('tra.kindIvresse'), src: { category: 'skills', id: 'resistance-a-l-alcool' } });
   }
   // États (LDB 16) : leur `passive: OpPassive[]` (pénalité de Test → `testMod`, bonus à l'attaquant →
   // `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, LDB 16 l.13).
@@ -1015,8 +991,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   // (skillMod des Bésicles…) émis kind 'intrinseque' — comme les mutations. Les objets RANGÉS (inside) ne
   // comptent pas (ni equipped ni tenus). Lu par `passiveSkillSum` → `testValue`.
   for (const it of c.items ?? []) {
-    const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
-    if (!held || !it.trappingId) continue;
+    if (!isHeld(c, it) || !it.trappingId) continue;
     for (const op of it.passive ?? []) out.push({ op, kind: 'intrinseque', src: { category: 'trappings', id: it.trappingId }, label: it.label });
   }
   // Traits à modificateur de PROFIL appliqués en DIRECT (LDB 85 : Élite/Coriace/Brutal/Rapide… facultatifs,

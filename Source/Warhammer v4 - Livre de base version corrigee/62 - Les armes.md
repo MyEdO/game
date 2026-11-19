@@ -1,6 +1,6 @@
 *Pages PDF 295-300*
 
-# **LES ARMES**
+# <span id="page-294-0" data-folio="293"></span>**LES ARMES**
 
 Les armes utilisées à travers l'Empire varient en fonction des préférences provinciales, des obligations religieuses, de l'inclination individuelle, et des vieilles traditions. Vous trouverez ici une sélection des armes de Corps à corps et à distance les plus couramment utilisées, présentées en utilisant le schéma suivant.
 

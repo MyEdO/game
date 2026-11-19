@@ -11,7 +11,9 @@ import { emptyScene } from './scene';
 import { findSpellById, type SpellData } from '../../data';
 import { isDispellableSpell } from '../../engine/magic';
 import type { Combatant, Weapon } from '../../engine/types';
+import type { GameOp } from '../../engine/ops';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
@@ -37,11 +39,11 @@ function foeAt(id: string, x: number, y: number, opts: Partial<Combatant> = {}):
 }
 
 function spellData(over: Partial<SpellData> = {}): SpellData {
-  return { id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over } as SpellData;
+  return { id: idDeFixture('spell', 'sp'), type: 'spells', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over };
 }
-const doOps = (ops: unknown[], on: 'target' | 'caster' = 'target') => ({ kind: 'effet', effet: { type: 'ops', on, ops } }) as unknown as SpellData['effects'];
+const doOps = (ops: GameOp[], on: 'target' | 'caster' = 'target'): SpellData['effects'] => ({ kind: 'effet', effet: { type: 'ops', on, ops } });
 function castable(over: Partial<CastableSpell> & { id?: string } = {}): CastableSpell {
-  const data = over.data ?? spellData({ id: over.id ?? 'sp' });
+  const data = over.data ?? spellData({ id: idDeFixture('spell', over.id ?? 'sp') });
   return { id: over.id ?? data.id, data, cn: over.cn ?? data.cn ?? 0, range: over.range ?? null, shape: over.shape ?? 'single', landProb: over.landProb ?? 1, focusState: over.focusState ?? 'none', active: over.active ?? false };
 }
 
@@ -101,7 +103,7 @@ describe('chooseEnemyAction — invocation : Unicité (plus d’outnumberedFacto
 // 3. SOIN / repli ATTAQUE — l'esprit conservé (un soutien inutile perd face à l'attaque)
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 describe('chooseEnemyAction — soin & anti-spam (op-driven)', () => {
-  const healSpell = castable({ id: 'soin', shape: 'single', range: 20, data: spellData({ id: 'soin', effects: doOps([{ op: 'heal', amount: 6 }]) }) });
+  const healSpell = castable({ id: 'soin', shape: 'single', range: 20, data: spellData({ id: idDeFixture('spell', 'soin'), effects: doOps([{ op: 'heal', amount: 6 }]) }) });
 
   it('SOIGNE l’allié le plus BAS (PB manquants) et PAS un allié plein', () => {
     const e = caster('e', { x: 5, y: 5 }, { weapons: [] });
@@ -123,7 +125,7 @@ describe('chooseEnemyAction — soin & anti-spam (op-driven)', () => {
 
   it('Unicité buff : buff déjà ACTIF → ne réapplique pas → attaque', () => {
     const e = caster('e', { x: 5, y: 5 }, { weapons: [MELEE] });
-    const buffSelf = castable({ id: 'benediction', shape: 'self', range: 0, active: true, data: spellData({ id: 'benediction', effects: doOps([{ op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 }], 'caster') }) });
+    const buffSelf = castable({ id: 'benediction', shape: 'self', range: 0, active: true, data: spellData({ id: idDeFixture('spell', 'benediction'), effects: doOps([{ op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 }], 'caster') }) });
     const h = foeAt('h', 5, 6);
     expect(chooseEnemyAction(input(e, [h], { spells: [buffSelf] }))).toEqual({ kind: 'melee', targetId: 'h' });
   });

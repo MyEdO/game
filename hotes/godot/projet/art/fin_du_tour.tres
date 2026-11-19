@@ -1,0 +1,72 @@
+[gd_resource type="Theme" load_steps=11 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="1_rubriques"]
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="2_cadre"]
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille"]
+script = ExtResource("2_cadre")
+cadre = "pastille"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_survol"]
+script = ExtResource("2_cadre")
+cadre = "pastille-survol"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_presse"]
+script = ExtResource("2_cadre")
+cadre = "pastille-presse"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_ferme"]
+script = ExtResource("2_cadre")
+cadre = "pastille-ferme"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fin"]
+script = ExtResource("2_cadre")
+cadre = "bouton-rond"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fin_survol"]
+script = ExtResource("2_cadre")
+cadre = "bouton-rond-survol"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fin_presse"]
+script = ExtResource("2_cadre")
+cadre = "bouton-rond-presse"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fin_ferme"]
+script = ExtResource("2_cadre")
+cadre = "bouton-rond-ferme"
+
+[resource]
+Button/colors/icon_normal_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/icon_focus_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/icon_hover_color = Color(0.937, 0.847, 0.569, 1)
+Button/colors/icon_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/icon_hover_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/icon_disabled_color = Color(0.42, 0.4, 0.37, 1)
+Button/constants/icon_max_width = 22
+Button/styles/normal = SubResource("Pastille")
+Button/styles/hover = SubResource("Pastille_survol")
+Button/styles/pressed = SubResource("Pastille_presse")
+Button/styles/hover_pressed = SubResource("Pastille_presse")
+Button/styles/disabled = SubResource("Pastille_ferme")
+neutre/base_type = &"Button"
+alerte/base_type = &"Button"
+alerte/styles/normal = SubResource("Pastille_survol")
+Fin/base_type = &"Button"
+Fin/colors/icon_normal_color = Color(0.953, 0.902, 0.784, 1)
+Fin/colors/icon_focus_color = Color(0.953, 0.902, 0.784, 1)
+Fin/colors/icon_hover_color = Color(0.953, 0.902, 0.784, 1)
+Fin/colors/icon_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Fin/colors/icon_hover_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Fin/constants/icon_max_width = 36
+Fin/styles/normal = SubResource("Fin")
+Fin/styles/hover = SubResource("Fin_survol")
+Fin/styles/pressed = SubResource("Fin_presse")
+Fin/styles/hover_pressed = SubResource("Fin_presse")
+Fin/styles/disabled = SubResource("Fin_ferme")
+NomDeFin/base_type = &"Label"
+NomDeFin/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+NomDeFin/colors/font_shadow_color = Color(0, 0, 0, 1)
+NomDeFin/constants/shadow_offset_x = 1
+NomDeFin/constants/shadow_offset_y = 1
+NomDeFin/font_sizes/font_size = 13
+NomDeFin/fonts/font = ExtResource("1_rubriques")

@@ -20,7 +20,27 @@
 //   4. Échap annule ; re-clic de la case annule ;
 //   5. un clic-ennemi SANS intention reste une attaque normale (non-régression).
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { DOSSIER_CAPTURES, validerDossierCaptures, appelerWfrp, geste, clic, SURFACE_CARTE, openApp, evaluate, sleep, shot, cliquerPremierOffert, consoleGuard, frapperTouche, cliquerAction, resoudreModales, piloterCombat, finDuTour, waitFor, ATTENTE_ECHUE } from './lib.mjs';
+import {
+  DOSSIER_CAPTURES,
+  validerDossierCaptures,
+  appelerWfrp,
+  geste,
+  clic,
+  SURFACE_CARTE,
+  openApp,
+  evaluate,
+  sleep,
+  shot,
+  cliquerPremierOffert,
+  consoleGuard,
+  frapperTouche,
+  cliquerAction,
+  resoudreModales,
+  piloterCombat,
+  finDuTour,
+  waitFor,
+  ATTENTE_ECHUE,
+} from './lib.mjs';
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs';
 import { demarrer } from './setup.mjs';
 import { chebyshev } from '../../src/engine/grid.ts';

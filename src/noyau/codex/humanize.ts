@@ -17,7 +17,14 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
-import { armourBypassCategorieSchema, loseTurnWhatSchema, ressourceDeDestinSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  armourBypassCategorieSchema,
+  loseTurnWhatSchema,
+  ressourceDeDestinSchema,
+  senseSchema,
+  tablesDeCiblesSchema,
+  zoneShapeSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, estPoseDEtat, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
@@ -27,9 +34,9 @@ import { giveTrappingLabel } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
 import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
-import { formatMoney, fromBrass } from '../../engine/money';
+import { formatMoney, fromBrass, libelleDuStatut } from '../../engine/money';
 import { formatDice, formatEffetSigne } from '../../engine/dice';
-import { seaWeatherLabel } from '../../engine/seaWeather';
+import { axesImposes, seaWeatherLabel } from '../../engine/seaWeather';
 import { shipLocationLabel } from '../../engine/shipCritical';
 import { findSeaHazard, findWhirlpool } from '../../engine/seaPerils';
 import { rule, ruleDef } from '../../engine/policy';
@@ -324,6 +331,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     }
     case 'casterChaosDomain': return t(neg ? 'codex.c.casterChaosDomain.non' : 'codex.c.casterChaosDomain', { dieu: refLabel('gods', { id: c.is }) });
     case 'visiblePassive': return t(neg ? 'codex.c.visiblePassive.non' : 'codex.c.visiblePassive', { qui: who(c.who) });
+    case 'navire': return t(neg ? 'codex.c.navire.non' : 'codex.c.navire', { qui: who(c.who) });
     case 'skill': {
       const sujet = sujetDuGroupe(c.who);
       return `${t(neg ? 'codex.c.skill.non' : 'codex.c.skill', { sujet, nom: refLabel('skills', { id: c.id, spec: c.spec }) })}${c.advances ? ` (≥${c.advances})` : ''}`;
@@ -331,7 +339,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     case 'talent': return t(neg ? 'codex.c.talent.non' : 'codex.c.talent', { sujet: sujetDuGroupe(c.who), nom: refLabel('talents', { id: c.id, spec: c.spec }) });
     case 'career': return t(neg ? 'codex.c.career.non' : 'codex.c.career', { sujet: sujetDuGroupe(c.who), nom: refLabel('careers', { id: c.id }) });
     case 'species': return t(neg ? 'codex.c.species.non' : 'codex.c.species', { sujet: sujetDuGroupe(c.who), nom: refLabel('races', { id: c.id }) });
-    case 'status': return t(neg ? 'codex.c.status.non' : 'codex.c.status', { sujet: sujetDuGroupe(c.who), statut: c.atLeast });
+    case 'status': return t(neg ? 'codex.c.status.non' : 'codex.c.status', { sujet: sujetDuGroupe(c.who), statut: libelleDuStatut(c.atLeast) });
     // De Morgan : NON(A ET B) = (NON A) OU (NON B) ; NON(A OU B) = (NON A) ET (NON B).
     case 'all': return c.of.length ? dedupSubjects(c.of.map((x) => humanizeCondition(x, etats, neg))).join(t(neg ? 'codex.ou' : 'codex.et')) : t(neg ? 'codex.c.jamais' : 'codex.c.toujours');
     case 'any': return c.of.length ? dedupSubjects(c.of.map((x) => humanizeCondition(x, etats, neg))).join(t(neg ? 'codex.et' : 'codex.ou')) : t(neg ? 'codex.c.toujours' : 'codex.c.jamais');
@@ -369,7 +377,10 @@ function humanizeFall(tableId: string): string {
   if (!table) return t('codex.chute.inconnue', { table: tableId });
   const stations = [...new Set(table.bandes.flatMap((b) => Object.keys(b.hauteurs)))];
   const colonnes = stations.map((id) => {
-    const parBande = table.bandes.map((b) => (b.hauteurs[id] === undefined ? '—' : `${humanizeFormula(b.hauteurs[id])}`));
+    const parBande = table.bandes.map((b) => {
+      const hauteur = Object.entries(b.hauteurs).find(([station]) => station === id)?.[1];
+      return hauteur === undefined ? '—' : humanizeFormula(hauteur);
+    });
     return `${refLabel('shipStations', { id })} ${parBande.join('/')} m`;
   });
   return t('codex.chute', { table: table.label, colonnes: colonnes.join(', ') });
@@ -541,7 +552,7 @@ export function humanizeOp(o: GameOp): string {
     case 'rollThreshold': return t('codex.op.seuilDeJet', { faces: o.sides });
     case 'rollTable': return t('codex.op.jetSurTable', {
       table: 'tableId' in o ? t('codex.op.jetSurTable.table', { table: findEffectTableById(o.tableId).label }) : t('codex.op.jetSurTable.uneTable'),
-      de: 'tableId' in o ? formatDice(effectTableDie(o.tableId)) : o.die,
+      de: formatDice('tableId' in o ? effectTableDie(o.tableId) : o.die),
       negatifs: o.addNegativeSL ? t('codex.op.jetSurTable.negatifs') : '',
       extra: o.extraRollsPerStep ? t('codex.op.jetSurTable.supplement', { n: o.extraRollsPerStep }) : '',
     }) + ('entries' in o ? rangeesLisibles(o) : '');
@@ -593,7 +604,7 @@ export function humanizeOp(o: GameOp): string {
     case 'critOnRoll': return t('codex.op.critiqueSurJet');
     case 'spendAdvantage': return o.amount == null ? t('codex.op.depenseDAvantage.tout') : t('codex.op.depenseDAvantage', { n: o.amount });
     case 'light': return t('codex.op.lumiere', { n: o.radiusM });
-    case 'intoxicate': return t('codex.op.ivresse');
+    case 'intoxicate': return o.tantQuIvre?.length ? t('codex.op.ivresse.effet', { ops: o.tantQuIvre.map(humanizeOp).join(' ; ') }) : t('codex.op.ivresse');
     case 'narrative': return o.nombre === undefined ? o.text : t('codex.op.nombreNarratif', { text: o.text, n: humanizeFormula(o.nombre) });
     case 'shipMorale': return t('codex.op.moralDEquipage', { delta: formatEffetSigne(o.delta) });
     case 'manann': return o.factorId !== undefined
@@ -612,7 +623,7 @@ export function humanizeOp(o: GameOp): string {
       duree: o.jusqua === 'carenage' ? t('eff.jusquAuCarenage') : o.jusqua === 'evenementDeBord' ? t('eff.jusquAuProchainEvenement') : t('codex.op.pendantJours', { n: humanizeFormula(o.jusqua.jours) }),
     });
     case 'meteoImposee': return t('codex.op.meteoImposee', {
-      meteo: [...(o.meteo ? [seaWeatherLabel(o.meteo)] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
+      meteo: [...(o.meteo ? [seaWeatherLabel(axesImposes(o.meteo))] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
       n: humanizeFormula(o.jours),
     });
     case 'cargaison': return o.perteAuDechargement !== undefined

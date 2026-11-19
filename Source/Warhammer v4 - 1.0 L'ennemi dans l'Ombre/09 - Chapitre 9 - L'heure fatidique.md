@@ -102,7 +102,7 @@ Vous devriez faire comprendre aux joueurs que toutes les preuves indiquent que c
 
 Si les Personnages insistent pour rester et faire face au Guet, ils seront arrêtés et emprisonnés dans la caserne du Guet (voir page 92) en attendant leur procès. Personne ne croira la vérité, et lorsque le moment sera venu, ils seront reconnus coupables du meurtre de Magirius, et condamnés à être pendus. En supposant que Bögenhafen existe toujours à ce moment-là, bien entendu.
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 ## **Pris au piège !**
 
@@ -296,7 +296,7 @@ La fosse s'élargit lentement à raison d'environ 3 mètres par minutes, jusqu'�
 
 Lentement , un être ailé colossal, enveloppé d'un feu bleu prend forme au sommet de la fontaine de feu rose du Chaos. Ses bras sont incroyablement longs, et ses deux têtes d'oiseaux hurlent toutes deux comme un chœur d'âmes damnées. C'est l'aspect qu'a choisi l'un des démons majeurs envoyés par le dieu
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 Tzeentch pour se manifester dans le Royaume des Mortels. Ses bras, couverts d'yeux jaunes boursouflés, se tendent encore et encore vers les rues, ramassant par poignées des gens en fuite avant de les enfourner dans ses deux gueules affamées et béantes.
 

@@ -23,7 +23,6 @@ import { condCtx } from './bourseFlow';
 import { buildActorView } from '../engine/actorView';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
 import { openSkillTest, runFlow, applyLeafOps, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
-import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { battleRng } from './battleRng';
 import type { Get, Set as SetFn } from './flowTypes';
@@ -56,7 +55,6 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
         // identité sur les effets fondus dans l'arme (`stampSource`, engine/ops) — sans elle, le
         // Test qu'il exige nommerait l'ÉPÉE au lieu du poison (#1262 V2 L6d).
         ...(source ? { source } : {}),
-        onCorruption: (n, align) => gainCorruption(get, set, hero, n, align),
       });
       // Feuille partie à la PORTE (#1508) : le reste de la pile est SA suite, exactement comme
       // pour un nœud `test` ci-dessous — sans quoi la fin du produit s'appliquerait par-dessus un

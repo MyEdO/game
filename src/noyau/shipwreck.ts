@@ -16,6 +16,7 @@
  * carte le sait) ; le navire et sa cargaison sont perdus ; si personne ne survit, `checkPartyWiped` présente
  * la défaite.
  */
+import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { garanti } from '../lib/garanti';
@@ -149,7 +150,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
       const value = testValue(h, { skill: { id: 'natation' }, characteristic: 'force' });
       const tr = rollSansPilote(get, h, value, diff, rng);
       lines.push(traceLineOf({
-        who: h.label, label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
+        who: nomDe(h), label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
         // LDB 18 l.344
         issue: tr.success ? t('wreck.issueSwims') : t('wreck.issueDrowns'),
       }));

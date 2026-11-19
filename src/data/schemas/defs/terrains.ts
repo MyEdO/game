@@ -1,10 +1,10 @@
 /**
  * Schéma de `terrains.json` — LE dataset des sols de la grille (#1690), consommé comme
- * `TerrainDef[]` (`src/data/terrains.types.ts`). 25 entrées, UNE forme, aucun discriminant : tous
+ * `TerrainDef[]` (`EntreeDe`, `src/data/index.ts`). 25 entrées, UNE forme, aucun discriminant : tous
  * les terrains portent les mêmes clés requises et se distinguent par leurs VALEURS.
  *
  * RÈGLE et RENDU dans la MÊME entrée : `walkable`/`priority`/`opaque`/`built` sont lus par la
- * walkability, le raccord d'arêtes et la Ligne de Vue ; `swatch`/`stops`/`detail`/`overlayProp`/
+ * walkability, le raccord d'arêtes et la Ligne de Vue ; `swatch`/`stops`/`detail`/`overlayProps`/
  * `solidHeightM` par les deux backends de rendu. Les scinder ferait deux catalogues à tenir
  * synchrones pour UN concept.
  *
@@ -21,7 +21,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { GLYPHES_RESERVES, glyphesReservesEnClair } from '../grammaire/carte-ascii';
 import { couleurHexSchema, detailRecipeSchema } from '../grammaire/valeurs';
-import { ref } from '../grammaire/ref';
+import { ref, refs } from '../grammaire/ref';
 
 export const file = 'terrains.json';
 export const famille = 'entite';
@@ -57,7 +57,7 @@ const doc = document(
       message: 'une rampe porte au moins DEUX arrêts (un seul est un aplat — c’est `swatch`)',
     }),
     detail: detailRecipeSchema.optional(),
-    overlayProp: ref('prop').optional(),
+    overlayProps: refs('prop', { min: 1 }).optional(),
     solidHeightM: z.number().positive().optional(),
     matiere: ref('material', undefined, 'relief').optional(),
   },
@@ -90,9 +90,9 @@ const doc = document(
       hint: 'Rampe peinte par le rendu affine : offset en pourcentage → couleur `#rrggbb`',
     },
     detail: { label: 'Recette de détail' },
-    overlayProp: {
-      label: 'Décor posé sur chaque tuile',
-      hint: 'Décor en billboard répété sur chaque case du terrain (ex. l’arbre du sous-bois) — présentation seule',
+    overlayProps: {
+      label: 'Décors posés sur les tuiles',
+      hint: 'Décors volumiques dont chaque case du terrain reçoit un seul, avec son orientation, choisis par la position de la case (ex. les essences du sous-bois) — présentation seule',
     },
     solidHeightM: {
       label: 'Hauteur du bloc plein',

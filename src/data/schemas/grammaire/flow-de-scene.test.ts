@@ -62,7 +62,7 @@ describe.each([
   });
 
   it('POSITIF — un Flow de scène entier passe `sceneFlowSchema`, celui-là même que `flowSchema` refuse', () => {
-    const flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } }] };
+    const flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'startCombat', encounter: { id: 'enc-1' } } }] };
     expect(sceneFlowSchema.safeParse(flow).success).toBe(true);
     expect(flowSchema.safeParse(flow).success).toBe(false);
   });
@@ -76,7 +76,7 @@ describe.each([
   });
 
   it('un Flow de scène entier est donc REFUSÉ par `flowSchema`, sur le `type` de sa feuille', () => {
-    const res = flowSchema.safeParse({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } }] });
+    const res = flowSchema.safeParse({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'startCombat', encounter: { id: 'enc-1' } } }] });
     expect(res.success).toBe(false);
     if (!res.success) expect(res.error.issues[0].path.join('.')).toBe('etapes.0.effet.type');
   });
@@ -103,7 +103,7 @@ describe('grammaire — le nœud `test` des DEUX instances du Flow vient de la m
   const noeudScene = {
     kind: 'test',
     test: jet,
-    reussite: { kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } },
+    reussite: { kind: 'effet', effet: { type: 'startCombat', encounter: { id: 'enc-1' } } },
     echec: { kind: 'sequence', etapes: [] },
   };
 

@@ -7,9 +7,9 @@
  * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
-import type { RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
+import type { QualiteDeRepos, RectDeCases, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import type { FlowDeScene, TestDeScene } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
 // optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment par `z.infer`. Import de TYPE
 // seul — aucun cycle runtime.
@@ -17,7 +17,7 @@ import type { z } from 'zod';
 import type { InventaireDAuteur, OptionalDeScene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type {
-  ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
+  ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
   facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
@@ -60,7 +60,7 @@ import type { SeatAssignments } from './seating';
 export interface ActionAuthoree {
   id: string;
   label?: string;
-  flow: Flow;
+  flow: FlowDeScene;
   consume?: boolean;
   unique?: boolean;
   /** Ce que l'action coûte à l'horloge, en MINUTES (« tout est horodaté »). Absent = `TIME_COST.search`,
@@ -131,8 +131,9 @@ export interface SceneEntity {
    *  résolue au bord du rendu, hérité du type de prop s'il n'est pas posé ici ; absent = `flamme`. */
   light?: { radiusM: number; tone?: string };
   /** Marchand (#2) : ce PNJ ouvre un panneau d'achat/vente (référence un archétype de `MERCHANT_ARCHETYPES`, `data/index.ts`).
-   *  `settlement`/`resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
-   *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat). */
+   *  `resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
+   *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat) ; `settlement` surcharge la colonne de
+   *  Disponibilité du lieu (`colonneDeDisponibiliteDuMarchand`, `noyau/worldMap.ts`), seule source d'un marchand hors de tout lieu. */
   /** OVERRIDES par-entité des 3 règles maison Marché (LDB 59/60, `marche-guildes`/`marche-mode`/
    *  `marche-tenir-comptes`) — mêmes domaines de valeurs que la règle globale correspondante. Absent =
    *  HÉRITAGE du global (`engine/policy` `rule(...)`), jamais un 3ᵉ état ambigu. Lus par `marketRule`
@@ -170,9 +171,9 @@ export interface SceneEntity {
     spells?: string[];
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
     randomChars?: boolean;
-    /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées par-dessus celles du bestiaire au spawn.
+    /** Compétences d'AUTEUR ajoutées (réfs `SkillRefDesignee`) — fusionnées par-dessus celles du bestiaire au spawn.
      *  Qualifie p.ex. un servant de pièce pour le Groupe de Projectiles APPROPRIÉ à son engin (AA 10 l.230). */
-    skills?: import('../../data').SkillRef[];
+    skills?: import('../../data').SkillRefDesignee[];
     /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. `false`/absent = PNJ visible
      *  qui devient hostile au déclenchement. */
     hiddenUntilCombat?: boolean;
@@ -193,7 +194,6 @@ export type AuMoinsUnPorteurDeFiche = {
 export const idDuCorps = (ent: Pick<SceneEntity, 'decor' | 'creature' | 'vehicule' | 'engin'>): string | undefined =>
   (ent.decor ?? ent.creature ?? ent.vehicule ?? ent.engin)?.id;
 
-export type ArchitectureRect = z.infer<typeof architectureRectSchema>;
 export type ArchitectureEdgeRef = z.infer<typeof architectureEdgeRefSchema>;
 export type ArchitecturePart = z.infer<typeof architecturePartSchema>;
 export type ArchitectureStorey = z.infer<typeof architectureStoreySchema>;
@@ -213,10 +213,10 @@ export type Dialogue = z.infer<typeof dialogueSchema>;
  *  (jamais un nom en clair stocké, #669 ; son nom se lit par `nomDEntite`). `undefined` sans speaker. */
 export function speakerEntity(
   entities: readonly SceneEntity[],
-  node: { speakerId?: string },
+  node: Pick<DialogueNode, 'speakerId'>,
   dialogue: { speakerId?: string }
 ): SceneEntity | undefined {
-  const id = node.speakerId ?? dialogue.speakerId;
+  const id = node.speakerId?.id ?? dialogue.speakerId;
   return id ? entities.find((e) => e.id === id) : undefined;
 }
 
@@ -243,10 +243,9 @@ export type ZoneArea = z.infer<typeof zoneAreaSchema>;
  *  Tous les champs mécaniques (`onCross`/`perRound`/`crossTest`/`barrier`/`blocksLoS`) sont OPTIONNELS —
  *  une zone `{id,label,area}` sans aucun d'eux est DESCRIPTIVE (nom de pièce, #782) : inerte au combat,
  *  affichée seulement (`isDescriptiveZone`). */
-/** RESTE MANUSCRIT : `crossTest` NOMME ici le type moteur `FlowTest` (`engine/flowCore`), là où le
- *  schéma compose `flowTestSchema`, nœud-FRONTIÈRE du vocabulaire partagé ; `tiles` NOMME de même
- *  `Pt` (`noyau/monde/path`), là où le schéma compose `ptSchema` — divergence NOMINALE seule, assignabilité
- *  mutuelle intacte dans les deux sens. */
+/** RESTE MANUSCRIT : `crossTest` est la sortie du Test de scène (`TestDeScene`, `testDeSceneSchema`) ;
+ *  `tiles` NOMME `Pt` (`noyau/monde/path`), là où le schéma compose `ptSchema` — divergence NOMINALE seule,
+ *  assignabilité mutuelle intacte dans les deux sens. */
 export interface SceneEffectZone {
   id: string;
   label: string;
@@ -263,7 +262,7 @@ export interface SceneEffectZone {
   perRound?: import('../../engine/ops').GameOp[];
   /** GATE de Test à la traversée (cf. `BattleZone.crossTest`, zones.ts) — même sémantique pour une
    *  zone authorée (piège/hasard de scène). */
-  crossTest?: import('../../engine/flowCore').FlowTest;
+  crossTest?: TestDeScene;
   /** BARRIÈRE infranchissable : aucune créature ne peut PÉNÉTRER dans l'aire (mur magique, cercle de
    *  ward). `blockGroups` vide/absent = bloque TOUT le monde ; sinon ne bloque que les créatures dont
    *  un Groupe correspond (ids, ex. `['demon', 'mort-vivant']` = barrière sacrée, profanes tenus à l'écart —
@@ -310,6 +309,9 @@ export interface Scene {
   /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
    *  (jour/nuit = horloge). Absent = extérieur. */
   ambiance?: z.infer<typeof ambianceSchema>;
+  /** Rectangle de cases où se joue la scène, contenu dans `dimensions` ; absent = toute la grille. La grille reste le
+   *  monde bâti et rendu ; le jeu se borne à ce rectangle (`rectJouable`, `dansLaZoneJouable`). #4392 */
+  zoneJouable?: RectDeCases;
   /** Classification écologique de la Scène (éditable) — lue par les attributs de Domaine liés à
    *  l'environnement (LDB 48 l.690 : la Vie/Ghyran gagne +10 à Incanter/Focaliser en zone rurale ou
    *  sauvage). Absent = non spécifié (aucun bonus d'environnement). */
@@ -327,13 +329,13 @@ export interface Scene {
    *  gagnent des ombres cohérentes entre elles. Posé par `setNorthDeg` (qui le ramène dans `[0,360[`). */
   northDeg?: number;
   /** OFFRE DE REPOS de la scène (bouton de Repos en exploration → modale de Repos) : lieux disponibles
-   *  (auberge/chez soi/camp, combinables) + qualité (piètre = ½ prix, nourriture à risque).
+   *  (auberge/chez soi/camp, combinables) + qualité (`QUALITE_DU_REPOS`, LDB 66 l.5).
    *  Absent = camp seulement ; tout à false = repos interdit ici. La météo ci-dessus donne la
    *  sévérité d'Exposition d'une nuit dehors (engine/exposure). */
-  rest?: { auberge?: boolean; maison?: boolean; camp?: boolean; quality?: 'normale' | 'pietre' };
+  rest?: { auberge?: boolean; maison?: boolean; camp?: boolean; quality?: QualiteDeRepos };
   /** Offre de repos PAR ZONE (prioritaire sur `rest` là où le groupe se tient) — « paramétrable
    *  sur la zone » : le quartier de l'auberge offre des chambres, la place du marché non. */
-  restZones?: { rect: { x: number; y: number; w: number; h: number; z?: number }; places: { auberge?: boolean; maison?: boolean; camp?: boolean }; quality?: 'normale' | 'pietre' }[];
+  restZones?: { rect: { x: number; y: number; w: number; h: number; z?: number }; places: { auberge?: boolean; maison?: boolean; camp?: boolean }; quality?: QualiteDeRepos }[];
   /** ZONES D'EFFET posées sur la carte (éditeur) — PIÈGES / hasards / brasiers : tout combattant qui
    *  TRAVERSE (`onCross` : pic, flaque acide, glyphe) ou STATIONNE (`perRound` : nuage de poison,
    *  brasier) y subit l'effet (Dégâts/soin/États en `GameOp[]`). Converties en `BattleZone`
@@ -393,12 +395,35 @@ export interface Scene {
   groups?: string[];
 }
 
-/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : sa projection et
- *  les dépendances de son mémo en sont tirées. */
-export const CHAMPS_DU_VOLUME = ['dimensions', 'metresPerTile', 'reliefDefaults', 'layers', 'walls', 'entities', 'flags'] as const;
+/** Les champs de la scène que lisent ses audits d'auteur spatiaux — défauts de plan (`scenePlanDefects`) et pièces
+ *  inatteignables (`unreachableDescriptiveZones`) : marche, relief, murs, décors, drapeaux, zones d'effet et zone
+ *  jouable (la marche s'y borne, `isWalkable`). Les dépendances de leurs mémos en sont tirées (`champsDuPlan`). */
+export const CHAMPS_DU_PLAN = [
+  'dimensions', 'metresPerTile', 'reliefDefaults', 'layers', 'walls', 'entities', 'flags', 'effectZones', 'zoneJouable',
+] as const satisfies readonly (keyof Scene)[];
+
+/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : ceux du plan, et
+ *  l'architecture et la toiture d'où se posent les ornements du bâti (`ornementsDuBati`). Le type de sa vue
+ *  (`SceneDuVolume`), sa projection et les dépendances de son mémo en sont tirés. */
+export const CHAMPS_DU_VOLUME = [...CHAMPS_DU_PLAN, 'architecture', 'roofDefaults'] as const;
+
+/** Les champs de la scène que lisent ses nappes de toit (`toitsDuMonde`) et ses couronnes (`couronnesDuMonde`,
+ *  `src/noyau/monde/volume/volume.ts`) : le type de leur vue (`SceneDesToits`, `SceneDesCouronnes`) et les dépendances
+ *  de leurs mémos en sont tirés. */
+export const CHAMPS_DES_TOITS = ['architecture', 'dimensions', 'effectZones', 'layers', 'metresPerTile', 'roofDefaults', 'walls'] as const satisfies readonly (keyof Scene)[];
+export const CHAMPS_DES_COURONNES = ['architecture', 'dimensions', 'entities', 'layers', 'metresPerTile', 'walls'] as const satisfies readonly (keyof Scene)[];
 
 /** La scène vue par son volume (`CHAMPS_DU_VOLUME`). */
 export type SceneDuVolume = Pick<Scene, (typeof CHAMPS_DU_VOLUME)[number]>;
+
+/** La scène vue par ses nappes de toit (`CHAMPS_DES_TOITS`). */
+export type SceneDesToits = Pick<Scene, (typeof CHAMPS_DES_TOITS)[number]>;
+
+/** La scène vue par ses couronnes (`CHAMPS_DES_COURONNES`). */
+export type SceneDesCouronnes = Pick<Scene, (typeof CHAMPS_DES_COURONNES)[number]>;
+
+/** Les valeurs des `CHAMPS_DU_PLAN` de `scene`, dans leur ordre : une écriture qui n'en touche aucun les rend identiques. */
+export const champsDuPlan = (scene: Scene): readonly unknown[] => CHAMPS_DU_PLAN.map((c) => scene[c]);
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
 
@@ -421,7 +446,7 @@ export function isMerScene(scene: { metresPerTile?: number } | null | undefined)
 }
 
 /** Grille de tuiles d'une couche (défaut z=0 = base). Repli sur la 1ʳᵉ couche si `z` absent. */
-export function layerTiles(scene: SceneDuVolume, z = 0): Terrain[] {
+export function layerTiles(scene: Pick<Scene, 'dimensions' | 'layers'>, z = 0): Terrain[] {
   return (scene.layers.find((l) => l.z === z) ?? scene.layers[0]).tiles;
 }
 
@@ -438,7 +463,7 @@ export function startOf(scene: Scene): Pt | null {
   return e.z ? { x: e.pos.x, y: e.pos.y, z: e.z } : { x: e.pos.x, y: e.pos.y };
 }
 
-export function tileAt(scene: SceneDuVolume, x: number, y: number, z = 0): Terrain {
+export function tileAt(scene: Pick<Scene, 'dimensions' | 'layers'>, x: number, y: number, z = 0): Terrain {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return terrainHorsGrille();
   // Aucun repli de tuile : le schéma exige `tiles.length === w×h` sur chaque couche (#1789), donc
   // toute case DANS la grille porte son terrain.
@@ -448,10 +473,22 @@ export function tileAt(scene: SceneDuVolume, x: number, y: number, z = 0): Terra
 /** Hauteur RÉELLE (mètres) de la surface de la case (x,y) sur la couche `z` : >0 surélevée, <0 en
  *  contrebas. Hors-grille ou sans tableau `height` → 0. Repli sur la 1ʳᵉ couche si `z` absent, comme
  *  `tileAt`. PORTEUSE : pilote rampe/falaise (`surfaceLink`), distance verticale et chute. */
-export function heightAt(scene: SceneDuVolume, x: number, y: number, z = 0): number {
+export function heightAt(scene: Pick<Scene, 'dimensions' | 'layers'>, x: number, y: number, z = 0): number {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return 0;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
   return layer.height?.[y * scene.dimensions.w + x] ?? 0;
+}
+
+/** Le plafond (m) de la case `p` : le plus bas des sols posés plus haut que le sien sur une couche au-dessus de la
+ *  sienne, dans sa colonne, une tuile effondrée (`tileCollapsed`) n'étant plus un sol ; `Infinity` à ciel ouvert.
+ *  PUR. */
+export function plafondDe(scene: SceneDuVolume, p: Pt): number {
+  const sol = heightAt(scene, p.x, p.y, p.z ?? 0);
+  const dessus = scene.layers
+    .filter((l) => l.z > (p.z ?? 0) && !estAbsent(tileAt(scene, p.x, p.y, l.z)) && !tileCollapsed(scene, p.x, p.y, l.z))
+    .map((l) => heightAt(scene, p.x, p.y, l.z))
+    .filter((h) => h > sol);
+  return Math.min(Infinity, ...dessus);
 }
 
 /**
@@ -495,7 +532,27 @@ export function groupePosable(scene: Scene, pt: { x: number; y: number; z?: numb
   return isWalkable(scene, pt.x, pt.y, pt.z ?? 0);
 }
 
-export function isWalkable(scene: SceneDuVolume, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
+/** Le rectangle de cases où se joue la scène : sa `zoneJouable`, sinon toute la grille. Seule borne du monde jouable
+ *  pour une règle de jeu ; le rendu et l'auteur lisent la grille (`dimensions`). #4392 */
+export function rectJouable(scene: Pick<Scene, 'dimensions' | 'zoneJouable'>): RectDeCases {
+  return scene.zoneJouable ?? { x: 0, y: 0, w: scene.dimensions.w, h: scene.dimensions.h };
+}
+
+/** La case (x,y) est-elle dans le rectangle jouable de la scène (`rectJouable`) ? */
+export function dansLaZoneJouable(scene: Pick<Scene, 'dimensions' | 'zoneJouable'>, x: number, y: number): boolean {
+  const r = rectJouable(scene);
+  return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
+}
+
+/** Une créature peut-elle se tenir en (x,y,z) pour le JEU : sol praticable (`solPraticable`) dans la zone jouable
+ *  (`dansLaZoneJouable`). Le rendu et l'auteur, qui bâtissent aussi le dehors, lisent `solPraticable`. */
+export function isWalkable(scene: SceneDuVolume & Pick<Scene, 'zoneJouable'>, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
+  return solPraticable(scene, x, y, z, swim) && dansLaZoneJouable(scene, x, y);
+}
+
+/** Le sol de (x,y,z) porte-t-il une créature, physiquement, sur toute la grille (zone jouable ignorée) ? Lu par le
+ *  rendu et les outils d'auteur ; le jeu lit `isWalkable`. */
+export function solPraticable(scene: SceneDuVolume, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
   if (z > 0 && tileCollapsed(scene, x, y, z)) return false; // passerelle effondrée → plus marchable
   if (entityBlockedAt(scene, x, y, z)) return false; // empreinte multi-cases d'un décor (foot {w,h}), SA couche seulement
   // Impassabilité de la MASSE = le TERRAIN (bloc plein `mur` = walkable:false) ; le sol du TUNNEL (`pierre`)
@@ -525,7 +582,7 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
  *  sol sur sa couche ; sans sol de part et d'autre, le plus bas sol de sa couche ; sur une couche sans sol, sa case. Un
  *  mur contre une volée reste debout sur le sol d'en bas ; le mur du pourtour d'un étage, sur son plancher, non sur le
  *  vide d'à côté ; celui qui borde une trémie, au niveau de son étage. */
-export function piedDeLArete(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
+export function piedDeLArete(scene: Pick<Scene, 'dimensions' | 'layers'>, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
   const z = seg.z ?? 0;
   const solsDe = (cases: readonly Pt[]) => cases
     .filter(({ x, y }) => x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h && !estAbsent(tileAt(scene, x, y, z)))
@@ -631,7 +688,9 @@ export function climbAt(scene: Pick<Scene, 'walls'>, x: number, y: number, side:
 
 /** Segment ESCALADABLE sur l'arête CANONIQUE (cardinale) séparant deux cases adjacentes `a`/`b`, ou
  *  undefined (non adjacentes cardinales, ou pas de grimpe posée). Réutilise `edgeOf` (arête canonique
- *  partagée avec `wallBetween`). PUR. */
+ *  partagée avec `wallBetween`). La paroi se pose à la couche du PIED, la plus basse des deux cases :
+ *  `(a, b)` et `(b, a)` lisent le même segment, la montée et la descente voient la même arête (LDB 15
+ *  l.57). PUR. */
 export function climbEdgeBetween(
   scene: Pick<Scene, 'walls'>,
   a: { x: number; y: number; z?: number },
@@ -639,7 +698,7 @@ export function climbEdgeBetween(
 ): WallSeg | undefined {
   const e = edgeOf(a.x, a.y, b.x, b.y);
   if (!e) return undefined;
-  return climbAt(scene, e.x, e.y, e.side, a.z ?? 0);
+  return climbAt(scene, e.x, e.y, e.side, Math.min(a.z ?? 0, b.z ?? 0));
 }
 
 /** Clé de flag d'état d'une porte (`scene.flags`) — `true` = OUVERTE, `false` = FERMÉE (override runtime
@@ -827,7 +886,25 @@ function structureOccultante(id?: string): boolean {
  *  L’opacité n’est PAS la franchissabilité : une arête non occultante reste infranchissable
  *  (`wallBetween` ne lit jamais ce prédicat — on voit à travers une herse, on ne la traverse pas). */
 export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
-  return !wallIsOpen(scene, seg) && !(seg.window && !seg.shuttered) && structureOccultante(seg.structure);
+  return !wallIsOpen(scene, seg) && !croiseeOuverte(seg) && structureOccultante(seg.structure);
+}
+
+/** Une arête sépare-t-elle deux combattants pour le CORPS À CORPS ? Celle qui coupe la vue (`areteOcculte`), ou celle
+ *  qui tient et dont la Structure déclare `arreteLeCoup` : on la regarde à travers sans frapper par-dessus.
+ *  LDB 13 l.114 ; #4105. */
+export function areteSepareLeCoup(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return areteOcculte(scene, seg) || (!wallIsOpen(scene, seg) && !!seg.structure && findStructureById(seg.structure)?.arreteLeCoup === true);
+}
+
+/** Croisée sans `shuttered` (arbitrage #1712, 2026-09-08) ; aux volets clos, l'arête est son mur. */
+export const croiseeOuverte = (seg: WallSeg): boolean => !!seg.window && !seg.shuttered;
+
+/** Arête (case, side N/E/S/O) → forme CANONIQUE de stockage (case, N|E) : le `S` de (x,y) est le `N` de (x,y+1), le `O`
+ *  de (x,y) le `E` de (x-1,y). */
+export function canonEdge(x: number, y: number, side: CellSide): { x: number; y: number; side: 'N' | 'E' } {
+  if (side === 'S') return { x, y: y + 1, side: 'N' };
+  if (side === 'O') return { x: x - 1, y, side: 'E' };
+  return { x, y, side };
 }
 
 /** Arête CANONIQUE (cellule + side N/E) séparant deux cases ADJACENTES en cardinal — null si non
@@ -865,6 +942,46 @@ export function wallBetween(scene: Scene, ax: number, ay: number, bx: number, by
  *  divergent sur une Structure déclarée `occulte: false` : elle barre le pas sans couper la vue. */
 export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
   return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
+}
+
+/** Une arête sépare-t-elle pour le CORPS À CORPS deux cases adjacentes du même étage ? Même arête, même géométrie que
+ *  `areteOcculteEntre`, prédicat `areteSepareLeCoup`. */
+export function areteSepareLeCoupEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
+  return areteEntre(scene, ax, ay, bx, by, z, (w) => areteSepareLeCoup(scene, w));
+}
+
+/** Un mur d'arête (`Scene.walls`) est-il franchi par la ligne `from`→`to` ? Bloque la vue
+ *  (« pas à travers les murs ») et le contact (`distanceDeContact`). Le test PAR ARÊTE est injectable
+ *  (`edgeBlocks`) : le défaut interroge l'OPACITÉ de l'arête (`areteOcculte` sur l'index d'arêtes
+ *  `noyau/monde/wallIndex`, O(1) par pas) — jamais sa franchissabilité : une Ligne de Vue n'a pas à savoir si
+ *  l'on PASSE, et une herse à barreaux se regarde à travers sans s'ouvrir. La vision injecte un prédicat dont
+ *  le verdict est déjà CUIT (Set d'arêtes de l'`Occ`, même verdict). Les diagonales ne croisent pas d'arête
+ *  cardinale. */
+export function wallOnSight(scene: Scene, from: Pt, to: Pt, z = 0, edgeBlocks?: (ax: number, ay: number, bx: number, by: number) => boolean): boolean {
+  if (!scene.walls?.length) return false;
+  const blk = edgeBlocks ?? ((ax, ay, bx, by) => areteOcculteEntre(scene, ax, ay, bx, by, z));
+  // Supercover de `from` à `to`, extrémités incluses, parcouru EN PLACE : ce chemin est le plus chaud du
+  // brouillard — un rayon par case vue, une case par pas — et n'a besoin d'aucun tableau ni point
+  // intermédiaire matérialisé.
+  const steps = chebyshev(to, from);
+  let ax = from.x, ay = from.y;
+  for (let i = 1; i <= steps; i++) {
+    const bx = Math.round(from.x + ((to.x - from.x) * i) / steps);
+    const by = Math.round(from.y + ((to.y - from.y) * i) / steps);
+    const px = ax, py = ay;
+    ax = bx; ay = by;
+    if (px !== bx && py !== by) {
+      // Pas DIAGONAL : le rayon franchit le coin partagé. Bloqué si les DEUX contournements
+      // orthogonaux du coin (via (bx,py) et via (px,by)) sont murés — un mur droit bloque, mais
+      // on peut « jeter un œil » au-delà de l'EXTRÉMITÉ d'un mur (un seul côté muré).
+      const blocked1 = blk(px, py, bx, py) || blk(bx, py, bx, by);
+      const blocked2 = blk(px, py, px, by) || blk(px, by, bx, by);
+      if (blocked1 && blocked2) return true;
+    } else if (blk(px, py, bx, by)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Tuiles de PASSERELLE marchables de la couche AU-DESSUS de l'arête (`seg.z + 1`) — la case

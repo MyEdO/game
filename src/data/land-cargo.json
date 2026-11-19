@@ -11,7 +11,10 @@
     }
   },
   "qualiteDuVin": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,
@@ -142,7 +145,6 @@
   },
   "ragot": {
     "difficulty": "complexe",
-    "mod": -10,
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 74,
@@ -150,7 +152,10 @@
     }
   },
   "rumeurs": {
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,

@@ -1,0 +1,39 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "buisson"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "selon": {
+    "printemps": {
+      "palette": {
+        "vegetal": "#5e9c42"
+      }
+    },
+    "automne": {
+      "palette": {
+        "vegetal": "#7a2422"
+      }
+    },
+    "hiver": {}
+  },
+  "surfaces": [
+    {
+      "nom": "tiges",
+      "palette": "bois",
+      "matiere": "prop--ecorce"
+    },
+    {
+      "nom": "feuillage",
+      "palette": "vegetal",
+      "matiere": "prop--feuillage"
+    }
+  ],
+  "glb": {
+    "sha256": "29fdaead00d1813d922cfdc593a6c5df28244c0d1d10fe605dd5fa6713e9167c",
+    "octets": 161380
+  }
+}

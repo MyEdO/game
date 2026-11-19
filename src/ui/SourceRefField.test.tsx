@@ -266,8 +266,7 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
   });
 
   it('emplacements secondaires : chaque rangée porte des noms accessibles distincts (livre, citation, retrait)', () => {
-    type Talent = { id: string; label: string; alsoIn?: SecondaryRef[] };
-    const cible = (datasetArray('talents') as Talent[]).find((t) => t.id === 'empreint-d-ulgu')!;
+    const cible = datasetArray('talents').find((t) => t.id === 'empreint-d-ulgu')!;
     expect(cible.alsoIn?.length, 'l’entrée mesurée n’a pas d’emplacement secondaire').toBe(1);
     monter(<CodexEdit categoryKey="talents" id={cible.id} onClose={() => {}} />);
     const ajouter = [...container!.querySelectorAll('button')].find((b) => b.textContent?.includes('Emplacement secondaire'))!;
@@ -281,8 +280,7 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
   });
 
   it('emplacements secondaires : une rangée ajoutée est un BROUILLON qui n’émet rien ; complétée, elle est émise avec la citation déjà saisie', async () => {
-    type Talent = { id: string; label: string; alsoIn?: SecondaryRef[] };
-    const avant = (datasetArray('talents') as Talent[]).slice();
+    const avant = datasetArray('talents').slice();
     const cible = avant.find((t) => t.id === 'empreint-d-ulgu')!;
     expect(cible.alsoIn?.length, 'l’entrée mesurée n’a pas d’emplacement secondaire').toBe(1);
     try {
@@ -298,7 +296,7 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
       poserPage(champ('Page de la source de l\'emplacement 2'), '12');
       expect(enregistrer().disabled, 'la rangée complète n’a pas été émise').toBe(false);
       await act(async () => { enregistrer().click(); });
-      const posee = (datasetArray('talents') as Talent[]).find((t) => t.id === 'empreint-d-ulgu')!;
+      const posee = datasetArray('talents').find((t) => t.id === 'empreint-d-ulgu')!;
       expect(JSON.parse(JSON.stringify(posee.alsoIn))).toEqual([
         JSON.parse(JSON.stringify(cible.alsoIn![0])),
         { book: 'livre-de-base', page: 12, quote: 'citation neuve' },
@@ -336,8 +334,7 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
   });
 
   it('emplacements secondaires : une rangée incomplète bloque Enregistrer, même quand une autre édition rend l’entrée modifiée', () => {
-    type Talent = { id: string; label: string; alsoIn?: SecondaryRef[] };
-    const cible = (datasetArray('talents') as Talent[]).find((t) => t.id === 'empreint-d-ulgu')!;
+    const cible = datasetArray('talents').find((t) => t.id === 'empreint-d-ulgu')!;
     expect(cible.alsoIn?.length, 'l’entrée mesurée n’a pas d’emplacement secondaire').toBe(1);
     monter(<CodexEdit categoryKey="talents" id={cible.id} onClose={() => {}} />);
     const enregistrer = () => container!.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!;
@@ -350,8 +347,7 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
   });
 
   it('emplacements secondaires : une page sans folio d’une rangée complète reste un brouillon, que la citation éditée à côté n’efface pas', () => {
-    type Talent = { id: string; label: string; alsoIn?: SecondaryRef[] };
-    const cible = (datasetArray('talents') as Talent[]).find((t) => t.id === 'empreint-d-ulgu')!;
+    const cible = datasetArray('talents').find((t) => t.id === 'empreint-d-ulgu')!;
     const pose = cible.alsoIn![0];
     monter(<CodexEdit categoryKey="talents" id={cible.id} onClose={() => {}} />);
     const enregistrer = () => container!.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!;
@@ -371,10 +367,9 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
   });
 
   it('dataset à source FACULTATIVE : une entrée sans source ne se dit pas incomplète', () => {
-    type Regle = { id: string; label: string; source?: SourceRef };
-    const sans = (datasetArray('reglesOptionnelles') as unknown as Regle[]).find((r) => !r.source)!;
-    expect(sans, 'aucune règle optionnelle sans source — la sonde mesurerait un cas absent').toBeTruthy();
-    monter(<CodexEdit categoryKey="reglesOptionnelles" id={sans.id} onClose={() => {}} />);
+    const sans = datasetArray('crewRoles').find((r) => !r.source)!;
+    expect(sans, 'aucun rôle d’équipage sans source — la sonde mesurerait un cas absent').toBeTruthy();
+    monter(<CodexEdit categoryKey="crewRoles" id={sans.id} onClose={() => {}} />);
     const nom = (c: string) => [...container!.querySelectorAll('[aria-label]')].map((e) => e.getAttribute('aria-label')!).find((n) => n.startsWith(`${c} — `))!;
     expect(livre(nom('Livre')).value).toBe('');
     expect(incomplet(), 'une source facultative absente est dite incomplète').toBeNull();
@@ -394,13 +389,12 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
   });
 
   it('deux entrées sans source : le brouillon de l’une ne passe pas à l’autre', () => {
-    type Regle = { id: string; label: string; source?: SourceRef };
-    const [a, b] = (datasetArray('reglesOptionnelles') as unknown as Regle[]).filter((r) => !r.source);
-    expect(b, 'moins de deux règles optionnelles sans source').toBeTruthy();
-    monter(<CodexEdit categoryKey="reglesOptionnelles" id={a.id} onClose={() => {}} />);
+    const [a, b] = datasetArray('crewRoles').filter((r) => !r.source);
+    expect(b, 'moins de deux rôles d’équipage sans source').toBeTruthy();
+    monter(<CodexEdit categoryKey="crewRoles" id={a.id} onClose={() => {}} />);
     const nom = (c: string) => [...container!.querySelectorAll('[aria-label]')].map((e) => e.getAttribute('aria-label')!).find((n) => n.startsWith(`${c} — `))!;
     saisir(livre(nom('Livre')), 'livre-de-base');
-    act(() => { root!.render(<CodexEdit categoryKey="reglesOptionnelles" id={b.id} onClose={() => {}} />); });
+    act(() => { root!.render(<CodexEdit categoryKey="crewRoles" id={b.id} onClose={() => {}} />); });
     expect(livre(nom('Livre')).value, 'le livre choisi sur A s’affiche sur B').toBe('');
     expect(incomplet()).toBeNull();
   });

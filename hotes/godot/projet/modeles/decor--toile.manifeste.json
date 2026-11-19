@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "toile"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "soie",
+      "palette": "corps",
+      "matiere": "prop--soie"
+    },
+    {
+      "nom": "chitine",
+      "palette": "accent",
+      "matiere": "prop--chitine"
+    }
+  ],
+  "glb": {
+    "sha256": "0eeca8435c53b666d8b6a49c7e56056ef383679beb28b015a4cb483f947b8bf4",
+    "octets": 110144
+  }
+}

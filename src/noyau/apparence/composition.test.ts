@@ -4,11 +4,31 @@
  * et la seule validation d'une composition. Les attendus se lisent au catalogue et au schéma, jamais recopiés.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { cataloguesDeComposition, compositionDuPreset, lireComposition, porteeDeComposition, presetDeComposition, type Axe, type Composition } from './composition';
-import { findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTrappingById, findVarianteById, gardeRobe, piecesDeLObjet, presetsDePersonnage, trappingsInstanciables } from '../../data';
+import {
+  cataloguesDeComposition,
+  compositionDuPreset,
+  lireComposition,
+  porteeDeComposition,
+  presetDeComposition,
+  type Axe,
+  type Composition,
+} from './composition';
+import {
+  findEnsembleParHabille,
+  findPieceById,
+  findPresetDePersonnageById,
+  findTrappingById,
+  findVarianteById,
+  gardeRobe,
+  piecesDeLObjet,
+  presetsDePersonnage,
+  raceAppearance,
+  trappingsInstanciables,
+  type PresetDePersonnage,
+} from '../../data';
 import { resetData, setDataset } from '../../data/overrides';
 import { CLES_ENVELOPPE } from '../../data/schemas/grammaire/document';
-import { file as FICHIER_DES_PRESETS, meta as metaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
+import { file as FICHIER_DES_PRESETS, meta as metaDesPresets } from '../../data/schemas/defs/presets-de-personnage';
 import { noeudDuChamp } from '../../data/schemas/validate';
 import { serializeDataset } from '../../data/serialize';
 import { BUILD_NEUTRE } from '../../lib/corpulence';
@@ -16,7 +36,8 @@ import { piecesDEnsemble } from './gardeRobe';
 
 const soldat = findPresetDePersonnageById('soldat')!;
 const composition = compositionDuPreset(soldat);
-const { tenue: _tenue, ...sansTenue } = composition;
+/** Le Soldat sans sa tenue ni les variantes de pièces, dont celles des pièces que la tenue apporte. */
+const { tenue: _tenue, variantesPieces: _variantes, ...sansTenue } = composition;
 /** `brut` passé par la seule porte d'une composition (`lireComposition`), qui frappe ses ids. */
 const lue = (brut: unknown): Composition => {
   const lu = lireComposition(brut);
@@ -25,6 +46,8 @@ const lue = (brut: unknown): Composition => {
 };
 
 describe('porteeDeComposition', () => {
+  afterEach(resetData);
+
   it('un objet habillé par un ensemble apporte ses pièces, sans apparence ni point', () => {
     const { portees } = porteeDeComposition(lue({ ...sansTenue, objets: ['gants'] }));
     expect(portees.filter((p) => p.par?.id === 'gants')).toEqual(
@@ -33,10 +56,18 @@ describe('porteeDeComposition', () => {
   });
 
   it('une armure sans ensemble apporte les pièces qui couvrent les localisations de son trapping (#3456), comme au combat', () => {
-    const { portees } = porteeDeComposition(lue({ ...composition, objets: ['veste-de-cuir'] }));
+    const { pieces: _pieces, ...sansPieces } = sansTenue;
+    const { portees } = porteeDeComposition(lue({ ...sansPieces, objets: ['veste-de-cuir'] }));
     const attendues = piecesDeLObjet('veste-de-cuir');
     expect(attendues.length).toBeGreaterThan(0);
     expect(portees.filter((p) => p.par?.id === 'veste-de-cuir').map((p) => p.cle)).toEqual(attendues.map((id) => ({ champ: 'piece', id })));
+  });
+
+  it('ses couleurs : celles de sa race de rendu, chacune remplacée par la sienne (#4379)', () => {
+    const { couleurs: _couleurs, ...sansCouleurs } = sansTenue;
+    expect(porteeDeComposition(lue(sansCouleurs))).not.toHaveProperty('couleurs');
+    setDataset('raceAppearance', raceAppearance.map((r) => (r.id === sansTenue.race.id ? { ...r, couleurs: { peau: { id: 'peau-pale' }, yeux: { id: 'yeux-gris' } } } : r)));
+    expect(porteeDeComposition(lue({ ...sansCouleurs, couleurs: { yeux: { id: 'yeux-verts' } } })).couleurs).toEqual({ peau: { id: 'peau-pale' }, yeux: { id: 'yeux-verts' } });
   });
 
   it('un objet tenu porte son apparence à sa prise', () => {

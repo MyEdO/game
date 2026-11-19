@@ -10,6 +10,7 @@ import {
 } from './anchor-fill.mjs'
 import { lignes } from './lib/colonnes.mjs'
 import { pageCrb } from './lib/fixtures/page-crb.mjs'
+import { caracteresUtiles } from './lib/empty-folios-stock.mjs'
 
 /** Une page synthétique : une ligne par texte, de haut en bas, dans une seule colonne. */
 const page = (...textes) => textes.map((texte, i) => ({ colonne: 0, x0: 50, x1: 500, y0: 700 - 14 * i, texte, spans: [{ texte, police: '', taille: 10 }] }))
@@ -163,6 +164,40 @@ test('planChapter : une page SANS texte est ancrée VIDE juste avant l’ancre d
   assert.deepEqual(plan.placed.map((p) => [p.folio, p.line, !!p.sansTexte]), [[9, 5, true]])
   const out = applyEdits(lines.join('\n'), plan.edits).split('\n')
   assert.equal(out[4], '# <span id="page-8-0" data-folio="9"></span><span id="page-9-0" data-folio="10"></span>**CHAPTER ONE** suite')
+})
+
+// Page-image d'un PDF vendu (#4397) : pdfminer y lit le filigrane d'acheteur, boîte d'une ligne en pied
+// (x0 60, y0 7,83, corps 8, comme `lib/fixtures/tetes-de-page.json`), parfois le folio, le chiffre
+// d'onglet et le titre courant. Filigrane fictif.
+const FILIGRANE = 'Jean Exemple - jean@exemple.invalid'
+const boite = (x0, y0, ...textes) => ({
+  x0, y0, x1: x0 + 200, y1: y0 + 10 * textes.length,
+  lignes: textes.map((texte, i) => ({ x0, y0: y0 + 10 * (textes.length - 1 - i), x1: x0 + 200, texte, spans: [[texte, '', 8]] })),
+})
+const pageImage = (...mobilier) => lignes([...mobilier.map((t, i) => boite(40, 800 - 20 * i, t)), boite(60, 7.83, FILIGRANE)])
+
+test('planChapter : une page-image (filigrane, folio, onglet, titre courant) est une page SANS texte (#4397)', () => {
+  const lines = [
+    '*Pages PDF 2-7*',
+    '<span id="page-1-0" data-folio="1"></span>tete du folio un, prose assez longue pour ancrer',
+    '# LE POUVOIR DERRIÈRE LE TRÔNE',
+    '<span id="page-3-0" data-folio="3"></span>tete du folio trois, prose assez longue pour ancrer',
+    '# LE POUVOIR DERRIÈRE LE TRÔNE',
+    '<span id="page-5-0" data-folio="5"></span>tete du folio cinq, prose assez longue pour ancrer',
+  ]
+  const pages = {
+    2: pageImage(),
+    4: pageImage('4', 'CHAPITRE 7 : LE TRAÎTRE DÉMASQUÉ', 'VII'),
+    6: pageImage('LE POUVOIR', 'DERRIÈRE LE TRÔNE'),
+  }
+  const plan = planChapter('02 - X.md', lines.join('\n'), 0, (K) => pages[K])
+  assert.deepEqual(plan.skipped, [])
+  assert.deepEqual(plan.placed.map((p) => [p.folio, p.line, !!p.sansTexte]), [[2, 4, true], [4, 6, true], [6, 6, true]])
+})
+
+test('caracteresUtiles : le filigrane d’acheteur n’est pas du texte utile (#4397)', () => {
+  assert.equal(caracteresUtiles(`124\nV\nWARHAMMER FANTASY\n${FILIGRANE}\n`), 0)
+  assert.equal(caracteresUtiles(`du texte courant\n${FILIGRANE}`), 'dutextecourant'.length)
 })
 
 test('planChapter : la 1re page d’un chapitre qui s’ouvre en milieu de page porte son folio — le même que le chapitre précédent', () => {

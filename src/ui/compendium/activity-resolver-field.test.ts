@@ -6,7 +6,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { resolverChoicesFor } from '../editor/codex/CodexEdit';
-import { ACTIVITIES, ACTIVITY_RESOLVERS, resolversOwnedBy, type ActivityContext, type ResolverOwner } from '../../engine/activities';
+import { ACTIVITIES } from '../../data';
+import { ACTIVITY_RESOLVERS, resolversOwnedBy, type ActivityContext, type ResolverOwner } from '../../engine/activities';
 
 const CONTEXTS: ActivityContext[] = ['interlude', 'voyage', 'mer', 'bataille', 'bataille-round', 'auberge'];
 /** Les 3 contextes qui SONT aussi des familles de résolveur (homonymie assumée du vocabulaire). */

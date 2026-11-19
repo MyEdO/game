@@ -1,0 +1,13 @@
+{
+  "model": "decor--arbre-mort.glb",
+  "model_sha256": "1740b0694e6e9cc18c53d517f6c7ab9536d51ba14cf73f2cbf01bcc1cfccc94d",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

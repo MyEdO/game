@@ -33,8 +33,15 @@ import { gainCorruption } from './corruptionFlow';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { PORTEURS_D_ETAPE } from './slotsDeJet';
+import { sortirDeLHote } from './cascade';
 import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, cibleBrute, type TestResult } from '../engine/tests';
-import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview, type EvaluationDeRangee, type IssueDuDe } from '../engine/reverseToken';
+import {
+  applyReverse,
+  reverseAvailable as engineReverseAvailable,
+  reversePreview as engineReversePreview,
+  type EvaluationDeRangee,
+  type IssueDuDe,
+} from '../engine/reverseToken';
 import { clampFixedRoll } from '../engine/fixedDie';
 import { TestOutcome } from '../engine/testOutcome';
 import { canFixDie, influencesLocally } from './netOwnership';
@@ -984,10 +991,12 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const fermee = fermetureDeLAnnulation(get(), p);
       if (fermee) { refuserGesteDuSiege(get, set, libelleDeLaFermeture(fermee)); return; }
       // Undo métier présent ⇒ il OWN toute la fermeture. SINON teardown par défaut : le pending, et
-      // la cascade seulement si ce pending porte l'une de ses étapes-jets (`PORTEURS_D_ETAPE`) ; une
-      // cascade étrangère au flux reste ouverte.
+      // l'étape-hôte par la sortie d'hôte (#4255) seulement si ce pending porte l'une des étapes-jets
+      // (`PORTEURS_D_ETAPE`) ; une cascade étrangère au flux reste ouverte.
       if (spec.onCancel) { spec.onCancel(get, set, p); return; }
-      set({ [spec.key]: null, ...((PORTEURS_D_ETAPE as readonly string[]).includes(spec.key) ? { pendingCascade: null } : {}) } as PatchDeFlux);
+      const libere = { [spec.key]: null } as PatchDeFlux;
+      if ((PORTEURS_D_ETAPE as readonly string[]).includes(spec.key)) sortirDeLHote(get, set, libere, () => {});
+      else set(libere);
     },
     pactiser(get, set, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return;

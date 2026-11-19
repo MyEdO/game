@@ -9,8 +9,19 @@
  */
 import { estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
 import { slBonus } from '../../engine/formule';
+import type { DiceSpec } from '../../engine/dice';
 import type { CodexRow } from './registry';
-import { humanizeOp, humanizeFormula, humanizePerSL, causePersistante, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from './humanize';
+import {
+  humanizeOp,
+  humanizeFormula,
+  humanizePerSL,
+  causePersistante,
+  replieCausesPersistantes,
+  plural,
+  dureePropre,
+  plancher,
+  traitOctroyeLisible,
+} from './humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
@@ -208,7 +219,7 @@ const MAX_TABLE_DEPTH = 1;
 /** Rangées `[min,max] → ops` d'une table d'effets → lignes Codex (sous-titre de fourchette + ops de la
  *  rangée passées par la MÊME humanisation récursive). SOURCE UNIQUE, composée par la catégorie Codex
  *  « Tables d'effets » (`registry.ts`) ET par l'expansion générique de l'op `rollTable` ci-dessous. */
-export function tableRows(table: { die: string; entries: { min: number | null; max: number | null; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
+export function tableRows(table: { die: DiceSpec; entries: { min: number | null; max: number | null; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
   const faces = facesDuDe(deDeLaTableTiree(table));
   return table.entries.flatMap((r): CodexRow[] => [
     { t: 'sub', label: tableRowRange(r, faces) },

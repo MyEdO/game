@@ -11,7 +11,7 @@ import { deDeLaTableTiree, facesDuDe } from '../engine/tables';
  */
 const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
-const effectIds = new Set(effectTables.map((t) => t.id));
+const effectIds = new Set<string>(effectTables.map((t) => t.id));
 
 /** Collecte toutes les ops d'un `op` donné, en profondeur, de tous les datasets. */
 function collectOps(op: string): Record<string, unknown>[] {
@@ -33,7 +33,7 @@ describe('tables.json — tables d’effets référençables', () => {
     for (const t of effectTables) {
       expect(seen.has(t.id), `id dupliqué : ${t.id}`).toBe(false);
       seen.add(t.id);
-      expect(['d10', 'd100']).toContain(t.die);
+      expect([{ n: 1, sides: 10 }, { n: 1, sides: 100 }]).toContainEqual(t.die);
       expect(t.entries.length).toBeGreaterThan(0);
       expect(t.source?.book, `${t.id} sans source`).toBeTruthy();
       for (const r of findEffectTableById(t.id).entries) expect(r.min).toBeLessThanOrEqual(r.max);
@@ -44,7 +44,7 @@ describe('tables.json — tables d’effets référençables', () => {
     for (const dom of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible']) {
       const t = findEffectTableById(`allure-demoniaque-${dom}`);
       expect(t.entries).toHaveLength(facesDuDe(deDeLaTableTiree(t)));
-      expect(t.die).toBe('d10');
+      expect(t.die).toEqual({ n: 1, sides: 10 });
     }
   });
 

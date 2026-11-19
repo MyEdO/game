@@ -1,0 +1,261 @@
+[gd_resource type="Theme" load_steps=25 format=3]
+
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="1_cadre"]
+[ext_resource type="Script" path="res://scripts/icone_du_catalogue.gd" id="2_icone_du_catalogue"]
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="3_police_des_titres"]
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="4_police_des_rubriques"]
+[ext_resource type="FontFile" path="res://polices/EBGaramond-wght.ttf" id="5_EBGaramond-wght"]
+[ext_resource type="FontVariation" path="res://art/police_penchee.tres" id="6_police_penchee"]
+
+[sub_resource type="StyleBoxEmpty" id="Rien"]
+
+
+[sub_resource type="FontVariation" id="Empattements_mi_gras"]
+base_font = ExtResource("5_EBGaramond-wght")
+variation_opentype = {2003265652: 600}
+
+[sub_resource type="FontVariation" id="Rubriques_des_segments"]
+base_font = ExtResource("4_police_des_rubriques")
+spacing_glyph = 1
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Page"]
+content_margin_left = 24.0
+content_margin_top = 14.8
+content_margin_right = 31.4
+content_margin_bottom = 9.2
+script = ExtResource("1_cadre")
+cadre = "page"
+matiere = "parchemin"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Page_droite"]
+content_margin_left = 27.7
+content_margin_top = 14.8
+content_margin_right = 24.0
+content_margin_bottom = 9.2
+script = ExtResource("1_cadre")
+cadre = "page-droite"
+matiere = "parchemin"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Regle"]
+content_margin_left = 7.4
+content_margin_top = 9.2
+content_margin_right = 7.4
+content_margin_bottom = 9.2
+script = ExtResource("1_cadre")
+cadre = "regle"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Regle_pointee"]
+content_margin_left = 7.4
+content_margin_top = 9.2
+content_margin_right = 7.4
+content_margin_bottom = 9.2
+script = ExtResource("1_cadre")
+cadre = "etiquette"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Cire"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+script = ExtResource("1_cadre")
+cadre = "sceau"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Segment"]
+content_margin_left = 10.2
+content_margin_top = 2.8
+content_margin_right = 10.2
+content_margin_bottom = 3.7
+script = ExtResource("1_cadre")
+cadre = "segment-clair"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Segment_presse"]
+content_margin_left = 10.2
+content_margin_top = 2.8
+content_margin_right = 10.2
+content_margin_bottom = 3.7
+script = ExtResource("1_cadre")
+cadre = "segment-presse"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Segment_ferme"]
+content_margin_left = 10.2
+content_margin_top = 2.8
+content_margin_right = 10.2
+content_margin_bottom = 3.7
+script = ExtResource("1_cadre")
+cadre = "segment-ferme"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pas_a_pas"]
+content_margin_left = 4.6
+content_margin_top = 1.8
+content_margin_right = 4.6
+content_margin_bottom = 2.8
+script = ExtResource("1_cadre")
+cadre = "pas-a-pas"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Defaut"]
+content_margin_left = 7.4
+content_margin_top = 1.8
+content_margin_right = 7.4
+content_margin_bottom = 2.8
+script = ExtResource("1_cadre")
+cadre = "defaut"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Piste"]
+content_margin_left = 0.0
+content_margin_top = 1.5
+content_margin_right = 0.0
+content_margin_bottom = 1.5
+script = ExtResource("1_cadre")
+cadre = "piste-claire"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Piste_pleine"]
+content_margin_left = 0.0
+content_margin_top = 1.5
+content_margin_right = 0.0
+content_margin_bottom = 1.5
+script = ExtResource("1_cadre")
+cadre = "piste-pleine"
+
+[sub_resource type="Texture2D" script_class="IconeDuCatalogue" id="Fleche"]
+script = ExtResource("2_icone_du_catalogue")
+dessin = "interface/suivant"
+taille = 14
+
+[sub_resource type="StyleBoxLine" id="Filet_d_encre"]
+color = Color(0.353, 0.271, 0.188, 0.55)
+thickness = 1
+
+[sub_resource type="StyleBoxLine" id="Losange_d_encre"]
+color = Color(0.353, 0.271, 0.188, 1)
+thickness = 7
+
+[resource]
+Page/base_type = &"PanelContainer"
+Page/styles/panel = SubResource("Page")
+PageDroite/base_type = &"PanelContainer"
+PageDroite/styles/panel = SubResource("Page_droite")
+Feuillet/base_type = &"HBoxContainer"
+Feuillet/constants/separation = 0
+PileDePage/base_type = &"VBoxContainer"
+PileDePage/constants/separation = 4
+Regles/base_type = &"VBoxContainer"
+Regles/constants/separation = 0
+PiedDePage/base_type = &"HBoxContainer"
+PiedDePage/constants/separation = 13
+Domaine/base_type = &"Label"
+Domaine/colors/font_color = Color(0.227, 0.102, 0.063, 1)
+Domaine/font_sizes/font_size = 35
+Domaine/fonts/font = ExtResource("3_police_des_titres")
+Rubrique/base_type = &"Label"
+Rubrique/colors/font_color = Color(0.353, 0.165, 0.071, 1)
+Rubrique/font_sizes/font_size = 12
+Rubrique/fonts/font = ExtResource("4_police_des_rubriques")
+Suivre/base_type = &"Label"
+Suivre/colors/font_color = Color(0.227, 0.165, 0.094, 1)
+Suivre/font_sizes/font_size = 12
+Suivre/fonts/font = ExtResource("4_police_des_rubriques")
+FiletALosange/base_type = &"HBoxContainer"
+FiletALosange/constants/separation = 9
+FiletDOr/base_type = &"HSeparator"
+FiletDOr/constants/separation = 1
+FiletDOr/styles/separator = SubResource("Filet_d_encre")
+Losange/base_type = &"Panel"
+Losange/styles/panel = SubResource("Losange_d_encre")
+Regle/base_type = &"PanelContainer"
+Regle/styles/panel = SubResource("Regle")
+ReglePointee/base_type = &"PanelContainer"
+ReglePointee/styles/panel = SubResource("Regle_pointee")
+PileDeRegle/base_type = &"VBoxContainer"
+PileDeRegle/constants/separation = 6
+RangeeDeRegle/base_type = &"HBoxContainer"
+RangeeDeRegle/constants/separation = 13
+TeteDeRegle/base_type = &"VBoxContainer"
+TeteDeRegle/constants/separation = 1
+ControleDeRegle/base_type = &"HBoxContainer"
+ControleDeRegle/constants/separation = 9
+neutre/base_type = &"Label"
+neutre/colors/font_color = Color(0.165, 0.114, 0.071, 1)
+neutre/font_sizes/font_size = 14
+neutre/fonts/font = SubResource("Empattements_mi_gras")
+neutre/styles/panel = SubResource("Rien")
+alerte/base_type = &"Label"
+alerte/colors/font_color = Color(0.486, 0.122, 0.078, 1)
+alerte/font_sizes/font_size = 14
+alerte/fonts/font = SubResource("Empattements_mi_gras")
+alerte/styles/panel = SubResource("Cire")
+Aide/base_type = &"Label"
+Aide/colors/font_color = Color(0.227, 0.165, 0.094, 1)
+Aide/constants/line_spacing = -1
+Aide/font_sizes/font_size = 12
+Aide/fonts/font = ExtResource("6_police_penchee")
+Segment/base_type = &"Button"
+Segment/colors/font_color = Color(0.353, 0.271, 0.188, 1)
+Segment/colors/font_hover_color = Color(0.227, 0.165, 0.094, 1)
+Segment/colors/font_focus_color = Color(0.353, 0.271, 0.188, 1)
+Segment/colors/font_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Segment/colors/font_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Segment/colors/font_disabled_color = Color(0.522, 0.475, 0.416, 1)
+Segment/font_sizes/font_size = 12
+Segment/fonts/font = SubResource("Rubriques_des_segments")
+Segment/styles/normal = SubResource("Segment")
+Segment/styles/hover = SubResource("Segment")
+Segment/styles/pressed = SubResource("Segment_presse")
+Segment/styles/hover_pressed = SubResource("Segment_presse")
+Segment/styles/disabled = SubResource("Segment_ferme")
+Segment/styles/focus = SubResource("Rien")
+PasAPas/base_type = &"OptionButton"
+PasAPas/colors/font_color = Color(0.165, 0.102, 0.031, 1)
+PasAPas/colors/font_hover_color = Color(0.165, 0.102, 0.031, 1)
+PasAPas/colors/font_focus_color = Color(0.165, 0.102, 0.031, 1)
+PasAPas/colors/font_pressed_color = Color(0.165, 0.102, 0.031, 1)
+PasAPas/colors/font_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+PasAPas/colors/font_disabled_color = Color(0.165, 0.102, 0.031, 1)
+PasAPas/colors/icon_normal_color = Color(0.2, 0.14, 0.07, 1)
+PasAPas/colors/icon_hover_color = Color(0.2, 0.14, 0.07, 1)
+PasAPas/colors/icon_focus_color = Color(0.2, 0.14, 0.07, 1)
+PasAPas/colors/icon_pressed_color = Color(0.2, 0.14, 0.07, 1)
+PasAPas/colors/icon_hover_pressed_color = Color(0.2, 0.14, 0.07, 1)
+PasAPas/colors/icon_disabled_color = Color(0.553, 0.518, 0.455, 1)
+PasAPas/constants/h_separation = 6
+PasAPas/constants/icon_max_width = 14
+PasAPas/constants/arrow_margin = 2
+PasAPas/icons/arrow = SubResource("Fleche")
+PasAPas/font_sizes/font_size = 12
+PasAPas/fonts/font = ExtResource("4_police_des_rubriques")
+PasAPas/styles/normal = SubResource("Pas_a_pas")
+PasAPas/styles/hover = SubResource("Pas_a_pas")
+PasAPas/styles/pressed = SubResource("Pas_a_pas")
+PasAPas/styles/hover_pressed = SubResource("Pas_a_pas")
+PasAPas/styles/disabled = SubResource("Segment_ferme")
+PasAPas/styles/focus = SubResource("Rien")
+Defaut/base_type = &"Button"
+Defaut/colors/font_color = Color(0.42, 0.11, 0.063, 1)
+Defaut/colors/font_hover_color = Color(0.612, 0.165, 0.102, 1)
+Defaut/colors/font_focus_color = Color(0.42, 0.11, 0.063, 1)
+Defaut/colors/font_pressed_color = Color(0.42, 0.11, 0.063, 1)
+Defaut/colors/font_hover_pressed_color = Color(0.42, 0.11, 0.063, 1)
+Defaut/colors/font_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Defaut/colors/icon_normal_color = Color(0.6, 0.16, 0.1, 1)
+Defaut/colors/icon_hover_color = Color(0.6, 0.16, 0.1, 1)
+Defaut/colors/icon_focus_color = Color(0.6, 0.16, 0.1, 1)
+Defaut/colors/icon_pressed_color = Color(0.6, 0.16, 0.1, 1)
+Defaut/colors/icon_hover_pressed_color = Color(0.6, 0.16, 0.1, 1)
+Defaut/colors/icon_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Defaut/constants/h_separation = 4
+Defaut/constants/icon_max_width = 11
+Defaut/font_sizes/font_size = 12
+Defaut/fonts/font = ExtResource("4_police_des_rubriques")
+Defaut/styles/normal = SubResource("Defaut")
+Defaut/styles/hover = SubResource("Defaut")
+Defaut/styles/pressed = SubResource("Defaut")
+Defaut/styles/hover_pressed = SubResource("Defaut")
+Defaut/styles/disabled = SubResource("Segment_ferme")
+Defaut/styles/focus = SubResource("Rien")
+Glissiere/base_type = &"HSlider"
+Glissiere/styles/slider = SubResource("Piste")
+Glissiere/styles/grabber_area = SubResource("Piste_pleine")
+Glissiere/styles/grabber_area_highlight = SubResource("Piste_pleine")
+Lecture/base_type = &"Label"
+Lecture/colors/font_color = Color(0.227, 0.102, 0.063, 1)
+Lecture/font_sizes/font_size = 18
+Lecture/fonts/font = ExtResource("3_police_des_titres")

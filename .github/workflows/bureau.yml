@@ -1,7 +1,8 @@
 name: Exécutable de bureau
 
 # L'exécutable de bureau de l'hôte Godot (#3951), fabriqué sur la plateforme qui le joue : `npm run godot:bureau`
-# exporte le projet, embarque le noyau et son Node, puis fait jouer une partie vivante à l'exécutable. Le dossier
+# exporte le projet, embarque le noyau et son Node, dépose sous `licences/` l'avis de licence de chaque œuvre tierce
+# embarquée (#4063, `hotes/godot/avis.mjs`), puis fait jouer une partie vivante à l'exécutable. Le dossier
 # `dist/bureau` de chaque plateforme est l'artefact du run, à télécharger et à lancer.
 on:
   workflow_dispatch:

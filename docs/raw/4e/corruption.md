@@ -195,9 +195,12 @@ Quand le Test de Résistance au seuil est raté :
 - Les **Humains** mutent à 50/50.
 - Les **Halflings** mutent principalement mentalement (10 % physique).
 
-Variantes (Haut Elfe, Elfe Sylvain, Nain Norse…) retombent sur leur espèce-racine. Toute espèce non listée est traitée comme Humain.
+- Les **Ogres** : Corps 01–10, Esprit 11–00 (`ADE II 02 l.172-177`).
+- Les **Gnomes** « mutent de la même manière que les humains » (`NADJ 15 l.173`).
 
-**Sources RAW** : `LDB 19 l.78-82`
+Données : `src/data/mutation-nature.json`, un document par race (`refChar` de l'espèce), dé `d100`.
+
+**Sources RAW** : `LDB 19 l.76-81` ; `ADE II 02 l.172-177` ; `NADJ 15 l.173`
 
 ---
 
@@ -561,7 +564,7 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 | Seuil `corruption > BFM + BE` → Test Résistance Intermédiaire | `corruptionThresholdExceeded` | **OK** |
 | Talent Âme Pure → seuil + niveau | `talentCorruptionThreshold(c)` (dispatch) | **OK** |
 | Dissolution : -BFM Points, d100 corps/esprit par espèce | `applyMutation` → `mutationKindFor` | **OK** |
-| Table corps/esprit par espèce (Elfe/Halfling/Humain/Nain) | `mutationKindFor` | **OK** |
+| Table corps/esprit par race (Elfe/Halfling/Humain/Nain, Ogre, Gnome) | `natureDeMutationDe` → `mutationKindFor` | **OK** |
 | Tirage sur table physique/mentale | `rollMutation(kind, rng)` (data/mutations) | **OK** |
 | Limites : physique > BE ou mentale > BFM → damné | `mutationLimitExceeded` → `hero.damned = true` | **OK** |
 | PA naturels des mutations (apAll / apLocations) | `mutationArmourBonus(c, loc)` | **OK** |

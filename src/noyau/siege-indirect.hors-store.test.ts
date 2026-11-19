@@ -152,7 +152,7 @@ describe('(d) Routage data-driven — seul un engin indirect expose le ciblage d
     const s1 = mkCrewman('s1');
     const all = [mkEmplacement(poste), gunner, s1, mkEnemy('cible', 9, 5)];
     applyShipPostes(all);
-    return availableAttacks(gunner, mkBattle(all)).find((o) => o.id === 'poste');
+    return availableAttacks(banc.getState().scene, gunner, mkBattle(all)).find((o) => o.id === 'poste');
   };
 
   it('mortier (tir indirect) → l’option « Servir » porte indirect:true', () => {

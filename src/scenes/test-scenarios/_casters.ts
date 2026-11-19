@@ -12,7 +12,7 @@ import { spells, blessingsOf, miraclesOf, byId, findTalentById, specCatalogOf, e
 import { refCouvre, memeSpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { acquerirTalent } from '../../engine/careerSlots';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout } from '../../engine/items';
-import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
+import { CHAR_KEYS, type Combatant, type CharKey, type SkillInstance, type ItemInstance } from '../../engine/types';
 import { blessuresPosees } from '../../engine/characteristics';
 
 /** La référence `ref` à une entrée de `def` (`quoi` la nomme), vérifiée : l'id désigne une entrée, la spécialisation
@@ -33,7 +33,7 @@ export function boostSkill(c: Combatant, ref: RefDesignee, characteristic: CharK
 }
 
 export const setChars = (c: Combatant, over: Partial<Record<CharKey, number>>): void => {
-  for (const [k, v] of Object.entries(over)) c.characteristics[k as CharKey] = v as number;
+  for (const k of CHAR_KEYS) { const v = over[k]; if (v !== undefined) c.characteristics[k] = v; }
 };
 
 /** Ajoute les Talents `refs` (ids) sans doublon. */

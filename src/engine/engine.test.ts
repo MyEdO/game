@@ -7,17 +7,30 @@ import { evaluateTest, resolveOpposed, reverseRoll } from './tests';
 import { bonus, maxWounds } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { effectiveWeaponDamage } from './weaponDamage';
-import { hitLocation, hitLocationByShape, shipHitLocation, locationLabel, resolveMelee, rangeBandModifier, rollMeleeAttacker, rollMeleeDefender, finishMelee, resolveMeleePassive, rederivePassiveAttack, woundsFromHit } from './combat';
+import {
+  hitLocation,
+  hitLocationByShape,
+  shipHitLocation,
+  locationLabel,
+  resolveMelee,
+  rangeBandModifier,
+  rollMeleeAttacker,
+  rollMeleeDefender,
+  finishMelee,
+  resolveMeleePassive,
+  rederivePassiveAttack,
+  woundsFromHit,
+} from './combat';
 
 describe('Portée des tirs (table des Difficultés, 14 - _GoBack.md l.82-118 ; 1 case = 2 m)', () => {
   it('Bout portant +40, Courte +20, Moyenne +0, Longue −10, Extrême −30, au-delà = null', () => {
     const R = 50; // Arc : Portée 50 m
-    expect(rangeBandModifier(2, R)).toBe(40); // 4 m ≤ 5 (÷10) — Bout portant
-    expect(rangeBandModifier(10, R)).toBe(20); // 20 m ≤ 25 (÷2) — Courte
-    expect(rangeBandModifier(24, R)).toBe(0); // 48 m ≤ 50 (×1) — Moyenne
-    expect(rangeBandModifier(40, R)).toBe(-10); // 80 m ≤ 100 (×2) — Longue (l.99)
-    expect(rangeBandModifier(70, R)).toBe(-30); // 140 m ≤ 150 (×3) — Extrême (l.118)
-    expect(rangeBandModifier(80, R)).toBeNull(); // 160 m > 150 → hors de portée
+    expect(rangeBandModifier(2, R, 2)).toBe(40); // 4 m ≤ 5 (÷10) — Bout portant
+    expect(rangeBandModifier(10, R, 2)).toBe(20); // 20 m ≤ 25 (÷2) — Courte
+    expect(rangeBandModifier(24, R, 2)).toBe(0); // 48 m ≤ 50 (×1) — Moyenne
+    expect(rangeBandModifier(40, R, 2)).toBe(-10); // 80 m ≤ 100 (×2) — Longue (l.99)
+    expect(rangeBandModifier(70, R, 2)).toBe(-30); // 140 m ≤ 150 (×3) — Extrême (l.118)
+    expect(rangeBandModifier(80, R, 2)).toBeNull(); // 160 m > 150 → hors de portée
   });
 });
 
@@ -570,9 +583,9 @@ function caster(chars: Partial<Characteristics>, skills: SkillInstance[] = [], w
   });
 }
 
-const FLECHETTE: SpellLike = { label: 'Fléchette', ecole: 'Magie mineure', family: 'mineure', missile: true, damage: 0, cn: 0, duration: { kind: 'instant' }, desc: 'Il s’agit d’un Projectile magique avec Dégât +0.' };
-const PRIERE: SpellLike = { label: 'Bénédiction de Bataille', ecole: 'Béni', family: 'beni', cn: null, duration: { kind: 'rounds', value: 6 }, desc: 'Votre cible gagne +10 en Capacité de Combat.' };
-const ARCANE: SpellLike = { label: 'Boule de feu', ecole: 'Magie des Arcanes', family: 'arcane', cn: 8, duration: { kind: 'instant' }, desc: 'Projectile magique avec Dégâts +8.' };
+const FLECHETTE: SpellLike = { label: 'Fléchette', ecole: 'Magie mineure', family: 'mineure', missile: true, damage: 0, cn: 0, duration: { kind: 'instant' } };
+const PRIERE: SpellLike = { label: 'Bénédiction de Bataille', ecole: 'Béni', family: 'beni', cn: null, duration: { kind: 'rounds', value: 6 } };
+const ARCANE: SpellLike = { label: 'Boule de feu', ecole: 'Magie des Arcanes', family: 'arcane', cn: 8, duration: { kind: 'instant' } };
 
 describe('Magie — routage du test par branche', () => {
   it('les Prières (Béni/Invocation) utilisent Prière (Soc), sans NI', () => {
@@ -594,7 +607,7 @@ describe('Magie — routage du test par branche', () => {
 
 describe('Magie — analyse des descriptions', () => {
   it('missileDamage lit les champs de données (Dégâts / ignore PA / ignore BE)', () => {
-    const sp = (o: Partial<SpellLike>): SpellLike => ({ label: 'X', ecole: 'T', cn: 0, desc: '', ...o });
+    const sp = (o: Partial<SpellLike>): SpellLike => ({ label: 'X', ecole: 'T', cn: 0, ...o });
     expect(missileDamage(sp({ missile: true, damage: 8 }))).toEqual({ damage: 8, ignorePA: false, ignoreBE: false });
     expect(missileDamage(sp({ missile: true, damage: 0, ignorePA: true }))).toEqual({ damage: 0, ignorePA: true, ignoreBE: false });
     expect(missileDamage(sp({ missile: true, damage: 10, ignorePA: true, ignoreBE: true }))).toEqual({ damage: 10, ignorePA: true, ignoreBE: true });
@@ -720,7 +733,6 @@ describe('Magie — correctifs de fidélité (audit)', () => {
       damage: 10,
       ignorePA: true,
       ignoreBE: true,
-      desc: 'Projectile magique avec Dégâts +10 qui ignore le Bonus d’Endurance et les PA.',
     };
     const res = resolveMagicMissile(c, target, spell, makeRNG(5));
     if (res.hit) {
@@ -828,7 +840,7 @@ describe('Magie — compétences Avancées (gating)', () => {
 
   it('Dissipation : seul un SORT se dissipe — pas une Prière (LDB 46 « Si un Sort vous cible »)', () => {
     expect(isDispellableSpell(FLECHETTE)).toBe(true);
-    expect(isDispellableSpell({ label: 'Bénédiction', ecole: 'Béni', family: 'beni', cn: null, duration: null, desc: '' })).toBe(false);
+    expect(isDispellableSpell({ label: 'Bénédiction', ecole: 'Béni', family: 'beni', cn: null, duration: null })).toBe(false);
   });
 
   it('le Trait « Lanceur de Sorts » (LDB 85 : « La créature peut lancer des Sorts ») dispense de la Compétence', () => {

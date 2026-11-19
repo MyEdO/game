@@ -24,7 +24,9 @@ import { exposedCrew } from '../engine/shipCritical';
 import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesMinime, crewTestSuccess } from '../engine/crewMorale';
 import { placementPenalty, translaterFormation } from './monde/shipPostes';
 import { inBattleId } from './monde/combatants';
+import { dansLaZoneJouable } from './monde/scene';
 import { garanti } from '../lib/garanti';
+import { reparationTemporaireApresLaManoeuvre } from './seaVoyageFlow';
 import { t } from '../i18n';
 import { refuserGeste } from './refusVisible';
 import { findCrewRoleById, type CrewRoleData } from '../data';
@@ -240,16 +242,19 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
 /**
  * APPLIQUE une manœuvre résolue (mutation) : sur réussite, vire de `turnSteps` crans (`virerLeNavire` re-mappe les
  * arcs) ; le navire avance TOUJOURS le long du cap (`avancerLeNavire`, MDG 13 — déplacement INCONDITIONNEL,
- * M÷2 plancher). Renvoie les cases avancées. Logue le succès (via `virerLeNavire`) ou l'échec.
+ * M÷2 plancher). Renvoie les cases avancées. Logue le succès (via `virerLeNavire`) ou l'échec. Appende le Test
+ * d'Endurance de la coque tenue par une réparation temporaire (MDG 13 l.651 ; MSRC 7 l.117).
  */
-export function applyShipManeuver(get: Get, shipId: string, result: ManeuverResult, turnSteps: number): number {
-  const ship = inBattleId(get().battle, shipId);
+export function applyShipManeuver(get: Get, set: Set, shipId: string, result: ManeuverResult, turnSteps: number): number {
+  const ship = garanti(inBattleId(get().battle, shipId), shipId, 'applyShipManeuver');
   if (result.success) get().virerLeNavire(shipId, turnSteps); // vire + re-mappe les arcs + logue le nouveau cap
   else {
     if (result.refus != null) get().ecrireAuJournal(result.refus);
-    get().ecrireAuJournal(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: ship?.label ?? shipId, dr: result.dr }));
+    get().ecrireAuJournal(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: ship.label, dr: result.dr }));
   }
-  return get().avancerLeNavire(shipId, result.movement);
+  const advanced = get().avancerLeNavire(shipId, result.movement);
+  reparationTemporaireApresLaManoeuvre(get, set, ship);
+  return advanced;
 }
 
 /**
@@ -257,10 +262,10 @@ export function applyShipManeuver(get: Get, shipId: string, result: ManeuverResu
  * et les tests headless ; le flux différé jouable (modale) appelle `rollShipManeuver`/`applyShipManeuver`
  * séparément. `null` hors combat.
  */
-export function maneuverShip(get: Get, shipId: string, turnSteps: number, helmsmanId?: string): ManeuverResult | null {
+export function maneuverShip(get: Get, set: Set, shipId: string, turnSteps: number, helmsmanId?: string): ManeuverResult | null {
   const r = rollShipManeuver(get, shipId, helmsmanId);
   if (!r) return null;
-  const advanced = applyShipManeuver(get, shipId, r, turnSteps);
+  const advanced = applyShipManeuver(get, set, shipId, r, turnSteps);
   return { ...r, advanced };
 }
 
@@ -283,17 +288,16 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       const hull = inBattleId(battle, shipId);
       if (!battle || !hull?.pos || !dir) return 0;
       const d = DIR8_DELTA[dir];
-      const w = scene?.dimensions.w ?? Infinity, h = scene?.dimensions.h ?? Infinity;
       // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
       // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).
       const otherHulls = battle.combatants.filter((c) => c.id !== shipId && estNavire(c) && c.pos);
       const hullAt = (x: number, y: number) => otherHulls.find((c) => footprintTiles(c.pos!, footprintN(c)).some((t) => t.x === x && t.y === y));
-      // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de scène OU coque devant.
+      // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de la zone jouable OU coque devant.
       let moved = 0;
       let victim: Combatant | undefined;
       for (let step = 1; step <= Math.max(0, cases); step++) {
         const nx = hull.pos.x + d.gx * step, ny = hull.pos.y + d.gy * step;
-        if (nx < 0 || ny < 0 || nx >= w || ny >= h) break; // hors bornes de scène
+        if (scene && !dansLaZoneJouable(scene, nx, ny)) break;
         const hit = hullAt(nx, ny);
         if (hit) { victim = hit; break; } // coque devant → stop adjacent (moved = step − 1)
         moved = step;

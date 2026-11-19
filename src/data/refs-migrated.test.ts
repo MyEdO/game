@@ -32,7 +32,7 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { fauteDEspece } from './schemas/grammaire/valeurs';
 import { GAMEOP_FIELD_TARGETS, auditFieldCoverage, scanGameOpRefs, formatOffender } from '../../scripts/guards/lib/gameOpRefFk.mjs';
-import { champsDOpASlot, opsDuParse, slotsDOpNonJuges, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
+import { champsDOpASlot, opsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, listerDocuments } from '../../scripts/docs/lib/structures-scan.mjs';
 import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 import { norm } from '../lib/normalize';
@@ -211,7 +211,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   // LA GARDE UNIQUE ci-dessous (§ Phase 3 complétude) : aucune liste de domaines n'est tenue ici.
   describe('sanité de catalogue — specsSource déclaré, specs[] bien formées (Phase 3)', () => {
     it('skills.json/talents.json : specsSource migré → pool DÉRIVÉ (aucun specs[] inline), ids connus du registre', () => {
-      const WEAPON_GROUP_IDS = new Set(weaponGroups.map((g) => g.id));
+      const WEAPON_GROUP_IDS = new Set<string>(weaponGroups.map((g) => g.id));
       const DOMAIN_IDS = new Set<string>(domains.map((d) => d.id));
       const GOD_IDS = new Set<string>(gods.map((g) => g.id));
       const cases: [ 'skills' | 'talents', string, SpecsSource, (id: string) => boolean ][] = [
@@ -645,22 +645,15 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   // nœud. Ce test prouve la JOINTURE : tout nœud `GameOp` du corpus est ATTEINT par le parse de mesure
   // (`opsDuParse`, par IDENTITÉ d'objet). Un nœud non atteint pend sous un conteneur que le parse ne
   // descend pas : son conteneur se type.
-  // Stock NOMINATIF, compte EXACT par document : les ops du dialecte `jsonOpSchema`
-  // (`schemas/defs/miscast.ts`), lot de mort #1902.
-  const HORS_PARSE: Record<string, number> = { 'miscast.json': 84 };
   const ATTEINTES = opsDuParse(CORPUS, DEFS);
   /** La jointure corpus ↔ parse : les nœuds d'op que le parse de mesure n'atteint pas. */
   type NoeudDOp = (typeof scan.noeudsDOp)[number];
   const horsDuParse = (noeuds: readonly NoeudDOp[], atteintes: ReadonlySet<object>) => noeuds.filter((n) => !atteintes.has(n.noeud));
   const ligneHorsParse = (n: NoeudDOp) => `${n.path} : ${n.op}`;
-  it('tout nœud GameOp du corpus est atteint par le parse de mesure, hors stock nominatif', () => {
+  it('tout nœud GameOp du corpus est atteint par le parse de mesure', () => {
     expect(scan.noeudsDOp.length, 'aucun nœud d’op visité — le scan est vide').toBeGreaterThan(500);
-    const hors = horsDuParse(scan.noeudsDOp, ATTEINTES);
-    const parDocument: Record<string, number> = {};
-    for (const n of hors) parDocument[n.file] = (parDocument[n.file] ?? 0) + 1;
-    const lignes = hors.filter((n) => !(n.file in HORS_PARSE)).map(ligneHorsParse);
+    const lignes = horsDuParse(scan.noeudsDOp, ATTEINTES).map(ligneHorsParse);
     expect(lignes, `nœuds d’op hors du parse — typer leur conteneur (OP_DEFS) :\n${lignes.join('\n')}`).toEqual([]);
-    expect(parDocument, 'le stock HORS_PARSE est EXACT : un compte qui baisse se reporte au stock').toEqual(HORS_PARSE);
   });
 
   // Conteneur OPAQUE de fixture : un `z.record(z.string(), z.unknown())`, que le parse ne descend pas.
@@ -673,32 +666,6 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     const atteintes = opsDuParse({ brutParNom: new Map<string, unknown>([[def.file, document]]) }, [def]);
     expect(atteintes.has(op)).toBe(false);
     expect(horsDuParse(noeuds, atteintes).map(ligneHorsParse)).toEqual(['opaque.json.params.ops[0] : domeWard']);
-  });
-
-  // Le stock HORS_PARSE n'a pas de parse d'op : chaque chaîne de ses champs d'op à slot est une CASE
-  // validée par `idDe` au parse de SON document (`slotsDuParse`), ou elle n'est jugée par personne.
-  const renduNonJuge = (v: { path: string; valeur: string }) => `${v.path} = ${JSON.stringify(v.valeur)}`;
-  it('hors du parse d’op, toute chaîne d’un champ d’op à slot est jugée par le parse de son document', () => {
-    const nonJuges = slotsDOpNonJuges(scan.noeudsDOp, ATTEINTES, slotsDuParse(CORPUS, DEFS), CHAMPS_A_SLOT).map(renduNonJuge);
-    expect(nonJuges, `champs d’op à slot jugés par AUCUN parse — typer leur porteur (idDe) :\n${nonJuges.join('\n')}`).toEqual([]);
-  });
-
-  it('hors du parse d’op, un champ d’op à slot que le dialecte ne type pas est REFUSÉ (contre-épreuve)', () => {
-    const miscastDef = DEFS.find((d) => d.file === 'miscast.json');
-    expect(miscastDef, 'def de miscast.json introuvable').toBeTruthy();
-    const [table] = structuredClone(CORPUS.brutParNom.get('miscast.json')) as { entries: { id: string; ops?: object[] }[] }[];
-    const rangee = table.entries.find((e) => e.id === 'mineure-langue-maladroite')!;
-    rangee.ops!.push({ op: 'castPenalty', mod: -10 });
-    table.entries = [rangee];
-    const brutParNom = new Map<string, unknown>([['miscast.json', [table]]]);
-    const noeuds = scanGameOpRefs({ sources: [{ file: 'miscast.json', data: [table] }], resolvers }).noeudsDOp;
-    const atteintes = opsDuParse({ brutParNom }, [miscastDef!]);
-    expect(noeuds.filter((n) => atteintes.has(n.noeud)), 'la fixture doit rester HORS du parse d’op').toEqual([]);
-    const slots = slotsDuParse({ brutParNom }, [miscastDef!]);
-    expect(slotsDOpNonJuges(noeuds, atteintes, slots, CHAMPS_A_SLOT)).toEqual([]);
-    const avecSlot = new Set([...CHAMPS_A_SLOT, 'castPenalty.op']);
-    expect(slotsDOpNonJuges(noeuds, atteintes, slots, avecSlot).map(renduNonJuge))
-      .toEqual(['miscast.json[0].entries[0].ops[0].op = "castPenalty"', 'miscast.json[0].entries[0].ops[1].op = "castPenalty"']);
   });
 
   it('une op sous un conteneur d’ops est atteinte par le parse : une valeur OBJET fantôme y est REFUSÉE (contre-épreuve)', () => {

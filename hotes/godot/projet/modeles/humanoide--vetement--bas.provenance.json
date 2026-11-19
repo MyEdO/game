@@ -1,11 +1,15 @@
 {
   "model": "humanoide--vetement--bas.glb",
-  "model_sha256": "7a08fb1760532898fdd197e7996370d6e14c46ba035d731d0bde37c13e2ba603",
-  "importe_le": "2026-11-06",
+  "model_sha256": "7f07c6664dd3f7005c3a04d69c7c19df81dc40b4888e7b1f9f8a8cb8aa33f3c2",
+  "importe_le": "2026-11-15",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

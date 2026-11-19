@@ -2,7 +2,10 @@
   "id": "incidents-monte",
   "type": "incidents-monture",
   "label": "Incidents de monte",
-  "die": "d100",
+  "die": {
+    "n": 1,
+    "sides": 100
+  },
   "source": {
     "book": "ennemi-dans-l-ombre-compagnon",
     "page": 26

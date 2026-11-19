@@ -17,10 +17,11 @@ export interface Registre {
 }
 
 export const REGISTRIES: readonly Registre[];
-export const SORTIES_DES_ESPACES: { readonly ids: string; readonly cles: string; readonly racines: string };
+export const SORTIES_DES_ESPACES: { readonly ids: string; readonly cles: string; readonly racines: string; readonly atelier: string };
 export const SORTIE_VOCABULAIRES_D_ART: string;
 export const SORTIES: readonly string[];
 export const SORTIE_FORMATS: string;
 export const SORTIE_VERBES: string;
 export const SORTIE_NOMS_DE_PARAMETRE: string;
 export const SORTIE_COMBATTANTS_DE_L_ETAT: string;
+export const SORTIE_NOYAU_GODOT: string;

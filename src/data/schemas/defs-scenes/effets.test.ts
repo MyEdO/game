@@ -14,7 +14,7 @@
  *     `npm run typecheck` — jamais par `vitest --typecheck`, FAUX VERT mesuré sur `expectTypeOf`.
  *  4. LA LIAISON AU MOTEUR. Comparer un infer à `Extract<Effect, …>` ne prouve RIEN pour les champs
  *     descendus au moteur : `Effect` est fait de ces mêmes infers, la comparaison est tautologique.
- *     Ce qui se vérifie, c'est l'identité avec le type nommé côté code (`PursuitFoeRef`, `MassBattleSpec`,
+ *     Ce qui se vérifie, c'est l'identité avec le type nommé côté code (`PursuitSpec`, `MassBattleSpec`,
  *     `FavorLevel`, `CrewHire`) — identité BIDIRECTIONNELLE, donc une dérive d'un côté comme de
  *     l'autre rend `true` inassignable (TS2322).
  */
@@ -27,15 +27,17 @@ import type { z } from 'zod';
 import { noeudDuChamp } from '../validate';
 import {
   effectSchema, sceneFlowSchema, setFlagSchema, setObjectiveSchema, delayedEffectSchema,
-  petitePriereSchema, setTimeSchema, pursuitFoeSchema, massBattleSpecSchema, favorLevelSchema,
+  petitePriereSchema, setTimeSchema, startPursuitSchema, livingRefSchema, massBattleSpecSchema, favorLevelSchema,
   crewHireSchema,
-  type Effect, type DelayedEffect, type PetitePriere,
+  type Effect, type DelayedEffect, type PetitePriere, type FlowDeScene, type TestDeScene,
 } from './effets';
+import type { testDeSceneSchema } from '../grammaire/mecanique';
 import type { Flow } from '../../../engine/flowCore';
-import type { PursuitFoeRef } from '../../../noyau/pursuitFlow';
+import type { PursuitSpec } from '../../../noyau/pursuitFlow';
 import type { MassBattleSpec } from '../../../engine/massBattle';
 import type { FavorLevel } from '../../../engine/favor';
 import type { CrewHire } from '../../../engine/crewMorale';
+import { auChemin } from '../../../lib/objet.mjs';
 
 const ROOT = join(__dirname, '../../../..');
 
@@ -104,7 +106,7 @@ const effetsDuDataset = (chemin: string): { noeud: z.ZodType; valeur: unknown } 
   const noeud = m ? (noeudDuChamp(m[1], 'effects') as z.ZodType | undefined) : undefined;
   if (!m || !noeud) return undefined;
   const cles = [...m[2].matchAll(/\[(\d+)\]|\.([^.[]+)/g)].map((c) => c[1] ?? c[2]);
-  const valeur = cles.reduce<unknown>((n, k) => (n as Record<string, unknown>)[k], JSON.parse(readFileSync(join(ROOT, 'src/data', m[1]), 'utf8')));
+  const valeur = auChemin(JSON.parse(readFileSync(join(ROOT, 'src/data', m[1]), 'utf8')), cles);
   return { noeud, valeur };
 };
 
@@ -191,7 +193,7 @@ describe('setTime — UNE entrée, XOR STRICT `phase` ⊕ `hour` (`minute` seule
 
 describe('sceneFlowSchema — le MÊME arbre que la grammaire, feuille `do` = `Effect` de scène', () => {
   it('accepte une feuille `do` de SCÈNE (ce que le `flowSchema` de la grammaire refuse)', () => {
-    expect(sceneFlowSchema.safeParse({ kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } }).success).toBe(true);
+    expect(sceneFlowSchema.safeParse({ kind: 'effet', effet: { type: 'startCombat', encounter: { id: 'enc-1' } } }).success).toBe(true);
   });
 
   it('accepte la feuille MÉCANIQUE `type:"ops"` — l’union `Effect` la contient', () => {
@@ -233,10 +235,20 @@ describe('`Effect` EST composé des infers (aucun n’est retombé à `any`)', (
     expectTypeOf<DelayedEffect>().toExtend<z.infer<typeof delayedEffectSchema>>();
   });
 
-  it('variante à FLOW : le `reward` d’une Petite Prière EST un `Flow<Effect>`, pas un `Flow<EffectOp>`', () => {
-    expectTypeOf<z.infer<typeof petitePriereSchema>['reward']>().toExtend<Flow<Effect>>();
-    expectTypeOf<PetitePriere['reward']>().toExtend<Flow<Effect>>();
-    expectTypeOf<z.infer<typeof sceneFlowSchema>>().toEqualTypeOf<Flow<Effect>>();
+  it('variante à FLOW : le `reward` d’une Petite Prière EST le Flow de scène, sortie de `sceneFlowSchema`', () => {
+    expectTypeOf<z.infer<typeof petitePriereSchema>['reward']>().toEqualTypeOf<FlowDeScene>();
+    expectTypeOf<PetitePriere['reward']>().toEqualTypeOf<FlowDeScene>();
+  });
+
+  it('le Flow de scène DÉRIVE de son schéma : son Test est la sortie de `testDeSceneSchema`, son coût un nombre (#841, #4056)', () => {
+    expectTypeOf<Extract<FlowDeScene, { kind: 'test' }>['test']>().toEqualTypeOf<z.output<typeof testDeSceneSchema>>();
+    expectTypeOf<TestDeScene>().toEqualTypeOf<z.output<typeof testDeSceneSchema>>();
+    expectTypeOf<Extract<FlowDeScene, { kind: 'choix' }>['coutEnAvantage']>().toEqualTypeOf<number | undefined>();
+  });
+
+  it('un Flow de scène est un `Flow<Effect>` jouable ; un `Flow<Effect>` (enjeu de catalogue, `$indice`) n’est pas un Flow de scène', () => {
+    expectTypeOf<FlowDeScene>().toExtend<Flow<Effect>>();
+    expectTypeOf<Flow<Effect>>().not.toExtend<FlowDeScene>();
   });
 });
 
@@ -245,13 +257,18 @@ describe('`Effect` EST composé des infers (aucun n’est retombé à `any`)', (
 /** `true` seulement si `A` et `B` s'incluent MUTUELLEMENT ; sinon `false`, et `= true` ne compile plus. */
 type Eq<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
-const liaisonFoes: Eq<z.infer<typeof pursuitFoeSchema>, PursuitFoeRef> = true;
+const liaisonFoes: Eq<z.infer<typeof startPursuitSchema>['foes'], PursuitSpec['foes']> = true;
 const liaisonSpec: Eq<z.infer<typeof massBattleSpecSchema>, MassBattleSpec> = true;
 const liaisonFavor: Eq<z.infer<typeof favorLevelSchema>, FavorLevel> = true;
 const liaisonCrew: Eq<z.infer<typeof crewHireSchema>, CrewHire> = true;
 
 describe('les schémas DESCENDUS au moteur SONT le type moteur nommé (identité bidirectionnelle)', () => {
-  it('`pursuitFoeSchema` ↔ `PursuitFoeRef`, `massBattleSpecSchema` ↔ `MassBattleSpec`, `favorLevelSchema` ↔ `FavorLevel`, `crewHireSchema` ↔ `CrewHire`', () => {
+  it('`startPursuitSchema.foes` ↔ `PursuitSpec.foes`, `massBattleSpecSchema` ↔ `MassBattleSpec`, `favorLevelSchema` ↔ `FavorLevel`, `crewHireSchema` ↔ `CrewHire`', () => {
     expect([liaisonFoes, liaisonSpec, liaisonFavor, liaisonCrew]).toEqual([true, true, true, true]);
+  });
+
+  it('un adversaire de poursuite saisi EST une référence de vivant : son identité de course est posée par le runtime (#4234)', () => {
+    expect(startPursuitSchema.shape.foes.element).toBe(livingRefSchema);
+    expect(startPursuitSchema.safeParse({ type: 'startPursuit', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: 'loup' }] }).success).toBe(true);
   });
 });

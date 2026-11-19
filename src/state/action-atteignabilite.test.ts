@@ -37,7 +37,15 @@ import { fileURLToPath } from 'node:url';
 import { ACTIONS, type ActionId } from '../data/index';
 import { ACTION_PORTEURS, REMEDES } from '../noyau/actionRegistry';
 import { KEYBINDINGS } from './clavier/keybindings';
-import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
+import {
+  TAILLE_ZONE,
+  TOUCHES_IMPRIMEES,
+  cleEntree,
+  dispositionDeduite,
+  poserDansBarre,
+  resoudreDisposition,
+  retirerDeBarre,
+} from '../noyau/dispositionConsole';
 import type { Combatant, EntreeBarre } from '../engine/types';
 
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');

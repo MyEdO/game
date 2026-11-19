@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import talentsAleatoiresJson from '../../talents-aleatoires.json';
 
-type Table = { id: string; die: string; entries: { id: string; min: number; max: number }[] };
-const clone = () => structuredClone(talentsAleatoiresJson) as unknown as Table[];
+const clone = () => structuredClone(talentsAleatoiresJson);
 
 describe('talents-aleatoires.json — références de Talent et couverture du dé', () => {
   it('le schéma accepte le document RÉEL', () => {
@@ -21,7 +20,7 @@ describe('talents-aleatoires.json — références de Talent et couverture du d�
     const doc = clone();
     const [retiree] = doc[0].entries.splice(5, 1);
     expect(validateDataset('talents-aleatoires.json', doc)).toMatch(
-      new RegExp(`talents-aleatoires : les rangées ne couvrent pas le d100 d'un seul tenant — .*${retiree.min}`),
+      new RegExp(`talents-aleatoires : les rangées ne couvrent pas le 1d100 d'un seul tenant — .*${retiree.min}`),
     );
   });
 });

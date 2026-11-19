@@ -19,6 +19,7 @@
  * PUR : ne mute rien, ne roule rien — les jets se tiennent chez l'appelant (`noyau/pursuitFlow`), qui les
  * surface. Ce module est LA source des jugements de poursuite.
  */
+import type { PlayerText } from '../i18n/playerText';
 
 /** Seuil d'évasion terrestre RAW : « Si la Distance atteint 10+, les poursuivants ont perdu leur proie » (l.94). */
 export const PURSUIT_ESCAPE_DISTANCE = 10;
@@ -46,10 +47,11 @@ export interface PursuitRunner {
 
 /** Un adversaire de la poursuite (côté opposé au groupe) — Mouvement (bonus de DR de vitesse, l.105-108)
  *  et valeur de Test de Mouvement. `label` = affichage (aucune logique keyée dessus) ; `id` est posé à
- *  l'ouverture (l'auteur n'a pas à en écrire un) et sert aux décisions de camp (l.94). */
+ *  l'ouverture (`resolvePursuitFoe`, `noyau/pursuitFlow.ts`), jamais par l'auteur. */
 export interface PursuitFoe {
   id?: string;
-  label: string;
+  /** Nommé par `nomDe` sur sa fiche (#4017). */
+  label: PlayerText;
   movement: number;
   skill: number;
 }

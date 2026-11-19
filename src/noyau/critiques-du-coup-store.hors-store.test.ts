@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
-import { applyAttackResult, applyCast, applyCoupCritiqueSec, resolveAttack } from './combatFlow';
+import { applyAttackResult, applyCast, applyCoupCritiqueSec, instantaneAvantLeCoup, resolveAttack } from './combatFlow';
 import type { CritChoice } from '../engine/magic';
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascade.testkit';
 import { createHero } from '../engine/character';
@@ -22,6 +22,7 @@ import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '.
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { markFixedDie } from './fixedDieMark';
+import { talentCritExtraWounds } from '../engine/combatFeatures/dispatch';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,13 +31,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 
-interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean; arme?: Weapon; retenu?: boolean; vehicule?: string; grapple?: boolean }
+interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean; arme?: Weapon; retenu?: boolean; vehicule?: string; grapple?: boolean; coque?: number; frappeBlessante?: boolean }
 
 /** Un coup (de double, sauf `double: false`) sur la cible, par la couture du jeu (`rederivePassiveAttack` → `applyAttackResult`),
  *  la cascade drainée au dé `de` et au choix `choisir`. `tenu` = un siège MJ tient la cible. `pieces` = l'armure portée par la cible, à la place de sa PA plate.
  *  `martyr` = l'autre ennemi la garde (LDB 43 l.107) ; `demoniaque` = l'Indice de sa sauvegarde (LDB 85 l.98). `sousAttaque` = le coup d'une sous-attaque.
- *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître ; `grapple` = une Empoignade (LDB 14 l.159). */
-function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false }: Coup = {}) {
+ *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître ; `grapple` = une Empoignade (LDB 14 l.159).
+ *  `coque` = les Blessures restantes du véhicule ; `frappeBlessante` = l'attaquant a Frappe blessante (LDB 10). */
+function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false, coque, frappeBlessante = false }: Coup = {}) {
   banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'hote' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
@@ -46,9 +48,11 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'heros')!;
+  if (frappeBlessante) H.talents = [...(H.talents ?? []), { talentId: 'frappe-blessante', times: 1 }];
   const ennemis = b.combatants.filter((c) => c.kind === 'ennemi');
   if (vehicule) b.combatants[b.combatants.indexOf(ennemis[0])] = ennemis[0] = spawnEnemy({ vehicule }, ennemis[0].id, ennemis[0].pos!);
   const [cible, pretre] = ennemis;
+  if (coque != null) cible.wounds = { ...cible.wounds, current: coque };
   pretre.items = (pretre.items ?? []).filter((i) => i.kind !== 'armor');
   pretre.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
   pretre.wounds = blessuresDeBase(20, 20, pretre);
@@ -166,7 +170,7 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
   it("Mort subite : le Critique d'un Test opposé ne frappe pas le figurant (LDB 14 l.3 ; LDB 18 l.44)", () => {
     const { H, cible } = coupQuiDepasse(false, { pa: 1, endurance: 10 });
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H, instantaneAvantLeCoup(cible));
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(banc.getState().pendingCascade ?? null).toBeNull();
@@ -404,7 +408,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
-      applyCast(banc.getState, banc.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, { ...incantationCritique, roll }), true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, { ...incantationCritique, roll }), true, false, 'critique');
       draineCascade(banc.getState, 200, () => 1, () => 'subir');
       return { touche: touche.location!, finale: finales[0], apres: banc.getState().battle!.combatants.find((c) => c.id === cible.id)! };
     } finally { lache(); }
@@ -433,7 +437,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
     setRule('combat-deviation-critique', false);
     const { H, cible } = coup({ roll: 45, double: false, current: 20, pieces: [bacle, impenetrable()] });
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H, instantaneAvantLeCoup(cible));
     return { cible, log };
   }
 
@@ -458,6 +462,46 @@ describe('véhicule routier : la coque refuse le Critique (EDOC 07 l.334)', () =
     expect(auJet.critical, 'le double fait le Coup Critique au jet').toBe(true);
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
+  });
+
+  // EDOC 07 l.334 ; #4202.
+  /** Le coup sur la diligence, avec les `critiques` de ses `ANIM_ATTACK` de mêlée. */
+  function surLaDiligence(o: Coup) {
+    const emis: (number | undefined)[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'melee') emis.push(p.result.critiques); });
+    try { return { ...coup({ vehicule: 'diligence', ...o }), emis }; } finally { lache(); }
+  }
+  const sabre = { ...epee, label: 'Sabre', qualities: [{ id: 'taillade', value: 1 }] } as Weapon;
+  const arbalete = { ...epee, label: 'Arbalète', type: 'distance', qualities: [{ id: 'empaleuse' }] } as unknown as Weapon;
+  const arbaleteTaillade = { ...arbalete, qualities: [{ id: 'empaleuse' }, { id: 'taillade', value: 1 }] } as unknown as Weapon;
+
+  it('Frappe blessante et double sur une diligence : aucune Blessure en plus, `critiques` nul', () => {
+    const temoin = surLaDiligence({});
+    const { H, cible, emis } = surLaDiligence({ frappeBlessante: true });
+    expect(cible.wounds.current).toBe(temoin.cible.wounds.current);
+    expect(journal()).not.toContain(tr('cf.coupBlessant', { name: cible.label, n: talentCritExtraWounds(H) }));
+    expect(emis.every((n) => !n), '`critiques` 0 ou absent').toBe(true);
+  });
+
+  it('Taillade et double sur une diligence : aucun État Hémorragique', () => {
+    const { auJet, cible } = surLaDiligence({ arme: sabre });
+    expect(auJet.critical).toBe(true);
+    expect(hasCondition(cible, 'hemorragique')).toBe(false);
+  });
+
+  it('Empaleuse et double sur une diligence : la munition se loge (effet du Coup Critique)', () => {
+    const { auJet, cible } = surLaDiligence({ arme: arbalete });
+    expect(auJet.critical).toBe(true);
+    expect(hasCondition(cible, 'munition-logee')).toBe(true);
+  });
+
+  it("Critique par dépassement seul sur une diligence : aucun effet sur Critique, même du Coup Critique", () => {
+    const { auJet, res, cible } = surLaDiligence({ arme: arbaleteTaillade, double: false, coque: 1 });
+    expect(auJet.critical, 'aucun double').toBe(false);
+    expect(res.woundsLost, 'le coup dépasse les Blessures restantes').toBeGreaterThan(1);
+    expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
+    expect(hasCondition(cible, 'munition-logee')).toBe(false);
+    expect(hasCondition(cible, 'hemorragique')).toBe(false);
   });
 });
 
@@ -490,7 +534,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     cible.wounds = blessuresDeBase(20, 1, cible);
     const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
     expect(res.woundsLost ?? 0, 'le Projectile dépasse la Blessure restante').toBeGreaterThan(1);
-    applyCast(banc.getState, banc.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
+    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, 'critique');
     const kinds = draineCascade(banc.getState, 200, () => 1);
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(apres.criticalWounds ?? 0).toBe(0);
@@ -507,7 +551,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     const lieux: (string | undefined)[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile) lieux.push(p.result.location); });
     seedBattleRng(1);
-    applyCast(banc.getState, banc.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
+    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, 'critique');
     draineCascade(banc.getState, 200, () => 1);
     lache();
     expect(lieux, 'la graine 1 relancerait la Localisation au Corps').toEqual([res.location]);
@@ -525,7 +569,7 @@ describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LD
     cible.wounds = blessuresDeBase(20, 20, cible);
     if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }] as never;
     const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
-    applyCast(banc.getState, banc.setState, mage, cible, findSpellById('carreau')!, res, true, false, choix);
+    applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, choix);
     draineCascade(banc.getState, 200, () => 50);
     return banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
   }
@@ -586,7 +630,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     const res = evaluateMissile(mage, cible, sort, incantationCritique);
     const { phase, emis, lache } = ecoute();
     try {
-      applyCast(banc.getState, banc.setState, mage, cible, sort, res, true, false, 'critique', opts.surincante ? { extraTargets: [autre] } : undefined);
+      applyCast(banc.getState, banc.setState, mage, opts.surincante ? [cible, autre] : [cible], sort, res, true, false, 'critique');
       phase.v = 'drain';
       draineCascade(banc.getState, 200, () => 50);
     } finally { lache(); }
@@ -611,7 +655,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
   });
 
   it("immunité de Domaine (Manifestation de Ghur) : une émission, sans Blessure ni Critique", () => {
-    const bete = { ...findSpellById('carreau')!, domainId: { id: 'bete' } };
+    const bete = { ...findSpellById('carreau')!, domainId: { id: 'bete' } as const };
     const { emis, cible } = lance((c) => { c.traits = [...(c.traits ?? []), { id: 'manifestation-de-ghur' }] as never; }, { sort: bete });
     expect(emis).toEqual([{ phase: 'applyCast', to: cible.id, critiques: 0, woundsLost: 0, cwAuMoment: 0 }]);
   });
@@ -640,7 +684,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     });
     try {
       const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
-      applyCast(banc.getState, banc.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, 'critique');
     } finally {
       lache();
     }
@@ -698,7 +742,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     let kinds: string[];
     try {
       const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
-      applyCast(banc.getState, banc.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, [cible], findSpellById('carreau')!, res, true, false, 'critique');
       kinds = draineCascade(banc.getState, 200, () => 50, () => 'devier');
     } finally { lache(); }
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
@@ -781,7 +825,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
-      applyCast(banc.getState, banc.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, effet);
+      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, effet);
       const auLancement = touches();
       draineCascade(banc.getState, 200, () => 50, o.choix ? () => o.choix! : undefined);
       return { auLancement, lignes: touches(), finale: finales[0], apres: banc.getState().battle!.combatants.find((c) => c.id === cible.id)! };
@@ -841,7 +885,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     let tir: ReturnType<typeof resolveAttack> = null;
     for (let graine = 1; graine < 60 && !tir?.victim; graine++) {
       banc.getState().ensemencerLeTirage(graine);
-      tir = resolveAttack(banc.getState, H, cible, undefined, false, true, false, arc);
+      tir = resolveAttack(banc.getState, H, cible, arc, undefined, false, true, false);
     }
     const { victim, res, weapon } = tir!;
     expect(victim, 'une graine touche le tas').toBeDefined();
@@ -872,7 +916,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     let tir: ReturnType<typeof resolveAttack> = null;
     for (let graine = 1; graine < 200 && !tir?.victim; graine++) {
       banc.getState().ensemencerLeTirage(graine);
-      tir = resolveAttack(banc.getState, tireur, H, undefined, false, false, false, arc);
+      tir = resolveAttack(banc.getState, tireur, H, arc, undefined, false, false, false);
     }
     const { victim, res, weapon } = tir!;
     expect(victim?.id, 'une graine dévie sur l’allié').toBe(voisin.id);
@@ -912,7 +956,7 @@ describe('la ligne de touche qualifie la Localisation relancée, au jet comme au
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
-      applyCast(banc.getState, banc.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, 'critique');
+      applyCast(banc.getState, banc.setState, mage, [cible], sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, 'critique');
       draineCascade(banc.getState, 200, () => 50);
     } finally { lache(); }
     const ligne = journal().find((l) => l.startsWith(`${mage.label} lance ${sort.label} sur ${cible.label}`)) ?? '';

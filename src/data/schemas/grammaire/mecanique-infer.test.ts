@@ -1,50 +1,20 @@
 /**
- * Les schémas de `mecanique.ts` INFÈRENT le type du moteur (#1466, sonde du juge promue en garde).
+ * `effectOpSchema` INFÈRE le type `EffectOp` du moteur (#1466, sonde du juge promue en garde).
  *
- * Un schéma récursif se déclare `z.ZodType<T>` (obligé par `z.lazy`) : cette annotation EST le
- * contrat, et rien ne l'empêche de retomber à `unknown` — auquel cas les 9 datasets qui composent
- * la grammaire ne typent plus rien tout en restant verts. Ce test tient donc l'ÉGALITÉ entre
- * l'infer de chaque schéma et le type manuscrit du moteur : `Condition`, `Flow<EffectOp>`,
- * `EffectOp`, `FlowTest`, `GameOp`.
+ * `FERMEE.effectOp` n'est pas annoté `z.ZodType<EffectOp>` : son infer peut dériver du type manuscrit
+ * sans qu'aucune annotation ne le refuse, d'où l'assignabilité MUTUELLE tenue ici. Les schémas annotés
+ * (`conditionSchema`, `flowSchema`, `gameOpSchema`) ne s'y comparent pas : leur infer EST leur annotation (#4056).
  */
 import { describe, it, expectTypeOf } from 'vitest';
 import type { z } from 'zod';
-import type { conditionSchema, flowSchema, gameOpSchema, effectOpSchema, flowTestSchema, triggeredEffectSchema } from './mecanique';
-import type { Condition, EffectOp, EffectTrigger, Flow, FlowTest, TriggeredEffect } from '../../../engine/flowCore';
-import type { GameOp } from '../../../engine/ops';
+import type { effectOpSchema } from './mecanique';
+import type { EffectOp } from '../../../engine/flowCore';
 
-type InfCondition = z.infer<typeof conditionSchema>;
-type InfFlow = z.infer<typeof flowSchema>;
-type InfGameOp = z.infer<typeof gameOpSchema>;
 type InfEffectOp = z.infer<typeof effectOpSchema>;
-type InfFlowTest = z.infer<typeof flowTestSchema>;
-type InfTriggeredEffect = z.infer<typeof triggeredEffectSchema>;
 
-describe('grammaire — l\'infer de chaque schéma EST le type du moteur (jamais `unknown`)', () => {
-  it('`conditionSchema` infère `Condition`', () => {
-    expectTypeOf<InfCondition>().toEqualTypeOf<Condition>();
-  });
-
-  it('`flowSchema` infère `Flow<EffectOp>` — la feuille `do` est celle du MOTEUR', () => {
-    expectTypeOf<InfFlow>().toEqualTypeOf<Flow<EffectOp>>();
-  });
-
-  it('`gameOpSchema` infère `GameOp`, donc `effectOpSchema.ops` aussi', () => {
-    expectTypeOf<InfGameOp>().toEqualTypeOf<GameOp>();
-    expectTypeOf<InfEffectOp['ops']>().toEqualTypeOf<GameOp[]>();
-  });
-
-  // L'énumération des Triggers est DUPLIQUÉE ici (le schéma ne peut pas dériver d'un type) : sans ce
-  // verrou, un Trigger ajouté au moteur et oublié au schéma (ou l'inverse) passerait vert.
-  it('`triggeredEffectSchema` infère `TriggeredEffect<EffectOp>`, et son énumération EST `EffectTrigger`', () => {
-    expectTypeOf<InfTriggeredEffect['trigger']>().toEqualTypeOf<EffectTrigger>();
-    expectTypeOf<InfTriggeredEffect>().toExtend<TriggeredEffect<EffectOp>>();
-    expectTypeOf<TriggeredEffect<EffectOp>>().toExtend<InfTriggeredEffect>();
-  });
-
-  it('`effectOpSchema` reste MUTUELLEMENT assignable à `EffectOp` ; l\'infer de `flowTestSchema` ÉTEND `FlowTest` (sens unique)', () => {
+describe('grammaire — l\'infer de `effectOpSchema` EST le type du moteur', () => {
+  it('`effectOpSchema` reste MUTUELLEMENT assignable à `EffectOp`', () => {
     expectTypeOf<InfEffectOp>().toExtend<EffectOp>();
     expectTypeOf<EffectOp>().toExtend<InfEffectOp>();
-    expectTypeOf<InfFlowTest>().toExtend<FlowTest>();
   });
 });

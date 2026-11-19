@@ -33,8 +33,8 @@ export interface Banc {
   setState: (ecrit: Ecrit) => void;
   subscribe: (fn: (etat: Jeu, prev: Jeu) => void) => () => void;
   actions: ActionsDuNoyau & MachinerieDuNoyau;
-  /** Presse la case `actionId` comme un hôte (#3610) : joue le geste que son offre déclare (`gesteDeLOffre`) sur les
-   *  arguments `args` de sa case ; une case sans geste lève. */
+  /** Presse la case `actionId` comme un hôte (#3610) : joue, par l'action de l'état, le geste que son offre déclare
+   *  (`gesteDeLOffre`) sur les arguments `args` de sa case ; une case sans geste lève. */
   jouerLaCase: (actionId: string, args?: ContexteDOffre) => void;
   /** Reprend chaque jeton d'échéance au plus `ms` plus tard, ceux que les reprises programment dans la fenêtre compris
    *  (`vi.advanceTimersByTime`) ; rend le nombre de reprises. */
@@ -107,7 +107,7 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
     actions: proprietaire.actions,
     jouerLaCase: (actionId, args = {}) => {
       const g = garanti(gesteDeLOffre(proprietaire.get(), garanti(offreDeId(actionId), actionId, 'offre du banc'), args), actionId, 'geste de la case');
-      (proprietaire.actions[g.verbe] as (...a: unknown[]) => void)(...g.args);
+      (proprietaire.get()[g.verbe] as (...a: unknown[]) => void)(...g.args);
     },
     avancer: horloge.avancer,
     reprendreLesEnAttente: horloge.reprendreLesEnAttente,

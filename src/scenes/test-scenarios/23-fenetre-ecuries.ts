@@ -92,13 +92,13 @@ const DIALOGUES: Dialogue[] = [
     nodes: [
       {
         id: 'h1',
-        speakerId: 'homme-de-main',
+        speakerId: { id: 'homme-de-main' },
         desc: '« Personne ne monte ici. Redescendez par où vous êtes venus — ou par la fenêtre, si vous préférez. »',
         choices: [
           {
             id: 'tirer-epee',
             label: 'Tirer l’épée.',
-            flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: 'enc-homme-de-main' }]),
+            flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: { id: 'enc-homme-de-main' } }]),
           },
           { id: 'reculer', label: 'Reculer.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
         ],

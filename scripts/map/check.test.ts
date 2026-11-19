@@ -11,7 +11,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { auditFacade, auditUnsupportedFloor, auditZoneCoverage, floorPairs, scenePlanDefects, groundTerrains, PLAN_DEFECT_FAMILIES, type Defect, type PlanDefectFamilyDef } from '../../src/noyau/planDefects';
+import {
+  auditFacade,
+  auditUnsupportedFloor,
+  auditZoneCoverage,
+  floorPairs,
+  scenePlanDefects,
+  groundTerrains,
+  PLAN_DEFECT_FAMILIES,
+  type Defect,
+  type PlanDefectFamilyDef,
+} from '../../src/noyau/planDefects';
 import { locateGrid } from './locate';
 import { codedSites } from './sites';
 import { zonesFromSeeds, type ZoneSeed } from '../../src/noyau/monde/asciiMap';
@@ -110,10 +120,10 @@ describe('auditFacade — critère GÉOMÉTRIQUE (#823 défauts 1+2)', () => {
     expect(auditFacade(scene, 1, 0, false)).toEqual([]);
   });
 
-  it('CONTRE-PREUVE sur La Diligence (scène réelle) : retirer le mur z1 en (18,6)N fait apparaître EXACTEMENT un défaut de plus — le silence structurel du défaut 2 est corrigé', () => {
+  it('CONTRE-PREUVE sur La Diligence (scène réelle) : retirer le mur z1 en (26,12)N fait apparaître EXACTEMENT un défaut de plus — le silence structurel du défaut 2 est corrigé', () => {
     const scene = diligenceScene();
     const [[aboveZ, belowZ]] = floorPairs(scene);
-    const targetWall = (w: WallSeg) => (w.z ?? 0) === aboveZ && w.side === 'N' && w.x === 18 && w.y === 6;
+    const targetWall = (w: WallSeg) => (w.z ?? 0) === aboveZ && w.side === 'N' && w.x === 26 && w.y === 12;
     expect((scene.walls ?? []).some(targetWall)).toBe(true); // le mur existe bien sur le plan actuel
 
     const before = auditFacade(scene, aboveZ, belowZ);

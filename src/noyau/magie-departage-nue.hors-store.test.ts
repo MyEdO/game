@@ -13,6 +13,7 @@
  *     le seam de jet y poserait est une CIBLE ; c'est la `base` authorée de l'étape qui doit servir,
  *     sans quoi l'opposition compare une cible à la nue de l'attaquant figé.
  */
+import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant } from '../engine/types';
@@ -105,7 +106,7 @@ describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jama
   const step = (over: Partial<CascadeTestStep> = {}): CascadeStep => ({
     id: 's1', kind: cleDeFixture('test'), actorId: 'A', rollLabel: 'Force Mentale',
     base: 45, target: 25, difficulty: 'difficile',
-    meta: { opposed: { aT: { roll: 13, target: 40, base: 40, sl: 1, success: true, isDouble: false }, attackerId: 'E', attackerName: 'E', attackerLabel: 'Force' } },
+    meta: { opposed: { aT: { roll: 13, target: 40, base: 40, sl: 1, success: true, isDouble: false }, attackerId: 'E', attackerName: fixtureText('E'), attackerLabel: 'Force' } },
     result: { roll: 88, target: 25, sl: -6, success: false },
     ...over,
   });

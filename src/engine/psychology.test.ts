@@ -1,12 +1,28 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
-import { parsePsychTraits, peurTerreurFromSize, pasDePeur, psychBranchOps, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue, sourceCombattant } from './psychology';
+import {
+  parsePsychTraits,
+  peurTerreurFromSize,
+  pasDePeur,
+  psychBranchOps,
+  isFrenzyCapable,
+  resolveFrenzyEntry,
+  targetedTrigger,
+  calmeDAcquisition,
+  ciblesDeTrauma,
+  traitAcquis,
+  TRAITS_DE_TRAUMA,
+  effectivePsychTraits,
+  calmeValue,
+  sourceCombattant,
+} from './psychology';
 import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
 import { applyOps } from './ops';
 import { deFixe } from './dice.testkit';
 import { ciblePsy } from './psych/ciblage';
+import { groups } from '../data';
 import { blessuresSurLeProfil, blessuresDeBase, combattantDeTest } from './combattantDeTest.testkit';
 
 describe('Psychologie (pur)', () => {
@@ -108,11 +124,6 @@ describe('Psychologie (pur)', () => {
     const foe = { id: 'f', kind: 'heros', groups: ['elfe'] } as unknown as Combatant;
     expect(targetedTrigger(self, [sourceCombattant(foe)])).toEqual({ type: 'animosite', cible: ciblePsy.groupe('elfe'), sourceId: 'f' });
   });
-  it('resolveCalmeSimple : Test de Calme binaire (succès = résisté)', () => {
-    const r = resolveCalmeSimple(80, makeRNG(2));
-    expect(typeof r.success).toBe('boolean');
-    expect(typeof r.roll).toBe('number');
-  });
 });
 
 describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTATIVE)', () => {
@@ -128,25 +139,36 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
 
   afterEach(() => resetRule('psycho-acquisition-optionnelle'));
 
-  it('toutes les fonctions sont INERTES tant que la règle est éteinte (défaut)', () => {
+  it('le Test de Calme d’acquisition est INERTE tant que la règle est éteinte (défaut)', () => {
     const c = mk();
-    expect(calmeDeLAnimositeAcquise(c, fixed(100))).toBeNull();
-    expect(traumaOnImpossibleAmbition(c, fixed(100))).toBeNull();
+    expect(calmeDAcquisition(c, 'intermediaire', fixed(100))).toBeNull();
+    expect(calmeDAcquisition(c, 'accessible', fixed(100))).toBeNull();
   });
 
-  it('Animosité acquise : Test de Calme Intermédiaire (+0) (ADE II 09 l.15)', () => {
+  it('Animosité sur Destin : Calme Intermédiaire (+0) (ADE II 09 l.15) ; Ambition irréalisable : Calme Accessible (+20) (l.21)', () => {
     setRule('psycho-acquisition-optionnelle', true);
     const c = mk();
-    expect(calmeDeLAnimositeAcquise(c, fixed(50))!.target).toBe(calmeValue(c));
-    expect(traumaOnImpossibleAmbition(c, fixed(50))!.test.target, 'Accessible (+20), pour comparaison').toBe(calmeValue(c) + 20);
+    expect(calmeDAcquisition(c, 'intermediaire', fixed(50))!.target).toBe(calmeValue(c));
+    expect(calmeDAcquisition(c, 'accessible', fixed(50))!.target).toBe(calmeValue(c) + 20);
+    expect(calmeDAcquisition(c, 'accessible', fixed(100))!.success).toBe(false);
+    expect(calmeDAcquisition(c, 'accessible', fixed(1))!.success).toBe(true);
   });
 
-  it('Trauma : Ambition rendue impossible → Calme Accessible raté → Trauma ; réussite → rien', () => {
-    setRule('psycho-acquisition-optionnelle', true);
-    expect(traumaOnImpossibleAmbition(mk(), fixed(100))).toMatchObject({ trait: { type: 'trauma' } });
-    const ok = traumaOnImpossibleAmbition(mk(), fixed(1));
-    expect(ok!.test.success).toBe(true);
-    expect(ok!.trait).toBeUndefined();
+  it('Trauma : Hostilité (Animosité) ou Haine envers un Groupe, ou une Phobie, sans défaut (LDB 21 l.93 ; arbitrage du 2026-11-18)', () => {
+    expect([...TRAITS_DE_TRAUMA].sort()).toEqual(['animosite', 'haine', 'phobie']);
+    const { candidats, parDefaut } = ciblesDeTrauma();
+    expect(parDefaut).toBeUndefined();
+    expect(candidats).toContain(ciblePsy.groupe('elfe'));
+    for (const relatif of groups.filter((g) => g.relatif)) expect(candidats, 'un Groupe relatif ne se lit qu’envers un porteur').not.toContain(ciblePsy.groupe(relatif.id));
+    expect(candidats).toHaveLength(groups.filter((g) => !g.relatif).length);
+  });
+
+  it('une Haine de Trauma ne remplace pas l’Animosité possédée envers la même Cible (ADE II 09 l.15 : la promotion est propre à l’Animosité)', () => {
+    const elfes = ciblePsy.groupe('elfe');
+    const c = mk({ psychTraits: [{ type: 'animosite', cible: elfes }] });
+    expect(traitAcquis(c, 'haine', elfes)).toEqual({ type: 'haine', remplace: [] });
+    expect(traitAcquis(c, 'phobie', elfes)).toEqual({ type: 'phobie', remplace: [] });
+    expect(traitAcquis(c, 'animosite', elfes)).toEqual({ type: 'haine', remplace: [{ type: 'animosite', cible: elfes }] });
   });
 });
 

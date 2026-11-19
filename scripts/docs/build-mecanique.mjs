@@ -7,7 +7,7 @@
  *    `hasCapability`) — le manuscrit figeait des numéros de ligne dans `trauma.ts`,
  *    `triggeredEffects.ts` et `dispatch.ts`, tous faux depuis longtemps ;
  *  - l'union `EffectTrigger` et les formes d'`EffectTargeting` (`src/engine/flowCore.ts`), plus les
- *    champs de `TriggeredEffect` ;
+ *    champs de `TriggeredEffect`, lus à son schéma (`effetDeclencheSur`, `src/data/schemas/grammaire/mecanique.ts`) ;
  *  - les KINDS de source réunis par `effectSourcesOf` — lus dans son corps, dans l'ordre du code ;
  *  - les types de capacités (`src/data/index.ts`, interface ou inférence d'un schéma) et leur nombre de drapeaux ;
  *  - les documents PORTEURS de chaque canal, lus au def zod, avec leur population réelle ;
@@ -24,7 +24,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
-import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
+import { loadSource, firstSentence, jsdocBody, readSchemaUnionMembers } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { champsDuSchemaObjet, schemaInfere } from './lib/canauxMecaniques.mjs'
 
@@ -32,6 +32,7 @@ import { champsDuSchemaObjet, schemaInfere } from './lib/canauxMecaniques.mjs'
 function rendu() {
   const OUTIL = 'build-mecanique'
   const FLOWCORE = 'src/engine/flowCore.ts'
+  const MECANIQUE = 'src/data/schemas/grammaire/mecanique.ts'
   const TRIGGERS = 'src/noyau/triggeredEffects.ts'
   const TRAUMA = 'src/engine/trauma.ts'
   const CAPS = 'src/engine/capabilities.ts'
@@ -48,7 +49,7 @@ function rendu() {
     return p
   }
   const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
-  for (const p of [FLOWCORE, TRIGGERS, TRAUMA, CAPS, INDEX, DEFS]) ancre(p, 'source du générateur')
+  for (const p of [FLOWCORE, MECANIQUE, TRIGGERS, TRAUMA, CAPS, INDEX, DEFS]) ancre(p, 'source du générateur')
 
   const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
 
@@ -103,50 +104,64 @@ function rendu() {
   const INDICE_TYPE = declaration('src/engine/types.ts', 'QualityInstance')
   if (!INDICE_RUNTIME.noeud.body?.getText(INDICE_RUNTIME.sf).includes('indice: q.value'))
     abandon(`\`${INDICE_RUNTIME.nom}\` ne dérive plus l'Indice de \`QualityInstance.value\` (${INDICE_RUNTIME.fichier})`)
-  if (!INDICE_TYPE.noeud.members?.some((m) => m.name?.getText(INDICE_TYPE.sf) === 'value'))
-    abandon(`\`QualityInstance\` n'a plus de champ \`value\` (${INDICE_TYPE.fichier})`)
+  /** Les variantes littérales de `QualityInstance` (union exclusive Indice | majoration), le membre `nom` typé autrement que `never`. */
+  const variantes = (ts.isUnionTypeNode(INDICE_TYPE.noeud.type) ? INDICE_TYPE.noeud.type.types : [INDICE_TYPE.noeud.type]).filter(ts.isTypeLiteralNode)
+  const champ = (nom) => variantes.flatMap((v) => v.members).find((m) => m.name?.getText(INDICE_TYPE.sf) === nom && m.type?.kind !== ts.SyntaxKind.NeverKeyword)
+  if (!champ('value')) abandon(`\`QualityInstance\` n'a plus de champ \`value\` (${INDICE_TYPE.fichier})`)
+  const MAJORATION = champ('majoration')
+  if (!MAJORATION) abandon(`\`QualityInstance\` n'a plus de variante \`majoration\` (${INDICE_TYPE.fichier})`)
+  const MAJORATION_SITE = `${INDICE_TYPE.fichier}:${ligne(INDICE_TYPE.sf, MAJORATION.name.getStart(INDICE_TYPE.sf))}`
+  const FUSION_MUNITION = declaration('src/engine/items.ts', 'weaponWithAmmo')
+  if (!FUSION_MUNITION.noeud.body?.getText(FUSION_MUNITION.sf).includes('q.majoration'))
+    abandon(`\`${FUSION_MUNITION.nom}\` ne lit plus \`majoration\` (${FUSION_MUNITION.fichier})`)
 
   // ── `EffectTrigger` / `EffectTargeting` / `TriggeredEffect` ──────────────────────────────────────
 
-  const { text: FC_SRC, sf: FC_SF } = loadSource(FLOWCORE)
+  const { text: MC_SRC, sf: MC_SF } = loadSource(MECANIQUE)
 
-  function aliasUnion(nom) {
-    let alias
-    FC_SF.forEachChild((n) => {
-      if (ts.isTypeAliasDeclaration(n) && n.name.text === nom) alias = n
-    })
-    if (!alias || !ts.isUnionTypeNode(alias.type)) abandon(`\`${nom}\` n'est plus une union nommée dans ${FLOWCORE}`)
-    return { alias, membres: alias.type.types }
-  }
+  const TRIGGER_U = readSchemaUnionMembers(MC_SF, MC_SRC, 'effectTriggerSchema', OUTIL)
+  const TRIGGERS_LIST = TRIGGER_U.rows.map((m) => ({ nom: m.name, note: m.role ? plat(m.role) : null }))
+  if (TRIGGERS_LIST.length < 10) abandon(`moins de 10 déclencheurs lus dans \`effectTriggerSchema\` — l'énumération a dérivé`)
+  const LIGNE_TRIGGER = ligne(MC_SF, TRIGGER_U.decl.name.getStart(MC_SF))
 
-  const TRIGGER_U = aliasUnion('EffectTrigger')
-  const TRIGGERS_LIST = TRIGGER_U.membres.map((m) => {
-    if (!ts.isLiteralTypeNode(m) || !ts.isStringLiteral(m.literal)) abandon(`membre non littéral dans \`EffectTrigger\``)
-    const doc = jsdocBody(FC_SRC.slice(m.getFullStart(), m.getStart(FC_SF)))
-    return { nom: m.literal.text, note: doc ? plat(firstSentence(doc)) : null }
-  })
-  if (TRIGGERS_LIST.length < 10) abandon(`moins de 10 déclencheurs lus dans \`EffectTrigger\` — l'union a dérivé`)
-  const LIGNE_TRIGGER = ligne(FC_SF, TRIGGER_U.alias.name.getStart(FC_SF))
-
-  const CIBLAGE_U = aliasUnion('EffectTargeting')
-  const CIBLAGES = CIBLAGE_U.membres.map((m) => plat(m.getText(FC_SF)))
-  const LIGNE_CIBLAGE = ligne(FC_SF, CIBLAGE_U.alias.name.getStart(FC_SF))
+  const CIBLAGE_U = readSchemaUnionMembers(MC_SF, MC_SRC, 'effectTargetingSchema', OUTIL)
+  const CIBLAGES = CIBLAGE_U.rows.map((m) => plat(m.texte))
+  const LIGNE_CIBLAGE = ligne(MC_SF, CIBLAGE_U.decl.name.getStart(MC_SF))
 
   const EFFET = (() => {
     const d = declaration(FLOWCORE, 'TriggeredEffect')
+    const fabrique = declaration(MECANIQUE, 'effetDeclencheSur')
     const champs = []
-    let prevEnd = d.noeud.members.pos
-    for (const m of d.noeud.members) {
-      if (!ts.isPropertySignatureDeclaration(m)) continue
-      const doc = jsdocBody(FC_SRC.slice(prevEnd, m.getStart(FC_SF)))
-      champs.push({
-        nom: m.name.getText(FC_SF) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''),
-        type: m.type ? plat(m.type.getText(FC_SF)) : '—',
-        role: doc ? plat(firstSentence(doc)) : null,
-      })
-      prevEnd = m.getEnd()
+    /** Les membres d'une liste de nœuds (`props`), leur JSDoc lue entre le membre précédent et lui. */
+    const lire = (props, sf, text, nomDe, typeDe) => {
+      let prevEnd = props.pos
+      for (const m of props) {
+        const nom = nomDe(m)
+        if (nom) {
+          const doc = jsdocBody(text.slice(prevEnd, m.getStart(sf)))
+          champs.push({ nom, type: typeDe(m), role: doc ? plat(firstSentence(doc)) : null })
+        }
+        prevEnd = m.getEnd()
+      }
     }
-    if (!champs.length) abandon(`\`TriggeredEffect\` sans propriété lisible dans ${FLOWCORE}`)
+    let objet
+    const cherche = (n) => {
+      if (objet) return
+      if (ts.isCallExpression(n) && n.expression.getText(fabrique.sf) === 'z.strictObject' && n.arguments[0] && ts.isObjectLiteralExpression(n.arguments[0])) objet = n.arguments[0]
+      else n.forEachChild(cherche)
+    }
+    cherche(fabrique.noeud)
+    if (!objet) abandon(`\`effetDeclencheSur\` ne déclare plus son \`z.strictObject\` dans ${MECANIQUE}`)
+    lire(objet.properties, fabrique.sf, fabrique.text,
+      (m) => (ts.isPropertyAssignment(m) || ts.isShorthandPropertyAssignment(m)) && m.name ? m.name.getText(fabrique.sf) + (m.getText(fabrique.sf).endsWith('.optional()') ? '?' : '') : null,
+      (m) => plat(ts.isPropertyAssignment(m) ? m.initializer.getText(fabrique.sf) : m.name.getText(fabrique.sf)))
+    const ajoutes = ts.isIntersectionTypeNode(d.noeud.type) ? d.noeud.type.types.filter(ts.isTypeLiteralNode) : []
+    for (const t of ajoutes) {
+      lire(t.members, d.sf, d.text,
+        (m) => ts.isPropertySignatureDeclaration(m) ? m.name.getText(d.sf) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : '') : null,
+        (m) => (m.type ? plat(m.type.getText(d.sf)) : '—'))
+    }
+    if (!champs.length) abandon(`\`TriggeredEffect\` sans champ lisible (${MECANIQUE}, ${FLOWCORE})`)
     return { ...d, champs }
   })()
 
@@ -268,7 +283,7 @@ function rendu() {
 **Périmètre mesuré / angles morts** — sont DÉRIVÉS à chaque génération : le SITE réel du lecteur de
 chaque canal (\`${PASSIF.site}\`, \`${DECLENCHE.site}\`, \`${CAPACITE.site}\`), les
 ${TRIGGERS_LIST.length} membres d'\`EffectTrigger\` et les ${CIBLAGES.length} formes d'\`EffectTargeting\`
-(\`${FLOWCORE}\`), les ${EFFET.champs.length} champs de \`TriggeredEffect\`, les ${SOURCES.kinds.length} kinds
+(lus à leurs schémas, \`${MECANIQUE}\`), les ${EFFET.champs.length} champs de \`TriggeredEffect\`, les ${SOURCES.kinds.length} kinds
 de source réunis par \`effectSourcesOf\`, les ${CAPACITES.length} types de capacités et leur nombre de
 drapeaux, les documents PORTEURS de chaque canal (def zod + population réelle du \`.json\`), le site
 de l'annulation \`suppressesCapabilities\` avec ses porteurs, les trois sites de l'Indice de qualité,
@@ -333,14 +348,14 @@ ${tablePorteurs('passive')}
 Un \`TriggeredEffect\` (\`${EFFET.site}\`) est un Flow d'ops appliqué à \`on\` quand \`trigger\` se
 produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'entité.
 
-${table(EFFET.champs, ['Champ', 'Type', 'Rôle (JSDoc)'], (c) => `| \`${c.nom}\` | \`${c.type}\` | ${c.role ?? '—'} |`)}
+${table(EFFET.champs, ['Champ', 'Schéma ou type', 'Rôle (JSDoc)'], (c) => `| \`${c.nom}\` | \`${c.type}\` | ${c.role ?? '—'} |`)}
 
-### Les ${TRIGGERS_LIST.length} déclencheurs (\`EffectTrigger\`, \`${FLOWCORE}:${LIGNE_TRIGGER}\`)
+### Les ${TRIGGERS_LIST.length} déclencheurs (\`EffectTrigger\`, \`effectTriggerSchema\`, \`${MECANIQUE}:${LIGNE_TRIGGER}\`)
 
 ${TRIGGERS_LIST.map((t) => `\`${t.nom}\``).join(' · ')}
 
 ${TRIGGERS_LIST.filter((t) => t.note).length ? `${table(TRIGGERS_LIST.filter((t) => t.note), ['Déclencheur', 'Ce que le JSDoc en dit'], (t) => `| \`${t.nom}\` | ${t.note} |`)}\n` : ''}
-### Les ${CIBLAGES.length} formes de ciblage (\`EffectTargeting\`, \`${FLOWCORE}:${LIGNE_CIBLAGE}\`)
+### Les ${CIBLAGES.length} formes de ciblage (\`EffectTargeting\`, \`effectTargetingSchema\`, \`${MECANIQUE}:${LIGNE_CIBLAGE}\`)
 
 ${CIBLAGES.map((c) => `- \`${c}\``).join('\n')}
 
@@ -387,6 +402,10 @@ ${SUPPRESSION.n} entrée(s) de \`${SUPPRESSION.json}\` l'exercent, dont \`${SUPP
 Le drapeau dit qu'une mécanique s'applique ; sa VALEUR (Salve N, Protectrice N, Solide N…) vit sur
 l'INSTANCE portée par l'objet — \`${INDICE_TYPE.nom}.value\` (\`${INDICE_TYPE.site}\`), que le
 dispatcher runtime expose sous \`indice\` (\`${INDICE_RUNTIME.nom}\`, \`${INDICE_RUNTIME.site}\`).
+Une qualité de munition peut porter, au lieu d'un Indice, une \`majoration\` (« +N »,
+\`${MAJORATION_SITE}\`) : la fusion \`${FUSION_MUNITION.nom}\` (\`${FUSION_MUNITION.site}\`) rend
+alors à l'arme tirée une instance dont la \`value\` vaut l'Indice de la même qualité de l'arme + N
+(N si l'arme ne la porte pas).
 La saisie en prose (« Solide 3 ») n'est convertie en instance qu'à l'AUTHORING, par
 \`${INDICE_AUTHORING.nom}\` (\`${INDICE_AUTHORING.site}\`) — le runtime ne re-parse jamais un libellé
 (convention \`indice:{label}\` côté champ d'édition). N'ajoute donc **jamais** un drapeau numéroté

@@ -2,7 +2,10 @@
   "id": "artillery-misfire",
   "type": "artillery-misfire",
   "label": "Incidents de Tir d'Artillerie par Salve",
-  "die": "d10",
+  "die": {
+    "n": 1,
+    "sides": 10
+  },
   "source": {
     "book": "aux-armes",
     "page": 126

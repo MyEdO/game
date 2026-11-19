@@ -7,10 +7,13 @@
  * — la classification des décors/créatures est une extrapolation des étalons ; celle des STRUCTURES
  * d'arête est authored et sourcée (`couvertPenalty`, `AA 10 l.23`).
  */
-import { Scene, tileAt, areteOcculteEntre, heightAt, sceneMetresPerTile, edgeOf, structureAt, structureIsDown } from './scene';
-import { terrainOpaque } from './terrain';
+import { Scene, tileAt, wallOnSight, hauteurDe, sceneMetresPerTile, edgeOf, structureIsDown, croiseeOuverte, type WallSeg } from './scene';
+import { aretesA } from './wallIndex';
+import { terrainHorsGrille, terrainOpaque } from './terrain';
+import { caseDansGrille, grilleDesMasses, masseOcculte, rayonTraverse } from './opacite';
 import { findPropById, findStructureById } from '../../data';
 import { decorsEnCase } from './decorIndex';
+import { pairesEnRegard, type Corps } from './footprint';
 import { pointDeCase, type Pt } from './path';
 import type { Combatant, CoverClass } from '../../engine/types';
 import { couvertDepuisDifficulte, couvertLePlusProtecteur, cranDeCouvertEnMoins } from '../../engine/cover';
@@ -20,9 +23,11 @@ const worst = couvertLePlusProtecteur;
 
 /** Couvert d'un terrain partiel. */
 const TERRAIN_COVER: Record<string, CoverClass> = { bois: 'imparfaite' };
-/** Couvert/opacité d'un décor : lus sur le dataset `props.json` (`cover`/`opaque`), exemplaires canon
- *  LDB 14 l.72/81/86 + extrapolation l.75. Édité au Codex. */
-const decorCover = (ref: string | undefined): CoverClass | undefined => (ref ? findPropById(ref)?.cover : undefined);
+/** LDB 14 l.72,81,86. */
+function decorCover(ref: string | undefined): CoverClass | undefined {
+  const prop = findPropById(ref);
+  return prop?.opaque ? undefined : prop?.cover;
+}
 
 /** Cases STRICTEMENT entre `a` et `b` (supercover simple sur grille carrée). */
 export function tilesBetween(a: Pt, b: Pt): Pt[] {
@@ -34,41 +39,6 @@ export function tilesBetween(a: Pt, b: Pt): Pt[] {
     out.push({ x: Math.round(a.x + (dx * i) / steps), y: Math.round(a.y + (dy * i) / steps) });
   }
   return out;
-}
-
-const adjacent = (p: Pt, q: Pt): boolean => chebyshev(p, q) <= 1;
-
-/** Un mur d'arête (`Scene.walls`) est-il franchi par la ligne `from`→`to` ? Bloque la vue
- *  (« pas à travers les murs »). Le test PAR ARÊTE est injectable (`edgeBlocks`) : le défaut interroge
- *  l'OPACITÉ de l'arête (`areteOcculte` sur l'index d'arêtes `noyau/monde/wallIndex`, O(1) par pas) — jamais
- *  sa franchissabilité : une Ligne de Vue n'a pas à savoir si l'on PASSE, et une herse à barreaux se
- *  regarde à travers sans s'ouvrir. La vision injecte un prédicat dont le verdict est déjà CUIT (Set
- *  d'arêtes de l'`Occ`, même verdict). Les diagonales ne croisent pas d'arête cardinale. */
-export function wallOnSight(scene: Scene, from: Pt, to: Pt, z = 0, edgeBlocks?: (ax: number, ay: number, bx: number, by: number) => boolean): boolean {
-  if (!scene.walls?.length) return false;
-  const blk = edgeBlocks ?? ((ax, ay, bx, by) => areteOcculteEntre(scene, ax, ay, bx, by, z));
-  // Supercover de `from` à `to`, extrémités incluses (ce que `tilesBetween`, strictement entre, ne
-  // donne pas), parcouru EN PLACE : ce chemin est le plus chaud du brouillard — un rayon par case
-  // vue, une case par pas — et n'a besoin d'aucun tableau ni point intermédiaire matérialisé.
-  const steps = chebyshev(to, from);
-  let ax = from.x, ay = from.y;
-  for (let i = 1; i <= steps; i++) {
-    const bx = Math.round(from.x + ((to.x - from.x) * i) / steps);
-    const by = Math.round(from.y + ((to.y - from.y) * i) / steps);
-    const px = ax, py = ay;
-    ax = bx; ay = by;
-    if (px !== bx && py !== by) {
-      // Pas DIAGONAL : le rayon franchit le coin partagé. Bloqué si les DEUX contournements
-      // orthogonaux du coin (via (bx,py) et via (px,by)) sont murés — un mur droit bloque, mais
-      // on peut « jeter un œil » au-delà de l'EXTRÉMITÉ d'un mur (un seul côté muré).
-      const blocked1 = blk(px, py, bx, py) || blk(bx, py, bx, by);
-      const blocked2 = blk(px, py, px, by) || blk(px, by, bx, by);
-      if (blocked1 && blocked2) return true;
-    } else if (blk(px, py, bx, by)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 /**
@@ -91,25 +61,20 @@ export function smokeZone(from: Pt, center: Pt, radius: number): Pt[] {
   return [...seen.values()];
 }
 
-/** Une CASE bloque-t-elle la vue ? (terrain opaque `mur/porte`, décor opaque `statue`). Prédicat UNIQUE
- *  d'opacité de tuile — utilisé par le couvert (`lineOfSightCover`) ET la vision (échantillonnage
- *  anti-fuite). N'inclut PAS les murs d'arête (cf. `wallBetween`) : une cloison fine de bâtiment est un
- *  `WallSeg`, pas une tuile opaque. */
+/** La colonne contient-elle une masse opaque ? */
 export function tileBlocksSight(scene: Scene, x: number, y: number): boolean {
-  if (terrainOpaque(tileAt(scene, x, y))) return true;
-  return decorsEnCase(scene, x, y).some((dc) => !!findPropById(dc.decor?.id)?.opaque);
+  if (!caseDansGrille(scene.dimensions, x, y)) {
+    return terrainOpaque(terrainHorsGrille()) || decorsEnCase(scene, x, y).some((d) => !!findPropById(d.decor?.id)?.opaque);
+  }
+  return !!grilleDesMasses(scene).g[y * scene.dimensions.w + x];
 }
 
 /**
- * Arêtes de la case CIBLE dont le côté REGARDE le tireur — une en approche cardinale, deux en
- * diagonale. GRANDEUR MAISON, au même titre que le seuil d'angle mort plus bas et `STEP_MAX_M`
- * (`relief.ts`) : le canon décrit la POSTURE (`AA 10 l.23`, on « s'en sert activement comme d'un
- * couvert ») et jamais la géométrie de grille qui dit QUELLE arête abrite. Formulation retenue — la
- * plus simple qui rende cette posture : on se plaque contre l'arête de SA PROPRE case du côté d'où
- * vient le tir. Elle n'exige aucune notion de hauteur (le dépôt n'en a aucune côté règles), ne dépend
- * pas du trajet du rayon (donc ni de son arrondi, ni de l'ordre des pas) et reste locale à la cible —
- * ce que le canon décrit : un couvert dont la cible SE SERT, pas un obstacle rencontré. Les arêtes
- * DIAGONALES (`\`,`/`) n'en sont jamais : `edgeOf` ne connaît que le cardinal, comme `wallBetween`.
+ * Arêtes de la case CIBLE dont le côté REGARDE l'attaquant, au tir comme au corps à corps — une en
+ * approche cardinale, deux en diagonale. GRANDEUR MAISON (`AA 10 l.23`), au même titre que le seuil
+ * d'angle mort plus bas et `STEP_MAX_M` (`relief.ts`) : l'arête de SA PROPRE case du côté d'où vient
+ * le coup, locale à la cible, indépendante du trajet du rayon. Les arêtes DIAGONALES (`\`,`/`) n'en
+ * sont jamais : `edgeOf` ne connaît que le cardinal, comme `wallBetween`.
  */
 function aretesAbritantes(from: Pt, to: Pt): { x: number; y: number; side: 'N' | 'E' }[] {
   const out: { x: number; y: number; side: 'N' | 'E' }[] = [];
@@ -125,39 +90,50 @@ function aretesAbritantes(from: Pt, to: Pt): { x: number; y: number; side: 'N' |
 }
 
 /**
- * Couvert que les STRUCTURES d'arête abritant la cible offrent à celle-ci (`AA 10 l.23` : la Pénalité
- * de Couvert d'une Structure EST la Difficulté par défaut d'un assaillant qui tire sur qui s'y abrite ;
- * barème `couvertDepuisDifficulte`). Le couvert est une propriété de la STRUCTURE, pas du trait de mur :
- * une arête sans `structure` n'en donne aucun, et les Structures dont la colonne est N/A (`Herse`
- * `AA 10 l.42`, `Solide porte en bois` l.50) comme celles dont le profil n'a pas cette colonne (les 5
- * entrées ADE II, `ADE II 8 l.282-288`) n'en donnent pas davantage — aucune valeur n'est supposée.
- * Une arête ABATTUE n'abrite plus rien (`AA 10 l.127`, Effondrement).
+ * Couvert que les STRUCTURES d'arête abritant la cible offrent à celle-ci : leur `couvertPenalty`
+ * (`AA 10 l.28-51`, barème `couvertDepuisDifficulte`). Une arête sans `structure`, ou dont la Structure
+ * n'a pas de `couvertPenalty` (`AA 10 l.42`, `AA 10 l.50`, `ADE II 8 l.282-288`), n'en donne aucun ;
+ * une arête ABATTUE non plus (`AA 10 l.127`).
  *
- * MÊME ÉTAGE SEULEMENT. `AA 10 l.23` décrit un défenseur posté SUR une Structure (« les créneaux du
- * rempart d'un château »), et aucune donnée du dépôt ne dit qu'une Structure se défend depuis le haut :
- * `structures.json` n'a pas de champ pour ça et `fortified` est documenté RENDU
- * (`schemas/defs/structures.ts`). Étendre le couvert d'arête au tir inter-étages sans ce fait revient à
- * accorder la protection d'un rempart aux planchers d'une auberge — d'autant que la LdV inter-étages
- * ignore déjà les arêtes (plus bas) : la cible serait couverte à travers des murs qu'on ne voit pas.
- * Le couvert du défenseur perché attend donc la donnée qui le porte, il ne s'extrapole pas ici.
+ * MÊME ÉTAGE SEULEMENT (`AA 10 l.23`) : `structures.json` ne porte aucun champ du défenseur perché, et la
+ * LdV inter-étages ignore les arêtes (`lineOfSightCover`).
  *
- * FENÊTRE : un cran de moins (`cranDeCouvertEnMoins`). Référence `AA 10 l.122`, application à une
- * croisée MAISON ; arbitrage #1712 (2026-09-08) : la croisée laisse passer la vue et le tir
- * (`areteOcculte`), le couvert se dégrade ici.
+ * FENÊTRE : `croisee` dit ce que vaut une croisée ouverte (`croiseeOuverte`), du couvert de son mur
+ * (`none` sans Structure). Au tir, un cran de moins (`cranDeCouvertEnMoins`, `AA 10 l.122`, arbitrage
+ * #1712 du 2026-09-08) ; en mêlée, la règle `combat-croisee-melee-difficulte` (`LDB 14 l.86`, arbitrage
+ * #4105 du 2026-11-13).
+ *
+ * CORPS : les arêtes abritantes de chaque paire de cases en regard (`pairesEnRegard`), le plus protecteur
+ * l'emporte, comme entre les deux arêtes d'une diagonale ; arbitrage #4105 du 2026-11-13.
  */
-export function couvertDArete(scene: Scene, from: Pt, to: Pt): CoverClass {
-  const z = to.z ?? 0;
-  if ((from.z ?? 0) !== z) return 'none';
+export function couvertDArete(scene: Scene, de: Corps, vers: Corps, croisee: (mur: CoverClass) => CoverClass): CoverClass {
+  return couvertDesAretes(scene, de, vers, (seg, mur) => (croiseeOuverte(seg) ? croisee(mur) : mur));
+}
+
+/** Le plus protecteur des couverts `valeur` des arêtes debout qui abritent `vers` de `de` (`aretesAbritantes` de chaque
+ *  paire en regard, même étage) ; `mur` est le couvert de la Structure de l'arête. */
+function couvertDesAretes(scene: Scene, de: Corps, vers: Corps, valeur: (seg: WallSeg, mur: CoverClass) => CoverClass): CoverClass {
+  const z = vers.pos.z ?? 0;
+  if ((de.pos.z ?? 0) !== z) return 'none';
   let cover: CoverClass = 'none';
-  for (const e of aretesAbritantes(from, to)) {
-    const seg = structureAt(scene, e.x, e.y, e.side, z);
-    if (!seg?.structure || structureIsDown(scene, seg)) continue;
-    const pen = findStructureById(seg.structure)?.couvertPenalty;
-    if (!pen) continue;
-    const brut = couvertDepuisDifficulte(pen);
-    cover = worst(cover, seg.window ? cranDeCouvertEnMoins(brut) : brut);
+  for (const [a, b] of pairesEnRegard(de, vers)) for (const e of aretesAbritantes(a, b)) for (const seg of aretesA(scene, e.x, e.y, e.side, z)) {
+    if (seg.structure && structureIsDown(scene, seg)) continue;
+    const pen = seg.structure ? findStructureById(seg.structure)?.couvertPenalty : undefined;
+    cover = worst(cover, valeur(seg, pen ? couvertDepuisDifficulte(pen) : 'none'));
   }
   return cover;
+}
+
+/** Couvert de la cible d'un coup de corps à corps : celui des arêtes qui l'abritent (`couvertDArete`), et celui de
+ *  toute croisée ouverte par laquelle passe le coup, du côté de l'attaquant compris (arbitrage #4291 du 2026-11-15). */
+export function couvertDuCoup(scene: Scene, attaquant: Corps, cible: Corps, croisee: (mur: CoverClass) => CoverClass): CoverClass {
+  return worst(couvertDArete(scene, attaquant, cible, croisee), couvertDesAretes(scene, cible, attaquant, (seg, mur) => (croiseeOuverte(seg) ? croisee(mur) : 'none')));
+}
+
+/** Couvert de la cible d'un tir : celui du `trajet` (`lineOfSightCover` vers la case visée) et celui des
+ *  arêtes qui l'abritent entre les deux corps (`couvertDArete`, croisée à un cran de moins). `AA 10 l.23`. */
+export function couvertDuTir(scene: Scene, trajet: CoverClass, tireur: Corps, cible: Corps): CoverClass {
+  return worst(trajet, couvertDArete(scene, tireur, cible, cranDeCouvertEnMoins));
 }
 
 /**
@@ -166,7 +142,8 @@ export function couvertDArete(scene: Scene, from: Pt, to: Pt): CoverClass {
  * (Souffle (Fumée)) qui BLOQUENT entièrement la vue (RAW « bloquant les Lignes de vue ») —
  * y compris si le tireur ou la cible est DANS la fumée. `blocked:true` = pas de tir (la Ligne de Vue
  * est requise pour tirer, `13` l.114) ; un bloqueur de vue ADJACENT à la cible = couverture totale
- * −30 (« derrière un mur de pierre », `14` l.86) sans empêcher le tir.
+ * −30 (« derrière un mur de pierre », `14` l.86) sans empêcher le tir. Le couvert des arêtes qui
+ * abritent la cible se mesure entre CORPS (`couvertDuTir`), jamais ici.
  */
 export function lineOfSightCover(
   scene: Scene,
@@ -176,7 +153,7 @@ export function lineOfSightCover(
   smoke: Pt[] = [],
 ): { blocked: boolean; cover: CoverClass } {
   // Fumée : bloque la vue sur tout le segment, extrémités INCLUSES (être DANS la fumée aveugle aussi).
-  // Z-AWARE (#805) : les murs/dead-ground sont déjà filtrés par étage (sameFloor/heightAt) — la fumée
+  // Z-AWARE (#805) : les murs/dead-ground sont déjà filtrés par étage (sameFloor/hauteurDe) — la fumée
   // suit le même patron. Les tiles de zone portent leur étage depuis `smokeZone` (`s.z`) ; une tile
   // héritée sans `z` (appelant tiers) retombe sur le SOL (`0`) — une fumée au sol n'aveugle QUE le sol.
   if (smoke.length) {
@@ -187,33 +164,36 @@ export function lineOfSightCover(
   // Murs d'arête (Scene.walls) : barrière pleine entre deux cases → vue entièrement bloquée.
   // MÊME étage seulement. Cross-niveau (`from.z` ≠ `to.z`) : un défenseur sur le rempart (z=1) voit/tire
   // l'assaillant au sol (z=0) PAR-DESSUS les arêtes fines (créneaux/parapet) → on ignore les murs
-  // d'arête ; seules les TUILES opaques (bâtiment/terrain, boucle ci-dessous) coupent la LdV.
+  // d'arête ; les masses opaques sont jugées à la hauteur de départ.
   const sameFloor = (from.z ?? 0) === (to.z ?? 0);
   if (sameFloor && wallOnSight(scene, from, to, from.z ?? 0)) return { blocked: true, cover: 'totale' };
   // Angle mort VERTICAL (dead ground) : le parapet masque la vue trop plongeante sur ce qui est COLLÉ
   // au pied du perchoir — symétrique (la cible en contrebas ne voit pas non plus le tireur en hauteur).
-  // Seuil DESIGN (comme `STEP_MAX_M`, relief.ts — aucune règle RAW ne chiffre cette géométrie) : bloqué
-  // quand l'écart de hauteur (m, `heightAt`) dépasse la distance horizontale parcourue (m) — angle de
+  // Seuil de géométrie de la grille, comme `STEP_MAX_M` (`relief.ts`, #151) : bloqué
+  // quand l'écart de hauteur (m, `hauteurDe`) dépasse la distance horizontale parcourue (m) — angle de
   // dépression > 45°. Au-delà de ce seuil, la vue par-dessus le parapet redevient dégagée (tests cross-z).
+  const shooterH = hauteurDe(scene, from);
   if (!sameFloor) {
-    const dzM = Math.abs(heightAt(scene, from.x, from.y, from.z ?? 0) - heightAt(scene, to.x, to.y, to.z ?? 0));
+    const dzM = Math.abs(shooterH - hauteurDe(scene, to));
     const horizM = chebyshev(from, to) * sceneMetresPerTile(scene);
     if (dzM > horizM) return { blocked: true, cover: 'totale' };
   }
-  // Structures d'arête qui ABRITENT la cible (`AA 10 l.23`) : le contournement d'EXTRÉMITÉ, seule
-  // situation où le tir atteint une cible qu'une arête intacte abrite — `wallOnSight` vient de laisser
-  // passer le rayon par le côté ouvert du coin. `couvertDArete` se borne au MÊME étage (son JSDoc dit
-  // pourquoi) : le tir inter-étages n'en reçoit aucun.
-  let cover: CoverClass = couvertDArete(scene, from, to);
-  for (const t of tilesBetween(from, to)) {
+  const grille = grilleDesMasses(scene);
+  const obstacleDistant = (p: Pt): boolean => chebyshev(p, to) > 1;
+  if (rayonTraverse(grille, from, to, (x, y, index) => masseOcculte(grille, index, shooterH) && obstacleDistant({ x, y }))) {
+    return { blocked: true, cover: 'totale' };
+  }
+  const trajet = tilesBetween(from, to);
+  const passeLeBord = !caseDansGrille(grille, from.x, from.y) || !caseDansGrille(grille, to.x, to.y);
+  if (passeLeBord && trajet.some((t) => obstacleDistant(t) &&
+      !caseDansGrille(grille, t.x, t.y) && tileBlocksSight(scene, t.x, t.y))) {
+    return { blocked: true, cover: 'totale' };
+  }
+
+  let cover: CoverClass = 'none';
+  for (const t of trajet) {
+    if (!obstacleDistant(t) && tileBlocksSight(scene, t.x, t.y)) return { blocked: false, cover: 'totale' };
     const terr = tileAt(scene, t.x, t.y);
-    if (tileBlocksSight(scene, t.x, t.y)) {
-      if (adjacent(t, to)) {
-        cover = worst(cover, 'totale'); // cible collée au couvert → −30, tir possible
-        continue;
-      }
-      return { blocked: true, cover: 'totale' }; // bloqueur à distance → pas de Ligne de Vue
-    }
     if (TERRAIN_COVER[terr]) cover = worst(cover, TERRAIN_COVER[terr]);
     for (const decor of decorsEnCase(scene, t.x, t.y)) {
       const dcov = decorCover(decor.decor?.id);

@@ -7,7 +7,7 @@
 import type { Combatant } from '../engine/types';
 import type { Visibility } from '../data/ambiance.types';
 import { ambiance } from '../data';
-import { hash32AuMillieme } from '../data/hash';
+import { hash32AuMillieme } from '../lib/hash';
 import { campOf } from '../engine/relations';
 import { isStructure, structureFaceCells } from '../engine/structures';
 import { enBase64 } from '../lib/base64';
@@ -16,9 +16,8 @@ import type { EtatDeJeu, Jeu } from './etat';
 import { combatGeomOfList } from './mount';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { footprintN, footprintTiles } from './monde/footprint';
-import { wallOnSight } from './monde/lineOfSight';
 import { discTiles } from './monde/zones';
-import type { Scene, SceneEntity } from './monde/scene';
+import { dansLaZoneJouable, wallOnSight, type Scene, type SceneEntity } from './monde/scene';
 import { memoByRefDeps } from './monde/sceneMemo';
 import { spaceCellKey } from './monde/volume/architectureVisibility';
 import { visibilityOf } from './visibility';
@@ -35,7 +34,8 @@ const RIEN_N_EST_CONNU: Connaissance = () => 'unknown';
 const connaissanceDeLaScene = memoByRefDeps<Scene, Connaissance>();
 
 /** Le lecteur de ce que le groupe connaît de la scène de `etat` : chaque case vue, explorée ou inconnue
- *  (`visibilityOf`), retenu sur l'identité de l'ensemble vu et de la liste explorée de la scène. */
+ *  (`visibilityOf`), retenu sur l'identité de l'ensemble vu et de la liste explorée de la scène. Une case de la grille
+ *  hors de la zone jouable (`dansLaZoneJouable`) est un paysage connu : au moins explorée, vue quand la vue l'atteint. */
 export function connaissanceDuGroupe(etat: EntreesDeLaConnaissance): Connaissance {
   const { scene } = etat;
   if (!scene) return RIEN_N_EST_CONNU;
@@ -43,7 +43,12 @@ export function connaissanceDuGroupe(etat: EntreesDeLaConnaissance): Connaissanc
   const explorees = etat.explored[scene.id];
   return connaissanceDeLaScene(scene, [vu, explorees], () => {
     const memoire = new Set(explorees);
-    return (cle) => visibilityOf(cle, vu, memoire);
+    return (cle) => {
+      const v = visibilityOf(cle, vu, memoire);
+      if (v !== 'unknown') return v;
+      const [x, y] = cle.split(',').map(Number);
+      return x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h && !dansLaZoneJouable(scene, x, y) ? 'explored' : v;
+    };
   });
 }
 

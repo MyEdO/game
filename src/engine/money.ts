@@ -8,7 +8,6 @@
  */
 import { t } from '../i18n';
 import { formatDice, type DiceSpec } from './dice';
-import { garanti } from '../lib/garanti';
 export interface Money { gold: number; silver: number; brass: number; }
 export const PA_PER_SC = 12;
 export const PA_PER_CO = 240; // 20 × 12
@@ -47,24 +46,21 @@ export function priceToMoney(p: Partial<Money> | 'ND' | null): Money {
 export function toMoney(p: { gold?: number; silver?: number; brass?: number }): Money {
   return { gold: p.gold ?? 0, silver: p.silver ?? 0, brass: p.brass ?? 0 };
 }
+/** Les Échelons de Statut, du plus bas au plus haut. LDB 08 l.9 */
+export const ECHELONS_DE_STATUT = ['bronze', 'argent', 'or'] as const;
 /** Échelon de Statut, et de prix (`CRAFT_BASE_DR`, `engine/activities`). LDB 08 l.9 */
-export type StatusTier = 'bronze' | 'argent' | 'or';
+export type StatusTier = (typeof ECHELONS_DE_STATUT)[number];
 /** Un Statut : son Échelon et son Standing. */
 export interface Status { tier: StatusTier; standing: number }
 
 /** Le libellé joueur d'un Échelon (« Argent »). */
 export const libelleDEchelon = (tier: StatusTier): string => t(`statut.echelon.${tier}`);
 
-/** Décompose un libellé de Statut (« Argent 2 », « Bronze 1 », « Or 3 ») ; `null` s'il n'est pas reconnu.
- *  SOURCE UNIQUE du parsing, et de la validation des Statuts de donnée (`statutSchema`). */
-export function parseStatus(status: string | undefined | null): Status | null {
-  const m = /^(bronze|argent|or)\s+(\d+)$/i.exec(status?.trim() ?? '');
-  return m ? { tier: m[1].toLowerCase() as StatusTier, standing: Number(m[2]) } : null;
-}
+/** Le libellé joueur d'un Statut (« Argent 2 »). LDB 08 l.9 */
+export const libelleDuStatut = (statut: Status): string => `${libelleDEchelon(statut.tier)} ${statut.standing}`;
 
-/** Le Statut d'une donnée CHARGÉE — dataset, projet, ou scène d'une save (`lireSave`) —, que son schéma a
- *  validé par `parseStatus` (`statutSchema`). */
-export const statutDeDonnee = (status: string): Status => garanti(parseStatus(status), status, 'Statut validé au schéma');
+/** Deux Statuts sont-ils le même ? */
+export const memeStatut = (a: Status, b: Status): boolean => a.tier === b.tier && a.standing === b.standing;
 
 /**
  * « Tenir les comptes » (LDB 59 l.9-11) : seuil, en sous de cuivre, en deçà duquel un objet est réputé

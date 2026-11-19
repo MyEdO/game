@@ -42,7 +42,7 @@ const mkGet = (combatants: Combatant[], heading: string): (() => JeuDuNoyau) =>
 describe('Étape 3 — Servir un poste (availableAttacks + arc)', () => {
   it('un chef de pièce voit l’attaque « Servir », portant l’arme du poste (weaponUid épinglé)', () => {
     const g = gunner();
-    const serve = availableAttacks(g, battle([g, hull(), enemyAt('east', 9, 5)])).find((o) => o.id === 'poste');
+    const serve = availableAttacks(null, g, battle([g, hull(), enemyAt('east', 9, 5)])).find((o) => o.id === 'poste');
     expect(serve).toBeDefined();
     expect(serve!.weaponUid).toBe(POSTE_UID); // le canon est ÉPINGLÉ (pas l'arme perso auto-choisie)
     expect(serve!.label).toContain('Pierrier');
@@ -52,7 +52,7 @@ describe('Étape 3 — Servir un poste (availableAttacks + arc)', () => {
   it('sans mannedPoste : aucune option « Servir »', () => {
     const g = gunner();
     delete (g as { mannedPoste?: unknown }).mannedPoste;
-    expect(availableAttacks(g, battle([g, enemyAt('east', 9, 5)])).some((o) => o.id === 'poste')).toBe(false);
+    expect(availableAttacks(null, g, battle([g, enemyAt('east', 9, 5)])).some((o) => o.id === 'poste')).toBe(false);
   });
 
   it('le tir du poste ne porte que dans l’ARC de bordée — weaponUid → cap du navire (MDG 12-13)', () => {

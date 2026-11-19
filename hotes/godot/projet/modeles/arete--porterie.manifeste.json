@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "arete",
+  "cle": {
+    "kit": "porterie"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "moellons",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "ame",
+      "palette": "bois",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "menuiserie",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "69f4ce83e66fc1784342515c1fb79e692b9fe6b394a82687554ed158ca9e131d",
+    "octets": 485372
+  }
+}

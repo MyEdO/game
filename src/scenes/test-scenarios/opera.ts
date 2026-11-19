@@ -5,7 +5,6 @@ import type { MapSpec } from '../../noyau/mapSpec';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import { flowFromEffects, testFlow } from '../../noyau/monde/flow';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
 
 // Profil des deux étudiants saboteurs : de jeunes civils paniqués, vifs mais fragiles (pas de combattants).
 const ETUDIANT: CustomStatblock = { type: 'statblock',
@@ -223,7 +222,7 @@ function construireScene(): Scene {
           {
             id: 'e1',
             desc: '« On… on ne faisait rien ! » Ils refusent de se rendre et tentent de forcer le passage.',
-            choices: [{ id: 'maitriser', label: 'Les maîtriser.', flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: 'enc-etudiants' }]) }],
+            choices: [{ id: 'maitriser', label: 'Les maîtriser.', flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: { id: 'enc-etudiants' } }]) }],
           },
         ],
       },
@@ -266,7 +265,7 @@ function construireScene(): Scene {
                     { type: 'setFlag', flag: 'clesVolees' },
                   ]),
                 ),
-              ] as Flow[],
+              ],
             },
           },
           { type: 'delayedEffect', afterMinutes: 11, flow: flowFromEffects([{ type: 'setLight', level: 0.35 }]) },

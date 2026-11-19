@@ -3,7 +3,18 @@
  * le combattant concerné — modale ouverte → son concerné seul ('*' = tous) ; sinon le tour actif.
  */
 import { describe, it, expect } from 'vitest';
-import { intentAllowedFor, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocal, rolledLocally, reponseDonnee, jetFigeRevele } from './netOwnership';
+import {
+  intentAllowedFor,
+  seatSlotsRemaining,
+  controlsActive,
+  controlsCombatant,
+  pilotedByHuman,
+  aiDriven,
+  ownsLocal,
+  rolledLocally,
+  reponseDonnee,
+  jetFigeRevele,
+} from './netOwnership';
 import { spectatorSeatOfModal } from './combatAuto';
 import { modalOwnerOf } from './modalArbiter';
 import { fermerLeSiege, seatOwns } from './sieges';

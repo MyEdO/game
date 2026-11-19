@@ -17,7 +17,7 @@ import { evalCondition, spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { Flow } from '../engine/flowCore';
 import { reluDans } from './combatDeTest.testkit';
 
 let banc: Banc;
@@ -132,6 +132,19 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const melee = mk({ id: 'me' });
     fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: melee, weapon: lance, attackType: 'melee', origine: 'coup-critique' });
     expect(logee(melee)).toBeUndefined(); // « Si l'empalement vient d'une arme à DISTANCE » — mêlée = rien
+  });
+
+  // EDOC 07 l.334 ; #4202.
+  it('Coup Critique sans Blessure critique : seul l’effet `coupCritique` s’exerce', () => {
+    const archer = mk({ id: 'ar' });
+    const arc: Weapon = { label: 'Arc de Taillade', type: 'distance', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }, { id: 'taillade' }] } as Weapon;
+    const etats = (sansBlessureCritique?: boolean) => {
+      const foe = mk({ id: 'fo' });
+      fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique', ...(sansBlessureCritique ? { sansBlessureCritique } : {}) });
+      return foe.conditions.map((c) => c.id).sort();
+    };
+    expect(etats(true)).toEqual(['munition-logee']);
+    expect(etats()).toEqual(['hemorragique', 'munition-logee']);
   });
 
   it('déjà Empêtré → pas de re-application (unlessCondition)', () => {

@@ -156,7 +156,7 @@ La frontière sud du Reikland est dominée par les Montagnes Grises, dominées �
 Le Reik est également parsemé de bastions pour contrer les attaques, mais la plupart sont des reliques de pierre datant du passé de l'Empire, lorsque le Reikland combattait contre les autres provinces et en son propre sein. Seules demeurent à présent les forteresses stratégiques, facilement dépassées en nombre par les châteaux tombant en ruine, leur pouvoir ancestral et leur passé légendaires entièrement oubliés, comme leurs vestiges perdus dans le temps.
 
 
-### **La Tour noire**
+### <span id="page-285-0" data-folio="284"></span>**La Tour noire**
 
 Bien que les passes du Défilé de la Hache et de la Dame Grise soient les routes les plus connues des Montagnes Grises, elles ne sont pas les seules. Le Couloir tordu est une gorge étroite traversant les montagnes, non loin de la frontière avec le Wasteland. Il est impraticable pour la plupart des marchands, bien trop étroit pour les chariots ou les chevaux, d'autant plus dangereux que le chemin longe étroitement le bord de la falaise, ce qui fait que le moindre faux-pas peut mener à une mort bien peu glorieuse.
 

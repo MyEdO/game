@@ -123,7 +123,7 @@ describe('Calme d’approche (LDB 21 l.27)', () => {
     banc.setState({
       battle: { combatants: [h], log: [] } as never,
       pendingApproach: {
-        combatantId: 'H', test: { skill: { id: 'calme' }, difficulty: 'intermediaire', label: 'Calme' } as never, sourceId: 'x', sourceName: 'X',
+        combatantId: 'H', test: { skill: { id: 'calme' }, difficulty: 'intermediaire', label: 'Calme' } as never, sourceId: 'x',
         intent: { kind: 'tile', pt: { x: 1, y: 1 } }, result: { roll: 64, target: 55, sl: -1, success: false },
       },
     });

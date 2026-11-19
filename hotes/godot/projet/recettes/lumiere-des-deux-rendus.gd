@@ -81,9 +81,10 @@ func _recetter() -> void:
 			scene.add_child(corps)
 	var lumiere: Lumiere = load("res://scenes/Lumiere.tscn").instantiate()
 	scene.add_child(lumiere)
-	lumiere.eclairer({soleil = null, ambiante = {couleur = "#ffffff", energie = 0.05}, ciel = null,
-		brume = {couleur = "#000000", debutCases = 100.0, finCases = 200.0, depuisLOeil = true},
-		sources = LAMPES.map(func(lampe: Dictionary) -> Dictionary: return {cle = lampe.cle, x = lampe.x, y = Y, z = 0, hM = HAUTEUR_DE_LAMPE, rayonCases = 3, couleur = "#ffffff", energie = 1.0, scintillement = null, visuel = null, son = null})}, 1.0)
+	lumiere.eclairer({soleil = null, ambiante = {couleur = "#ffffff", energie = 0.05}, blanc = 1.0, ciel = null,
+		brume = {couleur = "#000000", debutCases = 100.0, finCases = 200.0, courbe = 1.0, depuisLOeil = true},
+		horsCarte = {sol = null, fonduCases = null},
+		sources = LAMPES.map(func(lampe: Dictionary) -> Dictionary: return {cle = lampe.cle, x = lampe.x, y = Y, z = 0, hM = HAUTEUR_DE_LAMPE, rayonCases = 3, couleur = "#ffffff", energie = 1.0, scintillement = null, visuel = null, son = null})}, {w = 1, h = 1, metresParCase = 1.0})
 	var environnement := (lumiere.get_node("Environnement") as WorldEnvironment).environment
 	if environnement.ssao_enabled != complet:
 		_fautes.append("occlusion ambiante %s, attendu %s" % [environnement.ssao_enabled, complet])

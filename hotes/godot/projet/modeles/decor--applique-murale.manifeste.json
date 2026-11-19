@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "applique-murale"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "laiton",
+      "palette": "metal",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "cire",
+      "palette": "corps",
+      "matiere": "prop--cire"
+    },
+    {
+      "nom": "flamme",
+      "palette": "accent",
+      "matiere": "prop--braises"
+    }
+  ],
+  "glb": {
+    "sha256": "20516798e51d941fb8f6a54b605b7ab6d6e8752a44317a6acc6174062ec38f32",
+    "octets": 55800
+  }
+}

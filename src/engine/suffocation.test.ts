@@ -162,12 +162,11 @@ describe('Créature marine hors de l’eau — pont offTerrain→suffocation (MD
       expect(isWaterSprayTarget(marine({ traits: [{ id: 'coriace' }] } as unknown as Partial<Combatant>))).toBe(false);
     });
 
-    it('waterSprayCandidates : cible adjacente marine hors de l’eau, jamais soi-même ni hors de portée', () => {
-      const aspergeur = mk({ id: 'a', pos: { x: 5, y: 5 } } as unknown as Partial<Combatant>);
-      const adjacente = marine({ id: 'm1', pos: { x: 6, y: 5 } } as unknown as Partial<Combatant>);
-      const loin = marine({ id: 'm2', pos: { x: 9, y: 9 } } as unknown as Partial<Combatant>);
-      const dansLeau = marine({ id: 'm3', pos: { x: 5, y: 6 }, offTerrain: false } as unknown as Partial<Combatant>);
-      const candidats = waterSprayCandidates(aspergeur, [aspergeur, adjacente, loin, dansLeau]);
+    it('waterSprayCandidates : créature marine hors de l’eau, jamais soi-même', () => {
+      const aspergeur = mk({ id: 'a' } as unknown as Partial<Combatant>);
+      const horsDeLEau = marine({ id: 'm1' } as unknown as Partial<Combatant>);
+      const dansLeau = marine({ id: 'm3', offTerrain: false } as unknown as Partial<Combatant>);
+      const candidats = waterSprayCandidates(aspergeur, [aspergeur, horsDeLEau, dansLeau]);
       expect(candidats.map((c) => c.id)).toEqual(['m1']);
     });
   });

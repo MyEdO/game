@@ -10,10 +10,31 @@ import { gabaritDObjet, isWeaponActive, type GabaritDObjet } from '../engine/ite
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { libelleDeLaRepartition, sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, demandeDuTroc, exemplaireCede, BROUILLON_DE_TROC_VIDE, type ContexteDAchat, type ModeDeMarche } from '../noyau/merchantFlow';
+import {
+  libelleDeLaRepartition,
+  sellGain,
+  devisDeVente,
+  sellBuyerAvailability,
+  sellRefusal,
+  catalogEntryOf,
+  appraiseRefus,
+  prixDeLigne,
+  remiseDAchatPct,
+  devisDuPanier,
+  refusDAjout,
+  coutDeReparation,
+  refusDeReparation,
+  optionsDeTroc,
+  devisDeTroc,
+  demandeDuTroc,
+  exemplaireCede,
+  BROUILLON_DE_TROC_VIDE,
+  type ContexteDAchat,
+  type ModeDeMarche,
+} from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
-import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
+import type { Combatant, ItemInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { SceneEntity } from '../noyau/monde/scene';
 import { Coins } from './Coins';
@@ -171,7 +192,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     // Qualités : NOM = chip canonique (`EntityRef`, popover Codex → type Atout/Défaut + source) ;
     // la description d'achat reste sous le chip. Atouts d'abord, Défauts ensuite.
     const quals = resolveQualities(item)
-      .map((r): QualityInstance => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }))
+      .map((r) => r.instance)
       .flatMap((q) => { const info = describeQuality(q); return info ? [{ q, info }] : []; })
       .sort((a, b) => (a.info.polarite === 'defaut' ? 1 : 0) - (b.info.polarite === 'defaut' ? 1 : 0));
     const canCompare = item.kind === 'melee' || item.kind === 'distance' || item.kind === 'armor';

@@ -2,7 +2,7 @@ extends SceneTree
 
 ## La vision du groupe sous le jeu (#3950, `hotes/godot/pont/CONTRAT.md`, méthode `vision`, champ `vue.vision`), sur le
 ## noyau vivant (`TransportDuProcessus`, `--pont=<chemin>` après `--`), chaque partie sur son propre pont espion
-## (`PontEspion`, qui garde chaque méthode appelée et la dernière réponse de chacune) et son combat (`scenes/Combat.tscn`).
+## (`PontEspion`) et son combat (`scenes/Combat.tscn`).
 ## `siege-enceinte` : au départ, chaque combattant posé que `voisins` ne nomme pas (`vue.occupants`) n'a ni modèle
 ## ni marque ; la vision est posée une fois, son image est le masque servi, la case d'un héros lit 255, une case d'un
 ## ennemi hors de vue jamais 255 et l'une d'elles 0 ; sans actif en vue, la caméra suit un combattant dessiné.
@@ -34,18 +34,9 @@ var _fautes: Array[String] = []
 var _signales: Array[String] = []
 
 
-## Le pont du noyau vivant, sur la partie du scénario `scenario` : il garde chaque méthode appelée, dans l'ordre, et la
-## dernière réponse de chacune.
-class PontEspion extends PontDuNoyau:
+## Le pont espion sur la partie du scénario `scenario`.
+class PontDuScenario extends PontEspion:
 	var scenario := ""
-	var appels: Array[String] = []
-	var reponses := {}
-
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
-		appels.append(methode)
-		var reponse := super(methode, entree)
-		reponses[methode] = reponse
-		return reponse
 
 	func parametre(cle: String) -> String:
 		return scenario if cle == "scenario" else super(cle)
@@ -187,9 +178,9 @@ func _sans_auteur(plateau: Plateau, actif: String) -> void:
 	var case: Array = plateau.get("_vue").projection.combat.actif.pos
 	var arrivee := {visuel = VISUEL, son = null}
 	plateau.jouer_les_effets([
-		{quoi = "coup", de = null, vers = actif, issue = "touche", couleur = "#ffffff", depart = null, trajet = null, arrivee = arrivee, flottants = []},
-		{quoi = "incantation", de = null, vers = actif, reussie = true, couleur = "#ffffff", depart = null, arrivee = arrivee, flottants = []},
-		{quoi = "zone", de = null, centre = {x = case[0], y = case[1], z = case[2]}, cases = [{x = case[0], y = case[1], z = case[2]}], couleur = "#ffffff", depart = null, trajet = null, nappe = arrivee},
+		{quoi = Noyau.Effet.COUP, de = null, vers = actif, issue = Noyau.IssueDuCoup.TOUCHE, couleur = "#ffffff", depart = null, trajet = null, arrivee = arrivee, flottants = []},
+		{quoi = Noyau.Effet.INCANTATION, de = null, vers = actif, reussie = true, couleur = "#ffffff", depart = null, arrivee = arrivee, flottants = []},
+		{quoi = Noyau.Effet.ZONE, de = null, centre = {x = case[0], y = case[1], z = case[2]}, cases = [{x = case[0], y = case[1], z = case[2]}], couleur = "#ffffff", depart = null, trajet = null, nappe = arrivee},
 	])
 	await create_timer(Effets.ECART_S * 3.0).timeout
 	effets.depart.disconnect(compter)
@@ -206,8 +197,8 @@ func _en_cours(plateau: Plateau, actif: String, ennemi: String) -> void:
 	var compter := func(qui: String, _touche: bool) -> void: arrivees.append(qui)
 	(plateau.get_node("Effets") as Effets).arrivee.connect(compter)
 	plateau.jouer_les_effets([
-		{quoi = "deplacement", qui = ennemi, cases = [{x = vers[0], y = vers[1], z = vers[2], metres = 0.0}, {x = vers[0], y = vers[1], z = vers[2], metres = 0.0}]},
-		{quoi = "coup", de = actif, vers = ennemi, issue = "touche", couleur = "#ffffff", depart = null, trajet = {projectile = "fleche", dureeS = 0.4, hauteurM = 0.5}, arrivee = null, flottants = []},
+		{quoi = Noyau.Effet.DEPLACEMENT, qui = ennemi, cases = [{x = vers[0], y = vers[1], z = vers[2], metres = 0.0}, {x = vers[0], y = vers[1], z = vers[2], metres = 0.0}]},
+		{quoi = Noyau.Effet.COUP, de = actif, vers = ennemi, issue = Noyau.IssueDuCoup.TOUCHE, couleur = "#ffffff", depart = null, trajet = {projectile = "fleche", dureeS = 0.4, hauteurM = 0.5}, arrivee = null, flottants = []},
 	])
 	plateau.case_cliquee.emit(CASE_DU_PAS)
 	plateau.case_cliquee.emit(CASE_DU_PAS)
@@ -273,7 +264,7 @@ func _arene() -> void:
 ## vide et une faute si elle ne vient pas.
 func _demarrer(scenario: String) -> Dictionary:
 	_signales.clear()
-	var pont := PontEspion.new()
+	var pont := PontDuScenario.new()
 	pont.scenario = scenario
 	PontDuNoyau.remplacer(self, pont)
 	pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))

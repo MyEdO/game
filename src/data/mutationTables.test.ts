@@ -4,20 +4,19 @@
  * (réf par id stable). Protège la transcription des tables (LDB 19 + par Puissance du Chaos, EDOC 12).
  */
 import { describe, it, expect } from 'vitest';
-import mutationTables from './mutationTables.json';
-import mutations from './mutations.json';
-import { rollMutation, type MutationTable } from './mutations';
+import { mutationTables, mutations } from './index';
+import { rollMutation } from './mutations';
 import { totalDuDe, type RNG } from '../engine/dice';
 import { deDeLaTableTiree } from '../engine/tables';
 import { desEnSuite } from '../engine/dice.testkit';
 
-const IDS = new Set((mutations as { id: string }[]).map((m) => m.id));
+const IDS = new Set<string>(mutations.map((m) => m.id));
 
 /** RNG scriptée : `int()` renvoie les valeurs fournies dans l'ordre (ignore min/max → jet direct). */
 const scripted = (vals: number[]): RNG => desEnSuite(vals, { boucle: true });
 
 describe('mutationTables — tables de Corruption', () => {
-  for (const t of mutationTables as MutationTable[]) {
+  for (const t of mutationTables) {
     it(`${t.id} : couvre son ${t.die} sans trou ni chevauchement`, () => {
       const de = deDeLaTableTiree(t);
       const sorted = [...t.entries].sort((a, b) => a.min - b.min);

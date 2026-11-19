@@ -9,10 +9,18 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from './policy';
-import { malevolentInfluenceSeverity, focusCriticalDR, dispelOwnSpellDR, malepierreDR, malepierreCharge, malepierreReserveOf, consumeMalepierre } from './magic';
+import {
+  malevolentInfluenceSeverity,
+  focusCriticalDR,
+  dispelOwnSpellDR,
+  malepierreDR,
+  malepierreCharge,
+  malepierreReserveOf,
+  consumeMalepierre,
+} from './magic';
 import type { Combatant } from './types';
 import { itemFromTrappingById } from './items';
-import { rollMiscast } from './miscast';
+import { miscastTableRows, rollMiscast } from './miscast';
 import type { RNG } from './dice';
 import {
   overcastBudget,
@@ -24,7 +32,6 @@ import {
 } from './overcast';
 import { domains, findEffectTableById } from '../data';
 import { deDeLaTableTiree, facesDuDe } from './tables';
-import miscastJson from '../data/miscast.json';
 import { deFixe } from './dice.testkit';
 
 const RULE = 'magie-vdm-incantation';
@@ -60,13 +67,8 @@ describe('Influences malveillantes — `VDM 02 l.157-159`', () => {
 });
 
 describe('Tableaux des Incantations Imparfaites — `VDM 02 l.218-263`', () => {
-  const docs = miscastJson as unknown as { id: string; entries: { min: number; max: number }[] }[];
-  /** Rangées d'un tableau par son id STABLE — FAIL-FAST : un id absent rendrait le contrat vide. */
-  const rowsOf = (id: string) => {
-    const d = docs.find((x) => x.id === id);
-    if (!d) throw new Error(`tableau « ${id} » absent de miscast.json`);
-    return d.entries;
-  };
+  /** Rangées d'un tableau par son id STABLE — FAIL-FAST (`miscastTableRows`) : un id absent rendrait le contrat vide. */
+  const rowsOf = miscastTableRows;
 
   it('20 rangées par table, fourchettes contiguës de 01 à 00', () => {
     for (const rows of [rowsOf('miscast-mineure-vdm'), rowsOf('miscast-majeure-vdm')]) {
@@ -91,10 +93,10 @@ describe('Tableaux des Incantations Imparfaites — `VDM 02 l.218-263`', () => {
 
   it('option ON, lanceur d’un Domaine de Couleur : la rangée tire sur la table de MARQUES de SON Vent', () => {
     setRule(RULE, true);
-    for (const d of domains.filter((x) => x.tables?.arcaneMark)) {
+    for (const [d, arcaneMark] of domains.flatMap((x) => (x.tables?.arcaneMark ? [[x, x.tables.arcaneMark] as const] : []))) {
       const ops = rollMiscast('mineure', rngOn88(), 0, d.id).ops;
-      expect(ops, `${d.id} : aucune op de tirage`).toContainEqual({ op: 'rollTable', tableId: d.tables!.arcaneMark });
-      const marques = findEffectTableById(d.tables!.arcaneMark);
+      expect(ops, `${d.id} : aucune op de tirage`).toContainEqual({ op: 'rollTable', tableId: arcaneMark });
+      const marques = findEffectTableById(arcaneMark);
       expect(marques.entries).toHaveLength(facesDuDe(deDeLaTableTiree(marques)));
     }
   });

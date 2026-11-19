@@ -6,12 +6,12 @@
 import { describe, expect, it } from 'vitest';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Scene, type Trigger } from '../monde/scene';
-import { addTrigger, avecLAdresseRescellee, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
+import { addTrigger, avecLAdresseRescellee, avecLaValeurDuPorteur, avecLElementMonte } from '../sceneEdit';
+import type { Segment } from './formulaire';
 import { choixDuChamp, formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
 import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
 import { cleDuChapitre, etatDeLAdresse, type SourceDeLEdition } from './adresseDeProse';
 import { editer, ouvrirLEdition, sceneEditee, texteAEnregistrer, type SessionDEdition } from './session';
-import { gestesDeLaListe } from '../valeursNeuves';
 
 /** Un chapitre de fixture : un préambule, une section titrée à un paragraphe et une table légendée, une autre section. */
 const TEXTE = [
@@ -67,11 +67,12 @@ describe('les choix d’une adresse de prose', () => {
 describe('l’écriture d’une adresse de prose scelle ses fragments, jamais une empreinte saisie', () => {
   it('le fragment choisi est scellé sur son chapitre ; sans chapitre chargé, aucun ne s’ajoute, ni ne se colle avec une empreinte', () => {
     const vide = avecJournal({ book: LIVRE, ch: '01', parts: [] });
-    const ecrite = ecrire(vide, [...ICI, 'parts'], valeursAuChemin(vide, [...ICI, 'parts'])!.find((v) => (v as Fragment[])[0]?.kind === 'cellule'));
+    const ecrite = ecrire(vide, [...ICI, 'parts', 0], valeursAuChemin(vide, [...ICI, 'parts', 0])!.find((v) => (v as Fragment).kind === 'cellule'));
     expect(ecrite.ok && adresseDe(ecrite.valeur).parts).toEqual([scelle(DAGUE)]);
     expect(ecrite.ok && effetDe(ecrite.valeur).desc, 'sa prose, matérialisée, est le texte qu’elle résout').toBe('BF+2');
     const sansChapitre: SourceDeLEdition = { manifeste: MANIFESTE, chapitres: {} };
-    expect(ecrire(vide, [...ICI, 'parts'], [scelle(DAGUE)], sansChapitre), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
+    expect(ecrire(vide, [...ICI, 'parts', 0], scelle(DAGUE), sansChapitre), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
+    expect(ecrire(vide, [...ICI, 'parts'], [scelle(DAGUE)]), 'les fragments s’écrivent chacun à son rang, jamais entiers').toEqual({ ok: false, refus: 'horsSorte' });
     expect(ecrire(avecJournal(), ['flow'], avecJournal({ book: LIVRE, ch: '01', parts: [{ ...DAGUE, sum: 'ffffffffffffffff' }] }).flow, sansChapitre)).toEqual({ ok: false, refus: 'nonOffert' });
   });
 
@@ -116,16 +117,15 @@ describe('la prose d’une adresse suit son adresse, à tout chemin', () => {
   /** Le déclencheur dont le flux pose un indicateur, puis écrit au journal la cellule de la dague, sa prose matérialisée. */
   const DEUX = { ...TRIG, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'x' } }, journal({ book: LIVRE, ch: '01', parts: [scelle(DAGUE)] })] } } as Trigger;
   const etapes = (t: unknown) => (t as { flow: { etapes: { effet: { desc?: string; descRef?: DescRef } }[] } }).flow.etapes;
-  const gestes = gestesDeLaListe(etapes(DEUX), undefined).elements;
   const SANS: SourceDeLEdition = { manifeste: MANIFESTE, chapitres: {} };
   const ECHEC: SourceDeLEdition = { manifeste: MANIFESTE, chapitres: { [cleDuChapitre(LIVRE, '01')]: null } };
 
   it('« Monter » le journal, son chapitre pas encore reçu ou introuvable, et « Retirer » l’étape qui le précède gardent sa prose', () => {
     for (const source of [SANS, ECHEC]) {
-      const monte = ecrire(DEUX, ['flow', 'etapes'], gestes[1].monter, source);
+      const monte = avecLElementMonte('declencheur', DEUX, ['flow', 'etapes', 1], cadre(source));
       expect(monte.ok && etapes(monte.valeur).map((e) => e.effet.desc)).toEqual([BF2, undefined]);
     }
-    const retire = ecrire(DEUX, ['flow', 'etapes'], gestes[0].retirer, SANS);
+    const retire = ecrire(DEUX, ['flow', 'etapes', 0], undefined, SANS);
     expect(retire.ok && etapes(retire.valeur).map((e) => e.effet.desc)).toEqual([BF2]);
   });
 
@@ -157,9 +157,9 @@ describe('la prose d’une adresse suit son adresse, à tout chemin', () => {
     const ouverte = ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, MANIFESTE);
     const demande = editer(ouverte, { geste: 'appui', point: { case: { x: 0, y: 0 }, f: { x: 0, y: 0 } } });
     const chargee = editer(demande, { geste: 'chapitre', book: LIVRE, ch: '01', texte: TEXTE });
-    const cellule = choixDuChamp('declencheur', sceneEditee(chargee).triggers[0], [...ICI, 'parts'], cadre(CHARGEE))!.find((c) => c.libelle === 'cellule')!.valeur;
+    const cellule = choixDuChamp('declencheur', sceneEditee(chargee).triggers[0], [...ICI, 'parts', 0], cadre(CHARGEE))!.find((c) => c.libelle === 'cellule')!.valeur;
     const porteur = { sorte: 'declencheur' as const, id: TRIG.id };
-    const ecrite = editer(chargee, { geste: 'valeur', porteur, chemin: [...ICI, 'parts'], valeur: cellule });
+    const ecrite = editer(chargee, { geste: 'valeur', porteur, chemin: [...ICI, 'parts', 0], valeur: cellule });
     const deTable = editer(ecrite, { geste: 'valeur', porteur, chemin: [...ICI, 'parts', 0, 'table'], valeur: 'table des armes#1' });
     const texte = texteAEnregistrer(deTable);
     const enregistree = scelle({ ...DAGUE, table: 'table des armes#1' });
@@ -179,20 +179,20 @@ describe('le chapitre que la session demande', () => {
   it('sélectionner un porteur dont l’adresse a un chapitre le demande ; son texte le charge, son absence s’en souvient, sans le redemander', () => {
     const demande = selectionne(ouverte(MANIFESTE));
     expect(demande.sel).toEqual({ type: 'trigger', id: TRIG.id });
-    expect(demande.chapitreEnAttente).toEqual({ book: LIVRE, ch: '01' });
+    expect(demande.source.chapitreEnAttente).toEqual({ book: LIVRE, ch: '01' });
     expect(editer(demande, { geste: 'chapitre', book: LIVRE, ch: '02', texte: TEXTE }), 'un autre chapitre que l’attendu ne change rien').toBe(demande);
     const chargee = editer(demande, { geste: 'chapitre', book: LIVRE, ch: '01', texte: TEXTE });
-    expect([chargee.chapitreEnAttente, chargee.chapitres[cleDuChapitre(LIVRE, '01')]]).toEqual([null, CHAPITRE]);
+    expect([chargee.source.chapitreEnAttente, chargee.source.chapitres[cleDuChapitre(LIVRE, '01')]]).toEqual([null, CHAPITRE]);
     const introuvable = editer(demande, { geste: 'chapitre', book: LIVRE, ch: '01', texte: null });
-    expect([introuvable.chapitreEnAttente, introuvable.chapitres[cleDuChapitre(LIVRE, '01')]]).toEqual([null, null]);
-    expect(selectionne(introuvable).chapitreEnAttente, 'l’échec gardé, aucune demande en boucle').toBeNull();
-    expect(selectionne(ouverte(null)).chapitreEnAttente, 'sans Source servi, rien ne se demande').toBeNull();
+    expect([introuvable.source.chapitreEnAttente, introuvable.source.chapitres[cleDuChapitre(LIVRE, '01')]]).toEqual([null, null]);
+    expect(selectionne(introuvable).source.chapitreEnAttente, 'l’échec gardé, aucune demande en boucle').toBeNull();
+    expect(selectionne(ouverte(null)).source.chapitreEnAttente, 'sans Source servi, rien ne se demande').toBeNull();
   });
 
   it('choisir un chapitre le demande', () => {
     const chargee = editer(selectionne(ouverte(MANIFESTE)), { geste: 'chapitre', book: LIVRE, ch: '01', texte: TEXTE });
     const autre = editer(chargee, { geste: 'valeur', porteur: { sorte: 'declencheur', id: TRIG.id }, chemin: [...ICI, 'ch'], valeur: '02' });
     expect(adresseDe(sceneEditee(autre).triggers[0])).toEqual({ book: LIVRE, ch: '02', parts: [] });
-    expect(autre.chapitreEnAttente).toEqual({ book: LIVRE, ch: '02' });
+    expect(autre.source.chapitreEnAttente).toEqual({ book: LIVRE, ch: '02' });
   });
 });

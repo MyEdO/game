@@ -11,7 +11,17 @@ import { fileURLToPath } from 'node:url';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { DOSSIER_DU_KIT } from './kit.ts';
-import { CACHE_DES_MODELES, EXTENSIONS_D_ASSET, enCacheOuTire, nomDAsset, tirerDeLaRelease, type AssetAPublier, type FichierEpingle, type Telecharger } from './release.ts';
+import {
+  CACHE_DES_MODELES,
+  EXTENSIONS_D_ASSET,
+  enCacheOuTire,
+  nomDAsset,
+  tirerDeLaRelease,
+  verifiesDu,
+  type AssetAPublier,
+  type FichierEpingle,
+  type Telecharger,
+} from './release.ts';
 
 /** Le dossier épinglé des sons du projet Godot (`res://sons/`). */
 export const DOSSIER_DES_SONS = fileURLToPath(new URL('../projet/sons', import.meta.url));
@@ -40,24 +50,30 @@ export function fichiersEpingles(dossier: string): Epingle[] {
 /** Dépose dans chacun des `dossiers` chaque fichier épinglé et le garde dans le cache `cache` : celui du dossier s'il a
  *  la somme épinglée, sinon celui du cache, sinon tiré de la Release ; vérifié par sa somme, écrit au cache
  *  atomiquement (`enCacheOuTire`), d'où il se copie : une copie coupée n'a pas la somme, et se refait à l'appel
- *  suivant. */
+ *  suivant. Un fichier du dossier inchangé depuis sa dernière vérification (`verifiesDu`) ne se revérifie pas. */
 export async function recupererEpingles({ dossiers = DOSSIERS_EPINGLES, cache = CACHE_DES_MODELES, telecharger = fetch, journal = console.log }: {
   dossiers?: readonly string[];
   cache?: string;
   telecharger?: Telecharger;
   journal?: (ligne: string) => void;
 }): Promise<void> {
+  const verifies = verifiesDu(cache);
   for (const dossier of dossiers) {
     const epingles = fichiersEpingles(dossier);
+    let resommes = 0;
     for (const epingle of epingles) {
       const enCache = join(cache, nomDAsset(epingle.empreinte, epingle.extension));
       const auProjet = join(dossier, epingle.fichier);
+      if (verifies.inchange(auProjet, epingle.empreinte)) continue;
+      resommes++;
       const duProjet = existsSync(auProjet) && sha256(readFileSync(auProjet)) === epingle.empreinte;
       await enCacheOuTire(enCache, epingle.empreinte, epingle.fichier, async () => (duProjet ? readFileSync(auProjet) : tirerDeLaRelease(epingle, epingle.extension, telecharger, journal)));
       if (!duProjet) copyFileSync(enCache, auProjet);
+      verifies.noter(auProjet, epingle.empreinte);
     }
-    journal(`[épinglés] ${dossier} : ${epingles.length} fichier(s) vérifiés (SHA-256), cache ${cache}`);
+    journal(`[épinglés] ${dossier} : ${epingles.length} fichier(s), ${resommes} vérifié(s) par leur SHA-256, les autres inchangés depuis leur vérification ; cache ${cache}`);
   }
+  verifies.ecrire();
 }
 
 /** Les fichiers des `dossiers` à verser dans la Release, chacun sous le nom de son empreinte. */

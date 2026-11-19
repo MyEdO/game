@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { props } from '../../data';
+import { resetData, setDataset } from '../../data/overrides';
 import { sceneCombatModifiers, entityBlockedAt } from './sceneRules';
 import { Scene, SceneEntity, isWalkable } from './scene';
 import { attackModifiers, defenseModifiers, combineMods } from '../../engine/combat';
@@ -146,6 +148,15 @@ describe('isWalkable — intègre l’empreinte des décors', () => {
   });
   it('une case libre reste walkable', () => {
     expect(isWalkable(scene, 0, 0)).toBe(true);
+  });
+  it('la solidité se lit au catalogue VIVANT des décors : une charrette rendue non solide à l’atelier libère ses cases', () => {
+    try {
+      expect(isWalkable(scene, 1, 0)).toBe(false);
+      setDataset('props', props.map((p) => (p.id === 'charrette' ? { ...p, solid: false } : p)));
+      expect(isWalkable(scene, 1, 0)).toBe(true);
+    } finally {
+      resetData();
+    }
   });
 });
 

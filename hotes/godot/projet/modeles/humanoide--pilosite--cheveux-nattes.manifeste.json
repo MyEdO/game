@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "pilosite",
+  "cle": {
+    "coiffure": "cheveux-nattes"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "poil",
+      "palette": "cheveux"
+    }
+  ],
+  "glb": {
+    "sha256": "53f272a50e78265224e1795698c306331334c72354a0ccc2aaf5f60fc2f82e35",
+    "octets": 315276
+  }
+}

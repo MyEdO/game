@@ -1,0 +1,23 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[sub_resource type="StyleBoxFlat" id="Plein"]
+bg_color = Color(0.871, 0.796, 0.616, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.26, 0.1, 1)
+
+[sub_resource type="StyleBoxFlat" id="Vide"]
+bg_color = Color(0.06, 0.04, 0.025, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.26, 0.1, 1)
+
+[resource]
+reussite/base_type = &"Panel"
+reussite/styles/panel = SubResource("Plein")
+neutre/base_type = &"Panel"
+neutre/styles/panel = SubResource("Vide")

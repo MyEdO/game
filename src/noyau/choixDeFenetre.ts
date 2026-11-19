@@ -22,7 +22,16 @@ import { refuserGesteDuSiege } from './refusVisible';
 import type { Reglage, ValeurDuReglage } from './reglages';
 import { refusDeChoixDePaie } from './shipCrew';
 import { corruptionTarget } from './corruptionFlow';
-import { activityById, cleDEntrainement, craftCatalog, entrainementOptions, learnableTalents, qualitesDArtisanat, type ActivityDef, type ActivityResolver } from '../engine/activities';
+import {
+  activityById,
+  cleDEntrainement,
+  craftCatalog,
+  entrainementOptions,
+  learnableTalents,
+  qualitesDArtisanat,
+  type ActivityDef,
+  type ActivityResolver,
+} from '../engine/activities';
 import { describeQuality } from '../engine/qualities/describe';
 import { libelleDePsy } from '../engine/psych/ciblage';
 import { formatMoney, fromBrass } from '../engine/money';
@@ -40,7 +49,7 @@ import {
   optionsDeTroc, refusDAjout, refusDeMarchandage, refusDeRecherche, refusDeRefusDuMarche, sellRefusal, type MerchantState, type ModeDeMarche,
 } from './merchantFlow';
 import { findTrappingById } from '../data/index';
-import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
+import { couchagesDeLaNuit, dormeurDuRepos, foodOptions, nourrituresDeTroupe } from './restFlow';
 import { itemLabel } from '../engine/items';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
 import { battleSceneById, herosQuiSePostent, postesDeBataille, refusDAlea, refusDeMelee, refusDeRassemblement, refusDeSceneDeBataille } from './massBattleFlow';
@@ -236,7 +245,10 @@ export const OUVERTS_DU_CHOIX = {
   // LDB 17 l.67
   renier: { renier: reglage('renier', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => (renier && (corruptionTarget(s, s.pendingRenounce?.heroId)?.resilience ?? 0) <= 0 ? libelleDeLaFermeture('sansResilience') : null))) },
   cibleDeMonture: {
-    cible: reglage('cibleDeMonture', 'cible', (s) => DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDuCoupleMonte.nom(s, id), id, 'couple monté')))),
+    cible: reglage('cibleDeMonture', 'cible', (s) => {
+      const nom = DESIGNATIONS.IdDuCoupleMonte.nom(s);
+      return DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(nom(id), id, 'couple monté')));
+    }),
   },
   conseil: {
     paie: reglage('conseil', 'paie', (s) => (s.pendingCouncil?.phase === 'choix'
@@ -326,17 +338,20 @@ export const OUVERTS_DU_CHOIX = {
   // ZI 13
   victoire: {
     ligne: lignesDuButin('victoire', (s) => s.pendingVictory?.gear),
-    depecer: reglage('victoire', 'depecer', (s) => creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDeCreatureADepecer.nom(s, id), id, 'créature à dépecer'), refusDeDepecer(s, id)))),
+    depecer: reglage('victoire', 'depecer', (s) => {
+      const nom = DESIGNATIONS.IdDeCreatureADepecer.nom(s);
+      return creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(nom(id), id, 'créature à dépecer'), refusDeDepecer(s, id)));
+    }),
   },
   // LDB 66
   repos: {
     couchage: reglage('repos', 'couchage', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
-      return nuit ? lodgingOptions(nuit.p.places).map((v) => duRepos(v, 'couchage')) : [];
+      return nuit ? couchagesDeLaNuit(nuit.p, s.party, pid).map((c) => ouverte(c.id, c.libelle, c.refus)) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.lodging ?? null)),
     pitance: reglage('repos', 'pitance', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
-      return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
+      return nuit ? (nuit.dormeur ? foodOptions(nuit.p, nuit.dormeur) : nourrituresDeTroupe(nuit.p)).map((v) => duRepos(v, 'pitance')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
   },
   // LDB 17 l.25, LDB 11 l.97-103

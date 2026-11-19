@@ -1,4 +1,4 @@
-import { formatDice, parseDice, totalDuDe, type DiceSpec } from './dice';
+import { formatDice, totalDuDe, type DiceSpec } from './dice';
 
 /**
  * Lookup PARTAGÉ d'une entrée de table d100 par fourchette `[min, max]` — SOURCE UNIQUE des tirages
@@ -70,14 +70,12 @@ export type DeDeTable = DiceSpec & { readonly [DE_DE_TABLE]: true };
 
 /** Le nœud qui porte le dé d'une table, sous sa clé `die` (`deDeTirageSchema`) : la table elle-même, ou le
  *  sous-tirage qui départage ses rangées (`stars.json › sub`, `peripeties.json › tirageQuotidien`). */
-export type PorteurDeDe = { readonly die: string; readonly id?: string };
+export type PorteurDeDe = { readonly die: DiceSpec };
 
-/** LE constructeur du dé d'une table tirée : il le lit sur son nœud — FAIL-FAST sur une expression illisible. PUR. */
+/** LE constructeur du dé d'une table tirée : il le lit sur son nœud. PUR. */
 export function deDeLaTableTiree(table: PorteurDeDe): DeDeTable {
-  const de = parseDice(table.die);
-  if (!de) throw new Error(`${table.id ?? 'table'}.die invalide : ${table.die}`);
   // eslint-disable-next-line murs/marques -- #1667 : l'unique cast de ce module — forger la marque EST le corps de métier de `deDeLaTableTiree` (cf. JSDoc de `DeDeTable`).
-  return de as DeDeTable;
+  return table.die as DeDeTable;
 }
 
 /** SOURCE UNIQUE du plus grand total du dé d'une table : `d10` → 10, `d100` → 100, `2d10` → 20. PUR. */

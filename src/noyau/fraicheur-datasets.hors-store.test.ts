@@ -16,10 +16,10 @@ import {
 } from '../data/index';
 import { parseTraitInstance } from '../data/refFormatLivre';
 import { travelVehicles, travelModeLabels } from '../engine/travel';
-import { consolidateAmputations, traumaById, type TraumaFiche, avecSequelles } from '../engine/trauma';
+import { consolidateAmputations, traumaById, avecSequelles } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from '../data/mutations';
-import { rollMiscast, miscastRowAt, type MiscastTableRow } from '../engine/miscast';
+import { rollMiscast, miscastRowAt } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
 import { tableStepDef, tableStepIds } from './cascade';
@@ -32,19 +32,21 @@ import { marchandisesDe, findCargoById, rollSeasonalCargo, type CargoDef } from 
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
-  tickRiverWind, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods,
-  capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
+  tickRiverWind, riverWindEffect, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods,
+  capsizeRightDifficulty, capsizeRightCumulative,
 } from '../engine/riverNavigation';
-import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
+import { tickWindForce, tickWindForceDay, windEffect } from '../engine/seaWeather';
+import { schema as seaWeatherSchema } from '../data/schemas/defs/sea-weather';
 import { overloadMaxEnc, offerPricePct } from '../engine/seaVoyage';
 import { minCargoEnc, partialSurchargePct, rollMerchantSkill } from '../engine/landCargo';
-import { rollAvailability, barterRatio } from '../engine/disponibilite';
+import { rollAvailability, barterRatio, colonneDeLaTaille } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { SEA_BOARD_EVENT_TABLE } from './seaVoyageFlow';
 import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from '../data/index';
 import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from '../data/versionDataset';
+import type { EntreeVivante } from '../data/datasets';
 import { deFixe } from '../engine/dice.testkit';
 
 const TRAITS_LIVRES = [...traits];
@@ -53,9 +55,9 @@ const CARACS_LIVREES = [...characteristics];
 const ETATS_LIVRES = [...etats];
 const SAISONS_LIVREES = [...weather];
 const VEHICULES_LIVRES = [...vehicles];
-const TRAUMAS_LIVRES = [...(datasetArray('traumas') as TraumaFiche[])];
-const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationTable[])];
-const MISCAST_MINEURE_LIVREE = [...(datasetArray('imparfaiteMineure') as MiscastTableRow[])];
+const TRAUMAS_LIVRES = [...datasetArray('traumas')];
+const TABLES_MUTATION_LIVREES = [...datasetArray('mutationTables')];
+const MISCAST_MINEURE_LIVREE = [...datasetArray('imparfaiteMineure')];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
   ['cargoes', 'cargaisonsAleatoires', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
@@ -144,13 +146,13 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // La sonde du juge, promue en cas POSITIF : `mutations.ts` indexait `mutationTables` à l'import
     // (`TABLE_BY_ID`/`ROWS_BY_TABLE`/`MUTATION_TABLE_IDS`), si bien qu'une édition au Codex laissait
     // les lignes d'étape, le libellé et le registre des tables tirables sur l'état d'AVANT.
-    const tables = datasetArray('mutationTables') as MutationTable[];
+    const tables = datasetArray('mutationTables');
     const physique = tables.find((t) => t.id === 'physique')!;
     const avant = mutationTableRows('physique')[0];
     expect(mutationTablePlayerLabel('physique')).toBe('Tableau de Corruption physique');
     const idsAvant = mutationTableIds().length;
 
-    const neuve: MutationTable = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
+    const neuve: EntreeVivante<MutationTable> = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
     setDataset('mutationTables', [
       ...tables.map((t) => (t.id === 'physique'
         ? { ...t, label: 'physique révisée QC (LDB)', entries: [{ ...t.entries[0], max: 99 }, ...t.entries.slice(1)] }
@@ -186,9 +188,8 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   });
 
   it('un véhicule de voyage ÉDITÉ ou NEUF : `travelVehicles` et les libellés de mode le servent', () => {
-    // `engine/travel.ts` atteint `vehicles.json` par IMPORT JSON DIRECT + alias (`VEHICLES_LIST`) :
-    // ses transports payants et sa table de libellés étaient figés à l'import, donc une diligence
-    // renommée au Codex gardait son ancien nom à l'écran de voyage, et un véhicule neuf n'existait pas.
+    // Les transports payants et la table de libellés de `engine/travel.ts` se lisent sur le dataset vivant
+    // `vehicles` : une diligence renommée au Codex garde son nouveau nom à l'écran de voyage, un véhicule neuf y entre.
     const diligence = vehicles.find((v) => v.id === 'diligence')!;
     expect(travelModeLabels().diligence).toBe(diligence.label);
     const neuf = { ...diligence, id: 'coche-1692', label: 'Coche 1692' };
@@ -205,7 +206,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   it('une règle de CUMUL éditée (`traumas.json`) : la consolidation applique la NOUVELLE', () => {
     // `engine/trauma.ts` lit `traumas.json` par import direct + alias (`FICHES`) : les fiches à cumul
     // étaient filtrées une fois à l'import — un seuil d'escalade édité au Codex ne changeait rien.
-    const fiches = datasetArray('traumas') as TraumaFiche[];
+    const fiches = datasetArray('traumas');
     const doigt = fiches.find((f) => f.id === 'doigt-ampute')!;
     expect(doigt.cumul!.escalade!.atLeast).toBe(4);
     const porteur = (): Combatant => ({
@@ -271,17 +272,18 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(shipSizeOfLength(11)).toBe('minuscule');
   });
 
-  it('la fiche de Navigation fluviale ÉDITÉE : forces de vent et scalaires servis NEUFS', () => {
+  it('la fiche de Navigation fluviale ÉDITÉE : forces de vent, leurs effets et scalaires servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('riverNavigation'));
     const [calme, second] = fiche.windForces.entries;
-    expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe(second.id);
+    expect(tickRiverWind(calme.id, deFixe(1))).toBe(second.id);
     setObjectDataset('riverNavigation', {
       ...fiche,
       windForces: { ...fiche.windForces, entries: fiche.windForces.entries.map((f, i) => (i === 1 ? { ...f, id: 'brise-qc' } : f)) },
       navBaseDifficulty: 'difficile', tackDifficulty: 'difficile', driftPctOfSpeed: 40, driftNavPenalty: -30,
       capsize: { ...fiche.capsize, rightDifficulty: 'difficile', rightCumulativePenalty: -15 },
     });
-    expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe('brise-qc');
+    expect(tickRiverWind(calme.id, deFixe(1))).toBe('brise-qc');
+    expect(riverWindEffect('brise-qc', 'arriere')).toEqual(second.effet.arriere);
     expect(navBaseDifficulty()).toBe('difficile');
     expect(tackDifficulty()).toBe('difficile');
     expect(driftPctOfSpeed()).toBe(40);
@@ -290,33 +292,51 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(capsizeRightCumulative()).toBe(-15);
   });
 
-  it('les vents de mer ÉDITÉS : `tickWindForce` passe au cran NEUF', () => {
+  it('les vents de mer ÉDITÉS : `tickWindForce` passe au cran NEUF, `windEffect` lit sa rangée', () => {
     const fiche = structuredClone(datasetObject('seaWeather'));
     const [calme, second] = fiche.vents;
-    expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe(second.id);
+    expect(tickWindForce(calme.id, deFixe(1))).toBe(second.id);
     setObjectDataset('seaWeather', { ...fiche, vents: fiche.vents.map((v, i) => (i === 1 ? { ...v, id: 'brise-mer-qc' } : v)) });
-    expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe('brise-mer-qc');
+    expect(tickWindForce(calme.id, deFixe(1))).toBe('brise-mer-qc');
+    expect(windEffect('brise-mer-qc', 'arriere')).toEqual(second.effet.arriere);
+    expect(windEffect('brise-mer-qc', 'arriere', 'clinfoc').pctSail).toBe(second.effetClinfoc.arriere.pctSail);
+  });
+
+  it('une force de vent de mer NEUVE : refusée sans toutes ses cellules, servie avec', () => {
+    const fiche = structuredClone(datasetObject('seaWeather'));
+    const [calme, second] = fiche.vents;
+    const neuve = { ...second, id: 'risee-qc', label: 'Risée' };
+    const { face: _face, ...sansFace } = neuve.effet;
+    expect(seaWeatherSchema.safeParse({ ...fiche, vents: [calme, { ...neuve, effet: sansFace }, ...fiche.vents.slice(1)] }).success).toBe(false);
+    const vents = [calme, neuve, ...fiche.vents.slice(1)];
+    expect(seaWeatherSchema.safeParse({ ...fiche, vents }).success).toBe(true);
+    setObjectDataset('seaWeather', { ...fiche, vents });
+    expect(tickWindForce(calme.id, deFixe(1))).toBe('risee-qc');
+    expect(windEffect('risee-qc', 'face')).toEqual(second.effet.face);
   });
 
   it('la mise à jour du vent de mer ÉDITÉE : `tickWindForceDay` lit le seuil et le nombre de tirages NEUFS', () => {
     const fiche = structuredClone(datasetObject('seaWeather'));
     const [calme, second] = fiche.vents;
-    expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(calme.id);
+    expect(tickWindForceDay(calme.id, deFixe(2))).toBe(calme.id);
     setObjectDataset('seaWeather', { ...fiche, windTickThreshold: 2, windTicksPerDay: 1 });
-    expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(second.id);
+    expect(tickWindForceDay(calme.id, deFixe(2))).toBe(second.id);
   });
 
-  it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability` et `barterRatio` la lisent', () => {
+  it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability`, `barterRatio` et `colonneDeLaTaille` la lisent', () => {
     const fiche = structuredClone(datasetObject('disponibilite'));
     expect(rollAvailability('limitee', 'village', deFixe(1)).test!.target).toBe(30);
     expect(barterRatio('commune', 'exotique')).toEqual({ give: 8, get: 1 });
+    expect(colonneDeLaTaille(2)).toBe('village');
     setObjectDataset('disponibilite', {
       ...fiche,
+      colonneParTaille: { ...fiche.colonneParTaille, 2: 'ville' },
       dispoPct: fiche.dispoPct.map((e) => (e.availability === 'limitee' ? { ...e, pct: { ...e.pct, village: 77 } } : e)),
       barterRatios: fiche.barterRatios.map((r) => (r.give === 'commune' ? { ...r, ratios: { ...r.ratios, exotique: { give: 9, get: 1 } } } : r)),
     });
     expect(rollAvailability('limitee', 'village', deFixe(1)).test!.target).toBe(77);
     expect(barterRatio('commune', 'exotique')).toEqual({ give: 9, get: 1 });
+    expect(colonneDeLaTaille(2)).toBe('ville');
   });
 
   it('les phases du jour ÉDITÉES : aube, crépuscule, créneau de départ et arche solaire suivent', () => {

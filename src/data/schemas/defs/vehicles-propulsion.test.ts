@@ -5,9 +5,9 @@
 import { describe, expect, it } from 'vitest';
 import { schema } from './vehicles';
 import vehiclesJson from '../../vehicles.json';
+import { vehicles } from '../../index';
 
-type Entree = { id: string; ship?: { sail?: unknown; oars?: unknown } };
-const clone = (): Entree[] => structuredClone(vehiclesJson) as unknown as Entree[];
+const clone = () => structuredClone(vehicles);
 
 describe('vehicles.json — un navire porte Voiles ou Avirons', () => {
   it('m0 TÉMOIN : le document RÉEL parse', () => {

@@ -28,8 +28,8 @@ import type { AdvancementRef } from '../../data';
 import { isOptionalNote } from '../../engine/statEntry';
 import { effectiveEntry } from '../../engine/variants';
 import { deDeLaTableTiree, facesDuDe, fourchette } from '../../engine/tables';
-import { spellEffectOps } from '../../engine/flowCore';
-import type { Flow, TriggeredEffect } from '../../data/schemas/defs-scenes/effets';
+import { spellEffectOps, type TriggeredEffect } from '../../engine/flowCore';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import { replier } from '../../lib/ordre.mjs';
@@ -154,11 +154,12 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const tp of c.trappings) if (estDotationDObjet(tp)) addReverse('trappings', tp.id, by, 'Créatures la possédant');
   }
 
-  // 7) Possessions → qualités + groupe d'objet.
+  // 7) Possessions → qualités + groupe d'objet + munitions de l'arme.
   for (const t of trappings) {
     const by: Referrer = { category: 'trappings', id: t.id, label: t.label };
     for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType?.id })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
     addReverse('weaponGroups', t.subType?.id, by, 'Objets du groupe');
+    for (const m of t.munitions ?? []) addReverse('trappings', m, by, 'Armes qui la tirent');
   }
 
   // 8) Classes → possessions de départ.
@@ -271,7 +272,7 @@ const catalog = versionCached<CatalogEntry[]>(() => {
   pushCatalog('spells', spells);
   pushCatalog('creatures', creatures as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('traits', traits);
-  pushCatalog('mutations', mutations as { id: string; label: string; source?: { book: string; page: number } | null }[]);
+  pushCatalog('mutations', mutations);
   pushCatalog('stars', stars);
   pushCatalog('locations', locations as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('characteristics', characteristics as { id: string; label: string }[]);

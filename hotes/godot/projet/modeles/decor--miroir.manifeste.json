@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "miroir"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "glace",
+      "palette": "corps",
+      "matiere": "prop--verre"
+    }
+  ],
+  "glb": {
+    "sha256": "f91d6c6d40fa4aefaec62d976207913b3e8de02014b41fdfe04fd46a7a52f261",
+    "octets": 53924
+  }
+}

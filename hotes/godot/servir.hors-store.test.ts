@@ -1,7 +1,8 @@
 /**
  * LE SERVEUR DE L'EXPORT WEB (#3086, `pont/CONTRAT.md`, section « Atelier 3D ») : `GET modeles/listage.json` rend
  * `{ manifestes, osDesRigides, erreurs, forme }`, les seuls manifestes validés contre leur GLB, de chacun les os qui
- * portent ses meshes rigides et la forme `glb`, en `no-store` ; `GET modeles/<fichier>` sert le fichier en `no-store`,
+ * portent ses meshes rigides et la forme `glb`, en `no-store`, calculé au lancement puis à nouveau quand un fichier du
+ * dossier change ; `GET modeles/<fichier>` sert le fichier en `no-store`,
  * 404 hors du dossier ou absent ; une URI malformée reçoit 400 et un dossier des modèles illisible passe dans
  * `erreurs`, le serveur continue. `deposerLesModeles` (#3778, #3946) écrit sous `modeles/` de l'export les mêmes
  * fichiers sans les GLB ni leur fiche d'import, le même listage en forme `scene`, et fait fabriquer la scène de chaque
@@ -10,6 +11,8 @@
  * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire ;
  * `GET source/manifest.json` et `GET source/<livre>/<NNN>.md` rendent l'index des chapitres et le texte d'un chapitre du
  * `Source/` de ce dépôt-ci (#3606 M2g), 404 sans dépôt, export statique ou non.
+ * `PUT donnees/<fichier>` écrit un fichier de l'atelier du Compendium (#4020, section « Compendium ») : seulement l'un de
+ * ses fichiers, en forme dépôt, sur le disque tel que l'export l'a lu (`If-Match`, l'empreinte `hash32` de son texte).
  * Sans export (le pont vivant, `vivant.mjs`), seuls `modeles/`, `depot/` et `source/` répondent.
  */
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -26,6 +29,7 @@ import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { cheminDuDepot } from '../../scripts/source/adresses.mjs';
 import { books } from '../../src/data';
+import { hash32 } from '../../src/lib/hash';
 
 const racine = mkdtempSync(join(tmpdir(), 'servir-3086-'));
 const web = join(racine, 'web');
@@ -84,6 +88,16 @@ describe('servir', () => {
     expect(osDesRigides).toEqual({ humanoide: [], epee: ['root'], masse: ['root'] });
   });
 
+  it('un modèle déposé après le lancement entre au listage suivant', async () => {
+    const vivant = join(racine, 'vivant');
+    cpSync(modeles, vivant, { recursive: true });
+    const url = await demarrer(vivant);
+    const lister = async () => Object.keys((await (await fetch(`${url}modeles/${LISTAGE}`)).json()).manifestes).sort();
+    expect(await lister()).toEqual(['epee', 'humanoide', 'masse']);
+    deposerModeleDeTest(vivant, 'hache', { ...elementSchema3('humanoide'), cle: { apparence: 'hache' } }, GLB_D_ELEMENT);
+    expect(await lister()).toEqual(['epee', 'hache', 'humanoide', 'masse']);
+  });
+
   it('un fichier du dossier est servi en no-store', async () => {
     const r = await fetch(`${await demarrer()}modeles/epee.glb`);
     expect([r.status, r.headers.get('cache-control'), r.headers.get('content-type')]).toEqual([200, 'no-store', 'model/gltf-binary']);
@@ -140,7 +154,7 @@ describe('servir, le dépôt', () => {
       mkdirSync(dirname(join(corpus, rel)), { recursive: true });
       cpSync(join(dossierDesProjetsLivres(), rel), join(corpus, rel));
     }
-    const s = await servir({ web, depot });
+    const s = await servir({ web, modeles, depot });
     serveurs.push(s);
     url = s.url;
     id = idDe(manuscrit);
@@ -202,5 +216,50 @@ describe('servir, le dépôt', () => {
 
   it('une autre méthode reçoit 405', async () => {
     expect((await fetch(`${url}depot/${id}`, { method: 'DELETE' })).status).toBe(405);
+  });
+});
+
+describe('servir, les données du Compendium (#4020)', () => {
+  const depot = join(racine, 'donnees');
+  const FICHIER = 'talents.json';
+  const LISTE = 'src/data/schemas/_fichiers-de-l-atelier.generated.json';
+  const disque = () => readFileSync(join(depot, 'src/data', FICHIER), 'utf8');
+  let url = '';
+
+  beforeAll(async () => {
+    mkdirSync(join(depot, 'src/data/schemas'), { recursive: true });
+    cpSync(LISTE, join(depot, LISTE));
+    cpSync(join('src/data', FICHIER), join(depot, 'src/data', FICHIER));
+    const s = await servir({ web, modeles, depot });
+    serveurs.push(s);
+    url = s.url;
+  });
+
+  const ecrire = (texte: string, avant = String(hash32(disque()))) => fetch(`${url}donnees/${FICHIER}`, { method: 'PUT', body: texte, headers: { 'If-Match': avant } });
+
+  it('PUT écrit un texte en forme dépôt à la place du fichier tel que l’export l’a lu', async () => {
+    const texte = disque().replace(/\n$/, ' \n');
+    expect((await ecrire(texte)).status).toBe(200);
+    expect(disque()).toBe(texte);
+  });
+
+  it('PUT refuse en 409 un fichier qui a changé sur le disque depuis l’export, sans rien écrire, et nomme le remède', async () => {
+    const avant = disque();
+    const r = await ecrire('{}', String(hash32(`${avant}x`)));
+    expect([r.status, await r.text()]).toEqual([409, expect.stringContaining('npm run godot:editeur')]);
+    expect(disque()).toBe(avant);
+  });
+
+  it('PUT refuse en 422 un texte illisible, sans rien écrire', async () => {
+    const avant = disque();
+    const r = await ecrire('{');
+    expect([r.status, await r.text()]).toEqual([422, 'JSON illisible']);
+    expect(disque()).toBe(avant);
+  });
+
+  it('un fichier hors de l’atelier reçoit 404, une autre méthode 405, et sans dépôt donnees/ n’est pas servi', async () => {
+    expect((await fetch(`${url}donnees/package.json`, { method: 'PUT', body: '{}' })).status).toBe(404);
+    expect((await fetch(`${url}donnees/${FICHIER}`)).status).toBe(405);
+    expect((await fetch(`${await demarrer()}donnees/${FICHIER}`, { method: 'PUT', body: '{}' })).status).toBe(404);
   });
 });

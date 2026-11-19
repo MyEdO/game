@@ -20,8 +20,9 @@ import { totalDesBourses } from './bourseFlow';
 import { libelleDuChoix } from './libelles';
 import { t } from '../i18n';
 
-/** Un choix d'un dormeur : son nom, puis chaque valeur que le lieu lui offre, le geste qui la prend et si c'est la sienne. */
-export interface ChoixDeRepos { libelle: string; valeurs: { libelle: string; geste: GesteDuNoyau; choisie: boolean }[] }
+/** Un choix d'un dormeur : son nom, puis chaque valeur que le lieu lui offre (une chambre nomme ceux qui y dorment avec
+ *  lui), le geste qui la prend, si c'est la sienne et la raison qui la ferme. */
+export interface ChoixDeRepos { libelle: string; valeurs: { libelle: string; geste: GesteDuNoyau; choisie: boolean; refus: string | null }[] }
 
 /** Un dormeur : son couchage, sa pitance, et ce qui l'attend cette nuit. */
 export interface DormeurEnVue { id: string; couchage: ChoixDeRepos; pitance: ChoixDeRepos; alertes: string[] }
@@ -41,7 +42,7 @@ function choix(s: Jeu, h: Combatant, axe: AxeDe<'repos'>): ChoixDeRepos {
   const r = reglageDuChoixDeFenetre(s, 'repos', axe, h.id);
   return {
     libelle: libelleDuChoix('repos', axe),
-    valeurs: (r.valeurs ?? []).map((v) => ({ libelle: v.libelle, geste: { verbe: VERBE_DE_CHOIX, args: ['repos', axe, v.valeur, h.id] }, choisie: v.valeur === r.courant })),
+    valeurs: (r.valeurs ?? []).map((v) => ({ libelle: v.libelle, geste: { verbe: VERBE_DE_CHOIX, args: ['repos', axe, v.valeur, h.id] }, choisie: v.valeur === r.courant, refus: v.refus })),
   };
 }
 
@@ -61,7 +62,7 @@ export function reposEnVue(s: Jeu): ReposEnVue | null {
   const expositions = exposureTestCount(activeExposureSeverity(() => s), exposureShelterFromTent(s.party));
   const cout = restCost(p, s.party);
   return {
-    nuit: [`${nightTitle(p, s.party)} — ${p.lieu}`, ...(p.days > 1 ? [t('rf.nuits', { n: p.days })] : []), ...(p.quality === 'pietre' ? [t('rf.pietre')] : [])].join(' · '),
+    nuit: [`${nightTitle(p, s.party)} — ${p.lieu}`, ...(p.days > 1 ? [t('rf.nuits', { n: p.days })] : []), ...(p.quality === 'normale' ? [] : [t(`rf.qualite.${p.quality}`)])].join(' · '),
     toit: toitDeLaNuit(p, s.party),
     temps: tempsDeLaNuit(s),
     dormeurs: s.party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => {

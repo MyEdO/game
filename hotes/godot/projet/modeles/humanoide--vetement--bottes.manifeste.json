@@ -22,11 +22,12 @@
   "surfaces": [
     {
       "nom": "botte",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     }
   ],
   "glb": {
-    "sha256": "3a059b74fd638145ba4736adeaeef7f7f888992e861f2d85c9fd6a83506780a5",
-    "octets": 424660
+    "sha256": "f3aca534f7ea12455859f2a8f5cb37fcbc3acd72d920dc25465fae7378b7ebb8",
+    "octets": 379544
   }
 }

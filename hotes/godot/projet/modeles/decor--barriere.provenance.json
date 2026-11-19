@@ -1,0 +1,13 @@
+{
+  "model": "decor--barriere.glb",
+  "model_sha256": "f7dcbc55a68aee4d9d0f1cb3a2394fce5008a25c513efdd5ab404e9ca9044c94",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

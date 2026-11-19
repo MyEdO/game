@@ -5,7 +5,19 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync 
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { join, resolve, win32 } from 'node:path'
-import { cheminDArgument, liensProcessus, lireCause, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux, sousArbre, toleranceDeMesure, classerFiliation, argumentsProcessus, DELAI_MESURE_PROCESSUS_MS } from './processusWorktrees.mjs'
+import {
+  cheminDArgument,
+  liensProcessus,
+  lireCause,
+  mesurerProcessusWorktrees,
+  porteeProcessus,
+  racineProcessusLinux,
+  sousArbre,
+  toleranceDeMesure,
+  classerFiliation,
+  argumentsProcessus,
+  DELAI_MESURE_PROCESSUS_MS,
+} from './processusWorktrees.mjs'
 import { citerArgv } from './lancerDetache.mjs'
 import { litteralJs } from './litteralJs.mjs'
 

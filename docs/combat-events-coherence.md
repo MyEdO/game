@@ -80,7 +80,7 @@ restent des hooks ordonnés (interleave par `order`, y compris le cross-phase `o
   importables UNIQUEMENT par `combatEvents.ts`, les deux définisseurs et les modules bus-owned — le
   dispatch direct est INEXPRIMABLE (fail-closed, preuve par fichier fictif).
 - **Complétude d'émission** (`combat-event-emission-coverage.test.ts`) : chaque `EffectTrigger` du schéma
-  d'authoring (dérivé d'`effectTriggerSchema`, dont le `satisfies Record<EffectTrigger, string>` tient l'exhaustivité au compilateur) a ≥1 point d'émission — zéro
+  d'authoring (`effectTriggerSchema`, dont `EffectTrigger` est la sortie) a ≥1 point d'émission — zéro
   affordance morte.
 
 Triggers CÂBLÉS par #316 (jadis orphelins) : `onAttackResolved` (fin de résolution d'attaque),
@@ -91,7 +91,9 @@ part de `resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
 bus, avec l'arme RÉELLE de l'attaquant (`DeviationCtx.weaponObj`) → les Atouts « sur Critique » (Taillade →
 Hémorragique) s'appliquent aussi sur ces Critiques. `onCrit` part à chaque Blessure critique non létale, avec
 `triggerCtx.origine` ; un effet `coupCritique: true` (Empaleuse, Poings d'ignominie) ne réagit qu'au Coup Critique
-(`estUnCoupCritique`), les autres (Taillade) à toute Blessure critique. Une Blessure déviée ou ignorée n'émet rien. `applyCoupCritiqueSec` reste MACHINERIE (ne nomme
+(`estUnCoupCritique`), les autres (Taillade) à toute Blessure critique. Une Blessure déviée ou ignorée n'émet rien.
+Le Critique refusé par une coque routière (issue `aucune`, EDOC 07 l.334 ; #4202) émet `onCrit` avec
+`triggerCtx.sansBlessureCritique` : seuls les effets `coupCritique` s'exercent, sans Frappe blessante. `applyCoupCritiqueSec` reste MACHINERIE (ne nomme
 aucune entité, §3) — elle ÉMET l'événement, elle n'est pas convertie en hook (un hook de phase ne porte pas
 le contexte d'attaque riche — roll/arme/attaquant — qu'exige la résolution du Critique opposé).
 

@@ -14,7 +14,7 @@
  * contribution du trait accordé) car des entrées peuvent venir d'ailleurs (mutations).
  */
 import { Combatant, type EffectSource } from './types';
-import { parsePsychTraits, type PsychTrait, type PsychType } from './psychology';
+import { parsePsychTraits, type PsychTrait } from './psychology';
 import { identiteDeCiblage, type CiblePsy } from './psych/ciblage';
 import type { TraitInstance } from './statEntry';
 
@@ -63,7 +63,7 @@ export function grantTrait(c: Combatant, accorde: TraitInstance): void {
  *  `grantPsychTrait` (`ops.ts`, effet temporisé) et `attachMutation` (`corruption.ts`, permanent :
  *  Colère impie → Frénésie, mutation → Haine). `src` = PROVENANCE de l'instance, comme `TraitInstance.src`
  *  de `grantTrait`. Mute `c`. */
-export function grantPsychTrait(c: Combatant, type: PsychType, cible?: CiblePsy, src?: EffectSource): PsychTrait {
+export function grantPsychTrait(c: Combatant, type: string, cible?: CiblePsy, src?: EffectSource): PsychTrait {
   const pose: PsychTrait = { type, ...(cible ? { cible } : {}), ...(src ? { src: structuredClone(src) } : {}) }; // #2097
   c.psychTraits = [...(c.psychTraits ?? []), pose];
   return structuredClone(pose);

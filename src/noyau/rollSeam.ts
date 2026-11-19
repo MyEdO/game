@@ -49,7 +49,16 @@ import { rollLine, type RollLineDecl, type RollLineSpec } from './ligneDeJet';
 import type { OupsResolved } from '../engine/oups';
 import type { RecapLine, RecapTone } from './recapLine';
 import type { ModLine } from '../engine/combat';
-import { startCascade, runCascadeImmediate, rollBatchParticipant, pushStep, tableStepPosee, clampStepAmount, porteursDeLEtape, compteurDeSequence } from './cascade';
+import {
+  startCascade,
+  runCascadeImmediate,
+  rollBatchParticipant,
+  pushStep,
+  tableStepPosee,
+  clampStepAmount,
+  porteursDeLEtape,
+  compteurDeSequence,
+} from './cascade';
 import { tablesPosees, type GenreDEtape, type GenreDeCascade } from './tablesPosees';
 import { testValue, partyBest, partyAssisted, type SupportDetail } from '../engine/skills';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
@@ -65,7 +74,7 @@ import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type Ec
 import { type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
-import { sansPeurLabel } from '../engine/psychology';
+import { PSY, sansPeurLabel } from '../engine/psychology';
 import type { MenaceId } from '../engine/menace';
 
 /** Agrégation d'un jet multi (porte/contresort/équipage) — SEULE variation de la famille multi.
@@ -201,8 +210,8 @@ export function stepProlonger(quoi: PlayerText, question = false): PlayerText {
 }
 
 /** « Terreur/Peur {indice} » : l'entrée de psychologie affrontée, nommée par son type et son Indice. */
-export function stepPsych(kind: 'terreur' | 'peur' | string, indice: number | string): PlayerText {
-  return t('step.psychIndice', { kind: t(kind === 'terreur' ? 'step.terreur' : 'step.peur'), indice });
+export function stepPsych(kind: string, indice: number | string): PlayerText {
+  return t('step.psychIndice', { kind: t(kind === PSY.terreur ? 'step.terreur' : 'step.peur'), indice });
 }
 
 /** « {compétence} · Sans Peur » : la RANGÉE dont le Test est allégé par Sans Peur (Ennemi). LDB 10 l.1051 */
@@ -839,13 +848,19 @@ export function refusePorte(msg: string): void {
  *  garde son exclusivité (un `soutien` sans `valeur` reste inexprimable). */
 export type BandLigne = RollLineDecl extends infer U ? (U extends unknown ? Omit<U, 'actor'> : never) : never;
 
-/** UN porteur d'une bande : qui teste, et la LIGNE de son jet. */
-export interface BandPorteur {
-  /** Le porteur — la rangée prend son id, et sa SURFACE se déduit de lui (`surfaceRow`). */
-  actor: Combatant;
+/** UN porteur d'une bande : qui teste, et la LIGNE de son jet — deux régimes EXCLUSIFS, calqués sur
+ *  `MonoSpec` :
+ *  - `actor` : le porteur à fiche — la rangée prend son id, et sa SURFACE se déduit de lui (`surfaceRow`) ;
+ *  - `monde` : un porteur SANS fiche (l'équipage collectif, `shipCrew.porteursABord`) qui teste à une
+ *    valeur POSÉE (`LigneMonde`) — la rangée prend l'id `WORLD_STEP_OWNER`, que le socle résout déjà
+ *    (`sieges.tenuParUnHumain`, `netOwnership.seatInfluences`, `cascade.porteurDe`). */
+export type BandPorteur = BandPorteurBase & (
   /** Ligne du jet — le porteur NOMME ce qu'il teste (`test`) ou pose sa valeur (`valeur`). Omise sur
    *  une rangée à jet, la porte REFUSE : elle jouerait sur une valeur de 0 (#1657 B3-3). */
-  ligne?: BandLigne;
+  | { actor: Combatant; monde?: never; ligne?: BandLigne }
+  | { monde: true; actor?: never; ligne: LigneMonde }
+);
+interface BandPorteurBase {
   /** Difficulté de CETTE rangée, quand elle diverge de celle de la bande (allègement porté par un
    *  Talent du seul porteur). Absente : celle de la bande. */
   difficulty?: Difficulty;
@@ -868,7 +883,7 @@ function bandRow(p: BandPorteur, difficulty: Difficulty): BatchParticipant {
   const test = p.ligne?.test;
   const label = p.label ?? testSkillLabel(test ?? {});
   return {
-    id: p.actor.id,
+    id: p.monde ? WORLD_STEP_OWNER : p.actor.id,
     result: null,
     interactive: true,
     difficulty: diff,
@@ -928,7 +943,7 @@ function rowSurfacee(get: Get, r: Omit<BatchParticipant, 'interactive'>, cle: st
  */
 export function buildBand(get: Get, spec: BandRowsSpec): BuiltCascadeStep | undefined {
   const rows = spec.porteurs
-    ? spec.porteurs.map((p) => surfaceRow(get, p.actor?.id, bandRow(p, spec.difficulty)))
+    ? spec.porteurs.map((p) => { const row = bandRow(p, spec.difficulty); return surfaceRow(get, row.id, row); })
     : (spec.rows ?? []).flatMap((r) => rowSurfacee(get, r, spec.id) ?? []);
   return bandStep(spec, rows);
 }
@@ -1475,8 +1490,8 @@ export interface DieStepSpec {
   kind: GenreDEtape;
   label: PlayerText;
   icon?: IconId;
-  /** Les DÉS — REQUIS ici (à la différence de la déclaration persistée, où une table donne les
-   *  siens) : un dé nu sans dés serait une étape prête d'office, validée sans qu'aucun dé ne tombe. */
+  /** Les DÉS — REQUIS : un dé nu n'a aucune table où les prendre, et sans dés il serait une étape
+   *  prête d'office, validée sans qu'aucun dé ne tombe. */
   spec: DiceSpec;
   /** PORTEUR du dé : l'arbitre route la fenêtre à son siège. Absent UNIQUEMENT sur un dé de MONDE
    *  (`worldOwner`), où aucun personnage n'est concerné — même exclusion que `TableSpec`. */
@@ -1648,6 +1663,9 @@ export function hostStep(get: Get, spec: HostSpec): BuiltCascadeStep | undefined
  * INTERROMPUE (combat ouvert en vol, choix sans défaut, groupe anéanti — contrat de
  * `runCascadeImmediate`) : un préfixe n'est pas une séquence résolue.
  *
+ * Une borne de fin de Round ou de combat exige un slot pour son dénouement. Seule une séquence
+ * sans borne peut se résoudre sur place. Les bornes de repos passent par `openRestNight` → `startCascade`.
+ *
  * La cadence DÉFÉRÉE (`cadenceAuto`) n'entre PAS ici : elle est portée par le pilote d'auto-cadence
  * (`combatAuto`, qui déroule la fenêtre et en MONTRE le bilan pour les séquences de nuit/voyage) —
  * c'est la divergence 2 assumée de la famille de bandes ci-dessus, pas un oubli.
@@ -1658,17 +1676,19 @@ export function openSequence(get: Get, set: Set, opts: {
   purpose: PendingCascade['purpose'];
   steps: readonly BuiltCascadeStep[];
   log?: string[];
-  travelHalt?: boolean;
-  roundBoundary?: boolean;
-  combatEndBoundary?: boolean;
-  restNights?: PendingCascade['restNights'];
+  borne?: 'roundBoundary' | 'combatEndBoundary';
+  travelHalt?: never;
+  restNights?: never;
+  roundBoundary?: never;
+  combatEndBoundary?: never;
 }): CascadeStep[] | undefined {
-  const steps = [...opts.steps];
+  const { borne, ...sequence } = opts;
+  const steps = [...sequence.steps];
   if (!steps.length) return undefined;
-  if (surfaceDesEtapes(get, steps) === 'I') {
-    return runCascadeImmediate(get, set, steps, { title: opts.title, purpose: opts.purpose, ...(opts.log ? { log: opts.log } : {}) });
+  if (borne === undefined && surfaceDesEtapes(get, steps) === 'I') {
+    return runCascadeImmediate(get, set, steps, { title: sequence.title, purpose: sequence.purpose, ...(sequence.log ? { log: sequence.log } : {}) });
   }
-  startCascade(get, set, { ...opts, steps });
+  startCascade(get, set, { ...sequence, steps, ...(borne === undefined ? {} : { [borne]: true }) });
   return undefined;
 }
 

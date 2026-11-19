@@ -12,9 +12,9 @@
   "couvre": [],
   "silhouettes": [
     "feminin",
+    "corpulence",
     "carrure_moins",
-    "carrure_plus",
-    "corpulence"
+    "carrure_plus"
   ],
   "surfaces": [
     {
@@ -23,7 +23,7 @@
     }
   ],
   "glb": {
-    "sha256": "77fa0b80c0e5d2f3cf4d5b2a29f4dd9097aafe7c1c0739bc1de1405a1ab1de63",
-    "octets": 289752
+    "sha256": "8dd0fbeeed225feb0787f600070e55b136d378e0c7b070a5118b38b33349275a",
+    "octets": 366304
   }
 }

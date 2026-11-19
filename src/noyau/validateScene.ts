@@ -1,10 +1,22 @@
-import { groupePosable, heightAt, idDuCorps, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
+import {
+  dansLaZoneJouable,
+  groupePosable,
+  heightAt,
+  idDuCorps,
+  isMerScene,
+  isWalkable,
+  sceneMetresPerTile,
+  solPraticable,
+  startOf,
+  type Scene,
+} from './monde/scene';
+import { aUnRoleEnJeu } from './monde/usable';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { unreachableDescriptiveZones } from './mapQC';
 import { isRoomZone } from './monde/rooms';
 import { footprintTiles, sizeFootprint } from './monde/footprint';
-import { entitySize } from './monde/spawn';
+import { entiteFootTiles, entitySize } from './monde/spawn';
 import { METRES_PER_LEVEL } from './monde/relief';
 import { borneALaCarte, realFloorAt } from './sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
@@ -14,11 +26,13 @@ import { type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { individusNommes } from '../engine/psych/ciblage';
-import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { PERSONNAGES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
-import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
-import { validerReferencesDObjetsDansCampagne } from '../data/schemas/defs-scenes/narratif';
+import { idsDeLaPortee, ouvrirPortees } from '../data/schemas/grammaire/collection-cle';
+import { OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
+import { metaDesChamps, nommerChamps } from '../data/schemas/grammaire/meta';
+import { z } from 'zod';
+import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
@@ -26,7 +40,7 @@ import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combat
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
-import { placeServices, type WorldMap } from './worldMap';
+import { colonneDeDisponibiliteDuMarchand, estUnHebergement, lieuDeLaScene, nomDuPoi, placeServices, sceneAubergeOffer, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
 import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
@@ -60,12 +74,14 @@ const roofNonCoveringIds = (): ReadonlySet<string> =>
 export interface Warning {
   level: 'error' | 'warn';
   sceneId: string;
-  scope: 'architecture' | 'entity' | 'trigger' | 'dialogue' | 'encounter' | 'scene' | 'worldMap' | 'plan';
+  scope: 'architecture' | 'entity' | 'trigger' | 'dialogue' | 'encounter' | 'scene' | 'worldMap' | 'narratif' | 'plan';
   /** Id du fautif (pour clic → sélection dans l'éditeur). */
   refId?: string;
   architectureRef?: ArchitectureWarningRef;
   /** Défaut de PLAN (`scope: 'plan'`) : famille + endroit à corriger, pour que l'éditeur y emmène. */
   plan?: { family: PlanDefectFamily; at: PlanDefectAt };
+  /** Le point d'entrée (`entree`, son id) ou l'ancre de bataille (`station`, son rang) fautifs, où l'éditeur emmène. */
+  fautif?: { entree: string } | { station: number };
   message: string;
 }
 
@@ -95,10 +111,26 @@ export function architectureSelectionForWarning(warning: Warning): ArchitectureW
  *  seul l'objet modifié se re-parse, et une écriture au catalogue (Compendium) re-date tous les
  *  verdicts — les réfs se résolvent au catalogue VIVANT. */
 const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
-const fautesDeSchema = (schema: Parameters<typeof validerFormeVivante>[0], objet: object, narratif?: NarratifBlock): readonly Faute[] | null =>
-  verdictsDeSchema(objet, [versionDesDatasets(), schema, narratif], () => validerFormeVivante(narratif
-    ? schema.superRefine((_valeur, ctx) => validerReferencesDObjetsDansCampagne(narratif.objets, ctx))
-    : schema, objet)?.fautes ?? null);
+const fautesDeSchema = (schema: z.ZodType, objet: object, narratif?: NarratifBlock): readonly Faute[] | null =>
+  verdictsDeSchema(objet, [schema, narratif], () => {
+    if (!narratif) return validerFormeVivante(schema, objet)?.fautes ?? null;
+    const fautes = (validerFormeVivante(sousLesObjetsDuProjet(schema), { narratif: { objets: narratif.objets }, valeur: objet })?.fautes ?? [])
+      .filter((f) => f.chemin[0] === 'valeur')
+      .map((f) => ({ ...f, chemin: f.chemin.slice(1), lieu: f.lieu.slice(1) }));
+    return fautes.length ? fautes : null;
+  });
+
+/** `schema` sous la portée des objets de la campagne (`OBJETS_DU_PROJET`), qu'ouvre la racine du projet : la valeur
+ *  validée sous `valeur`, les objets du narratif sous `narratif.objets`, comme au projet. */
+const OUVREURS_DES_OBJETS = new Map<z.ZodType, z.ZodType>();
+function sousLesObjetsDuProjet(schema: z.ZodType): z.ZodType {
+  const connu = OUVREURS_DES_OBJETS.get(schema);
+  if (connu) return connu;
+  const narratif = nommerChamps(z.strictObject({ objets: narratifSchema.shape.objets }), { objets: metaDesChamps(narratifSchema, { exigees: true }).objets });
+  const ouvreur = ouvrirPortees(nommerChamps(z.strictObject({ narratif, valeur: schema }), { narratif: { label: 'Bloc narratif' }, valeur: { label: 'valeur' } }), [OBJETS_DU_PROJET]);
+  OUVREURS_DES_OBJETS.set(schema, ouvreur);
+  return ouvreur;
+}
 
 /** PORTÉE d'une faute pour l'éditeur (clic → sélection), par la suite des LISTES à clé que son lieu
  *  traverse depuis la racine ; les clés rencontrées nomment la sélection. Choix d'ÉCRAN : une façade
@@ -119,11 +151,17 @@ const PORTEE_DU_LIEU: Readonly<Record<string, (cles: readonly string[]) => Porte
   places: () => ({ scope: 'worldMap' }),
   'places › poi': () => ({ scope: 'worldMap' }),
   routes: () => ({ scope: 'worldMap' }),
+  affaires: () => ({ scope: 'narratif' }),
+  indices: () => ({ scope: 'narratif' }),
+  presetsPnj: () => ({ scope: 'narratif' }),
+  documents: () => ({ scope: 'narratif' }),
+  etats: () => ({ scope: 'narratif' }),
+  ecartes: () => ({ scope: 'narratif' }),
 };
 
 /** L'élément qu'une faute désigne pour l'éditeur : le plus PROFOND élément à clé de la tête de son
  *  lieu que la table de portée connaît ; le reste du lieu est le champ fautif DANS cet élément. */
-function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap'): Portee & { element?: ElementDeLieu; reste: readonly SegmentDeLieu[] } {
+function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap' | 'narratif'): Portee & { element?: ElementDeLieu; reste: readonly SegmentDeLieu[] } {
   const listes: string[] = [];
   const cles: string[] = [];
   let trouve: (Portee & { element: ElementDeLieu; reste: readonly SegmentDeLieu[] }) | undefined;
@@ -147,8 +185,9 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
 }
 
 /**
- * Vérifie un PROJET (liste de scènes + carte du monde optionnelle) avant le runtime : réfs cassées
- * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
+ * Vérifie un PROJET (liste de scènes + carte du monde et narratif optionnels) avant le runtime : réfs cassées
+ * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte), fautes du schéma
+ * du narratif (portée `narratif`, sous la scène `narratif`),
  * zones hors-carte, ids dupliqués, musique inconnue du registre (`allMusicDefs`). PUR.
  */
 export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
@@ -167,12 +206,32 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Scènes visées : leur portée s'ouvre à la racine du projet (`projetSchema`), hors de la carte validée seule.
     for (const p of worldMap.places) {
       if (!sceneIds.has(p.scene.id)) addWm(p.id, `Lieu « ${p.label} » → scène inexistante « ${p.scene.id} »`);
-      // Le schéma juge le service au catalogue ; ici, le LIEU doit le résoudre (`placeServices`, source unique,
-      // `noyau/worldMap.ts`), port et marché AUTOMATIQUES compris, ce que `CityHubScreen` résout à l'affichage (#360).
-      const resolvedServiceIds = new Set(placeServices(p).map((s) => s.id));
+      // Le schéma juge le service au catalogue ou aux établissements du lieu ; ici, le LIEU doit le résoudre
+      // (`placeServices` à la scène du lieu, source unique, `noyau/worldMap.ts`), port, marché et auberge AUTOMATIQUES
+      // compris (#360), chacun sous un id unique (#4277).
+      const sceneDuLieu = project.find((sc) => sc.id === p.scene.id);
+      // L'offre de repos d'un lieu à hébergement a UN porteur, l'établissement (`PlaceService.rest`), jamais sa scène. #4277
+      const hebergement = (p.services ?? []).find(estUnHebergement);
+      if (sceneDuLieu && hebergement) {
+        const nom = hebergement.label ?? hebergement.id;
+        const addScene = (message: string) => out.push({ level: 'error', sceneId: sceneDuLieu.id, scope: 'scene', refId: sceneDuLieu.id, message });
+        if (sceneDuLieu.rest?.quality) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : la qualité du repos se règle sur l’établissement, retire-la de la scène`);
+        if ((sceneDuLieu.restZones ?? []).some((z) => z.quality)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : la qualité du repos se règle sur l’établissement, retire-la des zones de repos`);
+        if (sceneAubergeOffer(sceneDuLieu)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : l’auberge est celle de l’établissement, retire-la de la scène`);
+      }
+      const resolus = placeServices(p, sceneDuLieu);
+      if (colonneDeDisponibiliteDuMarchand(undefined, p) === undefined)
+        for (const svc of resolus)
+          if (svc.merchantArchetype !== undefined) addWm(p.id, `Lieu « ${p.label} » → l’échoppe « ${svc.label} » ouvre un marchand, mais le lieu n’a pas de Taille : pose-lui une Taille`);
+      const resolvedServiceIds = new Set<string>();
+      for (const s of resolus) {
+        if (resolvedServiceIds.has(s.id)) addWm(p.id, `Lieu « ${p.label} » → deux services du lieu portent l’identifiant « ${s.id} »`);
+        resolvedServiceIds.add(s.id);
+      }
       for (const poi of p.poi ?? []) {
-        if (poi.sceneId != null && !sceneIds.has(poi.sceneId.id)) addWm(poi.id, `POI « ${poi.label} » → scène inexistante « ${poi.sceneId.id} »`);
-        if (poi.serviceKind != null && !resolvedServiceIds.has(poi.serviceKind.id)) addWm(poi.id, `POI « ${poi.label} » → service absent du lieu « ${poi.serviceKind.id} »`);
+        const nom = nomDuPoi(poi, resolus);
+        if (poi.sceneId != null && !sceneIds.has(poi.sceneId.id)) addWm(poi.id, `POI « ${nom} » → scène inexistante « ${poi.sceneId.id} »`);
+        if (poi.service != null && !resolvedServiceIds.has(poi.service.id)) addWm(poi.id, `POI « ${nom} » → service absent du lieu « ${poi.service.id} »`);
       }
     }
     for (const r of worldMap.routes) {
@@ -204,8 +263,15 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       });
     }
   }
+  // Le SCHÉMA du narratif (`narratifSchema`) : un narratif VIVANT de l'éditeur ne repasse pas par le parse, l'auteur
+  // l'apprend ici, comme pour la carte.
+  if (narratif) {
+    for (const faute of fautesDeSchema(narratifSchema, narratif, narratif) ?? []) {
+      const f = fautifDe(faute.lieu, 'narratif');
+      out.push({ level: 'error', sceneId: 'narratif', scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
+    }
+  }
   for (const s of project) {
-    const encIds = new Set(s.encounters.map((e) => e.id));
     const { w, h } = s.dimensions;
     const within = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
     const add = (
@@ -218,9 +284,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Le monde où l'on marche et où l'on pose : la scène et les ponts de ses navires, comme au jeu (`poserLesNavires`).
     const vue = poserLesNavires(s);
     // Contexte de réfs PARTAGÉ pour cette scène : les `refs?` des handlers (noyau/combatEffects) le lisent
-    // pour valider leurs réfs cassées (dialogue/rencontre/scène) et valeurs invalides (souffle de zone).
+    // pour valider leurs réfs cassées (scène, personnage) et valeurs invalides (souffle de zone).
     const refCtx: EffectRefCtx = {
-      sceneIds, encounterIds: encIds,
+      sceneIds,
       entityIds: new Set(idsDeLaPortee(sceneSchema, s, PERSONNAGES_DE_LA_SCENE)),
       npcSheet: (id) => sceneNpc(s, id, presetDe),
       within,
@@ -235,6 +301,11 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → Cible psy « ${id} » : aucun personnage de la scène ne porte cet id.`);
     for (const id of individusNommes({ ...s, entities: [] }).filter(individuAbsent))
       add('error', 'scene', undefined, `Cible psy « ${id} » : aucun personnage de la scène ne porte cet id.`);
+    // La colonne de Disponibilité d'un marchand se résout (`colonneDeDisponibiliteDuMarchand`) au lieu où se tient la scène.
+    const lieuDeLaSceneValidee = lieuDeLaScene(worldMap, s.id);
+    for (const e of s.entities)
+      if (e.merchant && colonneDeDisponibiliteDuMarchand(e.merchant.settlement, lieuDeLaSceneValidee) === undefined)
+        add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → marchand hors de tout lieu de Taille connue : pose une Taille au lieu de la scène, ou choisis sa colonne de Disponibilité hors lieu.`);
     const checkEffect = (eff: Effect, refId: string, scope: Warning['scope']) => {
       const handler = EFFECT_HANDLERS[eff.type] as EffectHandler;
       if (handler.refs) for (const issue of handler.refs(eff, refCtx)) add(issue.level, scope, refId, issue.message);
@@ -259,6 +330,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const realFloor = realFloorAt(s); // plancher RÉEL par étage — la vérité partagée avec la dérivation
     for (const e of s.entities) {
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
+      else if (aUnRoleEnJeu(s, e)) {
+        // Une case hors de la grille se dit « hors de la carte » (empreinte des membres de rencontre, plus bas).
+        const horsZone = entiteFootTiles(e, sceneMetresPerTile(s)).filter((t) => within(t.x, t.y) && !dansLaZoneJouable(s, t.x, t.y));
+        if (horsZone.length)
+          add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors de la zone jouable — ${horsZone.map((t) => `(${t.x},${t.y})`).join(' ')} : il a un rôle en jeu (rencontre, dialogue, marchand, usage ou départ du groupe) — ramène-le dans la zone au glissé, ou agrandis la zone.`);
+      }
       if (e.z && !couchesDesEntites.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
       const appui = fauteDAppui(vue, e);
       if (appui) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} ${DIT_DE_L_APPUI[appui.faute](appui.support)} — repose-le au glissé`);
@@ -269,9 +346,13 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Point d'entrée hors de la convention de pose du noyau (`borneALaCarte`) : une scène chargée, importée
     // ou écrite à la main n'est pas passée par `editEntry`.
     for (const [id, pos] of Object.entries(s.entryPoints ?? {})) {
-      const borne = borneALaCarte(s, pos);
+      const borne = borneALaCarte(s, pos, false);
       if (borne.x !== pos.x || borne.y !== pos.y) add('warn', 'scene', id, `Point d'entrée « ${id} » hors carte ou hors d'une case entière (${pos.x},${pos.y}) — le groupe y arriverait hors de la grille. Repose-le sur une case de la carte.`);
+      else if (!dansLaZoneJouable(s, pos.x, pos.y)) out.push({ level: 'error', sceneId: s.id, scope: 'scene', refId: id, fautif: { entree: id }, message: `Point d'entrée « ${id} » hors de la zone jouable (${pos.x},${pos.y}) — le groupe y arriverait là où rien ne se joue. Repose-le dans la zone.` });
     }
+    (s.stations ?? []).forEach((st, rang) => {
+      if (!dansLaZoneJouable(s, st.pos.x, st.pos.y)) out.push({ level: 'error', sceneId: s.id, scope: 'scene', refId: st.sceneId, fautif: { station: rang }, message: `Ancre de bataille « ${st.sceneId} » hors de la zone jouable (${st.pos.x},${st.pos.y}) — repose-la dans la zone.` });
+    });
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `noyau/monde/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).
     for (const defect of seatAssignmentDefects(s)) add('error', 'entity', defect.at, defect.message);
@@ -284,7 +365,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // `walkNeighbors` au jeu). Une pièce nommée qu'aucun chemin ne rejoint est du contenu écrit pour rien.
     const start = startOf(s);
     const startEntity = s.entities.find((e) => e.kind === 'heroStart');
-    if (start && startEntity && echelleDuPas) {
+    // Hors de la zone jouable, l'erreur de pose ci-dessus (`aUnRoleEnJeu`) est le seul défaut du départ.
+    if (start && startEntity && echelleDuPas && dansLaZoneJouable(s, start.x, start.y)) {
       if (!isWalkable(vue, start.x, start.y, start.z)) {
         add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z ?? 0} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
       } else {
@@ -470,7 +552,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       for (const m of e.members ?? []) {
         const membre = entById.get(m.entityId);
         if (!membre) add('error', 'encounter', e.id, `Rencontre « ${e.id} » → membre inexistant « ${m.entityId} »`);
-        if (m.ridesEntityId && !entById.has(m.ridesEntityId)) add('error', 'encounter', e.id, `Rencontre « ${e.id} » → monture inexistante « ${m.ridesEntityId} »`);
         if (!membre) continue;
         // EMPREINTE du combattant (`noyau/monde/footprint`, la même géométrie qu'au spawn) : une Grande 2×2 posée
         // au ras d'un mur déborde sur des cases qui ne l'accueillent pas — le placement se corrige à
@@ -482,7 +563,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         const dehors = tuiles.filter((t) => !within(t.x, t.y));
         if (dehors.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} débordant hors de la carte — ${dehors.map((t) => `(${t.x},${t.y})`).join(' ')}.`);
-        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !isWalkable(vue, t.x, t.y, z)) : [];
+        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !solPraticable(vue, t.x, t.y, z)) : [];
         if (barrees.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} posée sur ${barrees.length} case(s) non marchable(s) (mur, eau ou décor) — ${barrees.map((t) => `(${t.x},${t.y})`).join(' ')} à l'étage ${z}.`);
       }

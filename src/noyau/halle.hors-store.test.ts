@@ -10,9 +10,10 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { minCargoEnc } from '../engine/landCargo';
 import type { Possession } from '../engine/possession';
-import type { WorldMap } from './worldMap';
+import { marcheDuLieu, type WorldMap } from './worldMap';
 import { carrierById } from './carriers';
 import { devisDAchatDeCargaison } from './landMarketFlow';
+import { refusDeGesteSurLeGroupe } from './bourseFlow';
 import { bourseOf, withBourseMoney } from '../engine/bourse';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import type { CargoLot } from '../engine/cargo';
@@ -25,7 +26,7 @@ const acheter = (partie: Partie, porteur: string, cargoId: string, enc: number) 
 
 const carte: WorldMap = {
   id: 'm', label: 'Reikland',
-  places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'ville-a' }, market: { taille: 4, richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } }],
+  places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'ville-a' }, taille: 4, market: { richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } }],
   routes: [],
 };
 
@@ -103,7 +104,7 @@ function halleFixee(mode: 'local' | 'invite', cargo: CargoLot[] = [], produits =
     party: [heros], worldMap: carte, lieu: 'A', gameTime: 8 * 60,
     possessions: [{ uid: 'convoi', ownerId: heros.id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo }],
     scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-    landMarket: { placeId: 'A', label: 'Grünburg', market: { ...structuredClone(carte.places[0].market!), produits: [...produits] }, offers: [{ cargoId: 'metal', label: 'Métal', enc: 20, basePrice: 10, wine: false }] },
+    landMarket: { placeId: 'A', label: 'Grünburg', market: { ...marcheDuLieu(carte.places[0])!, produits: [...produits] }, offers: [{ cargoId: 'metal', label: 'Métal', enc: 20, basePrice: 10, wine: false }] },
     net: { ...etatInitialDuJeu().net, mode },
   }, entrees);
 }
@@ -126,8 +127,8 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
   });
 });
 
-describe('#3059 — siège invité : les gestes de la halle sur la bourse et la cale disent le refus de groupe', () => {
-  it('vente, bradage, évaluation du vin et transfert refusés, cargaison intacte', () => {
+describe('#3059 — siège invité : les gestes de la halle sur la bourse et la cale sont à l’hôte', () => {
+  it('vente et bradage refusés par la fenêtre, évaluation du vin et transfert envoyés refusés (`coop.hoteSeul`), cargaison intacte', () => {
     const lot: CargoLot = { uid: 'lot-1', cargoId: 'metal', enc: 12, basePriceGold: 10 };
     const partie = halleFixee('invite', [lot]);
     try {
@@ -137,7 +138,8 @@ describe('#3059 — siège invité : les gestes de la halle sur la bourse et la 
       partie.envoyer({ type: 'deplacerLaCargaison', args: ['lot-1', 'convoi', 5] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
       expect(partie.etat().journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'vente et bradage').toBe(2);
-      expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length, 'évaluation et transfert').toBe(2);
+      expect(partie.etat().journal.filter((l) => l === t('coop.hoteSeul')).length, 'évaluation et transfert').toBe(2);
+      expect(refusDeGesteSurLeGroupe(partie.etat()), 'le refus de groupe que lit l’écran').toBe(t('groupe.hoteSeul'));
     } finally {
       partie.fermer();
     }

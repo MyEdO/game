@@ -2,15 +2,13 @@
  *  Événements d’escale (l.129, l.243), patron `structureCriticals.test.ts`. */
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
-import seaEventsJson from '../../sea-events.json';
+import { seaEvents } from '../../index';
 
-type Bande = { id: string; min: number | null; max: number | null };
-type Table = { die: string; entries: Bande[] };
-const clone = () => structuredClone(seaEventsJson) as unknown as { boardEvents: Table; fastVoyage: Table; portEvents: Table };
+const clone = () => structuredClone(seaEvents);
 
 describe('sea-events.json — les tables ouvertes couvrent leur jet d’un seul tenant', () => {
   it('le schéma accepte le document RÉEL', () => {
-    expect(validateDataset('sea-events.json', seaEventsJson)).toBeNull();
+    expect(validateDataset('sea-events.json', seaEvents)).toBeNull();
   });
 
   it('REFUSE un Événement de bord du milieu sans plafond', () => {
@@ -23,7 +21,7 @@ describe('sea-events.json — les tables ouvertes couvrent leur jet d’un seul 
   it('REFUSE un palier du Voyage rapide du milieu sans plancher', () => {
     const trouee = clone();
     trouee.fastVoyage.entries[2].min = null;
-    expect(validateDataset('sea-events.json', trouee)).toMatch(/fastVoyage\.entries : les bandes ne couvrent pas le d10 du Voyage rapide/);
+    expect(validateDataset('sea-events.json', trouee)).toMatch(/fastVoyage\.entries : les bandes ne couvrent pas le 1d10 du Voyage rapide/);
   });
 
   it('REFUSE un trou dans les Événements d’escale (2d10 ± 1, MDG 15 l.129, 1..21)', () => {
@@ -35,8 +33,8 @@ describe('sea-events.json — les tables ouvertes couvrent leur jet d’un seul 
 
   it('le domaine de l’escale suit le dé de sa table : sous un d20, la table devrait partir de 0', () => {
     const autreDe = clone();
-    autreDe.portEvents.die = 'd20';
-    expect(validateDataset('sea-events.json', autreDe)).toMatch(/portEvents\.entries : les bandes ne couvrent pas le d20 de l'escale.*commence à 1 au lieu de 0/);
+    autreDe.portEvents.die = { n: 1, sides: 20 };
+    expect(validateDataset('sea-events.json', autreDe)).toMatch(/portEvents\.entries : les bandes ne couvrent pas le 1d20 de l'escale.*commence à 1 au lieu de 0/);
   });
 
   it('REFUSE une table d’escale qui s’arrête avant 21', () => {

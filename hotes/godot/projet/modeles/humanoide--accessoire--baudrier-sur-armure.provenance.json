@@ -1,11 +1,15 @@
 {
   "model": "humanoide--accessoire--baudrier-sur-armure.glb",
-  "model_sha256": "f4f41d649558bce8e5f2c1b606b3329781e250aa03c5dd22ff5068e6b1da582e",
-  "importe_le": "2026-11-06",
+  "model_sha256": "296d96db5ebe5b9a250a503e79a0ff96d9d21d7dbfce99616448d6cd3d663b26",
+  "importe_le": "2026-11-16",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

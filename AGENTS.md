@@ -64,8 +64,8 @@ script au nom différent du doc est entre parenthèses.
 2. **Tout le contenu de campagne est éditable** (schéma de Scène unique) : aucune scène « en dur ».
 3. **Le moteur (`src/engine`) reste pur et testé.** Store, UI et rendu en dépendent, jamais l'inverse.
 4. **UI en français, et qui scale** : au-delà de ~2 sections → onglets ; tout écran neuf est
-   responsive dès sa création — en LARGEUR (360px, breakpoints 900 / 700 / 560) ET en HAUTEUR (vues
-   de `scripts/recette/vues-recette.json`, aucun défilement de PAGE) —, composé des primitives de
+   responsive dès sa création — en LARGEUR et en HAUTEUR aux vues de
+   `scripts/recette/vues-recette.json` (aucun défilement de PAGE) —, composé des primitives de
    `src/ui/styles.css`. Gardes : `docs/charte-ui.md`, `src/ui/ui-ratchets.test.ts`,
    `scripts/recette/hauteur-reelle.mjs`.
 5. **Aucune retranscription des textes sources dans les `.json`** : toute prose est un copié/collé
@@ -97,8 +97,8 @@ la VF se prend à la VO, nombres et ids FR seulement, jamais de prose : fiche
 `user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`. Livres : **LDB** ·
 **ADE I/II** · **EDO/EDOC** · **PDTP** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
 **NADJ** · **VDM** · **HCVM** (fan : profils/sorts), chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
-chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json` est la source APP-OWNED, éditable au
-Compendium, chaque entrée taguée à sa `source`.
+chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json`, source APP-OWNED, s'édite au
+Compendium Godot, chaque entrée taguée à sa `source`.
 
 ## Pile et commandes
 
@@ -134,7 +134,6 @@ src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage
 src/ui/       React (RollShell, OptionChooser, editor/, creator/, compendium/)
 src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
 src/scenes/   documents de scène + campagne Arène
-src/net/      compression coop (web)
 server/       Worker Cloudflare du relay
 src/web/      services du navigateur (minuteries, stockage, fichiers)
 ```

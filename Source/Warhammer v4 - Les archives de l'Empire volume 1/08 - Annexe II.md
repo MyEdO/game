@@ -34,7 +34,7 @@
 | Poêle en fer     | 1 CO | 1    | Courante      | Moyenne | +BF +3 | Défensive         |
 
 
-## ARMES À DISTANCE DES NAINS
+## <span id="page-93-0" data-folio="93"></span>ARMES À DISTANCE DES NAINS
 
 | Arme                   | Prix  | Enc. | Disponibilité | Portée | Dégâts | Atouts et Défauts                                  |
 |------------------------|-------|------|---------------|--------|--------|----------------------------------------------------|
@@ -82,7 +82,7 @@
 <sup>\*\*</sup> Afin de bénéficier de l'Atout Explosion d'une Flèche Vif Frisson, vous devez dépenser une Flèche Vif Frisson supplémentaire par cible qui serait touchée par l'attaque. Vous devez prendre cette décision avant de faire votre Test d'attaque.
 
 
-#### **Arbalète naine**
+#### <span id="page-94-0" data-folio="94"></span>**Arbalète naine**
 
 Bien que les différences entre les arbalètes naines et impériales soient moins prononcées que celles entre leurs armes à poudre noire, les arbalètes naines fabriquées avec une minutie qu'aucun artisan humain ne saurait égaler, et sont donc plus précises.
 
@@ -151,7 +151,7 @@ Exemple de l'ingéniosité des nains, ce pistolet Drac de feu balaye les cibles 
 En dépit de leur petite taille, ces pots, casseroles et poêles à frire des halflings sont fabriqués pour être plus lourds qu'on ne le pense. On pourrait en rire, mais plus d'une lame a été détournée d'un coup fatal par la poêle d'un halfling. Ces ustensiles, grêlés et éraflés, font toujours la fierté des foyers de ce peuple.
 
 
-| A                                                       | G                               | P                              |
+<span id="page-95-0" data-folio="95"></span>| A                                                       | G                               | P                              |
 |---------------------------------------------------------|---------------------------------|--------------------------------|
 | Abbaye Sainte Ulrika 14                                 | Gardechamps 87, 38, 89          | Parravon 60                    |
 | Ancien de clan 51                                       | Gimbringrungaz 70               | Patrouilleur des karak87, 90   |
@@ -239,7 +239,7 @@ Fort Tarnhelm ........................ 21 Fraisedébois.........................
 
 
 
-*Bienvenue dans les Archives de l'Empire : Volume I. Une fascinante série de rapports concernant tout le Vieux Monde. Le premier volume se concentre sur certaines autres races, nains, elfes et halfl ings, dont la présence enrichit (ou fait enrager) le monde de Warhammer Fantasy le Jeu de Rôle. Cet ouvrage explore en détail de nouveaux lieux, carrières et PNJ, des ajouts parfaits à votre prochaine aventure.*
+<span id="page-96-0" data-folio="96"></span><span id="page-97-0" data-folio="97"></span>*Bienvenue dans les Archives de l'Empire : Volume I. Une fascinante série de rapports concernant tout le Vieux Monde. Le premier volume se concentre sur certaines autres races, nains, elfes et halfl ings, dont la présence enrichit (ou fait enrager) le monde de Warhammer Fantasy le Jeu de Rôle. Cet ouvrage explore en détail de nouveaux lieux, carrières et PNJ, des ajouts parfaits à votre prochaine aventure.*
 
 - 0 **Karak Azgaraz :** l'exploration d'une forteresse naine qui, même si elle a connue des jours meilleurs, s'élève encore fi èrement dans les montagnes qui se dessinent au-delà d'Ubersreik, aux limites mêmes de l'Empire. Les nains impériaux, même s'ils considèrent les *karak* comme leurs véritables foyers, n'ont pour la plupart jamais posé le pied sur ces terres ancestrales, et vivent au cœur même de l'Empire.
 - 0 **Clans halfl ings :** des Bordéchardes aux Pavéderonces, des Rumsters aux Havrebas, apprenez-en plus les clans élargis et les nombreuses familles des halfl ings de l'Empire.

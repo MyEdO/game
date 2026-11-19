@@ -15,9 +15,9 @@
  * `cargo.ts`. Le Marchandage (Test opposé, ±`bargainPct`) réutilise le MÊME patron que `portFlow`.
  */
 import { battleRng } from './battleRng';
-import { lieuDuGroupe } from './worldMap';
+import { lieuDuGroupe, marcheDuLieu } from './worldMap';
 import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/skills';
-import { opposedTest, shiftDifficulty, type OpposedResult } from '../engine/tests';
+import { opposedTest, type OpposedResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
 import { type RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
@@ -44,8 +44,8 @@ import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
 import { refuserGeste } from './refusVisible';
 import type { Jeu } from './etat';
 import { appraiseRefus, APPRAISE_SKILL, remiseMaximaleDeMarchandage } from './merchantFlow';
-import { seasonOfMonth } from '../engine/travelStages';
-import { toDate, dayIndex } from '../engine/clock';
+import { currentSeason } from '../engine/travelStages';
+import { dayIndex } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
@@ -92,8 +92,9 @@ const log = (get: Get, _set: Set, lines: string[]) => {
 /** Lieu de commerce terrestre courant (place de la carte dont la scène EST la scène courante + `market`). */
 export function currentMarket(get: Get): { placeId: string; label: string; market: LandMarketProfile } | null {
   const place = lieuDuGroupe(get());
-  if (!place?.market) return null;
-  return { placeId: place.id, label: place.label, market: place.market };
+  const market = place && marcheDuLieu(place);
+  if (!market) return null;
+  return { placeId: place.id, label: place.label, market };
 }
 
 /** Génère les offres d'ACHAT à l'arrivée (MSRC 13 l.22-42) : disponibilité en 2 temps — d'abord une CHANCE de
@@ -110,7 +111,7 @@ export function ouvrirLeMarche(get: Get, set: Set): void {
 function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => void): void {
   const cur = currentMarket(get);
   if (!cur) return;
-  const season = seasonOfMonth(toDate(get().gameTime).month);
+  const season = currentSeason(get().gameTime);
   const { market } = cur;
   phase('Marchand présent');
   const find = rollFindMerchant(market, rng);
@@ -143,15 +144,11 @@ function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => vo
 function apresHalle(get: Get, set: Set): void {
   const cur = currentMarket(get);
   if (!cur) return;
-  // Rumeurs commerciales (MSRC 13 l.176-180) : Test de Ragot Complexe (−10) au marché ; sur un succès, on
-  // tire un AUTRE Emplacement puis une rumeur (Tableau des rumeurs) → les biens visés s'y vendent au DOUBLE
-  // du prix de base (l.180). L'« index géographique du Reikland » (l.180) est ici la liste des Lieux de la
-  // carte porteurs d'un `market` (aucun catalogue neuf). #274 sweep : ce Test était un `rollTest` inline
-  // silencieux (jamais interrogeable/surfacé au MJ) — migré sur la porte `openRoll`.
+  // MSRC 13 l.176-180 ; l'« index géographique du Reikland » (l.180) = les Lieux de la carte porteurs d'un `market`.
   openPartyTest(get, set, {
     skill: { id: 'ragot' }, assisted: false,
     actionLabel: 'Rumeur commerciale',
-    difficulty: shiftDifficulty(gossipRule.difficulty, gossipRule.mod),
+    difficulty: gossipRule.difficulty,
     stake: combatStakeRef(LAND_GOSSIP_KIND),
   }, LAND_GOSSIP_KIND, { placeId: cur.placeId });
 }

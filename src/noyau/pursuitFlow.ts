@@ -25,6 +25,7 @@
  * Un camp tenu par un joueur y ouvre une étape de CHOIX ; un camp PNJ tranche par sa POLITIQUE
  * (`PursuitPolicy`, valeur maison éditable à l'Effet `startPursuit` — règle 7, jamais un MJ implicite).
  */
+import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { rollTest } from '../engine/tests';
 import { effectiveMovement } from '../engine/encumbrance';
@@ -57,14 +58,6 @@ import { stepDetail, stepManche, stepPrecision, idDansLaSequence } from './rollS
 import type { PlayerText } from '../i18n/playerText';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
-/** Adversaire AUTHORÉ d'une poursuite : une RÉFÉRENCE de vivant (bestiaire ou statbloc d'éditeur) et
- *  son identité de course. Ses stats vivent sur la fiche référencée — l'Effet n'en recopie aucune. */
-export interface PursuitFoeRef {
-  /** Identité dans la course (cibles prioritaires, `LDB 15 l.94`) — posée à l'ouverture si absente. */
-  id?: string;
-  ref: LivingRef;
-}
-
 /** Spécification d'auteur d'une poursuite (posée par l'Effet `startPursuit`). */
 export interface PursuitSpec {
   /** Le GROUPE fuit (défaut) ou poursuit. */
@@ -75,8 +68,9 @@ export interface PursuitSpec {
   escapeAt?: number;
   /** Compétence de Mouvement testée par le groupe (id STABLE : Athlétisme à pied / Chevaucher / Conduite d'attelages). */
   skill: string;
-  /** Adversaires du groupe — des RÉFÉRENCES, résolues sur leur fiche par `resolvePursuitFoe`. */
-  foes: PursuitFoeRef[];
+  /** Adversaires du groupe — des RÉFÉRENCES de vivant (bestiaire ou statbloc d'éditeur), résolues sur leur
+   *  fiche par `resolvePursuitFoe`, qui leur pose leur identité de course. */
+  foes: LivingRef[];
   /** Rencontre ouverte au RATTRAPAGE (Distance ≤ 0) — combat. Absente : la poursuite se dénoue au récit. */
   encounter?: string;
   /** Politique du camp PNJ pour les trois décisions de l.94 — valeurs maison, éditables par scène. */
@@ -216,11 +210,10 @@ function pursuitRoundBand(get: Get, p: PursuitPayload, label: string): BuiltCasc
 /** RÉSOUT un adversaire authoré en coureur : sa fiche est projetée par la couture UNIQUE de spawn
  *  (bestiaire ou statbloc — les deux canaux de `spawnEnemy`), puis LUE : Mouvement effectif et valeur
  *  de Test de LA Compétence de la course (`skillId`, la même que celle des héros, `LDB 15 l.92`). */
-function resolvePursuitFoe(f: PursuitFoeRef, index: number, skillId: string): PursuitFoe {
-  const id = f.id ?? `foe-${index + 1}`;
-  const ref = f.ref;
+function resolvePursuitFoe(ref: LivingRef, index: number, skillId: string): PursuitFoe {
+  const id = `foe-${index + 1}`;
   const fiche = spawnEnemy('id' in ref ? { ref: ref.id } : { statblock: ref.custom }, id, { x: 0, y: 0 });
-  return { id, label: fiche.label, movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
+  return { id, label: nomDe(fiche), movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
 }
 
 /** Démarre une poursuite terrestre (Effet `startPursuit`) : instancie le socle puis ouvre la 1ʳᵉ manche. */

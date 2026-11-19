@@ -30,7 +30,7 @@ import { schema as activitiesSchema } from '../data/schemas/defs/activities';
 import { actorStatus, statusMeets } from '../engine/social';
 import { aPassifVisible } from '../engine/trauma';
 import { buildActorView } from '../engine/actorView';
-import { careers } from '../data';
+import { ACTIVITIES, careers } from '../data';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { interludeCatalog } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
@@ -124,7 +124,7 @@ describe('Exemption de Statut (LDB 09 l.99) — DÉRIVÉE du registre des carri�
   /** Les carrières dont le Statut d'ENTRÉE (niveau 1) n'atteint pas Bronze 1 : « sans ressources ». */
   const sansRessources = careers
     .map((c) => c.id)
-    .filter((id) => !statusMeets(actorStatus({ career: id, careerLevel: 1 }), 'Bronze 1'));
+    .filter((id) => !statusMeets(actorStatus({ career: id, careerLevel: 1 }), { tier: 'bronze', standing: 1 }));
 
   it('le registre en porte au moins une, et Mendiant en est', () => {
     expect(sansRessources.length).toBeGreaterThan(0);
@@ -200,7 +200,7 @@ describe('Échec Stupéfiant (LDB 09 l.97 : « des ennuis ») — la bande RENVO
 
   it('les trois volets NOMMÉS par le livre sont tirables, et seuls les deux premiers marquent le héros', () => {
     const table = findEffectTableById('mendier-ennuis');
-    expect(table.die).toBe('d10');
+    expect(table.die).toEqual({ n: 1, sides: 10 });
     expect(table.entries.map((r) => `${r.min}-${r.max}`)).toEqual(['1-3', '4-7', '8-10']);
     setRule('mendier-amende-sous', 12);
     for (const r of table.entries) {
@@ -300,7 +300,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
     id: 'w', label: 'Carte',
     places: [{
       id: 'halle', label: 'La Halle', pos: { x: 10, y: 10 }, scene: { id: testScene().id },
-      market: { taille: 2, richesse: 2, produits: [] } as never,
+      taille: 2, market: { richesse: 2, produits: [] },
     }],
     routes: [],
   });
@@ -440,11 +440,13 @@ describe('Vue d’acteur — `visiblePassive` ne balaie qu’à la LECTURE, et u
  * la donnée réelle mutée, au chemin de l'Activité.
  */
 describe('`testMods.mod` est DÉTERMINISTE — garde de DONNÉE (#1612)', () => {
-  const REELLES = JSON.parse(readFileSync(join(ROOT, 'src/data/activities.json'), 'utf8')) as Record<string, unknown>[];
-  const CIBLE = REELLES.findIndex((a) => Array.isArray(a.testMods) && a.testMods.length > 0);
-  const dope = (mod: unknown): Record<string, unknown>[] => {
-    const m = JSON.parse(JSON.stringify(REELLES)) as Record<string, unknown>[];
-    (m[CIBLE].testMods as Record<string, unknown>[])[0].mod = mod;
+  const REELLES = ACTIVITIES;
+  const CIBLE = REELLES.findIndex((a) => (a.testMods?.length ?? 0) > 0);
+  const dope = (mod: unknown) => {
+    const m = structuredClone(REELLES);
+    const [premier] = m[CIBLE]?.testMods ?? [];
+    if (premier === undefined) throw new Error('aucune Activité à `testMods` : la sonde ne mesure rien.');
+    Object.assign(premier, { mod });
     return m;
   };
 

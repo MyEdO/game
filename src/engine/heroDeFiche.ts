@@ -5,6 +5,7 @@
 import type { Combatant, Characteristics, CharKey, HeroDetails, ItemInstance, SkillInstance } from './types';
 import { CHAR_KEYS } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import type { ObjetDeCatalogue } from '../data/schemas/grammaire/reference';
 import { findSpeciesById, levelsForCareer } from '../data';
 import { acquerirTalent, freeSlotFor, refKey, skillSlots, talentSlots, talentSlotsUpTo, type PorteurDeTalents } from './careerSlots';
 import { assemblerLeHeros, augmenterLaCompetence, type CreateHeroOptions } from './character';
@@ -13,6 +14,7 @@ import { contexteDeNaissanceDObjet, customTrapping, inventaireDesDotations, type
 import { baseWithTalents, talentCharBonusById } from './talentEffects';
 import type { FabriqueDId } from './fabriqueDId';
 import { tableTotale } from '../lib/tableTotale';
+import { porteurDeLEspece } from './trappingChoices';
 
 /** Une fiche de héros imprimée, en ids. */
 export interface FicheDeHeros {
@@ -27,8 +29,9 @@ export interface FicheDeHeros {
   charAdvances: Partial<Record<CharKey, number>>;
   skills: readonly (RefDesignee & { advances: number })[];
   talents: readonly (RefDesignee & { times: number })[];
-  /** Possessions, chacune à sa quantité imprimée : un objet du catalogue, ou la ligne de la fiche hors catalogue. */
-  trappings: readonly ((RefDesignee | { text: string }) & { qte: number })[];
+  /** Possessions, chacune à sa quantité imprimée : un objet du catalogue avec ses Atouts attachés, ou la ligne de la
+   *  fiche hors catalogue. */
+  trappings: readonly ((Pick<ObjetDeCatalogue, 'id' | 'spec' | 'qualities'> | { text: string }) & { qte: number })[];
   /** Tous les sorts de la fiche, Bénédictions comprises. */
   spells: readonly string[];
   fate: number;
@@ -82,7 +85,7 @@ function inventaireDeLaFiche(fiche: FicheDeHeros, carriere: string, idNeuf: Fabr
 export function heroDeFiche(fiche: FicheDeHeros, idNeuf: FabriqueDId): Combatant {
   const espece = findSpeciesById(fiche.speciesId);
   if (!espece) throw new Error(`Espèce inconnue : ${fiche.speciesId}`);
-  const refus = refusDuParcours(fiche.parcours);
+  const refus = refusDuParcours(fiche.parcours, porteurDeLEspece(espece));
   if (refus) throw new Error(`Fiche « ${fiche.id} » : ${refus}`);
   const actuelle = carriereActuelle(fiche.parcours)!;
 

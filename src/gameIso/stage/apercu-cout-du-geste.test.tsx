@@ -20,7 +20,7 @@ const circ = (value: number): ModLine[] => [{ label: 'circonstances', value, fam
 const apercu = (mods: ModLine[]): AttackPreview => ({
   ...composeAttack(mods), blocked: false, inRange: true,
   weapon: { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon,
-  kind: 'melee', target: 40, base: 40, dmg: 4, soak: 0,
+  kind: 'melee', target: 40, base: 40, dmg: 4,
 });
 
 /** Ce que le curseur DIRA de cette Difficulté : la donnée du socle, mise en mots par l'UI. */

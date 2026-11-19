@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://art/grain.gdshader" id="1_grain"]
+[ext_resource type="Texture2D" path="res://art/bruit_du_grain.tres" id="2_bruit"]
+
+[resource]
+shader = ExtResource("1_grain")
+shader_parameter/bruit = ExtResource("2_bruit")
+shader_parameter/opacite = 0.28
+shader_parameter/tuile = 300.0

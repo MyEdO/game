@@ -17,12 +17,21 @@
       "armes": 1,
       "produits-de-luxe-mer": 1
     },
+    "signal": "phare",
     "dirigeant": "Duc Taubert de L'Anguille",
     "desc": "Capitale d'un duché de Bretonnie ; phare spectaculaire",
     "source": {
       "book": "mer-des-griffes",
       "page": 138
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "mer-des-griffes",
+        "page": 10,
+        "note": "MDG 02 l.53",
+        "quote": "Le Grand Phare domine tout et sa lumière est visible depuis la Mer des Griffes."
+      }
+    ]
   },
   {
     "id": "marienburg",
@@ -147,6 +156,11 @@
       "armes": 1
     },
     "dirigeant": "Baron Ludolf Köhler",
+    "chantierNavalSpecialise": {
+      "book": "mer-des-griffes",
+      "page": 24,
+      "note": "MDG 03 l.196"
+    },
     "desc": "Mouillage de la Seconde Flotte de la Marine impériale",
     "source": {
       "book": "mer-des-griffes",
@@ -325,6 +339,11 @@
       "cereales": 1
     },
     "dirigeant": "Roi Haarkon et reine Inga",
+    "chantierNavalSpecialise": {
+      "book": "mer-des-griffes",
+      "page": 43,
+      "note": "MDG 06 l.104"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 138
@@ -446,6 +465,11 @@
       "produits-de-luxe-mer": 1
     },
     "dirigeant": "Empereur Karl Franz I Holswig Schliestein",
+    "chantierNavalSpecialise": {
+      "book": "altdorf-couronne-de-l-empire",
+      "page": 85,
+      "note": "ACE 05 l.882"
+    },
     "desc": "Capitale impériale ; Grande Cathédrale de Sigmar",
     "source": {
       "book": "mer-des-griffes",
@@ -699,12 +723,21 @@
     "demande": {
       "cereales": 1
     },
+    "signal": "clocher",
     "dirigeant": "Reine Juana la Roja",
     "desc": "Produit le célèbre vin de Bilbali",
     "source": {
       "book": "mer-des-griffes",
       "page": 139
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "mer-des-griffes",
+        "page": 108,
+        "note": "MDG 13 l.351",
+        "quote": "Certains ports, dont le plus célèbre est en Bilbali en Estalie, utilisent des clochers pour guider les navires plutôt que des phares."
+      }
+    ]
   },
   {
     "id": "skeggi",

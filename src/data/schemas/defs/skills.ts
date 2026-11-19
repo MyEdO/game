@@ -1,11 +1,11 @@
-import { nommerChamps } from '../grammaire/meta';
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma de `skills.json` — dérivé de l'inventaire COMPLET des clés (script node, n=46/46), de
  * l'interface `SkillData` (`src/data/index.ts`) et de ses consommateurs (`ItemCapabilities`,
  * `SpecsSource`, `engine/skillCombatApps`).
  */
 import { z } from 'zod';
-import { charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
+import { capaciteDObjetSchema, charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { senseSchema } from '../grammaire/mecanique';
 import { ref } from '../grammaire/ref';
@@ -35,7 +35,7 @@ const doc = document(
     altChar: nommerChamps(z.strictObject({
       gatedByRule: ref('regleOptionnelle'),
       from: charKeySchema.optional(),
-      chars: z.record(z.string(), z.union([charKeySchema, z.array(charKeySchema)])),
+      chars: z.record(z.string(), z.union([nommerNoeud(z.lazy(() => charKeySchema), { label: 'caractéristique' }), nommerNoeud(z.array(charKeySchema), { label: 'caractéristiques au choix' })])),
     }), {
       gatedByRule: { label: 'Règle optionnelle requise' },
       from: { label: 'Caractéristique d’origine' },
@@ -46,10 +46,8 @@ const doc = document(
       role: z.enum(['defense', 'attaque', 'lesDeux']),
       gate: z.literal('peur'),
     }), { role: { label: 'Rôle' }, gate: { label: 'Condition d’accès' } }).optional(),
-    /** `capability` = clé de `ItemCapabilities` (`src/data/index.ts`) — sac de flags fermé côté TS ;
-     *  laissé en `z.string()` ici (référence croisée hors périmètre d'un seul dataset, cf. `tool.json`
-     *  n'existe pas comme catalogue séparé — c'est un type TS, pas une donnée). */
-    tool: nommerChamps(z.strictObject({ capability: z.string(), withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
+    /** `capability` = une clé des capacités d'objet (`capabilities`, `schemas/defs/trappings.ts`). */
+    tool: nommerChamps(z.strictObject({ capability: capaciteDObjetSchema, withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
   },
   {
     characteristic: { label: 'Caractéristique' },

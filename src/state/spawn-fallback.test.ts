@@ -68,6 +68,6 @@ describe('#3684 — objets d’inventaire d’auteur au spawn de combat', () => 
     const arc = shooter.weapons.find((w) => w.type === 'distance');
     expect(arc?.trappingId).toBe('arc');
     expect(weaponLoaded(shooter, arc!)).toBe(true);
-    expect(inFiringBand(shooter, cible, arc!)).toBe(true); // 10 cases = 20 m, Portée 50 m
+    expect(inFiringBand(null, shooter, cible, arc!)).toBe(true); // 10 cases = 20 m, Portée 50 m
   });
 });

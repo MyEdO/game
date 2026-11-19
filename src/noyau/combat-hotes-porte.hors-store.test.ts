@@ -76,7 +76,7 @@ const etape = (jet: CascadeStep['jet']): CascadeStep | undefined =>
 describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au siège du défenseur', () => {
   it('mêlée réactive : `pendingDefense` posé PUIS l’étape hôte mintée (jamais l’inverse)', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
-    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])).toBe(true);
     expect(banc.getState().pendingDefense, 'la donnée que la fenêtre rend').not.toBeNull();
     const st = etape('defense')!;
     // Id DÉRIVÉ du compteur de la séquence (#1852) : une seconde défense (attaque gratuite) rejoint la
@@ -89,7 +89,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
 
   it('COOP : la fenêtre de Défense est au siège de l’INVITÉ, jamais à l’hôte qui attaque', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
-    maybeOpenDefense(banc.getState, banc.setState, enemy, hero);
+    maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0]);
     expect(modalOwnerOf(banc.getState())).toBe(hero.id);
     expect(seatOwns(banc.getState(), 1, hero.id), 'le siège 1 tient le défenseur').toBe(true);
     expect(ownsLocal(banc.getState(), hero.id), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
@@ -97,7 +97,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
 
   it('tir réactif (Bout Portant) : même mint, même possession', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [bow]);
-    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])).toBe(true);
     expect(banc.getState().pendingDefense!.modes).toContain('esquive');
     expect(etape('defense')!.actorId).toBe(hero.id);
     expect(modalOwnerOf(banc.getState())).toBe(hero.id);
@@ -240,7 +240,7 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
     for (let sd = 1; sd <= 800 && !seed; sd++) {
       const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
       seedBattleRng(sd);
-      if (!maybeOpenDefense(banc.getState, banc.setState, enemy, hero)) continue;
+      if (!maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])) continue;
       banc.getState().jetLancer('defense');
       const pd = banc.getState().pendingDefense!;
       const d = pd.result?.defenderDetail;
@@ -250,14 +250,14 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
 
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
     seedBattleRng(seed);
-    maybeOpenDefense(banc.getState, banc.setState, enemy, hero);
+    maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0]);
     banc.getState().jetLancer('defense');
     const res = banc.getState().pendingDefense!.result!;
     const crit = resolveCritique('ldb', hero, 'corps', battleRng(), { forcedRoll: 30 });
     // Reprise d'une attaque SUSPENDUE par la fenêtre de Critique de la victime (`resolveDeviation` est
     // le corps de l'applier `deviation`) : c'est là que la Maladresse du défenseur s'appende.
     banc.setState({ pendingDefense: null, pendingCascade: null } as never);
-    resolveDeviation(banc.getState, banc.setState, {
+    resolveDeviation(banc.getState, banc.setState, 'cons-deviation-reprise', {
       mode: 'melee', attackerId: enemy.id, targetId: hero.id, weapon: sword, res,
       crit, decides: [], reveal: previewCritEntry(hero, crit, 'coup-critique', { attackerId: enemy.id, weapon: sword.label }), resumeAfter: false,
     }, true);
@@ -307,6 +307,6 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     // L'enjeu du mint est la référence de règle descendue à la ligne tirée (`stakeAtTableRow`), au champ près.
     const decl = st.table!;
     expect(st.stake).toEqual(stakeAtTableRow(combatStakeRef('structure-critique'), { ...decl, result: undefined } as never, decl.result!));
-    expect(st.stake!.key!.entryId, 'l’enjeu descend à la LIGNE jouée, pas au `kind`').toBeTruthy();
+    expect(st.stake, 'l’enjeu descend à la LIGNE jouée, pas au `kind`').toMatchObject({ key: { entryId: expect.stringMatching(/./) } });
   });
 });

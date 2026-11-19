@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { rollCareer } from './creation';
-import { careersForSpecies, colonneDeCarrieres, findCareerById, findSpeciesById, levelsForCareer, species, tableDeCarrieres } from '../data';
+import { careersForSpecies, colonneDeCarrieres, findCareerById, findSpeciesById, levelsForCareer, offreDuJet, species, tableDeCarrieres } from '../data';
 import { newDraft, withSpecies, withCoastalSwap, coastalSwapAvailable, type CreatorDraft } from '../noyau/creation/brouillon';
 import { deFixe } from './dice.testkit';
 
@@ -22,7 +22,7 @@ const fixed = deFixe;
 const draft = (speciesId: string, coastalSwap: boolean): CreatorDraft =>
   withCoastalSwap(withSpecies(newDraft(1), speciesId), coastalSwap);
 /** Le jet `r` d'une espèce, avec ou sans le remplacement. */
-const tire = (speciesId: string, swap: boolean, r: number) => rollCareer(sp(speciesId), swap, fixed(r)).ids;
+const tire = (speciesId: string, swap: boolean, r: number) => offreDuJet(sp(speciesId), rollCareer(sp(speciesId), swap, fixed(r)));
 
 const sp = (id: string) => findSpeciesById(id)!;
 
@@ -122,7 +122,7 @@ describe('Prêtre de Stromfels (MDG 11 l.85-137)', () => {
   it('4 niveaux complets, schéma de progression PDF p.90 (N1 CC/F/I · N2 Soc · N3 Ag · N4 CT)', () => {
     const levels = levelsForCareer('pretre-de-stromfels');
     expect(levels.map((l) => l.label)).toEqual(['Initié', 'Prêtre de Stromfels', 'Prêtre pirate', 'Prêtre terreur des mers']);
-    expect(levels.map((l) => l.status)).toEqual(['Argent 2', 'Argent 3', 'Argent 4', 'Argent 5']);
+    expect(levels.map((l) => l.status)).toEqual([2, 3, 4, 5].map((standing) => ({ tier: 'argent', standing })));
     expect(levels.map((l) => l.characteristics)).toEqual([['capacite-de-combat', 'force', 'initiative'], ['sociabilite'], ['agilite'], ['capacite-de-tir']]);
   });
 });

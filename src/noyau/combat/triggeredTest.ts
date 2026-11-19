@@ -20,6 +20,7 @@
  * coop) ; l'applier `testDeclenche` les rejoue (branche PUIS `after`) — l'`ExecCtx` est RECONSTRUIT
  * depuis `get()`/`hero`, jamais capturé (zéro closure dans le pending).
  */
+import { nomDe } from '../../engine/nom';
 import { rollTest, resolveOpposed, opposedBranchSuccess, type TestResult } from '../../engine/tests';
 import { combatTestPenalty } from '../../engine/conditions';
 import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
@@ -28,7 +29,20 @@ import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import type { Combatant, Difficulty, EffectSource } from '../../engine/types';
 import { dataLabel, derivedStake, testSkillLabel } from '../../data';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
-import { type EffectOp, type FlowTest, type ConditionCtx, type ArretDeFlow, type PasDeFlow, type ResteDuFlow, executerFlow, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, EMPTY_FLOW } from '../../engine/flowCore';
+import {
+  type EffectOp,
+  type FlowTest,
+  type ConditionCtx,
+  type ArretDeFlow,
+  type PasDeFlow,
+  type ResteDuFlow,
+  executerFlow,
+  flowHasImpureOp,
+  flowHasOpADe,
+  flowHasTest,
+  poserEnjeu,
+  EMPTY_FLOW,
+} from '../../engine/flowCore';
 import { resoudreFlowTest } from '../../engine/decisionDuTest';
 import { combatConditionCtx, runPureFlowLines } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';
@@ -45,8 +59,9 @@ import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../trigger
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId, rencontreEngagee } from '../monde/combatants';
 import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
-import { poserLeTraitAcquis } from '../cibleAcquise';
+import { acquerirLeTrait, poserLeTraitAcquis } from '../cibleAcquise';
 import { ciblePsyLue } from '../../engine/psych/ciblage';
+import { ciblesDeTrauma, TRAITS_DE_TRAUMA } from '../../engine/psychology';
 import { touchActors } from '../combatOrParty';
 import { campSpend, spendableAdvantage } from './advantagePool';
 import { t } from '../../i18n';
@@ -277,7 +292,7 @@ export function frozenOpposedBatchStep(
     ...(ft.menace ? { menace: ft.menace } : {}),
     meta: {
       onSuccess: branches.onSuccess, onFail: branches.onFail, after, casterId: attacker.id,
-      opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp), ...(declaree ? { difficulty: declaree } : {}), ...(opp.bonusSL ? { bonusSL: opp.bonusSL } : {}), ...(opp.defenderMustWin ? { defenderMustWin: true } : {}) },
+      opposed: { aT, attackerId: attacker.id, attackerName: nomDe(attacker), ...opposedAttackerFreeze(opp), ...(declaree ? { difficulty: declaree } : {}), ...(opp.bonusSL ? { bonusSL: opp.bonusSL } : {}), ...(opp.defenderMustWin ? { defenderMustWin: true } : {}) },
     },
   }, participants);
 }
@@ -527,7 +542,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
         id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'testDeclenche', icon: 'navigation/des', rollLabel: skillLabel,
         actor: c, ligne: { test: decision.sujet }, label, difficulty,
         stake: ft.stake,
-        meta: { onSuccess: node.reussite, onFail: node.echec, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta, differeLaSuite: true },
+        meta: { onSuccess: node.reussite, onFail: node.echec, after, opposed: { aT, attackerId: attacker.id, attackerName: nomDe(attacker), ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta, differeLaSuite: true },
         ...(ft.menace ? { menace: ft.menace } : {}),
       })
       : simpleTriggeredTestStep(c, ft, cc, { onSuccess: node.reussite, onFail: node.echec }, after, extraMeta);
@@ -561,8 +576,8 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // le MÊME ordre : le libellé AUTHORÉ d'abord, la STRUCTURE au catalogue ensuite.
     const gel = opposedAttackerFreeze(opp);
     queueLines(ctx.get, ctx.set, [traceLineOf({
-      attacker: { who: attacker.label, label: opposedAttackerLabel(gel) ?? '', roll: aT.roll, target: aT.target, sl: aT.sl },
-      defender: { who: c.label, label: skillLabel, roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
+      attacker: { who: nomDe(attacker), label: opposedAttackerLabel(gel) ?? '', roll: aT.roll, target: aT.target, sl: aT.sl },
+      defender: { who: nomDe(c), label: skillLabel, roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
       winner: o.winner,
     })], c.id);
     const lines = applyTriggeredTestBranch(c, { success: branchSuccess, sl: t.sl }, { onSuccess: node.reussite, onFail: node.echec }, exec);
@@ -574,7 +589,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     playAfter(ctx.get, ctx.set, c, after, ctx.label, oc);
     return;
   }
-  queueLines(ctx.get, ctx.set, [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...t })], c.id);
+  queueLines(ctx.get, ctx.set, [traceLineOf({ who: nomDe(c), label: testTraceLabel(skillLabel, difficulty), ...t })], c.id);
   const lines = applyTriggeredTestBranch(c, t, { onSuccess: node.reussite, onFail: node.echec }, exec);
   // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test SIMPLE raté par le porteur).
   if (!t.success) lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
@@ -826,7 +841,7 @@ export function handleConditionGained(get: Get, set: SetFn, c: Combatant, name: 
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['testDeclencheEnBande', 'testDeclenche', 'choixDeclenche', 'personneChoisie', 'cibleAcquise'] as const;
+export const GENRES_D_ETAPE = ['testDeclencheEnBande', 'testDeclenche', 'choixDeclenche', 'personneChoisie', 'cibleAcquise', 'traitDeTraumatisme'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -883,7 +898,7 @@ export const TABLES = {
       // Contexte d'ops PORTÉ (`porterOpsCtx` au mint) : le référent des Formules (le lanceur — Forêt
       // d'épines LDB 48 l.749 : « qui utilise VOTRE Force Mentale »), retrouvé combat OU groupe
       // (`actorIn`), l'entité porteuse (#1262 V2 L6d), l'horloge et les durées du Flow d'origine.
-      const repris = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, hero);
+      const repris = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!repris) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
       const { rng: _rng, ...oc } = repris;
       const exec = {
@@ -921,7 +936,7 @@ export const TABLES = {
       // la cible d'un sort) si présent, sinon le décideur lui-même (Frappe réactive : Test sur soi).
       const tid = typeof step.meta?.choiceTargetId === 'string' ? step.meta.choiceTargetId : undefined;
       const branchTarget = (tid ? actorIn(get(), tid) : undefined) ?? hero;
-      const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, branchTarget);
+      const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!oc) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
       const ctx: ExecCtx = { get, set, target: branchTarget, caster: hero, label: step.label ?? 'Réaction', opsCtx: oc, ...(freeAttack ? { freeAttack } : {}) };
       const branche = can ? (yesFlow ?? EMPTY_FLOW) : (noFlow ?? EMPTY_FLOW);
@@ -940,7 +955,7 @@ export const TABLES = {
       if (!hero || feuille?.kind !== 'effet' || feuille.effet.type !== 'ops' || typeof tid !== 'string') return;
       const cible = actorIn(get(), tid);
       if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, cible);
+      const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!oc) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
       const personne = personnesCandidates(get(), cible).find((p) => p.id === step.chosen);
       const ctx: ExecCtx = { get, set, target: cible, caster: oc.caster ?? hero, label: nomDeSource(oc), opsCtx: oc };
@@ -963,6 +978,18 @@ export const TABLES = {
       const ligne = cible ? poserLeTraitAcquis(get, hero, type, cible) : t('op.cibleAcquiseAbsente', { name: hero.label });
       set(touchActors(get()));
       return { consequences: freeCons([ligne]) };
+    },
+    /**
+     * Étape `traitDeTraumatisme` (ADE II 09 l.21 ; LDB 21 l.93 ; #4056) : le porteur a choisi (`chosen`) le Trait de son
+     * Trauma parmi `TRAITS_DE_TRAUMA`, dont il choisit la Cible à l'étape `cibleAcquise` qui suit
+     * (`acquerirLeTrait`, `ciblesDeTrauma`). Un porteur qui n'est plus en jeu refuse la conséquence ; un Trait
+     * hors des options laisse le Trauma sans effet, et le journal le dit.
+     */
+    traitDeTraumatisme: (get, set, step, hero) => {
+      if (!hero || hero.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const type = TRAITS_DE_TRAUMA.find((p) => p === step.chosen);
+      if (!type) return { consequences: freeCons([t('op.traumatismeSansTrait', { name: hero.label })]) };
+      acquerirLeTrait(get, set, hero, type, ciblesDeTrauma());
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

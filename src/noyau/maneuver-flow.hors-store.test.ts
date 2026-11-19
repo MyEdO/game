@@ -80,7 +80,7 @@ describe('FLOWS.manoeuvre — manœuvre de créature par modale (store)', () => 
     H.advantage = 3;
     const before = E.wounds.current;
     const s = banc.getState();
-    const offre = offresDeLActif({ active: H, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s })
+    const offre = offresDeLActif({ scene: s.scene, active: H, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s })
       .find((o) => o.args.attackId === 'souffle' || o.args.attackKind === 'souffle')!;
     expect(offre.gate.ok, 'la case du Souffle est fermée').toBe(true);
     banc.jouerLaCase(offre.actionId, offre.args);

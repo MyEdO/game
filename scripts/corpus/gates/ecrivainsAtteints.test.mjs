@@ -76,6 +76,8 @@ const ATTENDU = {
     'scripts/guards/lib/lint-parite.test.mjs',
     'scripts/guards/lib/lint.testkit.mjs',
     'scripts/guards/lib/lintStage.mjs',
+    // #3821 : fixtures sous un `mkdtempSync` d'os.tmpdir(), `oxlint --fix` y joue, `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/nomsParLigneLint.test.mjs',
     // +1 le 2026-10-19 (#2724) : `fichiersLus` copie les fichiers mesurés sous un `mkdtempSync` d'os.tmpdir(), retiré
     // par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/lib/bancLister.mjs',
@@ -144,6 +146,11 @@ const ATTENDU = {
     // la fusion 3-voies du pilote) ; le banc des formats pose ses
     // fixtures sous un `mkdtempSync` de `os.tmpdir()`, retirées par `rmSync`. L'arbre du dépôt n'est
     // jamais écrit.
+    // +2 le 2026-11-13 (#4178) : le pilote de fusion des imports écrit %A, le fichier que git lui tend ; son banc
+    // pose %O, %A et %B sous un `mkdtempSync` de os.tmpdir(), retiré par `rmSync` en finally. L'arbre du dépôt
+    // n'est jamais écrit.
+    'scripts/git-hooks/merge-imports.mjs',
+    'scripts/git-hooks/merge-imports.test.mjs',
     'scripts/git-hooks/merge-stocks.mjs',
     'scripts/git-hooks/merge-stocks.test.mjs',
     // +1 −2 le 2026-10-07 (#2071), net −1 : les bancs de la porte du commit quittent `scripts/hooks/`
@@ -342,6 +349,10 @@ const ATTENDU = {
     'scripts/git-hooks/journal.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs',
     'scripts/migrations/replay-head.mjs', 'scripts/test/verrou.mjs'],
   'test:ops': [
+    // +1 le 2026-11-16 (#4339) : `lierNodeModules` crée le `node_modules` de la cible (`mkdirSync`) et y lie en dur
+    // les entrées du principal (`cp -al`) ; le banc ne lui passe que le dépôt jetable de `depotGabarit.mjs` et son
+    // worktree, sous os.tmpdir() ; l'arbre n'est jamais écrit.
+    'scripts/ops/chantier.mjs',
     // +1 le 2026-10-17 (#2586) : le banc du cliquet forge un dépôt knip (`package.json`, `knip.json`, sources)
     // sous un `mkdtempSync` d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/ops/knip-exports-ratchet.test.mjs',
@@ -478,6 +489,9 @@ const ATTENDU = {
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
+    // +1 le 2026-11-13 (#3412) : le banc du séquenceur de vite.config.ts pose ses fixtures sous un `mkdtempSync`
+    // d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/partition.test.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
@@ -822,8 +836,8 @@ const ATTENDU = {
   'raw:check-renvois': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:corpus': [
     // +1 le 2026-10-18 (#2586) : les sorties des rendus hôte et win32 sous un `mkdtempSync` d'os.tmpdir(), retiré
-    // par `t.after` ; l'arbre n'est jamais écrit.
-    "scripts/corpus/docs/plateforme-win32.test.mjs",
+    // en finally ; l'arbre n'est jamais écrit.
+    "scripts/corpus/docs/manual-docs-ratchet.test.mjs",
     // #3058 : la fixture forgée du mur de clôture sous un `mkdtempSync` d'os.tmpdir(), retirée en finally ; l'arbre
     // n'est jamais écrit.
     "scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs",
@@ -851,6 +865,10 @@ const ATTENDU = {
     "scripts/test/node-tests.mjs",
     "scripts/test/verrou.mjs",
     "scripts/guards/lib/superviserProcessus.mjs",
+    // #4338 : `fabriquerTransfert` pose son index et son message sous un `mkdtempSync` d'os.tmpdir(), retiré en finally,
+    // dans le dépôt forgé du banc sous os.tmpdir() ; la construction, l'import et le cache restent sous `import.meta.main`.
+    "scripts/personnage-3d/integrer.mjs",
+    "scripts/personnage-3d/integrer.test.mjs",
   ],
   // #2586 : la garde des balayages non résolus dérive par `balayagesNonResolus` de `perimetre.mjs` (mémos sous un
   // `mkdtempSync` d'os.tmpdir()), qui lance ses fichiers par `memoire.mjs` (émissions et diagnostic sous un
@@ -875,10 +893,16 @@ const ATTENDU = {
     "scripts/test/verrou.mjs",
   ],
   'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
-  // #2928, #2948, #3778, #3935, #3951, #3009, ECRIT_LU (`scripts/gates/toutes.mjs`).
-  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
-  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
-  'godot:rendus': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
+  // #2928, #2948, #3778, #3935, #3951, #3009, #4063, ECRIT_LU (`scripts/gates/toutes.mjs`) : la copie importée du projet
+  // (`surUneCopie`, son marqueur `ecrireTexteAtomique` et son verrou `verrou.mjs`) n'écrit que sous `~/.cache/wfrp-godot-copies/`.
+  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'godot:rendus': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'godot:coop': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  // #3945, #3412, ECRIT_LU (`scripts/gates/toutes.mjs`) : le lot écrit le journal de chaque jeu sous `dist/godot-recettes/`,
+  // lit `jeuxPilotesDeFront` de `construire.mjs`, et lance `recette.mjs --natif` en sous-processus, dont `piloter`
+  // (`construire.mjs`) dépose les GLB (`ecritFerme`).
+  'godot:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   // #3145, ECRIT_LU (`scripts/gates/toutes.mjs`) : `environnement.mjs` écrit le venv et son témoin sous
   // `~/.cache/wfrp-personnage-3d/`, hors de l'arbre.
   'personnage-3d:tests': ['scripts/personnage-3d/environnement.mjs'],

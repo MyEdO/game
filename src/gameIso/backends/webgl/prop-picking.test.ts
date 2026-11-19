@@ -1,4 +1,15 @@
-import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Raycaster, Vector2, Vector3, type Intersection } from 'three';
+import {
+  BufferAttribute,
+  BufferGeometry,
+  Mesh,
+  MeshBasicMaterial,
+  OrthographicCamera,
+  PlaneGeometry,
+  Raycaster,
+  Vector2,
+  Vector3,
+  type Intersection,
+} from 'three';
 import { describe, expect, it } from 'vitest';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 import { findPropById, findPropMaterialById } from '../../../data';
@@ -21,7 +32,7 @@ const NDC = { x: 0, y: 0 };
 
 const sceneWith = (...entities: SceneEntity[]): Scene => ({ ...emptyScene('scene-test', 8, 8), entities });
 const volumeEntity = (id: string): SceneEntity =>
-  ({ id, kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S' }) as SceneEntity;
+  ({ id, kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'tonneau' }, facing: 'S' }) as SceneEntity;
 /** Un décor servi en BILLBOARD : seul le repli d'ERREUR d'une ref hors catalogue en pose un (#877, #3198). */
 const REF_BILLBOARD = REF_HORS_CATALOGUE;
 const legacyEntity = (id: string): SceneEntity =>
@@ -43,32 +54,32 @@ function* bakedPropFaces(world: WorldGeometry, entId: string): Generator<{ a: nu
 
 describe('Cuisson d’un décor volumique — une seule voie, et son id de picking', () => {
   it('cuit un prop volumique une fois, sans sujet billboard, et conserve son id de picking', () => {
-    const scene = sceneWith(volumeEntity('table-1'), legacyEntity('billboard-1'));
+    const scene = sceneWith(volumeEntity('tonneau-1'), legacyEntity('billboard-1'));
     const els = wholeSceneBillboardEls(scene);
     expect(els.props.map((p) => p.entId)).toEqual(['billboard-1']);
     const world = buildWorldGeometry(scene, 2, 'jeu', () => 1);
     expect(world.userData.propVertexRanges).toEqual(expect.arrayContaining([
-      expect.objectContaining({ entId: 'table-1', vertexStart: expect.any(Number), vertexCount: expect.any(Number) }),
+      expect.objectContaining({ entId: 'tonneau-1', vertexStart: expect.any(Number), vertexCount: expect.any(Number) }),
     ]));
     // Deux matériaux de recette ⇒ deux groupes de surface ⇒ deux plages DISJOINTES sous le même id.
-    expect(world.userData.propVertexRanges.filter((r) => r.entId === 'table-1').length).toBeGreaterThan(1);
+    expect(world.userData.propVertexRanges.filter((r) => r.entId === 'tonneau-1').length).toBeGreaterThan(1);
     let triangles = 0;
-    for (const face of bakedPropFaces(world, 'table-1')) {
-      expect(propEntityAtHit(world.userData.propVertexRanges, face)).toBe('table-1');
+    for (const face of bakedPropFaces(world, 'tonneau-1')) {
+      expect(propEntityAtHit(world.userData.propVertexRanges, face)).toBe('tonneau-1');
       triangles++;
     }
     expect(triangles).toBeGreaterThan(0);
-    expect(worldBakeDeps(scene, 2)).toEqual(expect.arrayContaining([findPropById('table-ronde-4-tabourets')!.volume]));
+    expect(worldBakeDeps(scene, 2)).toEqual(expect.arrayContaining([findPropById('tonneau')!.volume]));
   });
 
   it('worldBakeDeps invalide la cuisson pour add/remove/pos/ref/facing d’un prop', () => {
-    const base = sceneWith(volumeEntity('table-1'));
+    const base = sceneWith(volumeEntity('tonneau-1'));
     for (const changed of [
       { ...base, entities: [] },
-      { ...base, entities: [...base.entities, volumeEntity('table-2')] },
-      patchEntity(base, 'table-1', { pos: { x: 3, y: 4 } }),
-      patchEntity(base, 'table-1', { decor: { id: 'comptoir-droit' } }),
-      patchEntity(base, 'table-1', { facing: 'E' }),
+      { ...base, entities: [...base.entities, volumeEntity('tonneau-2')] },
+      patchEntity(base, 'tonneau-1', { pos: { x: 3, y: 4 } }),
+      patchEntity(base, 'tonneau-1', { decor: { id: 'comptoir-droit' } }),
+      patchEntity(base, 'tonneau-1', { facing: 'E' }),
     ]) expect(memesDeps(worldBakeDeps(changed, 2), worldBakeDeps(base, 2))).toBe(false);
   });
 
@@ -79,7 +90,7 @@ describe('Cuisson d’un décor volumique — une seule voie, et son id de picki
    * tableau : c'est la signature des seuls décors à recette.
    */
   it('ce qui n’est pas un décor volumique ne recuit RIEN — tableau reforgé, personnage déplacé, décor billboardé déplacé', () => {
-    const base = sceneWith(volumeEntity('table-1'), legacyEntity('billboard-1'), figurant('pnj-1'));
+    const base = sceneWith(volumeEntity('tonneau-1'), legacyEntity('billboard-1'), figurant('pnj-1'));
     for (const inerte of [
       { ...base, entities: [...base.entities] }, // même contenu, tableau NEUF
       patchEntity(base, 'pnj-1', { pos: { x: 7, y: 7 } }), // un corps qui marche
@@ -91,8 +102,8 @@ describe('Cuisson d’un décor volumique — une seule voie, et son id de picki
 
   /** La RECETTE elle-même est une dep : une retouche au Codex périme la cuisson sans que la scène bouge. */
   it('worldBakeDeps porte la recette ET ses matériaux, pas seulement la signature de placement', () => {
-    const scene = sceneWith(volumeEntity('table-1'));
-    const prop = findPropById('table-ronde-4-tabourets')!;
+    const scene = sceneWith(volumeEntity('tonneau-1'));
+    const prop = findPropById('tonneau')!;
     expect(worldBakeDeps(scene, 2)).toEqual(expect.arrayContaining([prop.volume]));
     for (const primitive of prop.volume!.primitives)
       expect(worldBakeDeps(scene, 2)).toEqual(expect.arrayContaining([findPropMaterialById(primitive.material)]));
@@ -136,21 +147,21 @@ describe('Le picking lit le monde que l’écran monte VRAIMENT', () => {
   }
 
   it('le maillage monté ne porte AUCUNE plage sur son userData — la géométrie est la seule source', () => {
-    const { geometry, mesh } = mondeDeLEcran(sceneWith(volumeEntity('table-1')));
+    const { geometry, mesh } = mondeDeLEcran(sceneWith(volumeEntity('tonneau-1')));
     expect(mesh.userData.propVertexRanges).toBeUndefined();
-    expect(geometry.userData.propVertexRanges.some((r) => r.entId === 'table-1')).toBe(true);
+    expect(geometry.userData.propVertexRanges.some((r) => r.entId === 'tonneau-1')).toBe(true);
   });
 
   it('sur CE maillage, le rayon nomme le décor volumique', () => {
-    const scene = sceneWith(volumeEntity('table-1'));
+    const scene = sceneWith(volumeEntity('tonneau-1'));
     const { geometry, mesh } = mondeDeLEcran(scene);
-    expect(pickNearestTarget(cameraSur(geometry, 'table-1'), [], mesh, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
+    expect(pickNearestTarget(cameraSur(geometry, 'tonneau-1'), [], mesh, NDC)).toEqual({ kind: 'entity', id: 'tonneau-1' });
   });
 
   it('un décor billboardé plus proche occulte le meuble sur ce même maillage', () => {
-    const scene = sceneWith(volumeEntity('table-1'));
+    const scene = sceneWith(volumeEntity('tonneau-1'));
     const { geometry, mesh } = mondeDeLEcran(scene);
-    const camera = cameraSur(geometry, 'table-1');
+    const camera = cameraSur(geometry, 'tonneau-1');
     const quad = new Mesh(new PlaneGeometry(4, 4), new MeshBasicMaterial());
     quad.position.copy(camera.position).add(camera.getWorldDirection(new Vector3()).multiplyScalar(5));
     quad.quaternion.copy(camera.quaternion);
@@ -206,26 +217,26 @@ function raycastProp(mesh: Mesh): Intersection {
 describe('pickNearestTarget — le décor volumique se clique par ses sommets', () => {
   it('un cutaway placé avant le prop conserve le picking par sommets originaux', () => {
     // Quad 0 = masse DÉGAGÉE devant (index compacté, plus dessinée) ; quad 1 = le décor, derrière.
-    const propRange: PropVertexRange = { entId: 'table-1', vertexStart: 6, vertexCount: 6 };
+    const propRange: PropVertexRange = { entId: 'tonneau-1', vertexStart: 6, vertexCount: 6 };
     const mesh = mondeCuit([-3, -5], [0], [propRange]);
     const hit = raycastProp(mesh);
     expect(hit.face && [hit.face.a, hit.face.b, hit.face.c].every((i) => i >= propRange.vertexStart && i < propRange.vertexStart + propRange.vertexCount)).toBe(true);
-    expect(pickNearestTarget(CAMERA, [], mesh, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
+    expect(pickNearestTarget(CAMERA, [], mesh, NDC)).toEqual({ kind: 'entity', id: 'tonneau-1' });
   });
 
   it('arbitre billboards et faces de prop par distance globale', () => {
-    const monde = mondeCuit([-5], [], [{ entId: 'table-1', vertexStart: 0, vertexCount: 6 }]);
-    expect(pickNearestTarget(CAMERA, [decorBillboard(-7)], monde, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
+    const monde = mondeCuit([-5], [], [{ entId: 'tonneau-1', vertexStart: 0, vertexCount: 6 }]);
+    expect(pickNearestTarget(CAMERA, [decorBillboard(-7)], monde, NDC)).toEqual({ kind: 'entity', id: 'tonneau-1' });
     expect(pickNearestTarget(CAMERA, [decorBillboard(-3)], monde, NDC)).toBeNull();
-    expect(pickNearestTarget(CAMERA, [decorBillboard(-5)], monde, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
+    expect(pickNearestTarget(CAMERA, [decorBillboard(-5)], monde, NDC)).toEqual({ kind: 'entity', id: 'tonneau-1' });
   });
 
   it('ignore une face monde non-prop et désigne le décor derrière le mur', () => {
     // Quad 0 = MUR devant (aucune plage) ; quad 1 = un décor loin derrière — le monde EST donc balayé.
-    const wallFirst = mondeCuit([-2, -8], [], [{ entId: 'table-1', vertexStart: 6, vertexCount: 6 }]);
+    const wallFirst = mondeCuit([-2, -8], [], [{ entId: 'tonneau-1', vertexStart: 6, vertexCount: 6 }]);
     const wallHit = raycastProp(wallFirst);
     expect(propEntityAtHit(wallFirst.geometry.userData.propVertexRanges!, wallHit.face!)).toBeNull();
-    expect(pickNearestTarget(CAMERA, [], wallFirst, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
+    expect(pickNearestTarget(CAMERA, [], wallFirst, NDC)).toEqual({ kind: 'entity', id: 'tonneau-1' });
     expect(pickNearestTarget(CAMERA, [], mondeCuit([-2], [], []), NDC)).toBeNull();
   });
 

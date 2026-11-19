@@ -8,7 +8,16 @@
  */
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie } from './index';
 import { MODAL_DEFS, HORS_MODAL, type CleDeRegistre, type GesteDuJeu, type HorsModalDef, type ModalDef, type VerbesDeFenetre } from './modalArbiter';
-import { CLES_DE_FENETRE, FENETRE_DU_JET, JET_AUTO, SURFACES_A_ISSUE, VERBES_D_INTERACTION, gestesDeLaFenetre, gestesDeLaSurface, gestesDuJet } from './combatAuto';
+import {
+  CLES_DE_FENETRE,
+  FENETRE_DU_JET,
+  JET_AUTO,
+  SURFACES_A_ISSUE,
+  VERBES_D_INTERACTION,
+  gestesDeLaFenetre,
+  gestesDeLaSurface,
+  gestesDuJet,
+} from './combatAuto';
 import type { CascadeStep } from './pendings';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { cleDeFixture } from './noyau.testkit';

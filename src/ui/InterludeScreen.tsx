@@ -3,7 +3,7 @@ import { nomDuSiege } from '../noyau/sieges';
 import { useGame } from '../state/store';
 import { interludeEventDie, interludeEventFor } from '../data/interludeEvents';
 import { formatDice } from '../engine/dice';
-import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
+import { formatMoney, formuleDeRevenus, libelleDuStatut, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
 import { interludeCatalog, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
@@ -30,7 +30,7 @@ import { findTalentById, skillInstanceLabel, findTrappingById, refLabel, activit
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
 import { trappingCategorieSchema } from '../data/schemas/defs/trappings';
-import type { Combatant, ConditionId } from '../engine/types';
+import type { Combatant } from '../engine/types';
 import { rule } from '../engine/policy';
 import { effectiveEntry } from '../engine/variants';
 import { ownsLocalNet } from './ownership';
@@ -430,7 +430,7 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
           const ev = interludeEventFor(st.eventRoll);
           const chips = fxChips(etat, st, h);
           return (
-            <ParchmentCard key={h.id} seal={{ label: 'd100', roll: st.eventRoll }} title={ev.label}>
+            <ParchmentCard key={h.id} seal={{ label: formatDice(interludeEventDie()), roll: st.eventRoll }} title={ev.label}>
               <header className="interlude-chronicle-head">
                 <CharFrame c={h} variant="identity" size="sm" />
               </header>
@@ -568,7 +568,7 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
         <CharFrame c={hero} variant="identity" size="sm" />
         <span className="interlude-left">
           {!canDrive && <span className="interlude-owner"><Icon id="navigation/proprietaire-du-siege" size="sm" /> {ownerName ?? 'autre joueur'} · </span>}
-          {t('interlude.statut', { echelon: libelleDEchelon(status.tier), standing: status.standing })}
+          {t('interlude.statut', { statut: libelleDuStatut(status) })}
         </span>
       </h3>
       {ev
@@ -1294,7 +1294,7 @@ function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => v
         {devis.lots.flatMap(({ heroId, lots }) => lots.map((lot, i) => {
           // Les ÉTATS de clôture passent par la primitive partagée (chips + popover Codex), le Standing par sa
           // ligne, nommée par la source du lot.
-          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
+          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id.id, value: typeof o.value === 'number' ? o.value : 1 }));
           const standing = lot.ops.reduce((n, o) => n + (o.op === 'statusMod' && typeof o.amount === 'number' ? o.amount : 0), 0);
           return (
             <Fragment key={`close-${heroId}-${i}`}>

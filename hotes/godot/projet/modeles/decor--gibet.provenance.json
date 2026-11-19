@@ -1,0 +1,13 @@
+{
+  "model": "decor--gibet.glb",
+  "model_sha256": "9777c3efea20296624579e35c0315e9f5a3554d8c7c258cb7da243c7441184c7",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

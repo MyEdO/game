@@ -3,28 +3,51 @@ trois-quarts, portrait du personnage, échelles, isométrique), cadré sur la ha
 ou sur la plus grande dimension de l'élément, et studio Workbench de QA. Le GLB source n'est jamais modifié.
 `--silhouettes` pose, avant le rendu, les shape keys nommées sur tout mesh qui les porte, à la syntaxe de
 `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ; un nom qu'aucun mesh ne porte arrête le
-rendu. `bornes` et `studio` cadrent et éclairent aussi la revue d'un véhicule (`vehicule/revue.py`).
+rendu. Si le manifeste voisin de `--input` porte `gabarit.osDesSilhouettes`, chaque os de repos de la base est translaté
+de son déplacement aux mêmes poids (`deplacements_des_os`), comme dans les hôtes : au repos, rien ne change ; sous un
+clip, chaque os tourne autour de sa tête déplacée, et un rigide monté suit son os. Sous `corpulence`, la force de la
+normal map de chaque surface de peau de ce manifeste suit son `reliefDeCorpulence` (`facteur_de_relief`, #4002).
+`bornes` et `studio` cadrent et éclairent aussi la revue d'un véhicule (`vehicule/revue.py`), que `habiller_le_modele`
+habille.
 
 Une tenue se rend montée sur sa base : `--input` est la base, chaque `--element` un GLB d'élément, chacun avec son manifeste
 voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import), comme l'évaluateur. Les zones
 que couvrent les éléments sont masquées sur la base, un rigide pend à l'os de même nom de la base, une pièce skinnée suit
 son armature. `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
-le preset de personnage (`src/data/presets-de-personnage.json`) y pose au nuancier (`src/data/materials.json`) ; `--clip`
+la race du preset de personnage (`src/data/raceAppearance.json`) puis le preset (`src/data/presets-de-personnage.json`)
+y posent au nuancier (`src/data/materials.json`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
+le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
+couleur ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
 directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
+`--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut) vise ce centre et cadre cette étendue dans les vues
+de face, de trois-quarts, de dos, d'échelle et isométriques au lieu de celles du modèle ; l'éclairage reste celui du
+modèle (#4338).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <base.glb> --element <a.glb> [--element <b.glb>] \\
-        --preset sorcier [--clip Hampe_Repos_Loop --image 20] [--illustration <illustration.png>] --output <dossier vide>
+        --preset sorcier [--clip Hampe_Repos_Loop --image 20] [--illustration <illustration.png>] [--cadre 0,0.02,0.62,1.2] --output <dossier vide>
 """
 import argparse
 import hashlib
 import json
 import math
+import sys
 import time
 from pathlib import Path
 
-DONNEES = Path(__file__).resolve().parents[2] / 'src' / 'data'
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
+
+from glb import lire_glb  # noqa: E402
+from habillage import couleur_lineaire  # noqa: E402
+from noms_silhouettes import CORPULENCE  # noqa: E402
+
+DEPOT = Path(__file__).resolve().parents[2]
+DONNEES = DEPOT / 'src' / 'data'
+CATALOGUE = DEPOT / 'hotes' / 'godot' / 'projet' / 'textures'
+"""Le catalogue des textures de matière du jeu."""
+METRES_PAR_MOTIF = 2.0
+"""`MiseEnPage.METRES_PAR_MOTIF` du monde Godot."""
 ETENDUE_DU_STUDIO = 1.82
 """L'étendue, en mètres, pour laquelle les puissances des lumières du studio sont réglées : la hauteur du corps de la
 base humanoïde. Les lumières se placent à des distances proportionnelles à l'étendue du modèle ; leur puissance suit son
@@ -46,6 +69,17 @@ def lire_silhouettes(texte):
     return poids
 
 
+def lire_cadre(texte):
+    """Le cadre de `--cadre`, `x,y,z,étendue` en mètres, l'étendue positive : (x, y, z, étendue)."""
+    try:
+        cadre = tuple(float(v) for v in texte.split(','))
+    except ValueError:
+        cadre = ()
+    if len(cadre) != 4 or not all(math.isfinite(v) for v in cadre) or cadre[3] <= 0:
+        raise argparse.ArgumentTypeError(f'« {texte} » ; attendu x,y,z,étendue en mètres, l\'étendue positive')
+    return cadre
+
+
 def poser_les_silhouettes(bpy, poids):
     """Pose chaque shape key de `poids` à son poids sur tout mesh de la scène qui la porte ; un nom qu'aucun mesh ne
     porte arrête le rendu."""
@@ -65,13 +99,102 @@ def poser_les_silhouettes(bpy, poids):
     return poses
 
 
+def chemin_du_manifeste_voisin(glb):
+    """Le chemin du manifeste à côté de `glb` : `<id>.element.json` d'un dossier de production, sinon
+    `<id>.manifeste.json` ; `None` sans l'un ni l'autre."""
+    return next((c for c in (glb.with_name(glb.stem + s) for s in ('.element.json', '.manifeste.json')) if c.exists()), None)
+
+
 def manifeste_voisin(glb):
-    """Le manifeste à côté de `glb` : `<id>.element.json` d'un dossier de production, sinon `<id>.manifeste.json`."""
-    for suffixe in ('.element.json', '.manifeste.json'):
-        chemin = glb.with_name(glb.stem + suffixe)
-        if chemin.exists():
-            return json.loads(chemin.read_text(encoding='utf-8'))
-    raise ValueError(f'{glb} : ni {glb.stem}.element.json ni {glb.stem}.manifeste.json à côté')
+    """Le manifeste à côté de `glb` (`chemin_du_manifeste_voisin`), exigé."""
+    chemin = chemin_du_manifeste_voisin(glb)
+    if chemin is None:
+        raise ValueError(f'{glb} : ni {glb.stem}.element.json ni {glb.stem}.manifeste.json à côté')
+    return json.loads(chemin.read_text(encoding='utf-8'))
+
+
+def trouver(dossiers, id_):
+    """Le GLB et le manifeste de `id_` dans le premier des `dossiers` qui les porte."""
+    for d in dossiers:
+        for glb, manifeste in ((d / id_ / f"{id_}.glb", d / id_ / f"{id_}.element.json"),
+                               (d / f"{id_}.glb", d / f"{id_}.manifeste.json")):
+            if glb.exists() and manifeste.exists():
+                return glb, json.loads(manifeste.read_text(encoding="utf-8"))
+    raise FileNotFoundError(f"{id_} : ni <id>/<id>.glb ni <id>.glb (avec son manifeste) sous {[str(d) for d in dossiers]}")
+
+
+def matrice_du_noeud(noeud):
+    """La matrice 4×4 du nœud glTF `noeud` dans le repère de son parent (`matrix`, sinon `translation`, `rotation`,
+    `scale`)."""
+    import numpy as np
+    if 'matrix' in noeud:
+        return np.array(noeud['matrix'], dtype=float).reshape(4, 4).T
+    x, y, z, w = noeud.get('rotation', (0, 0, 0, 1))
+    rotation = np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                         [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                         [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+    matrice = np.eye(4)
+    matrice[:3, :3] = rotation * np.array(noeud.get('scale', (1, 1, 1)), dtype=float)
+    matrice[:3, 3] = noeud.get('translation', (0, 0, 0))
+    return matrice
+
+
+def deplacements_des_os(document, os_des_silhouettes, poids):
+    """Par nom de nœud du document glTF `document`, le déplacement (repère du monde glTF) de sa position de repos sous
+    les translations locales `os_des_silhouettes` (`gabarit.osDesSilhouettes` : silhouette → os → `[x, y, z]` dans le
+    repère du parent, au poids 1) aux `poids` des silhouettes : celui de son parent plus la somme pondérée de ses
+    translations tournée par le repère du monde de repos de son parent. Seuls les nœuds déplacés y sont."""
+    import numpy as np
+    noeuds = document.get('nodes', [])
+    enfants = {e for n in noeuds for e in n.get('children', [])}
+    deplacements = {}
+    pile = [(i, np.eye(3), np.zeros(3)) for i in range(len(noeuds)) if i not in enfants]
+    while pile:
+        i, repere_du_parent, du_parent = pile.pop()
+        noeud = noeuds[i]
+        translation = sum((poids.get(s, 0) * np.array(par_os[noeud['name']], dtype=float)
+                           for s, par_os in os_des_silhouettes.items() if noeud.get('name') in par_os), np.zeros(3))
+        deplacement = du_parent + repere_du_parent @ translation
+        if deplacement.any() and 'name' in noeud:
+            deplacements[noeud['name']] = deplacement
+        repere = repere_du_parent @ matrice_du_noeud(noeud)[:3, :3]
+        pile.extend((e, repere, deplacement) for e in noeud.get('children', []))
+    return deplacements
+
+
+def deplacer_les_os(bpy, rig, deplacements):
+    """Translate la tête et la queue de chaque os de repos de `rig` du déplacement que `deplacements` (repère du monde
+    glTF, `deplacements_des_os`) donne à son nom, passé au repère Blender (Y haut glTF vers Z haut) puis à celui de
+    l'armature."""
+    from mathutils import Vector
+    vers_le_rig = rig.matrix_world.inverted().to_3x3()
+    bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.mode_set(mode='EDIT')
+    for os_ in rig.data.edit_bones:
+        if os_.name in deplacements:
+            x, y, z = deplacements[os_.name]
+            decalage = vers_le_rig @ Vector((x, -z, y))
+            os_.head += decalage
+            os_.tail += decalage
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def facteur_de_relief(manifeste, poids):
+    """Le facteur de force de la normal map des surfaces de peau du `manifeste` de base aux `poids` des silhouettes
+    (`reliefDeCorpulence`, #4002), `None` sans ce champ ou à poids de `corpulence` nul."""
+    relief, corpulence = manifeste.get('reliefDeCorpulence'), poids.get(CORPULENCE, 0)
+    return None if relief is None or corpulence == 0 else 1 - corpulence + relief * corpulence
+
+
+def accuser_le_relief(objets, peaux, facteur):
+    """Multiplie par `facteur` la force (`Strength`) de chaque nœud Normal Map des matériaux des `objets` dont le nom
+    est dans `peaux`, chaque matériau une fois."""
+    materiaux = {slot.material for obj in objets if obj.type == 'MESH' for slot in obj.material_slots
+                 if slot.material and slot.material.node_tree and slot.material.name.split('.')[0] in peaux}
+    for materiau in materiaux:
+        for noeud in materiau.node_tree.nodes:
+            if noeud.type == 'NORMAL_MAP':
+                noeud.inputs['Strength'].default_value *= facteur
 
 
 def importer(bpy, glb):
@@ -105,21 +228,30 @@ def monter(bpy, base, rig, elements):
                         mod.object = rig
 
 
+def palette(preset, races, matieres):
+    """La palette du `preset` de personnage, comme le noyau la compose (`porteeDeComposition`, #4379) :
+    `{emplacement: couleur linéaire (r, g, b)}`, les couleurs de sa race de `races` (`raceAppearance.json`), chacune
+    remplacée par la sienne, résolues au nuancier de `matieres` (`materials.json`)."""
+    race = next(r for r in races if r['id'] == preset['race']['id'])
+    nuancier = {m['id']: m['color'] for m in matieres if m.get('domain') == 'couleur'}
+    couleurs = {**race.get('couleurs', {}), **preset.get('couleurs', {})}
+    return {slot: couleur_lineaire(nuancier[couleur['id']]) for slot, couleur in couleurs.items()}
+
+
 def palette_du_preset(id_):
-    """`{emplacement: couleur linéaire (r, g, b)}` du preset de personnage `id_`, résolue au nuancier."""
-    preset = next((p for p in json.loads((DONNEES / 'presets-de-personnage.json').read_text(encoding='utf-8')) if p['id'] == id_), None)
+    """`palette` du preset de personnage `id_` sur les données du dépôt."""
+    def lire(fichier):
+        return json.loads((DONNEES / fichier).read_text(encoding='utf-8'))
+    preset = next((p for p in lire('presets-de-personnage.json') if p['id'] == id_), None)
     if preset is None:
         raise ValueError(f'--preset {id_} : aucun preset de personnage de cet id')
-    nuancier = {m['id']: m['color'] for m in json.loads((DONNEES / 'materials.json').read_text(encoding='utf-8')) if m.get('domain') == 'couleur'}
-
-    def lineaire(hexa):
-        return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in (int(hexa[i:i + 2], 16) / 255 for i in (1, 3, 5)))
-    return {slot: lineaire(nuancier[couleur['id']]) for slot, couleur in preset.get('couleurs', {}).items()}
+    return palette(preset, lire('raceAppearance.json'), lire('materials.json'))
 
 
 def colorer(objets, surfaces, palette):
-    """Pose sur la couleur de base de chaque matériau des `objets` la couleur de `palette` à l'emplacement que lui donne
-    `surfaces` (`{nom du matériau: emplacement}`) ; un matériau sans emplacement ou dont la palette ne colore pas
+    """Pose sur la couleur de base de chaque matériau des `objets` d'un modèle (la base ou un élément) la couleur de
+    `palette` à l'emplacement que lui donnent les `surfaces` de ce modèle (`{nom du matériau: emplacement}`), car deux
+    éléments peuvent nommer pareil des matériaux d'emplacements différents ; un matériau sans emplacement ou dont la palette ne colore pas
     l'emplacement garde la sienne."""
     for obj in objets:
         for slot in obj.material_slots if obj.type == 'MESH' else []:
@@ -127,6 +259,79 @@ def colorer(objets, surfaces, palette):
             principled = next((n for n in slot.material.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None) if couleur else None
             if principled:
                 principled.inputs['Base Color'].default_value = (*couleur, 1)
+
+
+def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
+    """La surface du manifeste comme le jeu l'habille (`MontageDeComposition.peindre`) : la texture de sa `matiere` du
+    catalogue si le catalogue la porte, sa texture neutre (`<matiere>.neutre.jpg`) si `couleur` est donnée et que le
+    catalogue la porte, teinte de `couleur` (linéaire) ; lue aux UV `couche` si `par_uv` et que la surface n'est pas
+    `blason`, projetée sinon dans le repère de l'objet (Box, fondu 0.2) ; un motif tous les `METRES_PAR_MOTIF` ; sans
+    texture, la couleur de son matériau ; l'emblème `emblem` en couche de détail (UV `couche`) si `blason` et qu'il est
+    donné."""
+    nt = mat.node_tree
+    bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+    base = bsdf.inputs["Base Color"]
+    sortie = None
+    matiere = surface.get("matiere")
+    if matiere and (CATALOGUE / f"{matiere}.jpg").exists():
+        for lien in list(nt.links):
+            if lien.to_socket == base:
+                nt.links.remove(lien)
+        echelle = nt.nodes.new("ShaderNodeMapping")
+        echelle.inputs["Scale"].default_value = (1 / METRES_PAR_MOTIF,) * 3
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        if par_uv and not surface.get("blason"):
+            coord = nt.nodes.new("ShaderNodeUVMap")
+            coord.uv_map = couche
+            nt.links.new(coord.outputs["UV"], echelle.inputs["Vector"])
+        else:
+            coord = nt.nodes.new("ShaderNodeTexCoord")
+            nt.links.new(coord.outputs["Object"], echelle.inputs["Vector"])
+            tex.projection, tex.projection_blend = "BOX", 0.2
+        neutre = CATALOGUE / f"{matiere}.neutre.jpg"
+        image = neutre if couleur is not None and neutre.exists() else CATALOGUE / f"{matiere}.jpg"
+        tex.image = bpy.data.images.load(str(image.resolve(strict=True)), check_existing=True)
+        nt.links.new(echelle.outputs["Vector"], tex.inputs["Vector"])
+        sortie = tex.outputs["Color"]
+        if couleur is not None:
+            teinte = nt.nodes.new("ShaderNodeMix")
+            teinte.data_type, teinte.blend_type = "RGBA", "MULTIPLY"
+            teinte.inputs["Factor"].default_value = 1.0
+            nt.links.new(sortie, next(s for s in teinte.inputs if s.name == "A" and s.type == "RGBA"))
+            next(s for s in teinte.inputs if s.name == "B" and s.type == "RGBA").default_value = (*couleur, 1)
+            sortie = next(s for s in teinte.outputs if s.type == "RGBA")
+    if surface.get("blason") and emblem is not None:
+        uv = nt.nodes.new("ShaderNodeUVMap")
+        uv.uv_map = couche
+        det = nt.nodes.new("ShaderNodeTexImage")
+        det.image, det.extension = emblem, "CLIP"
+        nt.links.new(uv.outputs["UV"], det.inputs["Vector"])
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        nt.links.new(det.outputs["Alpha"], mix.inputs["Factor"])
+        a = next(s for s in mix.inputs if s.name == "A" and s.type == "RGBA")
+        if sortie is not None:
+            nt.links.new(sortie, a)
+        else:
+            a.default_value = base.default_value
+        nt.links.new(det.outputs["Color"], next(s for s in mix.inputs if s.name == "B" and s.type == "RGBA"))
+        sortie = next(s for s in mix.outputs if s.type == "RGBA")
+    if sortie is not None:
+        nt.links.new(sortie, base)
+
+
+def habiller_le_modele(bpy, objets, manifeste, emblem, par_uv, palette):
+    """Chaque matériau des `objets` d'un modèle que nomme une surface de son `manifeste` habillé une fois (`habiller`),
+    teint de la couleur de `palette` à son emplacement s'il en a une."""
+    surfaces = {s["nom"]: s for s in manifeste.get("surfaces", [])}
+    vus = set()
+    for o in objets:
+        for mat in o.data.materials if o.type == "MESH" else []:
+            surface = surfaces.get(mat.name.split(".")[0]) if mat else None
+            if surface and mat.name not in vus:
+                vus.add(mat.name)
+                habiller(bpy, mat, surface, o.data.uv_layers[0].name if o.data.uv_layers else "", emblem, par_uv,
+                         palette.get(surface["palette"]))
 
 
 def planche(bpy, chemins, sortie):
@@ -147,6 +352,50 @@ def planche(bpy, chemins, sortie):
     resultat.filepath_raw = str(sortie)
     resultat.file_format = 'PNG'
     resultat.save()
+
+
+VUES_DE_REVUE = (("face", (0, -1, 0.05)), ("trois-quarts", (0.65, -1, 0.45)), ("dessus", (0, -0.001, 1)))
+"""Les vues de la revue d'un modèle sans base (`vues_de_revue`) : leur nom et la direction d'où la caméra regarde."""
+COTE_DE_VUE = 640
+"""Le côté (px) d'une vue de revue."""
+
+
+def grille(bpy, lignes, sortie):
+    """Les images `lignes` (listes de chemins de même taille) en grille, la première ligne en haut, dans `sortie`."""
+    import numpy as np
+    rangees = []
+    for chemins in lignes:
+        images = [bpy.data.images.load(str(c)) for c in chemins]
+        rangees.append(np.concatenate([np.array(im.pixels[:], dtype=np.float32).reshape(im.size[1], im.size[0], 4)
+                                       for im in images], axis=1))
+    tout = np.concatenate(rangees[::-1], axis=0)
+    resultat = bpy.data.images.new("planche", tout.shape[1], tout.shape[0])
+    resultat.pixels.foreach_set(tout.ravel())
+    resultat.filepath_raw = str(sortie)
+    resultat.file_format = "PNG"
+    resultat.save()
+
+
+def cadre(direction, cotes):
+    """Le côté du carré de la vue de `direction`, d'aplomb, qui contient la boîte de `cotes` centrée sur son axe : le
+    double du plus grand écart d'un de ses coins à cet axe, en largeur ou en hauteur d'image."""
+    from mathutils import Vector
+    axe = Vector(direction).normalized()
+    droite = axe.cross(Vector((0, 0, 1))).normalized()
+    haut = droite.cross(axe)
+    signes = (-1, 1)
+    coins = [Vector((sx * cotes.x, sy * cotes.y, sz * cotes.z)) / 2 for sx in signes for sy in signes for sz in signes]
+    return 2 * max(abs(coin.dot(v)) for coin in coins for v in (droite, haut))
+
+
+def vues_de_revue(rendre, sortie, nom, centre, cotes, etendue):
+    """Rend par `rendre` (`studio`) les `VUES_DE_REVUE` de la boîte de `cotes` autour de `centre`, cadrées sur
+    `etendue`, élargie à la vue qui la déborde (`cadre`), dans `sortie / <nom>-<vue>.png` ; rend leurs chemins, dans
+    l'ordre."""
+    for vue, direction in VUES_DE_REVUE:
+        cote = max(etendue, cadre(direction, cotes)) * 1.12
+        rendre(f"{nom}-{vue}.png", direction, centre, cote, COTE_DE_VUE, COTE_DE_VUE)
+    return [sortie / f"{nom}-{vue}.png" for vue, _ in VUES_DE_REVUE]
 
 
 def bornes(bpy, objets):
@@ -254,6 +503,7 @@ def main():
     parser.add_argument('--clip', help='clip de la base posé avant le rendu')
     parser.add_argument('--image', type=int, default=1, help='image du clip posée')
     parser.add_argument('--illustration', type=Path, help='illustration directrice posée à gauche de planche.png')
+    parser.add_argument('--cadre', type=lire_cadre, help='x,y,z,étendue : centre et étendue cadrés au lieu de ceux du modèle')
     args = parser.parse_args()
     source = Path(args.input).resolve(strict=True)
     output = Path(args.output).resolve()
@@ -266,17 +516,24 @@ def main():
     start = time.monotonic()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     base = importer(bpy, source)
-    if args.element or args.preset or args.clip:
+    chemin = chemin_du_manifeste_voisin(source)
+    manifeste_de_base = {} if chemin is None else json.loads(chemin.read_text(encoding='utf-8'))
+    deplacements = deplacements_des_os(lire_glb(source)[0], manifeste_de_base.get('gabarit', {}).get('osDesSilhouettes', {}),
+                                       args.silhouettes)
+    if args.element or args.preset or args.clip or deplacements:
         rigs = [obj for obj in base if obj.type == 'ARMATURE']
         if len(rigs) != 1:
-            raise ValueError(f'{source} : {len(rigs)} armatures, une attendue pour monter, colorer ou poser')
+            raise ValueError(f'{source} : {len(rigs)} armatures, une attendue pour monter, colorer, poser ou déplacer les os')
         rig = rigs[0]
+        if deplacements:
+            deplacer_les_os(bpy, rig, deplacements)
         elements = [(importer(bpy, Path(glb).resolve(strict=True)), manifeste_voisin(Path(glb))) for glb in args.element]
         monter(bpy, base, rig, elements)
-        if args.preset:
-            manifestes = [manifeste_voisin(source)] + [manifeste for _, manifeste in elements]
-            colorer(bpy.data.objects, {s['nom']: s['palette'] for m in manifestes for s in m.get('surfaces', [])},
-                    palette_du_preset(args.preset))
+        palette = palette_du_preset(args.preset) if args.preset else {}
+        for objets, manifeste in [(base, manifeste_voisin(source))] + elements:
+            colorer(objets, {s['nom']: s['palette'] for s in manifeste.get('surfaces', [])}, palette)
+        for objets, manifeste in elements:
+            habiller_le_modele(bpy, objets, manifeste, None, True, palette)
         if args.clip:
             action = bpy.data.actions.get(args.clip)
             if action is None:
@@ -287,6 +544,9 @@ def main():
                 rig.animation_data.action_slot = action.slots[0]
             bpy.context.scene.frame_set(args.image)
     silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
+    relief = facteur_de_relief(manifeste_de_base, args.silhouettes)
+    if relief is not None:
+        accuser_le_relief(base, {s['nom'] for s in manifeste_de_base.get('surfaces', []) if s['palette'] == 'peau'}, relief)
     meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and not obj.hide_render]
     skinned = [obj for obj in meshes if any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
     actors = skinned or meshes
@@ -312,24 +572,25 @@ def main():
         materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
     report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
     render = studio(bpy, low, center, extent, output, start)
+    cible, etendue = (Vector(args.cadre[:3]), args.cadre[3]) if args.cadre else (center, extent)
     if args.isometric_only:
         report['camera_elevation_degrees'] = 45
         report['camera_direction'] = [1, -1, 2 ** 0.5]
         for size in (512, 40, 64, 128):
-            render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), center, extent * 1.12, size, size)
+            render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), cible, etendue * 1.12, size, size)
     else:
-        render('face-trois-quarts.png', (0.65, -1, 0.17), center, extent * 1.12, 1000, 1200)
-        render('dos-trois-quarts.png', (-0.65, 1, 0.17), center, extent * 1.12, 1000, 1200)
+        render('face-trois-quarts.png', (0.65, -1, 0.17), cible, etendue * 1.12, 1000, 1200)
+        render('dos-trois-quarts.png', (-0.65, 1, 0.17), cible, etendue * 1.12, 1000, 1200)
         if skinned:
-            render('face.png', (0, -1, 0.05), center, extent * 1.12, 1000, 1200)
-            render('dos.png', (0, 1, 0.05), center, extent * 1.12, 1000, 1200)
+            render('face.png', (0, -1, 0.05), cible, etendue * 1.12, 1000, 1200)
+            render('dos.png', (0, 1, 0.05), cible, etendue * 1.12, 1000, 1200)
             if args.illustration:
                 planche(bpy, [args.illustration.resolve(strict=True)] + [output / v for v in ('face.png', 'face-trois-quarts.png', 'dos.png')],
                         output / 'planche.png')
             portrait_target = Vector((center.x, center.y, low.z + height * 0.86))
             render('portrait.png', (0.3, -1, 0.05), portrait_target, height * 0.32, 768, 768)
         for size in (40, 64, 128):
-            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), center, extent * 1.12, round(size * 1000 / 1200), size)
+            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), cible, etendue * 1.12, round(size * 1000 / 1200), size)
     report['elapsed_seconds'] = time.monotonic() - start
     report['sha256_after'] = hashlib.sha256(source.read_bytes()).hexdigest()
     if digest != report['sha256_after']:

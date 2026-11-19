@@ -10,6 +10,7 @@ import { etatIdsConnus } from '../../engine/conditions';
 import { t } from '../../i18n';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
@@ -101,7 +102,7 @@ describe('opValue — DÉFAUT signé (longue traîne) : jamais de faux 0 silenci
 describe('oppositionDiscount — Sorts de Contact / résistés (LDB 46 l.103-105)', () => {
   const caster = () => combatant({ characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 } });
   const target = () => combatant({ id: 'h', characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 } });
-  const spell = (opposed?: SpellData['opposed']): SpellData => ({ id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', opposed, source: { book: 'LDB', page: 0 } } as SpellData);
+  const spell = (opposed?: SpellData['opposed']): SpellData => ({ id: idDeFixture('spell', 'sp'), type: 'spells', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', opposed, source: { book: 'LDB', page: 0 } });
 
   it('Sort de Contact (opposé) → escompte < 1', () => {
     expect(oppositionDiscount(spell({ kind: 'contact' }), caster(), target())).toBeLessThan(1);
@@ -126,7 +127,7 @@ describe('hitProbability — chaque pion d’État coûte sa marche à l’IA (C
   const use = (pions: number) => combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [MELEE], ...(pions ? { conditions: [{ id: 'extenue', value: pions }] } : {}) } as Partial<Combatant>);
 
   it('0 à 5 pions Exténué : 0,40 → 0,05 par marches de 0,10 (plancher 5 %)', () => {
-    const p = [0, 1, 2, 3, 4, 5].map((n) => hitProbability(use(n), cible(), MELEE, 'melee'));
+    const p = [0, 1, 2, 3, 4, 5].map((n) => hitProbability(use(n), cible(), MELEE, { kind: 'melee' }));
     expect(p).toEqual([0.4, 0.3, 0.2, 0.1, 0.05, 0.05]);
     // Non-vacuité : la série doit VRAIMENT décroître (une grandeur constante passerait toute
     // comparaison « ≤ » sans rien prouver), et le 4ᵉ pion doit peser (le plafond l'aurait mangé).

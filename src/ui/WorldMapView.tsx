@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../noyau/carriers';
 import { shipboardSouls } from '../noyau/shipCrew';
 import { useGame } from '../state/store';
-import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
+import { DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
 import { placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, positionsDeRendu, MapRoute, MapPlace } from '../noyau/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, devisDeTrajet, refusDeDepart, MOUNT_MAX_HOURS, type OptionsDeDepart } from '../noyau/travelFlow';
@@ -96,6 +96,8 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   // Coop : l'invité consulte la carte mais l'HÔTE décide des départs (le voyage déplace tout le
   // groupe et résout des journées entières — audit Lot 4, arbitrage V1 « exploration = miroir »).
   const isGuest = useGame((s) => s.net.mode) === 'invite';
+  /** La cadence ne s'offre que là où elle a un effet (`cadenceAUnEffet`). */
+  const cadenceOfferte = useGame(cadenceAUnEffet);
   const identites = useIdentites();
   const [selId, setSelId] = useState<string | null>(initialRouteId ?? null);
   const [mode, setMode] = useState<TravelMode>('pied');
@@ -109,8 +111,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   const [seaPace, setSeaPace] = useState(0);
   /** Traversée RAPIDE (MDG 15 l.21-37) : tout le trajet en UN Test de Rude épreuve, sinon jour par jour. */
   const [seaFast, setSeaFast] = useState(false);
-  /** CADENCE de la traversée détaillée, en mer comme au fleuve (couche `voyageCadence`). Ignoré en
-   *  traversée rapide. */
+  /** CADENCE du trajet, à terre, en mer et au fleuve (couche `voyageCadence`). Ignoré en traversée rapide. */
   const [cadence, setCadence] = useState<VoyageCadence>(DEFAULT_VOYAGE_ORDERS.cadence);
   /** Lieu cliqué SANS route directe depuis ici → on l'explique au lieu de rester muet. */
   const [farId, setFarId] = useState<string | null>(null);
@@ -231,7 +232,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   const seaPaceChoices = seaRig ? [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig.mode) != null) : [0];
   const seaPaceRefus = seaRig ? forcePaceRefus(party, seaRig.competence) : null;
   // Surcharge de la cale : MDG 12 l.70-75.
-  const seaOverload = vessel ? dossierDuNavire(vessel, party)?.overload ?? null : null;
+  const seaOverload = vessel ? dossierDuNavire(vessel, party, gameTime)?.overload ?? null : null;
   // Population embarquée pour le manifeste d'avitaillement (#245) : MDG 14 l.238.
   const seaCrewCount = shipboardSouls({ party, vessel }).crew;
 
@@ -244,7 +245,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
     allure: mode === 'monture' ? allure : forceGallop ? 'galop' : undefined,
     seaPace: mode === 'mer' && !fastJoue && seaPace > 0 ? seaPace : undefined,
     fast: fastJoue ? true : undefined,
-    cadence: (mode === 'mer' && !fastJoue) || fluvialJoue ? cadence : undefined,
+    cadence: cadenceOfferte && !fastJoue ? cadence : undefined,
   };
   const devis = selRoute && here ? devisDeTrajet(useGame.getState(), selRoute, here.id, mode, opts) : null;
   const refusDuDepart = selRoute ? refusDeDepart(useGame.getState(), selRoute.id, mode, opts) : null;
@@ -256,7 +257,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
 
   // Avitaillement au départ EN MER (#241) : le groupe qui appareille sans vivres/eau le SAIT.
   const seaDaysEstimated = mode === 'mer' && selRoute && appareillable ? dureeDeTraversee(selRoute.km, seaM) : 0;
-  const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
+  const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, gameTime, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
 
   const libelleDepart = t(mode === 'mer' && provisions && !provisions.suffisant ? 'wm.appareillerQuandMeme' : achat ? 'wm.payerEtPartir' : 'wm.partir');
   const fmtDuration = (p: NonNullable<typeof plan>) =>
@@ -566,32 +567,34 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               )}
             </>
           )}
-          {((mode === 'mer' && appareillable) || fluvialJoue) && (
+          {(mode !== 'mer' || appareillable) && (cadenceOfferte || mode === 'mer') && (
             <div className="wm-modes">
-              <button
-                type="button"
-                className="btn small"
-                aria-pressed={!fastJoue && cadence === 'commande'}
-                onClick={() => { setSeaFast(false); setCadence('commande'); }}
-                title={t(fluvialJoue ? 'wm.cadenceCommandeFleuve' : 'wm.cadenceCommandeMer')}
-              >
-                {t(fluvialJoue ? 'wm.descenteCommandee' : 'wm.traverseeCommandee')}
-              </button>
-              <button
-                type="button"
-                className="btn small"
-                aria-pressed={!fastJoue && cadence === 'jourParJour'}
-                onClick={() => { setSeaFast(false); setCadence('jourParJour'); }}
-                title={t(fluvialJoue ? 'wm.cadenceJourParJourFleuve' : 'wm.cadenceJourParJourMer')}
-              >
-                {t('wm.jourParJour')}
-              </button>
+              {cadenceOfferte && (<>
+                <button
+                  type="button"
+                  className="btn small"
+                  aria-pressed={!fastJoue && cadence === 'commande'}
+                  onClick={() => { setSeaFast(false); setCadence('commande'); }}
+                  title={t(fluvialJoue ? 'wm.cadenceCommandeFleuve' : mode === 'mer' ? 'wm.cadenceCommandeMer' : 'ecran.cadence.commande')}
+                >
+                  {t(fluvialJoue ? 'wm.descenteCommandee' : 'wm.traverseeCommandee')}
+                </button>
+                <button
+                  type="button"
+                  className="btn small"
+                  aria-pressed={!fastJoue && cadence === 'jourParJour'}
+                  onClick={() => { setSeaFast(false); setCadence('jourParJour'); }}
+                  title={t(fluvialJoue ? 'wm.cadenceJourParJourFleuve' : mode === 'mer' ? 'wm.cadenceJourParJourMer' : 'ecran.cadence.jourParJour')}
+                >
+                  {t('wm.jourParJour')}
+                </button>
+              </>)}
               {mode === 'mer' && (
                 <button
                   type="button"
                   className="btn small"
                   aria-pressed={fastJoue}
-                  onClick={() => { setSeaFast(true); setSeaPace(0); }}
+                  onClick={() => { setSeaFast(!fastJoue); setSeaPace(0); }}
                   title={t('wm.traverseeRapide')}
                 >
                   {t('wm.traverseeRapideAction')}

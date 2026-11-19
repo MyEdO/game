@@ -32,7 +32,7 @@ describe('#341 — canal météo « Tests physiques » : les 4 familles traverse
     const melee = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), sword, { kind: 'melee' }));
     expect(melee).toHaveLength(1); // pas de double-compte
     expect(melee[0].value).toBe(-10);
-    const ranged = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), bow, { kind: 'distance', distanceTiles: 5 }));
+    const ranged = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), bow, { kind: 'distance', distanceTiles: 5, metresPerTile: 2 }));
     expect(ranged.map((m) => m.value)).toEqual([-10]);
   });
 

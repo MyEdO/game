@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "arete",
+  "cle": {
+    "kit": "moellons"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "moellons",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "ame",
+      "palette": "bois",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "menuiserie",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "croisee",
+      "palette": "vet1",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "c4286b91d3114bf8d2ce67c006d301978d8669d10bde72214b6e6b182ef37d00",
+    "octets": 804024
+  }
+}

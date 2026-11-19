@@ -16,13 +16,13 @@ import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
 import type { TestResult, OpposedResult, EchecSansJet, JetPose } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine, RollBreakdown } from '../engine/combat';
-import type { AttackKind } from '../engine/creatureAttacks';
+import type { AttackKind, ManoeuvreComposee } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
-import type { ManeuverDef, StakeRef, SpellData } from '../data';
+import type { StakeRef, SpellData } from '../data';
 import type { CastResult, CritChoice, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode, TestDeSoin } from '../engine/healing';
-import type { PsychType, TypeAcquis } from '../engine/psychology';
+import type { TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
@@ -36,6 +36,7 @@ import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
+import type { RegistreDuBord } from './etat';
 import type { IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
@@ -115,7 +116,6 @@ export type DialogueTransition = EtatDialogue | 'close';
 /** Test de compétence interactif en attente d'acquittement par le joueur. */
 export interface PendingTest {
   actorId: string;
-  actorName: string;
   /** Intitulé de la SITUATION (« Esquiver les piques de la dalle ») → titre de la modale. */
   label: string;
   /** Compétence/Caractéristique RÉELLE testée (« Athlétisme », « Dextérité ») → libellé du cadre de
@@ -149,10 +149,10 @@ export interface PendingTest {
   /** CONTEXTE du Test que l'interlocuteur déclare (sa fiche : amateur d'art ou de théâtre, ACE 12
    *  l.60-62) — lu par l'inversion (LDB 12 l.42). */
   contexte?: ContexteDeTest;
-  /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
+  /** Jet de la table Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
-  /** Delta de DR de la table Capricieux (`capriciousDR`, MSRC 15 l.149-159) : appliqué au DR du Test
+  /** Delta de DR de la table Capricieux (`tirerLeCapricieux`, MSRC 15 l.149-159) : appliqué au DR du Test
    *  RÉSOLU (`FLOWS.test.resolve`), jamais à `skillValue`/`target`. */
   capriciousDR?: number;
   /** Outil utilisé (uid résolu sur l'acteur) : sa qualité d'artisanat module l'issue / casse l'objet (Phase C2a). */
@@ -229,7 +229,6 @@ export interface PendingTest {
  *  l'Armure) via `jetValider('fuiteDeVapeur')`, puis la boucle maritime reprend. */
 export interface PendingSteamSave {
   actorId: string;
-  actorName: string;
   skillValue: number;
   target: number;
   /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
@@ -247,7 +246,6 @@ export interface PendingSteamSave {
  *  La modale affiche « Lancer », le DR, puis Chance avant d'acquitter (cumul vers `reload`). */
 export interface PendingReload {
   actorId: string;
-  actorName: string;
   weaponUid: string; // arme de rechargement (loadout) — résolue en NOM à l'affichage
   reload: number; // Indice DR cible
   progressBefore: number; // DR déjà cumulés (Test étendu)
@@ -272,7 +270,6 @@ export interface PendingReload {
  *  de Force contre la source ; En flammes = Test d'Athlétisme simple. Modale Lancer → DR → Chance. */
 export interface PendingStateRecovery {
   actorId: string;
-  actorName: string;
   /** ÉTAT en cours de récupération — un id de `etats.json` : c'est la DONNÉE de l'État (`recover`)
    *  qui dit s'il se récupère par une Action, jamais une union gravée ici. */
   state: string;
@@ -353,7 +350,6 @@ export interface PendingBargain {
  *  une seule tentative par artefact. Même modale (« Lancer », résultat, Chance, acquittement). */
 export interface PendingAppraise {
   actorId: string;
-  actorName: string;
   /** Objet d'un héros (uid d'inventaire)… */
   itemUid?: string;
   /** …ou ligne de butin ENCORE en fenêtre (loot/victoire) — révélation AVANT attribution. */
@@ -474,7 +470,6 @@ export interface PendingAttack {
  *  l'objet glisse (op `disarm`) et l'Action est consommée. Chemin IA = jet inline forcé côté `doAttack`. */
 export interface PendingHandGate {
   attackerId: string;
-  actorName: string;
   /** Main gatée (loadout actif) — pour le `disarm` sur Échec (convention DROITIER `main`/`secondaire`). */
   hand: Main;
   /** La ligne du jet, figée à l'ouverture (`rollLine`) : ce que la fenêtre annonce et ce que le résolveur jette. */
@@ -708,8 +703,6 @@ export interface PendingApproach {
   test: TestNomme;
   /** Source de Peur la plus proche dont le déplacement RAPPROCHE. */
   sourceId: string;
-  /** Son nom, FIGÉ au geste qui ouvre le Test. */
-  sourceName: string;
   /** Geste différé, relancé après un succès avec l'intention de son clic d'origine (`OptionsDuClic.intentionId`), que ce
    *  clic a dissoute. */
   intent: { kind: 'tile'; pt: Pt; intentionId?: IdDIntention } | { kind: 'entity'; id: string; intentionId?: IdDIntention };
@@ -725,8 +718,6 @@ export interface PendingWard {
   attackerId: string;
   /** Cible bénie (porte le drapeau `attackWardFM`). */
   targetId: string;
-  /** Son nom, FIGÉ au geste qui ouvre le Test. */
-  targetName: string;
   /** L'intention du clic qui a ouvert ce gate (même raison que `PendingApproach`). */
   intentionId?: IdDIntention;
   result: { success: boolean; roll: number; target?: number; clamped?: number; sl: number } | null;
@@ -808,6 +799,9 @@ export interface PendingCorruption {
   /** EXPOSITION : nature imposée par la source → pas de choix joueur. Absent/false = indéterminée
    *  (LDB 19 l.29) → la modale propose les Tests de `influences-corruptrices` (cf. réglage `corruption.nature`). */
   natureFixee?: boolean;
+  /** EXPOSITION : Difficulté imprimée par la source (op `corruptionExposure.difficulty`, ZI 13 l.197), qui
+   *  survit au choix de la nature ; absente, celle du Test de `influences-corruptrices`. */
+  difficulteFixee?: Difficulty;
   /** Alignement de la SOURCE (Puissance du Chaos) posé par l'éditeur de niveau → table EDOC à tirer
    *  si une mutation survient (sinon la règle globale décide). Voyage exposition → seuil → mutation. */
   align?: import('../engine/corruption').ChaosAlign;
@@ -916,7 +910,6 @@ export type PendingDeviation =
       crit: CriticalResolved;
       origine: OrigineCritique;
       overkill: number; // dépassement (LDB 18 l.17)
-      woundsBefore: number; // PB avant CE coup → restauration Destin correcte au Subir
       reveal: RevealEntry;
       resumeAfter: boolean;
       ctx: DeviationCtx;
@@ -1593,7 +1586,7 @@ export interface OpposedFreeze {
    *  Absent pour un adversaire ABSTRAIT (table sans Combatant, ex. jeux de taverne contre la maison). */
   attackerId?: string;
   /** Nom de l'attaquant (affichage de la ligne d'opposition) — tout producteur a un adversaire nommé. */
-  attackerName: string;
+  attackerName: PlayerText;
   /** CE QUE TESTE l'attaquant, en STRUCTURE (ids de Compétence/Caractéristique) : le libellé de sa
    *  ligne en est DÉRIVÉ par le rendu (`testSkillLabel`), jamais composé par le flux qui fige le jet —
    *  un flux déclare, le renderer écrit. */
@@ -1629,7 +1622,7 @@ export interface ManeuverDefenseFreeze {
   /** Créature attaquante (référent des effets/formules). */
   attackerId: string;
   /** La manœuvre telle que l'attaque la résout (composée avec son Type pour un Souffle, `souffleDuType`). */
-  def: ManeuverDef;
+  def: ManoeuvreComposee;
   /** Indice de la manœuvre (Dégâts = 4 + BF pour une arme naturelle, LDB 85). */
   indice: number;
   /** Avantage dépensé (marge des manœuvres à Avantage VARIABLE, ex. Regard +1 DR/Av, LDB 85 l.290). */
@@ -1684,6 +1677,8 @@ export type Cloture =
   | { verbe: 'testRateDeLActeur'; actorId: string; sl: number }
   /** Effets PROGRAMMÉS dus au même pas d'horloge et pas encore joués (`fireScheduledEffects`). */
   | { verbe: 'effetsProgrammes'; restants: ScheduledEffect[] }
+  /** Suite du pas maritime déjà écoulé avant un Effet programmé. */
+  | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number }
   /** Écran de victoire (`finalizeBattle`), POSÉ après le dé : il ne doit pas s'ouvrir devant lui, et
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }
@@ -1736,6 +1731,9 @@ export interface CascadeStepMeta {
   /** L'op `attaquesSubies` dont l'étape `nombreDAttaquesSubies` tire le dé `nombre` (`combatFlow.ouvrirLeNombreDAttaquesSubies`),
    *  relue par son applier pour ouvrir la série. */
   attaquesSubies?: [Extract<GameOp, { op: 'attaquesSubies' }>];
+  /** Le poste du membre de l'équipage que vise l'étape (`shipCrew.metaDuPoste`, `shipCrew.posteDeLEtape`). */
+  roleDuMembre?: string;
+  registreDuMembre?: RegistreDuBord;
   /** SUITE confiée à cette étape (#2689, `combatEffects.confierLaSuite`), rejouée APRÈS sa conséquence
    *  à la DERNIÈRE étape de la grappe : si un maillon rouvre un dé, les maillons restants repartent avec
    *  lui. */
@@ -1950,7 +1948,7 @@ export interface BatchParticipant extends RollParticipant {
 export type CascadeActorCounter = 'sinPoints';
 
 /**
- * LE DÉ D'UNE ÉTAPE DE CASCADE — la DÉCLARATION, sérialisable (coop) : quels dés (`spec`), quel
+ * LE DÉ D'UNE ÉTAPE DE CASCADE — la DÉCLARATION, sérialisable (coop) : quel
  * modificateur appliqué au naturel (`mod`, `modPerActor`), quel dé IMPOSÉ (`forcedRoll` — dé posé par
  * un siège, ou injection d'un résolveur moteur), combien de tirages dont on retient le meilleur
  * (`keepHighest`). `result` absent = dé non jeté (interaction `'de'`).
@@ -1960,18 +1958,6 @@ export type CascadeActorCounter = 'sinPoints';
  * `tableId`). Le tirage est le même geste ; seule la lecture diffère.
  */
 export interface CascadeDeTirage {
-  /**
-   * Les DÉS du tirage (`engine/dice.DiceSpec`, forme canonique partagée avec la Formula `{dice}`).
-   *
-   * OPTIONNEL ICI, REQUIS À LA PORTE — et la raison est la TABLE : une `TableStepDef` déclare déjà les
-   * siens (`die`, d100 par défaut), et les ~20 déclarations de table du dépôt n'ont pas à les répéter
-   * pour que la table reste la source de son propre dé (`cascade.tableSpec` : la déclaration l'emporte,
-   * la table donne son défaut, d100 sinon). Un DÉ NU, lui, n'a aucune table où les prendre : sa porte
-   * les EXIGE au type (`rollSeam.DieStepSpec.spec`, non optionnel) et REFUSE une déclaration non
-   * tirable, et `roulerDe` lève plutôt que de replier en silence — il n'y a donc pas de d100 fantasmé
-   * pour un dé nu, seulement pour une table qui a le sien.
-   */
-  spec?: DiceSpec;
   mod?: number;
   forcedRoll?: number;
   /** Modificateur VIVANT : `factor` × le COMPTEUR `counter` de l'ACTEUR de l'étape, lu à l'instant du
@@ -1999,6 +1985,10 @@ export interface CascadeDeTirage {
  *  deux ne divergent que par leur `result`, ce qui interdit une intersection naïve (le socle prend
  *  donc `CascadeDeTirage` en paramètre partout où il ROULE, jamais la déclaration complète). */
 export interface CascadeDeDecl extends CascadeDeTirage {
+  /** Les DÉS du tirage (`engine/dice.DiceSpec`) : un dé NU n'a aucune table où les prendre, sa
+   *  déclaration les porte (`rollSeam.DieStepSpec.spec`). Une TABLE porte les siens
+   *  (`cascade.TableStepDef.die`), seul porteur du dé d'une étape à table (#1667). */
+  spec: DiceSpec;
   result?: CascadeDeResult | null;
   /** LECTURE EN SEUIL de ce tirage (#1508) — troisième lecture du MÊME dé, à côté de la nue (le total EST
    *  la conséquence) et de la table : le total est comparé à un INDICE. Déclaré SUR l'étape, comme
@@ -2236,7 +2226,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
    *  les RANGÉES (`participants`, `aggregate:'none'`). L'applier 'psychologieDeRencontre' pose le `psychState`
    *  RANGÉE PAR RANGÉE ; Détermination (LDB 17 l.59) jouée par rangée (`BatchParticipant.immune`). */
-  psychologieDeRencontre?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
+  psychologieDeRencontre?: { kind: string; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy };
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
    *  (`participants`, `aggregate:'none'`), et le Round que sa passe concerne (`round`, repère de
@@ -2244,7 +2234,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`psychologieDeRencontre` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
-  psychologieDeCombat?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy; round: number };
+  psychologieDeCombat?: { kind: string; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy; round: number };
   /** Étape « choix » : options présentées au joueur (l'option retenue pilote la conséquence). Leur
    *  `label` est du TEXTE JOUEUR marqué (#1318 V8a₁), comme celui de l'étape qui les porte. `refus` =
    *  la CAUSE d'indisponibilité de CETTE option (coût d'Avantage hors de portée…), rendue au survol/
@@ -2308,14 +2298,14 @@ export type CascadeTestStep = Extract<CascadeRollStep, { evaluation?: 'test' }>;
 export type CascadeStep = CascadeRollStep | (CascadeStepBase & { target?: undefined; rollLabel?: undefined });
 
 /** SURFACE des rangées d'une bande résolue par un pilote sans fenêtre, DÉCLARÉE par ce pilote : le
- *  procès-verbal structuré d'une traversée (`dayEntriesFromStep`, `seaVoyageFlow.ts`) montre déjà
- *  chaque dé, ligne par ligne — le journal ne les redit pas (#1291). Absente = le journal est la seule
- *  surface, il porte les dés. */
+ *  procès-verbal structuré d'une traversée (`TravelPlan.procesVerbal`, écrit au commit de la bande par
+ *  `voyageCadence.noterAuProcesVerbal`) montre chaque dé, ligne par ligne — le journal ne les redit pas
+ *  (#1291). Absente = le journal est la seule surface, il porte les dés. */
 export type RowSurface = 'pv';
 
 /** Contexte de lancement d'un pilote immédiat PARQUÉ, rejoué tel quel à sa reprise : `sansContexte` = lancé
  *  sans `ctx` (un combat ouvert en plein vol arrête la boucle sans rien empiler) ; `rowSurface` = la
- *  surface de rangées qu'il avait déclarée, que le dénouement de la séquence honore ; `auxVraisChoix` = il
+ *  surface de rangées qu'il avait déclarée, que chaque commit de bande de la suite honore ; `auxVraisChoix` = il
  *  s'arrête à chaque vrai choix d'un siège (`cascade.jouerLaJournee`, #3534). */
 export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface; auxVraisChoix?: true };
 
@@ -2372,8 +2362,10 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  suite propre, le dénouement vit dans l'applier de sa dernière étape). 'affichage' (#942 L8 :
    *  séquence d'AFFICHAGE PUR — étapes sans jet ni choix, poussées hors combat par `pushReveal` quand
    *  aucune séquence n'est en vol ; clôture sans AUCUNE suite propre, `dispatchCascadeDone` n'a qu'à
-   *  reprendre une éventuelle séquence parquée). */
-  purpose: 'night' | 'travel' | 'travelDay' | 'test' | 'combat' | 'sequence' | 'seaScorbut' | 'seaExposure' | 'seaExhaustion' | 'seaActivities' | 'riverExposure' | 'upkeep' | 'interlude' | 'affichage';
+   *  reprendre une éventuelle séquence parquée) ;
+   *  'seaHealth' : Contraction avant le pas d'horloge en mer, puis entretien avant le pas rapide suivant
+   *  (`continuerLeTempsEnMer`). */
+  purpose: 'night' | 'travel' | 'travelDay' | 'test' | 'combat' | 'sequence' | 'seaScorbut' | 'seaExposure' | 'seaExhaustion' | 'seaHealth' | 'seaActivities' | 'riverExposure' | 'upkeep' | 'interlude' | 'affichage';
   /** HALTE de voyage : la finalisation REPREND la route (continueTravelAfterNight). */
   travelHalt?: boolean;
   /** Cascade de PEUR de FIN de Round (combat) : à sa fermeture, le store ré-appelle `resolveRoundBoundary`
@@ -2417,9 +2409,8 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
  *  mode de pendingHeal : c'est une opération « armée » sur l'infirmerie (noyau/medicFlow). */
 export interface PendingHeal {
   healerId: string;
-  healerName: string;
+  healerName: PlayerText;
   targetId: string;
-  targetName: string;
   /** L'acte (réglage `soins.mode`). Hors combat, `chirurgie`/`reeducation` : le brouillon de l'opération que
    *  `jetLancer('soins')` arme (`acteDeSoin.ts`). */
   mode: HealMode;
@@ -2454,9 +2445,7 @@ export interface PendingHeal {
  *  `medic.surgery` à l'ouverture de la passe (affichage DrBar dans la modale). */
 export interface PendingSurgery extends PendingBase {
   healerId: string; // chirurgien (héros → influence ; PNJ → no-op)
-  healerName: string;
   targetId: string; // patient opéré
-  targetName: string;
   /** La ligne de la passe, figée à son ouverture sur l'opération armée (`rollLine`, Soutien LDB 12 compris) : ce que
    *  la fenêtre annonce et ce que le résolveur jette. */
   ligne: RollLineParts;

@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.309-436 */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import {
   cibleEtendueSchema,
   difficultySchema,
@@ -11,7 +11,7 @@ import {
   prixDuLivreSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
-import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
+import { testFixeSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 
 export const file = 'sea-cargo.json';
 export const famille = 'config';
@@ -103,9 +103,9 @@ const champs = {
     paliers: { label: 'Paliers' },
     source: { label: 'Source' },
   }),
-  opportunite: nommerChamps(z.strictObject({
+  opportunite: nommerChamps(porteurDeTestFixe(z.strictObject({
     encInvestiMax: z.boolean(),
-    test: flowTestSchema,
+    test: testFixeSchema,
     ...cibleEtendueSchema.shape,
     tentativesMax: z.number(),
     outcomes: z.array(
@@ -122,7 +122,7 @@ const champs = {
       }),
     ),
     source: sourceRefSchema,
-  }).superRefine(fixerLeTest('skill', 'difficulty')), {
+  }), 'skill', 'difficulty'), {
     encInvestiMax: { label: 'Investissement maximal (Enc)' },
     test: { label: 'Test' },
     ...metaDesChamps(cibleEtendueSchema, { exigees: true }),
@@ -153,4 +153,3 @@ export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
-export type SeaCargoData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

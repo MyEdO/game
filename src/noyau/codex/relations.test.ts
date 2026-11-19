@@ -2,7 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { reverseGroups, bookContents, labelIndex, tokenizeLinks } from './relations';
 import { setDataset } from '../../data/overrides';
 import { replier } from '../../lib/ordre.mjs';
-import { creatures, traits, gods, trappings, skills, talents, careerLevels, etats, locations, characteristics, findCareerById, findLocationById } from '../../data';
+import {
+  creatures,
+  traits,
+  gods,
+  trappings,
+  skills,
+  talents,
+  careerLevels,
+  etats,
+  locations,
+  characteristics,
+  findCareerById,
+  findLocationById,
+} from '../../data';
 
 /** Un groupe inverse de catégorie `cat` contient-il `label` ? */
 const groupHas = (groups: ReturnType<typeof reverseGroups>, cat: string, label: string): boolean =>
@@ -32,6 +45,13 @@ describe('relations — graphe inverse id-based', () => {
     const qid = t.qualities[0].id;
     const groups = reverseGroups('qualities', qid);
     expect(groupHas(groups, 'trappings', t.label)).toBe(true);
+  });
+
+  it('munition → armes qui la tirent (inversion de trapping.munitions) #4360', () => {
+    const groups = reverseGroups('trappings', 'grappin-munition');
+    const armes = groups.find((g) => g.category === 'trappings');
+    expect(armes?.title).toBe('Armes qui la tirent');
+    expect(armes?.referrers.map((r) => r.id)).toEqual(['mortier-a-main']);
   });
 
   it('caractéristique → compétences liées (inversion de skill.characteristic)', () => {

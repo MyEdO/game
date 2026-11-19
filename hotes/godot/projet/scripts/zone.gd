@@ -1,20 +1,26 @@
 ## Une zone de l'écran (#3328, `src/hote/elements.ts`) : les éléments d'une source dessinés dans le conteneur qui la
 ## porte, son parent, chacun par le composant de son type (`res://composants/<type>.tscn`, une scène sans script), ou
-## par celui que la zone lui donne à cet usage (`formes`, #3935).
-## Les éléments se réconcilient par type et par id : un élément déjà dessiné garde son nœud, un élément parti le quitte,
+## par celui que la zone lui donne à cet usage (`formes`, #3935), à son ton s'il en a un.
+## Les éléments se réconcilient par type et par id : un élément déjà dessiné garde son nœud tant que sa forme ne change
+## pas (son ton peut la changer), un élément parti le quitte,
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
-## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`,
-## `Saisie`, `Portrait` et `Dessin` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
+## pied, montré par le défilement qui le contient, ou, en `derniers`, seuls les derniers montrés ; en `pied`, le dernier
+## élément est montré par ce défilement à chaque pose (celui qui joue, au pied de l'ordre du tour).
+## Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`, `Saisie`, `Portrait` et `Dessin` le reçoit, et
+## chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
 ## de l'écran entre les zones du composant (`ids`), son `masque` caché quand elle n'a rien à montrer, son geste relayé.
 ## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer ; en `repli`, le conteneur de la zone se
 ## cache quand elle n'a rien à montrer, sans la place qu'il tiendrait vide dans celui qui le range. Sous un `TabContainer`, chaque élément
 ## est un onglet, titré de son nom (`nom`, sinon `libelle`), qui ne le redit pas (son `Nom` caché) ; une zone portée par
 ## une page d'un `TabContainer` en cache l'onglet quand elle n'a rien à montrer.
 ##
-## La source d'une zone de l'écran est une clé de `vue.zones` (`CONTRAT.md`). Une zone qui nomme des `ids` n'en montre
-## que les éléments de ces ids, dans l'ordre de la source, un id fini par `/` nommant chaque id qui commence par lui (une
-## famille aux ids tirés de la donnée) ; une zone sans `ids` montre ceux qu'aucune autre zone de sa source ne nomme
-## (`montrer_toutes`) : une disposition range les éléments d'une source sans en perdre aucun.
+## La source d'une zone de l'écran est une clé de `vue.zones` (`hotes/godot/pont/CONTRAT.md`). Une zone qui nomme des
+## `ids` n'en montre que les éléments de ces ids, dans l'ordre de la source, un id fini par `/` nommant chaque id qui
+## commence par lui (une famille aux ids tirés de la donnée) ; une zone sans `ids` montre ceux qu'aucune autre zone de sa
+## source ne nomme (`montrer_toutes`) : une disposition range les éléments d'une source sans en perdre aucun.
+## Une source, un type ou un ton de `formes` que le noyau ne sert pas (`Noyau`) est une faute de la scène, dite à
+## l'instanciation et dans le conteneur de la zone ; un élément qu'aucune zone de sa source ne montre, une faute dite
+## à sa pose (#3328).
 class_name Zone
 extends Node
 
@@ -25,12 +31,58 @@ signal geste(jeu: Dictionary)
 @export var ajout := false
 @export var masque: Control = null
 @export var repli := false
+## Le dernier élément montré par le défilement qui contient la zone à chaque pose, comme en `ajout`.
+@export var pied := false
 ## Sans initialiseur : l'export Web de Godot 4.7 perd la valeur posée d'un `PackedStringArray` initialisé par `[]`.
 @export var ids: PackedStringArray
-## La forme d'un type d'élément dans cette zone, `<type>:<forme>` : le composant `res://composants/<forme>.tscn`.
+## La forme d'un type d'élément dans cette zone, `<type>:<forme>` : le composant `res://composants/<forme>.tscn` ;
+## `<type>.<ton>:<forme>`, celle d'un élément de ce type à ce ton, qui prime.
 @export var formes: PackedStringArray
+## En `ajout`, le nombre d'éléments montrés, les derniers ; `0` : tous. Réglé sur une zone posée, il remontre ses
+## éléments.
+@export var derniers := 0:
+	set(n):
+		derniers = n
+		if get_parent() != null:
+			_garder_les_derniers()
 
 const META := &"element"
+
+var _pieds_attendus: Array[WeakRef] = []
+
+
+func _ready() -> void:
+	var fautes := PackedStringArray()
+	if not (Noyau.CHAMPS if _imbriquee() else Noyau.SOURCES).has(source):
+		fautes.append("source inconnue « %s »" % source)
+	for forme in formes:
+		var type_et_ton := forme.get_slice(":", 0)
+		if not Noyau.TYPES.has(type_et_ton.get_slice(".", 0)):
+			fautes.append("forme « %s » au type inconnu" % forme)
+		elif type_et_ton.contains(".") and not Noyau.TONS.has(type_et_ton.get_slice(".", 1)):
+			fautes.append("forme « %s » au ton inconnu" % forme)
+	for faute in fautes:
+		var dite := "%s : zone %s, %s" % [_scene(), owner.get_path_to(self) if owner != null else name, faute]
+		push_error(dite)
+		var etiquette := Label.new()
+		etiquette.text = dite
+		etiquette.theme_type_variation = &"echec"
+		get_parent().add_child.call_deferred(etiquette)
+
+
+## Si la zone est imbriquée : sous un composant dessiné, elle lit un champ de son élément.
+func _imbriquee() -> bool:
+	var parent := get_parent()
+	while parent != null:
+		if parent.has_meta(META):
+			return true
+		parent = parent.get_parent()
+	return false
+
+
+## La scène qui pose la zone.
+func _scene() -> String:
+	return owner.scene_file_path if owner != null else scene_file_path
 
 
 func montrer(elements: Array) -> void:
@@ -47,8 +99,13 @@ func montrer(elements: Array) -> void:
 		var noeud: Node = dessines.get(cle)
 		if noeud != null and ajout:
 			continue
+		var composant := "res://composants/%s.tscn" % _forme(e)
+		if noeud != null and noeud.scene_file_path != composant:
+			conteneur.remove_child(noeud)
+			noeud.queue_free()
+			noeud = null
 		if noeud == null:
-			noeud = load("res://composants/%s.tscn" % _forme(e.type)).instantiate()
+			noeud = load(composant).instantiate()
 			noeud.set_meta(META, cle)
 			conteneur.add_child(noeud)
 		conteneur.move_child(noeud, -1)
@@ -65,8 +122,10 @@ func montrer(elements: Array) -> void:
 			if not gardes.has(cle):
 				conteneur.remove_child(dessines[cle])
 				dessines[cle].queue_free()
-	if ajout and dernier != null:
-		_montrer_le_pied(dernier)
+	if (ajout or pied) and dernier != null:
+		_attendre_le_pied(dernier)
+	if derniers:
+		_garder_les_derniers()
 	if repli:
 		(conteneur as Control).visible = not gardes.is_empty()
 	if conteneur.get_parent() is TabContainer:
@@ -74,12 +133,25 @@ func montrer(elements: Array) -> void:
 		pages.set_tab_hidden(pages.get_tab_idx_from_control(conteneur as Control), not conteneur.get_children().any(func(n: Node) -> bool: return n.has_meta(META)))
 
 
-## Le composant du type `type` dans cette zone : celui de `formes`, sinon celui de son nom.
-func _forme(type: String) -> String:
-	for forme in formes:
-		if forme.begins_with(type + ":"):
-			return forme.trim_prefix(type + ":")
-	return type
+## Les seuls `derniers` composants dessinés montrés, tous sans `derniers`, le dernier montré par le défilement qui les
+## contient.
+func _garder_les_derniers() -> void:
+	var poses := get_parent().get_children().filter(func(n: Node) -> bool: return n.has_meta(META))
+	var montres := poses.slice(int(MiseEnPage.premier_des_derniers(poses.size(), derniers)))
+	for n in poses:
+		(n as Control).visible = montres.has(n)
+	if not poses.is_empty():
+		_attendre_le_pied(poses[-1])
+
+
+## Le composant de l'élément `e` dans cette zone : celui de `formes` à son type et à son ton, sinon à son type, sinon
+## celui du nom de son type.
+func _forme(e: Dictionary) -> String:
+	for prefixe in ["%s.%s:" % [e.type, e.get("ton", "")], e.type + ":"]:
+		for forme in formes:
+			if forme.begins_with(prefixe):
+				return forme.trim_prefix(prefixe)
+	return e.type
 
 
 ## La clé de l'élément `e`, que porte son composant (`META`) : son type et son id.
@@ -91,12 +163,21 @@ static func cle(e: Dictionary) -> String:
 ## Un `masque` se montre quand l'une des zones qui le nomment a quelque chose à montrer.
 static func montrer_toutes(zones: Array[Zone], sources: Dictionary) -> void:
 	var masques := {}
+	var montres := {}
 	for zone in zones:
-		zone.montrer(Zone.elements_de(zones, zone, sources))
+		var elements := Zone.elements_de(zones, zone, sources)
+		(montres.get_or_add(zone.source, []) as Array).append_array(elements.map(Zone.cle))
+		zone.montrer(elements)
 		if zone.masque != null:
 			masques[zone.masque] = masques.get(zone.masque, false) or zone.get_parent().get_children().any(func(n: Node) -> bool: return n.has_meta(META))
 	for masque in masques:
 		masque.visible = masques[masque]
+	for zone in zones:
+		if montres.has(zone.source):
+			for e in sources.get(zone.source, []):
+				if not montres[zone.source].has(Zone.cle(e)):
+					push_error("%s : %s n'a aucune zone de la source %s" % [zone._scene(), Zone.cle(e), zone.source])
+			montres.erase(zone.source)
 
 
 ## Les éléments de la source de `zone` dans `sources` qui lui reviennent parmi `zones` : ceux de ses `ids`, ou, sans
@@ -161,9 +242,28 @@ static func _dans_un_composant(noeud: Node, ecran: Node) -> bool:
 
 
 ## `noeud` montré par le défilement qui le contient, une image plus tard : le défilement a pris sa taille.
+func _attendre_le_pied(noeud: Control) -> void:
+	if _pieds_attendus.is_empty():
+		get_tree().process_frame.connect(_montrer_les_pieds_attendus, CONNECT_ONE_SHOT)
+	_pieds_attendus.append(weakref(noeud))
+
+
+func _exit_tree() -> void:
+	var image := get_tree().process_frame
+	if image.is_connected(_montrer_les_pieds_attendus):
+		image.disconnect(_montrer_les_pieds_attendus)
+	_pieds_attendus.clear()
+
+
+func _montrer_les_pieds_attendus() -> void:
+	var pieds := _pieds_attendus
+	_pieds_attendus = []
+	for pied_attendu in pieds:
+		_montrer_le_pied(pied_attendu.get_ref() as Control)
+
+
 func _montrer_le_pied(noeud: Control) -> void:
-	await get_tree().process_frame
-	if not is_instance_valid(noeud) or not noeud.is_inside_tree():
+	if noeud == null or not noeud.is_inside_tree():
 		return
 	var parent := noeud.get_parent()
 	while parent != null and not parent is ScrollContainer:

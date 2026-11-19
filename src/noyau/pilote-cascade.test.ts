@@ -7,7 +7,15 @@
  * `scripts/guards/lib/piloteCascadeStock.mjs` porte les copies restantes et ne fait que décroître.
  */
 import { beforeAll, describe, it, expect } from 'vitest';
-import { EXEMPTIONS, bouclesPilotes, corpusMesure, regenerations, sitesDeBoucles, sitesPiloteCascade, type ExemptionPilote } from '../../scripts/guards/lib/piloteCascadeAudit';
+import {
+  EXEMPTIONS,
+  bouclesPilotes,
+  corpusMesure,
+  regenerations,
+  sitesDeBoucles,
+  sitesPiloteCascade,
+  type ExemptionPilote,
+} from '../../scripts/guards/lib/piloteCascadeAudit';
 import { PILOTE_CASCADE_RATCHET } from '../../scripts/guards/lib/piloteCascadeStock.mjs';
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
@@ -242,7 +250,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
 
 describe('le kit LÈVE sur une étape qui porte à la fois une table et un dé nu', () => {
   it('`avanceEtapeCascade` nomme l’étape à deux porteurs au lieu d’en jouer un', () => {
-    const etape: CascadeStep = { id: 's0', kind: cleDeFixture('table'), table: { tableId: 't' }, de: {} };
+    const etape: CascadeStep = { id: 's0', kind: cleDeFixture('table'), table: { tableId: 't' }, de: { spec: { n: 1, sides: 10 } } };
     const rien = () => {};
     const etat = { pendingCascade: cascadeDeTest([etape]), jetLancer: rien, jetImposerLeResultat: rien, jetValider: rien };
     expect(() => avanceEtapeCascade(() => etat as unknown as Jeu)).toThrow(/« s0 ».*`table`.*`de`/);

@@ -11,7 +11,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { coeursDuRegistre } from './_lib.mjs'
+import { coeursDuRegistre, livreDuSigle } from './_lib.mjs'
 
 /** Le cœur sous lequel les bancs posent leurs pages — pris au registre, jamais écrit. LÈVE en
  *  NOMMANT la cause : un `undefined` rendrait un chemin `undefined/x.md` et un rouge trompeur. */
@@ -40,5 +40,28 @@ export function avecAtlasFixture(pages, fn, { prefixe = 'atlas-banc-', coeur = c
       writeFileSync(join(dir, relatif), contenu, 'utf8')
     }
     return fn(dir, coeur)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+}
+
+/**
+ * Bâtit un LIVRE extrait JETABLE (dossier de chapitres `NN - Chapitre NN.md`, une ancre `data-folio`
+ * par folio, une ligne de texte après chacune), joue `fn(registre)` avec un registre d'UNE entrée —
+ * celle du sigle au registre réel, son `dir` posé sur la fixture —, puis l'efface. C'est la couture
+ * `registre` des lecteurs de folios (`folioIndexOf`, _lib.mjs) : un banc dit sa géométrie de folios,
+ * jamais celle du `Source/` du jour.
+ * @param {string} sigle sigle d'un livre EXTRAIT du registre réel
+ * @param {Record<number, number[]>} chapitres numéro de chapitre -> folios ancrés, dans l'ordre
+ * @param {(registre: object[]) => any} fn
+ */
+export function avecLivreFixture(sigle, chapitres, fn) {
+  const livre = livreDuSigle(sigle)
+  if (!livre) throw new Error(`atlasFixture: aucun livre extrait de sigle « ${sigle} » au registre src/data/books.json`)
+  const dir = mkdtempSync(join(tmpdir(), 'livre-banc-'))
+  try {
+    for (const [ch, folios] of Object.entries(chapitres)) {
+      const lignes = [`# Chapitre ${ch}`, ...folios.flatMap((f) => [`<span data-folio="${f}"></span>`, `texte du folio ${f}`])]
+      writeFileSync(join(dir, `${String(ch).padStart(2, '0')} - Chapitre ${ch}.md`), lignes.join('\n') + '\n', 'utf8')
+    }
+    return fn([{ ...livre, dir }])
   } finally { rmSync(dir, { recursive: true, force: true }) }
 }

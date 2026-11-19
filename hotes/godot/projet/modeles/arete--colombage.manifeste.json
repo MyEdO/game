@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "arete",
+  "cle": {
+    "kit": "colombage"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "torchis",
+      "palette": "corps",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "ossature",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "menuiserie",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "croisee",
+      "palette": "vet1",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "c7cbd78af6c3dac5340ef9495342931d0d7c537816bcaf5639abe10dda88bfff",
+    "octets": 232084
+  }
+}

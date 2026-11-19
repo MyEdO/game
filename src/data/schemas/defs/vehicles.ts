@@ -1,9 +1,8 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `vehicles.json` — véhicules/embarcations à coque (chariots, barges, navires), 3 facettes
- * indépendantes (achat/voyage/coque+navire). Dérivé de l'interface `VehicleData` EXISTANTE
- * (`src/engine/types.ts`, + `NavalTraitRef`/`Propulsion`/`VehicleTravelClass` co-localisées) et du
- * contenu RÉEL (25 entrées, script d'inventaire : `hull` 22/25, `ship` 20/25, `travel` 3/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
+ * indépendantes (achat/voyage/coque+navire), dont `VehicleData` (`src/engine/types.ts`) est le type dérivé ;
+ * relevé sur le contenu RÉEL (25 entrées, script d'inventaire : `hull` 22/25, `ship` 20/25, `travel` 3/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
  */
 import { z } from 'zod';
 import { availabilitySchema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
@@ -32,7 +31,7 @@ const doc = document(
   famille,
   {
     /** Encombrement de l'objet véhicule (LDB 61) — `null` = ne se porte pas (généralement, diligence…). */
-    enc: z.union([z.number(), z.null()]).optional(),
+    enc: z.number().nullable().optional(),
     /** Chargement (EDOC 07 l.231-243) — Points d'Enc que la section bagages contient, véhicules terrestres
      *  uniquement. Champ parallèle à `ship.capacity` (même concept, facette `ship` inadaptée : ses autres
      *  champs — crew/manoeuvre/lengthM naval — n'ont pas d'équivalent EDOC pour un attelage terrestre). */
@@ -60,11 +59,11 @@ const doc = document(
       /** Table de Localisation des coups (`shipHitLocation`, `src/engine/combat.ts`) — vocabulaire
        *  FERMÉ : une coquille d'authoring résoudrait sinon la coque fluviale sur la table maritime.
        *  Absent/`null` = `navire` (MDG 13) ; `navire-fluvial` = MSRC 7. */
-      locationTable: z.union([z.enum(['navire', 'navire-fluvial']), z.null()]).optional(),
+      locationTable: z.enum(['navire', 'navire-fluvial']).nullable().optional(),
       /** Jeu de tables de Critiques (`shipCritSet`, `src/data/shipCriticals.ts`) — MÊME vocabulaire
        *  FERMÉ que `locationTable`, et pour la même raison : les deux jeux chargés sont
        *  `ship-criticals` (MDG 13) et `river-criticals` (MSRC 5). Absent/`null` = `ship-criticals`. */
-      criticalTable: z.union([z.enum(['ship-criticals', 'river-criticals']), z.null()]).optional(),
+      criticalTable: z.enum(['ship-criticals', 'river-criticals']).nullable().optional(),
     }), { char: { label: "caractéristiques" }, bodyShape: { label: "forme" }, propulsion: { label: "propulsion" }, locationTable: { label: "table de Localisation" }, criticalTable: { label: "table de Critiques" } }).optional(),
     /** Facette NAVIRE (profil naval MDG 12). */
     ship: nommerChamps(z.strictObject({

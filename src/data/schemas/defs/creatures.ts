@@ -1,20 +1,29 @@
 import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
- * Schéma de `creatures.json` — le BESTIAIRE, miroir de `CreatureData` (`src/data/index.ts`). GROS
+ * Schéma de `creatures.json` — le BESTIAIRE, d'où dérive `CreatureData` (`src/data/index.ts`). GROS
  * dataset : inventaire de clés fait par script node sur TOUTES les entrées du fichier (histogramme
  * complet, pas d'échantillonnage).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
+import {
+  availabilitySchema,
+  baremeDEmbaucheSchema,
+  harvestDangerSchema,
+  harvestRaritySchema,
+  entityAppearanceSchema,
+  moneySchema,
+  profilChiffreSchema,
+} from '../grammaire/valeurs';
 import { optionalSwapSchema, talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
+import { estObjet } from '../../../lib/objet.mjs';
 
 export const file = 'creatures.json';
 export const famille = 'entite';
 
-/** `OptionalEntry` (`src/engine/statEntry.ts`) — un élément d'`optionals` (LDB 76) : soit un
+/** Un élément d'`optionals` (LDB 76, `OptionalEntry` en dérive, `src/engine/statEntry.ts`) : soit un
  *  `TraitPose` ordinaire, soit une NOTE composée irréductible à un trait (discriminée par `note`) :
  *  joker « tous les traits » (Mutant, LDB 83 l.91) ou variante « remplacer des Traits par un bonus »
  *  (Grand Loup ZI 1 l.229, Griffon ZI). La note porte son `label` source VERBATIM + les champs d'application. */
@@ -22,7 +31,7 @@ const optionalWildcardSchema = nommerNoeud(nommerChamps(z.strictObject({
   note: z.literal('all-traits'),
   label: z.string(),
 }), { note: { label: "note" }, label: { label: "libellé" } }), { label: 'tous les Traits' });
-/** `OptionalEntry` (`engine/statEntry.ts`) — un Trait OPTIONNEL du statbloc (`LDB 76 l.45`) ou une note composée. Les
+/** L'élément d'`optionals` (`OptionalEntry`, `engine/statEntry.ts`, en dérive) — un Trait OPTIONNEL du statbloc (`LDB 76 l.45`) ou une note composée. Les
  *  entités de scène en composent le Trait et la note « swap » (`optionalSwapSchema`, `defs-scenes/scene.ts`,
  *  `combat.optionals`). */
 export const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema, optionalSwapSchema]);
@@ -75,6 +84,8 @@ const champs = {
       price: moneySchema,
       availability: availabilitySchema.optional(),
     }), { price: { label: "prix" }, availability: { label: "disponibilité" } }).optional(),
+    /** Facette EMBAUCHE (mercenaires, MDG 14 l.293-302). */
+    embauche: baremeDEmbaucheSchema.optional(),
 };
 
 const doc = document(
@@ -114,6 +125,7 @@ const doc = document(
     },
     corruption: { label: 'Points de Corruption', hint: 'Points de Corruption imprimés par le profil (LDB 19)' },
     purchase: { label: 'Facette Achat', hint: 'Prix et Disponibilité à l’achat (montures)' },
+    embauche: { label: 'Facette Embauche', hint: 'Coût quotidien et hebdomadaire de ce profil embauché comme mercenaire' },
   },
   {
     codex: { keys: ['creatures'] },
@@ -123,10 +135,9 @@ const doc = document(
     exiges: ['source'],
     /** #2993 */
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const { id, appearance } = v as { id: string; appearance?: { species?: string } };
-        if (appearance?.species === undefined)
-          ctx.addIssue({ code: 'custom', path: ['appearance', 'species'], message: `${id} : statbloc sans \`appearance.species\` — son espèce range son corps au plan de bestiaire (planDeBestiaire.json).` });
+      entree.refine((e): e is { appearance: { species: string } } => estObjet(e.appearance) && typeof e.appearance.species === 'string', {
+        path: ['appearance', 'species'],
+        error: (iss) => `${estObjet(iss.input) ? String(iss.input.id) : ''} : statbloc sans \`appearance.species\` — son espèce range son corps au plan de bestiaire (planDeBestiaire.json).`,
       }),
   },
 );

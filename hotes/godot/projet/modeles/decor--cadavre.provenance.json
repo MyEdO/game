@@ -1,0 +1,13 @@
+{
+  "model": "decor--cadavre.glb",
+  "model_sha256": "f660ce1383323da112865ffea24162a8ca893ab45df68263a20069de02b883b6",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

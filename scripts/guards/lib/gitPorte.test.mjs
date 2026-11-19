@@ -1709,6 +1709,7 @@ test('ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de
       ['pousser ref absente', () => pousser(d, { vers: 'x', bail: '' }), [['push', '--force-with-lease=refs/heads/x:', 'origin', 'HEAD:x']]],
       ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
       ['ajouterWorktree détaché', () => ajouterWorktree(d, { chemin: '/w', depuis: 'abc', detache: true }), [['worktree', 'add', '--detach', '--', '/w', 'abc']]],
+      ['ajouterWorktree sans hooks', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main', sansHooks: true }), [['-c', 'core.hooksPath=/dev/null', 'worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
       ['retirerWorktree', () => retirerWorktree(d, '/w', { mesurer: () => ({ ok: true }), residu: () => {} }), [['worktree', 'remove', '--', '/w']]],
       ['supprimerBranche', () => supprimerBranche(d, 'b'), [['branch', '-d', '--', 'b']]],
       ['elaguerWorktrees', () => elaguerWorktrees(d), [['worktree', 'prune']]],

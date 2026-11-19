@@ -11,8 +11,8 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { mountUp } from './mount';
-import { attackPlan, previewAttack, resolveAttack } from './combatFlow';
-import { combatDistance } from './monde/footprint';
+import { attackPlan, previewAttack, firedWeapon, resolveAttack } from './combatFlow';
+import { distanceDeContact } from './monde/footprint';
 import { testScene } from '../scenes/test-fixture';
 
 let banc: Banc;
@@ -42,8 +42,8 @@ beforeEach(() => {
 describe('portée de mêlée d’un cavalier = empreinte de la monture', () => {
   it('prémisse : le cavalier est à distance 2 de la cible, la monture à 1', () => {
     const { hero, mount, foe } = setup();
-    expect(combatDistance(hero, foe)).toBe(2); // cavalier 1×1 en (11,9)
-    expect(combatDistance(mount, foe)).toBe(1); // monture 2×2 → croupe en (12,10) ↔ (13,10)
+    expect(distanceDeContact(banc.getState().scene, hero, foe)).toBe(2); // cavalier 1×1 en (11,9)
+    expect(distanceDeContact(banc.getState().scene, mount, foe)).toBe(1); // monture 2×2 → croupe en (12,10) ↔ (13,10)
   });
 
   it('attackPlan : cible adjacente à la MONTURE → attaque directe (pas Charge ni blocage)', () => {
@@ -62,7 +62,7 @@ describe('portée de mêlée d’un cavalier = empreinte de la monture', () => {
   it('resolveAttack : un cavalier au contact PAR SA MONTURE résout l’attaque (≠ null → pas de cascade orpheline)', () => {
     const { hero, foe } = setup();
     // fromCharge=true (chemin de la charge montée) : sans le fix, dist cavalier 2 > Allonge 1 → null → soft-lock.
-    const r = resolveAttack(() => banc.getState(), hero, foe, undefined, true);
+    const r = resolveAttack(() => banc.getState(), hero, foe, firedWeapon(banc.getState().scene, hero, foe, undefined, banc.getState().battle?.combatants), undefined, true);
     expect(r).not.toBeNull();
     expect(r!.res).toBeTruthy();
   });

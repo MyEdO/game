@@ -10,7 +10,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { seedBattleRng } from './battleRng';
 import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
-import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
+import { STEAM_BREAKDOWNS } from '../data';
 import type { WorldMap } from './worldMap';
 
 let banc: Banc;
@@ -39,7 +39,7 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], pendingSteamSave: null, gameTime: 8 * 60, lastUpkeepDay: 0, journal: [], partyWiped: false,
-      vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'commande' })! });
     const halte = vi.fn();

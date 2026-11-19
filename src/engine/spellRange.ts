@@ -2,27 +2,12 @@
  * Portée et Cible d'un sort — données STRUCTURÉES (LDB 46/47), lues telles quelles par le moteur ;
  * l'affichage est dérivé par `spellRangeFormat.ts`. La MESURE est une `FormuleSansTirage` (engine/ops).
  */
-import type { FormuleSansTirage } from './ops';
-import type { Condition } from './flowCore';
+import type { SpellData } from '../data';
 
-/** Portée d'un sort — d'OÙ il peut être lancé. */
-export type SpellRange =
-  | { kind: 'self' } // « Vous »
-  | { kind: 'touch' } // « Contact » / « Toucher »
-  | { kind: 'distance'; value: FormuleSansTirage; unit: 'm' | 'km' } // « 6 mètres », « (Force Mentale) mètres », « (Bonus de FM) mètres »
-  | { kind: 'special'; text: string }; // « Spécial »/« Voir texte »/valeur non chiffrable
+/** Portée d'un sort — d'OÙ il peut être lancé (`spellRangeSchema`, `data/schemas/defs/spells.ts`). */
+export type SpellRange = NonNullable<SpellData['range']>;
 
-/** Cible d'un sort — QUI/QUOI il affecte.
- *
- *  `affects` (formes de ZONE) : `Condition` évaluée PAR CANDIDAT à l'énumération de la zone
- *  (`target` = le candidat, `caster` = le lanceur) — le candidat n'entre en zone que si elle est
- *  vraie. Champ ABSENT = LDB 47 l.28. Vocabulaire partagé `Condition` (`flowCore.ts`), aucune
- *  énumération de camp propre au sort.
- *
- *  `maison` : valeur maison ÉDITABLE portant sa justification, quand le RAW laisse un point ouvert
- *  — AGENTS.md règle 7. */
-export type SpellTarget =
-  | { kind: 'self' } // « Vous »
-  | { kind: 'count'; n: FormuleSansTirage } // 1, « (Bonus d'Intelligence) alliés »
-  | { kind: 'area'; span: 'radius' | 'diameter'; meters: FormuleSansTirage; excludesCaster?: boolean; affects?: Condition; maison?: string } // toute forme de ZONE
-  | { kind: 'special'; text: string }; // « Spécial », « 1 voilier… », « ZdE (un lieu unique) »
+/** Cible d'un sort — QUI/QUOI il affecte (`spellTargetSchema`, `data/schemas/defs/spells.ts`). Une ZONE
+ *  (`area`) n'admet que le candidat dont `affects` est vraie (`target` = le candidat, `caster` = le
+ *  lanceur) ; absent = LDB 47 l.28. `maison` : AGENTS.md règle 7. */
+export type SpellTarget = NonNullable<SpellData['target']>;

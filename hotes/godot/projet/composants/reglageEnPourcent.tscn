@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="PackedScene" path="res://composants/reglette.tscn" id="2_reglette"]
+
+[node name="Reglage" type="HBoxContainer"]
+size_flags_horizontal = 3
+theme_type_variation = &"Reglage"
+
+[node name="Nom" type="Label" parent="."]
+size_flags_horizontal = 3
+theme_type_variation = &"NomDeReglage"
+
+[node name="libelle" type="Node" parent="Nom"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="Reglette" parent="." instance=ExtResource("2_reglette")]
+
+[node name="Nombre" parent="Reglette" index="1"]
+suffix = "%"
+
+[editable path="Reglette"]
