@@ -2474,16 +2474,36 @@
         "label": "Embrigadement",
         "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
         "relache": true,
-        "equipageEnleve": {
-          "dice": {
-            "n": 2,
-            "sides": 10
-          }
-        },
         "liaisonEquipage": "enleves",
         "consequence": {
           "kind": "sequence",
           "etapes": [
+            {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "equipage",
+                    "delta": {
+                      "times": {
+                        "of": {
+                          "tire": "enleves",
+                          "de": {
+                            "dice": {
+                              "n": 2,
+                              "sides": 10
+                            }
+                          }
+                        },
+                        "factor": -1
+                      }
+                    }
+                  }
+                ]
+              }
+            },
             {
               "kind": "choix",
               "invite": "Tenter de récupérer l’équipage enlevé",

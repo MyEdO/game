@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.83-129 */
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
-import { deDuParse, ecartsDeCouverture, effetSigneSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { deDuParse, ecartsDeCouverture, effetSigneSchema, maisonSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
 import { facesDuDe } from '../../../engine/tables';
@@ -53,16 +53,9 @@ const seaEventDef = nommerChamps(z.strictObject({
 
 /** MDG 15 l.245 */
 const portEventDef = nommerChamps(seaEventDef.extend({
-  equipageEnleve: tirageSchema.optional(),
   liaisonEquipage: z.string().min(1).optional(),
-}).superRefine((event, ctx) => {
-  if (!!event.equipageEnleve !== !!event.liaisonEquipage) ctx.addIssue({
-    code: 'custom', path: [event.equipageEnleve ? 'liaisonEquipage' : 'equipageEnleve'],
-    message: 'Un enlèvement d’équipage et sa liaison de retour se renseignent ensemble.',
-  });
 }), {
   ...metaDesChamps(seaEventDef, { exigees: true }),
-  equipageEnleve: { label: 'Équipage enlevé' },
   liaisonEquipage: { label: 'Liaison du retour', texte: { regime: 'technique' } },
 });
 

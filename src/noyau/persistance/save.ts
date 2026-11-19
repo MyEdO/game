@@ -14,6 +14,7 @@
 import type { RuleValue } from '../../engine/policy';
 import { weeklyCrewWageBrass } from '../../engine/crewMorale';
 import { reecrireLesOps, walkFlow } from '../../engine/flowCore';
+import { PORT_EVENTS } from '../../engine/seaVoyage';
 import type { StakeRef } from '../../data';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { etatInitialDuJeu, initialNet, type CampaignVessel, type EtatDeJeu } from '../etat';
@@ -189,7 +190,7 @@ export function chargerLaSave(lue: SaveGame): SaveChargee {
     ? { ...data.scene, seatAssignments: pruneSeatAssignments(data.scene, (data.party ?? []).length) }
     : data.scene;
   const vessel = data.vessel ? bornerLesRegistresDuBord(data.vessel) : null;
-  const reprise = data.vessel && vessel && vessel !== data.vessel ? reprendreUnEmbrigadementAncien(data, data.vessel, vessel) : {};
+  const reprise = data.vessel && vessel && vessel !== data.vessel ? reprendreUnRetourDEquipageAncien(data, data.vessel, vessel) : {};
   const conseil = vessel && vessel !== data.vessel && data.pendingCouncil?.phase === 'choix'
     ? { ...data.pendingCouncil, wageBrass: weeklyCrewWageBrass(vessel.crew) }
     : data.pendingCouncil ?? null;
@@ -207,18 +208,20 @@ export function chargerLaSave(lue: SaveGame): SaveChargee {
   return { etat, regles: save.rules, retraits: rienDElague(retraits) ? null : retraits };
 }
 
-const enjeuDEmbrigadement = (enjeu: StakeRef | undefined): boolean =>
-  !!enjeu && 'key' in enjeu && enjeu.key.dataset === 'voyage'
-  && enjeu.key.entryId === 'embrigadement' && enjeu.key.entryCategory === 'seaPortEvents';
+function enjeuDeRetourDEquipage(enjeu: StakeRef | undefined): boolean {
+  const cle = enjeu && 'key' in enjeu ? enjeu.key : undefined;
+  return cle?.dataset === 'voyage' && cle.entryCategory === 'seaPortEvents'
+    && PORT_EVENTS.some((evenement) => evenement.id === cle.entryId && !!evenement.liaisonEquipage);
+}
 
-function contientUnEnjeuDEmbrigadement(flow: Flow | undefined): boolean {
+function contientUnEnjeuDeRetourDEquipage(flow: Flow | undefined): boolean {
   let trouve = false;
-  if (flow) walkFlow(flow, (n) => { if (n.kind === 'test' && enjeuDEmbrigadement(n.test.stake)) trouve = true; });
+  if (flow) walkFlow(flow, (n) => { if (n.kind === 'test' && enjeuDeRetourDEquipage(n.test.stake)) trouve = true; });
   return trouve;
 }
 
 /** MDG 15 l.245 */
-function reprendreUnEmbrigadementAncien(data: DonneesDeSave, avant: CampaignVessel, apres: CampaignVessel): Partial<DonneesDeSave> {
+function reprendreUnRetourDEquipageAncien(data: DonneesDeSave, avant: CampaignVessel, apres: CampaignVessel): Partial<DonneesDeSave> {
   const lier = (flow: Flow | undefined): Flow | undefined => flow && reecrireLesOps(flow, (o) =>
     o.op === 'equipage' && typeof o.delta === 'number' && o.delta > 0 && o.role === undefined
       ? opsDeRetourDEquipage(avant, apres, o.delta) : o);
@@ -227,7 +230,7 @@ function reprendreUnEmbrigadementAncien(data: DonneesDeSave, avant: CampaignVess
     participants: cascade.participants.map((etape) => {
       const meta = etape.meta;
       if (!meta || etape.kind !== 'choixDeFlux'
-        || !(contientUnEnjeuDEmbrigadement(meta.choiceYes) || contientUnEnjeuDEmbrigadement(meta.choiceNo))) return etape;
+        || !(contientUnEnjeuDeRetourDEquipage(meta.choiceYes) || contientUnEnjeuDeRetourDEquipage(meta.choiceNo))) return etape;
       return { ...etape, meta: { ...meta, choiceYes: lier(meta.choiceYes), choiceNo: lier(meta.choiceNo) } };
     }),
   });
@@ -237,7 +240,7 @@ function reprendreUnEmbrigadementAncien(data: DonneesDeSave, avant: CampaignVess
   return {
     pendingCascade: cascade ? reprendre(cascade) : null,
     ...(data.suspendedCascades?.length ? { suspendedCascades: data.suspendedCascades.map(reprendre) } : {}),
-    ...(test && enjeuDEmbrigadement(courant?.stake) ? { pendingTest: { ...test, onSuccess: lier(test.onSuccess) } } : {}),
+    ...(test && enjeuDeRetourDEquipage(courant?.stake) ? { pendingTest: { ...test, onSuccess: lier(test.onSuccess) } } : {}),
   };
 }
 

@@ -864,8 +864,8 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   const finance = (co: number) => creditBourse(get, set, get().party[0].id, { gold: co, silver: 0, brass: 0 });
   const surLeGroupe = (ops: unknown[]): Effect => ({ type: 'ops', on: 'groupe', ops } as never);
   const escale = (id: string) => {
-    const { consequence, equipageEnleve, liaisonEquipage } = PORT_EVENTS.find((e) => e.id === id)!;
-    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, consequence, equipageEnleve, liaisonEquipage })) as never);
+    const { consequence, liaisonEquipage } = PORT_EVENTS.find((e) => e.id === id)!;
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, consequence, liaisonEquipage })) as never);
     finalizePortArrivalTo(get, set, carte.places[1], true);
   };
   const choixOuvert = () => get().pendingCascade?.participants.find((s) => s.kind === 'choixDeFlux' && s.chosen == null);
@@ -966,8 +966,8 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   });
 
   it('Embrigadement : une liaison inconnue est refusée avant de retirer l’équipage', () => {
-    const { consequence, equipageEnleve } = PORT_EVENTS.find((e) => e.id === 'embrigadement')!;
-    setDataset('seaPortEvents', PORT_EVENTS.map((e) => ({ ...e, consequence, equipageEnleve, liaisonEquipage: 'enlevés-introuvables' })) as never);
+    const { consequence } = PORT_EVENTS.find((e) => e.id === 'embrigadement')!;
+    setDataset('seaPortEvents', PORT_EVENTS.map((e) => ({ ...e, consequence, liaisonEquipage: 'enlevés-introuvables' })) as never);
     set({ vessel: { ...get().vessel!, crew: [{ roleId: 'mousse', count: 10 }], crewLost: 2 } });
     const avant = get().vessel!;
     expect(() => finalizePortArrivalTo(get, set, carte.places[1], true)).toThrow(/enlevés-introuvables/);
@@ -980,16 +980,12 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
     const crew = [{ roleId: 'mousse', count: 12 }, { roleId: 'timonier', count: 3 }];
     set({ vessel: { ...get().vessel!, crew } });
     const { consequence, label } = PORT_EVENTS.find((e) => e.id === 'embrigadement')!;
-    const ancienFlow: Flow = { kind: 'sequence', etapes: [
-      { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [
-        { op: 'equipage', delta: { times: { of: { tire: 'enleves', de: 6 }, factor: -1 } } },
-      ] } },
-      consequence!,
-    ] };
-    jouerFlowEntier(runFlow(get, set, ancienFlow, label));
+    jouerFlowEntier(runFlow(get, set, consequence!, label));
+    const pertes = get().vessel!.crewLost!;
     set({ vessel: { ...get().vessel!, crew } });
     set(chargerLaSave(snapshotSave(get(), 'x')).etat);
-    expect(get().vessel).toMatchObject({ crewLost: 6, crew: [{ roleId: 'mousse', count: 9 }] });
+    expect(get().vessel!.crewLost).toBe(pertes);
+    expect(get().vessel!.crew!.reduce((n, h) => n + h.count, 0)).toBe(15 - pertes);
     tranche('Tenter de récupérer l’équipage enlevé', true);
     joueLeTest(true);
     tranche('Payer la rançon', true);

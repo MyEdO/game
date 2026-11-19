@@ -6,7 +6,7 @@
  */
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import { tirerSigne, type RNG, type Tirage } from '../engine/dice';
+import { tirerSigne, type RNG } from '../engine/dice';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { estOpDuNavire, nomDeSource, resolveFormula, tirerLaTable, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import { reecrireLesOps, tiragesDuFlow, type EffectOp } from '../engine/flowCore';
@@ -231,7 +231,7 @@ const idDeRoleABord = idDe('crewRole');
 const estRetourLie = (o: GameOp, cle: string): boolean =>
   o.op === 'equipage' && typeof o.delta === 'object' && 'tire' in o.delta && o.delta.tire === cle && o.delta.de === undefined;
 
-export function verifierLeRetourDesMarins(suite: Flow, cle: string): void {
+function verifierLeRetourDesMarins(suite: Flow, cle: string): void {
   let retour = false;
   const apres = reecrireLesOps(suite, (o) => {
     if (!estRetourLie(o, cle)) return o;
@@ -244,10 +244,25 @@ export function verifierLeRetourDesMarins(suite: Flow, cle: string): void {
 }
 
 /** Lie les retours aux postes effectivement perdus, dans la suite sérialisable du flux. MDG 15 l.245 */
-export function lierLeRetourDesMarins(get: Get, set: Set, nombre: Tirage, cle: string, suite: Flow, rng: RNG): Flow {
+export function lierLeRetourDesMarins(get: Get, set: Set, flow: Flow, cle: string, rng: RNG): Flow {
+  const [premier, ...etapes] = flow.kind === 'sequence' ? flow.etapes : [];
+  const effet = premier?.kind === 'effet' ? premier.effet : undefined;
+  const retrait = effet?.type === 'ops' && effet.on === 'navire' && effet.ops.length === 1 ? effet.ops[0] : undefined;
+  const delta = retrait?.op === 'equipage' ? retrait.delta : undefined;
+  const produit = typeof delta === 'object' && 'times' in delta ? delta.times : undefined;
+  const lie = produit?.of;
+  if (effet?.type !== 'ops' || produit?.factor !== -1 || typeof lie !== 'object'
+    || !('tire' in lie) || lie.tire !== cle || lie.de === undefined) {
+    throw new Error(`Liaison d’équipage « ${cle} » : la première étape doit déclarer le retrait lié.`);
+  }
+  const { nonLies } = tiragesDuFlow(flow);
+  if (nonLies.length) throw new Error(`Liaison d’équipage « ${cle} » : valeurs sans définition (${nonLies.join(', ')}).`);
+  const suite: Flow = { kind: 'sequence', etapes };
+  verifierLeRetourDesMarins(suite, cle);
+
   const avant = get().vessel;
   const lignes = appliquerAuNavire(get, set, {
-    type: 'ops', on: 'navire', ops: [{ op: 'equipage', delta: { times: { of: nombre, factor: -1 } } }],
+    ...effet, ops: [{ op: 'equipage', delta: { times: { of: lie.de, factor: produit.factor } } }],
   }, { idNeuf: get().forgerUnId, rng });
   if (lignes.length) get().ecrireAuJournal(lignes);
   const apres = get().vessel;

@@ -220,7 +220,7 @@ import { stepPrecision, idDansLaSequence, dieStep } from './rollSeam';
 import { actorIn, coqueParId, equipageApte, inBattleId } from './monde/combatants';
 import { touchActors } from './combatOrParty';
 import { garanti } from '../lib/garanti';
-import { lierLeRetourDesMarins, referentDuNavire, verifierLeRetourDesMarins } from './navireOps';
+import { lierLeRetourDesMarins, referentDuNavire } from './navireOps';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
@@ -2625,13 +2625,8 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   if (event.relache && !shoreLeave) { log(get, set, [t('sv.relacheRefusee', { label: event.label })]); return; }
   // MDG 15 l.249
   if (event.taillePortMax !== undefined && (port?.taille ?? Infinity) > event.taillePortMax) { log(get, set, [t('sv.portTropGrand', { label: event.label, taille: event.taillePortMax })]); return; }
-  const enleves = event.equipageEnleve;
-  let suite: Flow | undefined = event.consequence;
-  if (enleves) {
-    const liaison = garanti(event.liaisonEquipage, event.id, 'liaison du retour de l’équipage');
-    verifierLeRetourDesMarins(suite ?? EMPTY_FLOW, liaison);
-    suite = lierLeRetourDesMarins(get, set, enleves, liaison, suite ?? EMPTY_FLOW, battleRng());
-  }
+  const liaison = event.liaisonEquipage;
+  const suite = liaison ? lierLeRetourDesMarins(get, set, event.consequence ?? EMPTY_FLOW, liaison, battleRng()) : event.consequence;
   if (suite) jouerFlowEntier(runFlow(get, set, suite, event.label));
 }
 
