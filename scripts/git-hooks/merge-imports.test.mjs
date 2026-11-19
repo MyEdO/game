@@ -34,6 +34,14 @@ test('deux déclarations ajoutées au même endroit : les deux, la courante d’
   })
 })
 
+test('un motif à trous du corps (`const [, , a] = …`) ne gêne pas la fusion des en-têtes', async () => {
+  const corps = '\nconst [, , a] = process.argv;\n'
+  const base = `import { a0 } from './a';\n`
+  assert.deepEqual(await fusion(base + corps, `${base}import { b } from './b';\n${corps}`, `${base}import c from './c';\n${corps}`), {
+    text: `import { a0 } from './a';\nimport { b } from './b';\nimport c from './c';\n${corps}`, conflict: false,
+  })
+})
+
 test('deux noms ajoutés à la même déclaration : réimprimée à un nom par ligne', async () => {
   assert.deepEqual(await enTetes(`import { a } from './a';\n`, `import { a, b } from './a';\n`, `import { a, type C as D } from './a';\n`), {
     text: `import {\n  a,\n  b,\n  type C as D,\n} from './a';\n`, conflict: false,
