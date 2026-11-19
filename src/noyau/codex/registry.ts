@@ -14,7 +14,7 @@ import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET, type CleCodex } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
-  qualities, trappings, siegeEngines, groupeDeSiege, libelleDAuteur, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
+  qualities, trappings, siegeEngines, groupeDeSiege, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
@@ -133,7 +133,7 @@ import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } fr
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
-import { reverseGroups, bookContents } from './relations';
+import { libelleDUnEnginAuCodex, reverseGroups, bookContents } from './relations';
 import { formatManeuverMeasure } from './maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
 import { libelleDuChamp } from './editFields';
@@ -369,7 +369,7 @@ const charRefRows = (keys: readonly CharKey[]): CodexRow[] =>
 /** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé : `label` =
  *  libellé concret (`refLabel`, spécialisation comprise), `show` = texte affiché (valeur, Indice…). */
 const idRefRow = (category: string, id: string, spec?: string, show?: string): CodexRow => {
-  const label = refLabel(category, { id, spec });
+  const label = category === 'siegeEngines' ? libelleDUnEnginAuCodex(id) : refLabel(category, { id, spec });
   return { t: 'ref', category, id, label, show: show ?? label };
 };
 /** Rangée du FOYER d'une règle (`{ id, type }`) : sa fiche Codex (`cibleCodex`). */
@@ -1570,7 +1570,7 @@ const CODEX_SPECS = {
   siegeEngines: {
     label: 'codex.fiche.enginsDeSiege', group: 'equipement',
     build: () => siegeEngines().map((t) => depuisEnveloppe(t, {
-      label: libelleDAuteur(t),
+      label: libelleDUnEnginAuCodex(t.id),
       sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.weaponGroup?.id) || undefined),
       meta: facts(
         fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)),

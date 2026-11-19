@@ -20,7 +20,7 @@
  * et d'INDEX, pas une seconde copie des refs avant.
  */
 import {
-  species, careers, careerLevels, skills, talents, trappings, siegeEngines, libelleDAuteur, creatures, traits, mutations,
+  species, careers, careerLevels, skills, talents, trappings, siegeEngines, findSiegeEngineById, libelleDAuteur, creatures, traits, mutations,
   spells, gods, domains, classes, maneuvers, qualities, characteristics, etats, maladies,
   locations, stars, mutationTables, advancementBaseId, careersForSpecies, findCareerById, estDotationDObjet,
 } from '../../data';
@@ -34,6 +34,12 @@ import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import { replier } from '../../lib/ordre.mjs';
 import { resolveQualities } from '../../engine/qualities/dispatch';
+
+/** Libellé de la fiche Codex d’un engin, qualifié par son livre. */
+export function libelleDUnEnginAuCodex(id: string): string {
+  const engin = findSiegeEngineById(id);
+  return engin ? libelleDAuteur(engin) : id;
+}
 
 /** Un référant (entité QUI pointe vers la cible) — ouvrable au Codex via (category, id). */
 export interface Referrer {
@@ -157,7 +163,7 @@ const graph = versionCached<ReverseGraph>(() => {
   // 7) Équipements → qualités + groupe + munitions de l'arme.
   for (const [category, objets] of Object.entries({ trappings, siegeEngines: siegeEngines() })) {
     for (const t of objets) {
-      const by: Referrer = { category, id: t.id, label: category === 'siegeEngines' ? libelleDAuteur(t) : t.label };
+      const by: Referrer = { category, id: t.id, label: category === 'siegeEngines' ? libelleDUnEnginAuCodex(t.id) : t.label };
       for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType?.id })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
       addReverse('weaponGroups', t.subType?.id, by, 'Objets du groupe');
       for (const m of t.munitions ?? []) addReverse('trappings', m, by, 'Armes qui la tirent');
@@ -267,7 +273,7 @@ const catalog = versionCached<CatalogEntry[]>(() => {
   pushCatalog('skills', skills);
   pushCatalog('talents', talents);
   pushCatalog('trappings', trappings);
-  pushCatalog('siegeEngines', siegeEngines());
+  pushCatalog('siegeEngines', siegeEngines().map(({ id, source }) => ({ id, source, label: libelleDUnEnginAuCodex(id) })));
   pushCatalog('qualities', qualities as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('etats', etats);
   pushCatalog('maneuvers', maneuvers);

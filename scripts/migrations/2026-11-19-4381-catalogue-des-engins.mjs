@@ -49,9 +49,20 @@ const ADRESSES = {
   'mortier-ade2': [[SUITE_ADE, 5], [ADE, 5, 6]],
 };
 
+/** AA 10 l.129, l.156, l.160, l.169, l.189-191. */
+const FOLIOS_DE_PROSE = new Map([
+  ['catapulte-petite', 123],
+  ['catapulte-moyenne', 123],
+  ['catapulte-grande', 123],
+  ['canon-petit', 122],
+  ['canon-moyen', 122],
+  ['canon-grand', 122],
+]);
+
 const contenu = (texte) => unitesDuTexte(texte).filter(estDeContenu).map((u) => u.norm).join('').replaceAll(' ', '');
 
-function adresseDeLaProse({ id, desc, source: { book } }) {
+function provenanceDeLaProse({ id, desc, source, alsoIn }) {
+  const { book } = source;
   const choix = ADRESSES[id];
   ok(choix && typeof desc === 'string', `${id} : ancienne prose sans adresse`);
   const ch = choix[0][0] === AA ? '10' : '08';
@@ -75,7 +86,12 @@ function adresseDeLaProse({ id, desc, source: { book } }) {
   for (const paragraphe of paragraphes) {
     ok(entier.includes(contenu(paragraphe)), `${id} : paragraphe absent du Source adressé`);
   }
-  return ref;
+  const folio = FOLIOS_DE_PROSE.get(id);
+  if (folio === undefined) return { descRef: ref };
+  deepStrictEqual(rendu.folios, [folio], `${id} : folio de la prose AA`);
+  const provenance = { source: { ...source, page: folio }, descRef: ref };
+  if (folio !== 122) return provenance;
+  return { ...provenance, alsoIn: [...(alsoIn ?? []), { book, page: 123 }] };
 }
 
 const objets = lire('trappings');
@@ -89,7 +105,7 @@ if (!aDeplacer.length && bataille.warMachines.every((r) => typeof r === 'string'
   ok(aDeplacer.length && bataille.warMachines.every((r) => r && typeof r === 'object'), '#4381 : stock partiellement déplacé');
   const engins = aDeplacer.map(({ loc, pa, desc, ...engin }) => {
     ok(loc == null && pa == null, `${engin.id} : caractéristiques d’armure présentes`);
-    return { ...engin, type: 'siege-engines', descRef: adresseDeLaProse({ ...engin, desc }) };
+    return { ...engin, type: 'siege-engines', ...provenanceDeLaProse({ ...engin, desc }) };
   });
   const ids = new Set(objets.map((objet) => objet.id));
   ok(ids.size === objets.length, '#4381 : identités d’objets en double');

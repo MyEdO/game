@@ -41,6 +41,6 @@ describe('Codex registry — Possessions de Niveau de Carrière : réf STRUCTUR�
   it('{id, type: engin} lie les Engins de siège, au libellé de la fiche canonique (#4143)', () => {
     const rows = avecDotations('artilleur', { niveau: [{ id: 'canon-petit', type: 'engin' }] }, () =>
       levelRows(categoryByKey('careers')!.items.find((i) => i.id === 'artilleur')!, 'Niveau 1'));
-    expect(rows.find((r) => r.t === 'ref' && r.category === 'siegeEngines')).toMatchObject({ t: 'ref', category: 'siegeEngines', id: 'canon-petit', label: 'Canon (petit)' });
+    expect(rows.find((r) => r.t === 'ref' && r.category === 'siegeEngines')).toMatchObject({ t: 'ref', category: 'siegeEngines', id: 'canon-petit', label: 'Canon (petit) (AA)', show: 'Canon (petit)' });
   });
 });

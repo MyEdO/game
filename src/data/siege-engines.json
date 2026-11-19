@@ -122,7 +122,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 122
+      "page": 123
     },
     "descRef": {
       "book": "aux-armes",
@@ -188,7 +188,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 122
+      "page": 123
     },
     "descRef": {
       "book": "aux-armes",
@@ -254,7 +254,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 122
+      "page": 123
     },
     "descRef": {
       "book": "aux-armes",
@@ -519,7 +519,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 123
+      "page": 122
     },
     "siegeFootprint": 2,
     "descRef": {
@@ -535,7 +535,13 @@
           "sum": "a4dd2bfdb6ea42de"
         }
       ]
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 123
+      }
+    ]
   },
   {
     "id": "canon-moyen",
@@ -586,7 +592,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 123
+      "page": 122
     },
     "siegeFootprint": 2,
     "descRef": {
@@ -602,7 +608,13 @@
           "sum": "a4dd2bfdb6ea42de"
         }
       ]
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 123
+      }
+    ]
   },
   {
     "id": "canon-grand",
@@ -653,7 +665,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 123
+      "page": 122
     },
     "siegeFootprint": 2,
     "descRef": {
@@ -669,7 +681,13 @@
           "sum": "a4dd2bfdb6ea42de"
         }
       ]
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 123
+      }
+    ]
   },
   {
     "id": "mortier",
