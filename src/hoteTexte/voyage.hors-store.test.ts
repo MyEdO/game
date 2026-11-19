@@ -15,7 +15,7 @@ describe('départ en voyage depuis la carte de l’hôte texte', () => {
     expect(hote.nouvelle('voyage', { graine: 7 }).erreur).toBeNull();
     const avant = hote.fichier();
     const carte = hote.lire('carte');
-    expect(carte.texte).toMatch(/^r-grandroute · Steinbruck \(p-bourg\) · 30 km\n  pied · À pied · 2 j/m);
+    expect(carte.texte).toMatch(/^r-grandroute · Steinbruck \(p-bourg\) · 30 km\n {2}pied · À pied · 2 j/m);
     expect(carte.texte).toContain('Jour par jour (jourParJour, par défaut)');
     expect(hote.fichier()).toBe(avant);
 
@@ -42,7 +42,7 @@ describe('départ en voyage depuis la carte de l’hôte texte', () => {
     const hote = table();
     expect(hote.nouvelle('commerce-fluvial', { graine: 7 }).erreur).toBeNull();
     const carte = hote.lire('carte');
-    expect(carte.texte).toMatch(/^r-grunburg-altdorf · Altdorf \(p-altdorf\) · 45 km\n  barge · Barge · 1 j\n  `jouer .+\n  pied · À pied · refus : Le groupe est trop chargé pour avancer — allégez les sacs\.$/m);
+    expect(carte.texte).toMatch(/^r-grunburg-altdorf · Altdorf \(p-altdorf\) · 45 km\n {2}barge · Barge · 1 j\n {2}`jouer .+\n {2}pied · À pied · refus : Le groupe est trop chargé pour avancer — allégez les sacs\.$/m);
     expect(carte.texte).not.toContain('"r-grunburg-altdorf", "pied"');
   });
 
