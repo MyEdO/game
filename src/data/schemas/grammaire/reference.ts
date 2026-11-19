@@ -357,6 +357,12 @@ export const objetDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({
   valeur: sommeSchema.optional(),
 }), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, valeur: { label: 'valeur' } }), { label: 'objet du catalogue' });
 
+/** HCVM p.265 ; LDB 84 l.7 ; #4053. */
+export const armureDecriteParLeTraitSchema = nommerNoeud(ref('trapping', {
+  spec: nommerNoeud(objetDeCatalogueSchema.shape.spec, { nom: 'précision' }),
+  decritLeTraitArmure: nommerNoeud(z.literal(true), { nom: 'Décrit le Trait Armure' }),
+}, 'armor'), { label: 'pièce de l’armure décrite par le Trait' });
+
 /** La classe de qualité d'un objet doté dont les Atouts sont au choix. LDB 60 l.7 ; LDB 60 l.11 */
 export const classeDeQualiteSchema = enumNomme({ qualite: 'de qualité', haute: 'de Haute Qualité' });
 export type ClasseDeQualite = z.infer<typeof classeDeQualiteSchema>;
