@@ -508,5 +508,41 @@
     "source": "https://ambientcg.com/view?id=Bark012 (Bark012_1K-JPG.zip : Bark012_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--pierre-atre.jpg": {
+    "sha256": "8c5b2c9a7845f337d6b7b4e42deebc813a6cf8338db9950e586ddbe7ddc52628",
+    "source": "https://ambientcg.com/view?id=Rock030 (Rock030_1K-JPG.zip : Rock030_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--pierre-atre.neutre.jpg": {
+    "sha256": "7dd6ae81168c64abc3899089b1e8eb8162142e1877df7e7cc7dc8c7e941b86e1",
+    "source": "https://ambientcg.com/view?id=Rock030 (Rock030_1K-JPG.zip : Rock030_1K-JPG_Color.jpg) ; dérivée de prop--pierre-atre.jpg",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--pierre-atre.normale.jpg": {
+    "sha256": "14722f27dc5836436b3f9b4b1bcaae810445e28f8522887211f35571b4b025bb",
+    "source": "https://ambientcg.com/view?id=Rock030 (Rock030_1K-JPG.zip : Rock030_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--terre-battue.jpg": {
+    "sha256": "11bd8d3dac4558fff2b2faccd65d0863d80cf5a3a0d60021ee6f845fbb8d162f",
+    "source": "https://polyhaven.com/a/clay_plaster (clay_plaster_diff_1k.jpg, Amal Kumar)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--terre-battue.neutre.jpg": {
+    "sha256": "f9e5e00f7fdf400810754dea8fa9bcd0817573b92f05ba72e5f68f5427327a56",
+    "source": "https://polyhaven.com/a/clay_plaster (clay_plaster_diff_1k.jpg, Amal Kumar) ; dérivée de prop--terre-battue.jpg",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--terre-battue.normale.jpg": {
+    "sha256": "36e2c1d37ac22739f800b1c4b86dc8f86b0046a0b984890d0fabb3b9615cb204",
+    "source": "https://polyhaven.com/a/clay_plaster (clay_plaster_nor_gl_1k.jpg, Amal Kumar)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   }
 }

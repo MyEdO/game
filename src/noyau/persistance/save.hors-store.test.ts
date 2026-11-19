@@ -67,6 +67,25 @@ describe('lireSave — le format courant seul', () => {
   });
 });
 
+it('charge les anciens registres dans les bornes de l’effectif, avec la solde offerte actualisée', () => {
+  const base = etatInitialDuJeu();
+  const vessel = {
+    vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] },
+    crewLost: 5,
+    wagesOwed: 288,
+    crew: [{ roleId: 'mousse', count: 12 }],
+    recueillisSansSolde: [{ roleId: 'navigateur', count: 2 }],
+  };
+  const pendingCouncil = { today: 7, wageBrass: 12 * 288, phase: 'choix' as const };
+  const charge = chargerLaSave(snapshotSave({ ...base, vessel, pendingCouncil }, 'x')).etat;
+  expect(charge.vessel).toEqual({ ...vessel, crew: [{ roleId: 'mousse', count: 10 }], recueillisSansSolde: [] });
+  expect(charge.pendingCouncil).toEqual({ ...pendingCouncil, wageBrass: 10 * 288 });
+
+  const valide = { ...vessel, crew: [{ roleId: 'mousse', count: 8 }] };
+  const chargeValide = chargerLaSave(snapshotSave({ ...base, vessel: valide }, 'x')).etat;
+  expect(chargeValide.vessel).toEqual(valide);
+});
+
 describe('lireSave — la porte des scènes (`parseSceneDeProjet`)', () => {
   /** Le texte d'une save dont la scène courante ET le paquet portent la scène du scénario « Conditions étendues »,
    *  dont un choix de dialogue est gardé par `{ kind: 'status', atLeast: { tier: 'argent', standing: 1 } }`. */

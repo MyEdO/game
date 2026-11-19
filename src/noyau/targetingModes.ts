@@ -270,7 +270,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   // Portée puis Ligne de Vue : la MÊME mesure que le clic et que `castSpell` (`castTargetBlock`) — une
   // 2ᵉ écriture ferait diverger ce que le survol montre de ce que le geste fait.
   const horsAtteinte = castTargetBlock(get, active, spell, target);
-  if (horsAtteinte) return { kind: 'invalid', reason: horsAtteinte.reason };
+  if (horsAtteinte) return horsAtteinte.reason === 'cible-invalide' ? { kind: 'none' } : { kind: 'invalid', reason: horsAtteinte.reason };
   const pv = previewCast(active, spell, {
     missile,
     focused: focalisationAboutie(active, spell),

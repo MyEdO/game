@@ -35,7 +35,7 @@ describe('jouer une campagne par le pont', () => {
     expect(s.vue.zones['groupe.pretires'].every((e) => e.elements.some((x) => x.type === 'bouton' && x.refus === null)), 'chacun se recrute').toBe(true);
     expect(s.vue.zones['groupe.campagnes'].map((e) => e.id), 'chaque campagne du jeu').toEqual(allBuiltinCampaigns.map((c) => `campagne/${c.id}`));
     expect(lancer(s.vue, 'la-diligence').refus, 'le noyau dit le refus').toBe(t('party.action.start.empty'));
-    expect(erreurDe(appel('lancer', lancer(s.vue, 'la-diligence').jeu))).toEqual({ categorie: 'regle', message: `lancer : ${t('party.action.start.empty')}` });
+    expect(erreurDe(appel('lancer', lancer(s.vue, 'la-diligence').jeu))).toEqual({ categorie: 'regle', message: t('party.action.start.empty') });
     expect(erreurDe(appel('lancer', { lancer: 'inconnue' })).categorie).toBe('validation');
     expect(erreurDe(appel('ouvrir', {})).message, 'une partie à la fois').toMatch(/quitter d’abord/);
     expect(erreurDe(appel('demarrer', { scenario: 'dome' })).message).toMatch(/quitter d’abord/);

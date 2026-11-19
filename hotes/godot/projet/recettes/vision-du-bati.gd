@@ -136,7 +136,8 @@ func _teinte_attendue(a: Dictionary, etats: Dictionary) -> Color:
 
 
 func _arete(cle: String, piece: String, milieu: Vector2, cases: Array) -> Dictionary:
-	return {cle = cle, bloc = "0/0/0", famille = null, piece = piece, sens = {x = 1.0, y = 0.0}, hauteurM = 3.0,
+	return {cle = cle, bloc = "0/0/0", famille = null, piece = piece,
+		position = Noyau.Position.SEULE, sens = {x = 1.0, y = 0.0}, hauteurM = 3.0,
 		palette = {}, pied = 0.0, milieu = {x = milieu.x, y = milieu.y},
 		cases = cases.map(func(c: Vector3i) -> Dictionary: return {x = c.x, y = c.y, z = c.z})}
 

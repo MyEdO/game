@@ -52,7 +52,7 @@ describe('l’exploration par le pont', () => {
     expect(auMilieu(fermees), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
       .toEqual({
         cle: '2,1,E,0', cases: [{ x: 2, y: 1, z: 0 }, { x: 3, y: 1, z: 0 }], milieu: { x: 2.5, y: 1 },
-        sens: { x: 0, y: -1 }, pied: 0, piece: 'porte-fermee', famille: 'colombage',
+        sens: { x: 0, y: -1 }, pied: 0, piece: 'porte-fermee', position: 'seule', famille: 'colombage',
         palette: expect.any(Object), hauteurM: 4, bloc: '0/0/0',
       });
     expect(fermees.filter((a) => a !== auMilieu(fermees)).map((a) => [a.milieu, a.piece]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, 'mur'], [{ x: 2.5, y: 2 }, 'mur']]);

@@ -79,6 +79,7 @@ import {
   spellSightOf,
   castZoneSpell,
   castCommitZone,
+  ancreDeLaZdE,
   resoudreLeSortDeZone,
   zoneRadiusTilesAt,
   routeCounterspell,
@@ -271,6 +272,7 @@ import {
   continueSeaDayAfterExhaustion,
   runSeaDay,
   finalizePortArrival,
+  syncHullWoundsFromVessel,
 } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
@@ -285,6 +287,7 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';
 import { estNavire } from '../engine/coque';
+import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
 import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
@@ -1648,16 +1651,6 @@ export function createCombatSlice(get: Get, set: Set) {
         .map((m) => ({ m, ent: byEntity.get(m.entityId) }))
         .filter((r): r is { m: typeof r.m; ent: SceneEntity } => !!r.ent);
       const enemies = roster.map(({ ent }) => ficheDEntite(ent, presetDuNarratif(get().campaignNarratif)));
-      // #30 — Blessures de COQUE persistantes : une coque spawnée qui EST le navire de campagne
-      // (creatureId = vehicleId) repart de l'état persisté (writeback symétrique dans finalizeBattle).
-      const vessel0 = get().vessel;
-      if (vessel0) {
-        // `enemies` porte TOUTES les coques spawnées (allié comme ennemi ; `kind` est réassigné plus bas).
-        for (const c of enemies) if (c.creatureId === vessel0.vehicleId) {
-          if (vessel0.wounds) c.wounds.current = Math.min(vessel0.wounds.current, c.wounds.max);
-          if (vessel0.label) c.label = vessel0.label; // #230 — nom d'instance (affichage ; rendu keyé par creatureId)
-        }
-      }
       // Combat monté (LDB 14) : marquer les montures rideables, basculer les « alliés », puis appairer
       // les couples pré-montés (ridesEntityId → la monture). Le cavalier monte SUR sa monture.
       const idxByEntity = new Map(roster.map((r, i) => [r.ent.id, i]));
@@ -1666,6 +1659,16 @@ export function createCombatSlice(get: Get, set: Set) {
         if (m.ai) enemies[i].aiControlled = true; // PNJ allié IA (défenseur de siège) : agit seul (aiDriven)
         if (m.mount) enemies[i].mountable = true;
       });
+      // #30
+      const { vessel: vessel0, travelPlan } = get();
+      const surLeNavireDeCampagne = (!travelPlan?.sea && !travelPlan?.river) || estLeNavireDeCampagne(travelPlan.vehicle, vessel0);
+      const coquesDesignees = enemies.filter((_, i) => roster[i].m.navireDeCampagne);
+      const coqueDeCampagne = coquesDesignees.length === 1 ? coquesDesignees[0] : undefined;
+      if (surLeNavireDeCampagne && vessel0 && coqueDeCampagne?.kind === 'heros'
+        && estNavire(coqueDeCampagne) && lierLaCoqueDeCampagne(coqueDeCampagne, vessel0)) {
+        syncHullWoundsFromVessel(coqueDeCampagne, vessel0);
+        if (vessel0.label) coqueDeCampagne.label = vessel0.label;
+      }
       roster.forEach(({ m }, i) => {
         if (m.ridesEntityId == null) return;
         const mi = idxByEntity.get(m.ridesEntityId.id);
@@ -1716,7 +1719,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // ALLIÉE (celle de campagne si connue, sinon la 1re coque alliée) → PASSAGERS (hors ordre ET hors rendu),
       // qui s'expriment par les Tests d'équipage (manœuvre / bordée) et n'ont pas de tour individuel person-scale.
       if (isMerScene(scene)) {
-        const allyHull = all.find((c) => estNavire(c) && c.kind === 'heros' && (!vessel0 || c.creatureId === vessel0.vehicleId))
+        const allyHull = all.find((c) => estLeNavireDeCampagne(c, vessel0))
           ?? all.find((c) => estNavire(c) && c.kind === 'heros');
         if (allyHull) allyHull.crewIds = [...new Set([...(allyHull.crewIds ?? []), ...heroes.map((h) => h.id)])];
       }
@@ -3268,26 +3271,23 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // « clic » de pose change de SOURCE (souris du héros / décision de l'IA), comme l'auto-combat fournit
       // déjà ses jets.
       if (pc.zone && !pc.zone.center) {
+        const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
+        const spell = garanti(effectiveSpellOf(pc), pc.spellId, 'sort');
         const castable = castAfterCrit(lance, pc.critChoice);
         // Sort qui n'aboutit PAS (raté / DISSIPÉ par Contre-sort, LDB 46 l.156) : aucune zone à poser, aucune
         // cible (LDB 47 l.28) — la tentative se résout sans cible, puis l'IA reprend.
         if (!castable) {
-          const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
-          resoudreLeSortDeZone(get, set, pc, caster, garanti(effectiveSpellOf(pc), pc.spellId, 'sort'), lance, []);
+          resoudreLeSortDeZone(get, set, pc, caster, spell, lance, []);
           if (aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
           return;
         }
-        // Lançable → la confirmation EST le passage en pose (la vraie application se fait à la pose,
-        // castCommitZone).
-        get().jetRegler('incantation', 'carte', 'zone');
-        // IA = HÉROS (même flux) : le héros manuel attend le clic réel sur la carte (return ci-dessous) ;
-        // un lanceur aiDriven FOURNIT son clic — le centre décidé par l'IA pure (`pc.zone.autoCenter`,
-        // équivalent du curseur souris). On pose ici via le MÊME `castCommitZone`, puis on reprend le tour
-        // de l'IA UNE seule fois.
-        const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
-        if (aiDriven(get(), caster) && pc.zone.autoCenter && get().battle) {
-          castCommitZone(get, set, pc.zone.autoCenter);
-          if (get().battle) resumeEnemyTurn(get, set);
+        const automatique = aiDriven(get(), caster);
+        const centre = ancreDeLaZdE(spell) === 'caster' ? caster.pos : automatique ? pc.zone.autoCenter : undefined;
+        if (centre && get().battle) {
+          castCommitZone(get, set, centre);
+          if (automatique && get().battle) resumeEnemyTurn(get, set);
+        } else {
+          get().jetRegler('incantation', 'carte', 'zone');
         }
         return;
       }
@@ -3316,6 +3316,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         durationBonusRounds: ocDur.bonusRounds,
         overcastDurationSteps: pc.overcast?.duration ?? 0,
         overcastDamageSteps: pc.overcast?.damage ?? 0,
+        overcastZoneSteps: pc.overcast?.zone ?? 0,
         chosenTableRolls: pc.chosenTableRolls,
         conjureForm: pc.conjureForm,
         opposedOutcome: pc.opposedOutcome,

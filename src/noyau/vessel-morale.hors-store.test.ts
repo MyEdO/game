@@ -149,7 +149,7 @@ describe('#4243 — l’équipage PNJ, porteur collectif : « La maladie fait ra
     applyContraction(e.porteur, 'scorbut', false, makeRNG(1));
     e.ecrire();
     expect(banc.getState().vessel!.porteurDeLEquipage?.diseases).toHaveLength(1);
-    applyVesselCrewLoss(banc.getState, banc.setState, 1000);
+    applyVesselCrewLoss(banc.getState, banc.setState, 1000, () => 0);
     expect(banc.getState().vessel!.porteurDeLEquipage).toBeUndefined();
     expect(equipage()).toBeUndefined();
     expect(porteursABord(banc.getState, banc.setState).map((p) => p.id)).toEqual(banc.getState().party.map((h) => h.id));
@@ -384,4 +384,38 @@ describe('Désertion à la relâche à terre ACCORDÉE (MDG 14 l.192-202) — se
     expect(lines).toEqual([]);
     expect(banc.getState().vessel!.crewLost ?? 0).toBe(0);
   });
+
+  it('retire le marin du d100 de désertion, sans second tirage', () => {
+    lowVessel();
+    banc.setState({ vessel: { ...banc.getState().vessel!,
+      crew: [{ roleId: 'timonier', count: 1 }, { roleId: 'mousse', count: 1 }],
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    } });
+    let jets = 0;
+    const rng = { int: (min: number, max: number) => {
+      expect([min, max]).toEqual([1, 100]);
+      return ++jets === 2 ? 1 : 100;
+    } };
+    resolveShoreLeaveDesertion(banc.getState, banc.setState, rng);
+    expect(jets).toBe(15);
+    expect(banc.getState().vessel).toMatchObject({ crewLost: 1, crew: [{ roleId: 'timonier', count: 1 }],
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    });
+  });
+});
+
+it('une perte anonyme tire sans remise parmi les inscrits et les marins sans poste', () => {
+  banc.setState({ vessel: {
+    vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] },
+    crew: [{ roleId: 'timonier', count: 1 }, { roleId: 'timonier', count: 1 }],
+    recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+  } });
+  const indices = [1, 1, 11];
+  const bornes: [number, number][] = [];
+  applyVesselCrewLoss(banc.getState, banc.setState, 3, (postes) => {
+    bornes.push([0, postes - 1]);
+    return indices.shift()!;
+  });
+  expect(bornes).toEqual([[0, 14], [0, 13], [0, 12]]);
+  expect(banc.getState().vessel).toMatchObject({ crewLost: 3, crew: [{ roleId: 'timonier', count: 1 }], recueillisSansSolde: [] });
 });

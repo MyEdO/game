@@ -63,7 +63,7 @@ function freshState() {
     port: null,
     gameTime: 8 * 60,
     lastUpkeepDay: 0,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A' },
+    vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A' },
     journal: [],
   } as never);
   creditBourse(get, set, get().party[0].id, { gold: 5000, silver: 0, brass: 0 }); // bourse du groupe (SOCLE POSSESSIONS #531)

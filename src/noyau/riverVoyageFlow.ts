@@ -29,6 +29,7 @@ import { effectTargets, openWaterExposure } from './combatEffects';
 import { ouvrirLeRepos, placesOfKind, routeLieu } from './restFlow';
 import { placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { arriverAuLieu } from './lieuFlow';
+import { lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import {
   damageVesselHull,
   healVesselHull,
@@ -178,14 +179,17 @@ const log = (get: Get, _set: Set, lines: string[]) => {
 function riverHull(get: Get<Jeu>, route: MapRoute): { coque: Combatant } | null {
   const boatMode = route.modes.find((m) => findVehicleById(m)?.ship && findVehicleById(m)?.hull);
   const vessel = get().vessel;
-  const vId = vessel && findVehicleById(vessel.vehicleId)?.ship ? vessel.vehicleId : boatMode;
-  const v = vId ? findVehicleById(vId) : undefined;
+  const ficheDeCampagne = vessel && findVehicleById(vessel.vehicleId);
+  const navire = ficheDeCampagne?.ship ? vessel : undefined;
+  const ficheDeRoute = boatMode ? findVehicleById(boatMode) : undefined;
+  const v = ficheDeCampagne?.ship ? ficheDeCampagne : ficheDeRoute;
   if (!v?.ship || !v.hull) return null;
-  const coque = vehicleCombatant(v);
+  const coque = vehicleCombatant(v, navire?.uid);
   if (!coque) return null;
-  if (vessel && vessel.vehicleId === vId) {
-    coque.label = nomDuNavire(vessel); // #230
-    syncHullWoundsFromVessel(coque, vessel);
+  if (navire) {
+    lierLaCoqueDeCampagne(coque, navire);
+    coque.label = nomDuNavire(navire); // #230
+    syncHullWoundsFromVessel(coque, navire);
   }
   return { coque };
 }

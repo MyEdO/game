@@ -172,13 +172,13 @@ describe('lireUnGesteDuSalon — un geste que les zones d’avant offrent (S-D3)
     for (const args of [['ABC234'], ['ABC234', 3], 'ABC234']) expect(refus(z, { type: 'rejoindre', args })?.[0], JSON.stringify(args)).toBe('validation');
     expect(refus(zHote, { type: 'rejoindre', args: ['ABC234', 'Anna'] })?.[0], 'en session').toBe('validation');
     expect(refus(zonesDuSalon(null, { enCours: 'rejoindre' }, true), { type: 'rejoindre', args: ['ABC234', 'Anna'] })?.[0], 'pendant une jonction').toBe('validation');
-    expect(refus(zLocale, { type: 'rejoindre', args: ['ABC234', 'Anna'] })).toEqual(['regle', `salon : ${t('ecran.salon.refus.partieOuverte')}`]);
-    expect(refus(zonesDuSalon(null, null, false), { type: 'rejoindre', args: ['ABC234', 'Anna'] })).toEqual(['regle', `salon : ${t('ecran.salon.refus.sansReseau')}`]);
+    expect(refus(zLocale, { type: 'rejoindre', args: ['ABC234', 'Anna'] })).toEqual(['regle', t('ecran.salon.refus.partieOuverte')]);
+    expect(refus(zonesDuSalon(null, null, false), { type: 'rejoindre', args: ['ABC234', 'Anna'] })).toEqual(['regle', t('ecran.salon.refus.sansReseau')]);
   });
 
   it('L3 : règle, avec le texte du formulaire, pour `heberger` offert mais refusé', () => {
     for (const [etat, reseau, cle] of [[null, true, 'ecran.salon.refus.sansPartie'], [partie({}), false, 'ecran.salon.refus.sansReseau']] as const) {
-      expect(refus(zonesDuSalon(etat, null, reseau), { type: 'heberger', args: ['Gunnar'] })).toEqual(['regle', `salon : ${t(cle)}`]);
+      expect(refus(zonesDuSalon(etat, null, reseau), { type: 'heberger', args: ['Gunnar'] })).toEqual(['regle', t(cle)]);
     }
   });
 });

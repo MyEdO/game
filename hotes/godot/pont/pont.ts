@@ -1080,7 +1080,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     const refusAvant = etat.refus;
     envoyerLIntention(o.partie, intention);
     const refus = o.partie.etat().refus;
-    if (refus && refus !== refusAvant) throw new ErreurDeGeste('regle', `${intention.type} : ${refus.texte}`);
+    if (refus && refus !== refusAvant) throw new ErreurDeGeste('regle', refus.texte);
     o.pas++;
   };
 
@@ -1179,7 +1179,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const etat = o.partie.etat();
       valider(!partieEnCours(etat), 'lancer : la partie est déjà en cours ; quitter, puis ouvrir, pour en lancer une autre');
       const refus = refusDeLancer(etat);
-      if (refus) throw new ErreurDeGeste('regle', `lancer : ${refus}`);
+      if (refus) throw new ErreurDeGeste('regle', refus);
       o.partie.lancer(lancementDeLaCampagne(campagneDuJeu(campagne!), etat.party));
       o.pas++;
       return suite(o);
@@ -1234,8 +1234,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       valider(SAVE_SLOTS.includes(e.sauvegarder as SaveSlot), `sauvegarder : sauvegarder, un emplacement manuel (${SAVE_SLOTS.join(', ')})`);
       const etat = o.partie.etat();
       const refus = refusDeSauvegarde(etat, etat.net.mySeat);
-      if (refus) throw new ErreurDeGeste('regle', `sauvegarder : ${t(MESSAGE_DU_REFUS[refus])}`);
-      if (!sauver(o, e.sauvegarder as SaveSlot)) throw new ErreurDeGeste('regle', `sauvegarder : ${t('store.saveKo')}`);
+      if (refus) throw new ErreurDeGeste('regle', t(MESSAGE_DU_REFUS[refus]));
+      if (!sauver(o, e.sauvegarder as SaveSlot)) throw new ErreurDeGeste('regle', t('store.saveKo'));
       return { zones: zonesDesSauvegardes(stockage, etat) };
     },
     /**
@@ -1358,19 +1358,22 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * @returns `{ aretes }` : les arêtes de toutes les couches de la scène en cours hors des ponts de ses navires, que
      * la marche garde et que le modèle du navire montre (`aretesDeLaScene`, `src/noyau/monde/aretes.ts`), vides sans
      * scène ; à rappeler quand `plateau.cleDesAretes` change. Chacune (`areteDessinee`) : `{ cle, cases, milieu, sens,
-     * pied, piece, famille, palette, hauteurM, bloc }`, sa clé `edgeKey`, les cases `{ x, y, z }` qu'elle sépare, dans
-     * la carte, à sa couche (`casesDeFace`, une ou deux : celle dont elle borde un côté, puis sa voisine), son milieu
-     * et le sens où elle court, en coins de grille (`wallEnds`), son dehors (`outwardSide`,
-     * `src/noyau/monde/volume/ornements.ts`), s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en mètres d'où elle se
-     * dresse, celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa
-     * pièce : une porte en jeu fermée ou ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou
-     * clos, sinon un mur ; la famille du
-     * kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée
-     * qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null` pour une
-     * apparence hors du catalogue ; par emplacement de palette, la couleur `#rrggbb` de sa partie de mur dans cette
-     * apparence (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la hauteur de son mur en
-     * mètres, `wallHeightM` sinon un étage ; son bloc
-     * `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`, `src/noyau/monde/volume/volume.ts`)
+     * pied, piece, position, famille, palette, hauteurM, bloc }`, sa clé `edgeKey`, les cases `{ x, y, z }` qu'elle
+     * sépare, dans la carte, à sa couche (`casesDeFace`, une ou deux : celle dont elle borde un côté, puis sa voisine),
+     * son milieu et le sens où elle court, en coins de grille (`wallEnds`), celui de son ouverture, son dehors
+     * (`outwardSide`, `src/noyau/monde/volume/ornements.ts`), s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en
+     * mètres d'où elle se dresse, celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`,
+     * `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou ouverte, la brèche d'une structure abattue,
+     * une fenêtre aux volets ouverts ou clos, sinon un mur ; sa place dans son ouverture, la suite d'arêtes alignées
+     * bout à bout de même couche, même nature (porte en jeu, porte de ville) et même apparence : `seule`, ou à son bout
+     * -X (`gauche`), entre ses bouts (`milieu`), à son bout +X (`droite`), X le long de son sens ; la famille du kit de
+     * son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée qui
+     * régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), celle du mur qui prolonge
+     * son ouverture pour une porte en jeu, `null` pour une apparence hors du catalogue ; par emplacement de palette, la
+     * couleur `#rrggbb` de sa partie de mur dans cette apparence, celles du mur (`corps`, `bois`) dans celle du mur qui
+     * la porte (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la hauteur de son mur en
+     * mètres, `wallHeightM` sinon un étage ; son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`,
+     * `src/noyau/monde/volume/volume.ts`)
      */
     aretes(json): { aretes: AreteDessinee[] } {
       entreeDe('aretes', json, []);
@@ -1478,13 +1481,13 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const e = entreeDe('creation', json, ['creation']);
       const b = boutonDeLaCreation(vueDe(o).zones, e.creation);
       valider(b, 'creation : creation, un geste de la création que l’écran offre (`{ creation }` d’un bouton des zones groupe.gestes et creation.*)');
-      if (b!.refus) throw new ErreurDeGeste('regle', `creation : ${b!.refus}`);
+      if (b!.refus) throw new ErreurDeGeste('regle', b!.refus);
       const g = e.creation as GesteDeLaCreation | null;
       if (g === null) fermerLePanneau(o, 'creation');
       else if (g.geste === 'ouvrir') ouvrirLaCreation(o);
       else if (g.geste === 'engager') {
         const engage = engagerLeHeros(stockage, o.partie.etat(), creationOuverte(o)!.brouillon, idDEntropie);
-        if ('refus' in engage) throw new ErreurDeGeste('regle', `creation : ${engage.refus}`);
+        if ('refus' in engage) throw new ErreurDeGeste('regle', engage.refus);
         envoyerLIntention(o.partie, engage.intention);
         fermerLePanneau(o, 'creation');
         o.pas++;
@@ -1520,7 +1523,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       }
       const b = boutonDuRoster(zones, g);
       valider(b, 'roster : roster, un geste du roster que l’écran offre (`{ roster }` d’un bouton des zones groupe.roster et groupe.import)');
-      if (b!.refus) throw new ErreurDeGeste('regle', `roster : ${b!.refus}`);
+      if (b!.refus) throw new ErreurDeGeste('regle', b!.refus);
       if ('importer' in g) return { ...suite(o), choix: true };
       if ('exporter' in g) {
         const fichier = garanti(fichierDuHeros(stockage, g.exporter), g.exporter, 'héros du roster');
@@ -1873,7 +1876,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         if ('type' in e) {
           valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
           const refuse = refusDuFormulaire(zonesDeLEditeur(s), e.type);
-          if (refuse) throw new ErreurDeGeste('regle', `editer : ${refuse}`);
+          if (refuse) throw new ErreurDeGeste('regle', refuse);
         }
         else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
@@ -1884,19 +1887,19 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         else if (!estUnGesteDuPointeur(e.edition)) {
           const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
           valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }), celle d’un chargement de planche ({ geste: chargement, image: { largeur, hauteur } | null }), celle du chapitre attendu ({ geste: chapitre, book, ch, texte: texte | null }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
-          if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
+          if (b!.refus) throw new ErreurDeGeste('regle', b!.refus);
         }
         const geste = nomme ?? (e.edition as GesteDEdition);
         const refusDeValeur = geste.geste === 'valeur' ? refusDeLaValeurDit(s, geste) : geste.geste === 'nommer' || geste.geste === 'identifier' ? refusDuRenommage(s, geste) : null;
-        if (refusDeValeur) throw new ErreurDeGeste('regle', `editer : ${refusDeValeur}`);
+        if (refusDeValeur) throw new ErreurDeGeste('regle', refusDeValeur);
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);
-          if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);
+          if (!passe.ok) throw new ErreurDeGeste('regle', passe.refus);
           depot = { id: projetEdite(s).id, texte: passe.valeur };
         }
         if (geste.geste === 'tester') {
           const lance = essaiDeLaScene(s);
-          if (!lance.ok) throw new ErreurDeGeste('regle', `editer : ${lance.refus}`);
+          if (!lance.ok) throw new ErreurDeGeste('regle', lance.refus);
           essai = lance.valeur;
         }
         session = editer(s, geste);
@@ -1968,11 +1971,11 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         } else {
           const b = boutonDuCompendium(z, e.compendium);
           valider(b, 'compendium : le geste `{ compendium }` d’un bouton des zones compendium.*, l’issue d’une écriture ({ geste: enregistrement, reussi, refus? }) ou celle du chapitre attendu ({ geste: chapitre, book, ch, texte: texte | null })');
-          if (b!.refus) throw new ErreurDeGeste('regle', `compendium : ${b!.refus}`);
+          if (b!.refus) throw new ErreurDeGeste('regle', b!.refus);
           geste = e.compendium as Parameters<typeof compendium>[1];
         }
         let suite = compendium(s, geste!);
-        if (suite.refus !== null && geste!.geste !== 'enregistrement') throw new ErreurDeGeste('regle', `compendium : ${refusDuCompendiumDit(suite.refus)}`);
+        if (suite.refus !== null && geste!.geste !== 'enregistrement') throw new ErreurDeGeste('regle', refusDuCompendiumDit(suite.refus));
         const transaction = transactionDemandee(suite);
         if (transaction && !transactionDemandee(s)) {
           const issue = transaction.sorte === 'enregistrer'
@@ -1981,7 +1984,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
           if (!issue.ok) {
             suite = compendium(suite, { geste: 'enregistrement', reussi: false, refus: issue.erreurs.join(' ; ') });
             codex = suite;
-            throw new ErreurDeGeste('regle', `compendium : ${refusDuCompendiumDit(suite.refus!)}`);
+            throw new ErreurDeGeste('regle', refusDuCompendiumDit(suite.refus!));
           }
           donnees = { fichier: issue.fichier, texte: issue.texte, avant: hash32(issue.avant) };
           reprise = issue.reprendre;

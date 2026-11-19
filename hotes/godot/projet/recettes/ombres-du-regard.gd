@@ -38,7 +38,7 @@ const PORTEE := {case = {x = 0, y = 0, z = 1}, nappe = "maison"}
 const SOUS_LE_MASQUE := {case = {x = 0, y = 0, z = 1}}
 const AU_SOL := {case = {x = 0, y = 0, z = 0}}
 const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, palette = {},
-	piece = Noyau.Piece.MUR, bloc = "0/0/0"}
+	piece = Noyau.Piece.MUR, position = Noyau.Position.SEULE, bloc = "0/0/0"}
 var _fautes: Array[String] = []
 
 

@@ -32,6 +32,7 @@
 import type { IconId } from '../data/icons';
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
+import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { ouvrirLeRepos } from './restFlow';
 import { arriverAuLieu } from './lieuFlow';
 import { lieuDuGroupe, placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
@@ -169,7 +170,7 @@ import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engin
 import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
-import { drainPendingLog, jouerFlowEntier, revealPurpose, runFlow } from './combatEffects';
+import { drainPendingLog, indiceDeMembreDuBord, jouerFlowEntier, revealPurpose, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { applyContraction, contractionDue, diseaseDefs, maladieDeclaree, type Disease } from '../engine/disease';
@@ -205,6 +206,7 @@ import {
   type FreeConsLine,
 } from './rollSeam';
 import { rollLine, type RollLineDecl } from './ligneDeJet';
+import { ligneDeContraction } from './contraction';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, jouerLaJournee, pushStep, type CascadeApplier, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
@@ -220,7 +222,7 @@ import { stepPrecision, idDansLaSequence, dieStep } from './rollSeam';
 import { actorIn, coqueParId, equipageApte, inBattleId } from './monde/combatants';
 import { touchActors } from './combatOrParty';
 import { garanti } from '../lib/garanti';
-import { referentDuNavire } from './navireOps';
+import { lierLeRetourDesMarins, referentDuNavire } from './navireOps';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
@@ -444,8 +446,9 @@ export function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Comba
   if (!vessel) return null;
   const v = findVehicleById(vessel.vehicleId);
   if (!v?.ship) return null;
-  const hull = vehicleCombatant(v);
+  const hull = vehicleCombatant(v, vessel.uid);
   if (!hull) return null;
+  lierLaCoqueDeCampagne(hull, vessel);
   hull.label = nomDuNavire(vessel); // #230 — le rendu reste keyé par creatureId
   syncHullWoundsFromVessel(hull, vessel);
   hull.upgrades = vessel.upgrades ? [...vessel.upgrades] : undefined;
@@ -454,10 +457,10 @@ export function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Comba
   return { vessel, hull };
 }
 
-/** La coque de TRAJET quand le voyage porte le navire de campagne (`travelPlan.vehicle` de même véhicule que
- *  `vessel`) ; `undefined` sinon (bateau de route fluviale, aucun voyage). */
+/** La coque de trajet quand le voyage porte cette instance du navire de campagne. */
 export function coqueDuNavireDeCampagne(plan: TravelPlan | null | undefined, vessel: CampaignVessel | null | undefined): Combatant | undefined {
-  return plan?.vehicle && vessel && plan.vehicle.creatureId === vessel.vehicleId ? plan.vehicle : undefined;
+  const coque = plan?.vehicle;
+  return estLeNavireDeCampagne(coque, vessel) ? coque : undefined;
 }
 
 /** PERSISTE les Blessures de la coque de trajet sur le navire de campagne (#30) — l'UNIQUE écriture
@@ -957,7 +960,7 @@ function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
  *  de l'état fluvial du bateau de la route sinon. MDG 13 l.651 ; MSRC 7 l.117 */
 export function reparationTemporaireTient(get: Get, hull: Combatant): boolean {
   const vessel = get().vessel;
-  if (vessel && hull.creatureId === vessel.vehicleId) return !!vessel.reparationTemporaire;
+  if (vessel && estLeNavireDeCampagne(hull, vessel)) return !!vessel.reparationTemporaire;
   const plan = get().travelPlan;
   return plan?.vehicle?.id === hull.id && !!plan.river?.reparationTemporaire;
 }
@@ -1563,7 +1566,7 @@ function buildSeasicknessSteps(get: Get, sea: SeaVoyageState): BuiltCascadeStep[
     id, kind: 'mer-mal-de-mer', label,
     stake: voyageStakeRef('mer-mal-de-mer', { disease: diseaseLabel('mal-de-mer') }),
     difficulty,
-    porteurs: appeles.map((h) => ({ actor: h, ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } })),
+    porteurs: appeles.map((h) => ({ actor: h, ligne: ligneDeContraction(h, 'mal-de-mer'), menace: 'maladie' })),
   });
   const out: BuiltCascadeStep[] = [];
   if (firstDay) pousseSi(out, bande('mer-mal-de-mer-premier', t('sv.seasickFirst'), 'complexe'));
@@ -2077,21 +2080,26 @@ function premiereVague(b: SeaBoarding): { marins: number; vague: number } {
  *  hostile, son équipage exposé suit. */
 const idDAbordage = (i: number): string => `enemy-enc-abordage-${i}`;
 
-/** La coque de campagne qui porte un combat sur le PONT : sa réf et son nom ; `null` hors de la mer ou sans
- *  coque de campagne connue (impossibilité réelle, non simulable). */
-function coqueDuPont(get: Get): { ref: string; nom: string } | null {
-  const plan = get().travelPlan;
+interface CoqueDuPont { ref: string; nom: string; navireDeCampagne: boolean }
+
+/** La coque du trajet qui porte un combat sur le pont. */
+function coqueDuPont(get: Get): CoqueDuPont | null {
+  const { travelPlan: plan, vessel } = get();
   if (!plan?.sea) return null;
-  const ref = get().vessel?.vehicleId ?? plan.vehicle?.creatureId;
-  if (!ref) return null;
-  const vessel = get().vessel;
-  return { ref, nom: vessel ? nomDuNavire(vessel) : garanti(plan.vehicle, plan.routeId, 'navire du voyage').label };
+  const coque = plan.vehicle;
+  if (!coque?.creatureId) return null;
+  const navireDeCampagne = estLeNavireDeCampagne(coque, vessel);
+  return {
+    ref: coque.creatureId,
+    nom: vessel && navireDeCampagne ? nomDuNavire(vessel) : coque.label,
+    navireDeCampagne,
+  };
 }
 
 /** La Scène GÉNÉRIQUE du PONT, construite à la volée : la coque de campagne au camp allié (le groupe y
  *  EMBARQUE au `lancerLeCombat`), `ennemis` en face — MÊME machinerie navale que les scènes authorées
  *  (`buildScene` + `enemies` terse, cf. `16-embuscade-fluviale`/`ls-abordage-cogue`). */
-function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: string, rencontre: { id: string; ennemis: AuthoredEnemy[]; victoryCondition?: VictoryCondition }): Scene {
+function sceneDuPont(coque: CoqueDuPont, label: string, debut: string, rencontre: { id: string; ennemis: AuthoredEnemy[]; victoryCondition?: VictoryCondition }): Scene {
   return buildScene({
     id: BOARDING_SCENE_ID,
     label,
@@ -2102,7 +2110,9 @@ function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: 
     startMessage: { texte: debut },
     encounters: [{
       id: rencontre.id,
-      enemies: [...rencontre.ennemis, { vehicule: { id: coque.ref }, pos: { x: 3, y: 6 }, side: 'allie' as const, label: coque.nom }],
+      enemies: [...rencontre.ennemis, {
+        vehicule: { id: coque.ref }, pos: { x: 3, y: 6 }, side: 'allie', label: coque.nom, navireDeCampagne: coque.navireDeCampagne,
+      }],
       ...(rencontre.victoryCondition ? { victoryCondition: rencontre.victoryCondition } : {}),
     }],
   });
@@ -2122,7 +2132,7 @@ function combattreSurLePont(get: Get, set: Set, scene: Scene, encounterId: strin
 
 /** L'abordage du navire hostile `b` sur le pont : sa coque porte sa première vague d'abordage
  *  (`premiereVague`, + `chefRef`) comme équipage exposé (MDG 14). */
-function buildBoardingScene(coque: { ref: string; nom: string }, b: SeaBoarding): Scene {
+function buildBoardingScene(coque: CoqueDuPont, b: SeaBoarding): Scene {
   const wave = premiereVague(b).vague;
   const chef = b.chefRef ? 1 : 0;
   // Équipage EXPOSÉ de la coque ennemie = la vague (crew + chef).
@@ -2628,7 +2638,9 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   if (event.relache && !shoreLeave) { log(get, set, [t('sv.relacheRefusee', { label: event.label })]); return; }
   // MDG 15 l.249
   if (event.taillePortMax !== undefined && (port?.taille ?? Infinity) > event.taillePortMax) { log(get, set, [t('sv.portTropGrand', { label: event.label, taille: event.taillePortMax })]); return; }
-  if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
+  const liaison = event.liaisonEquipage;
+  const suite = liaison ? lierLeRetourDesMarins(get, set, event.consequence ?? EMPTY_FLOW, liaison, battleRng()) : event.consequence;
+  if (suite) jouerFlowEntier(runFlow(get, set, suite, event.label));
 }
 
 /** Résout le choix « Relâche à terre » (MDG 15 l.245) posé à l'accostage, AVANT le tirage de
@@ -3044,10 +3056,13 @@ export const TABLES = {
       if (!vessel || !inf) return;
       const rng = battleRng();
       const { total: progres, done, sl } = extendedTestStep(inf.progres, step.result, inf.drCible);
-      get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
+      const heures = rollDice(1, 10, rng);
       const { infestation: _exterminee, ...sansInfestation } = vessel;
       set({ vessel: done ? sansInfestation : { ...vessel, infestation: { ...inf, progres, ...(sl < 0 ? { assaillie: true as const } : {}) } } });
-      const j = [t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.drCible })];
+      const j = [
+        t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.drCible }),
+        t('sv.dureeHeures', { n: heures }),
+      ];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
@@ -3150,7 +3165,7 @@ export const TABLES = {
         j.push(t('sv.tributeRefused'));
         startChaseBoarding(get, set);
       } else {
-        for (const l of applyVesselCrewLoss(get, set, 1)) j.push(l);
+        j.push(...applyVesselCrewLoss(get, set, 1, (postes) => indiceDeMembreDuBord(battleRng(), postes)).lignes);
         j.push(t('sv.sailorGiven'));
         const ship = get().travelPlan?.vehicle;
         if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(l); // déplaisir de Manann (MDG 14)

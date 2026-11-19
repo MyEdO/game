@@ -29,6 +29,7 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   anim?: SceneEntity['anim'];
   /** Camp au spawn (défaut 'ennemi'). */
   side?: 'ennemi' | 'allie';
+  navireDeCampagne?: boolean;
   /** PNJ allié piloté par l'IA (avec `side:'allie'`) : agit seul, le joueur ne le micro-gère pas. */
   ai?: boolean;
   /** Monture rideable. */
@@ -114,6 +115,7 @@ export function buildEncounter(a: AuthoredEncounter): BuiltEncounter {
   const members: EncounterMember[] = a.enemies.map((e, i) => {
     const m: EncounterMember = { entityId: ids[i] };
     if (e.side) m.side = e.side;
+    if (e.navireDeCampagne) m.navireDeCampagne = true;
     if (e.ai) m.ai = e.ai;
     if (e.mount) m.mount = e.mount;
     if (e.rides != null && ids[e.rides]) m.ridesEntityId = { id: ids[e.rides] };

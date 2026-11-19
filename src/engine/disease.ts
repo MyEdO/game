@@ -1,6 +1,6 @@
 /**
  * Maladies et infections — Livre de base, « Maladies et infections » (20-Maladies et infections.md).
- * Moteur PUR : on NE modélise QUE ce que la source quantifie. Les valeurs (Résistance) sont passées par
+ * Moteur PUR : les valeurs de Test sont passées par
  * l'appelant ; `trauma.ts` lit `diseasePassiveOps` d'ici. N'importe `ops`
  * qu'en TYPE (`GameOp`), jamais `applyOps` — les conséquences `onFail` sont appliquées CÔTÉ STATE
  * (`restFlow`, via `applyOps`) → pas de cycle ops↔disease. Seule liaison croisée : `conditions.ts`
@@ -56,6 +56,7 @@ import { addCondition } from './conditions';
 import { sourceSuspended, suspendSource } from './suspension'; // module FEUILLE : suspension GÉNÉRALE d'une source passive
 import type { CodexTarget } from './ruleRefs';
 import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
+import type { SujetContextualise } from './skills';
 
 /** Unité d'un temps de maladie (incubation/durée). La base de calcul/stockage reste la MINUTE (`clock.ts`). */
 const UNIT_MINUTES: Record<DiseaseTime['unit'], number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };
@@ -134,6 +135,13 @@ export type PorteurDeMaladies = Pick<Combatant, 'label' | 'diseases' | 'diseaseI
 export const diseaseDefs = memoParVersion('maladies', (): Record<string, DiseaseDef> => Object.fromEntries(
   maladies.map((m) => [m.id, m]),
 ));
+
+const RESISTANCE_DE_CONTRACTION = { skill: { id: 'resistance' }, characteristic: 'endurance' } as const;
+
+/** LDB 20 l.25, l.41, l.51, l.64, l.90 ; LDB 16 l.105 */
+export function sujetDeContraction(disease: string): SujetContextualise {
+  return { ...(diseaseDefs()[disease]?.testDeContraction ?? RESISTANCE_DE_CONTRACTION), disease };
+}
 
 /** Construit une instance de maladie (tire incubation/durée → MINUTES). `opts.incubation`/`opts.duration`
  *  figent les jets EN JOURS (tests, ou contraction « instantanée » depuis un autre symptôme — l.32 :
@@ -487,22 +495,16 @@ export function applyContraction(c: PorteurDeMaladies, diseaseName: string, succ
   return [t('dz.contract', { name: c.label, disease: diseaseLabel(diseaseName) })];
 }
 
-/**
- * Test de CONTRACTION d'une maladie (LDB 20) : un Test de Résistance `difficulty` raté la fait contracter
- * (dédoublonnée par nom). `resistVal` = Résistance effective, passée par l'appelant (cycle évité). Mute
- * `c.diseases`, renvoie le journal. Sert au post-critique (Très Facile +60, l.72) ET à la Chirurgie
- * (Accessible +20, talent Chirurgie / l.365). Réussite ou maladie déjà présente → rien.
- */
+/** Résout une Contraction d'office à partir de la valeur effective du Test. LDB 20 l.25, l.41, l.51, l.64, l.90 */
 export function rollContraction(
   c: Combatant,
   diseaseName: string,
-  resistVal: number,
+  valeur: number,
   difficulty: Difficulty,
   rng: RNG,
 ): string[] {
   if (!contractionDue(c, diseaseName)) return [];
-  // Bonus d'effets actifs aux Tests liés à CETTE maladie (Fleur de lune +30 vs Peste noire…).
-  return applyContraction(c, diseaseName, rollTest(resistVal + activeDiseaseTestMod(c, diseaseName), difficulty, rng).success, rng);
+  return applyContraction(c, diseaseName, rollTest(valeur, difficulty, rng, activeDiseaseTestMod(c, diseaseName)).success, rng);
 }
 
 /** Nombre de maladies actives bloquant la guérison d'1 PB (capacité `blocksHealing` — Blessé + Gangrène). */

@@ -1163,7 +1163,10 @@ func habiller_la_base() -> void:
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
 ## surface au moins. Chaque matériau propre se tient dans `locaux`, ceux du porteur, qui lâche ceux d'avant de chaque mesh.
-static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, par_uv: bool, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
+## Le motif de la texture d'une matière se pose à l'échelle `motif` (`VolumeDeScene.texturer`).
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary,
+		par_uv: bool, remplacants: Dictionary = {}, reliefs: Dictionary = {},
+		motif := MiseEnPage.echelle_de_motif()) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -1193,7 +1196,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			if texturee:
 				var neutre := VolumeDeScene.texture_neutre_de(matiere)
 				var albedo := neutre if couleur != null and ResourceLoader.exists(neutre) else VolumeDeScene.texture_de(matiere)
-				VolumeDeScene.texturer(local, matiere, albedo, surface.get("blason", false) or not par_uv)
+				VolumeDeScene.texturer(local, matiere, albedo, surface.get("blason", false) or not par_uv, motif)
 				local.albedo_color = Color.WHITE
 			elif couleur != null:
 				local.albedo_texture = null

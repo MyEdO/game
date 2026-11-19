@@ -15,6 +15,15 @@ from maille import Maille, boite, objet, poutre
 X, HAUT = Vector((1, 0, 0)), Vector((0, 0, 1))
 DEHORS = Vector((0, -1, 0))
 """Le sens de la face du dehors d'une arête, dans le repère de Blender."""
+SEPARATEUR = "--"
+GAUCHE, MILIEU, DROITE = "gauche", "milieu", "droite"
+"""La position d'une arête dans une ouverture de plusieurs arêtes : son nœud est `<pièce>--<position>`, `gauche` au
+bout -X de l'ouverture, `droite` à son bout +X ; l'arête d'une ouverture d'une seule arête prend le nœud `<pièce>`."""
+
+
+def noeud(piece, position=None):
+    """Le nom du nœud de `piece` à la `position` d'une ouverture, `piece` seule sans position."""
+    return f"{piece}{SEPARATEUR}{position}" if position else piece
 
 
 class Repere:
@@ -64,15 +73,17 @@ def eboulis(m, R, alea, G, demi, matiere):
 def elements(D, kit, batir):
     """L'élément du kit `kit` (`construire.py`) : sa clé `arete`, ses matériaux `D["MATERIAUX"]`, un nœud par pièce de
     `batir` {pièce : `batir(D, maille, aléa)`}, à l'origine de l'arête, lissé sous `D["ANGLE_LISSE"]`, ses triangles
-    dans `D["BUDGET_TRIANGLES"][pièce]`. L'aléa d'une pièce est semé de `<kit>/<pièce>`."""
+    dans `D["BUDGET_TRIANGLES"][pièce]`, celui de `<pièce>` pour un nœud `<pièce>--<position>`. L'aléa d'un nœud est
+    semé de `<kit>/<nœud>`."""
     def construire():
         mats = list(habillage.materiaux(D["MATERIAUX"]).values())
         for piece, bati in batir.items():
             m = Maille(mats)
             bati(D, m, random.Random(f"{kit}/{piece}"))
             triangles = len(objet(piece, m, (0.0, 0.0, 0.0), D["ANGLE_LISSE"]).data.polygons)
-            if triangles > D["BUDGET_TRIANGLES"][piece]:
-                raise ValueError(f"{kit}/{piece} : {triangles} triangles, budget {D['BUDGET_TRIANGLES'][piece]}")
+            budget = D["BUDGET_TRIANGLES"][piece.split(SEPARATEUR)[0]]
+            if triangles > budget:
+                raise ValueError(f"{kit}/{piece} : {triangles} triangles, budget {budget}")
         return {}
     yield {"glb": kit, "cles": [("arete", {"kit": kit})], "materiaux": D["MATERIAUX"], "blasons": (),
            "construire": construire}

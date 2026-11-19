@@ -78,7 +78,7 @@ export default {
       { bloc: 'voies', voies: [
         { id: 'marteau', nom: 'Réparer la coque', test: '8 Blessures · Métier (Constructeur de navires)', texte: '1 CO par Blessure restaurée ; chaque Test réussi prend 1d10 heures et restaure 1d10 Blessures.', prix: 1920, prise: true },
         { id: 'goutte', nom: 'Caréner', test: 'Cale sèche · Salissures de niveau 1', texte: '5 % du coût de base du navire ; la coque repart propre.', prix: 3600 },
-        { id: 'plus', nom: 'Poser : Nid-de-pie', test: 'Amélioration · 5 Enc', texte: 'La pose prend 1d10 jours (valeur maison).', prix: 1200 }] },
+        { id: 'plus', nom: 'Poser : Nid-de-pie', test: 'Amélioration · 5 Enc', texte: 'La pose prend 1d10 jours.', prix: 1200 }] },
       { bloc: 'parts', parts: parts(480) }],
     gestes: [{ libelle: 'Réparer la coque', principal: true }],
     note: 'Le temps du travail passe à quai.',

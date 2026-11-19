@@ -47,7 +47,10 @@ describe('les échantillons du monde (#3802)', () => {
 
   it.each(structureAppearances)('l’apparence de mur $id pose chaque pièce de son kit, et sa couronne', (apparence) => {
     const { aretes, couronnes, couronnesAbattues } = echantillonDessine('mur', apparence.id);
-    expect(aretes.map((a) => a.piece).sort()).toEqual(['breche', 'fenetre', 'fenetre-close', 'mur', 'porte-fermee', 'porte-ouverte']);
+    expect(aretes.map((a) => `${a.piece}--${a.position}`).sort()).toEqual([
+      'breche--seule', 'fenetre--seule', 'fenetre-close--seule', 'mur--seule', 'mur--seule', 'mur--seule',
+      'porte-fermee--droite', 'porte-fermee--gauche', 'porte-fermee--seule', 'porte-ouverte--seule',
+    ]);
     expect(aretes.every((a) => a.famille === apparence.kit)).toBe(true);
     expect(couronnes.map((c) => c.cle).sort()).toEqual(apparence.parapet ? aretes.map((a) => a.cle).sort() : []);
     expect(couronnesAbattues).toEqual(apparence.parapet && !apparence.door ? aretes.filter((a) => a.piece === 'breche').map((a) => a.cle) : []);

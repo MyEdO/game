@@ -126,10 +126,8 @@ func _quitter(etape: String) -> bool:
 	return true
 
 
-## P4 : le pont retiré de l'arbre, la scène d'abord, sa publication finie, son processus sort de lui-même en 0.
+## P4 : la scène puis le pont retirés de l'arbre, le processus du pont sort de lui-même en 0.
 func _sortie_du_processus() -> void:
-	if not await _attendre(func() -> bool: return not current_scene.get("_publication").get("_attendue"), "l'écran publié"):
-		return
 	unload_current_scene()
 	await process_frame
 	var pid: int = _pont.get("_transport").get("_pid")

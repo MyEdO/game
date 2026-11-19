@@ -265,7 +265,7 @@ describe('S6 — les refus n’écrivent ni l’état ni l’ouverture', () => {
   it('sans réseau et sans partie, `heberger` en `regle` avec le texte du formulaire', () => {
     const { appel } = table(undefined, null);
     const avant = zonesDe(appel);
-    expect(erreurDe(appel('salon', { type: 'heberger', args: ['Hôte'] }))).toEqual({ categorie: 'regle', message: `salon : ${t('ecran.salon.refus.sansReseau')}` });
+    expect(erreurDe(appel('salon', { type: 'heberger', args: ['Hôte'] }))).toEqual({ categorie: 'regle', message: t('ecran.salon.refus.sansReseau') });
     expect(zonesDe(appel)).toEqual(avant);
   });
 
@@ -273,7 +273,9 @@ describe('S6 — les refus n’écrivent ni l’état ni l’ouverture', () => {
     const appel = ouvert();
     const horsSession = zonesDe(appel);
     expect(erreurDe(appel('salon', { salon: 'quitter' })).categorie).toBe('validation');
-    expect(erreurDe(appel('salon', { type: 'heberger', args: [3] })).categorie).toBe('validation');
+    expect(erreurDe(appel('salon', { type: 'heberger', args: [3] }))).toEqual({
+      categorie: 'validation', message: 'salon : args, une chaîne par champ de heberger',
+    });
     expect(zonesDe(appel)).toEqual(horsSession);
     expect(appel('nouvelles')).toEqual(RIEN);
     appel('salon', { type: 'heberger', args: ['Hôte'] });

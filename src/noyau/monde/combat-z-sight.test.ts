@@ -1,17 +1,15 @@
-/**
- * LdV de combat & vision CROSS-Z (relief unifié) : un défenseur sur une couche haute (z=1) voit et tire
- * un assaillant au sol (z=0), et réciproquement la vision révèle le contrebas — sans casser le
- * comportement même-couche (byte-identique). Modèle : les murs d'ARÊTE fins (créneaux/parapet) ne coupent
- * PAS un tir/une vue inter-couche ; seules les TUILES opaques (terrain/décor) coupent. La vision est
- * z-DESCENDANTE (on voit en contrebas depuis une hauteur, jamais à travers un plancher vers le haut).
- */
+/** Ligne de vue entre couches, masquage par la hauteur des masses et couvert au combat. */
 import { describe, it, expect } from 'vitest';
 import { lineOfSightCover } from './lineOfSight';
 import { computeVisible, type LightField } from './vision';
 import { computeStateVisible } from '../visionState';
-import { Scene, SceneEntity, WallSeg } from './scene';
+import { emptyScene, Scene, SceneEntity, WallSeg } from './scene';
+import { METRES_PER_LEVEL } from './relief';
 import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { Combatant } from '../../engine/types';
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
+import { scenario as siege } from '../../scenes/test-scenarios/siege-enceinte';
+import { scenario as opera } from '../../scenes/test-scenarios/opera';
 
 function scene(w: number, h: number, tiles?: Record<string, string>, walls?: WallSeg[], entities: SceneEntity[] = []): Scene {
   const grid = new Array(w * h).fill('herbe');
@@ -55,16 +53,111 @@ describe('lineOfSightCover — LdV de combat CROSS-Z', () => {
     expect(lineOfSightCover(s, def, ass, []).blocked).toBe(false);
     expect(lineOfSightCover(s, ass, def, []).blocked).toBe(false);
   });
+});
 
-  it('une TUILE opaque (terrain `mur`) à distance entre eux BLOQUE même en cross-z', () => {
-    const s = scene(6, 1, { '2,0': 'mur' }); // tuile opaque NON adjacente à la cible (4,0)
-    const def = { x: 0, y: 0, z: 1 };
-    const ass = { x: 4, y: 0 };
-    expect(lineOfSightCover(s, def, ass, []).blocked).toBe(true);
+describe('le masquage des masses par leur hauteur en vision et au tir', () => {
+  const tireur = { x: 0, y: 0, z: 1 };
+  const cible = { x: 4, y: 0 };
+
+  function sceneDuTir(hauteurDuSocle: number, hauteurDuTireur = METRES_PER_LEVEL): Scene {
+    const s = emptyScene('masse-opaque', 5, 1);
+    return { ...s, layers: [
+      { z: 0, tiles: ['sol', 'sol', 'mur', 'sol', 'sol'], height: [0, 0, hauteurDuSocle, 0, 0] },
+      { z: 1, tiles: ['plancher', 'vide', 'vide', 'vide', 'vide'], height: [hauteurDuTireur, 0, 0, 0, 0] },
+    ] };
+  }
+
+  it.each([
+    { socle: -1, hauteur: METRES_PER_LEVEL, bloque: false },
+    { socle: 0, hauteur: METRES_PER_LEVEL, bloque: false },
+    { socle: 0.8, hauteur: METRES_PER_LEVEL + 0.8, bloque: false },
+    { socle: 1, hauteur: METRES_PER_LEVEL, bloque: true },
+  ])('mur sur un socle de $socle m, tireur à $hauteur m : masquage = $bloque', ({ socle, hauteur, bloque }) => {
+    const s = sceneDuTir(socle, hauteur);
+    const visibles = computeVisible(s, [{ pos: tireur, z: tireur.z, radiusTiles: 4, darkTiles: 0 }], BRIGHT);
+    expect(visibles.has('4,0,0')).toBe(!bloque);
+    expect(lineOfSightCover(s, tireur, cible, [])).toEqual({ blocked: bloque, cover: bloque ? 'totale' : 'none' });
+  });
+
+  it('le tireur surélevé dans la couche du sol voit et tire au-dessus de la masse', () => {
+    const s = emptyScene('relief', 5, 1);
+    const relief: Scene = { ...s, layers: [
+      { z: 0, tiles: ['sol', 'sol', 'mur', 'sol', 'sol'], height: [METRES_PER_LEVEL + 1, 0, 0, 0, 0] },
+    ] };
+    const observateur = { x: 0, y: 0 };
+    const visibles = computeVisible(relief, [{ pos: observateur, radiusTiles: 4, darkTiles: 0 }], BRIGHT);
+    expect(visibles.has('4,0,0')).toBe(true);
+    expect(lineOfSightCover(relief, observateur, cible, [])).toEqual({ blocked: false, cover: 'none' });
+  });
+
+  it('une masse adjacente sur la ligne donne un couvert total de part et d’autre de la hauteur du tireur', () => {
+    const cibleProche = { x: 3, y: 0 };
+    expect(lineOfSightCover(sceneDuTir(-1), tireur, cibleProche, [])).toEqual({ blocked: false, cover: 'totale' });
+    expect(lineOfSightCover(sceneDuTir(1), tireur, cibleProche, [])).toEqual({ blocked: false, cover: 'totale' });
+  });
+
+  it('une masse effleurée par la diagonale masque la cible en vision et au tir', () => {
+    const s = scene(4, 3, { '1,0': 'mur' });
+    const observateur = { x: 0, y: 0 };
+    const cibleEnBiais = { x: 3, y: 2 };
+    const visibles = computeVisible(s, [{ pos: observateur, radiusTiles: 3, darkTiles: 0 }], BRIGHT);
+    expect(visibles.has('3,2,0')).toBe(false);
+    expect(lineOfSightCover(s, observateur, cibleEnBiais, [])).toEqual({ blocked: true, cover: 'totale' });
+  });
+
+  it('la fumée à l’étage du tireur occulte le tir qui passe au-dessus du mur', () => {
+    const s = sceneDuTir(-1);
+    expect(lineOfSightCover(s, tireur, cible, [], [{ x: 2, y: 0, z: 1 }])).toEqual({ blocked: true, cover: 'totale' });
+    expect(lineOfSightCover(s, tireur, cible, [], [{ x: 2, y: 0 }])).toEqual({ blocked: false, cover: 'none' });
   });
 });
 
-describe('lineOfSightCover — TÉMOIN même couche (byte-identique)', () => {
+describe('siège de l’enceinte — tir du chemin de ronde', () => {
+  const { scene: enceinte } = siege.construire(idsDeTest);
+
+  it.each([
+    { tireur: { x: 20, y: 38, z: 1 }, cible: { x: 19, y: 7 } },
+    { tireur: { x: 4, y: 37, z: 1 }, cible: { x: 14, y: 32 } },
+  ])('le tireur en $tireur voit et peut viser le gobelin en $cible', ({ tireur, cible }) => {
+    const visibles = computeVisible(enceinte, [{ pos: tireur, z: tireur.z, radiusTiles: 32, darkTiles: 0 }], BRIGHT);
+    expect(visibles.has(`${cible.x},${cible.y},0`)).toBe(true);
+    expect(lineOfSightCover(enceinte, tireur, cible, []).blocked).toBe(false);
+  });
+
+  it('au seuil du terrain mort, la muraille adjacente donne toujours un couvert total', () => {
+    const tireur = { x: 7, y: 38, z: 1 };
+    const cible = { x: 7, y: 36 };
+    expect(lineOfSightCover(enceinte, tireur, cible, [])).toEqual({ blocked: false, cover: 'totale' });
+  });
+
+  it('le terrain mort au pied extérieur du rempart masque la cible au tireur', () => {
+    const tireur = { x: 20, y: 37, z: 1 };
+    const pied = { x: 20, y: 36 };
+    expect(lineOfSightCover(enceinte, tireur, pied, [])).toEqual({ blocked: true, cover: 'totale' });
+  });
+});
+
+describe('opéra — diagonales près des coins des masses opaques', () => {
+  const { scene: theatre } = opera.construire(idsDeTest);
+
+  it('la vue et le tir passent quand le rayon touche seulement le coin de la masse', () => {
+    const tireur = { x: 1, y: 5, z: 1 };
+    const cible = { x: 3, y: 3 };
+    const visibles = computeVisible(theatre, [{ pos: tireur, z: tireur.z, radiusTiles: 3, darkTiles: 0 }], BRIGHT);
+    expect(visibles.has('3,3,0')).toBe(true);
+    expect(lineOfSightCover(theatre, tireur, cible, []).blocked).toBe(false);
+  });
+
+  it('la masse masque la cible en vision et au tir même si le rayon la traverse près du coin', () => {
+    const tireur = { x: 9, y: 8 };
+    const cible = { x: 1, y: 3 };
+    const visibles = computeVisible(theatre, [{ pos: tireur, radiusTiles: 8, darkTiles: 0 }], BRIGHT);
+    expect(visibles.has('1,3,0')).toBe(false);
+    expect(lineOfSightCover(theatre, tireur, cible, [])).toEqual({ blocked: true, cover: 'totale' });
+  });
+});
+
+describe('lineOfSightCover — murs d’arête sur la même couche', () => {
   it('mur d\'arête entre deux combattants z=0 → bloqué (inchangé)', () => {
     const s = scene(6, 1, {}, [{ x: 2, y: 0, side: 'E' }]);
     expect(lineOfSightCover(s, { x: 0, y: 0 }, { x: 4, y: 0 }, []).blocked).toBe(true);

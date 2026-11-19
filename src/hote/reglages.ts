@@ -194,7 +194,7 @@ export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'ba
   const args = Array.isArray(geste.args) ? geste.args : [];
   const [id, valeur] = args;
   const refuser = (categorie: 'validation' | 'regle', raison: string): never => {
-    throw new ErreurDeGeste(categorie, `reglages : ${raison}`);
+    throw new ErreurDeGeste(categorie, categorie === 'validation' ? `reglages : ${raison}` : raison);
   };
   if (typeof id !== 'string') return refuser('validation', 'args, l’id du réglage d’abord');
   if (geste.type === 'preference' || geste.type === 'pourcent') {

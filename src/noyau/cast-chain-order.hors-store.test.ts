@@ -1,13 +1,16 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
+import { findSpellById, spells, type SpellData } from '../data';
+import type { EntreeVivante } from '../data/datasets';
+import { setDataset } from '../data/overrides';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { resolveCastChain } from './combatFlow';
+import { castZoneSpell, resolveCastChain, withPreRollFixedDie } from './combatFlow';
 import type { Combatant } from '../engine/types';
 
 let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); });
+beforeEach(() => { banc = ouvrirLeBanc({ desFixes: true }); });
 
 /**
  * ORDRE de la chaîne d'incantation (`resolveCastChain`, src/noyau/combatFlow.ts) : Contre-sort, puis
@@ -108,10 +111,27 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
   });
 
   it('ZdE non posée : `resolveCastChain` et `jetValider(\'incantation\')` laissent le MÊME état (la pose passe avant l’opposition)', () => {
-    /** Pose une ZdE NON posée sur l'incantation figée (center null = pose encore due). */
+    const sortDeZone: EntreeVivante<SpellData> = {
+      ...findSpellById('fauche-demon')!,
+      id: 'epreuve-zone-avec-opposition',
+      label: 'Zone avec opposition',
+      cn: 0,
+      range: { kind: 'distance', value: 12, unit: 'm' },
+      target: { kind: 'area', span: 'diameter', meters: 8 },
+    };
+    const originaux = [...spells];
+    onTestFinished(() => setDataset('spells', originaux));
+    setDataset('spells', [...originaux, sortDeZone]);
     const zdeNonPosee = () => {
-      const pc = banc.getState().pendingCast!;
-      banc.setState({ pendingCast: { ...pc, zone: { center: null, radius: 2, placing: false } } });
+      const { H } = setup();
+      const jeu = banc.getState;
+      H.spells = [sortDeZone.id];
+      H.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }];
+      expect(castZoneSpell(jeu, banc.setState, H, sortDeZone.id)).toBe(true);
+      withPreRollFixedDie(jeu, banc.setState,
+        () => jeu().jetLancer('incantation'),
+        () => jeu().jetImposerLeResultat('incantation', 3));
+      expect(jeu().pendingCast).toMatchObject({ spellId: sortDeZone.id, zone: { center: null }, result: { cast: true, roll: 3 } });
     };
     /** Ce que l'appelant observe : opposition ouverte ? zone passée en pose ? */
     const etat = () => ({
@@ -120,15 +140,11 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
     });
 
     const parLaChaine = (() => {
-      const { H, E } = setup();
-      frozenCast(H, E);
       zdeNonPosee();
       resolveCastChain(banc.getState, banc.setState);
       return etat();
     })();
     const parCastConfirm = (() => {
-      const { H, E } = setup();
-      frozenCast(H, E);
       zdeNonPosee();
       banc.getState().jetValider('incantation');
       return etat();

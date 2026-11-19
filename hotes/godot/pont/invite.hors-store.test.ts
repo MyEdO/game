@@ -234,7 +234,7 @@ describe('le pont rejoint un salon', () => {
     expect(await intentionsParties(ws), '(a)').toEqual(partiesEnA);
     expect(offre(suiteDe(appel('jouer', { type: 'armerLIntention', args: ['course'] })), 'course'), 'la course ne s’est pas armée chez l’invité').toMatchObject({ presse: true });
     expect(await intentionsParties(ws), '(b) le verbe `local` est parti').toEqual(partiesEnA);
-    expect(erreurDe(appel('jouer', { type: 'ouvrirLaCarte', args: [] }))).toEqual({ categorie: 'regle', message: `ouvrirLaCarte : ${t('coop.hoteSeul')}` });
+    expect(erreurDe(appel('jouer', { type: 'ouvrirLaCarte', args: [] }))).toEqual({ categorie: 'regle', message: t('coop.hoteSeul') });
     expect(await intentionsParties(ws), '(c) le verbe de l’hôte est parti').toEqual(partiesEnA);
   });
 
@@ -245,8 +245,8 @@ describe('le pont rejoint un salon', () => {
     await recevoir(ws, instantane);
     suiteDe(appel('nouvelles'));
     const avant = [...stockage.contenu];
-    expect(erreurDe(appel('lancer', { lancer: 'la-diligence' }))).toEqual({ categorie: 'regle', message: `lancer : ${t('party.guest.waiting')}` });
-    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 3] }))).toEqual({ categorie: 'regle', message: `reglages : ${t('houseRules.lockedForGuest')}` });
+    expect(erreurDe(appel('lancer', { lancer: 'la-diligence' }))).toEqual({ categorie: 'regle', message: t('party.guest.waiting') });
+    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 3] }))).toEqual({ categorie: 'regle', message: t('houseRules.lockedForGuest') });
     expect(ruleOverrides()[PLAFOND.id], 'les règles de l’hôte ont changé').toBe(12);
     expect([...stockage.contenu], 'le stockage du joueur a changé').toEqual(avant);
   });

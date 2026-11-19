@@ -253,8 +253,9 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable au Co
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
                               `defs-scenes/<nom>.ts`) qui DÉCLARE son document par la fabrique
                               `document()` (`grammaire/document.ts`) : enveloppe commune posée par la
-                              fabrique (id/type/label, provenance source ∨ maison), emballage du fichier
-                              par famille (entite/table/config/record), méta d'édition et exposition
+                              fabrique (id/type/label, provenance source ∨ maison quand elle est exigée,
+                              exclusive si le def le déclare, comme `reglesOptionnelles`), emballage
+                              du fichier par famille (entite/table/config/record), méta d'édition et exposition
                               Codex/éditeur. Registres GÉNÉRÉS (`_registry*.generated.ts`,
                               `_ids.generated.ts`) par `npm run gen` — jamais édités à la main.
                               Le nom FR d'une VALEUR d'enum vit sur le NŒUD (`enumNomme`,

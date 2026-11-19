@@ -279,7 +279,7 @@
     "id": "porte-de-ville",
     "type": "structureAppearance",
     "label": "Porte de ville",
-    "kit": "pierre",
+    "kit": "porterie",
     "detail": {
       "seedScope": "edge",
       "courses": {
