@@ -16207,7 +16207,10 @@
     "rangement": {
       "id": "dos"
     },
-    "organicProjectile": true
+    "organicProjectile": true,
+    "munitions": [
+      "harpon"
+    ]
   },
   {
     "id": "piege-a-chaines",
