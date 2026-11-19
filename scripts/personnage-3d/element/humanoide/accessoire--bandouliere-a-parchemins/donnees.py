@@ -24,9 +24,9 @@ MANIFESTE = {
 alors qu'elle ne la traverse pas, et sous l'écharpe de la capuche (`manteau`)."""
 
 MATERIAUX = {
-    'sangle': ('vet2', 'toile-ecrue'),
+    'sangle': ('cuir', 'cuir-tanne'),
 }
-"""Illustration : sangle écrue comme la robe de dessous (`vet2`). Gris de construction."""
+"""Illustration : sangle de cuir brun olive, comme la ceinture (`cuir`)."""
 
 BUDGET_TRIANGLES = 800            # procédure du skill, section 7 : accessoire
 
@@ -57,7 +57,9 @@ hanche gauche ; base : la ceinture publiée monte jusqu'à z = 1,126. HYPOTHÈSE
 la traversait en clip à 1,15 (15 mm sous `carrure_plus`) et à 1,20 (14 mm accroupi, Crouch_Fwd_Loop)."""
 TRANCHE_HANCHE = 0.01             # m : demi-hauteur, en z, de la tranche du tronc où se prend le flanc autour d'`HANCHE`
 
-LARGEUR = 0.045                   # illustration : ~23 px, soit ~4,5 cm
+LARGEUR = 0.05
+"""Illustration : ~28 px (5 cm) sur le brin visible entre la dernière fiole et la ceinture, à 570 px/m ; le contrat en
+donne ~8 cm, sous les rouleaux, où la sangle ne se voit pas."""
 SEGMENTS = 40                     # colonnes autour du tronc (HYPOTHÈSE de maillage)
 JEU = 0.002
 """HYPOTHÈSE : nappe intérieure à 2 mm de la robe, mesurés le long de chaque colonne. La capuche pose son pan à 36-38 mm
@@ -69,24 +71,16 @@ LISSAGE_POIDS = 2                 # HYPOTHÈSE : passes laplaciennes des poids e
 
 EMPLACEMENT = 'bandouliere'
 """L'emplacement de la garde-robe que la sangle offre : sa première case, puis `bandouliere#<rang>` pour les suivantes."""
+PASSANTS = {
+    'rouleau': {'rayon': 0.023, 'centre': 0.0265, 'largeur': 0.02, 'segments': 4},
+    'fiole': {'rayon': 0.0155, 'centre': 0.019, 'largeur': 0.03, 'segments': 4},
+}
 CASES = [
-    # (s, angle, decalage)
-    (0.41, -35, 0.00),
-    (0.49, -30, 0.02),
-    (0.57, -40, -0.01),
-    (0.63, -30, -0.035),
-    (0.68, -20, -0.05),
-    (0.72, -20, -0.06),
-    (0.76, -20, -0.06),
+    (0.41, -15, 0.0, 'rouleau'),
+    (0.52, -15, 0.0, 'rouleau'),
+    (0.63, -15, 0.0, 'rouleau'),
+    (0.74, -15, 0.0, 'rouleau'),
+    (0.82, -15, 0.0, 'fiole'),
+    (0.89, -15, 0.0, 'fiole'),
+    (0.96, -15, 0.0, 'fiole'),
 ]
-"""Les cases offertes devant, dans l'ordre des rangs. `s` : position le long de la sangle, de l'épaule (0) à la hanche (1),
-par le devant ; `angle` : degrés de l'axe de l'objet glissé sur la perpendiculaire à la sangle, positif vers l'épaule ;
-`decalage` : m du point de la case le long de cet axe, depuis le milieu de la sangle, positif vers la gauche du
-personnage. Illustration : quatre rouleaux lisibles sur la poitrine, sous l'écharpe, à peu près à l'horizontale (sur
-cette sangle de base, à 30-40° de sa perpendiculaire) ; le premier à s = 0,41 (à 0,30 et 0,36, il passait assez près du
-menton pour s'y lier : `suiviDuCorps/cle-inerte` sous `gabarit_head_plus`) ; le quatrième, remonté et décalé vers la
-droite, à 1 cm du pan de la capuche publiée (devant, de x = 0,092 à 0,135, au-dessus de z = 1,26). Puis trois fioles
-sous le dernier rouleau, glissées vers la droite du personnage, à gauche du bas du pan : de s = 0,73 à 0,87 sur la
-sangle même, elles le traversaient (porte r25) ; plus bas, sur le ventre (0,80 à 0,88) ou le flanc (0,86 à 0,96), la
-manche gauche les cachait dans la tenue du bâton (Clément, 2026-11-09 : « Je vois des "parchemins" sur sa
-bandouillere mais pas de fiole »)."""
