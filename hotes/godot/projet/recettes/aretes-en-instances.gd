@@ -154,7 +154,8 @@ func _teinte_attendue(a: Dictionary) -> Color:
 
 
 func _arete(cle: String, bloc: String, famille: Variant, piece: String, sens: Vector2, hauteur: float, pied: float, milieu: Vector2) -> Dictionary:
-	return {cle = cle, bloc = bloc, famille = famille, piece = piece, sens = {x = sens.x, y = sens.y}, hauteurM = hauteur,
+	return {cle = cle, bloc = bloc, famille = famille, piece = piece,
+		position = Noyau.Position.SEULE, sens = {x = sens.x, y = sens.y}, hauteurM = hauteur,
 		pied = pied, milieu = {x = milieu.x, y = milieu.y}, palette = ARETE.PALETTE if famille == _servie else {}}
 
 
