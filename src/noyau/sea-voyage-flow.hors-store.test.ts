@@ -43,6 +43,7 @@ import type { Id } from '../data/schemas/grammaire/ref';
 import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { savoirOceansBonus } from '../engine/seaNavigation';
+import { visibilityDef } from '../engine/seaWeather';
 import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
@@ -695,7 +696,8 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['mer'], sea: true, seaHeading: 'est' }],
   });
 
-  function freshLighthouseState(km = 1, signal: SignalDuPort = 'phare') {
+  /** Visibilité du jour posée par la météo imposée du navire (MDG 15 l.189). */
+  function freshLighthouseState(km = 1, signal: SignalDuPort = 'phare', visibilite = 'degage') {
     seedBattleRng(1);
     const [a, b] = tousLesHerosDeScenario(idsDeTest);
     const vigie = { ...a, skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], traumas: [traumaById('surdite', undefined, 'tete')] };
@@ -713,14 +715,14 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
       suspendedCascades: [],
       gameTime: 8 * 60,
       lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, meteosImposees: [{ label: 'Visibilité du banc', jusqua: 8 * 60 + 30 * MINUTES_PER_DAY, meteo: { visibilite: { id: visibilite } } }] },
       journal: [],
     } as never);
   }
 
   /** Joue le PREMIER jour de mer jusqu'à l'étape du phare, ou jusqu'à l'Orientation (bâtie après lui) s'il n'y en a pas. */
-  function premierJourDeMer(km: number, signal: SignalDuPort = 'phare') {
-    freshLighthouseState(km, signal);
+  function premierJourDeMer(km: number, signal: SignalDuPort = 'phare', visibilite = 'degage') {
+    freshLighthouseState(km, signal, visibilite);
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     let phare: CascadeStep | undefined;
     let progression: CascadeStep | undefined;
@@ -773,6 +775,14 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     expect(Number(jour.phare!.meta?.aggregateFlatDR ?? 0)).toBe(Number(jour.progression!.meta?.aggregateFlatDR ?? 0));
   });
 
+  // MDG 13 l.234-243, l.337, l.351
+  it.each(['phare', 'clocher'] as const)('Brouillard : le Test de repérage du %s porte la pénalité de Visibilité s’il se fait à la vue', (signal) => {
+    const drPlat = (visibilite: string) => Number(premierJourDeMer(1, signal, visibilite).phare!.meta?.aggregateFlatDR ?? 0);
+    const penalite = visibilityDef('brouillard').drPenalty!;
+    expect(penalite).toBeLessThan(0);
+    expect(drPlat('brouillard') - drPlat('degage')).toBe(signal === 'phare' ? penalite : 0);
+  });
+
   it('clocher : le Test de Perception est AUDITIF — la Vigie SOURDE y est pénalisée (MDG 13 l.351)', () => {
     const { phare } = premierJourDeMer(1, 'clocher');
     expect(phare).toBeTruthy();
@@ -798,11 +808,42 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     expect(membresHorsDifficulte(jour.phare!, difficulte)).toEqual([]); // MDG 14 l.13
   });
 
+  /** Progression du jour posée par son applier à `dr` DR sur une traversée de `km` milles, sous une Légère brise
+   *  imposée (M de la cogue intact, MDG 13 l.276-286), sans voguer de nuit (MDG 15 l.76) : milles du jour, M qui les a
+   *  donnés, étape du signal insérée. */
+  function progressionDuJour(km: number, signal: SignalDuPort, dr: number) {
+    freshLighthouseState(km, signal);
+    setRule('mer-voguer-de-nuit', false);
+    set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Légère brise', jusqua: get().gameTime + 30 * MINUTES_PER_DAY, meteo: { visibilite: { id: 'degage' }, vent: { id: 'legere-brise' } } }] } });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    const etape: CascadeStep = { id: 'equipage-progression', kind: 'equipage-progression', label: fixtureText('equipage-progression'), result: { roll: 0, target: 0, sl: dr, success: dr >= 1 } };
+    const sortie = applierDe('equipage-progression')!(get, set, etape, undefined, { steps: [], index: 0 });
+    const sea = get().travelPlan!.sea!;
+    return { milesToday: sea.milesToday, effM: sea.effMToday, signal: sortie?.insert?.find((st) => st.kind === 'equipage-phare') };
+  }
+
+  afterEach(() => resetRule('mer-voguer-de-nuit'));
+
+  // MDG 15 l.57-78 ; MDG 13 l.339-346, l.351 — #4419 : M 5 sans voguer de nuit à −3 DR = 31,5 milles, arrondis à 32.
+  it.each([
+    ['phare', 5, 'facile'],
+    ['phare', 10, 'intermediaire'],
+    ['phare', 15, 'difficile'],
+    ['clocher', 2.5, 'facile'],
+    ['clocher', 7.5, 'difficile'],
+  ] as const)('%s à %s milles restants pile après une Progression à demi-mille : Test %s', (signal, milesRestants, difficulte) => {
+    const jour = progressionDuJour(32 + milesRestants, signal, -3);
+    expect(jour.effM).toBe(5);
+    expect(jour.milesToday).toBe(32);
+    expect(jour.signal).toBeTruthy();
+    expect(membresHorsDifficulte(jour.signal!, difficulte)).toEqual([]); // MDG 14 l.13
+  });
+
   /** Signal repéré (applier de l'étape) puis Orientation du jour, sur le voyage en cours vers le port B. */
-  function signalRepereEtOrientation(signal: SignalDuPort) {
+  function signalRepereEtOrientation(signal: SignalDuPort, savoirOceans = true) {
     premierJourDeMer(1, signal);
     const [vigie, timonier] = get().party;
-    const navigateur = { ...vigie, skills: [{ id: 'orientation', characteristic: 'intelligence', advances: 20 }, { id: 'savoir', spec: 'oceans', characteristic: 'intelligence', advances: 40 }] } as Combatant;
+    const navigateur = { ...vigie, skills: [{ id: 'orientation', characteristic: 'intelligence', advances: 20 }, ...(savoirOceans ? [{ id: 'savoir', spec: 'oceans', characteristic: 'intelligence', advances: 40 }] : [])] } as Combatant;
     set({ party: [navigateur, timonier] });
     const etape = (kind: GenreDeCascade, sl: number): CascadeStep => ({ id: kind, kind, label: fixtureText(kind), result: { roll: 0, target: 0, sl, success: sl >= 1 } });
     applierDe('equipage-phare')!(get, set, etape('equipage-phare', 1), undefined, { steps: [], index: 0 });
@@ -823,6 +864,13 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     expect(savoir).toBeGreaterThan(2);
     expect(lighthouseDR).toBe(savoir);
     expect(orientation).toContain(`Phare +${savoir}`);
+  });
+
+  it('phare repéré par un navigateur SANS Savoir (Océans) : aucun bonus d’Orientation (MDG 13 l.335)', () => {
+    const { lighthouseDR, savoir, orientation } = signalRepereEtOrientation('phare', false);
+    expect(savoir).toBe(0);
+    expect(lighthouseDR).toBe(0);
+    expect(orientation).toContain('Orientation (DR +0) :');
   });
 });
 

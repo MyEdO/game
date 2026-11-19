@@ -115,7 +115,7 @@ import { currentSeason } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, directionOpposee, VENT_DOMINANT, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
-  axesImposes, type SeaWeather, type WindDirection, type WindAspect,
+  axesImposes, visibilityDRPenalty, type SeaWeather, type WindDirection, type WindAspect,
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
@@ -1095,7 +1095,10 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   const clocher = signal === 'clocher';
   const spot = signal ? lighthouseSpotDifficulty(Math.max(1, milesLeft), clocher) : null;
   if (spot) {
-    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: clocher ? 'ouie' : 'vue', difficulty: spot }); // MDG 13 l.339-346
+    // MDG 13 l.234-243, l.337 : le repère est à 1 mille au moins, au-delà de tout seuil de la Visibilité ; le clocher
+    // s'entend (MDG 13 l.351).
+    const brouillard = clocher ? 0 : visibilityDRPenalty(sea.weather.visibilite, Number.POSITIVE_INFINITY);
+    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: clocher ? 'ouie' : 'vue', difficulty: spot, extraDR: brouillard }); // MDG 13 l.339-346
     pousseSi(out, st);
   }
   // 5. Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311), + Carte marine (+DR, MDG 15 l.290).
@@ -2985,7 +2988,7 @@ export const TABLES = {
       const success = step.result.success;
       const clocher = signalDuPortDArrivee(get) === 'clocher';
       const best = partyAssisted(get().party, { skill: { id: 'orientation' } });
-      const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, clocher)) : 0;
+      const dr = success && best ? lighthouseOrientationDR(best.actor, clocher) : 0;
       patchSea(get, set, { lighthouseDR: dr });
       // MDG 13 l.335, l.351
       const j = [success
