@@ -1298,10 +1298,9 @@ export interface Combatant {
    *  d'incantation (LDB 46 l.107-111, une possession/dépense de personnage), Tests de fin de combat
    *  Maladie/Corruption (LDB 18 l.5 « la plupart des Personnages » ; LDB 20 l.14/206 « Personnage »), Terreurs
    *  subies de la Phobie du noir (ADE II 09 l.9).
-   *  Un HÉROS (`kind:'heros'`) l'est TOUJOURS implicitement (ne pas le redéclarer) ; une créature
-   *  générique du bestiaire ne l'est PAS par défaut ; un PNJ humain hostile MODÉLISÉ (statbloc d'auteur)
-   *  peut l'être explicitement — data-driven, éditable (`CustomStatblock.followsCharacterRules`,
-   *  propagé au spawn par `statblockToCombatant`). Prédicat unique : `followsCharacterRules` (engine/relations.ts). */
+   *  Un héros du groupe l'est implicitement. Un combattant apparu depuis une fiche peut l'être
+   *  explicitement (`CreatureData.followsCharacterRules` ou `CustomStatblock.followsCharacterRules`),
+   *  quel que soit son camp. Prédicat : `followsCharacterRules` (engine/relations.ts). */
   followsCharacterRules?: boolean;
   /** `id` STABLE de la fiche dont ce combattant est une instance (posé au spawn) : une créature du
    *  bestiaire (`noyau/monde/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —

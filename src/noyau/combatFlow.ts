@@ -258,7 +258,7 @@ import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import { gainCorruption, testDExposition, crochetsDeCorruption } from './corruptionFlow';
-import { corruptionGain, EXPOSURE_LADDER, type ExposureLevel } from '../engine/corruption';
+import { corruptionGain, EXPOSURE_LADDER, recoitLaCorruption, type ExposureLevel } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
 import { critiqueDie } from '../data/criticals';
@@ -5273,10 +5273,10 @@ export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: 
  * Corruption. » C'est PAR JET : `jets` Points, gagnés UN PAR UN (chaque gain rejoue son seuil de
  * Corruption, LDB 19 l.70 — un gain groupé n'en jouerait qu'un). Compte identique dans les deux
  * modes (dé tiré inline : tous les jets de la cascade ; dé posé : le jet de CETTE étape).
- * #143 : personnage (`followsCharacterRules`), pas un proxy `kind`.
+ * LDB 51 ; #4096.
  */
 function sorceryCorruptionLines(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, jets: number): string[] {
-  if (!ctx.sorceryCorruption || !followsCharacterRules(caster)) return [];
+  if (!ctx.sorceryCorruption || !recoitLaCorruption(caster)) return [];
   const lines: string[] = [];
   for (let i = 0; i < jets; i++) lines.push(...gainCorruption(get, set, caster, 1));
   return lines;
@@ -7370,7 +7370,7 @@ function decideCombatEndHeroTests(
   // 'off' : aucune contraction.
   if (!c.dead) diseases.push(...contagionsDues(c, c.diseaseExposure ?? []));
   c.diseaseExposure = undefined;
-  return { diseases, corruption: c.dead ? null : worstCorruption };
+  return { diseases, corruption: !c.dead && recoitLaCorruption(c) ? worstCorruption : null };
 }
 
 /** Les Tests de Contraction que doivent les `expositions` du `porteur` (op `exposeDisease`) : la
@@ -9656,7 +9656,7 @@ export const TABLES = {
     corruptionDeFinDeCombat: bandeDeFinDeCombat((get, set, _band, row, hero, meta) => {
       const level = meta.level as import('../engine/corruption').ExposureLevel | undefined;
       const label = typeof meta.exposureLabel === 'string' ? meta.exposureLabel : '';
-      if (!level) return [];
+      if (!level || !recoitLaCorruption(hero)) return [];
       const gain = corruptionGain(level, row.result!.success, Math.max(0, row.result!.sl));
       // Le verdict (roll/target) est déjà porté par la rangée de jet (RollLine ✓/✗ ±DR) — la conséquence ne
       // re-décrit QUE ce qui a été appliqué (#295 Lot 1, Décision 1b) : le gain RÉEL, ou une résistance nue.

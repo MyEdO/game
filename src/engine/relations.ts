@@ -28,11 +28,15 @@ export const relationBetween = (a: { id: string; camp: Camp }, b: { id: string; 
 export const effectivelyHostile = (a: Combatant, b: Combatant): boolean =>
   relationBetween({ id: a.id, camp: campOf(a) }, { id: b.id, camp: campOf(b) }) === 'adversaire';
 
+/** Le héros du groupe, distinct des alliés issus d'une fiche de rencontre. */
+export const estHerosJouable = (c: Pick<Combatant, 'kind' | 'porteurDeFiche'>): boolean =>
+  c.kind === 'heros' && c.porteurDeFiche === undefined;
+
 /** Ce combattant suit-il les règles de PERSONNAGE (#143) ? — prédicat UNIQUE, DISTINCT du camp
  *  (`campOf`, ci-dessus) et du contrôle (`pilotedByHuman`/`controlsCombatant`, netOwnership.ts).
  *  Gouverne des mécaniques écrites au Personnage dans la source, jamais étendues aux créatures
  *  génériques : Corruption (LDB 19), composant d'incantation (LDB 46 l.107-111), Tests de fin de
  *  combat Maladie/Corruption (LDB 18 l.5, LDB 20 l.14/206). Un héros l'est TOUJOURS ; tout autre
  *  combattant seulement si explicitement flagué en donnée (cf. `Combatant.followsCharacterRules`). */
-export const followsCharacterRules = (c: Pick<Combatant, 'kind' | 'followsCharacterRules'>): boolean =>
-  c.kind === 'heros' || c.followsCharacterRules === true;
+export const followsCharacterRules = (c: Pick<Combatant, 'kind' | 'porteurDeFiche' | 'followsCharacterRules'>): boolean =>
+  estHerosJouable(c) || c.followsCharacterRules === true;
