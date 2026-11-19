@@ -107,12 +107,12 @@ fermer();
 el(S, 'rect', { width: 560, height: H, fill: '#000', opacity: .28 });
 
 const pieces = [];
-pieces.push(titre({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Auberge · Teuerberg, Bögenhafen · le soir', largeur: 446 }));
+pieces.push(cartouche({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Auberge · Teuerberg, Bögenhafen · le soir', taille: 'titre', largeur: 446 }));
 /* LDB 66 l.5, l.12-16, l.28 ; `src/noyau/restFlow.ts:567-575`, `:692` ; #3004 */
-const offre = (icone, nom, sous, prix, prise) => `<span class="l rubrique">${picto(icone, 17)}${nom}</span><span class="q rubrique">${sous}</span>${plaque(prix, { armee: prise })}`;
+const offre = (icone, nom, sous, prix, prise) => `<span class="l rubrique">${picto(icone, 17)}${nom}</span><span class="q rubrique">${sous}</span>${plaque(prix, { armee: prise, taille: 'petite' })}`;
 const NOTE = '6/–';
 pieces.push(`<div id="nuit" class="cadre bois" data-piece="la nuit"><div class="fond bois">
-  <div class="tete">${medaillon('chope', { petit: true })}<div><div class="n gothique" data-texte="hôte">Odelina Landau</div><div class="s rubrique">L’aubergiste</div></div></div>
+  ${cartouche({ icone: 'chope', nom: 'Odelina Landau', sous: 'L’aubergiste', texte: 'hôte' })}
   <div class="dit">Un lit chaud, un bon repas et pas de questions.</div>
   <div class="grille">
     ${offre('lit', 'Chambre commune', 'par tête', '10 sc')}
@@ -120,17 +120,18 @@ pieces.push(`<div id="nuit" class="cadre bois" data-piece="la nuit"><div class="
     ${offre('cle', 'Grande chambre', '4 lits', '20/–', true)}
     ${offre('bol', 'Repas', 'par tête', '1/–', true)}
   </div>
-  <div class="chambree"><span class="rubrique">Grande chambre</span>${HEROS.map((h) => portrait(h.id)).join('')}<i>4 lits sur 4</i></div>
-  <div class="filet"></div>
-  ${bourse({ parts: HEROS.map((h) => [h.nom.split(' ')[0], NOTE, h.bourse]), total: '1 CO 4/–' })}
-  ${plaque('Passer la nuit', { armee: true, icone: 'lune', classe: 'nuit' })}
 </div>${ferrures}</div>`);
+pieces.push(cadre('reglage', null, null, null, null, 'bois', `
+  <div class="chambree"><span class="rubrique">Grande chambre</span>${HEROS.map((h) => portrait(h.id, { taille: 'menu' })).join('')}<i>4 lits sur 4</i></div>
+  ${filet({ fondu: true })}
+  ${bourse({ parts: HEROS.map((h) => [h.nom.split(' ')[0], NOTE, h.bourse]), total: '1 CO 4/–' })}
+  ${plaque('Passer la nuit', { armee: true, icone: 'lune', classe: 'nuit' })}`, { ruban: 'La nuit' }));
 const POSTES = [
   [716, 318, { nom: 'Boire', sous: 'Bière, la pinte · 3 sc', heros: 'bjorn' }],
   [1010, 376, { nom: 'Écouter les rumeurs', sous: 'Ragot', heros: 'mira' }],
   [1290, 404, { nom: 'Jouer', sous: 'Pari · une mise', icone: 'des' }],
-  [1552, 262, { nom: 'Se faire soigner', sous: 'Guérison · la visite 5/–', heros: 'greta' }],
-  [1298, 62, { nom: 'Dormir', sous: 'Une bonne nuit', heros: 'aldric' }],
+  [1552, 340, { nom: 'Se faire soigner', sous: 'Guérison · la visite 5/–', heros: 'greta' }],
+  [1262, 62, { nom: 'Dormir', sous: 'Une bonne nuit', heros: 'aldric' }],
 ];
 pieces.push(`<div data-piece="postes">${POSTES.map((p) => poste(...p)).join('')}</div>`);
 pieces.push(bandeau({

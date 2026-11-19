@@ -83,6 +83,6 @@ monter([
      <p class="ombre" data-texte="pitch 2">Certains Personnages se connaissent peut-être déjà ; les autres se rencontreront pour la première fois lorsqu’ils approcheront de l’auberge-relais la plus proche, nommée La Diligence.</p>
      <div class="source rubrique ombre">L’Ennemi dans l’Ombre, p. 11</div>
    </div>`,
-  bandeau().replace('<div class="fond bois">', '<div class="fond bois"><span class="ruban rubrique">La compagnie</span>'),
-  `<div id="commencer" data-piece="commencer">${plaque('Commencer', { armee: true, icone: 'route' })}</div>`,
+  bandeau({}, { ruban: 'La compagnie' }),
+  `<div class="action-de-coin" data-piece="commencer">${plaque('Commencer', { armee: true })}</div>`,
 ]);

@@ -1,39 +1,18 @@
 /* Commerce, images d'intention (#3935). Ajouts au kit de « lieux et nuit » (../lieux-et-nuit/commun.js) : pictogrammes
-   de denrées et de porteurs, bustes des négociants, cartouches d'offre et de porteur, les deux décors (la halle, le
+   de denrées et de porteurs, bustes des négociants, hôtes d'offre et de porteur, les deux décors (la halle, le
    quai). Maquette hors du jeu. */
-Object.assign(PICTOS, {
-  panier: '<path d="M4 10h16l-2 9H6zM8 10l4-6 4 6M9.500 13v3M12 13v3M14.500 13v3"/>',
-  tonneau: '<path d="M7 4h10c2 4 2 12 0 16H7c-2-4-2-12 0-16zM5.800 9h12.400M5.800 15h12.400"/>',
-  ballot: '<rect x="4" y="7" width="16" height="11" rx="3"/><path d="M9 7v11M15 7v11M4 12.500h16"/>',
-  charrette: '<path d="M3 7h13v8H3zM16 10h4l1 5h-5"/><circle cx="8" cy="17.500" r="2.500"/><circle cx="17.500" cy="17.500" r="2"/>',
-  navire: '<path d="M3 15h18l-2.500 5h-13zM12 15V3M12 4l6 8h-6M12 6l-5 6h5"/>',
-  loupe: '<circle cx="10.500" cy="10.500" r="5.500"/><path d="M15 15l5 5"/>',
-  deplacer: '<path d="M4 8h13M13.500 4.500L17 8l-3.500 3.500M20 16H7M10.500 12.500L7 16l3.500 3.500"/>',
-  marteau: '<path d="M14 4l6 6-3 3-6-6zM12.500 8.500L4 17l3 3 8.500-8.500"/>',
-  equipage: '<circle cx="8" cy="8" r="3"/><circle cx="16.500" cy="9" r="2.500"/><path d="M2.500 20c0-4 2.500-6 5.500-6s5.500 2 5.500 6M14 20c0-3 1.500-5 4-5 2 0 3.500 1.500 3.500 4"/>',
-  epi: '<path d="M12 21V8M12 8c-3-1-3-4 0-5 3 1 3 4 0 5zM12 13c-3 0-4-2-4-4 3 0 4 2 4 4zM12 13c3 0 4-2 4-4-3 0-4 2-4 4zM12 18c-3 0-4-2-4-4 3 0 4 2 4 4zM12 18c3 0 4-2 4-4-3 0-4 2-4 4z"/>',
-  planches: '<path d="M3 8h18v3H3zM3 13h18v3H3zM7 8v3M15 13v3"/>',
-  joyau: '<path d="M6 4h12l3 5-9 11L3 9zM3 9h18M9 4l-1.500 5L12 20M15 4l1.500 5L12 20"/>',
-  moitie: '<path d="M5 19L19 5"/><circle cx="7.500" cy="7.500" r="2.500"/><circle cx="16.500" cy="16.500" r="2.500"/>',
-});
 Object.assign(BUSTES, {
   drapier: BASE + '<path d="M22 31c0-13 8-20 17-20s17 7 17 20c-5-5-11-7-17-7s-12 2-17 7z" fill="#15100c"/><path d="M22 30h34v4H22z" fill="#15100c"/>',
   vigneron: BASE + '<path d="M16 29h46v4H16zM26 29c0-10 5-16 13-16s13 6 13 16z" fill="#15100c"/>',
   courtier: BASE + '<path d="M24 28c0-11 6-17 15-17s15 6 15 17l-5-4H29z" fill="#15100c"/><path d="M30 60l9 8 9-8v6l-9 9-9-9z" fill="#15100c"/>',
 });
-['drapier', 'vigneron', 'courtier'].forEach((g) => BUSTES_PNJ.add(g));
 
 /* ───────── les pièces ───────── */
 const mesures = (lignes) => `<table>${lignes.map(([k, v, c]) => `<tr><td>${k}</td><td class="${c ?? ''}">${v}</td></tr>`).join('')}</table>`;
-/* un cartouche posé dans la scène : (x, y) son coin, pointe = abscisse de sa pointe depuis son bord gauche */
-const cartouche = ({ id, classe = '', x, y, l, icone, nom, sous, corps = '', pointe = 60, marque = '' }) => `<div class="hote ${classe} cadre bois" data-piece="${id}" style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
-  <div class="tete">${medaillon(icone, { petit: true })}<div><div class="n gothique" data-texte="${id}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div><div class="s rubrique">${sous}</div></div></div>${corps}
-</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
-const jauge = (pris, total, ajout = 0) => `<div class="jauge"><i style="width:${100 * pris / total}%"></i>${ajout ? `<u style="left:${100 * pris / total}%;width:${100 * ajout / total}%"></u>` : ''}</div>`;
 /* la page de droite, sur parchemin : ce que l'on compose ou traite ; `piece` la nomme au rapport de rendu */
-const page = (piece, ruban, corps, classe = '') => `<div id="page" class="page cadre bois ${classe}" data-piece="${piece}" style="height:auto"><div class="fond parchemin">${corps}</div><div class="ruban gothique">${ruban}</div>${ferrures}</div>`;
-const quantite = (v, min, max, unite = 'Enc') => `<div class="quantite">${rond('moins', 15)}<div style="flex:1"><div class="reglette"><u style="width:${100 * (v - min) / (max - min)}%"></u><i style="left:${100 * (v - min) / (max - min)}%"></i></div><div class="bornes lin"><span>${min}</span><span>${max}</span></div></div>${rond('plus', 15)}<span class="val">${v} ${unite}</span></div>`;
-const voie = (icone, nom, comp, texte, prix, pris = false) => `<div class="soin ${pris ? 'pris' : ''}"><div class="ic">${picto(icone, 19, '#5a2a12')}</div><div class="t"><b>${nom}</b><span class="c">${comp}</span><i>${texte}</i></div>${prix ? `<span class="px lin">${prix}</span>` : ''}</div>`;
+const page = (piece, intitule, corps) => `<div id="page" class="page cadre bois" data-piece="${piece}"><div class="fond parchemin">${corps}</div>${ruban(intitule, { gothique: true })}${ferrures}</div>`;
+const quantite = (v, min, max, unite = 'Enc') => `<div class="quantite">${rond('moins', 'petit')}<div style="flex:1">${reglette((v - min) / (max - min), null)}<div class="bornes chiffres"><span>${min}</span><span>${max}</span></div></div>${rond('plus', 'petit')}<span class="val">${v} ${unite}</span></div>`;
+const voie = (icone, nom, comp, texte, prix, pris = false) => `<div class="soin ${pris ? 'pris' : ''}"><div class="ic">${picto(icone, 19, '#5a2a12')}</div><div class="t"><b>${nom}</b><span class="c">${comp}</span><i>${texte}</i></div>${prix ? `<span class="px chiffres">${prix}</span>` : ''}</div>`;
 
 /* ───────── le décor : silhouettes de commerce ───────── */
 const ballot = (g, x, y, w = 70, h = 42, fill = '#8f8468') => {
@@ -218,4 +197,4 @@ function sceneDuQuai() {
 }
 const nuagesDuSoir = () => { const g = el(S, 'g'); for (const [cx, cy, rx, ry, o] of [[420, 150, 260, 22, .5], [760, 96, 220, 16, .4], [1180, 190, 300, 20, .45], [980, 290, 240, 14, .35], [560, 300, 200, 12, .3]]) el(g, 'ellipse', { cx, cy, rx, ry, fill: '#2a2238', opacity: o, filter: 'url(#f8)' }); };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { mesures, cartouche, jauge, page, quantite, voie, sceneDeLaHalle, sceneDuQuai });
+Object.assign(globalThis, { mesures, page, quantite, voie, sceneDeLaHalle, sceneDuQuai });

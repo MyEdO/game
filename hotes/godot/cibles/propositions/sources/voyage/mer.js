@@ -16,12 +16,12 @@ pieces.push(temps(SEMAINE
   : { teinte: 'gris', jour: 'Wellentag', date: '21 Sigmarzeit · 3ᵉ jour en mer', meteo: 'Brise fraîche, vent latéral', icone: 'vent', cadence: ARRET ? null : 'commande' }));
 pieces.push(carteDuTrajet({ titre: 'La mer des Griffes', de: 'Salzenmund', vers: 'Erengrad', part: AU_PORT ? 1 : SEMAINE ? .8 : .3, eau: 'mer' }));
 /* le contenant d'événement de la mer : vignette, titre, texte du livre, corps */
-const arret = ({ ruban, titre: t, sous, texte, vignette, corps = '', sceau = '', court = false }) => `<div id="evenement" class="cadre bois${court ? ' court' : ''}" data-piece="evenement"><div class="fond parchemin">
+const arret = ({ ruban: intitule, titre: t, sous, texte, vignette, corps = '', jet = '', court = false }) => `<div id="evenement" class="cadre bois${court ? ' court' : ''}" data-piece="evenement"><div class="fond parchemin">
     <div class="vignette"><svg viewBox="0 0 250 250"><rect width="250" height="250" fill="#d8c493"/>${vignette}</svg></div>
     <div class="corps"><div class="tete"><h2 data-texte="titre de l'événement">${t}</h2><span class="rubrique">${sous}</span></div>
       <p data-texte="texte du livre">${texte}</p>${corps}
-    </div>${sceau}
-  </div><div class="ruban gothique">${ruban}</div>${ferrures}</div>`;
+    </div>${jet}
+  </div>${ruban(intitule, { gothique: true })}${ferrures}</div>`;
 const ENCRE = 'fill="#2a1d12"';
 if (ETAT === 'mer-relache') {
   pieces.push(arret({ ruban: 'Escale au port', titre: 'Relâche à terre', sous: 'Erengrad · à l’accostage',
@@ -53,29 +53,29 @@ if (ETAT === 'mer-relache') {
   pieces.push(arret({ court: true, ruban: 'Panne de vapeur', titre: 'Fuite de vapeur', sous: 'À la chaudière · 3ᵉ jour en mer',
     texte: 'Fuite de vapeur : un jet de vapeur jaillit de la chaudière. La personne qui s’occupe du moteur doit réussir un Test d’Initiative sous peine d’être ébouillantée et de subir 1d10–5 Dégâts (1 minimum), qui ignorent l’Armure.',
     vignette: `<rect y="190" width="250" height="60" fill="#b9a26c"/><g ${ENCRE}><path d="M50 190v-80c0-22 16-36 40-36h30c24 0 40 14 40 36v80z"/><path d="M150 96h46v14h-46zM186 96h12v94h-12z"/><path d="M92 74V42h26v32z"/></g><circle cx="105" cy="136" r="22" fill="#d8c493"/><path d="M105 136l12-12" stroke="#2a1d12" stroke-width="4"/><g fill="none" stroke="#8c7446" stroke-width="3" stroke-linecap="round"><path d="M160 120c20-10 30 6 50-6M162 140c22-8 34 8 58-4M160 160c18-6 30 8 46 0"/></g>`,
-    sceau: '<div class="sceau de"><b>47</b><i>d100</i></div>' }));
+    jet: sceau(47, 'maitre', { de: 'd100' }) }));
   pieces.push(bandeauDuJet('Test d’Initiative', '', `
-    ${camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Au moteur · Initiative', seuil: 38, modif: 'Intermédiaire (+0)' })}
+    ${camp({ portrait: portrait('aldric', { taille: 'grand' }), nom: 'Aldric', carac: 'Au moteur · Initiative', seuil: 38, modif: 'Intermédiaire (+0)' })}
     ${reglages('Fuite de vapeur · 3ᵉ jour en mer', '<div class="dr gothique">Test simple</div><p>Sinon ébouillanté : 1d10–5 Dégâts (1 minimum), qui ignorent l’Armure.</p>')}
     <div></div>`, avantLeDe({ heros: aldric })));
 } else {
-  pieces.push(recit('En mer · Journée en mer', 'Brise fraîche par le travers : la cogue vire de bord et garde son cap. L’équipage tient la cadence, la côte du Nordland s’efface.').replace('id="recit"', 'id="recit" class="route"'));
+  pieces.push(recit('En mer · Journée en mer', 'Brise fraîche par le travers : la cogue vire de bord et garde son cap. L’équipage tient la cadence, la côte du Nordland s’efface.'));
   pieces.push(`<div id="navire" class="cadre bois bord" data-piece="le navire"><div class="fond bois">
-    ${ligne('Coque', '<span class="lin">50 / 50</span>')}${jauge(1)}
-    ${ligne('Moral', '<span class="lin">75</span>')}${jauge(.75)}
-    ${ligne('Eau douce', '<span class="lin">2 900 L</span>')}
-    ${ligne('Vivres de l’équipage', '<span class="lin">735 rations</span>')}
-  </div><div class="ruban rubrique">La cogue</div>${ferrures}</div>`);
+    ${ligne('Coque', '<span class="chiffres">50 / 50</span>')}${jauge(1, { teinte: 'or', taille: 'forte' })}
+    ${ligne('Moral', '<span class="chiffres">75</span>')}${jauge(.75, { teinte: 'or', taille: 'forte' })}
+    ${ligne('Eau douce', '<span class="chiffres">2 900 L</span>')}
+    ${ligne('Vivres de l’équipage', '<span class="chiffres">735 rations</span>')}
+  </div>${ruban('La cogue')}${ferrures}</div>`);
   pieces.push(ouvrir('Dossier du navire', 'coque', 452), ouvrir('Postes de bord', 'cordage', 502));
   pieces.push(frise({ de: 'Salzenmund', vers: 'Erengrad', fait: .3, nuits: [.1, .2], reste: 385, unite: 'milles' }));
-  pieces.push(billet({ x: 1010, y: 350, largeur: 300, pointe: 236, nom: 'Progression', qui: 'Test d’équipage', lignes: [['Greta, Capitaine', '+2 DR ×2 = +4'], ['Mira, Timonier', '+1 DR'], ['Aldric, Navigateur', '+1 DR'], ['Somme', '+6 DR']], pied: chanceDe('greta', 'mira', 'aldric') }));
+  pieces.push(billet({ x: 1010, y: 350, pointe: 236, nom: 'Progression', qui: 'Test d’équipage', lignes: [['Greta, Capitaine', '+2 DR ×2 = +4'], ['Mira, Timonier', '+1 DR'], ['Aldric, Navigateur', '+1 DR'], ['Somme', '+6 DR']], pied: chanceDe('greta', 'mira', 'aldric') }));
   pieces.push(bandeau({
     bjorn: { icone: 'oeil', texte: 'Vigie : rien que des mouettes à l’horizon' },
     mira: { icone: 'barre', texte: 'Timonier : vire de bord sans perdre le vent' },
     aldric: { icone: 'etoile', texte: 'Navigateur : fait le point à midi, le cap est bon' },
     greta: { icone: 'couronne', texte: 'Capitaine : tient l’équipage à la manœuvre' },
   }));
+  pieces.push(retour('Faire halte', 'ancre'));
 }
 pieces.push(coins());
 monter(pieces);
-if (ETAT === 'mer-fuite-de-vapeur') clouer(document.getElementById('jet'));

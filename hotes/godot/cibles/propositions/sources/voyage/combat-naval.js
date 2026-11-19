@@ -19,19 +19,19 @@ const ui = [];
 ui.push(SYSTEME);
 ui.push(`<div id="round" class="cadre bois" data-piece="round"><div class="fond bois"><div class="n gothique">Round 1</div><div class="t rubrique">tour ${PIECE ? 4 : 2}<br>sur 6</div></div>${ferrures}</div>`);
 ui.push(`<div id="ordre" data-piece="ordre">${(PIECE
-  ? [rang('bjorn', 'heros', 'Bjorn', 16, 16, 'actif'), rang('greta', 'heros', 'Greta Hartmann', 8, 14), borne(2), rang('aldric', 'heros', 'Aldric', 12, 12), rang('mira', 'heros', 'Mira', 11, 11), rang('navire', 'ennemi', 'Cogue pirate', 50, 50), rang('bjorn', 'ennemi', 'Pirate', 12, 12, 'fantome')]
-  : [rang('mira', 'heros', 'Mira', 11, 11, 'actif'), rang('navire', 'ennemi', 'Cogue pirate', 50, 50), rang('bjorn', 'ennemi', 'Pirate', 12, 12),
-    rang('bjorn', 'heros', 'Bjorn', 16, 16), rang('greta', 'heros', 'Greta Hartmann', 8, 14), borne(2), rang('aldric', 'heros', 'Aldric', 12, 12, 'fantome')]
+  ? [combattant('bjorn', 'heros', 'Bjorn', 16, 16, 'actif'), combattant('greta', 'heros', 'Greta Hartmann', 8, 14), borne(2), combattant('aldric', 'heros', 'Aldric', 12, 12), combattant('mira', 'heros', 'Mira', 11, 11), combattant('navire', 'ennemi', 'Cogue pirate', 50, 50), combattant('bjorn', 'ennemi', 'Pirate', 12, 12, 'fantome')]
+  : [combattant('mira', 'heros', 'Mira', 11, 11, 'actif'), combattant('navire', 'ennemi', 'Cogue pirate', 50, 50), combattant('bjorn', 'ennemi', 'Pirate', 12, 12),
+    combattant('bjorn', 'heros', 'Bjorn', 16, 16), combattant('greta', 'heros', 'Greta Hartmann', 8, 14), borne(2), combattant('aldric', 'heros', 'Aldric', 12, 12, 'fantome')]
 ).join('')}</div>`);
-ui.push(`<div id="journal" data-piece="journal"><div class="tete rubrique ombre">Journal ${rond('journal', 17)}</div>
+ui.push(`<div id="journal" data-piece="journal"><div class="tete rubrique ombre">Journal ${rond('journal', 'petit')}</div>
   ${borneJ('Le combat commence ! (Round 1)')}${vieux('Aldric relève le cap de la Cogue pirate.')}${neuf('La bordée de la Cogue pirate manque la Cogue des aventuriers.')}</div>`);
-ui.push(`<div id="fin" data-piece="fin">${rond('fin', 44)}<span class="rubrique ombre">Fin du tour</span></div>`);
-const rangee = (genre, nom, role, seuil) => `<div class="rangee">${portrait(genre, 'heros')}<div class="q" data-texte="rangée ${nom}"><b class="gothique">${nom}</b><span class="rubrique">${role}</span></div><span class="seuil">≤ ${seuil}</span></div>`;
+ui.push(`<div id="fin" data-piece="fin">${rond('fin', 'maitre')}<span class="rubrique ombre">Fin du tour</span></div>`);
+const rangee = (genre, nom, role, seuil) => `<div class="rangee">${portrait(genre, { taille: 'menu' })}<div class="q" data-texte="rangée ${nom}"><b class="gothique">${nom}</b><span class="rubrique">${role}</span></div><span class="seuil">≤ ${seuil}</span></div>`;
 const de = (id) => HEROS.find((h) => h.id === id);
 if (ETAT === 'combat-naval-bordee') {
   /* le Tir de batterie : l'Artilleur à gauche, la munition du bord au centre, les autres rôles du Test à droite */
   ui.push(bandeauDuJet('Tir de batterie', 'avant', `
-  ${camp({ portrait: portrait('bjorn', 'heros'), nom: 'Bjorn', carac: 'Artilleur · Projectiles (Poudre noire)', seuil: 47, modif: 'Rôle essentiel ×2' })}
+  ${camp({ portrait: portrait('bjorn', { taille: 'grand' }), nom: 'Bjorn', carac: 'Artilleur · Projectiles (Poudre noire)', seuil: 47, modif: 'Rôle essentiel ×2' })}
   ${reglages('Test d’équipage · bordée de bâbord sur la Cogue pirate', `<div class="l rubrique">Munition des pièces qui portent</div>${options([['Boulet et poudre', { armee: true }], ['Mitraille et poudre']])}
     <div class="enjeux"><span class="modif rubrique">2 pièces à bâbord</span><span class="modif rubrique">Un DR pour toutes</span></div>`)}
   <div class="rangees"><div class="t rubrique">Chacun lance son jet, les DR s’additionnent</div>
@@ -40,7 +40,7 @@ if (ETAT === 'combat-naval-bordee') {
 } else if (ETAT === 'combat-naval-chanson') {
   /* la Chanson de marin : le chanteur à gauche, le Test au centre, ses chansons en cartes à droite */
   ui.push(bandeauDuJet('Chanson de marin', 'avant', `
-  ${camp({ portrait: portrait('aldric', 'heros'), nom: 'Aldric', carac: 'Chansonnier · Divertissement (Chant)', seuil: 43 })}
+  ${camp({ portrait: portrait('aldric', { taille: 'grand' }), nom: 'Aldric', carac: 'Chansonnier · Divertissement (Chant)', seuil: 43 })}
   ${reglages('La Sterne · une seule chanson par quart', '<div class="dr gothique">Test simple</div><p>L’effet dure trois minutes plus un nombre de minutes égal au DR.</p>')}
   <div class="rangees chansons"><div class="t rubrique">Chanson</div>
     ${carte('Naviguons tous ensemble, ho hisse, ho hisse…', '+10 sur les Tests individuels d’un Test d’équipage', { armee: true })}
@@ -50,16 +50,16 @@ if (ETAT === 'combat-naval-bordee') {
   /* le tour d'un héros qui sert une pièce du bord : le meuble de l'actif (`combat/meuble-chef-de-piece`), la munition ouverte */
   ui.push(...meuble({
     genre: 'bjorn', nom: 'Bjorn', sous: 'Canon (petit) de bâbord',
-    etat: `${mesure('Blessures', '16 / 16')}${mesure('Chargé', '1 / 1', 'or')}${jetons(de('bjorn').determination)}<div class="portes"><span class="rubrique">Poste</span>${plaque('Quitter la pièce', { icone: 'quitter' })}</div>`,
+    etat: `${mesure('Blessures', '16 / 16')}${mesure('Chargé', '1 / 1', 'or')}${jetons(de('bjorn').determination)}`,
     plaques: `${plaque('Manœuvrer', { icone: 'barre' })}${plaque('Bordée', { icone: 'canon' })}${plaque('Attaque', { icone: 'attaque' })}`,
-    conditionnelles: `${plaque('Recharger', { fermee: true })}${plaque('Diriger l’équipe')}${plaque('Chanson de marin')}`,
+    conditionnelles: `${plaque('Recharger', { fermee: true, taille: 'petite' })}${plaque('Diriger l’équipe', { taille: 'petite' })}${plaque('Chanson de marin', { taille: 'petite' })}${plaque('Quitter la pièce', { icone: 'sortie', taille: 'petite' })}`,
     pastilles: [['munition', 'Munition'], ['competence', 'Compétence'], ['objet', 'Objet'], ['armes', 'Armes']], ouverte: 'munition',
   }));
   ui.push(`<div id="munitions" class="cadre bois" data-piece="munitions"><div class="fond"><div class="t rubrique">Approvisionner la pièce</div>
     ${carte('Boulet et poudre', '6 en soute', { armee: true, classe: 'courte' })}${carte('Mitraille et poudre', '4 en soute', { classe: 'courte' })}</div>${ferrures}</div>`);
 } else {
   ui.push(bandeauDuJet('Manœuvre', 'avant', `
-    ${camp({ portrait: portrait('mira', 'heros'), nom: 'Mira', carac: 'Timonier · Voile', seuil: 41, modif: 'Rôle essentiel ×2' })}
+    ${camp({ portrait: portrait('mira', { taille: 'grand' }), nom: 'Mira', carac: 'Timonier · Voile', seuil: 41, modif: 'Rôle essentiel ×2' })}
     ${reglages('Test d’équipage · la cogue', `<div class="l rubrique">Virage</div>${options([['Bâbord 45°'], ['Cap tenu'], ['Tribord 45°', { armee: true }]])}
       <div class="enjeux"><span class="modif rubrique">Man de la cogue −1 DR</span><span class="modif rubrique">Peu maniable −1 DR</span></div>`)}
     <div class="rangees"><div class="t rubrique">Chacun lance son jet, les DR s’additionnent</div>

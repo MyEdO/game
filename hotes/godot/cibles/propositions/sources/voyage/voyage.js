@@ -1,29 +1,6 @@
 /* Voyage, images d'intention (#3935). Pièces communes aux écrans de la famille : décors peints (route, relais,
    fleuve, mer), véhicules en silhouette, objet du temps, carte du trajet, frise, contenant d'événement.
    Maquette hors du jeu. */
-Object.assign(PICTOS, {
-  soleil: '<circle cx="12" cy="12" r="4"/><path d="M12 2.500v3M12 18.500v3M2.500 12h3M18.500 12h3M5.300 5.300l2.100 2.100M16.600 16.600l2.100 2.100M5.300 18.700l2.100-2.100M16.600 7.400l2.100-2.100"/>',
-  pluie: '<path d="M7 14a4 4 0 0 1 .6-8 5.500 5.500 0 0 1 10.600 1.500A3.300 3.300 0 0 1 17.500 14zM8 17l-1 3M12 17l-1 3M16 17l-1 3"/>',
-  brume: '<path d="M4 8h13M7 12h13M4 16h11M9 20h9"/>',
-  vent: '<path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h7"/>',
-  barre: '<circle cx="12" cy="12" r="5.500"/><circle cx="12" cy="12" r="1.500"/><path d="M12 2v4.500M12 17.500V22M2 12h4.500M17.500 12H22M4.900 4.900l3.200 3.200M15.900 15.900l3.200 3.200M4.900 19.100l3.200-3.200M15.900 8.100l3.200-3.200"/>',
-  canon: '<path d="M3 10h13l5 1.500v3L16 16H3zM3 10v6"/><circle cx="8" cy="18.500" r="2.500"/>',
-  voile: '<path d="M2.500 16h19l-2.500 4.500H5zM9 16V3M9 4l8 4.500-8 4.500M14 16v-5"/>',
-  etoile: '<path d="M12 3l2.300 6.200 6.700.3-5.200 4.100 1.800 6.400L12 16.300 6.400 20l1.800-6.400L3 9.500l6.700-.3z"/>',
-  couronne: '<path d="M4 18h16M4 18L3 8l5 4 4-7 4 7 5-4-1 10"/>',
-  cordage: '<path d="M6 3c5 3-3 6 2 9s-3 6 2 9M14 3c5 3-3 6 2 9s-3 6 2 9"/>',
-  marmite: '<path d="M4 10h16v5a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6zM2 10h20M9 6c0-2 2-2 2-4M14 6c0-2 2-2 2-4"/>',
-  chant: '<path d="M9 18V5l10-2v13"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/>',
-  coque: '<path d="M3 8h18c0 6-3 11-9 12C6 19 3 14 3 8zM12 8v12M7 12h10"/>',
-  caisse: '<path d="M4 8l8-4 8 4v9l-8 4-8-4zM4 8l8 4 8-4M12 12v9"/>',
-  tonneau: '<path d="M7 3h10c2 4 2 14 0 18H7C5 17 5 7 7 3zM5.700 8h12.600M5.700 16h12.600"/>',
-  virer: '<path d="M4 14a8 8 0 0 1 14-5l2 2M20 5v6h-6"/>',
-  grappin: '<path d="M12 3v12M6 13c0 4 3 6 6 6s6-2 6-6M6 13l-2 2M18 13l2 2"/><circle cx="12" cy="4" r="1.500"/>',
-  loupe: '<circle cx="10.500" cy="10.500" r="6"/><path d="M15 15l5.500 5.500"/>',
-  plume: '<path d="M20 4c-8 0-13 5-14 13l-2 3M6 17c5 0 9-2 11-6M9 13h6"/>',
-  fuite: '<path d="M4 12h12M12 7l5 5-5 5M20 5v14"/>',
-  coeur: '<path d="M12 20s-7-4.500-7-10a4 4 0 0 1 7-2.500A4 4 0 0 1 19 10c0 5.500-7 10-7 10z"/>',
-});
 const V = {}, D = {};
   // ── décors ──
   V.rng = (seed) => () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
@@ -180,7 +157,7 @@ const ARCHES = { soir: ['#232a5c', '#e79a5c', '#f6d27a'], jour: ['#6f98c4', '#e9
 const CADENCES = [['jourParJour', 'Jour par jour'], ['commande', 'Sous vos ordres']];
 const temps = ({ teinte = 'soir', jour, date, meteo, icone = 'soleil', cadence = null, largeur = cadence ? 632 : 452 }) => { const [c1, c2, astre] = ARCHES[teinte]; return `<div id="titre" class="cadre bois temps" data-piece="temps" style="width:${largeur}px"><div class="fond bois">
   <svg width="112" height="58" viewBox="0 0 112 58" style="flex:none"><defs><linearGradient id="arche" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient><clipPath id="arche-c"><path d="M4 54a52 52 0 0 1 104 0z"/></clipPath></defs><g clip-path="url(#arche-c)"><rect width="112" height="58" fill="url(#arche)"/>${teinte === 'nuit' || teinte === 'soir' ? '<g fill="#fff"><circle cx="30" cy="22" r=".8"/><circle cx="48" cy="12" r=".8"/><circle cx="70" cy="18" r=".8"/><circle cx="40" cy="34" r=".7"/></g>' : ''}<circle cx="84" cy="${teinte === 'jour' ? 22 : 44}" r="6" fill="${astre}"/><path d="M0 54l14-7 10 3 12-6 14 5 16-4 14 6 16-5 16 8H0z" fill="#150d0a"/></g><path d="M4 54a52 52 0 0 1 104 0M1 55h110" fill="none" stroke="#c9a24a" stroke-width="2.5"/></svg>
-  <div><div class="n gothique" data-texte="jour">${jour}</div><div class="s rubrique">${date}</div><div class="m">${picto(icone, 14, '#c9b995')}<i>${meteo}</i></div></div>${cadence ? `<div class="cadence"><span class="rubrique">Cadence du voyage</span>${CADENCES.map(([id, l]) => plaque(l, { armee: id === cadence })).join('')}</div>` : ''}</div>${ferrures}</div>`; };
+  <div><div class="n gothique" data-texte="jour">${jour}</div><div class="s rubrique">${date}</div><div class="m">${picto(icone, 14, '#c9b995')}<i>${meteo}</i></div></div>${cadence ? `<div class="cadence"><span class="rubrique">Cadence du voyage</span>${CADENCES.map(([id, l]) => plaque(l, { armee: id === cadence, taille: 'petite' })).join('')}</div>` : ''}</div>${ferrures}</div>`; };
 /* la carte du trajet : fragment de parchemin encadré, en haut à droite. pts : le tracé ; part : la part faite */
 const carteDuTrajet = ({ titre: t, de, vers, part = .5, eau = 'fleuve', haut = 20, noms = true }) => {
   const a = [70, 168], b = [286, 58], c = [170, 150]; const q = (u) => [(1 - u) * (1 - u) * a[0] + 2 * u * (1 - u) * c[0] + u * u * b[0], (1 - u) * (1 - u) * a[1] + 2 * u * (1 - u) * c[1] + u * u * b[1]];
@@ -194,7 +171,7 @@ const carteDuTrajet = ({ titre: t, de, vers, part = .5, eau = 'fleuve', haut = 2
     <circle cx="${a[0]}" cy="${a[1]}" r="4.500" fill="#e6d5ad" stroke="#3a2a18" stroke-width="1.6"/><g transform="translate(${b[0]} ${b[1]})" fill="#3a2a18"><path d="M-11 4v-8h4v-4h3v4h3v-8h5v8h3v-4h4v12z"/></g>
     <circle cx="${ix}" cy="${iy}" r="7" fill="#9c2a1a" stroke="#5a130b" stroke-width="2"/>
     ${noms ? `<g font-family="Fell SC" letter-spacing="1" fill="#2a1d12"><text x="${a[0] + 12}" y="${a[1] + 16}" font-size="12">${de}</text><text x="${b[0]}" y="${b[1] - 14}" text-anchor="middle" font-size="12.500">${vers}</text></g>` : ''}
-    ${V.rose(310, 184, 17)}</svg></div><div class="ruban rubrique">${t}</div>${ferrures}</div>`;
+    ${V.rose(310, 184, 17)}</svg></div>${ruban(t)}${ferrures}</div>`;
 };
 /* la frise du trajet : étapes en clous, nuits en croissants, un seul chiffre */
 const frise = ({ de, vers, fait = .5, nuits = [], reste, unite = 'km' }) => { const x0 = 0, x1 = 1243, xi = x1 * fait;
@@ -205,15 +182,14 @@ const frise = ({ de, vers, fait = .5, nuits = [], reste, unite = 'km' }) => { co
 /* le récit de la route, écrit sur l'image */
 const recit = (rubrique, texte, style = '') => `<div id="recit" data-piece="recit" style="${style}"><div class="r rubrique ombre">${rubrique}</div><p class="ombre" data-texte="recit">${texte}</p></div>`;
 /* le billet du jet : le détail d'une pastille */
-const billet = ({ x, y, largeur = 262, pointe = 40, nom, qui, lignes, pied }) => `<div class="apercu parchemin vers-bas" data-piece="billet" style="left:${x}px;top:${y}px;width:${largeur}px;--pointe:${pointe}px"><div class="tete"><span class="n gothique">${nom}</span><span class="c rubrique">${qui}</span></div><table>${lignes.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>${pied ? `<div class="pied">${pied}</div>` : ''}</div>`;
+const billet = ({ x, y, largeur = 300, pointe = 40, nom, qui, lignes, pied }) => `<div class="apercu parchemin vers-bas" data-piece="billet" style="left:${x}px;top:${y}px;width:${largeur}px;--pointe:${pointe}px"><div class="tete"><span class="n gothique">${nom}</span><span class="c rubrique">${qui}</span></div><table>${lignes.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>${pied ? `<div class="pied">${pied}</div>` : ''}</div>`;
 /* une ligne de registre : rubrique à gauche, valeur à droite */
 const ligne = (lab, val, classe = '') => `<div class="ligne ${classe}"><span class="rubrique">${lab}</span><span>${val}</span></div>`;
-const jauge = (part, classe = '') => `<div class="jauge ${classe}"><i style="width:${Math.round(100 * part)}%"></i></div>`;
 const interieur = (svg) => svg.replace(/^\s*<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
 const assombrir = (a = .58) => el(S, 'rect', { width: W, height: H, fill: '#080504', opacity: a });
 /* le départ d'un trajet, sur le poteau des routes : la destination, sa longueur, un moyen par plaque et sa durée */
-const depart = ({ nom, sous, modes, note }) => `<div class="depart"><div><b>${nom}</b><span class="s rubrique">${sous}</span>${note ? `<p>${note}</p>` : ''}</div><div class="modes">${modes.map(([icone, jours, o = {}]) => plaque(`${jours} j`, { icone, ...o })).join('')}</div></div>`;
+const depart = ({ nom, sous, modes, note }) => `<div class="depart"><div><b>${nom}</b><span class="s rubrique">${sous}</span>${note ? `<p>${note}</p>` : ''}</div><div class="modes">${modes.map(([icone, jours, o = {}]) => plaque(`${jours} j`, { icone, ...o, taille: 'petite' })).join('')}</div></div>`;
 /* au pied d'un billet de jet : la Chance qui reste à ceux qui l'ont lancé (LDB 17 l.23-24) */
-const chanceDe = (...ids) => `<div class="chance"><span class="rubrique">Chance</span>${reserves(...ids.map((id) => { const h = HEROS.find((x) => x.id === id); return [h.chance, h.nom.split(' ')[0]]; }))}</div>`;
+const chanceDe = (...ids) => `<div class="chance"><span class="rubrique">Chance</span>${reserves(ids.map((id) => { const h = HEROS.find((x) => x.id === id); return [h.chance, h.nom.split(' ')[0]]; }))}</div>`;
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { poser, temps, carteDuTrajet, frise, recit, billet, ligne, jauge, interieur, assombrir, depart, chanceDe });
+Object.assign(globalThis, { poser, temps, carteDuTrajet, frise, recit, billet, ligne, interieur, assombrir, depart, chanceDe });

@@ -3,11 +3,14 @@
 Compte rendu des trente-six états dessinés pour la magie, les réactions de combat, la bataille de masse et les
 poursuites, en mer et à terre, depuis la cible écrite `../ecrites/combat.md`, le contrat `../combat.md`, les propositions de
 combat (`combat.md`) et l'écran de voyage (`voyage.md`). Aucune cible écrite ne couvre ces états : le contrat
-`../combat.md` dit la bataille de masse hors de son périmètre. Sources au dépôt : `sources/combat-suite/`. Elles lient par
-chemin relatif les feuilles et les scripts de leurs deux socles : `sources/combat/` pour les vingt-quatre états du champ
-tactique (`suite.js`, `suite.css`), `sources/voyage/` et `sources/lieux-et-nuit/` pour les douze autres (`bataille.js`,
-`poursuite.js`, `preparation.js`, `champ.css`) ; `bataille-de-masse-preparation` charge la page
-`lieux-et-nuit/interlude-en-ville.js` et n'en change que le lieu ouvert.
+`../combat.md` dit la bataille de masse hors de son périmètre. Sources au dépôt : les écrans `incantation`,
+`contre-sort`, `dissipation`, `focalisation`, `test-de-corruption`, `maladresse`, `desengagement`, `fuite`,
+`sauvetage-par-le-destin`, `corruption-mutation`, `course-poursuite-en-mer`, `poursuite-terrestre`, `bataille-de-masse` et
+`interlude` de `sources/maquettes/` (la relance par la Chance est un état de `jet-d-attaque`), dessinés par
+`sources/rendu.html`, premières maquettes. Les poursuites, la bataille et l'interlude sont des lieux (gabarit 4) : leur
+décor (`sources/combat-suite/decors.js`, la carte de `sources/lieux-et-nuit/carte-de-la-ville.js`), le bandeau du groupe,
+ou la fenêtre du bas qui prend sa place ; le Test spectaculaire de Puissance et l'issue de la bataille, un carton
+au-dessus du bandeau (gabarit 7). `bataille-de-masse-preparation` est un état de l'écran `interlude`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Surincantation », « {restant} pas sur {budget} »,

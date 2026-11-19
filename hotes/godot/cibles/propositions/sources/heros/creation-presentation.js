@@ -9,7 +9,7 @@ const comp = ([c, n, spec, v]) => `<div class="ligne" style="height:26px;padding
 poser([
   frise(10),
   cadre('choix', 26, 96, 610, 512, 'parchemin', `
-    <div class="tete">${portrait('astrid')}
+    <div class="tete">${portrait('astrid', { taille: 'affiche' })}
       <div style="flex:1;min-width:0">
         <div class="nom" data-texte="nom">Astrid Altdorfer</div>
         <div class="l" style="margin-top:6px">Humains (Reiklander)</div>
@@ -20,14 +20,14 @@ poser([
       </div>
     </div>
     <div class="bl">${rub('Blessures')}<span>10 / 10</span></div>
-    <div class="vie"><i style="width:100%"></i></div>
-    ${sep()}
+    ${jauge(1, { taille: 'forte' })}
+    ${filet({ fondu: true, losange: true })}
     <div class="reserves" style="grid-template-columns:repeat(4,auto);justify-content:space-between">${reserve(3, 'Destin')}${reserve(4, 'Chance')}${reserve(3, 'Résilience')}${reserve(3, 'Détermination')}</div>
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     <div class="faits" style="grid-template-columns:1.25fr 1fr 1fr">
       <div class="fait">${rub('Signe astral')}<b>Le Trait du Peintre</b></div>
       <div class="fait">${rub('Statut')}<b>Argent 1</b></div>
-      <div class="fait">${rub('Bourse')}<b class="lin" style="font-size:15px;font-weight:600">7/–</b></div>
+      <div class="fait">${rub('Bourse')}<b class="chiffres" style="font-size:15px;font-weight:600">7/–</b></div>
     </div>
     <div style="margin-top:9px">${rub('Motivation')}<div class="fell" style="font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a">Peindre ce que nul n’ose regarder</div></div>`, { classe: 'pan ident' }),
   centre('Artiste Apprentie', `
@@ -37,7 +37,7 @@ poser([
     <div style="align-self:stretch;margin:14px 0 7px">${rub('Talents')}</div>
     <div class="pills" style="align-self:stretch">${['Artiste (Peinture)', 'Chanceux', 'Destinée', 'Infatigable', 'Perspicace', 'Vivacité'].map((t) => `<span class="pill">${t}</span>`).join('')}</div>`),
   herosNeuf({ nom: 'Astrid Altdorfer', pose: 1, palette: true, suivant: 'Engager',
-    acquis: [['Race tirée au d100', 'Humains (Reiklander)', '+20 PX'], ['Carrière tirée au d100', 'Artiste', '+50 PX'], ['Caractéristiques', 'Jets gardés', '+50 PX'], ['Signe tiré au d100', 'Le Trait du Peintre', '+25 PX'], ['PX de création', '<span class="lin" style="font-size:19px;font-weight:600;color:#f3dc93">145 PX</span>']] }),
-  groupeEnCreation({ nom: 'Astrid Altdorfer', esquisse: false, pv: 10, max: 10 }),
+    acquis: [['Race tirée au d100', 'Humains (Reiklander)', '+20 PX'], ['Carrière tirée au d100', 'Artiste', '+50 PX'], ['Caractéristiques', 'Jets gardés', '+50 PX'], ['Signe tiré au d100', 'Le Trait du Peintre', '+25 PX'], ['PX de création', '<span class="chiffres" style="font-size:19px;font-weight:600;color:#f3dc93">145 PX</span>']] }),
+  groupeEnCreation({ id: 'astrid', nom: 'Astrid Altdorfer', pv: 10, max: 10 }),
   coins(),
 ]);

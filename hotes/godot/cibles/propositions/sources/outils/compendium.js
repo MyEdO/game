@@ -12,7 +12,7 @@ const AJOUTS = ['Spécialisations', 'Taille requise', 'Trait conféré', 'Effets
 const liens = (noms, reste) => `<div class="liens">${noms.map((n) => `<span class="lien">${n}</span>`).join('')}${reste ? `<span class="lien reste">et ${reste} autres</span>` : ''}</div>`;
 const fiche = `<div class="feuille d parchemin">
        <div class="tete"><span class="dom gothique" data-texte="entrée">Négociateur</span><span class="sous rubrique">Talent · LDB p. 142</span></div>
-       <div class="filet-l"><i></i></div>
+       ${filet({ losange: true })}
        <div class="fiche">
          <div class="puces"><div class="puce"><span class="rubrique">Max</span>Bonus de Sociabilité</div><div class="puce"><span class="rubrique">Test</span>Marchandage</div></div>
          <div class="r rubrique">Description</div>
@@ -26,11 +26,11 @@ const fiche = `<div class="feuille d parchemin">
          <div class="r rubrique">Créatures <em>19</em></div>
          ${liens(CREATURES, 13)}
        </div>
-       <div class="pied">${plaque('Modifier', { icone: 'plume' })}<span class="marque"><i>Atelier : Talents</i></span></div>
+       <div class="pied">${plaque('Modifier', { icone: 'plume', taille: 'petite' })}<span class="marque"><i>Atelier : Talents</i></span></div>
      </div>`;
 const atelier = `<div class="feuille d parchemin atelier">
        <div class="tete"><span class="dom gothique" data-texte="entrée">Négociateur</span><span class="sous rubrique">Atelier : Talents</span></div>
-       <div class="filet-l"><i></i></div>
+       ${filet({ losange: true })}
        <div class="fiche">
          <div class="deux">${champ('Nom', 'Négociateur')}${champ('Identifiant', 'negociateur')}</div>
          <div class="deux">${champ('Maximum', 'Bonus de Sociabilité')}${champ('Test associé', 'Marchandage')}</div>
@@ -40,12 +40,12 @@ const atelier = `<div class="feuille d parchemin atelier">
          <div class="r rubrique">Champs que l’entrée ne porte pas</div>
          <div class="facettes">${AJOUTS.map((n) => `<b>Ajouter : ${n}</b>`).join('')}</div>
        </div>
-       <div class="pied">${plaque('Enregistrer', { icone: 'disque', armee: true })}${plaque('Abandonner')}${plaque(`Supprimer${raison('D’autres données désignent cette entrée, elle ne se supprime pas : 2 races, 24 carrières, 19 créatures')}`, { fermee: true })}</div>
+       <div class="pied">${plaque('Enregistrer', { icone: 'disque', armee: true, taille: 'petite' })}${plaque('Abandonner', { taille: 'petite' })}${plaque(`Supprimer${raison('D’autres données désignent cette entrée, elle ne se supprime pas : 2 races, 24 carrières, 19 créatures')}`, { fermee: true, taille: 'petite' })}</div>
      </div>`;
 monter([
   fondDeTable(),
-  titre({ icone: 'livre', nom: 'Compendium', sous: 'Règles et données', largeur: 392 }),
-  `<div id="categories" class="cadre bois" data-piece="catégories"><div class="fond bois"><span class="ruban rubrique">Catégories</span>
+  cartouche({ icone: 'livre', nom: 'Compendium', sous: 'Règles et données', taille: 'titre', largeur: 392 }),
+  `<div id="categories" class="cadre bois" data-piece="catégories"><div class="fond bois">
      <div>${ligneDeListe('Compétences', 48)}${ligneDeListe('Talents', 187, { la: true })}${ligneDeListe('Axes de forces', 9)}</div>
      <div class="trait"></div>
      ${champ('Rechercher', '', { attente: 'Un nom, un mot de la fiche…' })}
@@ -53,14 +53,14 @@ monter([
      <div class="facettes">${LIVRES.map(([l, n]) => `<b>${l}<em>${n}</em></b>`).join('')}</div>
      <div class="trait"></div>
      ${plaque('Nouvelle entrée', { icone: 'plus', fermee: ATELIER })}
-   </div>${ferrures}</div>`,
-  `<div id="signets" data-piece="signets">${FAMILLES.map((n) => `<div class="signet ${n === 'Compétences' ? 'ouvert' : ''}"><span class="rubrique">${n}</span></div>`).join('')}</div>`,
+   </div>${ruban('Catégories')}${ferrures}</div>`,
+  signets(FAMILLES.map((nom) => ({ nom })), 'Compétences'),
   `<div id="registre" data-piece="registre"><div class="tranche"></div>
      <div class="feuille g parchemin">
        <div class="tete"><span class="dom gothique" data-texte="catégorie">Talents</span><span class="sous rubrique">Famille Compétences · 187 talents</span></div>
-       <div class="filet-l"><i></i></div>
-       ${TALENTS.map((n) => `<div class="entree ${n === 'Négociateur' ? 'pointee' : ''}"><span>${n}</span><em class="lin">LDB p. ${n === 'Menaçant' ? 141 : n === 'Oreille absolue' ? 143 : 142}</em></div>`).join('')}
-       <div class="pied">${rond('gauche', 16)}<span class="folio rubrique">Feuillet 9 sur 15</span><span class="suite"><span class="rubrique">Feuillet suivant</span>${rond('droite', 16)}</span></div>
+       ${filet({ losange: true })}
+       ${TALENTS.map((n) => `<div class="entree ${n === 'Négociateur' ? 'pointee' : ''}"><span>${n}</span><em class="chiffres">LDB p. ${n === 'Menaçant' ? 141 : n === 'Oreille absolue' ? 143 : 142}</em></div>`).join('')}
+       <div class="pied">${rond('gauche', 'petit')}<span class="folio rubrique">Feuillet 9 sur 15</span><span class="suite"><span class="rubrique">Feuillet suivant</span>${rond('droite', 'petit')}</span></div>
      </div>
 ${ATELIER ? atelier : fiche}
      ${CLOUS}

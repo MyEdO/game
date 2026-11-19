@@ -1,7 +1,16 @@
 # Propositions : combat (2026-11-16, #3935)
 
 Compte rendu des trente et un états dessinés (onze le 2026-11-16, vingt écrans neufs le 2026-11-17, #4411) depuis la cible écrite `../ecrites/combat.md`, le contrat `../combat.md` et les
-maquettes validées (`../maquettes/`). Sources au dépôt : `sources/combat/`.
+maquettes validées (`../maquettes/`). Sources au dépôt : un écran par fichier de `sources/maquettes/`, la liste de ses
+états, chacun une donnée écrite au format de `sources/maquettes/maquette.ts`, dessinée par
+`sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png> --format 16:9 [--etat <état>]`) : `jet-avant-le-de`,
+`defense`, `jet-d-attaque`, `coup-critique`, `debut-du-round`, `determination`, `fin-du-combat` (dont `fin-victoire`,
+la bannière d'issue et la fenêtre du butin) et `tour-de-combat`, premières maquettes du tour de l'actif : la barre de
+l'actif (960 × 138, centrée, à 8 du bas : Blessures, Mouvement, Action, Avantage, Détermination, États ; le portrait
+au centre ; les actions rangées par familles en onglets, « Action », « Situation », « Gestes », « Rapides ») et ses
+états `combat-rapides`, `combat-liste`, `cible-survolee`, `tour-adverse`, `journal-ouvert`, `fiche-au-clic`,
+`meuble-engage-a-terre`, `meuble-tireur`, `meuble-chef-de-piece`, `cible-montee`, `visee-de-siege`.
+`sources/combat/` garde les socles de la cour (`cour.js`, `socle.js`, `jet.js` et leurs feuilles).
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Localisation », « Au hasard », « Retenir ses coups »,
@@ -91,7 +100,7 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - Quatre panneaux entre l'ordre et le journal, au-dessus du meuble, repris de la maquette de fiche : identité, bande
   de profil, niche à figure, onglets ; champ assombri à 42 % ; la croix de laiton de la charte (`sources/gestes.js`) sous la pastille du système.
 - À valider : la fiche ne prend pas tout l'écran, les ancrages restent visibles ; montrée sur Berta (un héros qui
-  n'est pas l'actif) ; réserves sur une colonne ; linéale Inter Medium ; pas d'onglet « Sorts » (Berta n'est pas
+  n'est pas l'actif) ; réserves sur une colonne ; chiffres en Open Sans SemiBold, ceux des disques en Grenze ; pas d'onglet « Sorts » (Berta n'est pas
   lanceuse).
 - « M 2 » de la maquette de fiche contre 4 / 4 au meuble : sans objet. La fiche validée montre Ilyanwe À Terre
   (0 / 17), son Mouvement effectif est la moitié de 4 (`src/engine/encumbrance.ts:53-66`) ; debout, le meuble dit 4.
@@ -105,7 +114,7 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 Vingt états, tous joués par Berta (Soldate, Épée et Bouclier ; Arbalète au second set) : sa fiche est celle de
 `fiche-au-clic` (CC 41, Ag 34). Aucun verbe à créer : chaque geste dessiné a son verbe dans
 `src/hote/verbes.generated.ts`. Socle étendu : `sources/combat/socle.js` (second rang de plaques du meuble, États
-portés, pictogrammes) ; les états vivent dans `sources/combat/combat.js`.
+portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
 
 ## defense-avant-le-de, defense-riposte (écran 1)
 - Bandeau « Défense » avant le dé du défenseur : le dé de l'Orc est tombé à droite (24 sous 35, DR +1) ; au centre la

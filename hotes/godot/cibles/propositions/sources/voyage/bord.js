@@ -10,12 +10,12 @@ el(S, 'rect', { width: W, height: H, fill: '#080504', opacity: .34 });
 fermer();
 const pieces = [];
 const STATION = ETAT === 'postes-de-bord-station';
-const etatDuBord = `${ligne('Moral', '<span class="lin">75</span>')}${jauge(.75)}
-  ${ligne('Coque', '<span class="lin">50 / 50</span>')}${jauge(1)}
-  ${ligne('Eau douce', '<span class="lin">2 900 L</span>')}
-  ${ligne('Vivres de l’équipage', '<span class="lin">735 rations</span>')}`;
+const etatDuBord = `${ligne('Moral', '<span class="chiffres">75</span>')}${jauge(.75, { teinte: 'or', taille: 'forte' })}
+  ${ligne('Coque', '<span class="chiffres">50 / 50</span>')}${jauge(1, { teinte: 'or', taille: 'forte' })}
+  ${ligne('Eau douce', '<span class="chiffres">2 900 L</span>')}
+  ${ligne('Vivres de l’équipage', '<span class="chiffres">735 rations</span>')}`;
 if (ETAT === 'activites-en-mer') {
-  pieces.push(titre({ icone: 'cordage', nom: 'Activités de la semaine', sous: 'La Sterne · 8ᵉ jour en mer · une Activité par héros', largeur: 492 }));
+  pieces.push(cartouche({ icone: 'cordage', nom: 'Activités de la semaine', sous: 'La Sterne · 8ᵉ jour en mer · une Activité par héros', taille: 'titre', largeur: 492 }));
   pieces.push(`<div data-piece="postes">
   ${poste(628, 198, { nom: 'Aucune Activité', sous: 'La semaine passe', icone: 'sommeil', heros: ['bjorn', 'greta'] })}
   ${poste(360, 328, { nom: 'Commerce d’opportunité', sous: 'Marchandage · Complexe (–10)', heros: 'mira', vise: true })}
@@ -25,21 +25,21 @@ if (ETAT === 'activites-en-mer') {
   pieces.push(billet({ x: 40, y: 150, largeur: 336, pointe: 272, nom: 'Commerce d’opportunité', qui: 'Test étendu', lignes: [['À atteindre', '10 DR en 3 tentatives'], ['Succès de 6 DR', 'la mise +20 %'], ['Succès', 'la mise +10 %'], ['Échec', 'la moitié de la mise'], ['Échec de 6 DR', 'la mise perdue']] }));
   pieces.push(`<div id="bord" class="cadre bois bord semaine" data-piece="le bord"><div class="fond bois">
   <div class="t rubrique">Commerce d’opportunité · Mira</div>
-  <div class="reglage"><span>Mise (CO)</span>${moinsPlus({ entre: '<b class="lin">20 CO</b>' })}</div>
-  ${ligne('Plafond de la mise', '<span class="lin">85 CO</span>')}${ligne('Enc libre du navire', '<span class="lin">170</span>')}
-  <div class="filet"></div><div class="t rubrique">Cartographie · Aldric</div>
-  <div class="reglage"><span>Planque gratuite (CO)</span>${moinsPlus({ moins: false, entre: '<b class="lin">0 CO</b>' })}</div>
-  <div class="filet"></div>${plaque('Valider la semaine', { armee: true })}
-</div><div class="ruban rubrique">La semaine</div>${ferrures}</div>`);
+  <div class="reglage"><span>Mise (CO)</span>${moinsPlus({ entre: '<b class="chiffres">20 CO</b>' })}</div>
+  ${ligne('Plafond de la mise', '<span class="chiffres">85 CO</span>')}${ligne('Enc libre du navire', '<span class="chiffres">170</span>')}
+  ${filet({ fondu: true })}<div class="t rubrique">Cartographie · Aldric</div>
+  <div class="reglage"><span>Planque gratuite (CO)</span>${moinsPlus({ moins: false, entre: '<b class="chiffres">0 CO</b>' })}</div>
+  ${filet({ fondu: true })}${plaque('Valider la semaine', { armee: true })}
+</div>${ruban('La semaine')}${ferrures}</div>`);
   pieces.push(bandeau({
     bjorn: { texte: 'Aucune Activité' },
     mira: { choisi: true, texte: 'Commerce d’opportunité, 20 CO de mise' },
     aldric: { texte: 'Cartographie, sans planque' },
     greta: { texte: 'Aucune Activité' },
   }));
-  pieces.push(coins());
+  pieces.push(retour('Revenir à la traversée', 'route'), coins());
 } else {
-  pieces.push(titre({ icone: 'cordage', nom: 'Postes de bord', sous: 'La cogue · 15 marins · 3ᵉ jour en mer', largeur: 452 }));
+  pieces.push(cartouche({ icone: 'cordage', nom: 'Postes de bord', sous: 'La cogue · 15 marins · 3ᵉ jour en mer', taille: 'titre', largeur: 452 }));
   pieces.push(`<div data-piece="postes">
     ${poste(628, 58, STATION ? { nom: 'Vigie', sous: 'Perception', icone: 'oeil' } : { nom: 'Vigie', sous: 'Perception', heros: 'bjorn', plus: true })}
     ${poste(628, 198, { nom: 'Mousse', sous: 'Voile ou Ramer', icone: 'cordage' })}
@@ -52,19 +52,19 @@ if (ETAT === 'activites-en-mer') {
     ${poste(806, 458, { nom: 'Chansonnier', sous: 'Divertissement (Chant)', icone: 'chant' })}
     ${poste(1010, 458, { nom: 'Repos', sous: 'Aucun rôle', icone: 'sommeil', heros: STATION ? 'bjorn' : [] })}
   </div>`);
-  pieces.push(billet({ x: 60, y: 196, largeur: 300, pointe: 236, nom: 'Capitaine', qui: 'Rôle essentiel', lignes: [['Compétence', 'Commandement'], ['Test d’équipage', 'Progression'], ['Ses degrés', 'comptent double']] }));
+  pieces.push(billet({ x: 60, y: 196, pointe: 236, nom: 'Capitaine', qui: 'Rôle essentiel', lignes: [['Compétence', 'Commandement'], ['Test d’équipage', 'Progression'], ['Ses degrés', 'comptent double']] }));
   pieces.push(`<div id="bord" class="cadre bois bord" data-piece="le bord"><div class="fond bois">
     ${etatDuBord}
-    <div class="filet"></div><div class="t rubrique">Ce que la journée jouera</div>
-    <div class="jouera">${pastille('couronne')}Progression<span class="rubrique">Greta · Commandement</span></div>
-    <div class="jouera">${pastille('etoile')}Orientation<span class="rubrique">Aldric · Orientation</span></div>
-    <div class="jouera">${pastille('cordage')}Entretien<span class="rubrique">Les Mousses · Voile ou Ramer</span></div>
-  </div><div class="ruban rubrique">Le bord</div>${ferrures}</div>`);
+    ${filet({ fondu: true })}<div class="t rubrique">Ce que la journée jouera</div>
+    <div class="jouera">${rond('couronne', 'menu', { arme: true })}Progression<span class="rubrique">Greta · Commandement</span></div>
+    <div class="jouera">${rond('etoile', 'menu', { arme: true })}Orientation<span class="rubrique">Aldric · Orientation</span></div>
+    <div class="jouera">${rond('cordage', 'menu', { arme: true })}Entretien<span class="rubrique">Les Mousses · Voile ou Ramer</span></div>
+  </div>${ruban('Le bord')}${ferrures}</div>`);
   pieces.push(ouvrir('Dossier du navire', 'coque', 356));
   if (STATION) pieces.push(`<div id="station" class="cadre bois bord" data-piece="station"><div class="fond bois">
-    <div class="stations">${plaque('Gréement')}${plaque('Pont', { armee: true })}${plaque('Avirons')}</div>
+    <div class="stations">${plaque('Gréement', { taille: 'petite' })}${plaque('Pont', { armee: true, taille: 'petite' })}${plaque('Avirons', { taille: 'petite' })}</div>
     <p data-texte="station">Si un Personnage se trouve sur le pont, il doit réussir un Test d’Athlétisme Accessible (+20) sous peine de subir l’État À Terre.</p>
-  </div><div class="ruban rubrique">Station de Greta</div>${ferrures}</div>`);
+  </div>${ruban('Station de Greta')}${ferrures}</div>`);
   pieces.push(bandeau({
     bjorn: { texte: STATION ? 'Au repos, aucun rôle' : 'Vigie, au nid-de-pie' },
     mira: { texte: 'Timonier, à la barre' },

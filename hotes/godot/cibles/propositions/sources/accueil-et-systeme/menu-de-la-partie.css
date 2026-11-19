@@ -1,15 +1,13 @@
 #pause{position:absolute;left:84px;top:96px;width:700px}
 #pause .sur{font-size:15.5px;letter-spacing:2.4px;color:var(--or);margin-left:4px}
 #pause .nom{font-size:64px;line-height:100px;margin:-18px 0 -20px;width:max-content;padding-right:8px;white-space:nowrap;background:linear-gradient(180deg,#fff4d4 12%,#f0d48a 52%,#b88a36 92%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 2px rgba(0,0,0,.85)) drop-shadow(0 0 22px rgba(0,0,0,.7))}
-#pause .filet-l{width:470px;color:var(--or);margin:10px 0 8px 4px}
-#pause .filet-l::before{flex:0 0 150px}
+#pause .filet{width:470px;margin:10px 0 8px 4px}
+#pause .filet::before{flex:0 0 150px}
 #pause .ou{font-style:italic;font-size:16px;color:#e6dabd;margin-left:4px}
 #pause .ou .rubrique{font-style:normal;color:#f0e2c2;font-size:17px}
 #entrees{position:absolute;left:88px;top:296px;width:330px;display:flex;flex-direction:column;gap:12px}
-#entrees .plaque{flex:none;height:50px}
-#entrees .plaque>div{justify-content:flex-start;padding:0 20px;gap:14px;font-size:18px;letter-spacing:1.4px}
+#entrees .plaque{flex:none}
+#entrees .plaque>div{justify-content:flex-start;padding:0 20px;gap:14px}
 #entrees .trait{height:1px;background:linear-gradient(90deg,rgba(226,192,106,.55),rgba(226,192,106,0));margin:8px 0}
 #entrees .dernier{font-style:italic;font-size:14px;color:#cfc2a4;margin:2px 0 0 4px}
-#pastille{position:absolute;left:1626px;top:705px}
-#pastille .bouton-rond{width:50px;height:50px;padding:4px;box-shadow:0 0 0 1px #150d04,0 0 16px rgba(255,214,140,.8)}
-#pastille .bouton-rond>div{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26)}
+#pastille{position:absolute;left:1625px;top:705px}

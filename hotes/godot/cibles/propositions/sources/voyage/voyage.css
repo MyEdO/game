@@ -9,40 +9,31 @@
 #frise{position:absolute;left:222px;top:574px;width:1263px;height:44px}
 #frise .reste{position:absolute;right:10px;top:-14px;font-size:14px;color:#f0e2c2;white-space:nowrap}
 #frise .reste b{font-size:22px}
-#recit.route{left:40px;top:150px;width:600px}
-#recit.route p{font-size:19px;line-height:27px}
-.apercu.vers-bas::before{left:var(--pointe,40px);bottom:-8px;box-shadow:2px 2px 0 rgba(40,25,10,.9)}
+#titre.temps~#recit{top:144px}
 .ligne{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;line-height:23px;color:#eadfc4}
 .ligne .rubrique{font-size:12.5px;color:var(--creme-2);white-space:nowrap}
 .parchemin .ligne{color:var(--encre)}.parchemin .ligne .rubrique{color:var(--encre-2)}
-.jauge{height:8px}
-.jauge>i{background:linear-gradient(180deg,#f3dc93,#a8842f)}
-.jauge.cire>i{background:linear-gradient(180deg,#b9412c,#7c1f14)}
-.filet{height:1px;background:linear-gradient(90deg,rgba(201,185,149,0),rgba(201,185,149,.45),rgba(201,185,149,0));margin:11px 0 8px}
-.parchemin .filet{background:rgba(60,40,20,.42)}
+.filet{margin:11px 0 8px}
 /* le contenant d'événement : parchemin dans un cadre de chêne ferré, vignette, texte, sceau du dé, choix */
 #evenement{left:260px;top:286px;width:1186px;height:324px}
 #evenement .fond{display:flex;gap:24px;padding:22px 26px 0 20px}
 #evenement .vignette{flex:none;width:254px;height:254px;padding:5px;background:#2a1d12;box-shadow:0 2px 6px rgba(40,20,5,.6);margin-top:2px}
 #evenement .vignette svg{display:block;width:100%;height:100%}
-#evenement .corps{flex:1;min-width:0}
+#evenement .corps{flex:1;min-width:0;display:flex;flex-direction:column;padding-bottom:13px}
 #evenement .tete{display:flex;align-items:baseline;gap:14px}
 #evenement h2{margin:-9px 0 -7px;font-family:"Grenze Gotisch";font-weight:600;font-size:34px;line-height:50px;color:#3a1a10;letter-spacing:.3px;white-space:nowrap}
 #evenement .tete span{font-size:12.5px;color:#5a2a12}
 #evenement .corps>p{margin:4px 80px 6px 0;font-size:16px;line-height:22px;color:#2a1d12}
-.sceau.de{position:absolute;right:26px;top:16px;width:62px;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffe2d2}
-.sceau.de b{font-family:"Grenze Gotisch";font-weight:700;font-size:28px;line-height:26px}
-.sceau.de i{font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px}
+#evenement .sceau.de{position:absolute;right:26px;top:16px}
 .heros .attend.sombre{color:var(--or);background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #150d04,0 0 0 2px rgba(226,192,106,.55),0 2px 4px rgba(0,0,0,.6)}
 /* panneau de bord, à droite */
 .bord{position:absolute}
 .bord>.fond{padding:24px 16px 14px}
 .bord .t{font-size:12.5px;color:var(--or);margin-bottom:5px}
 /* le lieu d'arrivée : services sur leurs bâtiments, poteau des routes */
-#recit.lieu{width:440px}
 #recit.lieu p{font-size:16px;line-height:23px}
 .hote .gestes{display:flex;gap:8px;margin-top:10px}
-.hote .plaque{flex:none;height:32px}
+.hote .plaque{flex:none}
 .hote .plaque>div{font-size:13px;gap:7px;padding:0 10px}
 #partir{left:1323px;top:322px;width:360px}
 #partir .fond{padding:20px 14px 6px}
@@ -51,8 +42,8 @@
 .depart b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:21px;line-height:26px;margin:-4px 0 -3px;color:#f4e8ca;letter-spacing:.3px;white-space:nowrap}
 .depart .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
 .depart .modes{display:flex;gap:7px}
-.depart .plaque{flex:none;height:32px}
-.depart .plaque>div{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.2px;gap:6px;padding:0 9px}
+.depart .plaque{flex:none}
+.depart .plaque>div{font-family:"Chiffres";font-size:12.5px;font-weight:600;letter-spacing:.2px;gap:6px;padding:0 9px}
 .depart p{margin:4px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:var(--creme-2)}
 #navire{left:1323px;top:262px;width:360px}
 #navire .jauge{margin:1px 0 7px}
@@ -64,13 +55,13 @@
 /* un choix de l'événement : deux cartes, puis la plaque qui commet */
 #evenement .choix{display:flex;gap:12px;margin-top:10px}
 #evenement .plaque.carte{flex:1;width:auto;height:76px}
-#evenement .plaque.commet{flex:none;width:300px;height:44px;margin-top:12px}
+#evenement .plaque.commet{flex:none;align-self:center;width:300px;margin-top:auto}
 /* la Chance au pied d'un billet de jet */
 .apercu .chance{display:flex;align-items:center;gap:14px;font-style:normal}
 /* la cadence du voyage, dans l'objet du temps */
 #titre.temps .cadence{margin-left:auto;display:flex;flex-direction:column;gap:5px;padding-left:16px;border-left:1px solid rgba(201,185,149,.22)}
 #titre.temps .cadence span{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
-#titre.temps .cadence .plaque{flex:none;width:148px;height:26px}
+#titre.temps .cadence .plaque{flex:none;width:148px}
 #titre.temps .cadence .plaque>div{font-size:12.5px;padding:0 8px}
 /* les arrêts de la mer : les paies du conseil et leur règlement */
 #evenement .choix.paies .plaque.carte{height:54px}
@@ -82,16 +73,16 @@
 .reglement .qui{flex:1;min-width:0}
 .reglement .cadre{position:relative}
 .reglement .cadre .fond{position:static;padding:7px 12px 6px;color:#eadfc4}
-#evenement .reglement .plaque.commet{grid-column:1 / 3;width:100%;height:40px;margin:0}
+#evenement .reglement .plaque.commet{grid-column:1 / 3;justify-self:center;margin:0}
 /* la station à bord du héros choisi, sous le dossier du navire */
 #station{left:1323px;top:416px;width:360px}
 #station .fond{padding:22px 14px 10px}
 .stations{display:flex;gap:7px}
-.stations .plaque{flex:1;height:30px}
+.stations .plaque{flex:1}
 .stations .plaque>div{font-size:13px;padding:0 6px}
 #station p{margin:9px 2px 0;font-style:italic;font-size:13px;line-height:17px;color:#e6dabd}
 /* les Activités de la semaine en mer : les réglages de la semaine et sa validation */
 #bord.semaine .reglage{display:flex;justify-content:space-between;align-items:center;margin:2px 0 4px;font-size:14px;color:#eadfc4}
 #bord.semaine .moins-plus b{min-width:56px;text-align:center;font-size:13.5px;color:#f4e8ca}
-#bord.semaine .plaque{height:40px;margin-top:4px}
+#bord.semaine .plaque{margin-top:4px}
 .poste.ferme .et .bulle-refus{z-index:3;font-weight:400;white-space:normal;width:310px;margin:0;font-size:13px;line-height:17px;color:#2a1d12;text-align:center}
