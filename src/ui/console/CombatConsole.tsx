@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
 import { useGame } from '../../state/store';
 import type { BattleState, ShootingStanceKey } from '../../noyau/etat';
-import type { Scene } from '../../noyau/monde/scene';
 import { mouvementDuTour } from '../../noyau/mount';
 import type { Combatant, Weapon } from '../../engine/types';
 import { hasMeaningfulOption } from '../../noyau/turnEconomy';
@@ -417,10 +416,10 @@ export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
 
 /** CHROME des États de situation (`etatsDeSituation`) : ils entrent dans le même rack d'alvéoles que les États
  *  portés (spec §1c-bis, chrome d'état de l'arche §1c). */
-function actorStateChips(scene: Scene | null, active: Combatant, battle: BattleState): EffectChip[] {
-  const { assailli, cloue, renfort } = etatsDeSituation(scene, active, battle);
+function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
+  const { assailli, cloue, renfort } = etatsDeSituation(active, battle);
   const out: EffectChip[] = [];
-  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attaquer', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'etat', severity: 58, indice: assailli.nombre });
+  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attaquer', label: `Assailli par ${assailli.nombre} adversaires engagés`, kind: 'etat', severity: 58, indice: assailli.nombre });
   if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'drapeau/peur', label: 'Cloué', kind: 'etat', severity: 64 });
   if (renfort) out.push({ key: 'a-renfort', icon: 'action/servir-l-engin', label: 'Renfort de pièce (le chef fait feu)', kind: 'etat', severity: 40 });
   return out;
@@ -1116,7 +1115,7 @@ export function CombatConsole() {
           active={active}
           move={{ value: moveLeft, max: moveMax }}
           action={{ value: actAvail, max: actMax }}
-          etats={actorStateChips(scene, active, battle)}
+          etats={actorStateChips(active, battle)}
         />
       ) : (
       <>
@@ -1236,7 +1235,7 @@ export function CombatConsole() {
           active={active}
           move={{ value: moveLeft, max: moveMax, spend: previewDelta.move, geste: cellFor('annulation-deplacement', 'mouvement') }}
           action={{ value: actAvail, max: actMax, spend: previewDelta.action }}
-          etats={actorStateChips(scene, active, battle)}
+          etats={actorStateChips(active, battle)}
           retraitDEtat={retraitDEtat}
         />
 

@@ -409,6 +409,8 @@ Les Tests de Combat se modifient comme les autres Tests. Tableau des modificateu
 
 À **2 contre 1** : **+20** au toucher en Corps à corps. À **3 contre 1** : **+40**. De plus, à la fin de chaque Round, tout adversaire surpassé en nombre **perd 1 Avantage** (`LDB 14 l.110`).
 
+> « La supériorité numérique est en générale déterminée par le nombre de Personnages *Engagés* avec d'autres ; s'il y a le moindre doute, le MJ décide qui des deux camps est en supériorité numérique. » — `LDB 14 l.110`
+
 ### Application aux portes / objets résistants
 
 Enfoncer une porte (ou fenêtre…) se résout par un **Test de Corps à corps (Bagarre)** ou de Corps à corps avec une **arme appropriée** (hache, marteau). **Le DR obtenu est ajouté au Bonus de Force ; le total est infligé à l'objet. Si une arme est utilisée, on n'ajoute que la moitié des dégâts de l'arme.** L'objet est défini par son **Bonus d'Endurance (BE)** et ses **Blessures (B)**. Contre les objets inanimés, la règle du **minimum 1 Blessure ne s'applique pas** (`EDO 11 l.89-95`). Notation abrégée d'une porte verrouillée : **(D −10, DR 2 ; FT 6, B 15)** = serrure Complexe (−10) demandant 2 DR à crocheter, porte de Bonus d'Endurance 6 et 15 Blessures (`EDO 11 l.86-101`).
@@ -652,7 +654,7 @@ Règle **optionnelle** de combat héroïque, pour balayer les rangs d'adversaire
 
 Conditions et limites :
 - **Mêlée uniquement** ; il faut **tuer la cible en un seul coup**.
-- On se déplace **sur la case** de l'adversaire tué, puis on attaque **un autre** adversaire.
+- On se déplace **sur la case** de l'adversaire tué, puis on attaque **un autre** adversaire. L’attaque suit la portée ordinaire de mêlée depuis cette case. Avec une arme prête, l’Allonge **Très longue** permet d’Engager à 4 m et l’Allonge **Considérable** à 6 m (`LDB 13 l.114`, `LDB 62 l.163-164`).
 - Nombre maximum d'enchaînements = **Bonus de Capacité de Combat (BCC)** de l'attaquant.
 - **Exception « grandes créatures »** : certaines créatures de grande Taille activent Frappe Mortelle **sans avoir à tuer** — il leur suffit de **toucher** un adversaire sans le tuer pour se déplacer dans sa zone et frapper une autre cible le même Round. Confirmé par un statbloc :
 
@@ -699,7 +701,7 @@ Ces tables **remplacent** celles du LDB. Les **quatre tableaux complets** (Tête
 - `LDB 13 l.183` — déclenchement : tout succès CC/Projectiles dont le **dé est un double** génère un Critique ; possible aussi en **défense** sur un Test opposé. (CONSOLIDE avec `AA 07 l.29`.)
 - `LDB 13 l.137-145` — Tableau de Localisation humanoïde (1ᵉʳ d100) utilisé pour la localisation du Coup Critique.
 - `LDB 14 l.4` — effet immédiat : Blessure critique immédiate ; le **DR reste calculé normalement** (Dégâts + vainqueur du Test opposé).
-- `LDB 14 l.6-7` — Option **Frappe Mortelle** : tuer en un coup en mêlée → se déplacer sur la case + frapper un autre adversaire, **jusqu'à BCC fois** ; certaines **grandes créatures** l'activent sans tuer.
+- `LDB 14 l.9` — Option **Frappe Mortelle** : tuer en un coup en mêlée → se déplacer sur la case + frapper un autre adversaire, **jusqu'à BCC fois** ; certaines **grandes créatures** l'activent sans tuer.
 - `LDB 18 l.17` — overkill : **−20** au Tableau des Critiques (min 01) si le nombre de Points de Blessure passés en négatif est strictement inférieur au BE (#1595 c.6222318751).
 - `LDB 18 l.53-55` — résolution du Coup Critique : localisation par **2ᵉ d100**, PB perdus **en ignorant BE et PA**, Effets supplémentaires, **00 = mort** ; Dégâts non critiques recalculés sur la nouvelle localisation.
 - `LDB 18 l.56-187` — en-têtes et bornes des quatre Tableaux des Critiques LDB (Tête/Bras/Corps/Jambe), `01-10` → `00` (mort).

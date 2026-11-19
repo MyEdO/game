@@ -97,7 +97,6 @@ import {
   rollMeleeDefender,
   AttackResult,
   ModLine,
-  outnumberMod,
   crowdMod,
   defenseTargetMods,
   composeAttack,
@@ -140,7 +139,7 @@ import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalSt
 import { sizeGap } from '../engine/size';
 import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
-import { bouclierDuBinomeEnJeu, effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
+import { bouclierDuBinomeEnJeu, effectifAuContactParmi, surnombreDeLAttaque } from './combat/surnombre';
 import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
@@ -1224,8 +1223,7 @@ export function attackEnv(
   // En contrebas : LDB 14 l.67 ; seuil `STEP_MAX_M` (relief.ts) sur `pos.h`.
   if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
   if (enBataille) {
-    // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
-    const onm = outnumberMod(effectifAuContact(scene, enBataille, target, attacker.kind));
+    const onm = surnombreDeLAttaque(enBataille.combatants, attacker, target); // LDB 14 l.110
     if (onm) env.push(onm);
     env.push(...mountedAttackMods(enBataille, attacker, target, 'melee')); // LDB 14 l.180/181
   }
@@ -4003,7 +4001,7 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
     return modes.length ? { refus: null, tir: { distanceTiles, modes } } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
-  if (!auContactDeLaSerie(s, attacker, target) && distanceDeContact(s.scene, attacker, target) > reachTiles(weapon, sceneMetresPerTile(s.scene))) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
+  if (!auContactDeLaSerie(s, attacker, target) && distanceDeLAttaque(s, attacker, target, weapon) > reachTiles(weapon, sceneMetresPerTile(s.scene))) return { refus: 'hors-allonge' };
   if (cannotDefend(target)) return { refus: 'ne-peut-se-defendre' }; // LDB 16 l.135
   return { refus: null };
 }
@@ -4422,13 +4420,13 @@ export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee)
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)
 // ---------------------------------------------------------------------------
 
-/** Cibles de balayage (LDB 14 l.9) : adversaires encore actifs, au contact (`distanceDeContact` ≤ 1) et non déjà
- *  frappés dans ce balayage. Sans position connue, aucun filtre de distance. */
+/** Cibles de balayage à portée de l'arme qui jouera le maillon. LDB 14 l.9 ; LDB 62 l.163-164 */
 export function cleaveTargets(scene: Scene | null, battle: BattleState, attacker: Combatant, hitIds: string[]): Combatant[] {
+  const mpt = sceneMetresPerTile(scene);
   return battle.combatants.filter((c) => {
     if (c.kind === attacker.kind || isOutOfAction(c) || hitIds.includes(c.id)) return false;
-    if (!attacker.pos || !c.pos) return true;
-    return distanceDeContact(scene, attacker, c) <= 1;
+    const weapon = firedWeapon(scene, attacker, c, undefined, battle.combatants);
+    return weapon.type === 'melee' && distanceDeLAttaque({ scene, battle }, attacker, c, weapon) <= reachTiles(weapon, mpt);
   });
 }
 
@@ -4461,7 +4459,7 @@ function runCleaveChain(get: Get, set: SetFn, attacker: Combatant, chain: Chaine
     const arme = firedWeapon(get().scene, attacker, next, undefined, battle.combatants);
     if (maybeOpenDefense(get, set, attacker, next, arme, suite)) return true; // chaîne suspendue : la reprise part de `jetValider('defense')`
     const r = resolveAttack(get, attacker, next, arme);
-    if (!r) continue; // hors de portée (ne devrait pas : déjà filtré adjacent) — borne consommée tout de même
+    if (!r) continue;
     // Le maillon suivant est la SUITE de ce coup : son après-coup la joue (`resumeCleaveChain`).
     return applyAttackResult(get, set, attacker, r.victim ?? next, r.weapon, r.res, { sousAttaque: true, suite }) === OPS_DIFFEREES;
   }
@@ -4470,14 +4468,20 @@ function runCleaveChain(get: Get, set: SetFn, attacker: Combatant, chain: Chaine
   return false;
 }
 
+/** Recalage du balayage, y compris le corps qui porte le cavalier. LDB 14 l.9, l.175-187 ; LDB 85 l.373-374 */
+function placerSurLaCaseLiberee(get: Get, attacker: Combatant, pos: Pt): void {
+  const { battle, scene } = get();
+  const mount = battle && mountOf(battle, attacker);
+  placeCombatant(attacker, scene, pos);
+  if (mount) placeCombatant(mount, scene, pos);
+  displaceSmaller(get, mount ?? attacker);
+}
+
 /** REPREND une chaîne de balayage que le coup portait dans sa suite (`enchainement: 'chaine'`), une fois
  *  l'enchaînement appliqué : recalage sur la case d'une cible tuée (LDB 14 l.9) puis suite de la chaîne. */
 export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, defender: Combatant, chain: ChaineDeBalayage, restitution?: SuiteDeCoup['restitution']): boolean {
   const killed = isOutOfAction(defender);
-  if (killed && defender.pos) {
-    placeCombatant(attacker, get().scene, defender.pos);
-    displaceSmaller(get, attacker);
-  }
+  if (killed && defender.pos) placerSurLaCaseLiberee(get, attacker, defender.pos);
   if (chain.fm && !killed) { // Frappe Mortelle : on ne poursuit qu'en TUANT (LDB 14 l.9)
     set({ battle: { ...get().battle! } });
     bus.emit(EVT.SCENE_DIRTY);
@@ -4487,11 +4491,11 @@ export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, def
 }
 
 /** Balayage AUTOMATIQUE d'un attaquant conduit par l'IA après une touche de mêlée d'un plus grand
- *  (`res.cleave`, LDB 85 l.362) : enchaîne jusqu'à BCC attaques sur des adversaires adjacents non encore
+ *  (`res.cleave`, LDB 85 l.362) : enchaîne jusqu'à BCC attaques sur des adversaires à portée non encore
  *  frappés, se déplaçant sur la case d'une cible tuée (l.10).
  *  MACHINERIE GÉOMÉTRIQUE (pas une réaction d'entité câblée par-nom) : le déclencheur `res.cleave` est
  *  dérivé GÉNÉRIQUEMENT (combat.ts : `attacker.swarm` ∨ `sizeGap ≥ 1`) et la Frappe Mortelle est une
- *  RÈGLE OPTIONNELLE (`combat-frappe-mortelle`) ; le ciblage est l'adjacence pure (`cleaveTargets`). Aucun
+ *  RÈGLE OPTIONNELLE (`combat-frappe-mortelle`). Le ciblage passe par `cleaveTargets`. Aucun
  *  trait/talent n'est nommé — règle universelle de l'arène pour les attaquants surdimensionnés/Nuée. */
 export function autoCleave(get: Get, set: SetFn, attacker: Combatant, primaryTarget: Combatant, res: AttackResult, restitution?: SuiteDeCoup['restitution']): boolean {
   if (!aiDriven(get(), attacker)) return false;
@@ -4502,16 +4506,13 @@ export function autoCleave(get: Get, set: SetFn, attacker: Combatant, primaryTar
   const bcc = bonus(effectiveChar(attacker, 'capacite-de-combat'));
   if (bcc < 1) return false;
   // Cible primaire tuée → l'attaquant se déplace sur sa case avant d'enchaîner (l.10).
-  if (isOutOfAction(primaryTarget) && primaryTarget.pos) {
-    placeCombatant(attacker, get().scene, primaryTarget.pos);
-    displaceSmaller(get, attacker); // en se recalant, un grand dégage les plus petits sous son empreinte (85 l.373-374)
-  }
+  if (isOutOfAction(primaryTarget) && primaryTarget.pos) placerSurLaCaseLiberee(get, attacker, primaryTarget.pos);
   return runCleaveChain(get, set, attacker, { hitIds: [primaryTarget.id], n: 0, bcc, fm }, restitution);
 }
 
 /** Balayage d'un HÉROS (interactif) : appelé après l'application d'une attaque. Démarre le balayage
  *  sur une touche d'un plus grand (`res.cleave`), ou le poursuit si `wasChain` (un enchaînement vient
- *  d'être résolu). Ouvre/maintient `pendingCleave` tant qu'il reste des cibles adjacentes ET que le
+ *  d'être résolu). Ouvre/maintient `pendingCleave` tant qu'il reste des cibles à portée ET que le
  *  nombre d'enchaînements reste < BCC (LDB 14 l.9) ; sinon le ferme. Déplacement sur la case d'une
  *  cible tuée (l.9). Un attaquant hors de combat la ferme. Rend `true` quand la chaîne reste ouverte :
  *  elle emporte alors la `restitution` du coup qui l'a ouverte. */
@@ -4531,10 +4532,7 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
   const fm = pc ? !!pc.fm : fmStart; // mode porté par le pending (Taille vs Frappe Mortelle)
   const count = wasChain ? (pc?.count ?? 0) + 1 : pc?.count ?? 0; // un enchaînement résolu consomme une attaque
   const hitIds = pc ? [...new Set([...pc.hitIds, target.id])] : [target.id];
-  if (enAction && isOutOfAction(target) && target.pos) {
-    placeCombatant(attacker, get().scene, target.pos); // case libérée (l.10)
-    displaceSmaller(get, attacker); // dégage les plus petits sous l'empreinte (85 l.373-374)
-  }
+  if (enAction && isOutOfAction(target) && target.pos) placerSurLaCaseLiberee(get, attacker, target.pos);
   const battle = get().battle!;
   const bcc = bonus(effectiveChar(attacker, 'capacite-de-combat'));
   const remaining = cleaveTargets(get().scene, battle, attacker, hitIds);
@@ -4596,13 +4594,19 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   let suspendu = false;
   let portee = false;
   switch (enchainement.mode) {
-    case 'heros': portee = maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain, restitution); break;
+    case 'heros':
+      if (weapon.type === 'melee' || enchainement.wasChain) {
+        portee = maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain, restitution);
+      }
+      break;
     case 'chaine': suspendu = resumeCleaveChain(get, set, attacker, target, enchainement, restitution); break; // la chaîne reprend où elle s'est arrêtée
     case 'bordee': // l'Action rendue APRÈS le `markActed` de l'application (MDG 14 l.37), puis le coup suivant
       { const b = get().battle; if (b) set({ battle: { ...b, acted: enchainement.actedAvant } }); }
       suspendu = jouerLesTirsDeBordee(get, set, enchainement);
       break;
-    case 'auto': suspendu = autoCleave(get, set, attacker, target, touche, restitution); break; // balayage d'un attaquant conduit par l'IA
+    case 'auto':
+      if (weapon.type === 'melee') suspendu = autoCleave(get, set, attacker, target, touche, restitution);
+      break;
     case 'tirRapide': suspendu = runPreemptShots(get, set, enchainement.faits); break; // la boucle des tireurs reprend (#997)
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
     case 'apresCoup': suspendu = jouerLApresCoup(get, set, enchainement.queue); break; // LDB 10 l.1037 ; LDB 85 l.71
@@ -6217,6 +6221,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
   return {
     enemy, heroes, ...(pulsion.length ? { ciblesDePulsion: pulsion } : {}), scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
     smoke, flying: flyM != null, traverse: climbTraverseFor(enemy.traits), perceived, facing: get().facing, squad,
+    combatants: battle.combatants,
     // Mémo de Ligne de Vue de CETTE décision : posé ici parce que c'est ici que la scène et les fumées de
     // la décision sont fixées, et repassé tel quel aux ré-énumérations d'`aiApproachPlan`.
     losMemo: makeLosMemo(scene, smoke),

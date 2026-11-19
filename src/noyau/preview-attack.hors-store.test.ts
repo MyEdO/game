@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { FLOWS } from './rollFlowSpecs';
-import { ARME_INTROUVABLE, defenseDodgeMods } from './mount';
+import { ARME_INTROUVABLE, defenseDodgeMods, mountUp } from './mount';
 import { attackWeaponOf, openAttackCascade } from './combatFlow';
 import { fenetreDAttaque } from './fenetreDAttaque';
 import type { TravelPlan } from './travelFlow';
@@ -19,6 +19,9 @@ import { volatileCharLines } from '../engine/characteristics';
 import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
 import { inexplique } from './cascade.testkit';
 import { seedBattleRng } from './battleRng';
+import { engage } from '../engine/engagement';
+import { itemFromTrappingById, weaponFromItem } from '../engine/items';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { Scene } from './monde/scene';
 import { isDeepStrictEqual } from 'node:util';
@@ -83,13 +86,117 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     expect(previewAttack(mkGet([a, b]), a, b).inRange).toBe(false);
   });
 
-  it('le surnombre (2 contre 1) augmente la valeur de toucher prévue de +20 (LDB 14 l.110)', () => {
+  it.each([
+    { situation: 'voisin à une case', distance: 1, engageAvecLaCible: false, cibleDuJet: 50 },
+    { situation: 'engagé à une case', distance: 1, engageAvecLaCible: true, cibleDuJet: 70 },
+    { situation: 'engagé à deux cases avec une Lance', distance: 2, engageAvecLaCible: true, cibleDuJet: 70 },
+  ])('Surnombre à l’aperçu et au jet : $situation (LDB 14 l.110)', ({ distance, engageAvecLaCible, cibleDuJet }) => {
     const a = combatant({ id: 'A', pos: { x: 0, y: 0 } });
     const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
-    const ally = combatant({ id: 'A2', pos: { x: 1, y: 1 } }); // 2e attaquant au contact de B
-    const solo = previewAttack(mkGet([a, b]), a, b).target;
-    const duo = previewAttack(mkGet([a, ally, b]), a, b).target;
-    expect(duo - solo).toBe(20);
+    const lance = weaponFromItem(itemFromTrappingById('lance', idsDeTest)!);
+    const allie = combatant({ id: 'A2', pos: { x: 1, y: distance }, weapons: [lance] });
+    const get = mkGet([a, b, allie]);
+    expect(previewAttack(get, allie, b).inRange).toBe(true);
+    if (engageAvecLaCible) engage(allie, b);
+
+    const apercu = previewAttack(get, a, b);
+    seedBattleRng(1);
+    const jet = resolveAttack(get, a, b, apercu.weapon)?.res.attackerDetail;
+    expect({ apercu: apercu.target, jet: jet?.target }).toEqual({ apercu: cibleDuJet, jet: cibleDuJet });
+    expect(a.engagedWith).toBeUndefined();
+  });
+
+  it('la Maîtrise du combat augmente seulement l’effectif du camp surpassé (LDB 10 l.765)', () => {
+    const a = combatant({ id: 'A' });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
+    const allie = combatant({ id: 'A2', pos: { x: 1, y: 1 } });
+    const maitrise = [{ talentId: 'maitrise-du-combat', times: 1 }] as const;
+    engage(allie, b);
+    const get = mkGet([a, b, allie]);
+
+    a.talents = [...maitrise];
+    expect(previewAttack(get, a, b).target).toBe(70);
+    b.talents = [...maitrise];
+    expect(previewAttack(get, a, b).target).toBe(50);
+  });
+
+  it('un défenseur Engagé avec l’attaquant décompte aussi dans le Surnombre (LDB 14 l.110)', () => {
+    const a = combatant({ id: 'A' });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
+    const allie = combatant({ id: 'A2', pos: { x: 1, y: 1 } });
+    const autreDefenseur = combatant({ id: 'B2', kind: 'ennemi', pos: { x: 0, y: 1 } });
+    engage(allie, b);
+    engage(autreDefenseur, a);
+    expect(previewAttack(mkGet([a, b, allie, autreDefenseur]), a, b).target).toBe(50);
+  });
+
+  it('une mêlée reliée compte les Engagements directs autour du duel (#4107)', () => {
+    const a1 = combatant({ id: 'A1' });
+    const a2 = combatant({ id: 'A2', pos: { x: 1, y: 1 } });
+    const a3 = combatant({ id: 'A3', pos: { x: 0, y: 2 } });
+    const b1 = combatant({ id: 'B1', kind: 'ennemi', pos: { x: 1, y: 0 } });
+    const b2 = combatant({ id: 'B2', kind: 'ennemi', pos: { x: 0, y: 1 } });
+    engage(a2, b1);
+    engage(a2, b2);
+    engage(a3, b2);
+    const get = mkGet([a1, a2, a3, b1, b2]);
+
+    const cibleDuJet = () => {
+      seedBattleRng(1);
+      return resolveAttack(get, a1, b1, firedWeapon(get().scene, a1, b1))?.res.attackerDetail?.target;
+    };
+    expect(cibleDuJet()).toBe(70); // A1 et A2 contre B1
+    engage(a1, b2);
+    expect(cibleDuJet()).toBe(50); // A1 et A2 contre B1 et B2
+  });
+
+  it('le destrier et son cavalier forment un attaquant même si le destrier frappe (LDB 14 l.182, #4202)', () => {
+    const cavalier = combatant({ id: 'C' });
+    const destrier = combatant({ id: 'D', bodyShape: 'quadrupede' });
+    const cible = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
+    const allie = combatant({ id: 'A2', pos: { x: 1, y: 1 } });
+    mountUp(cavalier, destrier);
+    engage(cavalier, cible);
+    engage(allie, cible);
+
+    const get = mkGet([cavalier, destrier, cible, allie]);
+    const apercu = previewAttack(get, destrier, cible);
+    seedBattleRng(1);
+    const jet = resolveAttack(get, destrier, cible, apercu.weapon)?.res.attackerDetail;
+    expect({ apercu: apercu.target, jet: jet?.target }).toEqual({ apercu: 70, jet: 70 });
+  });
+
+  it('viser le destrier reprend l’Engagement du couple sans compter deux défenseurs (LDB 14 l.181, #4202)', () => {
+    const a = combatant({ id: 'A' });
+    const cavalier = combatant({ id: 'C', kind: 'ennemi', pos: { x: 1, y: 0 } });
+    const destrier = combatant({ id: 'D', kind: 'ennemi', bodyShape: 'quadrupede', pos: { x: 1, y: 0 } });
+    const allie = combatant({ id: 'A2', pos: { x: 1, y: 1 } });
+    mountUp(cavalier, destrier);
+    engage(a, cavalier);
+    engage(allie, cavalier);
+
+    const get = mkGet([a, cavalier, destrier, allie]);
+    const apercu = previewAttack(get, a, destrier);
+    seedBattleRng(1);
+    const jet = resolveAttack(get, a, destrier, apercu.weapon)?.res.attackerDetail;
+    expect({ apercu: apercu.target, jet: jet?.target }).toEqual({ apercu: 70, jet: 70 });
+  });
+
+  it('le lien d’un destrier suffit pour son couple et deux liens comptent une fois (#4202)', () => {
+    const a = combatant({ id: 'A' });
+    const cible = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
+    const cavalier = combatant({ id: 'C', pos: { x: 1, y: 1 } });
+    const destrier = combatant({ id: 'D', bodyShape: 'quadrupede', pos: { x: 1, y: 1 } });
+    mountUp(cavalier, destrier);
+    engage(destrier, cible);
+    const get = mkGet([a, cible, cavalier, destrier]);
+    expect(previewAttack(get, a, cible).target).toBe(70);
+
+    engage(cavalier, cible);
+    const apercu = previewAttack(get, a, cible);
+    seedBattleRng(1);
+    const jet = resolveAttack(get, a, cible, apercu.weapon)?.res.attackerDetail;
+    expect({ apercu: apercu.target, jet: jet?.target }).toEqual({ apercu: 70, jet: 70 });
   });
 
   it('choix d’arme : previewAttack(weaponUid) prend l’arme choisie + applique le -20 main secondaire, parité résolution', () => {

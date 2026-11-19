@@ -30,10 +30,9 @@ import { zonesRoundTick } from '../monde/zones';
 import { purgeExpiredSummons } from '../summonFlow';
 import { fireTriggers } from '../triggeredEffects';
 import { collectRoundEndTestSteps } from './triggeredTest';
-import { inBattleId } from '../monde/combatants';
 import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
-import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
+import { surnombreSubi } from './surnombre';
 import { distanceDeCombat } from '../monde/footprint';
 import { sceneMetresPerTile } from '../monde/scene';
 import { rule } from '../../engine/policy';
@@ -353,12 +352,10 @@ export const TABLES = {
         if (groupAdvantage()) return; // AA 11 l.44
         for (const c of battle.combatants) {
           if (isOutOfAction(c) || (c.advantage ?? 0) <= 0) continue;
-          const foes = (c.engagedWith ?? []).filter((id) => {
-            const e = inBattleId(battle, id);
-            return !!e && e.kind !== c.kind && !isOutOfAction(e);
-          }).length;
-          // LDB 10 l.765
-          if (foes >= 2 + outnumberCountBonus(c)) { c.advantage = avantageApresPerte(c.advantage, 1); sink(t('turn.outnumbered', { name: c.label, foes }), c); }
+          const surnombre = surnombreSubi(battle.combatants, c);
+          if (!surnombre) continue;
+          c.advantage = avantageApresPerte(c.advantage, 1);
+          sink(t('turn.outnumbered', { name: c.label, foes: surnombre.attaquants, allies: surnombre.defenseurs }), c);
         }
       },
     },

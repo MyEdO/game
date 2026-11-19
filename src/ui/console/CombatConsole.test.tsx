@@ -16,6 +16,7 @@ import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { contractDisease } from '../../engine/disease';
 import { syncDerivedConditions, stacks } from '../../engine/conditions';
+import { engage } from '../../engine/engagement';
 import type { Combatant, ConditionInstance, ItemInstance, ShipPoste, Weapon } from '../../engine/types';
 import { itemFromTrappingById, recomputeLoadout, loadoutLabel, loadedAmmo, selectedAmmo, loadWeapon } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
@@ -240,7 +241,9 @@ describe('CombatConsole — arche', () => {
   it('fait entrer les États de SITUATION (Assailli ×N) dans le même rack', () => {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
-    monter(h, { foes: [foe('e1', 5, 6), foe('e2', 6, 5)] });
+    const adversaires = [foe('e1', 5, 6), foe('e2', 6, 5)];
+    for (const e of adversaires) engage(h, e);
+    monter(h, { foes: adversaires });
     const rack = niche()!;
     expect(rack.querySelectorAll('.pt-state').length).toBe(1);
     expect(rack.querySelector('.pt-n')!.textContent).toBe('2');
