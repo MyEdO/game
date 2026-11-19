@@ -82,7 +82,7 @@ import { oupsDie } from '../../data/oups';
 import { interludeEventDie } from '../../data/interludeEvents';
 import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
-import { spellOps, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
+import { spellOps, walkFlow, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
 import { noeudAmputation } from '../../engine/critical';
 import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
@@ -735,17 +735,23 @@ function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
  */
 function opsHorsJet(f: Flow | undefined): GameOp[] {
   if (!f) return [];
-  switch (f.kind) {
-    case 'sequence': return f.etapes.flatMap(opsHorsJet);
-    case 'si': return [...opsHorsJet(f.alors), ...opsHorsJet(f.sinon)];
-    case 'effet': return f.effet.type === 'ops' ? f.effet.ops : [];
-    case 'test':
-    case 'choix':
-      return [];
-    default:
-      f satisfies never;
-      return [];
-  }
+  const ops: GameOp[] = [];
+  walkFlow(f, (noeud) => {
+    switch (noeud.kind) {
+      case 'sequence': return;
+      case 'si': return;
+      case 'effet':
+        if (noeud.effet.type === 'ops') ops.push(...noeud.effet.ops);
+        return;
+      case 'test':
+      case 'choix':
+        return 'ignorer';
+      default:
+        noeud satisfies never;
+        return;
+    }
+  });
+  return ops;
 }
 
 /** Libellé d'un nœud `test` : « Compétence Difficulté », la Compétence résolue PAR ID. */

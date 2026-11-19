@@ -644,30 +644,28 @@ export function certainFlowOps<E = EffectOp>(
   evalCond?: (cond: Condition) => boolean | undefined,
 ): GameOp[] | undefined {
   if (!flow) return undefined;
-  switch (flow.kind) {
-    case 'sequence': {
-      const out: GameOp[] = [];
-      for (const s of flow.etapes) {
-        const ops = certainFlowOps(s, evalCond);
-        if (!ops) return undefined;
-        out.push(...ops);
+  const out: GameOp[] = [];
+  const complet = walkFlow(flow, (noeud) => {
+    switch (noeud.kind) {
+      case 'sequence': return;
+      case 'effet':
+        if (!isEffectOp(noeud.effet)) return 'arrêter';
+        out.push(...noeud.effet.ops);
+        return;
+      case 'si': {
+        const verdict = evalCond?.(noeud.condition);
+        if (verdict === undefined) return 'arrêter';
+        return verdict ? 'alors' : 'sinon';
       }
-      return out;
+      case 'test':
+      case 'choix':
+        return 'arrêter';
+      default:
+        noeud satisfies never;
+        return 'arrêter';
     }
-    case 'effet': return isEffectOp(flow.effet) ? [...flow.effet.ops] : undefined;
-    case 'si': {
-      const verdict = evalCond?.(flow.condition);
-      if (verdict === undefined) return undefined; // l'oracle ne sait pas : on se tait, on ne suppose pas
-      const branch = verdict ? flow.alors : flow.sinon;
-      return branch ? certainFlowOps(branch, evalCond) : [];
-    }
-    case 'test':
-    case 'choix':
-      return undefined;
-    default:
-      flow satisfies never;
-      return undefined;
-  }
+  });
+  return complet ? out : undefined;
 }
 
 /** Sous-Flow d'un Flow de sort ne gardant que les nœuds adressant `on` (target/caster) — pour appliquer
@@ -975,16 +973,34 @@ export function lierLesTirages<E>(flow: Flow<E>, valeurDe: (de: Formula) => numb
 
 /** Visite RÉCURSIVE de tous les nœuds d'un Flow (branches `si`/`test` comprises) — pour la validation
  *  (effets référencés, bornes des conditions horaires) sur l'arbre ENTIER, pas seulement le 1er niveau.
- *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif. */
-export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, chemin: CheminDeFlow) => void, chemin: CheminDeFlow = []): void {
-  visit(flow, chemin);
+ *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif.
+ *  Le visiteur peut ignorer les enfants, arrêter tout le parcours, ou retenir une branche d'un `si`.
+ *  Le résultat dit si le parcours est allé au bout. */
+export function walkFlow<E = EffectOp>(
+  flow: Flow<E>,
+  visit: (node: Flow<E>, chemin: CheminDeFlow) => void | 'ignorer' | 'arrêter' | 'alors' | 'sinon',
+  chemin: CheminDeFlow = [],
+): boolean {
+  const suite = visit(flow, chemin);
+  if (suite === 'arrêter') return false;
+  if (suite === 'ignorer') return true;
   switch (flow.kind) {
-    case 'sequence': flow.etapes.forEach((s, i) => walkFlow(s, visit, [...chemin, 'etapes', i])); break;
-    case 'si': walkFlow(flow.alors, visit, [...chemin, 'alors']); if (flow.sinon) walkFlow(flow.sinon, visit, [...chemin, 'sinon']); break;
-    case 'test': walkFlow(flow.reussite, visit, [...chemin, 'reussite']); walkFlow(flow.echec, visit, [...chemin, 'echec']); break;
-    case 'choix': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
-    case 'effet': break;
-    default: flow satisfies never;
+    case 'sequence':
+      for (const [i, etape] of flow.etapes.entries()) {
+        if (!walkFlow(etape, visit, [...chemin, 'etapes', i])) return false;
+      }
+      return true;
+    case 'si':
+      if (suite !== 'sinon' && !walkFlow(flow.alors, visit, [...chemin, 'alors'])) return false;
+      return suite === 'alors' || !flow.sinon || walkFlow(flow.sinon, visit, [...chemin, 'sinon']);
+    case 'test':
+      return walkFlow(flow.reussite, visit, [...chemin, 'reussite']) && walkFlow(flow.echec, visit, [...chemin, 'echec']);
+    case 'choix':
+      return walkFlow(flow.oui, visit, [...chemin, 'oui']) && (!flow.non || walkFlow(flow.non, visit, [...chemin, 'non']));
+    case 'effet': return true;
+    default:
+      flow satisfies never;
+      return true;
   }
 }
 
