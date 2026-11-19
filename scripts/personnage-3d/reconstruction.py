@@ -30,6 +30,14 @@ def publie_par_modele(famille):
             for m in modeles(famille)}
 
 
+def construire_le_modele(famille, modele, sortie):
+    """`construire.py <famille>/<modele> --sortie <sortie>` lancé sous le relevé de ses lectures : le processus achevé,
+    et les fichiers du dépôt lus (`entrees.construire_en_relevant`)."""
+    env = {**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'}
+    return construire_en_relevant([ICI / 'construire.py', f'{famille}/{modele}', '--sortie', sortie],
+                                  capture_output=True, text=True, env=env, timeout=240)
+
+
 class DUneFamille:
     """Les tests de reconstruction de la famille `FAMILLE`, à mêler à `unittest.TestCase`."""
 
@@ -46,9 +54,7 @@ class DUneFamille:
         """Les dossiers de production que `construire.py <famille>/<modele>` écrit, par id, bâtis sous le relevé de leurs
         lectures, et les fichiers du dépôt lus (`entrees.construire_en_relevant`)."""
         sortie = Path(self.dossier.name) / modele
-        env = {**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'}
-        vu, lus = construire_en_relevant([ICI / 'construire.py', f'{self.FAMILLE}/{modele}', '--sortie', sortie],
-                                         capture_output=True, text=True, env=env, timeout=240)
+        vu, lus = construire_le_modele(self.FAMILLE, modele, sortie)
         self.assertEqual(vu.returncode, 0, vu.stdout[-2000:] + vu.stderr[-2000:])
         return {d.name: d for d in sorted(sortie.iterdir())}, lus
 

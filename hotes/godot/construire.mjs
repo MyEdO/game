@@ -723,6 +723,12 @@ async function surUneCopie(binaire, figerLesDessins, faire) {
   }
 }
 
+/** La vue figée `vue` écrite sous `recettes/vues/<nom>.json` de la copie `copie`, que lit sa recette. */
+function deposerLaVue(copie, nom, vue) {
+  mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
+  writeFileSync(join(copie, 'recettes', 'vues', `${nom}.json`), JSON.stringify(vue))
+}
+
 /** La sonde : chaque script contrôlé et chaque recette déclarée autonome exécutée dans le projet importé, les vues de
  *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, et le véhicule de l'atelier
  *  figé sur le listage des modèles du projet (`figerLeVehicule`) sous `recettes/vues/vehicule.json`, l'atelier du
@@ -732,15 +738,14 @@ async function surUneCopie(binaire, figerLesDessins, faire) {
  *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes (`jouerLesRecettes`). */
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
-    mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
-    writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
+    deposerLaVue(copie, 'ecran', figerVuesDeLEcran())
     const modeles = listage(DOSSIER_DES_MODELES)
-    writeFileSync(join(copie, 'recettes', 'vues', 'vehicule.json'), JSON.stringify(figerLeVehicule(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'repos.json'), JSON.stringify(figerLeRepos(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'decor.json'), JSON.stringify(figerLeDecor(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'chemin.json'), JSON.stringify(figerLeChemin(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'editeur-navire.json'), JSON.stringify(figerLEditeurDuNavire(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'degagement.json'), JSON.stringify(figerLeDegagement(modeles)))
+    deposerLaVue(copie, 'vehicule', figerLeVehicule(modeles))
+    deposerLaVue(copie, 'repos', figerLeRepos(modeles))
+    deposerLaVue(copie, 'decor', figerLeDecor(modeles))
+    deposerLaVue(copie, 'chemin', figerLeChemin(modeles))
+    deposerLaVue(copie, 'editeur-navire', figerLEditeurDuNavire(modeles))
+    deposerLaVue(copie, 'degagement', figerLeDegagement(modeles))
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
     const erreurs = await menerDeFront(copie, scripts.map((script) => ({
@@ -775,13 +780,16 @@ const COEURS_D_UNE_RECETTE_RENDUE = 2
  *  moteur et le processus de son parcours, qui sert son pont (#3412). */
 export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_RENDUE)
 
-/** Le projet importé par l'éditeur `binaire`, puis chaque recette déclarant `const RECETTE_RENDUE := true` jouée en
+/** Le projet importé par l'éditeur `binaire`, les échantillons de l'atelier figés (`figerLeDecor`) sous
+ *  `recettes/vues/decor.json` de la copie, que lit `aretes-en-instances.gd`, puis chaque recette déclarant
+ *  `const RECETTE_RENDUE := true` jouée en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
  *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
  *  pas, et que Godot remplace, est une erreur. Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne
  *  de clôture (`erreurs=<n>`) ; ce que le moteur écrit ensuite en se fermant n'en est pas. */
-function rendre(binaire, { figerLesDessins }) {
+function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
+    deposerLaVue(copie, 'decor', figerLeDecor(listage(DOSSIER_DES_MODELES)))
     const recettes = scriptsDe(copie).filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_RENDUE := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
     if (!recettes.length) return [`aucune recette rendue sous ${PROJET}`]

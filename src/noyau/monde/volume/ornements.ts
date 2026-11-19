@@ -51,7 +51,7 @@ export const dehorsDeScene = memoByRef((scene: SceneDesToits) => {
  *  ce qu'un décor de façade doit savoir pour se dresser du bon côté du mur. `null` quand aucun des deux
  *  côtés n'est le dehors (arête intérieure) et pour une arête DIAGONALE, dont `WALL_NB` rend un voisin
  *  nul : l'appelant tranche son repli. */
-function outwardSide(
+export function outwardSide(
   scene: SceneDesToits,
   edge: Pick<WallSeg, 'x' | 'y' | 'side'> & { z?: number },
 ): Dir4 | null {

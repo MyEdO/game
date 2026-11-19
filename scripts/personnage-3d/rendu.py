@@ -354,6 +354,50 @@ def planche(bpy, chemins, sortie):
     resultat.save()
 
 
+VUES_DE_REVUE = (("face", (0, -1, 0.05)), ("trois-quarts", (0.65, -1, 0.45)), ("dessus", (0, -0.001, 1)))
+"""Les vues de la revue d'un modèle sans base (`vues_de_revue`) : leur nom et la direction d'où la caméra regarde."""
+COTE_DE_VUE = 640
+"""Le côté (px) d'une vue de revue."""
+
+
+def grille(bpy, lignes, sortie):
+    """Les images `lignes` (listes de chemins de même taille) en grille, la première ligne en haut, dans `sortie`."""
+    import numpy as np
+    rangees = []
+    for chemins in lignes:
+        images = [bpy.data.images.load(str(c)) for c in chemins]
+        rangees.append(np.concatenate([np.array(im.pixels[:], dtype=np.float32).reshape(im.size[1], im.size[0], 4)
+                                       for im in images], axis=1))
+    tout = np.concatenate(rangees[::-1], axis=0)
+    resultat = bpy.data.images.new("planche", tout.shape[1], tout.shape[0])
+    resultat.pixels.foreach_set(tout.ravel())
+    resultat.filepath_raw = str(sortie)
+    resultat.file_format = "PNG"
+    resultat.save()
+
+
+def cadre(direction, cotes):
+    """Le côté du carré de la vue de `direction`, d'aplomb, qui contient la boîte de `cotes` centrée sur son axe : le
+    double du plus grand écart d'un de ses coins à cet axe, en largeur ou en hauteur d'image."""
+    from mathutils import Vector
+    axe = Vector(direction).normalized()
+    droite = axe.cross(Vector((0, 0, 1))).normalized()
+    haut = droite.cross(axe)
+    signes = (-1, 1)
+    coins = [Vector((sx * cotes.x, sy * cotes.y, sz * cotes.z)) / 2 for sx in signes for sy in signes for sz in signes]
+    return 2 * max(abs(coin.dot(v)) for coin in coins for v in (droite, haut))
+
+
+def vues_de_revue(rendre, sortie, nom, centre, cotes, etendue):
+    """Rend par `rendre` (`studio`) les `VUES_DE_REVUE` de la boîte de `cotes` autour de `centre`, cadrées sur
+    `etendue`, élargie à la vue qui la déborde (`cadre`), dans `sortie / <nom>-<vue>.png` ; rend leurs chemins, dans
+    l'ordre."""
+    for vue, direction in VUES_DE_REVUE:
+        cote = max(etendue, cadre(direction, cotes)) * 1.12
+        rendre(f"{nom}-{vue}.png", direction, centre, cote, COTE_DE_VUE, COTE_DE_VUE)
+    return [sortie / f"{nom}-{vue}.png" for vue, _ in VUES_DE_REVUE]
+
+
 def bornes(bpy, objets):
     """Les coins bas et haut de l'emprise des sommets évalués des `objets`, dans le monde."""
     import numpy as np

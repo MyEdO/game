@@ -121,6 +121,7 @@ func _ready() -> void:
 	_pont.suivre_les_listes(_ecran, _publier_l_ecran)
 	_monde.cadrage_change.connect(_recadrer)
 	_monde.volume.fondu_fini.connect(_publier_l_ecran)
+	_monde.volume.aretes_posees.connect(_publier_l_ecran)
 	_scene.resized.connect(func() -> void: _monde.cadre = _scene.get_global_rect())
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
@@ -432,7 +433,8 @@ func _publier_l_ecran() -> void:
 ## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
 ## vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de la fenêtre que l'ossature laisse à la scène
 ## (`Monde.cadre`), l'emprise de ses panneaux (`PontDuNoyau.panneaux_a_l_ecran`), ce que porte le corps de chaque
-## combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
+## combattant dessiné (`Plateau.corps`), les navires posés (`Plateau.navires`) et si les arêtes sont toutes posées
+## (`VolumeDeScene.aretes_en_lecture`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	var racines := [_ecran, _scenarios, _sauvegardes, _reglages.racine(), _salon.racine(), _compendium.racine()]
@@ -441,6 +443,7 @@ func _ecran_publie() -> Dictionary:
 		panneaux = PontDuNoyau.panneaux_a_l_ecran(racines), cases = _plateau.points(), glisse = _monde.glisse(),
 		fondu = _monde.volume.part_du_fondu() != 1.0,
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
+		aretes_lues = not _monde.volume.aretes_en_lecture(),
 		compendium = {zones = _compendium.vues()},
 	}
 

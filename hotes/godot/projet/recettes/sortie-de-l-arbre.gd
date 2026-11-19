@@ -7,13 +7,16 @@ extends SceneTree
 ## lecture, une fois quand l'élément l'est ; un combattant sans corps sur un véhicule (`Combattant.montrer`,
 ## `MontageDeVehicule`) quand l'élément du véhicule l'est ; des modèles posés (`MontageDesModeles`) dont le navire posé
 ## change de corps et de centre, quand la pièce de son poste l'est ; des modèles posés dont les poses d'un même décor
-## attendent la seule lecture de son modèle ; l'éditeur ouvert (`scripts/editeur.gd`, sur le figé de
+## attendent la seule lecture de son modèle ; le volume de modèles posés dont une arête attend la lecture du modèle
+## d'arête de sa famille (`VolumeDeScene.poser_les_aretes`) ; l'éditeur ouvert (`scripts/editeur.gd`, sur le figé de
 ## `recettes/editeur-navire.gd`) quand un dépôt s'écrit au pont ; le Compendium ouvert (`scripts/panneau_du_compendium.gd`)
 ## quand ses données s'écrivent au dépôt. Relâchée, la requête ne poursuit rien sur eux : aucune
-## requête ni aucun appel de plus au pont, aucun `habille` ni `pose`, aucune erreur du moteur (comptée par
-## `hotes/godot/construire.mjs`, `erreursDe`).
+## requête ni aucun appel de plus au pont, aucun `habille`, `pose` ni `aretes_posees`, aucune erreur du moteur
+## (comptée par `hotes/godot/construire.mjs`, `erreursDe`).
 
 const RECETTE_AUTONOME := true
+## La recette des arêtes au pied : les modèles posés d'un volume (`modeles_poses`).
+const ARETE := preload("res://recettes/arete-au-pied.gd")
 const FIGE := "res://recettes/vues/repos.json"
 const FIGE_DE_L_EDITEUR := "res://recettes/vues/editeur-navire.json"
 ## Le fichier des calques que l'éditeur garde pour l'Arène : une ouverture sans lui envoie l'entrée figée.
@@ -31,27 +34,6 @@ const IMAGES_APRES := 3
 var _fautes: Array[String] = []
 
 
-## Le pont figé dont chaque requête attend `relache`, tant qu'il les retient (`retient`).
-class PontRetenu extends PontFige:
-	signal relache
-	var retient := true
-	var retenues := 0
-	## Chaque chemin requêté, à sa demande.
-	var demandes: Array[String] = []
-
-	func _init(lu: Dictionary) -> void:
-		super(lu)
-
-	func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "", _entetes := PackedStringArray()) -> PackedByteArray:
-		if not retient:
-			return super(relative, recueil)
-		demandes.append(relative)
-		retenues += 1
-		await relache
-		retenues -= 1
-		return super(relative, recueil)
-
-
 func _initialize() -> void:
 	_recetter.call_deferred()
 
@@ -63,13 +45,15 @@ func _recetter() -> void:
 		push_error("[sortie-de-l-arbre] %s : aucun atelier figé" % FIGE)
 		quit(2)
 		return
-	var pont := PontRetenu.new(lu)
+	var pont := PontFige.new(lu)
+	pont.retient = true
 	PontDuNoyau.remplacer(self, pont)
 	await _sortir_en_lecture(pont, lu, "base")
 	await _sortir_en_lecture(pont, lu, "élément")
 	await _sortir_le_vehicule_en_lecture(pont, lu)
 	await _sortir_les_navires_en_lecture(pont, lu)
 	await _sortir_les_decors_en_lecture(pont, lu)
+	await _sortir_les_aretes_en_lecture(pont, lu)
 	await _sortir_l_editeur_en_ecriture()
 	await _sortir_le_compendium_en_ecriture()
 	for faute in _fautes:
@@ -89,7 +73,7 @@ func _scene_neuve(lu: Dictionary) -> Node3D:
 
 ## Un combattant vêtu dans une scène neuve, celle-ci changée pendant la lecture `quoi` (la base, ou l'élément, la base
 ## relâchée dans l'arbre), puis la lecture relâchée.
-func _sortir_en_lecture(pont: PontRetenu, lu: Dictionary, quoi: String) -> void:
+func _sortir_en_lecture(pont: PontFige, lu: Dictionary, quoi: String) -> void:
 	var combattant: Combattant = (load("res://scenes/Combattant.tscn") as PackedScene).instantiate()
 	_scene_neuve(lu).add_child(combattant)
 	var habilles := [0]
@@ -102,7 +86,7 @@ func _sortir_en_lecture(pont: PontRetenu, lu: Dictionary, quoi: String) -> void:
 
 ## Un combattant sans corps montré sur `VEHICULE` dans une scène neuve, celle-ci changée pendant la lecture de son
 ## élément, puis la lecture relâchée.
-func _sortir_le_vehicule_en_lecture(pont: PontRetenu, lu: Dictionary) -> void:
+func _sortir_le_vehicule_en_lecture(pont: PontFige, lu: Dictionary) -> void:
 	var combattant: Combattant = (load("res://scenes/Combattant.tscn") as PackedScene).instantiate()
 	_scene_neuve(lu).add_child(combattant)
 	var habilles := [0]
@@ -114,7 +98,7 @@ func _sortir_le_vehicule_en_lecture(pont: PontRetenu, lu: Dictionary) -> void:
 ## Des modèles posés (`MontageDesModeles`, sur le volume d'un `Monde`) dans une scène neuve : un navire de corps
 ## `VEHICULE` posé au centre (0, 0), puis servi sous un corps qui porte la hallebarde à un poste et au centre (2, 0), la
 ## scène changée pendant la lecture de la hallebarde, puis la lecture relâchée.
-func _sortir_les_navires_en_lecture(pont: PontRetenu, lu: Dictionary) -> void:
+func _sortir_les_navires_en_lecture(pont: PontFige, lu: Dictionary) -> void:
 	var modeles := _modeles_poses(_scene_neuve(lu))
 	var poses := [0]
 	modeles.pose.connect(func() -> void: poses[0] += 1)
@@ -128,7 +112,7 @@ func _sortir_les_navires_en_lecture(pont: PontRetenu, lu: Dictionary) -> void:
 
 ## Des modèles posés dans une scène neuve : trois poses d'un décor dont l'élément est la base du figé, la scène changée
 ## pendant la lecture de son modèle, la seule requête de ses trois montages (`_sortir`), puis la lecture relâchée.
-func _sortir_les_decors_en_lecture(pont: PontRetenu, lu: Dictionary) -> void:
+func _sortir_les_decors_en_lecture(pont: PontFige, lu: Dictionary) -> void:
 	var modeles := _modeles_poses(_scene_neuve(lu))
 	var poses := [0]
 	modeles.pose.connect(func() -> void: poses[0] += 1)
@@ -137,18 +121,37 @@ func _sortir_les_decors_en_lecture(pont: PontRetenu, lu: Dictionary) -> void:
 	await _sortir(pont, "décors", modeles, poses)
 
 
-## Des modèles posés (`MontageDesModeles`) sur le volume d'un `Monde`, sous `scene`, avec leur chargeur.
+## Des modèles posés dans une scène neuve, les modèles retenus servant la base du figé pour modèle d'arête d'une
+## famille : leur volume pose une arête de cette famille, qui n'est pas posée pendant la lecture de ce modèle, la scène
+## changée pendant cette lecture, puis la lecture relâchée ; qui attendait les arêtes (`attendre_les_aretes`) est rendu
+## à la sortie, sans que `aretes_posees` soit émis à ceux qui l'écoutent (l'atelier, le combat, l'éditeur), ni à la
+## sortie ni après.
+func _sortir_les_aretes_en_lecture(pont: PontFige, lu: Dictionary) -> void:
+	var volume := _modeles_poses(_scene_neuve(lu)).volume
+	MontageDeComposition.modeles = lu.modeles.merged({aretes = {colombage = BASE}}, true)
+	var posees := [0]
+	volume.aretes_posees.connect(func() -> void: posees[0] += 1)
+	var rendue := [false]
+	var attendre := func() -> void:
+		await volume.attendre_les_aretes()
+		rendue[0] = true
+	volume.poser_les_aretes([{cle = "mur", famille = "colombage", palette = {}, piece = Noyau.Piece.MUR, bloc = "0/0/0",
+		pied = 0.0, hauteurM = 4.0, milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, cases = []}])
+	if not volume.aretes_en_lecture() or volume.ce_qui_est_pose().aretes != 0:
+		_fautes.append("arêtes : modèle en lecture %s, %d arêtes posées, attendu en lecture et aucune posée"
+			% [volume.aretes_en_lecture(), volume.ce_qui_est_pose().aretes])
+	attendre.call()
+	await _sortir(pont, "arêtes", volume, posees)
+	if not rendue[0]:
+		_fautes.append("arêtes : qui attendait les arêtes attend encore après la sortie de l'arbre")
+
+
+## Des modèles posés (`MontageDesModeles`) sur le volume d'un `Monde`, sous `scene`, avec leur chargeur
+## (`ARETE.modeles_poses`).
 func _modeles_poses(scene: Node3D) -> MontageDesModeles:
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	scene.add_child(monde)
-	var modeles := MontageDesModeles.new()
-	modeles.volume = monde.volume
-	var chargeur := MontageDeComposition.new()
-	chargeur.name = "Chargeur"
-	modeles.add_child(chargeur)
-	modeles.chargeur = chargeur
-	scene.add_child(modeles)
-	return modeles
+	return ARETE.modeles_poses(monde.volume, scene)
 
 
 ## L'éditeur ouvert sur le figé de `FIGE_DE_L_EDITEUR` sous un pont retenu qui ne retient rien, son écran publié
@@ -156,8 +159,7 @@ func _modeles_poses(scene: Node3D) -> MontageDesModeles:
 func _sortir_l_editeur_en_ecriture() -> void:
 	if FileAccess.file_exists(CALQUES_DE_L_ARENE):
 		DirAccess.remove_absolute(CALQUES_DE_L_ARENE)
-	var pont := PontRetenu.new(JSON.parse_string(FileAccess.get_file_as_string(FIGE_DE_L_EDITEUR)))
-	pont.retient = false
+	var pont := PontFige.new(JSON.parse_string(FileAccess.get_file_as_string(FIGE_DE_L_EDITEUR)))
 	PontDuNoyau.remplacer(self, pont)
 	var editeur: Node = (load("res://scenes/Editeur.tscn") as PackedScene).instantiate()
 	root.add_child(editeur)
@@ -178,8 +180,7 @@ func _sortir_l_editeur_en_ecriture() -> void:
 
 ## Le Compendium ouvert sur un pont figé qui ne sert que son ouverture, puis des données à écrire au dépôt.
 func _sortir_le_compendium_en_ecriture() -> void:
-	var pont := PontRetenu.new({compendium = {JSON.stringify({ouvrir = true}): {ok = true, zones = ZONES_DU_COMPENDIUM}}})
-	pont.retient = false
+	var pont := PontFige.new({compendium = {JSON.stringify({ouvrir = true}): {ok = true, zones = ZONES_DU_COMPENDIUM}}})
 	PontDuNoyau.remplacer(self, pont)
 	var compendium: Node = (load("res://scenes/Compendium.tscn") as PackedScene).instantiate()
 	root.add_child(compendium)
@@ -199,7 +200,7 @@ func _sortir_le_compendium_en_ecriture() -> void:
 
 ## La scène courante changée pendant la seule requête en attente au pont, `porteur` sorti de l'arbre, puis la requête
 ## relâchée : `porteur` ne requête plus rien, n'appelle plus le pont et ne signale plus rien (`signales`, compté depuis le changement).
-func _sortir(pont: PontRetenu, quoi: String, porteur: Node, signales: Array) -> void:
+func _sortir(pont: PontFige, quoi: String, porteur: Node, signales: Array) -> void:
 	if pont.retenues != 1:
 		_fautes.append("%s : %d requête(s) en attente au pont, 1 attendue" % [quoi, pont.retenues])
 	var requetes := pont.demandes.size()
