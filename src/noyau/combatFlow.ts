@@ -318,6 +318,7 @@ import {
   recomputeLoadout,
   weaponWithAmmo,
   loadedAmmo,
+  selectedAmmo,
   porteeDeTir,
   loadWeapon,
   unloadWeapon,
@@ -8667,13 +8668,16 @@ export function markActed(get: Get, set: SetFn): BattleState {
   return { ...garanti(get().battle, 'battle', 'markActed'), acted: true }; // RE-LU après le scellement : ce qu'il a écrit ne se réverte pas
 }
 
-/** Le jet de recharge de `arme` par `porteur`, avant le dé : l'arme bakée par l'effectif de la pièce qu'elle est
+/** Le jet de recharge de `arme` par `porteur`, avant le dé : l'arme fusionnée avec la munition que la recharge
+ *  charge (`selectedAmmo`, celle que `loadWeapon` capture), bakée par l'effectif de la pièce qu'elle est
  *  (`mannedPoste`), le Soutien de son équipage, le cumul déjà fait. Lu par `rechargerLArme` et le tour de l'IA.
- *  LDB 62 l.335 ; MDG 12 l.448-462 ; LDB 12 l.187-200 */
+ *  LDB 62 l.335 ; AA 08 l.497 ; MDG 12 l.448-462 ; LDB 12 l.187-200 */
 export function jetDeRecharge(scene: Scene | null, porteur: Combatant, arme: Weapon, combatants: Combatant[]): PendingReload {
   const piece = porteur.mannedPoste?.item.uid === arme.uid ? porteur.mannedPoste : undefined;
   const present = piece ? servingCrewPresent(porteur, combatants) : undefined;
-  const w = present != null ? crewedFireWeapon(arme, present) : arme;
+  const munition = selectedAmmo(porteur, arme);
+  const chargee = munition ? weaponWithAmmo(arme, munition) : arme;
+  const w = present != null ? crewedFireWeapon(chargee, present) : chargee;
   const equipage = (piece?.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
   const sout = soutienDetail(equipage, porteur, attackTestOf(porteur, w, 'distance'), porteur.pos ? (c) => !!c.pos && distanceDeContact(scene, porteur, c) <= 1 : undefined);
   const soutien = sout.bonus ? sout : undefined;
