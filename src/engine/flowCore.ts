@@ -649,20 +649,20 @@ export function certainFlowOps<E = EffectOp>(
     switch (noeud.kind) {
       case 'sequence': return;
       case 'effet':
-        if (!isEffectOp(noeud.effet)) return 'arrêter';
+        if (!isEffectOp(noeud.effet)) return 'stop';
         out.push(...noeud.effet.ops);
         return;
       case 'si': {
         const verdict = evalCond?.(noeud.condition);
-        if (verdict === undefined) return 'arrêter';
+        if (verdict === undefined) return 'stop';
         return verdict ? 'alors' : 'sinon';
       }
       case 'test':
       case 'choix':
-        return 'arrêter';
+        return 'stop';
       default:
         noeud satisfies never;
-        return 'arrêter';
+        return 'stop';
     }
   });
   return complet ? out : undefined;
@@ -978,11 +978,11 @@ export function lierLesTirages<E>(flow: Flow<E>, valeurDe: (de: Formula) => numb
  *  Le résultat dit si le parcours est allé au bout. */
 export function walkFlow<E = EffectOp>(
   flow: Flow<E>,
-  visit: (node: Flow<E>, chemin: CheminDeFlow) => void | 'ignorer' | 'arrêter' | 'alors' | 'sinon',
+  visit: (node: Flow<E>, chemin: CheminDeFlow) => void | 'ignorer' | 'stop' | 'alors' | 'sinon',
   chemin: CheminDeFlow = [],
 ): boolean {
   const suite = visit(flow, chemin);
-  if (suite === 'arrêter') return false;
+  if (suite === 'stop') return false;
   if (suite === 'ignorer') return true;
   switch (flow.kind) {
     case 'sequence':
