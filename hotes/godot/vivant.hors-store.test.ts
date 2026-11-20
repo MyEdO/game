@@ -45,7 +45,7 @@ describe('vivant', () => {
   it('annonce l’URL d’un serveur qui sert le listage des modèles', async () => {
     expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/$/);
     expect((await fetch(`${url}modeles/${LISTAGE}`)).status).toBe(200);
-  });
+  }, LANCEMENT_MS);
 
   it('demarrer fenetre-ecuries rend ok: true avec sa vue', async () => {
     const r = await tuyau.appel('demarrer', { scenario: 'fenetre-ecuries' });
