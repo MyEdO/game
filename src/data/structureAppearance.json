@@ -26,7 +26,6 @@
     },
     "window": {
       "glass": "#7d95a1",
-      "lit": "#ffc271",
       "mullion": "#3b2e1f"
     }
   },
@@ -63,7 +62,6 @@
     },
     "window": {
       "glass": "#7d95a1",
-      "lit": "#ffc271",
       "mullion": "#3b2e1f"
     }
   },
@@ -100,7 +98,6 @@
     },
     "window": {
       "glass": "#7d95a1",
-      "lit": "#ffc271",
       "mullion": "#3b2e1f"
     }
   },
@@ -138,7 +135,6 @@
     },
     "window": {
       "glass": "#7d95a1",
-      "lit": "#ffc271",
       "mullion": "#3b2e1f"
     }
   },
@@ -266,7 +262,6 @@
     },
     "window": {
       "glass": "#8ea2ad",
-      "lit": "#ffc271",
       "frame": "#5a4632",
       "mullion": "#34373c"
     }
@@ -297,7 +292,6 @@
     "cap": "#888d95",
     "rubble": "#463f35",
     "rubbleHi": "#6a6253",
-    "recess": "#241a10",
     "parapet": {
       "heightLevelFrac": 0.32,
       "merlonCount": 5,

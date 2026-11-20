@@ -50,7 +50,6 @@ const doc = document(
     cap: z.string().optional(),
     rubble: z.string().optional(),
     rubbleHi: z.string().optional(),
-    recess: z.string().optional(),
     wood: nommerChamps(z
       .strictObject({
         inset: z.string(),
@@ -125,14 +124,12 @@ const doc = document(
     window: nommerChamps(z
       .strictObject({
         glass: z.string().optional(),
-        lit: z.string().optional(),
         /** Le bois des vantaux (volets de la croisée, porte) d'une apparence sans `door.leaf` ni `wood.inset`
          *  (`wallPartColor`, partie `vantail`). */
         frame: z.string().optional(),
         mullion: z.string().optional(),
       }), {
       glass: { label: 'Vitre' },
-      lit: { label: 'Éclairée' },
       frame: { label: 'Bois des vantaux' },
       mullion: { label: 'Meneau' },
     })
@@ -161,14 +158,13 @@ const doc = document(
     cap: { label: 'Couleur de couronnement' },
     rubble: { label: 'Couleur de gravats' },
     rubbleHi: { label: 'Couleur de gravats (clair)', hint: 'Reflet des gravats' },
-    recess: { label: 'Couleur de renfoncement', hint: 'Glyphe en creux de la vue de plan (corps de garde)' },
     wood: {
       label: 'Habillage bois',
       hint: 'Teintes de panneau, cadre/chambranle, couronnement, plinthe et gravats en bois',
     },
     parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet' },
     door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail, poignée et herse' },
-    window: { label: 'Fenêtre', hint: 'Vitre, bois des vantaux, meneau et teinte éclairée' },
+    window: { label: 'Fenêtre', hint: 'Vitre, bois des vantaux et meneau' },
     relief: {
       label: 'Relief de paroi',
       hint: 'Saillie et épaisseur en mètres par partie de mur, plus l’épaisseur de matière pleine (wallM)',
@@ -178,10 +174,10 @@ const doc = document(
     codex: {
       exempt: {
         kind: 'vocabulaire-app-interne',
-        raison: "presets d'apparence de structure (rendu iso), pas une fiche de contenu.",
+        raison: "apparences de structure utilisées par la géométrie du noyau et le rendu Godot.",
       },
     },
-    edit: { none: 'presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`' },
+    edit: { none: 'apparences de structure éditées au fichier' },
   },
 );
 

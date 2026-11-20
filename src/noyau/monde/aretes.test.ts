@@ -83,7 +83,7 @@ describe('areteDessinee — la palette de l’apparence (#4471)', () => {
       face: teinte(1), post: teinte(2), band: teinte(3), rubble: teinte(4),
       detail: { ...ville.detail!, courses: { ...ville.detail!.courses!, joint: teinte(5) } },
       door: { ...ville.door!, leaf: teinte(6), plank: teinte(7), handle: teinte(8), herse: { ...ville.door!.herse!, traverseColor: teinte(9) } },
-      window: { glass: teinte(10), lit: teinte(11), frame: teinte(12), mullion: teinte(13) },
+      window: { glass: teinte(10), frame: teinte(12), mullion: teinte(13) },
     };
   };
   it('une apparence qui les déclare sert les onze emplacements, chacun de sa couleur', () => {
