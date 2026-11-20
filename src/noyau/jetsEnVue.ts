@@ -72,7 +72,12 @@ type DonneesDeLigne =
   | { genre: 'de'; qui: string | null; de: string; jet: { naturel: number; total: number; lecture: string } | null };
 
 /** L'identité de rangée est locale au jet. Un résultat masqué ne porte aucune valeur du dé. */
-export type LigneDeJet = DonneesDeLigne & { id: string; etat: EtatDeLigneDeJet; reference: ReferenceDeJet | null };
+export type LigneDeJet = DonneesDeLigne & {
+  id: string;
+  etat: EtatDeLigneDeJet;
+  reference: ReferenceDeJet | null;
+  porteurHorsDeVue?: true;
+};
 type LigneLue = DonneesDeLigne & { id?: string; masque?: boolean; reference?: ReferenceDeJet | null };
 
 /** Test opposé tranché : l'index de la ligne gagnante (null pour une égalité) et le DR net du vainqueur. */
@@ -689,9 +694,13 @@ export function jetsEnVue(s: Jeu): JetEnVue[] {
   return jets.filter((j) => j.lignes.length).map((j) => ({
     ...j,
     lignes: j.lignes.map(({ id, masque, reference, ...l }, i): LigneDeJet => {
-      const qui = l.qui && porteurEnVue(s, l.qui) ? l.qui : null;
+      const porteurHorsDeVue = l.qui !== null && !porteurEnVue(s, l.qui);
+      const qui = porteurHorsDeVue ? null : l.qui;
       const quiUnique = qui && j.lignes.filter((r) => r.qui === qui).length === 1 ? qui : null;
-      return { ...l, qui, id: id ?? quiUnique ?? `${j.flux}/${i}`, reference: reference ?? null, etat: masque ? 'masque' : l.jet ? 'revele' : 'aJouer' };
+      return {
+        ...l, qui, id: id ?? quiUnique ?? `${j.flux}/${i}`, reference: reference ?? null, etat: masque ? 'masque' : l.jet ? 'revele' : 'aJouer',
+        ...(porteurHorsDeVue ? { porteurHorsDeVue: true } : {}),
+      };
     }),
   }));
 }

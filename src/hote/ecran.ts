@@ -400,7 +400,7 @@ function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation, l: LigneDeTest |
 /** Une ligne de jet d'une fenêtre (`jetsEnVue`) : qui jette, le Test, la table ou le dé, et ce qui est tombé : le dé
  *  et son verdict, ou ce que la table ou le dé lit. */
 function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
-  const qui = jeteur(etat, l.qui);
+  const qui = l.porteurHorsDeVue ? { qui: t('vision.horsDeVue'), combattant: null } : jeteur(etat, l.qui);
   switch (l.genre) {
     case 'test':
       if (l.etat === 'masque') return jet(id, { ...qui, libelle: l.test, resultat: t('ecran.jet.cache') });
