@@ -286,6 +286,16 @@ static func triangles_de_plus(triangles: int, sommets: int) -> float:
 	return triangles + sommets / 3.0
 
 
+## La plage de rangs `plage`, de même longueur, reportée à partir de `debut`.
+static func plage_reportee(plage: Vector2i, debut: int) -> Vector2i:
+	return Vector2i(debut, debut + plage.y - plage.x)
+
+
+## Les bornes de `plage` dans un tableau qui range `composantes` valeurs par rang.
+static func plage_des_composantes(plage: Vector2i, composantes: int) -> Vector2i:
+	return plage * composantes
+
+
 ## Le texel, dans le masque du retrait (`RetraitDuMonde`), de la case `case` du plan de première rangée `rangee`.
 static func texel_du_masque(case: Vector2i, rangee: int) -> Vector2i:
 	return Vector2i(case.x, case.y + rangee)

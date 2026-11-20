@@ -86,20 +86,32 @@ const V = {}, D = {};
     <g fill="#07050a"><rect x="${pont ? 1090 : 1455}" y="596" width="24" height="56" rx="8"/></g></g>
     ${pluie ? V.pluie(260) : ''}${D.avantForet()}`;
 
-/* la cour d'une auberge-relais, vue du dedans de son mur */
-D.relais = () => {
+/* la cour d'une auberge-relais, vue du dedans de son enceinte : `rempart` de pierre et son portail, `palissade` de pieux
+   sous sa tour de guet dans la forêt, ou `aucune`, la route ouverte sur les champs */
+D.relais = (enceinte = 'rempart') => {
   const fen = (x, y, w = 22, h = 22, c = '#f1c56a') => `<g><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/><path d="M${x + w / 2} ${y}v${h}M${x} ${y + h / 2}h${w}" stroke="#1a1016" stroke-width="2"/></g>`;
   const toits = (() => { const r = V.rng(12); let s = ''; for (let x = -20; x < 1730; x += 60 + r() * 70) { const w = 70 + r() * 80, h = 60 + r() * 90, y = 500 - h; s += `<path d="M${x} 520V${y + 30}l${w / 2}-${30 + r() * 20} ${w / 2} ${30}V520z"/>`; if (r() > .5) s += `<rect x="${x + w * .6}" y="${y - 6}" width="10" height="30"/>`; } return s; })();
   const lum = (() => { const r = V.rng(31); let s = ''; for (let i = 0; i < 46; i++) { const x = r() * 1707, y = 420 + r() * 80; if (x > 430 && x < 1260) continue; s += `<rect x="${x}" y="${y}" width="9" height="12" fill="#d9a44e" opacity="${.5 + r() * .5}"/>`; } return s; })();
-  return `${D.ciel('soir', 520)}${V.etoiles(70, 240)}${V.nuages(14, 110, 380, '#b56f8e', 9)}
-    <g transform="translate(0 -72)"><ellipse cx="880" cy="470" rx="420" ry="190" fill="url(#halo)" opacity=".85"/>
-    <g fill="#2a2038">${toits}</g>${lum}
-    <!-- le mur d'enceinte et le portail, vus du dedans -->
+  const ENCEINTES = {
+    rempart: `<g fill="#2a2038">${toits}</g>${lum}
     <g fill="#1d1626"><rect x="0" y="430" width="1707" height="110"/><path d="M0 430h1707v-8H0z"/>${Array.from({ length: 44 }, (_, i) => `<rect x="${i * 40}" y="412" width="22" height="12"/>`).join('')}
       <path d="M800 540V380h160v160z"/><path d="M790 380h180l-20-34H810z"/></g>
     <path d="M826 540V440a54 54 0 0 1 108 0v100z" fill="#f0b869"/><path d="M826 540V440a54 54 0 0 1 108 0v100z" fill="url(#halo)"/>
     <g stroke="#1d1626" stroke-width="3"><path d="M880 388v152M846 404v136M914 404v136"/></g>
-    <path d="M880 346v-40" stroke="#1d1626" stroke-width="3"/><path d="M880 306l34 8-34 8z" fill="#7d2020"/>
+    <path d="M880 346v-40" stroke="#1d1626" stroke-width="3"/><path d="M880 306l34 8-34 8z" fill="#7d2020"/>`,
+    palissade: `${V.sapins(0, 1707, 470, 170, '#3b2f52', 12, 30)}
+    <g fill="#1d1626">${Array.from({ length: 96 }, (_, i) => `<path d="M${i * 18} 540V${448 + (i % 3) * 4}l9 -16 9 16V540z"/>`).join('')}
+      <path d="M806 540V380h16v160zM938 540V380h16v160z"/><path d="M790 380h180v-12H790z"/><path d="M796 368l84-36 84 36z"/></g>
+    <path d="M822 540V430h116v110z" fill="#f0b869"/><path d="M822 540V430h116v110z" fill="url(#halo)"/>
+    <g stroke="#1d1626" stroke-width="4"><path d="M822 430h116"/></g>${D.marcheur(880, 368, 0.4)}`,
+    aucune: `${V.collines(470, 40, '#3a2c44', 21)}${V.sapins(1180, 1707, 474, 70, '#2a2038', 5, 22)}
+    <g fill="#2a2038"><path d="M120 470v-34l40-26 40 26v34zM1380 470v-30l34-22 34 22v30z"/></g><rect x="1394" y="446" width="9" height="12" fill="#d9a44e"/>
+    <path d="M826 540L874 462h12L934 540z" fill="#4a3a40"/><path d="M826 540L874 462h12L934 540z" fill="url(#halo)" opacity=".6"/>
+    <g fill="none" stroke="#2a2038" stroke-width="3">${Array.from({ length: 6 }, (_, i) => `<path d="M${i * 120} 540l${60 + i * 10} -70M${1707 - i * 120} 540l-${60 + i * 10} -70"/>`).join('')}</g>`,
+  };
+  return `${D.ciel('soir', 520)}${V.etoiles(70, 240)}${V.nuages(14, 110, 380, '#b56f8e', 9)}
+    <g transform="translate(0 -72)"><ellipse cx="880" cy="470" rx="420" ry="190" fill="url(#halo)" opacity=".85"/>
+    ${ENCEINTES[enceinte]}
     <!-- l'auberge-relais -->
     <g fill="#140e1a"><path d="M300 600V372h420v228z"/><path d="M280 380l230-150 230 150z"/><rect x="620" y="250" width="34" height="80"/><path d="M300 600h420v14H300z"/></g>
     <g stroke="#0b0710" stroke-width="5" fill="none"><path d="M300 460h420M400 380v220M560 380v220M640 380v220M300 460l100 140M720 460l-80 140"/></g>

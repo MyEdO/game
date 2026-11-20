@@ -52,8 +52,8 @@ const fermer = () => { // le fond se ferme : coins, bas sous l'interface
 
 /* ───────── l'interface ───────── */
 /* `groupe` : les héros du bandeau, une place sans `id` est libre ; `dits` : par id, { texte, icone, mal, choisi, html } ;
-   quatre cases, celles sans héros restent vides */
-const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', groupe.map((h) => { const d = dits[h.id ?? 'libre'] ?? {}; return `
+   quatre cases, chacune à sa place, celles sans héros restent vides */
+const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', places('socle', Object.fromEntries(groupe.map((h, k) => { const d = dits[h.id ?? 'libre'] ?? {}; return [`case-${k + 1}`, `
   <div class="heros ${d.choisi ? 'choisi' : ''}">${portrait(h.id, { taille: 'grand', choisi: d.choisi })}
     <div class="qui"><div class="nom gothique" data-texte="héros ${h.nom}">${h.nom}</div>
       <div class="l2"><span class="car rubrique">${h.car}</span>${h.max ? `<span class="pv chiffres">${h.pv} / ${h.max}</span>` : ''}</div>
@@ -61,16 +61,17 @@ const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = ''
       ${d.texte ? `<div class="dit">${d.mal ? sceau(d.icone) : d.icone ? rond(d.icone, 'menu', { arme: true }) : ''}<p>${d.texte}</p></div>` : ''}
       ${d.html ?? ''}
     </div>
-  </div>`; }).join(''), { piece: 'socle', tete: (titre ? ruban(titre) : '') + clouer(4) });
+  </div>`]; }))), { piece: 'socle', tete: (titre ? ruban(titre) : '') + clouer(4) });
 /* l'hôte posé dans la scène : (x, y) son coin, `l` sa largeur, `pointe` l'abscisse de sa pointe depuis son bord gauche ;
    `piece` : son nom au relevé du rendu, celui d'un hôte qui suit la personne du décor qu'il désigne */
 const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', pointe = 60, piece = '' }) => `<div class="hote ${classe} cadre bois"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
   ${cartouche({ icone, nom, sous, marque, texte: id })}${corps}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
-/* le rail des services d'un lieu : services = [icône, nom, armé, compte à droite] ; `piece` : la colonne qu'il tient ;
-   `suite` : ce qui suit son pied dans le même panneau */
+/* le rail des services d'un lieu : services = [icône, nom, armé, compte à droite] ; `piece` : la colonne qu'il tient,
+   dont le pied a sa place (`PLACES`, `../rendu.js`) quel que soit le nombre de services ; `suite` : ce qui suit son
+   pied dans le même panneau, à sa place */
 const rail = (titre, services, pied, piece = 'colonne-gauche', suite = '') => cadre('rail', null, null, null, null, 'bois', `
   ${services.map(([i, n, a, compte = null]) => plaque(n, { icone: i, armee: !!a, prix: compte })).join('')}
-  <div class="pied rubrique">${pied}</div>${suite}
+  ${places(piece, { pied: `<div class="pied rubrique">${pied}</div>` })}${suite}
 `, { tete: ruban(titre), piece });
 /* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus ;
    `piece` : son nom au relevé du rendu ; `pointe` : le décalage de sa pointe depuis le centre */

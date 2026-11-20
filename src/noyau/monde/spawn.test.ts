@@ -551,12 +551,12 @@ describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia 
   });
 
   // #614 — un PNJ/bête custom (`LivingRef.custom`) porte la MÊME overlay de spawn qu'une créature du bestiaire.
-  it('statblockToCombatant : extras.charsRolled REMPLACE le profil saisi ; deux projections = mêmes stats', () => {
+  it('statblockToCombatant : charsRolled prime sur le profil saisi et sur le tirage de la pose', () => {
     const sb = { label: 'Bête custom', char: { M: 4, 'capacite-de-combat': 30, force: 30, endurance: 30 } } as any;
     const rolled = { ...sb.char, force: 41, endurance: 37 } as any;
     for (const k of CHAR_KEYS) if (typeof rolled[k] !== 'number') rolled[k] = 0;
     const a = statblockToCombatant(sb, 'p1', at, undefined, { charsRolled: rolled });
-    const b = statblockToCombatant(sb, 'p2', at, undefined, { charsRolled: rolled });
+    const b = statblockToCombatant(sb, 'p2', at, undefined, { charsRolled: rolled, randomChars: true });
     expect(a.characteristics).toEqual(b.characteristics);
     expect(a.characteristics.force).toBe(41);
     expect(a.wounds.max).toBe(b.wounds.max);

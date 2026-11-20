@@ -4,7 +4,7 @@
  * (`projet/recettes/pont_fige.gd`). Le listage du dossier des modèles (`listage`, `listage.mjs`) réduit aux modèles
  * qu'une recette garde, et la réponse du pont à `catalogues`, à `vitrine` et à `modeles` sur ce listage.
  */
-import { creerPont, type Pont } from '../pont/pont';
+import { creerPontFige, type Pont } from '../pont/pont';
 import { tableTotale } from '../../../src/lib/tableTotale';
 
 export interface Listage {
@@ -27,13 +27,13 @@ function atelierSur(pont: Pont, listage: Listage, garde: Garde) {
 
 /** L'atelier figé sur les modèles de `listage` que `garde` retient, sur un pont neuf, pour une recette qui ne démarre
  *  aucune partie : `demarrer` passe par `figerUnePartie`. */
-export const figerLAtelier = (listage: Listage, garde: Garde) => atelierSur(creerPont(null, null), listage, garde);
+export const figerLAtelier = (listage: Listage, garde: Garde) => atelierSur(creerPontFige(), listage, garde);
 
 /** Ce que `jouer` fige d'une partie qu'il démarre sur l'atelier figé de `listage` (`figerLAtelier`, ses `fige` et
  *  `appel`) ; la partie ouverte rendue au noyau, qui n'en tient qu'une par processus (`quitter`, `pont.ts`), quoi qu'il
  *  arrive ; un `demarrer` refusé n'en a ouvert aucune, et `quitter` se refuse alors sans effet. */
 export function figerUnePartie<T>(listage: Listage, garde: Garde, jouer: (atelier: ReturnType<typeof atelierSur>) => T): T {
-  const pont = creerPont(null, null);
+  const pont = creerPontFige();
   const atelier = atelierSur(pont, listage, garde);
   try {
     return jouer(atelier);

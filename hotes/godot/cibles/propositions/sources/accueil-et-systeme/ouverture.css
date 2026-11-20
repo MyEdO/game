@@ -4,10 +4,10 @@
 .titre-libre .nom{width:max-content;padding-right:8px;white-space:nowrap;background:linear-gradient(180deg,#fff4d4 12%,#f0d48a 52%,#b88a36 92%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 2px rgba(0,0,0,.85)) drop-shadow(0 0 22px rgba(0,0,0,.7))}
 .titre-libre .filet::before{flex:0 0 150px}
 .titre-libre p{margin:0 0 12px 4px;font-style:italic;font-size:17px;line-height:25px;color:#efe4c8}
-#blason .nom{font-size:96px;line-height:150px;margin:-27px 0 -29px;letter-spacing:.5px}
-#blason .filet{width:560px;margin:10px 0 6px 4px}
+#blason .nom{font-size:96px;line-height:150px;margin:-13px 0 -43px;letter-spacing:.5px}
+#blason .filet{width:560px;margin:17px 0 0 4px}
 #blason .campagne{font-size:34px;line-height:42px;color:#efe2c0;margin-left:4px;font-weight:500;letter-spacing:.6px}
-#pause .nom{font-size:64px;line-height:100px;margin:-18px 0 -20px}
+#pause .nom{font-size:64px;line-height:100px;margin:-12px 0 -20px}
 #pause .filet{width:470px;margin:10px 0 8px 4px}
 #pause .ou{font-style:italic;font-size:16px;color:#e6dabd;margin-left:4px}
 #pause .ou .rubrique{font-style:normal;color:#f0e2c2;font-size:17px}
@@ -25,7 +25,7 @@
 #outils .outil span{font-size:13px;color:var(--ivoire)}
 
 /* le carton du chapitre : le tome, le chapitre sur sa toile ; à la clôture, ses bandes et ses objectifs soldés */
-#carton .nom{font-size:80px;line-height:124px;margin:-22px 0 -28px}
+#carton .nom{font-size:80px;line-height:124px;margin:-11px 0 -21px}
 #carton .tome{font-size:28px;line-height:38px;font-weight:500;color:#efe2c0;margin-left:4px;letter-spacing:.5px}
 #carton .toile-ombre{margin:16px 0 16px -6px;width:max-content}
 #carton .toile{width:600px;height:58px;clip-path:polygon(0 0,100% 0,calc(100% - 18px) 50%,100% 100%,0 100%,18px 50%)}

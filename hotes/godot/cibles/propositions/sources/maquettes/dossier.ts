@@ -6,7 +6,7 @@
  * `src/data/naval-traits.json` (MDG 12), Moral MDG 14 l.133-143 ; mule : `src/data/creatures.json` (EDOC 07), traits LDB
  * 23 ; charrette : `src/data/vehicles.json` (LDB 70).
  */
-import { combattants } from './compagnie.ts';
+import { combattants, groupe } from './compagnie.ts';
 import type { BlocDuDossier, Dossier, Ecran } from './maquette.ts';
 
 /** La Sterne, sa section `ouverte` et ses blocs. */
@@ -16,7 +16,7 @@ const sterne = (nom: string, ouverte: string, blocs: BlocDuDossier[]): Dossier =
   mesures: [{ nom: 'Coque', valeur: 50, sur: 50, teinte: 'cire' }, { nom: 'Moral', valeur: 75, teinte: 'or' }],
   compteurs: [{ nom: 'Équipage', valeur: 15 }, { nom: 'Aux voiles', valeur: 8 }, { nom: 'Héros à un poste', valeur: 4 }],
   profil: { titre: 'Profil du navire', caracs: [{ nom: 'M', valeur: 5 }, { nom: 'E', valeur: 45 }, { nom: 'B', valeur: 50 }, { nom: 'Man', valeur: -1, signe: true }, { nom: 'Équipage', valeur: 15 }, { nom: 'Capacité', valeur: 300 }] },
-  sections: ['État', 'Équipage', 'Cargaison', 'Améliorations'], ouverte, blocs, combattants: combattants(),
+  sections: ['État', 'Équipage', 'Cargaison', 'Améliorations'], ouverte, blocs, combattants: combattants(), groupe: groupe(),
 });
 
 export default {
@@ -39,7 +39,7 @@ export default {
       profil: { titre: 'Profil de la bête', caracs: [
         { nom: 'M', valeur: 4 }, { nom: 'CC', valeur: 25 }, { nom: 'CT', valeur: null }, { nom: 'F', valeur: 30 }, { nom: 'E', valeur: 45 }, { nom: 'I', valeur: 20 },
         { nom: 'Ag', valeur: 30 }, { nom: 'Dex', valeur: null }, { nom: 'Int', valeur: 10 }, { nom: 'FM', valeur: 10 }, { nom: 'Soc', valeur: 10 }, { nom: 'B', valeur: 12 }] },
-      sections: ['État', 'Charge'], ouverte: 'État', combattants: combattants(),
+      sections: ['État', 'Charge'], ouverte: 'État', combattants: combattants(), groupe: groupe(),
       blocs: [
         { bloc: 'traits', traits: [
           { id: 'dresse', nom: 'Dressé (Trait)', texte: 'L’animal est entraîné à tirer un carrosse, un chariot, une charrue, une carriole ou similaire.' },
@@ -53,7 +53,7 @@ export default {
       mesures: [{ nom: 'Chargement', valeur: 0, sur: 25, teinte: 'or' }],
       compteurs: [{ nom: 'Enc de chargement', valeur: 25 }, { nom: 'Enc du véhicule', valeur: 10 }, { nom: 'Bête de trait', valeur: 1 }],
       profil: { titre: 'Profil du véhicule', caracs: [{ nom: 'Enc', valeur: 10 }, { nom: 'Chargement', valeur: 25 }, { nom: 'Attelage', valeur: 1, unite: 'bête' }] },
-      sections: ['État', 'Chargement'], ouverte: 'État', combattants: combattants(),
+      sections: ['État', 'Chargement'], ouverte: 'État', combattants: combattants(), groupe: groupe(),
       blocs: [
         { bloc: 'livre', texte: 'Les charrettes sont de petits véhicules à deux roues de toutes sortes, y compris les charrettes à âne, les chars et les cabriolets. Les charrettes de passagers comprennent une banquette pouvant accueillir jusqu’à deux personnes, tandis que celles qui transportent des marchandises ont un siège plus petit avec un côté ouvert pour le chargement. Les charrettes sont tirées par un seul animal. Des bras dépassent de chaque côté du châssis, auxquels est attaché un harnais, ou un collier.' },
         { bloc: 'lieu', ou: 'À l’écurie · Salzenmund', gestes: [{ libelle: 'Reprendre' }, { libelle: 'Embarquer', refus: 'Cette possession doit être avec le groupe pour embarquer.', survol: true }, { libelle: 'Abandonner', principal: true }] },

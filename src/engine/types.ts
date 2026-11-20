@@ -382,6 +382,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  ≠ `natural` — exempte SEULEMENT du
    *  mismatch de Taille (`attackModifiers`), n'étant pas une POSSESSION manufacturée réelle. */
   sizeless?: boolean;
+  /** Guide de Frenchy, chap. 26, lignes 827, 832 ; Guide de Frenchy, chap. 51, lignes 350, 354 */
+  sansSpecialisation?: true;
   /** Uid de l'objet PORTÉ dont l'arme est DÉRIVÉE (`TrappingData.derivedWeapon`, prothèse-arme : Crochet),
    *  posé par `recomputeLoadout` : une arme dérivée n'est pas une arme tenue que l'on lâche. */
   derivedFromItem?: string;

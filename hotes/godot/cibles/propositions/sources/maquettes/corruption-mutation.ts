@@ -20,7 +20,7 @@ export default {
           ],
         }],
       },
-      gestes: [{ libelle: 'Confirmer', principal: true }], reserves: [{ nom: 'Résilience', valeur: RESERVES.berta.resilience }],
+      gestes: [{ libelle: 'Confirmer', principal: true }], reserves: [{ id: 'resilience', nom: 'Résilience', valeur: RESERVES.berta.resilience }],
     },
   }],
 } satisfies Ecran;

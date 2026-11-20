@@ -1,7 +1,8 @@
 // RECONSTRUCTION DÉTACHÉE des dérivés d'un arbre (#2603) : `preuveValide` puis `build-all --perimes` de
 // l'arbre, hors de l'attente de git.
 // État `<git-dir>/hooks-git/reconstruction.json` : `{ demandes, soldees, lances: [{ pid, date }],
-// dernier: { seq, code, debut, fin, log } }`, écrit sous le verrou d'état ; une passe par détaché tenant
+// dernier: { seq, code, debut, fin, log, sourceModifieePersistante? }, conflitsDeSource: { tete, demandes } | null }`,
+// écrit sous le verrou d'état ; une passe par détaché tenant
 // le verrou de reconstruction de l'arbre, journal `<git-dir>/hooks-git/reconstruction/<pid>.log`. Une passe écrit
 // sous l'époque de l'écrivain des dérivés lue à son début (`ecrivain-derives.mjs`) ; préemptée, elle ne solde rien.
 import '../node-requis.mjs'
@@ -9,13 +10,13 @@ import { spawnSync } from 'node:child_process'
 import { appendFileSync, closeSync, mkdirSync, openSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, DIAGNOSTIC_RECONSTRUCTION, GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { cheminsDeLEcrivain, envDeLaPasse, epoqueDe, operationEnCours } from '../docs/lib/ecrivain-derives.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { gitDirDe } from '../hooks/barriere-outil.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { depotDe, etatDeLArbre } from '../guards/lib/gitPorte.mjs'
+import { depotDe, etatDeLArbre, shaDe } from '../guards/lib/gitPorte.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
@@ -39,6 +40,9 @@ export const ATTENTE_DU_TENANT = Object.freeze({ ...ATTENTE_GESTES_LOURDS, pasMs
 
 /** Les passes rejouées d'une même demande dont la passe rend `CODE_SOURCE_MODIFIEE`. Valeur maison. */
 export const REJEUX_SUR_SOURCE_MODIFIEE = 3
+
+/** Demandes épuisées sur la même tête avant l'échec persistant. Valeur maison. */
+export const DEMANDES_SUR_SOURCE_MODIFIEE = 2
 
 /** Un lancé de `lances` vit-il encore, né à sa `date` d'inscription ? (#2603) */
 const lanceVivant = (l, identite, estVivant) => estPidVivantDepuis(l.pid, Date.parse(l.date), identite, { estVivant })
@@ -75,9 +79,12 @@ export const logDeLaPasse = (chemins, pid) => join(chemins.logs, `${pid}.log`)
 function lireEtat(chemins) {
   try {
     const lu = JSON.parse(readFileSync(chemins.etat, 'utf8'))
-    return { demandes: lu.demandes ?? 0, soldees: lu.soldees ?? 0, lances: Array.isArray(lu.lances) ? lu.lances : [], dernier: lu.dernier ?? null }
+    return {
+      demandes: lu.demandes ?? 0, soldees: lu.soldees ?? 0, lances: Array.isArray(lu.lances) ? lu.lances : [],
+      dernier: lu.dernier ?? null, conflitsDeSource: lu.conflitsDeSource ?? null,
+    }
   } catch {
-    return { demandes: 0, soldees: 0, lances: [], dernier: null }
+    return { demandes: 0, soldees: 0, lances: [], dernier: null, conflitsDeSource: null }
   }
 }
 
@@ -111,12 +118,22 @@ export function demanderLaReconstruction(racine, { script = SCRIPT, detacher = l
   })
 }
 
-/** `build-all --perimes` de l'arbre `racine` sous l'env `env`, sa sortie ajoutée au journal `log` : REND son code. */
-function construireLesPerimes(racine, log, env) {
+/** `build-all --perimes` sous `env` : sorties humaines au journal, raison du code 79 sur le canal dédié. */
+function construireLesPerimes(racine, log, env, signalerSourceModifiee) {
   const fd = openSync(log, 'a')
   try {
-    const vu = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), '--perimes'], { cwd: racine, env: { ...process.env, ...env }, stdio: ['ignore', fd, fd] })
-    return vu.error ? 1 : vu.status ?? 1
+    const vu = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), '--perimes', DIAGNOSTIC_RECONSTRUCTION], {
+      cwd: racine, env: { ...process.env, ...env }, stdio: ['ignore', fd, fd, 'pipe'], encoding: 'utf8',
+    })
+    const code = vu.status ?? 1
+    if (code === CODE_SOURCE_MODIFIEE && vu.output?.[3]) {
+      let diagnostic
+      try { diagnostic = JSON.parse(vu.output[3]) } catch { /* Le journal garde le diagnostic humain. */ }
+      if (typeof diagnostic?.generateur === 'string' && typeof diagnostic.raison === 'string') {
+        signalerSourceModifiee(`${diagnostic.generateur} — ${diagnostic.raison}`)
+      }
+    }
+    return code
   } finally {
     closeSync(fd)
   }
@@ -127,16 +144,19 @@ function construireLesPerimes(racine, log, env) {
  * l'arbre, sous `env`) ; vert, les docs modifiés nommés « à committer ». REND le code de `construire`, 0 sur une
  * preuve valide.
  * @param {{ racine: string, log: string, ecrire: (texte: string) => void, env?: Record<string, string>,
- *   generateurs?: typeof GENERATORS, construire?: (racine: string, log: string, env: Record<string, string>) => number }} p
+ *   generateurs?: typeof GENERATORS, construire?: typeof construireLesPerimes,
+ *   signalerSourceModifiee?: (raison: string) => void }} p
  */
-export function passeDesDerives({ racine, log, ecrire, env = {}, generateurs = GENERATORS, construire = construireLesPerimes }) {
+export function passeDesDerives({
+  racine, log, ecrire, env = {}, generateurs = GENERATORS, construire = construireLesPerimes, signalerSourceModifiee = () => {},
+}) {
   const validite = preuveValide(racine, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES })
   if (validite.ok) {
     ecrire('docs : attestation valide, rien à régénérer\n')
     return 0
   }
   ecrire(`docs : attestation périmée${validite.script ? ` (${validite.script})` : ''} — ${validite.raison}\n`)
-  const code = construire(racine, log, env)
+  const code = construire(racine, log, env, signalerSourceModifiee)
   if (code !== 0) return code
   const changes = etatDeLArbre(depotDe(racine))
     .filter((e) => e.etat !== '??' && e.etat[1] !== ' ' && e.chemins[0].startsWith('docs/'))
@@ -153,8 +173,9 @@ export function passeDesDerives({ racine, log, ecrire, env = {}, generateurs = G
  * cible de `CODE_DIFFERE`. Chaque passe joue `passe` sous l'époque de l'écrivain des dérivés lue avant elle
  * (`envDeLaPasse`), puis solde sa cible ; une époque changée pendant la passe (`preempterLesDerives`, ou une
  * opération git vue par `sousLEpoque`) la rejoue sans rien solder ; une passe en `CODE_SOURCE_MODIFIEE` est rejouée
- * `REJEUX_SUR_SOURCE_MODIFIEE` fois au plus, puis soldée de ce code. La sortie se décide sous le verrou d'état, où
- * le détaché se retire de `lances`. REND le nombre de passes jouées.
+ * `REJEUX_SUR_SOURCE_MODIFIEE` fois au plus, puis soldée de ce code. Sur la même tête, après
+ * `DEMANDES_SUR_SOURCE_MODIFIEE` épuisements consécutifs, le verdict porte l'échec persistant. Le compteur et la
+ * sortie se décident sous le verrou d'état, où le détaché se retire de `lances`. REND le nombre de passes jouées.
  * @param {{ racine: string, passe?: typeof passeDesDerives, horloge?: () => number, dormir?: (ms: number) => void,
  *   estVivant?: (pid: number) => boolean, identite?: typeof IDENTITE_MESUREE, attenteArbre?: { echeanceMs: number, pasMs: number },
  *   attenteTenant?: { echeanceMs: number, pasMs: number, parTenant?: boolean }, operation?: (gitDir: string) => string | null }} p
@@ -177,6 +198,7 @@ export function servirLesDemandes({
   const log = logDeLaPasse(chemins, process.pid)
   const gitDir = /** @type {string} */ (gitDirDe(racine))
   const ecrivain = cheminsDeLEcrivain(gitDir)
+  const depot = depotDe(racine)
   const iso = () => new Date(horloge()).toISOString()
   const ecrire = (/** @type {string} */ texte) => appendFileSync(log, texte)
   const commande = `reconstruction ${process.pid}`
@@ -205,14 +227,17 @@ export function servirLesDemandes({
   if (prise === null) return 0
   let passes = 0
   let rejeux = 0
+  let teteDesRejeux = null
+  let soldeDesRejeux = null
   /** La dernière attente de l'opération a-t-elle échu, opération encore en cours ? */
   let echue = false
   try {
     for (;;) {
-      const cible = sousLEtat(chemins, racine, commande, (etat) => (etat.soldees >= etat.demandes
+      const lot = sousLEtat(chemins, racine, commande, (etat) => (etat.soldees >= etat.demandes
         ? { ecrire: sansCeDetache(etat), rendu: null }
-        : { rendu: etat.demandes }))
-      if (cible === null) return passes
+        : { rendu: { cible: etat.demandes, soldees: etat.soldees } }))
+      if (lot === null) return passes
+      const { cible, soldees } = lot
       const enCours = operation(gitDir)
       if (enCours && !echue) {
         prise.liberer()
@@ -233,13 +258,23 @@ export function servirLesDemandes({
       const debut = iso()
       ecrire(`[reconstruction] ${debut} passe seq=${cible} — début\n`)
       let code
+      let raison = null
+      const tete = shaDe(depot, 'HEAD')
+      if (tete !== teteDesRejeux || soldees !== soldeDesRejeux) {
+        rejeux = 0
+        teteDesRejeux = tete
+        soldeDesRejeux = soldees
+      }
       const epoque = epoqueDe(ecrivain)
       if (enCours) {
         ecrire(`[reconstruction] ${iso()} ${enCours} toujours en cours à l’échéance : passe différée\n`)
         code = CODE_DIFFERE
       } else {
         try {
-          code = passe({ racine, log, ecrire, env: envDeLaPasse(epoque) })
+          code = passe({
+            racine, log, ecrire, env: envDeLaPasse(epoque),
+            signalerSourceModifiee: (diagnostic) => { raison = diagnostic },
+          })
         } catch (e) {
           ecrire(`[reconstruction] ${iso()} arrêt : ${/** @type {any} */ (e)?.stack ?? e}\n`)
           code = 1
@@ -250,17 +285,38 @@ export function servirLesDemandes({
         ecrire(`[reconstruction] ${iso()} passe seq=${cible} — préemptée (code ${code}), rejouée\n`)
         continue
       }
+      const rejouerLaNouvelleTete = () => {
+        rejeux = 0
+        ecrire(`[reconstruction] ${iso()} passe seq=${cible} — tête changée (code ${code}), rejouée\n`)
+      }
       if (code === CODE_SOURCE_MODIFIEE && rejeux < REJEUX_SUR_SOURCE_MODIFIEE) {
-        rejeux += 1
-        ecrire(`[reconstruction] ${iso()} passe seq=${cible} — source modifiée pendant la passe, rejeu ${rejeux}/${REJEUX_SUR_SOURCE_MODIFIEE}\n`)
+        if (shaDe(depot, 'HEAD') !== tete) rejouerLaNouvelleTete()
+        else {
+          rejeux += 1
+          ecrire(`[reconstruction] ${iso()} passe seq=${cible} — source modifiée pendant la passe, rejeu ${rejeux}/${REJEUX_SUR_SOURCE_MODIFIEE}\n`)
+        }
         continue
       }
-      rejeux = 0
-      const fin = iso()
-      ecrire(`[reconstruction] ${fin} passe seq=${cible} — fin, code ${code}\n`)
-      sousLEtat(chemins, racine, commande, (etat) => ({
-        ecrire: { ...etat, soldees: Math.max(etat.soldees, cible), dernier: { seq: cible, code, debut, fin, log } },
-      }))
+      sousLEtat(chemins, racine, commande, (etat) => {
+        const avant = etat.conflitsDeSource?.tete === tete ? etat.conflitsDeSource : null
+        const fin = iso()
+        let conflitsDeSource = null
+        /** @type {{ seq: number, code: number, debut: string, fin: string, log: string, sourceModifieePersistante?: { raison: string | null } }} */
+        const dernier = { seq: cible, code, debut, fin, log }
+        if (code === CODE_SOURCE_MODIFIEE) {
+          if (shaDe(depot, 'HEAD') !== tete) {
+            rejouerLaNouvelleTete()
+            return {}
+          }
+          const demandes = Math.min(DEMANDES_SUR_SOURCE_MODIFIEE, (avant?.demandes ?? 0) + 1)
+          conflitsDeSource = { tete, demandes }
+          if (demandes === DEMANDES_SUR_SOURCE_MODIFIEE) dernier.sourceModifieePersistante = { raison }
+        } else if (code === CODE_DIFFERE) conflitsDeSource = avant
+        rejeux = 0
+        const diagnostic = dernier.sourceModifieePersistante ? ` — source modifiée à répétition${raison ? ` : ${raison}` : ''}` : ''
+        ecrire(`[reconstruction] ${fin} passe seq=${cible} — fin, code ${code}${diagnostic}\n`)
+        return { ecrire: { ...etat, soldees: Math.max(etat.soldees, cible), dernier, conflitsDeSource } }
+      })
     }
   } finally {
     prise?.liberer()
