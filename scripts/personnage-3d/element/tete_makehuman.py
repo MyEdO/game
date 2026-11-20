@@ -261,28 +261,6 @@ def fermer(M, boucle, X, C):
     return siens
 
 
-def souder_les_commissures(boucle, champs):
-    """Soude les deux lèvres de la boucle `boucle` à ses commissures : coupée à ses deux sommets extrêmes de gauche à
-    droite, ses deux moitiés se parcourent de chaque bout, et tant que deux sommets de même rang sont plus proches que
-    le pinceau d'une vue (`PINCEAU_M`), ils prennent leur milieu dans chacun des `champs` (les positions d'abord, puis
-    les écarts des clés) : la fente qu'ils bordaient, trop étroite pour montrer la bouche, n'y laisse plus d'ombre.
-    Rend le nombre de paires soudées."""
-    X = champs[0]
-    debut = int(np.argmin(X[boucle][:, 0]))
-    boucle = boucle[debut:] + boucle[:debut]
-    fin = int(np.argmax(X[boucle][:, 0]))
-    A, B = boucle[:fin + 1], [boucle[0]] + boucle[:fin - 1:-1]
-    soudees = 0
-    for haut, bas in ((A[1:-1], B[1:-1]), (A[-2:0:-1], B[-2:0:-1])):
-        for a, b in zip(haut, bas):
-            if np.linalg.norm(X[a] - X[b]) >= 2.0 * PINCEAU_M['rayon']:
-                break
-            for champ in champs:
-                champ[[a, b]] = champ[[a, b]].mean(axis=0)
-            soudees += 1
-    return soudees
-
-
 def poids_adoucis(W, P, orientes, couture):
     """Les poids `W` des sommets `P` (triangles `orientes`) lissés (`tissu.lisser`), ceux des `couture` premiers sommets
     tenus, jusqu'à ce qu'aucune arête ne porte un saut de poids par mètre plus fort que la couture du cou de la base :
@@ -475,10 +453,6 @@ def construire(D, materiaux, b):
     triangles = gardes
     bas, *autres = boucles_de_bord(triangles, X)
     bas = depuis_l_arriere(bas, X, C)
-    for boucle in autres:
-        if X[boucle][:, 2].mean() < X[des_yeux][:, 2].min():
-            print('TETE_MH commissures :', souder_les_commissures(boucle, [X, *de_makehuman.values()]), 'paires soudées',
-                  flush=True)
 
     M = Maillage()
     bord = M.ajouter(list(S), 'peau')
