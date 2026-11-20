@@ -7,6 +7,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { siegesRequis, quorumAtteint, withActingSeat } from './netOwnership';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -18,7 +19,8 @@ import type { Combatant } from '../engine/types';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
+const DOSSIER = fileURLToPath(new URL('.', import.meta.url));
+const src = (rel: string) => readFileSync(join(DOSSIER, rel), 'utf8');
 
 function hero(id: string, label: string): Combatant {
   const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 11 });

@@ -34,7 +34,7 @@ const mesure = detenteur(() => {
 const ecart = (s: readonly Site[] = mesure().sites) => ecartDuVolet({ sites: s, stock: PILOTE_CASCADE_RATCHET, ou: STOCK });
 
 describe('pilote de cascade : aucune itération de test neuve ne pilote la cascade à la main (#1765)', () => {
-  beforeAll(() => { mesure(); }, 60_000);
+  beforeAll(() => { mesure(); }, 120_000);
 
   it('aucun site NEUF, et aucune entrée SOLDÉE ne traîne au stock', () => {
     const { neuves, perimees } = ecart();

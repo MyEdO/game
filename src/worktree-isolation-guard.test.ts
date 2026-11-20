@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import viteConfig from '../vitest.config';
+import vitestConfig from '../vitest.config';
 import {
   PLAGE_PORTS,
   PORT_DEV_DERIVE,
@@ -21,11 +21,9 @@ import {
  * (`test.setupFiles`, `test.globalSetup`) doit être ABSOLU, ancré sur `vitest.config.ts`, et ne
  * traverser aucune racine de worktree imbriqué (#1679 L1c).
  *
- * Second volet : le PORT du serveur (dev ET `vite preview`) est propre à l'arbre
- * (`scripts/port-dev.mjs`) et posé en `strictPort` — un port fixe faisait servir un arbre VOISIN à la
- * recette (Vite glisse silencieusement sur le port suivant quand le sien est pris). L'arbre
- * PRINCIPAL garde son port historique (5173/4173), reconnu à ce que `<racine>/.git` y est un
- * DOSSIER ; un worktree LIÉ (où `.git` est un FICHIER) se dérive dans la plage suivante.
+ * Second volet : l’outillage conserve les ports propres à l’arbre de
+ * `scripts/port-dev.mjs`. Le principal (`.git` dossier) conserve 5173/4173 ; un
+ * worktree lié (`.git` fichier) dérive ses ports dans les plages suivantes.
  *
  * Vitest résout un chemin RELATIF de config par `resolveModule(path, { paths: [root] })`, dont la
  * première base d'URL est le `root` SANS slash final : `new URL('./src/x', 'file:///…/Game/.wt')`
@@ -78,7 +76,7 @@ function traverseUnWorktree(
   return false;
 }
 
-const conf = viteConfig as ConfigDeTest;
+const conf = vitestConfig as ConfigDeTest;
 const declares: [string, string][] = [
   ...chemins(conf.test?.setupFiles).map((p) => ['test.setupFiles', p] as [string, string]),
   ...chemins(conf.test?.globalSetup).map((p) => ['test.globalSetup', p] as [string, string]),
@@ -137,17 +135,6 @@ describe('ports servis — 5173/4173 pour l’arbre PRINCIPAL, dérivés pour un
   const autreWorktree = `${principal}/.wt-1624`;
   /** `.git` DOSSIER : seul `principal` est un arbre principal dans cette mesure. */
   const dossierGit = (chemin: string) => normaliserRacine(chemin) === `${principal.toLowerCase()}/.git`;
-
-  it('la config pose le port de CET arbre, en strictPort, pour le dev ET la preview', () => {
-    const conf2 = viteConfig as {
-      server?: { port?: number; strictPort?: boolean };
-      preview?: { port?: number; strictPort?: boolean };
-    };
-    expect(conf2.server?.port).toBe(portDev());
-    expect(conf2.server?.strictPort).toBe(true);
-    expect(conf2.preview?.port).toBe(portPreview());
-    expect(conf2.preview?.strictPort).toBe(true);
-  });
 
   it('un arbre PRINCIPAL (.git = DOSSIER) garde exactement 5173 et 4173', () => {
     expect(estArbrePrincipal(principal, dossierGit)).toBe(true);

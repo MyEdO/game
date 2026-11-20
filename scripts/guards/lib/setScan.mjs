@@ -1,13 +1,12 @@
 // Mécanique de la lentille « set() bruts des flows » (#321 lentille 3) : recense chaque
-// `set({...})`/`set((s) => ({...}))` posé dans `src/state/*.ts` et `src/noyau/**` (hors `store.ts` — actions
-// canoniques — et `stateFields.ts`, SOURCE du manifeste). Module ESM pur — consommé par le CLI
-// (`scripts/data/set-scan.mjs`) ET par la garde (`src/noyau/set-scan-guard.test.ts`).
+// `set({...})` et `set((s) => ({...}))` dans le noyau, hors `stateFields.ts`, source du manifeste.
+// Cette mesure alimente le CLI `scripts/data/set-scan.mjs` et la garde `src/noyau/set-scan-guard.test.ts`.
 //
 // Extraction PURE regex/scan de parenthèses (pas de parseur AST) — suffisant pour un COMPTE, pas
 // pour un refactor : les clés imbriquées profondes ne sont pas déroulées, seul le NIVEAU 1 de
 // l'objet passé à `set(` est lu.
 import { readFileSync } from 'node:fs';
-import { listerArbre, listerDossier } from './lister.mjs';
+import { listerArbre } from './lister.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { join, relative } from 'node:path';
 
@@ -82,25 +81,21 @@ export function scanFile(path) {
   return results;
 }
 
-/** Scan complet de `src/state/*.ts` (hors `store.ts`/tests) et de `src/noyau/**` (hors `stateFields.ts`/tests) — compte par fichier
- *  + classification « reset ad hoc de champ STATE_FIELDS hors `resetFields(...)` ».
+/** Recense les écritures du noyau et les remises à zéro de champs d’état hors `resetFields(...)`.
  * @param {string} root racine du dépôt
  * @returns {{ totalCalls: number, totalAdHocResets: number, files: Array<{ file: string, setCalls: number, adHocPendingResets: number, adHocLines: number[] }> }} */
 export function runSetScan(root) {
-  const stateDir = join(root, 'src/state');
   const noyauDir = join(root, 'src/noyau');
   const pendingKeys = stateFieldKeys(noyauDir);
-  const files = [
-    ...listerDossier(stateDir, { absent: 'vide' })
-      .filter((f) => f.endsWith('.ts') && !estFichierVitest(f) && !estKitDeTest(f) && f !== 'store.ts')
-      .map((f) => join(stateDir, f)),
-    ...listerArbre(noyauDir, { filtre: (f) => f.endsWith('.ts') && !estFichierVitest(f) && !estKitDeTest(f) && f !== 'stateFields.ts' }).map((f) => join(noyauDir, f)),
-  ];
+  const files = listerArbre(noyauDir, {
+    filtre: (f) => f.endsWith('.ts') && !estFichierVitest(f) && !estKitDeTest(f) && f !== 'stateFields.ts',
+  });
 
   const report = [];
   let totalCalls = 0;
   let totalAdHocResets = 0;
-  for (const f of files) {
+  for (const fichier of files) {
+    const f = join(noyauDir, fichier);
     const calls = scanFile(f);
     if (!calls.length) continue;
     const rel = relative(root, f).split('\\').join('/');

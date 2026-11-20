@@ -134,7 +134,6 @@ export const EXEMPTIONS: readonly ExemptionPilote[] = [
   { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade')\`)` },
   { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade', id)\`)` },
   { fichier: 'src/noyau/tavern-al-zahr.hors-store.test.ts', motif: /^it:ABANDON en cours de manche \(l\.17\) : FERMÉ « entre deux manches »/, raison: RAISON_ABANDON_REFUSE },
-  { fichier: 'src/ui/SequencePanel.test.tsx', motif: /^it:Fléchettes : un CHOIX dû après le jet — fermé, la raison nomme le choix/, raison: RAISON_ABANDON_REFUSE },
 ];
 
 /** Une itération-site repérée : son fichier, sa ligne (1-based), son contexte nommé, l'exemption qui la couvre. */

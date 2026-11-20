@@ -1,34 +1,9 @@
 import { ast, analyserCorpus } from '../../../scripts/guards/lib/dialecte.mjs';
 /**
- * GARDE — toute référence Codex écrite EN LITTÉRAL (projecteurs du Codex, UI de l'hôte web) pointe une fiche qui EXISTE.
- *
- * ANGLE MORT COMBLÉ (mesuré 2026-08-17) : `src/noyau/codex/codex-rule-refs.test.ts` ne parcourt que le registre
- * `RULE_REF` (et les deux producteurs dynamiques énumérés). Les refs écrites à la main au site
- * d'affichage — `rule: { category: 'regles', id: 'mouvement' }` d'une case de console,
- * `<CodexRef category="regles" id="calme-d-approche">` d'une barre d'action — n'étaient couvertes par
- * AUCUNE garde : une ref MORTE (`regles/mouvement`, avant la création de la fiche) a survécu en
- * silence dans `CombatConsole.tsx`, popover muet à l'écran, suite verte.
- *
- * MÉCANIQUE : parseur AST réel (`typescript`), jamais un grep — les littéraux multi-lignes et les
- * attributs JSX répartis sur plusieurs lignes échappent à la forme textuelle. Deux formes, une seule
- * loi (couple `category` + `id` tous DEUX littéraux de chaîne) :
- *   - littéral d'objet : `{ category: 'x', id: 'y' }` — quel que soit le champ porteur (`rule`,
- *     `kref`, `src`, `stakeRule`, ou aucun) ;
- *   - élément JSX : `<CodexRef category="x" id="y" …>`, forme de la seule zone `ui` de l'hôte web (#3556).
- * Chaque couple est résolu par la couture RÉELLE d'affichage — `codexLookupById`, la porte du Codex
- * (`CodexRef` l'appelle pour peupler son popover). Introuvable = ROUGE, avec `fichier:ligne` et le
- * couple fautif.
- *
- * ANGLE MORT DÉCLARÉ (et ASSERTÉ plus bas, jamais implicite) : un scan STATIQUE ne voit que les
- * littéraux. Une ref dont l'`id` est calculé (`id={spell.id}`, `` id: `regle-${k}` ``, variable) ou
- * dont la catégorie l'est (`category={RULE_REF.chance.category}`) est HORS PÉRIMÈTRE : elle relève
- * des gardes de domaine (`codex-rule-refs.test.ts` pour `RULE_REF`, les gardes de catalogue pour les ids de
- * donnée). Ces sites sont COMPTÉS ici, jamais résolus — leur nombre est publié par le test de
- * couverture pour qu'on sache ce que cette garde ne dit pas.
- *
- * ZÉRO EXEMPTION, par construction : il n'y a pas de liste d'exceptions dans ce fichier. Un littéral
- * qui ne résout pas se CORRIGE (fiche manquante, catégorie mal orthographiée, id renommé) — un
- * popover muet à l'écran n'est jamais une exception légitime.
+ * GARDE — les références Codex littérales des projecteurs du noyau pointent une fiche existante.
+ * Le parseur AST lit les objets qui portent `category` et `id`, y compris sur plusieurs lignes.
+ * Chaque couple littéral est résolu par `codexLookupById`. Une identité calculée est comptée
+ * séparément et relève des gardes de domaine et de catalogue.
  */
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
@@ -38,12 +13,10 @@ import { codexLookupById } from './registry';
 import { ACTIONS, ACTIVITIES, STAKES, cibleCodex, crewTestTypes } from '../../data/index';
 import type { FoyerDeRegle } from '../../data/schemas/grammaire/valeurs';
 
-export interface CodexRefLiteral {
+interface CodexRefLiteral {
   line: number;
   category: string;
   id: string;
-  /** `objet` = littéral `{ category, id }` · `jsx` = attributs d'un élément (`<CodexRef …>`). */
-  forme: 'objet' | 'jsx';
   /** Texte source du site, pour l'adresse du rouge. */
   detail: string;
 }
@@ -67,31 +40,16 @@ function texteLitteral(e: ts.Expression | undefined): string | null {
   return null;
 }
 
-/** L'initialiseur d'un attribut JSX en tant que chaîne littérale : `x="y"` comme `x={'y'}`. */
-function attrLitteral(a: ts.JsxAttribute): string | null {
-  const init = a.initializer;
-  if (!init) return null;
-  if (ts.isStringLiteral(init)) return init.text;
-  if (ts.isJsxExpression(init) && init.expression) return texteLitteral(init.expression);
-  return null;
-}
-
 /**
  * Les couples `category`+`id` d'un fichier. `statiques` = les deux membres littéraux (résolubles) ;
  * `dynamiques` = la catégorie est littérale mais l'id est calculé, ou l'inverse — l'angle mort du
  * scan, compté pour être DIT.
  */
-export function codexRefLiterals(file: string, src: string, sf = ast({ rel: file, text: src })!): { statiques: CodexRefLiteral[]; dynamiques: number } {
+function codexRefLiterals(file: string, src: string, sf = ast({ rel: file, text: src })!): { statiques: CodexRefLiteral[]; dynamiques: number } {
   const statiques: CodexRefLiteral[] = [];
   let dynamiques = 0;
   const ligne = (n: ts.Node) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
   const detail = (n: ts.Node) => n.getText(sf).replace(/\s+/g, ' ').slice(0, 120);
-
-  const compter = (n: ts.Node, forme: CodexRefLiteral['forme'], cat: string | null, id: string | null, presents: boolean) => {
-    if (!presents) return;
-    if (cat !== null && id !== null) statiques.push({ line: ligne(n), category: cat, id, forme, detail: detail(n) });
-    else dynamiques++;
-  };
 
   const visit = (node: ts.Node): void => {
     if (ts.isObjectLiteralExpression(node)) {
@@ -105,15 +63,12 @@ export function codexRefLiterals(file: string, src: string, sf = ast({ rel: file
       // littéral qui porte une clé ÉTRANGÈRE est d'une autre espèce — `ResolvedPlaceService`
       // (`{ id, category: 'auberge', icon, rest }`) a un `category` de service, pas de catalogue.
       const formeRef = node.properties.every((p, k) => ts.isSpreadAssignment(p) || (!!names[k] && CODEX_REF_KEYS.has(names[k]!)));
-      compter(node, 'objet', lire(c), lire(i), formeRef && !!c && !!i);
-    }
-    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-      const attr = (k: string) => node.attributes.properties.find(
-        (p): p is ts.JsxAttribute => ts.isJsxAttribute(p) && ('name' in p && ts.isIdentifier(p.name)) && p.name.text === k,
-      );
-      const c = attr('category');
-      const i = attr('id');
-      compter(node, 'jsx', c ? attrLitteral(c) : null, i ? attrLitteral(i) : null, !!c && !!i);
+      if (formeRef && c && i) {
+        const category = lire(c);
+        const id = lire(i);
+        if (category !== null && id !== null) statiques.push({ line: ligne(node), category, id, detail: detail(node) });
+        else dynamiques++;
+      }
     }
     node.forEachChild(visit);
   };
@@ -123,9 +78,7 @@ export function codexRefLiterals(file: string, src: string, sf = ast({ rel: file
 
 interface Site extends CodexRefLiteral { rel: string }
 
-/** Les projecteurs du Codex (`src/noyau/codex/**`) et les sources de la zone `ui` de l'hôte web (#3556), hors tests :
- *  `.tsx` ET `.ts` — une ref littérale vit aussi bien dans un projecteur (`noyau/codex/opRows.ts`) que
- *  dans un composant —, rendues par la primitive de marche `readCorpus`. */
+/** Sources des projecteurs du Codex via la marche de corpus partagée. */
 const PORTEE = [`${dossierDe('noyau')}/codex`];
 function corpus(): { sites: Site[]; dynamiques: number } {
   const sites: Site[] = [];
@@ -142,27 +95,18 @@ describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE'
   it('MORSURE : le littéral d’objet est lu sur la STRUCTURE (champ porteur quelconque, multi-lignes)', () => {
     const src = "const c = { key: 'k', rule: {\n  category: 'regles',\n  id: 'mouvement',\n} };";
     expect(codexRefLiterals('x.ts', src).statiques).toEqual([
-      { line: 1, category: 'regles', id: 'mouvement', forme: 'objet', detail: "{ category: 'regles', id: 'mouvement', }" },
+      { line: 1, category: 'regles', id: 'mouvement', detail: "{ category: 'regles', id: 'mouvement', }" },
     ]);
-  });
-
-  it('MORSURE : l’attribut JSX littéral (`<CodexRef category="…" id="…">`), guillemets ou accolades', () => {
-    const guillemets = codexRefLiterals('x.tsx', '<CodexRef category="regles" id="calme-d-approche" label="X" />').statiques;
-    expect(guillemets.map((s) => `${s.category}/${s.id}`)).toEqual(['regles/calme-d-approche']);
-    const accolades = codexRefLiterals('x.tsx', "<CodexRef category={'skills'} id={'guerison'}>i</CodexRef>").statiques;
-    expect(accolades.map((s) => `${s.category}/${s.id}`)).toEqual(['skills/guerison']);
   });
 
   it('ANGLE MORT ASSERTÉ : un id (ou une catégorie) CALCULÉ n’est PAS résolu — il est COMPTÉ, pas jugé', () => {
     // Écrit noir sur blanc pour qu'aucune relecture ne prenne ce scan pour une couverture totale.
     const cas = [
-      '<CodexRef category="spells" id={spell.id} label={l} />',
-      '<CodexRef category={RULE_REF.chance.category} id={RULE_REF.chance.id} label="Chance" />',
       "const r = { category: 'regles', id: cle };",
       'const r = { category: cat, id: `regle-${k}` };',
     ];
     for (const src of cas) {
-      const r = codexRefLiterals('x.tsx', src);
+      const r = codexRefLiterals('x.ts', src);
       expect(r.statiques, `un id/catégorie calculé a été pris pour un littéral : ${src}`).toEqual([]);
       expect(r.dynamiques, `site dynamique non compté : ${src}`).toBe(1);
     }
@@ -171,15 +115,12 @@ describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE'
   it('HORS FORME : un objet qui ne porte pas LES DEUX champs n’est pas une ref (aucun faux positif)', () => {
     expect(codexRefLiterals('x.ts', "const a = { id: 'force', label: 'Force' };").statiques).toEqual([]);
     expect(codexRefLiterals('x.ts', "const a = { category: 'regles', label: 'X' };").statiques).toEqual([]);
-    expect(codexRefLiterals('x.tsx', '<div id="hud" className="x" />').statiques).toEqual([]);
   });
 
   it('HORS ESPÈCE : un `category` qui n’est pas celui d’un catalogue (clé étrangère au littéral)', () => {
-    // Cas RÉEL rencontré à la pose de cette garde : `CityHubScreen.tsx` monte un service de ville
-    // `{ id: 'repos', category: 'auberge', icon, rest }` — un `category` de SERVICE. Discriminé par la
-    // FORME (clés `icon`/`rest` étrangères au vocabulaire d'une ref), jamais par une exemption.
+    // Les clés `icon` et `rest` distinguent une catégorie de service d’une ref du Codex.
     const service = "const s = { id: 'repos', category: 'auberge', label: 'Repos', icon: 'navigation/repos', rest: r };";
-    expect(codexRefLiterals('x.tsx', service).statiques).toEqual([]);
+    expect(codexRefLiterals('x.ts', service).statiques).toEqual([]);
     // …et la même paire, SEULE ou avec les seules clés d'affichage, reste une ref.
     expect(codexRefLiterals('x.ts', "const s = { id: 'repos', category: 'auberge', label: 'Repos' };").statiques)
       .toHaveLength(1);
@@ -199,17 +140,10 @@ describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE'
     // Contre-preuve : un scan cassé (mauvais répertoire, extension oubliée, parseur muet) rendrait la
     // garde VIDE et VERTE — c'est exactement ce qui a laissé passer `regles/mouvement`.
     const { sites, dynamiques } = corpus();
-    expect(sites.length, 'aucun site mesuré : le scan ou le périmètre a lâché').toBeGreaterThan(20);
-    // ANCRE de câblage, MESURÉE et non nominative : le scan voit PLUSIEURS fichiers, et l'un d'eux
-    // porte un STOCK. La console, elle, porte seulement une ref statique (`trappings/mains-nues`) :
-    // ses foyers de règle vivent dans `src/data/actions.json`, gardés par le test suivant.
-    const parFichier = new Map<string, number>();
-    for (const s of sites) parFichier.set(s.rel, (parFichier.get(s.rel) ?? 0) + 1);
-    expect(parFichier.size, 'le scan ne voit plus qu’une poignée de fichiers').toBeGreaterThanOrEqual(5);
-    expect(Math.max(...parFichier.values()), 'aucun fichier ne porte plus de STOCK de refs littérales').toBeGreaterThanOrEqual(5);
-    expect(sites.some((s) => s.rel.endsWith('.ts')), 'aucun site `.ts` mesuré : le périmètre est retombé aux seuls composants').toBe(true);
-    // L'ANGLE MORT, chiffré : le corpus porte bien plus de refs à identité CALCULÉE que de littéraux.
-    // Ce que cette garde couvre est une PART, dite ici en toutes lettres — jamais une garantie globale.
+    const parProjecteur = new Map<string, number>();
+    for (const s of sites) parProjecteur.set(s.rel, (parProjecteur.get(s.rel) ?? 0) + 1);
+    expect(parProjecteur.get(`${PORTEE[0]}/opRows.ts`)).toBeGreaterThanOrEqual(3);
+    expect(parProjecteur.get(`${PORTEE[0]}/registry.ts`)).toBeGreaterThanOrEqual(3);
     expect(dynamiques, 'plus aucune ref dynamique vue : le compteur d’angle mort a lâché').toBeGreaterThan(50);
   });
 

@@ -7,13 +7,16 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from './partieTexte';
 import { nouvelEntete } from '../hote/partie';
 import { fermerLaTable, partie, table, verbe } from './hote.testkit';
 import type { GesteDeLAgent } from './serveur';
 
 /** Un fichier de partie committé à côté de ce test. */
-const fixture = (nom: string): string => readFileSync(new URL(`./${nom}`, import.meta.url), 'utf8');
+const DOSSIER = fileURLToPath(new URL('.', import.meta.url));
+const fixture = (nom: string): string => readFileSync(join(DOSSIER, nom), 'utf8');
 
 afterEach(fermerLaTable);
 

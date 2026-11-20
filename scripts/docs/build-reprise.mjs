@@ -458,9 +458,8 @@ annonces portent début, fin et durée sur stderr ; la sortie des équipements r
 Lors du \`post-checkout\` initial d'un worktree (ancien SHA de quarante zéros et mesure absente),
 le hook annonce cet équipement requis et laisse \`ops:chantier\` le jouer une seule fois.
 
-Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree lié** en dérive un
-autre (5174-5272, \`scripts/port-dev.mjs\`) pour que deux arbres servis en même temps ne se recouvrent
-jamais. L’outil de chantier imprime le port réservé au worktree.
+L’outil de chantier affiche le port historique dérivé du worktree (5174–5272 pour un arbre lié).
+Le serveur de l’export Godot choisit un port libre et affiche son URL au démarrage.
 
 \`npm install\` déclenche le script \`postinstall\`, qui joue d'abord \`${CONTRAT_TYPESCRIPT}\` :
 version exacte, application de \`${PATCH_TYPESCRIPT}\`, puis vérification du contrat UTF-16 natif

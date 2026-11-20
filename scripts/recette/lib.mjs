@@ -785,9 +785,9 @@ export async function setViewport(session, width, height) {
  * dépensée »).
  * Plusieurs boutons correspondants sont refusés avant tout événement : préciser `dans` ou `rangee`.
  *
- * `dans` = sélecteur RACINE où chercher (même patron que `{ racine }` de `cliquerAction`) : c'est la
- * sortie propre quand le même libellé vit dans deux zones de l'écran (un « Fermer » de modale et
- * celui du bandeau), là où `exact` ne départage pas.
+ * `dans` = sélecteur de la racine où chercher lorsque le même libellé apparaît dans deux zones.
+ * Par exemple, un bouton « Fermer » peut apparaître dans une boîte de dialogue et dans le bandeau.
+ *
  *
  * `rangee` = texte d'une RANGÉE (sous-chaîne, mêmes normalisations) : quand chaque rangée d'une liste
  * porte le même bouton (cinq « Choisir » dans la modale « Choisir la campagne »), seuls comptent les
@@ -880,24 +880,6 @@ function methodeRelayee(message) {
  *  touche quand même et rend sa fermeture — le refus est ce qu'on vient lire (`GatedAction`). Un
  *  `disabled` natif lève dans les deux. */
 export const INTENTIONS = Object.freeze(['agir', 'lire']);
-
-/** Pose la bascule Atelier du Codex dans l'état demandé, par clic réel seulement si nécessaire. */
-export async function setAtelier(session, actif = true, { dans = '.codex-top' } = {}) {
-  const lire = async () => {
-    const jeton = await marquer(session, { nom: 'Atelier', selecteur: 'button', dans }, 'setAtelier');
-    const presse = jeton && await evaluerFn(session, (marque, attr) => {
-      const b = document.querySelector(marque);
-      b.removeAttribute(attr);
-      return b.getAttribute('aria-pressed');
-    }, marqueDe(jeton), ATTR_CIBLE);
-    if (presse !== 'true' && presse !== 'false') throw new Error(`setAtelier : bascule Atelier unique avec aria-pressed attendue dans « ${dans} »`);
-    return presse === 'true';
-  };
-  if (await lire() !== actif) await clickButtonByText(session, 'Atelier', { dans });
-  const obtenu = await lire();
-  if (obtenu !== actif) throw new Error(`setAtelier : état demandé ${actif}, obtenu ${obtenu}`);
-  return obtenu;
-}
 
 /**
  * CLIC RÉEL d'un contrôle désigné par un SÉLECTEUR — le pendant de `clickButtonByText` quand le
@@ -1093,19 +1075,18 @@ function pageControler(jeton, attr, x, y, mode, intention, fnCouche, fnNommer) {
 }
 
 /** MARQUE la cible (`pageLocaliser`, point `aucun`) sans geste, pour une lecture ou un appel CDP :
- *  rend le `jeton` posé, `null` si elle est absente ; LÈVE sur plus d'un candidat. `attr` : une marque
- *  DISTINCTE de celle des gestes, qui survit à leurs localisations (à retirer par `retirerJeton`). */
-async function marquer(session, cible, qui, attr = ATTR_CIBLE) {
+ *  rend le `jeton` posé, `null` si la cible est absente et lève si plusieurs candidats correspondent. */
+async function marquer(session, cible, qui) {
   const jeton = nouveauJeton();
-  const loc = await evaluerFn(session, pageLocaliser, formeDeCible(cible, qui), jeton, attr, qui, false, 'aucun', SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE, FN_NOMMER_ELEMENT);
+  const loc = await evaluerFn(session, pageLocaliser, formeDeCible(cible, qui), jeton, ATTR_CIBLE, qui, false, 'aucun', SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE, FN_NOMMER_ELEMENT);
   return loc.absente ? null : jeton;
 }
 
 /** Sélecteur de l'élément marqué `jeton`. */
-const marqueDe = (jeton, attr = ATTR_CIBLE) => `[${attr}="${jeton}"]`;
+const marqueDe = (jeton) => `[${ATTR_CIBLE}="${jeton}"]`;
 
 /** Retire la marque `jeton` d'une cible dont le geste n'aura pas lieu. */
-const retirerJeton = (session, jeton, attr = ATTR_CIBLE) => evaluerFn(session, (jeton, attr) => { for (const v of document.querySelectorAll('[' + attr + '="' + jeton + '"]')) v.removeAttribute(attr); }, jeton, attr);
+const retirerJeton = (session, jeton) => evaluerFn(session, (jeton, attr) => { for (const v of document.querySelectorAll('[' + attr + '="' + jeton + '"]')) v.removeAttribute(attr); }, jeton, ATTR_CIBLE);
 
 /** LOCALISE la cible (`pageLocaliser`), en attendant son APPARITION jusqu'à `attenteMs` ; LÈVE au nom
  *  du geste `qui` si elle reste absente, ou si elle n'a ni boîte ni partie visible. */
@@ -1634,143 +1615,6 @@ export async function evaluerFn(session, fn, ...args) {
 }
 
 /**
- * LIT, en lecture seule, les enregistrements du magasin `magasin` de la base IndexedDB `base` :
- * `[{ cle, valeur }]` (valeurs sérialisées en JSON au retour). OBSERVATION pure : une base absente
- * n'est jamais ouverte (`indexedDB.open` la CRÉERAIT) — refus NOMMÉ listant les bases présentes ; un
- * magasin absent, refus listant les magasins de la base.
- */
-export async function lireIndexedDB(session, base, magasin) {
-  const r = await evaluerFn(session, async (base, magasin) => {
-    const bases = await indexedDB.databases()
-    if (!bases.some((b) => b.name === base)) return { refus: `base « ${base} » absente — bases : ${bases.map((b) => b.name).join(', ') || '(aucune)'}` }
-    const db = await new Promise((ok, ko) => {
-      const req = indexedDB.open(base)
-      req.onsuccess = () => ok(req.result)
-      req.onerror = () => ko(req.error)
-    })
-    try {
-      const magasins = Array.from(db.objectStoreNames)
-      if (!magasins.includes(magasin)) return { refus: `magasin « ${magasin} » absent de « ${base} » — magasins : ${magasins.join(', ') || '(aucun)'}` }
-      const store = db.transaction(magasin, 'readonly').objectStore(magasin)
-      const lire = (req) => new Promise((ok, ko) => { req.onsuccess = () => ok(req.result); req.onerror = () => ko(req.error) })
-      const [cles, valeurs] = await Promise.all([lire(store.getAllKeys()), lire(store.getAll())])
-      return { enregistrements: cles.map((cle, i) => ({ cle, valeur: valeurs[i] })) }
-    } finally {
-      db.close()
-    }
-  }, base, magasin)
-  if (r.refus) throw new Error(`lireIndexedDB : ${r.refus}`)
-  return r.enregistrements
-}
-
-/**
- * MESURE la PROVENANCE d'un texte de campagne rendue dans `selecteur` (`ProvenanceDuTexte`,
- * `src/ui/editor/ProvenanceDuTexte.tsx`, #2001) : le segment « Provenance du texte » dont les options
- * portent le nom accessible « <Mode> — provenance <sujet> ». Rend
- * `{ sujet, mode, options: [{ libelle, retenue, refus }], adresse, detacher, reference }` :
- * `mode` = l'option RETENUE (`aria-pressed`) ; `refus` = la raison liée d'une option refusée ;
- * `adresse` = le badge de la copie ADRESSÉE (`descRef`), `detacher` = son bouton « Détacher » (présent,
- * ouvert) ; `reference` = le libellé du champ de référence monté (« Source », « Adapté de »), ou `null`.
- * LÈVE si `selecteur` est absent, ne porte aucune provenance, ou en porte plusieurs (sujets nommés).
- */
-export async function mesurerProvenance(session, selecteur) {
-  const jeton = await marquer(session, { selecteur }, 'mesurerProvenance')
-  const r = !jeton ? { refus: 'absent du DOM' } : await evaluerFn(session, (marque, attr) => {
-    const racine = document.querySelector(marque)
-    racine.removeAttribute(attr)
-    const norm = (s) => (s || '').replace(/\s+/g, ' ').trim()
-    const motif = /^(.+) — provenance (.+)$/
-    const options = Array.from(racine.querySelectorAll('[aria-label]')).filter((b) => motif.test(b.getAttribute('aria-label')))
-    const sujets = [...new Set(options.map((b) => motif.exec(b.getAttribute('aria-label'))[2]))]
-    if (!sujets.length) return { refus: 'aucune provenance de texte (« … — provenance … ») rendue' }
-    if (sujets.length > 1) return { refus: `plusieurs provenances : ${sujets.join(' | ')} — viser un conteneur plus étroit` }
-    const champ = options[0].closest('.ed-field') ?? racine
-    const raison = (b) => {
-      const lien = b.getAttribute('aria-describedby')
-      const porteur = lien && document.getElementById(lien)
-      return porteur ? norm(porteur.textContent) || null : null
-    }
-    const ouvert = (b) => !b.disabled && b.getAttribute('aria-disabled') !== 'true'
-    const lues = options.map((b) => ({
-      libelle: motif.exec(b.getAttribute('aria-label'))[1],
-      retenue: b.getAttribute('aria-pressed') === 'true',
-      refus: ouvert(b) ? null : raison(b),
-    }))
-    const detacher = Array.from(champ.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === `Détacher le texte ${sujets[0]}`)
-    const badge = champ.querySelector('.source-badge')
-    const sousChamp = Array.from(champ.querySelectorAll(':scope .ed-field')).map((c) => c.firstElementChild).find((e) => e && e.tagName === 'SPAN')
-    return {
-      sujet: sujets[0],
-      mode: lues.find((o) => o.retenue)?.libelle ?? null,
-      options: lues,
-      adresse: badge ? norm(badge.textContent) : null,
-      detacher: detacher ? { ouvert: ouvert(detacher) } : null,
-      reference: sousChamp ? norm(sousChamp.textContent) : null,
-    }
-  }, marqueDe(jeton), ATTR_CIBLE)
-  if (r.refus) throw new Error(`mesurerProvenance « ${selecteur} » : ${r.refus}`)
-  return r
-}
-
-/** Les RANGÉES du Codex (`ListRow`), et le livre que chacune cite (`ouvrirFiche` filtre dessus, exact). */
-const RANGEES_CODEX = '.codex-rows button.listrow';
-const LIVRE_CODEX = '.codex-row-src';
-/** Les PASTILLES de catégorie du Codex, nommées par leur texte propre (sans leur compte), et la marque
- *  de celle que `ouvrirFiche` déplie puis clique. */
-const CATEGORIES_CODEX = 'button.codex-cat';
-const ATTR_CATEGORIE = 'data-recette-categorie';
-
-/**
- * OUVRE la fiche d'une entrée du Compendium AUX GESTES (`src/ui/compendium/CompendiumScreen.tsx`) : le
- * bouton « Compendium » du menu si l'écran n'est pas monté, l'onglet du `groupe` (`[role=tab]` de
- * « Groupes du Codex »), la pastille de la `categorie` (`button.codex-cat`, dépliée de son sous-groupe
- * replié par `deplierVers`), la frappe de l'`entree` dans `.codex-search`, puis le clic de sa rangée.
- * L'entrée se désigne par ses LIBELLÉS visibles, comme un joueur : le Codex ne publie aucun id au DOM.
- * Des HOMONYMES lèvent en nommant les livres offerts ; `{ livre }` les départage par le livre EXACT de
- * la rangée (`LIVRE_CODEX`), au localiseur. LÈVE en nommant ce qui manque (catégorie, rangée), et si la
- * rangée cliquée n'est pas retenue (`aria-current`). Rend `{ entree }`.
- */
-export async function ouvrirFiche(session, { groupe, categorie, entree, livre }, { delaiEntreeMs = DELAI_ENTREE } = {}) {
-  if (!(await evaluate(session, `!!document.querySelector('.screen.codex')`))) {
-    await clickButtonByText(session, 'Compendium', { delaiEntreeMs });
-    await attendreSelecteur(session, '.screen.codex');
-  }
-  if (groupe) await clickButtonByText(session, groupe, { dans: '.codex-groups', delaiEntreeMs });
-  if (categorie) {
-    const pastille = await marquer(session, { nom: categorie, selecteur: CATEGORIES_CODEX, propre: true }, 'ouvrirFiche', ATTR_CATEGORIE);
-    if (!pastille) {
-      const offertes = await evaluerFn(session, (cats) => Array.from(document.querySelectorAll(cats)).map((b) => Array.from(b.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').replace(/\s+/g, ' ').trim()), CATEGORIES_CODEX);
-      throw new Error(`ouvrirFiche : aucune catégorie « ${categorie} » — offertes : ${offertes.join(' | ') || '(aucune)'}`);
-    }
-    try {
-      await deplierVers(session, marqueDe(pastille, ATTR_CATEGORIE), { delaiEntreeMs });
-      await cliquerSelecteur(session, marqueDe(pastille, ATTR_CATEGORIE), { delaiEntreeMs });
-    } finally {
-      await retirerJeton(session, pastille, ATTR_CATEGORIE);
-    }
-  }
-  await typeInField(session, '.codex-search', entree, { attendu: entree, delaiEntreeMs });
-  const lire = () => evaluerFn(session, (rangees, src) => {
-    const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
-    const toutes = Array.from(document.querySelectorAll(rangees));
-    return {
-      offertes: toutes.map((b) => norm(b.querySelector('.lr-name')?.textContent)).slice(0, 10),
-      retenue: toutes.filter((b) => b.getAttribute('aria-current') === 'true').map((b) => ({ nom: norm(b.querySelector('.lr-name')?.textContent), livre: norm(b.querySelector(src)?.textContent) })),
-    };
-  }, RANGEES_CODEX, LIVRE_CODEX);
-  const rangee = { nom: entree, selecteur: RANGEES_CODEX, libelle: '.lr-name', etiquette: { selecteur: LIVRE_CODEX, texte: livre, option: 'livre' } };
-  const presente = await marquer(session, rangee, 'ouvrirFiche');
-  if (!presente) throw new Error(`ouvrirFiche : aucune rangée « ${entree} »${livre === undefined ? '' : ` du livre « ${livre} »`} — offertes : ${(await lire()).offertes.join(' | ') || '(aucune)'}`);
-  await retirerJeton(session, presente);
-  await geste(session, rangee, { qui: 'ouvrirFiche', delaiEntreeMs }, clic());
-  const apres = await lire();
-  if (!apres.retenue.some((r) => r.nom === entree && (livre === undefined || r.livre === livre))) {
-    throw new Error(`ouvrirFiche : la rangée « ${entree} »${livre === undefined ? '' : ` (${livre})`} cliquée n'est pas retenue (aria-current)`);
-  }
-  return { entree, ...(livre === undefined ? {} : { livre }) };
-}
-
-/**
  * Attend qu'un sélecteur soit PRÉSENT dans le DOM, et REFUSE en le nommant sinon — un `sleep` gonflé
  * « au cas où » cache la cause quand l'élément n'arrive jamais. `qui` nomme le geste dans la levée.
  * Rend le sélecteur au succès.
@@ -1971,37 +1815,6 @@ export async function typeInField(session, selecteur, texte, { clear = true, att
     console.warn(`typeInField « ${selecteur} » : champ à « ${lu} » après avoir frappé « ${texte} » — transformation du onChange (casse, filtre) OU frappe additive : contrôler avant de continuer.`);
   }
   return lu;
-}
-
-/**
- * CLIC D'UNE CASE DE CONSOLE PAR SON ID D'ACTION (`data-action`, registre `src/data/actions.json`).
- * Le DOM de la console publie l'identité de chaque alvéole : la recette n'a donc plus à viser un
- * libellé (qui bouge avec la donnée) ni une position (qui bouge avec le set au poing).
- *
- * `cell` distingue les capacités paramétrées partageant `data-action` par leur `data-cell` stable.
- * Une action ambiguë est refusée avant tout événement. Autres refus explicites :
- *  - case ABSENTE (l'action n'est pas offerte dans cette situation) ;
- *  - case INERTE (`.cc-inert`, action `blocked` du registre) — dite comme telle ;
- *  - case FERMÉE (`disabled`/`aria-disabled`) — refus de `geste`, sa RAISON affichée remontée telle
- *    quelle : un gate qui se déclenche est un RÉSULTAT de recette, pas un obstacle.
- * Rend `{ actionId, label, rect }` au succès. Même dispatch souris réel que `clickButtonByText`.
- */
-export async function cliquerAction(session, actionId, { racine = '.combat-console', cell, delaiEntreeMs = DELAI_ENTREE } = {}) {
-  const selecteur = `[data-action=${JSON.stringify(actionId)}]${cell === undefined ? '' : `[data-cell=${JSON.stringify(cell)}]`}`;
-  const etat = await evaluerFn(session, (racine, selecteur) => {
-    const hote = document.querySelector(racine);
-    const cases = [...(hote?.querySelectorAll('[data-action]') ?? [])];
-    const matches = [...(hote?.querySelectorAll(selecteur) ?? [])];
-    if (!matches.length) return { absente: true, offertes: cases.map((b) => b.getAttribute('data-action')) };
-    const el = matches[0];
-    return { inerte: matches.length === 1 && el.classList.contains('cc-inert'), label: (el.getAttribute('aria-label') ?? el.textContent ?? '').trim() };
-  }, racine, selecteur);
-  if (etat.absente) {
-    throw new Error(`cliquerAction « ${actionId} »${cell === undefined ? '' : ` (cellule « ${cell} »)`} : aucune case de console ne porte cet id — offertes : ${etat.offertes.join(', ') || '(aucune)'}`);
-  }
-  if (etat.inerte) throw new Error(`cliquerAction « ${actionId} » : case INERTE (action déclarée sans dispatcher au registre) — rien à cliquer`);
-  const r = await geste(session, { selecteur, dans: racine }, { qui: 'cliquerAction', delaiEntreeMs }, clic());
-  return { actionId, label: etat.label, rect: { x: r.x, y: r.y } };
 }
 
 /** Frappe RÉELLE d'une touche — alias FRANÇAIS de `realKey` (même geste, même pipeline CDP). */

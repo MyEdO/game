@@ -11,7 +11,6 @@ import {
   DELAI_EVALUATE,
   champParLibelle,
   clickItemByText,
-  setAtelier,
   clickButtonByText,
   MOD_ALT,
   frapperTouche,
@@ -30,7 +29,6 @@ import {
   nomDeProfil,
   pidDeProfil,
   selectOption,
-  cliquerAction,
   cliquerPremierOffert,
   brancherCdp,
   killChromeTree,
@@ -51,11 +49,8 @@ import {
   infobulleDe,
   dernierTelechargement,
   DOSSIER_TELECHARGEMENTS,
-  lireIndexedDB,
   shot,
   verdictDebordement,
-  mesurerProvenance,
-  ouvrirFiche,
   ATTRIBUTS_VOLATILS,
   geste,
   clic,
@@ -684,17 +679,6 @@ test('items explicites : libellé sans badge, vrais clics, ambiguïté et recouv
   assert.deepEqual(couverte.etat.emis, [])
 })
 
-test('Atelier setter : on/off idempotents par aria-pressed et clic réel', async () => {
-  const { doc, etat, session } = pagePilotee('<header class="codex-top"><button aria-pressed="false">Atelier</button></header>')
-  const b = doc.querySelector('button')
-  b.onclick = () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))
-  assert.equal(await setAtelier(session, true), true)
-  assert.equal(await setAtelier(session, true), true)
-  assert.equal(await setAtelier(session, false), false)
-  assert.equal(await setAtelier(session, false), false)
-  assert.deepEqual(etat.cliques, ['Atelier', 'Atelier'])
-})
-
 test('clic ambigu : refuse avant tout événement, portée explicite départage', async () => {
   const { etat, session } = pagePilotee('<div id="a"><button>Nain</button></div><div id="b"><button>Nain</button></div>')
   await assert.rejects(() => clickButtonByText(session, 'Nain'), /cibles ambiguës/)
@@ -1032,29 +1016,16 @@ test('nom accessible explicite : aria-label prime sur les Blessures rendues du p
   assert.equal(doc.querySelector('.ptile').textContent, '14/14')
 })
 
-test('action paramétrée : ambiguïté refusée avant événement, cellule stable sélectionnée', async () => {
-  const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="incantation" data-cell="sort-lumiere">Lumière</button><button data-action="incantation" data-cell="sort-dome">Dôme</button></div>')
-  await assert.rejects(() => cliquerAction(session, 'incantation'), /2 cibles ambiguës.*Lumière.*Dôme/)
-  assert.deepEqual(etat.emis, [])
-  await cliquerAction(session, 'incantation', { cell: 'sort-dome' })
-  assert.deepEqual(etat.cliques, ['Dôme'])
-  await assert.rejects(() => cliquerAction(session, 'incantation', { cell: 'sort-inconnu' }), /cellule « sort-inconnu ».*aucune case/)
-})
-
-// ------------------------------------------------- `cliquerAction` : le contrôle fermé est celui de `geste`
-
-const CASE = (attrs, raison = '') => `<div class="combat-console"><button data-action="tir" ${attrs}>Tir${raison}</button></div>`
-
-test('cliquerAction : une case FERMÉE qui porte sa raison lève par `geste`, raison citée, aucun clic', async () => {
-  const { etat, session } = pagePilotee(CASE('data-gated aria-disabled="true" aria-describedby="g"', '<span data-gate id="g">Aucune munition</span>'))
-  await assert.rejects(() => cliquerAction(session, 'tir'), /cliquerAction « \[data-action="tir"\] » dans « \.combat-console » : contrôle FERMÉ \(aria-disabled\) — raison affichée : « Aucune munition »/)
+test('geste : aria-disabled ferme le contrôle et cite la raison sans émettre', async () => {
+  const { etat, session } = pagePilotee('<button id="a" aria-disabled="true" aria-describedby="raison">Ouvrir</button><span id="raison">Fichier verrouillé</span>')
+  await assert.rejects(() => geste(session, { selecteur: '#a' }, {}, clic()), /contrôle FERMÉ \(aria-disabled\) — raison affichée : « Fichier verrouillé »/)
   assert.deepEqual(etat.emis, [])
 })
 
-test('cliquerAction : une case OUVERTE dont seul le geste secondaire est refusé (`data-gated`) se clique', async () => {
-  const { etat, session } = pagePilotee(CASE('data-gated data-refus-2e aria-describedby="g"', '<span data-gate id="g">Focaliser : hors portée</span>'))
-  await cliquerAction(session, 'tir')
-  assert.equal(etat.cliques.length, 1)
+test('geste : la raison d’un geste secondaire ne ferme pas le contrôle', async () => {
+  const { etat, session } = pagePilotee('<button id="a" data-gated aria-describedby="raison">Ouvrir</button><span id="raison">Édition indisponible</span>')
+  await geste(session, { selecteur: '#a' }, {}, clic())
+  assert.deepEqual(etat.cliques, ['Ouvrir'])
 })
 
 // ------------------------------------------------- `selectOption` : ambiguïté et option fermée refusées
@@ -1489,51 +1460,6 @@ test('dernierTelechargement : un téléchargement EN COURS (.crdownload) est att
   assert.equal((await dernierTelechargement({ profile: 'p' }, { disque: disqueTelechargements(fichiers), timeoutMs: 500, pasMs: 5 })).nom, 'y.json')
 })
 
-// ------------------------------------------------- lireIndexedDB : observation seule
-
-/** `indexedDB` factice d'une page : `bases` = { nom: { magasin: [[cle, valeur]…] } } ; `ouvertes`
- *  compte les `open`. Les requêtes répondent au tour suivant, comme l'API. */
-function indexedDBFactice(bases) {
-  const ouvertes = []
-  const requete = (resultat) => { const r = {}; setTimeout(() => { r.result = resultat; r.onsuccess?.() }); return r }
-  return {
-    ouvertes,
-    api: {
-      databases: async () => Object.keys(bases).map((name) => ({ name })),
-      open: (nom) => {
-        ouvertes.push(nom)
-        const magasins = bases[nom]
-        return requete({
-          objectStoreNames: Object.keys(magasins),
-          transaction: (m, mode) => ({ objectStore: () => ({
-            mode,
-            getAllKeys: () => requete(magasins[m].map(([cle]) => cle)),
-            getAll: () => requete(magasins[m].map(([, valeur]) => valeur)),
-          }) }),
-          close: () => {},
-        })
-      },
-    },
-  }
-}
-
-test('lireIndexedDB : rend `[{ cle, valeur }]` du magasin', async () => {
-  const { dom, session } = sessionSurDom('<div></div>')
-  const idb = indexedDBFactice({ 'wfrp-saves': { emplacements: [[1, { nom: 'Partie 1' }], [2, { nom: 'Partie 2' }]] } })
-  dom.window.indexedDB = idb.api
-  assert.deepEqual(JSON.parse(JSON.stringify(await lireIndexedDB(session, 'wfrp-saves', 'emplacements'))), [{ cle: 1, valeur: { nom: 'Partie 1' } }, { cle: 2, valeur: { nom: 'Partie 2' } }])
-})
-
-test('lireIndexedDB : une base ABSENTE n’est jamais ouverte (open la créerait) — refus listant les bases', async () => {
-  const { dom, session } = sessionSurDom('<div></div>')
-  const idb = indexedDBFactice({ 'wfrp-saves': { emplacements: [] } })
-  dom.window.indexedDB = idb.api
-  await assert.rejects(() => lireIndexedDB(session, 'autre', 'x'), /lireIndexedDB : base « autre » absente — bases : wfrp-saves/)
-  assert.deepEqual(idb.ouvertes, [])
-  await assert.rejects(() => lireIndexedDB(session, 'wfrp-saves', 'x'), /magasin « x » absent de « wfrp-saves » — magasins : emplacements/)
-})
-
-
 // ------------------------------------------------- shot ne change pas l'état capturé
 
 test('shot : par défaut, le focus RESTE — le tiroir qui se ferme au blur reste ouvert ; `neutraliser` le retire', async (t) => {
@@ -1619,117 +1545,17 @@ test('cliquerSelecteur / clickButtonByText : `attendreChangement` passe dès que
   await clickButtonByText(session, 'Ouvrir', { attendreChangement: true })
 })
 
-
-// ------------------------------------------------- mesurerProvenance : le rendu de `ProvenanceDuTexte`
-
-/** Le rendu DOM de `ProvenanceDuTexte` (`src/ui/editor/ProvenanceDuTexte.tsx`) : segment
- *  « Provenance du texte » (`OptionChooser layout="seg"`), option refusée = `GatedAction`
- *  (`aria-disabled` + raison liée), puis l'adresse et « Détacher », ou le champ de référence. */
-const provenance = (sujet, { retenue, refusees = [], adresse, reference }) => `
-  <div class="ed-field">
-    <div class="rm-loc-inline"><span class="mini-title">Provenance du texte</span><div class="seg">
-      ${['Copie', 'Adapté', 'Maison'].map((m, i) => (refusees.includes(m)
-        ? `<button aria-label="${m} — provenance ${sujet}" aria-pressed="${m === retenue}" aria-disabled="true" aria-describedby="r-${sujet.length}-${i}">${m}</button><span id="r-${sujet.length}-${i}" hidden>Le texte copie un passage du livre : détache-le pour le reformuler.</span>`
-        : `<button aria-label="${m} — provenance ${sujet}" aria-pressed="${m === retenue}">${m}</button>`)).join('')}
-    </div></div>
-    ${adresse ? `<div class="row"><span class="source-badge">${adresse}</span><button class="btn small" aria-label="Détacher le texte ${sujet}">Détacher</button></div>` : ''}
-    ${reference ? `<div class="ed-field"><span>${reference}</span><select aria-label="Livre"></select></div>` : ''}
-  </div>`
-
-test('mesurerProvenance : copie ADRESSÉE — mode, refus cités, adresse et « Détacher »', async () => {
-  const { session } = sessionSurDom(`<div id="replique">${provenance('de la réplique', { retenue: 'Copie', refusees: ['Adapté', 'Maison'], adresse: 'EDO 3' })}</div>`)
-  assert.deepEqual(JSON.parse(JSON.stringify(await mesurerProvenance(session, '#replique'))), {
-    sujet: 'de la réplique',
-    mode: 'Copie',
-    options: [
-      { libelle: 'Copie', retenue: true, refus: null },
-      { libelle: 'Adapté', retenue: false, refus: 'Le texte copie un passage du livre : détache-le pour le reformuler.' },
-      { libelle: 'Maison', retenue: false, refus: 'Le texte copie un passage du livre : détache-le pour le reformuler.' },
-    ],
-    adresse: 'EDO 3',
-    detacher: { ouvert: true },
-    reference: null,
-  })
+test('localiseur unique : racine ou cible en double refusée, marque retirée après le clic', async () => {
+  const { doc, etat, session } = pagePilotee('<section class="zone" id="a"><button>Lire</button></section><section class="zone"><button>Lire</button></section>')
+  await assert.rejects(() => geste(session, { nom: 'Lire', dans: '.zone' }, {}, clic()), /2 racines ambiguës « \.zone »/)
+  await assert.rejects(() => geste(session, { selecteur: 'button' }, {}, clic()), /2 cibles ambiguës « button »/)
+  assert.deepEqual(etat.emis, [])
+  await geste(session, { nom: 'Lire', dans: '#a' }, {}, clic())
+  assert.deepEqual(etat.cliques, ['Lire'])
+  assert.equal(doc.querySelector('[data-recette-cible]'), null)
 })
 
-test('mesurerProvenance : texte ADAPTÉ — le champ de référence monté, ni adresse ni « Détacher »', async () => {
-  const { session } = sessionSurDom(`<div id="stade">${provenance('du stade 2', { retenue: 'Adapté', reference: 'Adapté de' })}</div>`)
-  const m = await mesurerProvenance(session, '#stade')
-  assert.equal(m.mode, 'Adapté')
-  assert.equal(m.reference, 'Adapté de')
-  assert.equal(m.adresse, null)
-  assert.equal(m.detacher, null)
-})
-
-test('mesurerProvenance : aucune provenance, ou plusieurs, ou conteneur absent — refus NOMMÉS', async () => {
-  const { session } = sessionSurDom(`<div id="vide"></div><div id="deux">${provenance('du PNJ', { retenue: 'Maison' })}${provenance('du stade 1', { retenue: 'Maison' })}</div>`)
-  await assert.rejects(() => mesurerProvenance(session, '#vide'), /mesurerProvenance « #vide » : aucune provenance de texte/)
-  await assert.rejects(() => mesurerProvenance(session, '#deux'), /plusieurs provenances : du PNJ \| du stade 1/)
-  await assert.rejects(() => mesurerProvenance(session, '#absent'), /« #absent » : absent du DOM/)
-})
-
-// ------------------------------------------------- gabarit de recette
-
-/** Session factice du gabarit : console à `erreurs`, fermeture comptée. */
-
-// ------------------------------------------------- ouvrirFiche : le Compendium aux gestes
-
-/** Le Codex rendu par `CompendiumScreen` (onglets « Groupes du Codex », pastilles `button.codex-cat`
- *  avec leur compteur, sous-groupe replié en `<details class="fold">`, `.codex-search`, rangées
- *  `ListRow` `button.listrow > .lr-name` retenues par `aria-current`), monté par le bouton du menu. */
-const CODEX = `<div class="screen codex"><header class="codex-top"><div class="codex-groups"><div role="tablist" aria-label="Groupes du Codex"><button role="tab">Règles</button><button role="tab">Bestiaire</button></div></div></header>
-  <div class="codex-cats"><button class="chip codex-cat on">Talents<span class="count">2</span></button><details class="fold"><summary><span class="fold-title">Effets</span></summary><button class="chip codex-cat">Maladies<span class="count">2</span></button></details></div>
-  <input class="codex-search" type="search" aria-label="Rechercher dans le Codex">
-  <div class="codex-rows"><button class="listrow"><span class="lr-name">Pourriture de Nurgle</span><span class="codex-row-src">LDB</span></button><button class="listrow"><span class="lr-name">Pourriture</span><span class="codex-row-src">LDB</span></button></div></div>`
-
-function pageCodex() {
-  const p = pagePilotee('<div class="menu"><button id="compendium">Compendium</button></div>')
-  const w = p.dom.window
-  const doc = p.doc
-  w.Element.prototype.getBoundingClientRect = function () {
-    for (let a = this.parentElement; a; a = a.parentElement) if (a.tagName === 'DETAILS' && !a.open && this.tagName !== 'SUMMARY') return { x: 0, y: 0, top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }
-    return { x: 10, y: 100, top: 100, bottom: 120, left: 10, right: 110, width: 100, height: 20 }
-  }
-  doc.querySelector('#compendium').onclick = () => {
-    doc.body.innerHTML = CODEX
-    for (const r of doc.querySelectorAll('.listrow')) r.onclick = () => { for (const x of doc.querySelectorAll('.listrow')) x.removeAttribute('aria-current'); r.setAttribute('aria-current', 'true') }
-  }
-  const rpc = socketDe(p.session).gerer
-  socketDe(p.session).gerer = async (m, params) => {
-    const r = await rpc(m, params)
-    if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseReleased' && p.etat.marque?.tagName === 'INPUT') p.etat.marque.focus()
-    if (m === 'Input.insertText') doc.activeElement.value = params.text
-    return r
-  }
-  return p
-}
-
-test('ouvrirFiche : menu → groupe → catégorie dépliée de son sous-groupe → recherche → rangée EXACTE retenue', async () => {
-  const { doc, etat, session } = pageCodex()
-  assert.deepEqual(await ouvrirFiche(session, { groupe: 'Règles', categorie: 'Maladies', entree: 'Pourriture' }), { entree: 'Pourriture' })
-  assert.deepEqual(etat.cliques, ['Compendium', 'Règles', 'Effets', 'Maladies2', '', 'PourritureLDB'])
-  assert.equal(doc.querySelector('.codex-search').value, 'Pourriture')
-  assert.equal(doc.querySelector('[aria-current="true"] .lr-name').textContent, 'Pourriture')
-})
-
-test('ouvrirFiche : catégorie ou rangée absente — refus NOMMANT les offertes', async () => {
-  const { session } = pageCodex()
-  await assert.rejects(() => ouvrirFiche(session, { categorie: 'Sorts', entree: 'x' }), /ouvrirFiche : aucune catégorie « Sorts » — offertes : Talents \| Maladies/)
-  await assert.rejects(() => ouvrirFiche(session, { entree: 'Peste' }), /ouvrirFiche : aucune rangée « Peste » — offertes : Pourriture de Nurgle \| Pourriture/)
-})
-
-test('localiseur unique : la marque de catégorie est retirée, une racine en double LÈVE au lieu de prendre la première', async () => {
-  const codex = pageCodex()
-  await ouvrirFiche(codex.session, { groupe: 'Règles', categorie: 'Maladies', entree: 'Pourriture' })
-  assert.equal(codex.doc.querySelector('[data-recette-categorie], [data-recette]'), null)
-  const atelier = pagePilotee('<header class="codex-top"><button aria-pressed="false">Atelier</button></header><header class="codex-top"><button aria-pressed="true">Atelier</button></header>')
-  await assert.rejects(() => setAtelier(atelier.session, true), /setAtelier : 2 racines ambiguës « \.codex-top »/)
-  assert.deepEqual(atelier.etat.emis, [])
-  const { session } = sessionSurDom(`<div class="texte">${provenance('du PNJ', { retenue: 'Copie' })}</div><div class="texte">${provenance('du stade 1', { retenue: 'Maison' })}</div>`)
-  await assert.rejects(() => mesurerProvenance(session, '.texte'), /mesurerProvenance : 2 cibles ambiguës « \.texte »/)
-})
-
-test('ATTRIBUTS_VOLATILS : le compteur d’images et la file du cuiseur (`GameStage3D.tsx`)', () => {
+test('ATTRIBUTS_VOLATILS : le compteur d’images et la file de rendu', () => {
   assert.deepEqual([...ATTRIBUTS_VOLATILS], ['data-rendus', 'data-file'])
 })
 
@@ -1810,32 +1636,6 @@ test('frappe : une session non branchée n’a aucun émetteur ; `focus` exige l
   const s = sessionClavier()
   await assert.rejects(() => frappe(s, { focus: '#champ', qui: 'essai' }, (emettre) => emettre('texte', { text: 'x' })), /essai « #champ » : la cible n'a pas le focus/)
   assert.deepEqual(s.emis, [])
-})
-
-function pageCodexHomonymes(lignes) {
-  const p = pagePilotee(`<div class="screen codex"><input class="codex-search"><div class="codex-rows">${lignes.map(([nom, livre], i) =>
-    `<button class="listrow" id="r${i}"><span class="lr-name">${nom}</span><span class="codex-row-src">${livre}</span></button>`).join('')}</div></div>`)
-  p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 10, width: 20, height: 20 })
-  const gerer = socketDe(p.session).gerer
-  socketDe(p.session).gerer = async (m, params) => {
-    if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseReleased' && p.etat.marque?.tagName === 'INPUT') p.etat.marque.focus()
-    if (m === 'Input.insertText') p.doc.activeElement.value = params.text
-    const r = await gerer(m, params)
-    if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseReleased' && p.etat.marque?.classList.contains('listrow')) {
-      for (const b of p.doc.querySelectorAll('.listrow')) b.removeAttribute('aria-current')
-      p.etat.marque.setAttribute('aria-current', 'true')
-    }
-    return r
-  }
-  return p
-}
-
-test('ouvrirFiche : des HOMONYMES lèvent en nommant les livres offerts ; `{ livre }` départage', async () => {
-  const { etat, session } = pageCodexHomonymes([['Épée', 'LDB'], ['Épée', 'ADE I']])
-  await assert.rejects(() => ouvrirFiche(session, { entree: 'Épée' }), /ouvrirFiche : 2 cibles ambiguës « Épée » — button#r0\.listrow « ÉpéeLDB » \| button#r1\.listrow « ÉpéeADE I » — préciser \{ livre \} — offerts : LDB \| ADE I ; aucun événement émis/)
-  assert.deepEqual(etat.cliques.filter((c) => c.startsWith('Épée')), [])
-  assert.deepEqual(await ouvrirFiche(session, { entree: 'Épée', livre: 'ADE I' }), { entree: 'Épée', livre: 'ADE I' })
-  assert.equal(etat.cliques.at(-1), 'ÉpéeADE I')
 })
 
 // ------------------------------------------------- #1953, quatrième passage : verrou, point, localiseur unique
@@ -1985,10 +1785,6 @@ test('helpers de geste et de frappe : chacun transmet `delaiEntreeMs` à son ém
     p.doc.querySelector('#a').focus()
     return p
   }
-  const codexMuetSurRangee = () => {
-    const p = pageCodex()
-    return rendreMuet(p, (methode) => methode.startsWith('Input.') && p.etat.marque?.classList.contains('listrow'))
-  }
   const souris = 'dispatch(Mouse|Touch)Event'
   /** [helper, page, jeu, émetteur nommé par l'erreur, méthode `Input`] : un helper COMPOSÉ a un cas par
    *  geste propre et un par helper qu'il appelle. */
@@ -2006,9 +1802,6 @@ test('helpers de geste et de frappe : chacun transmet `delaiEntreeMs` à son ém
     ['deplierVers', () => rendreMuet(pageDefilante('<details><summary data-y="1500">Loin</summary><input id="champ"></details>')), (s) => deplierVers(s, '#champ', { pauseMs: 0, ...court })],
     ['deplierVers', () => rendreMuet(pageDefilante('<details><summary data-y="100">Près</summary><input id="champ"></details>')), (s) => deplierVers(s, '#champ', { pauseMs: 0, ...court })],
     ['selectOption', () => pageInputMuet(LISTE), (s) => selectOption(s, '#ch', 'Chapitre 20 — Le Bac', court)],
-    ['ouvrirFiche', () => rendreMuet(pageCodex()), (s) => ouvrirFiche(s, { entree: 'Pourriture' }, court), 'clickButtonByText'],
-    ['ouvrirFiche', codexMuetSurRangee, (s) => ouvrirFiche(s, { groupe: 'Règles', categorie: 'Maladies', entree: 'Pourriture' }, court)],
-    ['cliquerAction', () => pageInputMuet('<div class="combat-console"><button data-action="tir">Tir</button></div>'), (s) => cliquerAction(s, 'tir', court)],
     ['realKey', touche, (s) => realKey(s, { key: 'a' }, court), 'realKey', 'dispatchKeyEvent'],
     ['realKeyDown', touche, (s) => realKeyDown(s, ALT, court), 'realKeyDown', 'dispatchKeyEvent'],
     ['realKeyUp', touche, (s) => realKeyUp(s, ALT, court), 'realKeyUp', 'dispatchKeyEvent'],
@@ -2038,18 +1831,15 @@ test('nom d’élément (`FN_NOMMER_ELEMENT`) : ambiguïté et focus manquant no
   await assert.rejects(() => frappe(focus.session, { focus: '#champ' }, (emettre) => emettre('texte', { text: 'x' })), /frappe « #champ » : la cible n'a pas le focus \(focus sur button\.icone\.fermer\)/)
 })
 
-test('ouvrirFiche : `{ livre }` filtre EXACT sur le livre de la rangée — préfixe d’id et livre cité hors rangées', async () => {
-  const prefixes = [['Épée', 'tome'], ['Épée', 'tome-compagnon']]
-  for (const livre of ['tome', 'tome-compagnon']) {
-    const { etat, session } = pageCodexHomonymes(prefixes)
-    assert.deepEqual(await ouvrirFiche(session, { entree: 'Épée', livre }), { entree: 'Épée', livre })
-    assert.equal(etat.cliques.at(-1), 'Épée' + livre)
-  }
-  const { doc, etat, session } = pageCodexHomonymes([['Épée', 'LDB'], ['Épée', 'ADE I']])
-  doc.querySelector('.screen.codex').insertAdjacentHTML('afterbegin', '<aside class="codex-detail"><p>Source : LDB</p></aside>')
-  assert.deepEqual(await ouvrirFiche(session, { entree: 'Épée', livre: 'LDB' }), { entree: 'Épée', livre: 'LDB' })
-  assert.equal(etat.cliques.at(-1), 'ÉpéeLDB')
-  await assert.rejects(() => ouvrirFiche(session, { entree: 'Épée', livre: 'MDG' }), /ouvrirFiche : aucune rangée « Épée » du livre « MDG » — offertes : Épée \| Épée/)
+test('localiseur : l’étiquette départage deux noms et filtre par correspondance exacte', async () => {
+  const { etat, session } = pagePilotee('<button><span>Ouvrir</span><i>A</i></button><button><span>Ouvrir</span><i>AB</i></button><aside>A</aside>')
+  const cible = { nom: 'Ouvrir', selecteur: 'button', libelle: 'span', etiquette: { selecteur: 'i', option: 'groupe' } }
+  await assert.rejects(() => geste(session, cible, {}, clic()), /2 cibles ambiguës « Ouvrir ».*offerts : A \| AB/)
+  assert.deepEqual(etat.emis, [])
+  await geste(session, { ...cible, etiquette: { ...cible.etiquette, texte: 'A' } }, {}, clic())
+  await geste(session, { ...cible, etiquette: { ...cible.etiquette, texte: 'AB' } }, {}, clic())
+  assert.deepEqual(etat.cliques, ['OuvrirA', 'OuvrirAB'])
+  await assert.rejects(() => geste(session, { ...cible, etiquette: { ...cible.etiquette, texte: 'B' } }, { attenteMs: 0 }, clic()), /aucune cible .*groupe « B »/)
 })
 
 test('infobulleDe : deux bulles ouvertes LÈVENT, une seule se lit, aucune rend `texte: null` ; aucune marque ne reste', async () => {

@@ -520,8 +520,8 @@ test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide
 })
 
 test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suite que la CI joue est retenue, la même pour la dérivation, les parties de run.mjs et les gardes (#2651)', async (t) => {
-  // Dedans : `src` en .ts/.tsx, suivi ou non suivi, sous un dossier pointé. Dehors : extension hors racine (`server/src`
-  // en .tsx), bench, hors racine (`docs`), ignoré, suivi mais supprimé du disque, suivi sous un `node_modules`.
+  // Dedans : `src` en .ts, suivi ou non suivi, sous un dossier pointé. Dehors : .tsx, bench,
+  // hors racine (`docs`), ignoré, suivi mais supprimé du disque, suivi sous un `node_modules`.
   const racine = forger(t, {
     '.gitignore': '/node_modules/\nsrc/ign/\n', 'tsconfig.json': '{}', 'server/package.json': '{}',
     'src/noyau/voyage-cadence.test.ts': 'export {}\n', 'src/b.test.tsx': 'export {}\n', 'server/src/c.test.tsx': 'export {}\n',
@@ -532,7 +532,7 @@ test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suit
     'src/f.test.ts': 'export {}\n', 'src/ign/g.test.ts': 'export {}\n',
   }, { commiter: false })
   rmSync(join(racine, 'src/z.test.ts'))
-  const suite = ['src/.x/h.test.ts', 'src/b.test.tsx', 'src/f.test.ts', 'src/noyau/voyage-cadence.test.ts']
+  const suite = ['src/.x/h.test.ts', 'src/f.test.ts', 'src/noyau/voyage-cadence.test.ts']
 
   const perimetre = await deriver(racine, { base: 'HEAD' })
   assert.deepEqual(perimetre.toolchain, ['server/package.json', 'tsconfig.json'])
