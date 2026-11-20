@@ -9,19 +9,21 @@ se mesure sur la forme sans cibles cuites, pour qu'une race garde l'écart que s
 
 Maillage : les faces de `body` dont l'os dominant est la tête ou le cou (`corpulence.os_des_faces`), au-dessus de
 l'enveloppe haute de la couture du cou de la base vue de `CENTRE` (`tete.elevation_de_la_couture`, plus
-`MARGE_DE_COUTURE_DEG`), choisies sur la forme sans cibles cuites. Au-dessus de la couture, la peau passe de celle de
-la tête de la base à celle de MakeHuman sur `FONDU_DU_COU` (`tete.fondre_sur_le_cou`), comme une tête de `tete.py` : ses
-poids, empruntés au plus près, y sont ceux de la base, et les écarts venus de MakeHuman (`feminin`, traits) y prennent
-la même part. Les faces qu'on ne voit de nulle part (`cachees` : orbites, dessous des paupières, cavité de la bouche,
-fond des narines), ni au repos ni sous `feminin` ni sous un trait, sont retirées. Le bord bas se coud à la couture
-(`tete.coudre`), aux poids, aux clés et aux normales du cou ; tout autre bord (entre les lèvres, entre les paupières
-derrière chaque œil) se ferme d'un éventail enfoncé, à ses propres sommets (`fermer`), qui prend les poids et les clés
-du bord qu'il double : sous `visage_inverse`, qui emporte l'œil, la peau est close derrière lui. Yeux : les groupes `helper-l-eye` et `helper-r-eye`.
+`MARGE_DE_COUTURE_DEG`), choisies sur la forme sans cibles cuites. Les faces qu'on ne voit de nulle part (`cachees` :
+orbites, dessous des paupières, cavité de la bouche, fond des narines), ni au repos ni sous `feminin` ni sous un
+trait, sont retirées. Le bord bas se coud à la couture (`tete.coudre`), aux poids, aux clés et aux normales du cou ;
+tout autre bord (entre les lèvres, entre les paupières derrière chaque œil) se ferme d'un éventail à ses propres
+sommets (`fermer`), qui prend les poids et les clés du bord qu'il double : sous `visage_inverse`, qui emporte l'œil,
+la peau est close derrière lui. Les poids, empruntés au plus près à la peau de la tête de la base, sont adoucis
+(`poids_adoucis`). Yeux : les groupes `helper-l-eye` et `helper-r-eye`. Sourcils : les faces que la cible `SOURCILS`
+déplace le plus (`faces_des_sourcils`), doublées à `EPAISSEUR_DES_SOURCILS_M` de la peau en matière `cheveux`, aux
+poids et aux clés de la peau qu'elles doublent.
 
 Clés : les silhouettes et les clés `gabarit_*` de la base, transférées du corps (`tete.cles_du_corps`) ; `feminin` y
 ajoute l'écart, sommet à sommet, de la même forme à l'état macro `ETAT_FEMININ`, recalée et calée comme elle : le calage
 annule l'écart de taille de MakeHuman entre les deux états, qui est celui de la stature, que la base ne change pas, et
-les pièces de tête restent bâties à cette taille. Chaque trait de
+les pièces de tête restent bâties à cette taille ; hors du visage et des oreilles, cet écart ne garde que ce qu'il
+change de la forme (`sans_glissement`). Chaque trait de
 `TRAITS`, partagé par toutes ces têtes, ses cibles lues sommet à sommet ; `visage_inverse`
 (mutation « Visage inversé », `mutations.json`), le visage retourné tête en bas : de `AXE` (sur l'axe avant-arrière à la
 hauteur `AXE_DU_VISAGE`), chaque sommet du visage prend le rayon de la peau dans la direction reflétée par le plan
@@ -42,14 +44,18 @@ from noms_formes_de_tete import ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAG
 from noms_silhouettes import FEMININ
 from production import pack_source
 from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere, elevation,
-                  elevation_de_la_couture, fondre_sur_le_cou, normales_de_sommet, poser_les_normales_de_la_couture)
+                  elevation_de_la_couture, normales_de_sommet, poser_les_normales_de_la_couture)
 from tissu import Maillage, emprunter, fondu, lisser, maillage_skinne, poids_normalises, porteur_de, voisinage
 
 ETAT = 'male-young-averagemuscle-averageweight'
 ETAT_FEMININ = 'female-young-averagemuscle-averageweight'
-FONDU_DU_COU = 0.2
-"""Part de l'arc de la couture au pôle sur laquelle la tête passe de la peau de la base à MakeHuman : celle des têtes de
-`tete.py` (`FONDU_DU_COU` de leur `donnees.py`)."""
+SOURCILS = 'eyebrows/eyebrows-trans-forward'
+"""Cible dont les faces les plus déplacées portent les sourcils (`faces_des_sourcils`)."""
+OREILLES = ('ears/l-ear-trans-backward', 'ears/r-ear-trans-backward')
+"""Cibles qui déplacent chaque oreille d'un bloc : la part d'un sommet dans une oreille est son déplacement sur le plus
+grand de sa cible."""
+EPAISSEUR_DES_SOURCILS_M = 0.001
+"""Écart des sourcils à la peau (décision du 2026-11-20, #4413 : « environ 1 mm »)."""
 OS_DE_LA_TETE = ('Head', 'neck_01')
 YEUX = ('helper-l-eye', 'helper-r-eye')
 BOUCHE_FERMEE = (('mouth/mouth-upperlip-height-incr', 1.0),
@@ -70,8 +76,6 @@ FEMININS_VUS = (0.5, 1.0)
 """Poids de `feminin` où se cherche une face cachée, avec le repos et chaque trait de `TRAITS` à 1."""
 ECART_DE_VISEE_M = 1e-4
 """Départ d'une visée au-dessus de sa face, pour qu'elle ne la touche pas elle-même."""
-ENFONCEMENT_M = 0.004
-"""HYPOTHÈSE : recul du centre de l'éventail qui ferme un bord."""
 PASSES_DE_LISSAGE_MAX = 20
 """Passes de lissage des poids au-delà desquelles la construction s'arrête."""
 PINCEAU_M = {'rayon': 0.001, 'depart': 0.005}
@@ -150,8 +154,9 @@ def boucles_de_bord(triangles, X):
     return sorted(boucles, key=lambda b: np.linalg.norm(X[b] - X[b[1:] + b[:1]], axis=1).sum(), reverse=True)
 
 
-def composante_du_haut(triangles, X):
-    """Les triangles de la composante connexe (par sommet partagé) qui porte le sommet le plus haut."""
+def composantes(triangles):
+    """Par sommet de `triangles`, un sommet de sa composante connexe (par sommet partagé), le même pour toute la
+    composante."""
     parent = {}
 
     def racine(i):
@@ -163,8 +168,25 @@ def composante_du_haut(triangles, X):
     for a, b, c in triangles:
         parent[racine(a)] = racine(b)
         parent[racine(b)] = racine(c)
-    haut = racine(max({i for t in triangles for i in t}, key=lambda i: X[i][2]))
-    return np.array([t for t in triangles if racine(t[0]) == haut])
+    return {i: racine(i) for i in parent}
+
+
+def composante_du_haut(triangles, X):
+    """Les triangles de la composante connexe (par sommet partagé) qui porte le sommet le plus haut."""
+    de = composantes(triangles)
+    haut = de[max(de, key=lambda i: X[i][2])]
+    return np.array([t for t in triangles if de[t[0]] == haut])
+
+
+def faces_des_sourcils(triangles, amplitudes):
+    """Les triangles de `triangles` que la cible `SOURCILS` déplace le plus (`amplitudes`, par sommet), aussi loin
+    qu'ils font deux sourcils : le plus bas niveau d'amplitude au-dessus duquel les triangles aux trois sommets déplacés
+    forment deux composantes. Plus bas, les deux sourcils se rejoignent en un bandeau sur le front."""
+    for niveau in np.unique(amplitudes[amplitudes > 0]):
+        faces = triangles[(amplitudes[triangles] >= niveau).all(axis=1)]
+        if len(set(composantes(faces).values())) == 2:
+            return faces
+    raise ValueError('tête MakeHuman : aucun niveau de la cible des sourcils ne fait deux sourcils')
 
 
 def visees():
@@ -211,20 +233,18 @@ def cachees(triangles, etats, ecrans, sens):
 
 def fermer(M, boucle, X, C):
     """Ferme la boucle `boucle` (sommets `X`) d'un éventail, et rend ses sommets dans `M` : ceux du bord, doublés, puis son
-    centre, reculé de `ENFONCEMENT_M` du milieu de la boucle vers l'axe vertical de `C`, à l'horizontale. Ses triangles
-    s'enroulent tous dans le sens de la boucle, celui qui tourne leur somme vers l'avant : presque horizontaux entre deux
-    lèvres, tournés un à un vers l'avant ils se tournaient le dos. L'éventail a ses sommets à lui : là où les lèvres se
-    chevauchent, il se replie, et ses normales, mêlées à celles de la peau, ombraient le bord des lèvres."""
+    centre, au milieu de la boucle : l'éventail affleure le bord de ce qui se voit, sans fond d'ombre entre deux lèvres.
+    Ses triangles s'enroulent tous dans le sens de la boucle, celui qui tourne leur somme à l'opposé de l'axe vertical de
+    `C` : presque horizontaux entre deux lèvres, tournés un à un vers l'avant ils se tournaient le dos. L'éventail a ses
+    sommets à lui : là où les lèvres se chevauchent, il se replie, et ses normales, mêlées à celles de la peau,
+    ombraient le bord des lèvres."""
     milieu = X[boucle].mean(axis=0)
-    vers_l_axe = (C - milieu) * np.array([1.0, 1.0, 0.0])
-    vers_l_axe /= np.linalg.norm(vers_l_axe)
-    fond = milieu + ENFONCEMENT_M * vers_l_axe
-    siens = M.ajouter([*X[boucle], fond], 'peau')
+    siens = M.ajouter([*X[boucle], milieu], 'peau')
     A, B = X[boucle], X[boucle[1:] + boucle[:1]]
-    normales = np.cross(B - A, fond - A)
-    normales *= -np.sign(normales.sum(axis=0) @ vers_l_axe)
+    normales = np.cross(B - A, milieu - A)
+    normales *= -np.sign(normales.sum(axis=0) @ ((C - milieu) * np.array([1.0, 1.0, 0.0])))
     for i, (a, b_, n) in enumerate(zip(A, B, normales)):
-        M.triangle(siens[i], siens[(i + 1) % len(boucle)], siens[-1], (a + b_ + fond) / 3.0 - n / np.linalg.norm(n))
+        M.triangle(siens[i], siens[(i + 1) % len(boucle)], siens[-1], (a + b_ + milieu) / 3.0 - n / np.linalg.norm(n))
     return siens
 
 
@@ -283,15 +303,36 @@ def calage(peau, yeux, H):
     return echelle, H * (1.0 - echelle) + translation
 
 
+def part_du_visage(direction):
+    """La part du visage dans la `direction` vue de `AXE` : entière devant, nulle hors de `OUVERTURE_DU_VISAGE_DEG`."""
+    def part(angle, bornes):
+        return fondu((bornes[1] - abs(angle)) / (bornes[1] - bornes[0]))
+
+    return part(azimut(direction), OUVERTURE_DU_VISAGE_DEG['azimut']) * part(elevation(direction), OUVERTURE_DU_VISAGE_DEG['elevation'])
+
+
+def sans_glissement(X, ecart, utiles, triangles, oreilles, H):
+    """L'écart `ecart` des sommets `utiles` de la peau `X` (`triangles`), gardé au visage (`part_du_visage`, vu de
+    `AXE`) et aux oreilles (`oreilles`, la part de chaque sommet), dont les traits se déplacent, et ramené ailleurs à ce
+    qu'il change de la forme : le chemin du sommet au point le plus proche de la peau déplacée. D'une forme de MakeHuman
+    à l'autre, les sommets du crâne et de la nuque glissent sur la peau de centimètres sans qu'elle bouge d'autant ; ce
+    glissement, que la couture du cou arrête, y plissait la nuque."""
+    axe = H + np.array([0.0, CENTRE[1], AXE_DU_VISAGE])
+    deplacee = porteur_de(X + ecart, triangles, np.zeros((len(X), 1)))['arbre']
+    sortie = ecart.copy()
+    for i in utiles:
+        w = max(part_du_visage((X[i] - axe) / np.linalg.norm(X[i] - axe)), oreilles[i])
+        if w < 1.0:
+            sortie[i] = w * ecart[i] + (1.0 - w) * (np.array(deplacee.find_nearest(X[i].tolist())[0]) - X[i])
+    return sortie
+
+
 def visage_inverse(P, peau, yeux, triangles, H):
     """La clé `visage_inverse` des sommets `P` (monde) : sur les sommets `peau`, l'écart entre le rayon de la peau
     (`triangles`) dans la direction reflétée et dans la sienne, vus de `AXE`, à la part du visage ; sur les sommets
     `yeux`, le demi-tour autour de l'axe."""
     axe = H + np.array([0.0, CENTRE[1], AXE_DU_VISAGE])
     surface = porteur_de(P, triangles, np.zeros((len(P), 1)))
-
-    def part(angle, bornes):
-        return fondu((bornes[1] - abs(angle)) / (bornes[1] - bornes[0]))
 
     def rayon(direction):
         """Le rayon de la peau vue de l'axe le long de `direction`, `None` où elle est ouverte (sous la mâchoire)."""
@@ -307,7 +348,7 @@ def visage_inverse(P, peau, yeux, triangles, H):
         d = P[v] - axe
         propre = np.linalg.norm(d)
         d /= propre
-        w = part(azimut(d), OUVERTURE_DU_VISAGE_DEG['azimut']) * part(elevation(d), OUVERTURE_DU_VISAGE_DEG['elevation'])
+        w = part_du_visage(d)
         sien, reflete = (rayon(d), rayon(d * np.array([1.0, 1.0, -1.0]))) if w > 0 else (None, None)
         if sien is not None and reflete is not None:
             directions[v], parts[v], siens[v], refletes[v] = d, w, max(sien, propre), reflete
@@ -370,15 +411,8 @@ def construire(D, materiaux, b):
     au_dessus = np.zeros(len(X), dtype=bool)
     au_dessus[utiles] = np.array([elevation(cale[i] - C) for i in utiles]) > seuil
     triangles = composante_du_haut(triangles[au_dessus[triangles].all(axis=1)], cale)
-    utiles = np.unique(triangles)
-    rayons = np.linalg.norm(X[utiles] - C, axis=1)
-    enveloppe = elevation_de_la_couture(S, C, np.array([azimut(x - C) for x in X[utiles]]))
-    arcs = (np.array([elevation(x - C) for x in X[utiles]]) - enveloppe) / (90.0 - enveloppe)
-    fondus, parts = fondre_sur_le_cou(b.porteur(ZONES_DES_CLES), C, (X[utiles] - C) / rayons[:, None], rayons, arcs,
-                                      FONDU_DU_COU)
-    X[utiles] = C + (fondus / rayons)[:, None] * (X[utiles] - C)
-    for delta in de_makehuman.values():
-        delta[utiles] *= parts[:, None]
+    oreilles = np.max([a / a.max() for a in (np.linalg.norm(cible([(nom, 1.0)]), axis=1) for nom in OREILLES)], axis=0)
+    de_makehuman[FEMININ] = sans_glissement(X, de_makehuman[FEMININ], np.unique(triangles), triangles, oreilles, H)
     bas = boucles_de_bord(triangles, X)[0]
     normales = np.cross(X[triangles[:, 1]] - X[triangles[:, 0]], X[triangles[:, 2]] - X[triangles[:, 0]])
     sens = np.sign(np.einsum('ij,ij->', normales, X[triangles].mean(axis=1) - C))
@@ -409,11 +443,12 @@ def construire(D, materiaux, b):
     for tri, n, c in zip(triangles.tolist(), normales, centres):
         M.triangle(*(rang[i] for i in tri), c - sens * 1e-4 * n)
     lus = [lambda champ: champ[utiles]]          # par groupe de sommets ajoutés, son champ lu dans un champ du donneur
-    fermetures = []                              # par bord fermé : (sommets de l'éventail, sommets de peau qu'ils doublent)
+    doublures = []                               # (sommets qui en doublent d'autres, leur champ lu dans celui de la pièce)
     for boucle in autres:
         print('TETE_MH bord fermé :', len(boucle), 'arêtes, milieu', np.round(X[boucle].mean(axis=0) - H, 3).tolist(),
               flush=True)
-        fermetures.append((fermer(M, boucle, X, C), [rang[i] for i in boucle]))
+        doublures.append((fermer(M, boucle, X, C),
+                          lambda champ, doubles=[rang[i] for i in boucle]: np.concatenate([champ[doubles], champ[doubles].mean(axis=0)[None]])))
         lus.append(lambda champ, boucle=boucle: np.concatenate([champ[boucle], champ[boucle].mean(axis=0)[None]]))
     peau = len(M.sommets)
     for t_ in yeux:
@@ -423,18 +458,32 @@ def construire(D, materiaux, b):
         for tri in t_.tolist():
             M.triangle(*(rangs[i] for i in tri), centre)
         lus.append(lambda champ, siens=siens: champ[siens])
+    fin_des_yeux = len(M.sommets)
+    sourcils = faces_des_sourcils(triangles, np.linalg.norm(cible([(SOURCILS, 1.0)]), axis=1))
+    poilus = np.unique(sourcils)
+    de_sommet = np.zeros_like(X)
+    for k in range(3):
+        np.add.at(de_sommet, triangles[:, k], sens * normales)
+    de_sommet[poilus] /= np.linalg.norm(de_sommet[poilus], axis=1, keepdims=True)
+    rang_des_poils = dict(zip(poilus.tolist(), M.ajouter(list(X[poilus] + EPAISSEUR_DES_SOURCILS_M * de_sommet[poilus]),
+                                                         'cheveux')))
+    for tri in sourcils.tolist():
+        M.triangle(*(rang_des_poils[i] for i in tri), X[tri].mean(axis=0))
+    lus.append(lambda champ: champ[poilus])
+    doublures.append((list(rang_des_poils.values()), lambda champ, doubles=[rang[i] for i in poilus]: champ[doubles]))
 
     P, orientes, _ = M.orienter()
-    print('TETE_MH', D['NOM'], ': triangles de peau', len(triangles), ', bord du cou', len(bas), 'arêtes ; cotes',
-          {k: round(float(x), 4) for k, x in cotes(P[len(bord):peau], P[peau:], H).items()}, flush=True)
+    print('TETE_MH', D['NOM'], ': triangles de peau', len(triangles), ', de sourcils', len(sourcils), ', bord du cou',
+          len(bas), 'arêtes ; cotes',
+          {k: round(float(x), 4) for k, x in cotes(P[len(bord):peau], P[peau:fin_des_yeux], H).items()}, flush=True)
     porteur = b.porteur(ZONES_DES_CLES)
     W = np.zeros((len(P), len(b.os)))
     W[:len(bord)] = b.corps('cou')[2][indices_du_cou]
     for v in range(len(bord), len(P)):
         W[v] = emprunter(P[v], porteur)[0]
     W = poids_adoucis(W, P, np.array(orientes), len(bord))
-    for siens, doubles in fermetures:
-        W[siens] = np.concatenate([W[doubles], W[doubles].mean(axis=0)[None]])
+    for siens, lire in doublures:
+        W[siens] = lire(W)
     noms_des_materiaux = list(materiaux)
     piece = maillage_skinne(D['NOM'], [tuple(p) for p in P], orientes, materiaux[noms_des_materiaux[0]], b.rig,
                             poids_normalises(W, b.os))
@@ -451,8 +500,8 @@ def construire(D, materiaux, b):
     for nom in TRAITS:
         poser_la_cle(piece, nom, np.concatenate([np.zeros((len(bord), 3))] + [lu(de_makehuman[nom]) for lu in lus]))
     de_peau = np.array([tri for tri in orientes if M.parties[tri[0]] == 'peau'])
-    retourne = visage_inverse(P, range(len(bord), peau), np.arange(peau, len(P)), de_peau, H)
-    for siens, doubles in fermetures:
-        retourne[siens] = np.concatenate([retourne[doubles], retourne[doubles].mean(axis=0)[None]])
+    retourne = visage_inverse(P, range(len(bord), peau), np.arange(peau, fin_des_yeux), de_peau, H)
+    for siens, lire in doublures:
+        retourne[siens] = lire(retourne)
     poser_la_cle(piece, VISAGE_INVERSE, retourne)
     return piece

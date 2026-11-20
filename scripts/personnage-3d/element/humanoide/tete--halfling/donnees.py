@@ -14,8 +14,9 @@ MANIFESTE = {
 MATERIAUX = {                            # gris de construction, sans couleur cuite
     'peau': ('peau', ((0.62, 0.62, 0.62), 0.0, 0.8)),
     'yeux': ('yeux', ((0.35, 0.35, 0.35), 0.0, 0.3)),
+    'cheveux': ('cheveux', ((0.6, 0.6, 0.6), 0.0, 0.95)),   # les sourcils
 }
-BUDGET_TRIANGLES = 8200                  # #4413 : tête de `body` de MakeHuman
+BUDGET_TRIANGLES = 6500                  # procédure, section 7 : tête humanoïde MakeHuman
 NOM = 'tete_halfling'
 CUITES = (
     # « semblables à des enfants humains » : tête ronde, visage jeune (HYPOTHÈSE : poids).

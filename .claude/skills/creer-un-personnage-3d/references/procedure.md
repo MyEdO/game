@@ -165,7 +165,8 @@ propre n'a pas ce champ. Chaque tête porte `visage_inverse` (`faceFlip`, mutati
 de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
 la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
 traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `visage_long` (`TRAITS`, des
-cibles de MakeHuman lues sommet à sommet). Les noms admis sont la liste fermée
+cibles de MakeHuman lues sommet à sommet), et leur clé `feminin` ajoute à celle du corps l'écart de MakeHuman
+entre ses deux sexes. Les noms admis sont la liste fermée
 `NOMS_DES_FORMES_DE_TETE` (`src/lib/formesDeTete.ts`), que la construction lit par `base/noms_formes_de_tete.py` :
 un autre nom est refusé (`forme-de-tete-inconnue`). L'évaluateur pose une forme de la tête par son nom. Le
 validateur (`hotes/godot/asset/element.ts`, `godot:valider` et l'import) exige que les shape keys du GLB soient
@@ -263,9 +264,10 @@ dague : un dossier ne porte que son `donnees.py` et `from lame import construire
 robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
 qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `element/tete.py` pour une tête de race bâtie de
 volumes sur la couture du cou (orc, gobelin), `element/tete_makehuman.py` pour une tête humanoïde tirée de la tête de
-MakeHuman, cousue au cou par `element/tete.py` (humain, nain, haut-elfe, halfling : le dossier ne porte que son
-`donnees.py`, dont `CUITES` nomme les cibles qui font la race, et `from tete_makehuman import construire` ; le pack
-`mpfb` de la base se tire seul, `production.pack_source`), `formes.py` pour les
+MakeHuman, cousue au cou par `element/tete.py`, sans ses faces cachées et avec ses sourcils en surface `cheveux`
+(humain, nain, haut-elfe, halfling : le dossier ne porte que son `donnees.py`, dont `CUITES` nomme les cibles qui font
+la race, et `from tete_makehuman import construire` ; le pack `mpfb` de la base se tire seul,
+`production.pack_source`), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
 élément skinné reçoit les silhouettes déclarées ET toutes les clés `gabarit_*` de la base, celles-ci non déclarées au
@@ -519,7 +521,7 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 |---|---|---|
 | base humanoïde | 14 500 | 1024² |
 | tête | 2 500 | 512² |
-| tête humanoïde MakeHuman (`element/tete_makehuman.py`) | 8 200 | 512² |
+| tête humanoïde MakeHuman (`element/tete_makehuman.py`) | 6 500 | 512² |
 | pilosité | 1 500 | 256² |
 | vêtement par pièce | 2 500 | 512² |
 | armure par pièce | 2 000 | 512² |
