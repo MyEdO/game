@@ -23,8 +23,16 @@ extends SceneTree
 ## (`VolumeDeScene.vider`), elle ne fait pas croître les maillages et les matières teints du volume. Les deux portes
 ## d'une ouverture de deux arêtes ont chacune leur groupe, et pour pièce le nœud `<pièce>--<position>` du modèle quand
 ## il l'a, sinon `<pièce>` (`VolumeDeScene.noeud_de_la_piece`) ; une pièce que le modèle n'a pas se pose hors de lui.
+## Une arête dont le modèle servi ne se lit pas se pose en boîte une fois sa lecture close, l'erreur dite une fois
+## (`ERREURS_ATTENDUES`) ; posée à nouveau, en boîte, son modèle n'est pas relu.
 
 const RECETTE_AUTONOME := true
+## L'erreur que dit la lecture du modèle `MODELE_ILLISIBLE` (`VolumeDeScene._lire_le_modele_d_arete`), une fois
+## (`hotes/godot/construire.mjs`, `erreursDeLaRecette`).
+const ERREURS_ATTENDUES := ["[aretes] modele-absent : absent-du-listage"]
+## Un id de modèle que le listage du figé n'a pas, servi à la famille `FAMILLE_ILLISIBLE` (`_d_un_modele_illisible`).
+const MODELE_ILLISIBLE := "absent-du-listage"
+const FAMILLE_ILLISIBLE := "illisible"
 const FIGE := "res://recettes/vues/decor.json"
 const EPSILON := 0.001
 const METRES_PAR_CASE := 2.0
@@ -64,6 +72,7 @@ func _recetter() -> void:
 		await _caches_bornes(_volume_neuf(METRES_PAR_CASE), famille)
 		for rang in range(avant, _fautes.size()):
 			_fautes[rang] = "%s, %s" % [famille, _fautes[rang]]
+	await _d_un_modele_illisible(_volume_neuf(METRES_PAR_CASE))
 	for faute in _fautes:
 		push_error("[arete-au-pied] " + faute)
 	print("[arete-au-pied] erreurs=", _fautes.size())
@@ -206,6 +215,38 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 	var reposes := _groupes(volume.get_node("Aretes"))
 	if reposes.values() != groupes.values() or volume.ce_qui_est_pose().aretes != aretes.size():
 		_fautes.append("modèle lu, posées à nouveau, les groupes ne sont pas gardés")
+
+
+## Sur le volume `volume`, la famille `FAMILLE_ILLISIBLE` servie par `MODELE_ILLISIBLE`, que le listage n'a pas
+## (`MontageDeComposition.scene_du_modele` le rend `null`, `modele-absent`) : son arête se pose en boîte une fois la
+## lecture close ; posée à nouveau, en boîte, le modèle n'est pas relu (`aretes_posees` émis une seule fois) ; les
+## modèles retenus rendus ensuite.
+func _d_un_modele_illisible(volume: VolumeDeScene) -> void:
+	var retenus := MontageDeComposition.modeles
+	MontageDeComposition.modeles = retenus.merged({aretes = {FAMILLE_ILLISIBLE: MODELE_ILLISIBLE}}, true)
+	var lectures := [0]
+	volume.aretes_posees.connect(func() -> void: lectures[0] += 1)
+	var arete := {cle = "illisible", famille = FAMILLE_ILLISIBLE, palette = PALETTE, piece = Noyau.Piece.MUR,
+		position = Noyau.Position.SEULE, bloc = "0/0/0", pied = PIED_M, hauteurM = HAUTEUR_M,
+		milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}}
+	volume.poser_les_aretes([arete])
+	await volume.attendre_les_aretes()
+	_seule_boite(volume, "lu")
+	volume.poser_les_aretes([arete.duplicate(true)])
+	_seule_boite(volume, "posé à nouveau")
+	print("[arete-au-pied] modèle illisible : en lecture %s, %d lecture(s) close(s)" % [volume.aretes_en_lecture(), lectures[0]])
+	if volume.aretes_en_lecture() or lectures[0] != 1:
+		_fautes.append("modèle illisible, posé à nouveau : en lecture %s, %d lectures closes, attendu une" % [volume.aretes_en_lecture(), lectures[0]])
+	MontageDeComposition.modeles = retenus
+
+
+## Sur le volume `volume`, l'arête `illisible` seule posée, en boîte, au moment `moment`.
+func _seule_boite(volume: VolumeDeScene, moment: String) -> void:
+	var groupes := _groupes(volume.get_node("Aretes"))
+	if groupes.keys() != [["illisible"]] or not groupes[["illisible"]].has_node("Vu_Boite"):
+		_fautes.append("modèle illisible, %s : groupes %s, attendu la seule boîte" % [moment, groupes.keys()])
+	if volume.ce_qui_est_pose().aretes != 1:
+		_fautes.append("modèle illisible, %s : %d arêtes comptées, attendu 1" % [moment, volume.ce_qui_est_pose().aretes])
 
 
 ## Dans un modèle qui a le nœud `porte-fermee--gauche` et pas `porte-fermee--droite`, la porte gauche prend le sien, la

@@ -11,7 +11,8 @@
 // `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
-// script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
+// script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, chacune
+// jugée hors des erreurs qu'elle attend (`const ERREURS_ATTENDUES`, `erreursDeLaRecette`), les vues
 // de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`), le véhicule, le repos et les échantillons de
 // l'atelier figés (`hotes/godot/recettes/vehicule.ts`, `hotes/godot/recettes/atelier.ts`,
 // `hotes/godot/recettes/decor.ts`), le chemin du groupe (`hotes/godot/recettes/chemin.ts`), l'éditeur du navire
@@ -435,8 +436,35 @@ function scriptsDe(dossier, sous = dossier) {
   })
 }
 
+/** La source du script `script` (chemin `res://`) de la copie du projet `copie`. */
+const sourceDe = (copie, script) => readFileSync(join(copie, script.slice('res://'.length)), 'utf8')
+
 /** Les erreurs que Godot écrit parmi `lignes`. */
 const erreursDe = (lignes) => lignes.filter((l) => /^(SCRIPT )?ERROR\b/.test(l.trim()))
+
+/** Les erreurs de la recette `recette`, de source `source`, parmi `lignes` (`erreursDe`), hors de celles qu'elle
+ *  attend : `const ERREURS_ATTENDUES := [<chaînes>]`, sur une ligne, chaque chaîne le texte d'une erreur (sans
+ *  `ERROR: `), autant de fois que Godot doit la dire. Une attendue dite autant de fois est retirée ; dite un autre
+ *  nombre de fois, ou une déclaration illisible, est une faute. */
+export function erreursDeLaRecette(recette, source, lignes) {
+  const erreurs = erreursDe(lignes)
+  const declaration = source.match(/^const ERREURS_ATTENDUES := (\[.*\])\s*$/m)?.[1]
+  if (!declaration) return erreurs
+  let liste
+  try {
+    liste = JSON.parse(declaration)
+  } catch {
+    liste = null
+  }
+  if (!Array.isArray(liste) || !liste.every((texte) => typeof texte === 'string')) return [...erreurs, `${recette} : ERREURS_ATTENDUES illisible : ${declaration}`]
+  const texteDe = (ligne) => ligne.trim().replace(/^(SCRIPT )?ERROR: /, '')
+  const fautes = [...new Set(liste)].flatMap((attendue) => {
+    const voulues = liste.filter((texte) => texte === attendue).length
+    const dites = erreurs.filter((ligne) => texteDe(ligne) === attendue).length
+    return dites === voulues ? [] : [`${recette} : erreur attendue ${voulues} fois, dite ${dites} fois : ${attendue}`]
+  })
+  return [...erreurs.filter((ligne) => !liste.includes(texteDe(ligne))), ...fautes]
+}
 
 /** Un journal neuf pour un lancement de `commande` sur `args`, qui y écrit sa sortie et sa sortie d'erreur (`fd`, le
  *  même fichier pour les deux). `bilan(r)`, `r` disant comment il finit (`{ error?, signal, status }`), rend les lignes
@@ -533,14 +561,14 @@ const argumentsDuPont = (donnees) => ['--', `--pont=${VIVANT}`, `--stockage=${jo
 
 /** Chaque recette de `recettes` jouée par l'éditeur `binaire` sans écran sur le projet importé `copie`, menées de
  *  front (`menerDeFront`), avec les arguments du pont (`argumentsDuPont`). Sa sortie s'imprime à sa fin, d'un bloc ;
- *  rend les erreurs de toutes. */
+ *  rend les erreurs de toutes, hors de celles que chacune attend (`erreursDeLaRecette`). */
 function jouerLesRecettes(binaire, copie, recettes) {
   return menerDeFront(copie, recettes.map((recette) => ({
     commande: binaire,
     args: (donnees) => ['--headless', '--path', copie, '--script', recette, ...argumentsDuPont(donnees)],
     juger: ({ lignes, echec }) => {
       console.log(`[godot] recette autonome : ${recette}\n${lignes.join('\n')}`)
-      return [...erreursDe(lignes), ...echec]
+      return [...erreursDeLaRecette(recette, sourceDe(copie, recette), lignes), ...echec]
     },
   })))
 }
@@ -756,7 +784,7 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
     if (erreurs.length) return erreurs
     console.log(`[godot] ${VERSION_IMPRIMEE} : projet importé, ${scripts.length} scripts contrôlés (${scripts.join(', ')})`)
     const recettes = scripts.filter((script) => script.startsWith('res://recettes/') &&
-      /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
+      /^const RECETTE_AUTONOME := true\s*$/m.test(sourceDe(copie, script)))
     erreurs.push(...await jouerLesRecettes(binaire, copie, recettes))
     if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) autonome(s) exécutée(s)`)
     return erreurs
@@ -791,7 +819,7 @@ function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins })
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
     deposerLaVue(copie, 'decor', figerLeDecor(listage(DOSSIER_DES_MODELES)))
     const recettes = scriptsDe(copie).filter((script) => script.startsWith('res://recettes/') &&
-      /^const RECETTE_RENDUE := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
+      /^const RECETTE_RENDUE := true\s*$/m.test(sourceDe(copie, script)))
     if (!recettes.length) return [`aucune recette rendue sous ${PROJET}`]
     const [commande, ...prefixe] = [...ECRAN_VIRTUEL, binaire]
     const erreurs = await menerDeFront(copie, recettes.flatMap((recette) => RENDUS.map((rendu) => ({

@@ -16,7 +16,7 @@ import { RELAY_URL_PROD } from '../../src/hote/coop/page';
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs';
 import { sansModeNiRelais } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
-import { ecartsDeLaCopie, fichiersAuDelaDeGitHub, signaturesDu } from './construire.mjs';
+import { ecartsDeLaCopie, erreursDeLaRecette, fichiersAuDelaDeGitHub, signaturesDu } from './construire.mjs';
 
 /** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, puis `--pont-seul` : ~55 s. */
 const CONSTRUCTION_MS = 180_000;
@@ -148,6 +148,29 @@ describe('la copie importée du projet, mise à jour des seuls fichiers changés
     rmSync(join(d, 'textures', 'herbe.jpg'));
     expect(ecartsDeLaCopie(avant, signaturesDu(d))).toEqual({ copier: [join('scripts', 'a.gd'), join('scripts', 'b.gd')], retirer: [join('textures', 'herbe.jpg')] });
     expect(ecartsDeLaCopie(signaturesDu(d), signaturesDu(d))).toEqual({ copier: [], retirer: [] });
+  });
+});
+
+describe('les erreurs attendues d’une recette autonome (`ERREURS_ATTENDUES`)', () => {
+  const RECETTE = 'res://recettes/essai.gd';
+  const ATTENDUE = '[aretes] modele-absent : absent-du-listage';
+  const source = (attendues: string) => `extends SceneTree\n\nconst RECETTE_AUTONOME := true\nconst ERREURS_ATTENDUES := ${attendues}\n`;
+  const lignes = (...erreurs: string[]) => ['[essai] version=4.7', ...erreurs.map((e) => `ERROR: ${e}`), '   at: x (y.gd:1)', '[essai] erreurs=0'];
+  it('sans déclaration, chaque erreur reste', () => {
+    expect(erreursDeLaRecette(RECETTE, 'extends SceneTree\n', lignes(ATTENDUE))).toEqual([`ERROR: ${ATTENDUE}`]);
+  });
+  it('une attendue dite autant de fois que déclarée est retirée, les autres erreurs restent', () => {
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE])), lignes(ATTENDUE))).toEqual([]);
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE, ATTENDUE])), lignes(ATTENDUE, 'autre', ATTENDUE))).toEqual(['ERROR: autre']);
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE])), [`SCRIPT ERROR: ${ATTENDUE}`])).toEqual([]);
+  });
+  it('une attendue absente ou dite trop souvent est une faute', () => {
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE])), lignes())).toEqual([`${RECETTE} : erreur attendue 1 fois, dite 0 fois : ${ATTENDUE}`]);
+    expect(erreursDeLaRecette(RECETTE, source(JSON.stringify([ATTENDUE])), lignes(ATTENDUE, ATTENDUE))).toEqual([`${RECETTE} : erreur attendue 1 fois, dite 2 fois : ${ATTENDUE}`]);
+  });
+  it('une déclaration illisible est une faute', () => {
+    expect(erreursDeLaRecette(RECETTE, source('["a", 2]'), lignes())).toEqual([`${RECETTE} : ERREURS_ATTENDUES illisible : ["a", 2]`]);
+    expect(erreursDeLaRecette(RECETTE, source("['a']"), lignes())).toEqual([`${RECETTE} : ERREURS_ATTENDUES illisible : ['a']`]);
   });
 });
 

@@ -10,7 +10,7 @@ extends SceneTree
 ## shader de monde et sa jumelle de `MiseEnPage.teinte_d_instance`, tenues égales) ; la première couche vue et la seconde
 ## explorée, le toit à la part de l'explorée : il lit le plan de sa couche ; la case d'un mur inconnue et sa voisine
 ## vue, le mur, cadré de près, rend la vision toute vue (sa teinte d'instance blanche, au moins `INTERIEUR_LISIBLE`
-## pixels loin de son bord, ceux de la vision toute vue à `PIXELS_MELES` près) ; à mi-fondu de la vue vers l'inconnue,
+## pixels loin de son bord, identiques à ceux de la vision toute vue) ; à mi-fondu de la vue vers l'inconnue,
 ## chacun à mi-chemin, l'état de l'explorée, à la part qu'il y prend ; sous l'éclairage d'un extérieur du jeu, dont le
 ## ciel se reflète, en plongée et au ras du sol, chacun, le sol compris, à la part de son état (`_a_l_ombre`).
 ##
@@ -42,10 +42,8 @@ const CREUX_DU_PILOTE := 0.1
 const MUR := {cle = "mur", famille = AU_PIED.FAMILLE_SANS_MODELE, milieu = {x = 2.0, y = 3.5},
 	cases = [{x = 2, y = 4, z = 0}, {x = 2, y = 3, z = 0}]}
 const BOITE := {cle = "boite", famille = null, milieu = {x = 5.0, y = 3.5}, cases = [{x = 5, y = 4, z = 0}, {x = 5, y = 3, z = 0}]}
-## Le moins de pixels (un sur deux de chaque sens) loin du bord d'un mur cadré de près, et la part d'entre eux que le
-## rendu peut mêler au sol voisin.
+## Le moins de pixels (un sur deux de chaque sens) loin du bord d'un mur cadré de près.
 const INTERIEUR_LISIBLE := 40
-const PIXELS_MELES := 0.001
 var _fautes: Array[String] = []
 
 
@@ -177,7 +175,7 @@ func _entre(monde: Monde, regard: String, objets: Dictionary) -> void:
 		var teintes: Array = objets[nom].map(func(vu: MultiMeshInstance3D) -> Color: return vu.multimesh.get_instance_color(0))
 		var autres: int = masques[nom].filter(func(pixel: Vector2i) -> bool: return temoin.get_pixelv(pixel) != entre.get_pixelv(pixel)).size()
 		print("[voile-du-bati] %s, la case du mur inconnue, sa voisine vue : %s teint %s, %d pixels intérieurs dont %d autres que le témoin" % [regard, nom, teintes[0], masques[nom].size(), autres])
-		if masques[nom].size() < INTERIEUR_LISIBLE or not teintes.all(func(teinte: Color) -> bool: return teinte == Color.WHITE) or autres > masques[nom].size() * PIXELS_MELES:
+		if masques[nom].size() < INTERIEUR_LISIBLE or not teintes.all(func(teinte: Color) -> bool: return teinte == Color.WHITE) or autres > 0:
 			_fautes.append("%s : %s entre sa case inconnue et sa voisine vue n'est pas rendu en vue (%d pixels intérieurs)" % [regard, nom, masques[nom].size()])
 	volume.voir(null)
 
@@ -233,16 +231,6 @@ func _objets(monde: Monde) -> Dictionary:
 	for groupe: Node3D in monde.get_node("VolumeDeScene/Aretes").get_children():
 		objets[{mur = "mur", boite = "boîte"}[groupe.get_meta("aretes")[0].cle]] = groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false)
 	return objets
-
-
-
-
-
-
-
-
-
-
 
 
 ## La vision (`VisionDuMonde`) des deux couches, chaque case à l'état que `etat_de` lui donne (sa case et l'indice de sa

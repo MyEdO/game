@@ -784,8 +784,7 @@ l'arête au bout -X de l'ouverture dans le repère de la pièce (X le long du se
 `droite` ; celui de `milieu`, brisé sur son voisin de gauche, clôt sa baie fermé et la laisse libre ouvert. L'état
 d'un vantail reste celui de son arête. Un kit ne bâtit que les positions qu'une scène
 pose (`geometrie.noeud`) : le budget d'un nœud est celui de sa pièce, et `arete/revue.py` montre chaque ouverture
-d'un seul tenant, ses nœuds bout à bout. Un kit dont toutes les arêtes sont une Structure qui s'abat sans s'ouvrir
-(`porterie`) ne bâtit que `mur` et `breche`. Une porte posée dans un mur prend le kit, la hauteur et les teintes de
+d'un seul tenant, ses nœuds bout à bout. Une porte posée dans un mur prend le kit, la hauteur et les teintes de
 mur (`corps`, `bois`) de son mur porteur, celui du bout -X sinon du bout +X, et garde les teintes de menuiserie
 (`accent`, `vet1`, `metal`) de sa propre apparence (`paletteDeLApparence`) : chaque kit bâtit donc ses portes.
 
@@ -793,7 +792,8 @@ mur (`corps`, `bois`) de son mur porteur, celui du bout -X sinon du bout +X, et 
 une apparence de `structureAppearance.json` qui la porte (le jeu de données s'édite au fichier). L'hôte pose une
 arête par le modèle `arete--<kit>` s'il est servi, sinon par une boîte, comme une arête dont le modèle est
 illisible ou n'a pas la pièce (`VolumeDeScene._groupe`). Un kit bâtit donc les six pièces de `PieceDArete`
-(`src/noyau/monde/aretes.ts`), hors la structure qui s'abat sans s'ouvrir ci-dessus.
+(`src/noyau/monde/aretes.ts`, `test_arete.py`) : une pièce sans objet pour lui reprend la forme d'une autre (le talus
+plein pour la fenêtre d'un terrassement, la grille baissée pour la porte d'une herse).
 
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
@@ -801,10 +801,11 @@ la couleur de l'apparence posée. Une baie est percée de part en part.
 
 **Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
 `menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
-des kits de pierre (assises, chaînes, couronnement, porche voûté, brèche). Un kit les pose, il ne les recopie pas.
+des kits de pierre (assises, chaînes, couronnement, porche voûté, porte cintrée sous son porche, brèche). Un kit les pose, il ne les recopie pas.
 La forme d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit
 reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
-(`test_arete.py`).
+(`test_arete.py`). Un kit qu'on voit à travers (la grille d'une herse) le déclare dans son `donnees.py` par
+`CLAIRE_VOIE = True` : la garde de jour le saute.
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
@@ -820,8 +821,8 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 `arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
 chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
-reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque
-`arete--*` publié.
+reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié, exige un kit pour chaque
+`arete--*` publié et un modèle pour chaque famille qu'une apparence porte.
 Regarder le kit dans Godot comme tout modèle sans base (chapitre 7) : l'atelier en montre chaque pièce par
 l'échantillon « Mur et ouverture », et la capture `cadrages` le montre posé dans une scène, au regard d'un joueur.
 Une illustration de façade se compare à cette capture, jamais à une pièce seule. Recettes Godot des arêtes
