@@ -1558,24 +1558,21 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return suite(o);
     },
     /**
-     * `{ manifestes, osDesRigides, zonesPortantes? }` : un objet id de modèle → manifeste, un objet id de modèle → liste
-     * d'os et un objet id de base → os → zones, ceux du listage (`GET modeles/listage.json`, section « Atelier 3D ») ;
-     * sans `zonesPortantes`, aucune base n'en porte
+     * `{ manifestes, osDesRigides }` : un objet id de modèle → manifeste et un objet id de modèle → liste d'os, ceux du
+     * listage (`GET modeles/listage.json`, section « Atelier 3D »)
      *
      * @returns `{ bases, fichiers, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
-     * ameliorations, decors, aretes }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
+     * ameliorations, decors, aretes, porteeDeCouverture }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
      * état du pont, que
      * lisent `composer` et le corps de chaque combattant de la vue (section « Corps d'un combattant ») ; avant ou après
      * `demarrer`
      */
     modeles(json) {
-      const e = entreeDe('modeles', json, ['manifestes', 'osDesRigides', 'zonesPortantes']);
+      const e = entreeDe('modeles', json, ['manifestes', 'osDesRigides']);
       valider(estObjet(e.manifestes), 'modeles : manifestes, un objet id de modèle → manifeste');
       valider(estObjet(e.osDesRigides) && Object.values(e.osDesRigides).every(estListeDeChaines), 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides');
       const manifestes = e.manifestes as Record<string, unknown>;
-      const zones = e.zonesPortantes ?? {};
-      valider(estObjet(zones) && Object.values(zones).every((parOs) => estObjet(parOs) && Object.values(parOs).every(estListeDeChaines)), 'modeles : zonesPortantes, un objet id de base → os → zones');
-      modeles = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>, zones as Record<string, Record<string, string[]>>) };
+      modeles = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>) };
       return modeles.modeles;
     },
     /**

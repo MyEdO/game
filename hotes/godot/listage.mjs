@@ -2,7 +2,7 @@
 // de `servir.mjs` rend, ce que la sonde de `construire.mjs` fige pour la recette du véhicule, et le dossier `modeles/` que
 // son export Web dépose à côté de la page (#3778), chaque modèle en scène fabriquée de son GLB (#3946). Sans écrivain :
 // la gate `pont:godot` l'atteint par `construire.mjs`.
-import { cpSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { assetsDuListage } from './asset/charger.mjs'
 
@@ -19,8 +19,7 @@ export { DOSSIER_DES_MODELES } from './asset/dossierDeProduction.ts'
  * tel que le site le publie :
  *
  * - `GET modeles/listage.json` : le listage,
- *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>,
- *   zonesPortantes: Record<id, Record<os, string[]>>, erreurs: string[], forme }`, que le
+ *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>, erreurs: string[], forme }`, que le
  *   serveur du dossier vivant prépare à son lancement puis calcule à nouveau quand un fichier du dossier change, en
  *   `Cache-Control: no-store`. `forme` nomme le fichier de
  *   `fichiers` (réponse de `modeles`) que Godot demande pour chaque modèle : `glb` au dossier vivant, que Godot lit à
@@ -36,10 +35,7 @@ export { DOSSIER_DES_MODELES } from './asset/dossierDeProduction.ts'
  *   compris), dont un indice sort de sa liste, dont un nœud à mesh n'a pas de nom, dont deux nœuds portent le même
  *   nom, dont un nœud a plusieurs parents, dont la parenté boucle ou dont une racine de scène a un parent. `erreurs`
  *   porte, une ligne chacun, le manifeste illisible, le GLB illisible, le refus d'un manifeste et le dossier des
- *   modèles illisible. `zonesPortantes` porte, pour chaque base de `manifestes`, par os qui tient une zone de son
- *   corps, cette zone puis ses voisines au repos (`zonesPortantesDeLaBase`, `asset/evaluateur/zonesPortantes.ts`),
- *   lues de son GLB : ce qui porte un emplacement de cet os (#4351). Godot passe `manifestes`, `osDesRigides` et
- *   `zonesPortantes` tels quels à `modeles`, qui ne les revalide pas :
+ *   modèles illisible. Godot passe `manifestes` et `osDesRigides` tels quels à `modeles`, qui ne les revalide pas :
  *   la validation et la lecture des os lisent le GLB, côté Node : au serveur à chaque changement du dossier, à l'export une fois,
  *   sauf pour un manifeste déjà accepté sous la même clé, que le cache des modèles garde (`verdictsDuDossier`).
  * - `GET modeles/<fichier>` : chaque fichier du dossier des modèles (manifeste, GLB ou scène fabriquée), servi en
@@ -52,26 +48,24 @@ export { DOSSIER_DES_MODELES } from './asset/dossierDeProduction.ts'
 export const LISTAGE = 'listage.json'
 
 /** Le listage de `dossier`, servi en GLB : les manifestes que `verdictsDuDossier` (`asset/release.ts`) accepte contre
- *  leur GLB, de chacun les os qui portent ses meshes rigides, de chaque base les zones qui portent chaque os
- *  (`zonesPortantesDeLaBase`), et les erreurs (manifeste illisible, GLB illisible, refus, dossier illisible). */
+ *  leur GLB, de chacun les os qui portent ses meshes rigides, et les erreurs (manifeste illisible, GLB illisible, refus,
+ *  dossier illisible). */
 export async function listage(dossier) {
   try {
-    const { estBase, fichiersDuModele, verdictsDuDossier, zonesPortantesDeLaBase } = await assetsDuListage()
+    const { fichiersDuModele, verdictsDuDossier } = await assetsDuListage()
     const { verdicts, erreurs: illisibles } = verdictsDuDossier(dossier)
     const erreurs = [...illisibles]
     const manifestes = {}
     const osDesRigides = {}
-    const zonesPortantes = {}
     for (const { id, brut, verdict } of verdicts) {
       if (verdict.ok) {
         manifestes[id] = brut
         osDesRigides[id] = verdict.os
-        if (estBase(brut)) zonesPortantes[id] = await zonesPortantesDeLaBase(readFileSync(join(dossier, fichiersDuModele(id).glb)))
       } else erreurs.push(`${fichiersDuModele(id).manifeste} : ${verdict.refus.join(' ; ')}`)
     }
-    return { manifestes, osDesRigides, zonesPortantes, erreurs, forme: 'glb' }
+    return { manifestes, osDesRigides, erreurs, forme: 'glb' }
   } catch (e) {
-    return { manifestes: {}, osDesRigides: {}, zonesPortantes: {}, erreurs: [`${dossier} : ${e.code ?? e.message}`], forme: 'glb' }
+    return { manifestes: {}, osDesRigides: {}, erreurs: [`${dossier} : ${e.code ?? e.message}`], forme: 'glb' }
   }
 }
 

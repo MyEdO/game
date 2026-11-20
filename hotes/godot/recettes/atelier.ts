@@ -10,7 +10,6 @@ import { tableTotale } from '../../../src/lib/tableTotale';
 export interface Listage {
   readonly manifestes: Record<string, unknown>;
   readonly osDesRigides: Record<string, string[]>;
-  readonly zonesPortantes: Record<string, Record<string, string[]>>;
   readonly forme: string;
 }
 
@@ -21,9 +20,9 @@ type Garde = (id: string, manifeste: { categorie?: string }) => boolean;
  *  (`appel`), pour les réponses propres à une recette. */
 function atelierSur(pont: Pont, listage: Listage, garde: Garde) {
   const ids = Object.keys(listage.manifestes).filter((id) => garde(id, listage.manifestes[id] as { categorie?: string }));
-  const reduit = { manifestes: tableTotale(ids, (id) => listage.manifestes[id]), osDesRigides: tableTotale(ids, (id) => listage.osDesRigides[id]), zonesPortantes: listage.zonesPortantes, erreurs: [], forme: listage.forme };
+  const reduit = { manifestes: tableTotale(ids, (id) => listage.manifestes[id]), osDesRigides: tableTotale(ids, (id) => listage.osDesRigides[id]), erreurs: [], forme: listage.forme };
   const appel = (methode: string, entree?: unknown): Record<string, unknown> => JSON.parse(pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree)));
-  return { fige: { listage: reduit, catalogues: appel('catalogues'), vitrine: appel('vitrine'), modeles: appel('modeles', { manifestes: reduit.manifestes, osDesRigides: reduit.osDesRigides, zonesPortantes: reduit.zonesPortantes }) }, appel };
+  return { fige: { listage: reduit, catalogues: appel('catalogues'), vitrine: appel('vitrine'), modeles: appel('modeles', { manifestes: reduit.manifestes, osDesRigides: reduit.osDesRigides }) }, appel };
 }
 
 /** L'atelier figé sur les modèles de `listage` que `garde` retient, sur un pont neuf, pour une recette qui ne démarre

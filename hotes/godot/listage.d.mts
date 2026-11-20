@@ -2,7 +2,7 @@
 
 export const DOSSIER_DES_MODELES: string;
 
-export function listage(dossier: string): Promise<{ manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]>; zonesPortantes: Record<string, Record<string, string[]>>; erreurs: string[]; forme: 'glb' }>;
+export function listage(dossier: string): Promise<{ manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]>; erreurs: string[]; forme: 'glb' }>;
 
 export const LISTAGE: string;
 

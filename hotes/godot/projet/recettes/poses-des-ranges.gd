@@ -23,6 +23,7 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[poses-des-ranges] version=", Engine.get_version_info().string)
+	MontageDeComposition.modeles = {porteeDeCouverture = 0.03}
 	var montage := MontageDeComposition.new()
 	root.add_child(montage)
 	var squelette := Skeleton3D.new()

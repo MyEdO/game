@@ -29,8 +29,7 @@ export function chargerAssets(exportsSupplementaires = []) {
 }
 
 const EXPORTS_DU_LISTAGE = [
-  "export { estBase, fichiersDuModele } from '/hotes/godot/asset/modeles.ts';",
-  "export { zonesPortantesDeLaBase } from '/hotes/godot/asset/evaluateur/zonesPortantes.ts';",
+  "export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';",
   "export { verdictsDuDossier } from '/hotes/godot/asset/release.ts';",
 ]
 

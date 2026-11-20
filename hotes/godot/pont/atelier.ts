@@ -18,6 +18,7 @@
 import { rangDeCase, type Attache, type EmplacementOffert, type Repere } from '../asset/attache';
 import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement, type Saison } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
+import { PORTEE_DE_COUVERTURE_M } from '../asset/pile';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
 import {
@@ -155,6 +156,10 @@ export interface ModelesDeLAtelier {
    *  nomme (#4471) : un nœud racine par pièce (`Noyau.Piece`), d'où le volume pose les arêtes de cette famille
    *  (méthode `aretes`). Un élément `arete` n'a pas de base. */
   aretes: Record<string, string>;
+  /** la distance, en mètres, au-delà de laquelle une couche n'en couvre plus une autre (`PORTEE_DE_COUVERTURE_M`,
+   *  `asset/pile.ts`) : un objet rangé ne s'appuie, de couche en couche depuis son emplacement, que sur une surface qui
+   *  suit la précédente à cette distance au plus (`MontageDeComposition._appuyer`, #4351). */
+  porteeDeCouverture: number;
 }
 
 /**
@@ -182,10 +187,6 @@ export interface BaseDeLAtelier {
   vitesseAuSol: number;
   /** les os de ses chaînes (`ManifesteDeBase.chaines`, section « Pile des couches »). */
   osDeChaine: string[];
-  /** par os qui tient une zone de son corps, cette zone puis ses voisines (`zonesPortantes` du listage, #4351), vide
-   *  pour une base sans zone : un objet rangé à un emplacement de cet os ne s'appuie, parmi les pièces montées qui
-   *  portent une zone (`extras.zone`), que sur celles de ces zones (`MontageDeComposition._appuyer`). */
-  zonesPortantes: Record<string, string[]>;
 }
 
 /**
@@ -289,9 +290,8 @@ export const emblemeMonte = (embleme: EmblemeResolu | undefined, manifeste: unkn
  *  prise (#3319) ; toute pièce, accessoire rigide compris, à la ligne dont
  *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou de la pièce de sa variante (`pieceRacine`,
  *  #3446), ou l'emplacement de sa pièce
- *  d'accessoire (`emplacementDePiece`), que la base ou l'une de ses pièces offre. `zonesPortantes` (id de base → os →
- *  zones, du listage servi) passe à chaque base, vide sans entrée. */
-export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>, zonesPortantes: Readonly<Record<string, Record<string, string[]>>> = {}): ModelesDeLAtelier {
+ *  d'accessoire (`emplacementDePiece`), que la base ou l'une de ses pièces offre. */
+export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>): ModelesDeLAtelier {
   const index = indexerModeles(Object.entries(manifestes).map(([id, brut]) => ({ id, brut })));
   const elements = [...index.elements.values()];
   const fichiers: ModelesDeLAtelier['fichiers'] = {};
@@ -366,7 +366,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]
           : []),
     ];
-    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, prisesOccupees: m.prisesOccupees ?? {}, vitesseAuSol: m.appuis.vitesseAuSol, osDeChaine: Object.values(m.chaines).flat(), zonesPortantes: zonesPortantes[id] ?? {} };
+    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, prisesOccupees: m.prisesOccupees ?? {}, vitesseAuSol: m.appuis.vitesseAuSol, osDeChaine: Object.values(m.chaines).flat() };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   const couches = Object.fromEntries(Object.entries(rangs).map(([id, couche]): [string, CoucheDeLAtelier] =>
@@ -382,6 +382,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes,
     vehicules, ameliorations: parCle('amelioration', 'amelioration'), decors: parCle('decor', 'prop'),
     aretes: parCle('arete', 'kit'),
+    porteeDeCouverture: PORTEE_DE_COUVERTURE_M,
   };
 }
 

@@ -6,14 +6,17 @@ extends SceneTree
 ## le mesh garde, dans le repère de la prise retenue, la place qu'il avait dans celui de sa prise d'origine ; à sa
 ## propre prise, il garde sa place sous son os. Rangé à un emplacement du bassin, sa prise a la tête vers le bas du
 ## personnage, à plat, sa face arrière à `JEU_DE_RANGEMENT` de ce qui est porté dessous, de l'emplacement sans rien
-## dessous, hors du pan d'une pièce d'une zone qui ne porte pas l'emplacement (#4351) ; dans une case qu'offre une pièce,
-## ni repoussé par sa paroi au-dessus, ni enfoncé vers son fond ; un second
+## dessous, de couche en couche tant que la suivante est à la portée de couverture de la précédente, jamais sur un pan
+## détaché passé plus loin devant lui (#4351) ; dans une case qu'offre une pièce, ni repoussé par sa paroi au-dessus, ni
+## enfoncé vers son fond ; un second
 ## objet au même point se range à côté du premier, vers l'avant du personnage. Un fourreau
 ## (`extras.fourreau`) n'est montré que rangé. Un objet qui pendrait jusqu'au sol passe en bandoulière, le fer en haut
 ## penché vers la droite du personnage, le milieu de sa boîte sur l'emplacement.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
+## La portée de couverture que `modeles` sert au jeu (`porteeDeCouverture`), ici celle de la recette.
+const PORTEE := 0.03
 const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position = [-0.02, 0.09, 0.003], rotation = [1.32, -3.1, -0.03]}}
 const OFF := {id = "secondaire", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const CEINTURE := {id = "ceinture_avant", genre = "emplacement", attache = {os = "bassin", position = [0.0, 0.148, 0.108], rotation = [-0.29, 0.0, 0.0]}}
@@ -29,13 +32,14 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[prise-reposee] version=", Engine.get_version_info().string)
+	MontageDeComposition.modeles = {porteeDeCouverture = PORTEE}
 	for cible in ["secondaire", "main", "ceinture_avant"]:
 		await _verifier(cible)
 	await _verifier_cote_a_cote()
 	await _verifier_l_empilement()
 	await _verifier_l_appui()
 	await _verifier_le_contenant()
-	await _verifier_le_pan_d_une_autre_zone()
+	await _verifier_la_contiguite()
 	await _verifier_la_bandouliere()
 	for faute in _fautes:
 		push_error("[prise-reposee] " + faute)
@@ -229,7 +233,7 @@ func _cotes(piece: MeshInstance3D, origine: Vector3, normale: Vector3, tangente:
 
 
 ## Une plaque de 2 cm skinnée au bassin `squelette`, parallèle à l'emplacement `HANCHE` et centrée à `cote` sur sa normale
-## sortante.
+## sortante, ses faces tournées vers le dehors de la plaque (repère direct).
 func _plaque(squelette: Skeleton3D, cote: float) -> MeshInstance3D:
 	var bassin := squelette.get_bone_global_rest(squelette.find_bone("bassin"))
 	var emplacement := _repere(HANCHE.attache)
@@ -240,7 +244,7 @@ func _plaque(squelette: Skeleton3D, cote: float) -> MeshInstance3D:
 	plaque.size = Vector3(0.6, 0.6, 0.02)
 	plaque.subdivide_width = 4
 	plaque.subdivide_height = 4
-	var dans_l_os := Transform3D(Basis(bas.cross(sortante), -bas, sortante), emplacement.origin + sortante * cote + bas * 0.2)
+	var dans_l_os := Transform3D(Basis(sortante.cross(bas), -bas, sortante), emplacement.origin + sortante * cote + bas * 0.2)
 	var tableaux := plaque.surface_get_arrays(0)
 	tableaux[Mesh.ARRAY_VERTEX] = (bassin * dans_l_os) * (tableaux[Mesh.ARRAY_VERTEX] as PackedVector3Array)
 	var maille := ArrayMesh.new()
@@ -320,25 +324,26 @@ func _verifier_le_contenant() -> void:
 	await process_frame
 
 
-## Un objet rangé à `ceinture_g`, devant lequel passe, à 30 cm de l'emplacement, le pan d'une pièce montée : d'une zone
-## qui porte l'emplacement (`zonesPortantes` de la base), il repousse l'objet au-dessus de lui ; d'une autre zone (la
-## pointe d'une manche), il ne le repousse pas, et sa face arrière reste à `JEU_DE_RANGEMENT` de l'emplacement.
-func _verifier_le_pan_d_une_autre_zone() -> void:
-	for zone in ["hanches", "main_g"]:
+## Un objet rangé à `ceinture_g` sous lequel une première plaque passe à 2 cm de l'emplacement, et devant lequel une
+## seconde passe à `ecart` de la première : collée, à moins de `PORTEE` de la première, elle le porte, sa face arrière à
+## `JEU_DE_RANGEMENT` au-dessus d'elle ; détachée, à 30 cm, elle ne le porte pas, et il reste sur la première (#4351).
+func _verifier_la_contiguite() -> void:
+	for ecart: float in [0.02, 0.3]:
 		var squelette := _squelette()
-		var pan := _plaque(squelette, 0.3)
-		pan.set_meta("extras", {zone = zone})
+		var dessous := _plaque(squelette, 0.01)
+		var pan := _plaque(squelette, 0.03 + ecart)
 		var montage := MontageDeComposition.new()
-		montage.base = {points = [HANCHE, MAIN, OFF], zonesPortantes = {bassin = ["hanches", "torse"]}}
+		montage.base = {points = [HANCHE, MAIN, OFF]}
 		montage.squelette = squelette
 		montage.montes = {"ligne/piece/robe": "robe"}
-		montage.pieces = {"ligne/piece/robe": [pan]}
+		montage.pieces = {"ligne/piece/robe": [dessous, pan]}
 		var arriere: float = await _ranger_une_boite(montage, squelette, Vector3(0.03, 0.07, 0.03), "ceinture_g")
-		var attendue := 0.31 + MiseEnPage.JEU_DE_RANGEMENT if zone == "hanches" else MiseEnPage.JEU_DE_RANGEMENT
+		var attendue: float = (0.04 + ecart if ecart < PORTEE else 0.02) + MiseEnPage.JEU_DE_RANGEMENT
 		var juste := absf(arriere - attendue) < 0.001
 		if not juste:
-			_fautes.append("pan de zone %s : face arrière à %.4f de l'emplacement, attendue à %.4f" % [zone, arriere, attendue])
-		print("[prise-reposee] pan de zone %s : %s" % [zone, "OK" if juste else "KO"])
+			_fautes.append("pan à %.2f m du dessous : face arrière à %.4f de l'emplacement, attendue à %.4f" % [ecart, arriere, attendue])
+		print("[prise-reposee] pan à %.2f m du dessous : %s" % [ecart, "OK" if juste else "KO"])
+		dessous.free()
 		pan.free()
 		montage.free()
 		squelette.queue_free()
