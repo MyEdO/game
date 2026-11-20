@@ -362,7 +362,7 @@
     "failExtenue": true,
     "stageOutcome": "campCare",
     "desc": "Souvent, les voyageurs se concentrent trop sur la destination et pas assez sur le voyage lui-même ; à l'arrivée, ils sont hagards, épuisés et mal préparés à ce qu'ils vont affronter. N'importe qui peut planter une tente ou déployer une couverture. Les voyageurs chevronnés, eux, prennent le temps de s'installer confortablement pour la nuit en choisissant un bon emplacement, en ramassant du bois de chauffage, en préparant de l'eau, etc. Effectuez un Test de **Survie en extérieur** ou de **Guérison Intermédiaire (+0)**. Chaque DR de l'un ou l'autre de ces Tests peut être dépensé pour retirer les État *Exténué* d'un Personnage ou pour le guérir (voir page 123 du **Livre de Règles**).",
-    "stake": "Réussite : chaque DR retire un État Exténué à un Personnage du groupe, les DR de tous les campeurs s'additionnant. Échec : un État Exténué.",
+    "stake": "Réussite : répartir les DR pour retirer des États Exténué ou rendre des Points de Blessure. Échec : un État Exténué.",
     "stakeForm": "descripteur"
   },
   {

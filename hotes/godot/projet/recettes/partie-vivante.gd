@@ -68,10 +68,12 @@ func _recetter() -> void:
 			if await _attendre(func() -> bool: return not is_same(combat.get("_vue"), premiere), "une vue après le geste %s" % geste.element):
 				if combat.get("_vue") == premiere:
 					_fautes.append("le geste %s rend une vue identique à la première" % geste.element)
-	_fautes.append_array(_signales)
 	var avis: String = combat.get_node("Ecran/Interface/Avis/Panne").text
 	if avis != "":
 		_fautes.append("avis de panne du combat : %s" % avis.left(300))
+	combat.queue_free()
+	await create_timer(Foyer.SON_LIBERE_S).timeout
+	_fautes.append_array(_signales)
 	for faute in _fautes:
 		push_error("[partie-vivante] " + faute)
 	print("[partie-vivante] erreurs=", _fautes.size())

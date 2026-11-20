@@ -172,8 +172,7 @@ export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
  *  au-delà d'une borne tombe dans la bande suivante. PUR. */
 export function lighthouseSpotDifficulty(milles: number, clocher: boolean): Difficulty | null {
   const d = Math.ceil(clocher ? milles * seaNavigation.phares.clocher.distanceDiviseur : milles);
-  const row = findTableEntry(tables().voirLaLumiere, d);
-  return d > row.max ? null : row.difficulty;
+  return d > 15 ? null : findTableEntry(tables().voirLaLumiere, d).difficulty;
 }
 
 /** Bonus d'ORIENTATION une fois le repère perçu : phare → « premier chiffre » de Savoir (Océans)

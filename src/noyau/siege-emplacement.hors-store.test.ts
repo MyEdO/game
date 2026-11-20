@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { applyShipPostes, serveAtPoste } from './monde/shipPostes';
@@ -126,7 +127,7 @@ describe('(B) Tir — le chef sert la pièce et touche la cible (resolveAttack, 
     expect(poste.loadedAmmoUid).toBe('emplacement-poste-0-carreau-de-baliste');
     expect(firedAttackBlock(get, chef, cible, poste.item.uid)).toBeNull();
 
-    const tiree = firedWeapon(scene, chef, cible, poste.item.uid, all);
+    const tiree = firedWeapon(findTrappingById, scene, chef, cible, poste.item.uid, all);
     expect(tiree).toMatchObject({ uid: poste.item.uid, trappingId: id, damage: { plusBF: false, flat: degats }, reload: recharge });
     const r = resolveAttack(get, chef, cible, tiree, undefined, false, false, false);
     expect(r?.res.hit).toBe(true);
@@ -147,7 +148,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     chef.skills = arb();
     const all = [mkEmplacement(poste), chef, mkCrewman('s1', false), mkEnemy('cible', 12, 5)]; // s1 à terre → présent 1, déficit 1
     applyShipPostes(all);
-    const w = firedWeapon(banc.getState().scene, chef, all[3], poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, banc.getState().scene, chef, all[3], poste.item.uid, all);
     expect(w.reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
     expect(w.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(false); // équipage RÉEL résolu → retirée
   });
@@ -160,7 +161,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     s1.skills = arb();
     const all = [mkEmplacement(poste), chef, s1, mkEnemy('cible', 12, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(banc.getState().scene, chef, all[3], poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, banc.getState().scene, chef, all[3], poste.item.uid, all);
     expect(w.reload).toBe(3); // effectif complet (présent 2 ≥ Indice 2) → pas de ×2
   });
 

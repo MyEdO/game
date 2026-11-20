@@ -2,6 +2,7 @@
  * #223 — « seed + repli bruyant » : toute résolution qui ÉCHOUE crie (console) et laisse une trace
  * VISIBLE, jamais un clone silencieux. Une réf. irrésoluble LÈVE (#1882).
  */
+import { findTrappingById } from '../data';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RefIrresoluble, spawnEnemy } from '../noyau/monde/spawn';
 import { ficheDEntite, FicheAbsente } from '../noyau/monde/sceneNpc';
@@ -68,6 +69,6 @@ describe('#3684 — objets d’inventaire d’auteur au spawn de combat', () => 
     const arc = shooter.weapons.find((w) => w.type === 'distance');
     expect(arc?.trappingId).toBe('arc');
     expect(weaponLoaded(shooter, arc!)).toBe(true);
-    expect(inFiringBand(null, shooter, cible, arc!)).toBe(true); // 10 cases = 20 m, Portée 50 m
+    expect(inFiringBand(findTrappingById, null, shooter, cible, arc!)).toBe(true); // 10 cases = 20 m, Portée 50 m
   });
 });

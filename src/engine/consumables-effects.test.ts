@@ -5,6 +5,7 @@
  *  - flows à nœud `test`/`delayed` → assertions de STRUCTURE (le runtime cadence-aware est couvert
  *    par `noyau/consumable-flow.hors-store.test.ts`).
  */
+import { findTrappingById } from '../data';
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { Combatant } from './types';
@@ -47,7 +48,7 @@ const activeDisease = (id: string, durationDays: number): Disease => ({
 
 /** Applique le Flow d'un consommable SANS nœud test (effet/si seulement) au buveur — voie moteur pur. */
 function drinkPure(c: Combatant, id: string): void {
-  const flow = consommableDe(itemFromTrappingById(id, idsDeTest)!)!;
+  const flow = consommableDe(itemFromTrappingById(id, idsDeTest)!, findTrappingById)!;
   for (const leaf of flattenFlow(flow, { flags: {}, gameTime: 0, party: [c], target: view(c), caster: view(c) })) {
     applyOps(c, (leaf as EffectOp).ops, { idNeuf: idsDeTest, rng: desDuTest, caster: c, now: 0 });
   }
@@ -67,7 +68,7 @@ type VeninThen = {
   echec: { effet: { ops: { op: string; id?: string; value?: number }[] } };
 };
 const onHitVeninThen = (id: string): VeninThen => {
-  const aug = consumableOps(consommableDe(itemFromTrappingById(id, idsDeTest)!)).find((o) => o.op === 'augmentWeapon') as
+  const aug = consumableOps(consommableDe(itemFromTrappingById(id, idsDeTest)!, findTrappingById)).find((o) => o.op === 'augmentWeapon') as
     | { op: 'augmentWeapon'; onHitEffects?: { flow: { alors: VeninThen } }[] }
     | undefined;
   return aug!.onHitEffects![0].flow.alors;
@@ -77,7 +78,7 @@ const onHitVeninThen = (id: string): VeninThen => {
 
 describe('brise-coeur (LDB 71 l.22) — poison ingéré, Test au boire', () => {
   it("« inflige 4 États Empoisonné. Combattu avec un Test de Résistance Complexe (-10) » : test → fail → 4 pions", () => {
-    const f = consommableDe(itemFromTrappingById('brise-coeur', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
+    const f = consommableDe(itemFromTrappingById('brise-coeur', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'test' }>;
     expect(f.kind).toBe('test');
     expect(f.test.difficulty).toBe('complexe');
     expect(consumableOps(f.echec)).toEqual([{ op: 'condition', id: { id: 'empoisonne' }, value: 4 }]);
@@ -87,7 +88,7 @@ describe('brise-coeur (LDB 71 l.22) — poison ingéré, Test au boire', () => {
 
 describe('lotus-noir (LDB 71 l.31) — enduit arme, pas ingéré', () => {
   it("a un augmentWeapon : « utilisée pour empoisonner les lames »", () => {
-    expect(consumableOps(consommableDe(itemFromTrappingById('lotus-noir', idsDeTest)!)).some((o) => o.op === 'augmentWeapon')).toBe(true);
+    expect(consumableOps(consommableDe(itemFromTrappingById('lotus-noir', idsDeTest)!, findTrappingById)).some((o) => o.op === 'augmentWeapon')).toBe(true);
   });
   it("onHit = Test de Résistance Complexe (-10) : « Combattu avec un Test de Résistance Complexe (-10) »", () => {
     const then = onHitVeninThen('lotus-noir');
@@ -107,7 +108,7 @@ describe('lotus-noir (LDB 71 l.31) — enduit arme, pas ingéré', () => {
 
 describe('bave (LDB 71 l.18)', () => {
   it("Test d'Endurance Très difficile (-30) au boire ; échec → narrative verbatim (rien d'inventé au-delà du texte)", () => {
-    const f = consommableDe(itemFromTrappingById('bave', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
+    const f = consommableDe(itemFromTrappingById('bave', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'test' }>;
     expect(f.kind).toBe('test');
     expect(f.test.characteristic).toBe('endurance');
     expect(f.test.difficulty).toBe('tresDifficile');
@@ -117,7 +118,7 @@ describe('bave (LDB 71 l.18)', () => {
 
 describe('bonnet-de-fou (LDB 71 l.20)', () => {
   it('« +10 en Force, +4 Blessures et le Talent Frénésie » + perte 1d10 PB à la dissipation (delayed afterDuration)', () => {
-    const ops = consumableOps(consommableDe(itemFromTrappingById('bonnet-de-fou', idsDeTest)!));
+    const ops = consumableOps(consommableDe(itemFromTrappingById('bonnet-de-fou', idsDeTest)!, findTrappingById));
     expect(ops).toContainEqual({ op: 'charMod', characteristic: 'force', mod: 10 });
     expect(ops).toContainEqual({ op: 'attrMod', attr: 'wounds', mod: 4, auTotal: true }); // #3060
     expect(ops).toContainEqual({ op: 'grantTalent', talent: { id: 'frenesie' } });
@@ -126,7 +127,7 @@ describe('bonnet-de-fou (LDB 71 l.20)', () => {
     expect(delayed.ops).toEqual([{ op: 'wounds', amount: { dice: { n: 1, sides: 10 } }, ignoreTB: true, ignoreAP: true }]);
   });
   it('« Tous ceux qui ne sont pas des peaux-vertes » : Test de Résistance (+0) gaté exceptGroups → Infection mineure', () => {
-    const f = consommableDe(itemFromTrappingById('bonnet-de-fou', idsDeTest)!)! as Extract<Flow, { kind: 'sequence' }>;
+    const f = consommableDe(itemFromTrappingById('bonnet-de-fou', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'sequence' }>;
     const test = f.etapes.find((s) => s.kind === 'test') as Extract<Flow, { kind: 'test' }>;
     expect(test.test.exceptGroups).toEqual(['peau-verte']);
     expect(test.test.difficulty).toBe('intermediaire');
@@ -139,7 +140,7 @@ describe('bonnet-de-fou (LDB 71 l.20)', () => {
 
 describe('delice-de-ranald (LDB 71 l.24)', () => {
   it('+1 M, +10 F/E/Ag/CC pendant 3 h ; puis −2 M, −20 CC/E/F/Ag (delayed afterHours 3, pénalité 21 h — « Durée : 1 jour » = l\'épisode)', () => {
-    const ops = consumableOps(consommableDe(itemFromTrappingById('delice-de-ranald', idsDeTest)!));
+    const ops = consumableOps(consommableDe(itemFromTrappingById('delice-de-ranald', idsDeTest)!, findTrappingById));
     expect(ops).toContainEqual({ op: 'moveMod', mod: 1 });
     for (const char of ['force', 'endurance', 'agilite', 'capacite-de-combat']) expect(ops).toContainEqual({ op: 'charMod', characteristic: char, mod: 10 });
     const delayed = ops.find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
@@ -153,12 +154,12 @@ describe('delice-de-ranald (LDB 71 l.24)', () => {
 
 describe('fleur-de-lune (LDB 71 l.26-29)', () => {
   it('Elfes : « +30 à tous les Tests associés pour résister à la [Peste noire] » (branche if has group elfe)', () => {
-    const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!)! as Extract<Flow, { kind: 'si' }>;
+    const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'si' }>;
     expect(f.condition).toEqual({ kind: 'has', who: 'target', what: 'group', value: 'elfe' });
     expect(consumableOps(f.alors)).toEqual([{ op: 'diseaseTestMod', diseases: ['peste-noire'], amount: 30 }]);
   });
   it('autres races : Test de FM Très difficile — raté → Inconscient (1d10+5 h) ; réussi → +20 Calme + 1 Exténué', () => {
-    const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!)! as Extract<Flow, { kind: 'si' }>;
+    const f = consommableDe(itemFromTrappingById('fleur-de-lune', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'si' }>;
     const test = f.sinon as Extract<Flow, { kind: 'test' }>;
     expect(test.test.characteristic).toBe('force-mentale');
     expect(test.test.difficulty).toBe('tresDifficile');
@@ -211,7 +212,7 @@ describe('racine-de-mandragore (LDB 71 l.35)', () => {
 
 describe('belladone (LDB 72 l.18)', () => {
   it('Test de Résistance (défaut Intermédiaire) ; raté → sommeil différé 150 min, Inconscient 1d10+4 h (États d\'horloge)', () => {
-    const f = consommableDe(itemFromTrappingById('belladone', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
+    const f = consommableDe(itemFromTrappingById('belladone', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'test' }>;
     expect(f.kind).toBe('test');
     expect(f.test.skill).toEqual({ id: 'resistance' });
     const delayed = consumableOps(f.echec).find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
@@ -250,26 +251,26 @@ describe('tonique-digestif (LDB 72 l.32)', () => {
 
 describe('gesundheit (MSRC 04 l.184-186) — Test de Résistance Accessible (+20) puis −1 jour PAR DR obtenu (#458)', () => {
   it('Test de Résistance Accessible (+20) — pas d\'effet inconditionnel (défaut #46 corrigé)', () => {
-    const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
+    const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'test' }>;
     expect(f.kind).toBe('test');
     expect(f.test.skill).toEqual({ id: 'resistance' });
     expect(f.test.difficulty).toBe('accessible');
   });
   it('succès → reduceDiseaseDays SCOPÉ blessure-purulente, échelle daysPerSL 1/DR — jamais fixe', () => {
-    const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
+    const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'test' }>;
     expect(consumableOps(f.reussite)).toEqual([
       { op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' },
     ]);
   });
   it('échec → aucune réduction (le Test n\'a pas été réussi)', () => {
-    const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
+    const f = consommableDe(itemFromTrappingById('gesundheit', idsDeTest)!, findTrappingById)! as Extract<Flow, { kind: 'test' }>;
     expect(consumableOps(f.echec)).toEqual([]);
   });
 });
 
 describe('racine-des-tombes (MSRC 04 l.221-229) — enduit anti-mort-vivant + cataplasme', () => {
   it("a un augmentWeapon : « Étalée sur une arme, la sève est nocive pour les Mort-vivants »", () => {
-    expect(consumableOps(consommableDe(itemFromTrappingById('racine-des-tombes', idsDeTest)!)).some((o) => o.op === 'augmentWeapon')).toBe(true);
+    expect(consumableOps(consommableDe(itemFromTrappingById('racine-des-tombes', idsDeTest)!, findTrappingById)).some((o) => o.op === 'augmentWeapon')).toBe(true);
   });
   it("onHit = Test de Résistance Complexe (-10) gaté Mort-vivant", () => {
     const then = onHitVeninThen('racine-des-tombes');
@@ -278,7 +279,7 @@ describe('racine-des-tombes (MSRC 04 l.221-229) — enduit anti-mort-vivant + ca
     expect(then.test.onlyGroups).toContain('mort-vivant');
   });
   it('cataplasme : « bonus de +20 à tous les Tests » pour résister à la Blessure Purulente, pendant la journée', () => {
-    const ops = consumableOps(consommableDe(itemFromTrappingById('racine-des-tombes', idsDeTest)!));
+    const ops = consumableOps(consommableDe(itemFromTrappingById('racine-des-tombes', idsDeTest)!, findTrappingById));
     expect(ops).toContainEqual({ op: 'diseaseTestMod', diseases: ['blessure-purulente'], amount: 20 });
     expect(itemFromTrappingById('racine-des-tombes', idsDeTest)!.consumableDuration).toEqual({ days: 1 });
   });
@@ -296,7 +297,7 @@ describe('rouille-mouchetee (MSRC 04 l.239-241) — « Chaque dose réduit la du
     expect(reducedDays).toBeLessThanOrEqual(10);
   });
   it('« bonus de +10 à tous les Tests en lien avec la maladie » tant que la dose quotidienne est maintenue', () => {
-    const ops = consumableOps(consommableDe(itemFromTrappingById('rouille-mouchetee', idsDeTest)!));
+    const ops = consumableOps(consommableDe(itemFromTrappingById('rouille-mouchetee', idsDeTest)!, findTrappingById));
     expect(ops).toContainEqual({ op: 'diseaseTestMod', diseases: ['verole-du-tanneur'], amount: 10 });
     expect(itemFromTrappingById('rouille-mouchetee', idsDeTest)!.consumableDuration).toEqual({ days: 1 });
   });

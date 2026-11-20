@@ -649,6 +649,11 @@ func attendre_les_aretes() -> void:
 		await _lectures_closes
 
 
+## La taille, en mètres, du modèle d'arête lu `modele` (`_taille_du_modele`), celle à laquelle ses pièces s'étirent.
+func taille_du_modele_d_arete(modele: String) -> Vector3:
+	return _modeles_d_arete[modele].taille
+
+
 ## La taille, en mètres, de la scène `scene` d'un modèle : celle de sa boîte (`MontageDeVehicule.boite`), mesurée
 ## sous le volume le temps de la mesure.
 func _taille_du_modele(scene: Node3D) -> Vector3:
@@ -880,7 +885,7 @@ func _groupe(aretes: Array) -> Node3D:
 	var modele := modele_d_arete(a.famille)
 	var noeud := "" if not _modeles_d_arete.has(modele) else noeud_de_la_piece(_modeles_d_arete[modele].scene, a.piece, a.position)
 	if not noeud.is_empty():
-		var taille: Vector3 = _modeles_d_arete[modele].taille
+		var taille := taille_du_modele_d_arete(modele)
 		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, metres_par_case)
 		groupe.scale = etirement
 		groupe.add_child(piece_peinte(modele, noeud, a.palette, etirement).duplicate())

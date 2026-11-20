@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import {
@@ -133,7 +134,7 @@ describe('(B) Service — `serveAtPoste` rend chef tout combattant (mannedPoste,
     const cible = mkEnemyTarget('cible', 8, 5, 30, 60);
     const all = [mkEmplacement(poste), gunner, s1, cible];
     serveAtPoste(gunner, poste, all);
-    const w = firedWeapon(banc.getState().scene, gunner, cible, poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, banc.getState().scene, gunner, cible, poste.item.uid, all);
     expect(w.uid).toBe(poste.item.uid); // c'est bien la baliste servie qui tire
     const get = mkGet(groundScene(), all, { gunner: 'N' });
     const r = resolveAttack(get, gunner, cible, w, undefined, false, false, false);
@@ -327,14 +328,14 @@ describe('(F) Équipe — REJOINDRE une pièce servie en renfort (chef = seul ti
     serveAtPoste(chef, poste, all); // chef
     serveAtPoste(renfort, poste, all); // support → présents 2 = Indice 2
     expect(servingCrewPresent(chef, all)).toBe(2);
-    const wFull = firedWeapon(banc.getState().scene, chef, cible, poste.item.uid, all);
+    const wFull = firedWeapon(findTrappingById, banc.getState().scene, chef, cible, poste.item.uid, all);
     expect(wFull.reload).toBe(3); // effectif complet → recharge normale (pas de ×2)
     expect(wFull.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(false); // équipage RÉEL résolu → retirée
     // le support s'en va → présents 1 < Indice 2 : sous-effectif
     leaveChef(renfort, poste, all);
     expect(servingCrewPresent(chef, all)).toBe(1);
     expect(crewedPenalty(1, 2).reloadFactor).toBe(2);
-    expect(firedWeapon(banc.getState().scene, chef, cible, poste.item.uid, all).reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
+    expect(firedWeapon(findTrappingById, banc.getState().scene, chef, cible, poste.item.uid, all).reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
   });
 
   it('(c) SEUL le chef (crewIds[0]) se voit offrir l’option de tir « Servir … » ; le support, non', () => {

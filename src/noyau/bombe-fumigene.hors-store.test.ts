@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as donnees from '../data';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -64,7 +65,7 @@ function lancer(w: Weapon, touche: boolean): { zones: ChargeDeZone[]; avant: num
   const [h, e] = acteurs();
   const avant = e.wounds.current;
   const res: AttackResult = touche
-    ? resolveRanged(h, e, w, deMin, 6, undefined, [], undefined, 1)
+    ? resolveRanged(findTrappingById, h, e, w, deMin, 6, undefined, [], undefined, 1)
     : { hit: false, attackerRoll: 88, netSL: -3, critical: false, advantageTo: null, defenderDefeated: false, log: 'manque sa cible.' };
   if (touche) expect(res.hit).toBe(true);
   const zones: ChargeDeZone[] = [];

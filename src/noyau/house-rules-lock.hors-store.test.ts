@@ -121,10 +121,10 @@ describe('L’armement du groupe suit l’option Aux Armes', () => {
     hero.items = [tromblon, poudre, fleche];
     hero.loadouts = undefined;
     recomputeLoadout(hero);
-    loadWeapon(hero, hero.weapons[0]);
+    loadWeapon(findTrappingById, hero, hero.weapons[0]);
     banc.getState().fixerLeGroupe([hero]);
     const porteur = () => banc.getState().party[0];
-    const tir = () => weaponWithAmmo(porteur().weapons[0], loadedAmmo(porteur(), porteur().weapons[0])!);
+    const tir = () => weaponWithAmmo(porteur().weapons[0], loadedAmmo(findTrappingById, porteur(), porteur().weapons[0])!);
     const reprojeter = () => banc.setState(patchDeLArmement(banc.getState()) ?? {});
     const ajout = { id: 'a-poudre-noire' };
     expect(tir().qualities).toContainEqual({ id: 'a-explosion', value: 4 });
@@ -133,7 +133,7 @@ describe('L’armement du groupe suit l’option Aux Armes', () => {
 
     expect(surchargerUneRegleMaison(banc.getState(), ARMEMENT_AA, true, reprojeter)).toBe(true);
     expect(porteur().items).toBe(hero.items);
-    expect(loadedAmmo(porteur(), porteur().weapons[0])).toBe(poudre);
+    expect(loadedAmmo(findTrappingById, porteur(), porteur().weapons[0])).toBe(poudre);
     expect(tir().qualities).toEqual(expect.arrayContaining([{ id: 'tir-de-zone', value: 3 }, { id: 'a-explosion', value: 1 }, { id: 'precise' }]));
     expect(tir().qualities.filter((q) => q.id === ajout.id)).toEqual([ajout]);
     expect(weaponWithAmmo(arc, fleche).qualities.map((q) => q.id)).toEqual(expect.arrayContaining(['pointue', 'empaleuse', 'perforante']));

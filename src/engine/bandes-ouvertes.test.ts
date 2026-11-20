@@ -8,9 +8,8 @@ import { evenementsDeBord, resolveFastVoyage } from './seaVoyage';
 import { findEffectTableById } from '../data/effectTables';
 
 /**
- * Bandes OUVERTES de la donnée (`null`, `tableOuverte`, `src/engine/tables.ts`) : une valeur au-delà de
- * toute borne écrite tombe dans la bande extrême, par la couture que le jeu appelle — jamais par le
- * repli de `findTableEntry` sur la dernière rangée.
+ * Bandes OUVERTES de la donnée (`null`, `tableOuverte`, `src/engine/tables.ts`) : les bornes infinies
+ * couvrent les valeurs extrêmes dans les appels du jeu.
  */
 describe('bandes ouvertes — la valeur extrême tombe dans la bande extrême', () => {
   it('Moral d’équipage (MDG 14 l.188, l.199) : 150 → « Mené de main de maître ! », −1000 → « Des canailles… »', () => {

@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   resolveMeleePassive,
@@ -180,8 +181,8 @@ describe("Retenir ses coups au tir en 'ldb' : la règle de la mêlée retenue (L
   const bowCrit = { ...bow, damage: { plusBF: false, flat: 4 } };
 
   it('tir non défendu (`resolveRanged`) : Coup Critique ignoré, Blessures inchangées, comme en mêlée', () => {
-    const normal = resolveRanged(att(), mk(), bowCrit, rngOf(33), 10, undefined, [], undefined, 2, false);
-    const withheld = resolveRanged(att(), mk(), bowCrit, rngOf(33), 10, undefined, [], undefined, 2, true);
+    const normal = resolveRanged(findTrappingById, att(), mk(), bowCrit, rngOf(33), 10, undefined, [], undefined, 2, false);
+    const withheld = resolveRanged(findTrappingById, att(), mk(), bowCrit, rngOf(33), 10, undefined, [], undefined, 2, true);
     const melee = resolveMeleePassive(att(), mk(), plainSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(normal.critical).toBe(true);
     expect(withheld.critical).toBe(melee.critical);
@@ -191,8 +192,8 @@ describe("Retenir ses coups au tir en 'ldb' : la règle de la mêlée retenue (L
 
   it('tir défendu (`finishRanged`) : Coup Critique ignoré', () => {
     const rate = evaluateTest(95, 40);
-    const normal = finishRanged(att(), mk(), bowCrit, dbl, rate, 'esquive', { rng: makeRNG(1595) }, 10, undefined, [], undefined, [], 2, undefined, false);
-    const withheld = finishRanged(att(), mk(), bowCrit, dbl, rate, 'esquive', { rng: makeRNG(1595) }, 10, undefined, [], undefined, [], 2, undefined, true);
+    const normal = finishRanged(findTrappingById, att(), mk(), bowCrit, dbl, rate, 'esquive', { rng: makeRNG(1595) }, 10, undefined, [], undefined, [], 2, undefined, false);
+    const withheld = finishRanged(findTrappingById, att(), mk(), bowCrit, dbl, rate, 'esquive', { rng: makeRNG(1595) }, 10, undefined, [], undefined, [], 2, undefined, true);
     expect(normal.critical).toBe(true);
     expect(withheld.critical).toBe(false);
     expect(withheld.woundsLost).toBe(normal.woundsLost);

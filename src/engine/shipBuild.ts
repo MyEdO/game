@@ -110,9 +110,7 @@ const standardLookup = memoParVersion('shipHullSizes', () =>
  * Le livre imprime des bandes d'ENTIERS contiguës depuis 1 m, la dernière ouverte : le domaine de
  * cette fonction est donc l'entier ≥ 1, ce que le schéma exige du porteur
  * (`ship.lengthM: z.number().int().min(1)`, `src/data/schemas/defs/vehicles.ts`). Une longueur hors
- * de ce domaine — 0, négative, ou fractionnaire entre deux bandes — est une ANOMALIE NOMMÉE, jamais
- * un repli muet : `findTableEntry` rendrait « Monstrueuse » au dépassement, et retomber sur la
- * première bande rendrait « Minuscule » à un trois-mâts de 80,5 m.
+ * de la table — 0, négative, ou fractionnaire entre deux bandes — est nommée dans le refus.
  * PUR.
  */
 export function shipSizeOfLength(lengthM: number): ShipSize {

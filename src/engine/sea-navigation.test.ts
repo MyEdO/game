@@ -94,7 +94,8 @@ describe('Phares & clochers (MDG 13 l.333-351)', () => {
   it('Voir la lumière : ≤5 milles Facile (+40) ; 5-10 Intermédiaire ; 10-15 Difficile ; au-delà : invisible', () => {
     expect(lighthouseSpotDifficulty(3, false)).toBe('facile');
     expect(lighthouseSpotDifficulty(8, false)).toBe('intermediaire');
-    expect(lighthouseSpotDifficulty(14, false)).toBe('difficile');
+    expect(lighthouseSpotDifficulty(15, false)).toBe('difficile');
+    expect(lighthouseSpotDifficulty(15.01, false)).toBeNull();
     expect(lighthouseSpotDifficulty(20, false)).toBeNull();
   });
 

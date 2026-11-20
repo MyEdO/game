@@ -437,7 +437,10 @@ export const ACTION_CANDIDATES: Record<SelecteurDAction, (ctx: ActionSelectorCtx
   'sorts-du-heros': ({ active }) => active.spells ?? [],
   /** Les États PORTÉS : la réserve de Détermination est le verdict d'offre (`determination-en-reserve`), qui dit son refus. */
   'etats-retirables': ({ active }) => active.conditions,
-  consommables: ({ active }) => (active.items ?? []).filter(isConsumable),
+  consommables: ({ active, state }) => {
+    const resolveTrapping = objetDuNarratif(state?.campaignNarratif);
+    return (active.items ?? []).filter((item) => isConsumable(item, resolveTrapping));
+  },
   /** Les objets que l'actif porte : chacun se pose au sol (`poserLObjet`). */
   'objets-portes': ({ active }) => active.items ?? [],
   'armes-a-distance': ({ active }) => armesADistance(active),
@@ -445,9 +448,10 @@ export const ACTION_CANDIDATES: Record<SelecteurDAction, (ctx: ActionSelectorCtx
   'armes-a-recharge': ({ active }) => armesADistance(active).filter((w) => (w.reload ?? 0) > 0),
   /** Les munitions compatibles de l'arme visée, ou de chaque arme à distance quand aucune n'est visée : la paire de
    *  l'arme et de sa munition, que `approvisionnerLArme` reçoit. */
-  'munitions-compatibles': ({ active, weaponUid }) => {
+  'munitions-compatibles': ({ active, weaponUid, state }) => {
+    const resolveTrapping = objetDuNarratif(state?.campaignNarratif);
     const visee = active.weapons.find((x) => x.uid === weaponUid);
-    return (visee ? [visee] : armesADistance(active)).flatMap((arme) => compatibleAmmo(active, arme).map((munition) => ({ arme, munition })));
+    return (visee ? [visee] : armesADistance(active)).flatMap((arme) => compatibleAmmo(resolveTrapping, active, arme).map((munition) => ({ arme, munition })));
   },
   'manoeuvres-sur-soi': ({ active }) => selfManeuversOf(active).filter((m) => selfManeuverApplicable(active, m)),
   /** Les sets d'armes du porteur, chacun nommé par son contenu (`loadoutLabel`). */

@@ -370,15 +370,112 @@ describe('références de campagne dans la scène, les dotations et les objets e
   it.each([
     ['passive', [don(objet.id)]],
     ['passifDArme', [don(objet.id)]],
-    ['effects', [touche(don(objet.id))]],
-    ['consumable', feuille(ops(don(objet.id)))],
     ['onHitEffects', [touche({ op: 'augmentWeapon', passive: [don(objet.id)] })]],
-  ] as const)('la référence dans %s garde le catalogue seul pour un canal passif ou résolu sur une instance portée', (champ, contenu) => {
+  ] as const)('la référence dans %s garde le catalogue seul pour un canal passif', (champ, contenu) => {
     const r = projetSchema.safeParse(projet({ narratif: { ...emptyNarratif(), objets: [objet, { ...arme, [champ]: contenu }] } }));
     expect(r.success).toBe(false);
     expect(r.success ? [] : r.error.issues.map((i) => [i.path.slice(0, 4), i.message])).toEqual([
       [['narratif', 'objets', 1, champ], expect.stringContaining('est absent du catalogue des objets (trappings.json)')],
     ]);
+  });
+
+  it('les flux d’un objet porté suivent le renommage et refusent le retrait dans le projet seul', () => {
+    const porteuse = { ...arme, effects: [touche(don(objet.id))], consumable: feuille(ops(don(objet.id))) };
+    const edite = parseProject(projet({ narratif: { ...emptyNarratif(), objets: [objet, porteuse] } }));
+    const positions = (doc: unknown) => sitesDeLaPortee(projetSchema, doc, OBJETS_DU_PROJET)
+      .map(({ chemin, id }) => ({ chemin: chemin.join('.'), id })).sort((a, b) => a.chemin.localeCompare(b.chemin));
+    const sites = (id: string) => [
+      { chemin: 'narratif.objets.1.consumable.effet.ops.0.trappingId', id },
+      { chemin: 'narratif.objets.1.effects.0.flow.effet.ops.0.trappingId', id },
+    ];
+    expect(positions(edite)).toEqual(sites(objet.id));
+    expect(retireDuProjet(edite, { registre: 'objets', id: objet.id })).toBe(edite);
+    const nouveau = 'possession-renommee';
+    const renomme = renommeAuProjet(edite, { registre: 'objets', id: objet.id }, nouveau);
+    expect(positions(renomme)).toEqual(sites(nouveau));
+    expect(() => parseProject(renomme)).not.toThrow();
+
+    const catalogue = catalogueDesObjets.safeParse([porteuse, objet]);
+    expect(catalogue.success ? [] : catalogue.error.issues.map((issue) => issue.path.join('.')).sort()).toEqual([
+      '0.consumable.effet.ops.0.trappingId', '0.effects.0.flow.effet.ops.0.trappingId',
+    ]);
+  });
+
+  it.each(['consumable', 'effects'] as const)('%s d’un objet de campagne nomme l’enjeu du Test, même pour donner un objet du catalogue', (champ) => {
+    const racine = {
+      kind: 'test', test: { characteristic: 'endurance' },
+      reussite: feuille(ops(don('arme-simple'))), echec: { kind: 'sequence', etapes: [] },
+    };
+    const porteur = (flow: typeof racine) => ({
+      ...arme, [champ]: champ === 'effects' ? [{ trigger: 'onTurnStart', on: 'soi', flow }] : flow,
+    });
+    const documentPorteur = (flow: typeof racine) => projet({
+      narratif: { ...emptyNarratif(), objets: [porteur(flow)] },
+    });
+    expect(catalogueDesObjets.safeParse([porteur(racine)]).success).toBe(true);
+    const r = projetSchema.safeParse(documentPorteur(racine));
+    expect(r.success ? [] : r.error.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([
+      [champ === 'effects' ? 'narratif.objets.0.effects.0.flow.test.stake' : 'narratif.objets.0.consumable.test.stake',
+        expect.stringContaining('déclarer son enjeu')],
+    ]);
+    const testNomme = { ...racine.test, stake: { authored: 'Obtenir l’arme promise.' } };
+    expect(projetSchema.safeParse(documentPorteur({ ...racine, test: testNomme })).success).toBe(true);
+  });
+
+  it('un Test imbriqué reste hors portée pour un effet d’objet en fin de Round', () => {
+    const test = {
+      kind: 'test', test: { characteristic: 'endurance', stake: { authored: 'Obtenir l’arme promise.' } },
+      reussite: feuille(ops(don(objet.id))), echec: { kind: 'sequence', etapes: [] },
+    };
+    const withRoundEnd = (flow: unknown) => projet({
+      narratif: { ...emptyNarratif(), objets: [objet, { ...arme, effects: [{ trigger: 'onRoundEnd', on: 'soi', flow }] }] },
+    });
+    expect(projetSchema.safeParse(withRoundEnd(test)).success).toBe(true);
+    const r = projetSchema.safeParse(withRoundEnd({ kind: 'sequence', etapes: [test] }));
+    expect(r.success ? [] : r.error.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([
+      ['narratif.objets.1.effects.0.flow.etapes.0.reussite.effet.ops.0.trappingId', expect.stringContaining('Test à la racine')],
+    ]);
+  });
+
+  describe('déclenchement d’un objet porté qui référence un objet local', () => {
+    const documentPorteur = (effet: Jouet) => projet({
+      narratif: { ...emptyNarratif(), objets: [objet, { ...arme, effects: [effet] }] },
+    });
+    const avecDon = (trigger: string, id: string, optional: boolean, gratuite: boolean) => ({
+      trigger, on: 'soi', optional,
+      flow: feuille(ops(don(id), ...(gratuite ? [{ op: 'grantFreeAttack', weapon: 'held', when: 'immediate' }] : []))),
+    });
+
+    it.each([
+      ['onTurnStart', true, false, 'n’ouvre pas de choix'],
+      ['onHit', true, false, 'n’ouvre pas de choix'],
+      ['onTurnStart', false, true, 'n’ouvre pas d’attaque gratuite'],
+      ['onCrit', false, true, 'n’ouvre pas d’attaque gratuite'],
+    ] as const)('%s refuse la référence sans chemin de jeu (facultatif=%s, gratuite=%s)', (trigger, optional, gratuite, motif) => {
+      const r = projetSchema.safeParse(documentPorteur(avecDon(trigger, objet.id, optional, gratuite)));
+      expect(r.success ? [] : r.error.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([
+        ['narratif.objets.1.effects.0.flow.effet.ops.0.trappingId', expect.stringContaining(motif)],
+      ]);
+      const global = avecDon(trigger, 'arme-simple', optional, gratuite);
+      expect(projetSchema.safeParse(documentPorteur(global)).success).toBe(true);
+      expect(catalogueDesObjets.safeParse([{ ...arme, effects: [global] }]).success).toBe(true);
+    });
+
+    it.each(['onHit', 'onCharged'] as const)('%s admet le don local et la réaction gratuite', (trigger) => {
+      expect(projetSchema.safeParse(documentPorteur(avecDon(trigger, objet.id, false, true))).success).toBe(true);
+    });
+
+    it('le début du Tour peut donner directement ou laisser le porteur choisir avant un Test', () => {
+      expect(projetSchema.safeParse(documentPorteur(avecDon('onTurnStart', objet.id, false, false))).success).toBe(true);
+      const avecTest = {
+        trigger: 'onTurnStart', on: 'soi', optional: true,
+        flow: {
+          kind: 'test', test: { characteristic: 'endurance', stake: { authored: 'Obtenir l’arme promise.' } },
+          reussite: feuille(ops(don(objet.id))), echec: { kind: 'sequence', etapes: [] },
+        },
+      };
+      expect(projetSchema.safeParse(documentPorteur(avecTest)).success).toBe(true);
+    });
   });
 
   it.each([

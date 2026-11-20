@@ -2,6 +2,7 @@
  * LE PONT DE COMBAT AU NOYAU (#3059) : le combattant que porte la console à l'ouverture, les États de situation de
  * l'acteur et l'état de charge d'un set se lisent sans écran. Le combat se pose au banc ; les sièges par `net`.
  */
+import { findTrappingById } from '../data';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type EntreesDuBanc } from './banc.testkit';
 import { initialNet, type BattleState } from './etat';
@@ -143,7 +144,7 @@ describe('setNonCharge — un set porte-t-il une arme à distance à recharger ?
 
   it('arme à recharge chargée par la couture de charge : prête', () => {
     const H = porteur();
-    loadWeapon(H, weaponFromItem(H.items!.find((i) => i.uid === 'w-arb')!));
+    loadWeapon(findTrappingById, H, weaponFromItem(H.items!.find((i) => i.uid === 'w-arb')!));
     expect(setNonCharge(H, H.loadouts![0])).toBe(false);
   });
 

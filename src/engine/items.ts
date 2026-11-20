@@ -86,6 +86,11 @@ import type { TraitInstance } from './statEntry';
 import { armesDuProfil, armourFromTraits, uidDeLArmeDuTrait, weaponFromTrait } from './creatureEquip';
 import type { InventaireDAuteur } from '../data/schemas/defs-scenes/scene';
 
+/** Fiche d'un objet déjà né pour les règles qui la consultent à l'usage. #2967 */
+export function ficheDObjetPorte(objet: { trappingId?: string }, resolveTrapping: TrappingResolver): TrappingData | undefined {
+  return objet.trappingId ? resolveTrapping(objet.trappingId) : undefined;
+}
+
 /** Contexte explicite de la naissance d’un objet (#2948). */
 export interface ContexteDeNaissanceDObjet {
   espece?: string;
@@ -569,14 +574,14 @@ export function giveTrappingLabel(give: { trappingId?: string; custom?: string }
 }
 
 /** Libellé D'AFFICHAGE d'une instance d'objet, DÉRIVÉ de son id STABLE (`trappingId` → libellé FR du
- *  catalogue via `refLabel`) — id = logique, label = affichage. Repli sur `name` pour un objet CUSTOM
- *  hors-base (nom libre — trinket/quête/pièces de monstre, sans `trappingId`). SOURCE UNIQUE de l'affichage
+ *  catalogue via `refLabel`) — id = logique, label = affichage. Le repli est le libellé de l’instance
+ *  pour les objets du narratif et les objets personnalisés. SOURCE UNIQUE de l'affichage
  *  du nom d'un objet catalogué (fiche/sac/pickers) : un objet CATALOGUÉ ne rend jamais son id brut, même si
  *  son champ `label` a dérivé (save ancienne, donnée fautive). */
 export function itemLabel(it: Pick<ItemInstance, 'trappingId' | 'label' | 'spec' | 'subType'>): string {
   if (!it.trappingId) return it.label;
   const categorie = groupeDeSiege(it.subType) ? 'siegeEngines' : 'trappings';
-  return refLabel(categorie, { id: it.trappingId, spec: it.spec });
+  return refLabel(categorie, { id: it.trappingId, spec: it.spec }, it.label);
 }
 
 /** Limite d'Encombrement = (Bonus de Force + Bonus d'Endurance) × facteur (ogre ADE II 2 l.708 :
@@ -653,7 +658,7 @@ type ArmePortee = Pick<ItemInstance, 'trappingId' | 'hands' | 'subType' | 'manie
 /** Contexte de maniement de l'arme `it` tenue par `c` : son fait monté (`c.mountId`) et le maniement
  *  retenu ; `uneSeuleMain` : une seule main peut la tenir (l'autre occupée ou perdue). */
 function contexteDuPorteur(c: Combatant, it: ArmePortee, uneSeuleMain = false): ContexteDeManiement {
-  const brut = trappingBrutParId(it.trappingId);
+  const brut = ficheDObjetPorte(it, trappingBrutParId);
   const arme = { ...it, manieAussi: maniementDuProfil(it, brut, findTrappingById(brut?.id)) };
   return { mounted: !!c.mountId, maniement: maniementRetenu(c, arme, uneSeuleMain ? 1 : undefined) };
 }
@@ -965,7 +970,7 @@ function qualitesHorsGabarit(qualites: QualityInstance[], imprimees: TrappingDat
 
 /** Profil à la lecture d'une instance dont le gabarit de base est porté en état. AA 02 l.17, l.21 ; AA 08 l.65 */
 export function objetAuProfilEffectif<T extends ChampsDuProfilDObjet>(it: T): T {
-  const brut = trappingBrutParId(it.trappingId);
+  const brut = ficheDObjetPorte(it, trappingBrutParId);
   if (!brut?.variants?.length) return it;
   const effectif = findTrappingById(brut.id) ?? brut;
   const manieAussi = maniementDuProfil(it, brut, effectif);
@@ -1162,7 +1167,7 @@ export function armementDuPorteurVariable(c: Combatant): boolean {
   return (c.items ?? []).some((it) => {
     if (it.kind !== 'melee' && it.kind !== 'distance') return false;
     if (set && set.main !== it.uid && set.secondaire !== it.uid) return false;
-    const variante = trappingBrutParId(it.trappingId)?.variants?.some((v) =>
+    const variante = ficheDObjetPorte(it, trappingBrutParId)?.variants?.some((v) =>
       v.when.rule === 'combat-aa-armement' && (v.qualities !== undefined || v.damage !== undefined || v.manieAussi !== undefined));
     return variante || weaponGroupBrutParId(groupeDeLArme(it))?.variants?.some((v) =>
       v.when.rule === 'combat-aa-armement' && v.manieAussi !== undefined);
@@ -1585,12 +1590,12 @@ export function ammoFamily(subType?: string): string {
 
 /** Libellé JOUEUR de la munition attendue par une arme à distance (hint d'achat/chargement quand le
  *  carquois du tireur ET le coffre du poste sont vides) : la munition REPRÉSENTATIVE de l'ARME
- *  (`defaultAmmo`, résolu au catalogue) si connue, sinon celle de la famille générique (`ammoFamily`) —
+ *  (`defaultAmmo`, résolu par id) si connue, sinon celle de la famille générique (`ammoFamily`) —
  *  `armes-de-siege` seul ne discrimine pas pierrier/canon/baliste/mortier (MDG 12 l.410-424), d'où le
  *  besoin du `defaultAmmo` par arme. Affichage FR pur (aide de saisie), jamais un id de logique. */
-export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string {
+export function ammoFamilyLabel(resolveTrapping: TrappingResolver, subType?: string, defaultAmmo?: string): string {
   if (defaultAmmo) {
-    const label = findTrappingById(defaultAmmo)?.label;
+    const label = resolveTrapping(defaultAmmo)?.label;
     if (label) return label;
   }
   switch (ammoFamily(subType)) {
@@ -1605,36 +1610,38 @@ export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string 
 
 type ArmePourMunitions = Pick<Weapon, 'trappingId' | 'subType' | 'defaultAmmo'>;
 
-function munitionsDeLArme(arme: ArmePourMunitions): readonly string[] | string {
-  const fiche = groupeDeSiege(arme.subType) ? findSiegeEngineById(arme.trappingId) : findTrappingById(arme.trappingId);
+function munitionsDeLArme(resolveTrapping: TrappingResolver, arme: ArmePourMunitions): readonly string[] | string {
+  const fiche = ficheDObjetPorte(arme, groupeDeSiege(arme.subType) ? findSiegeEngineById : resolveTrapping);
   return fiche?.munitions ?? ammoFamily(arme.subType);
 }
 
 /** Libellé du projectile requis au tir, ou `undefined` pour une arme qui s'utilise seule. */
-export function libelleMunitionRequise(arme: ArmePourMunitions): string | undefined {
-  const munitions = munitionsDeLArme(arme);
+export function libelleMunitionRequise(resolveTrapping: TrappingResolver, arme: ArmePourMunitions): string | undefined {
+  const munitions = munitionsDeLArme(resolveTrapping, arme);
   if (!munitions.length) return undefined;
-  return ammoFamilyLabel(arme.subType, typeof munitions === 'string' ? arme.defaultAmmo : munitions[0]);
+  return ammoFamilyLabel(resolveTrapping, arme.subType, typeof munitions === 'string' ? arme.defaultAmmo : munitions[0]);
 }
 
 /** La munition `munition` charge-t-elle l'arme `arme` ? Une arme qui nomme ses munitions (`munitions`), celles-là
  *  seules ; toute autre arme, celles de sa famille (`ammoFamily`) qu'aucune arme ne nomme (`munitionsReservees`).
  *  LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; AA 10 l.150 ; MDG 12 l.410-424 ; ADE II 02 l.639-640, l.665, l.673 ; #4360 */
-export function chargeLArme(munition: { trappingId?: string; subType?: string }, arme: ArmePourMunitions): boolean {
-  const munitions = munitionsDeLArme(arme);
+export function chargeLArme(resolveTrapping: TrappingResolver, munition: { trappingId?: string; subType?: string }, arme: ArmePourMunitions): boolean {
+  const munitions = munitionsDeLArme(resolveTrapping, arme);
   if (typeof munitions !== 'string') return munition.trappingId !== undefined && munitions.includes(munition.trappingId);
   return munitions !== '' && ammoFamily(munition.subType) === munitions && !munitionsReservees().has(munition.trappingId ?? '');
 }
 
-/** Munitions compatibles avec une arme à distance (`chargeLArme`, qty>0) : l'inventaire du
- *  porteur, PLUS — s'il SERT cette pièce (`mannedPoste`) — le STOCK DU POSTE (MDG 12 l.410-424 :
- *  le coffre à boulets de la pièce), en tête (le stock de bord prime sur la besace du servant). */
-export function compatibleAmmo(c: Combatant, weapon: Weapon): ItemInstance[] {
+/** Munitions disponibles : le coffre de la pièce servie, puis l'inventaire du porteur. MDG 12 l.410-424 */
+function munitionsDisponibles(c: Combatant, weapon: Weapon): ItemInstance[] {
   if (weapon.type !== 'distance') return [];
-  const match = (i: ItemInstance) => i.kind === 'ammo' && (i.qty ?? 0) > 0 && chargeLArme(i, weapon);
   const poste = c.mannedPoste;
-  const posteStock = poste && poste.item.uid === weapon.uid ? (poste.ammo ?? []).filter(match) : [];
-  return [...posteStock, ...(c.items ?? []).filter(match)];
+  const coffre = poste?.item.uid === weapon.uid ? poste?.ammo ?? [] : [];
+  return [...coffre, ...(c.items ?? [])].filter((i) => i.kind === 'ammo' && (i.qty ?? 0) > 0);
+}
+
+/** Munitions disponibles qui chargent cette arme (`chargeLArme`). */
+export function compatibleAmmo(resolveTrapping: TrappingResolver, c: Combatant, weapon: Weapon): ItemInstance[] {
+  return munitionsDisponibles(c, weapon).filter((i) => chargeLArme(resolveTrapping, i, weapon));
 }
 
 // Les LECTEURS du cycle de charge (`loadRegister`/`weaponLoaded`/`reloadProgressOf`) vivent dans le module
@@ -1644,8 +1651,8 @@ export function compatibleAmmo(c: Combatant, weapon: Weapon): ItemInstance[] {
  *  hotbar) s'il est compatible, sinon la sélection PERSISTANTE du poste servi (`poste.ammoUid`, fiche du
  *  navire — MDG 12 : boulet/mitraille), sinon la 1re compatible. PUR (inventaire/famille). Ce qui part au
  *  coup suivant, ce n'est PAS ce choix mais la munition CAPTURÉE (`loadedAmmo`). `undefined` = pas de munition. */
-export function selectedAmmo(c: Combatant, weapon: Weapon): ItemInstance | undefined {
-  const compat = compatibleAmmo(c, weapon);
+export function selectedAmmo(resolveTrapping: TrappingResolver, c: Combatant, weapon: Weapon): ItemInstance | undefined {
+  const compat = compatibleAmmo(resolveTrapping, c, weapon);
   const reg = loadRegister(c, weapon);
   const poste = c.mannedPoste;
   const posteUid = poste && poste.item.uid === weapon.uid ? poste.ammoUid : undefined;
@@ -1655,30 +1662,28 @@ export function selectedAmmo(c: Combatant, weapon: Weapon): ItemInstance | undef
 /** Munition RÉELLEMENT dans l'arme — celle que le tir consomme et qui augmente le coup (`weaponWithAmmo`,
  *  bandes de portée). Capturée au chargement par `loadWeapon` (PROPRIÉTAIRE UNIQUE de `loadedAmmoUid`).
  *  `docs/plans/2026-08-16-hud-combat.md` §1.
- *  Lue dans le REGISTRE de l'arme (pièce servie → la pièce). Sans cycle de chargement (`reload` 0 : Arc,
- *  fronde) il n'y a rien à capturer → le choix courant vaut coup. Repli sur le choix courant quand rien
- *  n'est capturé (arme authorée « prête » sans capture posée). PUR. */
-export function loadedAmmo(c: Combatant, weapon: Weapon): ItemInstance | undefined {
-  if ((weapon.reload ?? 0) <= 0) return selectedAmmo(c, weapon);
-  const compat = compatibleAmmo(c, weapon);
-  const uid = loadRegister(c, weapon).loadedAmmoUid;
-  return compat.find((a) => a.uid === uid) ?? selectedAmmo(c, weapon);
+ *  La capture reste le coup courant tant que sa pile est disponible. La compatibilité gouverne le prochain
+ *  chargement. Sans cycle de chargement, sans capture ou si sa pile a disparu, le choix courant vaut coup. */
+export function loadedAmmo(resolveTrapping: TrappingResolver, c: Combatant, weapon: Weapon): ItemInstance | undefined {
+  const uid = (weapon.reload ?? 0) > 0 ? loadRegister(c, weapon).loadedAmmoUid : undefined;
+  const capture = uid !== undefined ? munitionsDisponibles(c, weapon).find((munition) => munition.uid === uid) : undefined;
+  return capture ?? selectedAmmo(resolveTrapping, c, weapon);
 }
 
 /** Portée de TIR de l'arme `w` aux mains de `c` (mètres) : sa munition chargée (`loadedAmmo`) et le BF
  *  courant du tireur (paresseux). SOURCE UNIQUE des sites de combat (bandes, gates, IA, rendu). LDB 62. */
-export function porteeDeTir(c: Combatant, w: Weapon): number | null {
-  return effectiveWeaponRange(w, loadedAmmo(c, w)?.ammoRangeMod, () => bonusDeForce(c));
+export function porteeDeTir(resolveTrapping: TrappingResolver, c: Combatant, w: Weapon): number | null {
+  return effectiveWeaponRange(w, loadedAmmo(resolveTrapping, c, w)?.ammoRangeMod, () => bonusDeForce(c));
 }
 
 /** CHARGE une arme : pose ENSEMBLE, DANS SON REGISTRE, l'état de charge (`loaded`, `reloadProgress`,
  *  `chambered`) et la munition CAPTURÉE (`loadedAmmoUid`). PROPRIÉTAIRE UNIQUE de la pose : fin de rechargement
  *  (joueur ET IA), début de combat, spawn, prise d'une pièce. Mute en place. */
-export function loadWeapon(c: Combatant, weapon?: Weapon, poste?: ShipPoste): void {
+export function loadWeapon(resolveTrapping: TrappingResolver, c: Combatant, weapon?: Weapon, poste?: ShipPoste): void {
   if (!weapon && !poste) return;
   // Munition capturée : celle choisie pour CETTE arme ; pour une pièce dont l'arme n'est pas résolue
   // (équipage sans arme dérivée), la sélection persistante de la pièce fait foi (MDG 12).
-  const captured = weapon ? selectedAmmo(c, weapon)?.uid : poste?.ammoUid;
+  const captured = weapon ? selectedAmmo(resolveTrapping, c, weapon)?.uid : poste?.ammoUid;
   const reg: WeaponLoadState = poste ?? loadRegister(c, weapon!);
   reg.loaded = true;
   reg.reloadProgress = 0;
@@ -1723,12 +1728,12 @@ export function setReloadProgress(c: Combatant | undefined, weapon: Weapon | und
  *  rien n'est détruit (décompte au tir, `consumeAmmo`). L'arme `weapon` de `c` lit son registre (`loadRegister`, la
  *  pièce qu'elle sert comprise) ; sans arme résolue, la pièce `poste` seule. `docs/plans/2026-08-16-hud-combat.md` §1.
  *  Mute en place. */
-export function choisirLaMunition(c: Combatant | undefined, weapon: Weapon | undefined, uid: string | undefined, poste?: ShipPoste): void {
+export function choisirLaMunition(resolveTrapping: TrappingResolver, c: Combatant | undefined, weapon: Weapon | undefined, uid: string | undefined, poste?: ShipPoste): void {
   const arme = c && weapon ? { c, weapon } : undefined;
   const reg: WeaponLoadState | undefined = poste ?? (arme ? loadRegister(arme.c, arme.weapon) : undefined);
   if (!reg) return;
   const chargee = arme ? chambrePleine(arme.c, arme.weapon) : reg.loaded !== false;
-  const coup = arme ? loadedAmmo(arme.c, arme.weapon)?.uid : reg.loadedAmmoUid ?? reg.ammoUid;
+  const coup = arme ? loadedAmmo(resolveTrapping, arme.c, arme.weapon)?.uid : reg.loadedAmmoUid ?? reg.ammoUid;
   reg.ammoUid = uid;
   if (chargee && coup !== uid) unloadWeapon(c, weapon, poste);
 }

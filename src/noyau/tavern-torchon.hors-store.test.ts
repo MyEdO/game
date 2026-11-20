@@ -19,6 +19,8 @@ import { findTavernGameById } from '../engine/tavernGame';
 import { sequenceTableRow } from './sequenceCore';
 import { tavernParams } from './tavernFlow';
 import { testValue } from '../engine/skills';
+import { loadRuleOverrides, ruleOverrides, setRule } from '../engine/policy';
+import { evaluateTest, resolveOpposed, type TestResult } from '../engine/tests';
 import { schema } from '../data/schemas/defs/tavernGames';
 import type { Combatant } from '../engine/types';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
@@ -58,19 +60,25 @@ const payload = () => get().sequence?.chargeUtile as {
   throwers?: { id: string; camp: string }[];
 } | undefined;
 
-/** Pose le DR des deux rangées du lancer courant, puis clôt (et enchaîne l'étape de pinte s'il y en a une). */
-function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): void {
+type ResultatDuLancer = Pick<TestResult, 'roll' | 'target' | 'sl' | 'success'>;
+
+function validerLancer(resultat: (danseur: boolean, cible: number) => ResultatDuLancer): void {
   const pc = get().pendingCascade!;
   const idx = pc.participants.findIndex((s) => s.kind === 'taverneRound');
   const band = pc.participants[idx];
   const rows = band.participants!.map((r) => ({
     ...r,
-    result: { roll: 11, target: r.target!, sl: r.id.startsWith('danseur-') ? drDanseur : drLanceur, success: true },
+    result: resultat(r.id.startsWith('danseur-'), r.target!),
   }));
   const participants = [...pc.participants];
   participants[idx] = { ...band, participants: rows };
   banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
   get().jetValider('cascade');
+}
+
+/** Pose le DR des deux rangées du lancer, puis joue la pinte si elle s'ouvre. */
+function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): void {
+  validerLancer((danseur, cible) => ({ roll: 11, target: cible, sl: danseur ? drDanseur : drLanceur, success: true }));
   // Étape de pinte APPENDÉE (lancer raté d'un héros surfacé) : elle se joue dans la MÊME fenêtre.
   const pinte = get().pendingCascade?.participants[get().pendingCascade!.cursor];
   if (pinte?.kind === 'taverneBoisson') {
@@ -81,6 +89,19 @@ function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): vo
     parts[j] = { ...pinte, result: { roll: ok ? 11 : 99, target: pinte.target!, sl: drAlcool ?? 1, success: ok } };
     banc.setState({ pendingCascade: { ...pc2, participants: parts, cursor: j } });
     get().jetValider('cascade');
+  }
+}
+
+function validerLancerA107DR(): void {
+  const avant = ruleOverrides();
+  setRule('test-plus-de-100', true);
+  try {
+    const lanceur = evaluateTest(1, 999, 999);
+    const danseur = evaluateTest(100, 20, 20);
+    expect(resolveOpposed(lanceur, danseur)).toMatchObject({ attackerWins: true, netSL: 107 });
+    validerLancer((estDanseur) => estDanseur ? danseur : lanceur);
+  } finally {
+    loadRuleOverrides(avant);
   }
 }
 
@@ -149,6 +170,33 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     expect(ligne, 'le coup est raconté').toBeTruthy();
     expect(ligne).toContain('à la tête');
     expect(ligne).toContain('3 points');
+  });
+
+  it('TOUCHE : 107 DR net avec les Tests au-delà de 100 % donnent 3 points', () => {
+    const party = partie(1);
+    validerLancerA107DR();
+    const ligne = recit.find((l) => l.includes(party[0].label) && l.includes('touche'));
+    expect(ligne).toContain('à la tête : 3 points (107 DR)');
+  });
+
+  it.each([
+    { cas: 'tronqué avant la dernière rangée', table: TORCHON.table!.slice(0, -1) },
+    { cas: 'étendu au-delà de 99 avec un trou', table: [...TORCHON.table!, { min: 108, max: 110, points: 4, label: 'touche spéciale' }] },
+  ])('signale le jet de 107 DR dans un barème $cas', ({ table }) => {
+    partie(1);
+    const sequence = get().sequence!;
+    banc.setState({ sequence: { ...sequence, parametres: tavernParams({ ...TORCHON, table }) } });
+    expect(validerLancerA107DR).toThrow('[rangée de table] « 107 » introuvable');
+  });
+
+  it('utilise la rangée qui couvre 107 DR dans un barème étendu au-delà de 99', () => {
+    const party = partie(1);
+    const sequence = get().sequence!;
+    const table = [...TORCHON.table!, { min: 100, max: 110, points: 4, label: 'touche spéciale' }];
+    banc.setState({ sequence: { ...sequence, parametres: tavernParams({ ...TORCHON, table }) } });
+    validerLancerA107DR();
+    const ligne = recit.find((l) => l.includes(party[0].label) && l.includes('touche'));
+    expect(ligne).toContain('touche spéciale : 4 points (107 DR)');
   });
 
   it('TOUCHE : 3 DR net = coup au corps (2 points), sous 3 DR = jambe (1 point)', () => {

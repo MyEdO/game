@@ -5,6 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { cargaisonsAleatoires } from '../data';
+import { setDataset } from '../data/overrides';
 import { rollSeasonalCargo, tableDesCargaisons, type Voie } from './cargo';
 import { deFixe, deSelonLaPlage } from './dice.testkit';
 import { facesDuDe, deDeLaTableTiree } from './tables';
@@ -24,6 +25,24 @@ describe('rollSeasonalCargo — la colonne de la voie et de la saison, à son d�
         expect(rollSeasonalCargo(voie, saison, deFixe(r.min)).id, `${t.id} › ${r.min}`).toBe(r.id);
         expect(rollSeasonalCargo(voie, saison, deFixe(r.max)).id, `${t.id} › ${r.max}`).toBe(r.id);
       }
+    }
+  });
+
+  it('signale un jet dont la rangée a été retirée par une surcharge', () => {
+    const avant = cargaisonsAleatoires.slice();
+    const colonne = tableDesCargaisons('mer', 'printemps');
+    expect(rollSeasonalCargo('mer', 'printemps', deFixe(6)).id).toBe('armes');
+
+    try {
+      setDataset('cargaisonsAleatoires', avant.map((table) =>
+        table === colonne ? { ...table, entries: table.entries.filter((rangée) => rangée.id !== 'armes') } : table,
+      ));
+      expect(rollSeasonalCargo('mer', 'printemps', deFixe(5)).id).toBe('cereales');
+      expect(rollSeasonalCargo('mer', 'printemps', deFixe(9)).id).toBe('produits-de-luxe-mer');
+      expect(rollSeasonalCargo('mer', 'printemps', deFixe(100)).id).toBe('pieces-detachees-de-navire');
+      expect(() => rollSeasonalCargo('mer', 'printemps', deFixe(6))).toThrow('[rangée de table] « 6 » introuvable');
+    } finally {
+      setDataset('cargaisonsAleatoires', avant);
     }
   });
 

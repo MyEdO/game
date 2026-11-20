@@ -57,7 +57,7 @@ import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
 import { rangeBandName } from './combat';
-import { findSiegeEngineById, trappings } from '../data';
+import { findTrappingById, findSiegeEngineById, trappings } from '../data';
 import { makeRNG } from './dice';
 import { Combatant, ItemInstance, Weapon } from './types';
 import type { Mutation } from './corruption';
@@ -978,7 +978,7 @@ describe('Munitions & rechargement', () => {
   it('compatibleAmmo filtre par subType et qty>0', () => {
     const c = { items: [itemFromTrappingById('fleche', idsDeTest), itemFromTrappingById('carreau', idsDeTest)] } as unknown as Combatant;
     const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [], subType: 'arc', reload: 0 };
-    const list = compatibleAmmo(c, arc);
+    const list = compatibleAmmo(findTrappingById, c, arc);
     expect(list.length).toBe(1);
     expect(list[0].label).toBe('Flèche');
   });
@@ -986,19 +986,19 @@ describe('Munitions & rechargement', () => {
     const c = { items: [itemFromTrappingById('balle-et-poudre', idsDeTest)] } as unknown as Combatant;
     const pistolet: Weapon = { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 8 }, qualities: [{ id: 'pistolet' }], subType: 'poudre-noire', reload: 1 };
     const arqRep: Weapon = { label: 'Arquebus à répétition', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [], subType: 'ingenierie', reload: 5 };
-    expect(compatibleAmmo(c, pistolet).map((a) => a.label)).toContain('Balle et Poudre');
-    expect(compatibleAmmo(c, arqRep).map((a) => a.label)).toContain('Balle et Poudre');
+    expect(compatibleAmmo(findTrappingById, c, pistolet).map((a) => a.label)).toContain('Balle et Poudre');
+    expect(compatibleAmmo(findTrappingById, c, arqRep).map((a) => a.label)).toContain('Balle et Poudre');
   });
   it('compatibleAmmo : une arme de siège ne charge que les munitions de sa fiche (AA 10 l.150 ; MDG 12 l.410-424)', () => {
     const c = { items: ['carreau-de-baliste', 'mitraille-et-poudre', 'bombe-de-mortier'].map((id) => itemFromTrappingById(id, idsDeTest)) } as unknown as Combatant;
     const canon = armeDePosteDeTest('canon-moyen');
-    expect(compatibleAmmo(c, canon).map((a) => a.trappingId)).toEqual(['mitraille-et-poudre']);
+    expect(compatibleAmmo(findTrappingById, c, canon).map((a) => a.trappingId)).toEqual(['mitraille-et-poudre']);
   });
   describe('munitions d’Aux Armes : chacune se charge dans sa famille d’arme (AA 08 l.366-381, l.486-500 ; #4356)', () => {
     const MUNITIONS_AA = ['baton-pointu', 'fleche-barbelee', 'fleche-bodkin', 'bille-de-plomb', 'caillou', 'balle-de-gros-calibre-et-poudre', 'bombe-explosive', 'cartouche-en-papier', 'cartouche-et-poudre-de-precision', 'ferraille-et-poudre', 'grappin-munition', 'poudre-impregnee-d-aqshy'];
     const porteur = () => ({ items: MUNITIONS_AA.map((id) => itemFromTrappingById(id, idsDeTest)!) }) as unknown as Combatant;
     const arme = (id: string) => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
-    const chargees = (id: string) => compatibleAmmo(porteur(), arme(id)).map((a) => a.trappingId);
+    const chargees = (id: string) => compatibleAmmo(findTrappingById, porteur(), arme(id)).map((a) => a.trappingId);
     it('Arc : bâton pointu, flèches barbelée et bodkin, rien d’autre (AA 08 l.372-376)', () => {
       expect(chargees('arc').sort()).toEqual(['baton-pointu', 'fleche-barbelee', 'fleche-bodkin']);
     });
@@ -1016,20 +1016,20 @@ describe('Munitions & rechargement', () => {
     it('Porte : la Ferraille chargée dans un tromblon part au tir avec ses Dégâts, Infecté et sa Portée moitié (AA 08 l.495, l.532)', () => {
       const c = porteur();
       const tromblon = { ...arme('tromblon'), ammoUid: c.items!.find((a) => a.trappingId === 'ferraille-et-poudre')!.uid };
-      loadWeapon(c, tromblon);
-      const munition = loadedAmmo(c, tromblon)!;
+      loadWeapon(findTrappingById, c, tromblon);
+      const munition = loadedAmmo(findTrappingById, c, tromblon)!;
       expect(munition.trappingId).toBe('ferraille-et-poudre');
       const tir = weaponWithAmmo(tromblon, munition);
       expect(damageString(tir.damage)).toBe('+7');
       expect(tir.qualities.some((q) => q.id === 'infecte')).toBe(true);
-      expect(porteeDeTir(c, tromblon)).toBe(10);
+      expect(porteeDeTir(findTrappingById, c, tromblon)).toBe(10);
     });
   });
   describe('chargeLArme : une arme qui nomme ses munitions ne charge qu’elles ; les autres, leur famille moins les munitions nommées (#4360)', () => {
     const objet = (id: string) => itemFromTrappingById(id, idsDeTest)!;
     const distances = trappings.filter((t) => t.categorie === 'distance');
     const munitions = trappings.filter((t) => t.categorie === 'ammunition');
-    const charge = (armeId: string, munitionId: string) => chargeLArme(objet(munitionId), objet(armeId));
+    const charge = (armeId: string, munitionId: string) => chargeLArme(findTrappingById, objet(munitionId), objet(armeId));
     const armesQuiChargent = (munitionId: string) => distances.filter((a) => charge(a.id, munitionId)).map((a) => a.id).sort();
     it('Pistolet : balle et poudre seule parmi les munitions à poudre que le livre réserve (LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; ADE II 02 l.665)', () => {
       expect(charge('pistolet', 'balle-et-poudre')).toBe(true);
@@ -1085,10 +1085,10 @@ describe('Munitions & rechargement', () => {
     const heavy = { ...itemFromTrappingById('fleche', idsDeTest)!, ammoRangeMod: { mult: 0.5 as number }, qty: 10 };
     const c = { items: [heavy], ammoUid: heavy.uid } as unknown as Combatant;
     // selectedAmmo récupère la munition équipée et porte son modificateur.
-    expect(selectedAmmo(c, bow)?.ammoRangeMod).toEqual({ mult: 0.5 });
+    expect(selectedAmmo(findTrappingById, c, bow)?.ammoRangeMod).toEqual({ mult: 0.5 });
     // Portée pleine 60 m → 30 m avec la munition (expression EXACTE des sites combat).
     const full = effectiveWeaponRange(bow, null, 3);
-    const withAmmo = effectiveWeaponRange(bow, selectedAmmo(c, bow)?.ammoRangeMod, 3);
+    const withAmmo = effectiveWeaponRange(bow, selectedAmmo(findTrappingById, c, bow)?.ammoRangeMod, 3);
     expect(full).toBe(60);
     expect(withAmmo).toBe(30);
     // À 6 m (distanceTiles 3) la fourchette se décale : « Bout portant » (pleine) → « Courte portée » (½).
@@ -1294,9 +1294,9 @@ describe('porteeDeTir — la Portée de l’arme aux mains de SON tireur', () =>
   const arme = (range: Weapon['range']): Weapon => ({ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [], range, subType: 'arc', reload: 0 });
   it('arc 60 m, flèche lourde {mult: 0.5} sélectionnée → 30 m', () => {
     const fleche = { ...itemFromTrappingById('fleche', idsDeTest)!, ammoRangeMod: { mult: 0.5 as number }, qty: 10 };
-    expect(porteeDeTir({ ...tireur([fleche]), ammoUid: fleche.uid } as Combatant, arme(60))).toBe(30);
+    expect(porteeDeTir(findTrappingById, { ...tireur([fleche]), ammoUid: fleche.uid } as Combatant, arme(60))).toBe(30);
   });
   it('arme de jet {bf: 3}, Force 40 (BF 4) → 12 m', () => {
-    expect(porteeDeTir(tireur([]), arme({ bf: 3 }))).toBe(12);
+    expect(porteeDeTir(findTrappingById, tireur([]), arme({ bf: 3 }))).toBe(12);
   });
 });

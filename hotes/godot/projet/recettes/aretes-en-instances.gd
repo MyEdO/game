@@ -25,9 +25,6 @@ extends SceneTree
 const RECETTE_RENDUE := true
 ## La recette des arêtes au pied : son figé servi (`servir_le_fige`) et ses volumes (`volume_neuf`).
 const ARETE := preload("res://recettes/arete-au-pied.gd")
-## La longueur et la hauteur, en mètres, du modèle d'arête servi (`scripts/personnage-3d/arete/`, #4471).
-const LONGUEUR_DU_MODELE_M := 2.0
-const HAUTEUR_DU_MODELE_M := 4.0
 const EPSILON := 1e-4
 const METRES_PAR_CASE := 2.0
 const DECALAGE := Vector3(2.5, 0.0, -1.5)
@@ -202,8 +199,9 @@ func _controler(etape: String, volume: VolumeDeScene, temoin: Node3D, aretes: Ar
 
 
 ## La pièce de l'arête `a` posée comme à `851700b3a` (`_piece`) sous `temoin` : celle du modèle servi de sa famille,
-## peinte de sa palette, au centre de l'arête, orientée sur son sens, à l'échelle métrique mise à sa hauteur ; sinon sa
-## boîte, par `VolumeDeScene.poser_sur_l_arete`.
+## peinte de sa palette, au centre de l'arête, orientée sur son sens, étirée de la taille du modèle lu
+## (`VolumeDeScene.taille_du_modele_d_arete`) à sa longueur et à sa hauteur ; sinon sa boîte, par
+## `VolumeDeScene.poser_sur_l_arete`.
 func _piece_d_avant(temoin: Node3D, volume: VolumeDeScene, a: Dictionary) -> Node3D:
 	if a.famille != _servie:
 		var boite := MeshInstance3D.new()
@@ -215,8 +213,8 @@ func _piece_d_avant(temoin: Node3D, volume: VolumeDeScene, a: Dictionary) -> Nod
 	var piece := Node3D.new()
 	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, volume.metres_par_case, 0.0)
 	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
-	var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, LONGUEUR_DU_MODELE_M, HAUTEUR_DU_MODELE_M,
-		volume.metres_par_case)
+	var taille := volume.taille_du_modele_d_arete(_modele)
+	var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, volume.metres_par_case)
 	piece.scale = etirement
 	piece.add_child(volume.piece_peinte(_modele, a.piece, a.palette, etirement).duplicate())
 	temoin.add_child(piece)

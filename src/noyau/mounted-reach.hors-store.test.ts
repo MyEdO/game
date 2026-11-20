@@ -5,6 +5,7 @@
  * cavalier mais de 1 de la monture) — et une Charge qui bouge par la monture puis refuse l'attaque par le
  * cavalier laisse une cascade d'attaque orpheline (soft-lock de fin de tour).
  */
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -62,7 +63,7 @@ describe('portée de mêlée d’un cavalier = empreinte de la monture', () => {
   it('resolveAttack : un cavalier au contact PAR SA MONTURE résout l’attaque (≠ null → pas de cascade orpheline)', () => {
     const { hero, foe } = setup();
     // fromCharge=true (chemin de la charge montée) : sans le fix, dist cavalier 2 > Allonge 1 → null → soft-lock.
-    const r = resolveAttack(() => banc.getState(), hero, foe, firedWeapon(banc.getState().scene, hero, foe, undefined, banc.getState().battle?.combatants), undefined, true);
+    const r = resolveAttack(() => banc.getState(), hero, foe, firedWeapon(findTrappingById, banc.getState().scene, hero, foe, undefined, banc.getState().battle?.combatants), undefined, true);
     expect(r).not.toBeNull();
     expect(r!.res).toBeTruthy();
   });
