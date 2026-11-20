@@ -29,6 +29,7 @@ import {
   weaponRangeSpecSchema,
 } from './valeurs';
 import { marquerProduit } from './interne/produits';
+import { listeSansCle } from './liste-sans-cle';
 import { estObjet } from '../../../lib/objet.mjs';
 import {
   idDe,
@@ -203,7 +204,7 @@ const poseDeTrait = (regime: RegimeDeCible): z.ZodType<TraitPose> => {
     ...champsDuTraitPose,
     /** Traits conférés aux touches de ce Trait d'attaque (ZI 03 l.75, l.77 ; ZI 06 l.32) ; admis si la def
      *  déclare `attaque`. */
-    confere: z.array(z.lazy(() => pose)).optional(),
+    confere: listeSansCle(z.array(z.lazy(() => pose))).optional(),
   }).superRefine((t, ctx) => refusDuTraitPose(t, ctx, regime)), CHAMPS_DU_TRAIT_POSE), 'traitPose', 'pose', { value: formuleSansTirageSchema });
   return pose;
 };
@@ -226,7 +227,7 @@ export const optionalSwapSchema = nommerNoeud(nommerChamps(z.strictObject({
   label: z.string(),
   remove: z.array(idDe('trait', undefined, { nue: true })),
   /** Un ou plusieurs octrois (Vouivre ZI : 4 — 3 caractéristiques + 1 compétence). */
-  grant: z.array(swapGrantSchema),
+  grant: listeSansCle(z.array(swapGrantSchema)),
   size: sizeCategorySchema.optional(),
   wounds: z.number().optional(),
 }), { note: { label: "note" }, label: { label: "libellé" }, remove: { label: "retirer" }, grant: { label: "ajouts" }, size: { label: "Taille" }, wounds: { label: "Blessures" } }), { label: 'remplacement de Traits' });
@@ -281,7 +282,7 @@ export type QualiteDObjetRef = (QualityRef & { majoration?: never }) | (z.infer<
 /** `ManiementAlternatif` (`src/data/index.ts`), keyé par les Groupes de Corps à corps qui manient aussi
  *  l'arme : `TrappingData.manieAussi`, `GroupeDArme.manieAussi`. AA 08 l.188 ; AA 08 l.194 ; AA 08 l.343 */
 export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictObject({
-  qualites: z.array(qualityRefSchema).optional(),
+  qualites: listeSansCle(z.array(qualityRefSchema)).optional(),
   retire: refs('quality').optional(),
   aPied: z.literal(true).optional(),
   mains: z.literal(1).optional(),
@@ -309,7 +310,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
   damage: weaponDamageSpecSchema,
   reach: reachSchema.nullable().optional(),
   range: weaponRangeSpecSchema.nullable().optional(),
-  qualities: z.array(qualityRefSchema),
+  qualities: listeSansCle(z.array(qualityRefSchema)),
   subType: ref('weaponGroup').optional(),
   weaponGroup: ref('weaponGroup').optional(),
   perteSansEquipe: perteSansEquipeSchema.optional(),
@@ -354,7 +355,7 @@ export const objetDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({
   id: idDe('trapping'),
   spec: z.string().optional(),
   count: countSpecSchema.optional(),
-  qualities: z.array(qualityRefSchema).optional(),
+  qualities: listeSansCle(z.array(qualityRefSchema)).optional(),
   valeur: sommeSchema.optional(),
 }), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, valeur: { label: 'valeur' } }), { label: 'objet du catalogue' });
 
@@ -421,7 +422,7 @@ type JokerDeDotation = z.infer<typeof jokerDeDotationSchema>;
 
 /** Plusieurs objets ou possessions dotés ENSEMBLE, option d'un « 1 parmi » : ni emplacement, ni somme, ni mention, ni texte. */
 const lotDeDotationSchema = nommerNoeud(nommerChamps(z.strictObject({
-  lot: z.array(z.union([objetDeCatalogueSchema, dotationDePossessionSchema], { error: messageDeFormes })).min(2),
+  lot: listeSansCle(z.array(z.union([objetDeCatalogueSchema, dotationDePossessionSchema], { error: messageDeFormes })).min(2)),
 }), { lot: { label: 'lot' } }), { label: 'lot' });
 
 /** Les formes d'une dotation et son « 1 parmi ». HCVM p.265 ; #4210. */
