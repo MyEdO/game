@@ -14,7 +14,6 @@ import { graphieDuFichier, numeroDuFichier } from '../../src/data/source/decoupe
 import { RAWDIR, CLASSES } from './check-refs.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
-// Commit qui a éclaté ces 2 livres (bloc unique numéroté « 01 ») en fichiers-chapitres.
 export const SPLIT_SOURCE_SHA = '77dab03c'
 // Ces `path` sont des chemins DANS L'HISTOIRE (`git show ${SPLIT_SOURCE_SHA}^:<path>`), pas des
 // chemins du disque d'aujourd'hui : ils portent le nom qu'avait le fichier À CE COMMIT et ne suivent
