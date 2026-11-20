@@ -6,6 +6,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
+import { tableTotale } from '../../src/lib/tableTotale.ts';
 
 const cibles = [
   { fichier: 'actions.json', champs: { keys: 40, panneau: 2 } },
@@ -18,7 +19,7 @@ const cibles = [
   },
   {
     fichier: 'ambiance.json', objet: true,
-    champs: Object.fromEntries([
+    champs: tableTotale([
       'ambientFloor', 'faceShade', 'entreeEnScene',
       'iso.warm', 'iso.vignette', 'iso.lowerFloorDim', 'iso.nightVeil',
       'iso.nightVeilMax', 'iso.dayVignetteFloor', 'iso.edgeDepth',
@@ -26,7 +27,7 @@ const cibles = [
       'pov.vignette', 'pov.depth.lod',
       ...['pluie', 'neige', 'tempete'].flatMap(meteo =>
         ['particles', 'pcolor', 'density'].map(champ => `iso.weather.${meteo}.${champ}`)),
-    ].map(chemin => [chemin, 1])),
+    ], () => 1),
   },
 ];
 
