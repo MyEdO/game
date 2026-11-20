@@ -1347,14 +1347,12 @@ export const matierePlan = (): RoofMaterialDef => {
   return plan;
 };
 
-/** AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/filtre d'étage) — donnée pure. */
 /** Les tables de Localisation des coups (`localisation.json`) : personnage par forme de corps, navire, navire fluvial. */
 export const tablesDeLocalisation = datasetDe<typeof localisationDef>(localisationJson);
+/** Lumière, visibilité et météo des regards Godot. */
 export const ambiance = datasetDe<typeof ambianceDef>(ambianceJson);
-/** L'ambiance de rendu partagée iso ⇄ POV, au type de son schéma (`schemas/defs/ambiance.ts`). */
+/** Données d’ambiance dont le noyau dérive les regards Godot. */
 export type AmbianceDef = DatasetDe<typeof ambianceDef>;
-/** Halo radial (voile chaud / vignette). */
-export type RadialVeilDef = AmbianceDef['iso']['warm'];
 /** Les types de météo authorée de scène que l'ambiance habille (`scene.weather`, #239). */
 export type WeatherFxId = keyof AmbianceDef['iso']['weather'];
 /** L'habillage d'un type de météo (#239). */

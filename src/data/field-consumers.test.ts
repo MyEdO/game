@@ -380,7 +380,6 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
  */
 const ZEROS: Readonly<Record<string, readonly string[]>> = {
   ActivityDef: ['rounds', 'stakeForm', 'unavailableIfExtenue'],
-  AmbianceDef: ['ambientFloor', 'entreeEnScene', 'faceShade'],
   BookData: ['dir', 'language', 'niveauDeSection', 'pdf', 'teneur'],
   DetailRecipe: ['bands', 'courses', 'seedScope', 'speckle', 'timber', 'tufts'],
   DomainData: ['grantGroups'],
@@ -408,7 +407,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   SkillData: ['specsOpen'],
   StakeEntry: ['entryFromSource', 'form'],
   StarData: ['apparence', 'classique'],
-  StructureAppearanceDef: ['bayPanel', 'recess'],
   StructureData: ['enc', 'encLimit'],
   TalentData: ['codexOnly', 'grantSpecGroups', 'specsOpen'],
   TraitData: ['difficulte', 'grantSpecGroups', 'specsOpen'],
