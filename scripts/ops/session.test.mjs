@@ -45,6 +45,8 @@ import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { BORNE_D_APPEL_MS } from '../hooks/appel-borne-guard.mjs'
 import { BORNE_DE_SONDE_S } from './sonde.mjs'
 import { preflightSessionStart } from './session-start.mjs'
+import { dossierSessions } from './session-carte.mjs'
+import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { finDeTour } from '../hooks/fin-de-tour.mjs'
 import { ajouterTransition, lireTransitions } from './session-transitions.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
@@ -2018,7 +2020,7 @@ test('#3150 superviser, inscription de l’agent : une carte tenue se relit sans
   assert.equal(kills, 0); assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.raison, undefined)
 })
 
-test('#3150 superviser, pointeur de diagnostic : posé avant la mesure de l’agent ; une carte tenue se relit, une panne de mesure le conserve', async (t) => {
+test('#3150 superviser, pointeur de diagnostic : une carte tenue se relit, une panne de mesure le conserve', async (t) => {
   for (const cas of ['tenue', 'panne']) {
     let restantes
     const b = banc(t, { processus: (mesure, pid) => { if (pid === 20 && cas === 'panne') throw new Error(`${prefixeDeRefus('panne')} MESURE WINDOWS INCOHÉRENTE`); return mesure(pid) } })
@@ -2161,10 +2163,27 @@ test('#3150 lireRapportDe : une lecture tenue est transitoire, une lecture en pa
   assert.throws(() => lireRapportDe(join(b.dossier, 'absent.json')), (e) => refusSession(e).categorie === 'panne' && /RAPPORT ABSENT/.test(e.message))
 })
 
-/** Le contexte de session que le banc a posé pour la session `id`, et l'environnement qui la porte (#3261). */
-const inscription = (b, id) => {
-  const contexte = JSON.parse(readFileSync(join(b.dossier, `${id}.hook-context`), 'utf8'))
-  return { contexte, env: { WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64') }, journal: join(b.dossier, `${id}.claude.jsonl`) }
+function bancFinDeTour(t, pid = process.ppid) {
+  const worktree = mkdtempSync(join(tmpdir(), 'session-stop-'))
+  t.after(() => rmSync(worktree, { recursive: true, force: true }))
+  const init = spawnSync('git', ['init', '--quiet'], { cwd: worktree, encoding: 'utf8', timeout: 5000 })
+  assert.equal(init.status, 0, init.stderr)
+  const dossier = dossierSessions(join(worktree, '.git'))
+  const inventaire = () => mesurerProcessusWorktrees({ identites: true, timeout: 5000 }).processus
+  const sessions = creerSessions({ dossier, inventaire })
+  const consigne = join(worktree, 'brief.md')
+  const reservation = sessions.reserver({
+    worktree, racine: worktree, agent: 'claude', ticket: 3261, nom: 'stop',
+    consigne, branche: 'test', head: 'a'.repeat(40), hooks: hooksBanc.claude,
+  })
+  const id = reservation.carte.sessionId
+  sessions.revendiquer(id, reservation.nonce, { controleurPid: process.pid, jobHostPid: process.ppid })
+  sessions.agentDemarre(id, inventaire().find((p) => p.pid === pid))
+  const contexte = JSON.parse(readFileSync(join(dossier, `${id}.hook-context`), 'utf8'))
+  const { chemin, ...identiteRecu } = contexte
+  writeFileSync(chemin, JSON.stringify({ ...identiteRecu, version: 1, date: reservation.carte.date, nativeSessionId: 'native-banc' }))
+  const env = { WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64'), CLAUDE_PROJECT_DIR: worktree }
+  return { id, sessions, worktree, env, journal: join(dossier, `${id}.claude.jsonl`) }
 }
 const STOP_DU_BANC = { hook_event_name: 'Stop', session_id: 'native-banc', transcript_path: 'transcripts/native-banc.jsonl' }
 const INACTIF_DU_BANC = { type: 'inactif', etat: 'inactif', transcript: STOP_DU_BANC.transcript_path }
@@ -2172,8 +2191,7 @@ const stdinDe = (entree) => Readable.from([JSON.stringify(entree)])
 const HOOK_FIN_DE_TOUR = fileURLToPath(new URL('../hooks/fin-de-tour.mjs', import.meta.url))
 
 test('#3261 hook Stop : la fin de tour de la session inscrite s’ajoute à son journal ; autre session, SubagentStop, hors inscription : rien', async (t) => {
-  const b = banc(t), r = b.reserver(); b.revendiquer(r)
-  const id = r.carte.sessionId, { env, journal } = inscription(b, id)
+  const { id, env, journal } = bancFinDeTour(t)
   for (const entree of [{ ...STOP_DU_BANC, session_id: 'native-autre' }, { ...STOP_DU_BANC, hook_event_name: 'SubagentStop' }]) assert.equal(await finDeTour({ env, stdin: stdinDe(entree) }), null, JSON.stringify(entree))
   assert.equal(existsSync(journal), false)
   const premiere = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) }), seconde = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) })
@@ -2205,16 +2223,14 @@ test('#3261 hook Stop, processus réel : hors session inscrite il sort seul, std
   const fin = await Promise.race([once(enfant, 'close'), delai(2_000).then(() => ['encore vivant'])])
   assert.deepEqual([fin[0], sortie], [0, ''])
   assert.ok(Date.now() - debut < 2_000, `${Date.now() - debut} ms`)
-  const b = banc(t), r = b.reserver(); b.revendiquer(r)
-  const inscrit = inscription(b, r.carte.sessionId)
-  const vu = spawnSync(process.execPath, [HOOK_FIN_DE_TOUR], { env: { ...env, ...inscrit.env }, input: JSON.stringify(STOP_DU_BANC), encoding: 'utf8', timeout: 20_000 })
+  const inscrit = bancFinDeTour(t, process.pid)
+  const vu = spawnSync(process.execPath, [HOOK_FIN_DE_TOUR], { env: { ...env, ...inscrit.env }, cwd: inscrit.worktree, input: JSON.stringify(STOP_DU_BANC), encoding: 'utf8', timeout: 20_000 })
   assert.deepEqual([vu.status, vu.stdout, vu.stderr], [0, '', ''])
-  assert.deepEqual(readFileSync(inscrit.journal, 'utf8').trim().split('\n').map((l) => JSON.parse(l).transition), [{ sessionId: r.carte.sessionId, seq: 1, curseur: 1, ...INACTIF_DU_BANC }])
+  assert.deepEqual(readFileSync(inscrit.journal, 'utf8').trim().split('\n').map((l) => JSON.parse(l).transition), [{ sessionId: inscrit.id, seq: 1, curseur: 1, ...INACTIF_DU_BANC }])
 })
 
 test('#3261 attendre Claude : la fin de tour est rendue comme celle de Codex, curseur compris ; carte fermée : sortie', async (t) => {
-  const b = banc(t), r = b.reserver(); b.revendiquer(r)
-  const id = r.carte.sessionId, { env } = inscription(b, id)
+  const b = bancFinDeTour(t), { id, env } = b
   assert.equal((await b.sessions.attendre(id, { timeoutMs: 100 })).etat, 'indeterminee')
   const fin = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) })
   assert.deepEqual(await b.sessions.attendre(id, { timeoutMs: 100 }), fin)

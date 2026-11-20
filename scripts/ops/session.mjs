@@ -9,6 +9,7 @@ import { spawnSync } from 'node:child_process'
 import { setTimeout as pause } from 'node:timers/promises'
 import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique, annexeDe } from './session-runtime.mjs'
 import { refusSession, rejouer, BORNES_DE_REJEU, DELAI_FERMETURE_MS } from './session-rejeu.mjs'
+import { dossierSessions } from './session-carte.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { choisirCodex, codexDuPaquet, planifierMiseAJourCodex, TRIPLES_CODEX } from './session-version.mjs'
 import { prefixeDeRefus, CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
@@ -138,7 +139,7 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   const hooks = await preflight(c.worktree, options.agent)
   planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, rapport: 'rapport', schema: 'schema', politique: lirePolitique() })
   const profil = terminal({ chemin: env.WFRP_WT_SETTINGS, nom: options.profilWT })
-  const dossier = join(c.gitCommun, 'sessions'), sessions = sessionsDe(dossier)
+  const dossier = dossierSessions(c.gitCommun), sessions = sessionsDe(dossier)
   const r = sessions.reserver({ ...c, hooks, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, onglet: { titre: options.nom, profil } })
   const reprise = { sessionId: r.carte.sessionId, jeton: r.jeton, action: 'fermer', transport: 'stdin' }
   const abandonner = async (e) => {
@@ -330,7 +331,7 @@ export async function commandeSession(argv, { stdout = process.stdout, stdin = p
   if (options.action === 'outils') resultat = outilsSession()
   else if (options.action === 'lancer') resultat = options.detache ? detacherLancement(argv, cwd, detacher) : await lancer(options, { cwd, env })
   else {
-    const c = contexte(cwd), sessions = sessionsDe(join(c.gitCommun, 'sessions'))
+    const c = contexte(cwd), sessions = sessionsDe(dossierSessions(c.gitCommun))
     if (options.action === 'lister') resultat = sessions.lister()
     else if (options.action === 'archiver') resultat = sessions.archiver()
     else if (options.action === 'etat') resultat = sessions.etat(options.cible)
