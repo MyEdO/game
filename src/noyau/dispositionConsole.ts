@@ -23,6 +23,7 @@
  * ÉCRITURE = porte UNIQUE et FAIL-FAST : rang hors borne, zone inconnue, arsenal sans set → `throw`.
  */
 import { isConsumable } from '../engine/consumables';
+import type { TrappingResolver } from '../engine/items';
 import type { Combatant, DispositionConsole, EntreeBarre, ZoneBarre } from '../engine/types';
 
 
@@ -160,9 +161,9 @@ export const CLE_D_OBJET = 'q-objet-';
 
 /** Ce que le porteur POSSÈDE de quoi garnir ses emplacements rapides, dans l'ordre : ses sorts (`Combatant.spells`),
  *  puis un modèle de consommable par `trappingId`, dans l'ordre de ses `items`. */
-function entreesPossedees(c: Combatant): EntreeBarre[] {
+function entreesPossedees(c: Combatant, resolveTrapping: TrappingResolver): EntreeBarre[] {
   const sorts = (c.spells ?? []).map((id): EntreeBarre => ({ actionId: 'incantation', cle: `${CLE_DE_SORT}${id}` }));
-  const modeles = [...new Set((c.items ?? []).filter(isConsumable).flatMap((i) => (i.trappingId ? [i.trappingId] : [])))];
+  const modeles = [...new Set((c.items ?? []).filter((item) => isConsumable(item, resolveTrapping)).flatMap((i) => (i.trappingId ? [i.trappingId] : [])))];
   return [...sorts, ...modeles.map((id): EntreeBarre => ({ actionId: 'usage-objet', cle: `${CLE_D_OBJET}${id}` }))];
 }
 
@@ -170,10 +171,10 @@ function entreesPossedees(c: Combatant): EntreeBarre[] {
  *  de la zone `capacites` s'écrit au premier rang LIBRE (clé absente) des emplacements rapides, par `poserDansBarre` ;
  *  une case posée ou vidée (`null`) n'est jamais réécrite, et sans rang libre, rien ne s'écrit. Rend le porteur tel
  *  quel quand rien ne s'écrit. */
-export function materialiserLaBarre(c: Combatant): Combatant {
+export function materialiserLaBarre(c: Combatant, resolveTrapping: TrappingResolver): Combatant {
   const presentes = new Set(Object.values(c.barre?.capacites ?? {}).flatMap((e) => (e ? [cleEntree(e)] : [])));
   let porteur = c;
-  for (const e of entreesPossedees(c)) {
+  for (const e of entreesPossedees(c, resolveTrapping)) {
     if (presentes.has(cleEntree(e))) continue;
     const posees = porteur.barre?.capacites ?? {};
     const rang = Array.from({ length: RANGS_RAPIDES }, (_, i) => i).find((i) => !Object.prototype.hasOwnProperty.call(posees, i));

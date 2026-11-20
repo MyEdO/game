@@ -1,3 +1,4 @@
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { useGame } from '../state/store';
 import { avecSigne, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
 import {
@@ -188,6 +189,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
   const creerLaPanoplie = useGame((s) => s.creerLaPanoplie);
   const supprimerLaPanoplie = useGame((s) => s.supprimerLaPanoplie);
   const battle = useGame((s) => s.battle);
+  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
   // Verrou de l'équipement : le verdict du noyau (`refusDInventaire`), celui que rendent ses gestes.
   const refusSets = refusDInventaire({ battle });
 
@@ -365,7 +367,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             <span className="muted">Mains nues</span>
           ) : (
             activeWeapons.map((w, i) => {
-              const ammo = w.type === 'distance' ? compatibleAmmo(hero, w).reduce((s, a) => s + (a.qty ?? 0), 0) : null;
+              const ammo = w.type === 'distance' ? compatibleAmmo(resolveTrapping, hero, w).reduce((s, a) => s + (a.qty ?? 0), 0) : null;
               return (
                 <div className="weap" key={i}>
                   <ItemIcon item={w} size="sm" />

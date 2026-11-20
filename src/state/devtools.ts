@@ -1388,7 +1388,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (idx < 0) return `✗ ${att.label} est absent de l'ordre d'initiative`;
       if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : son attaque passe par la modale d'attaque`;
       if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
-      const arme = firedWeapon(g().scene, att, def, undefined, b.combatants);
+      const arme = firedWeapon(objetDuNarratif(g().campaignNarratif), g().scene, att, def, undefined, b.combatants);
       if (maybeOpenDefense(() => useGame.getState(), useGame.setState, att, def, arme, undefined, att.chargedThisTurn)) {
         const apres = g().battle!;
         if (apres.turn !== idx) donnerLeTour(apres, idx);

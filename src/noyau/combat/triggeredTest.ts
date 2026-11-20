@@ -356,7 +356,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
   // `ConditionCtx` de combat (géométrie d'arène : caché/Engagé/proximité du Brisé) — MÊME géométrie que
   // celle injectée par le dispatcher dans la voie inline, pour évaluer GATE et difficulté DYNAMIQUE.
   const cc = combatConditionCtx(c, { caster: c, ...recoveryGeometry(get, c) });
-  for (const src of effectSourcesOf(c)) {
+  for (const src of effectSourcesOf(c, objetDuNarratif(get().campaignNarratif))) {
     for (const eff of src.effects) {
       if (eff.trigger !== 'onRoundEnd' || eff.flow.kind !== 'test') continue;
       const ft = eff.flow.test;

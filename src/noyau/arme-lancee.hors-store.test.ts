@@ -7,7 +7,7 @@ import { bus, EVT } from './bus';
 import { draineCascade } from './cascade.testkit';
 import { resolveRanged, type AttackResult } from '../engine/combat';
 import { deMin } from '../engine/dice.testkit';
-import { findCreatureById } from '../data';
+import { findTrappingById, findCreatureById } from '../data';
 import { t as tr } from '../i18n';
 import { seedBattleRng } from './battleRng';
 import { dansLaZoneJouable, emptyScene, isWalkable, type Scene } from './monde/scene';
@@ -68,7 +68,7 @@ function lancer(a: Combatant, e: Combatant, arme: Weapon, touche: boolean): { x:
   let arrivee: { x: number; y: number } | undefined;
   const off = bus.on(EVT.ANIM_FLOAT, (d) => { if (d.text === tr('cf.dispersionFlottante')) arrivee = d.pos; });
   try {
-    const res = touche ? resolveRanged(a, e, arme, deMin, 6, undefined, [], undefined, 1) : RATE;
+    const res = touche ? resolveRanged(findTrappingById, a, e, arme, deMin, 6, undefined, [], undefined, 1) : RATE;
     if (touche) expect(res.hit).toBe(true);
     applyAttackResult(banc.getState, banc.setState, a, e, arme, res);
     draineCascade(banc.getState, 20, () => 4);

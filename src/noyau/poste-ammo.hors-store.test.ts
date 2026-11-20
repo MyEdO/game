@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { compatibleAmmo, selectedAmmo, consumeAmmo } from '../engine/items';
 import { weaponLoaded, loadRegister } from '../engine/weaponLoad';
@@ -52,11 +53,11 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     const chef = mkCrew('chef', [perso]);
     serveChef(chef, poste); // pose mannedPoste + l'arme dérivée (mountSide)
     const gun = chef.weapons.find((w) => w.uid === 'canon')!;
-    expect(compatibleAmmo(chef, gun).map((a) => a.uid)).toEqual(['boulet', 'mitraille', 'perso']);
-    expect(selectedAmmo(chef, gun)!.uid).toBe('mitraille'); // sélection PERSISTANTE du poste
+    expect(compatibleAmmo(findTrappingById, chef, gun).map((a) => a.uid)).toEqual(['boulet', 'mitraille', 'perso']);
+    expect(selectedAmmo(findTrappingById, chef, gun)!.uid).toBe('mitraille'); // sélection PERSISTANTE du poste
     // Registre UNIQUE d'une pièce SERVIE : la sélection vit sur LA PIÈCE, le chef la lit.
     loadRegister(chef, gun).ammoUid = 'boulet';
-    expect(selectedAmmo(chef, gun)!.uid).toBe('boulet');
+    expect(selectedAmmo(findTrappingById, chef, gun)!.uid).toBe('boulet');
   });
 
   it('consumeAmmo décrémente LÀ où vit la munition (stock du poste) et retire l’instance à 0', () => {

@@ -1,10 +1,17 @@
 import { beforeEach, describe, expect, it, onTestFinished } from 'vitest';
-import type { TrappingData } from '../data';
+import { findTrappingById, type TrappingData } from '../data';
 import { datasetArray, setDataset } from '../data/overrides';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { compatibleAmmo, itemFromTrappingById, loadedAmmo, loadWeapon, recomputeLoadout } from '../engine/items';
-import { weaponLoaded } from '../engine/weaponLoad';
+import { loadRegister, weaponLoaded } from '../engine/weaponLoad';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
+import { testScene } from '../scenes/test-fixture';
+import { applyEffects } from './combatEffects';
+import { emptyNarratif } from './monde/campaignNarratif';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
+import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
+import { parseProject } from './worldMap';
 import { ouvrirLeBanc } from './banc.testkit';
 import { firedAttackBlock } from './combatFlow';
 import { cliquerSurLeCombattant } from './combatOrParty';
@@ -55,7 +62,7 @@ function ouvrirLeCombat(armeId: string, munitionId?: string, { ancienneSauvegard
   });
   recomputeLoadout(heros);
   const arme = heros.weapons.find((w) => w.uid === objet.uid)!;
-  loadWeapon(heros, arme);
+  loadWeapon(findTrappingById, heros, arme);
   const cible = combattantDeTest({ id: 'cible', kind: 'ennemi', pos: { x: 5, y: 2 } });
   const battle: BattleState = {
     combatants: [heros, cible], order: [heros.id, cible.id], turn: 0, round: 1,
@@ -88,8 +95,8 @@ describe('Entraves sans projectile (LDB 62 l.74-76, l.101 ; ADE II 02 l.687 ; ZI
   it('attaque sans charger ni consommer le projectile du même groupe en inventaire', () => {
     const { arme, tireur, munition, cliquerLaCible, resoudreLAttaque } = ouvrirLeCombat(LIEN, PLOMB);
     const quantite = munition!.qty;
-    expect(compatibleAmmo(tireur(), arme)).toEqual([]);
-    expect(loadedAmmo(tireur(), arme)).toBeUndefined();
+    expect(compatibleAmmo(findTrappingById, tireur(), arme)).toEqual([]);
+    expect(loadedAmmo(findTrappingById, tireur(), arme)).toBeUndefined();
     cliquerLaCible();
     resoudreLAttaque();
     expect(tireur().items!.find((i) => i.uid === munition!.uid)?.qty).toBe(quantite);
@@ -113,7 +120,7 @@ describe('Arme qui nomme un projectile (ADE II 02 l.639-640, l.673)', () => {
   it('charge le projectile nommé et en consomme un au tir', () => {
     const { arme, tireur, munition, cliquerLaCible, resoudreLAttaque } = ouvrirLeCombat(PROPULSEUR, CARREAU);
     const quantite = munition!.qty!;
-    expect(loadedAmmo(tireur(), arme)?.uid).toBe(munition!.uid);
+    expect(loadedAmmo(findTrappingById, tireur(), arme)?.uid).toBe(munition!.uid);
     cliquerLaCible();
     resoudreLAttaque();
     expect(tireur().items!.find((i) => i.uid === munition!.uid)?.qty).toBe(quantite - 1);
@@ -122,6 +129,109 @@ describe('Arme qui nomme un projectile (ADE II 02 l.639-640, l.673)', () => {
 
   it('une arme de la famille du projectile ne charge pas un projectile réservé ailleurs', () => {
     const { arme, tireur } = ouvrirLeCombat(MECANISME, CARREAU);
-    expect(compatibleAmmo(tireur(), arme)).toEqual([]);
+    expect(compatibleAmmo(findTrappingById, tireur(), arme)).toEqual([]);
+  });
+});
+
+describe('Arme de campagne qui nomme son projectile (#2967 ; #4360)', () => {
+  function ouvrirArbaleteDeCampagne() {
+    const arbalete = objetDeCampagne({
+      ...findTrappingById('arbalete')!,
+      id: 'arbalete-de-la-campagne',
+      label: 'Arbalète de la campagne',
+      munitions: [CARREAU],
+    });
+    const scene = testScene();
+    const projet = parseProject({
+      type: 'projet', id: 'munitions-du-projet', label: 'Munitions du projet', versionContenu: 1, maison: 'Objet du test',
+      scenes: [scene], narratif: { ...emptyNarratif(), objets: [arbalete] },
+    });
+    const banc = ouvrirLeBanc({ graine: 2 });
+    const hero = combattantDeTest({
+      id: 'tireur', kind: 'heros', characteristics: { 'capacite-de-tir': 60, force: 40, initiative: 90 },
+    });
+    banc.setState({ party: [hero] });
+    banc.actions.chargerLeProjet({ scenes: projet.scenes, entryId: scene.id, narratif: projet.narratif, projet });
+    const donner = (...ids: string[]) => applyEffects(banc.getState, banc.setState, ids.map((trappingId) => ({
+      type: 'giveTrapping' as const, trappingId, heroId: hero.id,
+    })));
+    donner(arbalete.id, 'carreau');
+    const inst = banc.getState().party[0].items!.find((objet) => objet.trappingId === arbalete.id)!;
+    const heros = banc.getState().party[0];
+    heros.loadouts = [{ id: 'tir', main: inst.uid }];
+    heros.activeLoadoutId = 'tir';
+    recomputeLoadout(heros);
+    banc.actions.lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
+    banc.actions.fenetreValider('debutDuRound');
+
+    const combat = () => banc.getState().battle!;
+    const tireur = () => combat().combatants.find((c) => c.id === hero.id)!;
+    const cible = () => combat().combatants.find((c) => c.id !== hero.id)!;
+    const arme = () => tireur().weapons.find((w) => w.uid === inst.uid)!;
+    const munitionsNommees = () => tireur().items!.filter((objet) => objet.trappingId === CARREAU);
+    const generique = () => tireur().items!.find((objet) => objet.trappingId === 'carreau')!;
+    expect(combat().order[combat().turn]).toBe(hero.id);
+    expect(arme().label).toBe(arbalete.label);
+    const tirer = () => {
+      cliquerSurLeCombattant(banc.getState, cible().id, { confirm: true });
+      expect(banc.getState().pendingAttack?.attackerId).toBe(hero.id);
+      banc.actions.jetLancer('attaque');
+      banc.actions.jetValider('attaque');
+    };
+    const recharger = () => {
+      banc.actions.rechargerLArme(arme().uid);
+      expect(banc.getState().pendingReload?.weaponUid).toBe(arme().uid);
+      banc.actions.jetImposerLeResultat('rechargement', 14);
+      banc.actions.jetValider('rechargement');
+    };
+    return { banc, combat, tireur, cible, arme, munitionsNommees, generique, donner, tirer, recharger };
+  }
+
+  it('refuse le projectile générique, puis tire le projectile nommé chargé', () => {
+    const { banc, combat, tireur, cible, arme, munitionsNommees, generique, donner, tirer, recharger } = ouvrirArbaleteDeCampagne();
+    expect(firedAttackBlock(banc.getState, tireur(), cible(), arme().uid)).toMatchObject({
+      reason: 'noammo', need: LABEL_CARREAU,
+    });
+
+    donner(CARREAU, CARREAU);
+    const [reserve, projectile] = munitionsNommees();
+    const quantiteReserve = reserve.qty;
+    const quantiteNommee = projectile.qty!;
+    banc.actions.approvisionnerLArme(projectile.uid, arme().uid);
+    recharger();
+    expect(loadRegister(tireur(), arme()).loadedAmmoUid).toBe(projectile.uid);
+
+    banc.setState({ battle: { ...combat(), acted: false } });
+    loadRegister(tireur(), arme()).ammoUid = reserve.uid;
+    const quantiteGenerique = generique().qty;
+    tirer();
+    expect(munitionsNommees().find((objet) => objet.uid === projectile.uid)?.qty).toBe(quantiteNommee - 1);
+    expect(munitionsNommees().find((objet) => objet.uid === reserve.uid)?.qty).toBe(quantiteReserve);
+    expect(generique().qty).toBe(quantiteGenerique);
+  });
+
+  it('tire la munition déjà capturée à la reprise puis recharge avec la réserve compatible', () => {
+    const { banc, combat, tireur, arme, munitionsNommees, generique, donner, tirer, recharger } = ouvrirArbaleteDeCampagne();
+    const capture = generique();
+    const quantiteCapture = capture.qty!;
+    loadWeapon(findTrappingById, tireur(), arme());
+    expect(loadRegister(tireur(), arme()).loadedAmmoUid).toBe(capture.uid);
+    donner(CARREAU);
+    const [reserve] = munitionsNommees();
+    const quantiteReserve = reserve.qty;
+
+    const etat = banc.getState();
+    const reprise = appliquerLInstantane(JSON.parse(JSON.stringify(instantaneDeLaCoop(etat))), etat).etat;
+    banc.setState({ ...reprise, net: etat.net });
+    const resoudre = objetDuNarratif(banc.getState().campaignNarratif);
+    expect(compatibleAmmo(resoudre, tireur(), arme()).map((munition) => munition.uid)).toEqual([reserve.uid]);
+    expect(loadRegister(tireur(), arme()).loadedAmmoUid).toBe(capture.uid);
+    tirer();
+    expect(generique().qty).toBe(quantiteCapture - 1);
+    expect(munitionsNommees()[0].qty).toBe(quantiteReserve);
+
+    banc.setState({ battle: { ...combat(), acted: false } });
+    recharger();
+    expect(loadRegister(tireur(), arme()).loadedAmmoUid).toBe(reserve.uid);
   });
 });

@@ -578,14 +578,14 @@ export function spawnEnemy(
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).
   const spawnRanged = c.weapons.find((w) => w.type === 'distance');
-  if (spawnRanged) loadWeapon(c, spawnRanged);
+  if (spawnRanged) loadWeapon(resolveTrapping, c, spawnRanged);
   if (trappings?.some(estDotationDObjet)) {
     const chargees = new Set([spawnRanged?.uid]);
     for (const set of c.loadouts ?? []) for (const uid of [set.main, set.secondaire]) {
       if (chargees.has(uid)) continue;
       const item = objetDeSlot(c, uid);
       if (item?.kind !== 'distance') continue;
-      loadWeapon(c, weaponFromItem(item));
+      loadWeapon(resolveTrapping, c, weaponFromItem(item));
       chargees.add(uid);
     }
   }

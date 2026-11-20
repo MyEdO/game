@@ -4,6 +4,8 @@
  * base ±mod · Dégâts N ». Une cible que le mode refuse n'est PAS rendue ici (arbitrage 2026-08-24 : le
  * survol n'affiche que le faisable) — le refus se dit au clic. INTERACTION → overlay du stage, hors builders.
  */
+import { useGame } from '../../state/store';
+import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { BattleState } from '../../noyau/etat';
 import type { Scene } from '../../noyau/monde/scene';
 import type { PendingAttack, PendingDefense, PendingHeal, PendingCast } from '../../noyau/pendings';
@@ -28,12 +30,13 @@ export function AimOverlay({ scene, battle, hoverAim, anchor, dims, pendingAttac
   pendingHeal: PendingHeal | null;
   pendingCast: PendingCast | null;
 }) {
+  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
   const byId = (id?: string | null) => (id ? battle.combatants.find((c) => c.id === id && c.pos) : undefined);
   if (pendingAttack) {
     const a = byId(pendingAttack.attackerId), cible = byId(pendingAttack.targetId);
     const t = cible && byId(victimeDuCoup(battle, cible, pendingAttack).id);
     if (!a || !cible || !t) return null;
-    const ranged = attackWeaponOf(scene, battle, a, cible, pendingAttack).type === 'distance'; // l'arme du coup (#1026)
+    const ranged = attackWeaponOf(resolveTrapping, scene, battle, a, cible, pendingAttack).type === 'distance'; // l'arme du coup (#1026)
     return <TargetReticle from={anchor(a)} to={anchor(t)} line={ranged ? 'dashed' : 'solid'} lineColor={a.kind === 'heros' ? GOLD_TINT : ENEMY_CUE_TINT} />;
   }
   if (pendingDefense) {

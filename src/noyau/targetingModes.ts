@@ -12,6 +12,7 @@
  * que seuls des appels de fonction traversent, jamais une valeur lue au chargement. Consommé par
  * targeting.ts, combatSlice.ts, combatCursor.ts, combatOrParty.ts.
  */
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { IdDeModeDeCiblage } from '../data/schemas/defs/actions';
 import type { Get, Set } from './flowTypes';
 import type { ActionDeClasse } from './intentionsDeSiege';
@@ -495,7 +496,7 @@ function cleaveAffordance(get: Get, _active: Combatant, target: Combatant): Hove
   const pc = s.pendingCleave!;
   const atk = inBattleId(battle, pc.attackerId);
   if (!atk || !ciblesDuBalayage(s).some((c) => c.id === target.id)) return { kind: 'none' };
-  const weapon = firedWeapon(s.scene, atk, target, undefined, battle.combatants); // MÊME résolution que la chaîne (resolveAttack, aucun weaponUid)
+  const weapon = firedWeapon(objetDuNarratif(s.campaignNarratif), s.scene, atk, target, undefined, battle.combatants); // MÊME résolution que la chaîne (resolveAttack, aucun weaponUid)
   // L'enchaînement est une VRAIE frappe : son réticule porte la valeur et la Difficulté du jet qu'il
   // ouvrira, comme le ciblage ordinaire (`attackAffordance`) — un interlude n'est pas un ciblage aveugle.
   const p = previewAttack(get, atk, target);

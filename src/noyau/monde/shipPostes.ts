@@ -5,6 +5,7 @@
  * « facing » vs la Contenance (`ship.capacity`). Le Sabord (Gun Port) est une Amélioration optionnelle qui
  * donne un couvert TOTAL au servant qui tire à travers (sinon tir depuis le pont, aucun couvert).
  */
+import { findTrappingById } from '../../data';
 import { inFireArc } from './fireArc';
 import { mannedPosteWeapon, loadWeapon, lacherLArme } from '../../engine/items';
 import { hasWeaponGroupSkill } from '../../engine/combat';
@@ -309,7 +310,7 @@ export function serveChef(chef: Combatant, poste: ShipPoste): void {
   // TIRÉ (`loaded === false`, Test étendu en cours) garde son état — la reprendre ne remplace pas le Test
   // étendu de rechargement (LDB 62 l.335), sinon changer de servant rechargerait gratis. Couture UNIQUE, sur
   // le registre de la PIÈCE — c'est LUI que lisent le gate de tir (`weaponLoaded`) et la munition tirée.
-  if (poste.loaded === undefined) loadWeapon(chef, w, poste);
+  if (poste.loaded === undefined) loadWeapon(findTrappingById, chef, w, poste);
 }
 
 /** Un servant QUITTE la pièce (release, runtime « Quitter la pièce ») : retire le lien `mannedPoste`, se retire

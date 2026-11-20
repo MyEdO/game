@@ -11,7 +11,8 @@ import type { GesteDuNoyau, GesteFermable } from './actionsDuNoyau';
 import type { ItemInstance, Main } from '../engine/types';
 import { canStow, isWearable, itemLabel } from '../engine/items';
 import { possessionLabel } from '../engine/possession';
-import { isConsumable } from '../engine/consumables';
+import { consommableDe } from '../engine/consumables';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { carriersColocated } from '../engine/cargo';
 import { resolveCarrier, porteurLocalise, type Carrier } from './monde/carrier';
 import { refusDInventaire } from './verrousDeFiche';
@@ -54,7 +55,7 @@ const porteurDit = (c: Carrier): [id: string, libelle: string] => (c.kind === 'h
 
 /** Les gestes de l'objet `uid` du porteur `porteurId` (`resolveCarrier` : un héros du groupe ou une possession),
  *  `null` sans lui ou sans l'objet. PUR. */
-export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene'>, porteurId: string, uid: string): GestesDeLObjet | null {
+export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene' | 'campaignNarratif'>, porteurId: string, uid: string): GestesDeLObjet | null {
   const porteur = resolveCarrier(s, porteurId);
   const items = !porteur ? [] : porteur.kind === 'heros' ? (porteur.hero.items ?? []) : porteur.possession.items;
   const it = items.find((i) => i.uid === uid);
@@ -62,7 +63,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
   const verrou = refusDInventaire(s);
   const sur = (verbe: GesteDuNoyau['verbe'], args: unknown[], refus: string | null = null): GesteFermable => ({ geste: { verbe, args }, refus: verrou ?? refus });
   const hero = porteur.kind === 'heros' ? porteur.hero : null;
-  const consommable = isConsumable(it);
+  const consommable = consommableDe(it, objetDuNarratif(s.campaignNarratif));
   const contenants = it.container || it.inside ? [] : items.filter((i) => i.container && canStow({ items }, it, i.uid));
   const ici = porteurLocalise(porteur);
   const porteurs: Carrier[] = [
@@ -86,7 +87,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
       return { cible: c, libelle, geste: { verbe: 'transmettreLObjet', args: [uid, id] } };
     }) } : null,
     poser: { geste: { verbe: 'poserLObjet', args: [uid] }, refus: refusDePoser(s, uid) },
-    utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(hero, it)) : null,
+    utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(hero, it, consommable)) : null,
     evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluation', gameDay(s))) : null,
     detecter: inconnu ? sur('evaluerLObjet', [uid, 'detection'], refusDEvaluation(s.party, it, 'detection', gameDay(s))) : null,
   };

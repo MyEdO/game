@@ -728,7 +728,7 @@ export function choixDesApparencesDObjets(armes: () => ReturnType<typeof armesDE
 function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
   const piece = { trappingId, subType: findSiegeEngineById(trappingId)?.subType?.id };
   return trappingsInstanciables()
-    .filter((m) => chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece) && gabaritDObjet(m.id)?.kind === 'ammo')
+    .filter((m) => chargeLArme(findTrappingById, { trappingId: m.id, subType: m.subType?.id }, piece) && gabaritDObjet(m.id)?.kind === 'ammo')
     .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
 }
 

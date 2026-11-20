@@ -44,6 +44,7 @@ import { isVehicle } from '../../engine/coque';
 import { etatsDeSituation, pontDOuverture } from '../../noyau/pontDeCombat';
 import { nomDuSiege } from '../../noyau/sieges';
 import { inBattleId } from '../../noyau/monde/combatants';
+import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { hotbar } from '../../state/hotbarBridge';
 import { jouerLOffreDeLEcran } from '../../state/registreOffres';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, resoudreDisposition } from '../../noyau/dispositionConsole';
@@ -442,6 +443,8 @@ function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
 export function CombatConsole() {
   const battle = useGame((s) => s.battle);
   const scene = useGame((s) => s.scene);
+  const campaignNarratif = useGame((s) => s.campaignNarratif);
+  const resolveTrapping = objetDuNarratif(campaignNarratif);
   const net = useGame((s) => s.net);
   // MDG 09 l.40.
   const gameTime = useGame((s) => s.gameTime);
@@ -723,9 +726,9 @@ export function CombatConsole() {
   // DÉCLENCHEUR d'un panneau-paramètre ; un seul (ou aucun) = il reste informatif, un panneau à une
   // valeur ne choisit rien.
   const munitions = rangedWs.flatMap((w) => {
-    const ammo = loadedAmmo(active, w);
+    const ammo = loadedAmmo(resolveTrapping, active, w);
     if (!ammo) return [];
-    const choix = compatibleAmmo(active, w);
+    const choix = compatibleAmmo(resolveTrapping, active, w);
     const choisissable = live && choix.length >= 2;
     // Chambre PLEINE (`chambrePleine`, le verdict du dispatcher de munition) : ce que le panneau annonce au
     // candidat qui n'est pas celui en chambre.
@@ -757,7 +760,7 @@ export function CombatConsole() {
   // que le gate de la case et que le versement dans le `PendingAttack`) — une posture périmée ne se
   // peint pas. La case, elle, reste TOUJOURS dessinée : elle se grise et dit pourquoi.
   const posture = (key: ShootingStanceKey) => !!battle.stances?.[active.id]?.[key] && !STANCE_BLOCK[key](scene, battle, active);
-  const consumables = (active.items ?? []).filter(isConsumable);
+  const consumables = (active.items ?? []).filter((item) => isConsumable(item, resolveTrapping));
   // Consommables GROUPÉS par MODÈLE — plusieurs potions identiques = une case à compteur ×N. La clé de
   // regroupement est l'id STABLE de catalogue (`trappingId`, `items.ts:240`), jamais le libellé
   // (AGENTS.md, § « Pour TOUT agent ») ; un objet

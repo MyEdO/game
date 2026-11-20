@@ -20,6 +20,7 @@ import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import { executerFlow, type ArretDeFlow, type ConditionCtx } from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { condCtx } from './bourseFlow';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { buildActorView } from '../engine/actorView';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
 import { openSkillTest, runFlow, applyLeafOps, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
@@ -108,24 +109,24 @@ function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
 /** Refus de consommer `item` quand son effet réussi n'aurait rien à changer à `hero` (`reussiteSansObjet`,
  *  jugée avant le Test au boire) : l'objet n'est pas perdu pour rien. Verdict UNIQUE d'`utiliserLObjet`, avant toute
  *  consommation. */
-export function refusDeConsommer(hero: Combatant, item: ItemInstance): string | null {
-  const flow = consommableDe(item);
-  const ops = flow ? opsDeReussiteDuFlow(flow) : null;
+export function refusDeConsommer(hero: Combatant, item: ItemInstance, flow: Flow): string | null {
+  const ops = opsDeReussiteDuFlow(flow);
   const source: EffectSource | undefined = item.trappingId ? { kind: 'objet', id: item.trappingId } : undefined;
   const raison = ops ? reussiteSansObjet(hero, ops, { avantLeJet: true, ...(source ? { source } : {}) }) : null;
   return raison ? t('cs.consommableSansObjet', { raison, item: item.label }) : null;
 }
 
 /** Exécute le Flow d'un consommable sur son buveur (durée résolue + bake, puis la voie du contexte). */
-export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemInstance): void {
-  const flow = consommableDe(item);
+export function runConsumable(
+  get: Get, set: SetFn, hero: Combatant, item: ItemInstance,
+  flow = consommableDe(item, objetDuNarratif(get().campaignNarratif)),
+): void {
   if (!flow) return;
   const now = get().gameTime;
   const untilTime = consumableUntilTime(item, now, hero, battleRng());
   const baked = bakeConsumableFlow(flow, hero.id, untilTime, item.label);
   const inBattle = !!get().battle && get().battle!.combatants.some((c) => c.id === hero.id);
-  // ENTITÉ PORTEUSE du Flow : la POSSESSION bue (id de catalogue). Un objet CUSTOM (hors catalogue)
-  // n'en a pas — il n'a pas de fiche où renvoyer, la dérivation d'enjeu se tait alors (#1262 V2 L6d).
+  // #1262 V2 L6d ; #2967
   const source: EffectSource | undefined = item.trappingId ? { kind: 'objet', id: item.trappingId } : undefined;
   if (inBattle) {
     runCombatFlow({

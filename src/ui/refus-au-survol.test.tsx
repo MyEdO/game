@@ -24,6 +24,7 @@ import { toMoney } from '../engine/money';
 import { ActivityPane, idBlocage } from './ActivityPane';
 import { MedicModal } from './MedicModal';
 import { MerchantPanelView } from './MerchantPanel';
+import { findTrappingById } from '../data';
 import { ShoreLeaveBody } from './ShoreLeaveModal';
 import { CouncilModal } from './CouncilModal';
 import { RenounceModal } from './RenounceModal';
@@ -184,6 +185,7 @@ describe('#1689 T2 — écrans migrés', () => {
     const merchant = { entityId: 'p', archetype: 'armurier', settlement: 'ville' as const, resaleRate: 0.5, stock: [{ id: 'hallebarde', qty: 3 }], cart: [], bargainLocked: false };
     const html = renderToStaticMarkup(
       <MerchantPanelView
+        resolveTrapping={findTrappingById}
         merchant={merchant}
         party={[stubHero]}
         money={{ gold: 0, silver: 0, brass: 0 }}

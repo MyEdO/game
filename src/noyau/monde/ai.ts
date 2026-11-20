@@ -33,7 +33,7 @@ import { bouclierDuBinome, surnombreDeLAttaque } from '../combat/surnombre';
 import { couvertDuTir, makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
 import { rangeBandModifier, canFireWhileEngaged } from '../../engine/combat';
-import { porteeDeTir } from '../../engine/items';
+import { porteeDeTir, type TrappingResolver } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../../engine/structures';
 import { effectiveChar } from '../../engine/characteristics';
@@ -44,7 +44,7 @@ import { spellEffectOps } from '../../engine/flowCore';
 /** Aversion au TIR AMI d'une ZdE : blesser/incapaciter un allié pèse FOIS-CECI un gain ennemi équivalent
  *  (>1 → l'IA ne nuke jamais son camp pour un gain marginal). Ressenti, latitude IA. */
 const FRIENDLY_FIRE_AVERSION = 2;
-import type { SpellData } from '../../data';
+import { findTrappingById, type SpellData } from '../../data';
 import { hasCondition, canTakeAction, isActionLocked, restrictingConditions, COND } from '../../engine/conditions';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { isEngaged, meleeReachTiles, reachTiles } from '../../engine/engagement';
@@ -106,6 +106,8 @@ export type EnemyAction =
   | { kind: 'fin' }; // rien à faire, passe la main
 
 export interface EnemyTurnInput {
+  /** Résolution du projet, fournie par le tour du noyau. Une décision isolée utilise le catalogue. */
+  resolveTrapping?: TrappingResolver;
   /** L'ennemi qui agit (doit avoir `pos`). */
   enemy: Combatant;
   /** Héros encore en action (vivants), tous avec `pos`. */
@@ -411,7 +413,7 @@ function doctrineWeights(id: DoctrineId): Weights {
  * - fragilité : (1 + (PBmax − PBcourant)/PBmax) → un héros entamé est ~2× plus « intéressant » (on
  *   sécurise l'élimination, LDB tactique). PUR. NaN-garde sur les dégâts (Caractéristiques absentes).
  */
-function targetThreat(enemy: Combatant, hero: Combatant, mpt: number): number {
+function targetThreat(resolveTrapping: TrappingResolver, enemy: Combatant, hero: Combatant, mpt: number): number {
   const dist = chebyshev(enemy.pos!, hero.pos!);
   const reachability = 1 / (1 + 0.15 * dist); // 1 au contact, décroissance douce
   const maxW = Math.max(1, hero.wounds.max);
@@ -420,7 +422,7 @@ function targetThreat(enemy: Combatant, hero: Combatant, mpt: number): number {
   const meleeW = hero.weapons?.find((w) => w.type === 'melee');
   const rangedW = hero.weapons?.find((w) => w.type === 'distance');
   const dmgMelee = meleeW ? finite(expectedDamage(hero, enemy, meleeW, { kind: 'melee' }), NaN) : NaN;
-  const dmgRanged = rangedW ? finite(expectedDamage(hero, enemy, rangedW, { kind: 'distance', distanceTiles: dist, metresPerTile: mpt }), NaN) : NaN;
+  const dmgRanged = rangedW ? finite(expectedDamage(hero, enemy, rangedW, { kind: 'distance', distanceTiles: dist, metresPerTile: mpt, resolveTrapping }), NaN) : NaN;
   const cand = [dmgMelee, dmgRanged].filter((d) => Number.isFinite(d)) as number[];
   const danger = cand.length ? Math.max(...cand) : 1; // pas de Caractéristiques chiffrables → danger neutre (1)
   return Math.max(1, danger) * reachability * fragility;
@@ -567,6 +569,7 @@ function pousseeVersStructure(scene: Scene, chef: Combatant, cible: Combatant, a
 
 /** Choisit l'action d'un ennemi pour son tour. Pure et déterministe. */
 export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
+  const resolveTrapping = input.resolveTrapping ?? findTrappingById;
   const { enemy, scene, blocked, smoke, flying, facing, traverse } = input;
   // Tenue de formation (#196) : Mouvement effectif plafonné à 0 → tout le reste de la fonction (approche,
   // repositionnement/kiting, fallback anti-immobilisme) énumère seulement la case courante — un ennemi déjà
@@ -639,7 +642,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Extrême (Portée ×3 — rangeBandModifier null), un lanceur pas au-delà de la portée du sort.
   // Sans portée chiffrée (arme sans `range`, sort spécial) : pas de gate (stubs/exotiques).
   const fpDist = (h: Combatant) => footprintChebyshev(pos, footprintN(enemy), h.pos!, footprintN(h));
-  const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'distance' ? porteeDeTir(enemy, w) : null; return r != null ? Math.max(m, r) : m; }, 0);
+  const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'distance' ? porteeDeTir(resolveTrapping, enemy, w) : null; return r != null ? Math.max(m, r) : m; }, 0);
   const shootPool = maxWeaponRange > 0 ? shootableHeroes.filter((h) => rangeBandModifier(fpDist(h), maxWeaponRange, mpt) != null) : shootableHeroes;
   // Frénésie (LDB 21 l.33) : la seule Action est un Test de Capacité de Combat / Athlétisme — ni tir ni sort.
   const frenzied = isFrenzied(enemy);
@@ -885,9 +888,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const dmg = src.kind === 'spell'
       ? src.value
       : src.kind === 'distance'
-        ? finite(expectedDamage(enemy, target, src.weapon, { kind: 'distance', distanceTiles: src.dist, metresPerTile: mpt }), 0)
+        ? finite(expectedDamage(enemy, target, src.weapon, { kind: 'distance', distanceTiles: src.dist, metresPerTile: mpt, resolveTrapping }), 0)
         : finite(expectedDamage(enemy, target, src.weapon, { kind: 'melee', env: outnumberEnvMelee(target) }), 0);
-    const threat = finite(targetThreat(enemy, target, mpt), 0);
+    const threat = finite(targetThreat(resolveTrapping, enemy, target, mpt), 0);
     const securesKill = dmg >= target.wounds.current && target.wounds.current > 0 ? Weff.killSecure : 0;
     const overkill = isNeutralized(target) ? Weff.overkill : 0;
     return Weff.damageDealt * dmg + Weff.threat * threat + securesKill - overkill;
@@ -923,7 +926,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       if (!h.pos) continue;
       const dist = chebyshev(to, h.pos);
       const dm = melee ? finite(expectedDamage(h, here, melee, { kind: 'melee' }), 0) : 0;
-      const dr = ranged ? finite(expectedDamage(h, here, ranged, { kind: 'distance', distanceTiles: dist, metresPerTile: mpt }), 0) : 0;
+      const dr = ranged ? finite(expectedDamage(h, here, ranged, { kind: 'distance', distanceTiles: dist, metresPerTile: mpt, resolveTrapping }), 0) : 0;
       total += Math.max(dm, dr); // le héros joue SON meilleur coup contre nous depuis cette case
     }
     return total;
@@ -1028,7 +1031,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Contact). Null si aucun héros visible → bénéfice marginal contre un mannequin neutre (aiSpellValue).
   const HORIZON = 3; // K ≈ 3 Rounds : horizon de bénéfice d'un buff (borne le bénéfice marginal).
   const refEnemy: Combatant | null = shootableHeroes.length
-    ? [...shootableHeroes].sort((a, b) => finite(targetThreat(enemy, b, mpt), 0) - finite(targetThreat(enemy, a, mpt), 0))[0]
+    ? [...shootableHeroes].sort((a, b) => finite(targetThreat(resolveTrapping, enemy, b, mpt), 0) - finite(targetThreat(resolveTrapping, enemy, a, mpt), 0))[0]
     : (heroes[0] ?? null);
   // `committingPrep` : une action de PRÉPARATION (Focalisation/Recharge) est CHOISIE → on ne lui oppose pas
   // une APPROCHE de mêlée (le lanceur/tireur reste en place). MÊLÉE reste possible (un acculé se défend).
@@ -1164,7 +1167,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Estimation d'attaque pour scorer une cible (utilité d'arme de mêlée si on en a une, sinon menace seule
   // — un caster hors de portée qui s'approche n'a pas de dégât d'arme mais score la menace/fragilité).
   const targetUtility = (t: Combatant): number =>
-    meleeWeapon ? attackUtility(t, { kind: 'melee', weapon: meleeWeapon }) : (Weff.threat * finite(targetThreat(enemy, t, mpt), 0) - (isNeutralized(t) ? Weff.overkill : 0));
+    meleeWeapon ? attackUtility(t, { kind: 'melee', weapon: meleeWeapon }) : (Weff.threat * finite(targetThreat(resolveTrapping, enemy, t, mpt), 0) - (isNeutralized(t) ? Weff.overkill : 0));
   for (const t of vivier) {
     if (hasMeleeWeapon && meleeWeapon && inMelee(t)) {
       // Cible déjà au contact → frappe (position déjà acquise, pas de bonus de déplacement).

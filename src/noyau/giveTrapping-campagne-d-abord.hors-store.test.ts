@@ -8,6 +8,12 @@ import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene } from './monde/scene';
 import { applyEffects } from './combatEffects';
+import { parseProject } from './worldMap';
+import { gestesDeLObjet } from './gestesDeLObjet';
+import { MINUTES_PER_DAY } from '../engine/clock';
+import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
+import { resetSceneRegistry } from './monde/registreDesScenes';
+import { etatInitialDuJeu } from './etat';
 import { emitCombatEvent } from './combatEvents';
 import { applyZoneCrossings } from './combatPlacement';
 import { loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../engine/items';
@@ -171,4 +177,131 @@ describe('#4257 — références d’objet de campagne jouées par les GameOps',
     banc.getState().avancerLeTemps(1);
     attendreLame();
   });
+});
+
+describe('#2967 — flux des objets portés de campagne', () => {
+  const remettre = (id: string) => {
+    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: id, heroId: 'a' }]);
+    return trouver(id)!;
+  };
+  const trouver = (id: string) => banc.getState().party[0].items?.find((i) => i.trappingId === id);
+  const don: NonNullable<NarratifBlock['objets'][number]['consumable']> = {
+    kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: 'corde' }] },
+  };
+  function ouvrir(...objets: NarratifBlock['objets']): void {
+    const scene = fixtureScene();
+    const projet = parseProject({
+      type: 'projet', id: 'test-objets-portes', label: 'Objets portés', versionContenu: 1, maison: 'Test des objets portés',
+      scenes: [scene], narratif: { ...emptyNarratif(), objets },
+    });
+    banc.setState({ party: [hero()] });
+    banc.getState().chargerLeProjet({ scenes: projet.scenes, entryId: scene.id, narratif: projet.narratif, projet });
+  }
+
+  it('propose et exécute la consommation de l’objet de campagne à partir de la fiche', () => {
+    const dose = objetDeCampagne({ id: 'dose-du-projet', categorie: 'trapping', subType: null, consumable: don });
+    ouvrir(dose, ...narratif.objets);
+    const usage = remettre(dose.id);
+    const autre = remettre(LAME_CAMPAGNE);
+    expect(gestesDeLObjet(banc.getState(), 'a', autre.uid)?.utiliser).toBeNull();
+    expect(gestesDeLObjet(banc.getState(), 'a', usage.uid)?.utiliser).toEqual({
+      refus: null, geste: { verbe: 'utiliserLObjet', args: [usage.uid] },
+    });
+    banc.getState().utiliserLObjet(usage.uid);
+    expect(trouver(dose.id)).toBeUndefined();
+    expect(trouver('corde')?.label).toBe('Corde');
+  });
+
+  it.each([true, false])('l’horloge joue le flux de l’objet de campagne selon son port (%s)', (porte) => {
+    const manteau = objetDeCampagne({
+      id: 'manteau-du-projet', categorie: 'trapping', subType: { id: 'vetements-et-accessoires' },
+      effects: [{ trigger: 'onDayStart', on: 'soi', flow: don }],
+    });
+    ouvrir(manteau);
+    const manteauPorte = remettre(manteau.id);
+    if (porte) banc.getState().equiperLObjet(manteauPorte.uid);
+    expect(trouver(manteau.id)?.equipped).toBe(porte);
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
+    expect(trouver('corde')?.label).toBe(porte ? 'Corde' : undefined);
+  });
+
+  it('une dose chargée depuis la sauvegarde conserve son uid et donne un objet local après le Test du buveur', () => {
+    const dose = {
+      ...objetDeCampagne({ id: 'dose-differee', categorie: 'trapping', subType: null }),
+      consumable: {
+        kind: 'test', test: { characteristic: 'endurance', stake: { authored: 'Obtenir la Lame maudite après avoir bu la dose.' } },
+        reussite: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: LAME_CAMPAGNE }] } },
+        echec: { kind: 'sequence', etapes: [] },
+      },
+    } satisfies NarratifBlock['objets'][number];
+    ouvrir(dose, ...narratif.objets);
+    const usage = remettre(dose.id);
+    const save = sauverLeBanc(banc);
+    resetSceneRegistry();
+    banc.setState(etatInitialDuJeu());
+    expect(banc.getState().campaignNarratif).toBeNull();
+    chargerSurLeBanc(banc, save);
+    expect(trouver(dose.id)?.uid).toBe(usage.uid);
+
+    const fluxSauve = banc.getState().campaignNarratif?.objets.find((o) => o.id === dose.id)?.consumable;
+    expect(fluxSauve?.kind).toBe('test');
+    const enjeuSauve = fluxSauve?.kind === 'test' ? fluxSauve.test.stake : undefined;
+    banc.getState().utiliserLObjet(usage.uid);
+    expect(banc.getState().pendingTest?.actorId).toBe('a');
+    const cascade = banc.getState().pendingCascade;
+    const enjeuDuJet = cascade?.participants[cascade.cursor]?.stake;
+    expect(enjeuDuJet).toEqual({ authored: 'Obtenir la Lame maudite après avoir bu la dose.' });
+    expect(enjeuDuJet).not.toBe(enjeuSauve);
+    expect(trouver(dose.id)).toBeUndefined();
+    expect(trouver(LAME_CAMPAGNE)).toBeUndefined();
+    banc.getState().jetLancer('test');
+    banc.getState().jetImposerLeResultat('test', 11);
+    expect(banc.getState().pendingTest).toMatchObject({ roll: 11, success: true });
+    banc.getState().jetValider('test');
+    expect(trouver(LAME_CAMPAGNE)).toMatchObject({ label: 'Lame maudite', kind: 'melee' });
+  });
+
+  it('l’horloge de l’objet porté donne l’objet local par le même résolveur', () => {
+    const manteau = {
+      ...objetDeCampagne({ id: 'manteau-horloge', categorie: 'trapping', subType: { id: 'vetements-et-accessoires' } }),
+      effects: [{
+        trigger: 'onDayStart', on: 'soi',
+        flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: LAME_CAMPAGNE }] } },
+      }],
+    } satisfies NarratifBlock['objets'][number];
+    ouvrir(manteau, ...narratif.objets);
+    banc.getState().equiperLObjet(remettre(manteau.id).uid);
+    expect(trouver(LAME_CAMPAGNE)).toBeUndefined();
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
+    expect(trouver(LAME_CAMPAGNE)).toMatchObject({ label: 'Lame maudite', kind: 'melee' });
+  });
+
+
+  it('à la touche, l’effet porté appartient à la main active de l’objet de campagne', () => {
+    const source = {
+      ...objetDeCampagne({ id: 'arme-effet-porte', label: 'Arme au don' }),
+      effects: [{
+        trigger: 'onHit', on: 'soi',
+        flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: LAME_CAMPAGNE }] } },
+      }],
+    } satisfies NarratifBlock['objets'][number];
+    ouvrir(source, ...narratif.objets);
+    const set = loadoutCreate(banc.getState().party[0]);
+    const arme = remettre(source.id);
+    const jouerLaTouche = () => {
+      const porteur = banc.getState().party[0];
+      return emitCombatEvent('onHit', {
+        get: banc.getState, set: banc.setState, battle: banc.getState().battle,
+        self: porteur, sink: () => {}, triggerCtx: { weapon: porteur.weapons[0], rng: desDuTest },
+      });
+    };
+    expect(banc.getState().party[0].weapons.some((w) => w.uid === arme.uid)).toBe(false);
+    expect(jouerLaTouche()).toBe(0);
+    expect(trouver(LAME_CAMPAGNE)).toBeUndefined();
+    banc.getState().garnirLaPanoplie('a', set, 'main', arme.uid);
+    expect(banc.getState().party[0].weapons[0]?.uid).toBe(arme.uid);
+    expect(jouerLaTouche()).toBe(1);
+    expect(trouver(LAME_CAMPAGNE)).toMatchObject({ label: 'Lame maudite', kind: 'melee' });
+  });
+
 });

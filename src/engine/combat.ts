@@ -57,7 +57,17 @@ import { traumaDodgePenaltyParts, amputationCombatPenalty, passiveTestModParts, 
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, possessionASaTaille, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
-import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
+import {
+  ignoredArmourAP,
+  activeLoadout,
+  porteeDeTir,
+  unarmedWeapon,
+  buildWeapon,
+  damageArmour,
+  impenetrableAt,
+  casserLaPieceBaclee,
+  type TrappingResolver,
+} from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, PSY, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
 import {
@@ -863,7 +873,7 @@ export function conditionModLines(c: Combatant, ctx: EtatTestCtx = {}): ModLine[
 /** Contexte d'une attaque pour `attackModifiers` : une distance mesurée (`distanceTiles`, en cases) voyage avec
  *  l'échelle de sa scène (`metresPerTile`, `sceneMetresPerTile`), LDB 15 l.12. */
 export type AttackModOpts = { kind: 'melee' | 'distance'; location?: HitLocation | null; env?: ModLine[]; flankRear?: boolean }
-  & ({ distanceTiles?: undefined } | { distanceTiles: number; metresPerTile: number });
+  & ({ distanceTiles?: undefined } | { distanceTiles: number; metresPerTile: number; resolveTrapping: TrappingResolver });
 
 export function attackModifiers(
   attacker: Combatant,
@@ -884,7 +894,7 @@ export function attackModifiers(
   // opposées), jamais ici (un ±10 sur la cible fausserait la probabilité ET le DR, contra RAW).
   if (opts.kind === 'distance') {
     // Portée RÉSOLUE à l'usage (jet `{bf}` → BF×N ; mètres fixes inchangés) + modificateur de la munition tirée.
-    const rangeM = porteeDeTir(attacker, weapon);
+    const rangeM = opts.distanceTiles == null ? null : porteeDeTir(opts.resolveTrapping, attacker, weapon);
     const band = opts.distanceTiles != null && rangeM != null ? rangeBandId(opts.distanceTiles, rangeM, opts.metresPerTile) : null;
     if (band) {
       const l = ligneDeRegle('portee-d-une-arme', band, { ajuste: (mod) => sniperRangeAdjust(attacker, band, mod) }); // LDB 10, Tireur embusqué
@@ -1473,6 +1483,7 @@ export function belowMinRangeBand(distanceTiles: number, rangeMeters: number, mi
  * `[]` = tir non défendable → résolution non opposée habituelle.
  */
 export function rangedDefenseModes(
+  resolveTrapping: TrappingResolver,
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
@@ -1485,7 +1496,7 @@ export function rangedDefenseModes(
   const modes = new Set<'parade' | 'esquive'>();
   if (isEngagedWith(attacker, defender.id)) modes.add('parade'); // tireur Engagé (l.70) : toute Corps à corps
   else if (los && (rangedOpposeWeapon(defender.weapons) || pareLesTirs(bouclierDuBinome))) modes.add('parade'); // bouclier Protectrice 2+ en Ligne de Vue (l.307) ; ZI 13 l.193
-  const rangeM = porteeDeTir(attacker, weapon);
+  const rangeM = porteeDeTir(resolveTrapping, attacker, weapon);
   if (distanceTiles != null && rangeM != null && rangeBandId(distanceTiles, rangeM, metresPerTile) === 'bout-portant')
     modes.add('esquive'); // Bout Portant (l.62)
   return [...modes];
@@ -1495,6 +1506,7 @@ export function rangedDefenseModes(
  *  RAW autorisés (`rangedDefenseModes`), celui de plus haute valeur effective. `undefined` = aucune
  *  défense → tir non opposé. La Parade utilise l'arme Protectrice 2+ si présente, sinon la main. */
 export function bestRangedDefense(
+  resolveTrapping: TrappingResolver,
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
@@ -1503,7 +1515,7 @@ export function bestRangedDefense(
   metresPerTile: number,
   bouclierDuBinome?: Weapon,
 ): { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; bouclierDuBinome?: Weapon } | undefined {
-  const modes = rangedDefenseModes(attacker, defender, weapon, distanceTiles, los, metresPerTile, bouclierDuBinome);
+  const modes = rangedDefenseModes(resolveTrapping, attacker, defender, weapon, distanceTiles, los, metresPerTile, bouclierDuBinome);
   if (!modes.length) return undefined;
   const parryWeapon = rangedOpposeWeapon(defender.weapons) ?? defaultParryWeapon(defender);
   const valOf = (m: 'parade' | 'esquive') => defenseValue(defender, m, m === 'parade' ? parryWeapon : undefined);
@@ -1513,6 +1525,7 @@ export function bestRangedDefense(
 
 /** Résout une attaque à distance (Test de Projectiles, non opposé). */
 export function resolveRanged(
+  resolveTrapping: TrappingResolver,
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
@@ -1527,10 +1540,10 @@ export function resolveRanged(
 ): AttackResult {
   weapon = appliquerAtoutOptionnel(weapon);
   const atkVal = combatValue(attacker, 'distance', weapon);
-  const rangeM = porteeDeTir(attacker, weapon);
+  const rangeM = porteeDeTir(resolveTrapping, attacker, weapon);
   if (distanceTiles != null && rangeM != null && rangeBandModifier(distanceTiles, rangeM, metresPerTile) == null)
     return { hit: false, attackerRoll: 0, netSL: 0, critical: false, advantageTo: null, defenderDefeated: false, log: t('touche.horsDePortee', { attaquant: nomDe(attacker) }) };
-  const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile });
+  const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile, resolveTrapping });
   let atk: TestResult = { ...rollTest(atkVal, 'intermediaire', rng, combineMods(mods)), base: combatBaseValue(attacker, 'distance', weapon) }; // LDB 12 l.160
   if (isHelplessTarget(defender)) atk = helplessTest(atk, 'distance'); // auto-succès, Dégâts à bout portant (LDB 16 l.113)
   const atkBd = bd(attackTestLabel(attacker, weapon, 'distance'), atkVal, atk, composeAttack(mods, modsDR));
@@ -1546,6 +1559,7 @@ export function resolveRanged(
 /** Jet d'attaque FIGÉ d'un TIR (Test de Projectiles, mods de portée/Taille/État inclus) — mirror de
  *  `rollMeleeAttacker` pour la défense réactive : l'IA fige son tir, le héros oppose ensuite sa défense. */
 export function rollRangedAttacker(
+  resolveTrapping: TrappingResolver,
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
@@ -1555,7 +1569,7 @@ export function rollRangedAttacker(
   env: ModLine[] | undefined,
   metresPerTile: number,
 ): TestResult {
-  const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile });
+  const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile, resolveTrapping });
   const t = rollTest(combatValue(attacker, 'distance', weapon), 'intermediaire', rng, combineMods(mods));
   return { ...t, base: combatBaseValue(attacker, 'distance', weapon) }; // LDB 12 l.160
 }
@@ -1564,6 +1578,7 @@ export function rollRangedAttacker(
  *  d'attaque/défense DÉJÀ obtenus — mirror de `finishMelee` pour le tir : construit le breakdown
  *  « Projectiles » (mods de portée) puis délègue au cœur partagé `combineOpposed`. */
 export function finishRanged(
+  resolveTrapping: TrappingResolver,
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
@@ -1581,7 +1596,7 @@ export function finishRanged(
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
   bouclierDuBinome?: Weapon, // ZI 13 l.193
 ): AttackResult {
-  const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile });
+  const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile, resolveTrapping });
   const atkBd = bd(attackTestLabel(attacker, weapon, 'distance'), combatValue(attacker, 'distance', weapon), atk, compo ?? composeAttack(mods));
   return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, parryWeapon, dodgeMods, withhold, bouclierDuBinome });
 }

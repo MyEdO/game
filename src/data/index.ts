@@ -898,7 +898,7 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
   onHitEffects?: TriggeredEffect[];
-  /** Effets DÉCLENCHÉS de l'objet PORTÉ ou TENU (`isHeld`), lus au catalogue par `effectSourcesOf`, jamais
+  /** Effets DÉCLENCHÉS de l'objet PORTÉ ou TENU (`isHeld`), résolus par `effectSourcesOf`, jamais
    *  copiés sur l'instance. #4202 */
   effects?: TriggeredEffect[];
   /** Passifs de l'ARME elle-même (vocabulaire de `weaponPassiveOps`), ≠ `passive` du PORTEUR. Propagé
@@ -981,7 +981,7 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
    *  feuilles `do` d'ops (MÊME vocabulaire que sorts/passifs), branches `if` (Fleur de lune par race),
    *  nœuds `test` pour les Tests « au boire » (Brise-cœur/Belladone/Nécessaire antipoison), résolus
    *  cadence-aware par le runner state (`runConsumable`). Édité au Codex via `FlowEditor` (comme les
-   *  effets d'un sort). Lu au catalogue par `consommableDe` (`engine/consumables.ts`). */
+   *  effets d'un sort). Résolu par `consommableDe` (`engine/consumables.ts`). */
   consumable?: import('../engine/flowCore').Flow;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — résolue AU BOIRE
    *  (dés tirés une fois), les ops durables du Flow expirent à l'échéance (`purgeClockEffects`). */
@@ -2469,9 +2469,9 @@ export function dataLabel(texte: string | undefined | null, repli?: string): Pla
 /** Libellé d'affichage d'une `RefDesignee` : « Magie des Arcanes (Ghur) » — base (repli sur l'id) + spec —,
  *  ou d'un emplacement `choix` par `choixLabel`. Aucun site ne s'en sert de clé : une identité de
  *  référence est `refKey(id, spec)`. */
-export function refLabel(category: string, ref: RefASpecialisation): PlayerText {
+export function refLabel(category: string, ref: RefASpecialisation, repli = ref.id): PlayerText {
   if (ref.choix != null) return choixLabel(category, ref.id, ref.choix);
-  const base = dataLabel(findById(category, ref.id)?.label, ref.id);
+  const base = dataLabel(findById(category, ref.id)?.label, repli);
   return ref.spec ? dataLabel(`${base} (${specLabel(category, ref.id, ref.spec)})`) : base;
 }
 /** Copie une qualité de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}` ou `{id, majoration}`) — objet
