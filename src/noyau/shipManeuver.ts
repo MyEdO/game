@@ -44,6 +44,7 @@ import { rotateDir8, DIR8_DELTA } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { footprintTiles, footprintN } from './monde/footprint';
 import { applyShipCollision } from './monde/shipCollision';
+import { capEnCombat, estPoseParSesPonts } from './planDeNavire';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau'; // défini côté pendings (neutre) — cf. quarantaine #328
 
 /** Jet d'UN contributeur à son rôle : Test de la compétence du rôle (MDG 14). PUR (RNG injecté). Rend la LIGNE
@@ -227,7 +228,7 @@ function maneuverSansJet(params: ManeuverParams, refus: PlayerText, helmsman?: s
 export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string): ManeuverResult | null {
   const battle = get().battle;
   const ship = inBattleId(battle, shipId);
-  if (!battle || !ship) return null;
+  if (!battle || !ship || estPoseParSesPonts(get().scene, shipId)) return null;
   const params = shipManeuverParams(ship, milieuDeLaCoque(ship, get().travelPlan));
   const crew = (ship.crewIds ?? [])
     .map((id) => inBattleId(battle, id))
@@ -246,6 +247,7 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
  * d'Endurance de la coque tenue par une réparation temporaire (MDG 13 l.651 ; MSRC 7 l.117).
  */
 export function applyShipManeuver(get: Get, set: Set, shipId: string, result: ManeuverResult, turnSteps: number): number {
+  if (estPoseParSesPonts(get().scene, shipId)) return 0;
   const ship = garanti(inBattleId(get().battle, shipId), shipId, 'applyShipManeuver');
   if (result.success) get().virerLeNavire(shipId, turnSteps); // vire + re-mappe les arcs + logue le nouveau cap
   else {
@@ -272,7 +274,8 @@ export function maneuverShip(get: Get, set: Set, shipId: string, turnSteps: numb
 export function creerActionsDeManoeuvre(get: Get, set: Set) {
   return {
     virerLeNavire: (shipId, turnSteps) => {
-      const { facing, battle } = get();
+      const { facing, battle, scene } = get();
+      if (estPoseParSesPonts(scene, shipId)) return;
       const cur = facing[shipId];
       if (!cur) return; // navire sans cap initial → rien à virer
       const next = rotateDir8(cur, turnSteps);
@@ -283,7 +286,9 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
     avancerLeNavire: (shipId, cases) => {
-      const { facing, battle, scene } = get();
+      const etat = get();
+      const { facing, battle, scene } = etat;
+      if (estPoseParSesPonts(scene, shipId)) return 0;
       const dir = facing[shipId];
       const hull = inBattleId(battle, shipId);
       if (!battle || !hull?.pos || !dir) return 0;
@@ -318,7 +323,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       // ~opposé (octant opposé ±1). Dégâts sur les DEUX coques par la langue unique (`applyShipCollision`→`applyOps`).
       if (victim) {
         const opp = rotateDir8(dir, 4);
-        const vf = facing[victim.id];
+        const vf = capEnCombat(etat, victim.id);
         const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
         const milieu = milieuDeLaCoque(hull, get().travelPlan);
         const retour = applyShipCollision(hull, victim, milieu, { ramProue: true, frontal }, battleRng(), get().forgerUnId);

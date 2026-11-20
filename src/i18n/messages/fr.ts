@@ -4484,6 +4484,7 @@ export const fr = {
   'agate.noTeamToAid': 'aucune équipe à aider',
   'agate.notMounted': 'pas en selle',
   'agate.noPosteManned': 'ne sert aucune pièce',
+  'agate.navireAncre': 'Les ponts de ce navire font partie de la carte de combat.',
   'agate.notAtHelm': 'ni navire ni à la barre',
   'agate.notAVehicle': 'pas un véhicule',
   'agate.notRoundStart': 'hors de la pause de début de Round',

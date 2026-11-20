@@ -1685,8 +1685,16 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(valeursDe(outil, 'navires').map((b) => [b.id, b.libelle, b.refus])).toEqual([['navire/caraque', 'Caraque', null], ['navire/barge-fluviale', 'Barge fluviale', null]]);
     expect(valeursDe(outil, 'navire/cap').map((b) => b.id)).toEqual(['navire/cap/N', 'navire/cap/E', 'navire/cap/S', 'navire/cap/O']);
     presser(boutonDe(outil, 'navire/cap/E'));
-    const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
+    const essayer = (x: number) => editionDe(appel('editer', { edition: { geste: 'appui', point: point(x, 6) } }));
+    const refusee = essayer(6);
+    expect(refusee.monde).toBeUndefined();
+    expect(boutonDe(refusee, 'annuler').refus).toBe('Rien à annuler');
+    const posee = essayer(7);
     expect(Object.keys(posee.navires!)).toEqual(['navire-0']);
+    expect(posee.navires!['navire-0'].centre).toEqual({ x: 8.5, y: 8 });
+    const capNord = boutonDe(posee, 'entite/cap/N');
+    expect(capNord.refus).toMatch(/ponts du navire hors de la carte/);
+    expect(erreurDe(appel('editer', capNord.jeu)).categorie).toBe('regle');
     expect(posee.navires!['navire-0']).toMatchObject({ corps: { element: 'vehicule--caraque', cap: 'E', taille: 'reelle' } });
     const surfaces = morceauxDe(appel, 'edition', posee.monde!).flatMap((m) => m.surfaces);
     expect(surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
@@ -1695,7 +1703,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(couches.valeurs.map((b) => b.id)).toEqual(['couche/0', 'couche/1', 'couche/2', 'couche/3']);
     const pont = presser(boutonDe(posee, 'couche/2'));
     expect([pont.vue.couche, boutonDe(pont, 'couche/retirer').refus]).toEqual([2, 'Seuls les ponts d’un navire posent cette couche']);
-    expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 3 && x <= 20 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
+    expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 0 && x <= 17 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
   });
 
   it('la réponse sert les décors de la scène dont un élément `decor` est servi, comme la vue (#4335)', () => {
@@ -1742,7 +1750,8 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     const { appel } = table();
     servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
-    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
+    const outil = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
+    presser(boutonDe(outil, 'navire/barge-fluviale'));
     const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
     expect(valeursDeLInspecteur(posee, 'entite/cap').map((b) => [b.id, b.presse])).toEqual([['entite/cap/N', true], ['entite/cap/E', false], ['entite/cap/S', false], ['entite/cap/O', false]]);
     expect(posee.vue.zones['editeur.inspecteur'].some((el) => el.id === 'equipage'), 'son équipage exposé').toBe(true);

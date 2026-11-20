@@ -64,6 +64,7 @@ import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
  *  contrats, jamais recopié en littéral. */
 export const SEA_PERIL_INTERRUPT = 'voyage-mer';
 import { sceneMetresPerTile, type Scene, type VictoryCondition } from './monde/scene';
+import { rectangleDesPonts } from '../data/poseDesPonts';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { buildScene } from './mapSpec';
 import type { AuthoredEnemy } from './monde/encounterAuthoring';
@@ -2272,19 +2273,34 @@ function coqueDuPont(get: Get): CoqueDuPont | null {
  *  EMBARQUE au `lancerLeCombat`), `ennemis` en face — MÊME machinerie navale que les scènes authorées
  *  (`buildScene` + `enemies` terse, cf. `16-embuscade-fluviale`/`ls-abordage-cogue`). */
 function sceneDuPont(coque: CoqueDuPont, label: string, debut: string, rencontre: { id: string; ennemis: AuthoredEnemy[]; victoryCondition?: VictoryCondition }): Scene {
+  const metresPerTile = sceneMetresPerTile(undefined);
+  const allie: AuthoredEnemy = {
+    vehicule: { id: coque.ref }, pos: { x: 3, y: 6 }, side: 'allie', label: coque.nom, navireDeCampagne: coque.navireDeCampagne,
+  };
+  const apparitions = [...rencontre.ennemis, allie].map((entite) => ({
+    entite, ponts: rectangleDesPonts({ metresPerTile }, entite),
+  }));
+  // Le cadre englobe les ponts sans changer les distances entre les apparitions.
+  const ponts = apparitions.flatMap((a) => a.ponts ?? []);
+  const x0 = Math.min(0, ...ponts.map((p) => p.x));
+  const y0 = Math.min(0, ...ponts.map((p) => p.y));
+  const x1 = Math.max(18, ...ponts.map((p) => p.x + p.w));
+  const y1 = Math.max(12, ...ponts.map((p) => p.y + p.h));
   return buildScene({
     id: BOARDING_SCENE_ID,
     label,
-    size: [18, 12],
+    size: [x1 - x0, y1 - y0],
+    metresPerTile,
     terrain: defautsDeCompilation.pont.id,
     ambiance: 'exterieur',
-    heroStart: [3, 7],
+    heroStart: [3 - x0, 7 - y0],
     startMessage: { texte: debut },
     encounters: [{
       id: rencontre.id,
-      enemies: [...rencontre.ennemis, {
-        vehicule: { id: coque.ref }, pos: { x: 3, y: 6 }, side: 'allie', label: coque.nom, navireDeCampagne: coque.navireDeCampagne,
-      }],
+      enemies: apparitions.map(({ entite, ponts }) => ({
+        ...entite, pos: { x: entite.pos.x - x0, y: entite.pos.y - y0 },
+        ...(ponts ? { facing: ponts.cap } : {}),
+      })),
       ...(rencontre.victoryCondition ? { victoryCondition: rencontre.victoryCondition } : {}),
     }],
   });

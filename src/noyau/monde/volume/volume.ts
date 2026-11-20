@@ -144,7 +144,7 @@ interface GeometrieDuMonde {
   /**
    * La case de chaque triangle, sa couche comprise, 3 nombres par triangle (`x`, `y`, `z`), dans l'ordre des
    * triangles : toujours sur la carte, la case de la carte la plus proche pour une face posée hors d'elle (un décor
-   * hors de la carte, le pont ou la mer d'un navire posé au bord). Dans un morceau (`MorceauDuMonde`), sa couche est
+   * hors de la carte). Dans un morceau (`MorceauDuMonde`), sa couche est
    * une couche de la scène (`caseSurLaCarte`).
    */
   cases: number[];

@@ -29,6 +29,7 @@ import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 // (`scripts/guards/lib/couches.mjs`), donc pas de cycle.
 import { findStructureById, semencesDeScene } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
+import { sceneMetresPerTile as metresParCaseDeScene } from '../../geometry/grid';
 import type { Calage } from '../../data/props.types';
 import type { Pt } from './path';
 import { estAbsent, terrainHorsGrille, terrainWalkable } from './terrain';
@@ -427,9 +428,9 @@ export const champsDuPlan = (scene: Scene): readonly unknown[] => CHAMPS_DU_PLAN
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
 
-/** Échelle métrique d'une case (m/case), LDB 15 l.12 : source UNIQUE, que lisent la couche Mer et le plateau d'un hôte. PUR. */
+/** Échelle métrique de la scène (LDB 15 l.12). */
 export function sceneMetresPerTile(scene: { metresPerTile?: number } | null | undefined): number {
-  return scene?.metresPerTile ?? 2;
+  return metresParCaseDeScene(scene);
 }
 
 /** Offre de repos EFFECTIVE de la scène entière : absente, le groupe peut camper. Source UNIQUE de l'offre

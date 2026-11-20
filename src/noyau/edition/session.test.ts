@@ -858,7 +858,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
 });
 
 describe('le navire de la scène éditée (#3772)', () => {
-  const bassin = (metresPerTile = 2) => ({ ...emptyScene('bassin', 24, 16), metresPerTile });
+  const bassin = (metresPerTile = 2) => ({ ...emptyScene('bassin', 24, 24), metresPerTile });
   const poserLaCaraque = (s: SessionDEdition, cap: 'N' | 'E' | 'S' | 'O' = 'E') =>
     [{ geste: 'outil', outil: { mode: 'navire', ref: 'caraque', cap } }, { geste: 'appui', point: point(10, 6) }].reduce<SessionDEdition>((t, g) => editer(t, g as GesteDEdition), s);
   const caraque: Scene['entities'][number] = { id: 'navire-0', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 6 }, facing: 'E', label: 'Caraque' };
@@ -925,8 +925,14 @@ describe('le navire de la scène éditée (#3772)', () => {
 
   it('le cap change à l’inspecteur : ses ponts tournent avec lui, la scène éditée ne porte toujours que son entité', () => {
     const s = poserLaCaraque(ouverteSur(bassin()));
-    const tourne = editer(s, { geste: 'entite', patch: { facing: 'N' } });
-    expect(sceneEditee(tourne)).toEqual({ ...bassin(), entities: [{ ...caraque, facing: 'N' }] });
+    expect(editer(s, { geste: 'entite', patch: { facing: 'N' } })).toBe(s);
+    const selection = editer(s, { geste: 'outil', outil: { mode: 'selection' } });
+    const prise = editer(selection, { geste: 'appui', point: point(10, 6) });
+    expect(editer(prise, { geste: 'glisse', point: point(6, 7) })).toBe(prise);
+    const glisse = editer(prise, { geste: 'glisse', point: point(10, 7) });
+    const fin = editer(glisse, { geste: 'relache', point: point(10, 7) });
+    const tourne = editer(fin, { geste: 'entite', patch: { facing: 'N' } });
+    expect(sceneEditee(tourne)).toEqual({ ...bassin(), entities: [{ ...caraque, pos: { x: 10, y: 7 }, facing: 'N' }] });
     const empriseDe = (t: SessionDEdition) => [...provenanceDesNavires(vueDeLaScene(t)).cases.keys()].map((cle) => cle.split(',').map(Number));
     const etendue = (cases: number[][], axe: 0 | 1) => Math.max(...cases.map((c) => c[axe])) - Math.min(...cases.map((c) => c[axe])) + 1;
     expect([etendue(empriseDe(s), 0), etendue(empriseDe(s), 1)]).toEqual([18, 5]);
