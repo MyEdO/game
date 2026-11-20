@@ -11,9 +11,8 @@ import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const DOSSIER = fileURLToPath(new URL('.', import.meta.url));
+const DOSSIER = import.meta.dirname;
 const lire = (rel: string) => readFileSync(join(DOSSIER, rel), 'utf8');
 
 let banc: Banc;

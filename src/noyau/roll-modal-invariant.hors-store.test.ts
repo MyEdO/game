@@ -3,7 +3,6 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 /**
  * Garde-fou « un Test REMONTE à un humain vs se résout INLINE » — au CHOKE-POINT du prédicat, pas par
@@ -42,7 +41,7 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 // ── Volet (a) — statique minimal ────────────────────────────────────────────────────────────────
-const DOSSIER = fileURLToPath(new URL('.', import.meta.url));
+const DOSSIER = import.meta.dirname;
 /** Retire commentaires de bloc et de ligne — un prédicat CITÉ en prose (« cf. `defenseSurfaced` ») n'est
  *  PAS un câblage : sans ce strip, la garde reste verte alors que le câblage a été débranché (mutation D
  *  du juge). */
