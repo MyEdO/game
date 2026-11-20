@@ -6,7 +6,9 @@ pièce est semé de son nom : deux constructions rendent les mêmes octets."""
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, X, Repere, biais, noeud
 from maconnerie import PIERRE, Appareil
-from menuiserie import FER, MENUISERIE, VOLET, vantail
+from menuiserie import MENUISERIE, VOLET, vantail
+
+BARREAU, TRAVERSE = "barreau", "traverse"
 
 MOITIES = {None: (0, (-1, 1)), GAUCHE: (1, (-1,)), DROITE: (-1, (1,))}
 """Par position, l'abscisse de la clef du porche (en demi-longueurs d'arête) et les côtés qu'en porte l'arête."""
@@ -32,12 +34,12 @@ def porte(abattue, position=None):
                     if alea.random() > B["tiennent"]:
                         continue
                     h = (h[1] - alea.uniform(*B["longueur"]), h[1])
-                A.R.boite(m, (x - H["section"] / 2, x + H["section"] / 2), h, devant, FER)
+                A.R.boite(m, (x - H["section"] / 2, x + H["section"] / 2), h, devant, BARREAU)
             large = tuple(sorted((axe, axe + cote * (portee + C["ancrage"]))))
             for part in H["traverses"][1:] if abattue else H["traverses"]:
                 haut_t, epais_t = H["traverse"]
                 A.R.boite(m, large, (part * tete - haut_t / 2, part * tete + haut_t / 2),
-                          (devant[0] - epais_t, devant[0]), FER)
+                          (devant[0] - epais_t, devant[0]), TRAVERSE)
             gond = A.R.point(axe + cote * (portee + C["ancrage"]), 0, -T["epaisseur"])
             repere = Repere(gond, -cote * X, DEHORS)
             if abattue:
@@ -53,9 +55,7 @@ def porte(abattue, position=None):
                 biais(m, (g, d), (naissance, intrados(g) + C["prise"]), (naissance, intrados(d) + C["prise"]),
                       (-T["epaisseur"], 0.0), MENUISERIE)
         if abattue:
-            G = B["gravats"]
-            geometrie.eboulis(m, A.R, alea, G, A.demi,
-                              lambda tirage: FER if tirage.random() < G["fer"] else MENUISERIE)
+            geometrie.eboulis(m, A.R, alea, B["gravats"], A.demi)
     return batir
 
 

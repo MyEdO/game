@@ -8,7 +8,7 @@ import math
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, MILIEU, X, Repere, noeud
 from maille import lineaire
-from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, volets
+from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, vitre, volets
 
 BOIS, TORCHIS = "ossature", "torchis"
 
@@ -177,6 +177,7 @@ def fenetre(close):
         P.croix_des_registres(sauf=(1,))
 
         croisee(m, P.R, baie, appui, linteau)
+        vitre(m, P.R, baie, appui, linteau)
         volets(m, P.R, baie, (appui - F["recouvrement"], linteau + F["recouvrement"]), P.nu, close)
     return batir
 
@@ -224,8 +225,7 @@ def breche(D, m, a):
         P.R.boite(m, (x(part) - E["section"] / 2, x(part) + E["section"] / 2), h,
                   (c - E["section"] / 2, c + E["section"] / 2), BOIS)
 
-    G = B["gravats"]
-    geometrie.eboulis(m, P.R, a, G, P.demi, lambda alea: BOIS if alea.random() < G["bois"] else TORCHIS)
+    geometrie.eboulis(m, P.R, a, B["gravats"], P.demi)
     for depart, arrivee in B["debris"]:
         P.R.poutre(m, (x(depart[0]), P.echarpe / 2), (x(arrivee[0]), P.echarpe / 2), P.echarpe,
                    (-P.echarpe / 2, P.echarpe / 2), BOIS)

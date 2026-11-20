@@ -11,12 +11,13 @@
  * volume et ses décors servis comme la vue les sert (`DecorServi`) ; et `coiffe` : ce même échantillon posé sur un bloc
  * plein (`coiffeUnBloc`), son volume, ses décors servis, et le retrait que rend le noyau sous sa couche
  * (`retraitDuMonde`), qui retire le plan `pose` de chaque case et laisse montré son plan `sol` (`capsSolid`) ; et
- * `luminaire` : l'échantillon de `LUMINEUX`, son volume et ses décors servis, dont chaque pose éclaire.
+ * `luminaire` : l'échantillon de `LUMINEUX`, son volume et ses décors servis, dont chaque pose éclaire ; et
+ * `paletteDesAretes` : la palette que les recettes des arêtes donnent à leurs arêtes servies (`paletteDeLApparence`).
  */
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
 import {
-  posesDesDecors, retraitDuMonde, sceneDEchantillon, structureAppearances, volumeDuMonde, type Scene,
+  paletteDeLApparence, posesDesDecors, retraitDuMonde, sceneDEchantillon, structureAppearances, volumeDuMonde, type Scene,
 } from '../../../src/noyau/index';
 import type { Dir4 } from '../../../src/geometry/dir8';
 import { tableTotale } from '../../../src/lib/tableTotale';
@@ -57,6 +58,32 @@ const CAPS: readonly Dir4[] = ['S', 'E'];
 /** Le décor qui éclaire de la recette de la coïncidence : sa pose porte `luminaire`. */
 const LUMINEUX = 'lampadaire';
 
+/** Les apparences de la palette des arêtes servies des recettes : la porte, et le mur qui la porte
+ *  (`paletteDeLApparence`), choisies pour que chaque emplacement y ait sa couleur (`paletteDistincte`). */
+const PORTE_DES_ARETES = 'porte-de-ville';
+const MUR_DES_ARETES = 'mur-a-ossature-en-bois';
+
+/** L'apparence `id` de `structureAppearance.json`. */
+function apparenceNommee(id: string) {
+  const trouvee = structureAppearances.find((a) => a.id === id);
+  if (!trouvee) throw new Error(`apparence ${id} absente de structureAppearance.json`);
+  return trouvee;
+}
+
+/** La palette des arêtes servies (`paletteDeLApparence` de `PORTE_DES_ARETES` portée par `MUR_DES_ARETES`), refusée
+ *  si deux emplacements y ont la même couleur : la recette ne distinguerait plus une surface peinte de la couleur d'un
+ *  autre emplacement. */
+function paletteDistincte(): Record<string, string> {
+  const palette = paletteDeLApparence(apparenceNommee(PORTE_DES_ARETES), apparenceNommee(MUR_DES_ARETES));
+  const doublons = Object.entries(palette).filter(([emplacement, couleur]) =>
+    Object.entries(palette).some(([autre, sienne]) => autre !== emplacement && sienne === couleur));
+  if (doublons.length) {
+    throw new Error(`palette des arêtes servies (${PORTE_DES_ARETES} sur ${MUR_DES_ARETES}) à couleurs partagées : `
+      + `${doublons.map(([emplacement, couleur]) => `${emplacement} ${couleur}`).join(', ')}`);
+  }
+  return palette;
+}
+
 /** Le bloc plein (`solidHeightM` de `terrains.json`) que coiffe la couche du décor de `coiffeUnBloc`, et la hauteur,
  *  en mètres, de la couche qui le coiffe : celle de son dessus. */
 const BLOC = 'mur';
@@ -80,7 +107,7 @@ function coiffeUnBloc(scene: Scene): Scene {
  *  réponse de `echantillons` sous la clé de l'entrée absente, par clé d'entrée (`cleDEntree`), la réponse de
  *  `echantillon` à chacune de `entreesDeLaRecette`, par cap de `CAPS`, l'échantillon de `ASYMETRIQUE` tourné à ce
  *  cap (`caps`), cet échantillon sur un bloc plein avec le retrait sous sa couche (`coiffe`), et l'échantillon de
- *  `LUMINEUX` (`luminaire`). */
+ *  `LUMINEUX` (`luminaire`), et la palette des arêtes servies (`paletteDesAretes`). */
 export function figerLeDecor(listage: Listage) {
   const { fige, appel } = figerLAtelier(listage,
     (id, { categorie }) => id === 'humanoide' || categorie === 'decor' || categorie === 'arete');
@@ -105,5 +132,6 @@ export function figerLeDecor(listage: Listage) {
     caps,
     coiffe,
     luminaire: figee(LUMINEUX, sceneDEchantillon('decor', LUMINEUX)),
+    paletteDesAretes: paletteDistincte(),
   };
 }

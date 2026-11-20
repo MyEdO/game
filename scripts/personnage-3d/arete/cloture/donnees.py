@@ -12,7 +12,7 @@ du dernier lit. La porte ouvre un passage entre deux pieux forts, sur un seuil d
 pièces sont le mur plein. La brèche arrache la claie d'un pieu rompu à l'autre, un pieu et des baguettes couchés au
 pied, le passage libre.
 
-Matières : les baguettes prennent `bois-mort`, les pieux `ecorce`, la barrière `bois-chene`, ses ferrures
+Matières : les baguettes et les gravats prennent `bois-mort`, les pieux `ecorce`, la barrière `bois-chene`, ses ferrures
 `fer-noirci`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
@@ -38,7 +38,9 @@ MATERIAUX = {
     "clayonnage": ("corps", "bois-mort"),
     "pieux": ("bois", "ecorce"),
     "menuiserie": ("accent", "bois-chene"),
+    "barres": ("planche", "bois-chene"),
     "ferrure": ("metal", "fer-noirci"),
+    "gravats": ("gravats", "bois-mort"),
 }
 
 BUDGET_TRIANGLES = {"mur": 1300, "porte-fermee": 1200, "porte-ouverte": 1200,
@@ -84,7 +86,7 @@ PORTE = {
 # (m, tiré jusqu'à cette borne) ; `rompus` : les pieux restés debout (abscisse, hauteur de leur cassure) ; `eclat` :
 # ce dont chaque bord d'une cassure s'en écarte (m) ; `couche` : les deux bouts (abscisse, mètres vers le dedans) du
 # pieu couché ; `claie` : les baguettes couchées, leurs deux bouts de même, leur `largeur` (m) ; `gravats`
-# (`geometrie.eboulis`), `eclisses` : la part de baguettes parmi eux.
+# (`geometrie.eboulis`).
 BRECHE = {
     "portees": (((0.0, -0.37), (0.36, -0.42), (0.5, -0.6), (0.8, -0.8), (1.0, -0.93)),
                 ((0.0, 0.38), (0.2, 0.44), (0.32, 0.62), (0.7, 0.82), (1.0, 0.94))),
@@ -95,5 +97,5 @@ BRECHE = {
     "claie": {"largeur": 0.06,
               "bouts": (((-0.42, 0.3), (0.3, 0.42)), ((-0.36, 0.42), (0.38, 0.5)), ((-0.4, 0.52), (0.28, 0.66)),
                         ((-0.3, 0.66), (0.4, 0.72)), ((-0.36, 0.78), (0.3, 0.86)))},
-    "gravats": {"nombre": 7, "etendue": (0.4, 0.5), "cote": (0.04, 0.09), "ecart": 0.3, "eclisses": 0.6},
+    "gravats": {"nombre": 7, "etendue": (0.4, 0.5), "cote": (0.04, 0.09), "ecart": 0.3},
 }

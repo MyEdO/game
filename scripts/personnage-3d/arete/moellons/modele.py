@@ -5,7 +5,7 @@ pièce est semé de son nom : deux constructions rendent les mêmes octets."""
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, X, Repere, noeud
 from maconnerie import PIERRE, Appareil
-from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, volets
+from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, vitre, volets
 
 
 def mur(D, m, alea):
@@ -53,8 +53,8 @@ def portail(ouverte, cote):
 
 
 def fenetre(close):
-    """La fenêtre : sa baie entre un appui saillant et un linteau, sa croisée, ses volets rabattus sur le dehors ou
-    `close`, fermés devant elle."""
+    """La fenêtre : sa baie entre un appui saillant et un linteau, sa croisée vitrée, ses volets rabattus sur le
+    dehors ou `close`, fermés devant elle."""
     def batir(D, m, alea):
         A, F = Appareil(D, m, alea), D["FENETRE"]
         demi_baie = F["baie"] * D["LONGUEUR"] / 2
@@ -62,6 +62,7 @@ def fenetre(close):
         baie(A, demi_baie, F["appui"] - haut_a, F["tete"], F["linteau"])
         A.R.boite(m, (-demi_baie, demi_baie), (F["appui"] - haut_a, F["appui"]), (-A.nu, A.nu + saillie), PIERRE)
         croisee(m, A.R, demi_baie, F["appui"], F["tete"])
+        vitre(m, A.R, demi_baie, F["appui"], F["tete"])
         volets(m, A.R, demi_baie, (F["appui"] + F["jour"], F["tete"] + F["recouvrement"]), A.nu, close)
     return batir
 
@@ -70,7 +71,7 @@ def breche(D, m, alea):
     """La brèche : le mur éventré d'après `BRECHE`, ses pierres tombées au pied."""
     A, B = Appareil(D, m, alea), D["BRECHE"]
     A.breche(B["contour"], B["plancher"])
-    geometrie.eboulis(m, A.R, alea, B["gravats"], A.demi, lambda _: PIERRE)
+    geometrie.eboulis(m, A.R, alea, B["gravats"], A.demi)
 
 
 BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True), "fenetre": fenetre(False),

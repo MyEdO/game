@@ -24,18 +24,33 @@
       "matiere": "prop--bois-chene"
     },
     {
+      "nom": "barres",
+      "palette": "planche",
+      "matiere": "prop--bois-chene"
+    },
+    {
       "nom": "croisee",
       "palette": "vet1",
       "matiere": "prop--bois-chene"
     },
     {
+      "nom": "vitre",
+      "palette": "vitre",
+      "matiere": "prop--verre"
+    },
+    {
       "nom": "ferrure",
       "palette": "metal",
       "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "gravats",
+      "palette": "gravats",
+      "matiere": "prop--terre-battue"
     }
   ],
   "glb": {
-    "sha256": "c7cbd78af6c3dac5340ef9495342931d0d7c537816bcaf5639abe10dda88bfff",
-    "octets": 232084
+    "sha256": "fde45e573c779436e443774660f31529f761dc3a41d410cc6ebb90e216587ad2",
+    "octets": 236852
   }
 }

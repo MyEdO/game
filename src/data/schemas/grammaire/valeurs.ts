@@ -845,6 +845,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 const LIBELLES_DES_SLOTS = {
   peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Étoffe principale', vet2: 'Étoffe secondaire', cuir: 'Cuir', metal: 'Métal',
   metal2: 'Métal secondaire', corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume', vegetal: 'Végétal',
+  planche: 'Planche', joint: 'Joint', gravats: 'Gravats', barreau: 'Barreau', traverse: 'Traverse', vitre: 'Vitre',
 } as const satisfies Readonly<Record<Slot, string>>;
 
 /** Un emplacement de palette. */

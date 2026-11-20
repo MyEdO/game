@@ -1,12 +1,13 @@
 """La menuiserie commune aux kits d'arêtes (#4471) : le vantail de planches d'une porte ou d'un volet (`vantail`), la
-croisée d'une fenêtre (`croisee`) et ses deux volets (`volets`), bâtis dans le repère que le kit leur donne
-(`geometrie.Repere`), et leurs cotes d'adaptation, en mètres ou en fractions nommées. Un kit qui les pose déclare
-les matériaux `MENUISERIE`, `CROISEE` et `FER`."""
+croisée d'une fenêtre (`croisee`), sa vitre (`vitre`) et ses deux volets (`volets`), bâtis dans le repère que le kit
+leur donne (`geometrie.Repere`), et leurs cotes d'adaptation, en mètres ou en fractions nommées. Un kit déclare les
+matériaux de ce qu'il pose : `MENUISERIE` (les planches), `BARRES` (les barres et l'écharpe) et `FER` pour un vantail,
+`CROISEE` pour une croisée, `VITRE` pour sa vitre."""
 from mathutils import Vector
 
 from geometrie import DEHORS, X, Repere
 
-MENUISERIE, CROISEE, FER = "menuiserie", "croisee", "ferrure"
+MENUISERIE, BARRES, CROISEE, VITRE, FER = "menuiserie", "barres", "croisee", "vitre", "ferrure"
 
 # Vantail de planches (`vantail`) : `planches` jointives, épaisses de `epaisseur` (m), une sur deux en retrait de
 # `relief` (m) au parement ; `barres` : hauteur de l'axe de chaque barre au dos (fractions de la hauteur du vantail),
@@ -33,10 +34,12 @@ JEU_DES_VOLETS = 0.008
 # Croisée : `dormant` : sa section vue (m) et ses bornes dans l'épaisseur (m, depuis l'axe du mur vers le dehors) ;
 # `meneau` : la section vue du meneau et du croisillon (m) ; `croisillon` : sa hauteur (fraction de celle de la baie) ;
 # `petits_bois` : leur section (m), le nombre de leurs traverses sous le croisillon puis au-dessus, un montant au
-# milieu de chaque vantail.
+# milieu de chaque vantail ; `vitre` : son épaisseur (m), au milieu de celle des petits bois, et ce dont sa rive entre
+# dans le dormant (m).
 CROISEE_A_PETITS_BOIS = {
     "dormant": (0.05, (0.0, 0.075)), "meneau": 0.045, "croisillon": 0.64,
     "petits_bois": {"section": 0.016, "traverses": (2, 1)},
+    "vitre": (0.004, 0.01),
 }
 
 
@@ -53,13 +56,13 @@ def vantail(m, R, largeur, h, V, cintre=None):
     haut_b, epais_b = V["section"]
     axes = [h[0] + (h[1] - h[0]) * part for part in V["barres"]]
     for axe in axes:
-        R.boite(m, (V["marge"], largeur - V["marge"]), (axe - haut_b / 2, axe + haut_b / 2), (-epais_b, 0), MENUISERIE)
+        R.boite(m, (V["marge"], largeur - V["marge"]), (axe - haut_b / 2, axe + haut_b / 2), (-epais_b, 0), BARRES)
         long, haut_p, epais_p, depasse = V["pentures"]
         R.boite(m, (-depasse, largeur * long), (axe - haut_p / 2, axe + haut_p / 2), (epais, epais + epais_p), FER)
     if V["echarpe"]:
         rive = V["marge"] + haut_b / 2
         R.poutre(m, (rive, axes[0] + haut_b / 2), (largeur - rive, axes[1] - haut_b / 2), haut_b, (-epais_b * 0.9, 0),
-                 MENUISERIE)
+                 BARRES)
     if V["poignee"]:
         G = V["poignee"]
         large, haut_g, epais_g = G["platine"]
@@ -71,7 +74,7 @@ def vantail(m, R, largeur, h, V, cintre=None):
 
 def croisee(m, R, baie, appui, linteau):
     """La croisée (`CROISEE_A_PETITS_BOIS`) de la baie de demi-largeur `baie`, entre les hauteurs `appui` et `linteau`,
-    dans le repère `R` de l'arête : un dormant, un meneau, un croisillon et des petits bois, sans vitre."""
+    dans le repère `R` de l'arête : un dormant, un meneau, un croisillon et des petits bois."""
     F = CROISEE_A_PETITS_BOIS
     dormant, c = F["dormant"]
     meneau = F["meneau"]
@@ -96,6 +99,17 @@ def croisee(m, R, baie, appui, linteau):
             h = bas + (haut - bas) * k / (nombre + 1)
             R.boite(m, large, (h - section / 2, h + section / 2), (milieu - section * 0.4, milieu + section * 0.4),
                     CROISEE)
+
+
+def vitre(m, R, baie, appui, linteau):
+    """La vitre de la croisée (`croisee`) de la même baie : un panneau mince au milieu de l'épaisseur des petits bois,
+    sa rive prise dans le dormant."""
+    F = CROISEE_A_PETITS_BOIS
+    dormant, c = F["dormant"]
+    epais, prise = F["vitre"]
+    milieu = (c[0] + c[1]) / 2
+    R.boite(m, (-baie + dormant - prise, baie - dormant + prise), (appui + dormant - prise, linteau - dormant + prise),
+            (milieu - epais / 2, milieu + epais / 2), VITRE)
 
 
 def volets(m, R, baie, h, nu, close):

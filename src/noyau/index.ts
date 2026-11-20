@@ -139,6 +139,7 @@ export {
   aretesDeLaCouche,
   aretesDeLaScene,
   masqueDuRegard,
+  paletteDeLApparence,
   plateauDeLaScene,
   regardDuJeu,
   REGARDS,

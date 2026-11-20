@@ -14,8 +14,8 @@
       "matiere": "prop--pierre-atre"
     },
     {
-      "nom": "ame",
-      "palette": "bois",
+      "nom": "joint",
+      "palette": "joint",
       "matiere": "prop--terre-battue"
     },
     {
@@ -24,18 +24,33 @@
       "matiere": "prop--bois-chene"
     },
     {
+      "nom": "barres",
+      "palette": "planche",
+      "matiere": "prop--bois-chene"
+    },
+    {
       "nom": "croisee",
       "palette": "vet1",
       "matiere": "prop--bois-chene"
     },
     {
+      "nom": "vitre",
+      "palette": "vitre",
+      "matiere": "prop--verre"
+    },
+    {
       "nom": "ferrure",
       "palette": "metal",
       "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "gravats",
+      "palette": "gravats",
+      "matiere": "prop--pierre-atre"
     }
   ],
   "glb": {
-    "sha256": "c4286b91d3114bf8d2ce67c006d301978d8669d10bde72214b6e6b182ef37d00",
-    "octets": 804024
+    "sha256": "e8819f3cd1b8e81bd849e892d78d7b86056b9b39281ff9275b23b8b1f4072271",
+    "octets": 809204
   }
 }

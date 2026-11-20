@@ -14,13 +14,13 @@ export const file = 'structureAppearance.json';
 export const famille = 'entite';
 
 /** Parties SURCHARGEABLES par `relief.jut`/`relief.thick` : les 16 parties des familles `saillie` et
- *  `traversant`. Les 7 parties de la famille `matiere` (`face, poteau, couronnement, jambage, parapet,
- *  arase, merlon`) en sont ABSENTES : leur volume EST celui du mur (`wallPartDepthM` rend `wallM` sans
+ *  `traversant`. Les 8 parties de la famille `matiere` (`face, poteau, couronnement, jambage, parapet,
+ *  arase, merlon, joint`) en sont ABSENTES : leur volume EST celui du mur (`wallPartDepthM` rend `wallM` sans
  *  lire la surcharge) — c'est `relief.wallM` qui règle celui-là, pour toutes à la fois. Les y admettre
  *  au schéma promettait une surcharge qui n'agit sur rien. */
 export const RELIEF_PART_KEYS = WALL_PARTS.filter(
-  (k) => !(['face', 'poteau', 'couronnement', 'jambage', 'parapet', 'arase', 'merlon'] as readonly string[]).includes(k),
-) as Exclude<WallPart, 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon'>[];
+  (k) => !(['face', 'poteau', 'couronnement', 'jambage', 'parapet', 'arase', 'merlon', 'joint'] as readonly string[]).includes(k),
+) as Exclude<WallPart, 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon' | 'joint'>[];
 
 /** Profondeur (m) par partie, toutes optionnelles, AUCUNE clé étrangère (`strictObject`). */
 const reliefParPartie = nommerChamps(z.strictObject(
@@ -124,14 +124,16 @@ const doc = document(
       .optional(),
     window: nommerChamps(z
       .strictObject({
-        glass: z.string(),
-        lit: z.string(),
-        frame: z.string(),
-        mullion: z.string(),
+        glass: z.string().optional(),
+        lit: z.string().optional(),
+        /** Le bois des vantaux (volets de la croisée, porte) d'une apparence sans `door.leaf` ni `wood.inset`
+         *  (`wallPartColor`, partie `vantail`). */
+        frame: z.string().optional(),
+        mullion: z.string().optional(),
       }), {
       glass: { label: 'Vitre' },
       lit: { label: 'Éclairée' },
-      frame: { label: 'Cadre' },
+      frame: { label: 'Bois des vantaux' },
       mullion: { label: 'Meneau' },
     })
       .optional(),
@@ -166,7 +168,7 @@ const doc = document(
     },
     parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet' },
     door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail, poignée et herse' },
-    window: { label: 'Fenêtre', hint: 'Vitre, cadre, meneau et teinte éclairée' },
+    window: { label: 'Fenêtre', hint: 'Vitre, bois des vantaux, meneau et teinte éclairée' },
     relief: {
       label: 'Relief de paroi',
       hint: 'Saillie et épaisseur en mètres par partie de mur, plus l’épaisseur de matière pleine (wallM)',

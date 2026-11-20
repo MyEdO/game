@@ -4,7 +4,7 @@ close ; le portillon (`menuiserie.vantail`), fermé ou ouvert d'un quart de tour
 d'une pièce est semé de son nom : deux constructions rendent les mêmes octets."""
 import geometrie
 from geometrie import DEHORS, X, Repere
-from maconnerie import PIERRE, Appareil
+from maconnerie import Appareil
 from menuiserie import vantail
 
 
@@ -31,7 +31,7 @@ def breche(D, m, alea):
     """La brèche : le muret éboulé d'après `BRECHE`, ses pierres au pied."""
     A, B = Appareil(D, m, alea), D["BRECHE"]
     A.breche(B["contour"], B["plancher"])
-    geometrie.eboulis(m, A.R, alea, B["gravats"], A.demi, lambda _: PIERRE)
+    geometrie.eboulis(m, A.R, alea, B["gravats"], A.demi)
 
 
 BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True), "fenetre": mur, "fenetre-close": mur,
