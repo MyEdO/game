@@ -628,7 +628,10 @@ const enCours = (commun, horloge, du, tenant) => ({
 })
 
 /** Le consommateur en `echec` de la plage `du`, `null` sans échec posé. PURE. */
-const echecDe = (du) => (du.echec ? { etat: 'echec', code: du.echec.code, fin: du.echec.fin, de: du.de, vers: du.vers, log: du.echec.log } : null)
+const echecDe = (du) => (du.echec ? {
+  etat: 'echec', code: du.echec.code, fin: du.echec.fin, de: du.de, vers: du.vers, log: du.echec.log,
+  ...(du.echec.raison && { raison: du.echec.raison }),
+} : null)
 
 /**
  * Le consommateur de la plage due, appelé UNE fois par passage : aucun sans plage ; `echec` posé sans avance
@@ -776,8 +779,8 @@ const refusEnReprise = (ctx, journal, refus) => interrompre(ctx, journal, `trans
  * (`ORIG_HEAD` = son `de`) tant qu'elle change, attend la reconstruction que le hook a demandée
  * (`seqDeLaSortie` de sa sortie entière : `git hook run` rend le stdout du hook sur stderr ;
  * `attendreLaReconstruction`, #2603), puis la SOLDE sous `synchro.verrou` : supprimée sur
- * un verdict 0, laissée au prochain passage sur une reconstruction différée (`CODE_DIFFERE`, `CODE_SOURCE_MODIFIEE`) ou en cours,
- * `echec` posé sinon. Chaque ligne va à
+ * un verdict 0, laissée au prochain passage sur une reconstruction en cours, différée ou en conflit de source
+ * transitoire, `echec` posé sinon (dont le code 79 persistant, avec sa raison). Chaque ligne va à
  * `<git-common-dir>/synchro-consommateurs/<pid>.log`, une exception comprise. REND 0, 1 sur une exception.
  * @param {{ depuis?: string, env?: NodeJS.ProcessEnv, horloge?: () => number, estVivant?: (pid: number) => boolean,
  *   identite?: { lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs?: number }, attente?: { echeanceMs: number, pasMs: number } }} [p]
@@ -824,7 +827,9 @@ export async function consommerLaPlage({ depuis = process.cwd(), env, horloge = 
       const seq = code === 0 ? seqDeLaSortie(sortie) : null
       const passe = seq === null ? null : attendreLaReconstruction(racine.valeur, seq, { echeanceMs: Math.max(0, TIMEOUT_DU_HOOK_MS - (horloge() - debut)), estVivant, identite })
       if (passe) ecrire(`[consommateurs] ${iso()} reconstruction seq=${seq} — ${passe.etat}${passe.code === undefined ? '' : `, code ${passe.code}`}${passe.log ? `, journal ${passe.log}` : ''}`)
-      const differee = passe !== null && (passe.etat === 'en-cours' || passe.code === CODE_DIFFERE || passe.code === CODE_SOURCE_MODIFIEE)
+      const persistante = passe?.sourceModifieePersistante
+      const differee = passe !== null && (passe.etat === 'en-cours' || passe.code === CODE_DIFFERE || (passe.code === CODE_SOURCE_MODIFIEE && !persistante))
+      const raison = persistante ? `source modifiée à répétition${persistante.raison ? ` : ${persistante.raison}` : ''}` : null
       const verdict = passe === null ? code : passe.code
       const cheminSynchro = join(commun, 'synchro.verrou')
       const synchro = await prendreVerrouAsync({
@@ -840,7 +845,9 @@ export async function consommerLaPlage({ depuis = process.cwd(), env, horloge = 
         if (relu && (relu.de !== du.de || relu.vers !== du.vers)) continue
         if (relu && differee) ecrire(`[consommateurs] ${iso()} reconstruction ${passe?.etat === 'en-cours' ? 'en cours à l’échéance' : 'différée'} : plage due laissée au prochain passage`)
         else if (relu && verdict === 0) rmSync(cheminDuDu(commun), { force: true })
-        else if (relu) ecrireJsonAtomique(cheminDuDu(commun), { ...relu, echec: { pid: process.pid, fin: iso(), code: verdict, log: passe?.log ?? log } })
+        else if (relu) ecrireJsonAtomique(cheminDuDu(commun), {
+          ...relu, echec: { pid: process.pid, fin: iso(), code: verdict, log: passe?.log ?? log, ...(raison && { raison }) },
+        })
         lacher()
         return 0
       } finally {
@@ -953,13 +960,16 @@ function motifDuRefus(vu) {
   return vu.de && vu.vers ? `${court(vu.de)}..${court(vu.vers)}` : ''
 }
 
+/** Le code, le diagnostic éventuel et le journal du post-merge en échec. PURE. */
+const motifDeLEchec = ({ code, fin, raison, log }) => ` (code ${code}, ${fin ?? '?'})${raison ? ` : ${raison} — journal ${log}` : ` : ${log}`}`
+
 /** Le suffixe du consommateur d'un état, `''` s'il n'en porte pas. PURE. */
 function suffixeDuConsommateur(vu) {
   const c = vu.consommateurs
   if (!c || vu.etat === 'avance-non-prete') return ''
   const plage = `${court(c.de)}..${court(c.vers)}`
   if (c.etat === 'en-cours') return ` ; post-merge ${plage} en fond : PID ${c.pid} depuis ${c.depuis} (${c.ageS} s), issue : ${c.log}`
-  if (c.etat === 'echec') return ` ; post-merge ${plage} en échec (code ${c.code}, ${c.fin}) : ${c.log}`
+  if (c.etat === 'echec') return ` ; post-merge ${plage} en échec${motifDeLEchec(c)}`
   if (c.etat === 'ignore') return ` ; post-merge ${plage} ignoré par git : ${c.hook}`
   return ` ; post-merge ${plage} dû depuis ${c.depuis}, aucun consommateur vivant`
 }
@@ -987,7 +997,7 @@ function corpsDeLaLigne(vu) {
     case 'avance':
       return `${avance}${vu.reprise ? ` (reprise de ${court(vu.reprise.de)}..${court(vu.reprise.vers)})` : ''}`
     case 'avance-non-prete':
-      return vu.hookIgnore ? `${avance}, post-merge ignoré par git : ${vu.hookIgnore}` : `${avance}, post-merge en échec (code ${vu.code}, ${vu.consommateurs?.fin ?? '?'}) : ${vu.log}`
+      return vu.hookIgnore ? `${avance}, post-merge ignoré par git : ${vu.hookIgnore}` : `${avance}, post-merge en échec${motifDeLEchec(vu.consommateurs ?? vu)}`
     case 'interrompu':
       return vu.mesure
         ? `interrompu : avance ${court(vu.de)}..${court(vu.vers)} entamée (étape ${vu.etape}), HEAD ${court(vu.head)} — reprise due (journal ${vu.journal})`

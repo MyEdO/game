@@ -853,6 +853,79 @@ test('F2 : une source modifiée à chaque passe se solde, à la borne, de `CODE_
   }
 })
 
+test('#2629 : coalescence, différé et changement de tête comptent les reconstructions effectivement épuisées', () => {
+  const racine = depotDeReconstruction()
+  const git = gitDe(racine)
+  const sourceModifiee = () => CODE_SOURCE_MODIFIEE
+  const servir = (passe) => servirLesDemandes({ racine, passe })
+  const demander = () => demanderSansDetache(racine)
+  try {
+    const tete = git('rev-parse', 'HEAD').trim()
+    demander()
+    demander()
+    demander()
+    assert.equal(servir(sourceModifiee), REJEUX_SUR_SOURCE_MODIFIEE + 1)
+    assert.deepEqual(etatDe(racine).conflitsDeSource, { tete, demandes: 1 })
+    assert.equal(etatDe(racine).dernier.sourceModifieePersistante, undefined)
+
+    demander()
+    assert.equal(servir(() => CODE_DIFFERE), 1)
+    assert.deepEqual(etatDe(racine).conflitsDeSource, { tete, demandes: 1 })
+
+    demander()
+    let passes = 0
+    assert.equal(servir(() => {
+      if (++passes === 2) git('commit', '--allow-empty', '-m', 'nouvelle tête')
+      return CODE_SOURCE_MODIFIEE
+    }), REJEUX_SUR_SOURCE_MODIFIEE + 3)
+    assert.deepEqual(etatDe(racine).conflitsDeSource, { tete: git('rev-parse', 'HEAD').trim(), demandes: 1 })
+    assert.equal(etatDe(racine).dernier.sourceModifieePersistante, undefined)
+
+    demander()
+    assert.equal(servir(sourceModifiee), REJEUX_SUR_SOURCE_MODIFIEE + 1)
+    assert.deepEqual(etatDe(racine).dernier.sourceModifieePersistante, { raison: null }, 'le diagnostic reste indépendant de l’échec')
+    demander()
+    assert.equal(servir(() => 0), 1)
+    assert.equal(etatDe(racine).conflitsDeSource, null)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2629 : un autre détaché solde pendant l’opération Git, la nouvelle demande a tous ses rejeux', () => {
+  const racine = depotDeReconstruction()
+  const mergeHead = join(racine, '.git', 'MERGE_HEAD')
+  const demander = () => demanderSansDetache(racine)
+  const module = pathToFileURL(join(RACINE, 'scripts/git-hooks/reconstruction.mjs')).href
+  let passes = 0
+  try {
+    const tete = gitDe(racine)('rev-parse', 'HEAD')
+    demander()
+    servirLesDemandes({
+      racine,
+      attenteTenant: ATTENTE_DU_TENANT_DU_BANC,
+      passe: () => {
+        if (++passes === REJEUX_SUR_SOURCE_MODIFIEE) writeFileSync(mergeHead, tete)
+        return CODE_SOURCE_MODIFIEE
+      },
+      dormir: () => {
+        assert.ok(existsSync(mergeHead), 'le premier détaché a rendu son verrou pendant l’opération')
+        rmSync(mergeHead)
+        const tiers = spawnSync(process.execPath, ['--input-type=module', '-e',
+          `import { servirLesDemandes } from ${JSON.stringify(module)}; servirLesDemandes({ racine: process.cwd(), passe: () => 0 })`,
+        ], { cwd: racine, encoding: 'utf8', timeout: 10_000 })
+        assert.equal(tiers.status, 0, tiers.stderr)
+        assert.deepEqual([etatDe(racine).soldees, etatDe(racine).dernier.code], [1, 0])
+        assert.equal(demander(), 2)
+      },
+    })
+    assert.equal(passes, 2 * REJEUX_SUR_SOURCE_MODIFIEE + 1)
+    assert.deepEqual([etatDe(racine).soldees, etatDe(racine).dernier.code], [2, CODE_SOURCE_MODIFIEE])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 // #2603
 test('(c) réveil : une demande faite pendant qu’un tenant vit encore lance quand même un détaché, qui la sert après lui', async () => {
   const racine = depotDeReconstruction()
