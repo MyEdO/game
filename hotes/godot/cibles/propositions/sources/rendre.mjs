@@ -5,7 +5,8 @@
 // ligne (`place` : la table place → rect de `rendu.js`, depuis le fond que la ligne du cadre donne), des cadres dont
 // l'habillage change (`habille` : le fond hors de la boîte intérieure, ou des clous, ferrures et ruban autres qu'au
 // premier état du même rôle de la même passe), des feuilles (texte, contrôle) recouvertes, rognées par un
-// ancêtre (`overflow`, ellipse) ou qui se chevauchent, des actions principales (plaque armée, étape en cours) cachées
+// ancêtre (`overflow`, ellipse) ou qui se chevauchent (`chevauche` : deux textes sur la même bande par la zone de
+// contenu de la police de leurs lignes, à moins de 3 px côte à côte ; un texte et un contrôle par le cœur des lignes), des actions principales (plaque armée, étape en cours) cachées
 // sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
 // (`retrecit`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
 // badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle,
@@ -93,7 +94,7 @@ const releve = ([largeur, hauteur]) => {
       ? [...e.childNodes].flatMap(function textes(n) { return n.nodeType === 3 ? [n] : n.nodeType === 1 && !(n.matches('[data-dessus]') && n !== dessus) ? [...n.childNodes].flatMap(textes) : [] })
         .flatMap((n) => { plage.selectNodeContents(n); return [...plage.getClientRects()] })
       : (plage.selectNodeContents(e), [...plage.getClientRects()])
-    return rects.filter((q) => q.width > .5 && q.height > .5).map((q) => (ligne < q.height ? new DOMRect(q.left, q.top + (q.height - ligne) / 2, q.width, ligne) : q))
+    return rects.filter((q) => q.width > .5 && q.height > .5).map((q) => Object.assign(ligne < q.height ? new DOMRect(q.left, q.top + (q.height - ligne) / 2, q.width, ligne) : DOMRect.fromRect(q), { police: q }))
   }
   const feuilles = [...document.querySelectorAll('#ui *')].filter((e) => e.checkVisibility({ opacityProperty: true, visibilityProperty: true })).flatMap((e) => {
     if (e.matches(CONTROLE)) { const q = e.getBoundingClientRect(); return q.width && q.height ? [{ e, texte: false, rects: [q], coeurs: [q] }] : [] }
@@ -131,8 +132,8 @@ const releve = ([largeur, hauteur]) => {
      `data-dessus` peut couvrir un contrôle, jamais un texte, pas même le libellé de l'élément qu'il qualifie */
   const chevauche = new Set()
   /* ce qui se voit d'une feuille : ses rectangles coupés par les ancêtres qui la rognent (un texte : lui-même compris) */
-  const visibles = ({ e, texte, coeurs }) => {
-    let vus = coeurs
+  const visibles = ({ e, texte }, liste) => {
+    let vus = liste
     for (let a = texte ? e : e.parentElement; a && a !== document.body; a = a.parentElement) {
       const s = getComputedStyle(a)
       if (s.overflowX === 'visible' && s.overflowY === 'visible') continue
@@ -141,8 +142,14 @@ const releve = ([largeur, hauteur]) => {
     }
     return vus
   }
-  feuilles.forEach((f) => { f.coeurs = visibles(f) })
-  const croisent = (p, q) => p.coeurs.some((a) => q.coeurs.some((c) => Math.min(a.right, c.right) - Math.max(a.left, c.left) > .5 && Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top) > .5))
+  feuilles.forEach((f) => { f.coeurs = visibles(f, f.coeurs); f.vus = f.texte ? visibles(f, f.rects.map((q) => q.police)) : [] })
+  /* deux textes se comparent par la zone de contenu de la police de leurs lignes (le rect de Range, pas la boîte de
+     ligne) : sur la même bande (croisées sur plus de la moitié de la moins haute), à moins de 3 px côte à côte ; un
+     contrôle, par le cœur des lignes du texte qu'il croise */
+  const ECART = 3
+  const croisent = (p, q) => (p.texte && q.texte
+    ? p.vus.some((a) => q.vus.some((c) => Math.min(a.right, c.right) - Math.max(a.left, c.left) > -ECART && Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top) > Math.min(a.height, c.height) / 2))
+    : p.coeurs.some((a) => q.coeurs.some((c) => Math.min(a.right, c.right) - Math.max(a.left, c.left) > .5 && Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top) > .5)))
   for (let i = 0; i < feuilles.length; i++) for (let j = i + 1; j < feuilles.length; j++) {
     const p = feuilles[i], q = feuilles[j]
     const porte = (f, g) => f.e.contains(g.e) && g.e.closest('[data-dessus]') === f.e.closest('[data-dessus]')

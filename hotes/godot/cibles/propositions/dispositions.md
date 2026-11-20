@@ -29,7 +29,8 @@ Gestes, Rapides, de même largeur active ou non, trois places de plaque et cinq 
 du tour (`ordre/actif`) ; les onglets des sections de la fiche, des dossiers et de la progression (cinq places, la
 fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; le pied de
 l'identité qui progresse ; le pied du rail des services, sous le dernier service que la colonne peut porter, quel qu'en
-soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
+soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
+(portrait, identité, rangée des dés, issue). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
 `habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
 premier état du même rôle.
 
@@ -153,9 +154,11 @@ troisième emplacement, son portrait où se tient celui de l'autre camp ; `large
 des emplacements : la liste paginée par trois, le partage d'une fouille, la table tirée et la table de Tests, dont la
 tête reste et les lignes défilent ; au pied, `gestes`, la rangée, avec `reserve` à gauche (la réserve dépensée), les
 `plaques`, la principale en premier, et `testeurs` au bout (le testeur à désigner avant le dé, à la place des deux
-dernières plaques). Le camp d'un testeur tient dans sa place : nom, Test sur deux lignes au plus, puis seuil, deux
-dés et sceau `grand` ; l'issue (« réussite · DR ») se lit en une ligne sous le portrait ; un dé qui se règle porte son
-− et son + dessous. La fenêtre remplace le socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois,
+dernières plaques). Le camp d'un testeur, dans `gauche` ou `droite` (hautes de 124), a ses places, en miroir à droite
+(`gauche-*`, `droite-*`) : `portrait` (`grand`), `identite` (le nom seul sur sa ligne, le Test sur deux lignes au
+plus), `des` (le seuil, deux dés et le sceau `grand`, à un y fixe quelle que soit la longueur du Test) et `issue`
+(verdict et DR sur deux lignes, sous le portrait) ; un dé qui se règle porte son − et son + dessous. Les influences du
+jet (modificateurs) ne s'écrivent pas : le seuil survolé les montre dans la bulle à pointe, une ligne chacune. La fenêtre remplace le socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois,
 défilement).
 
 **7. Récit, document et issue** : `carton` (son action centrée au pied, la prose d'un document paginée) ; `issue` pour

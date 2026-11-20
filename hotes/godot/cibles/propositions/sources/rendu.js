@@ -69,9 +69,13 @@
      de même largeur, chacun sous sa ligne de rubrique, que la liste paginée, la table tirée ou la table de Tests
      remplacent par la place large, et dont le troisième cède sa colonne à ce que le choix vise ; la réserve et six
      places de plaque dans la rangée des gestes, la principale dans la première ; les testeurs à désigner au bout de la
-     rangée, à la place des deux dernières plaques */
+     rangée, à la place des deux dernières plaques ; le camp d'un testeur dans la place `gauche` ou `droite` : le
+     portrait, l'identité, la rangée des dés à un y fixe, l'issue sous le portrait, en miroir à droite (`camp`,
+     `combat/jet.js`) */
+  const PLACES_DU_CAMP = { portrait: [0, 0, 74, 92], identite: [86, 0, 186, 50], des: [86, 54, 186, 50], issue: [0, 96, 74, 28] };
   const PLACES = {
-    'fenetre/gauche': [16, 14, 272, 112], 'fenetre/centre': [300, 14, 342, 112], 'fenetre/droite': [654, 14, 272, 112],
+    'fenetre/gauche': [16, 14, 272, 124], 'fenetre/centre': [300, 14, 342, 112], 'fenetre/droite': [654, 14, 272, 124],
+    ...Object.fromEntries(Object.entries(PLACES_DU_CAMP).flatMap(([nom, [x, y, l, h]]) => [[`fenetre/gauche-${nom}`, [16 + x, 14 + y, l, h]], [`fenetre/droite-${nom}`, [654 + 272 - x - l, 14 + y, l, h]]])),
     'fenetre/large': [300, 14, 626, 124],
     'fenetre/rubrique-1': [300, 14, 200, 16], 'fenetre/rubrique-2': [513, 14, 200, 16], 'fenetre/rubrique-3': [726, 14, 200, 16],
     'fenetre/carte-1': [300, 32, 200, 92], 'fenetre/carte-2': [513, 32, 200, 92], 'fenetre/carte-3': [726, 32, 200, 92],
@@ -142,7 +146,7 @@
       cote, portrait: portraitDe(t.qui), nom: echapper(qui(t.qui).nom), carac: `${t.poste ? `${echapper(t.poste)} · ` : ''}${echapper(t.test)}`, seuil: t.seuil ?? '?',
       des: cote ? faces.reverse() : faces, regles: !!t.jet?.reglable,
       total: t.jet ? d100(t.jet.des[0] + t.jet.des[1]) : null, dr: t.jet ? signe(t.jet.dr) : null,
-      modif: t.modificateurs?.map(libelleDuModificateur).join(' · ') || null,
+      influences: t.survol ? t.modificateurs.map(libelleDuModificateur) : null,
       reussite: !!t.jet?.reussite, ...(t.jet?.critique ? { verdict: 'critique' } : {}),
     });
   };

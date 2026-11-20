@@ -2,15 +2,17 @@
    comme après (les deux camps, le verdict), les réserves du héros. Se pose sur le combat (`socle.js`) comme sur un `commun.js`, sur les pièces de `../gestes.js` ; le portrait
    d'un camp arrive déjà dessiné. Se charge après `../gestes.js`.
    Maquette hors du jeu. */
-/* le camp d'un testeur dans sa place : le portrait, puis le nom, le Test (sur deux lignes au plus), le seuil, les deux dés
-   et le sceau du total ; l'issue se lit en une ligne au pied de la place, sous le portrait ; un dé qui se règle porte son
-   − et son + dessous */
-const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, modif = null, reussite = false, verdict = reussite ? 'réussite' : 'échec' }) => `
-  <div class="camp ${cote}">${portrait}
-    <div><div class="n gothique">${nom}${modif ? ` <span class="modif rubrique" style="vertical-align:3px;margin-left:6px">${modif}</span>` : ''}</div><div class="c rubrique">${carac}</div>
-    <div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'moyen', { etat: total == null ? 'vide' : reussite ? 'reussite' : '' })}</div></div>
-    ${total == null ? '' : `<div class="issue${reussite ? ' reussite' : ''}"><b>${verdict}</b><span>DR ${dr}</span></div>`}
-  </div>`;
+/* le camp d'un testeur dans sa place de la fenêtre, `gauche` ou `droite` : quatre places (`PLACES`, `../rendu.js`), le
+   portrait, l'identité (le nom, le Test sur deux lignes au plus), la rangée du seuil, des deux dés et du sceau du total,
+   l'issue sous le portrait (le verdict, le DR) ; un dé qui se règle porte son − et son + dessous ; le seuil survolé
+   porte la bulle des influences du jet, une ligne chacune */
+const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, influences = null, reussite = false, verdict = reussite ? 'réussite' : 'échec' }) => `
+  <div class="camp ${cote}">${places('fenetre', {
+    [`${cote || 'gauche'}-portrait`]: portrait,
+    [`${cote || 'gauche'}-identite`]: `<div class="n gothique">${nom}</div><div class="c rubrique">${carac}</div>`,
+    [`${cote || 'gauche'}-des`]: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${influences ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : reussite ? 'reussite' : '' })}</div>`,
+    [`${cote || 'gauche'}-issue`]: total == null ? '' : `<div class="issue${reussite ? ' reussite' : ''}"><b>${verdict}</b><span>DR ${dr}</span></div>`,
+  })}</div>`;
 const verdict = (sous, dr, phrase, classe = '') => `<div id="verdict" class="${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="dr gothique">${dr}</div><p data-texte="phrase d'issue">${phrase}</p></div>`;
 /* le bandeau, à la place de la barre de l'actif ou du bandeau des héros : ses places (`PLACES`, `../rendu.js`), la rangée
    des gestes, une place par plaque (`plaques`, une liste) et la réserve qu'elles dépensent */

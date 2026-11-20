@@ -86,7 +86,7 @@ export interface JetTombe {
 
 /** Celui qui teste : le combattant, le poste qu'il tient, son Test et son seuil (`null`, masqué au joueur), ses
  *  modificateurs ; tombé, son jet ; les dés déjà posés d'un jet que l'on reprend ; `parmi`, les héros qui peuvent porter le
- *  Test, à désigner. */
+ *  Test, à désigner ; `survol`, le seuil sous le curseur, qui montre ses modificateurs dans la bulle. */
 export interface Testeur {
   role: 'testeur';
   qui: string;
@@ -97,6 +97,7 @@ export interface Testeur {
   jet?: JetTombe;
   des?: Des;
   parmi?: string[];
+  survol?: true;
 }
 
 /** Le héros d'une fenêtre sans dé : ce qui le met en jeu (une réserve, sa compétence et son seuil, le Critique qu'il

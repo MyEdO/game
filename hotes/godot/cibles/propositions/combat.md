@@ -258,3 +258,13 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
   `verbe.viseeDeSiege.fermer` (`src/i18n/messages/fr.ts:484`, `fr.ts:4454`, `fr.ts:372`).
 - À valider : le gabarit de `seconde-frappe` (consigne et un geste de sortie, aucune plaque pleine) ; aire d'une case
   de rayon, exemple (le noyau la lit à l'arme, `siegeBlastRadiusTiles`) ; mortier dessiné pour l'image.
+
+## fuite-seuil-survole (camp d'un testeur)
+- L'état `fuite` (`combat-suite.md`), le seuil de l'Orc sous le curseur : la bulle à pointe des influences du jet,
+  une ligne par modificateur (« Avantage 2 », « Dos tourné +20 »), le libellé de `libelleDuModificateur`
+  (`sources/rendu.js`). Hors survol, aucune bulle : le seuil reste seul, le nom seul sur sa ligne.
+- Le camp d'un testeur a ses places (`PLACES`, `sources/rendu.js`) : le portrait, l'identité (nom, Test sur deux lignes
+  au plus), la rangée du seuil, des dés et du sceau à un y fixe, l'issue (verdict, DR) sous le portrait.
+- À valider : les influences du jet sont au survol du seuil, dans la bulle à pointe (`bulle.gd` côté Godot) ;
+  « Jet inversé 20 → 02 » et « Rôle essentiel ×2 » changent la lecture des dés ou des DR à l'écran sans signe visible
+  hors survol (aucun marqueur inventé, l'utilisateur décide) ; issue en deux lignes sous le portrait ; sceau `grand`.
