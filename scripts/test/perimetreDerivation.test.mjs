@@ -120,6 +120,95 @@ test('signature native : EOF, JSDoc, tokens complets, LF et texte JSX', () => {
   }
 })
 
+test('acquisition déclarée : cible précise, clôture transitive et invalidation par un module importé (#3400)', (t) => {
+  const racine = dossierDe(t)
+  const appelant = 'scripts/lecteur.test.mjs'
+  const origine = 'scripts/choix.mjs'
+  const a = 'scripts/generateur-a.mjs'
+  const b = 'scripts/generateur-b.mjs'
+  const masque = 'scripts/generateur-masque.mjs'
+  const descendant = 'scripts/descendant.mjs'
+  const rendre = (registre) => `
+    import { GENERATORS } from './${registre}'
+    export function rendreCible(cible) { return cible }
+    export const CONTRATS_DE_DERIVATION = [{ fonction: rendreCible, acquisition: { argument: 0, registre: GENERATORS } }]
+  `
+  const textes = new Map([
+    [appelant, "import { rendreCible as rendre } from './rendu.mjs'; import { CIBLE } from './choix.mjs'; rendre(CIBLE)"],
+    [origine, "export const CIBLE = 'docs/a-choisi.md'"],
+    ['scripts/rendu.mjs', rendre('registre.mjs')],
+    ['scripts/registre.mjs', `
+      export const GENERATORS = Object.freeze([
+        {script: '${a}', targets: ['docs/a-*.md']},
+        {script: '${b}', targets: ['docs/b.md']},
+        {script: '${masque}', targets: ['docs/a-choisi.md']},
+        {script: '${descendant}', targets: ['docs/descendant.md']},
+      ].map(Object.freeze))
+    `],
+    [a, "import { rendreCible } from './rendu.mjs'; rendreCible('docs/descendant.md')"],
+    [b, 'export const b = 1'],
+    [masque, 'export const masque = 1'],
+    [descendant, 'export const descendant = 1'],
+    ['scripts/homonyme.test.mjs', "import { rendreCible } from './homonyme.mjs'; rendreCible('docs/a-choisi.md')"],
+    ['scripts/homonyme.mjs', 'export function rendreCible(cible) { return cible }'],
+    ['scripts/inconnu.test.mjs', "import { rendreCible } from './rendu.mjs'; rendreCible(process.env.CIBLE)"],
+    ['scripts/masque-catch.test.mjs', `
+      import { rendreCible } from './rendu.mjs'
+      try { throw () => '' } catch (rendreCible) { rendreCible('docs/a-choisi.md') }
+    `],
+    ['scripts/masque-registre.test.mjs', "import { rendreCible } from './rendu-masque.mjs'; rendreCible('docs/a-choisi.md')"],
+    ['scripts/rendu-masque.mjs', rendre('registre-masque.mjs')],
+    ['scripts/registre-masque.mjs', `
+      class Object { static freeze() { return [] } }
+      export const GENERATORS = Object.freeze([{script: '${a}', targets: ['docs/a-choisi.md']}].map(Object.freeze))
+    `],
+    ['scripts/masque-var.test.mjs', "import { rendreCible } from './rendu-var.mjs'; rendreCible('docs/a-choisi.md')"],
+    ['scripts/rendu-var.mjs', rendre('registre-var.mjs')],
+    ['scripts/registre-var.mjs', `
+      if (true) { var Object = { freeze(x) { return Array.isArray(x) ? x.slice(1) : x } } }
+      export const GENERATORS = Object.freeze([
+        {script: '${a}', targets: ['docs/a-choisi.md']},
+        {script: '${b}', targets: ['docs/a-choisi.md']},
+      ].map(Object.freeze))
+    `],
+  ])
+  const empreinte = () => createHash('sha256').update(textes.get(appelant)).digest('hex')
+  const initiale = empreinte()
+  const stades = []
+  const mesurer = (touche) => deriverPerimetre({
+    racine, touches: [touche], post: [...textes.keys()], avant: [],
+    lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])),
+    memos: memosDeDerivation(racine, 'acquisition'),
+    stade: (stade) => stades.push(stade),
+  })
+
+  const froid = mesurer(a)
+  assert.deepEqual([...froid.retenus.keys()], [appelant])
+  assert.deepEqual(froid.retenus.get(appelant).chaine, [appelant, a])
+  assert.ok(stades.includes('acquisitionsDe'))
+  stades.length = 0
+  const chaud = mesurer(a)
+  assert.deepEqual(chaud, froid)
+  assert.ok(!stades.includes('acquisitionsDe'), 'le mémo chaud porte aussi l’arc calculé')
+  assert.equal(mesurer(b).retenus.size, 0)
+  assert.equal(mesurer(masque).retenus.size, 0, 'le premier motif correspondant gagne')
+  assert.deepEqual(mesurer(descendant).retenus.get(appelant).chaine, [appelant, a, descendant])
+
+  textes.set(origine, "export const CIBLE = 'docs/b.md'")
+  assert.equal(empreinte(), initiale)
+  stades.length = 0
+  assert.equal(mesurer(a).retenus.size, 0)
+  assert.ok(stades.includes('acquisitionsDe'), 'seul le module qui donne l’argument a changé')
+  const bascule = mesurer(b)
+  assert.deepEqual([...bascule.retenus.keys()], [appelant])
+  assert.deepEqual(bascule.retenus.get(appelant).chaine, [appelant, b])
+
+  textes.set(origine, "export const CIBLE = 'docs/a-choisi.md'")
+  stades.length = 0
+  assert.deepEqual(mesurer(a), froid)
+  assert.ok(!stades.includes('acquisitionsDe'), 'l’ancienne variante reste valable pour la même image')
+})
+
 test('lots privés : frontière supérieure à un lot, nouveaux lecteurs et variantes chaudes conservent les tests', (t) => {
   const racine = dossierDe(t)
   const lecteurs = Array.from({ length: LOT + 1 }, (_, i) => `scripts/lecteur${i}.mjs`)

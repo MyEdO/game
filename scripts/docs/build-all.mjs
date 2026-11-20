@@ -316,6 +316,10 @@ export async function rendreCible(cible) {
   return texte
 }
 
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: rendreCible, acquisition: { argument: 0, registre: GENERATORS } },
+]
+
 /**
  * Racine (vidée puis recréée) des lectures d'un run mesuré, et l'ensemble `ignoresGit` de `cwd`,
  * calculé par rang, que chaque processus mesuré relit (#1769). REND le chemin de ce fichier.
