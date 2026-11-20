@@ -60,9 +60,9 @@ export function sourceExposureMod(sourceId: string | undefined): { label: string
 }
 
 /** Tirage de la maladie au dé de sa table (MSRC 16 l.53), « avec un modificateur de +10 pour chaque DR négatif » ;
- *  « Relancez si le Personnage n'est pas blessé » (entrées ¹). Le jet modifié est PLAFONNÉ à la table
- *  (findTableEntry replie sur la dernière entrée). Borne de sûreté anti-boucle : après 20 relances d'un
- *  tirage non-blessé, on garde la dernière entrée NON gatée en re-balayant la table (déterministe). */
+ *  « Relancez si le Personnage n'est pas blessé » (entrées ¹). Le jet modifié est plafonné au maximum
+ *  du dé avant la lecture. Après 20 relances, la première rangée qui n'exige pas de blessure est
+ *  utilisée si elle existe. */
 export function drawWaterDisease(negativeSL: number, wounded: boolean, rng: RNG): { roll: number; modified: number; disease: string; rerolled: number } {
   const mod = WATER_EXPOSURE.rollModPerNegativeSL * Math.max(0, negativeSL);
   const { entries } = WATER_EXPOSURE.diseases;

@@ -21,9 +21,7 @@ export const famille = 'config';
  * donc une fourchette : la table s'énumère 1, 2, 3, puis « 4 ou plus », dernière bande sans plafond
  * (`plageOuverteSchema`). Le nom `sum` disait la formule qui produit l'entrée, pas ce que la colonne EST.
  *
- * La CONTIGUÏTÉ est un invariant du TABLEAU, pas d'une bande : sans elle, un trou ouvert au Codex ne
- * lèverait rien — `findTableEntry` (`src/engine/tables.ts`) replie sur la dernière bande, et une escale
- * misérable se verrait offrir le prix de base plein.
+ * La validation du tableau vérifie que chaque somme possible désigne une bande unique.
  */
 const prixDOffreSchema = z
   .array(nommerChamps(z.strictObject({ ...plageOuverteSchema.shape, pct: z.number() }), { ...metaDesChamps(plageOuverteSchema, { exigees: true }), pct: { label: 'Pourcentage' } }))
