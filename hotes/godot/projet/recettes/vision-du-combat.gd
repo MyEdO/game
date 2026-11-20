@@ -4,8 +4,9 @@ extends SceneTree
 ## noyau vivant (`TransportDuProcessus`, `--pont=<chemin>` après `--`), chaque partie sur son propre pont espion
 ## (`PontEspion`) et son combat (`scenes/Combat.tscn`).
 ## `siege-enceinte` : au départ, chaque combattant posé que `voisins` ne nomme pas (`vue.occupants`) n'a ni modèle
-## ni marque ; la vision est posée une fois, son image est le masque servi, la case d'un héros lit 255, une case d'un
-## ennemi hors de vue jamais 255 et l'une d'elles 0 ; sans actif en vue, la caméra suit un combattant dessiné.
+## ni marque ; un gobelin vu par la herse est dessiné. La vision est posée une fois, son image est le masque servi,
+## les cases des témoins en vue lisent 255, celles des combattants hors de vue jamais 255 et l'une d'elles 0.
+## Sans actif en vue, la caméra suit un combattant dessiné.
 ## `melee-dans-le-noir` : l'attaque armée, la cible hors de vue que le noyau laisse viser est surlignée en cible à sa case
 ## (`vue.casesDesCibles`), sans modèle. `grimpant` : le premier clic du pas
 ## (l'aperçu) ne rappelle rien ; le second rappelle `vision` une fois, ni `monde` ni `morceaux`, pose l'image neuve,
@@ -22,8 +23,8 @@ const RECETTE_AUTONOME := true
 const COMBAT := "res://scenes/Combat.tscn"
 ## L'attente la plus longue d'un état : le lancement du processus et le démarrage de la partie compris.
 const ATTENTE_S := 120.0
-## Les combattants de `siege-enceinte` hors de la vue du groupe au départ, derrière la muraille (#3950).
-const HORS_DE_VUE_AU_DEPART := 8
+const GOBELIN_CACHE := "personnage-5"
+const GOBELIN_PAR_LA_HERSE := "personnage-7"
 ## La case de `grimpant` dont le pas de l'actif fait sortir l'ennemi de la vue.
 const CASE_DU_PAS := Vector3i(5, 0, 0)
 ## La case de `arene` où le pas du groupe le mène.
@@ -68,15 +69,20 @@ func _siege() -> void:
 	var vue: Dictionary = combat.get("_vue")
 	var caches := _hors_de_vue(vue)
 	print("[vision-du-combat] siège : hors de vue %s" % [caches])
-	_verifier(caches.size() == HORS_DE_VUE_AU_DEPART, "siège : %d combattants hors de vue, attendu %d" % [caches.size(), HORS_DE_VUE_AU_DEPART])
+	_verifier(caches.has(GOBELIN_CACHE), "siège : le gobelin %s est masqué par la courtine" % GOBELIN_CACHE)
+	var dessines := _dessines(plateau)
+	_verifier(dessines.has(GOBELIN_PAR_LA_HERSE), "siège : le gobelin %s vu par la herse est dessiné" % GOBELIN_PAR_LA_HERSE)
 	for id: String in caches:
 		_verifier(not plateau.get("_modeles").has(id) and not plateau.get("_marques").has(id), "siège : %s hors de vue a un modèle ou une marque" % id)
-		_verifier(not _dessines(plateau).has(id), "siège : %s hors de vue dans l'arbre" % id)
+		_verifier(not dessines.has(id), "siège : %s hors de vue dans l'arbre" % id)
 	_verifier(pont.appels.count("vision") == 1, "siège : `vision` appelée %d fois, attendu une" % pont.appels.count("vision"))
 	var volume: VolumeDeScene = (combat.get_node("Plateau/Monde") as Monde).volume
 	_verifier(_image_posee(volume) == _masque_servi(pont), "siège : l'image posée n'est pas le masque servi")
 	var heros: Dictionary = vue.projection.combat.voisins.liste.filter(func(c: Dictionary) -> bool: return c.id.ends_with("-de-test"))[0]
 	_verifier(_etat(volume, heros.pos) == 255, "siège : la case du héros %s lit %d, attendu 255" % [heros.id, _etat(volume, heros.pos)])
+	var par_la_herse: Array = vue.projection.combat.voisins.liste.filter(func(c: Dictionary) -> bool: return c.id == GOBELIN_PAR_LA_HERSE)
+	if _verifier(par_la_herse.size() == 1, "siège : un gobelin visible par la herse"):
+		_verifier(_etat(volume, par_la_herse[0].pos) == 255, "siège : la case du gobelin vu par la herse lit 255")
 	var etats: Array = caches.values().map(func(cle: String) -> int: return _etat(volume, Array(cle.split(","))))
 	_verifier(not etats.has(255) and etats.has(0), "siège : les cases hors de vue lisent %s, aucune 255 et une 0 attendues" % [etats])
 	var suivi: Variant = (combat.get_node("Plateau/Monde") as Monde).lieu_suivi()

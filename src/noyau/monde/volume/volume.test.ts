@@ -20,6 +20,7 @@ import { paintTiles, setEdgeWall } from '../../sceneEdit';
 import { bumperDataset } from '../../../data/versionDataset';
 import { datasetArray, setDataset, type DatasetKey } from '../../../data/overrides';
 import { idsDeTest } from '../../../engine/idsDeTest.testkit';
+import { scenario as brecheAuCanon } from '../../../scenes/test-scenarios/45-breche-au-canon';
 import { scenario as siegeEnceinte } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as scenarioDiligence } from '../../../scenes/test-scenarios/diligence';
 import { edgeKey } from '../facades';
@@ -450,14 +451,14 @@ describe('la crénelure du volume (#3476)', () => {
 
 describe('la tuile effondrée, absente du volume (#4044)', () => {
   const siege = poserLesNavires(siegeEnceinte.construire(idsDeTest).scene);
-  const porteDeVille = siege.walls!.find((w) => w.x === 14 && w.y === 37 && w.side === 'N' && (w.z ?? 0) === 0)!;
-  const abattu = () => parapetTilesAbove(siege, porteDeVille).reduce((s, c) => setTileCollapsed(s, c.x, c.y, c.z), setStructureDown(siege, 14, 37, 'N', 0, true));
+  const herse = siege.walls!.find((w) => w.x === 14 && w.y === 37 && w.side === 'N' && (w.z ?? 0) === 0)!;
+  const abattu = () => parapetTilesAbove(siege, herse).reduce((s, c) => setTileCollapsed(s, c.x, c.y, c.z), setStructureDown(siege, 14, 37, 'N', 0, true));
   const empreintes = (v: VolumeDuMonde) => new Map(v.morceaux.map((m) => [m.cle, m.empreinte]));
   const surLaCase = (v: VolumeDuMonde) => trianglesDuVolume(v).filter((t) => t.case.join(',') === '14,37,1');
 
-  it('siege-enceinte, la porte de ville (14, 37, N) abattue : aucun triangle à la case effondrée (14, 37, 1), son morceau change d’empreinte, les autres gardent la leur', () => {
-    expect(porteDeVille.structure).toBe('porte-de-ville');
-    expect(parapetTilesAbove(siege, porteDeVille)).toEqual([{ x: 14, y: 37, z: 1 }]);
+  it('siege-enceinte, la herse (14, 37, N) abattue : aucun triangle à la case effondrée (14, 37, 1), son morceau change d’empreinte, les autres gardent la leur', () => {
+    expect(herse.structure).toBe('herse');
+    expect(parapetTilesAbove(siege, herse)).toEqual([{ x: 14, y: 37, z: 1 }]);
     const [avant, apres] = [volumeDuMonde(siege), volumeDuMonde(abattu())];
     expect(surLaCase(avant).length, 'le chemin de ronde intact').toBeGreaterThan(0);
     expect(surLaCase(apres)).toEqual([]);
@@ -490,10 +491,10 @@ const porteOuverte = (scene: Scene): Scene => {
 };
 
 /** Les scènes du #4044, chacune avec la famille qu'elle porte (0 : nappes, 1 : couronnes) et ses écritures de
- *  drapeaux : la diligence porte des nappes et des portes, siege-enceinte des couronnes et sa herse. */
+ *  drapeaux : la diligence porte des nappes et des portes, breche-au-canon une couronne sur sa porte de ville. */
 const SCENES_RETENUES = [
   ['diligence', scenarioDiligence, 0, (s: Scene) => [murAbattu(s, { x: 22, y: 12, side: 'E', z: 0 }), porteOuverte(s)]],
-  ['siege-enceinte', siegeEnceinte, 1, (s: Scene) => [murAbattu(s, { x: 14, y: 37, side: 'N', z: 0 })]],
+  ['breche-au-canon', brecheAuCanon, 1, (s: Scene) => [murAbattu(s, { x: 7, y: 9, side: 'N', z: 0 })]],
 ] as const;
 
 describe.each(SCENES_RETENUES)('toits et couronnes retenus sur ce qu’ils lisent (#4044) — %s', (
