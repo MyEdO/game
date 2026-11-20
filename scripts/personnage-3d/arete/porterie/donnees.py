@@ -20,7 +20,8 @@ vantail. L'archère (`fenetre`, `fenetre-close`) : une fente verticale entre deu
 dedans et chanfreinés vers le dehors, sur un appui et sous le tympan d'un arc de décharge, son volet de planches
 (`menuiserie.VOLET`) rabattu sur le parement du dehors ou clos devant elle.
 
-Matières : la pierre prend `pierre-atre`, le mortier `terre-battue`, le bois `bois-chene`, le fer `fer-noirci`.
+Matières : la pierre prend `pierre-atre`, le mortier `terre-battue`, le bois et les gravats de la porte
+`bois-chene`, le fer `fer-noirci`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import MOELLONS_MACONNES, apparence, assises, hauteur
@@ -39,9 +40,13 @@ EPAISSEUR = 0.5
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {
     "moellons": ("corps", "pierre-atre"),
-    "ame": ("bois", "terre-battue"),
+    "joint": ("joint", "terre-battue"),
     "menuiserie": ("accent", "bois-chene"),
+    "barres": ("planche", "bois-chene"),
+    "barreau": ("barreau", "fer-noirci"),
+    "traverse": ("traverse", "fer-noirci"),
     "ferrure": ("metal", "fer-noirci"),
+    "gravats": ("gravats", "bois-chene"),
 }
 
 BUDGET_TRIANGLES = {"mur": 2400, "porte-fermee": 2400, "porte-ouverte": 2400, "fenetre": 2400, "fenetre-close": 2400,
@@ -85,10 +90,10 @@ VANTAUX = {
 
 # Brèche : la `longueur` qui reste d'un barreau rompu, pendu à la tête de la herse (m, tirée) ; la part des barreaux
 # qui `tiennent` encore ; le nombre de `planches` qui restent d'un vantail à son piédroit et leur hauteur (fraction de
-# celle du vantail, tirée) ; `gravats` (`geometrie.eboulis`), la part de fer parmi eux.
+# celle du vantail, tirée) ; `gravats` (`geometrie.eboulis`).
 BRECHE = {
     "longueur": (0.25, 1.1), "tiennent": 0.7, "planches": (2, (0.35, 0.95)),
-    "gravats": {"nombre": 12, "etendue": (0.7, 0.8), "cote": (0.1, 0.3), "ecart": 0.25, "fer": 0.3},
+    "gravats": {"nombre": 12, "etendue": (0.7, 0.8), "cote": (0.1, 0.3), "ecart": 0.25},
 }
 
 # Poterne : `porches` (`maconnerie.Appareil.porche`), celui d'une poterne seule sur son arête puis celui d'une

@@ -23,7 +23,7 @@ extends SceneTree
 ## l'analyse.
 
 const RECETTE_RENDUE := true
-## La recette des arêtes au pied : son figé servi (`servir_le_fige`), ses volumes (`volume_neuf`) et sa palette.
+## La recette des arêtes au pied : son figé servi (`servir_le_fige`) et ses volumes (`volume_neuf`).
 const ARETE := preload("res://recettes/arete-au-pied.gd")
 ## La longueur et la hauteur, en mètres, du modèle d'arête servi (`scripts/personnage-3d/arete/`, #4471).
 const LONGUEUR_DU_MODELE_M := 2.0
@@ -56,6 +56,8 @@ var _fautes: Array[String] = []
 ## La famille dont le modèle d'arête est servi, et ce modèle.
 var _servie := ""
 var _modele := ""
+## La palette des arêtes servies, figée avec le décor (`paletteDesAretes`, `hotes/godot/recettes/decor.ts`).
+var _palette := {}
 var _comparaisons := 0
 var _ecart_origine := 0.0
 var _ecart_base := 0.0
@@ -77,6 +79,7 @@ func _recetter() -> void:
 		return
 	_servie = decor.modeles.aretes.keys()[0]
 	_modele = decor.modeles.aretes[_servie]
+	_palette = decor.paletteDesAretes
 	await _poses_d_avant(scene)
 	await _foyers(scene, camera)
 	for faute in _fautes:
@@ -152,7 +155,7 @@ func _teinte_attendue(a: Dictionary) -> Color:
 func _arete(cle: String, bloc: String, famille: Variant, piece: String, sens: Vector2, hauteur: float, pied: float, milieu: Vector2) -> Dictionary:
 	return {cle = cle, bloc = bloc, famille = famille, piece = piece,
 		position = Noyau.Position.SEULE, sens = {x = sens.x, y = sens.y}, hauteurM = hauteur,
-		pied = pied, milieu = {x = milieu.x, y = milieu.y}, palette = ARETE.PALETTE if famille == _servie else {}}
+		pied = pied, milieu = {x = milieu.x, y = milieu.y}, palette = _palette if famille == _servie else {}}
 
 
 ## Chaque groupe posé, ses comptes d'instances, et chacune de ses instances à son rang (les montrées puis les cachées

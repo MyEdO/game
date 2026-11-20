@@ -14,13 +14,13 @@ export const file = 'structureAppearance.json';
 export const famille = 'entite';
 
 /** Parties SURCHARGEABLES par `relief.jut`/`relief.thick` : les 16 parties des familles `saillie` et
- *  `traversant`. Les 7 parties de la famille `matiere` (`face, poteau, couronnement, jambage, parapet,
- *  arase, merlon`) en sont ABSENTES : leur volume EST celui du mur (`wallPartDepthM` rend `wallM` sans
+ *  `traversant`. Les 8 parties de la famille `matiere` (`face, poteau, couronnement, jambage, parapet,
+ *  arase, merlon, joint`) en sont ABSENTES : leur volume EST celui du mur (`wallPartDepthM` rend `wallM` sans
  *  lire la surcharge) — c'est `relief.wallM` qui règle celui-là, pour toutes à la fois. Les y admettre
  *  au schéma promettait une surcharge qui n'agit sur rien. */
 export const RELIEF_PART_KEYS = WALL_PARTS.filter(
-  (k) => !(['face', 'poteau', 'couronnement', 'jambage', 'parapet', 'arase', 'merlon'] as readonly string[]).includes(k),
-) as Exclude<WallPart, 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon'>[];
+  (k) => !(['face', 'poteau', 'couronnement', 'jambage', 'parapet', 'arase', 'merlon', 'joint'] as readonly string[]).includes(k),
+) as Exclude<WallPart, 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon' | 'joint'>[];
 
 /** Profondeur (m) par partie, toutes optionnelles, AUCUNE clé étrangère (`strictObject`). */
 const reliefParPartie = nommerChamps(z.strictObject(

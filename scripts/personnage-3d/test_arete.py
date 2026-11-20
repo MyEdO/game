@@ -5,8 +5,8 @@ pièce (`PieceDArete`, `src/noyau/monde/aretes.ts`), à l'origine de l'arête, d
 (`arete/geometrie.py`) : X le long d'elle, centrée, d'un bout à l'autre de sa longueur ; Y de son pied à sa hauteur ;
 Z son épaisseur, centrée pour le mur. Chaque nœud tient dans son budget de triangles et n'est fait que de coques closes
 aux faces vers le dehors (`glb.coques_en_defaut`). Une pièce pleine (`PLEINES`) ne laisse passer aucun jour à
-travers son épaisseur, d'un bout à l'autre de l'arête, hors le kit dont les données se déclarent à claire-voie
-(`CLAIRE_VOIE`). Les données d'un modèle ne portent aucune couleur."""
+travers son épaisseur, d'un bout à l'autre de l'arête, sa vitre ôtée (`menuiserie.VITRE`), hors le kit dont les données
+se déclarent à claire-voie (`CLAIRE_VOIE`). Les données d'un modèle ne portent aucune couleur."""
 import json
 import re
 import runpy
@@ -21,11 +21,13 @@ import reconstruction
 from entrees import modeles
 from glb import coques_en_defaut, lire_accesseur, lire_glb
 from reconstruction import construire_le_modele
+from script_node import lancer
 
 ICI = Path(__file__).resolve().parent
 FAMILLE = 'arete'
 sys.path.insert(0, str(ICI / FAMILLE))
-PIECES = {'mur', 'porte-fermee', 'porte-ouverte', 'fenetre', 'fenetre-close', 'breche'}
+from menuiserie import VITRE  # noqa: E402
+PIECES = set(json.loads(lancer(ICI / FAMILLE / 'pieces.mjs', [], '')))
 TOLERANCE = 0.001   # m
 SEPARATEUR, POSITIONS = '--', ('gauche', 'milieu', 'droite')
 PLEINES = ('mur', 'fenetre-close')
@@ -42,13 +44,15 @@ def valeurs(v):
 
 def jours(glb, piece, demi, haut):
     """Les points (x, y) de la face du nœud `piece` de `glb`, pris tous les `PAS_DU_JOUR` entre ses deux bouts et
-    de son pied à `haut`, qu'aucun de ses triangles ne couvre vus le long de son épaisseur."""
+    de son pied à `haut`, qu'aucun de ses triangles ne couvre vus le long de son épaisseur, ceux de sa vitre
+    (`VITRE`) ôtés : le jour la traverse."""
     document, binaire = lire_glb(glb)
     noeud = next(n for n in document['nodes'] if n.get('name') == piece)
     triangles = np.concatenate([
         lire_accesseur(document, binaire, p['attributes']['POSITION'])[
             lire_accesseur(document, binaire, p['indices']).astype(np.int64).reshape(-1, 3)]
-        for p in document['meshes'][noeud['mesh']]['primitives']])[:, :, :2]
+        for p in document['meshes'][noeud['mesh']]['primitives']
+        if document['materials'][p['material']]['name'] != VITRE])[:, :, :2]
     xs = np.arange(-demi + PAS_DU_JOUR / 10, demi, PAS_DU_JOUR)
     ys = np.arange(PAS_DU_JOUR / 2, haut, PAS_DU_JOUR)
     couvert = np.zeros((len(ys), len(xs)), bool)

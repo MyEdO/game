@@ -785,8 +785,9 @@ l'arête au bout -X de l'ouverture dans le repère de la pièce (X le long du se
 d'un vantail reste celui de son arête. Un kit ne bâtit que les positions qu'une scène
 pose (`geometrie.noeud`) : le budget d'un nœud est celui de sa pièce, et `arete/revue.py` montre chaque ouverture
 d'un seul tenant, ses nœuds bout à bout. Une porte posée dans un mur prend le kit, la hauteur et les teintes de
-mur (`corps`, `bois`) de son mur porteur, celui du bout -X sinon du bout +X, et garde les teintes de menuiserie
-(`accent`, `vet1`, `metal`) de sa propre apparence (`paletteDeLApparence`) : chaque kit bâtit donc ses portes.
+mur (`corps`, `bois`, `joint`, `gravats`) de son mur porteur, celui du bout -X sinon du bout +X, et garde les teintes
+de menuiserie (`accent`, `planche`, `vet1`, `vitre`, `metal`, `barreau`, `traverse`) de sa propre apparence
+(`paletteDeLApparence`) : chaque kit bâtit donc ses portes.
 
 **Famille neuve.** Ajouter d'abord la famille au `kitSchema` (`src/data/schemas/defs/structureAppearance.ts`), puis
 une apparence de `structureAppearance.json` qui la porte (le jeu de données s'édite au fichier). L'hôte pose une
@@ -797,10 +798,28 @@ plein pour la fenêtre d'un terrassement, la grille baissée pour la porte d'une
 
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
-la couleur de l'apparence posée. Une baie est percée de part en part.
+la couleur de l'apparence posée (`paletteDeLApparence`, par `wallPartColor`), et `MATERIAUX` ne déclare que les
+matériaux que les pièces du kit posent. Une partie qu'une apparence teint à part a son emplacement :
+
+| Emplacement | Ce qu'il porte | Couleur de l'apparence |
+|---|---|---|
+| `corps` | le parement du mur : pierres, torchis, claie, terre | `face` |
+| `bois` | le bois du mur : ossature, pieux, clayonnage, boisage | `post` |
+| `joint` | l'âme d'un mur de pierre, vue dans ses joints et dans sa brèche | `detail.courses.joint` |
+| `gravats` | les gravats au pied d'une brèche (`geometrie.eboulis`) | `rubble` |
+| `accent` | les planches d'un vantail, porte ou volet | `door.leaf` |
+| `planche` | les barres et l'écharpe au dos d'un vantail | `door.plank` |
+| `vet1` | les bois d'une croisée | `window.mullion` |
+| `vitre` | la vitre d'une croisée | `window.glass` |
+| `metal` | pentures, poignée, loquet, rivets et pointes | `door.handle` |
+| `barreau` | les barreaux et les montants d'une herse | `band` |
+| `traverse` | les traverses d'une herse | `door.herse.traverseColor` |
+
+Une baie est percée de part en part ; sa croisée porte sa vitre (`menuiserie.vitre`), que la garde de jour ôte
+(`test_arete.py`) : les volets d'une `fenetre-close` ferment seuls la baie.
 
 **Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
-`menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
+`menuiserie.py` porte le vantail de planches, la croisée, sa vitre et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
 des kits de pierre (assises, chaînes, couronnement, porche voûté, porte cintrée sous son porche, brèche). Un kit les pose, il ne les recopie pas.
 La forme d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit
 reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
@@ -822,7 +841,8 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
 chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
 reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié, exige un kit pour chaque
-`arete--*` publié et un modèle pour chaque famille qu'une apparence porte.
+`arete--*` publié et un modèle pour chaque famille qu'une apparence porte. Les pièces qu'il exige sont celles de `PieceDArete`, lues du
+noyau par `arete/pieces.mjs`.
 Regarder le kit dans Godot comme tout modèle sans base (chapitre 7) : l'atelier en montre chaque pièce par
 l'échantillon « Mur et ouverture », et la capture `cadrages` le montre posé dans une scène, au regard d'un joueur.
 Une illustration de façade se compare à cette capture, jamais à une pièce seule. Recettes Godot des arêtes

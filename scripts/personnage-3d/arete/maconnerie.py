@@ -1,6 +1,6 @@
 """La maçonnerie commune aux kits de pierre (#4471) : l'appareil d'une arête (`Appareil`), ses assises de moellons
-bruts posées sur une âme en retrait, ses chaînes de pierres de taille, son couronnement, son porche voûté, la porte
-cintrée qu'il abrite et sa brèche. Un kit qui le bâtit déclare les matériaux `PIERRE` et `AME`, ceux de `menuiserie`
+bruts posées sur une âme en retrait, qui se voit dans leurs joints, ses chaînes de pierres de taille, son couronnement, son porche voûté, la porte
+cintrée qu'il abrite et sa brèche. Un kit qui le bâtit déclare les matériaux `PIERRE` et `JOINT`, ceux de `menuiserie`
 s'il pose la porte cintrée, et l'appareil `D["APPAREIL"]` :
 
 - `assise` : la hauteur moyenne (m) d'une assise, joint compris ; `inegalite` : ce dont celle de chacune s'en écarte
@@ -27,7 +27,7 @@ from geometrie import DEHORS, X, Repere, biais
 from maille import lineaire
 from menuiserie import vantail
 
-PIERRE, AME = "moellons", "ame"
+PIERRE, JOINT = "moellons", "joint"
 MINCE = 0.1
 """La hauteur (m) sous laquelle un reste d'assise se fond dans sa voisine."""
 JEU_DE_L_AME = 0.0004
@@ -118,7 +118,7 @@ class Appareil:
         """L'âme entre les abscisses `a` et les hauteurs `h`, jusqu'aux bouts et à la tête de l'arête."""
         gauche, droite = (min(max(x, JEU_DE_L_AME - self.demi), self.demi - JEU_DE_L_AME) for x in a)
         self.R.boite(self.m, (gauche, droite), (h[0], min(h[1], self.haut - JEU_DE_L_AME)),
-                     (self.A["creux"] - self.nu, self.nu - self.A["creux"]), AME)
+                     (self.A["creux"] - self.nu, self.nu - self.A["creux"]), JOINT)
 
     def pan(self, a, h, chaines=(False, False), garde=None, recul=0.0):
         """Les assises du mur entre les abscisses `a` et les hauteurs `h`, sur leur âme, une cale sous ou sur certains
@@ -199,7 +199,7 @@ class Appareil:
             pas = sorted(min(max(axe + cote * rayon * math.sin(ouverture * k / nombre), -bout), bout)
                          for k in range(nombre + 1))
             for g, d in zip(pas, pas[1:]):
-                biais(self.m, (g, d), (cercle(g, rayon), tete), (cercle(d, rayon), tete), creux, AME)
+                biais(self.m, (g, d), (cercle(g, rayon), tete), (cercle(d, rayon), tete), creux, JOINT)
             for k, bas, haut in self.assises((naissance, self.corps)):
                 for g, d, _ in self.rang(tuple(sorted((axe + cote * portee, axe))), k, (False, False)):
                     charger(g, d, bas, haut)
@@ -242,6 +242,6 @@ class Appareil:
                  for part, _ in contour]
         for (g, tete_g), (d, tete_d) in zip(bords, bords[1:]):
             biais(self.m, (g, d), (0.0, tete_g), (0.0, tete_d), (self.A["creux"] - self.nu, self.nu - self.A["creux"]),
-                  AME)
+                  JOINT)
         self.pan((-self.demi, self.demi), (0.0, self.corps), (True, True), garde)
         self.couronnement((-self.demi, self.demi), garde)

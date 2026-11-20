@@ -319,6 +319,8 @@
     "door": {
       "openingFrac": 1,
       "lintelPx": 4,
+      "leaf": "#5a4632",
+      "plank": "#3b2e1f",
       "herse": {
         "bars": 6,
         "topFrac": 0.9,
