@@ -735,6 +735,20 @@ export const cleDesLibellesDeLaSource = (source: SourceDeSpecs): string =>
   'vocabulaire' in source.libelle ? cleDesLibelles(cleDuVocabulaire(source.libelle.vocabulaire)) : cleDesLibelles(source.univers, source.libelle.champs);
 
 
+function renvoiDesSpecs(lue: CleLue, doc: { readonly schema: unknown; readonly racine: unknown }, cle: string): string | undefined {
+  const source = sourceDesSpecs(lue, doc, cle);
+  if (!source) return undefined;
+  if (lue.libelles?.length) throw new Error(`${cle} : les libellés des \`specs\` d'une entrée à specsSource sont ceux que sa source déclare.`);
+  return lue.libelles ? cleDesLibellesDeLaSource(source) : source.univers;
+}
+
+/** L'univers délégué par une entrée, sans charger les spécialisations ni leurs libellés. */
+export function renvoiDeLEspace(cle: string, acces: AccesAuxDocuments): string | undefined {
+  const lue = lireCleDEspace(cle);
+  const doc = acces(lue.fichier);
+  return doc && renvoiDesSpecs(lue, doc, cle);
+}
+
 /**
  * Lecture de l'espace `cle` (`grammaire/cle-d-espace.ts`) sur les documents d'`acces` : la collection
  * atteinte par sa suite nichée, qui doit être marquée `espace`, son filtre, qui doit être un paramètre
@@ -747,11 +761,8 @@ export function lectureDeLEspace(cle: string, acces: AccesAuxDocuments): Lecture
   const lue = lireCleDEspace(cle);
   const doc = acces(lue.fichier);
   if (!doc) return undefined;
-  const source = sourceDesSpecs(lue, doc, cle);
-  if (source) {
-    if (lue.libelles?.length) throw new Error(`${cle} : les libellés des \`specs\` d'une entrée à specsSource sont ceux que sa source déclare.`);
-    return { univers: lue.libelles ? cleDesLibellesDeLaSource(source) : source.univers };
-  }
+  const univers = renvoiDesSpecs(lue, doc, cle);
+  if (univers !== undefined) return { univers };
   const collection = atteindre(doc.schema, doc.racine, lue.niche ?? '');
   const espace = collection?.marque.espace;
   if (!collection || !espace || (lue.filtre && !filtreDeclare(espace, lue.filtre))) return undefined;

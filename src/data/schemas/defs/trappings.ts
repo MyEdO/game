@@ -33,12 +33,12 @@ import { estObjet } from '../../../lib/objet.mjs';
 import { effetsDArmeDe, flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, perteSansEquipeSchema, qualiteDObjetRefSchema, weaponSchema, type QualiteDObjetRef } from '../grammaire/reference';
 import {
+  affinerAvecCatalogues,
   idDe,
-  porteLeMarqueur,
   ref,
   refs,
-  refusDeLEntree,
   dansLaSousListe,
+  type LecturesDuRaffinement,
 } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
@@ -54,14 +54,6 @@ export const apparenceDObjetSchema = nommerChamps(z.looseObject({
   shape: { label: 'Forme racine', hint: 'Forme par défaut de l’objet, fixée sur l’instance à sa naissance' },
   formChoices: { label: 'Formes proposées', hint: 'Formes racines parmi lesquelles l’apparence de l’objet peut être choisie' },
 });
-
-/** Une armure porte son TYPE d'armure : `subType` désigne une entrée de la sous-liste `armour` des Groupes
- *  (`weaponGroups.json?kind=armour`). Matière que le dessin et les exemptions de matériau
- *  (`matiereDuGroupe`, `src/data/index.ts`) lisent. Jugé par le refus de la sous-liste
- *  (`refusDeLEntree`, celui de `idDe('weaponGroup', 'armour')`) : une feuille `idDe` exécutée hors de l'arbre
- *  du schéma échappe à la marche du parse de mesure (`grammaire/parse-de-mesure.test.ts`, COUVERTURE). */
-const refusDuTypeDArmure = (subType: { id: string } | null): string | null =>
-  subType === null ? 'aucun type d’armure' : refusDeLEntree('weaponGroup', 'armour', subType);
 
 export const categorieDArmeSchema = enumNomme({
   melee: 'Armes de mêlée',
@@ -86,7 +78,8 @@ const chargeParDiscriminant = {
   trapping: [],
 } as const satisfies Record<Categorie, readonly string[]>;
 
-export const estGroupeDeSiege = porteLeMarqueur('weaponGroup', 'siege');
+export const lireLesGroupesDeSiege = (lire: LecturesDuRaffinement) =>
+  lire.catalogue('weaponGroup').porteLeMarqueur('siege');
 
 const effetsAToucheDeCampagne = effetsDArmeDe(triggeredEffectSchema, (objet) => {
   if (!estObjet(objet)) return {};
@@ -390,21 +383,25 @@ const doc = document(
       marqueurs: ['service'],
     },
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const e = v as EntreeDePossessionAAffiner;
-        if (e.subType && estGroupeDeSiege(e.subType.id)) {
-          ctx.addIssue({ code: 'custom', path: ['subType', 'id'], message: `${e.id} : un engin de siège a son propre catalogue` });
-        }
-        affinerLesQualites(e, e, ctx);
-        e.variants?.forEach((variante, i) => affinerLesQualites(e, {
-          qualities: variante.qualities ?? e.qualities,
-          qualitesAuChoix: variante.qualitesAuChoix ?? e.qualitesAuChoix,
-        }, ctx, ['variants', i]));
-        if (e.categorie !== 'armor') return;
-        const refus = refusDuTypeDArmure(e.subType);
-        if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });
-        // Le TYPE est la matière ; la SILHOUETTE est sa forme, racine du catalogue des apparences (#2948).
-        if (e.shape === undefined) ctx.addIssue({ code: 'custom', path: ['shape'], message: `${e.id} : une armure porte sa forme (\`shape\`, racine de apparences.json)` });
+      affinerAvecCatalogues(entree, (lire) => {
+        const estGroupeDeSiege = lireLesGroupesDeSiege(lire);
+        const { refusDeLEntree } = lire.catalogue('weaponGroup');
+        return (v, ctx) => {
+          const e = v as EntreeDePossessionAAffiner;
+          if (e.subType && estGroupeDeSiege(e.subType.id)) {
+            ctx.addIssue({ code: 'custom', path: ['subType', 'id'], message: `${e.id} : un engin de siège a son propre catalogue` });
+          }
+          affinerLesQualites(e, e, ctx);
+          e.variants?.forEach((variante, i) => affinerLesQualites(e, {
+            qualities: variante.qualities ?? e.qualities,
+            qualitesAuChoix: variante.qualitesAuChoix ?? e.qualitesAuChoix,
+          }, ctx, ['variants', i]));
+          if (e.categorie !== 'armor') return;
+          const refus = e.subType === null ? 'aucun type d’armure' : refusDeLEntree('armour', e.subType);
+          if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });
+          // Le TYPE est la matière ; la SILHOUETTE est sa forme, racine du catalogue des apparences (#2948).
+          if (e.shape === undefined) ctx.addIssue({ code: 'custom', path: ['shape'], message: `${e.id} : une armure porte sa forme (\`shape\`, racine de apparences.json)` });
+        };
       }),
   },
 );

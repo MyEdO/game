@@ -1,7 +1,7 @@
 /** EDOC 16 l.421 ; MSRC 19 l.498 ; ZI 14 l.55 ; PDTP 01 l.3 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { messageDeRefusDeSpec, recordDIds, ref, refs, refusDeSpec } from '../grammaire/ref';
+import { affinerAvecCatalogues, recordDIds, ref, refs } from '../grammaire/ref';
 import { charKeySchema, sexeSchema } from '../grammaire/valeurs';
 import { nommerNoeud } from '../grammaire/meta';
 import { dotationDeCatalogueSchema, dotationDeTexteSchema, sommeSchema, talentRefSchema } from '../grammaire/reference';
@@ -13,14 +13,17 @@ const entier = (min: number) => z.number().int().min(min);
 const augmentations = nommerNoeud(entier(0), { nom: 'augmentations' });
 
 /** Augmentations par Compétence : un nombre, ou un nombre par spécialisation. */
-const augmentationsDesCompetences = recordDIds('skill', z.union([nommerNoeud(z.lazy(() => augmentations), { label: 'augmentations' }), nommerNoeud(z.record(z.string().min(1), augmentations), { label: 'augmentations par spécialisation' })])).superRefine((v, ctx) => {
-  for (const [id, a] of Object.entries(v)) {
-    if (typeof a === 'number') continue;
-    for (const spec of Object.keys(a)) {
-      const refus = refusDeSpec('skill', id, spec);
-      if (refus) ctx.addIssue({ code: 'custom', path: [id, spec], message: messageDeRefusDeSpec('skill', id, spec, refus, false) });
+const augmentationsDesCompetences = affinerAvecCatalogues(recordDIds('skill', z.union([nommerNoeud(z.lazy(() => augmentations), { label: 'augmentations' }), nommerNoeud(z.record(z.string().min(1), augmentations), { label: 'augmentations par spécialisation' })])), (lire) => {
+  const specialisations = lire.specialisations('skill');
+  return (v, ctx) => {
+    for (const [id, a] of Object.entries(v)) {
+      if (typeof a === 'number') continue;
+      for (const spec of Object.keys(a)) {
+        const refus = specialisations.refus(id, spec);
+        if (refus) ctx.addIssue({ code: 'custom', path: [id, spec], message: specialisations.message(id, spec, refus, false) });
+      }
     }
-  }
+  };
 });
 
 const doc = document(
