@@ -214,6 +214,15 @@ def elevation_de_la_couture(S, C, phis):
     return np.maximum(E, enveloppe)
 
 
+def fondre_sur_le_cou(porteur, C, dirs, rayons, arcs, portee):
+    """Par direction de `dirs` depuis `C`, `(rayon, part)` : le rayon passe de la peau de la tête de la base (visée sur
+    `porteur`), qui prolonge le cou, à `rayons`, à la part `fondu(arc / portee)` de `rayons` ; `arcs` est la part de l'arc
+    de la couture au pôle où pointe chaque direction."""
+    parts = np.array([fondu(a / portee) for a in arcs])
+    de_la_base = np.array([np.linalg.norm(sur_le_porteur(porteur, C, d, PORTEE_M)[0] - C) for d in dirs])
+    return (1 - parts) * de_la_base + parts * rayons, parts
+
+
 def coudre(M, bord, S, anneau, A, C):
     """Coud la boucle `bord` (positions `S`) à la boucle `anneau` (positions `A`), toutes deux en azimut croissant depuis
     l'arrière autour de `C`, l'anneau au-dessus du bord : la bande qu'elles bordent, dépliée en azimut et élévation vus
@@ -481,15 +490,13 @@ def construire(D, materiaux, b):
     phis = vs - k * np.degrees(np.sin(np.radians(vs)))
     E = elevation_de_la_couture(S, C, phis)
     rangs = np.asarray(D['RANGS'], float)
-    fondus = np.array([fondu(g / D['FONDU_DU_COU']) for g in rangs])
 
     dirs = np.array([direction_spatiale(phi, e + (90.0 - e) * g) for g in rangs for phi, e in zip(phis, E)] + [POLE])
     r_forme = rayons_vises(C - H, dirs, vols)
     r_inverse = rayons_vises(C - H, dirs, vols_inverses)
-    poids_forme = np.concatenate([np.repeat(fondus, len(phis)), [1.0]])
     porteur = b.porteur(zones)
-    r_couture = np.array([np.linalg.norm(sur_le_porteur(porteur, C, d, PORTEE_M)[0] - C) for d in dirs])
-    r = (1 - poids_forme) * r_couture + poids_forme * r_forme
+    r, poids_forme = fondre_sur_le_cou(porteur, C, dirs, r_forme, np.concatenate([np.repeat(rangs, len(phis)), [1.0]]),
+                                       D['FONDU_DU_COU'])
     inverse = (poids_forme * (r_inverse - r_forme))[:, None] * dirs
 
     M = Maillage()
