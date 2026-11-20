@@ -90,7 +90,9 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   // { … as … }` du Program, à point fixe. Un appel sous un autre nom ne la résout pas : le symbole n'est
   // demandé qu'aux appels qui portent l'un de ces noms.
   const nomsDeLaPorte = new Set(Object.keys(PORTES))
-  const renommages = program.getSourceFileNames().map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
+  const renommages = program.getSourceFileNames()
+    .filter(file => !/\.d\.[cm]?ts$/.test(file))
+    .map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
     .flatMap(n => (ts.isImportDeclaration(n) ? n.importClause?.namedBindings?.elements : ts.isExportDeclaration(n) ? n.exportClause?.elements : undefined) ?? [])
     .flatMap(e => e.propertyName ? [[e.propertyName.text, e.name.text]] : [])
   for (let taille = -1; taille !== nomsDeLaPorte.size;) {
@@ -194,8 +196,10 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
         }
       }
       if (ts.isParameterDeclaration(d)) {
-        const typed = typedOrigins.get(checker.getTypeAtLocation(node).id)
-        if (typed) return typed
+        if (typedOrigins.size > 0) {
+          const typed = typedOrigins.get(checker.getTypeAtLocation(node).id)
+          if (typed) return typed
+        }
         const fn = d.parent
         const name = fn.name ?? (ts.isVariableDeclaration(fn.parent) ? fn.parent.name : null)
         if (name && ts.isIdentifier(name)) {
