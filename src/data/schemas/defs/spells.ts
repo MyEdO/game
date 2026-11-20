@@ -9,7 +9,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
-import { choixDeCiblesSchema, conditionSchema, mecaniqueDe, sujetDuJetSchema } from '../grammaire/mecanique';
+import { conditionSchema, mecaniqueDe, sujetDuJetSchema } from '../grammaire/mecanique';
 import { ref, refs } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
 
@@ -45,7 +45,7 @@ const spellTargetSchema = z.discriminatedUnion('kind', [
     anchor: z.literal('target').optional(),
     excludesCaster: z.boolean().optional(),
     affects: conditionSchema.optional(),
-    choixDeCibles: choixDeCiblesSchema.optional(),
+    choixDeCibles: z.literal(true).optional(),
     maison: maisonSchema.optional(),
   }), {
     kind: { label: 'Type' },
@@ -54,7 +54,7 @@ const spellTargetSchema = z.discriminatedUnion('kind', [
     anchor: { label: 'Ancre sur la cible' },
     excludesCaster: { label: 'Lanceur exclu' },
     affects: { label: 'Cibles affectées' },
-    choixDeCibles: { label: 'Choix de cibles' },
+    choixDeCibles: { label: 'Choix du camp' },
     maison: { label: 'Arbitrage maison' },
   }, { label: 'Zone' }),
   nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }, { label: 'Spéciale' }),

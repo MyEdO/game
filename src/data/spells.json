@@ -21757,31 +21757,7 @@
           "factor": 2
         }
       },
-      "choixDeCibles": {
-        "allies": {
-          "kind": "relation",
-          "who": "target",
-          "is": "allie"
-        },
-        "ennemis": {
-          "kind": "all",
-          "of": [
-            {
-              "kind": "relation",
-              "who": "target",
-              "is": "adversaire"
-            },
-            {
-              "kind": "not",
-              "of": {
-                "kind": "relation",
-                "who": "target",
-                "is": "neutre"
-              }
-            }
-          ]
-        }
-      }
+      "choixDeCibles": true
     },
     "duration": {
       "kind": "rounds",

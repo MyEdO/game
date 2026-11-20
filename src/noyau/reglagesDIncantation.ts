@@ -10,7 +10,6 @@ import type { ReglageDu } from './reglagesDuJet';
 import { actorIn } from './monde/combatants';
 import { aiDriven, influencesLocally } from './netOwnership';
 import { findSpellById, type SpellData } from '../data/index';
-import { choixDeCampSchema } from '../data/schemas/grammaire/mecanique';
 import { castInfoIsPrayer } from '../engine/magic';
 import { spellEffectOps, type Condition } from '../engine/flowCore';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
@@ -18,15 +17,25 @@ import { spellHasOvercastTableRoll } from '../engine/overcast';
 import { rule } from '../engine/policy';
 import { t } from '../i18n';
 
-/** Modes de ciblage édités pour une Zone d'Effet. */
+/** VDM 09 l.346–354 */
+const CAMPS_AU_CHOIX = [
+  { id: 'allies', affects: { kind: 'relation', who: 'target', is: 'allie' } },
+  {
+    id: 'ennemis',
+    affects: {
+      kind: 'all',
+      of: [
+        { kind: 'relation', who: 'target', is: 'adversaire' },
+        { kind: 'not', of: { kind: 'relation', who: 'target', is: 'neutre' } },
+      ],
+    },
+  },
+] satisfies readonly { id: 'allies' | 'ennemis'; affects: Condition }[];
+
+/** Camps proposés pour une Zone d'Effet. */
 export function choixDeCiblesDuSort(cible: SpellData['target']) {
-  const choix = cible?.kind === 'area' ? cible.choixDeCibles : undefined;
-  if (!choix) return [];
-  return choixDeCampSchema.options.map((id) => ({
-    id,
-    label: t(`incantation.choixDeCibles.${id}`),
-    affects: choix[id],
-  }));
+  if (cible?.kind !== 'area' || !cible.choixDeCibles) return [];
+  return CAMPS_AU_CHOIX.map(({ id, affects }) => ({ id, label: t(`incantation.choixDeCibles.${id}`), affects }));
 }
 
 /** Options désignables de l'incantation en combat. */

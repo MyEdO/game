@@ -1203,10 +1203,6 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
 /** L'algèbre `Condition` de la famille FERMÉE : aucune Condition réservée. */
 export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
-/** VDM 09 l.346–354 */
-export const choixDeCampSchema = z.enum(['allies', 'ennemis']);
-export const choixDeCiblesSchema = z.record(choixDeCampSchema, conditionSchema);
-
 /** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
  *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
