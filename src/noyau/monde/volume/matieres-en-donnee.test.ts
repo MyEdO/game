@@ -143,7 +143,7 @@ type Neutraliseur = { nom: string; applique: (code: string, onglets: Set<string>
  * de vie se juge alors au grain du champ, et un homonyme que plus aucun site n'exerce rougit SEUL.
  * Groupés, quatre champs partageaient un verdict — trois morts passaient sous le vivant.
  */
-const neutraliseursDeChamp = (vocabulaires: Record<string, string>): Neutraliseur[] =>
+const neutraliseursDeChamp = (vocabulaires: Record<string, string>): { nom: string; applique: (code: string) => string }[] =>
   Object.entries(vocabulaires).map(([champ, vocabulaire]) => ({
     nom: `champ \`${champ}\` (${vocabulaire})`,
     applique: champHorsMatiere(champ),
