@@ -25,6 +25,7 @@ import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
 //   5. MESURE — occurrences de référence, formes de valeur, ops, enveloppe, orphelines, ambiguës.
 import { readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
+import { z } from 'zod';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
 import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
@@ -39,7 +40,7 @@ import { conceptDe } from '../../../src/data/schemas/grammaire/concepts';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
 import { auPlusProcheAncetre, coDescendre, defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
-import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
+import { declarationProseNommee, sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import { TYPES, declarationDeRefTypee, espaceDe, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
 import * as ts from 'typescript/unstable/ast';
@@ -212,6 +213,7 @@ export type Classement = {
  * qui dérive de la STRATE parce qu'elle sert un autre usage (la charge utile de `tellsDeDocument`).
  */
 const CONCEPTS_CLASSABLES = CONCEPTS.filter((c) => !c.resolvables && !c.listeIdsNus);
+const CONCEPT_PROSE_NOMMEE = CONCEPTS_CLASSABLES.find((c) => c.reconnaitProseNommee);
 
 /** Concepts que seul le SITE peut proposer (`exigeCandidatureStructurelle`) — la liste se DÉDUIT du
  *  lexique, elle ne se nomme pas au call-site : ajouter un concept structurel au lexique suffit. */
@@ -612,6 +614,27 @@ export function scannerDonnees(
   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
   const collections = collectionsDesDocuments(defs, brutParNom);
   const poses = posesDesObjets(defs, brutParNom);
+  // La co-descente rapproche la déclaration PROSES_NOMMEES du même objet que parcourirDocument.
+  const prosesNommees = new WeakSet<object>();
+  if (CONCEPT_PROSE_NOMMEE) {
+    const schemasDeProjet = new Map(defs.filter((d) => d.root === PROJETS_LIVRES.dossier).map((d) => [d.file, d.schema]));
+    for (const d of docs) {
+      if (d.racine !== PROJETS_LIVRES.dossier) continue;
+      const schema = schemasDeProjet.get(d.nom);
+      if (!schema) continue;
+      coDescendre(schema, brutParDocument.get(d.chemin), ({ noeuds, valeur }) => {
+        if (!estObjet(valeur)) return;
+        for (const noeud of noeuds) {
+          const declaration = declarationProseNommee(noeud);
+          if (!declaration || !(noeud instanceof z.ZodType)) continue;
+          if (declaration.presence === 'optionnel' && !Object.prototype.hasOwnProperty.call(valeur, declaration.champ)) continue;
+          if (!noeud.safeParse(valeur).success) continue;
+          prosesNommees.add(valeur);
+          break;
+        }
+      });
+    }
+  }
   /** Cartes des collections `record` : un objet que le schéma DÉCLARE collection à clé n'est jamais hors
    *  strate — exclu des orphelines et des invisibles APRÈS le classement, qui reste entier. */
   const cartesDeRecord = new Set<object>(
@@ -928,6 +951,7 @@ export function scannerDonnees(
   let totalOps = 0;
   let objetsVus = 0;
   let objetsClasses = 0;
+  let documentsEmbarquesAvecForme = 0;
   /** Objets qu'AUCUNE strate ne porte : ni document, ni forme mesurée, ni orpheline recensée, ni
    *  collection à clé déclarée. */
   let objetsInvisibles = 0;
@@ -1153,7 +1177,17 @@ export function scannerDonnees(
         classe = true;
       }
 
-      if (classe) objetsClasses += 1;
+      // La prose déclarée prend les porteurs sans forme après les concepts et les références.
+      if (!classe && CONCEPT_PROSE_NOMMEE && prosesNommees.has(o)) {
+        const forme = statutDe(CONCEPT_PROSE_NOMMEE, cles.length === 1 ? 'texte' : 'texte+…');
+        ligneForme(CONCEPT_PROSE_NOMMEE, p, champ, forme, o).occurrences += 1;
+        classe = true;
+      }
+
+      if (classe) {
+        objetsClasses += 1;
+        if (estEmbarque) documentsEmbarquesAvecForme += 1;
+      }
 
       // ---- ORPHELINES : ce qui annonce une référence et ne résout pas
       let orpheline = false;
@@ -1338,6 +1372,7 @@ export function scannerDonnees(
       racinesSansValeur,
       racinesDisqualifiees: [...racinesDisqualifiees].map(([dataset, entrees]) => ({ dataset, entrees })).sort((a, b) => b.entrees - a.entrees || parUnitesDeCode(a.dataset, b.dataset)),
       documentsEmbarques: documentsEmbarques.size,
+      documentsEmbarquesAvecForme,
       entreesDeRacine: prepares.reduce((a, p) => a + p.entrees.length, 0),
     },
     graphiesBrutes: Object.fromEntries(graphiesBrutes),

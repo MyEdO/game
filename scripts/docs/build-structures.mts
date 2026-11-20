@@ -334,7 +334,9 @@ function rendu() {
       : c.noyau?.length
         ? `son noyau ${c.noyau.map((k) => `\`${k}\``).join(' ')}${c.noyauMin ? ` (≥ ${c.noyauMin})` : ''}`
         : '';
-    const parForme = [...(posesDuConcept.length ? [`sa pose ${posesDuConcept.join(' ')}`] : []), ...(parCles ? [parCles] : [])].join(', sinon ');
+    const reconnaissances = [...(posesDuConcept.length ? [`sa pose ${posesDuConcept.join(' ')}`] : []), ...(parCles ? [parCles] : [])];
+    if (c.reconnaitProseNommee) reconnaissances.push('la déclaration `PROSES_NOMMEES` au schéma de projet pour les porteurs sans forme');
+    const parForme = reconnaissances.join(', sinon ');
     out += `Reconnu par : ${c.resolvables ? 'RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou GRAPHIE du lexique sous un champ porteur mesuré' : c.listeIdsNus ? 'tableau de chaînes dont au moins un élément résout' : parForme}${c.datasets ? `, dans ${c.datasets.map((x) => `\`${x}\``).join(' ')}` : ''}\n\n`;
     if (!lignes.length) {
       out += '_aucune occurrence observée._\n\n';
