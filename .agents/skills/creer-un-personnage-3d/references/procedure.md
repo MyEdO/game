@@ -774,8 +774,7 @@ apparence de `src/data/structureAppearance.json`) se construisent depuis le dép
 `scripts/personnage-3d/construire.py`, un dossier par kit, `scripts/personnage-3d/arete/<kit>/` : `donnees.py`
 (`MATERIAUX`, `BUDGET_TRIANGLES` par pièce, chaque cote nommée, les illustrations directrices) et `modele.py`
 (`elements(D)`, par `arete/geometrie.py`). Un kit est un GLB, `arete--<kit>`, un nœud racine à mesh par pièce
-(`PieceDArete`, `src/noyau/monde/aretes.ts`) : `mur`, `porte-fermee`, `porte-ouverte`, `fenetre`, `fenetre-close`,
-`breche`.
+(`PIECES_D_ARETE`, `src/noyau/monde/piecesDArete.ts`).
 
 **Repère et taille.** Chaque pièce est à l'origine de l'arête, à sa taille réelle : X le long d'elle, centrée, sur la
 longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son épaisseur, centrée, le dehors vers +Z
@@ -799,8 +798,8 @@ de menuiserie (`accent`, `planche`, `vet1`, `vitre`, `metal`, `barreau`, `traver
 **Famille neuve.** Ajouter d'abord la famille au `kitSchema` (`src/data/schemas/defs/structureAppearance.ts`), puis
 une apparence de `structureAppearance.json` qui la porte (le jeu de données s'édite au fichier). L'hôte pose une
 arête par le modèle `arete--<kit>` s'il est servi, sinon par une boîte, comme une arête dont le modèle est
-illisible ou n'a pas la pièce (`VolumeDeScene._groupe`). Un kit bâtit donc les six pièces de `PieceDArete`
-(`src/noyau/monde/aretes.ts`, `test_arete.py`) : une pièce sans objet pour lui reprend la forme d'une autre (le talus
+illisible ou n'a pas la pièce (`VolumeDeScene._groupe`). Un kit bâtit donc les pièces de `PIECES_D_ARETE`
+(`src/noyau/monde/piecesDArete.ts`, `test_arete.py`) : une pièce sans objet pour lui reprend la forme d'une autre (le talus
 plein pour la fenêtre d'un terrassement, la grille baissée pour la porte d'une herse).
 
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
@@ -814,7 +813,7 @@ matériaux que les pièces du kit posent. Une partie qu'une apparence teint à p
 | `bois` | le bois du mur : ossature, pieux, clayonnage, boisage | `post` |
 | `joint` | l'âme d'un mur de pierre, vue dans ses joints et dans sa brèche | `detail.courses.joint` |
 | `gravats` | les gravats au pied d'une brèche (`geometrie.eboulis`) | `rubble` |
-| `accent` | les planches d'un vantail, porte ou volet | `door.leaf` |
+| `accent` | les planches d'un vantail, porte ou volet | `door.leaf`, sinon `wood.inset`, sinon `window.frame` |
 | `planche` | les barres et l'écharpe au dos d'un vantail | `door.plank` |
 | `vet1` | les bois d'une croisée | `window.mullion` |
 | `vitre` | la vitre d'une croisée | `window.glass` |
@@ -848,8 +847,8 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
 chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
 reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié, exige un kit pour chaque
-`arete--*` publié et un modèle pour chaque famille qu'une apparence porte. Les pièces qu'il exige sont celles de `PieceDArete`, lues du
-noyau par `arete/pieces.mjs`.
+`arete--*` publié et un modèle pour chaque famille qu'une apparence porte. Les pièces qu'il exige sont celles de `PIECES_D_ARETE`, lues
+du noyau par `arete/pieces.mjs`.
 Regarder le kit dans Godot comme tout modèle sans base (chapitre 7) : l'atelier en montre chaque pièce par
 l'échantillon « Mur et ouverture », et la capture `cadrages` le montre posé dans une scène, au regard d'un joueur.
 Une illustration de façade se compare à cette capture, jamais à une pièce seule. Recettes Godot des arêtes

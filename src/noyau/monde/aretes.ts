@@ -49,10 +49,10 @@ import { DIR8_DELTA } from '../../geometry/dir8';
 import { wallPartColor } from './volume/structures';
 import type { WallPart } from '../../data/structureAppearance.types';
 import type { Slot } from '../../lib/palette';
+import type { PIECES_D_ARETE } from './piecesDArete';
 
-/** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
- *  la brèche d'une structure abattue. */
-export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' | 'fenetre-close' | 'breche';
+/** La pièce qu'une arête porte, l'une de `PIECES_D_ARETE`. */
+export type PieceDArete = (typeof PIECES_D_ARETE)[number];
 
 /** La place d'une arête dans son ouverture (`ouverturesDeLaScene`) : seule, ou à son bout -X (`gauche`), entre ses
  *  deux bouts (`milieu`), à son bout +X (`droite`), X le long du `sens` de l'arête (#4471). */

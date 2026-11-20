@@ -124,14 +124,16 @@ const doc = document(
       .optional(),
     window: nommerChamps(z
       .strictObject({
-        glass: z.string(),
-        lit: z.string(),
-        frame: z.string(),
-        mullion: z.string(),
+        glass: z.string().optional(),
+        lit: z.string().optional(),
+        /** Le bois des vantaux (volets de la croisée, porte) d'une apparence sans `door.leaf` ni `wood.inset`
+         *  (`wallPartColor`, partie `vantail`). */
+        frame: z.string().optional(),
+        mullion: z.string().optional(),
       }), {
       glass: { label: 'Vitre' },
       lit: { label: 'Éclairée' },
-      frame: { label: 'Cadre' },
+      frame: { label: 'Bois des vantaux' },
       mullion: { label: 'Meneau' },
     })
       .optional(),
@@ -166,7 +168,7 @@ const doc = document(
     },
     parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet' },
     door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail, poignée et herse' },
-    window: { label: 'Fenêtre', hint: 'Vitre, cadre, meneau et teinte éclairée' },
+    window: { label: 'Fenêtre', hint: 'Vitre, bois des vantaux, meneau et teinte éclairée' },
     relief: {
       label: 'Relief de paroi',
       hint: 'Saillie et épaisseur en mètres par partie de mur, plus l’épaisseur de matière pleine (wallM)',

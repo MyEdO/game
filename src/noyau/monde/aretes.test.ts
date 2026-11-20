@@ -135,6 +135,15 @@ describe('areteDessinee — la palette de l’apparence (#4471)', () => {
     expect(areteDessinee(scene([]), { x: 0, y: 0, side: 'N', appearance: 'mur-en-pierre' }).palette.accent)
       .toBe(apparence('mur-en-pierre').window!.frame);
   });
+  it('une croisée qui ne déclare que son bois le donne aux vantaux, sa vitre et son meneau pris aux replis', () => {
+    const { door: _porte, wood: _bois, ...pierre } = apparence('mur-de-chateau');
+    const croisee = { ...pierre, window: { frame: '#000001' } };
+    expect(paletteDeLApparence(croisee)).toMatchObject({
+      accent: '#000001',
+      vitre: apparence('plain').window!.glass,
+      vet1: croisee.post,
+    });
+  });
   it('aucune couleur pour une apparence hors du catalogue', () => {
     expect(areteDessinee(scene([]), { x: 0, y: 0, side: 'N', appearance: 'inconnue' }).palette).toEqual({});
   });

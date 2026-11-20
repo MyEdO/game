@@ -271,7 +271,7 @@
     "window": {
       "glass": "#8ea2ad",
       "lit": "#ffc271",
-      "frame": "#888d95",
+      "frame": "#5a4632",
       "mullion": "#34373c"
     }
   },
@@ -458,6 +458,9 @@
       "bandThickPx": 2.6,
       "parapetBandFrac": 0.74,
       "arasePx": 3.5
+    },
+    "window": {
+      "frame": "#5a4632"
     }
   },
   {
@@ -499,6 +502,9 @@
       "bandThickPx": 3,
       "parapetBandFrac": 0.76,
       "arasePx": 4
+    },
+    "window": {
+      "frame": "#5a4632"
     }
   },
   {
@@ -526,7 +532,10 @@
     "band": "#3a362e",
     "cap": "#928c7d",
     "rubble": "#4a4136",
-    "rubbleHi": "#665c4c"
+    "rubbleHi": "#665c4c",
+    "window": {
+      "frame": "#5a4632"
+    }
   },
   {
     "id": "mur-en-pierres-seches",
@@ -552,7 +561,10 @@
     "face": "#6a6252",
     "post": "#3c362a",
     "rubble": "#463f31",
-    "rubbleHi": "#5b5240"
+    "rubbleHi": "#5b5240",
+    "window": {
+      "frame": "#5a4632"
+    }
   },
   {
     "id": "palissade-de-pieux",

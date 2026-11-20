@@ -1,7 +1,7 @@
 """Construction des arêtes (#4471) : chaque modèle d'`arete/` se bâtit par `construire.py`, deux fois aux mêmes octets,
 et reproduit ses éléments publiés sans lire hors de ses entrées (`reconstruction.DUneFamille`). Chaque famille `kit`
 d'une apparence de `src/data/structureAppearance.json` a son modèle. Son GLB porte un nœud racine à mesh pour chaque
-pièce (`PieceDArete`, `src/noyau/monde/aretes.ts`), à l'origine de l'arête, dans son repère
+pièce (`PIECES_D_ARETE`, `src/noyau/monde/piecesDArete.ts`), à l'origine de l'arête, dans son repère
 (`arete/geometrie.py`) : X le long d'elle, centrée, d'un bout à l'autre de sa longueur ; Y de son pied à sa hauteur ;
 Z son épaisseur, centrée pour le mur. Chaque nœud tient dans son budget de triangles et n'est fait que de coques closes
 aux faces vers le dehors (`glb.coques_en_defaut`). Une pièce pleine (`PLEINES`) ne laisse passer aucun jour à
