@@ -990,7 +990,7 @@ export type ProfilDArmePorte = Pick<Weapon, 'damage' | 'range' | 'traitsConferes
   ajustements?: TraitInstance['profilDArme'];
 };
 
-/** LDB 85 l.9, l.31 ; ADE II 02 l.710 ; ZI 13 l.224, l.240, l.242 ; HCVM 26 l.882 */
+/** LDB 85 l.9, l.31 ; ADE II 02 l.710 ; ZI 13 l.224, l.240, l.242 ; Guide de Frenchy, chap. 26, ligne 882 */
 export function appliquerProfilDuTrait(arme: Weapon, profil?: ProfilDArmePorte): Weapon {
   if (!profil) return arme;
   const { damage, range, traitsConferes, ajustements } = profil;

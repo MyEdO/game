@@ -154,7 +154,7 @@ const refIndicee = <T extends 'quality' | 'navalTrait'>(type: T) => ref(type, { 
 export const qualityRefSchema = refIndicee('quality');
 export type QualityRef = z.infer<typeof qualityRefSchema>;
 
-/** ADE II 02 l.710 ; ZI 13 l.224, l.240, l.242 ; HCVM 26 l.882 */
+/** ADE II 02 l.710 ; ZI 13 l.224, l.240, l.242 ; Guide de Frenchy, chap. 26, ligne 882 */
 const ajustementsDArmeSchema = nommerChamps(z.strictObject({
   qualites: listeSansCle(z.array(qualityRefSchema).min(1)).optional(),
   retire: refs('quality', { min: 1 }).optional(),

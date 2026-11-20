@@ -50,7 +50,7 @@ function verifierProfil(arme: Weapon, indice: number, qualites: readonly string[
 }
 
 describe('Armes de catalogue des statblocs (#4382)', () => {
-  // HCVM 26 l.153,163,186,195,882,887,907,912
+  // Guide de Frenchy, chap. 26, lignes 153, 163, 186, 195, 882, 887, 907, 912
   it.each([
     ['batelier', 'arme-simple', 40],
     ['nautonier', 'arme-simple', 50],
@@ -61,7 +61,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(combatBaseValue(c, 'melee', armeDuCatalogue(c, trapping))).toBe(score);
   });
 
-  // HCVM 26 l.827,832 ; HCVM 51 l.350,354
+  // Guide de Frenchy, chap. 26, lignes 827, 832 ; Guide de Frenchy, chap. 51, lignes 350, 354
   it.each([
     ['grande-pretresse-de-rhya', 35],
     ['seigneur-du-changement-exalte-de-tzeentch', 130],
@@ -77,7 +77,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(specialisations.size).toBeGreaterThan(1);
   });
 
-  // HCVM 26 l.295,322,353,400,632,674,759,787,827 ; LDB 08 l.3602 ; LDB 67 l.5
+  // Guide de Frenchy, chap. 26, lignes 295, 322, 353, 400, 632, 674, 759, 787, 827 ; LDB 08 l.3602 ; LDB 67 l.5
   it.each([
     'herboriste', 'maistre-herboriste', 'rebouteux', 'maitre-des-taillis',
     'druide-de-la-foi-antique', 'haut-druide-de-la-foi-antique',
@@ -86,7 +86,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     verifierProfil(armeDuCatalogue(porteur(id), 'arme-simple'), 7, [], 'Moyenne');
   });
 
-  // HCVM 22 l.297,324 ; HCVM 26 l.94,122 ; AA 08 l.255
+  // Guide de Frenchy, chap. 22, lignes 297, 324 ; Guide de Frenchy, chap. 26, lignes 94, 122 ; AA 08 l.255
   it.each([
     'marchand-habitants-des-villes', 'maistre-marchand-habitants-des-villes',
     'marchand-habitants-des-champs', 'maistre-marchand-habitants-des-champs',
@@ -97,7 +97,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     verifierProfil(arme, 5, [], 'Courte');
   });
 
-  // HCVM 26 l.153,186
+  // Guide de Frenchy, chap. 26, lignes 153, 186
   it.each([
     ['batelier', 8],
     ['nautonier', 9],
@@ -118,7 +118,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     verifierProfil(crochet!, indice, [], 'Très courte');
   });
 
-  // HCVM 65 l.27,70 ; HCVM 66 l.41 ; HCVM 67 l.25 ; LDB 62 l.89
+  // Guide de Frenchy, chap. 65, lignes 27, 70 ; Guide de Frenchy, chap. 66, ligne 41 ; Guide de Frenchy, chap. 67, ligne 25 ; LDB 62 l.89
   it.each([
     ['jeune-gobelin', 2, 6],
     ['gobelin-hcvm', 3, 9],
@@ -130,7 +130,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(effectiveWeaponRange(arme, undefined, 0)).toBe(portee);
   });
 
-  // HCVM 26 l.219,221,223,253,255,257 ; LDB 62 l.25,88
+  // Guide de Frenchy, chap. 26, lignes 219, 221, 223, 253, 255, 257 ; LDB 62 l.25,88
   it.each([
     ['riverain', []],
     ['riverain-respecte', ['empaleuse']],
@@ -142,12 +142,12 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(effectiveWeaponRange(lancer, undefined, 0)).toBe(9);
   });
 
-  // HCVM 26 l.882,907 ; LDB 62 l.25
+  // Guide de Frenchy, chap. 26, lignes 882, 907 ; LDB 62 l.25
   it.each(['moine-novice-de-taal', 'moine-de-taal'])('Épieu : %s', (id) => {
     verifierProfil(armeDuCatalogue(porteur(id), 'lance'), 7, ['empaleuse'], 'Moyenne');
   });
 
-  // HCVM 67 l.193,253
+  // Guide de Frenchy, chap. 67, lignes 193, 253
   it.each([
     ['chef-de-clan-orc', 11],
     ['chef-de-guerre-orc', 12],
@@ -155,7 +155,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     verifierProfil(armeDuCatalogue(porteur(id), 'arme-simple'), indice, ['devastatrice', 'taille'], 'Longue');
   });
 
-  // HCVM 45 l.36,77,127
+  // Guide de Frenchy, chap. 45, lignes 36, 77, 127
   it.each([
     ['guerrier-du-chaos-hcvm', 11, ['devastatrice', 'taille']],
     ['guerrier-du-chaos-chef-de-bande', 15, ['devastatrice', 'magique', 'taille']],
@@ -164,7 +164,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     verifierProfil(armeDuCatalogue(porteur(id), 'grande-hache'), indice, qualites, 'Longue');
   });
 
-  // HCVM 75 l.138,266
+  // Guide de Frenchy, chap. 75, lignes 138, 266
   it.each([
     ['spectre', 9],
     ['ombre-vengeresse', 13],
@@ -172,7 +172,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     verifierProfil(armeDuCatalogue(porteur(id), 'hallebarde'), indice, ['defensive', 'taille'], 'Longue');
   });
 
-  // HCVM 51 l.272,350 ; LDB 62 l.163-164
+  // Guide de Frenchy, chap. 51, lignes 272, 350 ; LDB 62 l.163-164
   it.each([
     ['seigneur-du-changement-de-tzeentch', 10, 'Longue', 1],
     ['seigneur-du-changement-exalte-de-tzeentch', 12, 'Très longue', 2],
@@ -202,7 +202,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(meleeReachRank(arme)).toBeNull();
   });
 
-  // ZI 04 l.46,48 ; ZI 05 l.122,138 ; VDM 13 l.24,26 ; HCVM 51 l.272,350 ; ADE II 02 l.604,710
+  // ZI 04 l.46,48 ; ZI 05 l.122,138 ; VDM 13 l.24,26 ; Guide de Frenchy, chap. 51, lignes 272, 350 ; ADE II 02 l.604,710
   it.each([
     ['troll-des-rivieres', 'merlin-grossier'],
     ['sorciere-troll-des-rivieres', 'baton-en-bois-mort'],
@@ -238,7 +238,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     verifierProfil(armeDuCatalogue(porteur('gobelin-de-la-nuit'), 'arme-simple'), 7, [], 'Moyenne');
   });
 
-  // HRC 04 l.40,43,73-77 ; HCVM 57 l.42,53,92,122,193,229,307,343
+  // The Horned Rat Companion 04 l.40,43,73-77 ; Guide de Frenchy, chap. 57, lignes 42, 53, 92, 122, 193, 229, 307, 343
   it.each([
     ['coureur-nocturne', 50],
     ['coureur-d-egouts', 80],
@@ -253,7 +253,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(rapideParryMod(arme, armeDuCatalogue(porteur('skaven'), 'arme-simple'))).toBe(-10);
   });
 
-  it('la possession des Griffes de Poing ajoute +10 aux Tests d’Escalade (HRC 04 l.43)', () => {
+  it('la possession des Griffes de Poing ajoute +10 aux Tests d’Escalade (The Horned Rat Companion 04 l.43)', () => {
     const sans = porteur('coureur-nocturne');
     const avec = spawnEnemy({ ref: 'coureur-nocturne' }, 'porteur-griffes', undefined, {
       inventaire: { 'griffes-de-poing': true },
@@ -263,7 +263,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(testValue(avec, escalade) - testValue(sans, escalade)).toBe(10);
   });
 
-  it('le joker exclut les armes sans Dégâts de catalogue et réserve les Griffes au clan Eshin (HRC 04 l.40,77)', () => {
+  it('le joker exclut les armes sans Dégâts de catalogue et réserve les Griffes au clan Eshin (The Horned Rat Companion 04 l.40,77)', () => {
     const armes = armesChoisissables();
     expect(armes.find(({ id }) => id === 'griffes-de-poing')).toMatchObject({ reserveeA: 'clan-eshin' });
     expect(armesSansDegatsDeCatalogue.some(([, id]) => armes.some((arme) => arme.id === id))).toBe(false);
