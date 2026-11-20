@@ -23,6 +23,8 @@ extends Node3D
 signal fondu_fini
 ## Ce que le regard retire a changé : le masque du retrait (`retirer`) ou les nappes de toit cachées (`cacher`).
 signal retire
+## Les nouvelles empreintes des morceaux rétablis par `retablir_le_decor`, par clé, pour les formes du rayon.
+signal empreintes_retablies(empreintes: Dictionary)
 ## Chaque modèle d'arête en lecture lu (`_lire_le_modele_d_arete`), ses arêtes posées (`aretes_en_lecture`).
 signal aretes_posees
 ## Plus aucun modèle d'arête en lecture : chacun lu, ou sa lecture périmée à la sortie de l'arbre
@@ -69,6 +71,8 @@ var metres_par_case := 1.0
 var _coques := {}
 ## Les ids des types de décor dont le modèle montre les surfaces, chacun à `true` (`peindre_sans`).
 var _decors_montres := {}
+## La source et la révision du volume posé dont le pont peut rendre les recettes de décor.
+var _secours_des_decors := {}
 ## Par nom de matière, la matière de rendu des surfaces des morceaux, que le masque lie (`retirer`), et celle des
 ## nappes et des couronnes, qu'il ne lie jamais : le retrait d'une nappe est par nœud (`cacher`).
 var _matieres_masquees := {}
@@ -174,6 +178,7 @@ func manquants(monde: Dictionary) -> Dictionary:
 ## (`_nappe`) cachés si `cacher` les nomme, chaque couronne retirée si `retirer_les_couronnes` la nomme ; la vision posée
 ## (`voir`) liée à l'échelle du volume.
 func poser(monde: Dictionary, recus: Dictionary) -> void:
+	_secours_des_decors = monde.monde.get("secoursDecors", {})
 	metres_par_case = monde.monde.metresParCase
 	_couches = {}
 	for indice in monde.monde.hauteurs.size():
@@ -394,6 +399,7 @@ func _batir_les_sols(hauteurs: Array) -> void:
 ## Rien de posé : ni morceau, ni nappe, ni arête ; les modèles d'arête lus, leurs pièces peintes et leurs échecs
 ## oubliés (`_oublier_les_modeles_d_arete`), relus à la prochaine pose.
 func vider() -> void:
+	_secours_des_decors = {}
 	_aretes_recues = []
 	_oublier_les_modeles_d_arete()
 	for parent: Node3D in [_morceaux, _toits, _couronnes, _aretes]:
@@ -420,6 +426,57 @@ func peindre_sans(decors: Array) -> void:
 		for noeud: Node3D in parent.get_children():
 			if noeud.get_meta("decors").any(func(decor: String) -> bool: return changes.has(decor)):
 				(_mailler if parent == _morceaux else _mailler_la_nappe).call(noeud, noeud.get_meta("geometrie"))
+
+
+## Le décor `decor` dont le modèle est illisible, peint par ses recettes, dans le volume intégral ou par
+## `retablirDecors` sur le manifeste posé. Seuls ses morceaux et nappes changés sont remaillés. Les empreintes
+## des morceaux sont signalées à `Monde` pour les formes du rayon, dont les triangles gardent leur ordre et leur case.
+func retablir_le_decor(decor: String) -> bool:
+	if not _decors_montres.has(decor):
+		return false
+	if _secours_des_decors.is_empty():
+		for parent: Node3D in [_morceaux, _toits]:
+			for noeud: Node3D in parent.get_children():
+				if noeud.get_meta("decors").has(decor):
+					var montres := _decors_montres.keys()
+					montres.erase(decor)
+					peindre_sans(montres)
+					return true
+		return false
+	var pont := get_node("/root/Pont") as PontDuNoyau
+	var recus := pont.appeler("retablirDecors", _secours_des_decors.merged({prop = decor}))
+	if recus.get("ok") != true:
+		return false
+	_decors_montres.erase(decor)
+	_retablir_sous(_morceaux, recus.volume)
+	_retablir_sous(_toits, recus.toits)
+	_cacher_sous(_toits, _cachees.toits)
+	var empreintes := {}
+	for morceau: Dictionary in recus.volume:
+		empreintes[morceau.cle] = morceau.empreinte
+	if not empreintes.is_empty():
+		empreintes_retablies.emit(empreintes)
+	return true
+
+
+func _retablir_sous(parent: Node3D, recus: Array) -> void:
+	if recus.is_empty():
+		return
+	var noeuds := {}
+	for noeud: Node3D in parent.get_children():
+		noeuds[noeud.get_meta("cle")] = noeud
+	for geometrie: Dictionary in recus:
+		var noeud: Node3D = noeuds.get(geometrie.cle)
+		if parent == _morceaux:
+			_poser_le_morceau(noeud, geometrie)
+		elif noeud == null:
+			noeud = _nappe(geometrie)
+			noeud.name = geometrie.cle
+			noeud.set_meta("cle", geometrie.cle)
+			parent.add_child(noeud)
+		else:
+			_poser_la_nappe(noeud, geometrie)
+		noeud.set_meta("empreinte", geometrie.empreinte)
 
 
 ## La mer du navire `navire` (les surfaces `flottaison` du volume, `CONTRAT.md`, section « Monde ») bordée par sa coque,
@@ -489,7 +546,16 @@ static func _manquants_sous(parent: Node, voulus: Array) -> Array:
 ## remaillent.
 func _morceau(morceau: Dictionary) -> Node3D:
 	var noeud := _vu_et_ombre()
-	if morceau.surfaces.any(_est_d_un_luminaire):
+	var cases := {}
+	for c in PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array():
+		cases[Vector3i(c)] = true
+	noeud.set_meta("cases", cases.keys())
+	_poser_le_morceau(noeud, morceau)
+	return noeud
+
+
+func _poser_le_morceau(noeud: Node3D, morceau: Dictionary) -> void:
+	if not noeud.has_node("OmbreDesLuminaires") and morceau.surfaces.any(_est_d_un_luminaire):
 		var des_luminaires := _en_ombre_seule("OmbreDesLuminaires")
 		des_luminaires.layers = COUCHE_DES_LUMINAIRES
 		noeud.add_child(des_luminaires)
@@ -497,21 +563,16 @@ func _morceau(morceau: Dictionary) -> Node3D:
 	noeud.set_meta("flottaisons", flottaisons)
 	var decors := _decors_de(morceau)
 	noeud.set_meta("decors", decors)
-	var cases := {}
-	for c in PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array():
-		cases[Vector3i(c)] = true
-	noeud.set_meta("cases", cases.keys())
 	if not flottaisons.is_empty() or not decors.is_empty():
 		noeud.set_meta("geometrie", morceau)
 	_mailler(noeud, morceau)
-	return noeud
 
 
-## Les ids des décors dont la géométrie `geometrie` porte des surfaces (`decor`).
+## Les ids des décors dont la géométrie `geometrie` porte des surfaces à peindre (`decor`).
 static func _decors_de(geometrie: Dictionary) -> Array:
 	var decors := {}
 	for surface: Dictionary in geometrie.surfaces:
-		if surface.has("decor"):
+		if surface.has("decor") and not surface.get("priseSeulement", false):
 			decors[surface.decor] = true
 	return decors.keys()
 
@@ -539,7 +600,7 @@ func _en_ombre_seule(nom: String) -> MeshInstance3D:
 
 ## Si `surface` est d'un décor qui éclaire (`luminaire`, `CONTRAT.md`, section « Monde »).
 static func _est_d_un_luminaire(surface: Dictionary) -> bool:
-	return surface.has("luminaire")
+	return surface.has("luminaire") and not surface.get("priseSeulement", false)
 
 
 ## Le maillage de la géométrie `morceau` (`_maillage_de`, chaque case sur la `rangee` du morceau, dans les matières que
@@ -562,10 +623,14 @@ func _mailler(noeud: Node3D, morceau: Dictionary) -> void:
 ## surfaces (`decor`, ornements du bâti qu'une nappe porte), et sa géométrie, que `peindre_sans` remaille.
 func _nappe(nappe: Dictionary) -> Node3D:
 	var noeud := _vu_et_ombre()
+	_poser_la_nappe(noeud, nappe)
+	return noeud
+
+
+func _poser_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 	noeud.set_meta("decors", _decors_de(nappe))
 	noeud.set_meta("geometrie", nappe)
 	_mailler_la_nappe(noeud, nappe)
-	return noeud
 
 
 ## Le maillage de la nappe `nappe` (`_maillage_de`, chaque case au plan `sol` de sa couche, `MiseEnPage.texel_de_nappe`,
@@ -732,34 +797,39 @@ func _cacher_sous(parent: Node3D, cles: Array) -> void:
 		(nappe.get_node("Vu") as Node3D).visible = not cles.has(nappe.get_meta("cle"))
 
 
-## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `cases`, `surfaces`) : une surface par
-## matière, texturée ou colorée par sommet (`_matiere`, liée au masque si `masquee`), chaque sommet portant en `UV2` le
-## texel au masque de la case de son triangle que `texel_de` rend (la case de chaque triangle lue en `x, y, z` à plat
-## dans `cases`), chaque tableau retourné en entier (`_retournes`) ;
-## sans les surfaces d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre, ni celles
-## d'un décor que son modèle montre (`decor`, `peindre_sans`), que le rayon touche de même ; la mer
-## d'un navire (`flottaison`) hors du contour de sa coque (`border_la_mer`, `_hors_du_contour`), entière tant qu'il
-## n'est pas connu ; de ses seules surfaces que `retenue` retient, s'il est donné. Godot tient pour face avant le sens
-## horaire, le volume le sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle.
+## Le maillage d'une géométrie du monde : positions et cases à l'ordre du rayon, normales et couleurs rangées
+## sur les seules surfaces à peindre (`priseSeulement` absent). `texel_de` donne l'UV2 de chaque sommet par la case
+## de son triangle. Les surfaces que montrent un navire ou un décor (`peindre_sans`), et celles que `retenue`
+## écarte, passent dans le rangement des attributs sans conversion. La mer est bordée par la coque (`border_la_mer`).
+## Godot tient pour face avant le sens horaire, le volume le sens trigonométrique (`_retournes`).
 func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool, retenue := Callable()) -> ArrayMesh:
-	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
-	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
-	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
-	var texels := PackedVector2Array()
-	for c: Vector3 in PackedFloat32Array(geometrie.cases).to_byte_array().to_vector3_array():
-		var texel := Vector2(texel_de.call(c))
-		texels.append_array([texel, texel, texel])
+	var positions := PackedFloat32Array(geometrie.positions)
+	var normales := PackedFloat32Array(geometrie.normales)
+	var couleurs := PackedFloat32Array(geometrie.couleurs)
+	var cases := PackedFloat32Array(geometrie.cases)
 	var rangs := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV2]
 	var maillage := ArrayMesh.new()
+	var rang_d_attribut := 0
 	for surface: Dictionary in geometrie.surfaces:
+		if surface.get("priseSeulement", false):
+			continue
+		var debut := int(surface.debut)
+		var fin := int(surface.fin)
+		var debut_d_attribut := rang_d_attribut
+		rang_d_attribut += fin - debut
 		if surface.has("navire") or _decors_montres.has(surface.get("decor")) or (retenue.is_valid() and not retenue.call(surface)):
 			continue
+		var texels := PackedVector2Array()
+		# Chaque triangle a trois sommets et trois coordonnées de case.
+		for c: Vector3 in cases.slice(debut, fin).to_byte_array().to_vector3_array():
+			var texel := Vector2(texel_de.call(c))
+			texels.append_array([texel, texel, texel])
 		var tableaux := []
 		tableaux.resize(Mesh.ARRAY_MAX)
-		tableaux[Mesh.ARRAY_VERTEX] = sommets.slice(int(surface.debut), int(surface.fin))
-		tableaux[Mesh.ARRAY_NORMAL] = normales.slice(int(surface.debut), int(surface.fin))
-		tableaux[Mesh.ARRAY_COLOR] = couleurs.slice(int(surface.debut), int(surface.fin))
-		tableaux[Mesh.ARRAY_TEX_UV2] = texels.slice(int(surface.debut), int(surface.fin))
+		tableaux[Mesh.ARRAY_VERTEX] = positions.slice(3 * debut, 3 * fin).to_byte_array().to_vector3_array()
+		tableaux[Mesh.ARRAY_NORMAL] = normales.slice(3 * debut_d_attribut, 3 * rang_d_attribut).to_byte_array().to_vector3_array()
+		tableaux[Mesh.ARRAY_COLOR] = couleurs.slice(4 * debut_d_attribut, 4 * rang_d_attribut).to_byte_array().to_color_array()
+		tableaux[Mesh.ARRAY_TEX_UV2] = texels
 		if surface.has("flottaison") and _coques.has(surface.flottaison):
 			tableaux = _hors_du_contour(tableaux, _coques[surface.flottaison])
 		if tableaux[Mesh.ARRAY_VERTEX].is_empty():

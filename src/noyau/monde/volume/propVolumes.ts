@@ -41,7 +41,8 @@ export interface AncrageVolume {
 }
 
 /**
- * Les faces MONDE d'un décor volumique : recette locale × cap × ancre, posées sur `baseHeightM`.
+ * Les faces MONDE d'un décor volumique, de la recette locale posée à son cap, à son ancre et sur `baseHeightM`,
+ * servent au rendu et à la prise selon l'hôte.
  * L'ancre est un point MONDE quelconque — le centre d'une case pour un prop d'entité, un point
  * fractionnaire d'arête pour une feature de façade, le milieu d'une empreinte pour un ornement de
  * faîte : la recette y subit la MÊME translation rigide. Chaque face porte le matériau de sa primitive
