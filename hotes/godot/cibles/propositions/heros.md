@@ -130,8 +130,8 @@ cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObje
 - `fiche-possessions` (état `arme`) : la rangée des sets d'armes, celui en main cerné ; « + » crée un set
   (`creerLaPanoplie(heroId)`), une main pressée se garnit (`garnirLaPanoplie(heroId, loadoutId, slot, uid)`), la croix
   le supprime (`supprimerLaPanoplie(heroId, loadoutId)`), presser un set le prend (`prendreLaPanoplie`). Refus au
-  survol, textes du noyau : « Arme à deux mains — pas de seconde main. », « Dernier set d’armes — un héros en garde
-  toujours un. » (`src/noyau/partyFlow.ts:264-309` ; LDB 14 l.138). Listes « Porté », « En vrac et rangé ».
+  survol : « Arme à deux mains — pas de seconde main. » (texte du noyau), « Dernière panoplie — un héros en garde
+  toujours une. » (`src/noyau/partyFlow.ts:264-309` ; LDB 14 l.138). Listes « Porté », « En vrac et rangé ».
 - `fiche-possessions-composant` : un composant « À lier » ouvre les Sorts connus ; en presser un le lie
   (`designerLeComposant(uid, spellId)`, `partyFlow.ts:580-647` ; LDB 46 l.107-113).
 - `fiche-possessions-prothese` (Berta) : la Fausse jambe et ses paliers d'entraînement avec leur prix en PX
@@ -141,7 +141,8 @@ cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObje
   solde, et offre « Rompre la Faveur » (`rompreLaFaveur(heroId, favorId)`), sa conséquence dite au-dessus de la
   plaque (LDB 23 l.141-151 ; `src/noyau/favorFlow.ts` ; règle maison `faveur-rumeur-se-repand`). Le solde se joue à
   l'interlude (`solderLaFaveur`, `src/noyau/interludeEnVue.ts:92`), pas sur la fiche.
-- À valider : « Sets d'armes » à l'écran, « panoplies » au code ; figure générique pour les deux héros ; noms,
+- À valider : « Panoplies » à l'écran comme au code (le noyau dit encore « set d’armes », `src/i18n/messages/fr.ts`
+  `pf.loadoutLast`, que le refus de la maquette ne recopie plus) ; figure générique pour les deux héros ; noms,
   objets et prix d'exemple ; l'échoppe (troc, réparation) revient à la famille `commerce`.
 
 ## Choix de la migration en maquettes JSON (#4411), à valider

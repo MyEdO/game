@@ -15,11 +15,9 @@
  *  Traits de construction (l.167-193) : Peu maniable (−10 %/niveau), Renforcé (+10 E, −10 % Contenance,
  *  +10 %/niveau), Robuste (+10 %), Solide (+30 % B, −10 % Contenance, +20 %/niveau).
  *
- * Améliorations : coût / poids d'installation par PALIER DE LONGUEUR (`NavalInstall`, verbatim ch.12 ;
- * MSRC 12 l.54-135 pour les Améliorations propres au MSRC — le RAW y tarife par TYPE de navire à
- * longueurs explicites, pas par `ShipSize`, #277) — `per:'5m'` = par tranche de 5 m de Taille (Blindage
- * l.225, Lissage l.289) ; `per:'unite'` = par cabine (l.240) ; `'modele'` = ceux du modèle embarqué
- * (Embarcation de bord, l.268).
+ * Améliorations : les six barèmes MSRC 12 l.54-135 indexent le coût et le poids sur le type de bateau.
+ * MDG 12 l.195-364 porte les barèmes de longueur et les taux par tranche de 5 m ou par cabine.
+ * La Coque de course prend ses tranches de 10 m sur le gabarit fluvial (MSRC 12 l.21-25).
  *
  * Réparations (ch.13 l.639-651) : constructeur naval au port — « 1 CO par Blessure restaurée. Chaque
  * Test réussi prend 1d10 heures de travail et restaure 1d10 Blessures » ; Métier (Charpentier) à −10
@@ -44,7 +42,7 @@ import type { ShipRig } from './combat';
 import { navalTraitsDe, shipHasNavalTrait } from './navalTraits';
 import { COMPETENCE_DU_MODE, type PropulsionKind } from './propulsion';
 
-/** Milieu du FLUX qui meut le navire (voyage maritime ou fluvial) — MDG 12 l.311 ; MSRC 10 l.255. */
+/** Milieu du FLUX qui meut le navire (voyage maritime ou fluvial) — MDG 12 l.311 ; MSRC 12 l.255. */
 export type MilieuDeNavigation = 'maritime' | 'fluvial';
 
 /** Milieu du voyage en cours : fluvial sous `river`, maritime sinon (MDG 13 l.13). PUR. */
@@ -52,7 +50,7 @@ export function milieuDuVoyage(plan: { river?: unknown } | null | undefined): Mi
   return plan?.river ? 'fluvial' : 'maritime';
 }
 
-/** Compétence de la propulsion à vapeur (MDG 12 l.311 ; MDG 13 l.32 ; MSRC 10 l.255). */
+/** Compétence de la propulsion à vapeur (MDG 12 l.311 ; MDG 13 l.32 ; MSRC 12 l.255). */
 export const STEAM_SKILL = { id: 'metier', spec: 'ingenieur' } as const;
 
 /** Propulsion d'un navire dans un milieu : mode, M, Compétence de Navigation, gréement (colonne de
@@ -82,16 +80,18 @@ function modeDeConception(vd: NonNullable<VehicleData['ship']>, mode: Propulsion
 
 /** Propulsion d'un navire, désigné par son couple (id de véhicule, améliorations) comme `navalTraitsDe`,
  *  dans le `milieu` du flux ; `mode` = le mode du jour d'un navire mixte. Vapeur : MDG 12 l.311
- *  (maritime), MSRC 10 l.255 (fluvial) ; voile, avirons : MDG 13 l.18-19. `null` = aucune. PUR. */
+ *  (maritime), MSRC 12 l.255 (fluvial) ; voile, avirons : MDG 13 l.18-19 ; MSRC 07 l.172-178.
+ *  `null` = aucune. PUR. */
 export function propulsionDuNavire(vehicleId: string | undefined, upgrades: NavalTraitRef[] | undefined, milieu: MilieuDeNavigation, mode?: PropulsionKind): PropulsionDuNavire | null {
   const vd = findVehicleById(vehicleId ?? '')?.ship;
   if (!vd) return null;
   const rig = rigDuNavire(vd);
   const conception = modeDeConception(vd, mode);
   if (!conception || !rig) return null;
+  const m = milieu === 'fluvial' ? (vd.fluvialMovement ?? conception.m) : conception.m;
   if (shipHasNavalTrait(navalTraitsDe(vehicleId, upgrades), 'propulsion-a-vapeur'))
-    return { mode: 'vapeur', m: milieu === 'maritime' ? 4 : conception.m, competence: STEAM_SKILL, rig };
-  return { ...conception, rig };
+    return { mode: 'vapeur', m: milieu === 'maritime' ? 4 : m, competence: STEAM_SKILL, rig };
+  return { ...conception, m, rig };
 }
 
 /** La colonne « Taille » (ch.12 l.122-129) telle que `findTableEntry` la lit — `tableOuverte`
@@ -214,35 +214,43 @@ export function buildShip(spec: ShipBuildSpec): ShipBuildResult {
 
 // ── Installation d'Améliorations (MDG 12 l.195-364, `NavalInstall`) ───────────────────────────
 
-/** Palier retenu pour `lengthM` : le PREMIER dont `maxLengthM` ≥ `lengthM` (triés croissants), sinon le
- *  DERNIER de la liste (bande ouverte, `maxLengthM: null`, #277). PUR. */
-function bandValue(bands: InstallBand[], lengthM: number): number {
+type CoqueAEquiper = { id: string; ship: Pick<NonNullable<VehicleData['ship']>, 'lengthM' | 'fluvialLengthM'> };
+
+/** MDG 12 l.195-364 ; MSRC 12 l.54-135. */
+function bandValue(bands: InstallBand[], lengthM: number, vehicleId: string | undefined): number {
+  const parType = bands.find((b) => b.vehicules?.some((id) => id === vehicleId));
+  if (parType) return parType.value;
   for (const b of bands) if (b.maxLengthM != null && lengthM <= b.maxLengthM) return b.value;
   return bands.length ? bands[bands.length - 1].value : 0;
 }
 
-/** Coût (CO), poids (Enc) ou durée de pose (jours) d'installation d'une Amélioration : palier de LONGUEUR × multiplicateur
+/** Coût (CO), poids (Enc) ou durée de pose (jours) : bande du type ou de la longueur, × multiplicateur
  *  `per:'5m'` (« par tranche de 5 mètres de Taille », l.225/289 — tranches ENTAMÉES comptées) ou
  *  `per:'unite'` (× `units`). `'modele'` (Embarcation de bord) → `null` : le prix est celui du modèle
  *  embarqué, résolu par l'appelant ; sur la durée, l'appelant retombe sur `REPARATION.joursDePose`. PUR. */
 export function installAmount(
   part: InstallBareme,
-  lengthM: number,
+  coque: CoqueAEquiper | number,
   units = 1,
+  milieu?: MilieuDeNavigation,
 ): number | null {
   if (part === 'modele') return null;
-  const base = bandValue(part.bands, lengthM);
+  const { id, ship } = typeof coque === 'number'
+    ? { id: undefined, ship: { lengthM: coque, fluvialLengthM: undefined } }
+    : coque;
+  const lengthM = (milieu === 'fluvial' ? ship.fluvialLengthM : undefined) ?? ship.lengthM;
+  const base = bandValue(part.bands, lengthM, id);
   if (part.per === '5m') return base * Math.max(1, Math.ceil(lengthM / 5));
   if (part.per === '10m') return base * Math.max(1, Math.ceil(lengthM / 10)); // MSRC 12 « pour 10 mètres » (Coque de course l.23)
   if (part.per === 'unite') return base * Math.max(1, units);
   return base;
 }
 
-/** Coût + poids d'installation d'une Amélioration navale sur une coque de `lengthM` mètres. PUR. */
-export function installCost(install: NavalInstall, lengthM: number, units = 1): { gold: number | null; enc: number | null } {
+/** Coût et poids de pose d'une Amélioration navale. MDG 12 l.195-364 ; MSRC 12 l.21-25, l.54-135. PUR. */
+export function installCost(install: NavalInstall, coque: CoqueAEquiper | number, units = 1): { gold: number | null; enc: number | null } {
   return {
-    gold: installAmount(install.installation, lengthM, units),
-    enc: install.weightEnc ? installAmount(install.weightEnc, lengthM, units) : 0,
+    gold: installAmount(install.installation, coque, units, install.milieu),
+    enc: install.weightEnc ? installAmount(install.weightEnc, coque, units, install.milieu) : 0,
   };
 }
 

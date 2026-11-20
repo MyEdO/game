@@ -116,6 +116,8 @@ const NOMMES = [
   'obsessions',
   // `windAspectSchema` (MDG 13 l.267-270).
   'arriere|lateral|face',
+  // Gabarit des barèmes de pose (MDG 12 l.195-364 ; MSRC 12 l.21-25).
+  'maritime|fluvial',
   // `voie` du catalogue des cargaisons (#1684) : la table du livre qui porte l'entrée (MDG 15, MSRC 13).
   'mer|terre',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.
@@ -134,6 +136,7 @@ const NOMMES = [
   'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
+  'favorable|hostile',
   'repas|priere|tapi|debout|hurlement',
   'fixe|variable|tout',
   // `apFromSchema`, `ressourceDeDestinSchema`, `arrondiSchema` (#3606 M2a) : les vocabulaires des ops `wounds`,
@@ -164,6 +167,7 @@ const NOMMES = [
   'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
+  'pied|monture|mer',
   'pietre|normale|grande',
   'prop|roof|relief|objet|couleur',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).

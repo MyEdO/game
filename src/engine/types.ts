@@ -296,6 +296,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  l'usage par `effectiveRange(weapon.range, BF du tireur)` aux sites combat/affichage. */
   range?: WeaponRangeSpec | null;
   qualities: QualityInstance[];
+  /** AA 08 l.69-77 */
+  atoutOptionnel?: string;
   /** `id` du Groupe d'arme/famille de munition (`WeaponGroupData.id`) — réf, ≠ libellé. Pilote la
    *  Spécialisation de combat (`combatValue`), la famille de munition (`ammoFamily`). */
   subType?: string;
@@ -1198,7 +1200,7 @@ export type DeckCoverClass = 'imparfaite' | 'moyenne' | 'totale';
 export type CoverClass = 'none' | DeckCoverClass;
 
 /** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222) : l'entrée de son schéma
- *  (`authoredShipPosteSchema`), telle qu'un auteur l'écrit. La pièce et son coffre désignent le catalogue ;
+ *  (`authoredShipPosteSchema`). La pièce et le coffre désignent les catalogues des engins et des munitions ;
  *  `hydratePoste` les matérialise au spawn, chaque uid d'instance dérivé de la place (#2907). */
 export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/schemas/defs-scenes/scene').authoredShipPosteSchema>;
 
@@ -1207,7 +1209,7 @@ export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/sch
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `noyau/monde/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
 export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId' | 'ammo' | 'selectedAmmo'> {
-  /** L'arme HYDRATÉE (instance complète, base via `trappingId`). Jamais persistée : re-résolue à chaque spawn
+  /** L'arme HYDRATÉE (instance complète, profil d’engin via `trappingId`). Re-résolue à chaque spawn
    *  depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
   /** Le coffre MATÉRIALISÉ de la pièce : des `ItemInstance` `kind:'ammo'` avec leur `qty`, fondues au pool du chef
@@ -1298,10 +1300,9 @@ export interface Combatant {
    *  d'incantation (LDB 46 l.107-111, une possession/dépense de personnage), Tests de fin de combat
    *  Maladie/Corruption (LDB 18 l.5 « la plupart des Personnages » ; LDB 20 l.14/206 « Personnage »), Terreurs
    *  subies de la Phobie du noir (ADE II 09 l.9).
-   *  Un HÉROS (`kind:'heros'`) l'est TOUJOURS implicitement (ne pas le redéclarer) ; une créature
-   *  générique du bestiaire ne l'est PAS par défaut ; un PNJ humain hostile MODÉLISÉ (statbloc d'auteur)
-   *  peut l'être explicitement — data-driven, éditable (`CustomStatblock.followsCharacterRules`,
-   *  propagé au spawn par `statblockToCombatant`). Prédicat unique : `followsCharacterRules` (engine/relations.ts). */
+   *  Un héros du groupe l'est implicitement. Un combattant apparu depuis une fiche peut l'être
+   *  explicitement (`CreatureData.followsCharacterRules` ou `CustomStatblock.followsCharacterRules`),
+   *  quel que soit son camp. Prédicat : `followsCharacterRules` (engine/relations.ts). */
   followsCharacterRules?: boolean;
   /** `id` STABLE de la fiche dont ce combattant est une instance (posé au spawn) : une créature du
    *  bestiaire (`noyau/monde/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —

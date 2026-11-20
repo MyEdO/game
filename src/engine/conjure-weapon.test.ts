@@ -4,7 +4,8 @@ import { applyOps } from './ops';
 import { endOfRound } from './conditions';
 import { effectiveWeaponDamage } from './weaponDamage';
 import { damageString, itemFromTrappingById, isShieldItem, isUnarmed } from './items';
-import { findTrappingById, trappings } from '../data';
+import { findSpellById, findTrappingById, trappings } from '../data';
+import { schema as catalogueDesSorts } from '../data/schemas/defs/spells';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { conjureFormOptions } from './conjuredWeapons';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
@@ -111,16 +112,28 @@ describe('grantWeapon — référence de forme emboîtée', () => {
     expect(c.weapons[0].subType).toBe(groupe);
   });
 
-  it('la référence est fermée : id connu admis, id inconnu, service, chaîne et clé étrangère refusés', () => {
+  it('la forme et le sous-type exigent chacun une référence emboîtée ; un service est refusé comme forme', () => {
     const op = { op: 'grantWeapon', label: 'Arme de forme fixe', damage: 3 };
     expect(gameOpSchema.safeParse({ ...op, form: { id: 'arme-simple' }, subType: { id: 'base' } }).success).toBe(true);
     for (const subType of [{ id: 'groupe-inconnu' }, 'base', { id: 'base', autre: true }]) {
       expect(gameOpSchema.safeParse({ ...op, subType }).success, JSON.stringify(subType)).toBe(false);
     }
     const service = trappings.find((t) => t.service)!;
-    for (const form of [{ id: 'forme-inconnue' }, { id: service.id }, 'arme-simple', { id: 'arme-simple', autre: true }]) {
+    for (const form of [{ id: service.id }, 'arme-simple', { id: 'arme-simple', autre: true }]) {
       expect(gameOpSchema.safeParse({ ...op, form }).success, JSON.stringify(form)).toBe(false);
     }
+  });
+
+  it('le catalogue des sorts juge la référence de forme dans le catalogue autonome', () => {
+    const sort = findSpellById('arme-aethyrique')!;
+    const catalogue = (id: string) => [{ ...sort, effects: {
+      kind: 'effet', effet: { type: 'ops', ops: [{ op: 'grantWeapon', label: 'Arme de forme fixe', damage: 3, form: { id } }] },
+    } }];
+    expect(catalogueDesSorts.safeParse(catalogue('arme-simple')).success).toBe(true);
+    const r = catalogueDesSorts.safeParse(catalogue('forme-inconnue'));
+    expect(r.success ? [] : r.error.issues.map((i) => [i.path, i.message])).toEqual([
+      [[0, 'effects', 'effet', 'ops', 0, 'form', 'id'], '« forme-inconnue » est absent du catalogue des objets (trappings.json).'],
+    ]);
   });
 });
 

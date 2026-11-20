@@ -25383,7 +25383,7 @@
         }
       },
       {
-        "id": "barge",
+        "id": "barge-fluviale",
         "type": "vehicle",
         "label": "Bateau de transport"
       },
@@ -26186,7 +26186,7 @@
     ],
     "trappings": [
       {
-        "id": "chaloupe",
+        "id": "barque-fluviale",
         "type": "vehicle",
         "label": "Bateau de cérémonie"
       },

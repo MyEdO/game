@@ -20169,19 +20169,39 @@
       },
       {
         "id": "plastron",
-        "spec": "de malepierre"
+        "spec": "de malepierre",
+        "qualities": [
+          {
+            "id": "armure-de-malepierre"
+          }
+        ]
       },
       {
         "id": "brassards",
-        "spec": "de malepierre"
+        "spec": "de malepierre",
+        "qualities": [
+          {
+            "id": "armure-de-malepierre"
+          }
+        ]
       },
       {
         "id": "jambieres-d-acier",
-        "spec": "de malepierre"
+        "spec": "de malepierre",
+        "qualities": [
+          {
+            "id": "armure-de-malepierre"
+          }
+        ]
       },
       {
         "id": "heaume",
-        "spec": "de malepierre"
+        "spec": "de malepierre",
+        "qualities": [
+          {
+            "id": "armure-de-malepierre"
+          }
+        ]
       },
       {
         "id": "bourse"
@@ -51188,7 +51208,8 @@
       },
       {
         "id": "armure",
-        "value": 6
+        "value": 6,
+        "matiere": "chaos"
       },
       {
         "id": "arme",
@@ -51336,15 +51357,18 @@
     "trappings": [
       {
         "id": "plastron",
-        "spec": "du Chaos"
+        "spec": "du Chaos",
+        "decritLeTraitArmure": true
       },
       {
         "id": "brassards",
-        "spec": "du Chaos"
+        "spec": "du Chaos",
+        "decritLeTraitArmure": true
       },
       {
         "id": "jambieres-d-acier",
-        "spec": "du Chaos"
+        "spec": "du Chaos",
+        "decritLeTraitArmure": true
       },
       {
         "id": "grande-hache",

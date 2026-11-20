@@ -12,6 +12,9 @@ import * as navalTraitsMod from '../engine/navalTraits';
 import { crewTestSuccess, crewRoleValue } from '../engine/crewMorale';
 import { refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
 import { findCrewRoleById } from '../data';
+import { progressionMovement } from '../engine/shipNavigation';
+import { rollSeaWeather } from '../engine/seaWeather';
+import type { TravelPlan } from './travelFlow';
 import { t } from '../i18n';
 import { setRule } from '../engine/policy';
 import type { Combatant, NavalTraitRef, ShipPoste } from '../engine/types';
@@ -105,6 +108,32 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
     const after = banc.getState().facing.ship;
     expect(after !== before).toBe(r.success); // le navire ne vire QUE sur une manœuvre réussie
     if (r.success) expect(after).toBe('E'); // tribord 90° depuis Nord
+  });
+
+  // MSRC 07 l.176 ; MDG 12 l.89
+  it('la même barge manœuvre avec M8 en scène fluviale et M3 sur un trajet maritime', () => {
+    const barge = { ...ship(), creatureId: 'barge-fluviale' };
+    const equipage = { ...helmsman(), skills: [{ id: 'voile', spec: 'chaland', characteristic: 'agilite' as const, advances: 40 }] };
+    banc.setState({ battle: { combatants: [barge, equipage], order: ['ship', 'helm'], turn: 0 } as never, travelPlan: null });
+    seedBattleRng(7);
+    const fleuve = rollShipManeuver(banc.getState, 'ship')!;
+
+    const mer: TravelPlan = {
+      routeId: 'traversee', fromPlaceId: 'a', toPlaceId: 'b', mode: 'mer',
+      km: 25, kmDone: 0, hoursPerDay: 6, interrupted: true, vehicle: barge,
+      sea: {
+        heading: 'ouest', weather: rollSeaWeather('ete', makeRNG(1)), windFrom: 'est',
+        daysToEvent: 4, daysAtSea: 1, lines: [], milesToday: 0, hullAtDayStart: barge.wounds.current,
+      },
+    };
+    banc.setState({ travelPlan: mer });
+    seedBattleRng(7);
+    const ocean = rollShipManeuver(banc.getState, 'ship')!;
+
+    expect(fleuve.helmsman).toBe('Timonier');
+    expect(ocean.dr).toBe(fleuve.dr);
+    expect(fleuve.movement).toBe(progressionMovement(8, fleuve.dr));
+    expect(ocean.movement).toBe(progressionMovement(3, ocean.dr));
   });
 
   it('hors combat → null', () => {

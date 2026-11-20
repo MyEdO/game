@@ -3,7 +3,26 @@
  * du moteur hors types), lu par `vehicle.ts`, `structures.ts`, `conditions.ts` et les flux.
  */
 import type { Combatant, VehicleData } from './types';
+import type { MilieuDeNavigation } from './shipBuild';
+import type { CombatantAvecMilieuNaval } from './vehicle';
 import { findVehicleById } from '../data';
+
+export type CoqueAvecContexteNaval = Pick<CombatantAvecMilieuNaval, 'creatureId' | 'milieuNaval'>;
+export type ContexteDeTrajetNaval = { river?: unknown; sea?: unknown } | null;
+
+/** MSRC 07 l.48–58, l.172–178 ; MDG 13 l.571–582. */
+export function milieuNavalDeclare(coque: CoqueAvecContexteNaval, trajet?: ContexteDeTrajetNaval): MilieuDeNavigation | undefined {
+  if (trajet?.river) return 'fluvial';
+  if (trajet?.sea) return 'maritime';
+  return coque.milieuNaval;
+}
+
+/** MSRC 07 l.172–178 ; MDG 12 l.85–91. */
+export function milieuDeLaCoque(coque: CoqueAvecContexteNaval, trajet?: ContexteDeTrajetNaval): MilieuDeNavigation {
+  const declare = milieuNavalDeclare(coque, trajet);
+  if (declare) return declare;
+  return findVehicleById(coque.creatureId ?? '')?.hull?.propulsion === 'fluvial' ? 'fluvial' : 'maritime';
+}
 
 /** Ce combattant est-il un VÉHICULE-coque (navire, chariot, barge) — `bodyShape:'vehicule'` ? Un véhicule agit en
  *  UNITÉ (Tests d'équipage) ; il n'a ni arme tenue, ni sort, ni marche de fantassin. */

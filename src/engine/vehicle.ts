@@ -22,13 +22,19 @@ import { inanimateCombatant } from './inanimate';
 import { rollVehicleProblem, type TravelTableEntry } from './travelTables';
 import { rollTest, isImpressiveFailure, isAstoundingFailure, type TestResult } from './tests';
 import { COND } from './conditions';
+import type { MilieuDeNavigation } from './shipBuild';
+
+export type CombatantAvecMilieuNaval = Combatant & {
+  /** MSRC 07 l.48–58, l.72–94 ; MDG 13 l.571–582, l.656–664. */
+  milieuNaval?: MilieuDeNavigation;
+};
 
 /** Adaptateur de `inanimateCombatant` (builder UNIQUE des objets inanimés) pour une coque de véhicule
  *  depuis sa facette `hull` (Endurance + Blessures). `undefined` si le véhicule n'a pas de profil de coque
  *  (transports sans entité à PV). */
-export function vehicleCombatant(v: VehicleData, id = `vehicle-${v.id}`): Combatant | undefined {
+export function vehicleCombatant(v: VehicleData, id = `vehicle-${v.id}`, milieuNaval?: MilieuDeNavigation): CombatantAvecMilieuNaval | undefined {
   if (!v.hull) return undefined;
-  return inanimateCombatant({
+  const coque = inanimateCombatant({
     id,
     label: v.label,
     refId: v.id,
@@ -36,6 +42,7 @@ export function vehicleCombatant(v: VehicleData, id = `vehicle-${v.id}`): Combat
     hull: { e: v.hull.char.endurance, woundsB: v.hull.char.B },
     footprint: v.ship?.footprint, // EMPREINTE de grille (côté N×N) autorée — découplée de la Taille créature
   });
+  return v.ship && milieuNaval ? { ...coque, milieuNaval } : coque;
 }
 
 export interface VehicleProblemResult {

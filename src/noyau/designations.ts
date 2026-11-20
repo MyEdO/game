@@ -20,7 +20,7 @@ import { ACTIVITIES } from '../data';
 import { cleDEntrainement, entrainementOptions, libelleDEntrainement, qualitesDArtisanat } from '../engine/activities';
 import { parseRefKey } from '../engine/careerSlots';
 import { libelleDePsy } from '../engine/psych/ciblage';
-import { travelVehicles, vehicleTravel } from '../engine/travel';
+import { travelModeLabels, travelVehicles, vehicleTravel } from '../engine/travel';
 import { actionsDe } from './monde/usable';
 import { creneauxDuHeros } from './partyFlow';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
@@ -29,6 +29,7 @@ import { preemptShooterIds } from './targeting';
 import { BENCHED, chansonsDuChanteur, choixDePaieOuverts } from './shipCrew';
 import { creaturesADepecer, entityPickables } from './combatEffects';
 import { activeCombatant } from './combatFlow';
+import { fenetreDAttaque } from './fenetreDAttaque';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { FLOWS } from './rollFlowSpecs';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
@@ -123,6 +124,8 @@ export type IdDActivite = string;
 export type IdDObjetDuCatalogue = string;
 /** Un Atout ou un Défaut qu'un ouvrage d'Artisanat peut viser (`qualitesDArtisanat`). */
 export type IdDeQualiteDArtisanat = string;
+/** AA 08 l.69-77 */
+export type IdDAtoutOptionnel = string;
 /** Une apparence du catalogue (`apparences.json`), ou la forme propre d'un objet (`TrappingData.shape`). */
 export type IdDApparence = string;
 /** Un Talent du catalogue (`talents.json`). */
@@ -158,7 +161,7 @@ export type IdDeJeuDeTaverne = string;
 export type IdDeProfilStandard = string;
 /** Une route de la carte du monde (`MapRoute.id`). */
 export type IdDeRoute = string;
-/** Un mode de voyage (`TravelMode`) : à pied, à monture, ou un véhicule à passage payant (`travelVehicles`). */
+/** Un mode de voyage du catalogue ou réservé (`travelModeSchema`). */
 export type IdDeModeDeVoyage = string;
 /** Un rôle d'équipage naval (`crew-roles.json`), ou le Repos (`BENCHED`). */
 export type IdDeRoleABord = string;
@@ -215,6 +218,8 @@ const indexe = <T>(xs: readonly T[], cle: (x: T) => string, nommer: (x: T) => st
 /** Le nommage des éléments de `xs` par leur `label`. */
 const parLabel = (xs: readonly { id: string; label?: string }[]): Nommer => indexe(xs, (x) => x.id, (x) => x.label ?? null);
 const sansNom: Nommer = () => null;
+const atoutsDeLattaque = (s: Jeu) => (fenetreDAttaque(s)?.choixDAtout?.options ?? []).flatMap((o) =>
+  o.valeur === null ? [] : [{ id: o.valeur, label: o.libelle }]);
 /** Chaque combattant une fois par id : sa copie de bataille d'abord, puis les héros du groupe hors de la bataille. */
 const lesCombattants = (s: Jeu) => {
   const enBataille = s.battle?.combatants ?? [];
@@ -231,7 +236,7 @@ const lesPostes = (s: Jeu) => lesCombattants(s).flatMap((c) => c.postes ?? []);
 const lesPanoplies = (s: Jeu) => lesCombattants(s).flatMap((c) => c.loadouts ?? []);
 const lesEntites = (s: Jeu) => s.scene?.entities ?? [];
 const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s)) : []);
-const lesModesDeVoyage = (): { id: string; label?: string }[] => [{ id: 'pied' }, { id: 'monture' }, ...travelVehicles()];
+const lesModesDeVoyage = () => Object.entries(travelModeLabels()).map(([id, label]) => ({ id, label }));
 const lesEntrainements = (s: Jeu) => s.party.flatMap(entrainementOptions);
 /** Les armes dont le lanceur du Sort en attente peut donner la forme (`conjureFormOptions`), LDB 47. */
 const formesConjurables = (s: Jeu): string[] => {
@@ -325,6 +330,7 @@ export const DESIGNATIONS = {
   IdDActivite: { mot: 'id d’Activité', lire: () => ids(ACTIVITIES), nom: (_s) => parLabel(ACTIVITIES) },
   IdDObjetDuCatalogue: { mot: 'id d’objet du catalogue', lire: () => ids(trappingsInstanciables()), nom: (_s) => (id) => findTrappingById(id)?.label ?? null },
   IdDeQualiteDArtisanat: { mot: 'id de qualité d’Artisanat', lire: () => [...qualitesDArtisanat().atouts, ...qualitesDArtisanat().defauts], nom: (_s) => sansNom },
+  IdDAtoutOptionnel: { mot: 'id d’Atout au choix', lire: (s) => ids(atoutsDeLattaque(s)), nom: (s) => parLabel(atoutsDeLattaque(s)) },
   IdDApparence: {
     mot: 'id d’apparence',
     lire: () => sansDoublon([...ids(apparences), ...trappingsInstanciables().flatMap((t) => (t.shape ? [t.shape.id] : []))]),

@@ -17,7 +17,7 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { emptyWorldMap, placeServices, resolvePortRef, type WorldMap } from '../worldMap';
+import { emptyWorldMap, parseProject, parseSceneDeProjet, placeServices, resolvePortRef, type WorldMap } from '../worldMap';
 import {
   avertissementsDeLaSession,
   cadreDeLaSession,
@@ -51,6 +51,7 @@ import {
   capsOfferts,
   choixDuChamp,
   entiteDeLaSelection,
+  ficheEditee,
   formulaireDe,
   porteurDeLaSel,
   segmentDeLaSelection,
@@ -90,6 +91,7 @@ import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { allBuiltinCampaigns, areneCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { boutonDeLEdition, inspecteurDeLaSession } from '../../hote/editeur';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
@@ -295,6 +297,95 @@ describe('session d’édition', () => {
     const equipe = jouer(pose, { geste: 'entite', patch: { objet: { ajouter: 'cotte-de-mailles' } } }, { geste: 'entite', patch: { objet: { ajouter: 'arme-simple' } } }, { geste: 'entite', patch: { objet: { porter: 'cotte-de-mailles' } } });
     expect(ent(equipe)?.inventaire).toEqual({ 'cotte-de-mailles': true, 'arme-simple': false });
     expect(ent(jouer(equipe, { geste: 'entite', patch: { objet: { retirer: 'cotte-de-mailles' } } }, { geste: 'entite', patch: { objet: { retirer: 'arme-simple' } } }))?.inventaire).toBeUndefined();
+  });
+
+  it('l’inspecteur ajoute, fait porter et retire une armure de la campagne', () => {
+    const armure = objetDeCampagne({ ...findTrappingById('chemise-de-mailles'), id: 'mailles-du-relais', label: 'Mailles du relais' });
+    const service = objetDeCampagne({ id: 'prix-du-relais', service: true });
+    let s = ouverteSur(emptyScene('session', 4, 4), false, { ...NARRATIF_VIDE, objets: [armure, service] });
+    s = editer(s, { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'humain' } });
+    s = editer(s, { geste: 'appui', point: point(1, 1) });
+    const bouton = (objet: NonNullable<Extract<GesteDEdition, { geste: 'entite' }>['patch']['objet']>) => {
+      const geste = { geste: 'entite', patch: { objet } } as const;
+      return boutonDeLEdition({ 'editeur.inspecteur': inspecteurDeLaSession(s) }, geste);
+    };
+    const presser = (objet: NonNullable<Extract<GesteDEdition, { geste: 'entite' }>['patch']['objet']>) => {
+      const offre = bouton(objet);
+      expect(offre?.refus).toBeFalsy();
+      if (!offre || !('edition' in offre.jeu)) throw new Error('Geste d’inventaire absent');
+      s = editer(s, offre.jeu.edition);
+    };
+    expect(bouton({ ajouter: service.id })).toBeUndefined();
+    presser({ ajouter: 'cotte-de-mailles' });
+    presser({ porter: 'cotte-de-mailles' });
+    expect(bouton({ ajouter: armure.id })?.libelle).toBe(armure.label);
+    presser({ ajouter: armure.id });
+    presser({ porter: armure.id });
+    const inventaire = () => entiteDeLaSelection(sceneEditee(s), s.sel)?.inventaire;
+    expect(inventaire()).toEqual({ 'cotte-de-mailles': false, [armure.id]: true });
+    presser({ retirer: armure.id });
+    expect(inventaire()).toEqual({ 'cotte-de-mailles': false });
+  });
+
+  it('un objet devenu service reste retirable de l’inventaire du brouillon et ne naît plus dans sa fiche', () => {
+    const objet = objetDeCampagne();
+    const scene = emptyScene('inventaire-service', 4, 4);
+    scene.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'pnj-du-relais', inventaire: { [objet.id]: true } });
+    const projet = parseProject({
+      type: 'projet', id: 'test-inventaire-service', label: 'Inventaire du relais', versionContenu: 1, maison: 'fixture de test',
+      scenes: [scene], narratif: {
+        ...NARRATIF_VIDE,
+        objets: [objet],
+        presetsPnj: [{ id: 'pnj-du-relais', base: { id: 'humain' }, profil: { trappings: [{ id: objet.id }] } }],
+      },
+    });
+    let s = editer(ouvrirLEdition(projet, false), { geste: 'document', document: 'narratif' });
+    const porteur = { sorte: 'objets', id: objet.id } as const;
+    s = editer(s, { geste: 'selectionner', porteur });
+    s = editer(s, { geste: 'valeur', porteur, chemin: ['service'], valeur: true });
+    s = editer(s, { geste: 'document', document: 'scene' });
+    s = editer(s, { geste: 'selectionner', porteur: { sorte: 'entite', id: 'pnj' } });
+
+    const narratif = projetEdite(s).narratif;
+    expect(narratif.objets[0].service).toBe(true);
+    const entite = entiteDeLaSelection(sceneEditee(s), s.sel)!;
+    const fiche = ficheEditee(entite, narratif);
+    expect(fiche?.label).toBeTruthy();
+    expect(fiche?.items?.every((item) => item.trappingId !== objet.id) ?? true).toBe(true);
+    expect(avertissementsDeLaSession(s).some((w) => w.level === 'error' && w.message.includes(objet.id))).toBe(true);
+    expect(() => parseProject({ ...projet, ...projetEdite(s) })).toThrow(objet.id);
+
+    const retrait = { geste: 'entite', patch: { objet: { retirer: objet.id } } } as const;
+    const bouton = boutonDeLEdition({ 'editeur.inspecteur': inspecteurDeLaSession(s) }, retrait);
+    expect(bouton).toBeDefined();
+    expect(bouton?.refus).toBeFalsy();
+    const repare = editer(s, retrait);
+    expect(entiteDeLaSelection(sceneEditee(repare), repare.sel)?.inventaire).toBeUndefined();
+  });
+
+  it('une apparence locale caduque garde son diagnostic et la fiche projette la silhouette par défaut', () => {
+    const objet = objetDeCampagne();
+    const scene = emptyScene('inventaire-apparence', 4, 4);
+    const apparence = { id: 'hache_naine' };
+    const pnj = { id: 'pnj', kind: 'personnage' as const, pos: { x: 1, y: 1 }, creature: { id: 'humain' },
+      inventaire: { [objet.id]: false }, appearance: { apparencesObjets: { [objet.id]: apparence } } };
+    scene.entities.push(pnj);
+    let s = editer(ouverteSur(scene, false, { ...NARRATIF_VIDE, objets: [objet] }), { geste: 'document', document: 'narratif' });
+    const porteur = { sorte: 'objets', id: objet.id } as const;
+    s = editer(s, { geste: 'selectionner', porteur });
+    s = editer(s, { geste: 'valeur', porteur, chemin: ['formChoices'] });
+    s = editer(s, { geste: 'document', document: 'scene' });
+    s = editer(s, { geste: 'selectionner', porteur: { sorte: 'entite', id: pnj.id } });
+
+    const narratif = projetEdite(s).narratif;
+    expect(narratif.objets[0].formChoices).toBeUndefined();
+    const entite = entiteDeLaSelection(sceneEditee(s), s.sel)!;
+    expect(entite.appearance?.apparencesObjets?.[objet.id]).toEqual(apparence);
+    const objetProjete = ficheEditee(entite, narratif)?.items?.find((item) => item.trappingId === objet.id);
+    expect(objetProjete).toMatchObject({ shape: objet.shape });
+    expect(objetProjete?.apparence).toBeUndefined();
+    expect(inspecteurDeLaSession(s).length).toBeGreaterThan(0);
+    expect(avertissementsDeLaSession(s).some((w) => w.level === 'error' && w.message.includes(apparence.id))).toBe(true);
   });
 
   it('un objet porté ôte ceux qui sont en conflit de port avec lui ; porté, il s’ôte (`inventaireApres`, #3684)', () => {
@@ -686,11 +777,10 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     expect(entiteDeLaSelection(sceneEditee(editee), editee.sel)?.combat?.optionals?.[0], 'posée, la note s’édite').toEqual({ ...note, wounds: 30 });
   });
 
-  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, deux corps, l’engin qui n’est pas de siège, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
+  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, deux corps, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
     const fixtures = {
     sansPorteur: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } },
     deuxCorps: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, vehicule: { id: 'cogue' } },
-    enginHorsSiege: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, engin: { id: 'baton-de-combat' } },
     carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
     volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, facing: 'NE' },
     decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, calage: { x: 2, y: 0 } },
@@ -699,7 +789,6 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0]);
     expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['creature']]);
     expect(fautes(fixtures.deuxCorps).map((f) => f.chemin)).toEqual([['vehicule']]);
-    expect(fautes(fixtures.enginHorsSiege)).toEqual([{ chemin: ['engin', 'id'], message: '« baton-de-combat » n\'est pas un engin de siège' }]);
     expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
     expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.chemin)).toEqual([['facing']]);
     expect(fautes(fixtures.decorHorsDeSaCase).map((f) => f.chemin), 'le calage d’un décor dans sa case (#3731)').toEqual([['calage', 'x']]);
@@ -883,7 +972,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     const ajoute = jouer(cogue, valeur(['postes'], [...postes, { trappingId: engins[0] }]), valeur(['postes', postes.length, 'trappingId'], engins[1]));
     expect(coque(ajoute).postes?.[postes.length]).toEqual({ trappingId: engins[1] });
     expect(choix(ajoute, ['postes', postes.length, 'trappingId'])).toEqual(engins);
-    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'pas-une-piece')), 'une pièce hors catalogue').toEqual({ regle: '« pas-une-piece » est absent du catalogue des objets (trappings.json).' });
+    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'dague')), 'un objet existant hors catalogue des engins').toEqual({ regle: '« dague » est absent du catalogue des engins de siège (siege-engines.json).' });
     const entites = sceneEditee(cogue).entities;
     expect(entites.some((e) => e.vehicule && e.id !== coque(cogue).id), 'la scène pose une autre coque').toBe(true);
     const equipage = entites.filter((e) => e.kind === 'personnage' && !e.vehicule).map((e) => e.id);
@@ -1055,6 +1144,29 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     expect(validateScene([sceneEditee(pont)]).filter((w) => w.level === 'error' && w.message.includes('catalogue des rencontres'))).toEqual([]);
     const pris = choisie('enc-pont');
     expect(jouer(pris, { geste: 'nommer', nom: 'enc-libre' })).toBe(pris);
+  });
+
+  it('renomme la rencontre désignée par une bataille de masse et refuse de la retirer tant qu’elle reste désignée', () => {
+    const bataille = (id: string) => flowFromEffects([{
+      type: 'startMassBattle',
+      battle: {
+        puissanceAlliee: 50,
+        puissanceEnnemie: 50,
+        plannedRounds: 1,
+        sceneEncounters: { duel: { id }, percee: { id: 'enc-pont' } },
+      },
+    }]);
+    const scene = parseSceneDeProjet({
+      ...CLAIRIERE,
+      triggers: [...CLAIRIERE.triggers, { id: 'bataille', rect: { x: 2, y: 0, w: 1, h: 1 }, flow: bataille('enc-libre') }],
+    });
+    const s = jouer(ouverteSur(scene), { geste: 'selectionner', porteur: { sorte: 'rencontre', id: 'enc-libre' } });
+    const renommee = jouer(s, { geste: 'nommer', nom: 'enc-duel-sur-le-pont' });
+    expect(parseSceneDeProjet(sceneEditee(renommee)).triggers[2].flow).toEqual(bataille('enc-duel-sur-le-pont'));
+    expect(refusDeRetrait(renommee)).toContain('« enc-duel-sur-le-pont » est absent du catalogue des rencontres');
+    expect(jouer(renommee, { geste: 'supprimer' })).toBe(renommee);
+    const annulee = jouer(renommee, { geste: 'annuler' });
+    expect(parseSceneDeProjet(sceneEditee(annulee)).triggers[2].flow).toEqual(bataille('enc-libre'));
   });
 
   it('nommer une rencontre qu’une embuscade de route du projet lance la renomme à l’embuscade de chaque route qui vise sa scène, sur un cran ; son retrait reste refusé, la route dite (#3606)', () => {

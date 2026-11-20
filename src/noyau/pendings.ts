@@ -15,7 +15,7 @@ import type { Dialogue } from './monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
 import type { TestResult, OpposedResult, EchecSansJet, JetPose } from '../engine/tests';
-import type { AttackResult, DefenseMode, DifficultyComposition, ModLine, RollBreakdown } from '../engine/combat';
+import type { AttackComposition, AttackResult, DefenseMode, ModLine, RollBreakdown } from '../engine/combat';
 import type { AttackKind, ManoeuvreComposee } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
@@ -381,6 +381,8 @@ export interface PendingAttack {
   location: HitLocation | null;
   /** Arme choisie pour cette attaque (uid d'ItemInstance du loadout actif) ; absent = auto-choix. */
   weaponUid?: string;
+  /** AA 08 l.69-77 */
+  atoutChoisi?: { weaponUid: string; id: string };
   /** Arme RÉELLEMENT tirée, figée AU JET (#1153) — comme `PendingDefense.weapon` fige celle de
    *  l'attaquant. Un uid ne suffit pas : `Combatant.weapons` ne porte que le loadout ACTIF
    *  (`recomputeLoadout`), donc un uid désignant une arme possédée mais non tenue est INTROUVABLE et
@@ -662,8 +664,9 @@ export interface PendingShipBattery extends MultiPending<ShipBatteryParticipant>
   moraleScore: number;
   /** Manque de bras global (MDG 14 l.55) : −2 DR/tranche de 10 % manquant + plafond Succès Minime. */
   undercrew?: { dr: number; capSuccesMinime: boolean };
-  /** Sabotage (MDG 14 l.45-47) : −1..−5 DR plats au total du Test d'équipage (`shipSaboteurDR`). */
+  /** DR plats du Test d’équipage, dont les lignes nommées `modsDR`. */
   extraDR?: number;
+  modsDR?: ModLine[];
 }
 /** Manœuvre navale en TEST D'ÉQUIPAGE (MDG 13-14) : chaque rôle tenu lance son Test, les DR sont sommés (rôle
  *  essentiel ×2) + la bande de Moral ; le total tient lieu de DR de Navigation. La direction (`turnSteps`, choisie
@@ -1243,7 +1246,7 @@ export interface PendingDefense {
    *  (flanc/dos, distance) que la fenêtre ne rejoue pas — `flankRear` n'est même pas un champ du
    *  pending. Sans elle, la ligne d'attaque affichée après la défense annoncerait une autre
    *  Difficulté que celle qui a fait sa cible. */
-  atkCompo?: DifficultyComposition;
+  atkCompo?: AttackComposition;
   /** Localisation relancée du jet d'attaque piloté (`openSurfacedDefense`). LDB 18 l.53 ; AA 07 l.32 */
   critLocation?: HitLocation;
   def: TestResult | null; // null = pas encore défendu ; écrasé par Chance
@@ -1720,7 +1723,7 @@ export function referentDeLEtape(step: Pick<CascadeStep, 'meta'>): string | unde
 }
 
 export interface CascadeStepMeta {
-  [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
+  [key: string]: number | string | boolean | string[] | ModLine[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
   /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un jet ou à un choix (#1508, #4011) : le lot, la pile,
    *  le coup ou l'étape dont l'application l'a poussée lui confie SA SUITE (`apresSuite`) au lieu de continuer
    *  par-dessus. Posé par les mints (`operationsDe`, `chuteDe`, `nombreDAttaquesSubies`, `testDeclenche`,
@@ -1747,6 +1750,8 @@ export interface CascadeStepMeta {
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses
    *  paramètres DÉJÀ chiffrés (le naval : bande de Moral + Manque de bras + sabotage, MDG 14). */
   aggregateFlatDR?: number;
+  /** Lignes nommées appliquées en DR au total de la bande avant plafond. */
+  aggregateDRMods?: ModLine[];
   /** Plafond CHIFFRÉ du total sommé, versé par le flux propriétaire (naval : « jamais mieux qu'un
    *  Succès Minime », Manque de bras MDG 14 l.55 — `capToSuccesMinime`). Absent = aucun plafond. */
   aggregateCapTo?: number;

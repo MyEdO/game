@@ -1,5 +1,5 @@
 import { idsDeTest } from './idsDeTest.testkit';
-import { itemFromTrappingById, weaponFromItem } from './items';
+import { hydratePoste, itemFromTrappingById, weaponFromItem } from './items';
 import type { ItemInstance, Weapon } from './types';
 
 type EtatDObjetDeTest = Partial<Pick<ItemInstance, 'uid' | 'equipped' | 'sortLie'>>;
@@ -13,4 +13,8 @@ export function objetDeTest(id: string, etat: EtatDObjetDeTest = {}): ItemInstan
 
 export function armeDeTest(id: string, { hand, ...etat }: EtatDArmeDeTest = {}): Weapon {
   return weaponFromItem(objetDeTest(id, etat), hand);
+}
+
+export function armeDePosteDeTest(id: string): Weapon {
+  return weaponFromItem(hydratePoste({ trappingId: id }, idsDeTest('it')).item);
 }

@@ -40,29 +40,31 @@ import { VehicleData } from './types';
 import { traceLineOf } from './traceLine';
 import { memoParVersion } from '../data/versionDataset';
 import { findVehicleById, refLabel, vehicles } from '../data';
+import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
+import { modesDeVoyageReservesSchema, type travelModeSchema } from '../data/schemas/grammaire/route';
+import type { z } from 'zod';
 import { t } from '../i18n';
 
 /** Transports payants RAW (LDB 51 l.180-189) = véhicules dotés d'une facette `travel` (passage payant). */
 export const travelVehicles = memoParVersion('vehicles', (): VehicleData[] => vehicles.filter((v) => v.travel));
 
-/** Mode de voyage : `'pied'` (Mouvement du groupe), `'monture'` (bêtes possédées, EDOC 7 — règle
- *  optionnelle `voyage-allures`) OU l'`id` d'un véhicule à passage payant (`vehicles.json`). */
-export type TravelMode = 'pied' | 'monture' | string;
+/** Mode d'une route (`travelModeSchema`). */
+export type TravelMode = z.output<typeof travelModeSchema>;
 
 /** Facette `travel` (passage payant) d'un mode ≠ `'pied'` — source UNIQUE des classes/Déplacement.
  *  Renvoie `undefined` si le mode n'est pas un véhicule à passage payant. */
-export function vehicleTravel(mode: TravelMode): NonNullable<VehicleData['travel']> | undefined {
+export function vehicleTravel(mode: string): NonNullable<VehicleData['travel']> | undefined {
   return mode === 'pied' ? undefined : findVehicleById(mode)?.travel;
 }
 
-/** Libellé d'affichage par mode de voyage — les modes FIXES, plus un libellé par véhicule payant
+/** Libellé d'affichage par mode de voyage — les modes réservés et les véhicules
  *  (éditable au Codex : la table se refait à la première lecture qui suit une édition). */
-export const travelModeLabels = memoParVersion('vehicles', (): Record<string, string> => ({
-  pied: 'À pied',
-  monture: 'En selle',
-  mer: 'En mer', // traversée sur le navire de campagne (route `sea`, MDG 13-15)
-  ...Object.fromEntries(travelVehicles().map((v) => [v.id, v.label])),
-}));
+export const travelModeLabels = memoParVersion('vehicles', (): Record<string, string> => {
+  const reserves = optionsDuNoeud(modesDeVoyageReservesSchema);
+  const idsReserves = new Set(reserves.map(([id]) => id));
+  const catalogue = vehicles.filter(({ id }) => !idsReserves.has(id));
+  return Object.fromEntries([...reserves, ...catalogue.map(({ id, label }) => [id, label])]);
+});
 
 /** Unité affichée pour une distance de route : une route `sea` (mode `'mer'`) porte ses
  *  MILLES dans le même champ `km` — les tables RAW de traversée sont en milles (MDG 13/15

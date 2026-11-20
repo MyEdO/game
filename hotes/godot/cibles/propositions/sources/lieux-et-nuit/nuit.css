@@ -10,7 +10,7 @@
 .grille .plaque>div{font-family:"Chiffres";font-size:12.5px;font-weight:600;letter-spacing:.2px;padding:0 4px}
 
 /* qui dort où : l'abri, ses places, ceux qui restent dehors ; le temps ; ce que la nuit jouera */
-#dortoir .fond{padding:24px 16px 14px}
+#dortoir .fond{display:flex;flex-direction:column;padding:24px 16px 14px}
 .rang-c{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .rang-c .lab{flex:none;width:60px;font-size:12.5px;color:var(--creme-2)}
 .rang-c .v{font-size:13.5px;color:#eadfc4;line-height:17px}
@@ -20,14 +20,14 @@
 #dortoir .abri .segments b{flex:1;text-align:center;padding:3px 4px 4px}
 #dortoir .aide{margin:-3px 0 8px;font-style:italic;font-size:12px;line-height:15px;color:var(--creme-2)}
 .couche{display:flex;align-items:center;gap:6px;margin-bottom:7px}
-.couche .lab{flex:none;width:100px;font-size:12px;color:var(--creme-2)}
+.couche .lab{flex:none;width:90px;font-size:12px;line-height:15px;color:var(--creme-2)}
 .couche .places{display:flex;gap:5px}
 .couche i{margin-left:auto;font-size:12.5px;color:var(--creme-2);white-space:nowrap}
 #dortoir .filet{margin:9px 0 7px}
 #dortoir .t{font-size:12.5px;color:var(--or);margin-bottom:7px}
 #dortoir .qui-paie{color:#eadfc4}
 #dortoir .qui-paie .rubrique{font-size:12px;color:var(--creme-2)}
-#dortoir .plaque.nuit{margin-top:12px}
+#dortoir .plaque.nuit{flex:none;margin-top:12px}
 #dortoir .plaque.nuit>div{font-size:16.5px}
 
 /* la partie d'un jeu de taverne */

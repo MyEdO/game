@@ -2,7 +2,8 @@ import { groupeDeScenario } from './_heros';
 import { buildScene, type MapSpec } from '../../noyau/mapSpec';
 import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import type { AuthoredEnemy } from '../../noyau/monde/encounterAuthoring';
-import { findTrappingById } from '../../data';
+import { findSiegeEngineById, qualityInstance } from '../../data';
+import { crewedTeamIndice } from '../../engine/qualities/dispatch';
 import { projForPiece, type TestScenario } from './_shared';
 
 /**
@@ -30,7 +31,8 @@ const FANTASSINS = [{ x: 0, y: 8 }, { x: 1, y: 8 }, { x: 12, y: 8 }, { x: 13, y:
  *  de la pièce (`i0+1…`), en formation autour de l'empreinte, orientés vers la porte (S). Ids déterministes
  *  `enemy-<rencontre>-<index>`. */
 function batterie(): AuthoredEnemy[] {
-  const equipe = findTrappingById(PIECE)!.qualities!.find((q) => q.id === 'arme-d-equipe')!.value as number;
+  const fiche = findSiegeEngineById(PIECE)!;
+  const equipe = crewedTeamIndice({ qualities: fiche.qualities.map(qualityInstance) });
   return AFFUTS.flatMap((pos, n) => {
     const i0 = n * (equipe + 1);
     const crewIds = Array.from({ length: equipe }, (_, k) => `enemy-${ENC}-${i0 + 1 + k}`);

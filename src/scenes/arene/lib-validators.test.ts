@@ -133,8 +133,8 @@ describe('lib.mjs — corpsValide : chaque corps dans son catalogue (coque terse
 });
 
 // #222 — `poste()` émet la forme AUTHORÉE de référence `{ trappingId, side, crewIds }` (uid de la place, #2907) et valide
-// que `trappingId` désigne un trapping du sous-type `armes-de-siege`.
-describe('lib.mjs — poste() : forme référence #222, trappingId du sous-type armes-de-siege', () => {
+// que `trappingId` désigne une fiche du catalogue des engins.
+describe('lib.mjs — poste() : forme référence #222, trappingId du catalogue des engins', () => {
   it('une pièce d’artillerie valide → exactement { trappingId, side, crewIds }, base hydratée au spawn', () => {
     expect(poste('canon-moyen', 'tribord')).toStrictEqual({ trappingId: 'canon-moyen', side: 'tribord', crewIds: [] });
   });
@@ -143,8 +143,8 @@ describe('lib.mjs — poste() : forme référence #222, trappingId du sous-type 
     expect(poste('pierrier', 'proue', ['bob']).crewIds).toEqual(['bob']);
   });
 
-  it('un trappingId hors du sous-type armes-de-siege → refus nommé', () => {
-    expect(() => poste('arc', 'tribord')).toThrow(/sous-type armes-de-siege/i);
+  it('un trappingId hors du catalogue des engins → refus nommé', () => {
+    expect(() => poste('arc', 'tribord')).toThrow(/attendu un engin du catalogue/i);
   });
 
   it('un trappingId inconnu → throw', () => {

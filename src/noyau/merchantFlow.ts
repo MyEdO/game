@@ -61,7 +61,7 @@ import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { cleDeBillet, colonneDeDisponibiliteDuMarchand, lieuDeLaScene, lieuDuGroupe, placeServiceMerchantId, type MapPlace } from './worldMap';
 import { echoppesDuLieu, refuserLeServiceFerme } from './lieuFlow';
 import { ajouterLaPossession } from './possessionsFlow';
@@ -890,7 +890,8 @@ function marchanderLePrix(get: Get, set: Set, mode: ModeDeMarche): void {
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(findMerchantArchetypeById(m.archetype), m.archetype, 'marchandage');
   // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
-  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'achat' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId, presetDuNarratif(get().campaignNarratif)) });
+  const { scene, campaignNarratif } = get();
+  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'achat' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(scene, m.entityId, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif)) });
 }
 
 /** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de la visite du marchand

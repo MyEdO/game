@@ -13,7 +13,7 @@ export default {
     {
       ...COOP, nom: 'ouvrir', titre: { nom: 'Jouer en ligne', sous: 'Aucune partie ouverte' },
       sieges: [A_POURVOIR, A_POURVOIR, A_POURVOIR, A_POURVOIR], legende: 'Une tablée : l’hôte et jusqu’à trois invités',
-      rejoindre: { code: 'K7M2QX', indice: 'Le code de room fait 6 caractères.', nom: 'Lena', geste: 'Rejoindre' },
+      rejoindre: { code: 'K7M2QX', indice: 'Le code de la partie fait 6 caractères.', nom: 'Lena', geste: 'Rejoindre' },
       heberger: { aide: 'Le groupe se compose ensemble : vous attribuerez les emplacements aux joueurs connectés.', attente: 'Nom de joueur', geste: 'Héberger', refus: 'Ouvrez une partie pour l’héberger.' },
     },
     {
@@ -32,7 +32,7 @@ export default {
           { id: 'bjorn', nom: 'Bjorn', carriere: 'Chasseur', joueur: 'Karl' }, { id: 'mira', nom: 'Mira', carriere: 'Éclaireuse', joueur: 'Lena' },
           { id: 'aldric', nom: 'Aldric', carriere: 'Érudit', joueur: 'Karl' }, { id: 'greta', nom: 'Greta Hartmann', carriere: 'Soldate', joueur: 'Otto' },
         ],
-        maitre: { sans: 'IA (aucun MJ)', note: 'Un seul siège, ou personne' },
+        maitre: { sans: 'IA (aucun meneur de jeu)', note: 'Un seul siège, ou personne' },
       },
     },
   ],

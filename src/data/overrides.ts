@@ -14,12 +14,12 @@
 import { tableTotale } from '../lib/tableTotale';
 import { GELER_LA_DONNEE, gelerProfond } from '../lib/gelerProfond';
 import {
-  characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
+  catalogueDesEngins, characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
-  massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
+  massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
   WATER_EXPOSURE, navalPorts, STEAM_BREAKDOWNS,
   seaNavigation, seaPerils, seaWeather, shipConstruction,
@@ -115,6 +115,7 @@ const rencontresDangereuses = encounterTable('dangereuses');
 
 /** Datasets-tableaux mutables (clé éditeur → MÊME référence d'array que l'export de la façade). */
 const ARRAYS = {
+  siegeEngines: catalogueDesEngins,
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   // Matières du monde (#1686) : UN document, le domaine PORTÉ par l'entrée. Ce binding EST le seam de
@@ -145,7 +146,7 @@ const ARRAYS = {
   // Presets de personnage entier (#3086) : édités au fichier.
   presetsDePersonnage,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
-  massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
+  massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   // #168 : catalogue UNIQUE des Activités (interlude/voyage/mer/bataille de masse) exposé au Codex —
   // MÊME référence d'array que le moteur (`ACTIVITIES`, singleton JSON) → l'édition
   // Codex (splice en place) reste visible en jeu. Fichier `activities.json` (défaut), racine = le tableau.

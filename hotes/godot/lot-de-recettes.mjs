@@ -1,6 +1,7 @@
 // LE LOT DES RECETTES DE L'HÔTE GODOT (#4007) : chaque jeu de `JEUX_DU_PARCOURS` par `recette.mjs`, l'un après
 // l'autre sur un export déjà produit (`node hotes/godot/construire.mjs --export --sortie <web>`), menés de front sans
-// export (`--natif`, #3945, `jeuxPilotesDeFront`, #3412). Le journal et les captures de chaque jeu vont sous
+// export (`--natif`, #3945, `jeuxPilotesDeFront`, #3412). Le lot natif prépare le projet importé et le bundle du pont
+// une fois (#4085). Le journal et les captures de chaque jeu vont sous
 // `--captures/<nom du jeu>/` ; le verdict de chacun s'imprime à sa fin, la fin d'un journal rouge aussi, et le code est
 // non nul dès qu'un jeu est rouge. Joué chaque semaine par `.github/workflows/canari.yml`.
 // Avec `--rendu`, chaque jeu natif se joue en rendu réel : ses captures montrent l'écran (`npm run godot:regarder`).
@@ -10,12 +11,13 @@
 //   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu]) --captures <dossier> [--jeux combat,planche:<nom>]
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
-import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
-import { jeuxPilotesDeFront } from './construire.mjs'
+import { jeuxPilotesDeFront, preparerLePilotage } from './construire.mjs'
 import { MAQUETTES, coteACote } from './planches.mjs'
 
 const DOSSIER = '<dossier>'
@@ -99,6 +101,23 @@ async function jouer(args, sortie) {
   const [code] = await once(enfant, 'exit')
   return code
 }
+/** Garde la préparation privée disponible jusqu'à la fin de la file et dépose ses erreurs avec les captures. */
+async function avecPreparationNative(captures, faire) {
+  const preparation = mkdtempSync(join(tmpdir(), 'wfrp-recettes-'))
+  try {
+    mkdirSync(captures, { recursive: true })
+    const journal = resolve(captures, 'preparation.journal.txt')
+    rmSync(journal, { force: true })
+    await preparerLePilotage(preparation).catch((erreur) => {
+      writeFileSync(journal, `${erreur.stack ?? erreur}\n`)
+      throw erreur
+    })
+    return await faire(['--preparation-native', preparation])
+  } finally {
+    rmSync(preparation, { recursive: true, force: true })
+  }
+}
+
 /** Les lignes d'un journal rouge recopiées au verdict. */
 const QUEUE = 15
 
@@ -121,15 +140,20 @@ if (import.meta.main) {
     if (horsNatif(nom)) console.log(`${nom} : hors natif, ${HORS_NATIF[nom]}`)
     return !horsNatif(nom)
   })
-  const verdicts = await enFileBornee(joues.map(({ nom, parcours, args, dossier: sous, journal: fichier }) => async () => {
+  const lancerLesJeux = (preparation = []) => enFileBornee(joues.map(({ nom, parcours, args, dossier: sous, journal: fichier }) => async () => {
     const dossier = resolve(o.captures, sous)
     mkdirSync(dossier, { recursive: true })
     const journal = resolve(dossier, fichier)
     const sortie = openSync(journal, 'w')
     const debut = Date.now()
-    const pret = !PREPARER[nom] || PREPARER[nom](dossier, sortie) === 0
-    const status = pret ? await jouer([RECETTE, ...lieu(parcours), '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], sortie) : 1
-    closeSync(sortie)
+    let status = 1
+    try {
+      if (!PREPARER[nom] || PREPARER[nom](dossier, sortie) === 0) {
+        status = await jouer([RECETTE, ...lieu(parcours), ...preparation, '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], sortie)
+      }
+    } finally {
+      closeSync(sortie)
+    }
     console.log(`${nom} : ${status === 0 ? 'vert' : 'ROUGE'} (${Math.round((Date.now() - debut) / 1000)} s)`)
     if (status !== 0) console.log(readFileSync(journal, 'utf8').trimEnd().split('\n').slice(-QUEUE).map((ligne) => `  ${ligne}`).join('\n'))
     if (status === 0 && parcours === 'planche') {
@@ -141,6 +165,9 @@ if (import.meta.main) {
     }
     return { nom, vert: status === 0 }
   }), { deFront: o.natif ? jeuxPilotesDeFront() : 1 })
+  const verdicts = o.natif && joues.length
+    ? await avecPreparationNative(o.captures, lancerLesJeux)
+    : await lancerLesJeux()
   const rouges = verdicts.filter((v) => !v.vert).map((v) => v.nom)
   console.log(rouges.length ? `lot ROUGE : ${rouges.join(', ')}` : 'lot vert')
   process.exitCode = rouges.length ? 1 : 0

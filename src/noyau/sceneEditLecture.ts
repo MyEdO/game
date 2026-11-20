@@ -45,6 +45,7 @@ import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
 import {
   affaireSchema,
+  CHAMPS_DE_POSSESSION_RESERVES_AU_CATALOGUE,
   documentNarratifSchema,
   ecartSchema,
   etatNarratifSchema,
@@ -74,18 +75,18 @@ import {
   type RegistreCreable,
 } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
-import { collectionDe, entreesDeLaPortee } from '../data/schemas/grammaire/collection-cle';
+import { collectionDe, entreesDeLaPortee, porteesOuvertes } from '../data/schemas/grammaire/collection-cle';
 import { libelleDeLElement } from '../data/schemas/grammaire/cle-d-espace';
 import { LIBELLE_AU_LABEL } from '../data/schemas/grammaire/sourcesDeSpecs';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
-import { declarationDeFeuilleDId, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
-import { entree as trappingEntree } from '../data/schemas/defs/trappings';
+import { declarationDeFeuilleDId, estRefEmboitee, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
+import { entreeEmbarquee as trappingEntree } from '../data/schemas/defs/trappings';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
 import { champsDeclares, choixDuNoeud, formeAuPoint, recordDuNoeud, type ChoixDuContexte, type FieldDesc } from './codex/editFields';
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
 import { chargeLArme, gabaritDObjet } from '../engine/items';
-import { travelModeLabels, travelVehicles, vehicleTravel } from '../engine/travel';
+import { travelModeLabels, vehicleTravel } from '../engine/travel';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { auChemin, estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
@@ -98,7 +99,9 @@ import {
   navalPorts,
   findCreatureById,
   choixDeLaFeuilleDId,
+  findSiegeEngineById,
   findTrappingById,
+  libelleDAuteur,
   profilsStandard,
   refEstVolumique,
   siegeEngines,
@@ -112,7 +115,7 @@ import {
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';
-import { mergeCreatureProfile, objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
+import { mergeCreatureProfile, objetDuNarratif, objetInstanciableDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { entreesDeStades, entreesNarratives, type CleDeReferenceNarrative } from './codex/libellesNarratifs';
 import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
 import { SOUS_REFERENCES, type CleDeSousReference } from '../data/schemas/defs-scenes/refs-narratives';
@@ -122,7 +125,7 @@ import type { Warning } from './validateScene';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
 import { parcoursDe } from '../engine/pnjDeCarriere';
-import { entityAppearanceSchema } from '../data/schemas/grammaire/valeurs';
+import { entityAppearanceSchema, OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
 import { apparencesChoisissablesDObjet, objetsAApparenceChoisie } from '../data/apparencesObjets';
 import { armesDEntite, equipementDAuteurDe } from './equipementDessine';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
@@ -166,7 +169,7 @@ export type Tool =
   // pose AUCUN décor : une volée est du relief, la traversée s'en dérive comme pour toute surface.
   | { mode: 'escalier'; toZ: number }
   // Emplacement de siège : pose une SceneEntity portant un poste d'artillerie (`trappingId` = engin du
-  // catalogue `armes-de-siege`). Le créneau (arc) et l'équipage s'éditent ensuite dans l'inspecteur.
+  // catalogue `siege-engines.json`). Le créneau (arc) et l'équipage s'éditent ensuite dans l'inspecteur.
   | { mode: 'emplacement'; trappingId: string }
   // Crénelage (#841 FU-H) : marque le pourtour peint comme portant un PARAPET crénelé (décoration de
   // rendu — `paintCrenellated`, orthogonal à `height`). `structure` = id de `structures.json` (le rendu en
@@ -464,11 +467,11 @@ export function entiteDeLaSelection(scene: Scene, sel: Sel): SceneEntity | undef
   return sel?.type === 'entity' ? scene.entities.find((e) => e.id === sel.id) : undefined;
 }
 
-/** La fiche du personnage `ent` (`ficheDuPersonnage`), les presets résolus par `presetDe`, s'il est de son schéma
+/** La fiche du personnage `ent` (`ficheDuPersonnage`) avec le narratif du projet, s'il est de son schéma
  *  (`sceneEntitySchema`) : un brouillon du formulaire peut ne pas l'être, il ne se vérifie qu'à l'enregistrement et à
  *  l'essai. */
-export const ficheEditee = (ent: SceneEntity, presetDe: ResolveurDePreset): Combatant | undefined =>
-  (sceneEntitySchema.safeParse(ent).success ? ficheDuPersonnage(ent, presetDe) : undefined);
+export const ficheEditee = (ent: SceneEntity, narratif: NarratifBlock): Combatant | undefined =>
+  sceneEntitySchema.safeParse(ent).success ? ficheDuPersonnage(ent, presetDuNarratif(narratif), objetInstanciableDuNarratif(narratif)) : undefined;
 
 /** Le cap de l'entité `ent` : le sien, sinon le cap d'identité (`CAP_IDENTITE_PROP`). */
 export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTITE_PROP;
@@ -636,7 +639,7 @@ const SORTS_CHOISIS = ['combat', 'spells'] as const;
 function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif } }: CadreDuPorteur): CheminsOfferts {
   const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
   const dialogue = ent.dialogueId !== undefined || dialoguesDeLaScene(scene).size ? [['dialogueId']] : [];
-  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDuNarratif(narratif));
+  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, narratif);
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
   const coque = ent.vehicule ? [['vehicule'], ['upgrades'], ['postes']] : [];
   const champs = [...preset, ...dialogue, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
@@ -648,9 +651,9 @@ function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif } }: C
  *  de l'élément neuf qui suit le dernier, chaque sort d'une liste que sa fiche ouvre (`listesDeSorts`), hors des autres
  *  choisis, la courante restant offerte, refusé par ce que dit `refusDesSortsChoisis` des choisis où il prend ce rang ;
  *  sans fiche (`ficheEditee`), la courante seule. */
-function choixDesSorts(ent: SceneEntity, rang: number, presetDe: ResolveurDePreset): readonly ChoixDuContexte[] {
+function choixDesSorts(ent: SceneEntity, rang: number, narratif: NarratifBlock): readonly ChoixDuContexte[] {
   const choisis = ent.combat?.spells ?? [];
-  const fiche = ficheEditee(ent, presetDe);
+  const fiche = ficheEditee(ent, narratif);
   const listes = fiche ? listesDeSorts(fiche) : [];
   const avec = (id: string) => [...choisis.slice(0, rang), id, ...choisis.slice(rang + 1)];
   return spells
@@ -723,7 +726,7 @@ export function choixDesApparencesDObjets(armes: () => ReturnType<typeof armesDE
 /** Les munitions du coffre d'une pièce `trappingId` : chaque munition du catalogue qu'elle charge (`chargeLArme`).
  *  MDG 12 l.410-424 */
 function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
-  const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
+  const piece = { trappingId, subType: findSiegeEngineById(trappingId)?.subType?.id };
   return trappingsInstanciables()
     .filter((m) => chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece) && gabaritDObjet(m.id)?.kind === 'ammo')
     .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
@@ -738,7 +741,7 @@ function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, pr
   const postes = ent.postes ?? [];
   const [rang, cle, element, ...plus] = reste;
   if (typeof rang !== 'number' || plus.length) return undefined;
-  const engins = (valeur: (id: string) => unknown) => siegeEngines().map((e) => ({ valeur: valeur(e.id), libelle: e.label, refus: null }));
+  const engins = (valeur: (id: string) => unknown) => siegeEngines().map((e) => ({ valeur: valeur(e.id), libelle: libelleDAuteur(e), refus: null }));
   if (cle === undefined) return rang === postes.length ? engins((trappingId) => ({ trappingId })) : undefined;
   const poste = postes[rang];
   if (!poste) return undefined;
@@ -770,7 +773,7 @@ function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: 
   }
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
-  return sorts ? choixDesSorts(ent, rang, presetDuNarratif(narratif)) : choixDesOptions(ent, chemin);
+  return sorts ? choixDesSorts(ent, rang, narratif) : choixDesOptions(ent, chemin);
 }
 
 /** Les actions authorées d'un décor (`SceneEntity.usable`). */
@@ -889,13 +892,11 @@ const departsDuBillet = (route: MapRoute, cle: Segment | undefined, { projet }: 
 const modesDeLaRoute = (route: MapRoute, retenu: (mode: string) => boolean = () => true): ChoixDuContexte[] =>
   route.modes.filter(retenu).map((mode) => ({ valeur: mode, libelle: travelModeLabels()[mode] ?? mode, refus: null }));
 
-/** Les modes de voyage que la route `route` offre au rang `rang` de ses modes : à pied et chaque véhicule à passage
- *  payant (`travelVehicles`), hors de ceux qu'elle offre déjà, le courant restant offert, chacun à son libellé. LDB 51
- *  l.178-189 */
+/** Les modes de voyage catalogués ou réservés, hors des doublons de la route. */
 const modesDeVoyage = (route: MapRoute, rang: number): ChoixDuContexte[] =>
-  ['pied', ...travelVehicles().map((v) => v.id)]
-    .filter((mode) => mode === route.modes[rang] || !route.modes.includes(mode))
-    .map((mode) => ({ valeur: mode, libelle: travelModeLabels()[mode] ?? mode, refus: null }));
+  Object.entries(travelModeLabels())
+    .filter(([mode]) => mode === route.modes[rang] || !route.modes.some((m) => m === mode))
+    .map(([valeur, libelle]) => ({ valeur, libelle, refus: null }));
 
 /** Les clés des prix d'un billet en `mode` (`prixParClasseSchema`) : chaque classe de passage de son véhicule. */
 const classesDuBillet = (mode: Segment): ChoixDuContexte[] =>
@@ -909,7 +910,7 @@ function suitesDuBillet(route: MapRoute, mode: Segment, rang: number, { projet }
   const suite = route.billets?.[mode as keyof NonNullable<MapRoute['billets']>]?.suite ?? [];
   const nom = (ref: { id: string }) => carte?.places.find((p) => p.id === ref.id)?.label ?? ref.id;
   return (carte?.routes ?? [])
-    .filter((r) => r.id !== route.id && r.modes.includes(mode as string) && (r.id === suite[rang] || !suite.includes(r.id)))
+    .filter((r) => r.id !== route.id && r.modes.some((m) => m === mode) && (r.id === suite[rang] || !suite.includes(r.id)))
     .map((r) => ({ valeur: r.id, libelle: `${nom(r.a)} → ${nom(r.b)}`, refus: null }));
 }
 
@@ -1063,7 +1064,10 @@ const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<Formula
   presetsPnj: { schema: presetPnjSchema, champs: () => champsSauf(presetPnjSchema, ['id']), choix: choixDuPreset },
   documents: { schema: documentNarratifSchema, champs: () => champsSauf(documentNarratifSchema, ['id']) },
   etats: { schema: etatNarratifSchema, champs: champsDeLEtat, retraits: retraitsDeLEtat, choix: choixDeLEtat },
-  objets: { schema: trappingEntree, champs: () => champsSauf(trappingEntree, ['id', 'type']) },
+  objets: {
+    schema: trappingEntree,
+    champs: () => champsSauf(trappingEntree, ['id', 'type', ...CHAMPS_DE_POSSESSION_RESERVES_AU_CATALOGUE]),
+  },
 };
 
 /** Le formulaire d'une entrée de chaque registre créable du narratif (`FORMULAIRES_DES_REGISTRES`) : dans la collection
@@ -1280,9 +1284,13 @@ const ouvreursDuCadre = (porteur: Ouvreur, { scene, projet }: CadreDuPorteur): r
  *  `idDe(type, sousListe, { portee })`), résolue par le parse (`entreesDeLaPortee`) sur le premier des `ouvreurs` qui
  *  l'ouvre : son id, et son libellé, lu comme celui d'une entrée du catalogue (`LIBELLE_AU_LABEL`), sinon son id ;
  *  `undefined` sans une telle feuille, ou si aucun ne l'ouvre. */
-function entreesDeLaFeuilleLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly { id: string; libelle: string }[] | undefined {
+function entreesDeLaFeuilleLocale(
+  noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[], ouvreursInterieursDesObjets: readonly Ouvreur[],
+): readonly { id: string; libelle: string }[] | undefined {
   const portee = noeuds.map((n) => porteeDuJugementLocal(n)).find((p) => p !== undefined);
-  const entrees = portee && ouvreurs.map(([ouvreur, valeur]) => entreesDeLaPortee(ouvreur, valeur, portee)).find((e) => e !== undefined);
+  if (portee === undefined) return undefined;
+  const prioritaires = portee === OBJETS_DU_PROJET ? [...ouvreursInterieursDesObjets, ...ouvreurs] : ouvreurs;
+  const entrees = prioritaires.map(([ouvreur, valeur]) => entreesDeLaPortee(ouvreur, valeur, portee)).find((e) => e !== undefined);
   return entrees && [...entrees].map(([id, e]) => ({ id, libelle: (estObjet(e) ? libelleDeLElement(e, LIBELLE_AU_LABEL.champs) : undefined) ?? id }));
 }
 
@@ -1296,12 +1304,18 @@ const choixDuCatalogueOuvert = (noeuds: readonly unknown[]): ChoixDuContexte[] =
  *  si elle est ouverte (`choixDuCatalogueOuvert`), un record y contribuant le nœud de sa clé (`recordDuNoeud`), dont
  *  les choix sont les clés qu'il offre (`FieldDesc.contexte`) ; d'une référence `{ id }` dont l'identifiant en est une,
  *  chacun posé entier ; `undefined` sinon. */
-export function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
+export function choixDeLaReferenceLocale(
+  noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[], ouvreursInterieursDesObjets: readonly Ouvreur[] = [],
+): readonly ChoixDuContexte[] | undefined {
   const feuilles = noeuds.map((n) => recordDuNoeud(n)?.cle ?? n);
-  const entrees = entreesDeLaFeuilleLocale(feuilles, ouvreurs);
+  const entrees = entreesDeLaFeuilleLocale(feuilles, ouvreurs, ouvreursInterieursDesObjets);
   if (entrees) return [...choixDuCatalogueOuvert(feuilles), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
-  const emboites = entreesDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);
-  return emboites?.map(({ id, libelle }) => ({ valeur: { id }, libelle, refus: null }));
+  const ids = ouverts(pasDeDonnee(noeuds.filter(estRefEmboitee), 'id'));
+  const emboites = entreesDeLaFeuilleLocale(ids, ouvreurs, ouvreursInterieursDesObjets);
+  return emboites && [
+    ...choixDuCatalogueOuvert(ids).map((c) => ({ ...c, valeur: { id: c.valeur } })),
+    ...emboites.map(({ id, libelle }) => ({ valeur: { id }, libelle, refus: null })),
+  ];
 }
 
 /** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée, dans
@@ -1319,7 +1333,11 @@ export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeD
   if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   const sous = estSousReference(cle) ? choixDeLaSousReference(donnee, chemin, cle, cadre.projet.narratif) : undefined;
   if (sous) return sous;
-  const locaux = choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), ouvreursDuCadre([formulaire.schema, donnee], cadre));
+  const ouvreursInterieursDesObjets: Ouvreur[] = [];
+  const noeuds = noeudsAuChemin(formulaire.schema, donnee, chemin, (ancetres, valeur) => {
+    for (const n of ancetres) if (porteesOuvertes(n).includes(OBJETS_DU_PROJET)) ouvreursInterieursDesObjets.push([n, valeur]);
+  });
+  const locaux = choixDeLaReferenceLocale(noeuds, ouvreursDuCadre([formulaire.schema, donnee], cadre), ouvreursInterieursDesObjets.reverse());
   const duPorteur = formulaire.choix?.(donnee, chemin, cadre);
   return locaux && duPorteur ? duPorteur.filter((c) => locaux.some((l) => jsonCanonique(l.valeur) === jsonCanonique(c.valeur))) : locaux ?? duPorteur;
 }

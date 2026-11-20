@@ -23,7 +23,8 @@ import type {
 } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
-import { inventaireApres, type IntentionDObjet } from '../../engine/items';
+import { inventaireApres, type IntentionDObjet, type TrappingResolver } from '../../engine/items';
+import { objetDuNarratif } from '../monde/resolveursDuNarratif';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import type { Dir4, Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
@@ -1010,7 +1011,7 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
  *  type d'un décor avec ses défauts de pose (`propRefPatch`), la couche au sol (`coucheEcrite`), la lumière éteinte, l'assise
  *  sans action, un parcours sans carrière, et un inventaire, un équipage ou des entrées couvertes vides (`sansVide`) ;
  *  l'inventaire après l'intention sur un objet (`inventaireApres`). */
-function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
+function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite, resolveTrapping: TrappingResolver): Partial<SceneEntity> {
   const { ref, z, light, assise, objet, parcours, crewIds, couvre, ...reste } = patch;
   const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
@@ -1026,7 +1027,7 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
       competencesDeCarriere: avecCarrieres?.competencesDeCarriere,
       dotationsDeCarriere: avecCarrieres?.dotationsDeCarriere,
     }),
-    ...(objet === undefined ? {} : { inventaire: sansVide(inventaireApres(ent.inventaire ?? {}, objet)) }),
+    ...(objet === undefined ? {} : { inventaire: sansVide(inventaireApres(ent.inventaire ?? {}, objet, resolveTrapping)) }),
     ...(crewIds === undefined ? {} : { crewIds: sansVide(crewIds) }),
     ...(couvre === undefined ? {} : { couvre: sansVide(couvre) }),
   };
@@ -1193,7 +1194,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'entite': {
       const ent = entiteDeLaSelection(scene, s.sel);
-      return ent ? ecrireSurLaSelection(s, editEntity(scene, ent.id, enPatchDEntite(ent, g.patch)), (sc) => entiteDeLaSelection(sc, s.sel)) : s;
+      if (!ent) return s;
+      const patch = enPatchDEntite(ent, g.patch, objetDuNarratif(projetEdite(s).narratif));
+      return ecrireSurLaSelection(s, editEntity(scene, ent.id, patch), (sc) => entiteDeLaSelection(sc, s.sel));
     }
     case 'poste': {
       const ent = entiteDeLaSelection(scene, s.sel);

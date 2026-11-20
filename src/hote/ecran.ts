@@ -290,9 +290,11 @@ type Combat = NonNullable<Projection['combat']>;
 
 const puce = (id: string, libelle: string, valeur: string | null, detail: string | null = null, ton: Ton = 'neutre'): Puce => ({ type: 'puce', id, ton, libelle, valeur, detail, jeu: null });
 
-/** Les modificateurs `mods` d'un jet, chacun une puce. */
-const puces = (id: string, mods: readonly ModLine[] | undefined): Puce[] =>
-  (mods ?? []).map((m, i) => puce(`${id}/m${i}`, m.label, avecSigne(m.value)));
+/** Les modificateurs de la cible et de DR, chacun une puce. */
+const puces = (id: string, mods: readonly ModLine[] | undefined, modsDR?: readonly ModLine[]): Puce[] => [
+  ...(mods ?? []).map((m, i) => puce(`${id}/m${i}`, m.label, avecSigne(m.value))),
+  ...(modsDR ?? []).map((m, i) => puce(`${id}/mDR${i}`, m.label, `${avecSigne(m.value)} DR`)),
+];
 
 /** Ce dont une cible est faite, une ligne par part : sa base, sa Difficulté et les paliers qui la composent
  *  (LDB 14 l.91-96), puis son écrêtage MESURÉ (`clamped`, `engine/tests.ts` : négatif au plafond, positif au plancher). */
@@ -333,7 +335,7 @@ function jetTombe(id: string, d: RollBreakdown, qui: Pick<Jet, 'qui' | 'combatta
     ...qui, libelle: d.label, resultat: String(d.roll), ...verdict,
     cible: cache ? null : t('ecran.jet.cible', { cible: d.target }),
     dr: cache || d.seuil ? null : t('ecran.jet.dr', { dr: avecSigne(d.sl) }),
-    modificateurs: cache ? [] : puces(id, d.mods),
+    modificateurs: cache ? [] : puces(id, d.mods, d.modsDR),
     detail: cache ? null : detailDuJet({
       base: d.base, difficulte: d.difficulty ? difficultyText(d.difficulty, d.difficultyCombined) : null, paliers: d.difficultyParts, target: d.target, clamped: d.clamped,
     }, enPlus),
@@ -365,7 +367,7 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
     a.jet === null ? null : 'd' in a.jet
       ? jetTombe('jet', a.jet.d, attaquant, inversion ? [t('ecran.attaque.inversion', { d100: inversion.roll, dr: avecSigne(inversion.sl), verdict: verdictDuTest(inversion.success).verdict })] : [])
       : jet('jet', {
-          ...attaquant, libelle: a.jet.pending.label, cible: t('ecran.jet.cible', { cible: a.jet.pending.target }), modificateurs: puces('jet', a.jet.pending.mods),
+          ...attaquant, libelle: a.jet.pending.label, cible: t('ecran.jet.cible', { cible: a.jet.pending.target }), modificateurs: puces('jet', a.jet.pending.mods, a.jet.pending.modsDR),
           detail: detailDuJet({ ...a.jet.pending, paliers: a.jet.pending.difficultyParts }),
         }),
     a.defense === null ? null : 'd' in a.defense
@@ -411,7 +413,7 @@ function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
   const qui = jeteur(etat, l.qui);
   switch (l.genre) {
     case 'test': return jet(id, {
-      ...qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }),
+      ...qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }), modificateurs: puces(id, undefined, l.modsDR),
       ...(l.jet ? { resultat: String(l.jet.d100), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.dr) }), ...verdictDuTest(l.jet.reussi) } : {}),
     });
     case 'table': return jet(id, { ...qui, libelle: l.table, ...(l.jet ? { resultat: String(l.jet.effectif), verdict: l.jet.ligne } : {}) });
@@ -420,6 +422,7 @@ function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
 }
 
 const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
+  ...puces(`jets/${i}`, undefined, j.modsDR),
   ...j.lignes.map((l, k) => jetDeLaLigne(etat, `jets/${i}/${k}`, l)),
   ...(j.oppose ? [drNet(`jets/${i}/drNet`, j.oppose.drNet)] : []),
 ];

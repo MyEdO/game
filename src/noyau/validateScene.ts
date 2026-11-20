@@ -30,16 +30,16 @@ import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { PERSONNAGES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
 import { idsDeLaPortee, ouvrirPortees } from '../data/schemas/grammaire/collection-cle';
 import { OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
-import { metaDesChamps, nommerChamps } from '../data/schemas/grammaire/meta';
+import { nommerChamps } from '../data/schemas/grammaire/meta';
 import { z } from 'zod';
-import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
+import { metaNarratif, narratifSchema } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetInstanciableDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { colonneDeDisponibiliteDuMarchand, estUnHebergement, lieuDeLaScene, nomDuPoi, placeServices, sceneAubergeOffer, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
@@ -126,7 +126,7 @@ const OUVREURS_DES_OBJETS = new Map<z.ZodType, z.ZodType>();
 function sousLesObjetsDuProjet(schema: z.ZodType): z.ZodType {
   const connu = OUVREURS_DES_OBJETS.get(schema);
   if (connu) return connu;
-  const narratif = nommerChamps(z.strictObject({ objets: narratifSchema.shape.objets }), { objets: metaDesChamps(narratifSchema, { exigees: true }).objets });
+  const narratif = nommerChamps(z.strictObject({ objets: narratifSchema.shape.objets }), { objets: metaNarratif.objets });
   const ouvreur = ouvrirPortees(nommerChamps(z.strictObject({ narratif, valeur: schema }), { narratif: { label: 'Bloc narratif' }, valeur: { label: 'valeur' } }), [OBJETS_DU_PROJET]);
   OUVREURS_DES_OBJETS.set(schema, ouvreur);
   return ouvreur;
@@ -192,6 +192,7 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
  */
 export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
   const presetDe = presetDuNarratif(narratif);
+  const resolveTrapping = objetInstanciableDuNarratif(narratif);
   const out: Warning[] = [];
   const sceneIds = new Set(project.map((s) => s.id));
   if (worldMap) {
@@ -288,7 +289,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const refCtx: EffectRefCtx = {
       sceneIds,
       entityIds: new Set(idsDeLaPortee(sceneSchema, s, PERSONNAGES_DE_LA_SCENE)),
-      npcSheet: (id) => sceneNpc(s, id, presetDe),
+      npcSheet: (id) => sceneNpc(s, id, presetDe, resolveTrapping),
       within,
       walkable: (x, y, z) => groupePosable(vue, { x, y, z }),
     };
@@ -339,7 +340,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       if (e.z && !couchesDesEntites.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
       const appui = fauteDAppui(vue, e);
       if (appui) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} ${DIT_DE_L_APPUI[appui.faute](appui.support)} — repose-le au glissé`);
-      const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe) : undefined;
+      const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe, resolveTrapping) : undefined;
       const refusDesSorts = npc && refusDesSortsChoisis(npc, e.combat?.spells ?? []);
       if (refusDesSorts) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → ${refusDesSorts}`);
     }

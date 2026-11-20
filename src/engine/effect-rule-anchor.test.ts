@@ -144,7 +144,7 @@ const BASELINE: string[] = [
   'engine/shipCritical.ts | set.shrapnelHit! | { rng, idNeuf }', // éclats d'un critique de navire (le `!` tient l'anomalie NOMMÉE juste au-dessus : un jeu sans `shrapnelHit` ne peut pas porter d'Éclats)
   'engine/shipCritical.ts | extra.ops | { rng, idNeuf }', // ops d'un critique de navire supplémentaire
   "noyau/monde/aiSpellValue.ts | [op] | { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) }", // simulation d'IA sur un CLONE — jamais affichée au joueur
-  'noyau/combatEffects.ts | e.ops | { idNeuf: env.get().forgerUnId, rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
+  'noyau/combatEffects.ts | e.ops | { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }', // ops d'un Souffle de zone (effet de scène)
   'noyau/combatFlow.ts | crit.ops | { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, surLigne, ...crochetDuSol(get, set) }', // ops d'une Blessure critique en combat
   'noyau/combatFlow.ts | outcome.ops | { idNeuf, rng: battleRng() }', // ops de l'issue d'une manœuvre
   'noyau/medicFlow.ts | penalty | { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté
@@ -158,8 +158,8 @@ const BASELINE: string[] = [
   // à viser à ce jour) — les deux lignes s'ôtent d'ici le jour où elle existe.
   'noyau/sequenceCore.ts | [...ops] | { idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...campAdvantageHooks(get) }', // ops de manche aux vainqueurs et aux perdants de la manche
   'noyau/sequenceCore.ts | [...decl.attrition] | { idNeuf: get().forgerUnId, rng: battleRng(), caster: c }', // ops d'attrition d'intervalle
-  'noyau/monde/zones.ts | z.onCross | { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label }', // ops de franchissement d'une zone d'effet
-  'noyau/monde/zones.ts | z.perRound | { idNeuf, caster, rng, label: z.label }', // ops récurrentes d'une zone d'effet
+  'noyau/monde/zones.ts | z.onCross | { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label, resolveTrapping }', // ops de franchissement d'une zone d'effet
+  'noyau/monde/zones.ts | z.perRound | { idNeuf, caster, rng, label: z.label, resolveTrapping }', // ops récurrentes d'une zone d'effet
 ];
 
 describe('ancrage de règle des ActiveEffect posés', () => {

@@ -6,6 +6,7 @@
  * l.169, l.171.
  */
 import { COMBATTANTS, DIT, RESERVES, TOUR_DE_BERTA, TOUR_DE_L_ORC, TOUR_D_ILYANWE } from './dome.ts';
+import { PROFIL_D_ILYANWE } from './fiche-du-heros.ts';
 import type { ActionDuTour, BarreDeLActif, Combat, Combattant, Ecran, FamilleDActions, FicheDeSort } from './maquette.ts';
 
 /** Les actions qui coûtent l'Action ; `attaque`, armée par la cible survolée ; `course`, fermée de sa raison. */
@@ -27,7 +28,7 @@ const COMMUNS = [geste('avantage', 'Compétence'), geste('usage-objet', 'Objet')
 
 /** Les Sorts d'Ilyanwe, en emplacements rapides. */
 const SORTS = ['Fléchette', 'Dôme', 'Bouclier', 'Lumière', null, null];
-const FLECHETTE: FicheDeSort = { nom: 'Fléchette', ni: 0, portee: 'Force Mentale mètres', cibles: 1, duree: 'Instantanée', cout: 'l’Action', note: 'Un clic arme le sort, un second sur la cible le lance.' };
+const FLECHETTE: FicheDeSort = { nom: 'Fléchette', ni: 0, portee: { metres: PROFIL_D_ILYANWE.find((c) => c.carac === 'FM')!.valeur, selon: 'Force Mentale' }, cibles: 1, duree: 'Instantanée', cout: 'l’Action', note: 'Un clic arme le sort, un second sur la cible le lance.' };
 
 /** La barre d'Ilyanwe, la famille `ouverte` ; `sort`, la liste des Sorts ouverte ; `arme`, l'emplacement armé. */
 const barreDIlyanwe = (ouverte: FamilleDActions['id'], { armee = false, sort = false, arme = null as number | null } = {}): BarreDeLActif => ({

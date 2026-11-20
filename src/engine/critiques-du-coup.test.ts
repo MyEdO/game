@@ -3,6 +3,10 @@ import { critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, porteurDeCri
 import { resetRule, setRule } from './policy';
 import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import { makeRNG } from './dice';
+import { optsDeCritiqueDeCoque, resolveShipCriticalHit } from './shipCritical';
+import { vehicleCombatant } from './vehicle';
+import { findVehicleById } from '../data';
 
 // #1595 c.6220635824, c.6221792068, c.6219992594 — le compte des Blessures critiques d'un coup.
 
@@ -38,6 +42,33 @@ describe('porteurDeCritique — classifieur TOTAL', () => {
 
   it('la barque fluviale est un navire (#1595 c.6221792068 Q6)', () => {
     expect(porteurDeCritique(porteur({ bodyShape: 'vehicule', creatureId: 'barque-fluviale' }))).toBe('navire');
+  });
+});
+
+// MSRC 07 l.56, l.86 ; MDG 13 l.580, l.664
+describe('Critique de la même Barge au fleuve et en mer', () => {
+  const fiche = findVehicleById('barge-fluviale')!;
+
+  it('hors trajet, utilise la table de coque du catalogue', () => {
+    const coque = vehicleCombatant(fiche)!;
+    const issue = resolveShipCriticalHit('mixte', makeRNG(1), 55, 1, optsDeCritiqueDeCoque(coque));
+    expect(issue).toMatchObject({ location: 'gouvernail', crit: { id: 'gouvernail-fluvial' } });
+  });
+
+  it('sans trajet actif, utilise le milieu porté par la coque de voyage', () => {
+    const coque = vehicleCombatant(fiche, undefined, 'maritime')!;
+    const issue = resolveShipCriticalHit('mixte', makeRNG(1), 55, 1, optsDeCritiqueDeCoque(coque));
+    expect(issue).toMatchObject({ location: 'coque', crit: { id: 'coque-abimee' } });
+  });
+
+  it('le trajet actif l’emporte sur le milieu porté par la coque', () => {
+    const coque = vehicleCombatant(fiche, undefined, 'maritime')!;
+    const fleuve = resolveShipCriticalHit('mixte', makeRNG(1), 55, 1, optsDeCritiqueDeCoque(coque, { river: {} }));
+    expect(fleuve).toMatchObject({ location: 'gouvernail', crit: { id: 'gouvernail-fluvial' } });
+
+    const coqueFluviale = vehicleCombatant(fiche, undefined, 'fluvial')!;
+    const mer = resolveShipCriticalHit('mixte', makeRNG(1), 55, 1, optsDeCritiqueDeCoque(coqueFluviale, { sea: {} }));
+    expect(mer).toMatchObject({ location: 'coque', crit: { id: 'coque-abimee' } });
   });
 });
 

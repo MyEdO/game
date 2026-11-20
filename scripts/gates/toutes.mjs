@@ -553,23 +553,21 @@ export const ECRIT_LU = {
     ecrit: [],
     ecritFerme: {
       'hotes/godot/projet/modeles/':
-        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `piloter`) : `recupererModeles` ' +
-        'n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis ' +
-        'renommage, que ses jeux menés de front répètent sans rien écrire ; `godot:recette` suit `godot:sonde` et ' +
+        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `preparerLePilotage`) : ' +
+        '`recupererModeles` n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par ' +
+        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde` et ' +
         '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
-      'Les recettes natives de l’hôte Godot (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) : les jeux `combat` et ' +
-      '`editeur`, menés de front (`jeuxPilotesDeFront`, #3412), par `recette.mjs --natif`, qui bâtit le pont en mémoire (`write: false`), sert le jeu sans ' +
-      'export (`servir.mjs`) et lance Godot `--headless` sur une COPIE importée du projet sous `os.tmpdir()`, effacée ' +
-      '(`piloter`, hotes/godot/construire.mjs), tirée de la copie importée de `godot:sonde`, hors de l’arbre ' +
-      '(`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935) ; le parcours `editeur` sert une COPIE des projets manuscrits sous ' +
-      '`os.tmpdir()` (`depot`), où son enregistrement écrit, jamais sous src/scenes/ ; les journaux vont sous ' +
-      '`dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit ; LIT ce que lit `godot:sonde`. Écrit sous ' +
-      'hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`) ; `deposerLesModeles`, `deposerLesPlanches` et ' +
-      '`deposerLesAvis` n’écrivent que sous `--export` et `--bureau`, dans leur `--sortie`, et le stockage du pont est ' +
-      'celui du processus de la recette (`stockageDuProcessus(null)`, hotes/godot/stockage.mjs), qui ne dure que lui',
+      'Le lot natif (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) prépare sous `os.tmpdir()` le bundle du pont ' +
+      'et un clone de la copie importée hors de l’arbre (`~/.cache/wfrp-godot-copies/`). Les jeux `combat`, `editeur` et ' +
+      '`compendium` se jouent de front (`jeuxPilotesDeFront`, #3412) par `recette.mjs --natif`. Chaque processus lit ' +
+      'le bundle, sert le jeu sans export (`servir.mjs`), possède son stockage du pont (`stockageDuProcessus(null)`) ' +
+      'et lance Godot `--headless` sur son clone jetable (`piloter`, hotes/godot/construire.mjs). Les parcours ' +
+      '`editeur` et `compendium` servent chacun un dépôt temporaire pour leurs enregistrements. La préparation et les ' +
+      'copies sont effacées. Les journaux vont sous `dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit. ' +
+      'LIT ce que lit `godot:sonde` et écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
   },
   'personnage-3d:tests': {
     ecrit: [],

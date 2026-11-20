@@ -2,7 +2,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyShipPostes } from './shipPostes';
 import { firedWeapon, firedAttackBlock } from '../combatFlow';
-import { itemFromTrappingById } from '../../engine/items';
+import { hydratePoste } from '../../engine/items';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import type { Scene } from './scene';
 import type { JeuDuNoyau } from '../machinerieDuNoyau';
@@ -36,7 +36,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
     inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
+  hydratePoste({ trappingId: engineId, crewIds }, idsDeTest('it'));
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 2,

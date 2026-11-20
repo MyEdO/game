@@ -10,11 +10,10 @@ import type { Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { LIBELLE_NARRATIF } from './codex/libellesNarratifs';
 import { t } from '../i18n';
-import { collisionneAvecLeGlobal, narratifSchema, type NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { collisionneAvecLeGlobal, metaNarratif, type NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { porteesOuvertes, sitesDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { ouverts } from '../data/schemas/grammaire/descente';
-import { metaDesChamps } from '../data/schemas/grammaire/meta';
 import { REGISTRES_NARRATIFS } from '../data/schemas/defs-scenes/registres-narratifs';
 import { FORMES_D_ETAT, valeursDeclarees, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
 import { lieuDuSite, referencesA, renommeRef, type CibleNarrative, type LieuDeSite, type SiteLocal } from '../data/schemas/defs-scenes/refs-narratives';
@@ -138,7 +137,7 @@ function lieuLisible(l: LieuDeSite): string {
       nom: REGISTRES_NARRATIFS.find((r) => r.cle === l.registre)!.nom,
       libelle: (LIBELLE_NARRATIF[l.registre] as (e: unknown) => string)(l.entree),
     });
-    case 'narratif': return t('narratifEdit.lieu.narratif', { membre: metaDesChamps(narratifSchema, { exigees: true })[l.cle].label });
+    case 'narratif': return t('narratifEdit.lieu.narratif', { membre: metaNarratif[l.cle].label });
   }
 }
 

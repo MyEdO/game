@@ -714,8 +714,10 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             les mêmes parcours sans export ni navigateur : le jeu lancé sur une copie importée du projet,
                             sans rendu ou, pour un parcours qui lit l'image, en rendu réel sur un écran virtuel
                             (`--rendu`), piloté par `projet/recettes/pilote.gd`, son pont et son serveur dans le
-                            processus de la recette (`pilotage/`) ; `npm run godot:recette`, étape de la CI, en joue
-                            `combat` et `editeur`, le canari le lot natif entier (`lot-de-recettes.mjs --natif`).
+                            processus de la recette (`pilotage/`). Le lot natif prépare le projet importé et le
+                            bundle du pont une fois. Chaque jeu clone le projet, évalue son pont et garde ses
+                            ports, son stockage et ses sorties. La file joue `combat`, `editeur` et `compendium`
+                            (`npm run godot:recette`). Le canari joue le lot natif entier (`lot-de-recettes.mjs --natif`).
                             `--bureau --sortie <dossier>`
                             (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
                             embarqué (`noyau/` : Node, le bundle, le point d'entrée), ses modèles en scène et ses avis

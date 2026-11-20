@@ -1,9 +1,9 @@
-import type { Combatant } from '../../engine/types';
+import type { CombatantAvecMilieuNaval } from '../../engine/vehicle';
 import { findVehicleById } from '../../data';
 import type { CampaignVessel } from '../etat';
 import type { SceneEntity } from './scene';
 
-export type CombattantDeRencontreOuTrajet = Combatant & {
+export type CombattantDeRencontreOuTrajet = CombatantAvecMilieuNaval & {
   /** Identité du navire de campagne représenté par la coque. */
   navireDeCampagneUid?: string;
 };
@@ -14,10 +14,16 @@ export function estUneCoqueNavale(entite: Pick<SceneEntity, 'vehicule'> | undefi
   return !!fiche?.ship && !!fiche.hull;
 }
 
+/** Identité de campagne que la fiche de cette coque peut recevoir. */
+export function uidDeCampagnePourLaCoque(vehiculeId: string | undefined, vessel?: Pick<CampaignVessel, 'uid' | 'vehicleId'> | null): string | undefined {
+  return vehiculeId === vessel?.vehicleId ? vessel?.uid : undefined;
+}
+
 /** La coque représente cette instance à partir de sa construction ou de sa désignation dans la rencontre. */
 export function lierLaCoqueDeCampagne(coque: CombattantDeRencontreOuTrajet, vessel: CampaignVessel): boolean {
-  if (vessel.uid === undefined || coque.creatureId !== vessel.vehicleId) return false;
-  coque.navireDeCampagneUid = vessel.uid;
+  const uid = uidDeCampagnePourLaCoque(coque.creatureId, vessel);
+  if (uid === undefined) return false;
+  coque.navireDeCampagneUid = uid;
   return true;
 }
 

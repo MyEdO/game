@@ -27,13 +27,13 @@ import { suffocationTick } from '../../engine/suffocation';
 import { tickTraumaEscalation } from '../../engine/trauma';
 import { clearPsychOf, refreshAllDefendedPsych } from '../../engine/psychology';
 import { zonesRoundTick } from '../monde/zones';
+import { objetDuNarratif } from '../monde/resolveursDuNarratif';
 import { purgeExpiredSummons } from '../summonFlow';
 import { fireTriggers } from '../triggeredEffects';
 import { collectRoundEndTestSteps } from './triggeredTest';
-import { inBattleId } from '../monde/combatants';
 import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
-import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
+import { surnombreSubi } from './surnombre';
 import { distanceDeCombat } from '../monde/footprint';
 import { sceneMetresPerTile } from '../monde/scene';
 import { rule } from '../../engine/policy';
@@ -249,8 +249,10 @@ export const TABLES = {
       phase: 'onRoundEnd',
       order: 10,
       run: ({ get, set, battle, sink }) => {
+        const { forgerUnId, campaignNarratif } = get();
+        const resolveTrapping = objetDuNarratif(campaignNarratif);
         for (const c of battle.combatants) {
-          endOfRound(c, battleRng(), get().forgerUnId).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
+          endOfRound(c, battleRng(), forgerUnId, undefined, resolveTrapping).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
           // Dispatch UNIQUE des effets `onRoundEnd` (États : dégâts/dissipation ; Traits/Talents : réactions) —
           // fireTriggers réunit toutes les sources, aucun chemin par-kind. Inerte sans donnée. Pas de réaction
           // de fin de Round pour un combattant HORS COMBAT (un cadavre ne brûle/saigne plus — le dispatcher
@@ -353,12 +355,10 @@ export const TABLES = {
         if (groupAdvantage()) return; // AA 11 l.44
         for (const c of battle.combatants) {
           if (isOutOfAction(c) || (c.advantage ?? 0) <= 0) continue;
-          const foes = (c.engagedWith ?? []).filter((id) => {
-            const e = inBattleId(battle, id);
-            return !!e && e.kind !== c.kind && !isOutOfAction(e);
-          }).length;
-          // LDB 10 l.765
-          if (foes >= 2 + outnumberCountBonus(c)) { c.advantage = avantageApresPerte(c.advantage, 1); sink(t('turn.outnumbered', { name: c.label, foes }), c); }
+          const surnombre = surnombreSubi(battle.combatants, c);
+          if (!surnombre) continue;
+          c.advantage = avantageApresPerte(c.advantage, 1);
+          sink(t('turn.outnumbered', { name: c.label, foes: surnombre.attaquants, allies: surnombre.defenseurs }), c);
         }
       },
     },
@@ -433,7 +433,11 @@ export const TABLES = {
       id: 'zones-round-tick', // zones perRound (Grands feux d'U'Zhul, LDB 47 : « au début d'un Round »)
       phase: 'onRoundEnd',
       order: 79,
-      run: ({ get, battle, sink }) => { zonesRoundTick(battle.zones, battle.combatants, battleRng(), get().forgerUnId).forEach((t) => sink(t.line, t.combatant)); },
+      run: ({ get, battle, sink }) => {
+        const { forgerUnId, campaignNarratif } = get();
+        zonesRoundTick(battle.zones, battle.combatants, battleRng(), forgerUnId, objetDuNarratif(campaignNarratif))
+          .forEach((t) => sink(t.line, t.combatant));
+      },
     },
     {
       id: 'clear-psych-of-dead', // afflictions causées par une créature hors d'action → fin (toutes causes) ; #3045

@@ -119,7 +119,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#mass-battle', ref: '.mightModifiers[]', occurrence: 1 },
   { fichier: 'src/data#mass-battle', ref: '.powerEstimate[]', occurrence: 1 },
   { fichier: 'src/data#mass-battle', ref: '.structures[]', occurrence: 1 },
-  { fichier: 'src/data#mass-battle', ref: '.warMachines[]', occurrence: 1 },
   { fichier: 'src/data#merchantFamilies', ref: '[].match', occurrence: 1 },
   { fichier: 'src/data#merchants', ref: '[].category', occurrence: 1 },
   { fichier: 'src/data#miscast', ref: '[].entries[]', occurrence: 1 },

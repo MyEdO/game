@@ -702,8 +702,8 @@ export function ecartsDeLaCopie(avant, apres) {
   }
 }
 
-/** La copie importée du projet de cet arbre, hors de l'arbre et hors de `CACHE`, que la CI garde entre ses jobs
- *  (`.github/actions/caches-3d`) : une par version de l'éditeur, son `.godot` gardé d'un lancement à l'autre, l'import
+/** La copie importée du projet de cet arbre, hors de l'arbre et hors de `CACHE` :
+ *  une par version de l'éditeur, son `.godot` gardé d'un lancement à l'autre sur la même machine, l'import
  *  n'y retraite que ce qui a changé. Son marqueur porte les signatures du projet (`signaturesDu`) au dernier import
  *  réussi ; son verrou la garde des lancements menés de front. */
 const COPIE_IMPORTEE = join(homedir(), '.cache', 'wfrp-godot-copies', EDITEUR.version, createHash('sha256').update(PROJET).digest('hex').slice(0, 16))
@@ -729,26 +729,41 @@ async function mettreAJourLaCopie(binaire, figerLesDessins) {
   return erreurs
 }
 
-/** Joue `faire(copie)` sur une copie jetable, sous le dossier temporaire, de la copie importée du projet
- *  (`mettreAJourLaCopie`), son `.godot` compris et ses dates gardées : l'arbre n'en reçoit rien, et ce que `faire`
- *  écrit dans sa copie ne revient pas à la copie importée. Rend ses erreurs. */
-async function surUneCopie(binaire, figerLesDessins, faire) {
+/** Clone les fichiers du projet importé, son `.godot` compris et ses dates gardées. */
+function copierLeProjet(source, copie) {
+  cpSync(source, copie, { recursive: true, preserveTimestamps: true })
+}
+
+/** Met à jour la copie importée et la clone sous le même verrou. Rend les erreurs de la préparation. */
+async function copierLeProjetImporte(binaire, figerLesDessins, copie) {
+  const verrou = await prendreVerrouAsync({ chemin: VERROU_DE_LA_COPIE, libelle: 'copie importée du projet Godot', attente: { echeanceMs: ECHEANCE_MS, pasMs: 500 } })
+  if (verrou.etat !== 'pris') return [verrou.message]
+  try {
+    mkdirSync(COPIE_IMPORTEE, { recursive: true })
+    const erreurs = await mettreAJourLaCopie(binaire, figerLesDessins)
+    if (!erreurs.length) await chronometrer('copie jetable de la copie importée', () => copierLeProjet(COPIE_IMPORTEE, copie))
+    return erreurs
+  } finally {
+    verrou.liberer()
+  }
+}
+
+/** Exécute `faire(copie)` dans un dossier temporaire dédié, effacé à sa sortie. */
+async function dansUneCopieJetable(faire) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
-    const verrou = await prendreVerrouAsync({ chemin: VERROU_DE_LA_COPIE, libelle: 'copie importée du projet Godot', attente: { echeanceMs: ECHEANCE_MS, pasMs: 500 } })
-    if (verrou.etat !== 'pris') return [verrou.message]
-    let erreurs
-    try {
-      mkdirSync(COPIE_IMPORTEE, { recursive: true })
-      erreurs = await mettreAJourLaCopie(binaire, figerLesDessins)
-      if (!erreurs.length) await chronometrer('copie jetable de la copie importée', () => cpSync(COPIE_IMPORTEE, copie, { recursive: true, preserveTimestamps: true }))
-    } finally {
-      verrou.liberer()
-    }
-    return erreurs.length ? erreurs : await faire(copie)
+    return await faire(copie)
   } finally {
     rmSync(copie, { recursive: true, force: true })
   }
+}
+
+/** Joue `faire(copie)` sur un clone jetable de la copie importée. Rend les erreurs de la préparation ou du jeu. */
+async function surUneCopie(binaire, figerLesDessins, faire) {
+  return dansUneCopieJetable(async (copie) => {
+    const erreurs = await copierLeProjetImporte(binaire, figerLesDessins, copie)
+    return erreurs.length ? erreurs : await faire(copie)
+  })
 }
 
 /** La vue figée `vue` écrite sous `recettes/vues/<nom>.json` de la copie `copie`, que lit sa recette. */
@@ -841,6 +856,17 @@ function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins })
   })
 }
 
+const PROJET_DU_LOT = 'projet'
+
+/** Prépare le projet importé et le bundle de développement dans le dossier temporaire du lot (#4085). */
+export async function preparerLePilotage(dossier) {
+  const a = await deposerLesAssets()
+  const binaire = await chronometrer('éditeur Godot', editeur)
+  const erreurs = await copierLeProjetImporte(binaire, a.figerLesDessins, join(dossier, PROJET_DU_LOT))
+  if (erreurs.length) throw new Error(`Préparation du projet Godot :\n${erreurs.join('\n')}`)
+  await chronometrer('bundle du pont', () => empaqueter(dossier, 'development'))
+}
+
 /** Le pilote d'une recette native (`projet/recettes/pilote.gd`), et la ligne qu'il écrit avant de quitter. */
 const PILOTE = 'res://recettes/pilote.gd'
 const FIN_DU_PILOTE = '[pilote] fin'
@@ -849,9 +875,9 @@ const FIN_DU_PILOTE = '[pilote] fin'
  *  (`deposerLesPlanches`), les assets `a` chargés (`deposerLesAssets`). */
 const deposerLesPlanchesFigees = (sortie, a) => chronometrer('planches figées', () => deposerLesPlanches(sortie, a.figerLesPlanches(listage(a.DOSSIER_DES_MODELES))))
 
-/** Le jeu piloté par une recette (#3945) : le projet importé sur une copie par l'éditeur épinglé (`surUneCopie`), puis
- *  `PILOTE` en boucle principale, à la fenêtre `fenetre`, `{ largeur, hauteur }` (ses paramètres `largeur` et
- *  `hauteur`), `args` passés au jeu après `--` et `env` ajouté à son environnement, avec ses
+/** Le jeu piloté par une recette (#3945) : une copie du projet importé par l'éditeur épinglé (`surUneCopie`)
+ *  ou du projet de la `preparation` du lot, puis `PILOTE` en boucle principale, à la fenêtre `fenetre`
+ *  (`{ largeur, hauteur }`), `args` passés au jeu après `--` et `env` ajouté à son environnement, avec ses
  *  données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`) sous la copie, que ses relances gardent, sans tenir le
  *  fil ; sans écran, ou, avec `rendu`, en rendu réel sous cette méthode, sur un écran (`ecranVirtuel` de la taille de
  *  `fenetre` sans lui).
@@ -859,12 +885,12 @@ const deposerLesPlanchesFigees = (sortie, a) => chronometrer('planches figées',
  *  tant que `encore()` le demande. Rend les lignes de chaque sortie jusqu'à `FIN_DU_PILOTE` (ce que le moteur écrit
  *  ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes, et ses échecs. Avec `planches`, les
  *  planches figées y sont déposées avant le lancement (`deposerLesPlanchesFigees`). */
-export async function piloter({ args, env, rendu, lance, encore, planches, fenetre }) {
-  const a = await deposerLesAssets()
-  if (planches) await deposerLesPlanchesFigees(planches, a)
+export async function piloter({ args, env, rendu, lance, encore, planches, fenetre, preparation }) {
+  const a = preparation ? null : await deposerLesAssets()
+  if (planches) await deposerLesPlanchesFigees(planches, a ?? await assetsDeLHote())
   const binaire = await chronometrer('éditeur Godot', editeur)
   const lignes = []
-  const erreurs = await surUneCopie(binaire, a.figerLesDessins, async (copie) => {
+  const jouer = async (copie) => {
     const [commande, ...prefixe] = rendu ? [...ecranVirtuel(fenetre), binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
     const erreurs = []
     const donnees = DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: mkdtempSync(join(copie, 'donnees-')) } : {}
@@ -877,7 +903,13 @@ export async function piloter({ args, env, rendu, lance, encore, planches, fenet
       erreurs.push(...erreursDe(jouees), ...joue.echec)
     } while (encore())
     return erreurs
-  })
+  }
+  const erreurs = preparation
+    ? await dansUneCopieJetable(async (copie) => {
+      await chronometrer('copie jetable du projet préparé', () => copierLeProjet(join(preparation, PROJET_DU_LOT), copie))
+      return jouer(copie)
+    })
+    : await surUneCopie(binaire, a.figerLesDessins, jouer)
   return { lignes, erreurs }
 }
 

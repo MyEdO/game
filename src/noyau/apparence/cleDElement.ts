@@ -29,7 +29,7 @@ const CHAMPS = {
   coiffure: { find: findCoiffureById, quoi: 'coiffure de `garde-robe.json`' },
   piece: { find: pieceOuVariante, quoi: 'pièce ni variante de `garde-robe.json`' },
   apparence: { find: findApparenceById, quoi: 'apparence de `apparences.json`' },
-  definition: { find: (id: string) => { const fiche = findFicheDeVehicule(id); return fiche && { label: libelleDAuteur(fiche) }; }, quoi: 'coque de `vehicles.json` ni engin `armes-de-siege` de `trappings.json`' },
+  definition: { find: (id: string) => { const fiche = findFicheDeVehicule(id); return fiche && { label: libelleDAuteur(fiche) }; }, quoi: 'coque de `vehicles.json` ni engin de `siege-engines.json`' },
   amelioration: { find: (id: string) => { const t = findNavalTrait(id); return t?.kind === 'amelioration' ? t : undefined; }, quoi: 'Amélioration de `naval-traits.json`' },
   prop: { find: findPropById, quoi: 'décor de `props.json`' },
   kit: {

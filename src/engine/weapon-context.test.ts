@@ -1,9 +1,10 @@
 import { idsDeTest } from './idsDeTest.testkit';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 import { effectiveWeapon, effectiveWeaponDamage } from './weaponDamage';
 import { resolveMelee, hasWeaponGroupSkill, combatValue, attackTestOf } from './combat';
 import { weaponHands, recomputeLoadout, itemFromTrappingById, weaponFromItem, setADeuxMains, loadoutSetSlot, activeLoadout } from './items';
 import { maniementRetenu } from './weaponGroup';
+import { resetRule, setRule } from './policy';
 import { resolveQualities } from './qualities/dispatch';
 import { dangerousNine, hasQuality } from './qualities/dispatch';
 import { makeRNG } from './dice';
@@ -233,6 +234,9 @@ describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts
 
 /** AA 08 l.343 */
 describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et Lente', () => {
+  beforeEach(() => setRule('combat-aa-armement', true));
+  afterEach(() => resetRule('combat-aa-armement'));
+
   const porteur = (skills: SkillInstance[], ids = ['epee-batarde', 'bouclier']): Combatant => {
     const c = combatant({ skills, items: ids.map((id) => ({ ...itemFromTrappingById(id, idsDeTest)!, equipped: true })) });
     recomputeLoadout(c);
@@ -297,6 +301,9 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
 
 /** AA 08 l.194 ; AA 08 l.314 */
 describe('Arme d’escrime ou main gauche maniée en Corps à Corps (Base)', () => {
+  beforeEach(() => setRule('combat-aa-armement', true));
+  afterEach(() => resetRule('combat-aa-armement'));
+
   const arme = (id: string): Weapon => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
 
   it.each([
@@ -327,4 +334,19 @@ describe('Arme d’escrime ou main gauche maniée en Corps à Corps (Base)', () 
     expect(attackTestOf(c, arme('main-gauche'), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'parade' } });
     expect(qualitesManiees(c, arme('main-gauche'))).toEqual(['defensive']);
   });
+});
+
+/** LDB 62 l.42, l.48, l.55, l.151 ; AA 08 l.194, l.314, l.343 */
+it('sans l’option Aux Armes, Base ne remplace pas Escrime, Parade ou Deux mains', () => {
+  const porteur = combatant({ skills: [cac('base', 20)] });
+  for (const [id, spec, mains] of [
+    ['fleuret', 'escrime', 1],
+    ['main-gauche', 'parade', 1],
+    ['epee-batarde', 'deux-mains', 2],
+  ] as const) {
+    const arme = weaponFromItem(itemFromTrappingById(id, idsDeTest)!, 'main');
+    expect(arme.hands).toBe(mains);
+    expect(attackTestOf(porteur, arme, 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec } });
+    expect(combatValue(porteur, 'melee', arme)).toBe(55);
+  }
 });

@@ -257,7 +257,7 @@ export function referencesA(projet: ProjetAReferences, cible: CibleNarrative, lo
 
 /** Écrit `nouveau` au site local de chemin `chemin` (relatif à `racine`) : remplace la valeur, ou renomme la clé de record
  *  (`parCle`) en gardant sa valeur et l'ordre des clés. */
-function ecritAuChemin(racine: unknown, chemin: Chemin, parCle: boolean, nouveau: string): void {
+export function ecritAuChemin(racine: unknown, chemin: Chemin, parCle: boolean, nouveau: string): void {
   const porteur = auChemin(racine, chemin.slice(0, -1)) as Record<string | number, unknown>;
   const cle = chemin[chemin.length - 1];
   if (!parCle) {

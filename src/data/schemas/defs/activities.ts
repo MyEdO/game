@@ -167,7 +167,6 @@ const doc = document(
       roundTo: z.number().optional(),
     }), { gap: { label: "écart" }, roundTo: { label: "arrondi" } }).optional(),
     sceneKind: sceneKindSchema.optional(),
-    encounter: z.string().optional(),
     rounds: z.number().optional(),
     hold: nommerChamps(z.strictObject({
       breakpoint: z.number(),
@@ -251,7 +250,6 @@ const doc = document(
       label: 'Genre de Scène',
       hint: 'Nature de la Scène de Round (test/combat/menace/tenue de position/rassemblement)',
     },
-    encounter: { label: 'Rencontre', hint: 'Identifiant de la rencontre démarrée par la Scène' },
     rounds: { label: 'Durée en Rounds', hint: 'Durée indicative de la Scène' },
     hold: {
       label: 'Tenue de position',

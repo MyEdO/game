@@ -24,7 +24,7 @@ describe('catalogue véhicules (data-driven)', () => {
     const dil = vehicleTravel('diligence')!;
     expect(dil.movement).toBe(6);
     expect(dil.classes.map((c) => c.brassPerKm)).toEqual([2, 1]);
-    const barge = vehicleTravel('barge')!;
+    const barge = vehicleTravel('barge-fluviale')!;
     expect(barge.movement).toBe(8);
     expect(barge.classes.map((c) => c.brassPerKm)).toEqual([5, 2]);
   });
@@ -38,7 +38,7 @@ describe('catalogue véhicules (data-driven)', () => {
     expect(travelModeLabels().diligence).toBe('Diligence');
     expect(travelModeIcon('pied')).toBe('voyage/a-pied');
     expect(travelModeIcon('diligence')).toBe('voyage/diligence');
-    expect(travelModeIcon('barge')).toBe('voyage/barge');
+    expect(travelModeIcon('barge-fluviale')).toBe('voyage/barge');
   });
 });
 

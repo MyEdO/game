@@ -4,6 +4,7 @@
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
 import { nomDe } from '../engine/nom';
+import { atoutsOptionnelsDe } from '../engine/atoutsOptionnels';
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
@@ -46,6 +47,7 @@ import {
   resolveGrappleWin,
   applyAttackResult,
   jouerLesTirsDeBordee,
+  modificateursDeVisibiliteDuTir,
   openSurfacedDefense,
   castSpell,
   applyCast,
@@ -126,7 +128,6 @@ import {
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
-import { milieuDuVoyage } from '../engine/shipBuild';
 import { losClear } from './monde/lineOfSight';
 import { smokeOf, captureMoveSnapshot, formationDeCombat, moveEnv, campAuContact } from './monde/combatGeometry';
 import { emitCombatEvent } from './combatEvents';
@@ -159,7 +160,7 @@ import {
 import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
-import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
+import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique, sommeDesModificateursDR } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, setEngaged, clearContact, meleeReachRank } from '../engine/engagement';
 import { clearGrapple, setGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -285,7 +286,7 @@ import { facingToward } from '../geometry/dir8';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';
-import { estNavire } from '../engine/coque';
+import { estNavire, milieuDeLaCoque } from '../engine/coque';
 import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
 import { sceneZonesToBattle } from './monde/zones';
@@ -434,6 +435,11 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
     undercrew: shipUndercrew(get, ship, battle.combatants),
     ...(extraDR ? { extraDR } : {}),
   };
+}
+
+function visibiliteDeLaBordee(get: Get, ship: Combatant, target: Combatant) {
+  const { scene } = get();
+  return modificateursDeVisibiliteDuTir(get, distanceDeCombat(scene, ship, target) * sceneMetresPerTile(scene));
 }
 
 /** Ligne de journal des SERVANTS d'une bordée (MDG 14 l.39 — l'équipage s'exprime, jamais un poste muet) : un PJ
@@ -1138,8 +1144,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos, target.pos); // bord qui porte (auto-dérivé de la cible)
       const opened = openCrewTestPending(get, ship, 'batterie'); // Artilleurs (UN jet/poste)
       if (!opened) return; // aucun Artilleur apte → pas de bordée
+      const modsDR = visibiliteDeLaBordee(get, ship, target);
+      const extraDR = (opened.extraDR ?? 0) + sommeDesModificateursDR(modsDR);
       set({
-        pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened },
+        pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened, ...(modsDR.length ? { modsDR, extraDR } : {}) },
         battle: { ...battle, action: null, preview: null },
       });
       for (const part of opened.participants) if (!part.interactive) get().jetLancer('tirDeBatterie', part.id); // témoins (marins PNJ) auto-roulés
@@ -1161,7 +1169,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const assignments = shipCrewAssignments(ship, battle.combatants, 'batterie', navigation); // équipage abstrait → rôles tenus (Artilleur ★)
       const undercrew = shipUndercrew(get, ship, battle.combatants);
       const traits = hullNavalTraits(ship);
-      const extraDR = shipSaboteurDR(ship) + navalTestTypeDR(traits, 'batterie');
+      const visibilityDR = sommeDesModificateursDR(visibiliteDeLaBordee(get, ship, target));
+      const extraDR = shipSaboteurDR(ship) + navalTestTypeDR(traits, 'batterie') + visibilityDR;
       // DR partagé calé sur le chemin JOUEUR (`maneuverCrewTotal`) : Σ contributions (essentiel ×2) + Moral +
       // Manque de bras (−2/tranche) + sabotage/traits ; plafonné à un Succès Minime dès qu'une tranche manque (l.55).
       const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', shipMoraleScore(get, ship), navigation, battleRng(), { extraDR: undercrew.dr + extraDR });
@@ -1625,7 +1634,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const roster = (enc.members ?? [])
         .map((m) => ({ m, ent: byEntity.get(m.entityId) }))
         .filter((r): r is { m: typeof r.m; ent: SceneEntity } => !!r.ent);
-      const enemies = roster.map(({ ent }) => ficheDEntite(ent, presetDuNarratif(get().campaignNarratif)));
+      const { campaignNarratif } = get();
+      const presetDe = presetDuNarratif(campaignNarratif);
+      const resolveTrapping = objetDuNarratif(campaignNarratif);
+      const enemies = roster.map(({ ent }) => ficheDEntite(ent, presetDe, resolveTrapping));
       // Combat monté (LDB 14) : marquer les montures rideables, basculer les « alliés », puis appairer
       // les couples pré-montés (ridesEntityId → la monture). Le cavalier monte SUR sa monture.
       const idxByEntity = new Map(roster.map((r, i) => [r.ent.id, i]));
@@ -2214,7 +2226,18 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       localisation: attaque('location'),
       arme: (uid) => {
         const pa = get().pendingAttack;
-        if (pa) set({ pendingAttack: { ...pa, weaponUid: uid ?? undefined } });
+        const weaponUid = uid ?? undefined;
+        if (pa) set({ pendingAttack: { ...pa, weaponUid, atoutChoisi: weaponUid === pa.weaponUid ? pa.atoutChoisi : undefined } });
+      },
+      atoutOptionnel: (id) => {
+        const { pendingAttack: pa, battle, scene } = get();
+        if (!pa || pa.result || pa.weapon || !battle) return;
+        const attaquant = inBattleId(battle, pa.attackerId);
+        const cible = inBattleId(battle, pa.targetId);
+        if (!attaquant || !cible) return;
+        const arme = attackWeaponOf(scene, battle, attaquant, cible, pa);
+        if (!arme.uid || arme.atoutOptionnel === undefined || !atoutsOptionnelsDe(arme).some((q) => q.id === id)) return;
+        set({ pendingAttack: { ...pa, atoutChoisi: { weaponUid: arme.uid, id } } });
       },
       deuxArmes: (on) => {
         const pa = get().pendingAttack;
@@ -2222,7 +2245,8 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         // Mode « des deux armes » : l'attaque-Action utilise la MAIN DIRECTRICE (la 2ᵉ frappe suit, off-hand).
         const a = inBattleId(get().battle, pa.attackerId);
         const mainUid = a?.weapons.find((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)?.uid;
-        set({ pendingAttack: { ...pa, dualMode: on, weaponUid: on ? (mainUid ?? pa.weaponUid) : pa.weaponUid } });
+        const weaponUid = on ? (mainUid ?? pa.weaponUid) : pa.weaponUid;
+        set({ pendingAttack: { ...pa, dualMode: on, weaponUid, atoutChoisi: weaponUid === pa.weaponUid ? pa.atoutChoisi : undefined } });
       },
       sansLaCorde: attaque('harpoonRopeCut'),
       retenirSesCoups: attaque('withhold'),
@@ -2855,7 +2879,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const ship = inBattleId(battle, p.shipId);
       if (!ship) return;
       const total = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR); // Σ DR (essentiel ×2) + Moral + Manque de bras + sabotage
-      const result = deriveManeuverFromCrew(ship, total, milieuDuVoyage(get().travelPlan)); // virage si le Test d'équipage est réussi (MDG 14 l.13)
+      const result = deriveManeuverFromCrew(ship, total, milieuDeLaCoque(ship, get().travelPlan)); // virage si le Test d'équipage est réussi (MDG 14 l.13)
       set({ pendingShipManeuver: null });
       applyShipManeuver(get, set, p.shipId, result, p.turnSteps); // vire (si succès) + avance ; logue ; Test de la réparation temporaire
       const bM = get().battle!;

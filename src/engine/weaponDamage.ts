@@ -5,6 +5,7 @@
  */
 import { Weapon, WeaponEnchant, ArmourBypass, WeaponRangeSpec, AmmoRangeMod } from './types';
 import { findTrappingById, qualityInstance, qualityRefLabel, type TrappingData } from '../data';
+import { appliquerAtoutOptionnel } from './atoutsOptionnels';
 import { t } from '../i18n';
 import type { ManiementRetenu } from './weaponGroup';
 import type { TriggeredEffect } from './flowCore';
@@ -127,6 +128,7 @@ export function improvisedProfile(w: Weapon, resolveTrapping: ResolveTrapping = 
     onHitEffects: undefined,
     damage: { ...t.damage },
     qualities: (t.qualities ?? []).map(qualityInstance),
+    ...(w.atoutOptionnel !== undefined ? { atoutOptionnel: undefined } : {}),
     reach: t.reach ?? undefined,
     damageTaken: 0,
     noFamilyQualities: true,
@@ -195,7 +197,8 @@ export function armeSansEquipe(w: Weapon): Weapon {
 /** LDB 62 l.58,135,146-147,176,184,188 ; AA 08 l.190 ; AA 08 l.212 ; AA 08 l.314 ; AA 08 l.343 ; ADE II 02 l.677 ;
  *  AA 10 l.148 ; ZI 13 l.193 */
 export function effectiveWeapon(arme: Weapon, ctx?: WeaponContext): Weapon {
-  const w = ctx?.sansEquipe ? armeSansEquipe(arme) : arme;
+  const profil = appliquerAtoutOptionnel(arme);
+  const w = ctx?.sansEquipe ? armeSansEquipe(profil) : profil;
   if (isImprovised(w)) return improvisedProfile(w); // LDB 62 l.135
   if (ctx?.charged === false && w.capabilities?.improvisedWithoutCharge) return improvisedProfile(w); // LDB 62 l.58 ; AA 08 l.212
   // LDB 62 l.176

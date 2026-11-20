@@ -12,7 +12,7 @@
 import { useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { HitLocation, ItemInstance } from '../engine/types';
-import { isCapeItem, containerFillEnc, armourLayer, itemLabel } from '../engine/items';
+import { isCapeItem, containerFillEnc, armourLayer, itemLabel, objetAuProfilEffectif } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { gestesDeLObjet, type GestesDeLObjet } from '../noyau/gestesDeLObjet';
 import { weaponStatParts } from '../engine/weaponStats';
@@ -27,6 +27,7 @@ import { QualityChips } from './EntityChip';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { prefixOf } from './PossessionsRegistry';
 import { GatedAction, raisonSi } from './GatedAction';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 
 const LOC_SHORT: Record<HitLocation, string> = {
   tete: 'Tête',
@@ -70,6 +71,7 @@ export function CarrierInventory({
   weaponHandLabel,
   rowExtra,
 }: CarrierInventoryProps) {
+  useVersionDesDatasets();
   const equiperLObjet = useGame((s) => s.equiperLObjet);
   const rangerLObjet = useGame((s) => s.rangerLObjet);
   const transmettreLObjet = useGame((s) => s.transmettreLObjet);
@@ -85,12 +87,13 @@ export function CarrierInventory({
   const itemStats = (it: ItemInstance): ReactNode => {
     // Objet non identifié : ses qualités sont MASQUÉES à l'affichage (elles restent actives au combat) ;
     // une identification RATÉE de beaucoup (ADE II) peut y ancrer de FAUSSES certitudes, affichées telles.
-    const resolvedQuals = resolveQualities(it).map((r) => r.instance);
+    const profil = objetAuProfilEffectif(it);
+    const resolvedQuals = resolveQualities(profil).map((r) => r.instance);
     const quals: ReactNode = it.identified === false
       ? (it.suspectedQualities?.length ? `soupçonné : ${it.suspectedQualities.join(', ')}` : null)
       : (resolvedQuals.length ? <QualityChips qualities={resolvedQuals} /> : null);
     if (it.kind === 'melee' || it.kind === 'distance') {
-      const mech = weaponStatParts(it, force).join(' · ');
+      const mech = weaponStatParts(profil, force).join(' · ');
       return <>{mech}{mech && quals ? ' · ' : ''}{quals}</>;
     }
     if (it.kind === 'armor')

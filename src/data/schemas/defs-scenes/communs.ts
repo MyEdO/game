@@ -26,7 +26,7 @@ const PERSONNAGE = { champ: 'kind', vaut: 'personnage' } as const;
 export const PERSONNAGES_DE_LA_SCENE = { collection: 'entities', catalogue: 'personnages de la scène', retient: [PERSONNAGE] } as const satisfies PorteeLocale;
 /** Les marchands de la scène, les personnages qui portent `merchant`, que désigne l'effet `openMerchant`. */
 export const MARCHANDS_DE_LA_SCENE = { collection: 'entities', catalogue: 'marchands de la scène', retient: [PERSONNAGE, { champ: 'merchant' }] } as const satisfies PorteeLocale;
-/** Les rencontres de la scène, que désignent les effets `startCombat` et `startPursuit`. */
+/** Les rencontres de la scène, que désignent les effets `startCombat`, `startPursuit` et `startMassBattle`. */
 export const RENCONTRES_DE_LA_SCENE = { collection: 'encounters', catalogue: 'rencontres de la scène' } as const satisfies PorteeLocale;
 /** Les portées locales qu'ouvre la scène (`sceneSchema`). */
 export const PORTEES_DE_LA_SCENE: readonly PorteeLocale[] = [DIALOGUES_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, RENCONTRES_DE_LA_SCENE];

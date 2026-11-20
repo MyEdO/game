@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { OPTIONAL_RULES, rule, ruleDef, resetRule, type OptionalRule } from './policy';
-import { books } from '../data';
+import { books, carriereOuverte, findCareerById } from '../data';
 import { ecartsDeLaRegle, schema } from '../data/schemas/defs/reglesOptionnelles';
+import { ref } from '../data/schemas/grammaire/ref';
 
 /**
  * Le registre des RÈGLES OPTIONNELLES est une DONNÉE (V9 #1318) : `src/engine/policy.ts` n'en garde
@@ -46,6 +47,17 @@ describe('registre des règles optionnelles — LU de src/data/reglesOptionnelle
     const divergentes = OPTIONAL_RULES.filter((r) => rule(r.id) !== r.default).map((r) => r.id);
     expect(divergentes).toEqual([]);
     expect(OPTIONAL_RULES.filter((r) => ruleDef(r.id) === undefined).map((r) => r.id)).toEqual([]);
+  });
+
+  it('lit la référence de règle d’une carrière et refuse une référence de compétence (#4175)', () => {
+    const carriere = findCareerById('chevaucheur-de-blaireau')!;
+    expect(carriereOuverte(carriere)).toBe(Boolean(rule(carriere.gatedByRule!.id)));
+
+    const competence = ref('skill').parse({ id: 'athletisme' });
+    expect(() => {
+      // @ts-expect-error — l’identifiant vient du catalogue des compétences.
+      rule(competence.id);
+    }).toThrow(/athletisme/);
   });
 
   it('CITATION : le `ref` de chaque entrée nomme un livre RÉEL de books.json', () => {

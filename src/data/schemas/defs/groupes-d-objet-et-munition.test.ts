@@ -5,9 +5,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
+import { schema as schemaEngins } from './siege-engines';
 import { schema as schemaObjets } from './trappings';
 import { schema as schemaMarchands } from './merchants';
 import trappingsJson from '../../trappings.json';
+import enginsJson from '../../siege-engines.json';
 import merchantsJson from '../../merchants.json';
 import { versDisque } from '../grammaire/prose';
 
@@ -32,36 +34,38 @@ const objet = (id: string): Entree => {
   return e ?? {};
 };
 const crochet = objet('crochet');
+const baliste = versDisque(enginsJson).find((e) => e.id === 'baliste')!;
 /** Le Crochet, son arme dérivée portant `subType` à `valeur`. */
 const crochetDerive = (valeur: unknown): Entree[] => [{ ...structuredClone(crochet), derivedWeapon: { ...structuredClone(champsDe(crochet.derivedWeapon)), subType: valeur } }];
 
 const PORTEURS = [
-  { porteur: 'trappings.json › subType', doc: (v: unknown) => avec(objet('baton-de-combat'), 'subType', v), connue: 'armes-d-hast', refus: 'est absent du catalogue des groupes d’armes' },
-  { porteur: 'trappings.json › weaponGroup', doc: (v: unknown) => avec(objet('baliste'), 'weaponGroup', v), connue: 'arbalete', refus: 'est absent du catalogue des groupes d’armes' },
-  { porteur: 'trappings.json › derivedWeapon.subType', doc: crochetDerive, connue: 'base', refus: 'est absent du catalogue des groupes d’armes' },
+  { porteur: 'trappings.json › subType', schema: schemaObjets, doc: (v: unknown) => avec(objet('baton-de-combat'), 'subType', v), connue: 'armes-d-hast', refus: 'est absent du catalogue des groupes d’armes' },
+  { porteur: 'siege-engines.json › weaponGroup', schema: schemaEngins, doc: (v: unknown) => avec(baliste, 'weaponGroup', v), connue: 'arbalete', refus: 'est absent du catalogue des groupes d’armes' },
+  { porteur: 'trappings.json › derivedWeapon.subType', schema: schemaObjets, doc: crochetDerive, connue: 'base', refus: 'est absent du catalogue des groupes d’armes' },
 ];
 
 describe('#2968 L07 — Groupe d’objet et munition désignés par `ref(type)`', () => {
   it('les documents réels parsent', () => {
     expect(schemaObjets.safeParse(versDisque(trappingsJson)).success).toBe(true);
+    expect(schemaEngins.safeParse(versDisque(enginsJson)).success).toBe(true);
     expect(schemaMarchands.safeParse(merchantsJson).success).toBe(true);
   });
 
-  it.each(PORTEURS)('$porteur : une référence connue parse', ({ doc, connue }) => {
-    expect(schemaObjets.safeParse(doc({ id: connue })).success).toBe(true);
+  it.each(PORTEURS)('$porteur : une référence connue parse', ({ schema, doc, connue }) => {
+    expect(schema.safeParse(doc({ id: connue })).success).toBe(true);
   });
 
-  it.each(PORTEURS)('$porteur : une référence inconnue est refusée, son catalogue nommé', ({ doc, refus }) => {
-    expect(messages(schemaObjets, doc({ id: 'cible-inexistante' }))).toContain(`« cible-inexistante » ${refus}`);
+  it.each(PORTEURS)('$porteur : une référence inconnue est refusée, son catalogue nommé', ({ schema, doc, refus }) => {
+    expect(messages(schema, doc({ id: 'cible-inexistante' }))).toContain(`« cible-inexistante » ${refus}`);
   });
 
-  it.each(PORTEURS)('$porteur : une référence écrite en id nu est refusée', ({ doc, connue }) => {
-    expect(schemaObjets.safeParse(doc(connue)).success).toBe(false);
+  it.each(PORTEURS)('$porteur : une référence écrite en id nu est refusée', ({ schema, doc, connue }) => {
+    expect(schema.safeParse(doc(connue)).success).toBe(false);
   });
 
-  it('trappings.json › munitions : un objet hors des munitions est refusé, sa sous-liste nommée', () => {
-    expect(schemaObjets.safeParse(avec(objet('baliste'), 'munitions', ['carreau-de-baliste'])).success).toBe(true);
-    expect(messages(schemaObjets, avec(objet('baliste'), 'munitions', ['dague']))).toContain('« dague » est hors de la sous-liste « ammunition » du catalogue des objets');
+  it('siege-engines.json › munitions : un objet hors des munitions est refusé, sa sous-liste nommée', () => {
+    expect(schemaEngins.safeParse(avec(baliste, 'munitions', ['carreau-de-baliste'])).success).toBe(true);
+    expect(messages(schemaEngins, avec(baliste, 'munitions', ['dague']))).toContain('« dague » est hors de la sous-liste « ammunition » du catalogue des objets');
   });
 
   describe('merchants.json › category.subTypes : liste de Groupes (`refs`)', () => {

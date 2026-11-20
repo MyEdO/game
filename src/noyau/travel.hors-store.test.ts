@@ -19,6 +19,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { draineCascade } from './cascade.testkit';
 import { devisDeTrajet } from './travelFlow';
+import { trajetsDepuis } from './carteEnVue';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { encounterTable } from '../engine/travelTables';
 import { noteEvent } from './evenementDuJour';
@@ -671,6 +672,26 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(Math.round((12 / 17.5) * 60)); // 41 min
     expect(st.journal.some((l) => l.includes('en selle') && l.includes('trot'))).toBe(true);
+  });
+
+  it('une route réservée aux montures permet un départ en selle', () => {
+    setRule('voyage-allures', true);
+    const h = hero();
+    setup(map({ modes: ['monture'] }), [h], [mountPossession('m1', h.id)]);
+    banc.getState().partirEnVoyage('r1', 'monture');
+    expect(banc.getState().lieu).toBe('pb');
+  });
+
+  it('une route à pied et en selle propose chaque mode une fois au groupe monté', () => {
+    setRule('voyage-allures', true);
+    const h = hero();
+    const carte = map({ modes: ['pied', 'monture'] });
+    setup(carte, [h], [mountPossession('m1', h.id)]);
+    const [trajet] = trajetsDepuis(banc.getState(), carte, carte.places[0]);
+    expect(trajet.modes.map(({ mode, refus }) => ({ mode, refus }))).toEqual([
+      { mode: 'pied', refus: null },
+      { mode: 'monture', refus: null },
+    ]);
   });
 
   it('budget EN SELLE (LDB 51 l.195) : les heures déjà chevauchées du jour l’épuisent, pas celles marchées', () => {

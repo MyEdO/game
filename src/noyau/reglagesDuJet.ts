@@ -20,6 +20,7 @@ import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from '.
 import type {
   IdDAdversaireADistraire,
   IdDAdversaireDuBattement,
+  IdDAtoutOptionnel,
   IdDeChanson,
   IdDeCombattant,
   IdDeFormeConjuree,
@@ -43,6 +44,8 @@ export interface ReglagesDuJet {
     localisationDuCritique: HitLocation;
     /** `null` : l'arme par défaut du loadout actif. */
     arme: IdDObjet | null;
+    /** AA 08 l.69-77 */
+    atoutOptionnel: IdDAtoutOptionnel;
     /** LDB 10 l.767-773 */
     deuxArmes: boolean;
     /** AA 07 l.59-61 */
@@ -201,7 +204,7 @@ const offertDuSort = (d: Omit<DeclarationDuReglage, 'offre'>, reglage: ReglageOf
 
 /** La déclaration de chaque réglage, table TOTALE sur `ReglagesDuJet`. */
 export const REGLAGES_DU_JET = {
-  attaque: { localisation: avant, localisationDuCritique: apres, arme: avant, deuxArmes: avant, retenirSesCoups: avant, sansLaCorde: avant, empoigner: avant },
+  attaque: { localisation: avant, localisationDuCritique: apres, arme: avant, atoutOptionnel: avant, deuxArmes: avant, retenirSesCoups: avant, sansLaCorde: avant, empoigner: avant },
   defense: { reaction: avant, armeDeParade: avant, porteBouclier: avant, riposte: avant },
   incantation: {
     effetCritique: offertDuSort(apres, 'effetCritique'), formeConjuree: offertDuSort(horsDuJet, 'formeConjuree'),

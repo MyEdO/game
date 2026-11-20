@@ -16,7 +16,7 @@ import { woundsFromHit } from '../../engine/woundsCalc';
 import type { SceneEntity } from '../../noyau/monde/scene';
 import type { Weapon } from '../../engine/types';
 import { encounterDefSchema } from '../../data/schemas/defs-scenes/scene';
-import { findTrappingById } from '../../data';
+import { findSiegeEngineById } from '../../data';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -248,7 +248,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   it('CANON DE REMPART : son empreinte tient entière sur le chemin de ronde (aucune case sur le vide de z1) (#4187)', () => {
     const s = scenarioConstruit.scene;
     const affut = emplWithCrew('crew-canon');
-    const fp = findTrappingById(affut.engin!.id)!.siegeFootprint!;
+    const fp = findSiegeEngineById(affut.engin!.id)!.siegeFootprint!;
     expect(fp).toBe(2);
     const z1 = s.layers.find((l) => l.z === 1)!;
     expect(affut.z).toBe(1);

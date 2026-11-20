@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { exigerUnRefus, parseProject } from '../worldMap';
 import { emptyNarratif } from './campaignNarratif';
+import { presetDuNarratif, resolvePresetCreature } from './resolveursDuNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene } from './scene';
@@ -79,6 +80,26 @@ describe('paquet de campagne — bloc narratif', () => {
     const n = validNarratif();
     n.presetsPnj.push({ id: 'pnj-vide' });
     expect(() => parseProject(doc(n))).toThrow(/Bloc narratif › PNJ « pnj-vide »: ni base ni profil/);
+  });
+
+  it.each([
+    { mode: 'avec base', base: { id: GLOBAL_CREATURE }, idResolu: GLOBAL_CREATURE },
+    { mode: 'sans base', base: undefined, idResolu: 'pnj-capitaine' },
+  ])('un profil de PNJ $mode conserve l’identité de sa créature', ({ base, idResolu }) => {
+    const id = 'pnj-capitaine';
+    const profil = { label: 'Capitaine', char: { 'capacite-de-combat': 40 }, traits: [] };
+    const projet = doc({ ...emptyNarratif(), presetsPnj: [{ id, base, profil }] });
+    const resultat = parseProject(projet);
+    expect(resolvePresetCreature(id, presetDuNarratif(resultat.narratif))?.creature).toMatchObject({
+      id: idResolu,
+      label: 'Capitaine',
+    });
+
+    const profilAvecIdentite = { ...profil, id: 'intrus' };
+    expect(() => parseProject({
+      ...projet,
+      narratif: { ...projet.narratif, presetsPnj: [{ id, base, profil: profilAvecIdentite }] },
+    })).toThrow(/Bloc narratif › PNJ « pnj-capitaine » › profil: Clé non reconnue : "id"/);
   });
 
   it('(d) LÈVE si indice.refs pointe un indice inconnu', () => {

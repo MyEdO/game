@@ -2,13 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
 import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
-import { laisserTomber, recomputeLoadout, weaponFromItem } from '../../engine/items';
+import { buildWeapon, laisserTomber, piecesPorteesA, recomputeLoadout, weaponFromItem } from '../../engine/items';
 import { harnacher } from '../mount';
 import { blessingsOf, careerLabelFor, findCareerById, findCreatureById, findSpellById, miraclesOf, names, talentConcrete, type CreatureData } from '../../data';
 import { porteeDuCombattant } from '../apparence/combattant';
 import { pettySpellQuotaFor } from '../../engine/creation';
-import { CHAR_KEYS } from '../../engine/types';
-import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
+import { CHAR_KEYS, LOCALISATIONS_DE_COUP } from '../../engine/types';
+import { armourCastDRPenalty, knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
+import { sourcesDArmureA } from '../../engine/armourBypass';
+import { effectiveArmourAt } from '../../engine/characteristics';
+import { domainMissileMods } from '../../engine/domainAttributes';
+import { resetRule, setRule } from '../../engine/policy';
+import { woundsFromHit } from '../../engine/woundsCalc';
 import { ficheDEntite, nomDEntite } from './sceneNpc';
 import { actorStatus } from '../../engine/social';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
@@ -132,6 +137,86 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
 });
 
 describe('possessions de fiche à l’apparition (#4348)', () => {
+  const armePerforante = buildWeapon({
+    uid: 'perforante', label: 'Perforante', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }],
+  });
+
+  it('HCVM p.265 : le chef de guerre a une armure du Chaos à 6 PA à chaque Localisation', () => {
+    const c = spawnEnemy({ ref: 'guerrier-du-chaos-chef-de-guerre' }, 'chef', undefined);
+    expect(c.items?.map((item) => item.trappingId)).toEqual(['grande-hache']);
+    expect(c.traits?.find((trait) => trait.id === 'armure')).toEqual({ id: 'armure', value: 6, matiere: 'chaos' });
+    for (const loc of LOCALISATIONS_DE_COUP) {
+      expect(effectiveArmourAt(c, loc)).toBe(6);
+      expect(sourcesDArmureA(c, loc)).toEqual([{ pa: 6, matiere: 'chaos', portee: true }]);
+    }
+  });
+
+  it('LDB 84 l.7 : une pièce d’auteur distincte s’ajoute, une pièce déjà décrite n’est pas comptée deux fois', () => {
+    const c = spawnEnemy({ ref: 'guerrier-du-chaos-chef-de-guerre' }, 'chef', undefined, {
+      inventaire: { 'coiffe-de-mailles': true, plastron: true },
+    });
+    expect(c.items?.filter((item) => item.kind === 'armor').map((item) => item.trappingId)).toEqual(['coiffe-de-mailles']);
+    expect(sourcesDArmureA(c, 'tete')).toEqual([
+      { pa: 2, matiere: 'metal', portee: true },
+      { pa: 6, matiere: 'chaos', portee: true },
+    ]);
+    expect(effectiveArmourAt(c, 'tete')).toBe(8);
+    expect(effectiveArmourAt(c, 'corps')).toBe(6);
+  });
+
+  it('LDB 62 l.270 et LDB 48 l.106,399 : Perforante ignore les 6 PA du Chaos', () => {
+    const c = spawnEnemy({ ref: 'guerrier-du-chaos-chef-de-guerre' }, 'chef', undefined);
+    const loc = 'corps';
+    const blessures = (perfore: boolean) => woundsFromHit(perfore ? armePerforante : undefined, c, loc, 30, 0, 1, undefined);
+    expect(blessures(true) - blessures(false)).toBe(6);
+    const pa = effectiveArmourAt(c, loc);
+    for (const id of ['cieux', 'metal']) {
+      expect(domainMissileMods(c, { domainId: { id } }, loc, pa)).toEqual({ apIgnored: 0, bonusDamage: 0 });
+    }
+  });
+
+  it('VDM 02 l.169 : les 6 PA du Chaos pénalisent l’incantation sauf avec Magie du Chaos', () => {
+    const c = spawnEnemy({ ref: 'guerrier-du-chaos-chef-de-guerre' }, 'chef', undefined);
+    setRule('magie-vdm-incantation', true);
+    try {
+      expect(armourCastDRPenalty(c)).toBe(6);
+      c.talents.push({ talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 });
+      expect(armourCastDRPenalty(c)).toBe(0);
+    } finally {
+      resetRule('magie-vdm-incantation');
+    }
+  });
+
+  it.each([
+    { loc: 'tete', pieces: ['heaume'], pa: 2 },
+    { loc: 'corps', pieces: ['cotte-de-mailles', 'plastron'], pa: 4 },
+  ] as const)('MDG 16 l.497,499,506 : les pièces de Vrisk donnent $pa PA métalliques à la Localisation $loc', ({
+    loc, pieces, pa,
+  }) => {
+    const vrisk = spawnEnemy({ ref: 'vrisk-gratte-le-fer' }, 'vrisk', undefined);
+    expect(piecesPorteesA(vrisk, loc).map((item) => item.trappingId)).toEqual(pieces);
+    expect(sourcesDArmureA(vrisk, loc)).toEqual(pieces.map(() => ({ pa: 2, matiere: 'metal', portee: true })));
+    expect(effectiveArmourAt(vrisk, loc)).toBe(pa);
+
+    const sansPerforante = woundsFromHit(undefined, vrisk, loc, 30, 0, 1, undefined);
+    const avecPerforante = woundsFromHit(armePerforante, vrisk, loc, 30, 0, 1, undefined);
+    expect(avecPerforante - sansPerforante).toBe(1);
+    expect(domainMissileMods(vrisk, { domainId: { id: 'cieux' } }, loc, pa)).toEqual({ apIgnored: pa, bonusDamage: 0 });
+    expect(domainMissileMods(vrisk, { domainId: { id: 'metal' } }, loc, pa)).toEqual({ apIgnored: pa, bonusDamage: pa });
+  });
+
+  it('MDG 16 l.464 : Wulfrik porte plates et mailles à 4 PA sur les zones couvertes', () => {
+    const wulfrik = spawnEnemy({ ref: 'wulfrik' }, 'wulfrik', undefined);
+    expect(sourcesDArmureA(wulfrik, 'tete')).toEqual([]);
+    for (const loc of LOCALISATIONS_DE_COUP.filter((loc) => loc !== 'tete')) {
+      expect(effectiveArmourAt(wulfrik, loc)).toBe(4);
+      expect(sourcesDArmureA(wulfrik, loc)).toEqual([
+        { pa: 2, matiere: 'metal', portee: true },
+        { pa: 2, matiere: 'metal', portee: true },
+      ]);
+    }
+  });
+
   it('Middenheim 02 l.1326-1328 : Marta porte sa massue et sa veste sans cumuler le Trait Armure', () => {
     const c = spawnEnemy({ ref: 'marta-gerbenshreiber' }, 'marta', undefined);
     const veste = c.items?.find((it) => it.trappingId === 'veste-de-cuir');

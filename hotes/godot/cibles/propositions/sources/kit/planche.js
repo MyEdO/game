@@ -26,7 +26,7 @@ const FEUILLES = {
     page('medaillons', 24, 450, 1060, 130, 'bois', "medaillon(nom, { taille, ferme, inerte })",
       ligne(...['grand', 'moyen', 'petit'].map((t) => piece(`medaillon('carte', { taille: '${t}' })`, medaillon('carte', { taille: t }))), piece('{ ferme: true }', medaillon('carte', { ferme: true })), piece('{ inerte: true }', medaillon('carte', { inerte: true })))),
     croix(), repere(1110, 30, 'croix() →'),
-    ouvrir('La carte', 'carte', 300), repere(1110, 352, "ouvrir('La carte', 'carte', 300)"),
+    `<div style="position:absolute;top:300px;right:0">${ouvrir('La carte', 'carte', 1)}</div>`, repere(1110, 352, "ouvrir('La carte', 'carte', 1)"),
     retour('Quitter la planche'), repere(180, 664, "← retour('Quitter la planche')"),
     coins(), repere(1150, 560, 'coins() ↓'),
   ],
@@ -75,7 +75,7 @@ const FEUILLES = {
   ],
   /* les pièces d'un écran de gestion et d'une issue : leur place est celle de leur gabarit (`../../dispositions.md`) */
   annonces: () => [
-    cartouche({ icone: 'carte', nom: 'La planche', sous: "cartouche({ …, taille: 'titre' })", taille: 'titre', largeur: 316 }),
+    cartouche({ icone: 'carte', nom: 'La planche', sous: "cartouche({ …, taille: 'titre' })", taille: 'titre' }),
     croix(),
     signets([{ nom: 'Tests', compte: 11 }, { nom: 'Combat', compte: 22, marque: true }, { nom: 'Destin & Résistance', compte: 1 }, { nom: 'Voyage', compte: 32, marque: true }], 'Combat'),
     repere(1096, 262, "signets(sections, 'Combat')"),

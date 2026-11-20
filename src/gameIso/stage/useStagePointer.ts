@@ -41,7 +41,7 @@ import { estUtilisable } from '../../noyau/monde/usable';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import type { AreteUtilisable } from '../../noyau/aretes';
 import type { AreteProjetee } from './aretesProjetees';
-import { presetPnjById } from '../../state/campaignData';
+import { objetDuNarratif, presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 const PAN_THRESHOLD = 6; // px de glissement avant de passer en panoramique (sinon = clic)
 
@@ -247,7 +247,7 @@ export function useStagePointer({
       return combatantAtTile(st.battle.combatants, t.x, t.y, t.z ?? 0)?.id ?? null;
     }
     const ent = entiteDuGeste(sc, v, t);
-    return ent && sceneNpc(sc, ent.id, presetPnjById) ? ent.id : null;
+    return ent && sceneNpc(sc, ent.id, presetDuNarratif(st.campaignNarratif), objetDuNarratif(st.campaignNarratif)) ? ent.id : null;
   };
 
   /** LE geste SECONDAIRE du plateau — clic droit et appui long, un seul chemin : la fiche de ce que

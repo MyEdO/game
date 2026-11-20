@@ -395,12 +395,12 @@ export interface BarreDeLActif {
   outils: ActionDuTour[];
 }
 
-/** Un Sort tel que son aperçu le dit : son nom, son Niveau d'incantation, sa portée, ses cibles, sa durée, ce qu'il
- *  coûte, ce que le clic fait. */
+/** Un Sort tel que son aperçu le dit : son nom, son Niveau d'incantation, sa portée calculée pour le lanceur (ses
+ *  mètres et la Caractéristique qui les donne), ses cibles, sa durée, ce qu'il coûte, ce que le clic fait. */
 export interface FicheDeSort {
   nom: string;
   ni: number;
-  portee: string;
+  portee: { metres: number; selon: string };
   cibles: number;
   duree: string;
   cout: string;

@@ -1,5 +1,4 @@
 /* La page des soins (`soins.js`), sur parchemin. */
-#soins{left:1180px;top:20px;width:503px}
 #soins .patient{display:flex;align-items:center;gap:12px}
 #soins .patient .etat{flex:1}
 #soins .patient .l{display:flex;justify-content:space-between;align-items:baseline}

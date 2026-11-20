@@ -32,7 +32,7 @@
 import type { IconId } from '../data/icons';
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
-import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
+import { estLeNavireDeCampagne, estUneCoqueNavale, lierLaCoqueDeCampagne, uidDeCampagnePourLaCoque } from './monde/coqueDeCampagne';
 import { ouvrirLeRepos } from './restFlow';
 import { preparerLEntretienApresAvance } from './horloge';
 import { calculerLePasDExposition } from './expositionAMaladie';
@@ -63,11 +63,11 @@ import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
  *  interrupteur sur-le-champ (`reprendreLeVoyage` rejoue la traversée). Exporté pour être NOMMÉ par les
  *  contrats, jamais recopié en littéral. */
 export const SEA_PERIL_INTERRUPT = 'voyage-mer';
-import type { Scene, VictoryCondition } from './monde/scene';
+import { sceneMetresPerTile, type Scene, type VictoryCondition } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { buildScene } from './mapSpec';
 import type { AuthoredEnemy } from './monde/encounterAuthoring';
-import { registerScene } from './monde/registreDesScenes';
+import { registerScene, sceneDuRegistre } from './monde/registreDesScenes';
 import { vehicleCombatant } from '../engine/vehicle';
 import {
   type StakeRef,
@@ -105,6 +105,7 @@ import {
 } from '../engine/shipBuild';
 import { COMPETENCE_DU_MODE, estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';
+import { chebyshev } from '../engine/grid';
 import { findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
@@ -119,7 +120,7 @@ import { currentSeason } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, directionOpposee, VENT_DOMINANT, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
-  axesImposes, visibilityDRPenalty, type SeaWeather, type WindDirection, type WindAspect,
+  axesImposes, visibilityTestDRMods, type SeaWeather, type WindDirection, type WindAspect,
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
@@ -462,7 +463,7 @@ export function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Comba
   if (!vessel) return null;
   const v = findVehicleById(vessel.vehicleId);
   if (!v?.ship) return null;
-  const hull = vehicleCombatant(v, vessel.uid);
+  const hull = vehicleCombatant(v, vessel.uid, 'maritime');
   if (!hull) return null;
   lierLaCoqueDeCampagne(hull, vessel);
   hull.label = nomDuNavire(vessel); // #230 — le rendu reste keyé par creatureId
@@ -775,6 +776,7 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
   // traits + Manque de bras, et son plafond) et l'ID de son prédicat de succès (`crew-test` →
   // `crewTestSuccess`, MDG 14 l.13) : l'agrégat générique ne connaît aucun seuil naval.
   const flatDR = moraleBand(shipMoraleScore(get, ship)).crewTestDR + saboteur + traitDR + navDirDR + (opts.extraDR ?? 0) + undercrew.dr;
+  const modsDR = opts.distanceVueM === undefined ? [] : visibilityTestDRMods(plan.sea?.weather.visibilite, opts.distanceVueM);
   // La POSSESSION de la bande est posée par le socle (`bandStep`) : N contributeurs ⇒ `groupOwner`, un
   // seul ⇒ son porteur. Déclarée nulle part ici — c'est ce qui laissait la fenêtre à l'hôte seul (#1268).
   return bandStep({
@@ -786,13 +788,14 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
       crewTestType: testTypeId,
       aggregateSuccessRule: CREW_TEST_SUCCESS_RULE,
       ...(flatDR ? { aggregateFlatDR: flatDR } : {}),
+      ...(modsDR.length ? { aggregateDRMods: modsDR } : {}),
       ...(undercrew.capSuccesMinime ? { aggregateCapTo: SUCCES_MINIME_CAP } : {}), // l.55
     },
   }, participants);
 }
 
 /** Options d'une étape de Test d'équipage (`etapeDEquipage`). */
-type CrewStepOpts = { sense?: PairedSense; extraDR?: number; difficulty?: Difficulty; icon?: IconId; contexte?: ContexteDeTest };
+type CrewStepOpts = { sense?: PairedSense; distanceVueM?: number; extraDR?: number; difficulty?: Difficulty; icon?: IconId; contexte?: ContexteDeTest };
 
 /** Test d'équipage d'une étape de voyage dont le `kind` est l'id de son enjeu : ce que CE jet change, jamais
  *  la règle-cadre du remplacement par un Test d'équipage (MDG 14 l.63). */
@@ -1064,6 +1067,33 @@ function signalDuPortDArrivee(get: Get): SignalDuPort | undefined {
   return plan && worldMap ? placeById(worldMap, plan.toPlaceId)?.port?.signal : undefined;
 }
 
+/** Écart des coques à l'ouverture préparée de la rencontre (#212). */
+function distanceDeReperageDeLEmbuscade(get: Get, ambush: NonNullable<MapRoute['ambush']>): number | undefined {
+  const scene = sceneDuRegistre(ambush.scene.id);
+  const encounter = scene?.encounters.find((e) => e.id === ambush.encounter);
+  if (!scene || !encounter) return undefined;
+  const membres = (encounter.members ?? []).flatMap((membre) => {
+    const entite = scene.entities.find((e) => e.id === membre.entityId);
+    return entite ? [{ membre, entite }] : [];
+  });
+  const coques = membres.filter(({ entite }) => estUneCoqueNavale(entite));
+  const designees = membres.filter(({ membre }) => membre.navireDeCampagne);
+  const designee = designees.length === 1 ? designees[0] : undefined;
+  const { vessel, travelPlan } = get();
+  const campagne = designee?.membre.side === 'allie'
+    && estUneCoqueNavale(designee.entite)
+    && estLeNavireDeCampagne(travelPlan?.vehicle, vessel)
+    && uidDeCampagnePourLaCoque(designee.entite.vehicule?.id, vessel) !== undefined
+    ? designee : undefined;
+  const bord = campagne ?? coques.find(({ membre }) => membre.side === 'allie');
+  if (!bord) return undefined;
+  const hostiles = coques.filter(({ membre }) => membre.side !== 'allie');
+  if (!hostiles.length) return undefined;
+  return Math.min(...hostiles.map(({ entite }) => chebyshev(bord.entite.pos, entite.pos))) * sceneMetresPerTile(scene);
+}
+
+const METRES_PAR_MILLE_MARIN = 1852;
+
 /**
  * Étapes POST-PROGRESSION du jour (crise → embuscade ancrée → signal du port → orientation → extermination →
  * entretien), calculées APRÈS que `applySeaProgress` ait posé `sea.milesToday` du jour (dépendance de
@@ -1113,25 +1143,32 @@ function buildPostProgressionSteps(get: Get): BuiltCascadeStep[] {
   // Perception PUIS abordage (applier `equipage-embuscade`, table `appliers`).
   if (route?.ambush?.scene.id && route.ambush.encounter && !sea.ambushFired) {
     const anchor = Math.max(0, Math.min(1, route.ambush.at ?? 0.5)) * plan.km;
-    if (plan.kmDone + sea.milesToday >= anchor) out.push(etapeDEquipageOuDuMonde(get, 'perception', 'equipage-embuscade'));
+    if (plan.kmDone + sea.milesToday >= anchor) {
+      const distanceVueM = distanceDeReperageDeLEmbuscade(get, route.ambush);
+      const opts: CrewStepOpts = distanceVueM === undefined ? {} : { sense: 'vue', distanceVueM };
+      out.push(etapeDEquipageOuDuMonde(get, 'perception', 'equipage-embuscade', opts));
+    }
   }
   // 4. Signal du port d'arrivée à portée (dernier jour de mer) → Test de Perception : lumière du phare
   //    (MDG 13 l.337), son du clocher (MDG 13 l.351).
   const signal = signalDuPortDArrivee(get);
-  const milesLeft = plan.km - plan.kmDone - sea.milesToday;
+  const milesLeft = Math.max(1, plan.km - plan.kmDone - sea.milesToday);
   const clocher = signal === 'clocher';
-  const spot = signal ? lighthouseSpotDifficulty(Math.max(1, milesLeft), clocher) : null;
+  const spot = signal ? lighthouseSpotDifficulty(milesLeft, clocher) : null;
   if (spot) {
-    // MDG 13 l.234-243, l.337 : le repère est à 1 mille au moins, au-delà de tout seuil de la Visibilité ; le clocher
-    // s'entend (MDG 13 l.351).
-    const brouillard = clocher ? 0 : visibilityDRPenalty(sea.weather.visibilite, Number.POSITIVE_INFINITY);
-    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: clocher ? 'ouie' : 'vue', difficulty: spot, extraDR: brouillard }); // MDG 13 l.339-346
+    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', {
+      difficulty: spot,
+      ...(clocher ? { sense: 'ouie' } : { sense: 'vue', distanceVueM: milesLeft * METRES_PAR_MILLE_MARIN }),
+    }); // MDG 13 l.337-351
     pousseSi(out, st);
   }
   // 5. Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311), + Carte marine (+DR, MDG 15 l.290).
   const chartDR = get().party.some((h) => h.items?.some((it) => it.trappingId === 'carte-marine'))
     ? Number(rule('mer-carte-orientation-dr')) : 0;
-  const orientStep = buildVoyageCrewStep(get, 'orientation', 'equipage-orientation', chartDR ? { extraDR: chartDR } : {});
+  const orientStep = buildVoyageCrewStep(get, 'orientation', 'equipage-orientation', {
+    distanceVueM: Number.POSITIVE_INFINITY, // MDG 13 l.309–311
+    extraDR: chartDR,
+  });
   pousseSi(out, orientStep);
   // 7. Infestation de la cale : Test étendu d'EXTERMINATION (MDG 14 l.98-104), à la difficulté de l'op `infestation`.
   const infestation = get().vessel?.infestation;
@@ -2707,7 +2744,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
   return [t('sv.careened', { cost: cost ? t('sv.fragCareenCost', { cost, pct }) : '' })];
 }
 
-/** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364) : coût et poids par bande de Taille
+/** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364 ; MSRC 12 l.21-25, l.54-135) : coût et poids
  *  (`installCost`), durée en jours (`duree`, tirée à la pose), et refus (`null` : la pose passe) contre la bourse
  *  `bourse` du groupe et le port `portRef` (`MapPlace.port.ref`, `naval-ports.json`). SOURCE UNIQUE de
  *  `installerLAmelioration` et de l'écran du port. PUR. MDG 15 l.255 ; MDG 12 l.230 */
@@ -2720,8 +2757,11 @@ export function devisDAmelioration(vessel: CampaignVessel | null, traitId: strin
   if (!vessel || !v?.ship || !entry) return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeNotFound') };
   if (entry.kind !== 'amelioration') return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeIsTrait', { label }) };
   if (!entry.install) return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeNoPrice', { label }) };
-  const { gold, enc } = installCost(entry.install, v.ship.lengthM, units);
-  const duree: Formula = vessel.constructeurDEscale?.duree ?? (entry.install.jours && installAmount(entry.install.jours, v.ship.lengthM)) ?? REPARATION.joursDePose;
+  const coque = { id: v.id, ship: v.ship };
+  const { gold, enc } = installCost(entry.install, coque, units);
+  const duree: Formula = vessel.constructeurDEscale?.duree
+    ?? (entry.install.jours && installAmount(entry.install.jours, coque, 1, entry.install.milieu))
+    ?? REPARATION.joursDePose;
   if (gold == null) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeEmbedded', { label }) };
   if (entry.install.chantierSpecialise && !(portRef && findNavalPortById(portRef)?.chantierNavalSpecialise)) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeNeedsShipyard', { label }) };
   if (refusDuQuai) return { traitId, label, gold, enc, duree, refus: refusDuQuai };

@@ -51,7 +51,8 @@ const fermer = () => { // le fond se ferme : coins, bas sous l'interface
 };
 
 /* ───────── l'interface ───────── */
-/* `groupe` : les héros du bandeau, une place sans `id` est libre ; `dits` : par id, { texte, icone, mal, choisi, html } */
+/* `groupe` : les héros du bandeau, une place sans `id` est libre ; `dits` : par id, { texte, icone, mal, choisi, html } ;
+   quatre cases, celles sans héros restent vides */
 const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', groupe.map((h) => { const d = dits[h.id ?? 'libre'] ?? {}; return `
   <div class="heros ${d.choisi ? 'choisi' : ''}">${portrait(h.id, { taille: 'grand', choisi: d.choisi })}
     <div class="qui"><div class="nom gothique" data-texte="héros ${h.nom}">${h.nom}</div>
@@ -60,18 +61,20 @@ const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = ''
       ${d.texte ? `<div class="dit">${d.mal ? sceau(d.icone) : d.icone ? rond(d.icone, 'menu', { arme: true }) : ''}<p>${d.texte}</p></div>` : ''}
       ${d.html ?? ''}
     </div>
-  </div>`; }).join(''), { classe: `b${groupe.length}`, tete: (titre ? ruban(titre) : '') + clouer(groupe.length) });
-/* l'hôte posé dans la scène : (x, y) son coin, `l` sa largeur, `pointe` l'abscisse de sa pointe depuis son bord gauche */
-const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', pointe = 60 }) => `<div class="hote ${classe} cadre bois" data-piece="${id}" style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
+  </div>`; }).join(''), { piece: 'socle', tete: (titre ? ruban(titre) : '') + clouer(4) });
+/* l'hôte posé dans la scène : (x, y) son coin, `l` sa largeur, `pointe` l'abscisse de sa pointe depuis son bord gauche ;
+   `piece` : son nom au relevé du rendu, celui d'un hôte qui suit la personne du décor qu'il désigne */
+const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', pointe = 60, piece = '' }) => `<div class="hote ${classe} cadre bois"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
   ${cartouche({ icone, nom, sous, marque, texte: id })}${corps}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
-/* le rail des services d'un lieu : services = [icône, nom, armé, compte à droite] */
-const rail = (titre, services, pied) => cadre('rail', null, null, null, null, 'bois', `
+/* le rail des services d'un lieu : services = [icône, nom, armé, compte à droite] ; `piece` : la colonne qu'il tient ;
+   `suite` : ce qui suit son pied dans le même panneau */
+const rail = (titre, services, pied, piece = 'colonne-gauche', suite = '') => cadre('rail', null, null, null, null, 'bois', `
   ${services.map(([i, n, a, compte = null]) => plaque(n, { icone: i, armee: !!a, prix: compte })).join('')}
-  <div class="pied rubrique">${pied}</div>
-`, { tete: ruban(titre) });
+  <div class="pied rubrique">${pied}</div>${suite}
+`, { tete: ruban(titre), piece });
 /* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus ;
    `piece` : son nom au relevé du rendu ; `pointe` : le décalage de sa pointe depuis le centre */
-const poste = (cx, y, { nom, sous, icone, heros = [], ferme = false, vise = false, plus = false, piece = '', pointe = 0 }) => { const tenants = [heros].flat(); return `<div class="poste ${tenants.length ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}"${piece ? ` data-piece="${piece}"` : ''} style="left:${cx}px;top:${y}px${pointe ? `;--pointe:${pointe}px` : ''}">
+const poste = (cx, y, { nom, sous, icone, heros = [], ferme = false, vise = false, plus = false, piece = '', pointe = 0 }) => { const tenants = [heros].flat(); return `<div class="poste ${tenants.length ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${cx}px;top:${y}px${pointe ? `;--pointe:${pointe}px` : ''}">
   ${tenants.length ? `<div class="tenants">${tenants.map((h) => portrait(h, { choisi: vise })).join('')}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>` : medaillon(icone, { taille: 'moyen', ferme })}
   <div class="et bois"><b>${nom}</b>${sous ? `<span class="rubrique">${sous}</span>` : ''}</div></div>`; };
 // Partagé avec les scripts de page chargés après celui-ci.

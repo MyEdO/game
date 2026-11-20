@@ -36,7 +36,7 @@ import {
   type FeuilleDId,
   type TypeEntite,
 } from '../../../data/schemas/grammaire/ref';
-import { datasetDeLEspaceDuType, specLabel } from '../../../data';
+import { choixDeLaFeuilleDId, datasetDeLEspaceDuType, specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from '../../../noyau/codex/libellesNarratifs';
@@ -375,11 +375,14 @@ function useUnivers(source: DatasetKey | EntreesCfg['entrees'], entreesEnTete: C
 function useOptions(cfg: { ds?: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean }, noeud: unknown, univers: readonly Entree[], trier = true) {
   return useMemo(() => {
     const refus = refusDuNoeud(noeud);
+    const libelles = cfg.ds === 'siegeEngines'
+      ? new Map(choixDeLaFeuilleDId({ type: 'engin', sousListe: undefined }).map(({ id, label }) => [id, label]))
+      : undefined;
     const options = univers
       .filter(({ id, e }) => (!refus || refus({ ...e, id }) === null) && (cfg.filter ? cfg.filter(e) : true))
-      .map(({ id, e }) => ({ v: id, label: entryLabel(e) }));
+      .map(({ id, e }) => ({ v: id, label: libelles?.get(id) ?? entryLabel(e) }));
     return trier ? options.sort((a, b) => a.label.localeCompare(b.label)) : options;
-  }, [cfg.filter, noeud, univers, trier]);
+  }, [cfg.ds, cfg.filter, noeud, univers, trier]);
 }
 
 /** Config d'un `SingleRefField` : un dataset (avec ou sans `spec`), ou des entrées fournies. */
