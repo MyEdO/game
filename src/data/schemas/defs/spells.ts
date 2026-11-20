@@ -9,7 +9,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
-import { conditionSchema, mecaniqueDe, sujetDuJetSchema } from '../grammaire/mecanique';
+import { choixDeCiblesSchema, conditionSchema, mecaniqueDe, sujetDuJetSchema } from '../grammaire/mecanique';
 import { ref, refs } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
 
@@ -45,6 +45,7 @@ const spellTargetSchema = z.discriminatedUnion('kind', [
     anchor: z.literal('target').optional(),
     excludesCaster: z.boolean().optional(),
     affects: conditionSchema.optional(),
+    choixDeCibles: choixDeCiblesSchema.optional(),
     maison: maisonSchema.optional(),
   }), {
     kind: { label: 'Type' },
@@ -53,6 +54,7 @@ const spellTargetSchema = z.discriminatedUnion('kind', [
     anchor: { label: 'Ancre sur la cible' },
     excludesCaster: { label: 'Lanceur exclu' },
     affects: { label: 'Cibles affectées' },
+    choixDeCibles: { label: 'Choix de cibles' },
     maison: { label: 'Arbitrage maison' },
   }, { label: 'Zone' }),
   nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }, { label: 'Spéciale' }),
@@ -204,7 +206,10 @@ const doc = document(
     /** LDB 48 l.495 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { duration?: { kind?: string } | null; effects?: unknown };
+        const e = v as { target?: z.output<typeof spellTargetSchema> | null; duration?: { kind?: string } | null; effects?: unknown };
+        if (e.target?.kind === 'area' && e.target.anchor === 'target' && e.target.choixDeCibles) {
+          ctx.addIssue({ code: 'custom', path: ['target', 'choixDeCibles'], message: 'Le choix des cibles exige une Zone d’Effet centrée sur le lanceur ou sur un point.' });
+        }
         // LDB 47 l.15 ; #4202.
         if (!opsRetenues(e.effects, (n) => n.op === 'zone' && n.durationRounds !== undefined).next().done) {
           ctx.addIssue({ code: 'custom', path: ['effects'], message: 'op « zone » d’un sort : « durationRounds » interdit, la zone dure le temps du sort.' });

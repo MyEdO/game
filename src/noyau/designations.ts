@@ -35,6 +35,7 @@ import { FLOWS } from './rollFlowSpecs';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { traitsPsyChoisissables } from './verdictsDInterlude';
 import { actorIn } from './monde/combatants';
+import { choixDeCiblesEnAttente } from './reglagesDIncantation';
 import { adversairesADistraire, adversairesDuBattement, availableAttacks } from './combatManeuvers';
 import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
@@ -71,6 +72,8 @@ export type IdDeTireurRapide = string;
 export type IdDeChanson = string;
 /** Une forme d'arme invoquée que le lanceur du Sort en attente peut donner (`conjureFormOptions`), par l'id de son arme. LDB 47 */
 export type IdDeFormeConjuree = string;
+/** Un choix de cibles déclaré par le sort en attente. */
+export type IdDeChoixDeCibles = string;
 /** Un choix de paie que le choix `conseil.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
 export type IdDeChoixDePaie = string;
 /** Une créature que le choix `victoire.depecer` accepte (`creaturesADepecer`, `combatEffects.ts`). */
@@ -282,6 +285,11 @@ export const DESIGNATIONS = {
   IdDeTireurRapide: { mot: 'id de tireur rapide', lire: (s) => preemptShooterIds(() => s), nom: nomDeCombattant },
   IdDeChanson: { mot: 'id de chanson', lire: chansonsDuChanteur, nom: (_s) => (id) => findSeaShantyById(id)?.label ?? null },
   IdDeFormeConjuree: { mot: 'id de forme conjurée', lire: formesConjurables, nom: (_s) => (id) => findTrappingById(id)?.label ?? null },
+  IdDeChoixDeCibles: {
+    mot: 'id de choix de cibles',
+    lire: (s) => ids(choixDeCiblesEnAttente(s)),
+    nom: (s) => parLabel(choixDeCiblesEnAttente(s)),
+  },
   IdDeChoixDePaie: { mot: 'id de choix de paie', lire: choixDePaieOuverts, nom: (_s) => (id) => findMoraleFactor(id)?.label ?? null },
   IdDeCreatureADepecer: { mot: 'id de créature à dépecer', lire: creaturesADepecer, nom: (_s) => (id) => findCreatureById(id)?.label ?? null },
   IdDAdversaireDuBattement: { mot: 'id d’adversaire du Battement', lire: (s) => ids(adversairesDuBattement(s)), nom: nomDeCombattant },

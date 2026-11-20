@@ -21744,11 +21744,44 @@
     "subType": "Mort",
     "cn": 6,
     "range": {
-      "kind": "special",
-      "text": "ZdE (Bonus de Force Mentale × 2) mètres"
+      "kind": "self"
     },
     "target": {
-      "kind": "self"
+      "kind": "area",
+      "span": "diameter",
+      "meters": {
+        "times": {
+          "of": {
+            "bonusOf": "force-mentale"
+          },
+          "factor": 2
+        }
+      },
+      "choixDeCibles": {
+        "allies": {
+          "kind": "relation",
+          "who": "target",
+          "is": "allie"
+        },
+        "ennemis": {
+          "kind": "all",
+          "of": [
+            {
+              "kind": "relation",
+              "who": "target",
+              "is": "adversaire"
+            },
+            {
+              "kind": "not",
+              "of": {
+                "kind": "relation",
+                "who": "target",
+                "is": "neutre"
+              }
+            }
+          ]
+        }
+      }
     },
     "duration": {
       "kind": "rounds",
@@ -21761,29 +21794,49 @@
       "kind": "sequence",
       "etapes": [
         {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "on": "caster",
-            "ops": [
-              {
-                "op": "narrative",
-                "text": "Embrasser son destin : pendant la Durée, les cibles alliées sont immunisées contre la Peur, la Terreur est considérée comme de la Peur, et tous les effets Psychologiques provoqués par du chagrin sont retirés de façon permanente — immunité psychologique restreinte à un TYPE et rétrogradation Terreur→Peur non modélisées, arbitrage MJ."
+          "kind": "si",
+          "condition": {
+            "kind": "relation",
+            "who": "target",
+            "is": "adversaire"
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "calme"
+              },
+              "difficulty": "intermediaire"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "forbidFlee"
+                  }
+                ]
               }
-            ]
-          }
-        },
-        {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "on": "caster",
-            "ops": [
-              {
-                "op": "narrative",
-                "text": "Embrasser son destin : lancé sur des ennemis proches, les cibles qui échouent à un Test de Calme Intermédiaire (+0) ne peuvent pas fuir le combat pendant la Durée du Sort — interdiction de fuite non modélisée, arbitrage MJ."
-              }
-            ]
+            }
+          },
+          "sinon": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "narrative",
+                  "text": "Embrasser son destin : pendant la Durée, les cibles alliées sont immunisées contre la Peur, la Terreur est considérée comme de la Peur, et tous les effets Psychologiques provoqués par du chagrin sont retirés de façon permanente — immunité psychologique restreinte à un TYPE et rétrogradation Terreur→Peur non modélisées, arbitrage MJ."
+                }
+              ]
+            }
           }
         }
       ]
