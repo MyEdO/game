@@ -38,10 +38,17 @@ Doctrine `.claude/memory/user-doctrine-orchestration-des-sessions.md`.
 2. **Lancement.** Vérifie la tenue des tickets selon `se-coordonner-entre-comptes`. Démarre une
    session neuve dans l'environnement cloud du dépôt, ou dans son worktree créé par `ops:chantier`
    sur le poste. Pour Codex Cloud, passe `thinking: "high"` par défaut à `create_thread`.
-   Avec le lanceur du dépôt, utilise
-   `npm run ops:session -- lancer <consigne> --ticket <N> --agent <client> --worktree <chemin> --json`.
-   Choisis un `--nom` unique si `s<N>` est pris. Conserve la sortie entière dans le scratchpad
-   pour retrouver le jeton de fermeture. La session confirme sa prise sur le ticket avant de travailler.
+   Depuis Bash, PowerShell ou Codex (`exec_command`), utilise
+   `npm run ops:session -- lancer <consigne> --ticket <N> --agent <client> --worktree <chemin> --detache --json`.
+   Choisis un `--nom` unique si `s<N>` est pris. Conserve le handle privé. Exécute sa commande
+   `sonde` (sous PowerShell, `sondePowerShell` si elle est fournie). À chaque retour 124, reprends
+   la même commande du handle (240 s maximum par appel). Le contrôleur garde toute la fenêtre des hooks
+   Codex et Claude. À la fin,
+   lis le JSON complet dans `log` et vérifie que son UUID et son jeton correspondent au fichier
+   `reprise` enregistré avant l’ouverture du terminal. Si le verdict manque, garde le même handle :
+   vérifie `etat <UUID> --json` puis, pour arrêter, fournis le contenu du fichier privé par stdin à
+   `fermer <UUID> --json`. Ne relance jamais tant que l’état précédent est indéterminé.
+   La session confirme sa prise sur le ticket avant de travailler.
 3. **Veille.** Utilise les transitions du client cloud ou `attendre <id> --timeout-ms <n> --suivre`
    avec `ops:session` (`n` ≤ 3600000). Après une transition `inactif` ou une expiration, vérifie
    si le lot a rendu et reprends la veille depuis le dernier curseur si le travail continue.
