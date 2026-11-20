@@ -731,14 +731,14 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     expect(b().turn, 'le tour reste au joueur').toBe(0);
   });
 
-  it('quarantaine : `subirLaCharge` n’a que `declarerLaCharge` et la recette pour appelants', () => {
+  it('quarantaine : `declarerLaCharge` est le seul appelant de `subirLaCharge`', () => {
     const appels: string[] = [];
     for (const { rel, text } of readCorpus(['src'])) {
       for (const m of text.matchAll(/(?<!function )\bsubirLaCharge\(/g)) {
         const fonction = [...text.slice(0, m.index).matchAll(/function (\w+)\(/g)].pop()?.[1];
-        appels.push(rel === 'src/state/devtools.ts' ? rel : `${rel}:${fonction}`);
+        appels.push(`${rel}:${fonction}`);
       }
     }
-    expect(appels.sort()).toEqual(['src/noyau/combatFlow.ts:declarerLaCharge', 'src/state/devtools.ts']);
+    expect(appels.sort()).toEqual(['src/noyau/combatFlow.ts:declarerLaCharge']);
   });
 });

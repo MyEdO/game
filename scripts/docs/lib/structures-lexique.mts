@@ -637,7 +637,7 @@ export const CONCEPTS: readonly Concept[] = [
   // pour le détecteur de la base de sa plage (`scripts/guards/lib/corpusDesComptes.mts`). #2533.
   {
     id: 'provenance-de-valeur',
-    label: 'provenance d’une valeur d’auteur de route (`ProvenanceDeValeur`)',
+    label: 'provenance d’une valeur d’auteur de route (`provenanceDeValeurSchema`)',
     strate: 'Valeur',
     signatures: [
       { sig: 'source', statut: 'cible' },

@@ -1,6 +1,3 @@
-import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { dossierDe } from '../../../../scripts/guards/lib/couches.mjs';
@@ -13,14 +10,9 @@ import { detenteur } from '../../../lib/detenteur.testkit';
  * matière, ni un TERRAIN : ni le SOL qu'une scène neuve reçoit (semence, #1716), ni un id de
  * `terrains.json` en littéral (#1716, #1789).
  *
- * Les DEUX BRAS scannent le MÊME périmètre — les cinq couches ci-dessous, même corpus (`fichiers`,
- * une seule marche d'arbre) — et se neutralisent par la MÊME forme : `NEUTRALISEURS` pour les
- * matières, `NEUTRALISEURS_TERRAIN` pour les sols, chacun NOMMÉ, chacun tenu par un test de vie qui
- * le rend ROUGE dès qu'aucun site du périmètre ne l'exerce plus — au grain du CHAMP, une entrée par
- * champ (`neutraliseursDeChamp`), pour qu'un homonyme qui meurt rougisse SEUL. Un homonyme se
- * neutralise par le NOM DU CHAMP (`kind:`, `key:`, `weather:`, `part:`, `scope:`), par le
- * VOCABULAIRE d'union déclaré dans le fichier ou par une UNION de littéraux ÉCRITE EN PLACE (paramètre,
- * champ) — jamais par un nom de fichier, jamais par un site toléré.
+ * Les trois scans partagent le corpus (`fichiers`). Les neutraliseurs de matières et de sols
+ * décrivent les homonymes par leur champ ou leur union de types. Chaque entrée est éprouvée
+ * sur les producteurs réels pour qu'une exemption devenue inutile soit retirée.
  *
  * Le relief était le dernier domaine de `MaterialRef` dont l'id était choisi EN CODE
  * (`floors.ts` : `'pilier'`, `'pierre'`, `'terre'`) ; il vient de la donnée comme les autres — la
@@ -29,50 +21,16 @@ import { detenteur } from '../../../lib/detenteur.testkit';
  * défaut. Ce que la garde interdit, c'est le RETOUR de ce choix : un id de `materials.json` écrit en
  * dur dans une couche qui ÉMET de la géométrie ou du catalogue.
  *
- * PÉRIMÈTRE (les CINQ couches qui émettent — `src/ui/editor/**` depuis #1716 : la palette et le
- * redimensionnement POSENT le sol d'une scène, rien ne les tenait) : `src/gameIso/builders/**` et
- * `src/noyau/monde/volume/**` (géométrie pure),
- * `src/gameIso/authoring/*Svg.ts` (peintres du plan et de l'éditeur), `src/gameIso/catalog/**`
- * (catalogues et façades de donnée), et `src/state/**` avec le reste de `src/noyau/**` — la DÉRIVATION des masses de toit y
- * émet le `material` de chaque masse (`sceneEdit.ts`, #1715 volet b : il se résout corps > type de
- * bâtiment > scène), et le reste du store pose les mutations de scène que le rendu consomme.
- * Hors périmètre : les backends et le stage, qui peignent la matière que ces couches émettent. Les zones `gameIso`,
- * `state` et `ui` sont celles de l'hôte web (#3556), balayées avec les couches du noyau.
- *
- * Le vocabulaire interdit est DÉRIVÉ du dataset — aucune liste récitée ici : une matière ajoutée
- * demain est gardée le jour même. Les fichiers de TEST sont hors scan : ils POSENT des matières en
- * fixture, ce qui est le geste d'un auteur, pas un choix du moteur. Les commentaires sont retirés
- * avant la mesure : une réf `pierre` en prose n'est pas une émission.
- *
- * AUCUNE exception nominative : le stock mesuré est vide, il doit le rester.
+ * PÉRIMÈTRE : les modules de géométrie du monde et les autres producteurs du noyau.
+ * La dérivation des masses de toiture résout leur matière dans le document de scène.
  */
-const RACINE = fileURLToPath(new URL('../../../../', import.meta.url));
+const NOYAU = dossierDe('noyau');
+const BUILDERS_DU_NOYAU = `${NOYAU}/monde/volume`;
 
-/** Le dossier `sous` de la zone `z` (`COUCHES`), relatif à la racine du dépôt. */
-const sous = (z: string, d?: string) => (d ? `${dossierDe(z)}/${d}` : dossierDe(z));
-
-/** La géométrie pure du monde que le noyau sert aux hôtes (#3476) : une couche de BUILDERS, que le store ne lit pas. */
-const BUILDERS_DU_NOYAU = sous('noyau', 'monde/volume');
-
-/** Les CINQ couches ÉMETTRICES scannées. `bases` nomme leurs dossiers depuis la racine (les builders en ont deux,
- *  `src/gameIso/builders` et `src/noyau/monde/volume` ; le store aussi, `src/state` et le reste de `src/noyau`) ;
- *  `recursif: false` borne la couche à la profondeur 1. */
-const COUCHES = [
-  { nom: 'builders', bases: [sous('gameIso', 'builders'), BUILDERS_DU_NOYAU], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { nom: 'authoring', bases: [sous('gameIso', 'authoring')], recursif: false, filtre: (f: string) => /Svg\.tsx?$/.test(f) },
-  { nom: 'catalog', bases: [sous('gameIso', 'catalog')], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { nom: 'store', bases: [sous('state'), sous('noyau')], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { nom: 'editor', bases: [sous('ui', 'editor')], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-] as const;
-
-/** Les dossiers du STORE, lus dans la table : les autres couches sont celles du rendu et de l'IU. */
-const BASES_DU_STORE: readonly string[] = COUCHES.find((c) => c.nom === 'store')!.bases;
-
-/** Le STORE seul (`src/state`, `src/noyau` hors de ses builders). */
-const duStore = (rel: string) => BASES_DU_STORE.some((b) => rel.startsWith(`${b}/`)) && !rel.startsWith(`${BUILDERS_DU_NOYAU}/`);
+const horsVolume = (rel: string) => !rel.startsWith(`${BUILDERS_DU_NOYAU}/`);
 
 /**
- * Les SIGNAUX STRUCTURELS du store, chacun neutralisé par `codeSeul` — aucun nom de fichier,
+ * Les SIGNAUX STRUCTURELS des producteurs du noyau hors volume, chacun neutralisé par `codeSeul` — aucun nom de fichier,
  * aucune ligne : c'est la FORME qui dit qu'un littéral n'est pas une émission de matière.
  *  - la clé `scope:` porte la PORTÉE d'un avertissement de validation, où `plan` est le plan de scène ;
  *  - une ligne faite des seuls membres d'une union de type (`| 'a' | 'b'`) déclare un vocabulaire, où `terre` est un
@@ -86,19 +44,8 @@ const SIGNAUX_STRUCTURELS = [
 /** Les signaux structurels, en une seule passe. */
 const LIGNE_STRUCTURELLE = new RegExp(SIGNAUX_STRUCTURELS.map((s) => s.re.source).join('|'));
 
-/** Tous les fichiers du périmètre : la marche de l'arbre ET la lecture viennent de la primitive de
- *  corpus (`readCorpus`, une clé par base, `*.test.*` hors corpus). Le chemin rendu est celui que le
- *  rapport porte, relatif à la racine du dépôt. */
 function fichiersDuPerimetre(): { rel: string; code: string }[] {
-  return COUCHES.flatMap((c) =>
-    c.bases.flatMap((b) =>
-      readCorpus([b])
-        .map(({ rel, text }) => ({ f: rel.slice(b.length + 1), text }))
-        .filter(({ f }) => (c.recursif || !f.includes('/')) && c.filtre(f.slice(f.lastIndexOf('/') + 1)))
-        .map(({ f, text }) => ({ rel: `${b}/${f}`, code: text }))
-        .filter(({ rel }) => c.nom !== 'store' || duStore(rel)),
-    ),
-  );
+  return readCorpus([NOYAU], { exts: ['.ts'] }).map(({ rel, text }) => ({ rel, code: text }));
 }
 
 /** Le code SANS ses commentaires, lignes préservées — mesure COMMUNE aux deux bras (matières et
@@ -121,12 +68,6 @@ const echappe = (mot: string) => mot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  *  le vocabulaire d'un état d'IU. Neutralisée comme une collection, pas comme un fichier. */
 const UNION_DE_LITTERAUX = /(['"`])[^'"`\n]*\1(\s*\|\s*(['"`])[^'"`\n]*\3)+/g;
 
-/** CLÉS D'ONGLET déclarées DANS LE FICHIER (`key: '…'`) : la comparaison d'un ÉTAT D'ONGLET à sa clé
- *  (`placeTab === 'plan'`) lit un état d'IU, elle n'émet aucune face — la déclaration et sa lecture
- *  sont le MÊME signal, pris dans le même fichier. */
-const clesDOnglet = (src: string): Set<string> =>
-  new Set([...src.matchAll(/\bkey:\s*['"`]([^'"`]+)['"`]/g)].map((m) => m[1]));
-
 /** Neutralisation d'un CHAMP dont le vocabulaire N'EST PAS celui des matières, à l'écriture
  *  (`part: 'pilier'`) comme à la comparaison (`w.scope === 'plan'`) : c'est le NOM DU CHAMP qui est
  *  le signal, jamais le fichier. Chacun a un homonyme au dataset des matières (`pilier`, `plan`). */
@@ -136,7 +77,7 @@ const champHorsMatiere = (champs: string) => {
   return (code: string) => code.replace(ecriture, '$1: _').replace(comparaison, '$1 $2 _');
 };
 
-type Neutraliseur = { nom: string; applique: (code: string, onglets: Set<string>) => string };
+type Neutraliseur = { nom: string; applique: (code: string) => string };
 
 /**
  * UNE entrée de neutraliseur PAR CHAMP, produite depuis le VOCABULAIRE de chaque champ : le contrat
@@ -149,52 +90,21 @@ const neutraliseursDeChamp = (vocabulaires: Record<string, string>): Neutraliseu
     applique: champHorsMatiere(champ),
   }));
 
-/**
- * Les NEUTRALISEURS de ligne, chacun NOMMÉ — la table EST le contrat : un neutraliseur que plus
- * aucun site du périmètre n'exerce est une exemption morte, et le test de vie le rend ROUGE.
- *  - UNE entrée par CHAMP (`neutraliseursDeChamp`), son libellé portant le VOCABULAIRE du champ :
- *    `part` partie de face, `scope` portée d'un avertissement de validation, `key` clé de récap /
- *    d'IU — chacun a un homonyme au dataset des matières. `kind` (type de sélection d'un éditeur) n'y
- *    figure PAS : aucun `kind:` du périmètre ne porte d'homonyme de MATIÈRE (il n'en porte qu'au
- *    registre des TERRAINS, où le bras terrain le tient) — groupé à `key`, il passait pour vivant ;
- *  - l'UNION de littéraux d'un type : la DÉCLARATION d'un vocabulaire d'état, pas une émission ;
- *  - la comparaison d'un ÉTAT D'ONGLET à une clé déclarée dans le même fichier : le signal est la
- *    GAUCHE de la comparaison (un identifiant d'onglet, `…Tab`), jamais le fichier — `m.material ===
- *    'plan'` reste une émission dans un fichier qui déclare `key: 'plan'` ailleurs.
- */
-const NEUTRALISEURS: readonly Neutraliseur[] = [
-  ...neutraliseursDeChamp({
-    part: 'partie de face',
-    scope: 'portée d’un avertissement',
-    key: 'clé de récap / d’IU',
-  }),
-  { nom: 'UNION de littéraux d’un type', applique: (code) => code.replace(UNION_DE_LITTERAUX, litteraux) },
-  {
-    nom: 'comparaison d’un état d’ONGLET à une clé déclarée',
-    applique: (code, onglets) =>
-      onglets.size
-        ? code.replace(
-            new RegExp(`\\b(\\w*[Tt]ab)\\s*(===|!==|==|!=)\\s*(['"\`])(?:${[...onglets].map(echappe).join('|')})\\3`, 'g'),
-            '$1 $2 _',
-          )
-        : code,
-  },
-];
+const NEUTRALISEURS = neutraliseursDeChamp({ part: 'partie de face' });
 
 /**
  * Le code SEUL, lignes préservées (le rapport porte des `fichier:ligne`) :
  *  - commentaires de bloc et de ligne retirés — une réf en prose n'est pas une émission ;
  *  - chaque NEUTRALISEUR de `NEUTRALISEURS` appliqué à la ligne ; `sauf` en retire UN, et c'est
  *    ainsi que le test de vie mesure ce que chacun blanchit RÉELLEMENT dans le périmètre ;
- *  - les signaux du store (`SIGNAUX_STRUCTURELS`), neutralisés sur leur ligne.
+ *  - les signaux structurels du noyau (`SIGNAUX_STRUCTURELS`), neutralisés sur leur ligne.
  */
 function codeSeul(src: string, sauf?: string): string {
-  const onglets = clesDOnglet(src);
   return sansCommentaires(src)
     .split('\n')
     .map((l) => {
       let code = l;
-      for (const n of NEUTRALISEURS) if (n.nom !== sauf) code = n.applique(code, onglets);
+      for (const n of NEUTRALISEURS) if (n.nom !== sauf) code = n.applique(code);
       return LIGNE_STRUCTURELLE.test(code) ? litteraux(code) : code;
     })
     .join('\n');
@@ -291,30 +201,30 @@ function codeHorsTerrain(src: string, sauf?: string): string {
 describe('couches émettrices du monde — aucune matière ni aucun terrain nommé en dur (#1691, #1715, #1716, #1789)', () => {
   const fichiers = detenteur(fichiersDuPerimetre);
 
-  it('le scan couvre les CINQ couches émettrices (sanity)', () => {
-    for (const c of COUCHES)
-      for (const b of c.bases) expect(fichiers().filter((f) => f.rel.startsWith(`${b}/`)).length, b).toBeGreaterThan(0);
-    expect(fichiers().some((f) => f.rel === `${sous('noyau')}/sceneEdit.ts`), 'la dérivation des masses n’est plus scannée').toBe(true);
-    expect(fichiers().some((f) => f.rel === `${sous('noyau')}/monde/scene.ts`), 'le SCHÉMA de scène n’est plus scanné').toBe(true);
-    expect(fichiers().some((f) => duStore(f.rel) && f.rel.split('/').length > 3), 'le scan du store n’est plus récursif').toBe(true);
-    expect(fichiers().some((f) => f.rel === `${sous('ui', 'editor')}/Palette.tsx`), 'la PALETTE de l’éditeur n’est plus scannée').toBe(true);
-    expect(fichiers().some((f) => f.rel === `${sous('ui', 'editor')}/Editor.tsx`), 'le redimensionnement de l’éditeur n’est plus scanné').toBe(true);
+  it('le scan couvre les producteurs du noyau et la géométrie du monde (sanity)', () => {
+    const chemins = fichiers().map((f) => f.rel);
+    expect(chemins, 'la dérivation des masses de toiture et le schéma de scène sont scannés').toEqual(
+      expect.arrayContaining([`${NOYAU}/sceneEdit.ts`, `${NOYAU}/monde/scene.ts`]),
+    );
+    expect(chemins, 'les faces de sol et les triangles du volume sont scannés').toEqual(
+      expect.arrayContaining([`${BUILDERS_DU_NOYAU}/floors.ts`, `${BUILDERS_DU_NOYAU}/worldTris.ts`]),
+    );
     expect(materials.length).toBeGreaterThan(5);
   });
 
-  it('les HOMONYMES du store portent tous un signal STRUCTUREL, et aucun ne survit à la neutralisation', () => {
+  it('les HOMONYMES des producteurs du noyau hors volume portent tous un signal STRUCTUREL, et aucun ne survit à la neutralisation', () => {
     const nus: { rel: string; ligne: number; texte: string }[] = [];
-    for (const f of fichiers().filter((x) => duStore(x.rel))) {
+    for (const f of fichiers().filter((x) => horsVolume(x.rel))) {
       const sansCommentaires = codeNu(f.code);
       sansCommentaires.forEach((l, i) => {
         if (citeUneMatiere(l))
           nus.push({ rel: f.rel, ligne: i + 1, texte: l });
       });
     }
-    expect(nus.length, 'plus aucun homonyme dans le store : la neutralisation ne prouve plus rien.').toBeGreaterThan(0);
+    expect(nus.length, 'plus aucun homonyme chez les producteurs hors volume : la neutralisation ne prouve plus rien.').toBeGreaterThan(0);
     expect(
       nus.filter((n) => !SIGNAUX_STRUCTURELS.some((s) => s.re.test(n.texte))).map((n) => `${n.rel}:${n.ligne}`),
-      `Littéral de matière dans le store sans signal structurel — signaux connus : ${SIGNAUX_STRUCTURELS.map((s) => s.nom).join(', ')}.`,
+      `Littéral de matière chez les producteurs hors volume sans signal structurel — signaux connus : ${SIGNAUX_STRUCTURELS.map((s) => s.nom).join(', ')}.`,
     ).toEqual([]);
     for (const s of SIGNAUX_STRUCTURELS)
       expect(nus.some((n) => s.re.test(n.texte)), `le signal « ${s.nom} » n’est plus exercé par aucun site.`).toBe(true);
@@ -346,7 +256,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * `semences-de-scene.json › terrain` elle-même (un id de `terrains.json`, tenu au parse par
    * `idDe('terrain')`) — change la semence au Codex, la garde suit le jour même, sans une ligne.
    *
-   * ZÉRO, sans aucune neutralisation : la semence ne se nomme NULLE PART dans les cinq couches, ni
+   * ZÉRO, sans aucune neutralisation : la semence ne se nomme nulle part chez les producteurs scannés, ni
    * en pose (`.fill(…)`, `?? …`, `= …` : c’est la donnée qui la fournit) ni en collection — une
    * collection qui la nommerait serait une liste de terrains récitée en code, la classe de
    * `BARE_GROUND`, que le vocabulaire dérivé de `terrains.json` rend inutile.
@@ -383,9 +293,9 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * nom de champ. AUCUN site toléré, aucune liste d’exemption, aucun nom de fichier :
    * le stock mesuré est vide.
    *
-   * Périmètre : les MÊMES CINQ couches que le bras des matières (#1789), même corpus `fichiers`.
+   * Périmètre : le même corpus `fichiers` que le scan des matières (#1789).
    */
-  it('aucune des CINQ couches émettrices ne porte un id de terrain en littéral (#1716, #1789)', () => {
+  it('aucune couche émettrice du noyau ne porte un id de terrain en littéral (#1716, #1789)', () => {
     const ids = terrains.map((t) => t.id);
     expect(ids.length, 'vocabulaire de terrains VIDE : la garde mesurerait le néant.').toBeGreaterThan(0);
     const fautes: string[] = [];
@@ -408,7 +318,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
 
   /**
    * CONTRAT DE VIE des neutraliseurs du bras TERRAIN — même mesure que pour les matières, sur le MÊME
-   * périmètre : on rejoue le scan des cinq couches en retirant UN neutraliseur, et la différence d'ids
+   * périmètre : on rejoue le scan du corpus en retirant UN neutraliseur, et la différence d'ids
    * comptés est ce qu'il porte.
    */
   it('chaque neutraliseur du bras TERRAIN est exercé par un site du périmètre (aucune exemption morte)', { timeout: 30_000 }, () => {
@@ -470,13 +380,13 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     ).toBe(1);
   });
 
-  it('la neutralisation est STRUCTURELLE : une COMPARAISON de partie n’est pas une émission de matière', () => {
-    const fichierTemoin = join(RACINE, sous('gameIso', 'authoring'), 'floorsSvg.ts');
-    expect(existsSync(fichierTemoin), 'le site témoin de la comparaison de partie a disparu — reformuler la garde.').toBe(true);
-    const brut = readFileSync(fichierTemoin, 'utf8');
-    const partie = materials.find((m) => brut.includes(`part === '${m.id}'`) || brut.includes(`part !== '${m.id}'`));
-    expect(partie, 'plus aucune comparaison `part === <homonyme d’une matière>` : le cas n’est plus exercé.').toBeDefined();
-    expect(new RegExp(`'${partie!.id}'`).test(codeSeul(brut)), `« ${partie!.id} » compté comme matière alors que c’est une PARTIE.`).toBe(false);
+  it('la neutralisation est structurelle : comparer une partie laisse visible une comparaison de matière', () => {
+    const sol = fichiers().find((f) => f.rel === `${BUILDERS_DU_NOYAU}/floors.ts`);
+    const homonyme = materials.find(({ id }) => sol?.code.includes(`part: '${id}'`));
+    expect(homonyme, 'la géométrie du sol fournit un homonyme de matière pour le champ part').toBeDefined();
+    const id = homonyme!.id;
+    expect(citeUneMatiere(codeSeul(`face.part === '${id}'`))).toBe(false);
+    expect(citeUneMatiere(codeSeul(`face.material === '${id}'`))).toBe(true);
   });
 
   it('aucun id de `materials.json` n’apparaît en littéral dans les couches émettrices', () => {

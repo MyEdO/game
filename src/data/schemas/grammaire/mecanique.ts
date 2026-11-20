@@ -2081,15 +2081,6 @@ export function mecaniqueDe(regimes: Regimes): FamilleMecanique {
   return famille;
 }
 
-/** La famille d'un champ d'effets déclenchés (`z.array(famille.triggeredEffect)`, facultatif ou non) : l'Atelier y
- *  lit l'algèbre de Condition et les ops que le porteur admet. Absent = champ hors famille. */
-export function familleDesEffets(noeud: unknown): FamilleMecanique | undefined {
-  let n = noeud;
-  while (n instanceof z.ZodOptional) n = n.unwrap();
-  const element = n instanceof z.ZodArray ? n.element : undefined;
-  return element === undefined ? undefined : famillesConstruites().find((f) => f.triggeredEffect === element);
-}
-
 /** Les familles construites, en lecture seule — racines de la garde du masquage (`parse-de-mesure.test.ts`). */
 export function famillesConstruites(): readonly FamilleMecanique[] {
   return [...FAMILLES.values()];

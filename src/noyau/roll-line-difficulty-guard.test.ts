@@ -12,7 +12,7 @@ import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
  * ABSOLUE : aucun site. Portée : le noyau, et les zones `ui` et `state` de l'hôte web qui l'appellent (#3556).
  */
 
-const SCAN_DIRS = porteeDeGarde(['noyau'], ['ui', 'state']);
+const SCAN_DIRS = porteeDeGarde(['noyau']);
 
 /** Littéraux de LIGNE DE JET sans `difficulty` — exporté pour la preuve fail-closed. */
 export function scanHandmadeRollLines(src: string): number[] {

@@ -303,9 +303,6 @@ export function opposedForcingCancelled(p: PendingDefense, defenderForcing = fal
 function attaquantForce(p: PendingDefense): boolean {
   return p.suite.mode === 'pilotee' && !!p.suite.pa.forcee;
 }
-/** Ligne factuelle rendue au joueur qui dépense le SECOND Point (#1000) — l'annulation n'est jamais
- *  silencieuse. Consommateur : la fenêtre de défense (`useDefenseJetProps`). */
-export const OPPOSED_FORCING_CANCELLED_NOTE = 'Les deux Résiliences s’annulent — le Test se résout aux dés.';
 
 /** Plancher de DR du dé forcé en Test OPPOSÉ. Garantie ACTIVE (LDB 17 l.68 : « S'il s'agit d'un Test
  *  opposé, vous l'emportez avec au moins DR +1 ») → DR de l'opposant + 1, au minimum 1 : c'est la

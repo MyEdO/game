@@ -29,7 +29,6 @@ import {
   DEFENSE_LABEL,
   baseTestModLines,
   weaponSkillId,
-  GRAPPLE_TEST_CTX,
 } from '../engine/combat';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, evaluateTest, type TestResult } from '../engine/tests';
@@ -707,15 +706,6 @@ export function ligneDeCorpsACorpsBrut(c: Combatant): RollLineParts {
   return rollLine({
     actor: c, combat: { kind: 'melee', weapon: c.weapons[0] }, difficulty: 'intermediaire',
     surLaCible: baseTestModLines(c, 'capacite-de-combat', { skill: weaponSkillId('melee') }),
-  });
-}
-
-/** Ligne du Test de Force d'Empoignade (`rollLine`, mêmes valeur et modificateurs que `rollGrappleForce`)
- *  — LDB 14 l.161. */
-export function ligneDeForceDEmpoignade(c: Combatant): RollLineParts {
-  return rollLine({
-    actor: c, test: { characteristic: 'force' }, valeur: effectiveChar(c, 'force'), valeurEtrangere: true, difficulty: 'intermediaire',
-    surLaCible: baseTestModLines(c, 'force', GRAPPLE_TEST_CTX),
   });
 }
 

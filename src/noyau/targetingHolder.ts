@@ -98,16 +98,3 @@ export function coupFerme(s: Partial<Jeu>): boolean {
 export function champAttendSaFenetre(s: Partial<Jeu>): boolean {
   return !coupFerme(s) && !zoneEnPose({ pendingCast: s.pendingCast ?? null, pendingSiegeAim: s.pendingSiegeAim ?? null });
 }
-
-/** Les `pending*` dont la désignation de cible vit SUR LA CARTE — les détenteurs hors-modale
- *  ci-dessus, plus `pendingCast` dont la POSSESSION reste à sa fenêtre (cf. `targetingHolder`) mais
- *  dont le geste de ciblage, lui, est un geste de carte. ÉNUMÉRATION RUNTIME : un pending de
- *  ciblage NOUVEAU s'ajoute ICI, jamais dans une liste littérale de consommateur. */
-export const MAP_TARGETING_PENDINGS = [...TARGETING_HOLDERS, 'pendingCast'] as const;
-export type MapTargetingPending = (typeof MAP_TARGETING_PENDINGS)[number];
-
-/** Un ciblage CARTE est-il en cours ? Verdict UNIQUE des consommateurs de la scène : tant qu'il est
- *  vrai on DÉSIGNE une cible — ni piste de déplacement, ni curseur libre par-dessus. */
-export function mapTargetingActive(s: Pick<Jeu, MapTargetingPending>): boolean {
-  return MAP_TARGETING_PENDINGS.some((k) => !!s[k]);
-}

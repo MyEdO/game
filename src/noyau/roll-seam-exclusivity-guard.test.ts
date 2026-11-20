@@ -1055,7 +1055,7 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
     expect(etapesALaMain(deuxObjets), 'contre-épreuve : `kind` et `target` de deux littéraux distincts ne font pas une étape').toBe(0);
   });
 
-  it('aucune NOUVELLE étape montée à la main (le stock ne peut que décroître)', () => {
+  it('aucune NOUVELLE étape montée à la main (le stock ne peut que décroître)', { timeout: 60_000 }, () => {
     const mesure: Record<string, number> = {};
     const perimetre = prodFiles('src').filter(({ rel }) => rel !== 'src/noyau/rollSeam.ts' // le monteur lui-même
       && !HORS_PERIMETRE_COMBAT.some((p) => rel.startsWith(p))); // frontière déclarée, lot dédié

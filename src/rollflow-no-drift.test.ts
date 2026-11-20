@@ -30,7 +30,7 @@ const REGISTRE_DES_FLUX = resolve(__dirname, './noyau/rollFlowSpecs.ts');
 /** Toutes les occurrences `chemin:ligne` d'un motif dans le code de résolution (hors tests). */
 function scan(re: RegExp): string[] {
   const out: string[] = [];
-  for (const { rel, text: src } of readCorpus(porteeDeGarde(['noyau', 'engine'], ['state']), { exts: ['.ts'] })) {
+  for (const { rel, text: src } of readCorpus(porteeDeGarde(['noyau', 'engine']), { exts: ['.ts'] })) {
     for (const m of src.matchAll(re)) out.push(`${rel}:${src.slice(0, m.index!).split('\n').length}`);
   }
   return out;

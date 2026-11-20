@@ -649,7 +649,7 @@ describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dé
    *  la Difficulté. Les deux exemptions se nomment par chemin. */
   const MAISON = 'src/noyau/difficultyText.ts';
   const CATALOGUE = 'src/i18n/messages/fr.ts';
-  const COUCHES_SANS_PROSE = porteeDeGarde(['engine', 'noyau'], ['state']).map((d) => `${d}/`);
+  const COUCHES_SANS_PROSE = porteeDeGarde(['engine', 'noyau']).map((d) => `${d}/`);
   const sansCommentaires = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   // Les LITTÉRAUX de chaîne du code restant (simples, doubles, gabarits) — c'est là que le mot
   // deviendrait une donnée.

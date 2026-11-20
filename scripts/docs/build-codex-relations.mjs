@@ -203,13 +203,6 @@ function rendu() {
     return [...parTitre].map(([titre, cas]) => ({ titre, cas }))
   })()
 
-  /** Exergues de Carrière : compte et périmètre de SOURCE, dumpés par le code lui-même (le plugin
-   *  `exergues` de `<Prose>` monté sur les `careers` réelles) — jamais une re-implémentation ici. */
-  const EPIGRAPHES = JSON.parse(
-    sortieOutilLocal(process.cwd(), 'tsx', 'tsx', ['scripts/docs/lib/dump-epigraphes.mts']),
-  )
-  if (!EPIGRAPHES.total) abandon('dump-epigraphes : aucune carrière lue — la façade `src/data` a bougé')
-
   // ── Tests du dossier ─────────────────────────────────────────────────────────────────────────────
 
   // Gardes NOMMÉES (fail-fast si l'une disparaît) — pas un balayage du dossier : un fichier de test
@@ -275,9 +268,7 @@ function rendu() {
 vivant \`CODEX\` de \`${REGISTRY}\` (${SPECS.length} catégories, leurs familles et sous-groupes
 \`cluster\`, dumpés par \`scripts/docs/lib/dump-codex.mts\`), et l'\`exposition\` DÉCLARÉE par les ${NB_DEFS} defs de \`src/data/schemas/defs/\`
 (dumpée par \`scripts/docs/lib/dump-exposition.mts\`), les cas NOMMÉS par ${CONTRATS_CITES}, les fonctions
-exportées de \`${DESCRIBE}\` et \`${HUMANIZE}\`, et le compte d'épigraphes de Carrière dumpé par
-\`scripts/docs/lib/dump-epigraphes.mts\` (le plugin \`exergues\` de \`<Prose>\` monté sur les \`careers\`
-réelles — aucune re-implémentation de la détection ici). **Angles morts** : la catégorie RÉFÉRANTE
+exportées de \`${DESCRIBE}\` et \`${HUMANIZE}\`. **Angles morts** : la catégorie RÉFÉRANTE
 est lue au \`const by\` en portée ou au littéral inline — une arête posée autrement (helper, boucle
 sur une variable calculée) casserait le script plutôt que de mentir, mais aucune n'existe
 aujourd'hui ; le CONTENU réel de chaque relation (combien de créatures portent tel trait) dépend de
@@ -285,7 +276,7 @@ la donnée à l'exécution et n'est pas compté ici ; l'auto-liage de prose (\`t
 LOCALE-SCOPED et son index se construit au runtime — seules ses portes sont documentées ; les deux
 principes et le mode d'emploi « Étendre » sont de l'ÉDITORIAL fixé dans le script.
 
-Le Codex (\`src/ui/compendium/\`) dérive TOUT du JSON \`src/data\` (aucune scène/règle en dur).
+Le Compendium Godot lit la projection de \`src/hote/compendium.ts\`. Les fiches du Codex dérivent de \`src/data\`.
 Au-delà des faits-clés et des références AVANT (déjà projetées par \`${REGISTRY}\`), la richesse
 vient d'une **couche relationnelle** : \`${RELATIONS}\`.
 
@@ -367,9 +358,8 @@ items — aucun cycle de projection.
 Les familles touffues affichaient une *avalanche* de pastilles à plat. Chaque \`CodexCategory\` porte
 un champ optionnel \`cluster\` (libellé FR du sous-groupe) : \`clustersIn(group)\` éclate les
 catégories en pastilles **à plat** (sans \`cluster\`) + **sous-groupes repliables** (\`CodexCluster\`,
-un par \`cluster\`, ordre de déclaration préservé). \`src/ui/compendium/CompendiumScreen.tsx\` rend
-chaque cluster comme un \`<details>\` de la primitive \`.fold\`, **fermé par défaut**, ouvert
-automatiquement si la catégorie active y vit. Les pastilles restent des \`<button>\`.
+un par \`cluster\`, ordre de déclaration préservé). \`src/hote/compendium.ts\` transmet cette
+structure au Compendium Godot.
 
 | Groupe | Catégories | À plat | Sous-groupes |
 |---|---|---|---|
@@ -383,17 +373,9 @@ Regrouper une catégorie = poser \`cluster\` (clé de catalogue) sur son entrée
   un titre dans \`REVERSE_TITLE\` si besoin, et \`...reverseSections(cat, id)\` dans la catégorie du registre.
 - **Nouveau champ de fiche** : enrichir l'\`item\` dans \`${REGISTRY}\` (méta \`fact(...)\` ou section via les
   helpers de \`${DESCRIBE}\` : ${HELPERS_DESCRIBE.map((n) => `\`${n}\``).join(', ')}).
-- **Exergue de fiche** : PRÉSENTATION, jamais un champ. La \`desc\` reste ENTIÈRE et UNE ; c'est le plugin
-  \`exergues\` de \`<Prose>\` (\`src/ui/Prose.tsx\`), activé par la DONNÉE de catégorie
-  (\`CodexCategory.exergues\`, \`careers\`), qui rend en \`.prose-exergue\` (matière \`ParchmentCard\`)
-  TOUT couple citation \`« … »\` + attribution (tiret), À SA PLACE dans le corps — convention
-  typographique OBSERVÉE dans les sources : ${EPIGRAPHES.avecEpigraphe} des ${EPIGRAPHES.total} carrières
-  curées en portent au moins un (${EPIGRAPHES.couples} couples au total ; folios ${EPIGRAPHES.folios[0]}–${EPIGRAPHES.folios[1]} de ${EPIGRAPHES.livres.length} livres :
-  ${EPIGRAPHES.livres.map((b) => `\`${b}\``).join(', ')}). Une catégorie SANS la donnée (\`species\` et ses
-  « Points de vue ») garde ses citations en paragraphes : aucun \`if (category === …)\` au rendu.
 - **Riders / effets / formules de sort en clair** : les sections rendent d'abord la phrase JOUEUR
   (\`${HUMANIZE}\` — switchs EXHAUSTIFS, zéro id brut : ${HELPERS_HUMANIZE.map((n) => `\`${n}\``).join(', ')}),
-  la forme technique d'atelier restant dépliée dans un bloc « Détail technique » (primitive \`.fold\`).
+  La forme technique reste disponible à l’éditeur du Compendium.
 - **Édition** : tout reste éditable au Compendium (DEV) ; les VIEWS ne sont pas éditables
   (\`isEditableCategory=false\`) — éditer la source.
 

@@ -13,7 +13,6 @@ import { REGLAGE_DE_L_AXE, type ReglageDu } from './reglagesDuJet';
 import type { IdDeFormeConjuree } from './designations';
 import { actorIn } from './monde/combatants';
 import { aiDriven, influencesLocally } from './netOwnership';
-import { ventsAnnonces } from './combatOrParty';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { fermetureDuReglage } from './rollFlowSpecs';
 import { ancreDeLaZdE, castOvercastAxes, effectiveSpellOf, overcastTargetCandidates, previewCast } from './combatFlow';
@@ -25,7 +24,7 @@ import { findSpellById, findTrappingById, weaponGroupLabel } from '../data/index
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { evaluateTest } from '../engine/tests';
 import {
-  castAfterCrit, castInfoIsPrayer, castingNumberOf, castOvercastBudget, focusValueOf, sortInfligeDesDegats, spellTargetCount,
+  castAfterCrit, castInfoIsPrayer, castingNumberOf, castOvercastBudget, sortInfligeDesDegats, spellTargetCount,
   type CritChoice,
 } from '../engine/magic';
 import { extraTargetCapacity, missileOvercastDamageBonus, overcastSourceOf, overcastStepCost, type OvercastAxis } from '../engine/overcast';
@@ -266,19 +265,6 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
     annulation: fermetures.annuler ? libelleDeLaFermeture(fermetures.annuler) : null,
     issue: issueDeLIncantation(s),
   };
-}
-
-/** La ligne du jet de Focalisation en attente (`pendingFocus`) : le NI que la Focalisation vise (`castingNumberOf`), la
- *  valeur du Test que le résolveur jette (`focusValueOf`), les Vents qu'elle annonce (`ventsAnnonces`) et la cible.
- *  `null` sans Focalisation. LDB 46 l.128-132, l.179-190 */
-export function ligneDeFocalisation(s: Jeu): { ni: number; base: number; mods: ModLine[]; target: number } | null {
-  const pf = s.pendingFocus;
-  const lanceur = pf && actorIn(s, pf.casterId);
-  const sort = pf && findSpellById(pf.spellId);
-  if (!pf || !lanceur || !sort) return null;
-  const base = focusValueOf(lanceur, sort) ?? 0;
-  const vents = ventsAnnonces(s.battle, !!pf.result);
-  return { ni: castingNumberOf(sort, false, {}, [], lanceur), base, mods: vents ? [vents] : [], target: base + (vents?.value ?? 0) };
 }
 
 /** Issue de l'incantation : le Sort lancé (la ligne de touche du moteur pour un Projectile qui touche), la Maladresse, la

@@ -1,6 +1,6 @@
 /**
  * VALEURS NEUVES DE L'ATELIER (#3059) qui ne lisent que les schémas et la donnée : la Condition
- * convertie à un type (`recast`), le report de type d'un bloc (`convertTo`, `memoriser`), les blocs neufs d'un Flow
+ * convertie à un type (`recast`), les blocs neufs d'un Flow
  * authoré (`noeudTestNeuf`, `blocNeuf`), le statbloc personnalisé neuf (`emptyStatblock`) et celui copié d'une créature
  * (`statblockDeLaCreature`). Le défaut d'une union fermée est son PREMIER membre, lu au
  * schéma. Les fabriques qui lisent le moteur ou le monde vivent au noyau (`noyau/valeursNeuves.ts`).
@@ -10,7 +10,7 @@ import type { CustomStatblock } from '../engine/statblock';
 import { semencesDeScene, type CreatureData } from './index';
 import type { Effect, FlowDeScene, TestDeScene } from './schemas/defs-scenes/effets';
 import { actorRefSchema, partyWhoSchema, startleCauseSchema } from './schemas/grammaire/mecanique';
-import { adresseUnPassage, hitLocationSchema } from './schemas/grammaire/valeurs';
+import { hitLocationSchema } from './schemas/grammaire/valeurs';
 
 /** La Condition « Toujours » : l'absence de condition d'un `when`. */
 export const CONDITION_TOUJOURS: Condition = { kind: 'always' };
@@ -60,39 +60,6 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'any': return { kind: 'any', of: cond.kind === 'all' || cond.kind === 'any' ? cond.of : cond.kind === 'always' ? [] : [cond] };
     case 'not': return { kind: 'not', of: cond.kind === 'not' ? cond.of : cond };
   }
-}
-
-/** `desc` ATTACHÉE à l'adresse (`descRef`) que la mémoire retient, vue d'un `bloc` dont le type ne
- *  déclare pas `descRef` : `convertTo` ne la lui reporte pas, `memoriser` ne la lui fait céder qu'à un
- *  texte non vide. */
-const descAttachee = (key: string, bloc: object, memoire: Record<string, unknown>): boolean =>
-  key === 'desc' && adresseUnPassage(memoire.descRef) && !('descRef' in bloc);
-
-/** Report des valeurs connues sur un bloc NEUF : le type visé décide des champs qui existent, la
- *  mémoire fournit leurs valeurs. Le discriminant reste celui du type visé. Pure, donc vérifiable
- *  sans navigateur. */
-export function convertTo<T extends object>(fresh: T, memoire: Record<string, unknown>, discriminant: string): T {
-  const out: Record<string, unknown> = { ...(fresh as Record<string, unknown>) };
-  for (const key of Object.keys(out)) {
-    if (key === discriminant || descAttachee(key, out, memoire)) continue;
-    if (memoire[key] !== undefined) out[key] = memoire[key];
-  }
-  return out as T;
-}
-
-/** Mémoire de la rangée après le bloc `value` : ses champs remplacent ceux retenus. Une `desc` attachée
- *  (`descAttachee`) n'est remplacée que par une chaîne non vide, qui retire alors `descRef` de la mémoire.
- *  Pure. */
-export function memoriser(memoire: Record<string, unknown>, value: object): Record<string, unknown> {
-  const out = { ...memoire };
-  for (const [key, v] of Object.entries(value)) {
-    if (!descAttachee(key, value, memoire)) out[key] = v;
-    else if (typeof v === 'string' && v !== '') {
-      out[key] = v;
-      delete out.descRef;
-    }
-  }
-  return out;
 }
 
 /** Statbloc personnalisé NEUF (humain de base), au libellé de la fiche qui le porte (sans nom : celui de

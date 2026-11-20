@@ -29,7 +29,7 @@ const DIVISION = /\/\s*(?:opts\.mpt\b|mpt\b|MPT\b|metresPerTile\b|sceneMetresPer
 const RECOPIE = /metresPerTile\s*\?\?\s*2/;
 
 /**
- * Les 23 sites DÉCLARÉS, chacun avec son RÔLE. Le texte est la ligne elle-même : il ne dérive pas
+ * Les sites DÉCLARÉS, chacun avec son RÔLE. Le texte est la ligne elle-même : il ne dérive pas
  * avec les numéros de ligne, et un site NEUF porte forcément un texte neuf — donc un rouge nominatif.
  */
 const SITES: readonly { fichier: string; texte: string; role: string }[] = [
@@ -59,12 +59,6 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
 
   // ── L'ARCHITECTURE et le RENDU
   { fichier: 'noyau/sceneEdit.ts', texte: 'return Math.max(1, Math.floor(ROOF_GABLE_SPAN_MAX_M / sceneMetresPerTile(scene)));', role: 'PORTÉE maximale d’un pignon (m) → cases' },
-  { fichier: 'gameIso/builders/highlights.ts', texte: 'const maxTiles = Math.ceil((rangeM * 3) / mpt);', role: 'BANDES de portée au sol (Portée ×3, m) → cases peintes' },
-  { fichier: 'gameIso/backends/webgl/cameras.ts', texte: 'const s = CELL / mpt;', role: 'CADENCE de la caméra du dessus (px/m)' },
-  { fichier: 'noyau/monde/volume/worldTris.ts', texte: 'return (TW * Math.SQRT1_2) / mpt;', role: 'CADENCE de la projection (px/m) — `pxPerM`' },
-  { fichier: 'gameIso/stage/GameStage3D.tsx', texte: '() => (xM, zM, yM) => isSheltered(abris, xM / mpt, zM / mpt, yM),', role: 'point MÉTRIQUE du monde 3D → case, pour lire un abri' },
-  { fichier: 'gameIso/stage/GameStage3D.tsx', texte: 'const section = shelterSectionAt(abris, xM / mpt, zM / mpt);', role: 'point métrique → case, pour nommer la section d’abri' },
-  { fichier: 'gameIso/stage/GameStage3D.tsx', texte: '? { x: frame.partyPos.x + g.dx / mpt, y: frame.partyPos.y + g.dz / mpt, z: frame.partyPos.z }', role: 'déplacement métrique de la caméra → position en cases du groupe' },
 ];
 
 describe('échelle de la scène — les sites de traduction mètres ⇄ cases sont NOMMÉS', () => {

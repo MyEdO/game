@@ -75,7 +75,7 @@ describe('mur sans hôte — le moteur et le noyau tournent sans hôte (#2817)',
     }
   }
 
-  for (const fichier of ['src/ui/__sonde-purete.tsx', 'src/audio/__sonde-purete.ts', 'src/state/__sonde-purete.ts', 'src/web/__sonde-purete.ts']) {
+  for (const fichier of ['src/hote/__sonde-purete.ts', 'src/hoteTexte/__sonde-purete.ts']) {
     for (const [nom, code] of TIRAGES) {
       it(`${fichier} : \`${nom}\` est refusé hors du site d’entropie`, async () => {
         expect(await pris(code, fichier)).toBeGreaterThan(0);
@@ -93,6 +93,6 @@ describe('mur sans hôte — le moteur et le noyau tournent sans hôte (#2817)',
   it('le site d’entropie et les tests tirent librement', async () => {
     expect(await pris('export const a = Math.random();\n', 'src/hote/entropie.ts')).toBe(0);
     expect(await pris('export const a = Math.random() + Date.now();\n', 'src/noyau/__sonde-purete.test.ts')).toBe(0);
-    expect(await pris('export const a = Math.random();\n', 'src/ui/__sonde-purete.test.tsx')).toBe(0);
+    expect(await pris('export const a = Math.random();\n', 'src/hote/__sonde-purete.test.ts')).toBe(0);
   });
 });

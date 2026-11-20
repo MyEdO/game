@@ -1,8 +1,6 @@
-// Socle de preuve navigateur headless (agents) — moissonné de scripts scratchpad ad hoc répétés
-// (des-v5-verify.mjs, gallery-v2-tour.mjs, repro-399.mjs, dice-reduced-motion.mjs) : CDP nu sur
-// Chrome, zéro dépendance nouvelle. Voir docs/recette-navigateur.md § « Preuve headless (agents) ».
+// Pilotage de Chromium par CDP pour les recettes et étalons de l’export Web Godot.
 import { spawn, spawnSync } from 'node:child_process';
-import { writeFileSync, appendFileSync, mkdirSync, existsSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,13 +9,7 @@ import { attendreSync } from '../guards/lib/spawnResilient.mjs';
 import { TOLERANCE_CREATION_MS } from '../guards/lib/processusWorktrees.mjs';
 import { NAISSANCE_ABSENTE, estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs';
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs';
-import { browserFreezeTimeout, browserUnfreezeTimeout } from '../../src/lib/figerDelais.ts';
-import { ENTETE_RACINE, RACINE, normaliserRacine, racineDepuisEntete, urlDev } from '../port-dev.mjs';
-
-/** URL de l'app servie par CET arbre (#1679 L1c) : le port est propre à l'arbre, jamais une
- *  constante — un port fixe faisait recetter le serveur d'un arbre VOISIN. `WFRP_DEV_URL` prime,
- *  pour une app servie ailleurs (autre machine, tunnel). */
-export const DEFAULT_URL = process.env.WFRP_DEV_URL || urlDev();
+import { RACINE, normaliserRacine } from '../port-dev.mjs';
 
 /** Racine de l'arbre depuis lequel CETTE recette tourne. */
 export const RACINE_COURANTE = normaliserRacine(RACINE);
@@ -29,87 +21,6 @@ export function validerDossierCaptures(dir = DOSSIER_CAPTURES) {
   return dir;
 }
 
-/**
- * VERDICT sur l'arbre SERVI (#1679 L1c) — `null` si le serveur sert bien `racineCourante`, sinon le
- * message de refus. Une recette ne prouve un écran que si le serveur qu'elle interroge sert L'ARBRE
- * où elle tourne ; le serveur publie sa racine dans l'en-tête `x-wfrp-racine` (`vite.config.ts`).
- * FAIL-CLOSED : en-tête ABSENT = refus lui aussi — un serveur muet est soit un autre arbre (config
- * d'avant #1679), soit un proxy, et dans les deux cas la mesure ne vaut rien. Fonction PURE.
- */
-export function verdictArbreServi(valeurEntete, racineCourante = RACINE_COURANTE) {
-  const servie = racineDepuisEntete(valeurEntete);
-  if (!servie) {
-    return (
-      `Le serveur interrogé ne publie pas l'en-tête « ${ENTETE_RACINE} » : impossible de prouver ` +
-      `qu'il sert CET arbre (${racineCourante}). Relancer "npm run dev" DANS cet arbre — ou viser ` +
-      `explicitement l'autre serveur par WFRP_DEV_URL/--url en assumant la mesure.`
-    );
-  }
-  if (servie !== normaliserRacine(racineCourante)) {
-    return (
-      `Arbre SERVI ≠ arbre courant : le serveur sert « ${servie} », la recette tourne dans ` +
-      `« ${normaliserRacine(racineCourante)} ». La mesure porterait sur l'AUTRE arbre. Lancer ` +
-      `"npm run dev" dans CET arbre (son port lui est propre, cf. scripts/port-dev.mjs).`
-    );
-  }
-  return null;
-}
-
-/** Chemins SURVEILLÉS pendant une recette : tout ce dont une écriture recharge la page. */
-const SURVEILLES = ['src', 'vite.config.ts'];
-
-/** Liste `{ chemin, mtimeMs }` des fichiers surveillés sous `racine` (récursif, sans suivre `node_modules`).
- *  Un chemin ABSENT (`ENOENT`) se saute ; toute autre erreur de lecture remonte. */
-export function fichiersSurveilles(racine, { stat = statSync, lister = readdirSync } = {}) {
-  const trouves = [];
-  const visiter = (chemin) => {
-    let info;
-    try {
-      info = stat(chemin);
-    } catch (e) {
-      if (e.code === 'ENOENT') return;
-      throw e;
-    }
-    if (info.isDirectory()) {
-      for (const nom of lister(chemin)) visiter(join(chemin, nom));
-    } else {
-      trouves.push({ chemin, mtimeMs: info.mtimeMs });
-    }
-  };
-  for (const cible of SURVEILLES) visiter(join(racine, cible));
-  return trouves;
-}
-
-/**
- * EMPREINTE de l'arbre à un instant : `{ nb, mtimeMax, plusRecent }` sur `src/**` + `vite.config.ts`.
- * `lister` est injecté pour la mesure ; par défaut, le disque.
- */
-export function empreinteArbre(racine = RACINE, lister = fichiersSurveilles) {
-  const fichiers = lister(racine);
-  let mtimeMax = 0;
-  let plusRecent = null;
-  for (const f of fichiers) {
-    if (f.mtimeMs > mtimeMax) { mtimeMax = f.mtimeMs; plusRecent = f.chemin; }
-  }
-  return { nb: fichiers.length, mtimeMax, plusRecent };
-}
-
-/**
- * VERDICT sur le GEL de l'arbre entre deux empreintes — `null` si rien n'a bougé, sinon le message
- * d'échec NOMMANT le fichier. Un rejeu silencieux après rechargement (`withReloadRetry`) masquait
- * qu'une autre session avait réécrit `src/` en plein vol : la recette prouvait alors un arbre qui
- * n'est plus celui qu'on croit mesurer. Fonction PURE.
- */
-export function verdictArbreGele(avant, apres) {
-  if (apres.mtimeMax === avant.mtimeMax && apres.nb === avant.nb) return null;
-  const quoi = apres.mtimeMax !== avant.mtimeMax
-    ? `fichier ${apres.plusRecent ?? '(inconnu)'}`
-    : `${apres.nb - avant.nb} fichier(s) ajouté(s)/supprimé(s)`;
-  return (
-    `L'arbre a été modifié pendant la recette : ${quoi}. La mesure porte sur un arbre qui a bougé ` +
-    `sous elle — relancer en fenêtre calme plutôt que de rejouer (#1679 L1c).`
-  );
-}
 const CHROME_WINDOWS = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
@@ -316,77 +227,6 @@ process.on('SIGTERM', () => process.exit(143));
 const chromeDeLaMachine = (explicite) =>
   resoudreChrome({ explicite, env: process.env, fs: { existe: existsSync, lister: readdirSync }, uid: process.getuid?.(), plateforme: process.platform });
 
-/** La CAUSE d'un échec de requête au serveur de dev, en clair (PURE) : connexion refusée (personne
- *  n'écoute) et réponse lente (le serveur écoute, la réponse ne vient pas) ne se soignent pas pareil. */
-export function causeDeServeur(e) {
-  const code = e?.cause?.code ?? e?.code;
-  if (code === 'ECONNREFUSED') return `connexion REFUSÉE (aucun serveur n'écoute : lancer "npm run dev" dans CET arbre)`;
-  if (e?.name === 'TimeoutError' || e?.name === 'AbortError') return 'réponse LENTE (le serveur écoute mais ne répond pas dans le délai : compilation Vite à froid, machine chargée — relever `timeoutMs`)';
-  return `échec réseau : ${e?.message ?? e}${code ? ` (${code})` : ''}`;
-}
-
-/**
- * ATTEND que le serveur de dev réponde, `timeoutMs` au plus (friction #2290 : 35 s à 8 min à froid,
- * machine chargée). Une connexion refusée se retente tous les `pasMs` ; une requête en vol est bornée
- * par le temps qui reste. Rend la réponse ; à l'échéance, LÈVE en nommant la DERNIÈRE cause
- * (`causeDeServeur`, ou le statut HTTP). Le kit ne DÉMARRE jamais le serveur, il l'attend.
- */
-export async function attendreServeur(url = DEFAULT_URL, { timeoutMs = 45000, pasMs = 1000, recuperer = fetch } = {}) {
-  const fin = Date.now() + timeoutMs;
-  let cause;
-  for (;;) {
-    // Minuteur ARMÉ (jamais `AbortSignal.timeout`, dont le minuteur ne tient pas le process en vie).
-    const abandon = new AbortController();
-    const minuteur = setTimeout(() => abandon.abort(Object.assign(new Error('délai écoulé'), { name: 'TimeoutError' })), Math.max(1, fin - Date.now()));
-    try {
-      const reponse = await recuperer(url, { signal: abandon.signal });
-      if (reponse.ok) return reponse;
-      cause = `réponse HTTP ${reponse.status}`;
-    } catch (e) {
-      cause = causeDeServeur(e);
-    } finally {
-      clearTimeout(minuteur);
-    }
-    if (Date.now() + pasMs >= fin) {
-      throw new Error(
-        `Serveur de dev indisponible sur ${url} après ${timeoutMs} ms — dernière cause : ${cause}. Le kit ` +
-        `s'ATTACHE, il ne démarre rien ; le port est propre à l'arbre ; pour viser un autre serveur : ` +
-        `WFRP_DEV_URL, ou --url.`,
-      );
-    }
-    await sleep(pasMs);
-  }
-}
-
-/**
- * Attend le serveur de dev (`attendreServeur`, `timeoutMs`) ET vérifie qu'il sert BIEN cet arbre
- * (#1679 L1c) — message d'aide sinon. `WFRP_RECETTE_ARBRE_LIBRE=1` lève le second contrôle pour les
- * cas où la cible est délibérément ailleurs (app déployée, tunnel) ; il reste actif par défaut.
- */
-export async function checkServer(url = DEFAULT_URL, { recuperer = fetch, racineCourante = RACINE_COURANTE, timeoutMs = 45000, pasMs = 1000 } = {}) {
-  const reponse = await attendreServeur(url, { timeoutMs, pasMs, recuperer });
-  if (process.env.WFRP_RECETTE_ARBRE_LIBRE === '1') return;
-  const refus = verdictArbreServi(reponse.headers?.get?.(ENTETE_RACINE), racineCourante);
-  if (refus) throw new Error(`${refus} (URL interrogée : ${url})`);
-}
-
-/** URL WebSocket du NAVIGATEUR servi sur `port` (`/json/version`), attendue `timeoutMs` au plus. */
-export async function waitForWsUrl(port, timeoutMs = 10000, { recuperer = fetch } = {}) {
-  const deadline = Date.now() + timeoutMs;
-  let dernier = null;
-  while (Date.now() < deadline) {
-    try {
-      const r = await recuperer(`http://localhost:${port}/json/version`);
-      const j = await r.json();
-      if (j.webSocketDebuggerUrl) return j.webSocketDebuggerUrl;
-    } catch (e) {
-      dernier = e;
-    }
-    await sleep(250);
-  }
-  throw new Error(`Chrome (CDP) indisponible sur le port ${port} après ${timeoutMs}ms.${dernier ? ` Dernier échec : ${dernier.message}` : ''}`, { cause: dernier ?? undefined });
-}
-
 /** Le port et l'URL WebSocket du navigateur qui tient le profil `profile`, lus dans le `DevToolsActivePort` que
  *  Chrome lancé avec `--remote-debugging-port=0` y écrit (le port, puis le chemin du WebSocket du navigateur),
  *  attendu `timeoutMs` au plus : un fichier absent, vide ou d'une seule ligne s'attend. */
@@ -432,7 +272,7 @@ export const DOSSIER_TELECHARGEMENTS = 'telechargements';
  * il est purgé avec lui (`purgerProfil`).
  */
 export async function dernierTelechargement(session, { timeoutMs = 15000, pasMs = 200, disque = DISQUE } = {}) {
-  if (!session.profile) throw new Error('dernierTelechargement : la session ne porte aucun profil (ni `launchSession`, ni `attacherSession`)');
+  if (!session.profile) throw new Error('dernierTelechargement : la session ne porte aucun profil');
   const dossier = join(session.profile, DOSSIER_TELECHARGEMENTS);
   session.telechargementsRendus ??= new Set();
   const fin = Date.now() + timeoutMs;
@@ -457,13 +297,12 @@ export async function dernierTelechargement(session, { timeoutMs = 15000, pasMs 
  *  qui l'a lancé (job object de libuv), donc un gardien tué ne laisse aucun Chrome orphelin (K9). */
 export const OPTIONS_SPAWN_CHROME = Object.freeze({ stdio: 'ignore' });
 
-/** Le disque réel, sous la forme que les purges injectables prennent (`purgerProfil`, `fermerSession`). */
+/** Le disque réel, utilisé pour lire les téléchargements et purger les profils Chrome. */
 export const DISQUE = Object.freeze({
   existe: existsSync,
   lister: readdirSync,
   lire: (chemin) => readFileSync(chemin, 'utf8'),
   dater: (chemin) => statSync(chemin).mtimeMs,
-  ecrire: (chemin, contenu, { exclusif = false } = {}) => writeFileSync(chemin, contenu, { flag: exclusif ? 'wx' : 'w' }),
   lireLien: (chemin) => {
     try { return readlinkSync(chemin); } catch (e) { if (e.code === 'ENOENT') return null; throw e; }
   },
@@ -508,8 +347,6 @@ async function attendreSortie(chrome, delaiMs = 5000) {
  * `scripts/recette/vues-recette.json` — jamais recopiées : trois adresses divergeaient (1440×900,
  * 1600×900, `HEIGHT = 800`) et aucune ne rendait l'écran de l'utilisateur. Mesure du 2026-09-20 :
  * 2560×1440 à 150 % = 1707×960px CSS, `availHeight` 912, fenêtre Chrome utile ≈ 745-780px.
- * Un écran se juge à la HAUTEUR autant qu'à la largeur (`docs/charte-ui.md` § « La HAUTEUR réelle »).
- * Le fichier ne porte QUE des vues ; tout le reste (breakpoints 1440/900/700/560) est de la charte.
  */
 export const VUES_RECETTE = JSON.parse(
   readFileSync(fileURLToPath(new URL('./vues-recette.json', import.meta.url)), 'utf8'),
@@ -639,8 +476,7 @@ export async function leverApresNettoyage(principale, nettoyage) {
 /**
  * BRANCHE une connexion CDP de niveau NAVIGATEUR (`ws`) : appels en vol, écouteurs, rejet TYPÉ des
  * appels en vol quand la socket se coupe. Rend la `session` : `rpc` porte le `sessionId` de la cible
- * attachée, `rpcNavigateur` jamais (niveau navigateur : `Target.*`). Forme UNIQUE, partagée par
- * `launchSession` (le navigateur qu'on lance) et `attacherSession` (celui qu'un gardien tient).
+ * attachée, `rpcNavigateur` jamais (niveau navigateur : `Target.*`).
  */
 export function brancherCdp(ws, champs = {}) {
   let id = 0;
@@ -764,35 +600,6 @@ export async function evaluate(session, expression, { timeoutMs = DELAI_EVALUATE
   return r.result.value;
 }
 
-/** Instantané des stockages de la page — `{ local, session }`, tout en chaînes. */
-export async function instantanerStockage(session) {
-  return evaluate(session, `(() => ({
-    local: Object.fromEntries(Object.entries(window.localStorage)),
-    session: Object.fromEntries(Object.entries(window.sessionStorage)),
-  }))()`);
-}
-
-/** Expression de RESTAURATION d'un instantané de stockage (PURE — testable sans navigateur). */
-export function expressionRestaurerStockage(instantane) {
-  return `(() => {
-    const s = ${JSON.stringify(instantane ?? {})};
-    for (const [nom, contenu] of [['localStorage', s.local || {}], ['sessionStorage', s.session || {}]]) {
-      const zone = window[nom];
-      zone.clear();
-      for (const [k, v] of Object.entries(contenu)) zone.setItem(k, v);
-    }
-    return true;
-  })()`;
-}
-
-/**
- * Restaure un instantané de stockage : une recette ne laisse JAMAIS l'état persistant du joueur
- * modifié derrière elle (sauvegardes, réglages) — appelé par `openApp` à la fermeture.
- */
-export async function restaurerStockage(session, instantane) {
-  return evaluate(session, expressionRestaurerStockage(instantane));
-}
-
 /** Attend qu'une expression JS devienne vraie (poll), lève si le délai expire. `evaluerMs` borne chaque évaluation
  *  (`evaluate`) : une page dont le fil est tenu plus longtemps (un GLB lu par l'hôte Godot) l'élargit. */
 export async function waitFor(session, expression, { timeoutMs = 8000, intervalMs = 200, evaluerMs = DELAI_EVALUATE } = {}) {
@@ -806,168 +613,6 @@ export async function waitFor(session, expression, { timeoutMs = 8000, intervalM
 
 /** Code de l'erreur d'une attente (`waitFor`) arrivée à échéance sans que la condition soit vraie. */
 export const ATTENTE_ECHUE = 'ATTENTE_ECHUE';
-
-/** Marqueur DOM du MENU PRINCIPAL monté : la section « Atelier » (`src/ui/MainMenu.tsx`), rendue en
- *  dernier, qui porte « Scénarios de test ». */
-export const MARQUEUR_MENU = '.menu-tools';
-
-/** Expression d'app prête : `__wfrp.screen` posé par `installDevtools` (cf. `openApp`), ET, sur l'écran
- *  `menu`, le menu principal MONTÉ (`MARQUEUR_MENU`) — friction #2415 (c) : `__wfrp` prêt rendait la main
- *  avant le montage, et le premier clic de menu échouait. */
-const APP_READY = `typeof window.__wfrp?.screen === 'function' && !!window.__game && (window.__game.getState().screen !== 'menu' || !!document.querySelector(${JSON.stringify(MARQUEUR_MENU)}))`;
-
-/** Attend l'app pendant un rechargement : une évaluation qui échoue par NAVIGATION (`isNavigationError`)
- *  se relit ; toute autre erreur remonte. Rend `false` à l'échéance. */
-export async function waitForAppSilently(session, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      if (await evaluate(session, APP_READY)) return true;
-    } catch (e) {
-      if (!isNavigationError(e)) throw e;
-    }
-    if (Date.now() >= deadline) return false;
-    await sleep(250);
-  }
-}
-
-/**
- * Rejoue `fn` quand la page a été RECHARGÉE sous les pieds du scénario (#1196 : une autre session
- * écrit dans `src/`, Vite full-reload, le contexte de page et ses helpers `window.__*` disparaissent).
- * Entre deux tentatives : on ré-attend l'app, puis `resettle` remet l'écran courant en place.
- * Toute erreur qui n'est PAS une navigation remonte telle quelle (aucun masquage de vrai défaut).
- */
-export async function withReloadRetry(session, fn, { tries = 3, resettle, onRetry, timeoutMs = 20000, empreinte = empreinteArbre } = {}) {
-  let last;
-  const avant = empreinte();
-  for (let i = 0; i < tries; i++) {
-    session.contextCleared = false;
-    try {
-      return await fn();
-    } catch (e) {
-      if (!isNavigationError(e) && !session.contextCleared) throw e;
-      // Rechargement CONSTATÉ : avant de rejouer, dire POURQUOI la page a rechargé (#1679 L1c). Un
-      // arbre qui bouge sous la recette invalide la mesure ; le rejeu la maquillerait en vert.
-      const bouge = verdictArbreGele(avant, empreinte());
-      if (bouge) throw new Error(bouge, { cause: e });
-      last = e;
-      if (i === tries - 1) break;
-      if (onRetry) await onRetry(e, i + 1, tries);
-      await sleep(500);
-      if (!(await waitForAppSilently(session, timeoutMs))) continue;
-      if (resettle) {
-        try { await resettle(session); } catch (re) { last = re; }
-      }
-    }
-  }
-  throw new Error(
-    `Rechargement de page pendant la recette : ${tries} tentatives épuisées (dernier échec : ${last?.stack ?? last?.message ?? last}).`,
-    { cause: last },
-  );
-}
-
-/**
- * Vérifie le serveur, lance Chrome, navigue et attend que `window.__wfrp` soit prêt.
- * `window.__wfrp` existe TÔT (le collecteur d'erreurs le pose en premier, `src/main.tsx`) mais
- * `installDevtools` le RÉASSIGNE en bloc peu après (chargement async, DEV uniquement) — attendre
- * `screen` (helper de navigation) ET, sur l'écran `menu`, le menu MONTÉ (`MARQUEUR_MENU`) plutôt que
- * la seule présence de `__wfrp` sous peine de courir après un objet encore partiel.
- *
- * Le défaut de `url` (`DEFAULT_URL`) est le port de CET arbre (`WFRP_DEV_URL`, sinon `urlDev()`,
- * `scripts/port-dev.mjs`).
- * `timeoutMs` (45 s) borne cette attente ET celle de l'URL CDP (`launchSession`) — un seul réglage
- * pour l'amorçage complet : un premier chargement à froid a été mesuré à 21 s sur un
- * worktree neuf (Vite compile la totalité du graphe à la première requête), là où le plafond de 10 s
- * d'origine rendait un refus qui accusait l'app. Le message DISTINGUE les deux causes : page qui n'a
- * pas répondu du tout (`__wfrp` absent — build cassé, mauvaise URL) et app trop lente à s'installer.
- *
- * `console` : `true` (ou `{ journal }`) pose `consoleGuard` AVANT `Page.navigate` — `session.console`.
- */
-export async function openApp(url = DEFAULT_URL, { timeoutMs = 45000, console: consoleDesLAmorcage, ...opts } = {}) {
-  await checkServer(url, { timeoutMs });
-  const session = await launchSession({ ...opts, timeoutMs });
-  try {
-    // Console DÈS L'AMORÇAGE : le garde se pose AVANT la navigation, `Log` activé avec lui — une erreur
-    // du chargement (module introuvable, 404, CSP) entre au verdict au lieu de passer avant le garde.
-    if (consoleDesLAmorcage) {
-      session.console = consoleGuard(session, consoleDesLAmorcage === true ? {} : consoleDesLAmorcage);
-      await session.rpc('Log.enable');
-    }
-    await session.rpc('Page.navigate', { url });
-    try {
-      await waitFor(session, APP_READY, { timeoutMs });
-    } catch (e) {
-      const presence = await evaluate(session, `typeof window.__wfrp?.screen === 'function' ? 'installee' : typeof window.__wfrp`).catch((l) => `illisible (${l.message})`);
-      throw new Error(
-        presence === 'installee'
-          ? `openApp : « ${url} » : l'app est installée mais le menu principal n'est pas monté en ${timeoutMs} ms (\`${MARQUEUR_MENU}\` absent du DOM sur l'écran \`menu\`).`
-          : presence === 'object'
-            ? `openApp : « ${url} » a répondu mais l'app n'a pas fini de s'installer en ${timeoutMs} ms (\`__wfrp.screen\` toujours absent) — relever \`timeoutMs\` si le premier chargement est à froid.`
-            : `openApp : « ${url} » n'expose AUCUN \`window.__wfrp\` (typeof = ${presence}) — URL d'un autre arbre, build cassé, ou serveur non-DEV.`,
-        { cause: e },
-      );
-    }
-    // ÉTAT PERSISTANT (#1679 L1c) : la recette joue — elle crée des héros, sauvegarde, change des
-    // réglages. L'instantané pris ici est remis à la fermeture, pour qu'elle ne laisse rien derrière.
-    session.stockageInitial = await instantanerStockage(session);
-    const fermer = session.close;
-    session.close = async () => {
-      try {
-        await restaurerStockage(session, session.stockageInitial);
-      } catch (e) {
-        if (!isNavigationError(e)) await leverApresNettoyage(e, fermer);
-      }
-      return fermer();
-    };
-    return session;
-  } catch (e) {
-    await leverApresNettoyage(e, () => session.close());
-  }
-}
-
-/**
- * RECHARGE la page (`Page.reload`) et attend l'app prête, menu monté (`APP_READY`) — jamais l'ancienne
- * page : un témoin posé avant le rechargement doit avoir DISPARU. Une évaluation qui échoue par
- * navigation se relit ; à l'échéance, LÈVE en le nommant.
- */
-export async function rechargerEtAttendreMenu(session, { timeoutMs = 45000, pasMs = 250 } = {}) {
-  await evaluate(session, 'window.__recetteAvantRechargement = true');
-  await session.rpc('Page.reload', {});
-  const fin = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      if (await evaluate(session, `!window.__recetteAvantRechargement && (${APP_READY})`)) return;
-    } catch (e) {
-      if (!isNavigationError(e)) throw e;
-    }
-    if (Date.now() >= fin) throw new Error(`rechargerEtAttendreMenu : page rechargée sans app prête (menu \`${MARQUEUR_MENU}\` monté) en ${timeoutMs} ms`);
-    await sleep(pasMs);
-  }
-}
-
-/** Navigue vers un écran via `__wfrp.screen(name)` — id validé côté app (throw si invalide). */
-export async function gotoScreen(session, name, { settleMs = 600, timeoutMs = 45000, intervalMs = 200 } = {}) {
-  const fin = Date.now() + timeoutMs;
-  let lecture;
-  let demande = false;
-  for (;;) {
-    lecture = await evaluerFn(session, () => ({
-      api: typeof window.__wfrp?.screen === 'function',
-      ecran: window.__game?.getState().screen ?? null,
-      app: document.querySelector('.app')?.className ?? null,
-      chargement: !!document.querySelector('.lazy-fallback'),
-    }));
-    if (!demande && lecture.api) {
-      await appelerWfrp(session, 'screen', name);
-      demande = true;
-    } else if (demande && lecture.ecran === name && await evaluate(session, `!!document.querySelector(${JSON.stringify('.app.app-' + name)}) && !document.querySelector('.lazy-fallback') && (${APP_READY})`)) {
-      if (settleMs > 0) await sleep(settleMs);
-      return lecture;
-    }
-    if (Date.now() >= fin) throw new Error(`gotoScreen « ${name} » : écran non prêt après ${timeoutMs} ms — écran ${lecture.ecran ?? '(aucun)'}, app ${lecture.app ?? '(absente)'}, chargement ${lecture.chargement}, API ${lecture.api}`);
-    await sleep(intervalMs);
-  }
-}
 
 /**
  * Capture un PNG nommé dans `dir` (créé si absent) — retourne le chemin écrit.
@@ -1035,18 +680,15 @@ export const avertissementsDe = (entries) => entries.filter((e) => e.type === 'w
  * niveau), exceptions et entrées `Log` (réseau, 404, CSP, avertissements du navigateur). `errors()`
  * juge, `warnings()` se liste, `log`/`info` sont enregistrés sans juger.
  * Filtré par `sessionId` : le CDP multiplexe plusieurs sessions/onglets sur la même connexion, un
- * piège vécu en recette (buffer partagé, cf. docs/recette-navigateur.md « Pièges vécus »).
- * `journal` (chemin) : chaque entrée y est AJOUTÉE en une ligne JSON — le journal du gardien de
- * session, que les clients découpent par décalage (`attacherSession`).
+ * buffer de navigation appartient à la seule session courante.
  */
-export function consoleGuard(session, { journal } = {}) {
+export function consoleGuard(session) {
   const entries = [];
   const handler = (m) => {
     if (m.sessionId !== session.sessionId) return;
     const e = entreeDeConsole(m);
     if (!e) return;
     entries.push(e);
-    if (journal) appendFileSync(journal, `${JSON.stringify(e)}\n`);
   };
   session.listeners.add(handler);
   return {
@@ -1114,19 +756,6 @@ export async function espionReseau(session, { filtre } = {}) {
   };
 }
 
-/**
- * Remplace les délais des nouveaux timeouts par la séquence demandée, dernier répété.
- * [] garde les délais originaux ; [0] accélère, [60000] retarde. Aucun callback perdu.
- */
-export async function freezeTimeout(session, delays = [0]) {
-  return evaluerFn(session, browserFreezeTimeout, delays);
-}
-
-/** Annule `freezeTimeout` — restaure le vrai `setTimeout`. */
-export async function unfreezeTimeout(session) {
-  return evaluerFn(session, browserUnfreezeTimeout);
-}
-
 /** Force `prefers-reduced-motion: reduce` côté page (CDP `Emulation.setEmulatedMedia`). */
 export async function emulateReducedMotion(session) {
   await session.rpc('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
@@ -1167,9 +796,8 @@ export async function setViewport(session, width, height) {
  *
  * `modifiers` = les touches TENUES pendant le clic (`MOD_ALT`), même paramètre que `survoler`.
  *
- * `attendreChangement` (`true` = `DELAI_CHANGEMENT`, ou un délai en ms) : LÈVE si ni le DOM ni l'état
- * du store n'ont bougé dans le délai qui suit le clic (`avecEffet`) — un clic sans effet ne passe
- * plus en silence (friction #2290).
+ * `attendreChangement` (`true` = `DELAI_CHANGEMENT`, ou un délai en ms) : LÈVE si le DOM ne
+ * change pas dans le délai qui suit le clic (`avecEffet`, friction #2290).
  *
  * Le texte cherché est confronté au NOM ACCESSIBLE du contrôle (`CORPS_NOM_ACCESSIBLE` : `aria-label`
  * explicite, sinon texte ; `title` si le nom obtenu est vide). Un portrait `button.ptile` peut
@@ -1188,23 +816,18 @@ export const DELAI_CHANGEMENT = 2000;
  *  empreintes de page (`EMPREINTE_PAGE`) se comparent, jamais se lisent. */
 const FN_HACHER = `(s) => { let x = 5381; for (let i = 0; i < s.length; i++) x = ((x * 33) ^ s.charCodeAt(i)) >>> 0; return x.toString(36); }`;
 
-/** Attributs de RENDU réécrits à chaque image, hors de tout geste : le compteur d'images et la file du
- *  cuiseur du canevas (`src/gameIso/stage/GameStage3D.tsx`, `canvas.dataset.rendus` / `.file`). Une
- *  empreinte qui les compterait bougerait sans clic. */
+/** Attributs de rendu qui peuvent changer à chaque image : compteur d’images et file du canevas.
+ *  L’empreinte les ignore pour détecter l’effet du geste. */
 export const ATTRIBUTS_VOLATILS = Object.freeze(['data-rendus', 'data-file']);
 /** Marque de localisation, exclue de l’empreinte de page ; le contrôle de cible la retire. */
 const ATTR_CIBLE = 'data-recette-cible';
 const MOTIF_VOLATILS = `\\s(?:${[...ATTRIBUTS_VOLATILS, ATTR_CIBLE].join('|')})="[^"]*"`;
 
-/** EMPREINTE de la page (PURE, chaîne) : hachage du DOM (`body.innerHTML`, sans `ATTRIBUTS_VOLATILS`) et de l'état du store
- *  (`__game`, sérialisé) — deux empreintes égales = rien n'a bougé. Un état non sérialisable entre à
- *  l'empreinte par le message de son refus. */
+/** Empreinte du DOM (`body.innerHTML`, sans les attributs volatils ni la marque de ciblage). */
 const EMPREINTE_PAGE = `(() => {
   const hacher = ${FN_HACHER};
-  let etat;
-  try { etat = window.__game ? JSON.stringify(window.__game.getState()) : ''; } catch (e) { etat = '(état illisible : ' + e.message + ')'; }
   const dom = (document.body ? document.body.innerHTML : '').replace(new RegExp(${JSON.stringify(MOTIF_VOLATILS)}, 'g'), '');
-  return hacher(dom) + ':' + hacher(etat);
+  return hacher(dom);
 })()`;
 
 /** Joue `geste()` ; si `attendre` (`true` ou un délai en ms), relit l'empreinte de la page jusqu'à ce
@@ -1218,7 +841,7 @@ async function avecEffet(session, qui, attendre, geste) {
   const fin = Date.now() + delai;
   for (;;) {
     if ((await evaluate(session, EMPREINTE_PAGE)) !== avant) return resultat;
-    if (Date.now() >= fin) throw new Error(`${qui} : le clic n'a RIEN changé — ni le DOM ni l'état du store n'ont bougé en ${delai} ms`);
+    if (Date.now() >= fin) throw new Error(`${qui} : le clic n'a RIEN changé, le DOM n'a pas bougé en ${delai} ms`);
     await sleep(100);
   }
 }
@@ -1310,7 +933,7 @@ const CORPS_NOM_ACCESSIBLE = `const nomAccessible = ${FN_NOM_ACCESSIBLE};`;
 
 /** `nommer(el)` (fonction de PAGE) : le NOM d'un élément, `tag#id.classe…` (classe SVG comprise), lisible
  *  même sans texte. SOURCE UNIQUE (`pageLocaliser`, `pageControler`, `frappe`,
- *  `hud-clickables.mjs`, `console-pont-formes.mjs`, `hauteur-reelle.mjs`). */
+ *  les scripts de pilotage). */
 export const FN_NOMMER_ELEMENT = `(e) => { const c = e.className && e.className.baseVal !== undefined ? e.className.baseVal : String(e.className || ''); return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (c.trim() ? '.' + c.trim().split(/\\s+/).join('.') : ''); }`;
 
 /** `couche(el)` (fonction de PAGE) : la COUCHE de défilement d'un élément — son premier ancêtre
@@ -1611,51 +1234,6 @@ export function clic({ modifiers = 0, bouton = 'left', dureeMs = 0, trajet = [] 
   };
 }
 
-/** La SURFACE de carte : le calque SVG du stage qui reçoit les gestes de pointeur sur le monde
- *  (`{ surface: SURFACE_CARTE, x, y }` vise une case, `tournerCamera` y glisse). */
-export const SURFACE_CARTE = 'svg.iso-stage';
-
-export async function tournerCamera(session, degres, { attenteMs = ATTENTE_CIBLE, delaiEntreeMs = DELAI_ENTREE } = {}) {
-  if (!Number.isFinite(degres)) throw new Error('tournerCamera : degrés non finis');
-  if (!Number.isFinite(attenteMs) || attenteMs < 0) throw new Error('tournerCamera : délai non fini ou négatif');
-  const fin = Date.now() + attenteMs;
-  let observee;
-  const tempsRestant = () => {
-    const restant = fin - Date.now();
-    if (restant <= 0) throw new Error(`tournerCamera : budget de ${attenteMs} ms épuisé — rotation demandée ${degres}°, observée ${observee ?? 'non mesurée'}`);
-    return restant;
-  };
-  const lire = () => evaluate(session, 'window.__wfrp.camera()');
-  const avant = await lire();
-  if (!avant || !Number.isFinite(avant.deg) || !Number.isFinite(avant.sensibilite) || avant.sensibilite <= 0) throw new Error('tournerCamera : observation caméra invalide');
-  if (avant.active) throw new Error('tournerCamera : rotation déjà active');
-  if (degres === 0) return { avant, apres: avant, delta: 0 };
-  let restant = degres / avant.sensibilite;
-  while (Math.abs(restant) > 1e-9) {
-    tempsRestant();
-    await geste(session, { selecteur: SURFACE_CARTE }, { qui: 'tournerCamera', point: 'visible', defiler: false, attenteMs: tempsRestant(), delaiEntreeMs }, async (loc, emettre) => {
-      const { g, d, h, b } = loc.zone;
-      if (d - g < 32 || b - h < 32) throw new Error('tournerCamera : stage sans place visible');
-      const dx = Math.sign(restant) * Math.min(Math.abs(restant), (d - g) / 2 - 12);
-      if (!Number.isFinite(restant) || restant - dx === restant) throw new Error('tournerCamera : imprécision de l’angle, aucun déplacement possible');
-      await clic({ bouton: 'middle', trajet: [{ x: 0, y: 8 }, { x: dx, y: 0 }] })(loc, emettre);
-      restant -= dx;
-    });
-  }
-  let apres, delta;
-  do {
-    tempsRestant();
-    apres = await lire();
-    tempsRestant();
-    delta = apres?.deg - avant.deg;
-    observee = delta;
-    if (apres && !apres.active && Number.isFinite(delta) && Math.abs(delta - degres) <= Math.min(0.1, Math.abs(degres) / 100)) return { avant, apres, delta };
-    if (Date.now() >= fin) break;
-    await sleep(Math.min(20, tempsRestant()));
-  } while (true);
-  throw new Error(`tournerCamera : rotation demandée ${degres}°, observée ${delta}° (active=${apres?.active}) après ${attenteMs} ms`);
-}
-
 /** CLIC DROIT réel sur une `cible` (`geste`) : le navigateur en tire le `contextmenu`. */
 export async function clicDroit(session, cible, { defiler = true, modifiers = 0, intention = 'agir', delaiEntreeMs = DELAI_ENTREE } = {}) {
   return geste(session, cible, { qui: 'clicDroit', intention, defiler, delaiEntreeMs }, clic({ bouton: 'right', modifiers }));
@@ -1759,17 +1337,6 @@ export async function deplierVers(session, selecteur, options = {}) {
   }
 }
 
-/**
- * Libellés d'AVANCEMENT d'une cascade de fenêtres, par ordre de préférence : ils font AVANCER une
- * cérémonie déjà décidée (lancer, appliquer, fermer). Aucun libellé de RÈGLE ici (ni « Parade », ni
- * « Esquive ») : un CHOIX de joueur ne se résout pas par un cas nommé dans une liste de recette, il
- * se résout par sa forme — cf. `resoudreModales`.
- */
-export const CASCADE_LABELS = ['Tout lancer', 'Commencer', 'Lancer', 'Continuer', 'Appliquer', 'Conclure', 'Poser la zone', 'Poursuivre', 'Suivant', 'Valider', 'Terminer', 'Fermer'];
-
-/** Libellés qui QUITTENT une fenêtre sans la trancher : jamais le geste d'une fenêtre à CHOIX. */
-const LABELS_DE_SORTIE = Object.freeze(['Fermer']);
-
 /** Le PREMIER des `libelles` (ordre de préférence) que porte un des `offerts` (sous-chaîne), ou `null`. */
 const premierLibelleOffert = (libelles, offerts) => libelles.map((l) => offerts.find((t) => t.includes(l))).find(Boolean) ?? null;
 
@@ -1844,200 +1411,6 @@ export async function cliquerPremierOffert(session, libelles, { dans = '.modal-o
   return texte;
 }
 
-export async function resoudreModales(session, etape = 'resoudreModales', { labels = CASCADE_LABELS, max = 40, pauseMs = 600, attenteMs = 30000, arret, dans } = {}) {
-  let attenteDepuis = null;
-  for (let i = 0; i < max; ) {
-    const lecture = await evaluate(session, expressionLectureModales(dans));
-    if (!lecture) return;
-    if (arret && lecture.identite && arret(lecture.identite)) return;
-    if (lecture.refus) throw new Error(`[${etape}] ${lecture.refus} — fenêtre « ${lecture.fenetre ?? '?'} » laissée ouverte`);
-    if (lecture.gesteCarte) {
-      const g = lecture.gesteCarte;
-      throw new Error(`[${etape}] ${GESTES_CARTE[g.kind] ?? `geste carte « ${g.kind} » en cours`} — « ${g.label} » (lanceur ${g.casterId}) : la fenêtre est masquée, la carte attend son geste (\`__wfrp.tileScreenPos\` puis \`geste\` sur \`SURFACE_CARTE\`), puis relancer`);
-    }
-    const ouverts = lecture.boutons.filter((b) => b.ouvert).map((b) => b.texte);
-    const interaction = lecture.identite?.interaction;
-    if (interaction === 'choix' || interaction === 'quantite') throw new Error(`[${etape}] interaction joueur « ${interaction} » — fenêtre « ${lecture.fenetre ?? '?'} » laissée ouverte ; offerts : ${ouverts.join(' | ') || '(aucun)'}`);
-    const permis = lecture.aChoix ? labels.filter((l) => !LABELS_DE_SORTIE.includes(l)) : labels;
-    const avancement = lecture.modale ? premierLibelleOffert(permis, ouverts) : null;
-    if (!avancement && lecture.optionsOffertes?.length) throw new Error(`[${etape}] choix joueur requis — fenêtre « ${lecture.fenetre ?? '?'} » laissée ouverte ; offerts : ${lecture.optionsOffertes.join(' | ')}`);
-    if (!avancement) {
-      attenteDepuis ??= Date.now();
-      if (Date.now() - attenteDepuis > attenteMs) throw new Error(`[${etape}] rien à résoudre après ${attenteMs} ms — dernière lecture : ${decrireLectureModales(lecture)}`);
-      await sleep(pauseMs);
-      continue;
-    }
-    attenteDepuis = null;
-    i += 1;
-    await cliquerPremierOffert(session, permis, { dans: lecture.selecteur, offerts: ouverts, attenteMs });
-    await sleep(pauseMs);
-  }
-  throw new Error(`[${etape}] les fenêtres ne se referment pas après ${max} avancements`);
-}
-
-/** Le geste NOMMÉ de chaque `kind` de `__wfrp.gesteCarteAttendu` (`GesteCarteAttendu`, `src/state/devtools.ts`). */
-export const GESTES_CARTE = Object.freeze({
-  zone: 'pose de zone en cours, cliquer une case',
-  siege: 'visée de siège en cours, cliquer une case',
-  cibles: 'choix de cibles en cours, cliquer les cibles',
-});
-
-/** Observation : `{ cle, jet, etape, nom }` et métadonnées de `auto().cascade`
- * (`id, kind, interaction, ready, chosen, amount`). La classification vient de la sonde DEV ;
- * `expressionLectureModales` vérifie sa cohérence avec l’étape courante avant avancement.
- * `arret` reçoit cette identité avant le refus et peut laisser la fenêtre ouverte. */
-export const IDENTITE_FENETRE = `((st) => {
-  const pc = st.pendingCascade;
-  const cur = pc ? pc.participants[pc.cursor] : null;
-  const auto = window.__wfrp && typeof window.__wfrp.auto === 'function' ? window.__wfrp.auto() : null;
-  const cle = auto && auto.activeModal ? auto.activeModal : null;
-  const dessus = window.__wfrp.dialogueDuDessus();
-  const modale = dessus ? document.querySelector(dessus.selecteur) : null;
-  if (!cle && !cur && !modale) return null;
-  const nom = dessus?.nom ?? null;
-  return { cle, jet: cur && cur.jet ? cur.jet : null, etape: cur && cur.kind ? cur.kind : null, nom, ...(auto?.cascade ?? {}) };
-})`;
-
-function expressionLectureModales(dans) {
-  return `(() => {
-    const st = window.__game.getState();
-    const pc = st.pendingCascade;
-    const cur = pc ? pc.participants[pc.cursor] : null;
-    const auto = window.__wfrp.auto?.();
-    const observation = auto?.cascade;
-    const refusObservation = cur ? !observation ? 'observation canonique absente' : typeof cur.id !== 'string' || !cur.id || observation.id !== cur.id || observation.kind !== cur.kind || typeof observation.interaction !== 'string' || !observation.interaction.trim() || typeof observation.ready !== 'boolean' ? 'observation canonique incohérente pour étape « ' + cur.id + ' »' : null : null;
-    const enCours = pc ? String(pc.participants[pc.cursor]?.reveal?.kind ?? pc.participants[pc.cursor]?.kind ?? pc.purpose ?? '?') : null;
-    const gesteCarte = window.__wfrp.gesteCarteAttendu();
-    const identite = (${IDENTITE_FENETRE})(st);
-    const dessus = window.__wfrp.dialogueDuDessus();
-    const modale = dessus ? document.querySelector(dessus.selecteur) : null;
-    if (refusObservation) return { modale: !!modale, fenetre: dessus?.nom ?? null, enCours, gesteCarte, boutons: [], aChoix: false, identite, refus: refusObservation };
-    if (!modale) return pc || gesteCarte ? { modale: false, fenetre: null, enCours, gesteCarte, boutons: [], aChoix: false, identite } : null;
-    const portee = ${JSON.stringify(dans ?? null)};
-    const overlay = modale.closest('.modal-overlay');
-    const flux = !!pc && !!auto?.activeModal && !!overlay?.hasAttribute('data-champ') && !!overlay?.hasAttribute('data-plein');
-    const fiche = dessus.kind === 'fiche-perso' || dessus.kind === 'codex';
-    const explicite = portee && !!modale.closest(portee);
-    if (fiche || (!flux && !explicite)) return { modale: true, fenetre: dessus.nom, enCours, gesteCarte, boutons: [], aChoix: false, identite, refus: fiche ? 'fiche hors flux' : 'cérémonie indéterminée : préciser { dans }' };
-    const norm = (s) => (s || '').replace(/\\s+/g, ' ').trim();
-    const ouvert = (b) => !b.disabled && b.getAttribute('aria-disabled') !== 'true';
-    ${CORPS_NOM_ACCESSIBLE}
-    ${CORPS_CONTROLES_VISIBLES}
-    const controles = (racine) => observerControles(racine).map((c) => c.el);
-    const boutons = observerControles(modale).map((c) => ({ texte: c.nom, ouvert: c.ouvert })).filter((b) => b.texte);
-    const groupes = [...modale.querySelectorAll('.seg, .rm-loc-grid')];
-    const aChoix = groupes.some((g) => controles(g).some(ouvert));
-    const sansChoix = groupes.find((g) => controles(g).some(ouvert) && !controles(g).some((b) => b.getAttribute('aria-pressed') === 'true'));
-    const ouvertes = sansChoix ? controles(sansChoix).filter(ouvert) : [];
-    return { modale: true, selecteur: dessus.selecteur, fenetre: dessus.nom, enCours, gesteCarte, boutons, optionsOffertes: ouvertes.map(nomAccessible), aChoix, identite };
-  })()`;
-}
-
-/** Une lecture de fenêtres en clair (PURE) : étape au store, fenêtre, boutons et leur état. */
-function decrireLectureModales(l) {
-  const boutons = l.boutons.map((b) => (b.ouvert ? b.texte : `${b.texte} (désactivé)`)).join(' | ') || '(aucun bouton)';
-  return `étape au store « ${l.enCours ?? 'aucune'} », fenêtre ${l.modale ? 'ouverte' : 'absente'}, boutons : ${boutons}`;
-}
-
-/** OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») par la case de phase
- *  `debut-de-round` — le geste du joueur, au vrai bouton, jamais un `.click()` en JS. */
-export async function ouvrirRound(session) {
-  return cliquerAction(session, 'debut-de-round', { racine: '.cc-phase' });
-}
-
-/** Lecture du combat pour le pilote (`__wfrp.battle()` + `__wfrp.auto()` + fenêtre au DOM) ; `fenetre`
- *  = l'IDENTITÉ de la fenêtre ouverte (`IDENTITE_FENETRE`), ou `null`. */
-export const LECTURE_COMBAT = `(() => {
-  const b = window.__wfrp.battle();
-  const a = window.__wfrp.auto();
-  return {
-    battle: typeof b === 'string' ? null : { round: b.round, over: b.over, actif: b.actif, acted: b.acted, movementUsed: b.movementUsed, endTurnArmed: b.endTurnArmed },
-    auto: { roundPause: a.roundPause, activeModal: a.activeModal, active: a.active },
-    modale: !!document.querySelector('.modal-overlay'),
-    fenetre: (${IDENTITE_FENETRE})(window.__game.getState()),
-    gesteCarte: window.__wfrp.gesteCarteAttendu(),
-  };
-})()`;
-
-/**
- * FINIT le tour du héros actif à la PLAQUE de fin de tour (`fin-de-tour`) : un premier clic ARME le
- * garde-fou quand l'Action n'est pas dépensée (`endTurnArmed`), le second passe la main. Rend le
- * nombre de clics émis.
- */
-export async function finDuTour(session, { pauseMs = 300 } = {}) {
-  await cliquerAction(session, 'fin-de-tour');
-  await sleep(pauseMs);
-  const arme = await evaluate(session, `(() => { const b = window.__wfrp.battle(); return typeof b === 'object' && !!b.endTurnArmed; })()`);
-  if (!arme) return 1;
-  await cliquerAction(session, 'fin-de-tour');
-  await sleep(pauseMs);
-  return 2;
-}
-
-/**
- * Le PROCHAIN geste du pilote de combat, depuis une lecture `LECTURE_COMBAT` (PURE) :
- * `fini` (plus de combat, combat terminé, ou `arret(etat)` vrai), `resoudre` (une fenêtre, une
- * modale active, ou un geste attendu sur la carte), `ouvrirRound` (pause de début de Round), `finirTour` (tour d'un héros piloté, armé
- * ou non), `attendre` (tour d'IA, ou aucun acteur).
- */
-export function prochainGeste(etat, { arret } = {}) {
-  if (!etat.battle || etat.battle.over) return 'fini';
-  if (arret && arret(etat)) return 'fini';
-  if (etat.modale || etat.auto.activeModal || etat.gesteCarte) return 'resoudre';
-  if (etat.auto.roundPause) return 'ouvrirRound';
-  if (etat.battle.endTurnArmed) return 'finirTour';
-  const actif = etat.auto.active;
-  if (!actif || actif.aiDriven) return 'attendre';
-  return 'finirTour';
-}
-
-export async function piloterCombat(session, { arret, budget = 300, pauseMs = 400 } = {}) {
-  let derniere = null;
-  for (let k = 0; k < budget; k++) {
-    derniere = await evaluate(session, LECTURE_COMBAT);
-    const geste = prochainGeste(derniere, { arret });
-    if (geste === 'fini') return { lecture: derniere };
-    const lue = derniere;
-    if (geste === 'resoudre') await resoudreModales(session, 'piloterCombat', arret ? { arret: (fenetre) => arret({ ...lue, modale: true, fenetre }) } : {});
-    else if (geste === 'ouvrirRound') await ouvrirRound(session);
-    else if (geste === 'finirTour') await finDuTour(session);
-    await sleep(pauseMs);
-  }
-  throw new Error(`piloterCombat : ${budget} gestes sans atteindre l'arrêt — dernière lecture : ${JSON.stringify(derniere)}`);
-}
-
-/** Avance le combat de `n` Rounds (ou jusqu'à sa fin, ou jusqu'à l'`arret` de l'appelant), au geste du
- *  joueur. Rend `{ lecture }`. */
-export async function avancerDeRounds(session, n, { arret, ...opts } = {}) {
-  const depart = await evaluate(session, LECTURE_COMBAT);
-  if (!depart.battle) throw new Error('avancerDeRounds : aucun combat en cours');
-  const cible = depart.battle.round + n;
-  return piloterCombat(session, { ...opts, arret: (e) => e.battle.round >= cible || !!arret?.(e) });
-}
-
-/**
- * CAPTURE d'un PION : un PNG recadré autour de la case du combattant `id` (`tileScreenPos` de sa
- * position), agrandi `zoom` fois (`Page.captureScreenshot` + `clip.scale`). `cote` = côté du cadre en
- * px CSS. Lève si le combattant n'a pas de position projetée. Rend le chemin écrit.
- */
-export async function capturerPion(session, id, { zoom = 3, cote = 160, dir = DOSSIER_CAPTURES, nom = `pion-${id}` } = {}) {
-  dir = validerDossierCaptures(dir);
-  const centre = await evaluate(session, `(() => {
-    const b = window.__wfrp.store.getState().battle;
-    const c = b ? b.combatants.find((x) => x.id === ${JSON.stringify(id)}) : null;
-    const pos = c ? c.pos : null;
-    const r = pos ? window.__wfrp.tileScreenPos(pos) : null;
-    return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
-  })()`);
-  if (!centre) throw new Error(`capturerPion : le combattant « ${id} » n'a pas de case projetée (hors combat, ou absent)`);
-  const clip = { x: Math.max(0, centre.x - cote / 2), y: Math.max(0, centre.y - cote * 0.75), width: cote, height: cote, scale: zoom };
-  mkdirSync(dir, { recursive: true });
-  const r = await session.rpc('Page.captureScreenshot', { format: 'png', clip });
-  const path = join(dir, nom.endsWith('.png') ? nom : `${nom}.png`);
-  writeFileSync(path, Buffer.from(r.data, 'base64'));
-  return path;
-}
-
 /**
  * SURVOL RÉEL (`mouseMoved`) d'une `cible` (`geste`) — le geste par lequel une raison de refus se
  * lit (arbitrage user 2026-08-24 : au survol/focus/tap, jamais inline). Intention `lire` par défaut :
@@ -2104,8 +1477,7 @@ export async function infobulleDe(session, cible) {
  * et `change`, sans émettre de frappe clavier. Trois étages :
  *  1. FOCUS par un vrai clic CDP (comme `typeInField`) — la liste reçoit le geste, pas le `<body>` ;
  *  2. `value` posé par le SETTER NATIF (`HTMLSelectElement.prototype.value`), jamais par un
- *     `setState` React : c'est ce qui fait voir la nouvelle valeur au `onChange` d'un champ CONTRÔLÉ
- *     (même piège que `.value = …` documenté dans `docs/recette-navigateur.md`) ;
+ *     `setState` React : c'est ce qui fait voir la nouvelle valeur au `onChange` d'un champ CONTRÔLÉ ;
  *  3. `input` puis `change` dispatchés `{ bubbles: true }` — React écoute `change` sur la racine.
  *
  * L'option se désigne par son LIBELLÉ VISIBLE (défaut) ; `{ par: 'valeur' }` vise la valeur interne.
@@ -2259,28 +1631,6 @@ export async function verdictDebordement(session, { dans = 'body', marge = 1 } =
 export async function evaluerFn(session, fn, ...args) {
   const appel = `(${fn.toString()}).apply(null, ${JSON.stringify(args)})`
   return evaluate(session, appel)
-}
-
-/**
- * APPELLE le helper de mise en place `window.__wfrp[nom](...args)` (arguments sérialisés en JSON), en
- * attend la promesse, et LÈVE si le résultat est un REFUS — une chaîne qui commence par « ✗ » : un
- * refus RENDU au lieu d'être levé laissait le script continuer sur le mauvais état (#2001 F3,
- * `editorOpen`). Le message nomme le helper et cite le refus. `nom` peut porter son plafond
- * d'évaluation : `{ nom, timeoutMs }`, à régler AU-DESSUS du délai que le helper reçoit lui-même —
- * `appelerWfrp(session, { nom: 'ready', timeoutMs: 65000 }, 60000)` : `ready` attend 60 s, l'évaluation 65 s.
- * Rend le résultat.
- */
-export async function appelerWfrp(session, nom, ...args) {
-  const { nom: helper, timeoutMs = DELAI_EVALUATE } = typeof nom === 'string' ? { nom } : nom
-  const resultat = await evaluate(session, `(async () => {
-    const f = window.__wfrp && window.__wfrp[${JSON.stringify(helper)}];
-    if (typeof f !== 'function') throw new Error('__wfrp.' + ${JSON.stringify(helper)} + ' : aucun helper de ce nom');
-    return f(...${JSON.stringify(args)});
-  })()`, { timeoutMs })
-  if (typeof resultat === 'string' && resultat.startsWith('✗')) {
-    throw new Error(`appelerWfrp « ${helper} » : refus — ${resultat}`)
-  }
-  return resultat
 }
 
 /**
@@ -2588,8 +1938,7 @@ export async function realKeyUp(session, touche, { focus, delaiEntreeMs = DELAI_
  *     dans l'élément actif du moment (souvent `<body>`), sans erreur ni effet.
  *  2. `Input.insertText` — l'insertion passe par le pipeline d'ÉDITION du navigateur, donc l'`input`
  *     event porte la valeur native et le `onChange` React s'exécute. C'est ce qui la sépare d'un
- *     `evaluate()` + `.value = …`, qui écrit dans le DOM sans réveiller React (piège documenté dans
- *     `docs/recette-navigateur.md`, « Champ CONTRÔLÉ React »).
+ *     `evaluate()` + `.value = …`, qui écrit dans le DOM sans réveiller React.
  *
  * MESURÉ sur le salon coop (Chrome headless du kit, 2026-08-13) : `.coop-code-input` frappé
  * `ab12cd` se lit `AB12CD` — la valeur est donc passée par le `onChange` React
@@ -2657,194 +2006,10 @@ export async function cliquerAction(session, actionId, { racine = '.combat-conso
 
 /** Frappe RÉELLE d'une touche — alias FRANÇAIS de `realKey` (même geste, même pipeline CDP). */
 export const frapperTouche = realKey;
-// ───────────────────────────── SESSION TENUE : un gardien, des clients (#2306.1) ─────────────────────────────
-//
-// Le GARDIEN (`scripts/recette/session.mjs ouvrir`, lancé en fond) tient Chrome, l'app et la console
-// depuis l'amorçage ; chaque commande de l'agent est un script `.mjs` CLIENT qui s'ATTACHE à la même
-// cible (`attacherSession`), joue ses gestes, lit, et se DÉTACHE sans rien tuer. Le fichier de session,
-// les signaux et le journal vivent sous `os.tmpdir()`, hors de l'arbre. Les écritures restent ICI
-// (`session.mjs` les appelle) : la gate `test:recette` n'atteint qu'un écrivain, ce module.
-
-/** Fichier de session de l'arbre `racine` : un par arbre (sessions parallèles de worktrees voisins). */
-export function fichierDeSession(racine = RACINE_COURANTE, dossier = os.tmpdir()) {
-  const cle = createHash('sha1').update(normaliserRacine(racine)).digest('hex').slice(0, 12);
-  return join(dossier, `recette-session-${cle}.json`);
-}
-
-/** Les fichiers SIGNAUX d'une session : le client les pose, le gardien les consomme. */
-export const signalDe = (fichier, quoi) => `${fichier}.${quoi}`;
-export const SIGNAUX = Object.freeze(['fermer', 'vue', 'actif']);
-
-/** Ce que le fichier de session publie (PURE) : de quoi s'attacher, observer, et nettoyer ; le gardien, né à
- *  `naissanceGardien` (#2603). */
-export function descripteurSession({ pidGardien, naissanceGardien, session, url, journal, vue, racine = RACINE_COURANTE }) {
-  return {
-    pidGardien,
-    naissanceGardien,
-    pidChrome: session.chrome?.pid ?? null,
-    port: session.port,
-    targetId: session.targetId,
-    url,
-    journal,
-    profil: session.profile,
-    vue: { nom: vue.nom, largeur: vue.largeur, hauteur: vue.hauteur },
-    racine: normaliserRacine(racine),
-  };
-}
-
-/** Le gardien du descripteur `d` (`descripteurSession`) vit-il ? Né à `naissanceGardien` ; un fichier qui n'en
- *  porte pas : `NAISSANCE_ABSENTE` (#2603). */
-export const gardienVivant = (d, { vivant = estPidVivant, identite = IDENTITE_MESUREE } = {}) =>
-  estPidVivantDepuis(d.pidGardien, d.naissanceGardien ?? NAISSANCE_ABSENTE, identite, { estVivant: vivant });
-
-/** L'état de la session de `fichier` : `aucune`, `tenue` (gardien vivant, `gardienVivant`) ou `gardien-mort`, avec
- *  son descripteur. */
-export function etatDeSession(fichier, { disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE } = {}) {
-  if (!disque.existe(fichier)) return { etat: 'aucune', fichier };
-  const d = JSON.parse(disque.lire(fichier));
-  return { etat: gardienVivant(d, { vivant, identite }) ? 'tenue' : 'gardien-mort', fichier, ...d };
-}
-
-/** Lecture du journal de console du gardien à partir de l'octet `depuis` : `{ entries, errors(), warnings() }`. */
-export function consoleDuJournal(journal, depuis = 0, { lire = (c) => readFileSync(c) } = {}) {
-  const entries = () => lire(journal).subarray(depuis).toString('utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
-  return { entries, errors: () => erreursDe(entries()), warnings: () => avertissementsDe(entries()) };
-}
-
 /** Vrai si l'échec d'un appel de fermeture dit que la cible ou la socket est DÉJÀ partie : erreur de
  *  navigation (`isNavigationError`, dont la socket coupée de `brancherCdp`), ou session inconnue du
  *  navigateur. */
 const cibleDejaPartie = (e) => isNavigationError(e) || /No session with given id/i.test(String(e?.message ?? ''));
-
-/**
- * S'ATTACHE à la session tenue par le gardien (fichier `fichier`) et rend une `session` de même forme
- * que celle de `launchSession` : `rpc`, `listeners`, `sessionId`, `targetId`. Différences :
- *  - `close()` DÉTACHE (`Target.detachFromTarget` au niveau NAVIGATEUR, jamais `closeTarget`), ne tue
- *    rien, puis signale au gardien de ré-imposer SA vue (l'émulation d'un client tombe avec lui) ;
- *  - aucune console n'est posée par le client : un client qui active `Runtime`/`Log` reçoit le PASSÉ
- *    de la console. `session.console` lit le journal du GARDIEN, découpé à l'attache.
- * Refus NOMMÉS, sans pendre : aucune session, gardien mort (`gardienVivant` : PID absent ou réutilisé), CDP muet.
- */
-export async function attacherSession(fichier = fichierDeSession(), {
-  disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE, recuperer = fetch, connecter = (url) => new WebSocket(url), delaiMs = 5000,
-  taille = (chemin) => statSync(chemin).size, signaler = (chemin) => writeFileSync(chemin, String(Date.now())),
-} = {}) {
-  if (!disque.existe(fichier)) throw new Error(`attacherSession : aucune session tenue (${fichier}) — lancer « node scripts/recette/session.mjs ouvrir » en fond`);
-  const d = JSON.parse(disque.lire(fichier));
-  if (!gardienVivant(d, { vivant, identite })) {
-    throw new Error(`attacherSession : le gardien (pid ${d.pidGardien}) est MORT — « node scripts/recette/session.mjs fermer » purge son profil et son fichier`);
-  }
-  let wsUrl;
-  try {
-    wsUrl = await waitForWsUrl(d.port, delaiMs, { recuperer });
-  } catch (e) {
-    throw new Error(`attacherSession : CDP muet sur le port ${d.port} (gardien pid ${d.pidGardien}) après ${delaiMs} ms`, { cause: e });
-  }
-  const ws = connecter(wsUrl);
-  await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
-  const session = brancherCdp(ws, { profile: d.profil, port: d.port, gardien: d });
-  const { sessionId } = await session.rpcNavigateur('Target.attachToTarget', { targetId: d.targetId, flatten: true });
-  session.sessionId = sessionId;
-  session.targetId = d.targetId;
-  session.console = consoleDuJournal(d.journal, taille(d.journal));
-  signaler(signalDe(fichier, 'actif'));
-  session.close = async () => {
-    try {
-      await session.rpcNavigateur('Target.detachFromTarget', { sessionId });
-    } catch (e) {
-      if (!cibleDejaPartie(e)) throw e;
-    }
-    ws.close();
-    signaler(signalDe(fichier, 'vue'));
-  };
-  return session;
-}
-
-/**
- * TIENT une session jusqu'au signal `fermer` ou au délai d'INACTIVITÉ : app ouverte, console posée dès
- * l'amorçage et écrite au journal, fichier de session publié. Ré-impose sa vue au signal `vue` (posé
- * par chaque client qui se détache). À la sortie : stockage restauré, Chrome arrêté par SON process,
- * profil purgé et VÉRIFIÉ, fichier, signaux et journal supprimés. Rend `{ raison, profilPurge }`.
- */
-export async function tenirSession(url = DEFAULT_URL, {
-  vue = 'bureau', inactiviteMs = 30 * 60 * 1000, fichier = fichierDeSession(), pasMs = 250, timeoutMs = 120000, ouvrir = openApp,
-  disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE,
-} = {}) {
-  const refusTenue = () => {
-    const ancien = JSON.parse(disque.lire(fichier));
-    if (gardienVivant(ancien, { vivant, identite })) return new Error(`tenirSession : une session est déjà tenue par le gardien ${ancien.pidGardien} (${fichier})`);
-    return new Error(`tenirSession : fichier de session d'un gardien MORT (${fichier}) — « session.mjs fermer » le nettoie d'abord`);
-  };
-  if (disque.existe(fichier)) throw refusTenue();
-  const v = vueRecette(vue);
-  const journal = fichier.replace(/\.json$/, '.console.jsonl');
-  // Le journal puis le fichier se CRÉENT en exclusif (`wx`) : deux gardiens du même arbre ne peuvent
-  // pas tenir la même session ; seul ce que CE gardien a créé est supprimé à la sortie.
-  const crees = [];
-  let raison = 'fermer';
-  let profilPurge;
-  let session = null;
-  try {
-    try {
-      disque.ecrire(journal, '', { exclusif: true });
-    } catch (e) {
-      if (e.code === 'EEXIST') throw new Error(`tenirSession : journal ${journal} déjà tenu par un autre gardien`, { cause: e });
-      throw e;
-    }
-    crees.push(journal);
-    session = await ouvrir(url, { timeoutMs, width: v.largeur, height: v.hauteur, console: { journal } });
-    try {
-      disque.ecrire(fichier, JSON.stringify(descripteurSession({ pidGardien: process.pid, naissanceGardien: performance.timeOrigin, session, url, journal, vue: v }), null, 2), { exclusif: true });
-    } catch (e) {
-      if (e.code === 'EEXIST') throw refusTenue();
-      throw e;
-    }
-    crees.push(fichier, ...SIGNAUX.map((q) => signalDe(fichier, q)));
-    let activite = Date.now();
-    for (;;) {
-      if (disque.existe(signalDe(fichier, 'fermer'))) break;
-      if (disque.existe(signalDe(fichier, 'actif'))) { disque.supprimer(signalDe(fichier, 'actif')); activite = Date.now(); }
-      if (disque.existe(signalDe(fichier, 'vue'))) {
-        disque.supprimer(signalDe(fichier, 'vue'));
-        activite = Date.now();
-        await setViewport(session, v.largeur, v.hauteur);
-      }
-      if (Date.now() - activite > inactiviteMs) { raison = `inactivité (${inactiviteMs} ms)`; break; }
-      await sleep(pasMs);
-    }
-  } finally {
-    if (session) ({ profilPurge } = (await session.close()) ?? {});
-    for (const f of crees) disque.supprimer(f);
-  }
-  return { raison, profilPurge };
-}
-
-/**
- * FERME la session de `fichier`, IDEMPOTENT :
- *  - aucune session → `{ etat: 'aucune' }` ;
- *  - gardien vivant (`gardienVivant`) → signal `fermer`, puis attente de la disparition du fichier (le gardien nettoie) ;
- *  - gardien mort → son profil est purgé par son CHEMIN enregistré (jamais une mise à mort : Chrome est
- *    mort avec lui, et le PID peut avoir été réattribué), purge VÉRIFIÉE, puis fichier, signaux et
- *    journal supprimés.
- */
-export async function fermerSession(fichier = fichierDeSession(), {
-  disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE, signaler = (chemin) => writeFileSync(chemin, String(Date.now())), attenteMs = 30000, pasMs = 250,
-} = {}) {
-  if (!disque.existe(fichier)) return { etat: 'aucune' };
-  const d = JSON.parse(disque.lire(fichier));
-  if (gardienVivant(d, { vivant, identite })) {
-    signaler(signalDe(fichier, 'fermer'));
-    const fin = Date.now() + attenteMs;
-    while (disque.existe(fichier)) {
-      if (Date.now() > fin) throw new Error(`fermerSession : le gardien ${d.pidGardien} n'a pas fermé sa session en ${attenteMs} ms`);
-      await sleep(pasMs);
-    }
-    return { etat: 'fermee' };
-  }
-  const profilPurge = d.profil ? purgerProfil(d.profil, { disque }) : true;
-  for (const f of [fichier, d.journal, ...SIGNAUX.map((q) => signalDe(fichier, q))]) if (f) disque.supprimer(f);
-  return { etat: 'gardien-mort', profilPurge, profil: d.profil };
-}
 
 /** Le Chrome inscrit au `SingletonLock` d'un profil (lien `hôte-pid` que Chrome pose sous POSIX, sans naissance) :
  *  `{ absent: true }` sans verrou, `{ hote, pid }` lu, `{ illisible }` sinon. */
@@ -2870,8 +2035,7 @@ function verrouChrome(profil, { disque = DISQUE } = {}) {
  *    le verrou est absent : hors du job object de win32 (`OPTIONS_SPAWN_CHROME`), Chrome peut survivre
  *    à son lanceur.
  * Lanceur ou Chrome vivant → compté dans `vivants`. Nom sans PID, verrou illisible ou d'un autre hôte →
- * chemin listé dans `sansPreuve`, laissé intact (`docs/recette-navigateur.md` dit comment le retirer à
- * la main). Jamais un âge, jamais une mise à mort. Rend `{ trouves, purges, vivants, sansPreuve, echecs }`
+ * chemin listé dans `sansPreuve`, laissé intact. Rend `{ trouves, purges, vivants, sansPreuve, echecs }`
  * — chaque purge est VÉRIFIÉE.
  */
 export async function purgerProfilsOrphelins({

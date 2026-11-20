@@ -35,13 +35,8 @@ import {
 } from '../data';
 import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
-import { splitLabel } from './statEntry';
 import { effectiveEntry } from './variants';
 import { t } from '../i18n';
-
-// `splitLabel` (split nom↔spécialisation) est la primitive UNIQUE de `statEntry` — ré-exportée ici
-// pour ses nombreux importeurs historiques (advancement/talentEffects/draft…) : aucune copie locale.
-export { splitLabel };
 
 /** Une possibilité concrète ou ouverte couverte par un slot. */
 export interface SlotOption {
@@ -97,7 +92,7 @@ export function refKey(id: string, spec?: string): string {
   return spec ? `${id}|${spec}` : id;
 }
 
-/** Décode une clé produite par `refKey`. Ne JAMAIS l'utiliser sur un libellé d'affichage (cf. `splitLabel`). */
+/** Décode une clé produite par `refKey`. Ne JAMAIS l'utiliser sur un libellé d'affichage (cf. `parseStatEntry` dans `statEntry`). */
 export function parseRefKey(key: string): { id: string; spec?: string } {
   const i = key.indexOf('|');
   return i < 0 ? { id: key } : { id: key.slice(0, i), spec: key.slice(i + 1) };

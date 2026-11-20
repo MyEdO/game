@@ -8,9 +8,9 @@ extends PontDuNoyau
 ## @contrat Écran publié
 ## Une planche est un état de partie figé par le pont, déposé dans l'export (`construire.mjs --export`), ou, hors d'une
 ## page, dans le dossier que sert la recette (`hotes/godot/pilotage/natif.mjs`), sous `planches/<nom>.json` (ses
-## réponses propres, `reponses`), les réponses que partagent les planches de son scénario sous
-## `planches/communes/<scenario>.json`. Le pont de la planche rend à chaque méthode la réponse enregistrée sous son
-## nom, à toute entrée ; une méthode sans réponse enregistrée est une panne (`PontDuNoyau.panne`, une erreur de la page),
+## réponses propres, `reponses`), et les réponses communes sous
+## `planches/communes/<empreinte>.json`, désignées par le champ `communes` de la planche. Le pont rend la réponse
+## enregistrée sous le nom de la méthode, à toute entrée. Une réponse manquante est une panne (`PontDuNoyau.panne`),
 ## jamais une question au pont du noyau. L'adresse `?planche=<nom>`, hors d'une page le paramètre `--planche=<nom>`,
 ## l'ouvre à la place du menu d'entrée : le combat la montre par son routeur, comme la partie de `?scenario=` qu'il
 ## démarre, et un geste qu'on y presse est une panne, la planche ne servant pas les gestes. `&monde=sans` ne dessine
@@ -47,8 +47,8 @@ func _montrer(nom: String) -> void:
 	var recueil: Array[String] = []
 	var planche: Variant = JSON.parse_string((await requeter("%s/%s.json" % [DOSSIER, nom], recueil)).get_string_from_utf8())
 	var communes: Variant = null
-	if planche is Dictionary:
-		communes = JSON.parse_string((await requeter("%s/communes/%s.json" % [DOSSIER, planche.parametres.scenario], recueil)).get_string_from_utf8())
+	if planche is Dictionary and str(planche.get("communes", "")).length() == 64:
+		communes = JSON.parse_string((await requeter("%s/communes/%s.json" % [DOSSIER, planche.communes], recueil)).get_string_from_utf8())
 	if not communes is Dictionary:
 		_signaler("planche %s illisible : %s" % [nom, " ; ".join(recueil)])
 		return

@@ -12,10 +12,7 @@
     "run": "armerLAttaque",
     "mode": "attaque",
     "intent": "portee-arme",
-    "coutAction": "action",
-    "keys": [
-      "g1-attaque"
-    ]
+    "coutAction": "action"
   },
   {
     "id": "charge",
@@ -39,10 +36,7 @@
       "book": "livre-de-base",
       "page": 165,
       "note": "LDB 15 l.35-37"
-    },
-    "keys": [
-      "g2-charge"
-    ]
+    }
   },
   {
     "id": "course",
@@ -62,10 +56,7 @@
       "book": "livre-de-base",
       "page": 165,
       "note": "LDB 15 l.41"
-    },
-    "keys": [
-      "course"
-    ]
+    }
   },
   {
     "id": "mouvement",
@@ -81,10 +72,7 @@
     "rule": {
       "id": "mouvement",
       "type": "regle"
-    },
-    "keys": [
-      "mouvement"
-    ]
+    }
   },
   {
     "id": "visee",
@@ -107,10 +95,7 @@
       "book": "livre-de-base",
       "page": 161,
       "note": "LDB 14, Tableau des Difficultés de Combat"
-    },
-    "keys": [
-      "g3-viser"
-    ]
+    }
   },
   {
     "id": "rechargement",
@@ -124,16 +109,11 @@
     ],
     "run": "rechargerLArme",
     "candidates": "armes-a-recharge",
-    "panneau": true,
     "coutAction": "action",
     "rule": {
       "id": "recharge",
       "type": "quality"
-    },
-    "keys": [
-      "g4-recharger",
-      "rechargement-"
-    ]
+    }
   },
   {
     "id": "munition",
@@ -160,10 +140,7 @@
     "rule": {
       "id": "perturbante",
       "type": "quality"
-    },
-    "keys": [
-      "g6-geste-arme"
-    ]
+    }
   },
   {
     "id": "posture-tir",
@@ -182,10 +159,7 @@
     "rule": {
       "id": "tir-en-mouvement",
       "type": "regle"
-    },
-    "keys": [
-      "g5-posture"
-    ]
+    }
   },
   {
     "id": "posture-tas",
@@ -204,10 +178,7 @@
     "rule": {
       "id": "tirer-dans-le-tas",
       "type": "regle"
-    },
-    "keys": [
-      "g5-posture-tas"
-    ]
+    }
   },
   {
     "id": "soins",
@@ -224,11 +195,7 @@
     "rule": {
       "id": "guerison",
       "type": "skill"
-    },
-    "keys": [
-      "soins",
-      "q-soigner"
-    ]
+    }
   },
   {
     "id": "aspersion",
@@ -240,10 +207,7 @@
     "run": "aspergerDEau",
     "candidates": "cibles-aspersion",
     "coutAction": "action",
-    "maison": "coût repris du site historique sans verbatim de coût cité ni Test exigé — à re-vérifier au Source (MDG).",
-    "keys": [
-      "aspersion"
-    ]
+    "maison": "coût repris du site historique sans verbatim de coût cité ni Test exigé — à re-vérifier au Source (MDG)."
   },
   {
     "id": "usage-objet",
@@ -259,11 +223,7 @@
       "book": "livre-de-base",
       "page": 158,
       "note": "LDB 13 l.106 « Actions gratuites »"
-    },
-    "keys": [
-      "objet-",
-      "q-objet-"
-    ]
+    }
   },
   {
     "id": "defensive",
@@ -282,10 +242,7 @@
       "book": "livre-de-base",
       "page": 158,
       "note": "LDB 13 « OPTION : Sur la défensive »"
-    },
-    "keys": [
-      "defensive"
-    ]
+    }
   },
   {
     "id": "desengagement",
@@ -307,10 +264,7 @@
       "book": "livre-de-base",
       "page": 165,
       "note": "LDB 15 l.45-49"
-    },
-    "keys": [
-      "desengagement"
-    ]
+    }
   },
   {
     "id": "incantation",
@@ -323,10 +277,7 @@
     "armed": true,
     "mode": "incantation",
     "candidates": "sorts-du-heros",
-    "coutAction": "action",
-    "keys": [
-      "sort-"
-    ]
+    "coutAction": "action"
   },
   {
     "id": "focalisation",
@@ -360,7 +311,6 @@
     "armed": true,
     "mode": "dissipation",
     "candidates": "sorts-dissipables",
-    "panneau": true,
     "coutAction": "action",
     "rule": {
       "id": "dissipation",
@@ -370,10 +320,7 @@
       "book": "livre-de-base",
       "page": 237,
       "note": "LDB 46 l.156-162"
-    },
-    "keys": [
-      "dissipation"
-    ]
+    }
   },
   {
     "id": "dissipation-sort",
@@ -408,10 +355,7 @@
     "rule": {
       "id": "avantage",
       "type": "regle"
-    },
-    "keys": [
-      "avantage-"
-    ]
+    }
   },
   {
     "id": "relevement",
@@ -433,10 +377,7 @@
     "source": {
       "book": "livre-de-base",
       "page": 167
-    },
-    "keys": [
-      "relevement"
-    ]
+    }
   },
   {
     "id": "roulade",
@@ -455,10 +396,7 @@
     "rule": {
       "id": "en-flammes",
       "type": "etat"
-    },
-    "keys": [
-      "roulade"
-    ]
+    }
   },
   {
     "id": "liberation",
@@ -477,10 +415,7 @@
     "rule": {
       "id": "empetre",
       "type": "etat"
-    },
-    "keys": [
-      "liberation"
-    ]
+    }
   },
   {
     "id": "battement",
@@ -502,10 +437,7 @@
     "source": {
       "book": "livre-de-base",
       "page": 133
-    },
-    "keys": [
-      "battement"
-    ]
+    }
   },
   {
     "id": "distraire",
@@ -528,10 +460,7 @@
     "source": {
       "book": "livre-de-base",
       "page": 136
-    },
-    "keys": [
-      "distraire"
-    ]
+    }
   },
   {
     "id": "frenesie",
@@ -548,10 +477,7 @@
     "rule": {
       "id": "frenesie",
       "type": "talent"
-    },
-    "keys": [
-      "frenesie"
-    ]
+    }
   },
   {
     "id": "manoeuvre-sur-soi",
@@ -563,10 +489,7 @@
     "run": "manoeuvrerSurSoi",
     "candidates": "manoeuvres-sur-soi",
     "coutAction": "action",
-    "maison": "la Métamorphose consomme DEUX Actions (celle-ci puis le tour perdu) — plafond maison, aucun verbatim de coût cité.",
-    "keys": [
-      "soi-"
-    ]
+    "maison": "la Métamorphose consomme DEUX Actions (celle-ci puis le tour perdu) — plafond maison, aucun verbatim de coût cité."
   },
   {
     "id": "attaque-trait",
@@ -581,10 +504,7 @@
     "run": "armerLAttaque",
     "candidates": "attaques-de-trait",
     "coutAction": "aucun",
-    "maison": "ARME l’attaque pour le clic-ennemi ; le coût est celui de l’attaque résolue.",
-    "keys": [
-      "attaque-"
-    ]
+    "maison": "ARME l’attaque pour le clic-ennemi ; le coût est celui de l’attaque résolue."
   },
   {
     "id": "attaque-zone",
@@ -595,10 +515,7 @@
     "gate": "action-libre",
     "run": "lancerLAttaqueDeZone",
     "candidates": "attaques-de-zone",
-    "coutAction": "action",
-    "keys": [
-      "attaque-"
-    ]
+    "coutAction": "action"
   },
   {
     "id": "determination-psychologie",
@@ -660,10 +577,7 @@
     "rule": {
       "id": "combat-monte",
       "type": "regle"
-    },
-    "keys": [
-      "mise-en-selle"
-    ]
+    }
   },
   {
     "id": "pied-a-terre",
@@ -682,10 +596,7 @@
     "rule": {
       "id": "combat-monte",
       "type": "regle"
-    },
-    "keys": [
-      "pied-a-terre"
-    ]
+    }
   },
   {
     "id": "service-poste",
@@ -701,10 +612,7 @@
       "book": "livre-de-base",
       "page": 158,
       "note": "LDB 13 l.106 « Actions gratuites »"
-    },
-    "keys": [
-      "service-poste"
-    ]
+    }
   },
   {
     "id": "abandon-poste",
@@ -719,10 +627,7 @@
       "book": "livre-de-base",
       "page": 158,
       "note": "LDB 13 l.106 « Actions gratuites »"
-    },
-    "keys": [
-      "abandon-poste"
-    ]
+    }
   },
   {
     "id": "poussee",
@@ -739,10 +644,7 @@
     "armed": true,
     "mode": "poussee",
     "coutAction": "mouvement",
-    "maison": "pousser l’engin dépense le MOUVEMENT de tout l’équipage — arbitrage maison (aucun Test, la guideline ne tranche pas).",
-    "keys": [
-      "poussee"
-    ]
+    "maison": "pousser l’engin dépense le MOUVEMENT de tout l’équipage — arbitrage maison (aucun Test, la guideline ne tranche pas)."
   },
   {
     "id": "direction-equipe",
@@ -759,10 +661,7 @@
     "rule": {
       "id": "commandant-d-equipe",
       "type": "talent"
-    },
-    "keys": [
-      "direction-equipe"
-    ]
+    }
   },
   {
     "id": "ramassage",
@@ -774,10 +673,7 @@
     "run": "ramasserLObjet",
     "candidates": "objets-au-sol",
     "coutAction": "action",
-    "maison": "ramasser n’exige aucun Test (LDB 13 l.106) ; une arme lâchée se reprend d’une Action (CRB 036 l.80) : l’imputation à l’Action est notre arbitrage.",
-    "keys": [
-      "ramassage-"
-    ]
+    "maison": "ramasser n’exige aucun Test (LDB 13 l.106) ; une arme lâchée se reprend d’une Action (CRB 036 l.80) : l’imputation à l’Action est notre arbitrage."
   },
   {
     "id": "depot",
@@ -814,10 +710,7 @@
     "rule": {
       "id": "test-equipage-manoeuvre",
       "type": "regle"
-    },
-    "keys": [
-      "manoeuvre-du-navire"
-    ]
+    }
   },
   {
     "id": "bordee",
@@ -837,10 +730,7 @@
     "rule": {
       "id": "test-equipage-batterie",
       "type": "regle"
-    },
-    "keys": [
-      "bordee"
-    ]
+    }
   },
   {
     "id": "chanson-de-marin",
@@ -858,10 +748,7 @@
     "rule": {
       "id": "chanson-de-marin",
       "type": "talent"
-    },
-    "keys": [
-      "chanson-de-marin"
-    ]
+    }
   },
   {
     "id": "rechargement-piece",
@@ -878,10 +765,7 @@
     "rule": {
       "id": "recharge",
       "type": "quality"
-    },
-    "keys": [
-      "rechargement-piece"
-    ]
+    }
   },
   {
     "id": "annulation-deplacement",
@@ -892,10 +776,7 @@
     "gate": "deplacement-annulable",
     "run": "annulerLeDeplacement",
     "coutAction": "aucun",
-    "maison": "annulation d’un déplacement non commis — affordance d’interface, aucun coût de jeu.",
-    "keys": [
-      "annulation-deplacement"
-    ]
+    "maison": "annulation d’un déplacement non commis — affordance d’interface, aucun coût de jeu."
   },
   {
     "id": "fin-de-tour",
@@ -906,10 +787,7 @@
     "gate": "toujours",
     "run": "terminerLeTour",
     "coutAction": "aucun",
-    "maison": "clôture du tour — ne dépense rien (ce qui reste est perdu).",
-    "keys": [
-      "fin-de-tour"
-    ]
+    "maison": "clôture du tour — ne dépense rien (ce qui reste est perdu)."
   },
   {
     "id": "debut-de-round",
@@ -931,10 +809,7 @@
     "gate": "coop",
     "run": "leverLaMain",
     "coutAction": "aucun",
-    "maison": "demande de pause au prochain début de Round — geste de table (coop), aucun coût de jeu.",
-    "keys": [
-      "pause"
-    ]
+    "maison": "demande de pause au prochain début de Round — geste de table (coop), aucun coût de jeu."
   },
   {
     "id": "panoplie",

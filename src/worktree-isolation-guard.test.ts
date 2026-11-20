@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import viteConfig from '../vite.config';
+import viteConfig from '../vitest.config';
 import {
   PLAGE_PORTS,
   PORT_DEV_DERIVE,
@@ -18,7 +18,7 @@ import {
 
 /**
  * Garde-fou ISOLATION DE WORKTREE — tout chemin de fichier déclaré par la config de test
- * (`test.setupFiles`, `test.globalSetup`) doit être ABSOLU, ancré sur `vite.config.ts`, et ne
+ * (`test.setupFiles`, `test.globalSetup`) doit être ABSOLU, ancré sur `vitest.config.ts`, et ne
  * traverser aucune racine de worktree imbriqué (#1679 L1c).
  *
  * Second volet : le PORT du serveur (dev ET `vite preview`) est propre à l'arbre
@@ -38,7 +38,7 @@ import {
 /** Vue étroite de la config lue : `defineConfig` rend une union, seuls ces champs sont gardés. */
 type ConfigDeTest = { test?: { setupFiles?: string | string[]; globalSetup?: string | string[] } };
 
-const RACINE_CONFIG = fileURLToPath(new URL('..', import.meta.url)); // dossier de vite.config.ts
+const RACINE_CONFIG = fileURLToPath(new URL('..', import.meta.url)); // dossier de vitest.config.ts
 
 /** REND la liste des chemins déclarés par un champ de config (`string` ou `string[]`, absent = []). */
 function chemins(champ: string | string[] | undefined): string[] {
@@ -61,7 +61,7 @@ function estSous(cible: string, dossier: string): boolean {
 /**
  * VRAI si un `.git` se trouve entre `dossier` (exclu) et le dossier de `cible` (inclus) : la marque
  * d'un WORKTREE IMBRIQUÉ. Un chemin absolu peut être « sous » le dossier de la config et pourtant
- * désigner un AUTRE arbre (`…/Game/.wt-1501/src/test-setup.ts` vu depuis l'arbre principal) — être
+ * désigner un AUTRE arbre (`…/Game/.wt-1501/src/test-setup-noyau.ts` vu depuis l'arbre principal) — être
  * sous la config ne suffit donc pas, le chemin ne doit traverser aucune racine de worktree.
  * `existe` est injecté pour la mesure ; par défaut, le disque.
  */
@@ -89,7 +89,7 @@ describe('garde-fou isolation de worktree — les chemins de la config de test s
     expect(declares.length).toBeGreaterThan(0);
   });
 
-  it('chaque chemin déclaré est ABSOLU, sous le dossier de vite.config.ts, et ne traverse aucun worktree', () => {
+  it('chaque chemin déclaré est ABSOLU, sous le dossier de vitest.config.ts, et ne traverse aucun worktree', () => {
     const fautifs = declares
       .filter(
         ([, p]) =>
@@ -103,7 +103,7 @@ describe('garde-fou isolation de worktree — les chemins de la config de test s
   });
 
   it('morsure : un chemin absolu vers un worktree IMBRIQUÉ est refusé, tout « sous la config » qu’il soit', () => {
-    const imbrique = resolve(RACINE_CONFIG, '.wt-sonde', 'src', 'test-setup.ts');
+    const imbrique = resolve(RACINE_CONFIG, '.wt-sonde', 'src', 'test-setup-noyau.ts');
     const gitDuWorktree = resolve(RACINE_CONFIG, '.wt-sonde', '.git');
     const existe = (chemin: string) => chemin === gitDuWorktree;
     expect(estSous(imbrique, RACINE_CONFIG), 'le cas planté passe l’ancien contrat').toBe(true);
@@ -116,9 +116,9 @@ describe('garde-fou isolation de worktree — les chemins de la config de test s
   it('morsure : sous un root d’un niveau, un chemin relatif SORT du root, l’absolu y reste', () => {
     const rootFictif = resolve(RACINE_CONFIG, '.sous-arbre');
     // Cas planté : la forme relative historique remonte à l'arbre parent.
-    const relatifResolu = resoluDepuisRootSansSlash('./src/test-setup.ts', rootFictif);
+    const relatifResolu = resoluDepuisRootSansSlash('./src/test-setup-noyau.ts', rootFictif);
     expect(estSous(relatifResolu, rootFictif)).toBe(false);
-    expect(relatifResolu).toBe(resolve(RACINE_CONFIG, 'src', 'test-setup.ts'));
+    expect(relatifResolu).toBe(resolve(RACINE_CONFIG, 'src', 'test-setup-noyau.ts'));
     // Les chemins RÉELS de la config, eux, ne bougent pas avec le root.
     for (const [champ, p] of declares) {
       const resolu = resoluDepuisRootSansSlash(p, rootFictif);

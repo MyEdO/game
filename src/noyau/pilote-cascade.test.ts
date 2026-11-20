@@ -60,7 +60,7 @@ describe('pilote de cascade : aucune itération de test neuve ne pilote la casca
 describe('morsure : une itération de pilotage ajoutée à une suite rougit la garde', () => {
   const cible = detenteur(() => {
     const stockes = new Set(PILOTE_CASCADE_RATCHET.map((e) => e.fichier));
-    return mesure().corpus.find((f) => f.rel.startsWith('src/state/') && !stockes.has(f.rel) && !f.text.includes('cascade.testkit'))!;
+    return mesure().corpus.find((f) => f.rel.startsWith('src/noyau/') && !stockes.has(f.rel) && !f.text.includes('cascade.testkit'))!;
   });
   /** Les sites du corpus, la suite `cible` remesurée sur `texte`. */
   const avec = (texte: string): Site[] => [

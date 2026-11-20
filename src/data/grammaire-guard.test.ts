@@ -91,7 +91,7 @@ const GARDE = {
 } as const;
 
 /** Périmètre des DEUX volets (redéclaration + `.extend`). */
-const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', ...porteeDeGarde(['noyau'], ['state'])];
+const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', ...porteeDeGarde(['noyau'])];
 /** Périmètre du seul volet `.extend` — les littéraux de la grammaire SONT le canon. */
 const PERIMETRE_FABRIQUES = ['src/data/schemas/grammaire'];
 

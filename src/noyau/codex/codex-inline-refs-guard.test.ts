@@ -33,7 +33,7 @@ import { ast, analyserCorpus } from '../../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
-import { dossierDe, porteeDeGarde } from '../../../scripts/guards/lib/couches.mjs';
+import { dossierDe } from '../../../scripts/guards/lib/couches.mjs';
 import { codexLookupById } from './registry';
 import { ACTIONS, ACTIVITIES, STAKES, cibleCodex, crewTestTypes } from '../../data/index';
 import type { FoyerDeRegle } from '../../data/schemas/grammaire/valeurs';
@@ -126,7 +126,7 @@ interface Site extends CodexRefLiteral { rel: string }
 /** Les projecteurs du Codex (`src/noyau/codex/**`) et les sources de la zone `ui` de l'hôte web (#3556), hors tests :
  *  `.tsx` ET `.ts` — une ref littérale vit aussi bien dans un projecteur (`noyau/codex/opRows.ts`) que
  *  dans un composant —, rendues par la primitive de marche `readCorpus`. */
-const PORTEE = [`${dossierDe('noyau')}/codex`, ...porteeDeGarde([], ['ui'])];
+const PORTEE = [`${dossierDe('noyau')}/codex`];
 function corpus(): { sites: Site[]; dynamiques: number } {
   const sites: Site[] = [];
   let dynamiques = 0;
@@ -195,7 +195,7 @@ describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE'
     expect(codexRefLiterals('x.ts', fait).statiques.map((s) => `${s.category}/${s.id}`)).toEqual(['characteristics/blessure']);
   });
 
-  it('CÂBLAGE : le scan de CORPUS mesure réellement des sites, dans plusieurs fichiers et deux formes', () => {
+  it('CÂBLAGE : le scan de CORPUS mesure réellement des sites, dans plusieurs fichiers du noyau', () => {
     // Contre-preuve : un scan cassé (mauvais répertoire, extension oubliée, parseur muet) rendrait la
     // garde VIDE et VERTE — c'est exactement ce qui a laissé passer `regles/mouvement`.
     const { sites, dynamiques } = corpus();
@@ -207,8 +207,6 @@ describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE'
     for (const s of sites) parFichier.set(s.rel, (parFichier.get(s.rel) ?? 0) + 1);
     expect(parFichier.size, 'le scan ne voit plus qu’une poignée de fichiers').toBeGreaterThanOrEqual(5);
     expect(Math.max(...parFichier.values()), 'aucun fichier ne porte plus de STOCK de refs littérales').toBeGreaterThanOrEqual(5);
-    expect(sites.some((s) => s.rel === 'src/ui/console/CombatConsole.tsx'), 'la console est retombée hors scan').toBe(true);
-    expect(sites.some((s) => s.forme === 'jsx'), 'aucun site JSX mesuré : la forme `<CodexRef …>` est retombée hors scan').toBe(true);
     expect(sites.some((s) => s.rel.endsWith('.ts')), 'aucun site `.ts` mesuré : le périmètre est retombé aux seuls composants').toBe(true);
     // L'ANGLE MORT, chiffré : le corpus porte bien plus de refs à identité CALCULÉE que de littéraux.
     // Ce que cette garde couvre est une PART, dite ici en toutes lettres — jamais une garantie globale.

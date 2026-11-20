@@ -40,10 +40,6 @@ const VITEST_VERT = TRACE(
 /** Faux run de DÉTRESSE : le binaire crache une ligne canonique par sentinelle (les six), puis
  *  échoue. Aucun vrai Vitest, aucune vraie racine React — seul le CHEMIN d'observation est mesuré. */
 const LIGNES_WEDGE = [
-  'Warning: An update to CombatConsole inside a test was not wrapped in act(...).',
-  'Warning: You seem to have overlapping act() calls, this is not supported. ',
-  'Warning: Attempted to synchronously unmount a root while React was already rendering.',
-  'Warning: Should not already be working.',
   'Error: Test timed out in 5000ms.',
   'Error: Worker exited unexpectedly',
 ]
@@ -121,10 +117,10 @@ function verifierOrdreDiag({ run, capture, chemin }) {
   assert.equal(diagSortie.length, 4, `bloc [diag] absent ou incomplet en sortie : ${run.stdout}`)
   assert.match(
     diagSortie[0],
-    /^\[diag\] machine : \d+ cœurs · [\d.]+ Go · disponible [\d.]+ Go → régime (suite|lot) \(\d+ Mo par worker\) · (\d+ workers? portés?|plancher de \d+ workers?, au-delà de la mémoire \(\d+ Mo < \d+ Mo\)) · réserve de [12] parents? · borné par (cœurs|(mémoire|plancher) \(\d+ cœurs servis\)) · (mono|partagé) \(seuil 7\) · maxWorkers=/,
+    /^\[diag\] machine : \d+ cœurs · [\d.]+ Go · disponible [\d.]+ Go → régime (suite|lot) \(\d+ Mo par worker\) · (\d+ workers? portés?|plancher de \d+ workers?, au-delà de la mémoire \(\d+ Mo < \d+ Mo\)) · réserve de [12] parents? · borné par (cœurs|(mémoire|plancher) \(\d+ cœurs servis\)) · maxWorkers=/,
   )
   assert.match(diagSortie[1], /^\[diag\] mémoire système max : [\d.]+ Go \/ [\d.]+ Go \(\d+ %\) · rss lanceur max \d+ Mo · fenêtre [\d.]+ s$/)
-  assert.match(diagSortie[2], /^\[diag\] sentinelles : act hors act \d+ · /)
+  assert.match(diagSortie[2], /^\[diag\] sentinelles : test expiré \d+ · worker perdu \d+/)
   assert.match(diagSortie[3], /^\[diag\] tas max d'un worker : (non relevé|\d+ Mo) \/ \d+ Mo/)
   assert.equal(run.stdout.trimEnd().split('\n').pop(), `capture : ${chemin}`)
   assert.ok(run.stdout.indexOf('[diag] machine') < run.stdout.indexOf('capture : '), 'résumé avant [diag]')
@@ -148,14 +144,14 @@ test('diagnostic : bloc [diag] en sortie ET en capture, avant `status:`, sur un 
     const diag = verifierOrdreDiag(pose)
     assert.equal(
       diag[2],
-      '[diag] sentinelles : act hors act 0 · act chevauchants 0 · unmount pendant rendu 0 · React coincé 0 · test expiré 0 · worker perdu 0',
+      '[diag] sentinelles : test expiré 0 · worker perdu 0',
     )
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
 })
 
-test('diagnostic : un run de DÉTRESSE compte ses six sentinelles, même ordre de sortie', () => {
+test('diagnostic : un run de DÉTRESSE compte ses sentinelles, même ordre de sortie', () => {
   const base = fauxDepot(VITEST_WEDGE)
   try {
     const pose = lance(base)
@@ -163,7 +159,7 @@ test('diagnostic : un run de DÉTRESSE compte ses six sentinelles, même ordre d
     const diag = verifierOrdreDiag(pose)
     assert.equal(
       diag[2],
-      '[diag] sentinelles : act hors act 1 · act chevauchants 1 · unmount pendant rendu 1 · React coincé 1 · test expiré 1 · worker perdu 1',
+      '[diag] sentinelles : test expiré 1 · worker perdu 1',
     )
   } finally {
     rmSync(base, { recursive: true, force: true })
@@ -229,55 +225,6 @@ test('régime inconnu : REFUS nommé, aucun Vitest lancé', () => {
   }
 })
 
-// ── Chemin PARTAGÉ (deux processus Vitest) ────────────────────────────────────────────────────
-// Les trois cas ci-dessus forcent `--coverage`, donc le lancement MONO : le chemin réellement servi
-// par `npm test` (le partage node/jsdom) n'était couvert par aucun d'eux. `WFRP_TEST_COEURS` et
-// `WFRP_TEST_MEMOIRE_MO` forcent le seuil de partage, sinon le verdict dépendrait du runner.
-const VITEST_SPLIT =
-  FS +
-  'const argv = process.argv.slice(2)\n' +
-  "const cote = /vitest\\.([a-z]+)\\.config/.exec(argv[argv.indexOf('--config') + 1])[1]\n" +
-  "process.stdout.write(' Test Files  1 passed (1)\\n')\n" +
-  "process.stdout.write('marque-stdout ' + cote + '\\n')\n" +
-  "process.stderr.write('marque-stderr ' + cote + '\\n')\n" +
-  'process.exit(0)\n'
-
-test('partage node/jsdom : DEUX processus, sorties préfixées par côté, les deux dans la capture', () => {
-  const base = fauxDepot(VITEST_SPLIT)
-  try {
-    // Un fichier par côté : c'est le docblock qui décide, comme Vitest lui-même.
-    const cote = { node: join(base, 'moteur.test.ts'), jsdom: join(base, 'ecran.test.tsx') }
-    writeFileSync(cote.node, "import { test } from 'vitest'\ntest('n', () => {})\n", 'utf8')
-    writeFileSync(cote.jsdom, '// @vitest-environment jsdom\ntest x\n', 'utf8')
-    const trace = join(base, 'argv.json')
-    const run = spawnSync(process.execPath, [join(base, 'entree.mjs')], {
-      cwd: base,
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        TRACE_ARGV: trace,
-        WFRP_TEST_COEURS: '16',
-        WFRP_TEST_MEMOIRE_MO: '65536',
-        TRACE_FICHIERS: JSON.stringify(['moteur.test.ts', 'ecran.test.tsx']),
-      },
-    })
-    assert.equal(run.status, 0, `run partagé en échec : ${run.stdout}${run.stderr}`)
-    const cache = join(base, 'node_modules', '.cache')
-    const fichiers = readdirSync(cache).filter((n) => /^vitest-run-\d+\.txt$/.test(n))
-    assert.equal(fichiers.length, 1, `captures trouvées : ${fichiers.join(', ')}`)
-    const capture = readFileSync(join(cache, fichiers[0]), 'utf8')
-    // Les DEUX côtés ont tourné, et chaque flux (stdout ET stderr) porte le préfixe de son côté.
-    for (const c of ['node', 'jsdom']) {
-      assert.ok(capture.includes(`[${c}] marque-stdout ${c}`), `stdout du côté ${c} absent : ${capture}`)
-      assert.ok(capture.includes(`[${c}] marque-stderr ${c}`), `stderr du côté ${c} absent : ${capture}`)
-    }
-    assert.match(capture, /node: exit 0 · jsdom: exit 0 · real [\d.]+s/)
-    assert.equal(capture.trimEnd().split('\n').pop(), 'status: 0')
-  } finally {
-    rmSync(base, { recursive: true, force: true })
-  }
-})
-
 test('bornage du cache : les captures de plus de 7 jours partent, les fraîches restent', () => {
   const base = fauxDepot(VITEST_VERT)
   try {
@@ -317,7 +264,7 @@ test('échec SANS bilan : la cause brute et l’exit sont imprimés, jamais un r
   }
 })
 
-// ── Registre DOM et PARTIE de la suite (chemin mono, celui de la CI à 4 cœurs) ─────────────────────
+// ── Parties de la suite en CI ─────────────────────
 
 /** Lancement sur la machine de la CI (4 cœurs, donc mono), sans `--coverage`. */
 function lanceMono(base, env = {}, args = []) {

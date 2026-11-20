@@ -1,9 +1,0 @@
-/* #2001 */
-.nm-ally {
-  color: var(--ok-bright);
-  font-weight: 700;
-}
-.nm-foe {
-  color: var(--danger-soft);
-  font-weight: 700;
-}

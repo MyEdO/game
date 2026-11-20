@@ -708,10 +708,9 @@ re-seed automatique — c'est le chemin suivi par AA, ZI, MDG, ACE, MSRC et NADJ
 - Coller le texte **verbatim** (règle 5 d'`AGENTS.md`) : aucune reformulation, formatage Markdown
   conservé (`**gras**`, listes, sauts `\n\n`), jamais de HTML — garde-fou
   `src/data/no-html-in-prose.test.ts`.
-- Toute description mécanique passe par la primitive `<Prose>` (`src/ui/Prose.tsx`) au rendu, pas
-  par un `dangerouslySetInnerHTML` ou un template ad hoc.
+- Toute description mécanique reste une prose Markdown que rend l’hôte Godot.
 - Tout **effet mécanique** (passif, déclenché, soin, dégâts…) issu du nouveau livre s'exprime en
-  `GameOp[]` (`src/engine/ops.ts`), édité via `<GameOpEditor>` — jamais un type/champ ad hoc (cf. `docs/primitives.md`).
+  `GameOp[]` (`src/engine/ops.ts`), édité dans le Compendium Godot (cf. `docs/primitives.md`).
 
 ## 6. Vérification (gardes rejouables)
 

@@ -1,7 +1,7 @@
 /**
  * MARQUE DE PROVENANCE d'un libellé d'AUTHORING — « … (EDOC) », « … (ADE II) ».
  *
- * SOURCE UNIQUE de la définition « référence de livre dans un libellé » (`docs/charte-ui.md` : « JAMAIS
+ * SOURCE UNIQUE de la définition « référence de livre dans un libellé » (`src/book-ref-guard.test.ts` : « JAMAIS
  * de référence au livre dans un texte joueur ») : la PROJECTION qui la retire et la GARDE qui la
  * détecte sont la MÊME fonction — une seconde définition (tokenisation, liste écrite à la main)
  * diverge aussitôt de la première.

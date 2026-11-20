@@ -894,9 +894,6 @@ export const CIBLES_PAR_RACINE = {
 export type RacineDEffet = keyof typeof CIBLES_PAR_RACINE;
 export type RacineDeCatalogue = Exclude<RacineDEffet, 'scene'>;
 
-/** La table de cibles qu'une RACINE offre à ses Effets `ops` — jamais supposée. */
-export type TableDeCibles = (typeof CIBLES_PAR_RACINE)[RacineDEffet];
-
 /** `on` (défaut `party`) appartient-il au vocabulaire de scène ? Garde de type : le handler narrowe
  *  dessus avant d'appeler `env.targets`. */
 export function estCibleDeScene(on: EffectOp['on']): on is Exclude<CibleDEffetDeScene, 'role' | 'volontaires'> | CibleDeRole | CibleDeVolontaires {
@@ -1454,7 +1451,7 @@ export interface EffectRefIssue {
  * tirerait l'UI dans le moteur (cycle). `T` = la variante d'Effet narrowée (apply/make typés sur elle).
  */
 export interface EffectHandler<T extends Effect = Effect> {
-  /** Groupe d'INTENTION d'auteur (libellé affiché dans le picker « + Effet », cf. `EFFECT_GROUP_ORDER`). */
+  /** Groupe d'intention d'auteur. */
   group: string;
   /** Libellé long (picker) et icône (rangée repliée). */
   label: string;
@@ -1479,18 +1476,6 @@ export interface EffectHandler<T extends Effect = Effect> {
 /** Noms des maladies câblées (LDB 20) — défaut de la fabrique `inflictDisease.make`. */
 const diseaseNames = memoParVersion('maladies', () => Object.keys(diseaseDefs()));
 
-/** Ordre des groupes d'intention dans le picker « + Effet » (l'ordre des handlers ci-dessous donne
- *  l'ordre INTRA-groupe — la déclaration suit l'ancien `EFFECT_GROUPS` aplati). */
-export const EFFECT_GROUP_ORDER = [
-  'Narration',
-  'Récompenses',
-  'Afflictions',
-  'Temps & repos',
-  'Navigation',
-  'Combat & social',
-  'Tests',
-] as const;
-
 /** Mappe chaque `type` d'Effet à son handler narrowé — garantit l'EXHAUSTIVITÉ (tsc échoue si un type
  *  manque) ET le typage par variante de `apply`/`make`/`refs`. */
 type EffectHandlerMap = {
@@ -1499,14 +1484,13 @@ type EffectHandlerMap = {
 
 
 /**
- * REGISTRE des effets — source unique data-driven (fin du god-switch `applyEffects`). Déclaré dans
- * l'ordre du picker (groupes de `EFFECT_GROUP_ORDER`, ordre intra-groupe = ordre de déclaration).
+ * REGISTRE des effets — source unique des fabriques, de leur application et de la validation des références.
  */
 export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Narration ──────────────────────────────────────────────────────────
   journal: {
     group: 'Narration', label: libelleEffet('journal'), icon: 'journal/detail',
-    make: () => ({ type: 'journal', desc: undefined, descRef: undefined, adapteDe: undefined }), // les clés déclarent les champs au report de type (`convertTo`, `ui/editor/AddMenu.tsx`)
+    make: () => ({ type: 'journal', desc: undefined, descRef: undefined, adapteDe: undefined }),
     apply: (e, env) => { if (e.desc) env.log(e.desc); },
   },
   document: {

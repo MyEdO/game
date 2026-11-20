@@ -40,7 +40,6 @@ import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { partyBest, peutTenter, testValue } from '../engine/skills';
-import { rollLine, type RollLineParts } from './ligneDeJet';
 import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
@@ -354,11 +353,6 @@ const TEST_DE_CHANSON = { skill: { id: 'divertissement', spec: 'chant' } } as co
 /** Valeur du Test de Chanson de marin — MDG 09 l.34-36. */
 export function valeurDeChanson(singer: Combatant): number {
   return testValue(singer, TEST_DE_CHANSON);
-}
-
-/** Ligne du Test de Chanson de marin (`rollLine`) — MDG 09 l.34-36. */
-export function ligneDeChanson(singer: Combatant): RollLineParts {
-  return rollLine({ actor: singer, test: TEST_DE_CHANSON, difficulty: 'intermediaire' });
 }
 
 /** Durée en minutes de l'effet d'une Chanson de marin au DR `sl` — MDG 09 l.38. */

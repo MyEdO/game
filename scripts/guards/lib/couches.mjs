@@ -3,7 +3,7 @@
 // que l'arbre porte (`racinesPresentes.mjs`) la lisent, `docs/architecture.md` (§ Couches) la décrit.
 //
 // Une zone est un dossier : `dossier`, `src/<zone>` par défaut ; `racine` désigne les fichiers posés à même `src/`
-// (entrée de l'hôte web, tests transverses). Par zone :
+// (tests transverses). Par zone :
 //  - `importe` : les zones qu'elle importe librement (`'*'` : toutes) ;
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type ;
@@ -19,18 +19,16 @@
 // Toute autre zone lui est fermée, même pour un type.
 import { posix as cheminPosix } from 'node:path';
 
-/** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, le seul module de `src/state/`,
- *  `src/noyau/` et `src/scenes/` qui réexporte (`murs/reexportation`, `couchesLint.mjs`). */
+/** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, le seul module de `src/noyau/` et `src/scenes/` qui réexporte (`murs/reexportation`, `couchesLint.mjs`). */
 export const SURFACE_DU_NOYAU = 'src/noyau/index.ts';
 
 /** Les zones dont la production ne réexporte rien hors de `SURFACE_DU_NOYAU` (#2817 D2, `murs/reexportation`). */
-export const ZONES_SANS_REEXPORTATION = Object.freeze(['state', 'noyau', 'scenes']);
+export const ZONES_SANS_REEXPORTATION = Object.freeze(['noyau', 'scenes']);
 
 /** Les paquets de l'hôte web (#2817 D9) : aucune zone qui survit à la bascule (`survit`) ne les charge. */
 export const PAQUETS_DE_L_HOTE_WEB = Object.freeze(['react', 'react-dom', 'zustand', 'three']);
 
 const FEUILLES = Object.freeze(['lib', 'geometry', 'i18n']);
-const AMONT_DE_LA_PRESENTATION = Object.freeze(['state', 'noyau', 'web', 'scenes', 'data', 'engine', 'audio', ...FEUILLES]);
 
 /** Les droits d'un hôte du noyau (#2898, #2928) : la porte du noyau, les scénarios et les feuilles. */
 const DROITS_D_HOTE = Object.freeze({ importe: Object.freeze(['noyau', 'scenes', ...FEUILLES]), portes: Object.freeze({ noyau: SURFACE_DU_NOYAU }), survit: true });
@@ -75,12 +73,16 @@ export const COUCHES = Object.freeze({
     survit: true,
     outillage: { 'src/scenes/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
   },
-  web: { importe: [...FEUILLES] },
-  audio: { importe: ['hote', 'data', ...FEUILLES] },
-  state: { importe: ['noyau', 'hote', 'web', 'engine', 'data', 'scenes', 'audio', ...FEUILLES], types: ['ui'] },
-  ui: { importe: ['gameIso', 'hote', ...AMONT_DE_LA_PRESENTATION] },
-  gameIso: { importe: ['ui', ...AMONT_DE_LA_PRESENTATION] },
-  racine: { dossier: 'src', importe: '*' },
+  racine: {
+    dossier: 'src',
+    importe: '*',
+    survit: true,
+    outillage: {
+      'src/compendiumJoue.testkit.ts': ['scripts/guards/lib/editabiliteDesChamps.mjs', 'scripts/source/prose-source-plugin.mjs'],
+      'src/ecrituresJouees.testkit.ts': ['scripts/guards/lib/editabiliteDesChamps.mjs', 'scripts/source/prose-source-plugin.mjs'],
+      'src/formulaireJoue.testkit.ts': ['scripts/guards/lib/editabiliteDesChamps.mjs'],
+    },
+  },
 });
 
 /** `z` est-il une zone de la table ? Clé PROPRE seulement : `constructor` ou `__proto__` n'en sont pas. */

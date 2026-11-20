@@ -46,10 +46,6 @@ export function facadeStructureAppearance(id?: string): EntreeVivante<StructureA
  *  jamais un littéral de couleur (garde-fou renderer). C'est un repli de PART absente sur une def
  *  RÉELLE, pas le repli d'un id inconnu : celui-là est le ton d'alarme de `noyau/monde/volume/missing.ts` (#877). */
 const defaultWindow = () => structureAppearance('plain').window;
-/** Couleur ÉMISSIVE d'une fenêtre allumée (nuit) — la def sinon le repli `plain`. Source unique iso + POV. */
-export function windowLit(app: EntreeVivante<StructureAppearanceDef>): string {
-  return app.window?.lit ?? defaultWindow()?.lit ?? app.face;
-}
 
 /** Couleur de BASE d'une partie de mur du pivot — SOURCE UNIQUE des deux backends (écran-affine + POV),
  *  qui y appliquent ensuite chacun LEUR lumière (ombre d'orientation iso / tint + brume POV). Tout vient
@@ -88,8 +84,7 @@ export function wallPartColor(app: EntreeVivante<StructureAppearanceDef>, part: 
  *    opera 0,2118 · arene 0,1883 · siege-enceinte 0,1623 · diligence 0,1471 · vitrine-batiments 0,1142 ·
  *    pont-vitrine 0,0677.
  *  Un relief plus mince que ce décalage se noie dans sa propre ombre. Les saillies partent donc de
- *  0,26 m par côté — 22,7 % au-dessus du pire (5,9 px d'écran affine à 2 m/tuile, `pxPerM(2)` =
- *  22,63 px/m), sur un mur de 0,168 m d'épaisseur : relief FRANC, style épuré assumé. Une scène plus
+ *  0,26 m par côté — 22,7 % au-dessus du pire, sur un mur de 0,168 m d'épaisseur : relief FRANC, style épuré assumé. Une scène plus
  *  large que l'opéra rougit la garde par scène de `sceneMeshes.test.ts` au lieu de noyer le relief en
  *  silence. Chaque valeur reste éditable par apparence (`StructureAppearanceDef.relief`). */
 export type WallPartRelief =

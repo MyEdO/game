@@ -1,5 +1,4 @@
-// STOCK NOMINATIF des TROIS COUCHES CSS (#1800) — consommé par les cliquets (xxi)/(xxii) de
-// `src/ui/ui-ratchets.test.ts`.
+// Stock nominatif des trois couches CSS (#1800), lu par la comparaison des images Git.
 //
 // Trois collections, une par CLASSE de défaut (la MESURE vit dans `cssCouchesAudit.ts`, partagée
 // avec le régénérateur) :

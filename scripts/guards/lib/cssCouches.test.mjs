@@ -4,7 +4,7 @@
 // une fixture de texte, sauf les trois commits cibles, lus dans l'HISTOIRE du dépôt par le vrai chemin
 // (`ventilationDeGit`, scripts/corpus/guards/cssCouches.test.mjs) : la CI les porte (`fetch-depth: 0` du checkout de chaque job de
 // .github/workflows/ci.yml). La MESURE sur le corpus réel se prouve ailleurs
-// (`src/ui/ui-ratchets.test.ts`, cliquets (xxi)/(xxii)).
+// dans les images d’arbre des commits historiques.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'

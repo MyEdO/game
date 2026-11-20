@@ -1,6 +1,5 @@
 /**
- * MESURE des TROIS COUCHES CSS (#1800) — définition UNIQUE, partagée par les cliquets (xxi)/(xxii)
- * (`src/ui/ui-ratchets.test.ts`) et la régénération de `cssCouchesStock.mjs` (`regenerations`).
+ * Mesure des trois couches CSS (#1800) et régénération de `cssCouchesStock.mjs`.
  *
  * Trois classes de défaut, trois collections :
  *   1. IDENTITÉ en module d'ÉCRAN — une déclaration qui PEINT (couleur, bordure, police, rayon,

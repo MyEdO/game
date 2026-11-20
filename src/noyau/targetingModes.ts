@@ -865,12 +865,6 @@ export const TARGETING_MODES: readonly TargetingMode[] = Object.values(MODE_PAR_
 /** Nom d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans bandeau). */
 export const targetingModeLabel = (modeId: IdDeModeDeCiblage): string | undefined => MODE_PAR_ID[modeId].label;
 
-/** Consigne d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans consigne). */
-export const targetingModeConsigne = (modeId: IdDeModeDeCiblage): PlayerText | undefined => {
-  const cle = MODE_PAR_ID[modeId].consigne;
-  return cle ? t(cle) : undefined;
-};
-
 /**
  * Ennemis GRISÉS hors Ligne de Vue du héros actif (LDB 13 l.114 ; sort : LDB 46 l.121), la source unique
  * du grisage que lit le survol (`gameIso/stage/useHoverTargeting.ts`). Le mode incantation armé se lit au
@@ -914,22 +908,6 @@ export function currentTargetingMode(get: Get<Jeu>): TargetingMode {
   if (action === 'teleportation') return TELEPORT_MODE;
   if (action === 'poussee') return PUSH_MODE;
   return ATTACK_MODE;
-}
-
-/**
- * Un ciblage d'ENTITÉ est-il ARMÉ ? DÉRIVÉ du registre — jamais une liste d'ids recopiée : le mode
- * courant est un mode-COMBATTANT (il définit `commitCombatant`, donc son clic-token commet un geste
- * sur une entité) et ce n'est pas `ATTACK_MODE`, que l'aiguilleur rend AUSSI quand rien n'est armé —
- * il ne peut donc témoigner d'aucun armement. Les modes-CASE (téléportation, poussée) n'ont pas de
- * `commitCombatant` : ils en sortent d'eux-mêmes.
- * Consommé par les surfaces PORTRAIT (dock du groupe), pour router le clic vers `cliquerLaCase`
- * comme le clic-jeton au lieu d'ouvrir la fiche.
- */
-export function ciblageEntiteArme(get: Get): boolean {
-  const battle = get().battle;
-  if (!battle || battle.over) return false;
-  const mode = currentTargetingMode(get);
-  return mode !== ATTACK_MODE && !!mode.commitCombatant;
 }
 
 /**

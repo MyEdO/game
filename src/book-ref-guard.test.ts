@@ -22,12 +22,10 @@ import { dossierDe, porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
  * (littéraux de chaîne, texte JSX, morceaux de gabarit). Les commentaires sont de la trivia — ils
  * ne sont jamais visités, donc jamais faussement accusés.
  *
- * Le texte joueur né HORS `src/ui` (catalogue `t()`, journal du noyau) est balayé au même détecteur,
+ * Le texte joueur (catalogue `t()`, journal du noyau) est balayé au même détecteur,
  * par périmètre (`PERIMETRES_DE_JEU`, #3059). `src/data` n'en est pas : ses textes à réf sont des
  * descriptions de schéma (`hint`, `describe`, `refine`), lues par les seuls écrans d'AUTORING.
  *
- * Les deux répertoires d'AUTORING sont dispensés (voir `AUTHORING_DIRS`) — pas une liste
- * d'exception à vider : une décision de PÉRIMÈTRE, stable.
  */
 
 const SRC_DIR = fileURLToPath(new URL('.', import.meta.url));
@@ -56,29 +54,8 @@ const SIGLES = alternationDuRegistre();
 const BOOK_REF = new RegExp(`\\b(${SIGLES})\\s+\\d+|\\((?:${SIGLES})\\)`);
 
 /**
- * Surfaces d'AUTORING, dispensées au MÊME titre que le Codex — tranché sous #601.
- *
- * `src/ui/compendium/**` : le Codex EST la surface de citation ; `CodexRef` y rend `source.book
- * p.page` par construction, et l'éditeur de fiche (`CodexEdit`) sert à SAISIR cette source.
- *
- * `src/ui/editor/**` : l'éditeur de scène/statblock a pour utilisateur un AUTEUR, jamais un joueur.
- * Sa raison d'être est de produire de la donnée conforme au RAW, chaque entrée taguée à sa `source`
- * (AGENTS.md règles 1 et 5) : un champ « Caractéristiques aléatoires (LDB 77 l.108) » dit à l'auteur
- * QUEL passage il implémente — c'est le même service que rend la réf en commentaire au codeur. La
- * retirer appauvrirait l'outil sans rien protéger, puisque aucune de ces vues n'est atteignable en
- * jouant.
- *
- * Cette frontière n'est pas posée ici : deux murs de `oxlint.config.mjs` la tiennent (#495, #2724).
- * `murs/interne` ferme les résumeurs d'atelier de `src/ui/editor/interne/` à `src/ui/editor/` ;
- * `murs/atelier` réserve `editor/GameOpEditor` et `editor/ConditionEditor` à `src/ui/editor/`,
- * `src/ui/compendium/` et `src/ui/gallery/`. Même partition, appliquée ici à la réf de livre.
- */
-const AUTHORING_DIRS = ['compendium', 'editor'].map((d) => `${dossierDe('ui')}/${d}/`);
-
-/**
- * Le Codex hors `src/ui` : sa PROJECTION vit au noyau (`src/noyau/codex/`, #3059) et ses libellés de fiche au
- * catalogue sous le préfixe `codex.fiche.` (`registry.ts`). Même surface de citation que `src/ui/compendium/`,
- * même dispense de PÉRIMÈTRE (répertoire, préfixe de clé), jamais une liste de clés.
+ * Le Codex cite ses sources dans sa projection au noyau (`src/noyau/codex/`, #3059). Les libellés
+ * de fiche au catalogue portent le préfixe `codex.fiche.` (`registry.ts`).
  */
 const CODEX_DU_NOYAU = `${dossierDe('noyau')}/codex/`;
 const CLES_DU_CODEX = 'codex.fiche.';
@@ -92,8 +69,7 @@ const CLES_DU_CODEX = 'codex.fiche.';
  * producteur qui manque à sa garantie, une forme impossible), pas une phrase de jeu : le refus qu'un
  * joueur doit lire passe par le catalogue (`t()`, balayé sans dispense) ou par l'`ErreurDeGeste` que
  * l'hôte compose lui-même (périmètre `hôtes`, balayé sans dispense). La dispense est donc juste pour
- * `noyau`, `state` et `engine`. Dans `src/ui`, un message d'erreur peut atteindre l'écran par une
- * frontière d'erreur, la garde y reste entière.
+ * `noyau` et `engine`.
  */
 function estPuitsDeDiagnostic(node: ts.Node, sf: ts.SourceFile): boolean {
   if (ts.isThrowStatement(node)) return true;
@@ -125,42 +101,32 @@ function renderedBookRefs(file: string, src: string, sf = ast({ rel: file, text:
 }
 
 /**
- * LES PÉRIMÈTRES DE JEU HORS `src/ui` (#3059) — le texte joueur ne naît pas que dans React.
+ * LES PÉRIMÈTRES DE JEU (#3059).
  *
  * `src/i18n/messages/**` : le CATALOGUE du texte joueur (`t()`), journal, refus, détails d'option.
  * Garde ABSOLUE : aucune clé du catalogue n'est rendue par une surface qui cite sa source — le Codex
  * rend la sienne par `CodexRef`, depuis la donnée (`source`), jamais depuis une clé. Le jour où une
  * telle clé naîtrait, sa dispense serait un PRÉFIXE de clé ou un module de catalogue dédié (décision de
- * périmètre comme `AUTHORING_DIRS`), jamais une liste de clés.
+ * périmètre), jamais une liste de clés.
  *
- * `src/noyau/**`, `src/state/**`, `src/engine/**` : les couches qui écrivent au journal (`ecrireAuJournal`, `tell`,
+ * `src/noyau/**`, `src/engine/**` : les couches qui écrivent au journal (`ecrireAuJournal`, `tell`,
  * conséquences, détails d'option) sans passer par le catalogue ; leurs puits de diagnostic sont taillés.
  *
  * `src/hote/**`, `src/hoteTexte/**`, `hotes/godot/**` : les hôtes, où le `throw new ErreurDeGeste` EST le
  * texte rendu au joueur : aucun puits n'y est taillé.
  *
- * `src/scenes/test-scenarios/**` : le menu « Scénarios de test » (`TestScenariosScreen`, atteint depuis
- * `MainMenu`) rend leurs titres et descriptions, c'est une surface de jeu.
+ * `src/scenes/test-scenarios/**` : le menu « Scénarios de test » (le pont Godot) rend leurs titres et descriptions, c'est une surface de jeu.
  */
 const PERIMETRES_DE_JEU = [
   { nom: 'catalogue i18n', racines: [`${dossierDe('i18n')}/messages`], horsDiagnostic: false },
-  { nom: 'noyau, state et engine', racines: porteeDeGarde(['noyau', 'engine'], ['state']), horsDiagnostic: true },
+  { nom: 'noyau et moteur', racines: porteeDeGarde(['noyau', 'engine']), horsDiagnostic: true },
   { nom: 'hôtes', racines: [...porteeDeGarde(['hote', 'hoteTexte']), `${dossierDe('hotes')}/godot`], horsDiagnostic: false },
   { nom: 'scénarios de test', racines: [`${dossierDe('scenes')}/test-scenarios`], horsDiagnostic: false },
 ] as const;
 
-const CONSIGNE = 'retirer la réf (elle va en commentaire au site qui écrit le message) ; si la glose porte une RÈGLE, la relier par <CodexRef> à son entrée réelle';
+const CONSIGNE = 'retirer la réf (elle va en commentaire au site qui écrit le message) ; si la glose porte une règle, la relier à son entrée du Codex';
 
 describe('réfs de livre — réservées au Codex et aux surfaces d’authoring (#601)', () => {
-  it('aucune surface de JEU de src/ui ne rend une référence de livre', () => {
-    const offenders: string[] = [];
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(porteeDeGarde([], ['ui'])))) {
-      if (AUTHORING_DIRS.some((d) => rel.startsWith(d))) continue;
-      for (const h of renderedBookRefs(rel, text, sourceFile!)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
-    }
-    expect(offenders, `Réf de livre rendue hors Codex (${CONSIGNE}) :\n${offenders.join('\n')}`).toEqual([]);
-  });
-
   it.each(PERIMETRES_DE_JEU)('aucun texte joueur du périmètre $nom ne porte une référence de livre (#3059)', ({ racines, horsDiagnostic }) => {
     const offenders: string[] = [];
     for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus([...racines]))) {
@@ -170,7 +136,7 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
     expect(offenders, `Réf de livre dans un texte joueur (${CONSIGNE}) :\n${offenders.join('\n')}`).toEqual([]);
   });
 
-  it('hors src/ui, les puits de diagnostic sont taillés et le journal reste vu (#3059)', () => {
+  it('les puits de diagnostic sont taillés et le journal reste vu (#3059)', () => {
     const sigle = REGISTRE_LIVRES.find((b) => b.abbr)!.abbr!;
     const texte = [
       `log.push("Le navire sombre (${sigle} 13 l.674).");`,

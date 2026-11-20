@@ -32,15 +32,6 @@ export const REGISTRIES = [
     importDir: '.',
   },
   {
-    // Décors / placeables (catalogue) : 1 décor = 1 fichier defs/.
-    dir: 'src/gameIso/catalog/decor/defs',
-    out: 'src/gameIso/catalog/decor/_registry.generated.ts',
-    exportName: 'prop',
-    arrayName: 'PROP_DEFS',
-    type: 'PropViz',
-    typeFrom: '../types',
-  },
-  {
     // Icônes UI SVG maison (24×24, currentColor — remplacent les emojis) : 1 famille = 1 fichier defs/.
     // + union `IconIdGenerated` des ids déclarés, à part dans `src/data/` → `IconId` (types.ts) est un VRAI type fermé.
     dir: 'src/data/icons/defs',

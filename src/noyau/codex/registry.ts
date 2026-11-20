@@ -271,10 +271,6 @@ export interface CodexCategory {
   items: CodexItem[];
   /** Facettes de filtre — DÉRIVÉES des items dans la même re-projection (livre partout, groupe là où porté). */
   facets?: CodexFacet[];
-  /** La prose de cette catégorie suit la convention d'ÉPIGRAPHE WFRP (`careers`, LDB 2 : citation
-   *  `« … »` + attribution) — `<Prose exergues>` les rend en carte-parchemin à leur place. DONNÉE de
-   *  catégorie, jamais un test de catégorie au rendu. */
-  exergues?: boolean;
 }
 
 const src = (s: { book?: string; page?: number } | null | undefined): CodexSource | null =>
@@ -686,8 +682,6 @@ interface CodexCategorySpec {
   cluster?: MsgKey;
   /** Réf de source de la table (« LDB 18 ») — hors du libellé, cf. `CodexCategory.sourceRef`. */
   sourceRef?: string;
-  /** cf. `CodexCategory.exergues`. */
-  exergues?: boolean;
   build: () => CodexItem[];
 }
 
@@ -703,7 +697,6 @@ function makeCategory(key: CleCodex, spec: CodexCategorySpec): CodexCategory {
     group: spec.group,
     get cluster() { return spec.cluster && tr(spec.cluster); },
     sourceRef: spec.sourceRef,
-    exergues: spec.exergues,
     get items() { return projection().items; },
     get facets() { return projection().facets; },
   };
@@ -1435,7 +1428,7 @@ const CODEX_SPECS = {
   careers: {
     // Les desc de Carrière (LDB 2) suivent la convention d'épigraphe WFRP : leurs couples
     // citation+attribution se rendent en carte-parchemin, à LEUR place dans le corps.
-    label: 'codex.fiche.carrieres', group: 'personnage', exergues: true,
+    label: 'codex.fiche.carrieres', group: 'personnage',
     build: () => careers.map((c) => {
       const levels = levelsForCareer(c.id);
       const className = libelleDeClasse(c.class.id);

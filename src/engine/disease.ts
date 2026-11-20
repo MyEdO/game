@@ -69,14 +69,6 @@ export function formatDiseaseTime(time: DiseaseTime): string {
   return `${fixed ? String(time.dice.plus ?? 0) : formatDice(time.dice)} ${label}`;
 }
 
-/** Restant d'une instance (base MINUTES) → libellé humain à l'échelle la plus parlante (j / h / min). */
-export function formatRemaining(minutes: number): string {
-  const m = Math.max(0, minutes);
-  if (m >= MINUTES_PER_DAY) return t('dz.remainDays', { n: Math.round(m / MINUTES_PER_DAY) });
-  if (m >= 60) return t('dz.remainHours', { n: Math.round(m / 60) });
-  return t('dz.remainMinutes', { n: Math.round(m) });
-}
-
 /** La maladie est-elle DÉCLARÉE : sortie d'incubation, ses symptômes actifs ? LDB 20 l.12-13 */
 export const maladieDeclaree = (d: Pick<Disease, 'phase'>): boolean => d.phase === 'active';
 

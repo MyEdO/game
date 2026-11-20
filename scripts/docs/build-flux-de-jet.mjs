@@ -197,7 +197,7 @@ function rendu() {
     DRIFT,
     'src/noyau/maneuver-defense-cascade.hors-store.test.ts',
     'src/noyau/jet-owner-vs-spec.test.ts',
-    'src/ui/active-modal.test.ts',
+    'src/roll-action-label-guard.test.ts',
     'hotes/godot/pont/cascade.hors-store.test.ts',
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
   const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
@@ -220,8 +220,7 @@ registre des modales (\`${ARBITER}\`, ${MODAL_KEYS.size} clés déclarées), les
 fabriques/lentilles partagées et les ${ATOMES.length} atomes obligatoires (lus dans la garde
 anti-dérive, jamais recopiés), et les ${GARDES_MESUREES.length} gardes avec l'intitulé de leur
 \`describe(...)\`. **Angles morts** : ce doc dit COMMENT poser un flux, pas d'où partent les jets
-existants (\`docs/registre-jets.md\`) ni comment chaque consommateur React remplit la coquille
-(\`docs/usages-jets.md\`) ; le CONTENU d'un résolveur métier (ce que \`jetValider(flux)\` applique) n'est
+existants (\`docs/registre-jets.md\`). Le contenu d’un résolveur métier (ce que \`jetValider(flux)\` applique) n'est
 dérivable d'aucun registre — c'est la règle du jeu ; les interdits et l'ordre des étapes sont de
 l'ÉDITORIAL fixé dans le script.
 
@@ -299,7 +298,7 @@ Réserver cette recette à un jet qui demande son propre état d'attente et son 
    faire avancer la cascade hôte si le jet en est une étape — jamais une 2ᵉ fenêtre séparée. L'annulation est
    le verbe de jet \`jetAnnuler(flux)\` : son effet métier se déclare au spec (\`onCancel\`). QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
    \`cloture\`, \`annulation\`, \`jetPose\`, \`jetImpose\`, \`perdu\`) : \`RollFlowHandlers.fermetures\` en tire ce que
-   la coquille, les hôtes et les verbes de jet ouvrent. Un réglage du jet (l'arme, la localisation, la réaction…) se
+   les hôtes et les verbes de jet ouvrent. Un réglage du jet (l'arme, la localisation, la réaction…) se
    déclare à \`ReglagesDuJet\` / \`REGLAGES_DU_JET\` (\`src/noyau/reglagesDuJet.ts\` : forme de la valeur, phase, portée),
    son corps à la table \`CorpsDesReglages\` de son flux ; il se joue par le seul verbe \`jetRegler(flux, reglage, valeur)\`,
    que sa phase ferme (\`fermetureDeLaPhase\`).
@@ -331,18 +330,20 @@ Le noyau fournit l'ouverture et le refus des gestes par \`fermeturesDeLaFenetre\
 transmet le pont Godot. \`hotes/godot/projet/cadres/fenetre_de_jet.tscn\` rend \`fenetre.gestes\` :
 la disponibilité des verbes reste dans le noyau. Pour une évolution du contrat, vérifier le parcours
 par les gestes du pont. Pour une recette d'écran, suivre la
-[doctrine de migration](../.claude/memory/user-doctrine-recette-web-suspendue-migration-godot.md).
+[règle des étalons Godot](../.claude/rules/ecrans-godot.md).
 
-### Maintenance de l'hôte React pendant la migration
+### Libellés
 
-\`RollShell\` est LA coquille unique : contrôles en PROPS, métier en SLOTS. Écrire un hook
-\`use<Jet>JetProps\` (\`src/ui/jetProps/\`) qui lit le store et rend les props ; la modale ne fait que
-l'appeler. Quelles zones chaque consommateur remplit aujourd'hui : \`docs/usages-jets.md\` (généré).
-**Ne jamais réécrire un bouton « Lancer »/« Relancer » à la main** dans une modale. Une action de la
-barre qui joue un verbe du cycle le NOMME (\`RollAction.verbe\`, et \`flux\`/\`pid\` quand ce n'est pas
-le flux de la coquille) : elle ne se montre que tant que le noyau le laisse ouvert (\`fermeturesDuFlux\`,
-\`src/noyau/verbesOuverts.ts\`), comme les gestes d'un hôte (\`fermeturesDeLaFenetre\`) — jamais un
-« avant / après le jet » écrit au site.
+- Le titre donne le nom de l’action. \`composeRollLabel\` compose « Acteur — Action (Compétence) »
+  lorsque le contexte le demande, avec la compétence issue des données du jet. Le nom d’action
+  reste un groupe nominal capitalisé, sans tiret long ni parenthèse réservés à la composition.
+- La ligne nomme la compétence lancée et affiche la difficulté, choisie ou composée par le noyau.
+  \`RollBreakdown.decided\` porte la raison du départage si les DR affichés des deux camps sont
+  égaux. Le résolveur fournit la raison avec le verdict.
+- Une bande de table précède les bornes par le libellé du dé \`bandeAuDe\`. Le tiret
+  demi-cadratin « – » sépare les bornes de table.
+- Les références au livre restent dans la source structurée. Le libellé et la consigne du joueur
+  ne portent aucune marque de livre.
 
 ## 5. Les atomes OBLIGATOIRES
 

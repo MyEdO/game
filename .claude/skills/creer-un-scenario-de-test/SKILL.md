@@ -7,7 +7,7 @@ description: À utiliser quand on doit vérifier une feature en jeu et qu'aucun 
 
 Lire **`docs/test-scenarios.md`** (catalogue complet + conventions + workflow). Un scénario = un
 fichier dans `src/scenes/test-scenarios/` enregistré au registre. TOUJOURS passer par le scénario
-adapté pour une recette navigateur — sinon en créer un, jamais bricoler un état à la main.
+adapté pour une recette Godot — sinon en créer un, jamais bricoler un état à la main.
 
 **Anti-grind.** Un scénario de test DÉMONTRE, il ne fait pas durer :
 - le DoD du scénario est atteignable en **≤ 3 Rounds d'actions joueur** ; une mécanique répétable

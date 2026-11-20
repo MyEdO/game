@@ -91,7 +91,7 @@ export function runSetScan(root) {
   const noyauDir = join(root, 'src/noyau');
   const pendingKeys = stateFieldKeys(noyauDir);
   const files = [
-    ...listerDossier(stateDir)
+    ...listerDossier(stateDir, { absent: 'vide' })
       .filter((f) => f.endsWith('.ts') && !estFichierVitest(f) && !estKitDeTest(f) && f !== 'store.ts')
       .map((f) => join(stateDir, f)),
     ...listerArbre(noyauDir, { filtre: (f) => f.endsWith('.ts') && !estFichierVitest(f) && !estKitDeTest(f) && f !== 'stateFields.ts' }).map((f) => join(noyauDir, f)),

@@ -946,7 +946,7 @@ function buildOverspeedStep(get: Get, index: number): BuiltCascadeStep | undefin
     ligne: ligneDuVaisseau(hull),
     // SURPLUS de M du jour (`effMToday − M de conception`) : c'est ce qui choisit la bande du tableau
     // (l.121-142). Il se LIT sur l'étape par sa NOTE d'enjeu (`stake`, zone d'accueil de ce que le jet
-    // met en jeu) — le libellé d'action reste le NOM de l'action (docs/charte-ui.md).
+    // met en jeu) — le libellé d'action reste le NOM de l'action (docs/ajouter-un-flux-de-jet.md).
     stake: voyageStakeRef('mer-survitesse', { overM: sea.effMToday - baseM, damage: row.damage }),
     meta: { overspeedDamage: row.damage },
   });

@@ -489,9 +489,6 @@ const ATTENDU = {
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
-    // +1 le 2026-11-13 (#3412) : le banc du séquenceur de vite.config.ts pose ses fixtures sous un `mkdtempSync`
-    // d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
-    'scripts/test/partition.test.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
@@ -658,18 +655,6 @@ const ATTENDU = {
     // `verrouGestesLourds.mjs`), dont les écrivains `retirerResiduelVide` et `relierFichierGit` ne sont appelés que depuis `retirerWorktree`,
     // et `etatDuDemiRetire` n'écrit que sous un `mkdtempSync` d'os.tmpdir(), effacé par `rmSync` en finally. L'arbre n'est jamais écrit.
     'scripts/guards/lib/protectionWorktree.mjs',
-  ],
-  // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
-  // de CODE par `ecrireOuVerifier`.
-  build: ['scripts/guards/lib/protectionWorktree.mjs',
-    'scripts/docs/build-all.mjs',
-    'scripts/docs/lib/ecriture-derives.mjs',
-    'scripts/docs/lib/fraicheur-docs.mjs',
-    'scripts/guards/lib/ecritureJsonAtomique.mjs',
-    'scripts/guards/lib/renommageResilient.mjs',
-    // +2 le 2026-10-13 (#2603) : par `build-all.mjs`, comme `docs:build` ci-dessous.
-    'scripts/git-hooks/journal.mjs',
-    'scripts/test/verrou.mjs',
   ],
   'docs:build': [
     'scripts/docs/build-all.mjs',
@@ -892,11 +877,11 @@ const ATTENDU = {
     "scripts/test/perimetre.mjs",
     "scripts/test/verrou.mjs",
   ],
-  'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
   // #2928, #2948, #3778, #3935, #3951, #3009, #4063, ECRIT_LU (`scripts/gates/toutes.mjs`) : la copie importée du projet
   // (`surUneCopie`, son marqueur `ecrireTexteAtomique` et son verrou `verrou.mjs`) n'écrit que sous `~/.cache/wfrp-godot-copies/`.
   'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'godot:web': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   'godot:rendus': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   'godot:coop': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   // #3945, #3412, ECRIT_LU (`scripts/gates/toutes.mjs`) : le lot écrit le journal de chaque jeu sous `dist/godot-recettes/`,

@@ -50,9 +50,6 @@ const CATCH_BLOC_VIDE = /catch\s*(?:\([^)]*\))?\s*\{\s*\}/g;
 const CATCH_PROMESSE_VIDE = /\.catch\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)/g;
 
 const BASELINE: Record<string, number> = {
-  'src/audio/engine.ts': 1, // autoplay refusé par le navigateur — silence légitime, commenté au site
-  'src/ui/CoopPanels.tsx': 1, // #1577 (élargi par commentaire du 2026-08-30 aux 2 sites presse-papiers)
-  'src/ui/ErrorCollectorBanner.tsx': 1, // #1577 (élargi par commentaire du 2026-08-30 aux 2 sites presse-papiers)
 };
 
 describe('catch-vide-guard : cliquet des catch vides de src/', () => {

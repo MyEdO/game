@@ -50,12 +50,10 @@
  * LIMITES admises, chacune avec son COMPTE au corpus mesuré (2173 fichiers, 39 sites dont 3 exemptés) et
  * sa SONDE, collée au ticket : #1765 issuecomment-6195158339, références L-A à L-D :
  *  - un helper à DEUX niveaux : un helper qui n'atteint `pendingCascade` (ou un verbe) que par l'appel d'un
- *    autre helper n'est ni lecteur ni joueur, et ne prête rien à qui l'appelle — 4 occurrences, non
+ *    autre helper n'est ni lecteur ni joueur, et ne prête rien à qui l'appelle — 2 occurrences, non
  *    pilotes : `cascade-parite-porteur.test.ts` (`it:CONTRÔLE POSITIF — les trois politiques rendent TROIS
  *    conduites DISTINCTES (la sonde discrimine)`), `miscast-step.hors-store.test.ts` (`it:SONDE F — hors Colère, AUCUN
- *    modificateur n’est déclaré (le moteur n’en applique aucun)`), `scripts/recette/lib.test.mjs`
- *    (`test:tournerCamera : zéro sans événement, non fini et active refusés avant entrée`, `test:tournerCamera :
- *    angle immense et délai invalide refusés sans entrée`) (sonde : #1765 issuecomment-6195158339 L-B,
+ *    modificateur n’est déclaré (le moteur n’en applique aucun)`) (sonde : #1765 issuecomment-6195158339 L-B,
  *    variante `deuxNiveaux`) ;
  *  - une fonction dont une itération lit ou joue directement ne prête RIEN, pas même ce que sa LIGNE DROITE
  *    lit ou joue : une boucle qui lit et appelle une telle fonction dont la ligne droite joue n'est pas un

@@ -60,7 +60,6 @@ export const driftPctOfSpeed = (): number => DATA.driftPctOfSpeed;
 export const driftNavPenalty = (): number => DATA.driftNavPenalty;
 
 export const riverForceLabel = (id: string): string => DATA.windForces.entries.find((f) => f.id === id)?.label ?? id;
-export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections.entries.find((d) => d.id === id)?.label ?? id;
 
 // ── Vent (l.21-41) ───────────────────────────────────────────────────────────────────────────────
 
