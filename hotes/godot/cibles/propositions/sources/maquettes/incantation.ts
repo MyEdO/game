@@ -19,7 +19,7 @@ export default {
   etats: [
     incantation('incantation', [{ round: 1, commence: true }, DIT.gobelin, DIT.orc], {
       titre: 'Incantation', heros: LANGUE,
-      centre: { role: 'sort', ni: 0, sort: 'Fléchette', issue: 'Ilyanwe la Voilée lance Fléchette sur Orc.' },
+      centre: { role: 'issue', sorte: 'simple', sur: 'Fléchette · Niveau d’incantation 0', cible: 'orc', verdict: 'reussite', dr: 5, consequences: [{ genre: 'sort', cible: 'orc', ton: 'gain' }], phrase: 'Ilyanwe la Voilée lance Fléchette sur Orc.' },
       autre: { role: 'vise', qui: 'orc', comme: 'Cible du sort' },
       gestes: apresLeDe(RESERVES.ilyanwe, { survol: 'relancer' }), reserves: reserves(RESERVES.ilyanwe),
     }),

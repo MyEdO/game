@@ -14,11 +14,22 @@ const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles =
     [`${cote || 'gauche'}-des`]: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${survol === 'seuil' ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : critique ? 'reussite critique' : reussite ? 'reussite' : '' })}</div>`,
     [`${cote || 'gauche'}-issue`]: total == null ? '' : `<div class="issue ${critique ? 'critique' : reussite ? 'reussite' : 'echec'}"><b>${critique ? 'Critique' : reussite ? 'Réussite' : 'Échec'}</b> DR ${dr}</div>`,
   })}</div>`;
-/* le verdict d'un jet tombé, au centre, quatre rangs à leur place et leur hauteur fixes : sur quoi il porte (`sous`) ; la
-   grande ligne, l'issue de l'action en un mot (`mot`) de la couleur de l'issue du camp (`sens` : reussite, echec,
-   critique), puis ce qu'elle change (`effet`) ; le DR en petit (`dr`), sa place gardée vide ; la phrase d'issue, puis
-   ce qui la suit (`suite` : le prix, le cumul) */
-const verdict = ({ sous, mot, sens, effet = '', dr = '', phrase = '', suite = '', classe = '' }) => `<div id="verdict" class="tombe ${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="issue-du-jet gothique ${sens}" data-texte="issue"><span>${mot}${effet ? `<small> · ${effet}</small>` : ''}</span></div><div class="dr-du-jet rubrique" data-texte="DR">${dr}</div><p data-texte="phrase d'issue">${phrase}</p>${suite}</div>`;
+/* le verdict d'un jet tombé, au centre : le cadre du centre et cinq places fixes (`PLACES`, `../rendu.js`), les mêmes
+   quelle que soit la situation : sur quoi il porte (`sous`) ; la grande ligne, l'issue en un mot générique (`mot`) de la
+   couleur de l'issue (`sens` : reussite, echec, critique) ; la ligne des conséquences (`consequences`) ; le DR en petit
+   (`dr`) ; la phrase d'issue. Rend le contenu de chaque place de la fenêtre */
+const verdict = ({ sous, mot, sens, consequences, dr, phrase }) => ({
+  centre: '<div id="verdict" class="tombe"></div>',
+  'issue-sous': `<div class="sous rubrique" data-texte="sous-titre">${sous}</div>`,
+  'issue-mot': `<div class="issue-du-jet gothique ${sens}" data-texte="issue"><span>${mot}</span></div>`,
+  'issue-consequences': consequences,
+  'issue-dr': `<div class="dr-du-jet rubrique" data-texte="DR">${dr}</div>`,
+  'issue-phrase': `<p class="phrase-du-jet" data-texte="phrase d'issue">${phrase}</p>`,
+});
+/* les conséquences d'un jet, une pièce chacune, de la couleur de son ton (`gain`, `perte`) : son pictogramme et sa
+   valeur ; son nom, sa cible et son détail dans la bulle de son survol (fiche `user-doctrine-icone-identifie-survol-detaille`) ;
+   sans pictogramme, son nom écrit, la pièce marquée `data-sans-icone` */
+const consequences = (liste) => `<div class="consequences">${liste.map(({ icone, nom, valeur, ton, survol, bulle }) => `<span class="consequence ${ton}"${icone ? '' : ' data-sans-icone'}${icone ? ` title="${bulle}"` : ''}>${icone ?? `<span class="nom">${nom}</span>`}${valeur ? `<b>${valeur}</b>` : ''}${survol ? raison(bulle) : ''}</span>`).join('')}</div>`;
 /* le bandeau, à la place de la barre de l'actif ou du bandeau des héros : ses places (`PLACES`, `../rendu.js`), la rangée
    des gestes, une place par plaque (`plaques`, une liste) et la réserve qu'elles dépensent */
 const bandeauDuJet = (titre, classe, contenu, plaques, reserve = '') => cadre('jet', null, null, null, null, `parchemin ${classe}`, `
@@ -53,4 +64,4 @@ const ZONES = {
 const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}" height="${h}" viewBox="0 0 60 100">${Object.entries(ZONES).map(([z, d]) => `<g class="zone ${etats[z] ?? ''}">${d}</g>`).join('')}</svg>`;
 
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { camp, verdict, bandeauDuJet, testeurs, reglages, options, bascule, reserves, silhouette });
+Object.assign(globalThis, { camp, verdict, consequences, bandeauDuJet, testeurs, reglages, options, bascule, reserves, silhouette });

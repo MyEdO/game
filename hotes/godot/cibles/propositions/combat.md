@@ -34,34 +34,49 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
   Le sceau du total garde son état (vert la réussite, cerclé d'or le critique, rouge l'échec), mais la couleur seule ne
   dit pas le verdict : le mot s'écrit, aucune bulle au survol du sceau. Le cercle d'or du critique est neuf et épais de
   3 px pour se voir à la taille de jeu (`.sceau.critique`, `sources/gestes.css`).
-- À valider : la grande ligne du centre d'un jet tombé dit l'issue de l'action, jamais un DR seul (verbatims du
-  2026-11-20 : « Genre parfois on a "DR net" et parfois "3 etats brisés" » ; « l'élément central doit indiquer l'echec
-  ou la réussite, pas juste "DR net +1", c'est la ou se trouve l'information capital ») : un mot de la couleur de
-  l'issue du camp (vert la réussite, rouge sang l'échec, marque d'or le critique), puis, plus petit, ce que l'action
-  change quand la donnée le porte ; le DR (« DR net +6 », « DR −3 ») en petit dessous, à sa place même vide ; quatre
-  rangs fixes (sous-titre 14, grande ligne 38, DR 14, phrase), la grande ligne au même rect pour tout jet
-  (`verdict`, `sources/combat/jet.js`). Un Test opposé se lit du côté de l'action du héros, gagné quand son DR passe
-  celui de l'autre camp. Mots choisis, courts et du point de vue de qui agit :
+- À valider : un seul gabarit de centre pour tout jet tombé, quelle que soit la situation (verbatims du 2026-11-20 :
+  « Marchandage c'est un jet simple et/ou d'opposition, pourquoi il a un comportement différent ? » ; « -10%, 3
+  corruptions, touché, brisée, ect ... c'est des conséquences du jet, qui sont même sensé etre data driven » ;
+  « l'élément central doit indiquer l'echec ou la réussite »). La donnée est celle que le noyau devra projeter (#4574,
+  `IssueDuJet`, `sources/maquettes/maquette.ts`) : la sorte du Test (`simple`, `oppose`, `etendu`), le verdict en union
+  fermée (`reussite`, `echec`, `critique`), le DR, le DR net d'un Test opposé, le cumul d'un Test étendu sur le DR visé,
+  la liste des conséquences `{ genre, valeur?, cible?, icone?, ton?, detail? }`, la phrase d'issue. Cinq places fixes
+  (`PLACES_DE_L_ISSUE`, `sources/rendu.js`), les mêmes rects à chaque état : le sous-titre (14), la grande ligne (38),
+  la ligne des conséquences (22, vide quand le jet n'en porte pas), le DR (14), la phrase (34, deux lignes).
+- À valider : la grande ligne ne porte qu'un mot générique, Réussite, Échec ou Critique, de la couleur de l'issue (vert
+  la réussite, rouge sang l'échec, marque d'or le critique) ; un Test opposé se lit du point de vue de celui qui agit
+  (la Défense de Berta tombe en « Échec » quand l'Orc la touche). Les mots par situation du lot précédent (« Touche »,
+  « Manquée », « Parée », « Touché », « Contré », « Lancé », « Gagné ») disparaissent : ce qu'ils disaient devient une
+  conséquence. « Pour fuite je prefere "Echec" » (utilisateur, 2026-11-20) en est un cas.
+- À valider : les conséquences, une pièce chacune (`consequences`, `sources/combat/jet.js`) : le pictogramme et la
+  valeur signée, de la couleur de son ton pour celui qui agit (vert le gain, rouge sang la perte) ; le nom, la cible et
+  le détail au survol, dans la bulle (fiche `user-doctrine-icone-identifie-survol-detaille`). Un genre sans pictogramme
+  écrit son nom dans un filet pointillé, la pièce marquée `data-sans-icone` : « Car si un jour la fuite donne des etats
+  données sonnées et brisé on aura l'air con » (utilisateur, 2026-11-20). Les conséquences des maquettes :
 
-  | Jet | Gagné | Perdu | Ce qui suit le mot |
+  | Jet | Sorte | Verdict | Conséquences |
   |---|---|---|---|
-  | Attaque (`jet-d-attaque`) | Touche | Manquée | la localisation (« au corps ») |
-  | Défense (`jet-de-defense`) | Parée | Touché | la localisation du coup reçu (« au bras droit ») |
-  | Contre-sort (`contre-sort`) | Contré | Raté | rien |
-  | Incantation (`incantation`) | Lancé | — (le centre `sort` ne sert qu'au Sort lancé) | rien |
-  | Fuite (`fuite`, coup dans le dos) | — | Échec (« Pour fuite je prefere "Echec" », utilisateur, 2026-11-20) | les États posés, chacun son compte (« +3 Brisé », « +1 Sonné · +3 Brisé ») : « Car si un jour la fuite donne des etats données sonnées et brisé on aura l'air con » (utilisateur, 2026-11-20) ; l'icône de l'État et son compte, le nom au survol, quand `PICTOS` en a une |
-  | Corruption (`test-de-corruption-*`) | Réussite | Échec | les Points gagnés (« +2 Points de Corruption », « aucun Point ») |
-  | Test étendu (`dissipation`, `focalisation`) | Réussite | Échec | rien ; le cumul sous la phrase |
-  | Test simple (`jet-de-competence`, `evenement-de-route-echec`) | Réussite | Échec | rien |
-  | Marchandage (`marchandage`) | l'issue du livre (« Gagné ») | (« Perdu ») | l'effet au prix (« −10 % à l’achat ») |
+  | Attaque (`combat-jet-d-attaque`, `relance-*`) | opposé (LDB 13 l.122-123) | Réussite / Échec | `localisation` Corps sur l'Orc ; raté, `avantage` +1 à l'Orc |
+  | Défense (`jet-de-defense`) | opposé | Échec | `localisation` Bras droit sur Ilyanwe |
+  | Contre-sort (`contre-sort`) | opposé (LDB 46 l.156) | Réussite | `dissipation` du Sort de la Chamane |
+  | Fuite (`fuite`, Test de Calme) | simple (LDB 15 l.63-68) | Échec | `etat` Brisé +3 sur Ilyanwe |
+  | Corruption (`test-de-corruption-*`) | simple (LDB 19 l.44-54) | Échec / Réussite | `corruption` +2 sur Berta ; aucune à la Résilience |
+  | Marchandage (`marchandage`) | opposé (LDB 59 l.43) | Réussite | `prix` −10 %, le prix conclu au survol |
+  | Incantation (`incantation`) | simple (LDB 46 l.24) | Réussite | `sort` lancé sur l'Orc |
+  | Dissipation, Focalisation | étendu (LDB 46 l.160, LDB 46 l.128-151) | Réussite / Critique | aucune ; le cumul sur le DR visé |
+  | Test de compétence, péripétie de la route | simple (LDB 12 l.5-7) | Réussite / Échec | aucune ; échec de la route : `retard` +1 j, `etat` Exténué +1 |
 
-  « Touche » et « Manquée » disent l'attaque, « Parée » et « Touché » ce qui arrive au défenseur ; Réussite, Échec et
-  Critique reprennent le mot de l'issue du camp quand l'action n'a pas de verbe propre. Restent hors de la règle, faute
-  d'une issue unique : la table de Tests (`tests`, une issue par ligne), le carton de la bataille de masse (son milieu
-  dit déjà qui l'emporte), le Coup Critique et la table tirée (un nom de table), l'annonce d'un choix, les réglages
-  avant le dé (« Test simple », « Test opposé »), la Surincantation et la consigne.
-- À valider : le DR net reste la marge du vainqueur, sans signe du côté du héros (« DR net +4 » sous « Touché ») ;
-  le signer du côté du héros (« DR net −4 ») dirait l'écart sans relire les camps.
+- À valider : les pictogrammes des conséquences (`PICTO_DE_LA_CONSEQUENCE`, `sources/rendu.js`), pris au kit :
+  `localisation` → `cible` (le point visé) ; `avantage` → `competence` (celui de l'action « Avantage » de la barre,
+  `PICTO_DE_L_ACTION`) ; `prix` → `pieces` (le montant ; `balance` dit le geste de marchander, `bourse` ce qu'on porte) ;
+  `sort` → `sort` ; `retard` → `sablier`. Une conséquence peut nommer son pictogramme (`icone`), comme un État qui en a
+  un (`aTerre`, `goutte` de l'Hémorragique). Manquent : `blessures` (`goutte` est déjà l'Hémorragique, `coeur` la
+  Résilience), `corruption`, `dissipation`, et les États sans pictogramme, Brisé et Exténué compris.
+- À valider : le DR net se signe du côté de celui qui agit (« DR net −4 » sous l'Échec de la Défense, « DR net −1 »
+  sous l'attaque ratée), quand le livre le dit du vainqueur (LDB 12 l.164) : il dit l'écart sans relire les camps, et
+  suit le verdict. Restent hors du gabarit, faute d'une issue d'un seul jet : la table de Tests (`tests`, une issue par
+  ligne), le carton de la bataille de masse, le Coup Critique et la table tirée (un nom de table), l'annonce d'un
+  choix, la nature d'une Influence, la Surincantation, la consigne et le dialogue.
 
 ## tour-adverse (A1, A2, T3)
 - Le meuble garde sa place et montre l'adversaire : portrait de fer, nom, arme (« Hache »), Blessures.
@@ -81,7 +96,8 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 ## jet-de-defense (J1 à J8)
 - Ruban « Défense », camp du joueur à gauche.
 - À valider : réussite en sceau de cire verte et verdict vert sombre (le kit ne fixait que la cire rouge de l'échec) ;
-  DR net du vainqueur ; phrase d'issue avec la localisation (dé inversé 24 → 42, bras droit), sans dégâts.
+  DR net du côté du défenseur (« Bandeau du jet ») ; la localisation du coup reçu en conséquence (dé inversé 24 → 42,
+  bras droit), sans dégâts.
 - Le choix de la réaction avant le dé du défenseur (LDB 13 l.167) : `defense-avant-le-de`, plus bas.
 
 ## incantation (J10)
@@ -91,8 +107,8 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - Jet réussi (34 sous 85) : « Relancer » et « Résilience » fermés, la raison en bulle au survol (LDB 17 l.23, l.68) ;
   « Chance : +1 DR » reste ouverte (LDB 17 l.24). 34 n'est pas un double : pas d'Incantation Critique à choisir
   dans cet état (LDB 46 l.26-32).
-- À valider : la grande ligne dit « Lancé », le Sort et son NI au sous-titre, le DR du jet en petit dessous (« Bandeau
-  du jet », table des mots).
+- À valider : la grande ligne dit « Réussite », le Sort lancé en conséquence, le Sort et son NI au sous-titre, le DR du
+  jet en petit dessous (« Bandeau du jet »).
 
 ## coup-critique (C1, C2, C3)
 - Le bandeau reste en place : à gauche la victime, sa silhouette, « Touché à la tête », sceau « 2 » Blessures

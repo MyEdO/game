@@ -37,7 +37,7 @@ export default {
       fenetre: {
         titre: 'Défense',
         heros: { role: 'testeur', qui: 'ilyanwe', test: 'Corps à corps (Armes d’hast)', seuil: 38, jet: { des: [60, 1], dr: -3, reussite: false } },
-        centre: { role: 'verdict', porte: { arme: 'Hache', cible: 'ilyanwe' }, action: 'defense', effet: 'au bras droit', drNet: 4, issue: 'Orc touche Ilyanwe la Voilée au bras droit.' },
+        centre: { role: 'issue', sorte: 'oppose', sur: 'Hache', cible: 'ilyanwe', verdict: 'echec', dr: -3, drNet: -4, consequences: [{ genre: 'localisation', valeur: 'brasD', cible: 'ilyanwe', ton: 'perte' }], phrase: 'Orc touche Ilyanwe la Voilée au bras droit.' },
         autre: COUP,
         gestes: apresLeDe(RESERVES.ilyanwe, { echec: true }), reserves: reserves(RESERVES.ilyanwe),
       },

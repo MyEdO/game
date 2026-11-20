@@ -150,9 +150,13 @@ Le journal passe par-dessus le champ, sans fond plein.
 
 **6. Fenêtre du bas** (jets et choix) : rôle `fenetre`, une seule hauteur ; ruban gothique centré ; ses places
 (`PLACES`) : `gauche` le héros concerné (portrait `grand`, nom à sa droite) ou le titre d'un choix, aligné à droite
-contre ses cartes, `centre` (un jet tombé : le `verdict`, sous-titre, grande ligne de l'issue à un rect fixe, DR en petit,
-phrase), `droite` l'adversaire ou l'interlocuteur en miroir, ou ce que le centre décide quand il
-n'y en a pas ; trois emplacements de carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique
+contre ses cartes, `centre` ; un jet tombé, quelle que soit sa situation, a un seul centre (`verdict`) piloté par la sorte
+du Test (`simple`, `oppose`, `etendu`) : le cadre du centre et cinq places fixes, `issue-sous` (ce sur quoi il porte),
+`issue-mot` (la grande ligne, Réussite, Échec ou Critique, du point de vue de celui qui agit), `issue-consequences`
+(une pièce par conséquence, vide quand le jet n'en porte pas), `issue-dr` (le DR, le DR net d'un Test opposé, le cumul
+d'un Test étendu sur le DR visé) et `issue-phrase` (deux lignes), les mêmes rects à chaque état ; `droite` suit la
+sorte du Test : l'adversaire en miroir pour un Test opposé, l'interlocuteur ou ce que le Test décide (`enjeu`) pour un
+Test simple ou étendu quand la donnée le porte ; trois emplacements de carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique
 (`rubrique-1` à `rubrique-3`), une carte seule dans le premier ; `cible`, ce que le choix vise, à la place du
 troisième emplacement, son portrait où se tient celui de l'autre camp ; `large`, à la place du centre, de la droite et
 des emplacements : la liste paginée par trois, le partage d'une fouille, la table tirée et la table de Tests, dont la

@@ -34,13 +34,6 @@ export interface EtatPorte {
   presse?: true;
 }
 
-/** Un État que pose une conséquence (LDB 16) : son id, son nom, son compte. */
-export interface EtatPose {
-  etat: 'aTerre' | 'hemorragique' | 'brise' | 'sonne';
-  nom: string;
-  nombre: number;
-}
-
 /** Une ligne du journal : une phrase, ou la borne d'un round ; `commence`, celle du premier. */
 export type EntreeDuJournal = string | { round: number; commence?: true };
 
@@ -241,11 +234,51 @@ export interface Enjeu {
 /** Un axe de Surincantation : son nom ; ses pas alloués sur ses pas et ce qu'ils donnent, ou sans objet. */
 export type AxeDeSurincantation = { nom: string; alloues: number; sur: number; effet: { cibles: number } | { facteur: number } } | { nom: string; sansObjet: true };
 
+/** Le verdict d'un Test, du point de vue de celui qui agit (LDB 12 l.105-117, l.124-127). */
+export type Verdict = 'reussite' | 'echec' | 'critique';
+
+/** La sorte d'un Test : simple (LDB 12 l.5-7), opposé (LDB 12 l.152-169), étendu (LDB 12 l.171-180). */
+export type SorteDeTest = 'simple' | 'oppose' | 'etendu';
+
+/** Ce qu'une conséquence change : la Localisation touchée, des Blessures, de l'Avantage, un prix en pourcent, des Points
+ *  de Corruption, un État, un Sort lancé ou dissipé, un retard en jours. */
+export type GenreDeConsequence = 'localisation' | 'blessures' | 'avantage' | 'prix' | 'corruption' | 'etat' | 'sort' | 'dissipation' | 'retard';
+
+/** Une conséquence d'un jet tombé, la forme que le noyau projette (#4574) : son genre, sa valeur (un nombre signé, ou
+ *  l'id de ce qu'elle désigne), le combattant qu'elle vise, l'icône que la donnée lui donne, son ton pour celui qui
+ *  agit, son détail lu au survol. */
+export interface Consequence {
+  genre: GenreDeConsequence;
+  valeur?: number | string;
+  cible?: string;
+  icone?: string;
+  ton?: 'gain' | 'perte';
+  detail?: string;
+}
+
+/** Un jet tombé au centre : la sorte du Test, sur quoi il porte, sa cible, le jet relancé ; le verdict de celui qui
+ *  agit, son DR, le DR net d'un Test opposé de son point de vue, le cumul d'un Test étendu sur le DR visé ; ses
+ *  conséquences, la phrase d'issue ; ce que le Test décide ; `survol`, le rang de la conséquence sous le curseur. */
+export interface IssueDuJet {
+  role: 'issue';
+  sorte: SorteDeTest;
+  sur: string;
+  cible?: string;
+  relance?: number;
+  verdict: Verdict;
+  dr: number;
+  drNet?: number;
+  cumul?: { dr: number; vise: number };
+  consequences: Consequence[];
+  phrase: string;
+  enjeu?: Enjeu;
+  survol?: number;
+}
+
 /** Le centre d'une fenêtre, selon ce qu'elle résout. */
 export type Centre =
-  /** Le verdict des jets opposés tombés : sur quoi ils portent, l'action du héros qui en nomme l'issue, ce qu'elle change,
-   *  le jet relancé, le DR net, la phrase d'issue. */
-  | { role: 'verdict'; porte: Porte; action: 'attaque' | 'defense' | 'contre-sort'; effet?: string; relance?: number; drNet: number; issue: string }
+  /** Un jet tombé, quelle que soit la situation qui l'ouvre. */
+  | IssueDuJet
   /** Les réglages d'une attaque : la localisation (la zone choisie et son malus, « Au hasard » offert), les réglages,
    *  les bascules, la note de ce qu'ils font. */
   | { role: 'attaque'; porte: Porte; localisation: { libelle: string; zone: { id: Zone; nom: string } | null; malus: number | null; hasard: boolean }; reglages: Reglage[]; bascules: Bascule[]; note?: string }
@@ -259,31 +292,23 @@ export type Centre =
   | { role: 'critique'; nom: string; effet: string }
   /** Une table qu'un jet impose : son nom, la table, sa règle ou l'effet tiré ; son d100, `null` à tirer. */
   | { role: 'table'; nom: string; table: string; texte: string; tire?: number | null }
-  /** Un Sort lancé : son Niveau d'incantation, son nom, la phrase d'issue. */
-  | { role: 'sort'; ni: number; sort: string; issue: string }
   /** La Surincantation d'un Sort tombé : les cibles supplémentaires choisies, les pas alloués, chaque axe, les cibles. */
   | { role: 'surincantation'; ni: number; sort: string; supplementaires: { choisies: number; sur: number }; pas: { alloues: number; sur: number }; axes: AxeDeSurincantation[]; cibles: { qui: string; comme: string }[] }
-  /** Un Test étendu : le Niveau d'incantation à atteindre, le Sort, le cumul de ses DR, la phrase ; ce qu'il décide. */
+  /** Un Test étendu avant le dé : le Niveau d'incantation à atteindre, le Sort, le cumul de ses DR, la phrase ; ce qu'il
+   *  décide. */
   | { role: 'etendu'; ni: number; sort: string; cumul: number; phrase: string; enjeu?: Enjeu }
   /** La nature d'une Influence corruptrice, à choisir avant le dé, et ce que le Test décide. */
   | { role: 'nature'; libelle: string; cartes: Carte[]; enjeu: Enjeu }
-  /** Le Test de Corruption tombé : l'Influence, les Points de Corruption, les Points gagnés, la phrase, ce que le Test
-   *  décide. */
-  | { role: 'corruption'; influence: string; corruption: { points: number; seuil: number }; gain: number; issue: string; enjeu: Enjeu }
-  /** Ce qu'un coup inflige au lieu d'un DR : l'arme, le coup, les États qu'il pose, la phrase d'issue. */
-  | { role: 'consequence'; arme: string; coup: string; etats: [EtatPose, ...EtatPose[]]; issue: string }
   /** Les Tests de plusieurs testeurs, ligne à ligne : leur nom, leur Test commun, chaque ligne, la règle qui les départage ;
    *  `somme`, le cumul de leurs DR. */
   | { role: 'tests'; nom: string; test: string; lignes: LigneDeTest[]; regle?: { texte: string; effet: string }; somme?: true }
   /** Le Marchandage avant le dé : le lot, son estimation, ce que chaque issue du Test opposé fait au prix. */
   | { role: 'marchandage'; lot: LotMarchande; estimation: Sous; enjeux: EnjeuDuMarchandage[] }
-  /** Le Marchandage tombé : le lot, le DR net, l'issue et ce qu'elle fait au prix, le prix avant et après. */
-  | { role: 'marche'; lot: LotMarchande; drNet: number; issue: EnjeuDuMarchandage; avant: Sous; apres: Sous }
   /** Un Test d'équipage avant le dé : ce que le navire fait, sa cible, le réglage qui vaut pour tout le bord, ce qui le
    *  modifie. */
   | { role: 'equipage'; fait: string; cible?: string; reglage: Reglage; notes: NoteDEquipage[] }
-  /** Un Test simple : ce qui le pose, sa difficulté ; tombé, son DR ; la phrase de ce qu'il décide. */
-  | { role: 'simple'; sur: string; difficulte?: { nom: string; valeur: number }; dr?: number; phrase: string }
+  /** Un Test simple avant le dé : ce qui le pose, sa difficulté, la phrase de ce qu'il décide. */
+  | { role: 'simple'; sur: string; difficulte?: { nom: string; valeur: number }; phrase: string }
   /** Les réponses d'un dialogue, la première en tête. */
   | { role: 'dialogue'; reponses: Reponse[] };
 
@@ -303,15 +328,14 @@ export interface ChoixADroite {
   cartes: Carte[];
 }
 
-/** Le lot marchandé : sa denrée, son Encombrement, le sens du marché. */
+/** Le lot marchandé : sa denrée, son Encombrement. */
 export interface LotMarchande {
   nom: string;
   enc: number;
-  sens: 'achat' | 'vente';
 }
 
-/** Une issue du Marchandage : son nom, le pourcentage qu'elle fait au prix ; `enPlus`, un pourcentage qui s'ajoute aux
- *  autres. */
+/** Une issue du Marchandage avant le dé : son nom, le pourcentage qu'elle fait au prix ; `enPlus`, un pourcentage qui
+ *  s'ajoute aux autres. */
 export interface EnjeuDuMarchandage {
   issue: string;
   pourcent: number;

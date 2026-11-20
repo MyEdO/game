@@ -14,7 +14,7 @@ const fuite = (nom: string, survol: boolean): Etat => ({
     titre: 'Fuite',
     heros: { role: 'testeur', qui: 'ilyanwe', test: 'Calme · Touché en fuyant', seuil: 52, jet: { des: [70, 1], dr: -2, reussite: false } },
     autre: { role: 'testeur', qui: 'orc', test: 'Corps à corps (Base)', seuil: 75, modificateurs: [{ nom: 'Avantage 2' }, { nom: 'Dos tourné', valeur: 20 }], ...(survol ? { survol: 'seuil' as const } : {}), jet: { des: [20, 4], dr: 5, reussite: true } },
-    centre: { role: 'consequence', arme: 'Hache', coup: 'coup dans le dos', etats: [{ etat: 'brise', nom: 'Brisé', nombre: 3 }], issue: 'Orc touche Ilyanwe la Voilée dans le dos : elle fuit, Brisée.' },
+    centre: { role: 'issue', sorte: 'simple', sur: 'Calme · Touché en fuyant', verdict: 'echec', dr: -2, consequences: [{ genre: 'etat', valeur: 3, cible: 'ilyanwe', ton: 'perte', detail: 'Brisé' }], phrase: 'Orc touche Ilyanwe la Voilée dans le dos : elle fuit, Brisée.' },
     gestes: apresLeDe(RESERVES.ilyanwe, { echec: true }), reserves: reserves(RESERVES.ilyanwe),
   },
 });

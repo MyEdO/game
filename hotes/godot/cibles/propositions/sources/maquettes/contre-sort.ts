@@ -33,7 +33,7 @@ export default {
       fenetre: {
         titre: 'Contre-sort',
         heros: { role: 'testeur', qui: 'ilyanwe', test: 'Langue (Magick)', seuil: 85, jet: { des: [40, 2], dr: 4, reussite: true } },
-        centre: { role: 'verdict', porte: { arme: 'Fléchette', cible: 'berta' }, action: 'contre-sort', drNet: 2, issue: 'Contre-sort d’Ilyanwe la Voilée : le Sort est dissipé.' },
+        centre: { role: 'issue', sorte: 'oppose', sur: 'Fléchette', cible: 'berta', verdict: 'reussite', dr: 4, drNet: 2, consequences: [{ genre: 'dissipation', cible: 'chamane', ton: 'gain' }], phrase: 'Contre-sort d’Ilyanwe la Voilée : le Sort est dissipé.' },
         autre: { role: 'testeur', qui: 'chamane', test: 'Langue (Magick)', seuil: 52, jet: { des: [30, 7], dr: 2, reussite: true } },
         gestes: apresLeDe(RESERVES.ilyanwe), reserves: reserves(RESERVES.ilyanwe),
       },

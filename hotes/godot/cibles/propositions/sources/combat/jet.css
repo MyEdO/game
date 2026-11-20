@@ -36,19 +36,24 @@
 #verdict .sous{font-size:12.5px;color:#4a3420}
 #verdict .dr{font-size:30px;line-height:36px;color:#3a1a10;margin-top:2px}
 #verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
-/* le verdict d'un jet tombé (`verdict`) : la grande ligne à la même place et à la même hauteur quel que soit le jet, le
-   mot de la couleur de l'issue du camp, ce qu'elle change plus petit ; le DR en petit dessous */
-#verdict.tombe{display:grid;grid-template-rows:14px 38px 14px;grid-auto-rows:max-content;align-content:start}
-#verdict.tombe>.sous{height:14px;line-height:14px;white-space:nowrap}
-#verdict .issue-du-jet{height:38px;font-size:27px;line-height:38px;white-space:nowrap;color:#3a1a10}
-#verdict .issue-du-jet small{font-size:18px;line-height:1}
-#verdict .issue-du-jet.reussite{color:#3d5a26}
-#verdict .issue-du-jet.echec{color:var(--sang)}
-#verdict .issue-du-jet.critique{color:#3d5a26}
-#verdict .issue-du-jet.critique span{padding:0 8px;border-radius:2px;color:var(--encre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:inset 0 0 0 1px var(--or-sombre)}
-#verdict .dr-du-jet{height:14px;line-height:14px;font-size:12px;letter-spacing:.6px;color:#4a3420}
-#verdict.tombe>p{margin-top:2px}
-#verdict.tombe>.cumul{margin-top:0}
+/* le verdict d'un jet tombé (`verdict`) : le cadre du centre, vide ; chaque rang dans sa place fixe, le mot générique
+   de la couleur de l'issue, les conséquences en pièces, le DR en petit, la phrase sur deux lignes au plus */
+#verdict.tombe{height:112px}
+#jet .place>.sous{height:14px;line-height:14px;white-space:nowrap;text-align:center;font-size:12.5px;color:#4a3420}
+#jet .issue-du-jet{height:38px;line-height:38px;text-align:center;font-size:27px;white-space:nowrap;color:#3a1a10}
+#jet .issue-du-jet.reussite{color:#3d5a26}
+#jet .issue-du-jet.echec{color:var(--sang)}
+#jet .issue-du-jet.critique{color:#3d5a26}
+#jet .issue-du-jet.critique span{padding:0 8px;border-radius:2px;color:var(--encre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:inset 0 0 0 1px var(--or-sombre)}
+#jet .consequences{height:22px;display:flex;justify-content:center;align-items:center;gap:14px;color:#2a1d12}
+#jet .consequence{position:relative;display:flex;align-items:center;gap:4px;font-size:15px;line-height:22px;white-space:nowrap}
+#jet .consequence b{font-family:"Fell SC";font-weight:400}
+#jet .consequence.gain{color:#3d5a26}
+#jet .consequence.perte{color:var(--sang)}
+#jet .consequence[data-sans-icone] .nom{font-family:"Fell SC";font-size:14px;padding:0 4px;border:1px dashed currentColor;border-radius:2px;line-height:18px}
+#jet .dr-du-jet{height:14px;line-height:14px;font-size:12px;letter-spacing:.6px;color:#4a3420;display:flex;justify-content:center;align-items:center;gap:8px;white-space:nowrap}
+#jet .dr-du-jet b{font-weight:400;font-size:12px;color:#2a1d12}
+#jet .phrase-du-jet{margin:0;padding:0 6px;text-align:center;font-style:italic;font-size:12.5px;line-height:17px;color:#2a1d12}
 #suites .place>.plaque{width:100%}
 #suites .place>.plaque>div{padding:0 4px;white-space:normal;text-align:center;font-size:13px;line-height:12px;letter-spacing:.3px}
 
