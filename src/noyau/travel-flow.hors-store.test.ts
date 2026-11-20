@@ -8,7 +8,7 @@
  * de nuit / l'arrivée. La marche forcée reste une étape de la cascade de NUIT (inchangée).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { refLabel, resolveStake, testSkillLabel, voyageStakeRef, weather } from '../data';
+import { combatStakeRef, refLabel, resolveStake, testSkillLabel, voyageStakeRef, weather } from '../data';
 import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -22,12 +22,14 @@ import { encounterTable } from '../engine/travelTables';
 import { PERIPETIES } from '../data/peripeties';
 import { emptyScene, Scene } from './monde/scene';
 import { buildEncounter } from './monde/encounterAuthoring';
-import type { MapRouteTrace, RoutePeril, WorldMap } from './worldMap';
-import { campaignStart } from '../engine/clock';
+import { documentDeProjet, parseProject, type MapRouteTrace, type RoutePeril, type WorldMap } from './worldMap';
+import { emptyNarratif } from './monde/campaignNarratif';
+import { campaignStart, dayIndex } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
 import { applierQuiOuvre } from './noyau.testkit';
 import { runFlow } from './combatEffects';
 import { setCadence } from '../engine/cadence';
+import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { t } from '../i18n';
 import type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
 import { buildWeatherResistanceSteps, buildStageSteps } from './travelPostes';
@@ -37,7 +39,7 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engi
 import type { Possession } from '../engine/possession';
 import { applierDe, jouerLaJournee, rollTableStep } from './cascade';
 import { bandStep, monoStep, rollStep } from './rollSeam';
-import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest, type ChoisitCle } from './cascade.testkit';
+import { inexplique, soutienDe, draineCascade, draineEtapes, avanceEtapeCascade, cascadeDeTest, type ChoisitCle, type PoseDe } from './cascade.testkit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 import { lignesDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
@@ -59,9 +61,9 @@ const hero = (p: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   items: [], movement: 4, ...p,
 }) as Combatant);
-function sceneA(): Scene {
+function sceneA(surprise?: 'groupe' | 'ennemis'): Scene {
   const s = emptyScene('scene-test', 10, 10); s.id = 'lieu-a-scene'; s.label = 'A';
-  const enc = buildEncounter({ id: 'enc-test', enemies: [{ statblock: { type: 'statblock', label: 'Brigand', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
+  const enc = buildEncounter({ id: 'enc-test', surprise, enemies: [{ statblock: { type: 'statblock', label: 'Brigand', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
   s.entities.push(...enc.entities); s.encounters = [enc.encounter];
   return s;
 }
@@ -72,9 +74,9 @@ function map(rp: Partial<MapRouteTrace> = {}): WorldMap {
     { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: { id: 'lieu-b-scene' } },
   ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 12, modes: ['pied'], perilDie: 0, ...rp }] };
 }
-function setup(wm: WorldMap, party: Combatant[]) {
+function setup(wm: WorldMap, party: Combatant[], scenes = [sceneA(), sceneB()]) {
   banc.setState({ party, gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-  get().chargerLeProjet({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: wm, projet: null });
+  get().chargerLeProjet({ scenes, entryId: 'lieu-a-scene', worldMap: wm, projet: null });
   banc.setState({ gameTime: campaignStart() });
 }
 
@@ -1198,5 +1200,131 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
       for (const label of ['Anna', 'Bert']) expect(traceDe(label).length, `la rangée de ${label} laisse sa ligne`).toBeGreaterThanOrEqual(1);
       expect(traceDe('Anna').length, 'la péripétie laisse aussi la sienne').toBe(2);
     }
+  });
+});
+
+describe('Rester aux aguets, de l’Étape au combat (#4154)', () => {
+  const combat = { type: 'startCombat', encounter: { id: 'enc-test' } } as const;
+  const transition = { type: 'transition', scene: { id: 'lieu-b-scene' } } as const;
+  const embuscade = { perilDie: 8, ambush: { scene: transition.scene, encounter: combat.encounter.id } };
+  const miseEnPlace = (route: Partial<MapRouteTrace>, surpris: 'groupe' | 'ennemis' = 'groupe') => {
+    seedBattleRng(1);
+    const scenes = [sceneA(surpris), { ...sceneA(surpris), id: 'lieu-b-scene', label: 'B' }];
+    const worldMap = map({ provenances: { perilDie: { maison: 'Seuil du banc de voyage.' } }, ...route });
+    const identite = { type: 'projet', id: 'voyage-aux-aguets', label: 'Voyage aux aguets', versionContenu: 1, maison: 'Banc de voyage.' } as const;
+    const projet = parseProject(documentDeProjet(identite, scenes, { worldMap, narratif: emptyNarratif() }));
+    setup(projet.worldMap!, [hero({
+      travelRole: { activityId: 'rester-aux-aguets' },
+      items: [ration('r1'), ration('r2')],
+      skills: [{ id: 'perception', characteristic: 'initiative', advances: 20 }, { id: 'discretion', characteristic: 'agilite', advances: 60 }],
+    })], projet.scenes);
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
+  };
+  const poser = (aguets: number, peripetie = 92, seuil = 8): PoseDe => (etape) => {
+    switch (etape.kind) {
+      case 'etape-meteo': return 31;
+      case 'etapePosteEnBande': return aguets;
+      case 'perilATerre': return seuil;
+      case 'perilATerreTable': return PERIPETIES.find((p) => p.kind === 'attaque')!.roll;
+      case 'perilATerrePerception': return peripetie;
+      case 'perilDeScene': return 1;
+      default: return undefined;
+    }
+  };
+  const enjeuSurprise = combatStakeRef('embuscade-reperer');
+  const surpriseEnCours = () => get().pendingCascade?.participants.map((s) => s.stake) ?? [];
+
+  beforeEach(() => {
+    setRule('voyage-etapes', true);
+    setCadence('manuel');
+    setDesFixes(true);
+  });
+  afterEach(() => {
+    resetRule('voyage-etapes');
+    resetDesFixes();
+  });
+
+  it.each([
+    { aguets: 21, peripetie: 92, surprise: false },
+    { aguets: 92, peripetie: 92, surprise: true },
+    { aguets: 92, peripetie: 21, surprise: false },
+  ])('« Attaqués ! » : aguets $aguets, Perception $peripetie, Surprise $surprise', ({ aguets, peripetie, surprise }) => {
+    miseEnPlace(embuscade);
+    const etapes = draineCascade(get, 40, poser(aguets, peripetie));
+    expect(etapes).toContain('etapePosteEnBande');
+    expect(etapes).toContain('perilATerrePerception');
+    expect(get().travelRecap?.then?.kind).toBe('ambush');
+    expect(get().battle).toBeNull();
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().battle).not.toBeNull();
+    if (surprise) expect(surpriseEnCours()).toContainEqual(enjeuSurprise);
+    else expect(surpriseEnCours()).not.toContainEqual(enjeuSurprise);
+  });
+
+  it('l’embuscade configurée après minuit reste couverte si l’Étape n’a pas changé', () => {
+    miseEnPlace({ ...embuscade, perils: [{ label: 'Retard jusqu’à l’aube', chancePct: 100, effects: [{ type: 'setTime', hour: 6 }] }] });
+    const jour = dayIndex(get().gameTime);
+    let perception: { roll: number; success: boolean } | undefined;
+    const desabonner = banc.subscribe((etat) => {
+      const test = etat.pendingCascade?.participants.find((etape) => etape.kind === 'perilATerrePerception');
+      const resultat = test?.result;
+      if (resultat?.roll !== undefined) perception = { roll: resultat.roll, success: resultat.success };
+    });
+    const etapes = draineCascade(get, 40, poser(21));
+    desabonner();
+    expect(perception).toMatchObject({ roll: 92, success: false });
+    expect(etapes.filter((kind) => kind === 'etapePosteEnBande')).toHaveLength(1);
+    expect(etapes).toContain('perilATerrePerception');
+    expect(dayIndex(get().gameTime)).toBe(jour + 1);
+    expect(get().travelRecap?.then?.kind).toBe('ambush');
+    expect(get().battle).toBeNull();
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().scene?.id).toBe('lieu-b-scene');
+    expect(get().battle).not.toBeNull();
+    expect(surpriseEnCours()).not.toContainEqual(enjeuSurprise);
+  });
+
+  it('la garde du groupe laisse jouer l’embuscade tendue aux ennemis', () => {
+    miseEnPlace(embuscade, 'ennemis');
+    draineCascade(get, 40, poser(21));
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().battle).not.toBeNull();
+    expect(get().battle!.log.map((e) => e.text)).toContainEqual(expect.stringMatching(/Hilda \(Discrétion\).*Brigand \(Perception\)/));
+  });
+
+  it('après la halte, la réussite de l’Étape précédente ne couvre plus le groupe', () => {
+    miseEnPlace({ ...embuscade, km: 30 });
+    expect(draineCascade(get, 40, poser(21, 92, 1))).toContain('etapePosteEnBande');
+    expect(get().battle).toBeNull();
+    expect(get().pendingRest?.travelHalt).toBe(true);
+    get().fenetreValider('repos');
+    const etapes = draineCascade(get, 80, poser(92));
+    expect(etapes.filter((kind) => kind === 'etapePosteEnBande')).toHaveLength(1);
+    expect(get().travelRecap?.then?.kind).toBe('ambush');
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().battle).not.toBeNull();
+    expect(surpriseEnCours()).toContainEqual(enjeuSurprise);
+  });
+
+  it('une transition sans combat ne transmet pas la protection au combat libre dans la scène atteinte', () => {
+    miseEnPlace({ perils: [{ label: 'Arrivée au pont', chancePct: 100, effects: [transition] }] });
+    draineCascade(get, 40, poser(21));
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().travelPlan?.interrupted).toBe(true);
+    expect(get().scene?.id).toBe('lieu-b-scene');
+    expect(get().battle).toBeNull();
+    get().lancerLeCombat('enc-test');
+    expect(get().battle).not.toBeNull();
+    expect(surpriseEnCours()).toContainEqual(enjeuSurprise);
+  });
+
+  it('l’entrée de combat d’une Rencontre jouée dans l’Étape lit aussi la porte', () => {
+    const rencontre = applierQuiOuvre('etapeRencontre', { kind: 'effet', effet: combat });
+    miseEnPlace({});
+    const etapes = draineEtapes(get, 40, poser(1));
+    expect(rencontre.n).toBe(1);
+    expect(get().battle).not.toBeNull();
+    expect(etapes.map((e) => e.stake)).not.toContainEqual(enjeuSurprise);
+    expect(surpriseEnCours()).not.toContainEqual(enjeuSurprise);
   });
 });

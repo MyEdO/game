@@ -627,7 +627,7 @@ l.205-216, l.223-233) ; EDOC 09 l.3-5 (usage facultatif, nombre par Étape).
 
 ### Activités de Voyage (1 par Étape)
 
-**Source :** EDOC 08 l.129-180
+**Source :** EDOC 08 l.129-180, LDB 09 l.254-261
 
 Échec à un Test pendant une Activité → +1 *Exténué*.
 
@@ -640,7 +640,19 @@ l.205-216, l.223-233) ; EDOC 09 l.3-5 (usage facultatif, nombre par Étape).
 | **Établir des Cartes** | Test étendu Métier (Cartographe) ou Art (Dessin), DR requis = 2 × nb Étapes | Carte → Tests Savoir/Orientation Accessibles (+20) lors de futurs voyages. |
 | **Pratiquer une Compétence** | Test Intermédiaire (+0) d'une compétence praticable en voyage | Peut inverser un jet sur cette compétence lors de la prochaine aventure ou Étape. |
 | **Récupérer** | (Aucun test) — condition : pas d'*Exténué* cette Étape | Compte comme repos (guérison de Blessures). |
-| **Monter un Camp** | Survie en extérieur ou Guérison Intermédiaire (+0) | Chaque DR = retirer 1 *Exténué* d'un PJ OU guérir PB. |
+| **Monter un Camp** | Survie en extérieur ou Guérison Intermédiaire (+0) | Le joueur dépense les DR du campeur pour retirer un *Exténué* par DR ou rendre des PB. Le soin d'un patient vaut le Bonus d'Intelligence du campeur, une fois par test, plus les DR affectés à ce patient ([arbitrage du 2026-11-20][camp-arbitrage]). |
+
+L'Activité dure toute l'Étape (EDOC 08 l.131-133). « Rester aux aguets » protège le groupe
+jusqu'à la fin de cette Étape (EDOC 08 l.157). Le flux terrestre actuel ouvre un nouveau cycle
+d'Étape à chaque journée de route jouée. Un passage de minuit au sein d'un cycle ou pendant sa
+suite différée conserve la protection pour les combats issus de ce cycle.
+
+Sous vos ordres, les jets sont joués d'office. Le voyage attend la répartition des DR du camp
+ou un renoncement explicite.
+
+**Implémente :** [État calculé](../implemente.generated.md#4edeplacementactivites-de-voyage-1-par-etape)
+
+[camp-arbitrage]: https://github.com/MyEdO/game/issues/4158#issuecomment-7035845015
 
 ### Provisions en voyage
 
