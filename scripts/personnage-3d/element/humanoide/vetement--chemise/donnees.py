@@ -35,7 +35,7 @@ n'ayant que deux emplacements de vêtement et `vet1` portant le noir des crevés
 (rouge au preset). La même toile pour le col, teinte par la palette."""
 
 BUDGET_TRIANGLES = 1200
-"""Sous les 2 500 d'un vêtement (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000) ; seuls
+"""Sous les 2 500 d'un vêtement (procédure, section 7) ; seuls
 le col et l'avant-bras se voient, le reste est masqué par le pourpoint qui couvre torse et haut des bras."""
 
 # --- Maillage ---

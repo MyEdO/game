@@ -527,13 +527,16 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 | rigide tenu | 1 200 | 256² |
 | accessoire ou trait | 800 | 256² |
 | prop d'art | 1 500 | 512² |
-| personnage assemblé, base visible comprise | 16 000 | — |
+| personnage assemblé, base visible comprise, au niveau de détail 0 | 24 000 | — |
 
 Base à 14 500 : décision utilisateur du 2026-11-13 (#3287), la base mesurée à 14 318 triangles.
 
 La tête humanoïde MakeHuman garde le maillage `body` de MakeHuman (#4413) : ses cibles fines (joues, oreilles, bouche)
-ne s'expriment que sur lui, Godot en tire les niveaux de détail à l'import (`meshes/generate_lods`), et sa pleine
-définition sert aux portraits ; ce n'est pas une décimation ni une retopologie à la construction.
+ne s'expriment que sur lui, et sa pleine définition sert aux portraits ; ce n'est pas une décimation ni une retopologie
+à la construction. Plafond assemblé à 24 000 au niveau de détail 0 : décision utilisateur du 2026-11-19 (#4413). Godot
+ne tire aucun niveau de détail d'un import : il les génère à l'exécution, par `MontageDeComposition.poser_les_niveaux`
+(`ImporterMesh.generate_lods`, `hotes/godot/projet/scripts/montage_de_composition.gd`), sur chaque mesh d'un GLB lu, sur
+chaque mesh cuit et sur le mesh fondu du personnage ; le rendu simplifie le personnage qui s'éloigne.
 
 Ne pas créer de plafond véhicule absent du contrat. Le budget assemblé de l'évaluateur ne compte pas
 les meshes que la pile des couches masque (`hotes/godot/asset/evaluateur/evaluer.ts`, `masques`).
