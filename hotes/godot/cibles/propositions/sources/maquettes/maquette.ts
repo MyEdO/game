@@ -86,7 +86,8 @@ export interface JetTombe {
 
 /** Celui qui teste : le combattant, le poste qu'il tient, son Test et son seuil (`null`, masqué au joueur), ses
  *  modificateurs ; tombé, son jet ; les dés déjà posés d'un jet que l'on reprend ; `parmi`, les héros qui peuvent porter le
- *  Test, à désigner ; `survol`, le seuil sous le curseur, qui montre ses modificateurs dans la bulle. */
+ *  Test, à désigner ; `survol`, ce qui est sous le curseur : le seuil, qui montre ses modificateurs dans la bulle, ou le
+ *  sceau, qui montre le verdict. */
 export interface Testeur {
   role: 'testeur';
   qui: string;
@@ -97,7 +98,7 @@ export interface Testeur {
   jet?: JetTombe;
   des?: Des;
   parmi?: string[];
-  survol?: true;
+  survol?: 'seuil' | 'sceau';
 }
 
 /** Le héros d'une fenêtre sans dé : ce qui le met en jeu (une réserve, sa compétence et son seuil, le Critique qu'il
@@ -332,12 +333,14 @@ export interface Geste {
   survol?: true;
 }
 
-/** Une réserve que les gestes dépensent : son nom, sa valeur ; `porteur`, le combattant qui la porte quand elle est
- *  seule. */
+/** Une réserve que les gestes dépensent : son id, son nom, sa valeur ; `porteur`, le combattant qui la porte quand elle
+ *  est seule ; `survol`, son jeton sous le curseur, qui montre son nom et sa valeur dans la bulle. */
 export interface Reserve {
+  id: 'destin' | 'chance' | 'resilience' | 'determination';
   nom: string;
   valeur: number;
   porteur?: string;
+  survol?: true;
 }
 
 /** Une fenêtre du bas : son titre, le héros à gauche, l'autre à droite, son centre, ses gestes et les réserves qu'ils

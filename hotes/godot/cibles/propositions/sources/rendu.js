@@ -70,9 +70,9 @@
      remplacent par la place large, et dont le troisième cède sa colonne à ce que le choix vise ; la réserve et six
      places de plaque dans la rangée des gestes, la principale dans la première ; les testeurs à désigner au bout de la
      rangée, à la place des deux dernières plaques ; le camp d'un testeur dans la place `gauche` ou `droite` : le
-     portrait, l'identité, la rangée des dés à un y fixe, l'issue sous le portrait, en miroir à droite (`camp`,
-     `combat/jet.js`) */
-  const PLACES_DU_CAMP = { portrait: [0, 0, 74, 92], identite: [86, 0, 186, 50], des: [86, 54, 186, 50], issue: [0, 96, 74, 28] };
+     portrait, l'identité, la rangée des dés à un y fixe, l'issue (le DR, une ligne) sous le portrait, à 10 px au-dessus de la rangée des gestes,
+     en miroir à droite (`camp`, `combat/jet.js`) */
+  const PLACES_DU_CAMP = { portrait: [0, 0, 74, 92], identite: [86, 0, 186, 50], des: [86, 54, 186, 50], issue: [0, 98, 74, 18] };
   const PLACES = {
     'fenetre/gauche': [16, 14, 272, 124], 'fenetre/centre': [300, 14, 342, 112], 'fenetre/droite': [654, 14, 272, 124],
     ...Object.fromEntries(Object.entries(PLACES_DU_CAMP).flatMap(([nom, [x, y, l, h]]) => [[`fenetre/gauche-${nom}`, [16 + x, 14 + y, l, h]], [`fenetre/droite-${nom}`, [654 + 272 - x - l, 14 + y, l, h]]])),
@@ -146,8 +146,8 @@
       cote, portrait: portraitDe(t.qui), nom: echapper(qui(t.qui).nom), carac: `${t.poste ? `${echapper(t.poste)} · ` : ''}${echapper(t.test)}`, seuil: t.seuil ?? '?',
       des: cote ? faces.reverse() : faces, regles: !!t.jet?.reglable,
       total: t.jet ? d100(t.jet.des[0] + t.jet.des[1]) : null, dr: t.jet ? signe(t.jet.dr) : null,
-      influences: t.survol ? t.modificateurs.map(libelleDuModificateur) : null,
-      reussite: !!t.jet?.reussite, ...(t.jet?.critique ? { verdict: 'critique' } : {}),
+      influences: (t.modificateurs ?? []).map(libelleDuModificateur), survol: t.survol ?? null,
+      reussite: !!t.jet?.reussite, critique: !!t.jet?.critique,
     });
   };
   /* le héros qui choisit sans dé : ce qui le met en jeu, son prix */
@@ -296,9 +296,13 @@
       { numero: k + 1, survol: !!r.survol, prix: r.prix === undefined ? null : prix(r.prix), taille: 'petite', classe: 'gauche' })).join('')}</div>`,
     corruption: (c) => ({ centre: verdict(`${echapper(c.influence)} · Points de Corruption ${c.corruption.points} / ${c.corruption.seuil}`, c.gain ? `+${pluriel(c.gain, 'Point')}` : 'Aucun Point', echapper(c.issue)), droite: enjeuDu(c.enjeu) }),
   };
+  /* le pictogramme qui identifie chaque réserve d'un héros, et l'Expérience (`../combat.md`, « À valider ») */
+  const PICTO_DE_LA_RESERVE = { destin: 'sablier', chance: 'etoile', resilience: 'coeur', determination: 'poing', experience: 'livre' };
+  /* le jeton d'une réserve : son pictogramme ; son nom, de qui la porte quand elle est seule, au survol */
+  const jetonDe = (r) => ({ valeur: r.valeur, icone: picto(PICTO_DE_LA_RESERVE[r.id], 20, undefined, 1.8), nom: r.porteur ? `${echapper(r.nom)} ${de(echapper(qui(r.porteur).nom))}` : echapper(r.nom), survol: !!r.survol });
   /* les gestes : la réserve dépensée à gauche, la plaque principale en premier, la raison d'un refus au survol */
   const gestesDe = (f) => [f.gestes.map((g) => plaque(`${echapper(g.libelle)}${g.refus && g.survol ? raison(echapper(g.refus)) : ''}`, { armee: !!g.principal, fermee: !!g.refus })),
-    `${f.reserves.length ? reserves(f.reserves.map((r) => [r.valeur, r.porteur ? `${echapper(r.nom)} ${de(echapper(qui(r.porteur).nom))}` : echapper(r.nom)])) : ''}`];
+    `${f.reserves.length ? reserves(f.reserves.map(jetonDe)) : ''}`];
   /* la fenêtre : le héros à gauche, ce que le centre pose (le centre seul, ou ses places), l'autre camp à droite, les
      héros parmi lesquels le testeur se désigne au bout des gestes */
   const fenetre = (f) => {
@@ -351,7 +355,7 @@
       ${b.charge ? mesure('Chargé', `${b.charge.reste} / ${b.charge.sur}`, 'or') : `<div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>${b.mouvement.reste} / ${b.mouvement.sur}</b></div>${rangDePas(b.mouvement.reste, b.mouvement.sur)}</div>`}
       <div class="jeton">${sceau('epee')}<div class="v"><span class="rubrique">Action</span> <em>${b.action ? 'disponible' : 'dépensée'}</em></div></div>
       <div class="jeton"><div class="chiffre">${b.avantage}</div><div class="v"><span class="rubrique">Avantage</span></div></div>
-      <div class="tiers">${b.determination === undefined ? '' : `<div class="jeton">${rond(b.determination, 'petit')}<div class="v"><span class="rubrique">Détermination</span></div></div>`}
+      <div class="tiers">${b.determination === undefined ? '' : reserves([jetonDe({ id: 'determination', nom: 'Détermination', valeur: b.determination })])}
       <div class="portes"><span class="rubrique">États</span>${c.etats.map(etatPorte).join('') || '<em>aucun</em>'}</div></div>`;
   };
   const barre = (b) => {
@@ -430,7 +434,7 @@
   /* 7. Ce que rend une victoire, dans une fenêtre du bas sous la bannière : l'Expérience et l'argent, les vaincus, le
      butin, à qui va chaque objet ; l'action unique de l'issue en pied */
   const butin = (b, action) => bandeauDuJet('Butin', 'butin', places('fenetre', {
-    gauche: `<div class="gains">${reserves([[b.experience, 'Expérience']], 'grand')}<div class="argent"><b class="gothique">${b.argent.shillings}/${b.argent.pence}</b><span class="rubrique">Argent</span></div></div>`,
+    gauche: `<div class="gains">${reserves([jetonDe({ id: 'experience', nom: 'Expérience', valeur: b.experience })], 'grand')}<div class="argent"><b class="gothique">${b.argent.shillings}/${b.argent.pence}</b><span class="rubrique">Argent</span></div></div>`,
     centre: `<div class="vaincus"><div class="t rubrique">Vaincus</div>${b.vaincus.map((v) => `<div class="v">${echapper(v.nom)} ×${v.nombre}${v.depecer ? options([['Dépecer']]) : ''}</div>`).join('')}</div>`,
     droite: `<div class="lignes-b"><div class="t rubrique">Butin, à qui va chaque objet</div>${b.objets.map((o) => `<div class="ligne-b"><span data-texte="butin ${echapper(o.nom)}">${echapper(o.nom)}</span><i class="rubrique">Attribuer</i>${o.pour.map((h) => portrait(h, { taille: 'menu' })).join('')}</div>`).join('')}</div>` }),
   [plaque(echapper(action), { armee: true })]);
@@ -771,11 +775,12 @@
     reste: `Distance <b class="gothique">${f.distance}</b>${f.ecart ? ` · le navire creuse l’écart, ${signe(f.ecart)}` : ''}` });
   /* la frise du trajet : d'où, vers où, les nuits passées en route, ce qui reste */
   const friseDuTrajet = (f) => frise({ part: f.part, bornes: [echapper(f.de), echapper(f.vers)], trace: '#b9412c', nuits: f.nuits, reste: `<b class="gothique">${f.reste}</b> ${f.unite} avant ${echapper(f.vers)}` });
-  /* la Chance qui reste à ceux qui ont lancé un jet, au pied de son billet (LDB 17 l.23-24) */
-  const chanceDu = (r) => `<div class="pied"><div class="chance"><span class="rubrique">Chance</span>${reserves(r)}</div></div>`;
+  /* la Chance qui reste à ceux qui ont lancé un jet, au pied de son billet (LDB 17 l.23-24) : l'étoile de la Chance, un
+     jeton par lanceur identifié par son portrait */
+  const chanceDu = (ids) => `<div class="pied"><div class="chance">${picto(PICTO_DE_LA_RESERVE.chance, 20, undefined, 1.8)}${reserves(ids.map(([valeur, id]) => ({ valeur, icone: portrait(qui(id).buste, { taille: 'menu' }), nom: `Chance ${de(prenomDe(id))}` })))}</div></div>`;
   /* l'aperçu du Test d'équipage joué : chaque poste, son DR, la somme ; la Chance de ceux qui l'ont lancé */
   const apercuDuTest = (a) => `<div id="apercu-test">${apercu({ nom: echapper(a.nom), sous: echapper(a.test), vers: 'bas', corps: `<table>${a.lignes.map((l) => `<tr><td>${echapper(qui(l.qui).nom)}, ${echapper(l.poste)}</td><td>${signe(l.dr)} DR${l.double ? ' ×2' : ''}</td></tr>`).join('')}
-    <tr class="somme"><td>Somme</td><td>${signe(a.lignes.reduce((t, l) => t + l.dr * (l.double ? 2 : 1), 0))} DR</td></tr></table>${a.chance ? chanceDu(a.chance.map((c) => [c.valeur, prenomDe(c.qui)])) : ''}` })}</div>`;
+    <tr class="somme"><td>Somme</td><td>${signe(a.lignes.reduce((t, l) => t + l.dr * (l.double ? 2 : 1), 0))} DR</td></tr></table>${a.chance ? chanceDu(a.chance.map((c) => [c.valeur, c.qui])) : ''}` })}</div>`;
   const poursuite = (p) => [
     titreDu(p.titre, p.decor), recitDu(p.recit),
     ...(p.trajet ? [trajetDu(p.trajet, p.decor)] : []),
@@ -805,7 +810,7 @@
     const k = groupe.findIndex((h) => h.id === a.qui), nom = prenomDe(a.qui);
     return `<div id="billet-du-jet">${apercu({ nom: echapper(a.test), sous: `${nom}${a.poste ? ` · ${echapper(a.poste)}` : ''}`, vers: 'bas', style: `left:calc(50% - 480px + ${240 * k + 24}px);bottom:236px;--pointe:60px`,
       corps: `<table><tr><td>Seuil</td><td>${echapper(a.difficulte.nom)} (${signe(a.difficulte.valeur)}) · ${a.seuil}</td></tr><tr><td>Dé</td><td>${d100(a.de)}</td></tr>
-        <tr><td>${a.de <= a.seuil ? 'Réussite' : 'Échec'}</td><td>${signe(a.dr)} DR</td></tr>${a.effet ? `<tr><td>${echapper(a.effet.nom)}</td><td>${signe(a.effet.vitesse)} % de vitesse</td></tr>` : ''}</table>${chanceDu([[a.chance, nom]])}` })}</div>`;
+        <tr><td>${a.de <= a.seuil ? 'Réussite' : 'Échec'}</td><td>${signe(a.dr)} DR</td></tr>${a.effet ? `<tr><td>${echapper(a.effet.nom)}</td><td>${signe(a.effet.vitesse)} % de vitesse</td></tr>` : ''}</table>${chanceDu([[a.chance, a.qui]])}` })}</div>`;
   };
   /* le carton d'un arrêt, chaque part à sa place (`PLACES`, `carton/*`) : la vignette, le titre et où il tombe, le texte
      du livre, le dé tiré ; les cartes du choix qu'il ouvre (ou ses paies et les parts qu'elles règlent), son geste */

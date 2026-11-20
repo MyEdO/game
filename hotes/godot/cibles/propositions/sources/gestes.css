@@ -230,10 +230,11 @@ html,body{margin:0;background:var(--noir)}
 .disque.petit{width:28px;height:28px;padding:2px;font-size:16px}
 .compteur{display:flex;align-items:center;gap:13px;font-size:14.5px}
 
-/* le sceau de cire : pictogramme gravé ou chiffre ; réussite, vide */
+/* le sceau de cire : pictogramme gravé ou chiffre ; réussite, critique (cerclé d'or), vide */
 .sceau{position:relative;flex:none;display:grid;place-items:center;color:var(--encre-cire);background:radial-gradient(circle at 38% 30%,var(--cire-clair),var(--cire) 50%,var(--cire-sombre) 100%);border-radius:48% 52% 55% 45%/52% 46% 54% 48%;box-shadow:0 2px 4px var(--ombre-forte),inset 0 0 0 3px var(--cire-creux),inset 2px 2px 3px var(--cire-reflet)}
 .sceau>b{font-family:"Grenze Gotisch";font-weight:600;color:var(--ivoire)}
 .sceau.reussite{background:radial-gradient(circle at 38% 30%,var(--vert-clair),var(--vert) 50%,var(--vert-sombre) 100%);box-shadow:0 2px 4px var(--ombre),inset 0 0 0 3px var(--vert-creux),inset 2px 2px 3px var(--vert-reflet)}
+.sceau.critique{box-shadow:0 0 0 2px var(--or),0 0 0 3px var(--contour),0 2px 6px var(--ombre),inset 0 0 0 3px var(--vert-creux),inset 2px 2px 3px var(--vert-reflet)}
 .sceau.vide{background:radial-gradient(circle at 40% 32%,var(--empreinte-clair),var(--empreinte) 55%,var(--empreinte-sombre));box-shadow:inset 0 0 0 1px var(--filet-encre),inset 0 2px 6px var(--brou)}
 .sceau.menu{width:20px;height:20px;font-size:11px}
 .sceau.petit{width:28px;height:28px;font-size:15px}
@@ -242,7 +243,7 @@ html,body{margin:0;background:var(--noir)}
 .sceau.maitre{width:62px;height:62px;font-size:32px}
 .sceau.de{display:flex;flex-direction:column}
 .sceau.de b{font-weight:700;font-size:28px;line-height:26px}
-.sceau.de i{font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px;color:var(--ivoire)}
+.sceau.de i{margin-top:5px;font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px;color:var(--ivoire)}
 
 /* le filet : deux traits, un losange au milieu s'il en porte un ; teinte du fond */
 .filet{display:flex;align-items:center;margin:11px 0;color:var(--creme-2)}

@@ -33,7 +33,7 @@
 #dortoir .plaque.nuit>div{font-size:16.5px}
 
 /* la partie d'un jeu de taverne */
-#partie h3{font-size:30px;line-height:44px;margin:-8px 0 -8px}
+#partie h3{font-size:30px;line-height:44px;margin:-8px 0 -6px}
 #partie p{margin-top:7px}
 #partie .t{font-size:12.5px;color:#6b1c10;margin-bottom:8px}
 .sieges{display:flex;gap:10px}

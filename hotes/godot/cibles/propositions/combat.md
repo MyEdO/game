@@ -18,6 +18,19 @@ Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Localisation �
 localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.json` ; malus de visée −20 (LDB 14 l.73,
 `src/engine/combat.ts:1047`).
 
+## Bandeau du jet : réserves et issue du camp (#4411)
+- Fiches `user-doctrine-icone-identifie-survol-detaille` et `user-doctrine-boites-fixes-d-un-ecran-a-l-autre`.
+- À valider : chaque réserve, un jeton dans une case de largeur fixe, son pictogramme à gauche du disque, sans nom
+  écrit ; le nom et la valeur (« Chance : 3 ») dans la bulle du jeton survolé (`reserves`, `sources/combat/jet.js`).
+  Pictogrammes (`PICTO_DE_LA_RESERVE`, `sources/rendu.js`) : Chance `etoile`, Résilience `coeur`, Détermination
+  `poing`, Destin `sablier` (le temps compté, distinct du `fin` de la fin du tour), Expérience `livre` (ce qui s'est
+  appris ; aucun pictogramme de progression au kit). La Chance au pied d'un billet de jet : l'étoile une fois, puis un
+  jeton par lanceur, identifié par son portrait `menu`.
+- À valider : l'issue du camp est le seul DR, sur une ligne, sous le portrait, à 10 px de la rangée des réserves ; le
+  verdict ne s'écrit plus, le sceau du total le porte par son état (vert la réussite, cerclé d'or le critique, rouge
+  l'échec), son mot dans la bulle du sceau survolé. Le cercle d'or du critique est neuf (`.sceau.critique`,
+  `sources/gestes.css`).
+
 ## tour-adverse (A1, A2, T3)
 - Le meuble garde sa place et montre l'adversaire : portrait de fer, nom, arme (« Hache »), Blessures.
 - Plaques et fin du tour fermées.

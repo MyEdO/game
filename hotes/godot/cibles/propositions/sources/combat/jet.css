@@ -12,12 +12,14 @@
 .camp .des{display:flex;align-items:center;gap:10px;margin-top:5px}
 .camp.droite .des{flex-direction:row-reverse}
 .camp .seuil{font-family:"Grenze Gotisch";font-weight:600;font-size:30px;line-height:34px;color:#2a1d12;white-space:nowrap;position:relative}
-.camp .seuil>.bulle-refus{font-weight:400}
-.camp .issue{line-height:17px}
 /* le camp d'un testeur (`camp`, `jet.js`) : chaque part dans sa place, la rangée des dés tenue à gauche, en miroir à droite */
 .camp>.place>.des{height:100%;margin:0}
-.camp>.place>.issue{display:flex;flex-direction:column;align-items:center;white-space:nowrap;line-height:14px}
-.camp>.place>.issue b,.camp>.place>.issue span{font-size:14px;line-height:14px}
+/* le seuil dans une case de largeur fixe : les dés et le sceau ne glissent pas d'un seuil à l'autre */
+.camp>.place>.des .seuil{flex:none;width:52px;text-align:right}
+.camp.droite>.place>.des .seuil{text-align:left}
+.camp>.place>.issue{text-align:center;white-space:nowrap;font-size:14px;line-height:16px;color:#2a1d12;font-weight:600}
+.camp :is(.seuil,.sceau)>.bulle-refus{font-weight:400}
+.camp>.place>.c{max-height:28px;overflow:hidden}
 .camp .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:#7c1f14}
 .camp .issue span{font-size:14px;color:#2a1d12;font-weight:600}
 .modif{display:inline-block;margin-top:5px;padding:0 9px 1px;font-size:12.5px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35)}
@@ -27,12 +29,12 @@
 #verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
 #suites .place>.plaque{width:100%}
 #suites .place>.plaque>div{padding:0 4px;white-space:normal;text-align:center;font-size:13px;line-height:12px;letter-spacing:.3px}
-.camp .issue.reussite b{color:#3d5a26}
 
-/* les réserves du héros : un disque par réserve, son nom dessous ; à gauche des gestes dans les suites */
-.en-reserve{display:flex;gap:12px;align-items:flex-start}
-.en-reserve .res{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;letter-spacing:.7px;line-height:13px;color:#2a1d12;white-space:nowrap}
-.en-reserve .res.vide{color:#6a5a40}
+/* les réserves du héros (`reserves`, `jet.js`) : une case de largeur fixe par jeton, son icône à gauche de son disque */
+.en-reserve{display:flex;gap:10px;align-items:center;color:#2a1d12}
+.en-reserve .res{position:relative;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:4px;width:50px}
+.en-reserve.grand .res{width:66px}
+.en-reserve .res.vide>svg{opacity:.5}
 
 /* avant le dé : le testeur, désigné aux suites, les réglages */
 .testeurs{height:100%;display:flex;align-items:center;justify-content:flex-end;gap:7px;font-size:11.5px;color:#4a3420}

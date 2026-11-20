@@ -8,7 +8,7 @@ import type { Combat, Ecran, Fenetre } from './maquette.ts';
 /** Le deuxième round qui débute : aucun combattant n'a encore la main. */
 const ROUND_2: Combat = { round: 2, tour: null, ordre: ['ilyanwe', 'berta', 'gobelin', 'orc'], suivant: ['ilyanwe', 'berta'], journal: [DIT.tir, 'Orc s’avance vers Ilyanwe la Voilée.', { round: 2 }] };
 /** Ce qui se dépense et se presse au début du round. */
-const SUITES: Pick<Fenetre, 'gestes' | 'reserves'> = { gestes: [{ libelle: 'Commencer le round', principal: true }], reserves: [{ nom: 'Chance', valeur: RESERVES.berta.chance, porteur: 'berta' }] };
+const SUITES: Pick<Fenetre, 'gestes' | 'reserves'> = { gestes: [{ libelle: 'Commencer le round', principal: true }], reserves: [{ id: 'chance', nom: 'Chance', valeur: RESERVES.berta.chance, porteur: 'berta' }] };
 const BERTA_EN_PREMIER = { qui: 'berta', detail: ['Soldate'], marque: { nom: 'Chance', valeur: 1 } };
 
 export default {

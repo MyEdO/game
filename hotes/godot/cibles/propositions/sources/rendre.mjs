@@ -9,8 +9,8 @@
 // contenu de la police de leurs lignes, à moins de 3 px côte à côte ; un texte et un contrôle par le cœur des lignes), des actions principales (plaque armée, étape en cours) cachées
 // sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
 // (`retrecit`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
-// badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle,
-// jamais un texte, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ; ce
+// badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un autre contrôle, son libellé compris,
+// jamais un texte libre, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ; ce
 // dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
 // `rogne` que le haut et le bas :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
@@ -104,7 +104,9 @@ const releve = ([largeur, hauteur]) => {
   })
   /* une feuille qu'un autre élément recouvre : le début, le milieu ou la fin d'une de ses lignes ou de sa boîte, hors de
      ce qu'un ancêtre rogne ou fait défiler, tombe sur ce qui la cache, un contrôle ou un fond peint, hors d'elle et de ses
-     ancêtres, ou ce qu'elle porte au-dessus d'elle ; ce qui porte `data-dessus` peut couvrir un contrôle, jamais un texte */
+     ancêtres, ou ce qu'elle porte au-dessus d'elle ; ce qui porte `data-dessus` peut couvrir ce qui est `couvrable` */
+  /* ce qu'une marque `data-dessus` peut couvrir : un contrôle, ou le libellé d'un contrôle qui ne la porte pas */
+  const couvrable = (e, texte, m) => !texte || (e.closest(CONTROLE) && !e.closest(CONTROLE).contains(m))
   const peint = (a) => { const s = getComputedStyle(a); return a.matches(CONTROLE) || (s.backgroundClip !== 'text' && (s.backgroundImage !== 'none' || !/^rgba\(.*, 0\)$|^transparent$/.test(s.backgroundColor))) }
   const cache = (v, e) => { for (let a = v; a && !a.contains(e); a = a.parentElement) if (peint(a)) return a; return null }
   const rognePoint = (e, x, y) => { for (let a = e; a; a = a.parentElement) if (getComputedStyle(a).overflow !== 'visible') { const r = a.getBoundingClientRect(); if (x < r.left || x > r.right || y < r.top || y > r.bottom) return true } return false }
@@ -112,7 +114,7 @@ const releve = ([largeur, hauteur]) => {
     const y = (q.top + q.bottom) / 2
     if (y < 0 || y > hauteur || x < 0 || x > largeur || rognePoint(e, x, y)) return false
     const v = document.elementFromPoint(x, y), m = v?.closest('[data-dessus]')
-    return v && (!e.contains(v) || (m && !e.closest('[data-dessus]'))) && cache(v, e) && !(m && !texte)
+    return v && (!e.contains(v) || (m && !e.closest('[data-dessus]'))) && cache(v, e) && !(m && couvrable(e, texte, m))
   }))).map((f) => nomme(f.e)))]
   /* une feuille qui sort d'un ancêtre qui la rogne ou la fait défiler (`overflow` non visible ; un texte : lui-même
      compris), sauf par le haut ou le bas de celui qui porte `data-defile`, dont le contenu défile en hauteur, ou dont la
@@ -129,7 +131,7 @@ const releve = ([largeur, hauteur]) => {
   const rognes = [...new Set(feuilles.flatMap((f) => { const par = rogneLa(f); return par ? [`${nomme(f.e)} (${par})`] : [] }))]
   /* deux feuilles, aucune ancêtre de l'autre (hors ce qu'elle porte au-dessus d'elle), qui se recouvrent, dans une pièce
      ou d'une pièce à l'autre (une pièce dont la boîte ne contient pas ses feuilles échappe à `croise`) ; ce qui porte
-     `data-dessus` peut couvrir un contrôle, jamais un texte, pas même le libellé de l'élément qu'il qualifie */
+     `data-dessus` peut couvrir ce qui est `couvrable` */
   const chevauche = new Set()
   /* ce qui se voit d'une feuille : ses rectangles coupés par les ancêtres qui la rognent (un texte : lui-même compris) */
   const visibles = ({ e, texte }, liste) => {
@@ -154,7 +156,7 @@ const releve = ([largeur, hauteur]) => {
     const p = feuilles[i], q = feuilles[j]
     const porte = (f, g) => f.e.contains(g.e) && g.e.closest('[data-dessus]') === f.e.closest('[data-dessus]')
     if (porte(p, q) || porte(q, p) || !croisent(p, q)) continue
-    const dessus = (f, g) => f.e.closest('[data-dessus]') && !g.e.closest('[data-dessus]') && !g.texte
+    const dessus = (f, g) => f.e.closest('[data-dessus]') && !g.e.closest('[data-dessus]') && couvrable(g.e, g.texte, f.e.closest('[data-dessus]'))
     if (!dessus(p, q) && !dessus(q, p)) chevauche.add(nomme(p.e) + ' x ' + nomme(q.e).replace(/^[^:]*: /, ''))
   }
   /* une pièce fixe hors du rect de sa ligne de la table (`CADRE_ATTENDU`, `rendu.js`), ou sans ligne ; une ligne de deux

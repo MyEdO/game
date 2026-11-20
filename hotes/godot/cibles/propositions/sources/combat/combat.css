@@ -219,7 +219,7 @@ p.consigne{margin:14px 0 0;padding-left:24px;border-left:1px solid rgba(60,40,20
 
 /* la fin du combat : la conséquence sous le cartouche ; la victoire rend ses gains dans le bandeau du bas */
 .gains{display:flex;align-items:flex-start;gap:22px;padding-top:6px}
-.gains .en-reserve .res,.argent span{font-size:12px;line-height:17px;color:#2a1d12}
+.argent span{font-size:12px;line-height:17px;color:#2a1d12}
 .argent{display:flex;flex-direction:column;align-items:center}
 .argent b{height:46px;line-height:46px;font-size:30px;color:#3a1a10}
 .vaincus,.lignes-b{padding-left:22px;border-left:1px solid rgba(60,40,20,.4);height:108px}

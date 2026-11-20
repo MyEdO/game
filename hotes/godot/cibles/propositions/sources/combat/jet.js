@@ -4,14 +4,15 @@
    Maquette hors du jeu. */
 /* le camp d'un testeur dans sa place de la fenêtre, `gauche` ou `droite` : quatre places (`PLACES`, `../rendu.js`), le
    portrait, l'identité (le nom, le Test sur deux lignes au plus), la rangée du seuil, des deux dés et du sceau du total,
-   l'issue sous le portrait (le verdict, le DR) ; un dé qui se règle porte son − et son + dessous ; le seuil survolé
-   porte la bulle des influences du jet, une ligne chacune */
-const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, influences = null, reussite = false, verdict = reussite ? 'réussite' : 'échec' }) => `
+   dont l'état porte le verdict (vert la réussite, cerclé d'or le critique, rouge l'échec), l'issue sous le portrait (le
+   DR) ; un dé qui se règle porte son − et son + dessous ; `survol` : le seuil survolé porte la bulle des influences du
+   jet, une ligne chacune, le sceau survolé celle du verdict */
+const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, influences = [], survol = null, reussite = false, critique = false }) => `
   <div class="camp ${cote}">${places('fenetre', {
     [`${cote || 'gauche'}-portrait`]: portrait,
-    [`${cote || 'gauche'}-identite`]: `<div class="n gothique">${nom}</div><div class="c rubrique">${carac}</div>`,
-    [`${cote || 'gauche'}-des`]: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${influences ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : reussite ? 'reussite' : '' })}</div>`,
-    [`${cote || 'gauche'}-issue`]: total == null ? '' : `<div class="issue${reussite ? ' reussite' : ''}"><b>${verdict}</b><span>DR ${dr}</span></div>`,
+    [`${cote || 'gauche'}-identite`]: `<div class="n gothique">${nom}</div><div class="c rubrique" data-texte="Test">${carac}</div>`,
+    [`${cote || 'gauche'}-des`]: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${survol === 'seuil' ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : critique ? 'reussite critique' : reussite ? 'reussite' : '', bulle: survol === 'sceau' ? (critique ? 'Critique' : reussite ? 'Réussite' : 'Échec') : '' })}</div>`,
+    [`${cote || 'gauche'}-issue`]: total == null ? '' : `<div class="issue">DR ${dr}</div>`,
   })}</div>`;
 const verdict = (sous, dr, phrase, classe = '') => `<div id="verdict" class="${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="dr gothique">${dr}</div><p data-texte="phrase d'issue">${phrase}</p></div>`;
 /* le bandeau, à la place de la barre de l'actif ou du bandeau des héros : ses places (`PLACES`, `../rendu.js`), la rangée
@@ -32,8 +33,10 @@ const options = (liste) => `<div class="options">${liste.map(([libelle, o = {}])
 const bascule = (libelle, allumee = false) => `<div class="bascule${allumee ? ' allumee' : ''}"><i class="fer"><b class="laiton"></b></i><span class="rubrique">${libelle}</span></div>`;
 
 /* ───────── les gestes du bandeau ───────── */
-/* les réserves d'un héros : un disque par réserve, à gauche des gestes ; `taille` du disque */
-const reserves = (r, taille = 'petit') => `<div class="en-reserve">${r.map(([n, t]) => `<div class="res${n ? '' : ' vide'}">${disque(n, { taille, vide: !n })}<span class="rubrique">${t}</span></div>`).join('')}</div>`;
+/* les réserves d'un héros, à gauche des gestes : un jeton par réserve, chacun dans sa case de largeur fixe, son icône
+   (un pictogramme, ou le portrait de qui la porte) et son disque ; son nom et sa valeur dans la bulle de son survol
+   (`survol`), comme les influences du seuil (fiche `user-doctrine-icone-identifie-survol-detaille`) ; `taille` du disque */
+const reserves = (r, taille = 'petit') => `<div class="en-reserve ${taille}">${r.map(({ valeur, icone, nom, survol = false }) => `<div class="res${valeur ? '' : ' vide'}">${icone}${disque(valeur, { taille, vide: !valeur })}${survol ? raison(`${nom} : ${valeur}`) : ''}</div>`).join('')}</div>`;
 /* la silhouette des localisations : six zones, trois états (libre, choisie, touchee) */
 const ZONES = {
   tete: '<circle cx="30" cy="11" r="9"/>',

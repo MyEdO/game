@@ -3,7 +3,6 @@
 /* 6. Fenêtre du bas : centrée, 960 de large, à 8 du bas ; chaque place à son rect (`PLACES`, `rendu.js`), le contenu s'y adapte */
 #jet .camp{gap:10px}
 #jet .camp .des{gap:3px}
-#jet .camp .issue b{letter-spacing:0}
 #jet .place>.carte .c{-webkit-line-clamp:4}
 #verdict{padding:2px 4px 0}
 #verdict .dr{line-height:normal;margin:0}
@@ -221,6 +220,7 @@
 #etat .jeton{margin-top:0}
 #etat .jeton .v{font-size:13px;white-space:nowrap}
 #etat .tiers{grid-column:1 / 3;display:flex;align-items:center;gap:16px;height:34px}
+#etat .en-reserve{color:#f0e2c2}
 #etat .portes{gap:7px;height:auto}
 #ecran #barre #gestes{left:470px;top:24px;width:450px}
 #barre .place>.plaque{width:100%}

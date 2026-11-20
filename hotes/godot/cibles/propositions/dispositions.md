@@ -155,10 +155,13 @@ des emplacements : la liste paginée par trois, le partage d'une fouille, la tab
 tête reste et les lignes défilent ; au pied, `gestes`, la rangée, avec `reserve` à gauche (la réserve dépensée), les
 `plaques`, la principale en premier, et `testeurs` au bout (le testeur à désigner avant le dé, à la place des deux
 dernières plaques). Le camp d'un testeur, dans `gauche` ou `droite` (hautes de 124), a ses places, en miroir à droite
-(`gauche-*`, `droite-*`) : `portrait` (`grand`), `identite` (le nom seul sur sa ligne, le Test sur deux lignes au
-plus), `des` (le seuil, deux dés et le sceau `grand`, à un y fixe quelle que soit la longueur du Test) et `issue`
-(verdict et DR sur deux lignes, sous le portrait) ; un dé qui se règle porte son − et son + dessous. Les influences du
-jet (modificateurs) ne s'écrivent pas : le seuil survolé les montre dans la bulle à pointe, une ligne chacune. La fenêtre remplace le socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois,
+(`gauche-*`, `droite-*`) : `portrait` (`grand`), `identite` (le nom seul sur sa ligne, le Test borné à deux
+lignes, `data-texte` au relevé `coupe`), `des` (le seuil dans une case de 52, deux dés et le sceau `grand`, à un y fixe
+quelle que soit la longueur du Test et à un x fixe quel que soit le seuil ; l'état du sceau porte le verdict) et `issue` (le DR seul, sur une ligne, sous le portrait, à 10 px
+au-dessus de la rangée des gestes) ; un dé qui se règle porte son − et son + dessous. Les influences du jet
+(modificateurs) ne s'écrivent pas : le seuil survolé les montre dans la bulle à pointe, une ligne chacune ; le sceau
+survolé montre le mot du verdict. Les réserves de `reserve` : un jeton par réserve, son pictogramme et son disque, son
+nom et sa valeur au survol. La fenêtre remplace le socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois,
 défilement).
 
 **7. Récit, document et issue** : `carton` (son action centrée au pied, la prose d'un document paginée) ; `issue` pour
