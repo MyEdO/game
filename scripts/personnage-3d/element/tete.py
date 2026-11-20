@@ -214,11 +214,16 @@ def elevation_de_la_couture(S, C, phis):
     return np.maximum(E, enveloppe)
 
 
+def parts_du_fondu(arcs, portee):
+    """La part de la tête, par part `arcs` de l'arc de la couture au pôle : nulle à la couture, entière à `portee`."""
+    return np.array([fondu(a / portee) for a in arcs])
+
+
 def fondre_sur_le_cou(porteur, C, dirs, rayons, arcs, portee):
     """Par direction de `dirs` depuis `C`, `(rayon, part)` : le rayon passe de la peau de la tête de la base (visée sur
-    `porteur`), qui prolonge le cou, à `rayons`, à la part `fondu(arc / portee)` de `rayons` ; `arcs` est la part de l'arc
-    de la couture au pôle où pointe chaque direction."""
-    parts = np.array([fondu(a / portee) for a in arcs])
+    `porteur`), qui prolonge le cou, à `rayons`, à la part `parts_du_fondu` de `rayons` ; `arcs` est la part de l'arc de la
+    couture au pôle où pointe chaque direction."""
+    parts = parts_du_fondu(arcs, portee)
     de_la_base = np.array([np.linalg.norm(sur_le_porteur(porteur, C, d, PORTEE_M)[0] - C) for d in dirs])
     return (1 - parts) * de_la_base + parts * rayons, parts
 

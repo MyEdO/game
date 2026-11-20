@@ -46,7 +46,8 @@ from noms_formes_de_tete import ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAG
 from noms_silhouettes import FEMININ
 from production import pack_source
 from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere, elevation,
-                  elevation_de_la_couture, fondre_sur_le_cou, normales_de_sommet, poser_les_normales_de_la_couture)
+                  elevation_de_la_couture, fondre_sur_le_cou, normales_de_sommet, parts_du_fondu,
+                  poser_les_normales_de_la_couture)
 from tissu import Maillage, emprunter, fondu, lisser, maillage_skinne, poids_normalises, porteur_de, voisinage
 
 ETAT = 'male-young-averagemuscle-averageweight'
@@ -56,6 +57,10 @@ FONDU_DU_COU = 0.1
 (`tete.fondre_sur_le_cou`) : elle garde à une race sa mâchoire (nain : 8,6 mm sur 8,7 de son écart à l'humain) et
 adoucit le ressaut de la nuque sans l'effacer. Les têtes de `tete.py` ont la leur (`FONDU_DU_COU` de leur `donnees.py`,
 0,2), qui efface mieux ce ressaut mais ne laisse au nain que 6,4 mm."""
+FONDU_DES_CLES = 0.25
+"""HYPOTHÈSE : part de l'arc de la couture au pôle sur laquelle une clé du corps (silhouette, `gabarit_*`) passe de
+celle du cou de la base, à la couture, à celle de la tête (`tete.parts_du_fondu`), réglée à l'œil : quand le cou de la
+base s'amincit ou s'épaissit, la nuque et le dessous de la mâchoire le suivent, sans ressaut ni pli sous le crâne."""
 SOURCILS = 'eyebrows/eyebrows-trans-forward'
 """Cible dont les faces les plus déplacées portent les sourcils (`faces_des_sourcils`)."""
 OREILLES = ('ears/l-ear-trans-backward', 'ears/r-ear-trans-backward')
@@ -256,6 +261,28 @@ def fermer(M, boucle, X, C):
     return siens
 
 
+def souder_les_commissures(boucle, champs):
+    """Soude les deux lèvres de la boucle `boucle` à ses commissures : coupée à ses deux sommets extrêmes de gauche à
+    droite, ses deux moitiés se parcourent de chaque bout, et tant que deux sommets de même rang sont plus proches que
+    le pinceau d'une vue (`PINCEAU_M`), ils prennent leur milieu dans chacun des `champs` (les positions d'abord, puis
+    les écarts des clés) : la fente qu'ils bordaient, trop étroite pour montrer la bouche, n'y laisse plus d'ombre.
+    Rend le nombre de paires soudées."""
+    X = champs[0]
+    debut = int(np.argmin(X[boucle][:, 0]))
+    boucle = boucle[debut:] + boucle[:debut]
+    fin = int(np.argmax(X[boucle][:, 0]))
+    A, B = boucle[:fin + 1], [boucle[0]] + boucle[:fin - 1:-1]
+    soudees = 0
+    for haut, bas in ((A[1:-1], B[1:-1]), (A[-2:0:-1], B[-2:0:-1])):
+        for a, b in zip(haut, bas):
+            if np.linalg.norm(X[a] - X[b]) >= 2.0 * PINCEAU_M['rayon']:
+                break
+            for champ in champs:
+                champ[[a, b]] = champ[[a, b]].mean(axis=0)
+            soudees += 1
+    return soudees
+
+
 def poids_adoucis(W, P, orientes, couture):
     """Les poids `W` des sommets `P` (triangles `orientes`) lissés (`tissu.lisser`), ceux des `couture` premiers sommets
     tenus, jusqu'à ce qu'aucune arête ne porte un saut de poids par mètre plus fort que la couture du cou de la base :
@@ -448,6 +475,10 @@ def construire(D, materiaux, b):
     triangles = gardes
     bas, *autres = boucles_de_bord(triangles, X)
     bas = depuis_l_arriere(bas, X, C)
+    for boucle in autres:
+        if X[boucle][:, 2].mean() < X[des_yeux][:, 2].min():
+            print('TETE_MH commissures :', souder_les_commissures(boucle, [X, *de_makehuman.values()]), 'paires soudées',
+                  flush=True)
 
     M = Maillage()
     bord = M.ajouter(list(S), 'peau')
@@ -510,10 +541,17 @@ def construire(D, materiaux, b):
         poly.material_index = noms_des_materiaux.index(M.parties[tri[0]])
         poly.use_smooth = True
     poser_les_normales_de_la_couture(piece, len(bord), normales_de_sommet(b.zones['cou'])[indices_du_cou])
+    tours = np.degrees(np.unwrap(np.radians([azimut(p - C) for p in S])))
+    azimuts = np.array([azimut(p - C) for p in P[len(bord):]])
+    enveloppe = elevation_de_la_couture(S, C, azimuts)
+    de_la_tete = parts_du_fondu((np.array([elevation(p - C) for p in P[len(bord):]]) - enveloppe) / (90.0 - enveloppe),
+                                FONDU_DES_CLES)[:, None]
     for nom, champ in cles_du_corps(b, ZONES_DES_CLES, P[len(bord):]).items():
+        du_cou = decalages_monde(b.zones['cou'], nom)[indices_du_cou]
         if nom == FEMININ:
             champ = champ + np.concatenate([lu(de_makehuman[FEMININ]) for lu in lus])
-        poser_la_cle(piece, nom, np.concatenate([decalages_monde(b.zones['cou'], nom)[indices_du_cou], champ]))
+        au_cou = np.column_stack([np.interp(azimuts, tours, du_cou[:, k], period=360.0) for k in range(3)])
+        poser_la_cle(piece, nom, np.concatenate([du_cou, de_la_tete * champ + (1.0 - de_la_tete) * au_cou]))
     for nom in TRAITS:
         poser_la_cle(piece, nom, np.concatenate([np.zeros((len(bord), 3))] + [lu(de_makehuman[nom]) for lu in lus]))
     de_peau = np.array([tri for tri in orientes if M.parties[tri[0]] == 'peau'])
