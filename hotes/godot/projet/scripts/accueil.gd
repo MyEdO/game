@@ -6,8 +6,8 @@
 extends Control
 
 ## @contrat Écran publié
-## L'entrée de l'application est un menu (`scenes/Accueil.tscn`, `run/main_scene` ; dans la page, après la scène de
-## démarrage `scenes/Demarrage.tscn`, `run/main_scene.web`) qui montre la zone `accueil.gestes`
+## Après la scène de démarrage (`scenes/Demarrage.tscn`, `run/main_scene`), le menu (`scenes/Accueil.tscn`)
+## montre la zone `accueil.gestes`
 ## de la méthode `accueil` en trois zones (« Reprendre » en tête, armé ; « Jouer » et « Jouer en ligne » en plaques ;
 ## les autres en outils) : « Jouer » ouvre une partie au groupe (`ouvrir`), « Reprendre » montre les sauvegardes à
 ## charger (`sauvegardes`), « Jouer en ligne » montre le panneau du salon sans partie (`salon`), chacune au combat, qui

@@ -1185,8 +1185,8 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 				piece.set_surface_override_material(rang, remplacants[surface.nom])
 			var couleur: Variant = palette.get(surface.palette)
 			var blason: bool = texture != null and surface.get("blason", false)
-			var matiere := _matiere_texturee(surface)
-			var texturee := not matiere.is_empty()
+			var albedo := _albedo_de(surface)
+			var texturee := albedo != null
 			var relief: float = reliefs.get(surface.nom, 1.0)
 			if couleur == null and not blason and not texturee and relief == 1.0:
 				continue
@@ -1194,9 +1194,11 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			if local == null:
 				continue
 			if texturee:
-				var neutre := VolumeDeScene.texture_neutre_de(matiere)
-				var albedo := neutre if couleur != null and ResourceLoader.exists(neutre) else VolumeDeScene.texture_de(matiere)
-				VolumeDeScene.texturer(local, matiere, albedo, surface.get("blason", false) or not par_uv, motif)
+				if couleur != null:
+					var neutre := TexturesDeMatiere.retenue(VolumeDeScene.texture_neutre_de(surface.matiere))
+					if neutre != null:
+						albedo = neutre
+				VolumeDeScene.texturer(local, surface.matiere, albedo, surface.get("blason", false) or not par_uv, motif)
 				local.albedo_color = Color.WHITE
 			elif couleur != null:
 				local.albedo_texture = null
@@ -1212,10 +1214,10 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 	return posee
 
 
-## La matière texturée d'une `surface` de `peindre`, ou "" : sa texture est au projet.
-static func _matiere_texturee(surface: Dictionary) -> String:
+## L'albédo de la matière d'une surface de `peindre`, quand le catalogue le porte.
+static func _albedo_de(surface: Dictionary) -> Texture2D:
 	var matiere: String = surface.get("matiere", "")
-	return matiere if not matiere.is_empty() and ResourceLoader.exists(VolumeDeScene.texture_de(matiere)) else ""
+	return null if matiere.is_empty() else TexturesDeMatiere.retenue(VolumeDeScene.texture_de(matiere))
 
 
 ## Le mesh de `piece` recopié (son mesh à shape keys s'il est cuit, recuit aux mêmes poids, `cuire_les_formes`), chaque
@@ -1227,7 +1229,7 @@ static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> voi
 	var rangs := range(source.get_surface_count()).filter(func(rang: int) -> bool:
 		var materiau := source.surface_get_material(rang)
 		var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
-		return surface.get("blason", false) and not _matiere_texturee(surface).is_empty() \
+		return surface.get("blason", false) and _albedo_de(surface) != null \
 			and source.surface_get_format(rang) & Mesh.ARRAY_FORMAT_TEX_UV2 == 0)
 	if rangs.is_empty():
 		return

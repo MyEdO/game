@@ -112,14 +112,13 @@ func _poser_le_hors_carte(hors_carte: Dictionary, plateau: Dictionary) -> void:
 	if hors_carte.sol == null:
 		return
 	var taille := Vector2i(plateau.w, plateau.h)
-	var texture := VolumeDeScene.texture_de(hors_carte.sol.matiere)
-	var texturee := ResourceLoader.exists(texture)
+	var texture := TexturesDeMatiere.retenue(VolumeDeScene.texture_de(hors_carte.sol.matiere))
 	_hors_carte.position = MiseEnPage.centre_du_hors_carte(taille)
 	_hors_carte.scale = MiseEnPage.etendue_du_hors_carte(taille)
 	sol_hors_carte.set_shader_parameter("albedo_texture", null)
 	sol_hors_carte.set_shader_parameter("normal_enabled", false)
 	VolumeDeScene.texturer(sol_hors_carte, hors_carte.sol.matiere, texture, false)
-	sol_hors_carte.set_shader_parameter("teinte", Color.WHITE if texturee else Color(hors_carte.sol.couleur))
+	sol_hors_carte.set_shader_parameter("teinte", Color.WHITE if texture != null else Color(hors_carte.sol.couleur))
 	sol_hors_carte.set_shader_parameter("metres_par_case", plateau.metresParCase)
 	sol_hors_carte.set_shader_parameter("plateau", Vector2(taille))
 	sol_hors_carte.set_shader_parameter("fondu_cases", 0.0 if hors_carte.fonduCases == null else hors_carte.fonduCases)
