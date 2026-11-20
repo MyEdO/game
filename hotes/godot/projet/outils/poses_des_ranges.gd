@@ -50,6 +50,23 @@ func _poser() -> void:
 	if montage.squelette != null:
 		for ligne: String in cibles:
 			await montage.monter(ligne, cibles[ligne].element, erreurs)
+	var releve: Dictionary = await relever(self, montage, commande.montes, commande.instants, erreurs)
+	var sortie := FileAccess.open(arguments[1], FileAccess.WRITE)
+	if sortie == null:
+		push_error("[poses] sortie illisible : %s" % arguments[1])
+		quit(2)
+		return
+	sortie.store_string(JSON.stringify({pieces = releve.pieces, poses = releve.poses, erreurs = erreurs}, "", false, true))
+	sortie.close()
+	print("[poses] %d pièce(s) rangée(s), %d instant(s), %d erreur(s)" % [releve.pieces.size(), releve.poses.size(), erreurs.size()])
+	quit(0)
+
+
+## Le relevé des objets rangés de `montage`, monté dans `arbre`, sous les `montes` de sa composition : `pieces`, chaque
+## mesh rangé (`ligne`, `mesh`, `offrant`), et `poses`, par instant d'`instants`, la transformation de chacun (`_matrice`),
+## `null` s'il n'est pas montré rangé. À chaque instant, le gabarit et les morphes se posent, le clip s'engage en pause à
+## son instant, et le squelette joue `IMAGES_DE_MISE_A_JOUR` images ; un repos demandé après un clip va à `erreurs`.
+static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Array, instants: Array, erreurs: Array[String]) -> Dictionary:
 	var lignes := {}
 	for prise: String in montage._tenus_ranges:
 		lignes[montage._tenus_ranges[prise].rangement] = prise
@@ -60,8 +77,8 @@ func _poser() -> void:
 			pieces.append({ligne = lignes.get(ligne, ligne), mesh = String(rangee.piece.name), offrant = montage._offrant_du_point(montage._point(ligne))})
 			meshes.append(rangee.piece)
 	var poses := []
-	for instant: Dictionary in commande.instants:
-		montage.composee = {montes = commande.montes, gabarit = instant.get("gabarit", {}), morphes = instant.morphes}
+	for instant: Dictionary in instants:
+		montage.composee = {montes = montes, gabarit = instant.get("gabarit", {}), morphes = instant.morphes}
 		if instant.clip != "":
 			montage.lecteur.play(instant.clip)
 			montage.lecteur.pause()
@@ -71,17 +88,9 @@ func _poser() -> void:
 		erreurs.append_array(montage.poser_le_gabarit().map(func(os: String) -> String: return "os-absent : %s" % os))
 		montage.poser_les_morphes()
 		for _image in IMAGES_DE_MISE_A_JOUR:
-			await process_frame
+			await arbre.process_frame
 		poses.append(meshes.map(func(mesh: MeshInstance3D) -> Variant: return _matrice(mesh.global_transform) if mesh.is_visible_in_tree() else null))
-	var sortie := FileAccess.open(arguments[1], FileAccess.WRITE)
-	if sortie == null:
-		push_error("[poses] sortie illisible : %s" % arguments[1])
-		quit(2)
-		return
-	sortie.store_string(JSON.stringify({pieces = pieces, poses = poses, erreurs = erreurs}, "", false, true))
-	sortie.close()
-	print("[poses] %d pièce(s) rangée(s), %d instant(s), %d erreur(s)" % [pieces.size(), poses.size(), erreurs.size()])
-	quit(0)
+	return {pieces = pieces, poses = poses}
 
 
 ## La base `id` de la réponse de `modeles` retenue, `{}` si elle ne la sert pas.

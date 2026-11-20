@@ -11,6 +11,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { text } from 'node:stream/consumers'
+import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { chargerAssets } from './charger.mjs'
 
 /** Le manifeste d'élément voisin du GLB `glb` (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json`
@@ -82,7 +83,7 @@ if (import.meta.main) {
   const { silhouettes = {}, clip = '', t = 0, ...demande } = JSON.parse(await text(process.stdin))
   const a = await assets()
   const brut = JSON.parse(readFileSync(demande.manifeste, 'utf8'))
-  const morphes = { ...Object.fromEntries((brut.silhouettes ?? []).map((nom) => [nom, 0])), ...silhouettes }
+  const morphes = { ...tableTotale(brut.silhouettes ?? [], () => 0), ...silhouettes }
   const gabarit = brut.gabarit ? { gabarit: a.poseDuGabarit(brut, a.FACTEURS_NEUTRES, morphes) } : {}
   const { elements, sans } = await posesDesRanges({ ...demande, instants: [{ ...gabarit, morphes, clip, t }] })
   process.stdout.write(JSON.stringify({ elements: elements.map((e) => e && { ligne: e.ligne, meshes: Object.fromEntries(Object.entries(e.meshes).map(([nom, poses]) => [nom, poses[0]])) }), sans }))

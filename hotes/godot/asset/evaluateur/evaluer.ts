@@ -3,7 +3,8 @@
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
  * `enroulement`, `budget`, `pistesDEchelle`, `chaines`, `echelleDuRigide`, `tranchantDuRigide`, `silhouettes`, `segments`, `appuis`,
- * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`, `membreDansUnVetement`, `membres`, `amplitude`, `poignets`.
+ * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`, `membreDansUnVetement`, `membres`, `amplitude`, `poignets`,
+ * `rigideRange`. Avec `ranger`, chaque rigide que le jeu range se mesure là où il le range (`rangement.ts`).
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
@@ -12,7 +13,8 @@ import { tableTotale } from '../../../../src/lib/tableTotale.ts';
 import { lireGlb } from '../glb.ts';
 import { chargerScene, type SceneChargee } from './chargement.ts';
 import { libellesDesMeshes, type Ecart } from './ecart.ts';
-import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
+import { echantillonner, instants, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
+import { rangerLesRigides, type Rangeur } from './rangement.ts';
 import type { GabaritResolu } from '../../../../src/noyau/index.ts';
 import { appliquerGabarit, poserFormes } from './gabarit.ts';
 import { poidsDeCarrure, poidsDuGabarit, poseDuGabarit } from '../gabarit.ts';
@@ -59,6 +61,7 @@ import {
   type MembreDUnEchantillon,
 } from './gardes/membreDansUnVetement.ts';
 import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
+import { gardeRigideRange, mesurerLesRigidesRanges, type RigideDUnEchantillon, type RigideRange } from './gardes/rigideRange.ts';
 import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
 import { meshesDuCorps, peauDeLaTenue, zoneDe } from './corps.ts';
 import { poserLaPile } from './pile.ts';
@@ -95,6 +98,9 @@ export interface EntreeDEvaluation {
   readonly clipsAuSol?: readonly string[];
   /** Par clip de la base, le nombre d'écarts `membre-dans-un-vetement` que la tenue admet (`gardeMembreDansUnVetement`). */
   readonly plafondsDesMembres?: Readonly<Record<string, number>>;
+  /** Les poses des rigides que le jeu range, au repos puis à chaque instant échantillonné (`rangement.ts`) ; sans lui,
+   *  tout rigide reste pendu à l'os de sa prise. */
+  readonly ranger?: Rangeur;
 }
 
 export interface MesuresDuClip {
@@ -260,6 +266,10 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   ecarts.push(...silhouettes.ecarts, ...(segments?.ecarts ?? []));
 
+  const instantsRanges = entree.ranger ? [{ clip: '', t: 0 }, ...clips.flatMap((c) => instants(c, pas).map((t) => ({ clip: c.name, t })))] : [];
+  const rangDeLInstant = new Map(instantsRanges.map((i, rang) => [`${i.clip}\u0000${i.t}`, rang]));
+  const rangement = entree.ranger ? rangerLesRigides(base, elements, await entree.ranger(instantsRanges.map((i) => ({ ...(pose ? { gabarit: pose } : {}), morphes: poids, ...i })))) : null;
+  rangement?.poser(0);
   const repos = poseDeRepos(base.scene, meshes);
   const suiviDesChaines = suivreLesChaines(base.scene, chaines, repos);
   const amplitudes = suivreLesAmplitudes(base.scene, manifeste?.bornesArticulaires ?? {}, repos);
@@ -284,7 +294,14 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const dansLesZones = (noms: readonly string[]) => corps.filter((m) => noms.includes(zone(m) as string));
   const [membres, tronc] = [dansLesZones(ZONES_DES_MEMBRES), dansLesZones(ZONES_DU_TRONC)];
   const membresDansLeTronc: MembreDansLeTronc[] = [];
-  for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
+  const portes = skinnes.filter((m) => !masques.has(m)).map((m) => ({ mesh: m, indices: endroits.get(m) ?? indicesDe(m, positionsDe(repos, m).length / 3) }));
+  const rigidesRanges = (): RigideRange[] => (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => {
+    const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
+    return ranges.map((rigide) => ({ rigide, aretes: aretes.get(rigide) as Uint32Array, portes: portes.filter((p) => !offerts.has(p.mesh)) }));
+  });
+  const rigidesDansUnVetement: RigideDUnEchantillon[] = mesurerLesRigidesRanges(rigidesRanges(), repos);
+  for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit, (clip, t) => rangement?.poser(rangDeLInstant.get(`${clip}\u0000${t}`) as number))) {
+    rigidesDansUnVetement.push(...mesurerLesRigidesRanges(rigidesRanges(), e));
     traversees.push(...mesurerTraversee(couches.liaisons, e));
     membresSousVetement.push(...mesurerMembresDansUnVetement(horsDeZone, peauxHorsDeZone, e));
     membresDansLeTronc.push(...mesurerMembres(membres, tronc, e));
@@ -297,7 +314,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
-  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts(), ...poignets.ecarts());
+  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...gardeRigideRange(rigidesDansUnVetement, libelle), ...amplitudes.ecarts(), ...poignets.ecarts());
   if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));

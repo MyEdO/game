@@ -329,7 +329,12 @@ l'os, dans l'ordre des `objets` du preset, sauf sur les cases qu'une pièce offr
 section « Atelier 3D » du contrat du pont). Un objet glissé en travers d'une sangle se centre sur son origine ; une
 arme pend par le haut de son fourreau, poignée au-dessus. Un fourreau est un objet du même GLB qui porte la propriété
 `fourreau` : l'hôte ne le montre que l'arme rangée. Un écart cuit dans l'élément le ferait flotter sur un autre porteur
-(#3743, #3844).
+(#3743, #3844). Cette pose ne vit que dans Godot : `rendu.py --preset <id>` et `npm run godot:evaluer -- … --preset <id>`
+la lui demandent (`hotes/godot/asset/posesDesRanges.mjs`, un lancement de l'éditeur épinglé par appel, sous le verrou
+de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posent chaque rigide rangé où le jeu le pose ;
+la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
+pièce qui offre sa case. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
+chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
@@ -543,7 +548,7 @@ puis restaurer le réglage de revue. Changer la lumière ne corrige pas la forme
 Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, poses et clips utiles,
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
 lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
-(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset`, la pose au `--clip`, et sa `planche.png` porte
+(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset` et y range ses rigides comme le jeu, la pose au `--clip`, et sa `planche.png` porte
 `--illustration` à gauche ; `--cadre x,y,z,étendue` (mètres, repère de `bounds` de `render-report.json`) en fait des gros
 plans. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
