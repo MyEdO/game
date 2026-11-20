@@ -10,6 +10,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { ouvrirPortees } from '../grammaire/collection-cle';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import {
   ammoRangeModSchema,
   availabilitySchema,
@@ -115,7 +116,7 @@ export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
   reach: reachSchema.nullable().optional(),
   range: weaponRangeSpecSchema.nullable().optional(),
   damage: weaponDamageSpecSchema.nullable().optional(),
-  qualities: z.array(qualiteDObjetRefSchema),
+  qualities: listeSansCle(z.array(qualiteDObjetRefSchema)),
 }), {
   hands: { label: 'Mains requises', hint: '1 ou 2 mains pour manier l’objet' },
   weaponGroup: {

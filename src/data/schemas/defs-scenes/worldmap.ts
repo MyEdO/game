@@ -19,6 +19,7 @@ import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDe
 import { idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import { couvreSchema, PORTEES_DE_LA_SCENE, SCENES_DU_PROJET } from './communs';
 import { findVehicleById } from '../../index';
 import { signalDuPortSchema } from '../defs/naval-ports';
@@ -168,7 +169,7 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
 export const routePerilSchema = nommerChamps(ouvrirPortees(z.strictObject({
   label: z.string(),
   chancePct: z.number(),
-  effects: z.array(effectSchema),
+  effects: listeSansCle(z.array(effectSchema)),
 }).superRefine((peril, ctx) => refuserLesIndividus(peril.effects, ctx, 'une péripétie de route')), PORTEES_DE_LA_SCENE, 'vide'), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
 /** Une référence à un lieu de la carte (`ref(LIEUX_DE_LA_CARTE)`). */

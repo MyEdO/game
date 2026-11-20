@@ -10,6 +10,7 @@ import { talentRefSchema, traitPoseDeSceneSchema } from '../grammaire/reference'
 import { refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import type { SkillRefDesignee } from '../../index';
 import { profilChiffreSchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { ID_D_ENTREE } from '../../source/dossier';
@@ -72,14 +73,14 @@ export const customStatblockSchema = nommerChamps(z.strictObject({
   type: z.literal('statblock'),
   label: z.string(),
   char: charStatsSchema,
-  traits: z.array(traitPoseDeSceneSchema).optional(),
+  traits: listeSansCle(z.array(traitPoseDeSceneSchema)).optional(),
   /** LDB 85 ; absente, dérivée du Trait « Taille (X) ». */
   size: sizeCategorySchema.optional(),
   /** LDB 21. */
   groups: groupesDuStatblocSchema.optional(),
   spells: sortsConnusSchema.optional(),
-  skills: z.array(competenceChiffreeSchema).optional(),
-  talents: z.array(talentRefSchema).optional(),
+  skills: listeSansCle(z.array(competenceChiffreeSchema)).optional(),
+  talents: listeSansCle(z.array(talentRefSchema)).optional(),
   /** LDB 77 l.108 (`randomizeChars`). */
   randomChars: z.boolean().optional(),
   /** AA/MDG 12 : un affût servi, sans réaction de combat ni tour propre (`isInanimate`). */

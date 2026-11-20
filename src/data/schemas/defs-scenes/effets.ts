@@ -16,6 +16,7 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import { proseNommee } from '../grammaire/prose';
 import {
   cell2Schema,
@@ -498,7 +499,7 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   distance: z.number(),
   escapeAt: z.number().optional(),
   skill: refOuSpec('skill'),
-  foes: z.array(livingRefSchema),
+  foes: listeSansCle(z.array(livingRefSchema)),
   encounter: ref(RENCONTRES_DE_LA_SCENE).optional(),
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });

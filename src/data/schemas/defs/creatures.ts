@@ -6,6 +6,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import {
   availabilitySchema,
   baremeDEmbaucheSchema,
@@ -65,11 +66,11 @@ const champs = {
     genre: ref('creature').optional(),
     /** src/data/index.ts */
     char: profilChiffreSchema(z.number().nullable()),
-    traits: z.array(traitInstanceSchema),
-    optionals: z.array(optionalEntrySchema),
-    skills: z.array(competenceChiffreeAEmplacementSchema),
-    talents: z.array(talentRefSchema),
-    trappings: z.array(possessionDeCreatureSchema),
+    traits: listeSansCle(z.array(traitInstanceSchema)),
+    optionals: listeSansCle(z.array(optionalEntrySchema)),
+    skills: listeSansCle(z.array(competenceChiffreeAEmplacementSchema)),
+    talents: listeSansCle(z.array(talentRefSchema)),
+    trappings: listeSansCle(z.array(possessionDeCreatureSchema)),
     spells: refs('spell'),
     /** Emplacements SECONDAIRES (#563) — le MÊME statbloc réimprimé par un autre livre (Bête des
      *  marais : LDB 79 l.14, republiée verbatim par VDM 13 folio 179). L'ANCRE `source` reste seule
