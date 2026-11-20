@@ -913,10 +913,10 @@ export async function poserLesRanges(commande) {
   const { figerLesDessins } = await assetsDeLHote()
   const binaire = await editeur()
   let sortie = null
-  const erreurs = await surUneCopie(binaire, figerLesDessins, (copie) => {
+  const erreurs = await surUneCopie(binaire, figerLesDessins, async (copie) => {
     const fichiers = ['commande-des-poses.json', 'poses-des-ranges.json'].map((nom) => join(copie, nom))
     writeFileSync(fichiers[0], JSON.stringify(commande))
-    const lancement = godot(binaire, copie, ['--script', POSES_DES_RANGES, '--', ...fichiers])
+    const lancement = await chronometrer(`poses des objets rangés (${commande.instants.length} instant(s))`, () => godot(binaire, copie, ['--script', POSES_DES_RANGES, '--', ...fichiers]))
     if (!lancement.erreurs.length) sortie = JSON.parse(readFileSync(fichiers[1], 'utf8'))
     return lancement.erreurs
   })

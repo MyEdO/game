@@ -9,7 +9,7 @@
 // sortie standard `{ elements, sans }` pour ce seul instant, le repos sans `clip` :
 //   node hotes/godot/asset/posesDesRanges.mjs < demande.json
 import { existsSync, readFileSync } from 'node:fs'
-import { basename } from 'node:path'
+import { basename, resolve } from 'node:path'
 import { text } from 'node:stream/consumers'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { chargerAssets } from './charger.mjs'
@@ -59,7 +59,7 @@ export async function posesDesRanges({ base, manifeste, elements, preset, instan
   const { poserLesRanges } = await import('../construire.mjs')
   const { pieces, poses, erreurs } = await poserLesRanges({
     modeles, base: brut.base, montes, instants,
-    fichiers: Object.fromEntries([...chemins].map(([id, glb]) => [modeles.fichiers[id].glb, glb])),
+    fichiers: Object.fromEntries([...chemins].map(([id, glb]) => [modeles.fichiers[id].glb, resolve(glb)])),
   })
   if (erreurs.length) throw new Error(`poses des objets rangés : ${erreurs.join(' ; ')}`)
   const lignes = new Map()

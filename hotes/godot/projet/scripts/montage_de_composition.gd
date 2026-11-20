@@ -792,6 +792,10 @@ func _offrant_du_point(point: Dictionary) -> String:
 ## posé ou non, le mélange des déplacements de ces os depuis leur repos, comme un sommet de la pièce
 ## (`_suivre_les_poids`) ; la ligne `<point>#<rang>` va à la case de ce rang si une pièce l'offre, seule, et se pose sinon à côté des autres
 ## objets du point.
+## Cette pose ne se calcule nulle part ailleurs : l'évaluateur (`asset/evaluer.mjs --preset`) et le rendu de contrôle
+## (`scripts/personnage-3d/rendu.py --preset`) la lisent du montage lui-même, monté sans écran par
+## `projet/outils/poses_des_ranges.gd` sur les GLB qu'ils reçoivent, à chaque instant qu'ils mesurent ou rendent
+## (`asset/posesDesRanges.mjs`, recette `projet/recettes/poses-des-ranges.gd`, #4351).
 
 ## Chaque objet rangé posé à son emplacement : les objets d'un même point (`<point>`, puis `<point>#<rang>` par rang,
 ## `composerSurLaBase`) côte à côte autour de l'axe de l'os, le premier sur le point, chaque suivant vers l'avant du

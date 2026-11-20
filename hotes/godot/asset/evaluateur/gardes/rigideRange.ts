@@ -5,7 +5,8 @@
  * l'objet est dans ce mesh si ce bout est à plus de `ECART_DE_SUIVI_M` derrière. Les meshes de l'élément qui offre son
  * emplacement n'y entrent pas : le jeu pose l'objet dans sa case, entre ses parois (`MontageDeComposition._appuyer`).
  * `objet-dans-un-vetement` : un écart par (rigide, mesh, clip), le repos à part, à son pire instant, de valeur la plus
- * grande profondeur derrière.
+ * grande profondeur derrière. Cette profondeur est la distance du bout d'arête au plan du triangle traversé, pas une
+ * épaisseur de matière : une longue arête à travers un pan mince rend la longueur qui dépasse derrière lui.
  */
 import type { Mesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';

@@ -47,10 +47,11 @@ func _poser() -> void:
 	erreurs.append_array(montage.erreurs)
 	montage.composee = {montes = commande.montes}
 	var cibles := montage.cibles()
+	var releve := {pieces = [], poses = []}
 	if montage.squelette != null:
 		for ligne: String in cibles:
 			await montage.monter(ligne, cibles[ligne].element, erreurs)
-	var releve: Dictionary = await relever(self, montage, commande.montes, commande.instants, erreurs)
+		releve = await relever(self, montage, commande.montes, commande.instants, erreurs)
 	var sortie := FileAccess.open(arguments[1], FileAccess.WRITE)
 	if sortie == null:
 		push_error("[poses] sortie illisible : %s" % arguments[1])
@@ -65,7 +66,8 @@ func _poser() -> void:
 ## Le relevé des objets rangés de `montage`, monté dans `arbre`, sous les `montes` de sa composition : `pieces`, chaque
 ## mesh rangé (`ligne`, `mesh`, `offrant`), et `poses`, par instant d'`instants`, la transformation de chacun (`_matrice`),
 ## `null` s'il n'est pas montré rangé. À chaque instant, le gabarit et les morphes se posent, le clip s'engage en pause à
-## son instant, et le squelette joue `IMAGES_DE_MISE_A_JOUR` images ; un repos demandé après un clip va à `erreurs`.
+## son instant, et le squelette joue `IMAGES_DE_MISE_A_JOUR` images ; un repos demandé après un clip et un clip que la
+## base n'a pas vont à `erreurs`.
 static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Array, instants: Array, erreurs: Array[String]) -> Dictionary:
 	var lignes := {}
 	for prise: String in montage._tenus_ranges:
@@ -79,7 +81,9 @@ static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Arr
 	var poses := []
 	for instant: Dictionary in instants:
 		montage.composee = {montes = montes, gabarit = instant.get("gabarit", {}), morphes = instant.morphes}
-		if instant.clip != "":
+		if instant.clip != "" and (montage.lecteur == null or not montage.lecteur.has_animation(instant.clip)):
+			erreurs.append("clip-absent : %s" % instant.clip)
+		elif instant.clip != "":
 			montage.lecteur.play(instant.clip)
 			montage.lecteur.pause()
 			montage.lecteur.seek(instant.t, true)
