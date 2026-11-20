@@ -350,6 +350,7 @@ const lieu = o.natif ? await import('./pilotage/natif.mjs') : await import('./pi
  *  (`VUE_DE_BASE`) : l'interface y est à l'échelle 1, et les points que l'écran publie sont ceux où le parcours clique. */
 const FENETRE = [0, 0, VUE_DE_BASE.largeur, VUE_DE_BASE.hauteur]
 const { ATTENTE_ECHUE, clic, evaluate, geste, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } = lieu
+const sansRendu = o.natif && !o.rendu
 const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] }, preparation: preparation && resolve(preparation) })
 const noter = (t) => console.log('·', t)
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
@@ -582,12 +583,15 @@ async function ecranPose() {
   assert.ok(cases, e?.glisse ? 'la caméra ne glisse plus avant la lecture des points des cases' : 'le plateau publie ses cases')
   return e
 }
-/** L'écran publié une fois la caméra posée et le fondu de la vision fini (`fondu`) : l'image est celle que le jeu garde. */
-async function ecranFige() {
-  const [e, fige] = await attendreALEcran((e) => casesPosees(e) && !e.fondu)
-  assert.ok(fige, e?.fondu ? 'la vision ne se fond plus avant la capture' : 'la caméra se pose, le plateau à l’écran, avant la capture')
+/** Les mouvements du plateau qui doivent finir avant de capturer l'écran publié. */
+const imagePosee = (e) => !e.glisse && !e.fondu && !e.marche
+async function attendreLImage(posee) {
+  const [e, fige] = await attendreALEcran(posee)
+  assert.ok(fige, `image stable attendue avant la capture : ${e ? JSON.stringify({ plateau: !!e.cases, glisse: e.glisse, fondu: e.fondu, marche: e.marche }) : 'aucun écran publié'}`)
   return e
 }
+/** L'écran du plateau dont on peut lire les pixels aux points publiés de ses cases. */
+const ecranFige = () => attendreLImage((e) => e.cases && imagePosee(e))
 /** Si le point `[px, py]` de l'écran est dans le rectangle `[x, y, largeur, hauteur]`. */
 const dans = ([x, y, l, h], [px, py]) => px >= x && px <= x + l && py >= y && py <= y + h
 /** Le panneau de l'écran publié `e` (`panneaux`) sous lequel est le point `point`, `undefined` sans lui. */
@@ -623,10 +627,13 @@ function caseDeLaCible(v, id) {
   const [x, y, z] = v.casesDesCibles[id]
   return { x, y, z }
 }
-async function capturer(nom) {
-  await sleep(400)
-  const image = await shot(session, nom, o.captures)
+async function prendreLaCapture(nom) {
+  const image = sansRendu ? null : await shot(session, nom, o.captures)
   noter(image ? `capture ${image}` : `capture ${nom} sautée : sans rendu`)
+}
+async function capturer(nom) {
+  if (!sansRendu) await attendreLImage(imagePosee)
+  await prendreLaCapture(nom)
 }
 /** Chaque fenêtre qui tient la main fermée à l'Entrée, jusqu'à ce qu'aucune ne la tienne ; la vue d'alors. */
 async function fermerLesFenetres() {
@@ -988,7 +995,6 @@ async function parcoursRegards() {
   const regarder = async (regard) => {
     await realKey(session, V)
     await attendreLaVue(`v.plateau.regard === '${regard}'`)
-    await sleep(600)
     noter(`V : le regard ${regard}`)
     await capturer(`3476-v2-${regard}`)
   }
@@ -1011,12 +1017,10 @@ async function parcoursRegards() {
     }
   }
   assert.ok(arrivee, 'une touche de marche tenue mène le groupe à une case voisine')
-  await sleep(300)
   await capturer('3476-v3-immersion-marche')
   await realKey(session, V)
   await attendreLaVue("v.plateau.regard === 'tactique'")
   noter('V : la tactique, à la suite du groupe')
-  await sleep(600)
   await capturer('3476-v4-tactique-suivie')
 }
 
@@ -1079,20 +1083,21 @@ function pointsDesCasesLibres(e, v) {
   return Object.fromEntries(Object.entries(e.cases).filter(([cle]) => !(cle in v.occupants) && !peintes.has(cle)))
 }
 
-/** La luminance lue à l'écran, sur une capture nommée `nom`, à chaque point qui montre le monde (`auMonde`) que `points` tire de
- *  l'écran publié et de la vue (par défaut, celui de chaque case libre, `pointsDesCasesLibres`) : `luminanceDuCarre`.
- *  Le point publié est le même avant et après la capture. */
-async function luminancesALEcran(nom, points = pointsDesCasesLibres) {
-  const v = await vue()
-  for (;;) {
+/** Les luminances aux points qui montrent le monde et les cases publiées de la même capture `nom`.
+ *  Si le cadrage change pendant la prise, on reprend une fois. */
+async function luminancesALEcran(nom, points) {
+  for (let tentative = 0; tentative < 2; tentative++) {
     const avant = await ecranFige()
-    const image = decodePng(readFileSync(await shot(session, nom, o.captures)))
+    const v = await vue()
+    const capture = await shot(session, nom, o.captures)
     const apres = await ecranFige()
     if (JSON.stringify(apres.cases) !== JSON.stringify(avant.cases)) continue
-    const lum = {}
-    for (const [cle, point] of Object.entries(points(avant, v))) if (auMonde(avant, point)) lum[cle] = luminanceDuCarre(image, point)
-    return lum
+    const image = decodePng(readFileSync(capture))
+    const lues = {}
+    for (const [cle, point] of Object.entries(points(avant, v))) if (auMonde(avant, point)) lues[cle] = luminanceDuCarre(image, point)
+    return { lues, cases: avant.cases }
   }
+  throw new Error(`${nom} : le cadrage a changé pendant les deux captures`)
 }
 
 /** Le cadrage (`wfrpCadrer`) de chaque regard du combat de `grimpant` aux captures du parcours `vision` : la même
@@ -1241,22 +1246,17 @@ async function menerLeGroupe(c) {
 
 /** La caméra posée au cadrage `cadrage` par `wfrpCadrer`, nommé `nom` à son refus : la caméra posée. */
 async function cadrer(cadrage, nom) {
+  await marquer()
   const reponse = JSON.parse(await lieu.rappeler(session, 'wfrpCadrer', JSON.stringify(cadrage)))
   assert.equal(reponse.ok, true, `${nom} : ${JSON.stringify(reponse.erreur)}`)
+  await nouvelEcran(PUBLICATION_MS)
   return reponse.camera
 }
 
-/** La caméra posée au cadrage `cadrage` (`cadrer`), puis la luminance lue sur la capture `nom` à chaque point que
- *  `points` tire de l'écran (`luminancesALEcran`) quand elle ne change plus d'une capture à la suivante, une
- *  demi-seconde après (la marche du groupe et le fondu de la vision finis), et les points publiés des cases sous ce
- *  cadrage. */
+/** La caméra posée au cadrage `cadrage` (`cadrer`), puis les luminances et les cases de sa capture (`luminancesALEcran`). */
 async function luminancesCadrees(nom, cadrage, points) {
   await cadrer(cadrage, JSON.stringify(cadrage))
-  for (let avant = null; ; await sleep(500)) {
-    const lues = await luminancesALEcran(nom, points)
-    if (JSON.stringify(lues) === JSON.stringify(avant)) return { lues, cases: (await ecran()).cases }
-    avant = lues
-  }
+  return luminancesALEcran(nom, points)
 }
 
 /** `zones-pieces` : le voile des murs rendu par l'export (WebGL2), le groupe passé d'une pièce à l'autre. */
@@ -1323,14 +1323,17 @@ async function parcoursVehicule() {
     && JSON.stringify(c[a.id].ameliorations) === JSON.stringify(a.ameliorations)) })()`, { timeoutMs: 180000 })
   for (const a of attendus) noter(`${a.id} : « ${a.vehicule} », emblème « ${a.embleme} », ${a.postes.length} pièces de poste, ${a.ameliorations.length} pièces d’Amélioration`)
   await fermerLesFenetres()
-  await sleep(1500)
   await capturer('2987-caraque-tactique')
+  if (!sansRendu) await marquer()
   await realKey(session, { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 })
   for (let i = 0; i < CRANS_DU_GROS_PLAN; i++) await molette(session, { surface: 'canvas', x: 640, y: 400 }, -100)
-  for (let cran = 0; cran < CRANS_DE_PIVOT; cran++) {
-    await sleep(1500)
-    await capturer(`2987-caraque-gros-plan-${cran}`)
+  if (!sansRendu) await nouvelEcran(PUBLICATION_MS)
+  await capturer('2987-caraque-gros-plan-0')
+  for (let cran = 1; cran < CRANS_DE_PIVOT; cran++) {
+    if (!sansRendu) await marquer()
     await realKey(session, PIVOT)
+    if (!sansRendu) await nouvelEcran(PUBLICATION_MS)
+    await capturer(`2987-caraque-gros-plan-${cran}`)
   }
 }
 
@@ -1411,19 +1414,19 @@ async function parcoursBord() {
       restants = ratees
     }
     for (const c of restants) { fautes.push(`case ${cleDe(c)} jamais atteinte au clic`); }
-    if (restants.length) { await capturer(`bord-faute-${fautes.length}`) }
+    if (restants.length) { await prendreLaCapture(`bord-faute-${fautes.length}`) }
     if (!pied) continue
     if (await aller(pied)) atteintes++
-    else { fautes.push(`pied d’échelle ${cleDe(pied)} jamais atteint (groupe en ${cleDe(await ou())})`); await capturer(`bord-faute-${fautes.length}`) }
+    else { fautes.push(`pied d’échelle ${cleDe(pied)} jamais atteint (groupe en ${cleDe(await ou())})`); await prendreLaCapture(`bord-faute-${fautes.length}`) }
     const e = etapes[i++]
     total++
     const libelle = e.escalade === 'monter' ? 'Escalader' : 'Descendre en escalade'
     const { boutons } = await ecran()
     const candidats = boutons.filter((b) => b.texte === libelle)
-    if (candidats.length !== 1) { fautes.push(`« ${libelle} » ×${candidats.length} en ${cleDe(await ou())} ; boutons : ${boutons.map((b) => b.texte).join(' | ')}`); await capturer(`bord-faute-${fautes.length}`); continue }
+    if (candidats.length !== 1) { fautes.push(`« ${libelle} » ×${candidats.length} en ${cleDe(await ou())} ; boutons : ${boutons.map((b) => b.texte).join(' | ')}`); await prendreLaCapture(`bord-faute-${fautes.length}`); continue }
     await cliquerPoint(candidats[0].x, candidats[0].y)
     if (await arriver(e.vers)) { atteintes++; await noterLaCouche(e.vers.z) }
-    else { fautes.push(`${libelle} vers ${cleDe(e.vers)} : le groupe reste en ${cleDe(await ou())}`); await capturer(`bord-faute-${fautes.length}`) }
+    else { fautes.push(`${libelle} vers ${cleDe(e.vers)} : le groupe reste en ${cleDe(await ou())}`); await prendreLaCapture(`bord-faute-${fautes.length}`) }
     noter(`étape ${i}/${etapes.length} : ${atteintes}/${total} atteintes, groupe en ${cleDe(await ou())}`)
   }
   noter(`bord : ${atteintes}/${total} étapes atteintes ; fautes : ${fautes.length ? '\n' + fautes.join('\n') : 'aucune'}`)
@@ -1458,7 +1461,6 @@ async function parcoursMeteo() {
   let m = await meteo()
   assert.ok(particules(m) > 0, `en tactique, la pluie tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
   noter(`tactique : ${m.pluie.averses.length} averses, ${particules(m)} particules`)
-  await sleep(1500)
   await capturer('3625-m1-tactique-pluie')
   const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
   await realKey(session, V)
@@ -1469,7 +1471,6 @@ async function parcoursMeteo() {
   await realKey(session, V)
   await attendreLaVue("v.plateau.regard === 'immersion'")
   assert.ok(particules(await meteo()) > 0, 'en immersion, la pluie tombe')
-  await sleep(1500)
   await capturer('3625-m2-immersion-pluie')
   noter('immersion : la pluie tombe autour de l’œil')
 }
@@ -1494,7 +1495,6 @@ async function parcoursBrume() {
   assert.equal(m.nappes.length, 0, 'en immersion, aucune nappe')
   assert.ok(v.lumiere.brume.depuisLOeil && v.lumiere.brume.finCases < loin, `en immersion, la brume part de l’œil, plus serrée : ${JSON.stringify(v.lumiere.brume)}`)
   noter(`immersion : brume depuis l’œil, de ${v.lumiere.brume.debutCases} à ${v.lumiere.brume.finCases} cases`)
-  await sleep(600)
   await capturer('3625-b2-immersion-brume')
 }
 
@@ -2334,15 +2334,17 @@ async function parcoursEditeur() {
     const cadres = [['visé', ed.plan], ['avant l’appui', (await editeur()).plan]]
     await geste(session, { surface: 'canvas', x: x0, y: y0 }, { qui }, async ({ x, y }, emettre) => {
       await emettre('souris', { type: 'mouseMoved', x, y })
+      await marquer()
       await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
-      await sleep(200)
+      await nouvelEcran(PUBLICATION_MS)
       cadres.push(['après l’appui', (await editeur()).plan])
       for (const t of [1 / 3, 2 / 3, 1]) {
         await emettre('souris', { type: 'mouseMoved', x: x0 + t * (x1 - x0), y: y0 + t * (y1 - y0), button: 'left', buttons: 1 })
-        await sleep(300)
       }
+      await marquer()
       await emettre('souris', { type: 'mouseReleased', x: x1, y: y1, button: 'left', clickCount: 1 })
     })
+    await nouvelEcran(PUBLICATION_MS)
     cadres.push(['après le relâché', (await editeur()).plan])
     const textes = cadres.map(([quand, plan]) => `${quand} ${cadreEnTexte(plan)}`)
     const [vise, ...pendant] = cadres.map(([, plan]) => cadreEnTexte(plan))
@@ -2920,9 +2922,7 @@ async function parcoursEditeur() {
   const glisserDe = async (de, a, qui) => geste(session, { surface: 'canvas', x: cases[de][0], y: cases[de][1] }, { qui }, async ({ x, y }, emettre) => {
     await emettre('souris', { type: 'mouseMoved', x, y })
     await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
-    await sleep(200)
     await emettre('souris', { type: 'mouseMoved', x: cases[a][0], y: cases[a][1], button: 'left', buttons: 1 })
-    await sleep(300)
     await emettre('souris', { type: 'mouseReleased', x: cases[a][0], y: cases[a][1], button: 'left', clickCount: 1 })
   })
   await glisserDe(`${zx},${zy}`, `${zx + 1},${zy + 1}`, `la pièce tirée de ${zx},${zy}`)
@@ -3367,19 +3367,20 @@ async function parcoursEditeur() {
   /** Le pointeur tenu de la première case du bâti de `chemin` à la dernière, par chacune. */
   const tirerPar = async (chemin, qui) => {
     const points = await Promise.all(chemin.map(([dx, dy]) => aLaCase(dx, dy)))
-    await marquer()
     await geste(session, { surface: 'canvas', x: points[0][0], y: points[0][1] }, { qui }, async ({ x, y }, emettre) => {
+      const emettreEtAttendre = async (evenement) => {
+        await marquer()
+        await emettre('souris', evenement)
+        await nouvelEcran(PUBLICATION_MS)
+      }
       await emettre('souris', { type: 'mouseMoved', x, y })
-      await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
-      await sleep(200)
+      await emettreEtAttendre({ type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
       for (const [px, py] of points.slice(1)) {
-        await emettre('souris', { type: 'mouseMoved', x: px, y: py, button: 'left', buttons: 1 })
-        await sleep(300)
+        await emettreEtAttendre({ type: 'mouseMoved', x: px, y: py, button: 'left', buttons: 1 })
       }
       const [fx, fy] = points[points.length - 1]
-      await emettre('souris', { type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
+      await emettreEtAttendre({ type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
     })
-    await nouvelEcran()
   }
   const presserTour = async (...ids) => {
     for (const id of ids) await cliquerAuPanneau({ element: `bouton/${id}` })
@@ -3887,9 +3888,7 @@ async function parcoursAtelier() {
   a = await atelier()
   assert.deepEqual([a.vitesse, a.lecture, a.instant], [0.5, false, precedente], 'la vitesse se règle, la pause tient l’instant')
   await cliquerBouton('Lecture')
-  await attendreLAtelier('a.lecture === true')
-  assert.equal((await atelier()).lecture, true, 'la lecture reprend')
-  await sleep(500)
+  await attendreLAtelier(`a.lecture && a.instant !== ${precedente}`)
   await cliquerBouton('Pause')
   await attendreLAtelier('a.lecture === false')
   const avant = await atelier()
@@ -4057,6 +4056,7 @@ async function observerLesImages(nombre, dureeMs) {
 }
 
 async function parcoursComposition() {
+  mkdirSync(o.captures, { recursive: true })
   const assets = await chargerAssets([
     "export { schema as schemaDesPresets } from '/src/data/schemas/defs/presets-de-personnage.ts';",
     "export { validateDocument } from '/src/data/schemas/validate.ts';",
@@ -4282,7 +4282,6 @@ async function parcoursPreset() {
   await cliquerAmene(preset.label, -1)
   await attendreLAtelier(`a.composition.preset === ${JSON.stringify(preset.id)}`, 120000)
   await attendreLAtelier(TOUT_EST_MONTE, 120000)
-  await sleep(3000)
   const a = await atelier()
   assert.deepEqual(a.erreurs, [], `${preset.label} composé sans erreur`)
   noter(`${preset.label} : montés ${a.composition.montes.filter((m) => m.element).map((m) => m.element).join(', ')} ; manquants ${a.composition.manquants.map((m) => m.label).join(', ') || 'aucun'}`)
@@ -4403,7 +4402,16 @@ try {
 } catch (e) {
   echec = e
   console.error('ÉCHEC', e.message)
-  try { noter(`état à l’échec : ${JSON.stringify((await ecran())?.atelier?.composition)}`); await capturer('echec') } catch (diagnostic) { console.error('ÉCHEC DU DIAGNOSTIC', diagnostic.message) }
+  try {
+    noter(`état à l’échec : ${await lire("JSON.stringify(globalThis.wfrpEcran?.atelier?.composition ?? null)")}`)
+  } catch (diagnostic) {
+    console.error('ÉCHEC DE LA LECTURE DE DIAGNOSTIC', diagnostic.message)
+  }
+  try {
+    await prendreLaCapture('echec')
+  } catch (diagnostic) {
+    console.error('ÉCHEC DE LA CAPTURE DE DIAGNOSTIC', diagnostic.message)
+  }
 } finally {
   await session.close()
   const erreurs = garde.errors()
