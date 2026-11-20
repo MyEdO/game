@@ -804,21 +804,23 @@ plein pour la fenêtre d'un terrassement, la grille baissée pour la porte d'une
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
 la couleur de l'apparence posée (`paletteDeLApparence`, par `wallPartColor`), et `MATERIAUX` ne déclare que les
-matériaux que les pièces du kit posent. Une partie qu'une apparence teint à part a son emplacement :
+matériaux que les pièces du kit posent. Une partie qu'une apparence teint à part a son emplacement, qui prend la
+couleur d'une partie de mur (`PARTIES_DU_MUR`, `PARTIES_DE_LA_MENUISERIE`, `src/noyau/monde/aretes.ts`) ; le champ de
+l'apparence qui la donne et ses replis se lisent dans `wallPartColor` (`src/noyau/monde/volume/structures.ts`) :
 
-| Emplacement | Ce qu'il porte | Couleur de l'apparence |
+| Emplacement | Ce qu'il porte | Partie de mur |
 |---|---|---|
 | `corps` | le parement du mur : pierres, torchis, claie, terre | `face` |
-| `bois` | le bois du mur : ossature, pieux, clayonnage, boisage | `post` |
-| `joint` | l'âme d'un mur de pierre, vue dans ses joints et dans sa brèche | `detail.courses.joint` |
-| `gravats` | les gravats au pied d'une brèche (`geometrie.eboulis`) | `rubble` |
-| `accent` | les planches d'un vantail, porte ou volet | `door.leaf`, sinon `wood.inset`, sinon `window.frame` |
-| `planche` | les barres et l'écharpe au dos d'un vantail | `door.plank` |
-| `vet1` | les bois d'une croisée | `window.mullion` |
-| `vitre` | la vitre d'une croisée | `window.glass` |
-| `metal` | pentures, poignée, loquet, rivets et pointes | `door.handle` |
-| `barreau` | les barreaux et les montants d'une herse | `band` |
-| `traverse` | les traverses d'une herse | `door.herse.traverseColor` |
+| `bois` | le bois du mur : ossature, pieux, clayonnage, boisage | `poteau` |
+| `joint` | l'âme d'un mur de pierre, vue dans ses joints et dans sa brèche | `joint` |
+| `gravats` | les gravats au pied d'une brèche (`geometrie.eboulis`) | `gravats` |
+| `accent` | les planches d'un vantail, porte ou volet | `vantail` |
+| `planche` | les barres et l'écharpe au dos d'un vantail | `vantail-planche` |
+| `vet1` | les bois d'une croisée | `meneau` |
+| `vitre` | la vitre d'une croisée | `vitre` |
+| `metal` | pentures, poignée, loquet, rivets et pointes | `poignee` |
+| `barreau` | les barreaux et les montants d'une herse | `herse-barreau` |
+| `traverse` | les traverses d'une herse | `herse-traverse` |
 
 Une baie est percée de part en part ; sa croisée porte sa vitre (`menuiserie.vitre`), que la garde de jour ôte
 (`test_arete.py`) : les volets d'une `fenetre-close` ferment seuls la baie.

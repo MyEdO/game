@@ -103,4 +103,13 @@ describe('apparence de structure (JSON partagé iso/POV)', () => {
     const porte = structureAppearance('porte-de-ville');
     expect(wallPartColor(porte, 'herse-traverse')).toBe(porte.door!.herse!.traverseColor);
   });
+
+  it('window.frame : toute apparence qui le porte le voit servi au vantail (aucun bois de vantaux masqué par sa chaîne)', () => {
+    const porteuses = structureAppearances.filter((a) => a.window?.frame !== undefined);
+    expect(porteuses.length, 'plus aucune apparence ne porte `window.frame` : le cas n’est plus exercé.').toBeGreaterThan(0);
+    expect(
+      porteuses.filter((a) => wallPartColor(a, 'vantail') !== a.window!.frame).map((a) => a.id),
+      '`window.frame` posé là où la chaîne de `vantail` (`wallPartColor`) sert une couleur avant lui : champ jamais lu.',
+    ).toEqual([]);
+  });
 });

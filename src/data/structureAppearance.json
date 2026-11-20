@@ -27,7 +27,6 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -65,7 +64,6 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -103,7 +101,6 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -142,7 +139,6 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -371,6 +367,8 @@
     "kit": "herse",
     "face": "#4a4d54",
     "post": "#2b2d30",
+    "band": "#34373c",
+    "rubble": "#2b2d30",
     "door": {
       "openingFrac": 0.85,
       "lintelPx": 4,

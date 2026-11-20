@@ -19,7 +19,8 @@ extends SceneTree
 ## `paletteDesAretes`) à l'emplacement de cette surface, qu'elle porte, la croisée d'une fenêtre comprise ; chaque
 ## surface d'une matière texturée au projet porte sa texture neutre, teinte de la palette, son relief, projetée sur les
 ## trois axes de la pièce, un motif tous les `MiseEnPage.METRES_PAR_MOTIF` de la pièce posée sur chaque axe quel que
-## soit son étirement (#4471), chaque surface du modèle d'une matière texturée l'étant sur l'une de ses pièces. Posée,
+## soit son étirement (#4471), chaque surface du modèle d'une matière texturée, et sa surface `corps` s'il en a une,
+## l'étant sur l'une de ses pièces, au moins une par famille. Posée,
 ## lue puis vidée tour à tour (`VolumeDeScene.vider`), elle ne fait pas croître les maillages et les matières teints du
 ## volume. Les deux portes d'une ouverture de deux arêtes ont chacune leur groupe, et pour pièce le nœud
 ## `<pièce>--<position>` du modèle quand il l'a, sinon `<pièce>` (`VolumeDeScene.noeud_de_la_piece`) ; une pièce que le
@@ -217,9 +218,11 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 		if a.piece == Noyau.Piece.FENETRE and croisee and not peints.has("vet1"):
 			_fautes.append("fenetre : aucune surface de la croisée (vet1) peinte, peintes %s" % [peints])
 	for surface: Dictionary in surfaces:
-		if _de_matiere_texturee(surface) and not texturees.has(surface.nom):
-			_fautes.append("surface %s : sa matière %s est texturée au projet, aucune de ses pièces ne la porte"
-				% [surface.nom, surface.matiere])
+		if (_de_matiere_texturee(surface) or surface.palette == "corps") and not texturees.has(surface.nom):
+			_fautes.append("surface %s (%s) : sa matière %s est texturée au projet ou du corps, aucune de ses pièces ne la porte texturée"
+				% [surface.nom, surface.palette, surface.matiere])
+	if texturees.is_empty():
+		_fautes.append("aucune surface texturée contrôlée, surfaces %s" % [surfaces.map(func(s: Dictionary) -> String: return s.nom)])
 	volume.poser_les_aretes(aretes.map(func(a: Dictionary) -> Dictionary: return a.duplicate(true)))
 	var reposes := _groupes(volume.get_node("Aretes"))
 	if reposes.values() != groupes.values() or volume.ce_qui_est_pose().aretes != aretes.size():

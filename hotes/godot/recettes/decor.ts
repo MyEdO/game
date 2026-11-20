@@ -59,8 +59,8 @@ const CAPS: readonly Dir4[] = ['S', 'E'];
 const LUMINEUX = 'lampadaire';
 
 /** Les apparences de la palette des arêtes servies des recettes : la porte, et le mur qui la porte
- *  (`paletteDeLApparence`). */
-const PORTE_DES_ARETES = 'porte';
+ *  (`paletteDeLApparence`), choisies pour que chaque emplacement y ait sa couleur (`paletteDistincte`). */
+const PORTE_DES_ARETES = 'porte-de-ville';
 const MUR_DES_ARETES = 'mur-a-ossature-en-bois';
 
 /** L'apparence `id` de `structureAppearance.json`. */
@@ -68,6 +68,20 @@ function apparenceNommee(id: string) {
   const trouvee = structureAppearances.find((a) => a.id === id);
   if (!trouvee) throw new Error(`apparence ${id} absente de structureAppearance.json`);
   return trouvee;
+}
+
+/** La palette des arêtes servies (`paletteDeLApparence` de `PORTE_DES_ARETES` portée par `MUR_DES_ARETES`), refusée
+ *  si deux emplacements y ont la même couleur : la recette ne distinguerait plus une surface peinte de la couleur d'un
+ *  autre emplacement. */
+function paletteDistincte(): Record<string, string> {
+  const palette = paletteDeLApparence(apparenceNommee(PORTE_DES_ARETES), apparenceNommee(MUR_DES_ARETES));
+  const doublons = Object.entries(palette).filter(([emplacement, couleur]) =>
+    Object.entries(palette).some(([autre, sienne]) => autre !== emplacement && sienne === couleur));
+  if (doublons.length) {
+    throw new Error(`palette des arêtes servies (${PORTE_DES_ARETES} sur ${MUR_DES_ARETES}) à couleurs partagées : `
+      + `${doublons.map(([emplacement, couleur]) => `${emplacement} ${couleur}`).join(', ')}`);
+  }
+  return palette;
 }
 
 /** Le bloc plein (`solidHeightM` de `terrains.json`) que coiffe la couche du décor de `coiffeUnBloc`, et la hauteur,
@@ -118,6 +132,6 @@ export function figerLeDecor(listage: Listage) {
     caps,
     coiffe,
     luminaire: figee(LUMINEUX, sceneDEchantillon('decor', LUMINEUX)),
-    paletteDesAretes: paletteDeLApparence(apparenceNommee(PORTE_DES_ARETES), apparenceNommee(MUR_DES_ARETES)),
+    paletteDesAretes: paletteDistincte(),
   };
 }
