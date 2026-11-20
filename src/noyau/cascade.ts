@@ -366,13 +366,9 @@ export function rollTableStep(decl: CascadeTableDecl, rng: RNG, ctx?: TableStepC
  * de l'op `rollTable`, `engine/ops.ts`), `findTableEntry` (brique partagée) trouve la ligne, et
  * l'issue porte son id stable + ses lignes. PURE.
  *
- * Deux fail-fast, aucun repli silencieux :
- *  - table introuvable aux tables posées — jamais déclarée, ou RETIRÉE de la donnée (un `tableId`
- *    fautif ne se résout jamais en silence) ;
- *  - dé EFFECTIF HORS de la plage couverte par la table : `findTableEntry` replie sur la DERNIÈRE
- *    ligne, donc un `mod` fautif (au-dessus comme en dessous de la plage) rendrait la MÊME ligne
- *    extrême — ici la borne est vérifiée et l'appelant est nommé (tableId/dé/mod). Seul le PLANCHER
- *    se déclare (`clamp`, table dont le RAW borne par le bas) ; le plafond reste un fail-fast.
+ * Une table absente est signalée par son `tableId`. `clamp` pose le plancher des tables qui le
+ * déclarent. Un dépassement des bornes nomme la table, le dé naturel et le modificateur.
+ * À l'intérieur des bornes, `findTableEntry` signale un jet qui n'a aucune rangée.
  */
 export function lireEnTable(decl: CascadeTableDecl, de: CascadeDeResult, ctx?: TableStepCtx): CascadeTableResult {
   const def = tableDuTirage(decl);

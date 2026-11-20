@@ -1546,10 +1546,6 @@ export function ecartDeCoPresenceDesBornes(v: {
  * trou ni chevauchement. Rend la liste des écarts (vide = conforme), à verser dans le refus NOMINATIF
  * de la def appelante.
  *
- * Pourquoi un verrou : `findTableEntry` REPLIE sur la dernière entrée quand rien ne couvre le jet —
- * un trou ouvert au Codex ne lève donc rien, il fait tomber le tirage sur la dernière rangée en
- * silence. Un chevauchement, lui, rend la seconde rangée inatteignable (le `find` prend la première).
- *
  * ORDRE INERTE : les fourchettes sont triées par `min` avant mesure — les deux bornes étant
  * authorées, réordonner les rangées au Codex ne change RIEN au tirage, et ne doit donc rien refuser.
  * `jusqua: 'ouverte'` = la dernière fourchette n'a PAS de plafond (`max: null`, cf. la bande
