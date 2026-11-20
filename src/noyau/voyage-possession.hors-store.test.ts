@@ -135,7 +135,7 @@ function riverMap(extra: Partial<MapRouteTrace> = {}): WorldMap {
       { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } },
       { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } },
     ],
-    routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0, ...extra }],
+    routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge-fluviale', 'pied'], river: true, inns: true, perilDie: 0, ...extra }],
   };
 }
 
@@ -153,7 +153,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     expect(humanControlled(get(), gunnar), 'chez l’hôte, il ne pilote pas le batelier de l’invité…').toBe(false);
     expect(surfaceOf(get, gunnar.id), '…mais un siège humain le tient').toBe(true);
 
-    get().partirEnVoyage('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge-fluviale');
     const jour = etapes().filter((s) => s.target != null);
     expect(jour.length, 'la journée porte ses jets').toBeGreaterThan(0);
     // Chaque étape NOMME son jeteur (le mint le dérive de l'acteur déclaré) et la fenêtre suit son siège.
@@ -174,7 +174,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
     deuxSieges(gunnar.id);
     addCondition(get().party[0], COND.inconscient);
-    get().partirEnVoyage('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge-fluviale');
     const pc = get().pendingCascade;
     expect(pc?.participants.some((s) => s.kind === 'fleuveNavigation'), 'personne ne tient la barre : aucun Test de Navigation').not.toBe(true);
     expect(pc?.participants[pc.cursor]?.kind, 'aucune fenêtre ne se pose sur le pas de vérification').not.toBe('fleuveTestDePeril');

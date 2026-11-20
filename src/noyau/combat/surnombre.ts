@@ -1,21 +1,95 @@
-/**
- * Le décompte du Surnombre (LDB 14 l.110) : combien de combattants d'un camp sont au contact d'une cible. Source
- * unique de la résolution de mêlée (`outnumberMod`, `noyau/combatFlow.ts`), de l'État de situation Assailli
- * (`noyau/pontDeCombat.ts`) et du feu concentré de l'IA (`noyau/monde/ai.ts`) ; le binôme au contact du jezaïl
- * (`bouclierDuBinome`, ZI 13 l.193).
- */
 import type { Combatant, Weapon } from '../../engine/types';
-import type { BattleState, Jeu } from '../etat';
+import type { Jeu } from '../etat';
 import type { Scene } from '../monde/scene';
 import { isOutOfAction } from '../../engine/conditions';
+import { isEngagedWith } from '../../engine/engagement';
+import { outnumberMod, type ModLine } from '../../engine/combat';
+import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
 import { isInanimate } from '../../engine/structures';
 import { distanceDeContact } from '../monde/footprint';
 
-/** Parmi `combattants`, ceux du camp `kind`, vivants, posés, animés (`isInanimate`) et au contact de `cible`
- *  (`distanceDeContact`, relief compris), hors monture chevauchée (`riderId`, comme `isMount` de `noyau/mount.ts`, dont
- *  l'import ferme un cycle) : son cavalier la représente. ZI 13 l.193 ; LDB 14 l.110 ; arbitrage du 2026-11-16, #4202 */
+function compteDansLeCombat(c: Combatant): boolean {
+  return !isOutOfAction(c) && !isInanimate(c);
+}
+
+interface UniteDeCombat {
+  representant: Combatant;
+  membres: Combatant[];
+}
+
+/** Arbitrage #4202 ; LDB 14 l.181–182. */
+function unitesDuSurnombre(combattants: readonly Combatant[], ...acteursDuDuel: Combatant[]) {
+  const parId = new Map(combattants.map((c) => [c.id, c]));
+  for (const c of acteursDuDuel) parId.set(c.id, c);
+  const parRepresentant = new Map<string, UniteDeCombat>();
+  const parMembre = new Map<string, UniteDeCombat>();
+  for (const c of parId.values()) {
+    if (!compteDansLeCombat(c)) continue;
+    const cavalier = c.riderId ? parId.get(c.riderId) : undefined;
+    const representant = cavalier ?? c;
+    const unite = parRepresentant.get(representant.id) ?? { representant, membres: [] };
+    unite.membres.push(c);
+    parRepresentant.set(representant.id, unite);
+    parMembre.set(c.id, unite);
+  }
+  return { unites: [...parRepresentant.values()], parMembre };
+}
+
+function unitesEngagees(a: UniteDeCombat, b: UniteDeCombat): boolean {
+  return a.membres.some((c) => b.membres.some((autre) => isEngagedWith(c, autre.id)));
+}
+
+interface Surnombre {
+  attaquants: number;
+  defenseurs: number;
+  mod: ModLine;
+}
+
+/** LDB 13 l.171 ; LDB 14 l.110 ; LDB 10 l.765 ; CRB 036 l.191 ; arbitrage #4202. */
+function surnombreDuDuel(unites: readonly UniteDeCombat[], attaquant: UniteDeCombat, cible: UniteDeCombat): Surnombre | null {
+  if (attaquant.representant.kind === cible.representant.kind) return null;
+
+  // L'attaque crée le lien de la paire évaluée ; les renforts se lisent par leurs liens déjà posés.
+  let attaquants = 1;
+  const defenseurs = [cible];
+  for (const unite of unites) {
+    if (unite === attaquant || unite === cible) continue;
+    if (unite.representant.kind === attaquant.representant.kind && unitesEngagees(cible, unite)) attaquants++;
+    if (unite.representant.kind === cible.representant.kind && unitesEngagees(attaquant, unite)) defenseurs.push(unite);
+  }
+  if (attaquants < 2 * defenseurs.length) return null;
+
+  const effectifDefense = defenseurs.reduce((effectif, { representant }) =>
+    effectif + 1 + (compteDansLeCombat(representant) ? outnumberCountBonus(representant) : 0), 0);
+  const mod = outnumberMod(Math.floor(attaquants / effectifDefense));
+  return mod ? { attaquants, defenseurs: effectifDefense, mod } : null;
+}
+
+/** Surnombre de l'attaque résolue ou envisagée. LDB 13 l.171 ; LDB 14 l.110 */
+export function surnombreDeLAttaque(combattants: readonly Combatant[], attaquant: Combatant, cible: Combatant): ModLine | null {
+  const { unites, parMembre } = unitesDuSurnombre(combattants, attaquant, cible);
+  const offensive = parMembre.get(attaquant.id);
+  const defensive = parMembre.get(cible.id);
+  return offensive && defensive ? surnombreDuDuel(unites, offensive, defensive)?.mod ?? null : null;
+}
+
+/** Surnombre subi dans un Engagement existant. LDB 14 l.110 */
+export function surnombreSubi(combattants: readonly Combatant[], cible: Combatant): Surnombre | null {
+  const { unites, parMembre } = unitesDuSurnombre(combattants, cible);
+  const defensive = parMembre.get(cible.id);
+  if (!defensive) return null;
+  let surnombre: Surnombre | null = null;
+  for (const adversaire of unites) {
+    if (!unitesEngagees(defensive, adversaire)) continue;
+    const courant = surnombreDuDuel(unites, adversaire, defensive);
+    if (courant && (!surnombre || courant.attaquants > surnombre.attaquants)) surnombre = courant;
+  }
+  return surnombre;
+}
+
+/** Les combattants posés et au contact de la cible. ZI 13 l.193 ; arbitrage #4202. */
 export function auContactParmi(scene: Scene | null, combattants: readonly Combatant[], cible: Combatant, kind: Combatant['kind']): Combatant[] {
-  return combattants.filter((c) => c.kind === kind && !c.riderId && !isOutOfAction(c) && !isInanimate(c) && c.pos && distanceDeContact(scene, c, cible) <= 1);
+  return combattants.filter((c) => c.kind === kind && !c.riderId && compteDansLeCombat(c) && c.pos && distanceDeContact(scene, c, cible) <= 1);
 }
 
 /** Le décompte d'`auContactParmi`. */
@@ -35,11 +109,6 @@ export function bouclierDuBinome(scene: Scene | null, combattants: readonly Comb
     if (tenu) return tenu;
   }
   return c.weapons.find((b) => b.trappingId && allies.some((a) => a.weapons.some((w) => w.bouclierDEquipe?.id === b.trappingId)));
-}
-
-/** `effectifAuContactParmi` sur tous les combattants de la bataille. */
-export function effectifAuContact(scene: Scene | null, battle: BattleState, cible: Combatant, kind: Combatant['kind']): number {
-  return effectifAuContactParmi(scene, battle.combatants, cible, kind);
 }
 
 /** `bouclierDuBinome` parmi les combattants de la bataille en cours : le paramètre des défenses (`protectriceAP`,

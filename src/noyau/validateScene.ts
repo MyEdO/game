@@ -39,7 +39,7 @@ import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, typ
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetInstanciableDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { colonneDeDisponibiliteDuMarchand, estUnHebergement, lieuDeLaScene, nomDuPoi, placeServices, sceneAubergeOffer, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
@@ -192,6 +192,7 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
  */
 export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
   const presetDe = presetDuNarratif(narratif);
+  const resolveTrapping = objetInstanciableDuNarratif(narratif);
   const out: Warning[] = [];
   const sceneIds = new Set(project.map((s) => s.id));
   if (worldMap) {
@@ -288,7 +289,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const refCtx: EffectRefCtx = {
       sceneIds,
       entityIds: new Set(idsDeLaPortee(sceneSchema, s, PERSONNAGES_DE_LA_SCENE)),
-      npcSheet: (id) => sceneNpc(s, id, presetDe),
+      npcSheet: (id) => sceneNpc(s, id, presetDe, resolveTrapping),
       within,
       walkable: (x, y, z) => groupePosable(vue, { x, y, z }),
     };
@@ -339,7 +340,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       if (e.z && !couchesDesEntites.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
       const appui = fauteDAppui(vue, e);
       if (appui) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} ${DIT_DE_L_APPUI[appui.faute](appui.support)} — repose-le au glissé`);
-      const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe) : undefined;
+      const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe, resolveTrapping) : undefined;
       const refusDesSorts = npc && refusDesSortsChoisis(npc, e.combat?.spells ?? []);
       if (refusDesSorts) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → ${refusDesSorts}`);
     }

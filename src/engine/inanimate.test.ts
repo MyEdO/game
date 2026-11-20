@@ -33,7 +33,7 @@ describe('structureCombatant (adaptateur destructible — ADE II 8)', () => {
 
 describe('vehicleCombatant (adaptateur destructible — MDG 12-13)', () => {
   it('Barge : coque {E,B} + empreinte de navire reportée', () => {
-    const v = findVehicleById('barge')!;
+    const v = findVehicleById('barge-fluviale')!;
     const c = vehicleCombatant(v)!;
     expect(c.bodyShape).toBe('vehicule');
     expect(c.characteristics.endurance).toBe(v.hull!.char.endurance); // 45

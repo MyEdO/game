@@ -79,7 +79,7 @@ import { WORLD_STEP_OWNER, type CascadeStep, type PendingCascade } from './pendi
 import type { RecapLine } from './recapLine';
 import { toRecapLines, phaseOfKind } from './recapLine';
 import { buildSeaPlan, refusDuDepartEnMer, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
-import { buildRiverPlan, descenteJouee, runRiverDays } from './riverVoyageFlow';
+import { buildRiverPlan, coqueDeDescente, runRiverDays, vitesseDeDescente } from './riverVoyageFlow';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { Combatant } from '../engine/types';
 
@@ -185,7 +185,7 @@ export interface TravelPlan {
   /** État NAVAL du trajet (route `sea` — MDG 13/15) : météo/vent, événements, crises, étape du jour.
    *  Présent = la résolution du jour est déléguée à `seaVoyageFlow.runSeaDay` (cascade-jour). */
   sea?: import('./seaVoyageFlow').SeaVoyageState;
-  /** État FLUVIAL du trajet (route `river`, mode barge — MSRC 7) : vent, dérive/chavirage, jours à flot.
+  /** État FLUVIAL du trajet (route `river` — MSRC 7) : vent, dérive/chavirage, jours à flot.
    *  Présent = la résolution du jour est déléguée à `riverVoyageFlow.runRiverDays`. */
   river?: import('./riverVoyageFlow').RiverVoyageState;
   /** CONTEXTE TRANSITOIRE de l'Étape EDOC en cours (météo/saison/postes accumulés) — posé par
@@ -324,13 +324,6 @@ function differerALAube(get: Get, set: Set, depart: Omit<NonNullable<Jeu['pendin
   set({ pendingDeparture: { ...depart, dawnAt: get().gameTime + minutesUntilNext(get().gameTime, dawnMinute()) } });
 }
 
-/** Le départ de `route` en `mode` est-il un passage PAYANT — un billet (EDO 01 l.142 ; implicite,
- *  LDB 51 l.178) ? Ni la marche, ni la selle, ni le navire de campagne, ni la descente fluviale jouée
- *  (`descenteJouee`). Lu par l'écran de départ ET par `partirEnVoyage`. */
-export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode): boolean {
-  return mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !descenteJouee(get, route, mode);
-}
-
 /** Réglages d'un départ choisis à la carte du monde : classe du billet, heures de route par jour, allure,
  *  rythme forcé en mer, cadence du trajet, traversée rapide. */
 export interface OptionsDeDepart {
@@ -347,6 +340,8 @@ export interface DevisDeTrajet {
   allure: Allure | undefined;
   /** Vitesse du premier jour (LDB 51 l.193) ; 0 en mer (milles/jour, `seaVoyageFlow`). */
   kmh: number;
+  /** Coque de la descente jouée (MSRC 07 l.11-17). */
+  coqueFluviale: Combatant | null;
   /** Budget d'heures qu'il reste aujourd'hui (LDB 51 l.195), et sa route déjà faite. */
   premierJour: number;
   aLAube: boolean;
@@ -371,18 +366,21 @@ export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: Tra
   const allure: Allure | undefined = mode === 'monture'
     ? (opts.allure ?? 'pas')
     : opts.allure === 'galop' && rule('voyage-allures') && vehicleTravel(mode)?.draft ? 'galop' : undefined;
-  const kmh = travelSpeed(s.party, s.possessions, mode, route.speed?.[mode], allure);
+  const coqueFluviale = coqueDeDescente(s, route, mode);
+  const kmh = coqueFluviale ? vitesseDeDescente(route, mode, coqueFluviale)
+    : travelSpeed(s.party, s.possessions, mode, route.speed?.[mode], allure);
   const prior = hoursTravelledToday(s);
   const premierJour = travelDayBudget(mode, hours, prior);
   const plan = travelPlanCalc(route.km, kmh, hours, premierJour);
   const enRoute = s.party.filter((h) => !h.dead && !h.outOfRencontre);
   const manifeste = provisioningManifest(enRoute, undefined, plan ? plan.days - 1 : 0, s.gameTime);
-  const offre = passagePayant(() => s, route, mode) ? offreDePassage(map, route, mode, fromId, s.billetEnMain, s.marchandagesDeBillet) : undefined;
+  const passagePayant = mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !coqueFluviale;
+  const offre = passagePayant ? offreDePassage(map, route, mode, fromId, s.billetEnMain, s.marchandagesDeBillet) : undefined;
   const achat = offre && !offre.couvert ? offre : null;
   const classeId = achat ? classeRetenue(achat.tarif, opts.classeId ?? '') : '';
   const cost = achat ? transportCost(achat.tarif, classeId, enRoute.length, achat.issue) : null;
   return {
-    hours, allure, kmh, premierJour, aLAube: routeDuJourFaite(mode, hours, prior), plan, voyageurs: enRoute.length,
+    hours, allure, kmh, coqueFluviale, premierJour, aLAube: routeDuJourFaite(mode, hours, prior), plan, voyageurs: enRoute.length,
     rations: { requises: manifeste.rationsRequises, portees: manifeste.rationsDispo },
     passage: offre === undefined ? null : { offre, classeId, cost, abordable: !cost || canAfford(totalDesBourses(s.party), cost) },
   };
@@ -419,7 +417,7 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
   if (!modeDesservi || (mode === 'mer') !== !!route.sea) return t('tf.refusMode');
   if (mode === 'mer') return refusDuDepartEnMer(() => s);
   const devis = devisDeTrajet(s, route, from.id, mode, opts);
-  if (!descenteJouee(() => s, route, mode) && devis.kmh <= 0) return t('wm.refusSurcharge'); // MSRC 7 : la descente jouée a sa propre allure
+  if (!devis.coqueFluviale && devis.kmh <= 0) return t('wm.refusSurcharge');
   if (devis.passage && !devis.passage.offre) return t('tf.refusSansTarif');
   if (devis.passage?.cost && !devis.passage.abordable) {
     return t('tf.passageTropCher', { mode: travelModeLabels()[mode].toLowerCase(), cost: formatMoney(devis.passage.cost) });
@@ -432,16 +430,16 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   if (refuseSi(get, set, (s) => refusDeDepart(s, routeId, mode, opts))) return;
   const { from, route, to } = trajetDIci(get(), routeId) as Exclude<ReturnType<typeof trajetDIci>, string>;
   const { party } = get();
+  const devis = devisDeTrajet(get(), route, from.id, mode, opts);
 
   // Porte d'heure de départ (maison `voyage-heure-de-depart`, #340) : terre (pied/monture) et fleuve
   // JOUÉ ne s'ébranlent que de l'aube au crépuscule. La MER est exemptée (voguer de nuit = équipage +
   // installations, MDG 15 l.76). De nuit → on mémorise le trajet et on propose « Attendre l'aube ».
-  if (mode !== 'mer' && (mode === 'pied' || mode === 'monture' || descenteJouee(get, route, mode)) && departureGated(get)) {
+  if (mode !== 'mer' && (mode === 'pied' || mode === 'monture' || devis.coqueFluviale) && departureGated(get)) {
     differerALAube(get, set, { mode, cause: 'nuit' });
     return;
   }
 
-  const devis = devisDeTrajet(get(), route, from.id, mode, opts);
   const { hours, allure } = devis;
   // Budget du jour déjà épuisé par un tronçon précédent (LDB 51 l.195) : la nuit se passe SUR PLACE et le
   // trajet attend l'aube (porte de départ), sans ouvrir de jour de 0 h.
@@ -478,8 +476,9 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   // Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : sur une embarcation (barge…), la descente
   // se JOUE jour par jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport
   // payant. Repli sur le transport payant (« on paie un passeur ») si aucun batelier/embarcation.
-  const riverPlan = descenteJouee(get, route, mode) ? buildRiverPlan(get, routeId, from.id, to.id, route, { cadence: opts.cadence }) : null;
-  if (riverPlan) {
+  if (devis.coqueFluviale) {
+    const riverPlan = garanti(buildRiverPlan(get, routeId, from.id, to.id, route, mode, { cadence: opts.cadence }),
+      routeId, 'plan de descente fluviale');
     set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode), ...quitterLeLieu });
     log(get, set, [t('tf.departFluvial', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
     runRiverDays(get, set);

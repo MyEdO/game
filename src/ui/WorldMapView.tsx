@@ -8,7 +8,6 @@ import { t, deElide } from '../i18n';
 import { placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, positionsDeRendu, MapRoute, MapPlace } from '../noyau/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, devisDeTrajet, refusDeDepart, MOUNT_MAX_HOURS, type OptionsDeDepart } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
-import { descenteJouee } from '../noyau/riverVoyageFlow';
 import { forcePaceRefus, millesDeCroisiere, dureeDeTraversee, mDeCroisiere, refusDuDepartEnMer, dossierDuNavire } from '../noyau/seaVoyageFlow';
 import {
   TravelMode, travelModeLabels, travelModeIcon,
@@ -211,14 +210,6 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
 
   // Traversée MARITIME (routes `sea`, MDG 13/15) : sur le navire de campagne — estimation en milles/jour.
   const vesselLabel = vessel ? nomDuNavire(vessel) : '';
-  // COQUE qui portera l'équipage — la seule chose dont l'épinglage des STATIONS a besoin (ses RÉFS
-  // navales gatent `cale`/`nid-de-pie`). Deux porteurs, deux adaptateurs, un seul gate : le navire de
-  // campagne en mer, le bateau du trajet sur une route FLUVIALE jouée (même condition qu'au départ,
-  // `travelFlow.partirEnVoyage`). Pas de coque = pas de panneau : il n'y a nulle part où se tenir.
-  const fluvialJoue = !!selRoute && descenteJouee(useGame.getState, selRoute, mode);
-  const stationsTraits: NavalTraitRef[] | null = mode === 'mer'
-    ? (vessel ? vesselNavalTraits(vessel) : null)
-    : (fluvialJoue ? navalTraitsDe(mode, undefined) : null);
   const seaPropulsion = vessel ? garanti(propulsionDuNavire(vessel.vehicleId, vessel.upgrades, 'maritime'), vessel.vehicleId, 'propulsion du navire') : null;
   const seaM = vessel ? mDeCroisiere(vessel) : 0;
   const refusMer = refusDuDepartEnMer(useGame.getState);
@@ -247,6 +238,11 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
     cadence: cadenceOfferte && !fastJoue ? cadence : undefined,
   };
   const devis = selRoute && here ? devisDeTrajet(useGame.getState(), selRoute, here.id, mode, opts) : null;
+  const coqueFluviale = devis?.coqueFluviale;
+  const fluvialJoue = !!coqueFluviale;
+  const stationsTraits: NavalTraitRef[] | null = mode === 'mer'
+    ? (vessel ? vesselNavalTraits(vessel) : null)
+    : (coqueFluviale ? navalTraitsDe(coqueFluviale.creatureId, coqueFluviale.upgrades) : null);
   const refusDuDepart = selRoute ? refusDeDepart(useGame.getState(), selRoute.id, mode, opts) : null;
   const { kmh = 0, hours = base, aLAube = false, plan = null, voyageurs = 0 } = devis ?? {};
   const offre = devis?.passage?.offre ?? null;
@@ -327,7 +323,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
     const fromHere = !!etat && etat.ouverte;
     // Trajet fermé partant d'ici : VISIBLE et cliquable (il se consulte), mais le départ est refusé.
     const fermee = !!etat && !etat.ouverte;
-    const water = r.modes.includes('barge') && !r.modes.includes('pied');
+    const water = !r.modes.includes('pied') && (r.river || r.modes.some((m) => vehicleTravel(m)?.medium === 'fluvial'));
     return [{
       id: r.id,
       d: c.d,

@@ -184,6 +184,16 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     expect(kinds).toContain('mutation');
   });
 
+  it('une race sans document est refusée avant le débit de Corruption', () => {
+    const hero = heroSolo();
+    hero.species = 'race-sans-tableau';
+    expect(() => applyMutation(banc.getState, banc.setState, hero)).toThrow(
+      '[document de la nature de la mutation pour la race] « race-sans-tableau »',
+    );
+    expect(hero.corruption).toBe(6);
+    expect(banc.getState().pendingCascade).toBeNull();
+  });
+
   it('option ACTIVE + victime contrôlée : étape de NATURE non résolue, AUCUNE mutation attachée', () => {
     const hero = heroSolo();
     setDesFixes(true);
@@ -304,7 +314,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
   it('victime NON contrôlée par le siège local (ennemi sans siège MJ) : l’étape est POUSSÉE et le socle la résout D’OFFICE', () => {
     const hero = heroSolo();
     setDesFixes(true);
-    const npc = { ...structuredClone(hero), id: 'npc-1', kind: 'ennemi' } as Combatant;
+    const npc = { ...structuredClone(hero), id: 'npc-1', kind: 'ennemi', followsCharacterRules: true } as Combatant;
     npc.mutations = [];
     // Le PNJ est ATTEIGNABLE par `actorIn` (sinon la fenêtre se fermerait pour une simple cible
     // introuvable, pas pour la bonne raison) : sans siège MJ pris, il n'est contrôlé par personne.

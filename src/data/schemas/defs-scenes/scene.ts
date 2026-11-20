@@ -20,7 +20,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
+import { OBJETS_DU_PROJET, ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
 import {
   amateurSchema,
   cell2Schema,
@@ -195,9 +195,9 @@ export const marchandDeSceneSchema = nommerChamps(z.strictObject({
   tenirComptes: z.boolean().optional(),
 }), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "colonne de Disponibilité hors lieu" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
 
-/** L'inventaire d'auteur d'un personnage : chaque objet du catalogue par son id, vrai s'il le porte (`isWearable` ;
+/** L'inventaire d'auteur d'un personnage : chaque objet par son id, vrai s'il le porte (`isWearable` ;
  *  une arme se tient par les sets d'armes). Il devient les objets du combattant au spawn. LDB 77 l.7, #3684 */
-export const inventaireDAuteurSchema = recordDIds('trapping', nommerNoeud(z.boolean(), { nom: 'porté' }), INSTANCIABLE_PAR_ID);
+export const inventaireDAuteurSchema = recordDIds('trapping', nommerNoeud(z.boolean(), { nom: 'porté' }), INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET });
 export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
 
 /** La faute d'un personnage porté à un parcours de carrière (`parcoursDe`), `undefined` s'il est admis ou n'en porte
@@ -236,7 +236,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   amateur: amateurSchema.optional(),
   appearance: entityAppearanceSchema.optional(),
   anim: roleAmbiantSchema.optional(),
-  /** Inventaire d'auteur d'un personnage, objets du catalogue. */
+  /** Inventaire d'auteur d'un personnage. */
   inventaire: inventaireDAuteurSchema.optional(),
   /** Parcours de carrière d'un personnage (`ParcoursDeCarriere`, `engine/pnjDeCarriere.ts`) : chaque carrière au
    *  Niveau atteint, la dernière actuelle ; les Talents choisis et les Compétences des emplacements à choix, par

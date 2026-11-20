@@ -1794,12 +1794,10 @@ export function tableDesRacesAleatoires(races: ReadonlySet<RaceKey>): (typeof es
  *  NADJ 15 l.173) — app-owned éditable au Codex (`setDataset`), même référence ; chaque rangée tire l'une des deux
  *  natures (`affinerDataset` de `schemas/defs/mutation-nature.ts`). */
 export const mutationNature = datasetDe<typeof tableauDeLaNatureDeMutation>(mutationNatureJson);
-/** Le document de la race d'une espèce (`id` STABLE, ou clé de race d'apparence que porte un PNJ), lu à
- *  l'appel ; sans race couverte, celui de la race `humain`. LDB 19 l.76-81 */
+/** Le document de la race d'une espèce (`id` stable ou clé de race d'un PNJ). LDB 19 l.76-81 */
 export function natureDeMutationDe(speciesId: string | undefined): (typeof mutationNature)[number] {
   const race = findSpeciesById(speciesId)?.refChar ?? speciesId;
-  const doc = mutationNature.find((d) => d.race === race) ?? mutationNature.find((d) => d.race === 'humain');
-  return garanti(doc, race ?? 'humain', 'document de la nature de la mutation pour la race');
+  return garanti(mutationNature.find((d) => d.race === race), race, 'document de la nature de la mutation pour la race');
 }
 /** Les documents du Tableau des cargaisons, un par voie et colonne saisonnière (MDG 15 l.404-418 ; MSRC 13
  *  l.69-78) — app-owned éditable au Codex (`setDataset`), même référence. */

@@ -47,7 +47,7 @@ const carte: WorldMap = {
     { id: 'C', label: 'Marienburg', pos: { x: 0, y: 90 }, scene: { id: 'quai-c' } },
   ],
   routes: [
-    { id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 },
+    { id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge-fluviale', 'pied'], river: true, inns: true, perilDie: 0 },
     { id: 'r-mer', a: { id: 'A' }, b: { id: 'C' }, km: 200, modes: ['mer'], sea: true, seaHeading: 'est' },
   ],
 };
@@ -73,7 +73,7 @@ beforeEach(() => {
   act(() => root.render(<WorldMapView hereId="A" initialRouteId="r-reik" />));
   // Le geste du joueur : choisir l'embarcation dans le sélecteur de MODE du panneau de départ.
   const barge = [...host.querySelectorAll<HTMLButtonElement>('.worldmap-panel button')]
-    .find((b) => b.textContent?.trim() === travelModeLabels().barge);
+    .find((b) => b.textContent?.trim() === travelModeLabels()['barge-fluviale']);
   expect(barge, 'le mode « barge » est offert').toBeTruthy();
   act(() => { barge!.click(); });
 });
@@ -129,7 +129,7 @@ describe('#2545 — sans geste : l’écran et l’API rendent la même cadence 
     expect(get().travelPlan?.river, 'la descente est JOUÉE').toBeTruthy();
     const parLEcran = get().travelPlan?.orders?.cadence;
     act(() => { aQuai(); });
-    get().partirEnVoyage('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge-fluviale');
     expect(get().travelPlan?.river, 'la descente est JOUÉE').toBeTruthy();
     expect(get().travelPlan?.orders?.cadence).toBe(parLEcran);
   });

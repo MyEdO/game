@@ -14,7 +14,7 @@ import type { BargainOutcome } from '../engine/bargain';
 import { t } from '../i18n';
 import { skillBaseValue } from '../engine/skills';
 import { pnjAuPreset } from './monde/sceneNpc';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { ouvrirMarchandage } from './merchantFlow';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
@@ -119,7 +119,8 @@ export function marchanderLeBillet(get: Get, set: Set, routeId: string, vehicule
   if (get().battle || get().pendingBargain) return;
   const offre = offreIci(get, routeId, vehicule);
   if (!offre || offre.couvert || !offre.vendeurPresetId || offre.issue) return;
-  const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`, presetDuNarratif(get().campaignNarratif));
+  const { campaignNarratif } = get();
+  const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif));
   if (!vendeur) return;
   ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, { skill: { id: 'marchandage' } }), portrait: vendeur });
 }

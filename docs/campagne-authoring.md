@@ -125,9 +125,10 @@ surplus depuis le catalogue. Des champs locaux surchargent le catalogue port par
 
 `poste(trappingId, side, crewIds?)` de la lib émet la forme de RÉFÉRENCE `{ trappingId, side,
 crewIds }` ; l'uid de la pièce se dérive de sa place sur son porteur au spawn (#2907). La base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée : elle est HYDRATÉE au spawn
-depuis `trappingId` par `hydratePoste()` (`src/engine/items.ts`). `trappingId` doit désigner une pièce
-POSABLE (trapping de sous-type `armes-de-siege`, `siegeEngines()`) sinon `throw`. `crewIds` vide = poste servable en jeu par un
-héros adjacent (`serveAtPoste()`, `src/noyau/monde/shipPostes.ts`) — aucun id de héros n'est connu à l'authoring.
+depuis `trappingId` par `hydratePoste()` (`src/engine/items.ts`). `trappingId` désigne une pièce
+posable de `siege-engines.json`, le même catalogue que le corps `engin` (§ 7). Le coffre `ammo` contient
+des munitions de `trappings.json` compatibles avec la pièce. `selectedAmmo` désigne une munition de ce coffre.
+Avec `crewIds` vide, un héros adjacent peut servir le poste (`serveAtPoste()`, `src/noyau/monde/shipPostes.ts`).
 Garde-fou : les projets ne portent AUCUN poste en forme ancienne (base copiée), cf. la garde #222 de
 `src/data/refs-migrated.test.ts`.
 Formation des servants (#210) : un servant posé SUR la case de l'engin (ou sans position propre) est
@@ -338,7 +339,7 @@ Un paquet de campagne porte un bloc `narratif` (frère de `scenes`/`worldMap`, a
 projet — jamais per-scène), typé `NarratifBlock` (`src/data/schemas/defs-scenes/narratif.ts`) :
 
 ```
-narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: z.output<typeof trappings.entree>[];
+narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: z.output<typeof trappings.entreeEmbarquee>[];
             documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock;
             ecartes?: EcartDeFiche[] }
 ```
@@ -350,8 +351,8 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   (`revealClue`, `src/noyau/monde/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
   `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
   pré-composés (`base` = `ref('creature')`, la créature globale surchargée par `profil`/`apparence`) ; **`objets`**
-  — possessions propres à la campagne, chacune avec un profil fixe. Elles reprennent l’enveloppe,
-  la `source` et les validations d’une entrée de possession (`src/data/schemas/defs/trappings.ts`).
+  — possessions propres à la campagne, chacune avec un profil fixe. L’entrée embarquée de
+  `src/data/schemas/defs/trappings.ts` conserve son enveloppe, sa source et ses affinages dans la portée du projet.
   Le catalogue global porte les variantes réglées et les Atouts au choix. **`documents`** (`DocumentNarratif`,
   `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
   (règle 5), non vide ; **`etats`** (`{ id, label, source?, maison?, forme }`, #2539) — les états de campagne
@@ -362,10 +363,16 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   anti-collision globale), résolveur (`resolveursDuNarratif.ts`), narratif vide (`emptyNarratif`) et éditeur la
   lisent. Un registre de plus = une ligne de cette table.
 - **Références d'une entrée.** Une entrée d'un registre est désignée par les clés de `REFERENCES_NARRATIVES` et par
-  les sites de la portée que la racine du projet ouvre sur sa collection (`sitesDeLaPortee` ; aujourd'hui
-  `OBJETS_DU_PROJET`, `narratif.objets` : `giveTrapping.trappingId`, clés `apparencesObjets`) — `sitesLocaux`,
-  `src/noyau/narratifEdit.ts`. Renommer réécrit les deux (valeur remplacée, ou clé de record renommée à son rang) sur
-  un cran ; retirer est refusé tant que l'un d'eux désigne l'entrée, ses lieux nommés. À l'éditeur Godot, chaque
+  les sites de la portée qu'ouvre la racine du projet sur sa collection (`sitesDeLaPortee`, lu par
+  `src/noyau/narratifEdit.ts`). `OBJETS_DU_PROJET` admet les objets possédables de `narratif.objets` dans
+  `giveTrapping.trappingId`, `apparencesObjets`, l'inventaire d'une entité, la dotation directe du profil
+  d'un preset et la silhouette fixe `grantWeapon.form`. Une arme de campagne maniable sans poste peut
+  désigner un autre objet du projet dans ses effets de touche, de critique et de fin d’attaque. Les références des passifs et des autres
+  canaux d'objet restent fermées au catalogue. Les choix et lots de dotation conservent leurs formes
+  de catalogue. Les effets de navire et l'opération `provisions` prennent leurs vivres dans la liste
+  `longsVoyages.vivresDeCale` de `sea-navigation.json`.
+  Renommer met à jour les valeurs et les clés de record à leur rang. Le retrait est refusé tant qu'une
+  référence désigne l'entrée et le refus indique ses lieux. À l'éditeur Godot, chaque
   registre créable (`RegistreCreable`, objets compris) se liste à la zone Logique, se crée par son corps neuf
   (`CORPS_NEUFS`, `src/noyau/sceneEdit.ts` ; un objet naît sans `source`, que son schéma dit absente) et s'édite par
   le formulaire tiré du schéma de son entrée (`FORMULAIRES_DES_REGISTRES`, `src/noyau/sceneEditLecture.ts`).

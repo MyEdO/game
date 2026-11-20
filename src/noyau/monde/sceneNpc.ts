@@ -5,6 +5,7 @@
  * fiche, quelle que soit la porte par laquelle la partie le rencontre (#1882).
  */
 import type { Combatant } from '../../engine/types';
+import type { TrappingResolver } from '../../engine/items';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { idDuCorps, type Scene, type SceneEntity } from './scene';
 import { spawnEnemy } from './spawn';
@@ -86,9 +87,9 @@ export function nomDIndividu(etat: EtatDesIndividus): NomDIndividu {
 /** La fiche sous le NOM de l'entité (`nomDEntite`) : la fiche donne les valeurs, l'entité le nom —
  *  en combat comme hors combat. L'individu anonyme y reçoit son âge, sa taille, ses yeux et ses cheveux, tirés sur la
  *  graine de son id (`tirerLesDetails`, #3712). */
-function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche>>, presetDe: ResolveurDePreset): Combatant {
+function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche>>, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): Combatant {
   const c = spawnEnemy(p.porteur, ent.id, ent.z ? { ...ent.pos, z: ent.z } : { ...ent.pos }, {
-    appearance: p.appearance, inventaire: ent.inventaire,
+    appearance: p.appearance, inventaire: ent.inventaire, resolveTrapping,
     optionals: ent.combat?.optionals, spells: ent.combat?.spells, randomChars: ent.combat?.randomChars, // LDB 76/78
     skills: ent.combat?.skills, // AA 10 l.142-146
     crewIds: ent.crewIds, // MDG 14
@@ -115,10 +116,10 @@ export class FicheAbsente extends Error {
 }
 
 /** LA fiche d'une entité `personnage` ; lève `FicheAbsente` si elle n'en porte aucune de résoluble. */
-export function ficheDEntite(ent: SceneEntity, presetDe: ResolveurDePreset): Combatant {
+export function ficheDEntite(ent: SceneEntity, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): Combatant {
   const p = porteurDeFiche(ent, presetDe);
   if (!p) throw new FicheAbsente(ent.id, ent.presetId, idDuCorps(ent));
-  return fiche(ent, p, presetDe);
+  return fiche(ent, p, presetDe, resolveTrapping);
 }
 
 /** UN PNJ SANS ENTITÉ DE SCÈNE — l'habitué d'une table : sa fiche est un profil standard (`LDB 77 l.7`,
@@ -130,9 +131,9 @@ export function pnjAuProfil(profil: string, id: string): Combatant | undefined {
 /** UN PNJ SANS ENTITÉ DE SCÈNE, nommé par un preset du narratif (#671) — le vendeur d'un billet
  *  marchandé (`billetFlow`) : sa fiche est celle du preset, sous son libellé. `undefined` si le preset
  *  ne se résout pas. */
-export function pnjAuPreset(presetId: string, id: string, presetDe: ResolveurDePreset): Combatant | undefined {
+export function pnjAuPreset(presetId: string, id: string, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): Combatant | undefined {
   const preset = resolvePresetCreature(presetId, presetDe);
-  return preset && spawnEnemy({ presetCreature: preset.creature, presetId }, id, { x: 0, y: 0 }, { appearance: preset.apparence });
+  return preset && spawnEnemy({ presetCreature: preset.creature, presetId }, id, { x: 0, y: 0 }, { appearance: preset.apparence, resolveTrapping });
 }
 
 /**
@@ -147,14 +148,14 @@ export function pnjAuPreset(presetId: string, id: string, presetDe: ResolveurDeP
  * dans `party`) — ne s'y déposerait pas. Le lot S4-b est donc en LECTURE SEULE : le PNJ joue de sa
  * fiche, il n'en subit rien. Aucune simulation ne comble ce trou.
  */
-export function sceneNpc(scene: Scene | null | undefined, id: string, presetDe: ResolveurDePreset): Combatant | undefined {
+export function sceneNpc(scene: Scene | null | undefined, id: string, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): Combatant | undefined {
   const ent = scene?.entities.find((e) => e.id === id);
-  return ent && ficheDuPersonnage(ent, presetDe);
+  return ent && ficheDuPersonnage(ent, presetDe, resolveTrapping);
 }
 
 /** La fiche du `personnage` `ent`, la MÊME que `ficheDEntite` ; `undefined` hors d'un personnage, ou d'un personnage sans
  *  fiche. */
-export function ficheDuPersonnage(ent: SceneEntity, presetDe: ResolveurDePreset): Combatant | undefined {
+export function ficheDuPersonnage(ent: SceneEntity, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): Combatant | undefined {
   const p = ent.kind === 'personnage' ? porteurDeFiche(ent, presetDe) : undefined;
-  return p && fiche(ent, p, presetDe);
+  return p && fiche(ent, p, presetDe, resolveTrapping);
 }

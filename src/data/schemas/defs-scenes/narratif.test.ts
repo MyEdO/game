@@ -197,7 +197,7 @@ describe('narratifSchema — id de preset contre les catalogues lus par `creatur
     ['gobelin', 'créature'],
     ['arme-simple', 'possession'],
     ['diligence', 'véhicule et structure'],
-    ['barge', 'véhicule seul'],
+    ['barge-fluviale', 'véhicule seul'],
     ['porte', 'structure seule'],
   ])('« %s » (%s) : refusé au chemin de son id', (id) => {
     const r = narratifSchema.safeParse({ ...vide, presetsPnj: [{ id, base: { id: 'gobelin' } }] });
