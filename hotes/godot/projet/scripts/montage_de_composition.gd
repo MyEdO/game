@@ -43,11 +43,10 @@ const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
 ## Les canaux libres d'un mesh (`Mesh.ARRAY_CUSTOM0` à `3`), qu'aucun `BaseMaterial3D` ne lit : une pièce fondue les
 ## laisse.
 const CANAUX_LIBRES := [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]
-## Les angles de normales en degrés de la génération des niveaux de détail (`poser_les_niveaux`) : ceux de l'import de
-## scène de l'éditeur, `meshes/lods/normal_merge_angle` et `normal_split_angle` à leur défaut
-## (`editor/import/3d/resource_importer_scene.cpp`, Godot 4.7-stable).
-const ANGLE_DE_FUSION_DES_NORMALES := 60.0
-const ANGLE_DE_SEPARATION_DES_NORMALES := 25.0
+## L'angle de fusion des normales en degrés de la génération des niveaux de détail (`poser_les_niveaux`) : celui de
+## l'import de scène de l'éditeur, `lods/normal_merge_angle` à son défaut (`editor/import/3d/resource_importer_scene.cpp`
+## l.2273, Godot 4.7-stable).
+const ANGLE_DE_FUSION_DES_NORMALES := 20.0
 
 ## La fusion porte la pile des couches reçue (`recevoir_la_pile`).
 signal empilee
@@ -332,7 +331,8 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 ## est le mesh entier. Seule couture des niveaux de détail : la lecture d'un GLB (`scene_lue`), la cuisson des formes
 ## (`cuire_les_formes`) et la fusion (`refondre`) y passent.
 static func poser_les_niveaux(maillage: ImporterMesh) -> void:
-	maillage.generate_lods(ANGLE_DE_FUSION_DES_NORMALES, ANGLE_DE_SEPARATION_DES_NORMALES, [])
+	# normal_split_angle : ignoré par Godot 4.7 (doc de `ImporterMesh.generate_lods`).
+	maillage.generate_lods(ANGLE_DE_FUSION_DES_NORMALES, 0.0, [])
 
 
 ## Chaque clip de `noms` que porte `lecteur` mis en boucle pour ce lecteur seul : les instances d'un même modèle partagent

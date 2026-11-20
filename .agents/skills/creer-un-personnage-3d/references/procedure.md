@@ -533,8 +533,9 @@ Base à 14 500 : décision utilisateur du 2026-11-13 (#3287), la base mesurée �
 
 La tête humanoïde MakeHuman garde le maillage `body` de MakeHuman (#4413) : ses cibles fines (joues, oreilles, bouche)
 ne s'expriment que sur lui, et sa pleine définition sert aux portraits ; ce n'est pas une décimation ni une retopologie
-à la construction. Plafond assemblé à 24 000 au niveau de détail 0 : décision utilisateur du 2026-11-19 (#4413). Godot
-ne tire aucun niveau de détail d'un import : il les génère à l'exécution, par `MontageDeComposition.poser_les_niveaux`
+à la construction. Plafond assemblé à 24 000 au niveau de détail 0 : décision utilisateur du 2026-11-19 (#4413). Les
+modèles de `modeles/` se lisent à l'exécution (`GLTFDocument`), sans import (`export_presets.cfg` exclut `modeles/*`) :
+Godot n'en tire aucun niveau de détail ; il les génère à l'exécution, par `MontageDeComposition.poser_les_niveaux`
 (`ImporterMesh.generate_lods`, `hotes/godot/projet/scripts/montage_de_composition.gd`), sur chaque mesh d'un GLB lu, sur
 chaque mesh cuit et sur le mesh fondu du personnage ; le rendu simplifie le personnage qui s'éloigne.
 
