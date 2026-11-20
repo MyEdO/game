@@ -7,6 +7,7 @@
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
 import {
+  appliquerProfilDuTrait,
   buildWeapon,
   cleDInstanceDeTrait,
   emptyArmour,
@@ -17,6 +18,7 @@ import {
   unarmedWeapon,
   weaponFromItem,
   type GabaritDObjet,
+  type ProfilDArmePorte,
   type TrappingResolver,
 } from './items';
 import { armureDuTrait } from './armourBypass';
@@ -39,18 +41,13 @@ function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsR
     ? (gabaritDObjet(entree.id, resolveTrapping) ?? undefined) : undefined;
 }
 
-/**
- * Arme de créature dérivée d'une Possession de CATALOGUE : la projection UNIQUE `weaponFromItem`
- * (engine/items) porte TOUT le profil — le STATBLOC ne surcharge que ce qu'il IMPRIME, l'Indice de
- * Dégâts et la Portée du trait (LDB 85 l.9). `reload` DÉRIVE de la Qualité Recharge (LDB 62 l.333)
- * dans la projection : l'armement de créature étant en Traits, sans qualité portée, une arbalète de
- * bestiaire n'aurait sinon aucun défaut Recharge.
- */
-function creatureWeapon(it: GabaritDObjet, uid: string, dmg: WeaponDamageSpec, range: number | undefined): Weapon {
-  const w = weaponFromItem({ ...it, uid });
-  w.damage = dmg;
-  if (range !== undefined) w.range = range;
-  return w;
+/** LDB 85 l.9, l.31 ; ZI 13 l.224, l.240, l.242 */
+export function profilDArmeDuTrait(t: TraitInstance): ProfilDArmePorte {
+  // LDB 85 l.31
+  const damage: WeaponDamageSpec = t.value != null
+    ? { plusBF: false, flat: t.value, ...(findTraitById(t.id)?.bfInclus ? { bfInclus: true as const } : {}) }
+    : { plusBF: true, flat: 0, bare: true };
+  return { damage, range: t.range, traitsConferes: t.confere, ajustements: t.profilDArme };
 }
 
 /**
@@ -61,18 +58,14 @@ function creatureWeapon(it: GabaritDObjet, uid: string, dmg: WeaponDamageSpec, r
  * Le `name` = le TYPE quand il est manufacturé ; sinon une étiquette naturelle.
  */
 export function weaponFromTrait(t: TraitInstance, resolveTrapping: TrappingResolver = findTrappingById): Weapon | null {
-  const w = armeDuTrait(t, resolveTrapping);
-  return w && t.confere?.length ? { ...w, traitsConferes: t.confere } : w;
+  const profil = profilDArmeDuTrait(t);
+  const arme = armeDuTrait(t, profil.damage, resolveTrapping);
+  return arme && appliquerProfilDuTrait(arme, profil);
 }
 
-/** L'arme d'un Trait d'arme, sans les Traits qu'il confère (`weaponFromTrait`). */
-function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapon | null {
-  // Indice de créature = SB déjà inclus → PAS de token BF (« +N », « -N » négatif) ; à défaut d'Indice,
-  // arme générique « +BF » nu (SB-relatif). Le constructeur d'arme UNIQUE porte les deux conventions.
+/** L'arme d'un Trait d'attaque, avant les indications propres au profil. */
+function armeDuTrait(t: TraitInstance, dmg: WeaponDamageSpec, resolveTrapping: TrappingResolver): Weapon | null {
   const uid = `trait-${cleDInstanceDeTrait(t)}`; // #2907
-  const dmg: WeaponDamageSpec = t.value != null
-    ? { plusBF: false, flat: t.value, ...(findTraitById(t.id)?.bfInclus ? { bfInclus: true as const } : {}) }
-    : { plusBF: true, flat: 0, bare: true };
   // Quel(s) Trait(s) ARMENT une créature est DÉCLARÉ par l'entrée du registre : `specsSource` nomme LE
   // catalogue où se résout son `arg` (`weaponsMelee`/`weaponsRanged`, cf. `SPEC_SOURCES`). Un troisième
   // trait porteur d'arme coûte cette ligne de `traits.json` — et la source passée à `catalogItem` EST
@@ -81,15 +74,15 @@ function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapo
   if (source === 'weaponsRanged') {
     if (t.value == null) return null; // « À distance » sans Indice de Dégâts : pas une arme jouable (RAW)
     const it = catalogItem(t.arg, source, resolveTrapping);
-    if (it) return creatureWeapon(it, uid, dmg, t.range);
+    if (it) return weaponFromItem({ ...it, uid });
     // Arme naturelle/libre (arg hors catalogue, ou absent) : aucun `trappingId`, aucune forme résolue (le rendu retombe sur le Groupe).
-    return buildWeapon({ label: t.arg || 'Attaque à distance', type: 'distance', damage: dmg, range: t.range ?? undefined, uid });
+    return buildWeapon({ label: t.arg || 'Attaque à distance', type: 'distance', damage: dmg, uid });
   }
   if (source === 'weaponsMelee') {
     // Attaque naturelle de corps (flag DONNÉE `natural`) → aucune arme dessinée (aucune forme résolue).
     if (t.natural) return buildWeapon({ label: t.arg ?? 'Arme', damage: dmg, natural: true, uid });
     const it = catalogItem(t.arg, source, resolveTrapping);
-    if (it) return creatureWeapon(it, uid, dmg, t.range);
+    if (it) return weaponFromItem({ ...it, uid });
     // Arme manufacturée hors catalogue, ou descripteur naturel non flaggé : générique, mêlée par
     // défaut.
     // `sizeless` (≠ `natural`, qui viderait les mains) : le trait « Arme +N » SANS objet identifié au

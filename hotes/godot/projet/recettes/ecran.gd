@@ -265,7 +265,7 @@ func _dits(e: Variant, valeur: bool = false) -> Array:
 			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and (e.type == Noyau.TypeDElement.ENTITE or e.type == Noyau.TypeDElement.POINT) or champ == "valeur" and e.type == Noyau.TypeDElement.PUCE)):
 				dits.append(v)
 			elif v is Array:
-				dits.append_array(_dits(v, e.type == Noyau.TypeDElement.LISTE or e.type == Noyau.TypeDeSaisie.SAISIE_CHOIX or e.type == Noyau.TypeDeSaisie.SAISIE_COCHES))
+				dits.append_array(_dits(v, e.type == Noyau.TypeDElement.LISTE or e.type == Noyau.TypeDeSaisie.SAISIE_CHOIX))
 	return dits
 
 

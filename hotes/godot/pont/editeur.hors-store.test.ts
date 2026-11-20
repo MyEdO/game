@@ -957,7 +957,12 @@ describe('l’éditeur de carte par le pont, les scènes du projet', () => {
 
     const renommee = editionDe(appel('editer', { type: 'identifier', args: ['cour'] }));
     expect(derniere(renommee)).toMatchObject({ id: 'scenes/cour', presse: true });
-    expect(derniere(editionDe(appel('editer', { type: 'identifier', args: [premiere.id.slice('scenes/'.length)] }))).id, 'un identifiant déjà pris se refuse').toBe('scenes/cour');
+    const pris = premiere.id.slice('scenes/'.length);
+    expect(erreurDe(appel('editer', { type: 'identifier', args: [pris] }))).toMatchObject({
+      categorie: 'regle', message: expect.stringContaining(`« ${pris} »`),
+    });
+    const apresRefus = editionDe(appel('editer', { type: 'identifier', args: ['cour'] }));
+    expect(scenes(apresRefus)).toEqual(scenes(renommee));
   });
 });
 

@@ -557,10 +557,22 @@ function holdVerdict(p: PendingActivity & ActivityOppositionOn, jet: { roll: num
 /** Lecture du dé `tr` d'une Activité : COMBINÉ (LDB 12 l.206 : UN dé confronté à DEUX valeurs), OPPOSÉ de
  *  « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule), sinon simple —
  *  SOURCE UNIQUE du dé choisi/fixé et de l'inversion. */
-function lireDeDActivite(p: PendingActivity, tr: { roll: number; target: number; sl: number; success: boolean }): Partial<PendingActivityFields> {
+function lireDeDActivite(
+  p: PendingActivity,
+  tr: { roll: number; target: number; sl: number; success: boolean },
+  resilience = false,
+): Partial<PendingActivityFields> {
   if (p.target2 != null) {
     const c = evaluateCombinedTest(tr.roll, p.target, p.target2);
-    return { roll: c.roll, sl: c.a.sl, success: c.a.success, sl2: c.b.sl, success2: c.b.success, combinedLevel: c.level };
+    const plancherActif = resilience && c.level === 'full';
+    return {
+      roll: c.roll,
+      sl: plancherActif ? Math.max(c.a.sl, 1) : c.a.sl,
+      success: c.a.success,
+      sl2: plancherActif ? Math.max(c.b.sl, 1) : c.b.sl,
+      success2: c.b.success,
+      combinedLevel: c.level,
+    };
   }
   if (p.battle === 'round' && p.enemyValue != null) {
     const v = holdVerdict(p, { roll: tr.roll, sl: tr.sl, success: tr.success });
@@ -2152,8 +2164,13 @@ export const FLOWS = paresseux({
     // (LDB 12 l.206 : UN dé confronté à DEUX valeurs → les deux issues se re-dérivent) ou OPPOSÉ de
     // « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule).
     die: {
-      read: (p) => (p.roll != null && p.target != null ? { roll: p.roll, target: p.target, critable: false } : null),
+      read: (p) => p.roll == null || p.target == null ? null : {
+        roll: p.roll,
+        target: p.forcee && p.target2 != null ? Math.min(p.target, p.target2) : p.target,
+        critable: false,
+      },
       write: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr),
+      resilience: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr, true),
     },
     key: 'pendingActivity',
     rolled: (p) => p.roll != null,

@@ -551,6 +551,33 @@ export function setObjectDataset<K extends ObjectDatasetKey>(key: K, next: (type
   bumperDataset(key);
 }
 
+function capturerLaReprise(objet: Record<string, unknown>): () => void {
+  const contenu = { ...objet };
+  const reprises: (() => void)[] = [];
+  for (const valeur of Object.values(contenu)) {
+    if (Array.isArray(valeur)) {
+      const elements = valeur.slice();
+      reprises.push(() => { valeur.splice(0, valeur.length, ...elements); });
+    } else if (estObjet(valeur)) {
+      reprises.push(capturerLaReprise(valeur));
+    }
+  }
+  return () => {
+    for (const cle of Object.keys(objet)) if (!Object.prototype.hasOwnProperty.call(contenu, cle)) delete objet[cle];
+    Object.assign(objet, contenu);
+    for (const reprendre of reprises) reprendre();
+  };
+}
+
+/** Capture une reprise du dataset-objet qui rattache aussi les références conservées par ses lecteurs. */
+export function repriseDuDatasetObjet(cle: ObjectDatasetKey): () => void {
+  const reprendre = capturerLaReprise(OBJECTS[cle]);
+  return () => {
+    reprendre();
+    bumperDataset(cle);
+  };
+}
+
 /** Réinitialise tous les datasets (tableaux ET objets) au seed d'origine (JSON app-owned). */
 export function resetData(): void {
   for (const [fichier, graine] of GRAINE_EN_TETE)

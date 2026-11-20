@@ -23,6 +23,7 @@ import { readText } from './_lib.mjs'
 import { estLigneDeTable, sansJeton } from './lib/mobilier.mjs'
 import { cellulesDe, estSeparateur } from '../../src/data/source/decoupe.ts'
 import { sitesDuLivre } from './sonde-mobilier.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 /** Les MOTS d'un texte (suites de lettres et de chiffres), en multi-ensemble. PURE. */
 export function motsDe(texte) {
@@ -187,4 +188,7 @@ function main() {
   console.log(`${ecrits.length} fichier(s) réparé(s), ${aReparer.length} site(s)`)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

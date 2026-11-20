@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, plageSchema, saisonSchema } from '../grammaire/valeurs';
 import type { DiceSpec } from '../../../engine/dice';
-import { porteLeMarqueur, ref, refusDeLId } from '../grammaire/ref';
+import { raffinementDeCatalogue, ref } from '../grammaire/ref';
 import { voieSchema } from './cargoes';
 
 export const file = 'cargaisons-aleatoires.json';
@@ -22,8 +22,23 @@ type Document = { id: string; die: DiceSpec; voie: z.output<typeof voieSchema>; 
 
 const nomDeRangee = (r: z.output<typeof rangee>) => `la rangée ${r.min}-${r.max} (${r.id})`;
 
-/** Une cargaison qui porte un prix est une marchandise (`defs/cargoes.ts`). */
-const marchandise = porteLeMarqueur('cargo', 'price');
+const verifierLesCargaisons = raffinementDeCatalogue((lire) => {
+  const { refus, porteLeMarqueur } = lire.catalogue('cargo');
+  const marchandise = porteLeMarqueur('price');
+  return (v, ctx) => {
+    const colonnes = new Map<string, string>();
+    for (const [i, t] of (v as Document[]).entries()) {
+      const colonne = `${t.voie} › ${t.saison}`;
+      const deja = colonnes.get(colonne);
+      if (deja !== undefined) ctx.addIssue({ code: 'custom', path: [i, 'saison'], message: `${file} › ${t.id} : la colonne ${colonne} est déjà tirée par « ${deja} ».` });
+      colonnes.set(colonne, t.id);
+      for (const [j, r] of t.entries.entries()) {
+        const erreur = refus(r.id, t.voie) ?? (marchandise(r.id) ? null : `« ${r.id} » ne porte aucun prix : un marqueur de colonne Production/Produits n'est pas une marchandise.`);
+        if (erreur) ctx.addIssue({ code: 'custom', path: [i, 'entries', j, 'id'], message: `${file} › ${t.id} : ${nomDeRangee(r)} — ${erreur}` });
+      }
+    }
+  };
+});
 
 const doc = document(
   'cargaisons-aleatoires',
@@ -41,19 +56,7 @@ const doc = document(
     rangee,
     deDeTirage: true,
     affinerDataset: (dataset) =>
-      couvertureDuDeParDocument<Document>(file, nomDeRangee)(dataset).superRefine((v, ctx) => {
-        const colonnes = new Map<string, string>();
-        for (const [i, t] of (v as Document[]).entries()) {
-          const colonne = `${t.voie} › ${t.saison}`;
-          const deja = colonnes.get(colonne);
-          if (deja !== undefined) ctx.addIssue({ code: 'custom', path: [i, 'saison'], message: `${file} › ${t.id} : la colonne ${colonne} est déjà tirée par « ${deja} ».` });
-          colonnes.set(colonne, t.id);
-          for (const [j, r] of t.entries.entries()) {
-            const refus = refusDeLId('cargo', r.id, t.voie) ?? (marchandise(r.id) ? null : `« ${r.id} » ne porte aucun prix : un marqueur de colonne Production/Produits n'est pas une marchandise.`);
-            if (refus) ctx.addIssue({ code: 'custom', path: [i, 'entries', j, 'id'], message: `${file} › ${t.id} : ${nomDeRangee(r)} — ${refus}` });
-          }
-        }
-      }),
+      couvertureDuDeParDocument<Document>(file, nomDeRangee)(dataset).check(verifierLesCargaisons),
   },
 );
 

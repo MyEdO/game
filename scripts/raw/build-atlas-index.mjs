@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
 import { booksDe, coeursDe, coeursDuRegistre, domainesDe, livresDeCoeur, REGISTRE_LIVRES } from './_lib.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 export const NOM_INDEX = '00-index.md'
@@ -60,4 +61,7 @@ function main() {
   }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

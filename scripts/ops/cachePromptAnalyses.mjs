@@ -1,6 +1,7 @@
 // ANALYSES du cache de prompt (#2596) : fonctions PURES sur les enregistrements normalisés de
 // `cachePromptDonnee.mjs` (`{ requetes, evenements, fils }`, fenêtre et exclusions déjà appliquées).
 // Chaque analyse rend des données ; le rendu Markdown vit dans `cachePromptRapport.mjs`.
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 /** Requête « froide » : plus de `SEUIL_FROID` tokens écrits ET plus de la moitié du prompt écrit. */
@@ -537,7 +538,12 @@ function sondeTerminee(evenements, finDe, u, base) {
   return null
 }
 
-/** Chaque run de `test:perimetre` d'un sous-agent codeur, son code et son verdict : vert (0), rouge (≠ 0), inconnu ;
+const VERDICTS_PERIMETRE = new Map([[0, 'vert'], [1, 'rouge'], [2, 'erreur d’outillage'], [CODE_DIFFERE, 'différé']])
+
+const fauxRougeMemoire = (fin) => /^\[perimetre\] \[memoire\] MESURE_MEMOIRE_INCOMPLETE : /m.test(fin) &&
+  /^\[perimetre\] rouge — rouge sans fichier nommé : node : \d+ lancement\(s\) rouge\(s\) sans fichier en échec rapporté$/m.test(fin)
+
+/** Chaque run de `test:perimetre` d'un sous-agent codeur, son code et son verdict : vert (0), rouge (1), erreur d'outillage (2), différé (75) ou inconnu ;
  *  par fil, le verdict de son DERNIER run. Le code : au premier plan, le résultat ; en fond sous la forme à `.code`
  *  de `appel-borne-guard.mjs`, la SONDE terminée (la notification n'y porte que le code de l'enveloppe) ; en fond
  *  hors de cette forme, la notification. */
@@ -550,7 +556,8 @@ export function verdictPerimetre({ evenements }) {
       const sonde = base ? sondeTerminee(evenements, finDe, u, base) : null
       const code = base ? sonde?.code ?? null : f?.code ?? null
       const fin = base ? sonde?.fin ?? null : fond ? f?.sommaire ?? null : f?.fin ?? null
-      return { session: u.session, fil: u.fil, t: u.t, fond, code, verdict: code === 0 ? 'vert' : code == null ? 'inconnu' : 'rouge', fin }
+      const verdict = code === 1 && fauxRougeMemoire(fin) ? 'erreur d’outillage' : VERDICTS_PERIMETRE.get(code) ?? 'inconnu'
+      return { session: u.session, fil: u.fil, t: u.t, fond, code, verdict, fin }
     })
   const parFil = [...par(runs, cleFil)].map(([, v]) => ({ session: v[0].session, fil: v[0].fil, runs: v.length, rouges: v.filter((x) => x.verdict === 'rouge').length, verdict: v.at(-1).verdict, fin: v.at(-1).fin }))
   return { runs, parFil }
@@ -611,6 +618,8 @@ export function comptesCles(a) {
     ...Object.fromEntries(a.plafond.map((g) => [`plafond200k_${g.groupe === 'principal' ? 'principal' : 'sousAgents'}`, g.reel ? g.plafonds.find((x) => x.C === 200e3).compactage.dollars / g.reel - 1 : 0])),
     perimetreCodeursVert: a.perimetre.parFil.filter((x) => x.verdict === 'vert').length, perimetreCodeursRouge: a.perimetre.parFil.filter((x) => x.verdict === 'rouge').length,
     perimetreCodeursInconnu: a.perimetre.parFil.filter((x) => x.verdict === 'inconnu').length,
+    perimetreCodeursOutillage: a.perimetre.parFil.filter((x) => x.verdict === 'erreur d’outillage').length,
+    perimetreCodeursDiffere: a.perimetre.parFil.filter((x) => x.verdict === 'différé').length,
     sendMessageSurAgentRenduPlus5min: a.sendMessage.renduPlus5.length,
     coutEtatEcartMaxAbs: Math.max(0, ...a.coutEtat.map((c) => Math.abs(c.ecart ?? 0))),
   }

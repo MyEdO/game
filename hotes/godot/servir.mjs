@@ -175,13 +175,12 @@ function empreinteDu(dossier) {
 /** Le texte du listage du dossier vivant `dossier` (`listage`), calculé tout de suite, puis à la lecture qui trouve
  *  changée l'empreinte du dossier (`empreinteDu`) : sa validation lit chaque GLB, plusieurs secondes pendant lesquelles
  *  le serveur, sur un seul fil, ne répond à rien, et une page qui attend plus que le silence du pont (`SILENCE_S`,
- *  `projet/scripts/pont.gd`) n'a plus de modèles. */
+ *  `projet/scripts/pont.gd`) n'a plus de modèles. Les demandes sur la même empreinte partagent le calcul en cours. */
 function listageDuDossier(dossier) {
-  let empreinte = empreinteDu(dossier)
-  let texte = JSON.stringify(listage(dossier))
+  let empreinte, texte
   return () => {
     const lue = empreinteDu(dossier)
-    if (lue !== empreinte) [empreinte, texte] = [lue, JSON.stringify(listage(dossier))]
+    if (lue !== empreinte) [empreinte, texte] = [lue, listage(dossier).then((liste) => JSON.stringify(liste))]
     return texte
   }
 }
@@ -190,22 +189,34 @@ function listageDuDossier(dossier) {
  *  ses `planches/` comprises, sans lui 404 hors de `/modeles/`, `/depot/` et `/source/` ; avec `statique`, `web`
  *  seul, ses `modeles/` déposés compris ; avec `depot`, la racine
  *  d'un dépôt, ses projets manuscrits sous `/depot/` (`servirLeDepot`), et le `Source/` de ce dépôt-ci sous `/source/`,
- *  son index des chapitres et chacun de ses chapitres (`servirLaSource`), jamais sans lui. */
-export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = false }) {
+ *  son index des chapitres et chacun de ses chapitres (`servirLaSource`), jamais sans lui. Le pont vivant annonce son
+ *  adresse dès l'écoute avec `attendreLeListage: false`, puis le serveur prépare le listage. */
+export async function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = false, attendreLeListage = true }) {
   const racine = web && resolve(web)
   const dossier = resolve(modeles)
   const lireLeListage = !statique && listageDuDossier(dossier)
-  return ecouter((req, res, rel) => {
+  if (lireLeListage && attendreLeListage) await lireLeListage()
+  const serveur = await ecouter((req, res, rel) => {
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
     if (depot && rel.startsWith('donnees/')) return servirLesDonnees(req, res, resolve(depot), rel.slice('donnees/'.length))
     if (depot && rel.startsWith('source/')) return void (servirLaSource(`/${rel}`, res) || res.writeHead(404).end())
-    if (lireLeListage && rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(lireLeListage())
+    if (lireLeListage && rel === `modeles/${LISTAGE}`) return void lireLeListage().then((texte) =>
+      res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(texte))
     const sansCache = { 'Cache-Control': 'no-store' }
     const [base, chemin, entetes] = statique ? [racine, rel || 'index.html', {}]
       : rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), sansCache]
       : [racine, rel || 'index.html', {}]
     rendre(res, base, chemin, entetes)
   })
+  if (!lireLeListage || attendreLeListage) return serveur
+  const amorce = setImmediate(lireLeListage)
+  return {
+    url: serveur.url,
+    fermer() {
+      clearImmediate(amorce)
+      serveur.fermer()
+    },
+  }
 }
 
 if (import.meta.main) {

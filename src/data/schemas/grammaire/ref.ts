@@ -80,6 +80,7 @@ export const TYPES = {
   crewRole: { espace: 'crew-roles.json', catalogue: 'rôles d’équipage' },
   crewTestType: { espace: 'crew-test-types.json#types', catalogue: 'types de Test d’équipage' },
   table: { espace: 'tables.json', catalogue: 'tables' },
+  mutation: { espace: 'mutations.json', catalogue: 'mutations' },
   mutationTable: { espace: 'mutationTables.json', catalogue: 'tables de mutation' },
   etat: { espace: 'etats.json', catalogue: 'états' },
   maladie: { espace: 'maladies.json', catalogue: 'maladies' },
@@ -298,12 +299,6 @@ export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: {
     : refusDeMarqueur(type, entree.id, marqueurPorte(sousListe, entree));
 }
 
-/** Le refus d'un id par `idDe(type, sousListe?)` — `null` s'il est ADMIS —, pour un id que nulle feuille ne
- *  porte (`defs/cargaisons-aleatoires.ts`). */
-export function refusDeLId(type: TypeEntite, id: string, sousListe?: SousListe): string | null {
-  return refusDe(type, sousListe, `refusDeLId('${type}')`, id);
-}
-
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
 function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: string, id: string): string | null {
   if (typeof sousListe === 'string') return refusDeLaDiscriminee(type, sousListe, site, id);
@@ -347,6 +342,49 @@ export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string
   const site = `porteLeMarqueur('${type}', '${marqueur}')`;
   DESIGNATIONS.add(cle);
   return (id) => idsDesignes(cle, site).has(id);
+}
+
+type LecturesDeCatalogue = {
+  readonly ids: () => ReadonlySet<string>;
+  readonly idsDeLaSousListe: (sousListe: SousListe) => readonly string[];
+  readonly refus: (id: string, sousListe?: SousListe) => string | null;
+  readonly porteLeMarqueur: (marqueur: string) => (id: string) => boolean;
+};
+
+type LecturesDuRaffinement = {
+  readonly catalogue: (type: TypeEntite) => LecturesDeCatalogue;
+  readonly racine: <R extends object>(type: TypeEntite, racineVivante: R) => R;
+};
+
+const ESPACES_PAR_RAFFINEMENT = new WeakMap<object, readonly string[]>();
+
+/** Un contrôle de schéma et les espaces que ses lecteurs désignent à sa construction. */
+export function raffinementDeCatalogue(
+  construire: (lire: LecturesDuRaffinement) => (valeur: unknown, ctx: z.RefinementCtx) => void,
+): z.core.$ZodCheck<unknown> {
+  const espaces = new Set<string>();
+  const controle = z.superRefine<unknown>(construire({
+    catalogue: (type) => {
+      espaces.add(espaceDe(type));
+      return {
+        ids: () => idsDe(type),
+        idsDeLaSousListe: (sousListe) => idsDeLaSousListe(type, sousListe),
+        refus: (id, sousListe) => refusDe(type, sousListe, `raffinementDeCatalogue('${type}')`, id),
+        porteLeMarqueur: (marqueur) => porteLeMarqueur(type, marqueur),
+      };
+    },
+    racine: (type, racineVivante) => {
+      espaces.add(espaceDe(type));
+      return racineVivante;
+    },
+  }));
+  ESPACES_PAR_RAFFINEMENT.set(controle, [...espaces]);
+  return controle;
+}
+
+/** Les clés d'espace lues par ce contrôle. */
+export function espacesLusParRaffinement(controle: unknown): readonly string[] | undefined {
+  return typeof controle === 'object' && controle !== null ? ESPACES_PAR_RAFFINEMENT.get(controle) : undefined;
 }
 
 /** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune, ou `id` n'est aucune entrée de

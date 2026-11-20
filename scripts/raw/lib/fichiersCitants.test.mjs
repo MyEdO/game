@@ -8,7 +8,6 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { livreDuSigle } from '../_lib.mjs'
 import { scanDeadCodeRefs, scanEmptyLineCodeRefs } from '../check-code-refs.mjs'
 import { scanTout } from '../citation-graphy-guard.mjs'
 import { scanBlindRefs } from '../../guards/lib/rawRefIntegrity.mjs'
@@ -25,13 +24,18 @@ const FICHIER_CODE = 'src/a.ts'
 const FICHIER_DOSSIER = `docs/dossiers/${DOSSIER}/${CH}.json`
 
 const depart = process.cwd()
+const chapitres = new Map()
+const chapitreDe = (abbr, nn) => nn === CH ? chapitres.get(abbr) ?? null : null
 let racine
 before(() => {
   racine = mkdtempSync(join(tmpdir(), 'citants-'))
   for (const abbr of [CODE, DOSSIER]) {
-    const dir = join(racine, livreDuSigle(abbr).dir)
+    const dir = join(racine, 'Source', abbr)
+    const file = `${CH} - Fixture.md`
+    const path = join(dir, file)
     mkdirSync(dir, { recursive: true })
-    writeFileSync(join(dir, `${CH} - Fixture.md`), 'Quuxa bravissimo\n\nDelta foxtrots\n')
+    writeFileSync(path, 'Quuxa bravissimo\n\nDelta foxtrots\n')
+    chapitres.set(abbr, { path, file, dir })
   }
   for (const [rel, abbr] of [[FICHIER_CODE, CODE], [FICHIER_DOSSIER, DOSSIER]]) {
     mkdirSync(join(racine, rel, '..'), { recursive: true })
@@ -50,9 +54,10 @@ const fichiers = (sites) => [...new Set(sites.map((s) => s.file))].sort()
 
 test('CITANTS : bornes, ligne vide, ligne aveugle et graphie lisent le code ET les dossiers', () => {
   const attendu = [FICHIER_DOSSIER, FICHIER_CODE].sort()
-  assert.deepEqual(fichiers(scanDeadCodeRefs()), attendu, 'check-code-refs (bornes)')
-  assert.deepEqual(fichiers(scanEmptyLineCodeRefs()), attendu, 'check-code-refs (ligne vide)')
-  assert.deepEqual(fichiers(scanBlindRefs()), attendu, 'rawRefIntegrity')
+  const horsBornes = scanDeadCodeRefs(undefined, chapitreDe).map(({ file, kind }) => [file, kind]).sort()
+  assert.deepEqual(horsBornes, attendu.map((file) => [file, 'out-of-bounds']), 'check-code-refs (bornes)')
+  assert.deepEqual(fichiers(scanEmptyLineCodeRefs(undefined, chapitreDe)), attendu, 'check-code-refs (ligne vide)')
+  assert.deepEqual(fichiers(scanBlindRefs(undefined, chapitreDe)), attendu, 'rawRefIntegrity')
   assert.deepEqual(fichiers(scanTout().folioSrc), attendu, 'citation-graphy-guard')
 })
 

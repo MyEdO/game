@@ -3,7 +3,7 @@
 // de Node, de `tableTotale` et de `stockage.mjs` : `embarque.mjs` s'empaquette en un fichier.
 import { Console } from 'node:console'
 import { parseArgs } from 'node:util'
-import { createContext, runInContext } from 'node:vm'
+import { constants, createContext, runInContext } from 'node:vm'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { stockageDuProcessus } from './stockage.mjs'
 
@@ -37,20 +37,33 @@ export function ecartsDesLectures(lectures, api, horsDuProcessus) {
   })
 }
 
-/** Le pont du bundle `code` évalué comme dans la page de Godot : dans un contexte qui ne porte que `API_DU_NAVIGATEUR`,
- *  chacune prise au global de Node sauf `console` et `localStorage`, ceux donnés (`stockage` : `stockageDuProcessus`,
- *  `stockage.mjs`), et `sessionStorage`, un stockage en mémoire neuf (`stockageDuProcessus(null)`). Lève si
- *  l'évaluation lève. */
-export function pontDuBundle(code, console, stockage) {
+/** Les API que la page de Godot fournit au bundle : celles de Node, la console et le stockage donnés,
+ *  et un stockage de session neuf. */
+function apiDeLaPage(console, stockage) {
   const donnees = { console, localStorage: stockage, sessionStorage: stockageDuProcessus(null) }
-  const page = createContext(tableTotale(API_DU_NAVIGATEUR, (nom) => (nom in donnees ? donnees[nom] : globalThis[nom])))
+  return tableTotale(API_DU_NAVIGATEUR, (nom) => (nom in donnees ? donnees[nom] : globalThis[nom]))
+}
+
+function evaluerLePont(code, page) {
   runInContext(code, page, { filename: PONT })
   return page.wfrpPont
 }
 
+/** Le pont natif tiré de `code` dans un contexte neuf. Le global ordinaire de ce contexte conserve ses propres
+ *  intrinsèques et évite le coût d'interception de la résolution des noms globaux (#4032). */
+export function pontDuBundle(code, console, stockage) {
+  const page = Object.assign(createContext(constants.DONT_CONTEXTIFY), apiDeLaPage(console, stockage))
+  return evaluerLePont(code, page)
+}
+
+/** Le contexte de référence de `pont:godot` pour vérifier les API de navigateur déclarées. */
+export function pontDuBundleDeReference(code, console, stockage) {
+  return evaluerLePont(code, createContext(apiDeLaPage(console, stockage)))
+}
+
 /**
  * @contrat Transport
- * - Le processus du pont (`tenirLeTuyau`, `hotes/godot/processus.mjs`) tire le pont de son bundle comme la page
+ * - Le processus du pont (`tenirLeTuyau`, `hotes/godot/processus.mjs`) tire le pont de son bundle dans un contexte neuf
  *   (`pontDuBundle`), sa `console` sur la sortie d'erreur : sa sortie standard ne porte que le protocole, lignes et
  *   octets.
  * - Son stockage, où vivent les sauvegardes, est le fichier de son option `--stockage=<fichier>` (`stockageDuProcessus`,

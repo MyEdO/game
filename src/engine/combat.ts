@@ -280,7 +280,8 @@ function combatSkillPick(c: Combatant, kind: 'melee' | 'distance', weapon?: Weap
   const skillId = weaponSkillId(kind);
   const matching = c.skills.filter((s) => s.id === skillId);
   if (matching.length === 0) return { charKey, advances: 0 };
-  if (!weapon || !weapon.subType) return { charKey, skill: { id: skillId }, advances: Math.max(0, ...matching.map((s) => s.advances)) };
+  if (!weapon || !weapon.subType || weapon.sansSpecialisation)
+    return { charKey, skill: { id: skillId }, advances: Math.max(0, ...matching.map((s) => s.advances)) };
   const m = matchGroupSpec(c, weapon, kind);
   return { charKey, skill: { id: skillId, ...(m?.spec ? { spec: m.spec } : {}) }, advances: m?.advances ?? 0 };
 }

@@ -81,9 +81,10 @@ import { garanti } from '../lib/garanti';
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, aRecharger, chambrePleine, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
+import { tableTotale } from '../lib/tableTotale';
 import type { FabriqueDId } from './fabriqueDId';
 import type { TraitInstance } from './statEntry';
-import { armesDuProfil, armourFromTraits, uidDeLArmeDuTrait, weaponFromTrait } from './creatureEquip';
+import { armesDuProfil, armourFromTraits, profilDArmeDuTrait, uidDeLArmeDuTrait } from './creatureEquip';
 import type { InventaireDAuteur } from '../data/schemas/defs-scenes/scene';
 
 /** Fiche d'un objet déjà né pour les règles qui la consultent à l'usage. #2967 */
@@ -986,7 +987,40 @@ export function objetAuProfilEffectif<T extends ChampsDuProfilDObjet>(it: T): T 
   };
 }
 
-type ProfilDArmePorte = Pick<Weapon, 'damage' | 'range' | 'traitsConferes'>;
+export type ProfilDArmePorte = Pick<Weapon, 'damage' | 'range' | 'traitsConferes'> & {
+  ajustements?: TraitInstance['profilDArme'];
+};
+
+/** LDB 85 l.9, l.31 ; ADE II 02 l.710 ; ZI 13 l.224, l.240, l.242 ; Guide de Frenchy, chap. 26, ligne 882 */
+export function appliquerProfilDuTrait(arme: Weapon, profil?: ProfilDArmePorte): Weapon {
+  if (!profil) return arme;
+  const { damage, range, traitsConferes, ajustements } = profil;
+  const w: Weapon = {
+    ...arme,
+    damage,
+    ...(range != null ? { range } : {}),
+    ...(traitsConferes?.length ? { traitsConferes } : {}),
+  };
+  if (!ajustements) return w;
+  const { allonge, ajusteeAuPorteur, groupesDeManiement, qualites, retire, sansSpecialisation } = ajustements;
+  if (allonge !== undefined) w.reach = allonge;
+  if (ajusteeAuPorteur) w.sizeless = true;
+  if (groupesDeManiement) {
+    const maniements = tableTotale(groupesDeManiement, () => ({}));
+    w.manieAussi = { ...maniements, ...w.manieAussi };
+  }
+  if (sansSpecialisation) w.sansSpecialisation = true;
+  if (qualites === undefined && retire === undefined) return w;
+  const ajoutees = new Map<string, QualityInstance>(qualites?.map((q) => [q.id, qualityInstance(q)]));
+  const retirees = new Set<string>(retire);
+  w.qualities = [
+    ...w.qualities.filter((q) => !ajoutees.has(q.id) && !retirees.has(q.id)),
+    ...[...ajoutees.values()].filter((q) => !retirees.has(q.id)),
+  ];
+  if (retirees.size) w.removedQualities = [...new Set([...(w.removedQualities ?? []), ...retirees])];
+  w.reload = qualityIndice(w, 'recharge') ?? 0;
+  return w;
+}
 
 /**
  * PROJECTION UNIQUE `ItemInstance` → `Weapon` : la SEULE dérivation d'une arme jouable depuis une
@@ -1006,15 +1040,13 @@ export function weaponFromItem(objet: ItemInstance, hand?: Main, ctx?: ContexteD
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'distance',
     // Possession de catalogue SANS profil de Dégâts (munitions de trait) : Dégâts « – ».
     // Convention UNIQUE du profil d'arme — elle vit ICI, plus aucun appelant ne la redéclare.
-    damage: profil?.damage ?? it.damage ?? { aucun: true },
-    ...(profil?.range != null ? { range: profil.range } : {}),
+    damage: it.damage ?? { aucun: true },
     qualities: it.qualities, subType: it.subType, weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo,
     reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
     ...(it.teinte ? { teinte: it.teinte } : {}), apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it),
   });
-  if (profil?.traitsConferes) arme.traitsConferes = profil.traitsConferes;
-  return applyEnchants(arme, it.enchants ?? []);
+  return applyEnchants(appliquerProfilDuTrait(arme, profil), it.enchants ?? []);
 }
 
 /** Objet qu'un slot `main`/`secondaire` d'un set désigne par `uid`, s'il peut y être : présent dans l'inventaire,
@@ -1048,9 +1080,7 @@ export function recomputeLoadout(c: Combatant): void {
   }
   const profilDe = (it: ItemInstance): ProfilDArmePorte | undefined => {
     const t = armesDeFiche.get(it.uid);
-    if (!t) return undefined;
-    const w = weaponFromTrait(t);
-    return w ? { damage: w.damage, ...(t.range != null ? { range: t.range } : {}), traitsConferes: w.traitsConferes } : undefined;
+    return t && profilDArmeDuTrait(t);
   };
   // Auto-prune : un slot dont l'objet ne peut plus y être (`objetDeSlot`) est vidé, sur TOUS les loadouts.
   const slotDead = (uid?: string) => uid != null && !objetDeSlot(c, uid);
@@ -1096,8 +1126,7 @@ export function recomputeLoadout(c: Combatant): void {
     const dw = i.equipped && !i.destroyed ? i.derivedWeapon : undefined;
     if (dw) weapons.push({
       hand: 'main',
-      ...dw,
-      ...profilDe(i),
+      ...appliquerProfilDuTrait(dw, profilDe(i)),
       uid: uidDArme(`${i.uid}-arme`, weapons), // #2907
       derivedFromItem: i.uid,
       ...(i.trappingId ? { source: { kind: 'objet' as const, id: i.trappingId } } : {}),
@@ -1227,7 +1256,8 @@ export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPo
 /** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas, parmi ses objets qui peuvent occuper
  *  un slot (`objetDeSlot`, seul filtre) : le 1er = meilleure arme de mêlée, et sous une arme à 1 main un
  *  bouclier en secondaire, sinon une 2e arme éligible (`isOffHandEligible`) ; le 2nd = 1re arme à distance
- *  (sinon vide). Idempotent. Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`). */
+ *  (sinon vide). Chaque arme restante nommée par le profil reçoit son propre set. Idempotent.
+ *  Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`). */
 export function ensureDefaultLoadout(c: Combatant): void {
   if (c.loadouts?.length) return;
   const items = (c.items ?? []).filter((i) => objetDeSlot(c, i.uid) === i);
@@ -1246,6 +1276,14 @@ export function ensureDefaultLoadout(c: Combatant): void {
   const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: ranged[0]?.uid };
   c.loadouts = [set1, set2];
   c.activeLoadoutId = (set1.main ? set1 : set2.main ? set2 : set1).id;
+
+  const armesDeFiche = new Set(c.traits?.map(uidDeLArmeDuTrait));
+  const dejaEnSet = new Set([set1.main, set1.secondaire, set2.main]);
+  for (const arme of items) {
+    if (armesDeFiche.has(arme.uid) && !dejaEnSet.has(arme.uid)) {
+      c.loadouts.push({ id: newLoadoutId(c), main: arme.uid });
+    }
+  }
 }
 
 const PREFIXE_DE_SET = 'lo';

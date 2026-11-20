@@ -9,6 +9,7 @@ import {
   datasetObject,
   datasetObjectSerializeRoot,
   setObjectDataset,
+  repriseDuDatasetObjet,
   datasetFile,
   datasetSerializeRoot,
   datasetObjectFile,
@@ -19,14 +20,14 @@ import {
   type ObjectDatasetKey,
 } from './overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from './schemas/exposition-derivee';
-import { cheminLisible, lieuDe, schemaForFile, validateDataset } from './schemas/validate';
+import { cheminLisible, fichiersLisantLeCatalogue, lieuDe, schemaForFile, validateDataset } from './schemas/validate';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE } from './schemas/_cles-de-dataset.generated';
 import { cleNichee, suiteAvecPas, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { reperesDuParse, TYPES, type CibleDeReference } from './schemas/grammaire/ref';
 import { projetSchema } from './schemas/defs-scenes/projet';
 import { versDisque } from './schemas/grammaire/prose';
-import { versionDesDatasets } from './versionDataset';
+import { publierSiAcceptee, versionDesDatasets } from './versionDataset';
 import { serializeDataset } from './serialize';
 import { entryKey } from './index';
 import { opsMissingRefs } from './refsDOp';
@@ -45,22 +46,15 @@ export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetK
 export const editableDataset = (categoryKey: string): DatasetKey | undefined => CATEGORY_DATASET[categoryKey];
 export const isEditableCategory = (categoryKey: string): boolean => !!CATEGORY_DATASET[categoryKey] || !!OBJECT_CATEGORY[categoryKey];
 
-/** Champs-réf NICHÉS (une valeur ou une liste, sous un sous-objet/sous-tableau) : garantie de
- *  résolvabilité, décrite par un accesseur PUR `entry → (id|undefined)[]`. #173 : `mutationTables.
- *  entries[].mutation` et `domains.castBonus.perCondition` en sont les 2 sites CONFIRMÉS (un éditeur par
- *  datalist-de-labels y écrivait un libellé, cassant `mutations.ts::rollMutation`/`noyau/combatFlow.ts::
- *  domainCastBonus` au runtime) — ajouter une réf nichée = ajouter SON accesseur ici. `weather.json`
- *  partage la forme `entries[]` mais sa clé est `.weather` (union fermée, pas une réf de dataset) :
- *  l'accesseur `mutation` y est simplement `undefined`, filtré plus bas — aucun faux positif. */
+/** Références non déclarées par la grammaire, lues sous un sous-objet ou un sous-tableau (#173). */
 const NESTED_REF_FIELDS: { key: string; ds: DatasetKey; get: (entry: Entry) => (string | undefined)[] }[] = [
-  { key: 'entries[].mutation', ds: 'mutations', get: (e) => ((e.entries as { mutation?: string }[] | undefined) ?? []).map((r) => r.mutation) },
   { key: 'castBonus.perCondition', ds: 'etats', get: (e) => [(e.castBonus as { perCondition?: string } | undefined)?.perCondition] },
   { key: 'prosthesis[].id', ds: 'trappings', get: (e) => ((e.prosthesis as { id?: string }[] | undefined) ?? []).map((p) => p.id) },
 ];
 
 /** Valide une entrée AVANT persist (bouton Enregistrer bloqué tant que non vide) : identité
  *  (id non vide + unique, libellé non vide) + refs NICHÉES résolvables (`NESTED_REF_FIELDS`) ; une référence
- *  d'un champ typé par la grammaire (`idDe`, `refs`) se juge au parse de la racine (`racineValidee`). PUR. `selfIndex` = position de l'entrée éditée dans `entries` (−1 pour une création). */
+ *  d'un champ typé par la grammaire (`idDe`, `refs`) se juge au parse de la racine (`enregistrerMutation`). PUR. `selfIndex` = position de l'entrée éditée dans `entries` (−1 pour une création). */
 export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[], selfIndex: number): string[] {
   const errors: string[] = [];
   // id : requis + unique là où le dataset est id-based (toutes les entités migrées par-id).
@@ -105,17 +99,17 @@ export type Enregistrement = { ok: true; fichier: string; texte: string; avant: 
  * Enregistre `entry` dans le dataset de `categoryKey` (#176, #1530) : à la position `index` d'un
  * dataset-liste (`-1` l'ajoute), en fusion d'un dataset-objet ; `enTete`, posé, écrit des champs de
  * l'EN-TÊTE de sa collection (`setEnTete`, #1667) dans la MÊME transaction. Refuse sans rien poser une
- * entrée que `validateEntry` refuse ; sinon la pose, valide la racine sérialisée contre son schéma et, au
- * refus, REPREND l'état d'avant, entrée et en-tête. Le texte rendu est la forme disque de la source entière.
+ * entrée que `validateEntry` refuse ; sinon valide la racine candidate et les schémas qui lisent son
+ * catalogue. Un refus restaure l'entrée et l'en-tête sans les publier aux abonnés. Le texte rendu est
+ * la forme disque de la source entière.
  */
 export function enregistrerEntree(categoryKey: string, entry: Entry, index: number, enTete: readonly EcritureDEnTete[] = []): Enregistrement {
   const obj = editableObjectDataset(categoryKey);
   if (obj) {
-    const avant = structuredClone(datasetObject(obj.ds));
+    const reprendre = repriseDuDatasetObjet(obj.ds);
     const texteAvant = serializeDataset(datasetObjectSerializeRoot(obj.ds));
-    setObjectDataset(obj.ds, entry as never);
-    const root = datasetObjectSerializeRoot(obj.ds);
-    return racineValidee(datasetObjectFile(obj.ds), root, texteAvant, () => setObjectDataset(obj.ds, avant as never));
+    return enregistrerMutation(datasetObjectFile(obj.ds), () => datasetObjectSerializeRoot(obj.ds), texteAvant,
+      () => setObjectDataset(obj.ds, entry as never), reprendre);
   }
   const ds = editableDataset(categoryKey)!;
   const entries = entreesDuDataset(ds);
@@ -124,9 +118,11 @@ export function enregistrerEntree(categoryKey: string, entry: Entry, index: numb
   const avant = entries.slice();
   const texteAvant = serializeDataset(datasetSerializeRoot(ds));
   const enTeteAvant = enTete.map((e) => ({ ...e, valeur: champDEnTete(ds, e.ancetre, e.champ) }));
-  setEnTete(ds, enTete);
-  setDataset(ds, (index < 0 ? [...entries, entry] : entries.map((x, i) => (i === index ? entry : x))) as never);
-  return racineValidee(datasetFile(ds), datasetSerializeRoot(ds), texteAvant, () => {
+  const apres = index < 0 ? [...entries, entry] : entries.map((x, i) => (i === index ? entry : x));
+  return enregistrerMutation(datasetFile(ds), () => datasetSerializeRoot(ds), texteAvant, () => {
+    setEnTete(ds, enTete);
+    setDataset(ds, apres as never);
+  }, () => {
     setDataset(ds, avant as never);
     setEnTete(ds, enTeteAvant);
   });
@@ -295,14 +291,50 @@ export function supprimerEntree(categoryKey: string, index: number, paquets: rea
   if (designee.length) return { ok: false, erreurs: designee.map((d) => `désignée par ${d}`) };
   const avant = entries.slice();
   const texteAvant = serializeDataset(datasetSerializeRoot(ds));
-  setDataset(ds, entries.filter((_, i) => i !== index) as never);
-  return racineValidee(datasetFile(ds), datasetSerializeRoot(ds), texteAvant, () => setDataset(ds, avant as never));
+  const apres = entries.filter((_, i) => i !== index);
+  return enregistrerMutation(datasetFile(ds), () => datasetSerializeRoot(ds), texteAvant,
+    () => setDataset(ds, apres as never),
+    () => setDataset(ds, avant as never));
 }
 
-/** La racine posée, validée contre le schéma de `fichier`, le texte de sa source d'avant `avant` ; `reprendre` restaure
- *  l'état d'avant, au refus, et se rend avec l'issue acceptée. */
-function racineValidee(fichier: string, root: unknown, avant: string, reprendre: () => void): Enregistrement {
-  const refus = validateDataset(fichier, root);
-  if (refus) { reprendre(); return { ok: false, erreurs: refus.split('\n') }; }
-  return { ok: true, fichier, texte: serializeDataset(root), avant, reprendre };
+/** Valide la racine écrite, puis les racines des schémas qui lisent son catalogue. */
+function validerMutation(fichier: string, racine: unknown): string | null {
+  const refus = validateDataset(fichier, racine);
+  if (refus) return refus;
+  for (const lecteur of fichiersLisantLeCatalogue(fichier) ?? []) {
+    const refusDuLecteur = validateDataset(lecteur, versDisque(RACINES_VIVANTES[lecteur]));
+    if (refusDuLecteur) return refusDuLecteur;
+  }
+  return null;
+}
+
+/** La pose rend les références candidates visibles au parse. Une transaction achevée publie son état
+ *  et donne à l'hôte la reprise en cas de refus du disque. */
+function enregistrerMutation(
+  fichier: string,
+  lireRacine: () => unknown,
+  avant: string,
+  poser: () => void,
+  restaurer: () => void,
+): Enregistrement {
+  const reprendre = () => {
+    publierSiAcceptee(() => {
+      restaurer();
+      return { ok: true };
+    });
+  };
+  return publierSiAcceptee(() => {
+    let acceptee = false;
+    try {
+      poser();
+      const racine = lireRacine();
+      const refus = validerMutation(fichier, racine);
+      if (refus) return { ok: false, erreurs: refus.split('\n') };
+      const texte = serializeDataset(racine);
+      acceptee = true;
+      return { ok: true, fichier, texte, avant, reprendre };
+    } finally {
+      if (!acceptee) restaurer();
+    }
+  });
 }

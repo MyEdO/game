@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { CompendiumScreen } from './CompendiumScreen';
+import { codexGroupLabel } from '../../noyau/codex/registry';
 // `new URL(rel, import.meta.url)` est détourné par l'implémentation URL de jsdom (base du document) :
 // la résolution passe par le chemin du module.
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -114,7 +115,7 @@ describe('CompendiumScreen — 7 groupes atteignables (#896)', () => {
     expect(tabsContainer!.getAttribute('role')).toBe('tablist');
     
     const tabs = [...tabsContainer!.querySelectorAll('[role="tab"]')] as HTMLButtonElement[];
-    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Personnage', 'Compétences', 'Équipement', 'Effets', 'Magie', 'Monde', 'Tables']);
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Personnage', codexGroupLabel('competences'), 'Équipement', 'Effets', 'Magie', 'Monde', 'Tables']);
   });
 
   it('le conteneur `.tabs` s\'enroule (`flex-wrap: wrap`, composé depuis `components.css` — jamais un `overflow` sans échappatoire)', () => {

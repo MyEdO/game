@@ -17,6 +17,8 @@ import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
 import { exigeProvenanceExclusive, type Provenance } from './grammaire/document';
 import { defDe, descendre, enfantsDe, estConteneur, ouverts, pasDeDonnee } from './grammaire/descente';
+import { lireCleDEspace } from './grammaire/cle-d-espace';
+import { espacesLusParRaffinement } from './grammaire/ref';
 import { atteindre, champDeCharge, collectionDe, noeudsDeLElement, type EspaceDeNoms } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, metaDesChamps, nomDeNoeud, type MetaChamp } from './grammaire/meta';
@@ -122,6 +124,34 @@ export function champDeProvenanceEcarte(file: string, { source, maison }: Proven
 /** Le texte vidé d’une raison maison retire cette provenance dans le brouillon exclusif. */
 export function valeurDeProvenanceAuBrouillon(file: string, champ: string, valeur: unknown): unknown {
   return champ === 'maison' && valeur === '' && exigeProvenanceExclusive(schemaForFile(file)) ? undefined : valeur;
+}
+
+let lecteursDesCatalogues: ReadonlyMap<string, ReadonlySet<string>> | undefined;
+
+function indexerLecteursDesCatalogues(): ReadonlyMap<string, ReadonlySet<string>> {
+  const racinesVivantes = new Set(Object.values(DATASET_FICHIER_DERIVE));
+  const index = new Map<string, Set<string>>();
+  for (const { file, schema } of SCHEMA_DEFS) {
+    if (!racinesVivantes.has(file)) continue;
+    descendre([schema], ({ def }) => {
+      for (const controle of def.checks ?? []) {
+        for (const espace of espacesLusParRaffinement(controle) ?? []) {
+          const catalogue = lireCleDEspace(espace).fichier;
+          if (catalogue === file) continue;
+          const lecteurs = index.get(catalogue) ?? new Set<string>();
+          lecteurs.add(file);
+          index.set(catalogue, lecteurs);
+        }
+      }
+    });
+  }
+  return index;
+}
+
+/** Les autres fichiers vivants dont le schéma déclare une lecture du catalogue porté par `fichier`. */
+export function fichiersLisantLeCatalogue(fichier: string): ReadonlySet<string> | undefined {
+  lecteursDesCatalogues ??= indexerLecteursDesCatalogues();
+  return lecteursDesCatalogues.get(fichier);
 }
 
 /** Méta d'ÉDITION d'un document par nom de fichier — le canal registre est le SEUL chemin

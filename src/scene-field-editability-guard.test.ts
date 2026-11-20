@@ -526,6 +526,14 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
       'ce que la frontière par MODULE perdrait'
     ).toEqual([
+      'AjustementsDArme.ajusteeAuPorteur @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.allonge @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.groupesDeManiement @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.qualites @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.qualites.id @ src/data/schemas/grammaire/ref.ts',
+      'AjustementsDArme.qualites.value @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.retire @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.sansSpecialisation @ src/data/schemas/grammaire/reference.ts',
       'AuthoredShipPoste.selectedAmmo.id @ src/data/schemas/grammaire/ref.ts',
       'Calage.x @ src/data/props.types.ts',
       'Calage.y @ src/data/props.types.ts',
@@ -583,6 +591,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.traits.natural @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.parLocalisation @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.plage @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.profilDArme @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.range @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',

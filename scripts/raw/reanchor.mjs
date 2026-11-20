@@ -40,6 +40,7 @@ import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 const APPLY = process.argv.includes('--apply')
 // --remap : ré-ancre les réfs de SYNTHÈSE (sans citation) et leurs CONTINUATIONS nues par la carte
@@ -549,4 +550,7 @@ function main() {
   })
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

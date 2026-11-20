@@ -19,6 +19,9 @@ import { graphieDuFichier, ligne1DePlage, numeroDuFichier, titreDuFichier } from
 import { mdsDeMarker, mdsDeRestitutions, pagesDeMarker, verifierExtraction, commandeRestitution } from './lib/marker-pages.mjs'
 import { deballerSup } from './lib/titres.mjs'
 import { nomAscii } from '../source/nom-ascii.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
+
+if (import.meta.main) exigerRacineAtlas()
 
 const [idLivre, markerMd, outDirArg] = process.argv.slice(2)
 if (!idLivre || !markerMd || !outDirArg) { console.error('args: <id du livre> <marker.md | dossier de tranches> <out-dir>'); process.exit(1) }
