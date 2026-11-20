@@ -181,7 +181,7 @@ libre : fer, fond sombre, pictogramme `plus` `--creme-2`.
 | `rond(nom, 13…44, { ferme, couleur })` (taille du pictogramme en px) | `rond(nom, taille = 'moyen', { ferme, arme, survol })` : la taille est un nom de l'échelle, le pictogramme suit. Table de contexte : `.moins-plus`, `.des.regles` → `menu` ; `#journal .tete`, `#tour-outils`, `.outil` → `petit` ; `.croix`, `#systeme`, `.ouvrir` → `moyen` ; `.retour`, `#coins` → `grand` ; `#fin` → `maitre` |
 | `pastille(nom)` | `rond(nom, 'menu', { arme: true })` |
 | `sceau(nom, t)` (taille du pictogramme) | `sceau(contenu, taille = 'petit', { etat })` ; `contenu` = nom de `PICTOS` ou chiffre |
-| `<div class="resultat reussite">37</div>` | `sceau(37, 'grand', { etat: 'reussite' })` ; `.resultat.vide` → `etat: 'vide'` |
+| `<div class="resultat reussite">37</div>` | `sceau(37, 'moyen', { etat: 'reussite' })` ; `.resultat.vide` → `etat: 'vide'` |
 | `<i class="sceau">${picto(…13…)}</i>` (`etatPorte`, `socle.js:68`) | `sceau(id, 'menu')` |
 | `carte(nom, sous, { armee, fermee, portrait, classe })` (`jet.js:31`) | inchangée, montée dans `gestes.js` à côté de `plaque` |
 | `<div class="ruban rubrique">…</div>` écrit à la main | `ruban(texte)` ; `ruban(texte, { gothique: true })` pour `#jet` et `cadre(…, { ruban })` |

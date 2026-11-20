@@ -93,6 +93,8 @@
     ...Object.fromEntries(['sections', 'progression-droite'].flatMap((c) => Array.from({ length: 5 }, (_, k) => [`${c}/onglet-${k + 1}`, [8 + 128 * k, -18, 124, 32]]))),
     /* les onglets du panneau de bord : le bord, la station du héros choisi */
     'colonne-droite/onglet-1': [8, -18, 160, 32], 'colonne-droite/onglet-2': [174, -18, 160, 32],
+    /* le pied du rail des services, sous le dernier qu'il peut porter ; au carnet, les documents remis sous lui */
+    'colonne-gauche/pied': [12, 258, 330, 17], 'colonne-gestion/pied': [12, 254, 330, 17], 'colonne-gestion/documents': [12, 278, 330, 252],
     /* le carton d'un arrêt : la vignette, le titre, le texte jusqu'au geste, les cartes du choix (ou les paies et les
        parts qui les règlent) posées sur le bas du texte quand l'arrêt en ouvre un, le geste qui commet */
     'carton/vignette': [20, 24, 140, 140], 'carton/tete': [184, 22, 734, 34], 'carton/texte': [184, 60, 654, 154],
@@ -858,7 +860,7 @@
   const semaineDu = (s, postes) => cadre('bord', null, null, null, null, 'bois', `${s.activites.map((a) => `<div class="t rubrique">${echapper(postes.find((p) => p.id === a.poste).nom)} · ${prenomDe(a.qui)}</div>
     <div class="reglage"><span>${echapper(a.reglage.libelle)}</span>${moinsPlus({ moins: a.reglage.valeur > 0, entre: `<b class="chiffres">${prix(a.reglage.valeur)}</b>` })}</div>
     ${a.plafond === undefined ? '' : ligneDu('Plafond', `<span class="chiffres">${prix(a.plafond)}</span>`)}${a.encLibre === undefined ? '' : ligneDu('Enc libre du navire', `<span class="chiffres">${a.encLibre}</span>`)}`).join(filet({ fondu: true }))}
-    ${filet({ fondu: true })}${plaque(echapper(s.action), { armee: true })}`, { tete: onglets(['La semaine'], 'La semaine'), classe: 'bord semaine', piece: 'colonne-droite' });
+    ${filet({ fondu: true })}${plaque(echapper(s.action), { armee: true })}`, { tete: onglets(['La semaine'], 'La semaine', 'colonne-droite'), classe: 'bord semaine', piece: 'colonne-droite' });
   const leBord = (b) => [
     cartouche({ icone: 'cordage', nom: echapper(b.titre.nom), sous: [[echapper(b.titre.navire), b.titre.marins && pluriel(b.titre.marins, 'marin'), jourDe(b.titre.jourEnMer, 'bord')].filter(Boolean).join(' · '), b.titre.regle && echapper(b.titre.regle)], taille: 'titre' }),
     postesDu(b.postes, 'bord'), ...(b.billet ? [billetDuBord(b.billet, b.postes)] : []),
@@ -971,7 +973,7 @@
   const offreDeLHote = (h) => cadre('hote-du-lieu', null, null, null, null, 'bois', `${cartouche({ icone: h.icone, nom: echapper(h.nom), sous: echapper(h.qualite) })}
     <div class="dit">${echapper(h.dit)}</div>
     <div class="grille">${h.offres.map((o) => `<span class="l rubrique">${picto(PICTO_DE_L_OFFRE[o.id], 17)}${echapper(o.nom)}</span><span class="q rubrique">${o.lits ? `${o.lits} lits` : o.parBete ? 'par cheval' : 'par tête'}</span>${plaque(prix(o.prix), { armee: !!o.prise, taille: 'petite' })}`).join('')}</div>
-    ${(h.avis ?? []).map((a) => `<div class="avis">${picto('goutte', 14)}<span class="rubrique">${echapper(a)}</span></div>`).join('')}`, { piece: 'colonne-gauche' });
+    ${(h.avis ?? []).map((a) => `<div class="avis">${picto('goutte', 14)}<span class="rubrique">${echapper(a)}</span></div>`).join('')}`, { ruban: 'La nuit et le repas', piece: 'colonne-gauche' });
   /* les postes de la scène, chacun sur sa place du décor : son centre, son haut */
   const PLACES_DES_POSTES = {
     auberge: { boire: [470, 290], rumeurs: [660, 390], jouer: [800, 250], soigner: [490, 430], dormir: [640, 40] },
@@ -1299,7 +1301,7 @@
     return [
       cartouche({ icone: 'livre', nom: echapper(c.titre.nom), sous: echapper(c.titre.sous), taille: 'titre' }),
       rail('Affaires', [['epingle', 'Épinglés', false, c.epingles], ...c.affaires.map((a) => ['oeil', echapper(a.nom), a.id === c.ouverte, a.indices])], 'Un indice caché ne s’y lit pas', 'colonne-gestion',
-        `<div class="documents"><div class="t rubrique">Documents remis</div>${c.documents.map((d) => plaque(echapper(d), { icone: 'lettre' })).join('')}<div class="pied rubrique">Un document remis se relit ici</div></div>`),
+        places('colonne-gestion', { documents: `<div class="documents"><div class="t rubrique">Documents remis</div>${c.documents.map((d) => plaque(echapper(d), { icone: 'lettre' })).join('')}<div class="pied rubrique">Un document remis se relit ici</div></div>` })),
       `<div id="affaire" class="page cadre bois" data-piece="affaire"><div class="fond parchemin">
         <div class="tete"><h3 data-texte="affaire">${echapper(affaire.nom)}</h3><span class="sous rubrique">${pluriel(affaire.indices, 'indice')}</span></div>${filet()}
         ${c.indices.map(indiceDu).join('')}</div>${ferrures}</div>`,

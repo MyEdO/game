@@ -26,9 +26,9 @@
 #jet .visee .pv{flex-direction:column;align-items:stretch;gap:2px;margin-top:8px}
 #jet .visee .pv .jauge{width:auto}
 #jet .annonce .dr{line-height:normal}
-/* les réactions d'une défense tiennent dans le centre : à la ligne quand elles n'y tiennent pas côte à côte */
-#jet .reactions{flex-wrap:wrap;row-gap:6px}
-#jet .reactions .plaque.carte.courte{flex:1 1 auto;min-width:0}
+/* les réactions d'une défense tiennent dans le centre : deux colonnes égales, la troisième à la ligne */
+#jet .reactions{display:grid;grid-template-columns:1fr 1fr;gap:6px 9px}
+#jet .reactions .plaque.carte.courte{min-width:0}
 /* le centre d'un jet avant le dé tient entre les deux camps : ses choix rétrécissent, une bascule ou une note passe à la ligne */
 #verdict .rangee .choix{min-width:0}
 #verdict .choix .bascule{white-space:normal;line-height:15px}

@@ -27,8 +27,9 @@ glisse ; le fond ne range rien d'autre, aucune règle de feuille propre à un é
 y ait quatre héros ou moins ; à la barre de l'actif une place d'onglet par famille dans l'ordre Action, Situation,
 Gestes, Rapides, de même largeur active ou non, trois places de plaque et cinq de geste) ; l'actif au pied de l'ordre
 du tour (`ordre/actif`) ; les onglets des sections de la fiche, des dossiers et de la progression (cinq places, la
-fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) ; le pied de l'identité qui progresse ;
-le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
+fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; le pied de
+l'identité qui progresse ; le pied du rail des services, sous le dernier service que la colonne peut porter, quel qu'en
+soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
 `habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
 premier état du même rôle.
 
