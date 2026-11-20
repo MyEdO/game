@@ -127,8 +127,8 @@ function fixture(lieu: Lieu, navire: Partial<CampaignVessel> = {}, party = [hero
   if (lieu === 'mer') {
     const plan = buildSeaPlan(get, 'route', 'A', 'B', worldMap.routes[0])!;
     banc.setState({
-      vessel: { ...get().vessel!, escale: undefined },
-      travelPlan: { ...plan, kmDone: 40, sea: { ...plan.sea!, daysAtSea: 7, daysToEvent: 5 } },
+      vessel: { ...get().vessel!, escale: undefined, daysToEvent: 5 },
+      travelPlan: { ...plan, kmDone: 40, sea: { ...plan.sea!, daysAtSea: 7 } },
     });
     get().reprendreLeVoyage();
     for (let i = 0; i < 40 && !get().pendingSeaActivities && get().pendingCascade; i++) {

@@ -44,7 +44,7 @@ function hero(id: string, over: Partial<Combatant> = {}): Combatant {
 const seaPlan = (): TravelPlan => ({
   routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'mer', hoursPerDay: 8, km: 100, kmDone: 0,
   sea: {
-    heading: 'ouest', windFrom: 'ouest', daysToEvent: 5, daysAtSea: 0, step: 'meteo', lines: [], milesToday: 0,
+    heading: 'ouest', windFrom: 'ouest', daysAtSea: 0, step: 'meteo', lines: [], milesToday: 0,
     weather: { precipitations: 'abondantes', temperature: 'mediane', visibilite: 'degage', vent: 'brise-fraiche' },
   },
 } as unknown as TravelPlan);

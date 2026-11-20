@@ -151,7 +151,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
       km: 25, kmDone: 0, hoursPerDay: 6, interrupted: true, vehicle: barge,
       sea: {
         heading: 'ouest', weather: rollSeaWeather('ete', makeRNG(1)), windFrom: 'est',
-        daysToEvent: 4, daysAtSea: 1, lines: [], milesToday: 0, hullAtDayStart: barge.wounds.current,
+        daysAtSea: 1, lines: [], milesToday: 0, hullAtDayStart: barge.wounds.current,
       },
     };
     banc.setState({ travelPlan: mer });
