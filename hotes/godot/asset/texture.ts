@@ -55,7 +55,7 @@ function executer(commande: string, args: readonly string[]): string {
 }
 
 /** Vrai si les images `a` et `b` décodent aux mêmes pixels (`compare -metric AE` : 0 égales, 1 différentes). */
-export function memesPixels(a: string, b: string): boolean {
+function memesPixels(a: string, b: string): boolean {
   const comparaison = spawnSync('compare', ['-metric', 'AE', a, b, 'null:'], { encoding: 'utf8' });
   if (comparaison.error) throw new Error(`compare : ${comparaison.error.message}`);
   if (comparaison.status !== 0 && comparaison.status !== 1) throw new Error(`compare ${a} ${b} : code de sortie ${comparaison.status}\n${comparaison.stderr}`);
