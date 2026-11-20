@@ -58,6 +58,7 @@ import {
   baseCommune,
   basesCommunes,
   ceQueFaitLeCommit,
+  ceQueFontLesCommits,
   communeDesParents,
   ceQuiChange,
   depotDe,
@@ -67,7 +68,16 @@ import {
   rangDuTronc,
   refusDeGit,
 } from './gitPorte.mjs'
-import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan, refusSousLaPorte } from './stocksNominatifs.mjs'
+import {
+  bilanDeFusion,
+  bilanDesClesReelles,
+  bilanDesStocks,
+  croissanceDesCles,
+  estPorteurDeStock,
+  gesteSurLesCommitsFautifs,
+  nonCouvertesDuBilan,
+  refusSousLaPorte,
+} from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
 import { memosDAnalyse } from './memosDAnalyse.mjs'
@@ -113,18 +123,26 @@ export const bilanDuCommit = ({ diff, images, fusion = null }) => (fusion ? bila
  * l'ordre de l'histoire, les seuls commits JUGÉS ;
  * `cumul` = le bilan cumulé SIGNÉ de la plage (`bilanDesStocks`, `bilanSoustrait`).
  * Chaque `images` porte un `lirePostImage` : `bilanDesStocks` refuse nommément sinon.
- * @param {{ commits?: object[], cumul: { fichier: string, parCle: Map<string, number> }[] }} p
+ * @param {{ commits?: object[], cumul: { fichier: string, parCle: Map<string, number> }[], projectionDuTronc?: { fichier: string, parCle: Map<string, number> }[] }} p
  * @returns {{ sha: string, fusion: boolean, fichier: string, net: number, declare: number | null, exemples: string[], sousLaPorte: boolean }[]}
  * @throws {TypeError} sans `cumul` : un filtre absent rendrait zéro refus, un verdict qui ment.
  * @throws {Error} propagé de `bilanDesStocks` : sans lecteur d'image post, le compte ment.
  */
-export function refusDeLaPlage({ commits = [], cumul } = {}) {
+export function refusDeLaPlage({ commits = [], cumul, projectionDuTronc = cumul } = {}) {
   if (!Array.isArray(cumul)) throw new TypeError('refusDeLaPlage : `cumul` (le bilan cumulé signé de la plage) est exigé')
   const enCroissance = new Set(cumul.filter((b) => croissanceDesCles(b.parCle) > 0).map((b) => b.fichier))
+  const clesDuTronc = new Map(projectionDuTronc.map(({ fichier, parCle }) => [fichier, parCle]))
   const refus = []
   for (const { sha, message, ...lu } of commits) {
-    for (const c of nonCouvertesDuBilan(bilanDuCommit(lu), message)) {
-      if (enCroissance.has(c.fichier)) refus.push({ sha, fusion: Boolean(lu.fusion), fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples, sousLaPorte: c.sousLaPorte })
+    const bilan = bilanDuCommit(lu)
+    const soldes = new Map(bilan.filter((b) => b.clesDuSolde).map((b) => [b.fichier, b]))
+    for (const c of nonCouvertesDuBilan(bilan, message)) {
+      const solde = soldes.get(c.fichier)
+      const cles = solde && clesDuTronc.get(lu.nomDansLaProjection?.(c.fichier) ?? c.fichier)
+      const soldeVivant = [...(solde?.clesDuSolde ?? [])].some((cle) => (cles?.get(cle) ?? 0) > 0)
+      if (soldeVivant || (!solde?.soldeSeul && enCroissance.has(c.fichier))) {
+        refus.push({ sha, fusion: Boolean(lu.fusion), fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples, sousLaPorte: c.sousLaPorte })
+      }
     }
   }
   return refus
@@ -202,6 +220,15 @@ const restreinte = (fait, chemins) => {
   }
 }
 
+/** #3050 */
+const inverserLesRenommages = (renommages) => new Map([...renommages].map(([origine, cible]) => [cible, origine]))
+
+/** @typedef {{
+ * parents: string[], commune: string, juges: string[], tronc: number | null,
+ * renommages: () => Map<string, string>,
+ * nomsDuPorteur: (fichier: string) => { commune: string, parents: string[] }
+ * }} FusionLue */
+
 /**
  * Les lectures d'un commit : `fait` = ce qu'il fait contre sa base (`ceQueFaitLeCommit`) ; pour une
  * FUSION, `fait` = ce qu'elle fait contre la base commune de ses deux parents (l'arbre vide sans ancêtre
@@ -213,7 +240,7 @@ const restreinte = (fait, chemins) => {
  * du parent qui est `mesure` ou l'un de ses ancêtres (`rangDuTronc`) ; `fusion.renommages()` = les fichiers que ses parents
  * renomment depuis la base commune.
  * @param {import('./gitPorte.mjs').Depot} depot @param {import('./gitPorte.mjs').CommitDuGraphe} commit @param {string} mesure
- * @returns {{ fait: ReturnType<typeof ceQuiChange>, fusion: { parents: string[], commune: string, juges: string[], tronc: number | null, renommages: () => Map<string, string> } | null }}
+ * @returns {{ fait: ReturnType<typeof ceQuiChange>, fusion: FusionLue | null }}
  * @throws {GitIndisponible} propagée de `ceQueFaitLeCommit` (fusion à plus de deux parents, git
  *   sans `merge-tree --write-tree --stdin`).
  */
@@ -238,11 +265,25 @@ export function lecturesDeFusion(depot, { apres, parents, fait, mesure, lireDepu
   const supprimesDeLaFusion = new Set(changement.chemins('D'))
   const desParents = parents.map((p) => ceQuiChange(depot, commune, p))
   const gardes = desParents.flatMap((c) => c.chemins('D')).filter((c) => !supprimesDeLaFusion.has(c))
+  const tronc = rangDuTronc(depot, parents, mesure)
+  const touchesDuTronc = new Set(tronc === null ? [] : desParents[tronc].chemins())
+  const communs = tronc === null ? [] : desParents[1 - tronc].chemins()
+    .filter((fichier) => touchesDuTronc.has(fichier) && estPorteurDeStock(fichier))
+  const touches = fait.chemins()
+  let renommagesDesParents, renommagesFinaux, originesFinales
+  const chezLesParents = () => (renommagesDesParents ??= desParents.map((c) => c.renommages()))
+  const dansLaFusion = () => (renommagesFinaux ??= changement.renommages())
+  const nomsDuPorteur = (fichier) => {
+    const origine = (originesFinales ??= inverserLesRenommages(dansLaFusion())).get(fichier) ?? fichier
+    return { commune: origine, parents: chezLesParents().map((renommes) => renommes.get(origine) ?? origine) }
+  }
+  const juges = [...new Set([...touches, ...gardes, ...communs]
+    .map((fichier) => estPorteurDeStock(fichier) ? dansLaFusion().get(fichier) ?? fichier : fichier))]
   return {
-    fait: restreinte(changement, fait.chemins()),
+    fait: restreinte(changement, touches),
     fusion: {
-      parents, commune, juges: [...new Set([...fait.chemins(), ...gardes])], tronc: rangDuTronc(depot, parents, mesure),
-      renommages: () => new Map(desParents.flatMap((c) => [...c.renommages()])),
+      parents, commune, juges, tronc, nomsDuPorteur,
+      renommages: () => new Map(chezLesParents().flatMap((renommes) => [...renommes])),
     },
   }
 }
@@ -251,13 +292,86 @@ export function lecturesDeFusion(depot, { apres, parents, fait, mesure, lireDepu
  * L'entrée de `bilanDeFusion` d'une fusion lue (`lecturesDeFusion`) : ses porteurs jugés, les textes
  * de ses parents et de leur base commune (`lireEnLot`), celui de la fusion par `lireLaFusion`, et son `tronc`.
  * @param {import('./gitPorte.mjs').Depot} depot
- * @param {{ parents: string[], commune: string, juges: string[], tronc: number | null, renommages: () => Map<string, string> }} fusion
+ * @param {FusionLue} fusion
  * @param {(chemin: string) => string | null} lireLaFusion
  * @returns {Parameters<typeof bilanDeFusion>[0]}
  */
-export function entreeDeFusion(depot, { parents, commune, juges, tronc, renommages }, lireLaFusion) {
+export function entreeDeFusion(depot, { parents, commune, juges, tronc, renommages, nomsDuPorteur }, lireLaFusion) {
   const texteA = (arbre) => (f) => lireEnLot(depot, arbre, [f]).get(f) ?? null
-  return { fichiers: juges, lire: { fusion: lireLaFusion, parents: parents.map(texteA), commune: texteA(commune) }, tronc, renommages }
+  const lireLesParents = parents.map((p, i) => (f) => texteA(p)(nomsDuPorteur(f).parents[i]))
+  const lireCommune = (f) => texteA(commune)(nomsDuPorteur(f).commune)
+  const journal = tronc === null ? undefined : journalDesStocks(depot, parents[tronc], parents[1 - tronc], texteA)
+  return {
+    fichiers: juges, lire: { fusion: lireLaFusion, parents: lireLesParents, commune: lireCommune }, tronc, renommages,
+    journal: journal && ((f) => journal(nomsDuPorteur(f).parents[1 - tronc])),
+  }
+}
+
+/** #3050 */
+function journalDesStocks(depot, tronc, chantier, texteA) {
+  let transactions
+  const lireTransactions = () => {
+    const revisions = [`${tronc}..${chantier}`]
+    const graphe = grapheDe(depot, revisions)
+    if (!graphe) throw new GitIndisponible(`journal des stocks ${revisions[0]} : graphe illisible`)
+    const journal = journalDe(depot, revisions)
+    if (!journal) throw new GitIndisponible(`journal des stocks ${revisions[0]} : messages illisibles`)
+    const messages = new Map(journal.map((c) => [c.sha, c.message]))
+    const sansMessage = graphe.find(({ sha }) => !messages.has(sha))
+    if (sansMessage) throw new GitIndisponible(`journal des stocks ${revisions[0]} : message du commit ${sansMessage.sha} absent`)
+    if (messages.size !== graphe.length) throw new GitIndisponible(`journal des stocks ${revisions[0]} : graphe et messages discordants`)
+    const touches = ceQueFontLesCommits(depot, graphe).chemins()
+    const rangs = new Map(graphe.map(({ sha }, i) => [sha, i]))
+    return graphe.map((c) => {
+      const lu = c.parents.length > 1 ? lecturesDuCommit(depot, c, tronc) : null
+      const fichiers = new Set(lu?.fusion?.juges ?? touches.get(c.sha) ?? [])
+      const parents = c.parents.map((sha) => rangs.get(sha) ?? -1)
+      if (!parents.length) parents.push(-1)
+      const lirePostImage = texteA(c.sha)
+      let lecture, origines, bilan
+      const lireLeCommit = () => (lecture ??= lu?.fait ?? ceQueFaitLeCommit(depot, c))
+      const nomDansParent = (fichier, rang) => {
+        if (lu?.fusion) return lu.fusion.nomsDuPorteur(fichier).parents[rang]
+        if (!fichiers.has(fichier)) return fichier
+        return (origines ??= inverserLesRenommages(lireLeCommit().renommages())).get(fichier) ?? fichier
+      }
+      const lire = (fichier) => {
+        const transaction = {
+          parents, retenues: [], perdues: [], autorisees: 0,
+          lireApres: fichiers.has(fichier) || lu ? () => lirePostImage(fichier) : undefined,
+        }
+        if (!fichiers.has(fichier)) return transaction
+        if (!bilan) {
+          const fait = lireLeCommit()
+          bilan = lu?.fusion
+            ? bilanDeFusion(entreeDeFusion(depot, lu.fusion, lirePostImage))
+            : bilanDesStocks(fait.diff(), { lirePostImage, lirePreImage: fait.lirePreImage, renommages: fait.renommages() })
+        }
+        const b = bilan.find((b) => b.fichier === fichier)
+        if (!b) return transaction
+        return {
+          ...transaction, retenues: b.retenues, perdues: b.perdues,
+          autorisees: nonCouvertesDuBilan([b], messages.get(c.sha)).length ? 0 : Math.max(0, croissanceDesCles(b.parCle)),
+        }
+      }
+      return { parents, nomDansParent, lire }
+    })
+  }
+  return (fichier) => {
+    transactions ??= lireTransactions()
+    if (!transactions.length) return []
+    const noms = new Map()
+    const aRemonter = [[transactions.length - 1, fichier]]
+    for (const [i, chemin] of aRemonter) {
+      if (noms.has(i)) continue
+      noms.set(i, chemin)
+      const { parents, nomDansParent } = transactions[i]
+      parents.forEach((p, rang) => {
+        if (p !== -1) aRemonter.push([p, nomDansParent(chemin, rang)])
+      })
+    }
+    return transactions.map(({ lire }, i) => lire(noms.get(i) ?? fichier))
+  }
 }
 
 /**
@@ -274,7 +388,7 @@ export function entreeDeFusion(depot, { parents, commune, juges, tronc, renommag
  * indisponibilités de git, lecture comprise.
  * `troncDesEres` = le tronc que la plage exclut, contre lequel se mesure l'ère de ses commits : `debut` d'un
  * push vers le tronc, `TRONC.suivi` sinon (#2503). `sauverLesMemos` écrit les mémos d'analyse (`memosDAnalyse`), une fois les `cotes()` jugées.
- * @returns {{ depot: import('./gitPorte.mjs').Depot, commits: object[] | null, cumul: { fichier: string, parCle: Map<string, number> }[], notes: string[], plage: string, pannes: string[], troncDesEres?: string, sauverLesMemos?: () => void }}
+ * @returns {{ depot: import('./gitPorte.mjs').Depot, commits: object[] | null, cumul: { fichier: string, parCle: Map<string, number> }[], projectionDuTronc?: { fichier: string, parCle: Map<string, number> }[], notes: string[], plage: string, pannes: string[], troncDesEres?: string, sauverLesMemos?: () => void }}
  */
 export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null, origineConfirmee, dossierDesMemos } = {}) {
   const pannes = []
@@ -309,11 +423,14 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
       const base = source(fait.base)
       const commit = source(sha)
       const cote = (s) => coteCss(s, { racine: cwd, specificateurs })
+      let renommagesVersLaFin
+      const nomDansLaProjection = (fichier) => sha === fin ? fichier
+        : (renommagesVersLaFin ??= ceQuiChange(depot, sha, fin).renommages()).get(fichier) ?? fichier
       return {
         sha,
         message: messages.get(sha) ?? '',
         ...(fusion
-          ? { fusion: entreeDeFusion(depot, fusion, texteA(sha)) }
+          ? { fusion: entreeDeFusion(depot, fusion, texteA(sha)), nomDansLaProjection }
           : { diff: fait.diff(), images: { lirePostImage: texteA(sha), lirePreImage: fait.lirePreImage, renommages: fait.renommages() } }),
         cotes: cotesLisibles(() => (deplaceLaFrontiere({ chemins: fait.chemins(), nesOuMorts: () => fait.chemins('AD'), base, commit, racine: cwd, specificateurs })
           ? { base: cote(base), commit: cote(commit), ...(fusion ? { parents: fusion.parents.map((p) => cote(source(p))) } : {}) }
@@ -344,9 +461,11 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
     }
   }
   /** `debut..fin` moins ce que le tronc a changé entre l'état qu'en connaît chaque bout. */
+  let etatDeFin
+  const troncDeFin = () => (etatDeFin ??= etatDuTronc(fin))
   const cumulDeLaPlage = () => {
     if (!tronc) return bilanEntre(debut ?? arbreVide(depot), fin)
-    const bouts = [[fin, etatDuTronc(fin)]]
+    const bouts = [[fin, troncDeFin()]]
     if (debut && bouts[0][1].etat) bouts.push([debut, etatDuTronc(debut)])
     if (bouts.some(([, e]) => e.panne)) return bilanEntre(arbreVide(depot), fin)
     const sansBase = bouts.find(([, e]) => e.sansBase)
@@ -359,11 +478,22 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
       notes.push(`\`${croisee[0].slice(0, 9)}\` sans état unique de \`${tronc}\` (fusion croisée) : le cumul part de l'arbre vide, il ne filtre aucun refus`)
       return bilanEntre(arbreVide(depot), fin)
     }
-    const [[, { etat: troncDeFin }], [, { etat: troncDuBout }] = bouts[0]] = bouts
-    return bilanSoustrait(bilanEntre(debut ?? troncDeFin, fin), bilanEntre(troncDuBout, troncDeFin))
+    const [[, { etat: troncDeLaFin }], [, { etat: troncDuBout }] = bouts[0]] = bouts
+    return bilanSoustrait(bilanEntre(debut ?? troncDeLaFin, fin), bilanEntre(troncDuBout, troncDeLaFin))
   }
   const cumul = cumulDeLaPlage()
-  return { depot, commits, cumul, notes, plage, pannes, troncDesEres, sauverLesMemos }
+  const projection = () => {
+    if (!commits.some((c) => c.fusion && c.fusion.tronc !== null)) return cumul
+    const base = tronc ? troncDeFin().etat : debut && vers === TRONC.branche ? debut : null
+    if (!base) return cumul
+    const change = ceQuiChange(depot, base, fin)
+    const renommes = change.renommages()
+    const origines = inverserLesRenommages(renommes)
+    const fichiers = [...new Set(change.chemins().map((fichier) => renommes.get(fichier) ?? fichier))]
+    return bilanDesClesReelles(fichiers, (f) => change.lirePreImage(origines.get(f) ?? f), texteA(fin))
+  }
+  const projectionDuTronc = projection()
+  return { depot, commits, cumul, projectionDuTronc, notes, plage, pannes, troncDesEres, sauverLesMemos }
 }
 
 /**
@@ -373,12 +503,17 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
  * @returns {Promise<{ refus: object[], reclassements: object[], eres?: { ere: string | null, commits: string[], note: string | null }[], notes: string[], plage: string, indisponible: string|null, commits?: number }>}
  */
 export async function croissancesDeLaPlage(p = {}) {
-  const { depot, commits, cumul, notes, plage, pannes, troncDesEres, sauverLesMemos } = lectureDeLaPlage(p)
+  const { depot, commits, cumul, projectionDuTronc, notes, plage, pannes, troncDesEres, sauverLesMemos } = lectureDeLaPlage(p)
   if (!commits) return { refus: [], reclassements: [], notes, plage, indisponible: pannes[0] ?? null }
-  const { refus, reclassements, eres } = await jugeesParLeurEre(depot, commits, cumul, troncDesEres)
-  sauverLesMemos()
-  for (const { note } of eres) if (note) notes.push(note)
-  return { refus, reclassements, eres, notes, commits: commits.length, plage, indisponible: pannes[0] ?? null }
+  try {
+    const { refus, reclassements, eres } = await jugeesParLeurEre(depot, commits, { cumul, projectionDuTronc }, troncDesEres)
+    sauverLesMemos()
+    for (const { note } of eres) if (note) notes.push(note)
+    return { refus, reclassements, eres, notes, commits: commits.length, plage, indisponible: pannes[0] ?? null }
+  } catch (e) {
+    if (!(e instanceof GitIndisponible)) throw e
+    return { refus: [], reclassements: [], notes, plage, indisponible: [refusDeGit(e), ...pannes].join(' — ') }
+  }
 }
 
 export const CONTRATS_DE_DERIVATION = [
@@ -425,11 +560,11 @@ async function vieDeLaPorte({ module, charger }) {
  * et reclassements dans l'ordre de l'histoire, chacun avec son `ere` ; `eres` = `[{ ere, commits, note }]`.
  * Une ère sans la porte, non chargeable, ou un tronc illisible : la porte actuelle juge, et la note le dit.
  * @param {import('./gitPorte.mjs').Depot} depot @param {object[]} commits
- * @param {{ fichier: string, parCle: Map<string, number> }[]} cumul
+ * @param {Pick<ReturnType<typeof lectureDeLaPlage>, 'cumul' | 'projectionDuTronc'>} bilans
  * @param {string} tronc le tronc des ères (`lectureDeLaPlage`, `troncDesEres`)
  * @param {Parameters<typeof groupesParEre>[3]} [porte]
  */
-async function jugeesParLeurEre(depot, commits, cumul, tronc, porte = PORTE_DE_PLAGE) {
+async function jugeesParLeurEre(depot, commits, bilans, tronc, porte = PORTE_DE_PLAGE) {
   const rang = new Map(commits.map((c, i) => [c.sha, i]))
   const refus = []
   const reclassements = []
@@ -437,7 +572,7 @@ async function jugeesParLeurEre(depot, commits, cumul, tronc, porte = PORTE_DE_P
   for (const { ere, commits: groupe, juge: deLEre, note } of await groupesParEre(depot, commits, tronc, porte)) {
     eres.push({ ere, commits: groupe.map((c) => c.sha), note })
     const juge = deLEre ?? { refusDeLaPlage, reclassementsDeLaPlage }
-    refus.push(...juge.refusDeLaPlage({ commits: groupe, cumul }).map((r) => ({ ...r, ere })))
+    refus.push(...juge.refusDeLaPlage({ commits: groupe, ...bilans }).map((r) => ({ ...r, ere })))
     reclassements.push(...juge.reclassementsDeLaPlage({ commits: groupe }).map((r) => ({ ...r, ere })))
   }
   const ordre = (a, b) => rang.get(a.sha) - rang.get(b.sha)
