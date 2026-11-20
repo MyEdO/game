@@ -14,6 +14,8 @@ import { actorIn } from './monde/combatants';
 import { sourcesPsyEnVue } from './monde/porteurs';
 import { fireTriggers } from './triggeredEffects';
 import { battleRng } from './battleRng';
+import { psychologyLabel } from '../data';
+import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 
@@ -123,10 +125,15 @@ describe('Traits ciblés : premier Test au début, re-test selon l’entrée (LD
   for (const type of ['animosite', 'haine'] as const) {
     it(`${type} née au Round N : re-testée à la fin de N+1 puis de N+2, jamais à la fin de N ni au début`, () => {
       const { h, e } = cibles(type);
+      const psych = psychologyLabel(type);
+      expect(psych).not.toBe(type);
+      const verdict = (id: string) => t('out.cibleGrip', { name: lu(id).label, psych });
       debut(1);
       expect(reTestHeros()).toEqual([[type, 1]]);
       jouer();
       for (const id of [h, e]) expect(psy(id, type).map((p) => [p.active, p.lastTestRound])).toEqual([[true, 1]]);
+      expect(g().journal).toContain(verdict(h));
+      expect(g().battle!.log.map((l) => l.text)).toContain(verdict(e));
       fin(1);
       expect(reTestHeros()).toEqual([]);
       expect(psy(e, type)[0].lastTestRound).toBe(1);
@@ -138,6 +145,8 @@ describe('Traits ciblés : premier Test au début, re-test selon l’entrée (LD
       expect(psy(e, type)[0].lastTestRound).toBe(2);
       jouer();
       expect(psy(h, type)[0].lastTestRound).toBe(2);
+      expect(g().journal.filter((l) => l === verdict(h))).toHaveLength(2);
+      expect(g().battle!.log.filter((l) => l.text === verdict(e))).toHaveLength(2);
       fin(3);
       expect(reTestHeros(), 'le repère voyage sur la bande').toEqual([[type, 3]]);
       expect(psy(e, type)[0].lastTestRound).toBe(3);
