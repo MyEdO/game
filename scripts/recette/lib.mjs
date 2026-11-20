@@ -235,19 +235,41 @@ export function lireProcessus({ plateforme = process.platform, executer = spawnS
 export const ATTENTE_EXTINCTION_MS = 15000;
 
 /** Arrête l’arbre puis observe son extinction jusqu'à une échéance synchrone prise APRÈS l'arrêt,
- *  indépendamment du code taskkill. Un processus de l'instantané n'est de l'arbre que s'il est le MÊME
- *  (même date de création qu'avant l'arrêt), ou, apparu depuis, créé AVANT l'arrêt : sinon son PID
- *  est RÉUTILISÉ, il est écarté avec ses descendants. */
+ *  indépendamment du code taskkill. Chaque PID suivi conserve sa première date de création. Une
+ *  nouvelle filiation exige une naissance compatible avec celle du parent suivi et antérieure à son
+ *  éventuel remplacement. Un descendant découvert après coup doit être né avant l'arrêt. */
 export function killChromeTree(chrome, { plateforme = process.platform, executer = spawnSync, observer = () => lireProcessus({ plateforme, executer }), tuerPid = (pid) => process.kill(pid, 'SIGKILL'), attenteMs = ATTENTE_EXTINCTION_MS, horloge = Date.now, patienter = attendreSync } = {}) {
   if (!Number.isInteger(chrome.pid) || chrome.pid <= 0) throw new Error('killChromeTree : PID racine absent, arbre non observable');
   if (!Number.isFinite(attenteMs) || attenteMs < 0) throw new Error('killChromeTree : délai non fini ou négatif');
   const avant = validerProcessus(observer());
-  const suivis = new Set([chrome.pid]);
-  const suivre = (instantane) => {
+  const suivis = new Map([[chrome.pid, undefined]]);
+  const remplacements = new Map();
+  const tolerance = TOLERANCE_CREATION_MS[plateforme === 'win32' ? 'cim' : 'ps'];
+  const suivre = (instantane, debutArret = Infinity) => {
+    const candidats = new Map();
+    for (const p of instantane) {
+      const naissance = suivis.get(p.pid);
+      const memeProcessus = naissance === undefined
+        ? p.cree <= debutArret + tolerance
+        : Math.abs(p.cree - naissance) <= tolerance;
+      if (memeProcessus) candidats.set(p.pid, p);
+      else if (naissance !== undefined && p.cree > naissance && !remplacements.has(p.pid)) remplacements.set(p.pid, p.cree);
+    }
+    const racine = candidats.get(chrome.pid);
+    if (racine && suivis.get(chrome.pid) === undefined) suivis.set(chrome.pid, racine.cree);
     for (let n = -1; n !== suivis.size;) {
       n = suivis.size;
-      for (const p of instantane) if (suivis.has(p.parent)) suivis.add(p.pid);
+      for (const p of candidats.values()) {
+        if (suivis.has(p.pid)) continue;
+        const parentSuivi = suivis.get(p.parent);
+        if (parentSuivi === undefined) continue;
+        const naissanceParent = candidats.get(p.parent)?.cree ?? parentSuivi;
+        const remplacement = remplacements.get(p.parent);
+        if (p.cree < naissanceParent - tolerance || (remplacement !== undefined && p.cree >= remplacement - tolerance)) continue;
+        suivis.set(p.pid, p.cree);
+      }
     }
+    return [...candidats.values()].filter((p) => suivis.has(p.pid));
   };
   suivre(avant);
   const lireHeure = () => {
@@ -255,28 +277,22 @@ export function killChromeTree(chrome, { plateforme = process.platform, executer
     if (!Number.isFinite(t)) throw new Error('killChromeTree : horloge non finie');
     return t;
   };
-  const creation = new Map(avant.filter((p) => suivis.has(p.pid)).map((p) => [p.pid, p.cree]));
   const debut = lireHeure();
-  const tolerance = TOLERANCE_CREATION_MS[plateforme === 'win32' ? 'cim' : 'ps'];
-  const memeProcessus = (p) => (creation.has(p.pid)
-    ? Math.abs(p.cree - creation.get(p.pid)) <= tolerance
-    : p.cree <= debut + tolerance);
   let r;
   if (plateforme === 'win32') {
     r = executer('taskkill', ['/PID', String(chrome.pid), '/T', '/F'], { encoding: 'utf8' });
   } else {
-    for (const pid of [...suivis].reverse()) {
+    for (const pid of [...suivis.keys()].reverse()) {
       try { tuerPid(pid); } catch (e) { if (e.code !== 'ESRCH') throw e; }
     }
   }
   const fin = lireHeure() + attenteMs;
   let survivants;
   for (;;) {
-    const apres = validerProcessus(observer()).filter(memeProcessus);
+    const apres = validerProcessus(observer());
     const maintenant = lireHeure();
-    suivre(apres);
-    survivants = apres.filter((p) => suivis.has(p.pid));
-    if (!survivants.length) return { racine: chrome.pid, observes: [...suivis], survivants: [] };
+    survivants = suivre(apres, debut);
+    if (!survivants.length) return { racine: chrome.pid, observes: [...suivis.keys()], survivants: [] };
     if (maintenant >= fin) break;
     patienter(Math.min(50, fin - maintenant));
     if (lireHeure() <= maintenant) throw new Error('killChromeTree : horloge sans progression après attente');
