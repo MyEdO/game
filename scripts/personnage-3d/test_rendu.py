@@ -1,7 +1,7 @@
 """rendu (#4002) : les os de repos déplacés par `gabarit.osDesSilhouettes`, chaque translation tournée par le repère de
 repos de son parent, invisibles au repos et centre de rotation de l'os sous une pose ; le relief de la peau sous
 `corpulence` ; la palette d'un preset, les couleurs de sa race d'abord (#4379) ; une matière sans texture au catalogue
-laisse le matériau."""
+laisse le matériau ; le relief projeté pose la normale du jeu (#4527)."""
 import argparse
 import tempfile
 import unittest
@@ -194,6 +194,87 @@ class DansBlender(unittest.TestCase):
         habiller_le_modele(bpy, [objet], {'surfaces': [{'nom': 'SansTexture', 'palette': 'peau', 'matiere': 'prop--sans-texture'}]},
                            None, True, {})
         self.assertEqual(len(mat.node_tree.nodes), avant)
+
+
+class ReliefProjete(unittest.TestCase):
+    """La normale du monde que `habiller` pose en projeté, cuite par Cycles sur un carré de 6 cm (texels `Closest`),
+    égale à celle de `art/monde.gdshader` rejouée dans le repère de Godot (Y haut, V vers le bas) : poids, plans de
+    `triplanar_texture`, base de `vertex()`, `NORMAL_MAP` ; sur une face oblique, et sur une face d'axe dont l'origine
+    est à un dixième de texel de la grille du relief (1024 px sur `METRES_PAR_MOTIF`), qu'aucun point lu ne tombe sur
+    une frontière de texel."""
+
+    MATIERE = 'prop--corde'
+    COTE, PIXELS = 0.06, 64
+
+    def ecart(self, normale, origine):
+        import bpy
+        from rendu import CATALOGUE, METRES_PAR_MOTIF, NETTETE_DU_MOTIF, habiller
+        unite = lambda v: v / numpy.linalg.norm(v)
+        n = unite(numpy.array(normale, float))
+        u = unite(numpy.cross([0, 0, 1.0] if abs(n[2]) < 0.9 else [1.0, 0, 0], n))
+        v = numpy.cross(n, u)
+        p0 = numpy.array(origine, float)
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        maillage = bpy.data.meshes.new('carre')
+        maillage.from_pydata([tuple(p0 + self.COTE * c) for c in (0 * u, u, u + v, v)], [], [(0, 1, 2, 3)])
+        couche = maillage.uv_layers.new(name='UVMap')
+        for i, st in enumerate([(0, 0), (1, 0), (1, 1), (0, 1)]):
+            couche.data[i].uv = st
+        mat = bpy.data.materials.new('carre')
+        maillage.materials.append(mat)
+        objet = bpy.data.objects.new('carre', maillage)
+        bpy.context.scene.collection.objects.link(objet)
+        habiller(bpy, mat, {'nom': 'carre', 'matiere': self.MATIERE}, 'UVMap', None, False, None)
+        nt = mat.node_tree
+        for noeud in nt.nodes:
+            if noeud.type == 'TEX_IMAGE':
+                noeud.interpolation = 'Closest'
+        bsdf = next(x for x in nt.nodes if x.type == 'BSDF_PRINCIPLED')
+        encodee = nt.nodes.new('ShaderNodeVectorMath')
+        encodee.operation = 'MULTIPLY_ADD'
+        nt.links.new(bsdf.inputs['Normal'].links[0].from_socket, encodee.inputs[0])
+        encodee.inputs[1].default_value = encodee.inputs[2].default_value = (0.5,) * 3
+        emission = nt.nodes.new('ShaderNodeEmission')
+        nt.links.new(encodee.outputs[0], emission.inputs['Color'])
+        nt.links.new(emission.outputs[0], next(x for x in nt.nodes if x.type == 'OUTPUT_MATERIAL').inputs['Surface'])
+        cuite = bpy.data.images.new('cuite', self.PIXELS, self.PIXELS, float_buffer=True)
+        cuite.colorspace_settings.name = 'Non-Color'
+        cible = nt.nodes.new('ShaderNodeTexImage')
+        cible.image = cuite
+        nt.nodes.active = cible
+        scene = bpy.context.scene
+        scene.render.engine, scene.cycles.samples, scene.cycles.device = 'CYCLES', 1, 'CPU'
+        scene.cycles.filter_width, scene.render.bake.margin = 0.01, 0
+        bpy.context.view_layer.objects.active = objet
+        objet.select_set(True)
+        bpy.ops.object.bake(type='EMIT')
+        cuite = numpy.array(cuite.pixels[:]).reshape(self.PIXELS, self.PIXELS, 4)[..., :3] * 2 - 1
+        relief = bpy.data.images.load(str(CATALOGUE / f'{self.MATIERE}.normale.jpg'), check_existing=True)
+        relief.colorspace_settings.name = 'Non-Color'
+        largeur, hauteur = relief.size
+        texels = numpy.array(relief.pixels[:]).reshape(hauteur, largeur, 4)[::-1, :, :3]
+        lire = lambda s, t: texels[int((t % 1) * hauteur), int((s % 1) * largeur)]
+        vers_godot = lambda b: numpy.array([b[0], b[2], -b[1]])
+        ng = vers_godot(n)
+        a = numpy.abs(ng)
+        poids = a ** NETTETE_DU_MOTIF / (a ** NETTETE_DU_MOTIF).sum()
+        tangente = unite(a[0] * numpy.array([0, 0, -1.0]) + (a[1] + a[2]) * numpy.array([1.0, 0, 0]))
+        bitangente = unite((a[0] + a[2]) * numpy.array([0, 1.0, 0]) + a[1] * numpy.array([0, 0, -1.0]))
+        ecarts = []
+        for i in range(4, self.PIXELS, 16):
+            for j in range(4, self.PIXELS, 16):
+                p = vers_godot(p0 + self.COTE * ((j + 0.5) * u + (i + 0.5) * v) / self.PIXELS) / METRES_PAR_MOTIF * [1, -1, 1]
+                lu = lire(p[0], p[1]) * poids[2] + lire(p[0], p[2]) * poids[1] + lire(-p[2], p[1]) * poids[0]
+                xy = lu[:2] * 2 - 1
+                g = unite(tangente * xy[0] + bitangente * xy[1] + ng * numpy.sqrt(max(0, 1 - xy @ xy)))
+                ecarts.append(numpy.abs(numpy.array([g[0], -g[2], g[1]]) - unite(cuite[i, j])).max())
+        return max(ecarts)
+
+    def test_une_face_oblique_a_la_normale_du_jeu(self):
+        self.assertLess(self.ecart((1, 2, 3), (0.37, 0.11, 0.53)), 1e-3)
+
+    def test_une_face_d_axe_a_la_normale_du_jeu(self):
+        self.assertLess(self.ecart((0, -1, 0), (169.1 / 512, 0, 312.1 / 512)), 1e-3)
 
 
 if __name__ == '__main__':
