@@ -21,7 +21,7 @@ const depot = { full_name: 'MyEdO/game' }
 const PR = { number: 42, state: 'open', draft: false, title: 'corrige #2330', body: `Train de publication (\`npm run ops:publier\`), tête ${SHA}.`,
   head: { sha: SHA, ref: 'chantier/2330', repo: depot }, base: { ref: 'main', repo: depot } }
 const CI = { id: 9, name: 'CI', run_attempt: 2, status: 'completed', conclusion: 'success', updated_at: '2026-10-07T10:00:00Z',
-  head_sha: SHA, head_branch: PR.head.ref, repository: depot, event: 'push' }
+  created_at: '2026-10-07T09:40:00Z', head_sha: SHA, head_branch: PR.head.ref, repository: depot, event: 'push' }
 const COMPTE = 'github-actions[bot]'
 const MOTIF = 'The job was not acquired by Runner of type hosted even after multiple attempts'
 const ANNOTATIONS = [{ annotation_level: 'warning', message: 'sans rapport' }, { annotation_level: 'failure', message: MOTIF }]
@@ -127,6 +127,7 @@ for (const [nom, variation, attendu] of [
   ['entrée jeune', {}, 'enqueued'],
   ['REST refusé', { coursesGroupe: { ok: false, raison: 'HTTP 403' } }, 'indeterminee'],
   ['REST incomplet', { coursesGroupe: { total_count: 1, workflow_runs: [] } }, 'indeterminee'],
+  ['REST run dupliqué', { coursesGroupe: { total_count: 2, workflow_runs: [GROUPE_2495, GROUPE_2495] } }, 'indeterminee'],
   ['entrée changée pendant REST', { identites: [EN_FILE, { ...EN_FILE, mergeQueueEntry: { ...ENTREE_2495, id: 'NOUVELLE' } }] }, 'indeterminee'],
 ]) test(`#2499 ${nom} : ${attendu}`, async () => {
   const b = banc({ identites: [EN_FILE], ...variation })
@@ -162,7 +163,7 @@ test('#2499 relances : dédup même essai, essai suivant nommé séparément', a
 
 test('#2499 courses groupe exhaustives sur deux pages, run réel en seconde page', async () => {
   const entree = { ...ENTREE_2495, headCommit: { oid: GROUPE_2495.head_sha } }
-  const courses = [...Array.from({ length: 100 }, () => ({ ...GROUPE_2495, event: 'push' })), GROUPE_2495]
+  const courses = [...Array.from({ length: 100 }, (_, i) => ({ ...GROUPE_2495, id: GROUPE_2495.id + i + 1, event: 'push' })), GROUPE_2495]
   const b = banc({ identites: [{ ...EN_FILE, mergeQueueEntry: entree }], coursesGroupe: { total_count: 101, workflow_runs: courses } })
   assert.equal((await b.jouer({ maintenant: () => VIEILLE_FILE + DELAI_RELANCE_MS }))[0].statut, 'enqueued')
   assert.ok(b.appels.some((c) => c.args.some((a) => a.includes('event=merge_group') && a.endsWith('page=2'))))
@@ -271,11 +272,28 @@ test('lecture commentaires refusée ne double pas un signal inconnu', async () =
 })
 
 test('pagination PR et CI exhaustive : candidate et run vert en deuxième page', async () => {
-  const b = banc({ prs: [...Array.from({ length: 100 }, () => ({ ...PR, draft: true })), PR],
-    courses: [...Array.from({ length: 100 }, (_, i) => ({ ...CI, id: i, conclusion: 'failure' })), { ...CI, id: 999 }] })
+  const ci = { ...CI, id: 999 }
+  const b = banc({ prs: [...Array.from({ length: 100 }, () => ({ ...PR, draft: true })), PR], ci,
+    courses: [...Array.from({ length: 100 }, (_, i) => ({ ...CI, id: i + 1, conclusion: 'failure' })), ci] })
   assert.equal((await b.jouer())[0].run, 999)
   assert.ok(b.appels.some((c) => c.args.some((a) => a.includes('pulls?') && a.endsWith('page=2'))))
   assert.ok(b.appels.some((c) => c.args.some((a) => a.includes('/runs?') && a.endsWith('page=2'))))
+})
+
+test('la reprise ignore une relance verte qui change l’essai pendant la relecture', async () => {
+  const b = banc({ ci: { ...CI, run_attempt: CI.run_attempt + 1 } })
+  const [vu] = await b.jouer()
+  assert.deepEqual([vu.statut, vu.attempt], ['ignoree', CI.run_attempt])
+  assert.match(vu.raison, /identité de la course ou de l’essai changée/)
+  assert.equal(b.poses.size, 0)
+  assert.equal(b.appels.some((c) => c.args.includes('graphql')), false)
+})
+
+test('la reprise exige l’identité de l’essai, même sur une course verte', async () => {
+  const b = banc({ courses: [{ ...CI, run_attempt: undefined }] })
+  await assert.rejects(b.jouer(), /run_attempt invalide/)
+  assert.equal(b.poses.size, 0)
+  assert.equal(b.relances().length, 0)
 })
 
 test('plafond API CI refusé, jamais interprété comme liste exhaustive', async () => {

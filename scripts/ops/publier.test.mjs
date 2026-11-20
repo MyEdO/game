@@ -710,7 +710,7 @@ function argvDesAppelsGh(code) {
 
 // La SOURCE `gh` du train : le train, ses étapes (#1806) et la couture REST qu'il partage avec les
 // autres `ops` (#1813). En lire une partie seulement rendrait le cliquet aveugle.
-const SOURCES_GH_DU_TRAIN = ['./publierTrain.mjs', './etapesDuTrain.mjs', './reprendre-file.mjs', '../guards/lib/ticketsGh.mjs', '../guards/lib/fusionPr.mjs']
+const SOURCES_GH_DU_TRAIN = ['./publierTrain.mjs', './etapesDuTrain.mjs', './reprendre-file.mjs', '../guards/lib/ticketsGh.mjs', '../guards/lib/fusionPr.mjs', '../guards/lib/coursesCi.mjs']
 
 const DOCUMENTS_GRAPHQL_DU_TRAIN = new Set([
   'query IdentiteDeFusion($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { id headRefOid state merged mergeCommit { oid } autoMergeRequest { enabledAt } isInMergeQueue mergeQueueEntry { id state enqueuedAt enqueuer { login } headCommit { oid } } } } viewer { login } }',
@@ -1561,6 +1561,32 @@ for (const variante of ['redemande', 'plafond', 'courses illisibles']) test(`#24
       assert.ok(lignes.includes('[publier] file — PR #7 : courses de file illisibles : HTTP 403\n'))
     }
   }
+})
+
+test('file : une branche REST indisponible maintient la PR armée en attente', () => {
+  const sha = PR_2495.headRefOid
+  const api = mock.method(childProcess, 'spawnSync', (executable, args) => {
+    assert.equal(executable, 'gh')
+    const route = `repos/${DEPOT}/actions/workflows/ci.yml/runs`
+    if (args[1] === `${route}?event=merge_group&exclude_pull_requests=true&per_page=30&page=1`)
+      return { status: 0, stdout: '{"total_count":0,"workflow_runs":[]}', stderr: '' }
+    assert.deepEqual(args, ['api', `${route}?head_sha=${sha}&exclude_pull_requests=true&per_page=30&page=1`])
+    return { status: 1, stdout: '{"message":"Resource not accessible"}', stderr: 'gh: Resource not accessible (HTTP 403)' }
+  })
+  syncBuiltinESMExports()
+  try {
+    const reel = contexteDe({ racine: RACINE, branche: 'chantier/2499', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    const { ctx, gestes, lignes } = ctxFile({ pr: REST({ head: { sha } }), fileTimeoutMin: 1 / 60 })
+    ctx.etatFileDePr = () => ({ ok: true, statut: 'armed' })
+    ctx.coursesCi = reel.coursesCi
+    ctx.coursesDeFile = reel.coursesDeFile
+    const vu = etapeFile.jouer(ctx, { ...journalPush(), tete: sha })
+    assert.equal(vu.indetermine, true)
+    assert.equal(vu.detail.fusion, undefined)
+    assert.ok(lignes.some((l) => l.includes('course de la branche illisible : gh: Resource not accessible (HTTP 403)')))
+    assert.ok(gestes.every(([geste]) => geste !== 'demander'))
+    assert.ok(api.mock.callCount() >= 1)
+  } finally { api.mock.restore(); syncBuiltinESMExports() }
 })
 
 test('#2499 train composé : entrée jeune puis absence de groupe nommée sans nouvelle demande', () => {

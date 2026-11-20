@@ -1,76 +1,164 @@
 // La lecture des courses CI d'un commit ou d'un événement : une union, un tri.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { strToU8, zipSync } from 'fflate'
 import {
-  BORNE_LIGNES_DE_CONTEXTE, BORNE_LIGNES_D_ECHEC, CHAMPS, coursesCi, echecsDuLog, journalDe, jobsEnEchecDe, jobsJuges, lignesDuJournal, motifDAnnulation,
+  BORNE_LIGNES_DE_CONTEXTE, BORNE_LIGNES_D_ECHEC, coursesCi, echecsDuLog, journalDe, jobsEnEchecDe, jobsJuges, lignesDuJournal, motifDAnnulation,
   phraseDesJobs, triees, verdictDesJobs, verdictDesRuns, verdictJuge,
 } from './coursesCi.mjs'
 
 const SHA = 'a'.repeat(40)
 
-test('la commande porte le commit, le workflow, la limite et TOUS les champs des consommateurs', () => {
-  let vus = null
-  coursesCi({
-    commit: SHA,
-    limit: 300,
-    spawn: (cmd, args) => { vus = { cmd, args }; return { status: 0, stdout: '[]', stderr: '' } },
-  })
-  assert.equal(vus.cmd, 'gh')
-  assert.deepEqual(vus.args, ['run', 'list', '--commit', SHA, '--workflow', 'ci.yml', '--limit', '300', '--json', CHAMPS])
-  for (const champ of ['attempt', 'conclusion', 'createdAt', 'databaseId', 'headSha', 'status', 'workflowName'])
-    assert.ok(CHAMPS.includes(champ), `${champ} manque : un consommateur lirait \`undefined\``)
+const COURSE_REST = {
+  id: 37371342026, run_attempt: 2, conclusion: 'success', created_at: '2026-10-05T20:41:52Z',
+  head_branch: 'chantier/2280', head_sha: SHA, status: 'completed', name: 'CI',
+}
+
+const pageRest = (courses, total = courses.length) => ({
+  status: 0, stdout: JSON.stringify({ total_count: total, workflow_runs: courses }), stderr: '',
 })
 
-test('ni `commit` ni `evenement` : la question n’est pas posée, aucun `gh` n’est lancé', () => {
-  assert.throws(() => coursesCi({ spawn: () => assert.fail('aucun processus') }), (e) => e instanceof TypeError && /un `commit` ou un `evenement`/.test(e.message))
+test('la route REST porte le workflow et les filtres cumulés, et projette l’identité de l’essai', () => {
+  const branche = 'gh-readonly-queue/main/pr-7-x'
+  const lu = coursesCi({ commit: SHA, evenement: 'merge_group', spawn(cmd, args) {
+    assert.deepEqual([cmd, ...args], ['gh', 'api',
+      `repos/MyEdO/game/actions/workflows/ci.yml/runs?head_sha=${SHA}&event=merge_group&exclude_pull_requests=true&per_page=30&page=1`])
+    return pageRest([{ ...COURSE_REST, conclusion: null, status: 'in_progress', head_branch: branche }])
+  } })
+  assert.deepEqual(lu, { disponible: true, valeur: [{
+    databaseId: 37371342026, attempt: 2, conclusion: '', createdAt: '2026-10-05T20:41:52Z',
+    headBranch: branche, headSha: SHA, status: 'in_progress', workflowName: 'CI',
+  }] })
 })
 
-test('la sortie est TRIÉE par createdAt décroissant — `courses[0]` est la plus récente', () => {
-  const lu = coursesCi({
-    commit: SHA,
-    spawn: () => ({
-      status: 0,
-      stderr: '',
-      stdout: JSON.stringify([
-        { headSha: 'vieille', createdAt: '2026-08-30T09:00:00Z' },
-        { headSha: 'recente', createdAt: '2026-09-05T11:00:00Z' },
-      ]),
-    }),
-  })
-  assert.deepEqual(lu.valeur.map((c) => c.headSha), ['recente', 'vieille'])
+test('un workflow explicite : fenêtre de cinq courses pour un commit, sans filtre de branche', () => {
+  const valeurs = Array.from({ length: 5 }, (_, i) => ({ ...COURSE_REST, id: i + 1, name: 'Fermetures' }))
+  const lu = coursesCi({ commit: SHA, workflow: 'fermetures.yml', limit: 5, spawn(cmd, args) {
+    assert.deepEqual([cmd, ...args], ['gh', 'api',
+      `repos/MyEdO/game/actions/workflows/fermetures.yml/runs?head_sha=${SHA}&exclude_pull_requests=true&per_page=5&page=1`])
+    return pageRest(valeurs, 1207)
+  } })
+  assert.deepEqual(lu.valeur.map((course) => [course.databaseId, course.workflowName]),
+    valeurs.map((course) => [course.id, 'Fermetures']))
+})
+
+test('un identifiant numérique de workflow mène directement à la liste des courses', () => {
+  const appels = []
+  const lu = coursesCi({ commit: SHA, workflow: '289424207', spawn(cmd, args) {
+    appels.push([cmd, ...args])
+    return pageRest([])
+  } })
+  assert.deepEqual(appels, [['gh', 'api',
+    `repos/MyEdO/game/actions/workflows/289424207/runs?head_sha=${SHA}&exclude_pull_requests=true&per_page=30&page=1`]])
+  assert.deepEqual(lu, { disponible: true, valeur: [] })
+})
+
+const CI_ACTIVE = { id: 289424207, name: 'CI', state: 'active' }
+const pageDeWorkflows = (workflows) => ({ status: 0, stdout: JSON.stringify({ workflows }), stderr: '' })
+
+test('le workflow actif est résolu par nom sans distinction de casse sur deux pages REST', () => {
+  const premiere = Array.from({ length: 100 }, (_, i) => ({ id: i + 1, name: `workflow ${i}`, state: 'active' }))
+  premiere[0] = { id: 1, name: 'CI', state: 'disabled_manually' }
+  const chemins = []
+  const lu = coursesCi({ commit: SHA, evenement: 'push', workflow: 'cI', spawn(cmd, args) {
+    assert.deepEqual([cmd, args[0]], ['gh', 'api'])
+    chemins.push(args[1])
+    if (chemins.length === 1) return pageDeWorkflows(premiere)
+    if (chemins.length === 2) return pageDeWorkflows([CI_ACTIVE])
+    return pageRest([COURSE_REST])
+  } })
+  assert.deepEqual(chemins, [
+    'repos/MyEdO/game/actions/workflows?per_page=100&page=1',
+    'repos/MyEdO/game/actions/workflows?per_page=100&page=2',
+    `repos/MyEdO/game/actions/workflows/289424207/runs?head_sha=${SHA}&event=push&exclude_pull_requests=true&per_page=30&page=1`,
+  ])
+  assert.deepEqual(lu.valeur.map((c) => [c.databaseId, c.attempt]), [[COURSE_REST.id, 2]])
+})
+
+for (const [nom, reponse, motif] of [
+  ['introuvable', pageDeWorkflows([{ ...CI_ACTIVE, state: 'disabled_manually' }]), /workflow actif « CI » introuvable/],
+  ['ambigu', pageDeWorkflows([CI_ACTIVE, { ...CI_ACTIVE, id: 2, name: 'ci' }]), /nom de workflow « CI » ambigu/],
+  ['refusé', { status: 1, stdout: '', stderr: 'gh: Forbidden (HTTP 403)' }, /workflows illisibles.*403/],
+  ['illisible', { status: 0, stdout: '{"workflows":[null]}', stderr: '' }, /workflows hors schéma/],
+]) test(`un workflow nommé ${nom} rend la liste indisponible`, () => {
+  const lu = coursesCi({ commit: SHA, workflow: 'CI', spawn(cmd, args) {
+    assert.deepEqual([cmd, ...args], ['gh', 'api', 'repos/MyEdO/game/actions/workflows?per_page=100&page=1'])
+    return reponse
+  } })
+  assert.equal(lu.disponible, false)
+  assert.match(lu.raison, motif)
+})
+
+test('30 courses merge_group : une seule page, même quand GitHub annonce plus de 1000 courses', () => {
+  const lu = coursesCi({ evenement: 'merge_group', spawn(cmd, args) {
+    assert.deepEqual([cmd, ...args], ['gh', 'api',
+      'repos/MyEdO/game/actions/workflows/ci.yml/runs?event=merge_group&exclude_pull_requests=true&per_page=30&page=1'])
+    return pageRest(Array.from({ length: 30 }, (_, i) => ({ ...COURSE_REST, id: i + 1 })), 1834)
+  } })
+  assert.equal(lu.valeur.length, 30)
+})
+
+test('fenêtre REST paginée : coupe dans l’ordre servi, puis tri décroissant stable', () => {
+  const vaut = (id, jour) => ({ ...COURSE_REST, id, created_at: `2026-10-${jour}T20:00:00Z` })
+  const premiere = Array.from({ length: 100 }, (_, i) => vaut(i + 1, '05'))
+  const derniere = [vaut(101, '06'), vaut(102, '06'), vaut(103, '07')]
+  const appels = []
+  const lu = coursesCi({ evenement: 'merge_group', limit: 102, spawn(cmd, args) {
+    appels.push(args.at(-1))
+    return pageRest(appels.length === 1 ? premiere : derniere, 103)
+  } })
+  assert.deepEqual(appels.map((a) => new URLSearchParams(a.split('?')[1]).get('page')), ['1', '2'])
+  assert.ok(appels.every((a) => a.includes('per_page=100')))
+  assert.deepEqual(lu.valeur.map((c) => c.databaseId), [101, 102, ...premiere.map((c) => c.id)])
   assert.deepEqual(triees([{ a: 1 }, { a: 2 }]).map((c) => c.a), [1, 2], 'sans date, l’ordre servi est conservé')
 })
 
-test('gh muet, en échec ou illisible : INDISPONIBLE nommé, jamais une liste vide', () => {
-  const muet = coursesCi({ commit: SHA, spawn: () => ({ error: new Error('spawnSync gh ENOENT'), status: null }) })
-  assert.equal(muet.disponible, false)
-  assert.match(muet.raison, /ENOENT/)
-
-  const echec = coursesCi({ commit: SHA, spawn: () => ({ status: 4, stdout: '', stderr: 'gh: jeton expiré' }) })
-  assert.equal(echec.disponible, false)
-  assert.match(echec.raison, /jeton expiré/)
-
-  const illisible = coursesCi({ commit: SHA, spawn: () => ({ status: 0, stdout: '{ tronqué', stderr: '' }) })
-  assert.equal(illisible.disponible, false)
+test('ni commit ni événement : la question n’est pas posée', () => {
+  assert.throws(() => coursesCi({ spawn: () => assert.fail('aucun processus') }), (e) => e instanceof TypeError && /un `commit` ou un `evenement`/.test(e.message))
+  assert.equal(coursesCi({ commit: SHA, limit: 0, spawn: () => assert.fail('aucun processus') }).disponible, false)
 })
 
-// ── `--commit` : la question que pose la porte au push (#1776) ─────────────────────────────────
-
-test('`commit` interroge le SHA, jamais une branche — c’est ce sha-là qui entre dans main', () => {
-  let vus = null
-  coursesCi({
-    commit: SHA,
-    spawn: (cmd, args) => { vus = args; return { status: 0, stdout: '[]', stderr: '' } },
-  })
-  assert.deepEqual(vus, ['run', 'list', '--commit', SHA, '--workflow', 'ci.yml', '--limit', '30', '--json', CHAMPS])
-  assert.ok(!vus.includes('--branch'), 'un run de branche `chantier/**` juge le MÊME sha : la branche ne discrimine rien')
+test('une vraie réponse REST vide est un fait', () => {
+  assert.deepEqual(coursesCi({ commit: SHA, spawn: () => pageRest([]) }), { disponible: true, valeur: [] })
 })
 
-test('`evenement` filtre les courses par événement (`--event`) — les commits de file (`merge_group`) portent `headBranch`', () => {
-  let vus = null
-  coursesCi({ evenement: 'merge_group', spawn: (cmd, args) => { vus = args; return { status: 0, stdout: '[]', stderr: '' } } })
-  assert.deepEqual(vus, ['run', 'list', '--event', 'merge_group', '--workflow', 'ci.yml', '--limit', '30', '--json', CHAMPS])
-  assert.ok(CHAMPS.split(',').includes('headBranch'), 'la ref d’entrée de file nomme la PR : sans `headBranch`, la course de file ne se rattache à rien')
+for (const [nom, reponse, motif] of [
+  ['inexécutable', { error: new Error('spawnSync gh ENOENT'), status: null }, /ENOENT/],
+  ['refusé', { status: 4, stdout: '', stderr: 'gh: jeton expiré (HTTP 403)' }, /jeton expiré.*403/],
+  ['workflow absent', { status: 1, stdout: '', stderr: 'gh: Not Found (HTTP 404)' }, /HTTP 404/],
+  ['muet', { status: 1, stdout: '', stderr: '' }, /gh a rendu 1/],
+  ['illisible', { status: 0, stdout: '{ tronqué', stderr: '' }, /JSON|property name/i],
+  ['enveloppe erronée', { status: 0, stdout: '{"total_count":0,"message":"panne"}', stderr: '' }, /workflow_runs/],
+  ['page tronquée', pageRest([COURSE_REST], 2), /1 lues pour 2 attendues/],
+  ['essai absent', pageRest([{ ...COURSE_REST, run_attempt: undefined }]), /run_attempt/],
+  ['identité invalide', pageRest([{ ...COURSE_REST, id: 0 }]), /id invalide/],
+  ['statut absent', pageRest([{ ...COURSE_REST, status: undefined }]), /status/],
+  ['date invalide', pageRest([{ ...COURSE_REST, id: 1, conclusion: 'failure' }, { ...COURSE_REST, created_at: 'zzzz' }]), /created_at invalide/],
+]) test(`gh ${nom} : une indisponibilité nommée`, () => {
+  const lu = coursesCi({ commit: SHA, spawn: () => reponse })
+  assert.equal(lu.disponible, false)
+  assert.match(lu.raison, motif)
+})
+
+test('panne réseau, total incohérent ou run répété en page deux : aucun résultat partiel', () => {
+  const premiere = Array.from({ length: 100 }, (_, i) => ({ ...COURSE_REST, id: i + 1 }))
+  for (const [seconde, motif] of [
+    [{ status: 1, stdout: '', stderr: 'gh: réseau indisponible' }, /réseau indisponible/],
+    [pageRest([COURSE_REST], 102), /total passé de 101 à 102/],
+    [pageRest([{ ...COURSE_REST, id: 100, run_attempt: 3 }], 101), /identifiant de run répété/],
+  ]) {
+    let pages = 0
+    const lu = coursesCi({ commit: SHA, limit: 101, spawn: () => ++pages === 1 ? pageRest(premiere, 101) : seconde })
+    assert.equal(pages, 2)
+    assert.equal(lu.disponible, false)
+    assert.match(lu.raison, motif)
+  }
+})
+
+test('une fenêtre au-delà du plafond REST ne rend pas une liste partielle', () => {
+  const lu = coursesCi({ evenement: 'merge_group', limit: 1001, spawn: () => pageRest([], 1834) })
+  assert.equal(lu.disponible, false)
+  assert.match(lu.raison, /1001 attendues, plafond REST 1000/)
 })
 
 /** Les annotations d'un job annulé de la course 37365832262 (#1853), lues par `check-runs/{id}/annotations`. */
@@ -95,8 +183,6 @@ test('`jobsEnEchecDe` rend les noms des jobs ROUGES et ANNULÉS d’une course, 
   let vu = null
   jobsEnEchecDe({ id: 37371342026, attempt: 1, spawn: (cmd, args) => { vu = [cmd, ...args]; return { status: 0, stdout: '{"jobs":[]}', stderr: '' } } })
   assert.deepEqual(vu, ['gh', 'run', 'view', '37371342026', '--attempt', '1', '--json', 'jobs'], 'l’essai JUGÉ, jamais le dernier qu’une relance remet en vol')
-  journalDe({ id: 7, attempt: 2, echecsSeuls: true, spawn: (cmd, args) => { vu = [cmd, ...args]; return { status: 0, stdout: '', stderr: '' } } })
-  assert.deepEqual(vu, ['gh', 'run', 'view', '7', '--attempt', '2', '--log-failed'])
   assert.equal(jobsEnEchecDe({ id: 1, spawn: () => ({ status: 4, stdout: '', stderr: 'x' }) }).disponible, false)
   assert.equal(jobsEnEchecDe({ id: 1, spawn: () => ({ status: 0, stdout: '{}', stderr: '' }) }).disponible, false)
 })
@@ -306,20 +392,60 @@ test('echecsDuLog : colonne `UNKNOWN STEP` — l’étape est le dernier `##[gro
   assert.ok(!types.lignes.some((l) => l.startsWith('# ')), 'rien de l’étape précédente (le résumé TAP)')
 })
 
-test('journalDe : `gh run view <id> --log-failed` sous `echecsSeuls`, en union — jamais un journal vide pour une panne', () => {
-  let vus = null
-  const lu = journalDe({ id: 7, echecsSeuls: true, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: JOURNAL_TSC, stderr: '' } } })
-  assert.deepEqual(vus, ['gh', 'run', 'view', '7', '--log-failed'])
+const archiveTsc = Buffer.from(zipSync({ '0_build.txt': strToU8(JOURNAL_TSC.replaceAll('build\tUNKNOWN STEP\t', '')) }))
+const jobTsc = { name: 'build', conclusion: 'failure', steps: [{ name: 'Compiler', number: 1, conclusion: 'failure' }] }
+
+test('journalDe : le dernier essai est épinglé aux jobs et à l’archive, en union', () => {
+  const appels = []
+  const lu = journalDe({ id: 7, echecsSeuls: true, spawn: (cmd, args, options) => {
+    appels.push([cmd, ...args])
+    const chemin = args[1]
+    if (chemin.endsWith('/runs/7')) return { status: 0, stdout: '{"id":7,"run_attempt":2}', stderr: '' }
+    if (args[0] === 'run') return { status: 0, stdout: JSON.stringify({ status: 'completed', jobs: [jobTsc] }), stderr: '' }
+    assert.equal(options.encoding, 'buffer')
+    return { status: 0, stdout: archiveTsc, stderr: '' }
+  } })
+  assert.deepEqual(appels, [
+    ['gh', 'api', 'repos/MyEdO/game/actions/runs/7'],
+    ['gh', 'run', 'view', '7', '--attempt', '2', '--json', 'jobs,startedAt,status'],
+    ['gh', 'api', 'repos/MyEdO/game/actions/runs/7/attempts/2/logs'],
+  ])
   assert.deepEqual(lu, { disponible: true, valeur: JOURNAL_TSC })
-  assert.equal(journalDe({ id: 7, echecsSeuls: true, spawn: () => ({ status: 1, stdout: '', stderr: 'run 7 introuvable' }) }).disponible, false)
 })
 
-test('journalDe : `--log` (tous les jobs) sans `echecsSeuls` ; la question non posée lève', () => {
-  let vus = null
-  const lu = journalDe({ id: 7, attempt: 1, echecsSeuls: false, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: JOURNAL_TSC, stderr: '' } } })
-  assert.deepEqual(vus, ['gh', 'run', 'view', '7', '--attempt', '1', '--log'])
-  assert.deepEqual(lu, { disponible: true, valeur: JOURNAL_TSC })
+test('journalDe : une relance explicite, un refus HTTP nommé et une archive invalide', () => {
+  const lire = (echecsSeuls, resultat, jobs = [jobTsc]) => journalDe({ id: 7, attempt: 1, echecsSeuls, spawn: (cmd, args) => {
+    if (args[0] === 'run') return { status: 0, stdout: JSON.stringify({ status: 'completed', jobs }), stderr: '' }
+    assert.deepEqual(args, ['api', 'repos/MyEdO/game/actions/runs/7/attempts/1/logs'])
+    return resultat
+  } })
+  assert.deepEqual(lire(false, { status: 0, stdout: archiveTsc, stderr: '' }), { disponible: true, valeur: JOURNAL_TSC })
+  const refus = lire(false, { status: 1, stderr: 'jeton expiré HTTP 403 https://example.com/archive?signature=masquee' })
+  assert.match(refus.raison, /HTTP 403 .*archive\?\[masqué\]/)
+  assert.doesNotMatch(refus.raison, /signature=/)
+  assert.match(lire(false, { status: 0, stdout: Buffer.from(''), stderr: '' }).raison, /essai 1.*archive ZIP illisible/)
+  assert.deepEqual(lire(true, undefined, [{ ...jobTsc, conclusion: 'cancelled' }]), { disponible: true, valeur: '' })
   assert.throws(() => journalDe({ id: 7, spawn: () => assert.fail('aucun appel sans question') }), TypeError)
+})
+
+test('journalDe : le filtre des jobs et étapes retrouve les conclusions des journaux en échec de gh', () => {
+  const lire = (conclusion) => {
+    const job = { ...jobTsc, conclusion, steps: [{ ...jobTsc.steps[0], conclusion }] }
+    const archive = Buffer.from(zipSync({ '0_build.txt': strToU8('regroupé'), 'build/1_compiler.txt': strToU8('étape attribuée') }))
+    let appelsArchive = 0
+    const lu = journalDe({ id: 7, attempt: 1, echecsSeuls: true, spawn: (cmd, args) => {
+      if (args[0] === 'run') return { status: 0, stdout: JSON.stringify({ status: 'completed', jobs: [job] }), stderr: '' }
+      appelsArchive++
+      return { status: 0, stdout: archive, stderr: '' }
+    } })
+    assert.equal(lu.disponible, true, lu.raison)
+    return [lu.valeur, appelsArchive]
+  }
+  for (const conclusion of ['action_required', 'failure', 'startup_failure', 'timed_out'])
+    assert.deepEqual(lire(conclusion), ['build\tCompiler\tétape attribuée', 1], conclusion)
+  for (const conclusion of ['cancelled', 'neutral', 'skipped', 'stale', 'success'])
+    assert.deepEqual(lire(conclusion), ['', 0], conclusion)
+  assert.deepEqual(jobsJuges([{ name: 'build', conclusion: 'action_required' }]), { rouges: [], annules: [] })
 })
 
 test('lignesDuJournal : job, étape et texte sans horodatage ni BOM ; une ligne sans trois colonnes est écartée', () => {
