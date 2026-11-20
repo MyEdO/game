@@ -341,9 +341,8 @@ export function sellChance(port: PortProfile, cargoId: string, milles: number): 
 
 /** PRIX D'OFFRE d'un acheteur trouvé (l.374-383) : % du prix de base selon Richesse + Taille + Demande. PUR.
  *  La table commence à 1 et sa dernière bande est ouverte : une somme SOUS la table ne peut venir que
- *  d'un profil hors des indices imprimés (`defs-scenes/worldmap.ts` borne la saisie à 1..4 / 1..5). On
- *  la NOMME plutôt que de la laisser tomber sur une bande : le repli de `findTableEntry` offrirait le
- *  prix de base plein à un lieu que la table ne couvre pas. */
+ *  d'un profil hors des indices imprimés (`defs-scenes/worldmap.ts` borne la saisie à 1..4 / 1..5).
+ *  Le refus nomme la somme, ses termes et la cargaison. */
 export function offerPricePct(port: PortProfile, cargoId: string): number {
   const sum = port.richesse + port.taille + (port.demande?.[cargoId] ?? 0);
   const bandes = bandesDuPrixDOffre();

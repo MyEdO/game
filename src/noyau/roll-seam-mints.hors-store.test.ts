@@ -11,9 +11,12 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { virtualProgram } from '../../scripts/guards/lib/tsProgram.mjs';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { battleRng } from './battleRng';
 import type { Jeu } from './etat';
 import {
-  monoStep, tableStep, tableStepDone, hostStep, openSequence, rollStep, pushMono, pushChoice, pushHost, pushTable, pushTableDone, pushBand, type HostSpec,
+  monoStep, tableStep, tableStepDone, hostStep, openSequence, rollStep, pushMono, pushChoice, pushHost, pushTable, pushTableDone, pushBand,
+  type HostSpec,
+  type TableSpec,
 } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { pushStep, stepInteraction } from './cascade';
@@ -23,7 +26,7 @@ import { ownsLocal } from './netOwnership';
 import { seatOwns } from './sieges';
 import type { PendingKey } from './stateFields';
 import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
-import type { CascadeStep } from './pendings';
+import { WORLD_STEP_OWNER, type CascadeStep } from './pendings';
 import { nightBands } from './nightBands';
 import type { Combatant, Weapon } from '../engine/types';
 import { combatStakeRef, type StakeRef } from '../data';
@@ -31,6 +34,7 @@ import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { deDeLaTableTiree } from '../engine/tables';
+import { fermeturesDuFlux } from './verbesOuverts';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -126,6 +130,52 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
 });
 
 describe('#1262 — tableStep / tableStepDone : DEUX entrées, jamais un drapeau', () => {
+  const tableDuMonde: TableSpec = {
+    id: 'meteo', kind: cleDeFixture('meteo-mints'), label: fixtureText('Météo'), worldOwner: true,
+    table: { tableId: TABLE }, stake: ENJEU,
+  };
+
+  it.each([
+    { gmSeat: 1, sieges: [false, true] },
+    { gmSeat: undefined, sieges: [true, false] },
+  ])('#4120 — les deux portes donnent la table au monde (siège MJ $gmSeat)', ({ gmSeat, sieges }) => {
+    const { getState: get, setState: set } = banc;
+    set({ net: { ...get().net, mode: 'hote', gmSeat } });
+    const etapesDeTable = [
+      ['tableStep', tableStep(tableDuMonde)!],
+      ['tableStepDone', tableStepDone({ ...tableDuMonde, result: { roll: 60, die: 60, id: 'haute', lines: ['ligne 60'] } })!],
+    ] as const;
+    for (const [porte, etape] of etapesDeTable) {
+      openSequence(get, set, { title: 'Météo', purpose: 'test', steps: [etape] });
+      const owner = modalOwnerOf(get());
+      expect(owner, porte).toBe(WORLD_STEP_OWNER);
+      expect([0, 1].map((seat) => seatOwns(get(), seat, owner ?? undefined)), porte).toEqual(sieges);
+      set({ pendingCascade: null });
+    }
+  });
+
+  it('#4120 — l’étape de monde déjà tirée affiche le résultat sans lancer de dé supplémentaire', () => {
+    const { getState: get, setState: set } = banc;
+    const { id } = tableDuMonde;
+    const tirer = vi.spyOn(battleRng(), 'int');
+    openSequence(get, set, { title: 'Météo', purpose: 'test', steps: [tableStep(tableDuMonde)!] });
+    expect(fermeturesDuFlux(get(), 'cascadeTirage', id).lancer).toBeNull();
+    expect(tirer).not.toHaveBeenCalled();
+    get().jetLancer('cascadeTirage', id);
+    expect(tirer).toHaveBeenCalledTimes(1);
+    const resultat = etapes()[0].table!.result!;
+    expect(resultat).toBeDefined();
+
+    set({ pendingCascade: null });
+    tirer.mockClear();
+    openSequence(get, set, { title: 'Météo', purpose: 'test', steps: [tableStepDone({ ...tableDuMonde, result: resultat })!] });
+    expect(stepInteraction(etapes()[0])).toBe('affichage');
+    expect(fermeturesDuFlux(get(), 'cascadeTirage', id).lancer).toBe('jetLance');
+    get().jetLancer('cascadeTirage', id);
+    expect(etapes()[0].table!.result).toBe(resultat);
+    expect(tirer).not.toHaveBeenCalled();
+  });
+
   it('table À POSER : le dé n’est pas tombé, l’interaction est `table`', () => {
     const step = tableStep({ id: 'tir', kind: cleDeFixture('mutation'), label: fixtureText('Tirage'), actorId: 'H1', table: { tableId: TABLE }, stake: { key: { dataset: 'combat', kind: 'mutation' } } })!;
     expect(step.table!.result).toBeUndefined();
@@ -336,7 +386,9 @@ describe('#1262 — les portes d’APPEND', () => {
     expect(banc.getState().pendingCascade, 'aucune bande sans possession n’a été appendue').toBeNull();
   });
 
-  it('`pushTableDone` : la table résolue rejoint la séquence, enjeu DESCENDU à la ligne tirée', () => {
+  it('`pushTableDone` : la table résolue reste au siège du personnage et porte l’enjeu de la ligne tirée', () => {
+    const { getState: get, setState: set } = banc;
+    set({ net: { ...get().net, mode: 'hote', gmSeat: 1, ownership: { H1: 2 } } });
     pushTableDone(banc.setState, {
       id: 'crit', kind: 'mutation', label: fixtureText('Tirage'), actorId: 'H1',
       table: { tableId: TABLE },
@@ -348,6 +400,9 @@ describe('#1262 — les portes d’APPEND', () => {
     expect(st.table!.result!.id).toBe('haute');
     expect(st.stake, 'un append ne court-circuite pas la re-pose post-tirage').toHaveProperty('key.entryId', 'haute');
     expect(st.outcome).toHaveLength(1);
+    const owner = modalOwnerOf(get());
+    expect(owner).toBe('H1');
+    expect([0, 1, 2].map((seat) => seatOwns(get(), seat, owner ?? undefined))).toEqual([false, false, true]);
   });
 });
 

@@ -22,7 +22,8 @@ import {
 import { initialNet, type BattleState } from '../etat';
 import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
-import { conditionIds } from '../../data/index';
+import { conditionIds, findVehicleById } from '../../data/index';
+import { vehicleCombatant } from '../../engine/vehicle';
 import { FORMAT_SAVE } from './formats.generated';
 import { ciblePsy } from '../../engine/psych/ciblage';
 import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-conditions-etendues';
@@ -59,12 +60,51 @@ describe('lireSave — le format courant seul', () => {
     expect(lireSave(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
   });
 
+  it('reprend la coque de voyage dans son milieu et refuse le format antérieur au regroupement', () => {
+    const base = etatInitialDuJeu();
+    const vehicleId = 'barge-fluviale';
+    const vessel = { vehicleId, uid: 'barge-du-groupe', morale: { score: 75, lastMoraleWeek: 0, factors: [] } };
+    const vehicle = vehicleCombatant(findVehicleById(vehicleId)!, vessel.uid, 'maritime')!;
+    const travelPlan: NonNullable<EtatDeJeu['travelPlan']> = {
+      routeId: 'traversee', fromPlaceId: 'a', toPlaceId: 'b', km: 25, kmDone: 0, mode: 'mer',
+      hoursPerDay: 6, interrupted: false, vehicle,
+    };
+    const courante = snapshotSave({ ...base, vessel, travelPlan }, 'x');
+    const relue = lireSave(exporterLaSauvegarde(courante));
+    if (typeof relue === 'string') throw new Error(relue);
+    expect(chargerLaSave(relue).etat.travelPlan?.vehicle).toMatchObject({ creatureId: vehicleId, milieuNaval: 'maritime' });
+
+    const ancienne = snapshotSave({ ...base, vessel: { ...vessel, vehicleId: 'barge' } }, 'x');
+    for (const version of ['75cda557adb5237f', 'a198864262579dc1']) {
+      expect(lireSave(exporterLaSauvegarde({ ...ancienne, version })), `format ${version}`).toBe('autreFormat');
+    }
+  });
+
   it('la lecture rend la save exportée, ou la cause du refus', () => {
     const save = snapshotSave(etatInitialDuJeu(), '2026-10-27T00:00:00.000Z');
     expect(lireSave(exporterLaSauvegarde(save))).toEqual(save);
     expect(lireSave('{pas du json')).toBe('illisible');
     expect(lireSave(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
   });
+});
+
+it('charge les anciens registres dans les bornes de l’effectif, avec la solde offerte actualisée', () => {
+  const base = etatInitialDuJeu();
+  const vessel = {
+    vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] },
+    crewLost: 5,
+    wagesOwed: 288,
+    crew: [{ roleId: 'mousse', count: 12 }],
+    recueillisSansSolde: [{ roleId: 'navigateur', count: 2 }],
+  };
+  const pendingCouncil = { today: 7, wageBrass: 12 * 288, phase: 'choix' as const };
+  const charge = chargerLaSave(snapshotSave({ ...base, vessel, pendingCouncil }, 'x')).etat;
+  expect(charge.vessel).toEqual({ ...vessel, crew: [{ roleId: 'mousse', count: 10 }], recueillisSansSolde: [] });
+  expect(charge.pendingCouncil).toEqual({ ...pendingCouncil, wageBrass: 10 * 288 });
+
+  const valide = { ...vessel, crew: [{ roleId: 'mousse', count: 8 }] };
+  const chargeValide = chargerLaSave(snapshotSave({ ...base, vessel: valide }, 'x')).etat;
+  expect(chargeValide.vessel).toEqual(valide);
 });
 
 describe('lireSave — la porte des scènes (`parseSceneDeProjet`)', () => {

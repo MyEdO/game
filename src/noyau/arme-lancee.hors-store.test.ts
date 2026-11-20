@@ -7,11 +7,12 @@ import { bus, EVT } from './bus';
 import { draineCascade } from './cascade.testkit';
 import { resolveRanged, type AttackResult } from '../engine/combat';
 import { deMin } from '../engine/dice.testkit';
-import { findCreatureById } from '../data';
+import { findTrappingById, findCreatureById } from '../data';
 import { t as tr } from '../i18n';
 import { seedBattleRng } from './battleRng';
 import { dansLaZoneJouable, emptyScene, isWalkable, type Scene } from './monde/scene';
-import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
+import { itemFromTrappingById, loadoutSetActive, recomputeLoadout } from '../engine/items';
+import { garanti } from '../lib/garanti';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -67,7 +68,7 @@ function lancer(a: Combatant, e: Combatant, arme: Weapon, touche: boolean): { x:
   let arrivee: { x: number; y: number } | undefined;
   const off = bus.on(EVT.ANIM_FLOAT, (d) => { if (d.text === tr('cf.dispersionFlottante')) arrivee = d.pos; });
   try {
-    const res = touche ? resolveRanged(a, e, arme, deMin, 6, undefined, [], undefined, 1) : RATE;
+    const res = touche ? resolveRanged(findTrappingById, a, e, arme, deMin, 6, undefined, [], undefined, 1) : RATE;
     if (touche) expect(res.hit).toBe(true);
     applyAttackResult(banc.getState, banc.setState, a, e, arme, res);
     draineCascade(banc.getState, 20, () => 4);
@@ -118,8 +119,32 @@ describe("l'arme lancée quitte la main et tombe au sol (#4330)", () => {
     expect(auSol()).toEqual([]);
   });
 
-  it("le couteau d'un tueur à gages (arme de Trait) tombe matérialisé, et l'armement re-dérivé ne le lui rend pas", () => {
-    const tueur = spawnEnemy({ presetCreature: findCreatureById('tueur-a-gages')!, presetId: 'tueur-a-gages' }, 'tg', { x: 2, y: 7 });
+  it('le couteau porté du tueur à gages garde son identité au sol et disparaît de sa panoplie', () => {
+    const tueur = spawnEnemy({ ref: 'tueur-a-gages' }, 'tg', { x: 2, y: 7 });
+    const id = 'couteau-de-lancer';
+    const objet = garanti(tueur.items?.find((i) => i.trappingId === id), id, 'objet de fiche');
+    const panoplie = garanti(tueur.loadouts?.find((set) => set.main === objet.uid), objet.uid, 'panoplie de lancer');
+    loadoutSetActive(tueur, panoplie.id);
+    recomputeLoadout(tueur);
+
+    poserLaBataille([tueur, cible()]);
+    const [a, e] = banc.getState().battle!.combatants;
+    const couteau = tenue(a, id);
+    expect(couteau.uid).toBe(objet.uid);
+    lancer(a, e, couteau, true);
+    expect(auSol()).toEqual([{
+      pos: { x: 8, y: 7 },
+      lot: [expect.objectContaining({ uid: objet.uid, trappingId: id, equipped: false })],
+    }]);
+    expect(a.items?.some((i) => i.uid === objet.uid)).toBe(false);
+    recomputeLoadout(a);
+    expect(a.weapons.some((w) => w.trappingId === id)).toBe(false);
+  });
+
+  it("un Trait de couteau sans objet de fiche se matérialise au sol et ne revient pas en main", () => {
+    const base = findCreatureById('tueur-a-gages')!;
+    const presetCreature = { ...base, trappings: base.trappings.filter((r) => !('id' in r && r.id === 'couteau-de-lancer')) };
+    const tueur = spawnEnemy({ presetCreature, presetId: 'tueur-a-gages' }, 'tg', { x: 2, y: 7 });
     poserLaBataille([tueur, cible()]);
     const [a, e] = banc.getState().battle!.combatants;
     const couteau = tenue(a, 'couteau-de-lancer');

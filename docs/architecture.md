@@ -253,8 +253,9 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable au Co
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
                               `defs-scenes/<nom>.ts`) qui DÉCLARE son document par la fabrique
                               `document()` (`grammaire/document.ts`) : enveloppe commune posée par la
-                              fabrique (id/type/label, provenance source ∨ maison), emballage du fichier
-                              par famille (entite/table/config/record), méta d'édition et exposition
+                              fabrique (id/type/label, provenance source ∨ maison quand elle est exigée,
+                              exclusive si le def le déclare, comme `reglesOptionnelles`), emballage
+                              du fichier par famille (entite/table/config/record), méta d'édition et exposition
                               Codex/éditeur. Registres GÉNÉRÉS (`_registry*.generated.ts`,
                               `_ids.generated.ts`) par `npm run gen` — jamais édités à la main.
                               Le nom FR d'une VALEUR d'enum vit sur le NŒUD (`enumNomme`,
@@ -711,8 +712,10 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             les mêmes parcours sans export ni navigateur : le jeu lancé sur une copie importée du projet,
                             sans rendu ou, pour un parcours qui lit l'image, en rendu réel sur un écran virtuel
                             (`--rendu`), piloté par `projet/recettes/pilote.gd`, son pont et son serveur dans le
-                            processus de la recette (`pilotage/`) ; `npm run godot:recette`, étape de la CI, en joue
-                            `combat` et `editeur`, le canari le lot natif entier (`lot-de-recettes.mjs --natif`).
+                            processus de la recette (`pilotage/`). Le lot natif prépare le projet importé et le
+                            bundle du pont une fois. Chaque jeu clone le projet, évalue son pont et garde ses
+                            ports, son stockage et ses sorties. La file joue `combat`, `editeur` et `compendium`
+                            (`npm run godot:recette`). Le canari joue le lot natif entier (`lot-de-recettes.mjs --natif`).
                             `--bureau --sortie <dossier>`
                             (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
                             embarqué (`noyau/` : Node, le bundle, le point d'entrée), ses modèles en scène et ses avis

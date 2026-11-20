@@ -17,6 +17,7 @@ import type { FermetureDuJet } from './rollFlowFactory';
 import { fermetureDuQuorum, jouerOuMarquer } from './sortieDeFenetre';
 import { noteDAubergeCouverte } from './restFlow';
 import { semaineAReprendre } from './choixDeFenetre';
+import { activitesDuNavireEnResolution } from './seaActivities';
 import { interludeDrawPending } from './verdictsDInterlude';
 import { fermetureDuRoundSuivant } from './massBattleFlow';
 
@@ -33,7 +34,10 @@ export const FERMETURES_DE_LA_VALIDATION: { readonly [F in FenetreAValider]?: (s
   interlude: (s) => (interludeDrawPending(s) ? 'evenementsATirer' : null),
   marchand: (s) => (s.merchant?.pendingDistribution?.length ? null : 'rienARepartir'),
   finDeSeance: seanceDuChapitre,
-  activitesEnMer: (s) => (semaineAReprendre(s) ? 'choixAReprendre' : null),
+  activitesEnMer: (s) => {
+    if (activitesDuNavireEnResolution(s.pendingSeaActivities)) return 'actionEngagee';
+    return semaineAReprendre(s) ? 'choixAReprendre' : null;
+  },
   batailleDeMasse: fermetureDuRoundSuivant,
 };
 

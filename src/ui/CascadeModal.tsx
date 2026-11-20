@@ -23,7 +23,7 @@ import { NumberField } from './NumberField';
 import { CriticalBody, RevealBody } from './RevealBody';
 import { ModalSubject } from './ModalSubject';
 import { RecapLineList } from './RecapLine';
-import { TableRollLine } from './RollLine';
+import { ModChips, TableRollLine } from './RollLine';
 import { testBreakdown, testPending, opposedLines } from './breakdown';
 import type { ModLine } from '../engine/combat';
 import { Icon } from './Icon';
@@ -232,7 +232,12 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const a = actorOf(s);
     // Étape BATCH committée : sa conséquence (resultLine, #331) se lit SUR PLACE — note SEULE (pas de
     // RollLine mono factice `base 0` : le batch n'a ni acteur ni cible d'étape, le verdict est agrégé).
-    if (s.participants) return s.outcome?.length ? { combatant: a, note: noteFor(s) } : null;
+    if (s.participants) {
+      const modsDR = s.meta?.aggregateDRMods;
+      return s.outcome?.length || modsDR?.length
+        ? { combatant: a, note: <>{modsDR?.length ? <ModChips modsDR={modsDR} /> : null}{noteFor(s)}</> }
+        : null;
+    }
     const refus = refusSansJet(s);
     if (refus != null) return { combatant: a, note: <>{refus}{noteFor(s)}</> };
     if (estJete(s.result) && isRollStep(s)) return { combatant: a, d: breakdown(s, s.result), note: noteFor(s) }; // jet validé
@@ -734,6 +739,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // annonce unique la déplacerait loin de sa ligne sans rien économiser.
     const mutualise = groupes.filter((g) => g.ids.length >= 2).sort((a, b) => b.ids.length - a.ids.length)[0];
     const bandNote = mutualise ? <OutcomeNote {...mutualise.ops} /> : null;
+    const modsDR = cur.meta?.aggregateDRMods;
     // Rangées-participants via le builder mutualisé (#328) : la modale ne fournit QUE la PRÉSENTATION
     // (label/base/mods déjà résolus à la construction, GÉNÉRIQUES) + son bundle d'actions de flux ; les
     // fenêtres d'influence sont dérivées au rendu par les prédicats du seam.
@@ -803,7 +809,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         title={titleNode}
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length })}
         {...stakeProps}
-        extra={<><SequencePanel />{bandNote}</>}
+        extra={<><SequencePanel />{bandNote}{modsDR?.length ? <ModChips modsDR={modsDR} /> : null}</>}
         rolled={ready}
         rows={[...(oppRow ? [oppRow] : []), ...rows]}
         actions={batchActions}

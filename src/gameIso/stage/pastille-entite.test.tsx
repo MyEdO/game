@@ -16,7 +16,7 @@ import { emptyScene } from '../../noyau/monde/scene';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { itemFromTrappingById, unarmedWeapon } from '../../engine/items';
+import { hydratePoste, unarmedWeapon } from '../../engine/items';
 import { ACTIONS, type ActionDef } from '../../data/index';
 import { ACTION_CANDIDATES } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
@@ -141,7 +141,7 @@ function svgTémoin(el: HTMLElement): { svg: SVGSVGElement; capture: ReturnType<
 }
 
 // ── Fixtures des trois familles de porteurs ─────────────────────────────────────────────────────
-const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
+const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => hydratePoste({ trappingId: engineId, crewIds }, idsDeTest('it'));
 
 const mkHull = (postes: ShipPoste[], pos = { x: 4, y: 3 }): Combatant =>
   combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'ennemi', pos, inert: true, wounds: blessuresDeBase(0), postes });
@@ -314,7 +314,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
   });
 
   it('PIÈCE NON POUSSABLE (pierrier naval) : AUCUNE pastille Pousser — jamais un clic muet (recette F1)', () => {
-    // Le pierrier est une arme de siège SANS Qualité `equipe` (`trappings.json`) : rien à pousser
+    // Le pierrier est une arme de siège SANS Qualité `equipe` (`siege-engines.json`) : rien à pousser
     // (ADE II 8 l.258 vise les engins à roues servis en équipe). L'affordance est celle de la source
     // unique `pushSlot` — la pastille ne se dessine donc pas, au lieu d'accueillir un clic sans effet.
     const poste = mkPoste('pierrier', ['h1']);

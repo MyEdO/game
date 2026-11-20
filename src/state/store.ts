@@ -17,6 +17,7 @@ import type { RetraitsDElagage } from '../noyau/persistance/elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
 import type { IdDeRaccourci } from './clavier/keybindings';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';
+import { patchDeLArmement } from '../noyau/monde/carrier';
 import type { CodexFocus } from './codexFocus';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { poserLaPlateforme, type Plateforme, type PlateformeDe } from '../noyau/plateforme';
@@ -41,8 +42,8 @@ import type { SheetTab } from '../i18n/ongletsDeLaFiche';
 function applyLoadedSave(set: RemplacerLEtat, lue: SaveGame): void {
   const { etat, regles, retraits } = chargerLaSave(lue);
   remettreLAdaptateur(true);
-  set({ ...etat, net: useGame.getState().net, retraitsDeChargement: retraits });
   loadRuleOverrides(regles);
+  set({ ...etat, ...patchDeLArmement(etat), net: useGame.getState().net, retraitsDeChargement: retraits });
   bus.emit(EVT.SCENE_DIRTY);
 }
 

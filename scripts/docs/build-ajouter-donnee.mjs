@@ -226,9 +226,10 @@ l'écriture d'un \`${DATA}/*.json\`, sous-agents compris.
 
 ## 2. Choisir le fichier — et sa FAMILLE
 
-Via la carte \`docs/donnees.md\`. **Règle d'or** : une « machine de guerre / véhicule / navire » n'est
-PAS un \`trappings\`. En cas d'ambiguïté, lire 2-3 entrées voisines des fichiers candidats — leur forme
-fait foi, et elle est déclarée : chaque document appartient à l'une des ${FAMILLES.length} familles de
+Via la carte \`docs/donnees.md\`. **Règle d'or** : les engins ont leur fiche dans \`siege-engines.json\`.
+La bataille de masse, les postes servis et les dotations y renvoient par id. Les véhicules et
+coques vivent dans \`vehicles.json\`. En cas d'ambiguïté, lire 2-3 entrées voisines des fichiers
+candidats. Chaque document appartient à l'une des ${FAMILLES.length} familles de
 \`${DOC}\` (${FAMILLES.map((f) => `\`${f}\``).join(' · ')}), qui décide de l'emballage du
 FICHIER (liste d'entrées, entrée seule, ou enveloppe + \`entries\`).
 
@@ -259,9 +260,9 @@ affichée se pose par \`enumNomme\`** (\`src/data/schemas/grammaire/valeurs.ts\`
 \`{ option: 'Libellé FR' }\` SUR LE NŒUD — jamais un Record de libellés côté UI (ce serait une seconde
 vérité, et l'atelier ne saurait pas la lire en profondeur).
 
-**PROVENANCE** : une entrée porte \`source\` **ou** \`maison\` (la raison de l'arbitrage en clair),
-jamais ni l'un ni l'autre — le refus est posé par la fabrique elle-même, pas par une garde
-secondaire. Une entrée sans folio n'est pas interdite : elle doit DIRE pourquoi.
+**PROVENANCE** : quand la fabrique exige une provenance, l'entrée porte au moins une
+\`source\` ou une raison \`maison\`. Le def \`src/data/schemas/defs/reglesOptionnelles.ts\`
+exige exactement l'une des deux.
 
 ## 5. Chaque champ = Source ⊕ convention voisine
 

@@ -36,6 +36,7 @@ import { marquerProduit, produitDe } from './interne/produits';
 import { declarationDeFeuilleDId as declarationLue, declarerFeuilleDId, estFeuilleDId as feuilleLue, typeDeFeuilleDId as typeLu } from './interne/feuilles';
 import { declarationDeFeuilleDeSpec as declarationDeSpecLue, declarerFeuilleDeSpec } from './interne/feuillesDeSpec';
 import { enfantsDe } from './descente';
+import { listeSansCle } from './liste-sans-cle';
 
 /** Clé générée (`IdsParEspace`) de la sous-liste DISCRIMINÉE `S` de l'espace de `T` (`<espace>?<champ>=<S>`), `never` pour
  *  une sous-liste que le type ne connaît pas (une chaîne non littérale, une `SousListeMarquee`). */
@@ -63,6 +64,7 @@ export const TYPES = {
   talent: { espace: 'talents.json', catalogue: 'talents' },
   trait: { espace: 'traits.json', catalogue: 'traits' },
   trapping: { espace: 'trappings.json', catalogue: 'objets' },
+  engin: { espace: 'siege-engines.json', catalogue: 'engins de siège' },
   spell: { espace: 'spells.json', catalogue: 'sorts' },
   creature: { espace: 'creatures.json', catalogue: 'créatures' },
   vehicle: { espace: 'vehicles.json', catalogue: 'véhicules' },
@@ -296,12 +298,6 @@ export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: {
     : refusDeMarqueur(type, entree.id, marqueurPorte(sousListe, entree));
 }
 
-/** Le refus d'un id par `idDe(type, sousListe?)` — `null` s'il est ADMIS —, pour un id que nulle feuille ne
- *  porte (`defs/cargaisons-aleatoires.ts`). */
-export function refusDeLId(type: TypeEntite, id: string, sousListe?: SousListe): string | null {
-  return refusDe(type, sousListe, `refusDeLId('${type}')`, id);
-}
-
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
 function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: string, id: string): string | null {
   if (typeof sousListe === 'string') return refusDeLaDiscriminee(type, sousListe, site, id);
@@ -345,6 +341,49 @@ export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string
   const site = `porteLeMarqueur('${type}', '${marqueur}')`;
   DESIGNATIONS.add(cle);
   return (id) => idsDesignes(cle, site).has(id);
+}
+
+type LecturesDeCatalogue = {
+  readonly ids: () => ReadonlySet<string>;
+  readonly idsDeLaSousListe: (sousListe: SousListe) => readonly string[];
+  readonly refus: (id: string, sousListe?: SousListe) => string | null;
+  readonly porteLeMarqueur: (marqueur: string) => (id: string) => boolean;
+};
+
+type LecturesDuRaffinement = {
+  readonly catalogue: (type: TypeEntite) => LecturesDeCatalogue;
+  readonly racine: <R extends object>(type: TypeEntite, racineVivante: R) => R;
+};
+
+const ESPACES_PAR_RAFFINEMENT = new WeakMap<object, readonly string[]>();
+
+/** Un contrôle de schéma et les espaces que ses lecteurs désignent à sa construction. */
+export function raffinementDeCatalogue(
+  construire: (lire: LecturesDuRaffinement) => (valeur: unknown, ctx: z.RefinementCtx) => void,
+): z.core.$ZodCheck<unknown> {
+  const espaces = new Set<string>();
+  const controle = z.superRefine<unknown>(construire({
+    catalogue: (type) => {
+      espaces.add(espaceDe(type));
+      return {
+        ids: () => idsDe(type),
+        idsDeLaSousListe: (sousListe) => idsDeLaSousListe(type, sousListe),
+        refus: (id, sousListe) => refusDe(type, sousListe, `raffinementDeCatalogue('${type}')`, id),
+        porteLeMarqueur: (marqueur) => porteLeMarqueur(type, marqueur),
+      };
+    },
+    racine: (type, racineVivante) => {
+      espaces.add(espaceDe(type));
+      return racineVivante;
+    },
+  }));
+  ESPACES_PAR_RAFFINEMENT.set(controle, [...espaces]);
+  return controle;
+}
+
+/** Les clés d'espace lues par ce contrôle. */
+export function espacesLusParRaffinement(controle: unknown): readonly string[] | undefined {
+  return typeof controle === 'object' && controle !== null ? ESPACES_PAR_RAFFINEMENT.get(controle) : undefined;
 }
 
 /** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune, ou `id` n'est aucune entrée de
@@ -1136,7 +1175,7 @@ export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur:
  */
 export function parmi<O, N extends number>(options: readonly z.ZodType<O>[], nombre: z.ZodType<N>): z.ZodType<Parmi<N, O>> {
   const option: z.ZodType<O | Parmi<N, O>> = z.lazy(() => unionDeFormes([noeud, ...options]));
-  const noeud: z.ZodType<Parmi<N, O>> = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
+  const noeud: z.ZodType<Parmi<N, O>> = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: listeSansCle(z.array(option).min(1)) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
 }
 

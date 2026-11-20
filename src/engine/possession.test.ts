@@ -52,7 +52,7 @@ describe('possessionCapacity — source par nature (§4.2/§5)', () => {
   it('navire : Contenance de la coque (barge → 300 Enc, MDG 12)', () => {
     const p: Possession = {
       uid: 'pos-3', ownerId: 'hero-1', location: { kind: 'avec-le-groupe' }, items: [], nature: 'navire',
-      vehicleId: 'barge', naval: { morale: { score: 0, factors: [] } as any },
+      vehicleId: 'barge-fluviale', naval: { morale: { score: 0, factors: [] } as any },
     };
     expect(possessionCapacity(p)).toBe(300);
   });
@@ -211,25 +211,25 @@ describe('possessionLoadEnc — charge PORTÉE, EXCLUT le poids propre (#620 Lot
   it('embarquée sur un navire : le corps compte TOUJOURS dans la cale (embarkedEnc/possessionTotalEnc, INCHANGÉS)', () => {
     const navire: Possession = {
       uid: 'pos-navire', ownerId: 'h1', location: { kind: 'avec-le-groupe' }, items: [],
-      nature: 'navire', vehicleId: 'barge', naval: { morale: { score: 0, factors: [] } } as never,
+      nature: 'navire', vehicleId: 'barge-fluviale', naval: { morale: { score: 0, factors: [] } } as never,
     };
     const muleVideEmbarquee: Possession = { ...bete(), location: { kind: 'embarquee', hostUid: 'pos-navire' } };
     const fleetRegistry = [navire, muleVideEmbarquee];
     // possessionTotalEnc(navire) descend ses embarquées via SA récursion pleine (ownEnc + loadEnc) —
     // la mule VIDE embarquée pèse son CORPS (6) dans la cale, contrairement à sa propre contenance de bât.
-    expect(possessionTotalEnc(navire, fleetRegistry)).toBe((findVehicleEnc('barge')) + 6);
+    expect(possessionTotalEnc(navire, fleetRegistry)).toBe((findVehicleEnc('barge-fluviale')) + 6);
   });
 });
 
 /** `enc` du catalogue navire (barge) — évite un import supplémentaire pour une seule assertion. */
-function findVehicleEnc(_vehicleId: 'barge'): number {
+function findVehicleEnc(_vehicleId: 'barge-fluviale'): number {
   return 0; // la barge n'a pas d'`enc` propre au catalogue (0 par défaut, `ownEnc` fallback `?? 0`)
 }
 
 describe('canEmbark — bornes de chaîne par nature (§5)', () => {
   const navire: Possession = {
     uid: 'pos-navire', ownerId: 'h1', location: { kind: 'avec-le-groupe' }, items: [],
-    nature: 'navire', vehicleId: 'barge', naval: { morale: { score: 0, factors: [] } } as never,
+    nature: 'navire', vehicleId: 'barge-fluviale', naval: { morale: { score: 0, factors: [] } } as never,
   };
   const vehicule: Possession = {
     uid: 'pos-vehicule', ownerId: 'h1', location: { kind: 'avec-le-groupe' }, items: [], nature: 'vehicule', vehicleId: 'charrette',

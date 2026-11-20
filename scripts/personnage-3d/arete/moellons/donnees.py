@@ -11,12 +11,14 @@ hauteurs variées, des boutisses et des cales parmi eux, sur une âme de mortier
 chaîne de pierres de taille en harpe à chaque bout de l'arête, que celle du mur voisin complète. La porte ouvre une
 baie entre deux piédroits harpés, sous un linteau monolithe et sur un seuil ; son vantail de planches barrées tourne
 sur son gond vers le dedans. La fenêtre s'ouvre de même entre un appui saillant et un linteau, sa croisée et ses volets
-ceux de `menuiserie`. La brèche éventre le mur jusqu'à sa tête, son âme à nu, ses pierres au pied.
+ceux de `menuiserie`. Dans une ouverture de deux arêtes (`PORTAIL`), chaque arête de bout porte un piédroit, la
+moitié d'un porche voûté dont la clef est au joint des deux arêtes, et un vantail gondé à son piédroit. La brèche
+éventre le mur jusqu'à sa tête, son âme à nu, ses pierres au pied.
 
 Matières : la pierre prend `pierre-atre`, le mortier `terre-battue`, le bois `bois-chene`, les ferrures `fer-noirci`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
-from apparences import apparence, assises, hauteur
+from apparences import MOELLONS_MACONNES, apparence, assises, hauteur
 
 KIT = "moellons"
 MUR = "mur-en-pierre"
@@ -46,17 +48,26 @@ ANGLE_LISSE = 30
 ses joues gardent leurs arêtes."""
 
 APPAREIL = {
-    **assises(apparence(KIT, MUR)),
-    "inegalite": 0.22, "lit": 0.022, "boutisse": 0.2, "cale": (0.15, (0.3, 0.42)),
-    "moellon": {"relief": (0.0, 0.022), "chanfrein": (0.014, 0.032), "retrait": (0.025, 0.06)},
-    "taille": {"relief": (0.0, 0.0), "chanfrein": (0.01, 0.01), "retrait": (0.015, 0.015)},
-    "creux": 0.06, "harpe": (0.32, 0.18), "couronnement": None,
-}
+    **assises(apparence(KIT, MUR)), **MOELLONS_MACONNES}
 """L'appareil du mur (`maconnerie`)."""
 
 # Porte : `baie` : sa largeur (fraction de la longueur de l'arête) ; `hauteur` de la baie (m) ; `seuil` : sa hauteur
 # (m) ; `linteau` : sa hauteur et sa portée sur chaque piédroit (m) ; `jeu` du vantail à la pierre (m).
 PORTE = {"baie": 0.5, "hauteur": 2.1, "seuil": 0.04, "linteau": (0.32, 0.18), "jeu": 0.008}
+
+# Portail d'une ouverture de deux arêtes, un vantail par arête : son `porche` (`maconnerie.Appareil.porche`), `seuil` :
+# sa hauteur (m) ; `jeu` du vantail à la pierre (m) ; `vantail` : ses planches (`menuiserie.vantail`).
+PORTAIL = {
+    "porche": {"portee": 1.5, "naissance": 2.2, "fleche": 0.85, "queue": 0.34, "clef": 0.08, "claveaux": 5,
+               "saillie": 0.015},
+    "seuil": 0.04, "jeu": 0.012,
+    "vantail": {
+        "planches": 7, "epaisseur": 0.06, "relief": 0.008,
+        "barres": (0.14, 0.86), "section": (0.16, 0.03), "marge": 0.1, "echarpe": True,
+        "pentures": (0.72, 0.07, 0.01, 0.04),
+        "poignee": {"platine": (0.07, 0.16, 0.01), "rive": 0.12, "hauteur": 0.5, "saillie": 0.035},
+    },
+}
 
 # Fenêtre : `baie` : sa largeur (fraction de la longueur de l'arête) ; `appui`, `tete` : les hauteurs (m) du dessus de
 # son appui et du dessous de son linteau ; `pierre_d_appui` : sa hauteur et sa saillie sur le parement du dehors (m) ;

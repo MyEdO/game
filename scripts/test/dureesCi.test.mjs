@@ -2,6 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { strToU8, zipSync } from 'fflate'
 import { DUREES_CI, dureesDuJournal, memoCiDe, rapatrierDureesCi, referenceCi } from './dureesCi.mjs'
 
 /** Course 37724465833 (file, verte, 2026-10-08) : les trois `[partie]`, une ligne de module ✓ avec « heap used », une
@@ -41,13 +42,27 @@ test('memoCiDe : la forme `{ run, attempt, sha, date, vitest, node }`, durées f
     assert.deepEqual(memoCiDe(invalide), {}, JSON.stringify(invalide))
 })
 
-/** Un `gh` injecté : `run list` rend `courses`, `run view … --log` rend `journal` ; chaque appel est noté. */
-const ghDe = ({ courses, journal = JOURNAL, statut = 0 }) => {
+/** Les courses REST, les jobs et l’archive d’un essai, avec les appels `gh` observables. */
+const ghDe = ({ courses, journal = JOURNAL, statut = 0, statutJournal = 0 }) => {
   const appels = []
+  const journaux = new Map()
+  for (const ligne of journal.split('\n')) {
+    const [job, , ...texte] = ligne.split('\t')
+    if (!journaux.has(job)) journaux.set(job, [])
+    journaux.get(job).push(texte.join('\t'))
+  }
+  const jobs = [...journaux.keys()].map((name) => ({ name, conclusion: 'success', steps: [{ number: 1, name: 'Tests', conclusion: 'success' }] }))
+  const fichiers = Object.fromEntries([...journaux].map(([nom, lignes], i) => [`${i}_${nom.replaceAll('/', '_')}.txt`, strToU8(lignes.join('\n'))]))
+  const archive = Buffer.from(zipSync(fichiers))
   const spawn = (cmd, args) => {
     appels.push(args.join(' '))
-    if (statut !== 0) return { status: statut, stdout: '', stderr: 'gh: réseau indisponible' }
-    return { status: 0, stdout: args[1] === 'list' ? JSON.stringify(courses) : journal, stderr: '' }
+    if (args[1].includes('/actions/workflows/')) {
+      if (statut !== 0) return { status: statut, stdout: '', stderr: 'gh: réseau indisponible' }
+      return { status: 0, stdout: JSON.stringify({ total_count: courses.length, workflow_runs: courses }), stderr: '' }
+    }
+    if (args[0] === 'run') return { status: 0, stdout: JSON.stringify({ status: 'completed', jobs }), stderr: '' }
+    if (statutJournal !== 0) return { status: statutJournal, stdout: '', stderr: 'gh: jeton expiré (HTTP 403)' }
+    return { status: 0, stdout: archive, stderr: '' }
   }
   return { spawn, appels }
 }
@@ -59,27 +74,30 @@ const mesuresEnMemoire = (memo) => {
 }
 
 const COURSES = [
-  { databaseId: 9, attempt: 1, status: 'in_progress', conclusion: '', createdAt: '2026-10-08T05:00:00Z', headSha: 'enVol' },
-  { databaseId: 8, attempt: 2, status: 'completed', conclusion: 'success', createdAt: '2026-10-08T04:00:00Z', headSha: 'vert' },
-  { databaseId: 7, attempt: 1, status: 'completed', conclusion: 'failure', createdAt: '2026-10-08T03:00:00Z', headSha: 'rouge' },
-]
+  { id: 9, run_attempt: 1, status: 'in_progress', conclusion: null, created_at: '2026-10-08T05:00:00Z', head_sha: 'enVol' },
+  { id: 8, run_attempt: 2, status: 'completed', conclusion: 'success', created_at: '2026-10-08T04:00:00Z', head_sha: 'vert' },
+  { id: 7, run_attempt: 1, status: 'completed', conclusion: 'failure', created_at: '2026-10-08T03:00:00Z', head_sha: 'rouge' },
+].map((course) => ({ name: 'CI', head_branch: 'gh-readonly-queue/main/pr-7-x', ...course }))
 const ANCIEN = { run: 3, attempt: 1, sha: 'ancien', date: '2026-10-01T00:00:00Z', vitest: { 'src/disparu.test.ts': 10 }, node: {} }
 
 test('referenceCi : la course merge_group RÉUSSIE la plus récente ; aucune : indisponible, nommée', () => {
   const { spawn, appels } = ghDe({ courses: COURSES })
   assert.equal(referenceCi({ spawn }).valeur.databaseId, 8)
-  assert.match(appels[0], /^run list --event merge_group /)
+  assert.match(appels[0], /^api repos\/MyEdO\/game\/actions\/workflows\/ci\.yml\/runs\?event=merge_group&/)
   assert.deepEqual(referenceCi({ spawn: ghDe({ courses: COURSES.slice(2) }).spawn }), { disponible: false, raison: 'aucune course merge_group réussie parmi les 1 dernières', issue: 'mesure' })
 })
 
 test('rapatrierDureesCi : le mémo est REMPLACÉ — une entrée disparue de la CI sort du mémo — par l’essai jugé de la course de référence', () => {
   const { spawn, appels } = ghDe({ courses: COURSES, journal: COMPLET })
-  const mesures = mesuresEnMemoire(ANCIEN)
+  const mesures = mesuresEnMemoire({ ...ANCIEN, run: 8, attempt: 1 })
   const rendu = rapatrierDureesCi({ mesures, spawn })
   const memo = { run: 8, attempt: 2, sha: 'vert', date: '2026-10-08T04:00:00Z', vitest: { 'src/noyau/combatFlow-los.test.ts': 2960, 'src/data/schemas/grammaire/op-defs.test.ts': 105 }, node: { 'scripts/docs/a.test.mjs': 1234, 'scripts/docs/b.test.mjs': 56 } }
   assert.deepEqual(rendu, { disponible: true, valeur: { etat: 'rapatrie', memo } })
   assert.deepEqual(mesures.etat[DUREES_CI], memo)
-  assert.equal(appels[1], 'run view 8 --attempt 2 --log')
+  assert.deepEqual(appels.slice(1), [
+    'run view 8 --attempt 2 --json jobs,startedAt,status',
+    'api repos/MyEdO/game/actions/runs/8/attempts/2/logs',
+  ])
 })
 
 test('rapatrierDureesCi : la course déjà mémorisée ne relit AUCUN journal', () => {
@@ -87,7 +105,7 @@ test('rapatrierDureesCi : la course déjà mémorisée ne relit AUCUN journal', 
   const deja = { ...ANCIEN, run: 8, attempt: 2 }
   const mesures = mesuresEnMemoire(deja)
   assert.deepEqual(rapatrierDureesCi({ mesures, spawn }), { disponible: true, valeur: { etat: 'deja', memo: deja } })
-  assert.deepEqual([appels.filter((a) => a.includes('--log')), mesures.etat.remplacements], [[], 0])
+  assert.deepEqual([appels.length, mesures.etat.remplacements], [1, 0])
 })
 
 test('rapatrierDureesCi : moins de durées Vitest lues que de fichiers annoncés, ou aucune : REFUS nommé, mémo inchangé', () => {
@@ -103,6 +121,8 @@ test('rapatrierDureesCi : gh indisponible, ou mémo non écrit : `{ disponible: 
   const mesures = mesuresEnMemoire(ANCIEN)
   const horsLigne = rapatrierDureesCi({ mesures, spawn: ghDe({ courses: COURSES, statut: 1 }).spawn })
   assert.deepEqual([horsLigne.disponible, horsLigne.raison], [false, 'gh: réseau indisponible'])
+  const journalRefuse = rapatrierDureesCi({ mesures, spawn: ghDe({ courses: COURSES, statutJournal: 1 }).spawn })
+  assert.deepEqual([journalRefuse.disponible, journalRefuse.raison], [false, 'gh: jeton expiré (HTTP 403)'])
   assert.deepEqual([mesures.etat[DUREES_CI], mesures.etat.remplacements], [ANCIEN, 0])
   const verrouille = { ...mesuresEnMemoire(ANCIEN), remplacer: () => { throw new Error('verrou tenu') } }
   const journal = COMPLET

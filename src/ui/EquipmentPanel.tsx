@@ -1,9 +1,11 @@
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { useGame } from '../state/store';
 import { avecSigne, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
 import {
   emplacementDArmure,
   emplacementDeCape,
   itemLabel,
+  objetAuProfilEffectif,
   weaponHands,
   compatibleAmmo,
   loadoutLabel,
@@ -28,6 +30,7 @@ import { resolveQualities } from '../engine/qualities/dispatch';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
 import { refusEmplacementDeMain, refusDeSupprimerSet } from '../noyau/partyFlow';
 import { refusDInventaire } from '../noyau/verrousDeFiche';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 
 /**
  * Écran d'EMPLACEMENTS d'équipement (onglet Possessions de la fiche) — façon jeu vidéo : colonne
@@ -93,7 +96,8 @@ const capeOpt = (c: ItemInstance): MediaOption => ({ key: c.uid, media: <ItemIco
 /** Corps du popover de stats (arme invoquée / hors-catalogue) : Dégâts résolus + Allonge/Portée
  *  (composeur partagé `weaponStatParts`) + qualités. */
 function weaponStatsBody(it: ItemInstance, force: { bf: number; passif: number }): string {
-  return [...weaponStatParts(it, force), weaponQualities(it)].filter(Boolean).join(' · ');
+  const profil = objetAuProfilEffectif(it);
+  return [...weaponStatParts(profil, force), weaponQualities(profil)].filter(Boolean).join(' · ');
 }
 
 /**
@@ -178,12 +182,14 @@ function SlotCell({ id, nom, item, pa, fallback, options, value, onSelect, refus
 }
 
 export function EquipmentPanel({ hero }: { hero: Combatant }) {
+  useVersionDesDatasets();
   const equiperLObjet = useGame((s) => s.equiperLObjet);
   const garnirLaPanoplie = useGame((s) => s.garnirLaPanoplie);
   const prendreLaPanoplie = useGame((s) => s.prendreLaPanoplie);
   const creerLaPanoplie = useGame((s) => s.creerLaPanoplie);
   const supprimerLaPanoplie = useGame((s) => s.supprimerLaPanoplie);
   const battle = useGame((s) => s.battle);
+  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
   // Verrou de l'équipement : le verdict du noyau (`refusDInventaire`), celui que rendent ses gestes.
   const refusSets = refusDInventaire({ battle });
 
@@ -361,7 +367,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             <span className="muted">Mains nues</span>
           ) : (
             activeWeapons.map((w, i) => {
-              const ammo = w.type === 'distance' ? compatibleAmmo(hero, w).reduce((s, a) => s + (a.qty ?? 0), 0) : null;
+              const ammo = w.type === 'distance' ? compatibleAmmo(resolveTrapping, hero, w).reduce((s, a) => s + (a.qty ?? 0), 0) : null;
               return (
                 <div className="weap" key={i}>
                   <ItemIcon item={w} size="sm" />

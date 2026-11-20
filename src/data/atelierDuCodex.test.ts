@@ -13,15 +13,20 @@ import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import diligence from '../scenes/diligence/diligence-projet.json';
-import { ancetreDuDe, champDEnTete, datasetArray, deDeLaTable, entreesDuDataset, resetData, setDataset, type DatasetKey } from './overrides';
+import { ancetreDuDe, champDEnTete, datasetArray, datasetObject, deDeLaTable, entreesDuDataset, resetData, setDataset, type DatasetKey } from './overrides';
 import { CATEGORY_DATASET_DERIVE } from './schemas/exposition-derivee';
 import { effectTableDie, findEffectTableById } from './effectTables';
+import { findCareerById, levelsForCareer, tableDesRacesAleatoires } from './index';
+import { abonnerAuxDatasets } from './versionDataset';
+import { rollSeasonalCargo, type CargoEntry } from '../engine/cargo';
+import { randomSpeciesTable } from '../engine/creation';
 import { findTableEntry } from '../engine/tables';
 import { miscastDie, miscastRowAt } from '../engine/miscast';
 import { deDuVoyageRapide, resolveFastVoyage } from '../engine/seaVoyage';
 import { makeRNG, type DiceSpec } from '../engine/dice';
 import { deSelonLaPlage } from '../engine/dice.testkit';
 import { scatter } from '../engine/scatter';
+import { SIZE_RANGED_MOD } from '../engine/size';
 import { tirerLaReactionAuStatut, tirerLeCapricieux } from '../engine/social';
 import { auChemin } from '../lib/objet.mjs';
 
@@ -57,6 +62,34 @@ describe('enregistrerEntree — transaction d’une entrée éditée', () => {
     expect(issue.erreurs.length).toBeGreaterThan(0);
     expect(traits()).toEqual(avant);
     expect(traits()[0]).toBe(avant[0]);
+  });
+
+  it('un dataset-objet refusé garde la table de Tailles lue par le moteur (#4047)', () => {
+    const tailles = datasetObject('sizes');
+    const vueMoteur = SIZE_RANGED_MOD;
+    const etatInitial = structuredClone(tailles);
+    expect(tailles.rangedMod).toBe(vueMoteur);
+
+    const { rangedMod: _modificateurs, ...incomplet } = etatInitial;
+    const refus = enregistrerEntree('sizes', incomplet, 0);
+    if (refus.ok) refus.reprendre();
+    expect(refus.ok).toBe(false);
+    expect(datasetObject('sizes')).toBe(tailles);
+    expect(tailles).toEqual(etatInitial);
+    expect(tailles.rangedMod).toBe(vueMoteur);
+
+    const minuscule = etatInitial.rangedMod.minuscule + 1;
+    const valide = enregistrerEntree('sizes', { ...etatInitial, rangedMod: { ...etatInitial.rangedMod, minuscule } }, 0);
+    expect(valide.ok).toBe(true);
+    if (!valide.ok) return;
+    try {
+      expect(tailles.rangedMod).toBe(vueMoteur);
+      expect(vueMoteur.minuscule).toBe(minuscule);
+    } finally {
+      valide.reprendre();
+    }
+    expect(tailles.rangedMod).toBe(vueMoteur);
+    expect(tailles).toEqual(etatInitial);
   });
 
   it('une collision d’id est refusée sans rien poser', () => {
@@ -99,6 +132,160 @@ describe('enregistrerEntree — une référence morte d’un champ typé est ref
     const issue = enregistrerEntree('careerLevels', { ...entree, trappings }, marchand);
     expect(issue.ok).toBe(false);
     expect(issue.ok ? '' : issue.erreurs.join('\n')).toMatch(/« vehicule-fantome » est absent du catalogue des véhicules/);
+  });
+});
+
+describe('enregistrerEntree — invariants de collection entre datasets (#4047)', () => {
+  afterEach(() => resetData());
+
+  it('refuse une Espèce qui rend ambigu le tableau de ses Races', () => {
+    const especes = datasetArray('species');
+    const index = especes.findIndex((e) => e.id === 'gnomes');
+    const gnomes = especes[index];
+    const racesDuLdb = new Set<typeof gnomes.refChar>(['humain', 'halfling', 'nain', 'haut-elfe', 'elfe-sylvain']);
+    const table = tableDesRacesAleatoires(racesDuLdb);
+    expect(table.id).toBe('races-ldb');
+
+    const refCharsVus: (typeof gnomes.refChar)[] = [];
+    const desabonner = abonnerAuxDatasets(() => { refCharsVus.push(especes[index].refChar); });
+    let issue;
+    try {
+      issue = enregistrerEntree('races', { ...gnomes, refChar: 'nain' }, index);
+    } finally {
+      desabonner();
+    }
+
+    expect(issue).toMatchObject({
+      ok: false,
+      erreurs: expect.arrayContaining([
+        expect.stringContaining('especes-aleatoires.json'),
+        expect.stringContaining('un seul document par jeu de races'),
+      ]),
+    });
+    expect(refCharsVus).toEqual([]);
+    expect(especes[index]).toBe(gnomes);
+    expect(tableDesRacesAleatoires(racesDuLdb)).toBe(table);
+  });
+
+  it.each([
+    {
+      cas: 'refuse un tableau de Races manquant quand une Espèce change de Race',
+      id: 'humains-reiklander',
+      modification: { refChar: 'nain' },
+      diagnostic: 'aucun document pour le jeu de races',
+    },
+    {
+      cas: 'refuse un tableau de Races manquant quand une Espèce devient optionnelle',
+      id: 'hauts-elfes',
+      modification: { gatedByRule: { id: 'creation-gnome-jouable' } },
+      diagnostic: 'aucun document pour le jeu de races',
+    },
+    {
+      cas: 'refuse deux rangées pour la même Race quand une Espèce change de Race',
+      id: 'hauts-elfes',
+      modification: { refChar: 'nain' },
+      diagnostic: 'plusieurs rangées pour la race « nain »',
+    },
+  ])('$cas', ({ id, modification, diagnostic }) => {
+    const especes = datasetArray('species');
+    const index = especes.findIndex((e) => e.id === id);
+    const espece = especes[index];
+    const table = randomSpeciesTable();
+
+    const issue = enregistrerEntree('races', { ...espece, ...modification }, index);
+
+    expect(issue).toMatchObject({
+      ok: false,
+      erreurs: expect.arrayContaining([
+        expect.stringContaining('especes-aleatoires.json'),
+        expect.stringContaining(diagnostic),
+      ]),
+    });
+    expect(especes[index]).toBe(espece);
+    expect(randomSpeciesTable()).toEqual(table);
+  });
+
+  it('refuse une Carrière créée sans aucun Niveau (LDB 07 l.26)', () => {
+    const carrieres = datasetArray('careers');
+    const existantes = carrieres.slice();
+    const id = 'carriere-sans-niveau';
+    expect(findCareerById(id)).toBeUndefined();
+
+    const issue = enregistrerEntree('careers', { ...carrieres[0], id, label: 'Carrière sans Niveau' }, -1);
+
+    expect(issue).toMatchObject({
+      ok: false,
+      erreurs: expect.arrayContaining([
+        expect.stringContaining('careerLevels.json'),
+        expect.stringContaining(`la carrière « ${id} » doit porter les niveaux 1, 2, 3 et 4 une fois chacun`),
+      ]),
+    });
+    expect(carrieres).toEqual(existantes);
+    expect(carrieres[0]).toBe(existantes[0]);
+    expect(findCareerById(id)).toBeUndefined();
+    expect(levelsForCareer(id)).toEqual([]);
+  });
+
+  const mutationsDeCargaison = [
+    {
+      cas: 'qui quitte la voie de sa table',
+      modifier: (cargaison: CargoEntry) => ({ ...cargaison, voie: 'terre' }),
+      message: 'hors de la sous-liste « mer »',
+    },
+    {
+      cas: 'qui devient un marqueur sans prix',
+      modifier: ({ price: _prix, ...cargaison }: CargoEntry) => ({ ...cargaison, echangeable: false }),
+      message: 'ne porte aucun prix',
+    },
+  ];
+
+  it.each(mutationsDeCargaison)('refuse une cargaison $cas', ({ modifier, message }) => {
+    const cargaisons = datasetArray('cargoes');
+    const index = cargaisons.findIndex((c) => c.id === 'cereales');
+    const cereales = cargaisons[index];
+    const de = deSelonLaPlage((min) => min);
+    expect(rollSeasonalCargo('mer', 'printemps', de)).toBe(cereales);
+
+    const issue = enregistrerEntree('cargoes', modifier(cereales), index);
+
+    expect(issue).toMatchObject({
+      ok: false,
+      erreurs: expect.arrayContaining([
+        expect.stringContaining('cargaisons-aleatoires.json'),
+        expect.stringContaining(message),
+      ]),
+    });
+    expect(cargaisons[index]).toBe(cereales);
+    expect(rollSeasonalCargo('mer', 'printemps', de)).toBe(cereales);
+  });
+
+  it('publie la Carrière valide avec ses Niveaux et peut reprendre son édition', () => {
+    const carriere = datasetArray('careers')[0];
+    const label = 'Libellé de Carrière édité';
+    const observations: { label: string | undefined; niveaux: number[] }[] = [];
+    const desabonner = abonnerAuxDatasets(() => {
+      observations.push({
+        label: findCareerById(carriere.id)?.label,
+        niveaux: levelsForCareer(carriere.id).map((niveau) => niveau.level),
+      });
+    });
+    let issue;
+    try {
+      issue = enregistrerEntree('careers', { ...carriere, label }, 0);
+    } finally {
+      desabonner();
+    }
+
+    expect(issue.ok).toBe(true);
+    if (!issue.ok) return;
+    expect(issue.fichier).toBe('careers.json');
+    expect(JSON.parse(issue.texte)[0]).toMatchObject({ id: carriere.id, label });
+    expect(findCareerById(carriere.id)?.label).toBe(label);
+    expect(observations).toEqual([{ label, niveaux: [1, 2, 3, 4] }]);
+
+    issue.reprendre();
+
+    expect(findCareerById(carriere.id)).toBe(carriere);
   });
 });
 

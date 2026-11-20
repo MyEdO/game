@@ -226,7 +226,13 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   section 9) : la matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` dont le catalogue
   `hotes/godot/projet/textures/` porte la texture, sa texture neutre (`.neutre.jpg`, que teint la palette) et son relief ;
   à défaut de matière au catalogue (peau, poil, corne, parchemin), un gris de construction `(couleur, métal, rugosité)`.
-  Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313).
+  Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313) : sa
+  provenance (`provenance.json`) porte la `source` et le `traitement` ImageMagick que `npm run godot:textures` rejoue et
+  compare aux sommes épinglées ; `npm run godot:textures -- --epingler <fichier>.jpg ...` dépose les textures d'un
+  traitement modifié et inscrit leurs sommes. Une texture couvre 2 m (`MiseEnPage.METRES_PAR_MOTIF`), soit 2 mm par
+  pixel à 1024 px : une trame réelle tombe sous le pixel. Elle se réduit puis se tuile dans son traitement jusqu'à la
+  plus petite période encore lisible, environ 4 px de la texture finale, soit environ 8 mm (#4527). Un relief fait
+  512 px ; celui d'une trame que 512 px effacent (`toile-ecrue`, `corde`) en fait 1024.
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
   tout autre matériau reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; pour un rigide,
   `PRISE` (une prise de la base) ou `EMPLACEMENT` (un emplacement de l'élément `OFFRANT`, importé avant lui) ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
@@ -551,6 +557,28 @@ l'atelier (`node hotes/godot/recette.mjs --parcours preset --preset <id> --web <
 trois-quarts, dos), montrées à côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
 composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
 
+Un modèle sans base (véhicule, décor, arête) se regarde dans Godot par les mêmes outils, une fois importé au dossier
+des modèles du projet (`--sans-publier`). L'atelier le montre tel que le jeu le sert : un véhicule à sa liste de tête,
+un décor et un mur dans la scène d'échantillon de leur famille (`src/noyau/monde/echantillons.ts`), le mur d'une
+apparence en un enclos qui porte chacune de ses pièces ; la recette `atelier-du-decor.gd` (`npm run godot:sonde`)
+pose un mur de chaque famille dont le modèle d'arête est servi. Posé dans une scène, il se capture au regard d'un
+joueur, sans export, par le parcours des cadrages d'un scénario de test qui le pose :
+
+```sh
+node hotes/godot/recette.mjs --natif --rendu gl_compatibility --parcours cadrages --scenario <id> \
+  --vues /atelier/vues.json --captures /atelier/cadrages
+```
+
+`vues.json` est un tableau de vues nommées, `{ "nom", "regard": "immersion", "case": { "x", "y" }, "etage"?, "lacet",
+"tangage" }` (l'œil sur la case, en exploration, tangage dans ±80°) ou `{ "nom", "regard": "tactique" | "plateau",
+"case", "etage"?, "lacet", "zoom" }` (la caméra regarde la case depuis `zoom` mètres, de 6 à 40) ; le lacet est un
+azimut en degrés, 90 vers l'est ; le plateau regarde à la verticale, l'immersion et la tactique montrent la face d'un
+mur. Chaque vue se capture en `<nom>.png`, et le journal imprime le plan de sa couche, l'œil marqué : il donne les
+cases. Exemple : `hotes/godot/cadrages/a-bord-de-la-caraque.json`. Les arêtes d'un scénario se comptent par famille
+de kit par `aretesDeLaScene` (`src/noyau/monde/aretes.ts`) sur sa scène (`construire` de
+`src/scenes/test-scenarios/`) ; une famille qu'aucun scénario ne pose se regarde à l'atelier, ou dans un scénario
+qu'on lui écrit (skill `creer-un-scenario-de-test`).
+
 ## 8. Livrer et définir le fini
 
 Livrer, dans le même commit, le dossier `element/<base>/<id>/` (données et modèle), les manifeste, provenance et
@@ -765,15 +793,34 @@ longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son �
 L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du
 plateau (`MiseEnPage.echelle_d_arete_servie`).
 
+**Ouverture de plusieurs arêtes.** Une suite d'arêtes adjacentes et alignées de même couche, de même nature (porte,
+porte de ville) et de même apparence est une seule ouverture (`ouverturesDeLaScene`, `src/noyau/monde/aretes.ts`). Chaque arête y reçoit le nœud `<pièce>--<position>`, de position `gauche`, `milieu` ou
+`droite` ; l'hôte se replie sur `<pièce>`, qui est aussi le nœud d'une ouverture d'une seule arête. `gauche` est
+l'arête au bout -X de l'ouverture dans le repère de la pièce (X le long du sens de l'arête, +Z vers le dehors),
+`droite` celle du bout +X. Un vantail se gonde au bout extérieur de l'ouverture : côté -X pour `gauche`, côté +X pour
+`droite` ; celui de `milieu`, brisé sur son voisin de gauche, clôt sa baie fermé et la laisse libre ouvert. L'état
+d'un vantail reste celui de son arête. Un kit ne bâtit que les positions qu'une scène
+pose (`geometrie.noeud`) : le budget d'un nœud est celui de sa pièce, et `arete/revue.py` montre chaque ouverture
+d'un seul tenant, ses nœuds bout à bout. Un kit dont toutes les arêtes sont une Structure qui s'abat sans s'ouvrir
+(`porterie`) ne bâtit que `mur` et `breche`. Une porte posée dans un mur prend le kit, la hauteur et les teintes de
+mur (`corps`, `bois`) de son mur porteur, celui du bout -X sinon du bout +X, et garde les teintes de menuiserie
+(`accent`, `vet1`, `metal`) de sa propre apparence (`paletteDeLApparence`) : chaque kit bâtit donc ses portes.
+
+**Famille neuve.** Ajouter d'abord la famille au `kitSchema` (`src/data/schemas/defs/structureAppearance.ts`), puis
+une apparence de `structureAppearance.json` qui la porte (le jeu de données s'édite au fichier). L'hôte pose une
+arête par le modèle `arete--<kit>` s'il est servi, sinon par le pack `projet/kit/kit.glb` (familles `pierre` et
+`cloture`, `hotes/godot/asset/kit.ts`), sinon par une boîte.
+
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
 la couleur de l'apparence posée. Une baie est percée de part en part.
 
 **Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
 `menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
-des kits de pierre (assises, chaînes, couronnement, brèche). Un kit les pose, il ne les recopie pas. La forme
-d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit reçoivent
-cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour (`test_arete.py`).
+des kits de pierre (assises, chaînes, couronnement, porche voûté, brèche). Un kit les pose, il ne les recopie pas.
+La forme d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit
+reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
+(`test_arete.py`).
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
@@ -791,7 +838,11 @@ de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personna
 chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
 reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque
 `arete--*` publié.
-Publier comme un véhicule (chapitre 9, « Publier »).
+Regarder le kit dans Godot comme tout modèle sans base (chapitre 7) : l'atelier en montre chaque pièce par
+l'échantillon « Mur et ouverture », et la capture `cadrages` le montre posé dans une scène, au regard d'un joueur.
+Une illustration de façade se compare à cette capture, jamais à une pièce seule. Recettes Godot des arêtes
+(`godot:sonde`) : `arete-au-pied.gd` (pied, échelle, nœuds par position), `aretes-en-instances.gd`,
+`atelier-du-decor.gd`. Publier comme un véhicule (chapitre 9, « Publier »).
 
 ## Disponibilité à sonder avant chaque production
 
@@ -835,7 +886,9 @@ Importer la base avant ses éléments, dans la même destination : publier un é
 
 Un lot se construit, s'importe et entre au cache des modèles en une commande, chaque élément après ceux du lot qu'il
 contourne ; `--transfert <nom>` fabrique le commit de transfert, GLB, manifestes et provenances importés du lot, et
-imprime le `git push` à lancer :
+imprime le `git push` à lancer. Chaque élément se nomme `<base>/<dossier>`, `<base>` l'une de `CONSTRUCTEURS`
+(`scripts/personnage-3d/integrer.mjs`) : `humanoide`, ou `vehicule`, `decor` et `arete` pour un modèle sans base
+(`arete/moellons`) :
 
 ```sh
 npm run personnage-3d:integrer -- humanoide/armure--plastron humanoide/accessoire--baudrier-sur-armure [--transfert soldat]

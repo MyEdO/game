@@ -2,8 +2,7 @@
  * Vision — moteur PUR de visibilité & champ de lumière (brouillard de guerre). Vit au noyau
  * (couplé à `Scene`, comme `lineOfSight.ts`) ; aucune dépendance au store/RNG → testable.
  *
- * Un viewer voit une case si la Ligne de Vue n'est pas bloquée (murs/décor/fumée via
- * `lineOfSightCover`) ET (elle est dans sa portée de vision nocturne, OU elle est dans son rayon
+ * Un viewer voit une case si la Ligne de Vue passe les murs, les masses opaques et la fumée ET (elle est dans sa portée de vision nocturne, OU elle est dans son rayon
  * de vue ET éclairée au-dessus du seuil). L'ensemble visible = UNION de tous les viewers.
  *
  * RÈGLE 1 : la portée de vue de base et le seuil d'éclairement n'ont pas de valeur canon (le LDB ne
@@ -12,11 +11,11 @@
  * sont canon ; la DONNÉE les porte en mètres et `rayonEnCases` les convertit à l'échelle de la scène
  * (`Scene.metresPerTile`, défaut `LDB 15 l.12`).
  */
-import { Scene, type SceneDuVolume, type SceneEntity, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte, wallOnSight } from './scene';
-import { terrainOpaque, terrainSolidHeightM } from './terrain';
+import { Scene, type SceneDuVolume, type SceneEntity, heightAt, hauteurDe, edgeOf, sceneMetresPerTile, areteOcculte, wallOnSight } from './scene';
+import { caseDansGrille, grilleDesMasses, masseOcculte, rayonTraverse, type GrilleDesMasses } from './opacite';
 import { METRES_PER_LEVEL } from './relief';
 import { sceneIsDark } from './sceneRules';
-import { propFootTiles, ancreDuDecor } from './footprint';
+import { ancreDuDecor } from './footprint';
 import { piedDuDecor } from './poseDuDecor';
 import { Pt } from './path';
 import { chebyshev } from '../../engine/grid';
@@ -79,55 +78,20 @@ export interface LightField {
 /** Seuil d'éclairement (MAISON) au-dessus duquel une case est « éclairée » pour la vue. */
 export const LIT_THRESHOLD = 0.18;
 
-/** Grille d'opacité de la scène (1 = bloque la vue), précalculée UNE FOIS par recompute → lookups O(1)
- *  dans le rayon, au lieu d'un `.find` O(entités) par échantillon (la cause des 64 ms/recompute).
- *  Terrain opaque + décor opaque (`props.json`). Les cloisons de bâtiment sont des `WallSeg` (arêtes),
- *  prises en compte séparément ci-dessous. PUR. */
-export interface Occ { g: Uint8Array; topH: Float32Array; w: number; h: number; walls: Set<string> }
-/** Mémoïsé par IDENTITÉ de `scene` et version des datasets (`memoByRef`) : `buildOpaqueUncached` lit des
- *  champs de `scene` (`dimensions`, `entities`, `walls` — et `tileAt`/`heightAt` qui lisent
- *  `layers`/`relief`) et les catalogues des terrains et des décors (`terrainOpaque`, `findPropById`) ; TOUTE
- *  mutation de l'un de ces champs (porte/structure/tuile effondrée via
- *  `setDoorOpen`/`toggleDoorIn`/`setStructureDown`/`setTileCollapsed` `scene.ts`, mais aussi tout
- *  changement d'`entities`/`walls`/`layers`) renvoie une NOUVELLE réf `{ ...scene, … }` — jamais une
- *  mutation en place. La clé du cache est `scene` (pas un sous-champ) : un re-keying futur sur un
- *  sous-champ (ex. `scene.flags` seul) devrait réétablir cette même garantie pour CHAQUE champ lu
- *  ci-dessus, pas seulement les flags de porte/structure/tuile — garde AST `scene-mutation-guard.test.ts`. */
-export const buildOpaque = memoByRef(buildOpaqueUncached);
-function buildOpaqueUncached(scene: Scene): Occ {
-  const { w, h } = scene.dimensions;
-  const g = new Uint8Array(w * h);
-  // Hauteur (m) du SOMMET de la masse opaque d'une colonne : un viewer PLUS HAUT voit PAR-DESSUS (un
-  // défenseur sur le chemin de ronde à 4 m voit au-delà du mur de 4 m ; l'ancien 2D coupait à ~3 cases).
-  // Masse pleine → `solidHeightM` ; opaque « pleine hauteur » sans bloc (porte) → 1 niveau par défaut.
-  const topH = new Float32Array(w * h);
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++)
-      if (terrainOpaque(tileAt(scene, x, y))) {
-        g[y * w + x] = 1;
-        topH[y * w + x] = heightAt(scene, x, y, 0) + (terrainSolidHeightM(tileAt(scene, x, y)) || METRES_PER_LEVEL);
-      }
-  for (const e of scene.entities) {
-    if (e.kind !== 'prop' || !e.decor || !findPropById(e.decor.id)?.opaque) continue;
-    for (const { x, y } of propFootTiles(e.decor.id, e.pos, e.facing, sceneMetresPerTile(scene)))
-      if (x >= 0 && y >= 0 && x < w && y < h) { g[y * w + x] = 1; topH[y * w + x] = heightAt(scene, x, y, 0) + METRES_PER_LEVEL; }
-  }
-  // Arêtes OCCULTANTES (z0) en SET : le VERDICT `areteOcculte` y est cuit une fois par `Occ`, donc le
-  // rayon n'a ni index à interroger ni prédicat à jouer. C'est le même verdict que le défaut de
-  // `wallOnSight` — vision et combat ne divergent jamais sur une arête ; N/E seulement (les diagonales
-  // n'occultent pas une LdV cardinale, cf. wallOnSight).
+export interface Occ extends GrilleDesMasses {
+  walls: Set<string>;
+}
+
+export const buildOpaque = memoByRef((scene: Scene): Occ => {
+  // Arêtes occultantes cardinales du sol, selon le même verdict que wallOnSight.
   const walls = new Set<string>();
   for (const seg of scene.walls ?? []) {
     if ((seg.z ?? 0) !== 0 || (seg.side !== 'N' && seg.side !== 'E')) continue;
     if (!areteOcculte(scene, seg)) continue;
     walls.add(`${seg.x},${seg.y},${seg.side}`);
   }
-  return { g, topH, w, h, walls };
-}
-
-/** Échantillons par case du segment (anti-fuite au COIN d'un mur : un supercover entier rate une tuile
- *  que le rayon ne fait qu'EFFLEURER). */
-const SAMPLES_PER_TILE = 4;
+  return { ...grilleDesMasses(scene), walls };
+});
 
 /** Prédicat d'arête O(1) de la grille d'opacité, bâti UNE fois par `Occ` (`memoByRef`) et non par
  *  rayon : c'est le même pour tous les rayons d'une scène, et il en part un par case regardée. */
@@ -146,22 +110,21 @@ function rayBlocked(scene: Scene, occ: Occ, smoke: Set<string>, from: Pt, to: Pt
   if (!ignoreEdges && occ.walls.size) {
     if (wallOnSight(scene, from, to, 0, edgeBlockerOf(occ))) return true;
   }
+  return rayonTraverse(occ, from, to, (_x, _y, index) => masseOcculte(occ, index, viewerH))
+    || fumeeSurLeRayon(occ, smoke, from, to);
+}
+
+const ECHANTILLONS_PAR_CASE = 4;
+
+function fumeeSurLeRayon(occ: Occ, smoke: Set<string>, from: Pt, to: Pt): boolean {
+  if (!smoke.size) return false;
   const dx = to.x - from.x, dy = to.y - from.y;
-  const n = Math.ceil(Math.hypot(dx, dy) * SAMPLES_PER_TILE);
-  // Boucle d'ÉCHANTILLONS : le poste le plus chaud de tout le brouillard (une centaine de milliers de
-  // passages par recalcul sur une grande carte). Les champs de `occ` sont tenus en locales, et la
-  // FUMÉE n'est interrogée que s'il y en a — sinon sa clé de case se fabriquerait à chaque échantillon.
-  const { g, topH, w, h } = occ;
-  const fumee = smoke.size > 0;
+  const n = Math.ceil(Math.hypot(dx, dy) * ECHANTILLONS_PAR_CASE);
   for (let i = 1; i < n; i++) {
     const t = i / n;
-    const cx = Math.round(from.x + dx * t), cy = Math.round(from.y + dy * t);
-    if ((cx === from.x && cy === from.y) || (cx === to.x && cy === to.y)) continue;
-    if (cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
-    const oi = cy * w + cx;
-    // TUILE OPAQUE : ne coupe QUE si le viewer est PLUS BAS que le sommet de la masse (sinon il voit
-    // par-dessus — défenseur sur le chemin de ronde). Fumée : coupe toujours.
-    if ((g[oi] && viewerH < topH[oi]) || (fumee && smoke.has(`${cx},${cy}`))) return true;
+    const x = Math.round(from.x + dx * t), y = Math.round(from.y + dy * t);
+    if ((x === from.x && y === from.y) || (x === to.x && y === to.y)) continue;
+    if (caseDansGrille(occ, x, y) && smoke.has(`${x},${y}`)) return true;
   }
   return false;
 }
@@ -358,7 +321,7 @@ export function computeVisible(scene: Scene, viewers: Viewer[], light: LightFiel
   const vis = new Set<string>();
   for (const v of viewers) {
     const z = v.z ?? 0;
-    const viewerH = heightAt(scene, v.pos.x, v.pos.y, z); // hauteur du viewer → voit par-dessus les masses plus basses
+    const viewerH = hauteurDe(scene, { ...v.pos, z });
     // Étage le plus HAUT révélé = celui que la HAUTEUR du viewer atteint (pas seulement son index d'étage) :
     // au SOMMET d'une rampe (case z0 élevée à 4 m), on voit le chemin de ronde z1 d'à côté, à la même
     // hauteur — sinon on reste aveugle à l'étage du dessus alors qu'on est physiquement à son niveau.
@@ -396,7 +359,7 @@ export function computeVisible(scene: Scene, viewers: Viewer[], light: LightFiel
       for (const v of viewers) {
         const vz = v.z ?? 0;
         if (vz < z) continue; // pas de vision vers le haut : le viewer doit être au niveau de la source OU au-dessus
-        const viewerH = heightAt(scene, v.pos.x, v.pos.y, vz);
+        const viewerH = hauteurDe(scene, { ...v.pos, z: vz });
         if (chebyshev(v.pos, { x, y }) === 0 || !rayBlocked(scene, occ, smokeSet, v.pos, { x, y }, vz !== z, viewerH)) {
           vis.add(k);
           break;

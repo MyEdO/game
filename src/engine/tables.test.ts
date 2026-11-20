@@ -14,8 +14,16 @@ describe('findTableEntry — lookup d100 par fourchette [min,max] (source unique
     expect(findTableEntry(table, 20).v).toBe('b'); // borne haute
     expect(findTableEntry(table, 50).v).toBe('c');
   });
-  it('repli sur la DERNIÈRE entrée si le jet dépasse la table', () => {
-    expect(findTableEntry(table, 999).v).toBe('c');
+  it.each([0, 101])('nomme le jet %i quand il est hors des bornes', (jet) => {
+    expect(() => findTableEntry(table, jet)).toThrow(`[rangée de table] « ${jet} » introuvable`);
+  });
+
+  it('nomme le jet quand il tombe dans un trou entre deux rangées', () => {
+    expect(() => findTableEntry([table[0], table[2]], 11)).toThrow('[rangée de table] « 11 » introuvable');
+  });
+
+  it('nomme le jet quand la table est vide', () => {
+    expect(() => findTableEntry([], 1)).toThrow('[rangée de table] « 1 » introuvable');
   });
 });
 

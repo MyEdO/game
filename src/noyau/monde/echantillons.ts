@@ -114,7 +114,8 @@ interface PanDeLEnclos {
 }
 
 /** L'enclos de deux cases d'un mur : un mur, une porte fermée, une porte ouverte, une fenêtre, une fenêtre close et une
- *  brèche (la structure de la semence, `semences-de-scene.json › facade`, abattue). */
+ *  brèche (la structure de la semence, `semences-de-scene.json › facade`, abattue) ; au sud, une porte double fermée
+ *  entre deux murs (`ouverturesDeLaScene`, `src/noyau/monde/aretes.ts`). */
 const ENCLOS: readonly PanDeLEnclos[] = [
   { x: 1, y: 1, side: 'N', arete: 'wall', patch: {} },
   { x: 2, y: 1, side: 'N', arete: 'door', patch: { closed: true } },
@@ -122,6 +123,10 @@ const ENCLOS: readonly PanDeLEnclos[] = [
   { x: 2, y: 2, side: 'N', arete: 'wall', patch: { window: true } },
   { x: 0, y: 1, side: 'E', arete: 'wall', patch: { window: true, shuttered: true } },
   { x: 2, y: 1, side: 'E', arete: 'wall', patch: {}, abattu: true },
+  { x: 0, y: 3, side: 'N', arete: 'wall', patch: {} },
+  { x: 1, y: 3, side: 'N', arete: 'door', patch: { closed: true } },
+  { x: 2, y: 3, side: 'N', arete: 'door', patch: { closed: true } },
+  { x: 3, y: 3, side: 'N', arete: 'wall', patch: {} },
 ];
 
 /** La case crénelée d'une apparence à couronne (`parapet`), à l'écart de l'enclos : haussée d'un étage au-dessus de ses
@@ -135,7 +140,7 @@ function sceneDuMur(id: string): Scene {
   const enclos = ENCLOS.reduce((s, { x, y, side, arete, patch, abattu }) => {
     const pose = patchWall(setEdgeWall(s, x, y, side, 0, arete, abattu ? semencesDeScene.facade.id : undefined), x, y, side, 0, { ...patch, appearance: id });
     return abattu ? setStructureDown(pose, x, y, side, 0, true) : pose;
-  }, sceneVide(crenelee ? CRENELEE.x + 1 + BORD : 4, 3));
+  }, sceneVide(crenelee ? CRENELEE.x + 1 + BORD : 4, 4));
   return crenelee ? paintCrenellated(paintHeight(enclos, CRENELEE, METRES_PER_LEVEL, 1), CRENELEE, id, 1) : enclos;
 }
 

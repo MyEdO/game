@@ -65,7 +65,11 @@ const lireJournalSurDisque = (chemin) => (existsSync(chemin) ? readFileSync(chem
 const journalDe = (fichier) => fichier.replace(/\.code$/, '') + '.log'
 
 /** La commande de sonde à copier pour `fichier`. PURE. */
-export const commandeDeSonde = (fichier) => `node scripts/ops/sonde.mjs ${JSON.stringify(fichier)}`
+export function commandeDeSonde(fichier, { script, powershell = false } = {}) {
+  if (!script) return `node scripts/ops/sonde.mjs ${JSON.stringify(fichier)}`
+  const citer = (argument) => `'${argument.replaceAll("'", powershell ? "''" : `'"'"'`)}'`
+  return `node ${citer(script)} ${citer(fichier)}`
+}
 
 /**
  * Le geste entier de la ligne de commande, ses lectures injectables. Rend le code de sortie.

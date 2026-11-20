@@ -48,6 +48,27 @@ describe('compendium', () => {
     expect(erreurDe(appel('compendium', { compendium: { geste: 'montrer', id: 'nulle-part' } })).categorie).toBe('validation');
   });
 
+  it('la liste de bataille de masse ouvre la baliste ADE II dans l’atelier du catalogue d’engins', () => {
+    const { appel } = table();
+    const bataille = zonesDe(appel('compendium', { ouvrir: true, categorie: 'massBattleWarMachines', id: 'mass-battle' }));
+    expect(bataille['compendium.atelier']).toEqual([]);
+    const baliste = boutonDe(bataille, '0/0/0');
+    expect(baliste.jeu).toEqual({ compendium: { geste: 'suivre', categorie: 'siegeEngines', id: 'baliste-ade2' } });
+    const ade = zonesDe(appel('compendium', baliste.jeu));
+    expect(ade['compendium.fiche'][0].nom).toBe('Baliste (ADE II)');
+    expect(ade['compendium.fiche'].find((e) => e.id === 'prose')?.elements).toContainEqual(
+      expect.objectContaining({ id: 'texte', texte: expect.stringContaining('similaire à une arbalète') }),
+    );
+
+    const aa = zonesDe(appel('compendium', { ouvrir: true, categorie: 'siegeEngines', id: 'baliste' }));
+    expect(aa['compendium.fiche'][0].nom).toBe('Baliste (AA)');
+    expect(aa['compendium.fiche'].find((e) => e.id === 'prose')?.elements).toContainEqual(
+      expect.objectContaining({ id: 'texte', texte: expect.stringContaining('arbalètes géantes') }),
+    );
+    const atelier = zonesDe(appel('compendium', boutonDe(aa, 'modifier').jeu));
+    expect(atelier['compendium.atelier'].map((e) => e.id)).toContain('valeur/label');
+  });
+
   it('modifier, écrire une valeur, enregistrer : le texte à écrire et l’empreinte d’avant ; l’issue réussie ferme l’atelier', () => {
     const { appel } = table();
     const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'talents', id: TALENT }));
@@ -111,7 +132,7 @@ describe('compendium', () => {
     const atelier = zonesDe(appel('compendium', boutonDe(zonesDe(appel('compendium', { ouvrir: true, categorie: 'drunkenness', id: rangee.id })), 'modifier').jeu));
     const de = atelier['compendium.atelier'].find((e): e is Formulaire => e.type === 'formulaire' && e.id === 'enTete')!;
     expect(de.champs.map((c) => [c.type, c.nom, 'min' in c ? c.min : null, 'pas' in c ? c.pas : null, 'valeur' in c ? c.valeur : null])).toEqual([['saisieNombre', 'n', 1, 1, 1], ['saisieNombre', 'sides', 1, 1, 10]]);
-    expect(erreurDe(appel('compendium', { type: 'enTete', args: [0, 10] }))).toMatchObject({ categorie: 'regle', message: 'compendium : Trop petit : nombre doit être >=1' });
+    expect(erreurDe(appel('compendium', { type: 'enTete', args: [0, 10] }))).toMatchObject({ categorie: 'regle', message: 'Trop petit : nombre doit être >=1' });
     expect(erreurDe(appel('compendium', { type: 'enTete', args: ['2d10'] })).categorie).toBe('validation');
     const ecrit = zonesDe(appel('compendium', { type: 'enTete', args: [2, 10] }));
     const r = appel('compendium', boutonDe(ecrit, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
@@ -124,7 +145,7 @@ describe('compendium', () => {
     const atelier = zonesDe(appel('compendium', { compendium: { geste: 'modifier' } }));
     const supprimer = boutonDe(atelier, 'supprimer');
     expect(supprimer.refus).toMatch(/^D’autres données désignent cette entrée/);
-    expect(erreurDe(appel('compendium', supprimer.jeu))).toEqual({ categorie: 'regle', message: `compendium : ${supprimer.refus}` });
+    expect(erreurDe(appel('compendium', supprimer.jeu))).toEqual({ categorie: 'regle', message: supprimer.refus });
   });
 
   it('un geste de liste ne porte que l’élément à son rang : le plus gros jeu de l’atelier d’une table de noms, l’élément le plus gros d’une de ses listes et son enveloppe (#4020)', () => {

@@ -37,7 +37,7 @@ function crew(withSavoir = false): Combatant[] {
 }
 
 const route = (km: number, extra: Partial<MapRouteTrace> = {}): MapRoute => ({
-  id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0, ...extra,
+  id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['barge-fluviale', 'pied'], river: true, inns: true, perilDie: 0, ...extra,
 });
 
 function riverMap(km: number, extra: Partial<MapRouteTrace> = {}): WorldMap {
@@ -72,7 +72,7 @@ function launch(withSavoir = false, km = 45, extra: Partial<MapRouteTrace> = {})
 describe('helpers de recette — reposer la journée ne DUPLIQUE jamais les étapes (#1117)', () => {
   it('`riverDayCascade()` deux fois : aucun id dupliqué, le compte reste celui d’UNE journée', () => {
     launch(false, 45);
-    set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
+    set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale')! });
     const api = buildApi();
     api.riverDayCascade();
     const first = get().pendingCascade!.participants.map((s) => s.id);
@@ -84,7 +84,7 @@ describe('helpers de recette — reposer la journée ne DUPLIQUE jamais les éta
 
   it('`forceRiverCapsize()` après une journée déjà posée : la journée est REMPLACÉE, avec l’étape armée', () => {
     launch(false, 45);
-    set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
+    set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale')! });
     const api = buildApi();
     api.riverDayCascade();
     api.forceRiverCapsize();
@@ -95,7 +95,7 @@ describe('helpers de recette — reposer la journée ne DUPLIQUE jamais les éta
 
   it('le chemin JOUEUR est déjà protégé : `runRiverDays` ne rouvre rien tant qu’une cascade est ouverte', () => {
     launch(false, 45);
-    set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
+    set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale')! });
     buildApi().riverDayCascade();
     const before = get().pendingCascade!.participants.length;
     runRiverDays(get, set);

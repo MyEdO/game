@@ -3,10 +3,10 @@
  * gain → seuil → mutation → limites (damné), Sombre Pacte (relance à +1 Corruption).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyEffects } from './combatEffects';
-import { gainCorruption, corruptionTarget } from './corruptionFlow';
+import { applyEffects, ctxRepris, porterOpsCtx } from './combatEffects';
+import { gainCorruption, corruptionTarget, releaseCorruptionSlot } from './corruptionFlow';
 import { draineCascade, avanceEtapeCascade } from './cascade.testkit';
 import type { RevealEntry } from './pendings';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
@@ -14,7 +14,20 @@ import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
 import type { Combatant } from '../engine/types';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { blessuresSurLeProfil, blessuresDeBase, combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { creatures, mutationNature, regles, type CreatureData } from '../data';
+import type { EntreeVivante } from '../data/datasets';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { setDesFixes } from '../engine/fixedDie';
+import { tableStepDef } from './cascade';
+import { setDataset } from '../data/overrides';
+import { followsCharacterRules } from '../engine/relations';
+import { applyOps } from '../engine/ops';
+import { battleRng } from './battleRng';
+import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
+import { emptyNarratif } from './monde/campaignNarratif';
+import { testScene } from '../scenes/test-fixture';
+
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -230,7 +243,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
 
   it('PNJ (pas de modale) : seuil auto-résolu — la mutation tombe sans pendingCorruption', () => {
     const { a, party } = party2();
-    const npc = { ...a, id: 'npc-1', kind: 'ennemi', characteristics: { ...a.characteristics, endurance: 1, 'force-mentale': 1 }, corruption: 5, resilience: 0, mutations: [] } as unknown as Combatant;
+    const npc = { ...a, id: 'npc-1', kind: 'ennemi', followsCharacterRules: true, characteristics: { ...a.characteristics, endurance: 1, 'force-mentale': 1 }, corruption: 5, resilience: 0, mutations: [] } as unknown as Combatant;
     banc.setState({ party, battle: { combatants: [npc], log: [] } as never });
     gainCorruption(banc.getState, banc.setState, npc, 1);
     expect(banc.getState().pendingCorruption).toBeNull();
@@ -366,4 +379,113 @@ describe('corruptionTarget — #152 : reconditionné sur followsCharacterRules (
     expect(banc.getState().pendingRenounce).toBeNull();
     expect(npc.resilience).toBe(0); // trouvé via followsCharacterRules → « Je te renie ! » a pu s'appliquer
   });
+});
+
+describe('Corruption personnelle au combat (#4096)', () => {
+  function commencerUneRencontre(membre: AuthoredEnemy, campaignNarratif: NarratifBlock | null = null) {
+    const a = combattantDeTest({ id: 'joueur', label: 'Héros du groupe', kind: 'heros', species: 'humains-reiklander' });
+    const scene = testScene();
+    const { entities, encounter } = buildEncounter({
+      id: 'corruption-personnelle',
+      enemies: [membre, { statblock: { type: 'statblock', char: {}, label: 'Adversaire' }, pos: { x: 7, y: 10 } }],
+    });
+    scene.entities = [scene.entities[0], ...entities];
+    scene.encounters = [encounter];
+    banc.setState({ party: [a] });
+    banc.getState().lancerLaScene(scene, campaignNarratif ?? undefined);
+    banc.getState().lancerLeCombat(encounter.id, undefined, { noSurprise: true });
+    const acteurs = banc.getState().battle!.combatants;
+    return { membre: acteurs.find((c) => c.id === entities[0].id)!, heros: acteurs.find((c) => c.id === a.id)! };
+  }
+
+  function reprendreLaCorruption(c: Combatant) {
+    const contexte = porterOpsCtx({ idNeuf: idsDeTest, rng: battleRng() });
+    const repris = ctxRepris(banc.getState, banc.setState, structuredClone(contexte))!;
+    return applyOps(c, [{ op: 'corruptionExposure', level: 'mineure' }, { op: 'corruption', amount: 1 }], repris);
+  }
+
+  it.each(['bestiaire', 'campagne'])('une exclusion maison suit le profil de %s, malgré un changement d’espèce et de camp', (origine) => {
+    const fiche: CreatureData = {
+      id: 'marta-gerbenshreiber', type: 'creatures', label: 'Fiche exclue', title: null, folder: null,
+      char: { endurance: 30, 'force-mentale': 30 }, traits: [{ id: 'corruption', arg: 'mineure' }],
+      skills: [], talents: [], optionals: [], trappings: [], spells: [],
+      appearance: { species: 'nain' }, followsCharacterRules: true,
+      source: { book: 'livre-de-base', page: 334 },
+    };
+    const originales = [...creatures];
+    setDataset('creatures', [...originales.filter((c) => c.id !== fiche.id), fiche]);
+    onTestFinished(() => setDataset('creatures', originales));
+    const reglesOriginales = [...regles];
+    setDataset('regles', reglesOriginales.map((r) => r.id === 'corrompu'
+      ? { ...r, exclusDeCorruption: [fiche.id], motifExclusionDeCorruption: 'Arbitrage de la fixture' }
+      : r));
+    onTestFinished(() => setDataset('regles', reglesOriginales));
+
+    const pos = { x: 7, y: 11 };
+    const presetId = 'pnj-fixture-exclu';
+    const { membre, heros } = origine === 'campagne'
+      ? commencerUneRencontre({ pos, side: 'allie', presetId }, {
+        ...emptyNarratif(),
+        presetsPnj: [{ id: presetId, base: { id: fiche.id }, apparence: { species: 'humain' } }],
+      })
+      : commencerUneRencontre({ pos, side: 'allie', creature: { id: fiche.id }, appearance: { species: 'humain' } });
+    expect(membre).toMatchObject({ kind: 'heros', species: 'humain', creatureId: fiche.id });
+    expect(followsCharacterRules(membre)).toBe(true);
+    expect(membre.traits?.map((t) => t.id)).toContain('corruption');
+    applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: membre.id }]);
+    expect(reprendreLaCorruption(membre)).toEqual([]);
+    expect(applyOps(membre, [{ op: 'corruption', amount: 1 }], { idNeuf: idsDeTest, rng: battleRng() })).toEqual([]);
+    expect(banc.getState().pendingCorruption).toBeNull();
+    expect(banc.getState().corruptionQueue).toEqual([]);
+    expect(banc.getState().pendingCascade?.participants.some((p) => p.kind === 'mutationNature') ?? false).toBe(false);
+    expect(membre.corruption ?? 0).toBe(0);
+    expect(heros.corruption ?? 0).toBe(0);
+
+    const test = testDeRegle('corrompu', 'contenir');
+    const enFile = { kind: 'seuil', heroId: heros.id, test } as const;
+    banc.setState({ corruptionQueue: [{ ...enFile, heroId: membre.id }, enFile] });
+    releaseCorruptionSlot(banc.getState, banc.setState);
+    expect(banc.getState().pendingCorruption).toEqual(enFile);
+    expect(banc.getState().corruptionQueue).toEqual([]);
+  });
+
+  it('la reprise sur une créature devenue alliée ne déclenche pas la Corruption de Personnage', () => {
+    const { membre } = commencerUneRencontre({
+      statblock: { type: 'statblock', char: { endurance: 20, 'force-mentale': 20 }, label: 'Créature alliée' },
+      appearance: { species: 'cheval' }, pos: { x: 7, y: 11 }, side: 'allie',
+    });
+    expect(membre).toMatchObject({ kind: 'heros', species: 'cheval' });
+    expect(reprendreLaCorruption(membre)).toEqual([]);
+    expect(banc.getState().pendingCorruption).toBeNull();
+    expect(membre.corruption ?? 0).toBe(0);
+  });
+  it('un PNJ éligible joue le document et le dé de sa propre race', () => {
+    const table = {
+      id: 'nature-nain-de-fixture', type: 'mutation-nature', label: 'Nature de test', race: 'nain', die: { n: 1, sides: 10 },
+      entries: [{ id: 'mentale', min: 1, max: 10 }], source: { book: 'livre-de-base', page: 183 },
+    } satisfies EntreeVivante<(typeof mutationNature)[number]>;
+    const originales = [...mutationNature];
+    setDataset('mutationNature', [table]);
+    onTestFinished(() => setDataset('mutationNature', originales));
+
+    const { membre } = commencerUneRencontre({
+      statblock: { type: 'statblock', char: { endurance: 20, 'force-mentale': 20 }, label: 'PNJ nain', followsCharacterRules: true },
+      appearance: { species: 'nain' }, pos: { x: 7, y: 11 }, side: 'allie',
+    });
+    membre.corruption = 4;
+    setDesFixes(true);
+    applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: membre.id }]);
+    for (const kind of [undefined, 'seuil']) {
+      const pending = banc.getState().pendingCorruption;
+      expect(pending?.heroId).toBe(membre.id);
+      expect(pending?.kind).toBe(kind);
+      banc.getState().jetImposerLeResultat('corruption', 100);
+      banc.getState().jetValider('corruption');
+    }
+
+    const nature = banc.getState().pendingCascade?.participants.find((p) => p.kind === 'mutationNature');
+    expect(nature).toMatchObject({ actorId: membre.id, table: { tableId: table.id } });
+    expect(tableStepDef(table.id)?.die).toEqual(table.die);
+  });
+
 });

@@ -104,10 +104,8 @@ describe('table de Météo VERBATIM (EDOC 8 l.50-59)', () => {
     expect(apres, 'le tirage dépend encore de l’ORDRE des rangées — la borne basse est reconstruite par position quelque part.').toEqual(avant);
   });
   it('chaque saison couvre son dé EXACTEMENT une fois — aucun trou, aucun chevauchement', () => {
-    // Contrat STRUCTUREL sur les fourchettes, PAS un aller-retour par `weatherFromRoll` : celui-ci
-    // passe par `findTableEntry`, qui REPLIE sur la dernière rangée quand aucune ne couvre le jet —
-    // il rend donc une météo même sur une table trouée, et un `toBeTruthy()` reste vert. Ce qu'on
-    // mesure ici est la partition : chaque jet du dé de la saison appartient à UNE fourchette et une seule.
+    // Le comptage des rangées révèle aussi les chevauchements : `weatherFromRoll` lit la
+    // première rangée qui contient le jet.
     const seasons: Season[] = ['printemps', 'ete', 'automne', 'hiver'];
     for (const s of seasons) {
       const ranges = weatherRanges(s);

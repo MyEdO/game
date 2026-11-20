@@ -1,5 +1,14 @@
 // LE RENDU DES MAQUETTES (#3935, #4411), sous Playwright, avec le relevé des pièces d'interface hors de la vue, croisées,
-// débordées par ce qu'elles portent, au texte coupé ou recouvert, et du défilement de la page :
+// débordées par ce qu'elles portent (`deborde` : hors du fond de leur cadre, sur son bois ou au-delà), au texte coupé,
+// hors du rect de leur rôle (`bouge` : la table rôle → rect de `rendu.js`, la même pour tous les états et tous les
+// écrans ; ce qui porte `data-mobile` suit ce qu'il désigne), des feuilles (texte, contrôle) recouvertes, rognées par un
+// ancêtre (`overflow`, ellipse) ou qui se chevauchent, des actions principales (plaque armée, étape en cours) cachées
+// sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
+// (`retrecit`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
+// badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle,
+// jamais un texte, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ; ce
+// dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
+// `rogne` que le haut et le bas :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
@@ -44,31 +53,141 @@ const releve = ([largeur, hauteur]) => {
     const a = pieces[i].r, c = pieces[j].r
     if (a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom) croise.push(pieces[i].n + ' x ' + pieces[j].n)
   }
-  /* ce que le fond d'un cadre porte hors de son cadre, sauf sous un ancêtre qui le rogne ou le fait défiler, et sauf la
-     bulle de refus, qui se pose au-dessus de l'élément refusé (`../dispositions.md`) */
+  /* le cœur d'une ligne de texte : la moitié du milieu de sa boîte de police, que les lignes voisines ne touchent pas */
+  const coeur = (q) => new DOMRect(q.left, q.top + q.height / 4, q.width, q.height / 2)
+  /* ce que le fond d'un cadre porte hors de ce fond (sur le bois du cadre ou au-delà : un texte, le cœur de chacune
+     de ses lignes ; un autre élément, sa boîte), sauf sous un ancêtre qui le rogne ou le fait défiler, une pièce
+     sans boîte qui porte des éléments visibles, et ce qui se pose au-dessus (`data-dessus`) hors de son cadre, ou de la
+     vue quand il n'est dans aucun cadre */
   const rogne = (d, piece) => { for (let a = d.parentElement; a && a !== piece; a = a.parentElement) if (getComputedStyle(a).overflow !== 'visible') return true; return false }
   const deborde = [...document.querySelectorAll('[data-piece]')].flatMap((e) => {
     const fond = e.querySelector(':scope > .fond')
-    if (!fond) return []
-    const r = e.getBoundingClientRect()
-    return [...fond.querySelectorAll('*')].some((d) => { const q = d.getBoundingClientRect(); return q.width && !rogne(d, e) && !d.closest('.bulle-refus') && (q.left < r.left - 1 || q.right > r.right + 1 || q.top < r.top - 1 || q.bottom > r.bottom + 1) }) ? [e.dataset.piece] : []
-  })
+    const r = e.getBoundingClientRect(), f = fond?.getBoundingClientRect()
+    const hors = (q) => q.left < f.left - 1 || q.right > f.right + 1 || q.top < f.top - 1 || q.bottom > f.bottom + 1
+    const boites = (d) => {
+      const textes = [...d.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim())
+      if (!textes.length) return [d.getBoundingClientRect()]
+      const plage = document.createRange()
+      return textes.flatMap((n) => { plage.selectNodeContents(n); return [...plage.getClientRects()] }).map(coeur)
+    }
+    return (fond && [...fond.querySelectorAll('*')].some((d) => boites(d).some((q) => q.width && !rogne(d, e) && hors(q))))
+      || ((r.width < 1 || r.height < 1) && [...e.querySelectorAll('*')].some((d) => d.getBoundingClientRect().width > 0)) ? [e.dataset.piece] : []
+  }).concat([...document.querySelectorAll('[data-dessus]')].filter((d) => {
+    const c = d.closest('.cadre')?.getBoundingClientRect() ?? new DOMRect(0, 0, largeur, hauteur), q = d.getBoundingClientRect()
+    return q.left < c.left - 1 || q.right > c.right + 1 || q.top < c.top - 1 || q.bottom > c.bottom + 1
+  }).map((d) => d.closest('[data-piece]')?.dataset.piece ?? '-'))
   const coupe = [...document.querySelectorAll('[data-texte]')].filter((e) => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map((e) => e.dataset.texte)
-  /* un texte qu'un autre élément recouvre : le milieu de sa dernière ligne, hors de ce qu'un ancêtre rogne ou fait
-     défiler, tombe hors de lui et de ses ancêtres ; la bulle de refus, posée au-dessus de l'élément refusé, recouvre ce
-     qui est au-dessus de lui (`../dispositions.md`) */
-  const rognePoint = (e, x, y) => { for (let a = e.parentElement; a; a = a.parentElement) if (getComputedStyle(a).overflow !== 'visible') { const r = a.getBoundingClientRect(); if (x < r.left || x > r.right || y < r.top || y > r.bottom) return true } return false }
-  const recouvert = [...document.querySelectorAll('[data-texte]')].filter((e) => {
+  /* les feuilles visibles : un texte (le rectangle de chacune de ses lignes) ou un contrôle (sa boîte) */
+  const nomme = (e) => `${e.closest('[data-piece]')?.dataset.piece ?? '-'} : ${(e.textContent.trim().replace(/\s+/g, ' ') || e.className.baseVal || e.className).slice(0, 40)}`
+  const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill, .facettes b'
+  /* les lignes d'un texte : la boîte de police de chacune, ramenée à la hauteur de ligne qui lui est allouée ; ce qu'il
+     porte au-dessus de lui (`data-dessus`) n'en est pas */
+  const lignes = (e) => {
     const plage = document.createRange()
-    plage.selectNodeContents(e)
-    const q = [...plage.getClientRects()].filter((r) => r.width).at(-1)
-    if (!q) return false
-    const x = q.left + q.width / 2, y = (q.top + q.bottom) / 2
-    if (y < 0 || y > hauteur || rognePoint(e, x, y)) return false
-    const v = document.elementFromPoint(x, y)
-    return v && !e.contains(v) && !v.contains(e) && !v.closest('.bulle-refus')
-  }).map((e) => e.dataset.texte)
-  return { pieces: pieces.length, hors, croise, deborde, coupe, recouvert, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+    const ligne = parseFloat(getComputedStyle(e).lineHeight)
+    const dessus = e.closest('[data-dessus]')
+    const rects = [...e.querySelectorAll('[data-dessus]')].some((d) => d.closest('[data-dessus]') !== dessus)
+      ? [...e.childNodes].flatMap(function textes(n) { return n.nodeType === 3 ? [n] : n.nodeType === 1 && !(n.matches('[data-dessus]') && n !== dessus) ? [...n.childNodes].flatMap(textes) : [] })
+        .flatMap((n) => { plage.selectNodeContents(n); return [...plage.getClientRects()] })
+      : (plage.selectNodeContents(e), [...plage.getClientRects()])
+    return rects.filter((q) => q.width > .5 && q.height > .5).map((q) => (ligne < q.height ? new DOMRect(q.left, q.top + (q.height - ligne) / 2, q.width, ligne) : q))
+  }
+  const feuilles = [...document.querySelectorAll('#ui *')].filter((e) => e.checkVisibility({ opacityProperty: true, visibilityProperty: true })).flatMap((e) => {
+    if (e.matches(CONTROLE)) { const q = e.getBoundingClientRect(); return q.width && q.height ? [{ e, texte: false, rects: [q], coeurs: [q] }] : [] }
+    if (![...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) return []
+    const rects = lignes(e)
+    return rects.length ? [{ e, texte: true, rects, coeurs: rects.map(coeur) }] : []
+  })
+  /* une feuille qu'un autre élément recouvre : le début, le milieu ou la fin d'une de ses lignes ou de sa boîte, hors de
+     ce qu'un ancêtre rogne ou fait défiler, tombe sur ce qui la cache, un contrôle ou un fond peint, hors d'elle et de ses
+     ancêtres, ou ce qu'elle porte au-dessus d'elle ; ce qui porte `data-dessus` peut couvrir un contrôle, jamais un texte */
+  const peint = (a) => { const s = getComputedStyle(a); return a.matches(CONTROLE) || (s.backgroundClip !== 'text' && (s.backgroundImage !== 'none' || !/^rgba\(.*, 0\)$|^transparent$/.test(s.backgroundColor))) }
+  const cache = (v, e) => { for (let a = v; a && !a.contains(e); a = a.parentElement) if (peint(a)) return a; return null }
+  const rognePoint = (e, x, y) => { for (let a = e; a; a = a.parentElement) if (getComputedStyle(a).overflow !== 'visible') { const r = a.getBoundingClientRect(); if (x < r.left || x > r.right || y < r.top || y > r.bottom) return true } return false }
+  const recouvert = [...new Set(feuilles.filter(({ e, texte, rects }) => rects.some((q) => [q.left + 2, q.left + q.width / 2, q.right - 2].some((x) => {
+    const y = (q.top + q.bottom) / 2
+    if (y < 0 || y > hauteur || x < 0 || x > largeur || rognePoint(e, x, y)) return false
+    const v = document.elementFromPoint(x, y), m = v?.closest('[data-dessus]')
+    return v && (!e.contains(v) || (m && !e.closest('[data-dessus]'))) && cache(v, e) && !(m && !texte)
+  }))).map((f) => nomme(f.e)))]
+  /* une feuille qui sort d'un ancêtre qui la rogne ou la fait défiler (`overflow` non visible ; un texte : lui-même
+     compris), sauf par le haut ou le bas de celui qui porte `data-defile`, dont le contenu défile en hauteur, ou dont la
+     ligne finit par une ellipse */
+  const rogneLa = ({ e, texte, rects }) => {
+    if (getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth + 1) return 'ellipse'
+    for (let a = texte ? e : e.parentElement; a && a !== document.body; a = a.parentElement) {
+      const s = getComputedStyle(a), r = a.getBoundingClientRect()
+      const x = s.overflowX !== 'visible', y = s.overflowY !== 'visible' && !a.hasAttribute('data-defile')
+      if ((x || y) && rects.some((q) => (x && (q.left < r.left - 1 || q.right > r.right + 1)) || (y && (q.top < r.top - 1 || q.bottom > r.bottom + 1)))) return a.id || a.classList[0]
+    }
+    return ''
+  }
+  const rognes = [...new Set(feuilles.flatMap((f) => { const par = rogneLa(f); return par ? [`${nomme(f.e)} (${par})`] : [] }))]
+  /* deux feuilles, aucune ancêtre de l'autre (hors ce qu'elle porte au-dessus d'elle), qui se recouvrent, dans une pièce
+     ou d'une pièce à l'autre (une pièce dont la boîte ne contient pas ses feuilles échappe à `croise`) ; ce qui porte
+     `data-dessus` peut couvrir un contrôle, jamais un texte, pas même le libellé de l'élément qu'il qualifie */
+  const chevauche = new Set()
+  /* ce qui se voit d'une feuille : ses rectangles coupés par les ancêtres qui la rognent (un texte : lui-même compris) */
+  const visibles = ({ e, texte, coeurs }) => {
+    let vus = coeurs
+    for (let a = texte ? e : e.parentElement; a && a !== document.body; a = a.parentElement) {
+      const s = getComputedStyle(a)
+      if (s.overflowX === 'visible' && s.overflowY === 'visible') continue
+      const r = a.getBoundingClientRect()
+      vus = vus.map((q) => { const g = s.overflowX === 'visible' ? q.left : Math.max(q.left, r.left), d = s.overflowX === 'visible' ? q.right : Math.min(q.right, r.right), h = s.overflowY === 'visible' ? q.top : Math.max(q.top, r.top), b = s.overflowY === 'visible' ? q.bottom : Math.min(q.bottom, r.bottom); return new DOMRect(g, h, d - g, b - h) }).filter((q) => q.width > 0 && q.height > 0)
+    }
+    return vus
+  }
+  feuilles.forEach((f) => { f.coeurs = visibles(f) })
+  const croisent = (p, q) => p.coeurs.some((a) => q.coeurs.some((c) => Math.min(a.right, c.right) - Math.max(a.left, c.left) > .5 && Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top) > .5))
+  for (let i = 0; i < feuilles.length; i++) for (let j = i + 1; j < feuilles.length; j++) {
+    const p = feuilles[i], q = feuilles[j]
+    const porte = (f, g) => f.e.contains(g.e) && g.e.closest('[data-dessus]') === f.e.closest('[data-dessus]')
+    if (porte(p, q) || porte(q, p) || !croisent(p, q)) continue
+    const dessus = (f, g) => f.e.closest('[data-dessus]') && !g.e.closest('[data-dessus]') && !g.texte
+    if (!dessus(p, q) && !dessus(q, p)) chevauche.add(nomme(p.e) + ' x ' + nomme(q.e).replace(/^[^:]*: /, ''))
+  }
+  /* une pièce fixe hors du rect de sa ligne de la table (`CADRE_ATTENDU`, `rendu.js`), ou sans ligne ; une ligne de deux
+     cotes ne fixe que la place */
+  const bouge = globalThis.CADRE_ATTENDU ? [...document.querySelectorAll('[data-piece]')].filter((e) => !e.closest('[data-mobile]')).flatMap((e) => {
+    const t = globalThis.CADRE_ATTENDU(e.dataset.piece), r = e.getBoundingClientRect(), n = (q) => ['x', 'y', 'width', 'height'].filter((k) => q[k] !== undefined).map((k) => Math.round(q[k])).join(',')
+    if (!t) return [`${e.dataset.piece} : hors table`]
+    return Object.keys(t).some((k) => Math.abs(r[k] - t[k]) > 1) ? [`${e.dataset.piece} : ${n(r)} au lieu de ${n(t)}`] : []
+  }) : []
+  /* une pièce du kit qui rétrécit (`../kit.md`, « Une pièce du kit ne rétrécit jamais ») : un élément dont la règle de
+     feuille qui l'emporte (ou son style en ligne) fixe la largeur ou la hauteur en pixels, rendu plus petit (sous un
+     `flex` qui l'écrase) ; `bouge` ne mesure que la boîte de la pièce, pas ce qu'elle porte */
+  const specificite = (sel) => [(sel.match(/#[\w-]+/g) ?? []).length, (sel.match(/\.[\w-]+|\[[^\]]+\]|:(?!:)[\w-]+/g) ?? []).length, (sel.replace(/:[\w-]+(\([^)]*\))?|\[[^\]]+\]|[#.][\w-]+/g, ' ').match(/(^|[\s>+~])[a-z][\w-]*/gi) ?? []).length]
+  const plusFort = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]
+  const regles = [...document.styleSheets].flatMap((f) => { try { return [...f.cssRules] } catch { return [] } })
+    .filter((r) => r.style && (r.style.width || r.style.height))
+  const retrecit = [...document.querySelectorAll('#ui *')].filter((e) => e instanceof HTMLElement && e.checkVisibility()).flatMap((e) => {
+    const fixe = {}
+    for (const dim of ['width', 'height']) {
+      let tenue = null
+      regles.forEach((r, k) => {
+        if (!r.style[dim]) return
+        const sel = r.selectorText.split(',').map((x) => x.trim()).filter((x) => { try { return e.matches(x) } catch { return false } })
+        if (!sel.length) return
+        const p = [...sel.map(specificite).sort((a, b) => plusFort(b, a))[0], k]
+        if (!tenue || plusFort(p, tenue.p) > 0 || (plusFort(p, tenue.p) === 0 && k > tenue.p[3])) tenue = { p, v: r.style[dim] }
+      })
+      const v = e.style[dim] || tenue?.v
+      if (v && /^[\d.]+px$/.test(v)) fixe[dim] = parseFloat(v)
+    }
+    const s = getComputedStyle(e)
+    const ecrase = Object.entries(fixe).filter(([dim, v]) => parseFloat(s[dim]) < v - 1)
+    return ecrase.length ? [`${nomme(e)} : ${ecrase.map(([dim, v]) => `${dim} ${Math.round(parseFloat(s[dim]))} au lieu de ${v}`).join(', ')}`] : []
+  })
+  /* une action principale (plaque armée) ou l'étape en cours (`.en-cours`) hors de ce que montre le `data-defile` qui la
+     porte : sous son bord, ou sous le fondu (`--fondu`, `gestes.css`) qui annonce une suite (`.suite`) ou ce qui a défilé
+     (`.avant`) */
+  const caches = [...document.querySelectorAll('#ui [data-defile] :is(.plaque.armee, .en-cours)')].filter((e) => {
+    const d = e.closest('[data-defile]'), r = d.getBoundingClientRect(), q = e.getBoundingClientRect()
+    const fondu = parseFloat(getComputedStyle(d).getPropertyValue('--fondu')) || 0
+    return q.top < r.top + (d.classList.contains('avant') ? fondu : 0) - 1 || q.bottom > r.bottom - (d.classList.contains('suite') ? fondu : 0) + 1
+  }).map(nomme)
+  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv
@@ -78,7 +197,7 @@ const format = page ? { ...FORMATS['16:9'], facteur: Number(reste[0] ?? FORMATS[
 if (!format) throw new Error(`rendre.mjs <écran> <sortie.png> --format ${Object.keys(FORMATS).join('|')} [--etat <état>]`)
 const etat = option('--etat')
 const etats = page ? null : await chargerLEcran(cible, etat)
-const b = await chromium.launch()
+const b = await chromium.launch({ args: ['--allow-file-access-from-files'] })
 /** La page `cible`, ou l'état `maquette` de l'écran, capturée en `sortie` avec son relevé. */
 async function capturer(maquette, sortie) {
   const p = await b.newPage({ viewport: { width: format.largeur, height: format.hauteur }, deviceScaleFactor: format.facteur })

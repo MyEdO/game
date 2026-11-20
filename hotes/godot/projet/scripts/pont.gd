@@ -170,16 +170,19 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   hauteur][], saisies: { texte, x, y, element? }[], compendium: { zones } }`, comme à l'éditeur, et les zones de la
 ##   dernière réponse de `compendium` (section « Compendium ») ; « Fermer » porte la clé `compendium/fermer`.
 ## - Au combat : `{ boutons: { texte, x, y, element?, cle?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z",
-##   [x, y]>, glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], panneaux: [x, y, largeur, hauteur][],
+##   [x, y]>, glisse: boolean, fondu: boolean, marche: boolean, cadre: [x, y, largeur, hauteur],
+##   panneaux: [x, y, largeur, hauteur][],
 ##   corps: Record<string, { base: string, elements: string[], emblemes: Record<string, string>,
 ##   couleurs: Record<string, Record<string, string>> }>, navires: string[], aretes_lues: boolean, compendium: { zones }
 ##   }`,
 ##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
 ##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
 ##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
-##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de la fenêtre
-##   que l'ossature de l'interface laisse à la scène (`Monde.cadre`, vide avant la première mise en page), sur laquelle
-##   des panneaux se posent, l'emprise de chaque panneau (`PontDuNoyau.panneaux_a_l_ecran`), les ids des
+##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), si un combattant dessiné
+##   se déplace encore, dont le meneur du groupe en exploration (`Plateau.marche` : publié à la vue qui le met en
+##   marche, puis à la fin de chaque déplacement), la part de la fenêtre que l'ossature de l'interface laisse à la scène
+##   (`Monde.cadre`, vide avant la première mise en page), sur laquelle des panneaux se posent, l'emprise de chaque
+##   panneau (`PontDuNoyau.panneaux_a_l_ecran`), les ids des
 ##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, si aucun modèle
 ##   d'arête n'est en lecture (`VolumeDeScene.aretes_en_lecture` : ses arêtes ne sont pas posées), republié à chaque
 ##   modèle d'arête lu, et, par id de

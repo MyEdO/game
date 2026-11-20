@@ -22,26 +22,18 @@
  */
 import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
-import type { RNG } from '../engine/dice';
 import type { RollBreakdown } from '../engine/combat';
 import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
 import { reposDeScene } from './monde/scene';
-import { partyAssisted, peutTenter, testValue } from '../engine/skills';
+import { partyAssisted, peutTenter } from '../engine/skills';
 import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, type RestRoll } from '../engine/rest';
-import {
-  rollContraction,
-  diseaseDefs,
-  contagiousDiseases,
-  contractionDue,
-  applyDiseaseGangrene,
-} from '../engine/disease';
+import { diseaseDefs, contractionDue, applyDiseaseGangrene } from '../engine/disease';
 import { applyOps } from '../engine/ops';
 import { rule } from '../engine/policy';
-import { type Difficulty } from '../engine/types';
 import { applyFractureEnd } from '../engine/trauma';
 import type { DeferredUpkeepTest } from './upkeep';
 import {
@@ -60,8 +52,10 @@ import { applyForcedMarch } from '../engine/travel';
 import { startCascade, runCascadeImmediate } from './cascade';
 import { nightBands, bandeDeNuit, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand } from './nightBands';
 import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
-import { freeCons, monoStep, choiceStep, pousseSi, buildBand, resultLines, type BandPorteur } from './rollSeam';
-import { contracterABord, porteursABord, type PorteurABord } from './shipCrew';
+import { freeCons, monoStep, choiceStep, pousseSi } from './rollSeam';
+import { porteursABord, type PorteurABord } from './shipCrew';
+import { appliquerContagion, bandesDeContagion, type ContagionSpec } from './contagion';
+import { calculerLesTestsDExposition, incubationPendantLeVoyage } from './expositionAMaladie';
 import { WORLD_STEP_OWNER } from './pendings';
 import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeStepMeta } from './pendings';
@@ -69,7 +63,6 @@ import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/
 import { toBrass, fromBrass, priceToMoney, toMoney, type Money } from '../engine/money';
 import { payFromGroup, totalDesBourses } from './bourseFlow';
 import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbsence, type StakeRef } from '../data';
-import { diseaseLabel } from '../data';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
 import { runDailyUpkeep } from './upkeep';
@@ -181,7 +174,6 @@ import { hebergementsDuLieu, refuserLeServiceFerme } from './lieuFlow';
 import { refuserGeste } from './refusVisible';
 import { garanti } from '../lib/garanti';
 import { libelleDuLitteral } from './libelles';
-import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
@@ -224,7 +216,10 @@ export function sleepParty(
   const from = get().gameTime;
   const firstNight = aubeApresNuits(from, 1) - from;
   for (let night = 0; night < n; night++) {
-    get().avancerLHorloge(night === 0 ? firstNight : MINUTES_PER_DAY);
+    const minutes = night === 0 ? firstNight : MINUTES_PER_DAY;
+    const dormeurs = porteursABord(get, set).filter(({ id }) => id !== WORLD_STEP_OWNER);
+    const contagion = calculerLesTestsDExposition(get, set, minutes, [dormeurs]);
+    get().avancerLHorloge(minutes);
     set({ lastNightDay: dayIndex(get().gameTime) }); // nuit JOUÉE (#340) — désamorce la privation de sommeil
     // Les Tests d'entretien de la journée (faim, soif, maladie, convalescence, dessoûlage) sont MONTÉS
     // par la porte, comme dans la nuit interactive : ce chemin les résout d'office (`runCascadeImmediate`
@@ -234,7 +229,19 @@ export function sleepParty(
       entries.push({ actorId: get().party.find((h) => text.startsWith(h.label))?.id, icon: 'temps/calendrier', label: 'Entretien quotidien', text, tone: 'neutre' });
     }
     const steps = nightBands(deferredUpkeepSteps(get().party, deferred));
-    if (steps.length && !runCascadeImmediate(get, set, steps)) return entries;
+    steps.push(...bandesDeContagion(get, set, contagion));
+    const resolues = steps.length ? runCascadeImmediate(get, set, steps) : [];
+    if (!resolues) return entries;
+    for (const step of resolues) {
+      if (step.kind !== 'contagion') continue;
+      for (const row of step.participants ?? []) {
+        if (!row.outcome?.length) continue;
+        entries.push({
+          actorId: row.id, icon: 'medical/infection', label: garanti(step.label, step.id, 'bande de Contraction'),
+          text: row.outcome.map((l) => l.text).join(' '), tone: 'echec',
+        });
+      }
+    }
   }
 
   // Récupération + cauchemars, héros par héros (jets structurés pour le bilan).
@@ -259,13 +266,6 @@ export function sleepParty(
     journal.push(...log);
   }
 
-  // Contagion de promiscuité (chambrée/campement — Toux et éternuements, LDB 20 l.206) : 1 Test de Contraction par nuit de repos.
-  // Règle optionnelle « Utilisation des Maladies » : désactivée si maladie-mode = off.
-  for (const c of rule('maladie-mode') === 'off' ? [] : runContagion(get, set, n, rng)) {
-    entries.push({ actorId: c.actorId, icon: 'medical/infection', label: t('rf.contagionLabel', { disease: diseaseLabel(c.dz) }), text: c.log.join(' '), tone: 'echec' });
-    journal.push(...c.log);
-  }
-
   const title = n > 1 ? t('rf.titleDays', { n }) : t('rf.titleNight');
   set({ party: [...get().party] });
   get().ecrireAuJournal([title, ...journal]);
@@ -273,70 +273,17 @@ export function sleepParty(
   return entries;
 }
 
-/** Contagion de promiscuité (Toux et éternuements, LDB 20 l.206 ; 1 Test/nuit) — chemin EAGER (sleepParty,
- *  multi-jours, hors du bord), roule le Test. Même source que la cascade : `collectContagion`. */
-function runContagion(get: Get, set: Set, n: number, rng: RNG): { actorId: string; dz: string; log: string[] }[] {
-  const out: { actorId: string; dz: string; log: string[] }[] = [];
-  const party = get().party;
-  for (const c of collectContagion(porteursDeLaNuit(get, set, false))) {
-    const other = party.find((h) => h.id === c.porteurId);
-    if (!other) continue;
-    for (let d = 0; d < n; d++) {
-      const log = rollContraction(other, c.diseaseName, testValue(other, { skill: { id: 'resistance' } }), c.difficulty, rng);
-      if (log.length) out.push({ actorId: other.id, dz: c.diseaseName, log });
-    }
+/** LDB 20 l.206 ; LDB 66 l.28 ; MDG 14 l.208 */
+function groupesDeLaNuit(get: Get, set: Set, p: PendingRest): PorteurABord[][] {
+  const parCouchage = new Map<RestLodging, PorteurABord[]>();
+  for (const porteur of porteursABord(get, set)) {
+    const couchage = porteur.id === WORLD_STEP_OWNER ? 'bord' : p.perHero[porteur.id]?.lodging;
+    if (!couchage) continue;
+    const groupe = parCouchage.get(couchage) ?? [];
+    groupe.push(porteur);
+    parCouchage.set(couchage, groupe);
   }
-  return out;
-}
-
-/** Un Test de Contraction d'entretien différé (contagion de promiscuité OU tambouille piètre) ; `porteurId` est l'id
- *  de rangée du porteur (`PorteurABord.id`). */
-interface ContagionSpec { porteurId: string; diseaseName: string; difficulty: Difficulty; }
-
-/** Les porteurs de maladies de la nuit : les PJ vivants, et l'équipage collectif sur une nuit à bord. MDG 14 l.208 */
-function porteursDeLaNuit(get: Get, set: Set, aBord: boolean): PorteurABord[] {
-  return porteursABord(get, set).filter((p) => aBord || p.id !== WORLD_STEP_OWNER);
-}
-
-/** RECENSE les Tests de Contraction de promiscuité DÛS (sans les rouler) : chaque porteur sain résiste à la maladie
- *  contagieuse d'un autre porteur (1 jet par paire, dédoublonné). LDB 20 l.206 ; MDG 14 l.208 */
-function collectContagion(porteurs: readonly PorteurABord[]): ContagionSpec[] {
-  const out: ContagionSpec[] = [];
-  const seen = new Set<string>();
-  for (const sick of porteurs) {
-    for (const dz of contagiousDiseases(sick.porteur)) {
-      for (const other of porteurs) {
-        if (other === sick) continue;
-        const key = `${other.id}:${dz.id}`;
-        if (seen.has(key) || !contractionDue(other.porteur, dz.id)) continue;
-        seen.add(key);
-        out.push({ porteurId: other.id, diseaseName: dz.id, difficulty: diseaseDefs()[dz.id]?.contractDifficulty ?? 'accessible' });
-      }
-    }
-  }
-  return out;
-}
-
-/** Les bandes de Contraction de la nuit : une par maladie, une rangée par porteur exposé (`porteursABord`) ; un
- *  porteur exposé deux fois à la même maladie ouvre une bande de plus. LDB 20 l.25, l.206 ; MDG 14 l.208 */
-function contagionBands(get: Get, porteurs: readonly PorteurABord[], dues: readonly ContagionSpec[]): BuiltCascadeStep[] {
-  const bandes: { diseaseName: string; ids: string[]; porteurs: BandPorteur[] }[] = [];
-  for (const c of dues) {
-    const aLui = porteurs.find((p) => p.id === c.porteurId);
-    if (!aLui) continue;
-    const bande = bandes.find((b) => b.diseaseName === c.diseaseName && !b.ids.includes(c.porteurId))
-      ?? bandes[bandes.push({ diseaseName: c.diseaseName, ids: [], porteurs: [] }) - 1];
-    bande.ids.push(c.porteurId);
-    bande.porteurs.push({ ...aLui.contraction(c.diseaseName), difficulty: c.difficulty, meta: { diseaseName: c.diseaseName } });
-  }
-  return bandes.flatMap(({ diseaseName, porteurs: rangees }, i) => buildBand(get, {
-    id: `contagion-${diseaseName}-${i}`, kind: 'contagion', icon: 'medical/infection',
-    label: stepPrecision(t('step.contagion'), diseaseLabel(diseaseName)),
-    stake: nightStakeRef('contagion'),
-    meta: { diseaseName },
-    difficulty: rangees[0].difficulty ?? 'accessible',
-    porteurs: rangees,
-  }) ?? []);
+  return [...parCouchage.values()];
 }
 
 // ── CASCADE de NUIT (régime SÉQUENTIEL influençable, cf. cascade.ts) : chaque jet subi devient une
@@ -452,17 +399,20 @@ export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeep
 
 /**
  * Construit la cascade d'UNE nuit (single-night INTERACTIVE) : avance l'horloge à l'aube, applique
- * l'entretien quotidien + la contagion + la récupération SANS jet (PB plein/affamé) en EAGER (journal),
- * et DIFFÈRE en ÉTAPES influençables : abri de fortune (→ insère l'Exposition), Exposition (escalade),
- * récupération (Résistance +20), cauchemars (Calme +40). Réutilise les primitives pures (zéro
- * duplication vs sleepParty). Renvoie les étapes + le journal eager + l'horloge avant/après.
+ * l'entretien et la récupération sans jet, puis monte les étapes influençables. Réutilise les calculs
+ * et les bandes de Contraction communs avec `sleepParty`. Renvoie les étapes, le journal et l'horloge
+ * avant et après le repos.
  */
 export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fedDaily?: boolean; extraContagion?: ContagionSpec[] } = {}): { steps: BuiltCascadeStep[]; log: string[]; slept: { from: number; to: number } } {
   let party = get().party;
   const log: string[] = [];
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
-  get().avancerLHorloge(aubeApresNuits(from, 1) - from);
+  const minutes = aubeApresNuits(from, 1) - from;
+  const contagion = calculerLesTestsDExposition(
+    get, set, minutes, groupesDeLaNuit(get, set, p), p.travelHalt ? incubationPendantLeVoyage(get) : undefined,
+  );
+  get().avancerLHorloge(minutes);
   set({ lastNightDay: dayIndex(get().gameTime) }); // nuit JOUÉE (#340) — désamorce la privation de sommeil
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
@@ -494,10 +444,8 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
   steps.push(...deferredUpkeepSteps(party, deferred, steps.length));
-  // CONTAGION (promiscuité — Toux et éternuements, LDB 20 l.206, MDG 14 l.208 à bord + repas de la qualité à risque,
-  // LDB 66 l.5) → une bande de Résistance influençable par maladie, une rangée par porteur exposé.
-  const porteurs = porteursDeLaNuit(get, set, toitDeLaNuit(p, party) === 'bord');
-  steps.push(...contagionBands(get, porteurs, [...collectContagion(porteurs), ...(opts.extraContagion ?? [])]));
+  // LDB 20 l.206 ; MDG 14 l.208 ; LDB 66 l.5
+  steps.push(...bandesDeContagion(get, set, [...contagion, ...(opts.extraContagion ?? [])]));
   // Campement : Exposition (intempéries) — abri de fortune (STEP) → insère les jets d'Exposition.
   const campers = party.filter((h) => !h.dead && p.perHero[h.id]?.lodging === 'dehors');
   const severity = activeExposureSeverity(get);
@@ -854,7 +802,7 @@ function dormir(get: Get, set: Set): void {
     // 'ration' : consommée par l'entretien quotidien (#T3) ; 'rien' : la Faim suivra son cours.
     for (const { maladie, pourcent } of risquesDesOffres(p, cfg)) {
       if (rng.int(1, 100) <= pourcent && contractionDue(h, maladie)) {
-        extraContagion.push({ porteurId: h.id, diseaseName: maladie, difficulty: diseaseDefs()[maladie]?.contractDifficulty ?? 'accessible' });
+        extraContagion.push({ porteurId: h.id, diseaseName: maladie, difficulty: diseaseDefs()[maladie]?.contractDifficulty ?? 'accessible', nombre: 1 });
       }
     }
   }
@@ -1053,16 +1001,6 @@ export const TABLES = {
       // `applyDiseaseEnd` (engine/rest) est le foyer unique, ici comme dans toute autre voie.
       return { consequences: freeCons(applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng())) };
     }),
-    /** Contagion : BANDE dont chaque rangée retrouve son porteur (`contracterABord`, l'équipage collectif compris) et
-     *  écrit son état. LDB 20 l.25 ; MDG 14 l.208 */
-    contagion: (get, set, step) => {
-      if (!step.participants) return;
-      for (const row of step.participants) {
-        const verdict = contracterABord(get, set, row, String(row.meta?.diseaseName ?? ''), battleRng());
-        row.outcome = verdict ? resultLines(freeCons(verdict.lignes)) : [];
-        for (const l of row.outcome) get().ecrireAuJournal(l.text);
-      }
-      return { consequences: [] };
-    },
+    contagion: appliquerContagion,
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

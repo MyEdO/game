@@ -3,7 +3,7 @@
 close ; un vantail (`menuiserie.vantail`), fermé ou ouvert d'un quart de tour, ne change que de repère. L'aléa d'une
 pièce est semé de son nom : deux constructions rendent les mêmes octets."""
 import geometrie
-from geometrie import DEHORS, X, Repere
+from geometrie import DEHORS, DROITE, GAUCHE, X, Repere, noeud
 from maconnerie import PIERRE, Appareil
 from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, volets
 
@@ -42,6 +42,22 @@ def porte(ouverte):
     return batir
 
 
+def portail(ouverte, cote):
+    """L'arête de bout d'un portail de deux arêtes, celle de gauche (`cote` -1) ou de droite (1) : son piédroit, sa
+    moitié du porche, et son vantail gondé au piédroit, sa tête cintrée sous l'arc, fermé ou `ouverte` d'un quart de
+    tour vers le dedans."""
+    def batir(D, m, alea):
+        A, P = Appareil(D, m, alea), D["PORTAIL"]
+        V, jeu, axe, portee = P["vantail"], P["jeu"], -cote * A.demi, P["porche"]["portee"]
+        intrados = A.porche(axe, (cote,), P["porche"])
+        A.R.boite(m, tuple(sorted((axe, axe + cote * portee))), (0.0, P["seuil"]), (-A.nu, A.nu), PIERRE)
+        gond = A.R.point(axe + cote * (portee - jeu), 0, -V["epaisseur"] / 2)
+        repere = Repere(gond, -DEHORS, -cote * X) if ouverte else Repere(gond, -cote * X, DEHORS)
+        vantail(m, repere, portee - 1.5 * jeu, (P["seuil"] + jeu, P["porche"]["naissance"] - jeu), V,
+                lambda a: intrados(axe + cote * (portee - jeu - a)) - jeu)
+    return batir
+
+
 def fenetre(close):
     """La fenêtre : sa baie entre un appui saillant et un linteau, sa croisée, ses volets rabattus sur le dehors ou
     `close`, fermés devant elle."""
@@ -64,7 +80,10 @@ def breche(D, m, alea):
 
 
 BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True), "fenetre": fenetre(False),
-         "fenetre-close": fenetre(True), "breche": breche}
+         "fenetre-close": fenetre(True), "breche": breche,
+         **{noeud(piece, position): portail(ouverte, cote)
+            for piece, ouverte in (("porte-fermee", False), ("porte-ouverte", True))
+            for position, cote in ((GAUCHE, -1), (DROITE, 1))}}
 
 
 def elements(D):

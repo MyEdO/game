@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { strToU8, zipSync } from 'fflate'
 import {
   BORNE_ABSENTE_MIN, BORNE_ATTENTE_MIN, CODES_DE_CI, CODE_PANNE, attendreLaCi, executer, echecsDeLaCourse, ligneDeCi, lignesDuRouge, optionsDe, shaPousse, urlDeCourse,
 } from './ci.mjs'
@@ -120,7 +121,7 @@ test('lignesDuRouge : par job ROUGE, son étape, ses lignes d’échec, le compt
     '    (+4 autres tests en échec)',
     '  docs — Run npm run docs:build :',
     '    docs:build — scripts/docs/check-doc-refs.mjs — sortie 1',
-    '  types : absent du journal en échec (`gh run view --log-failed`)',
+    '  types : absent du journal en échec de la tentative',
   ])
 })
 
@@ -146,15 +147,31 @@ test('shaPousse : le sha poussé ; refus NOMMÉS pour une branche hors `push.bra
   }
 })
 
-test('echecsDeLaCourse : les jobs rouges (`gh run view --json jobs`) croisés avec le journal en échec (`--log-failed`)', () => {
+test('echecsDeLaCourse : les jobs et le journal en échec lisent le même essai, résolu une fois au besoin', () => {
   const vus = []
+  const jobs = [{ name: 'suite', conclusion: 'failure', steps: [{ name: 'Tests', number: 1, conclusion: 'failure' }] }, { name: 'types', conclusion: 'success', steps: [] }]
+  const archive = Buffer.from(zipSync({ '0_suite.txt': strToU8('2026-09-27T19:36:55.3049126Z not ok 1170 - un nom CITÉ À PLAT\n') }))
   const spawn = (cmd, args) => {
     vus.push([cmd, ...args].join(' '))
-    if (args.includes('--json')) return { status: 0, stderr: '', stdout: JSON.stringify({ jobs: [{ name: 'suite', conclusion: 'failure' }, { name: 'types', conclusion: 'success' }] }) }
-    return { status: 0, stderr: '', stdout: 'suite\tUNKNOWN STEP\t2026-09-27T19:36:55.3049126Z not ok 1170 - un nom CITÉ À PLAT\n' }
+    if (args[1].endsWith('/runs/9')) return { status: 0, stderr: '', stdout: '{"id":9,"run_attempt":2}' }
+    if (args.includes('--json')) return { status: 0, stderr: '', stdout: JSON.stringify({ status: 'completed', jobs }) }
+    return { status: 0, stderr: '', stdout: archive }
   }
-  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn }), { disponible: true, valeur: { rouges: ['suite'], annules: [], motif: null, lignes: ['  suite :', '    not ok 1170 - un nom CITÉ À PLAT'] } })
-  assert.deepEqual(vus, ['gh run view 9 --json jobs', 'gh run view 9 --log-failed'])
+  const attendu = { disponible: true, valeur: { rouges: ['suite'], annules: [], motif: null, lignes: ['  suite :', '    not ok 1170 - un nom CITÉ À PLAT'] } }
+  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn }), attendu)
+  assert.deepEqual(vus, [
+    'gh api repos/MyEdO/game/actions/runs/9',
+    'gh run view 9 --attempt 2 --json jobs',
+    'gh run view 9 --attempt 2 --json jobs,startedAt,status',
+    'gh api repos/MyEdO/game/actions/runs/9/attempts/2/logs',
+  ])
+  vus.length = 0
+  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 9, attempt: 3, spawn }), attendu)
+  assert.deepEqual(vus, [
+    'gh run view 9 --attempt 3 --json jobs',
+    'gh run view 9 --attempt 3 --json jobs,startedAt,status',
+    'gh api repos/MyEdO/game/actions/runs/9/attempts/3/logs',
+  ])
   assert.equal(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn: () => ({ status: 1, stdout: '', stderr: 'x' }) }).disponible, false)
 })
 
@@ -162,6 +179,8 @@ test('echecsDeLaCourse : une course SANS job rouge nomme ses jobs annulés et le
   const vus = []
   const motif = 'The job was not acquired by Runner of type hosted even after multiple attempts'
   const jobs = (liste) => (cmd, args) => {
+    const course = /^repos\/MyEdO\/game\/actions\/runs\/(\d+)$/.exec(args[1])
+    if (course) return { status: 0, stderr: '', stdout: JSON.stringify({ id: Number(course[1]), run_attempt: 1 }) }
     vus.push(args.at(-1))
     return { status: 0, stderr: '', stdout: JSON.stringify(args[0] === 'api' ? [{ annotation_level: 'failure', message: motif }] : { jobs: liste }) }
   }

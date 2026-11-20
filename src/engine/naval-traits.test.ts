@@ -22,6 +22,7 @@ import { resolveCollision } from './collision';
 import { installCost } from './shipBuild';
 import { findVehicleById, findNavalTrait, findCrewTestTypeById, NAVAL_TRAITS } from '../data';
 import type { Combatant } from './types';
+import { schema as schemaDesTraitsNavals } from '../data/schemas/defs/naval-traits';
 
 /**
  * EFFETS des Traits & Améliorations de navire (MDG 12) — DATA-DRIVEN : les valeurs vivent dans le catalogue
@@ -215,21 +216,36 @@ describe('Améliorations MSRC 12 (Personnalisation) — MÊME canal que MDG, ent
   it('Murs blindés → deckCover totale (comme Sabord) sur le canal navalDeckCover', () => {
     expect(navalDeckCover([{ id: 'murs-blindes' }])).toBe('totale');
   });
-  it('coût d’installation posé sur des PALIERS DE LONGUEUR (#277 — canal installCost EXISTANT) — pas de duplication d’un chantier', () => {
-    // Grande barge (~25 m, bande ouverte) : Bouteur 120 CO / 95 Enc ; Murs blindés 300 CO / 160 Enc (MSRC 12 l.62/64, l.80/82).
+  it('une coque hors des cinq types de MSRC 12 conserve le barème de longueur', () => {
     const bouteur = findNavalTrait('bouteur')!.install!;
     const murs = findNavalTrait('murs-blindes')!.install!;
-    expect(installCost(bouteur, 25)).toEqual({ gold: 120, enc: 95 });
-    expect(installCost(murs, 25)).toEqual({ gold: 300, enc: 160 });
+    const coque = findVehicleById('cogue')!;
+    const gabarit = { id: coque.id, ship: coque.ship! };
+    expect(installCost(bouteur, gabarit)).toEqual({ gold: 120, enc: 95 });
+    expect(installCost(murs, gabarit)).toEqual({ gold: 300, enc: 160 });
   });
-  it('barque (5 m) vs esquif de pêche (10 m) : MÊME `ShipSize` « minuscule », tarifs DIFFÉRENTS (#277, MSRC 12 l.62/64)', () => {
-    // Le RAW tarife par TYPE de navire à longueurs explicites, pas par bande de Taille — la Taille aurait
-    // confondu les deux (10 m ≤ borne « minuscule » = 10 m, cf. shipSizeOfLength).
-    const bouteur = findNavalTrait('bouteur')!.install!;
-    expect(installCost(bouteur, 5)).toEqual({ gold: 8, enc: 5 }); // barque
-    expect(installCost(bouteur, 10)).toEqual({ gold: 30, enc: 35 }); // esquif de pêche
+
+  it('un type de bateau est unique dans chaque barème', () => {
+    const bouteur = findNavalTrait('bouteur')!;
+    const barque = { maxLengthM: 5, value: 8, vehicules: ['barque-fluviale'] };
+    const esquif = { maxLengthM: 10, value: 30, vehicules: ['esquif'] };
+    const barqueDejaCitee = { ...esquif, vehicules: ['barque-fluviale'] };
+    const installation = (bandes: typeof barque[]) => ({
+      ...bouteur,
+      install: { installation: { bands: bandes }, weightEnc: { bands: [barque] } },
+    });
+
+    expect(schemaDesTraitsNavals.safeParse([installation([barque, esquif])]).success).toBe(true);
+    expect(schemaDesTraitsNavals.safeParse([installation([barque, barqueDejaCitee])])).toMatchObject({
+      success: false,
+      error: { issues: [{
+        path: [0, 'install', 'installation', 'bands', 1, 'vehicules', 0],
+        message: 'Type de bateau « barque-fluviale » répété dans ce barème',
+      }] },
+    });
   });
-  it('les 4 paliers RAW des 6 Améliorations MSRC 12 (barque/esquif/moyenne+patrouille/grande barge)', () => {
+
+  it('les six tarifs de MSRC 12 indexent les cinq types de bateaux', () => {
     const cases: [string, [number, number][]][] = [
       ['safran', [[5, 5], [25, 20], [50, 40], [120, 80]]], // l.54/56
       ['bouteur', [[8, 5], [30, 35], [60, 55], [120, 95]]], // l.62/64
@@ -238,11 +254,19 @@ describe('Améliorations MSRC 12 (Personnalisation) — MÊME canal que MDG, ent
       ['allegement', [[20, -10], [50, -15], [150, -45], [250, -80]]], // l.115/117
       ['greement-de-course', [[8, 5], [30, 15], [60, 25], [120, 50]]], // l.133/135
     ];
-    const lengths = [5, 10, 20, 30]; // barque / esquif / barge moyenne / grande barge (bande ouverte)
-    for (const [id, tiers] of cases) {
+    const typesParTarif = [
+      ['barque-fluviale'],
+      ['esquif'],
+      ['barge-fluviale', 'bateau-de-patrouille'],
+      ['grande-barge'],
+    ];
+    for (const [id, tarifs] of cases) {
       const install = findNavalTrait(id)!.install!;
-      tiers.forEach(([gold, enc], i) => {
-        expect(installCost(install, lengths[i])).toEqual({ gold, enc });
+      tarifs.forEach(([gold, enc], i) => {
+        for (const vehicleId of typesParTarif[i]) {
+          const coque = findVehicleById(vehicleId)!;
+          expect(installCost(install, { id: coque.id, ship: coque.ship! }), `${id} sur ${vehicleId}`).toEqual({ gold, enc });
+        }
       });
     }
   });
@@ -305,6 +329,13 @@ describe('Nouvelles Améliorations MSRC 12 — résolvent au catalogue + coût d
     // per:'10m' → ×ceil(20/10)=2 (MSRC 12 l.23/25) ; bande unique (uniforme, aucun palier de longueur).
     expect(installCost(findNavalTrait('coque-de-course')!.install!, 20)).toEqual({ gold: 440, enc: -100 });
   });
+  it('Coque de course : l’Esquif est tarifé sur ses 10 m fluviaux (MSRC 12 l.23-25 ; MSRC 07 l.175)', () => {
+    const esquif = findVehicleById('esquif')!;
+    const install = findNavalTrait('coque-de-course')!.install!;
+    expect(esquif.ship?.lengthM).toBe(15);
+    expect(installCost(install, { id: esquif.id, ship: esquif.ship! })).toEqual({ gold: 220, enc: -50 });
+  });
+
   it('Fourquines : coût à l’unité (MSRC « 1 CO la pièce, +1 Enc ») — 3 pièces → 3 CO / 3 Enc', () => {
     expect(installCost(findNavalTrait('fourquines')!.install!, 15, 3)).toEqual({ gold: 3, enc: 3 });
   });

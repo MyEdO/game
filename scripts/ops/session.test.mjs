@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { EventEmitter, once } from 'node:events'
 import { Readable } from 'node:stream'
 import { spawnSync, spawn } from 'node:child_process'
@@ -41,6 +41,9 @@ import {
   outilsSession,
   attendreSuivi,
 } from './session.mjs'
+import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { BORNE_D_APPEL_MS } from '../hooks/appel-borne-guard.mjs'
+import { BORNE_DE_SONDE_S } from './sonde.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { finDeTour } from '../hooks/fin-de-tour.mjs'
 import { ajouterTransition, lireTransitions } from './session-transitions.mjs'
@@ -817,6 +820,154 @@ test('lanceur injecté : Codex sans fichier de profil, capacité une fois, boots
   assert.equal(r.etat, 'vivante')
   assert.throws(() => readFileSync(join(b.dossier, `${r.sessionId}.bootstrap`)), /ENOENT/)
   assert.throws(() => optionsSession(['fermer', '2461', '--jeton', 'secret']), /OPTION REFUSÉE/)
+})
+
+async function handleLancement(t, argv, broker, cwd) {
+  let suivi, enfant
+  const statut = await commandeSession(['lancer', ...argv, '--detache'], {
+    cwd, stdout: { write: (s) => { suivi = JSON.parse(s) } },
+    lancer: () => assert.fail('travail de lancement dans le parent'),
+    detacher: (appel) => {
+      enfant = appel
+      t.after(() => rmSync(appel.args[1], { recursive: true, force: true }))
+      return broker ? broker(appel) : 123
+    },
+  })
+  assert.equal(statut, 0)
+  assert.equal(enfant.fdLog, 'ignore')
+  assert.equal(suivi.etat, 'detache')
+  return { suivi, enfant }
+}
+
+for (const [agent, fenetre, journalBloque] of [['codex', 340_000, false], ['claude', 355_000, false], ['codex', 340_000, true]]) {
+  test(`#3176 — ${agent} : reçu après 270 s, fermeture par la capacité publiée avant WT (journal ${journalBloque ? 'bloqué' : 'lisible'})`, async (t) => {
+    let reprise, recu, cheminRecu
+    const b = banc(t, { auSommeil: (sessions, vivants) => {
+      if (recu) {
+        b.avance(280_000)
+        writeFileSync(cheminRecu, JSON.stringify({ ...recu, date: new Date(Date.parse(recu.date) + 280_000).toISOString() }))
+        recu = undefined
+      } else {
+        sessions.sortie(reprise.sessionId, { codeAgent: 0, arret: true })
+        vivants.delete(10); vivants.delete(30)
+      }
+    } })
+    const argv = ['--nom', 'lot', '--agent', agent, '--consigne', '42.md', '--json', '--executable', b.fichiers[agent], '--profil-wt', 'PS', '--worktree', '.']
+    const { suivi, enfant } = await handleLancement(t, argv, undefined, b.dossier)
+    assert.deepEqual(enfant.args.slice(2), ['lancer', ...argv])
+    assert.equal(enfant.cwd, b.dossier)
+    assert.equal(existsSync(suivi.code), false)
+    writeFileSync(join(b.dossier, '42.md'), 'consigne')
+    if (journalBloque) mkdirSync(suivi.log)
+    const lancement = commandeSession(enfant.args, { cwd: enfant.cwd, lancer: (options, gestes) => lancerSession(options, {
+      ...gestes, contexte: (worktree) => ({ worktree, gitCommun: b.dossier, branche: 'b', racine: b.dossier, head: 'a'.repeat(40) }),
+      natif: (_, executable) => executable, contrat: () => {}, terminal: ({ nom }) => ({ nom }), sessionsDe: () => b.sessions,
+      lancerWT: (_exe, args, parametres) => {
+        reprise = JSON.parse(readFileSync(suivi.reprise, 'utf8'))
+        assert.match(reprise.sessionId, /^[0-9a-f-]{36}$/)
+        assert.match(reprise.jeton, /^[0-9a-f]{64}$/)
+        assert.equal(reprise.transport, 'stdin'); assert.equal(reprise.action, 'fermer')
+        assert.ok(!JSON.stringify([args, parametres.env]).includes(reprise.jeton))
+        const carte = b.sessions.revendiquer(reprise.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) })
+        assert.equal(carte.demarrageJusqua - Date.parse(carte.date), fenetre)
+        cheminRecu = join(b.dossier, `${reprise.sessionId}.sessionstart`)
+        recu = JSON.parse(readFileSync(cheminRecu, 'utf8')); rmSync(cheminRecu)
+        return { status: 0 }
+      },
+    }) })
+    if (journalBloque) {
+      await assert.rejects(lancement)
+      assert.equal(existsSync(suivi.code), false)
+      assert.equal(b.sessions.etat(reprise.sessionId).etat, 'vivante')
+    } else {
+      assert.equal(await lancement, 0, readFileSync(suivi.log, 'utf8'))
+      const verdict = JSON.parse(readFileSync(suivi.log, 'utf8'))
+      assert.equal(verdict.sessionId, reprise.sessionId); assert.equal(verdict.jeton, reprise.jeton)
+      assert.equal(verdict.etat, 'vivante'); assert.equal(readFileSync(suivi.code, 'utf8'), '0')
+      if (process.platform !== 'win32') assert.equal(fs.statSync(suivi.log).mode & 0o777, 0o600)
+    }
+    if (process.platform !== 'win32') {
+      assert.equal(fs.statSync(dirname(suivi.code)).mode & 0o777, 0o700)
+      assert.equal(fs.statSync(suivi.reprise).mode & 0o777, 0o600)
+    }
+    assert.equal(await commandeSession(['fermer', reprise.sessionId, '--json'], {
+      stdin: Readable.from([readFileSync(suivi.reprise)]), env: {}, contexte: () => ({ gitCommun: b.dossier }),
+      sessionsDe: () => b.sessions, stdout: { write: (s) => assert.equal(JSON.parse(s).etat, 'sortie') },
+    }), 0)
+    assert.equal(b.sessions.etat(reprise.sessionId).etat, 'fermee')
+  })
+}
+
+test('#3176 — erreur du broker avant ou après la revendication du lancement', async (t) => {
+  let argsTardifs, enCours
+  const erreur = new Error('broker indéterminé')
+  await assert.rejects(handleLancement(t, ['42.md'], (appel) => { argsTardifs = appel.args; throw erreur }), (e) => e === erreur)
+  assert.equal(await commandeSession(argsTardifs, { lancer: () => assert.fail('lancement annulé') }), 1)
+  const { suivi } = await handleLancement(t, ['42.md'], (appel) => {
+    enCours = commandeSession(appel.args, { lancer: () => { throw new Error('refus du contrôleur') } })
+    throw erreur
+  })
+  assert.equal(suivi.diagnostic, erreur.message)
+  assert.equal(await enCours, 1)
+  assert.equal(JSON.parse(readFileSync(suivi.log, 'utf8')).refus.raison, 'refus du contrôleur')
+  assert.equal(readFileSync(suivi.code, 'utf8'), '1')
+})
+
+test('#3176 — écriture de reprise refusée avant WT, écriture finale refusée après WT', async (t) => {
+  for (const fichier of ['reprise', 'log']) {
+    const b = banc(t)
+    const { suivi, enfant } = await handleLancement(t, ['42.md'], undefined, b.dossier)
+    writeFileSync(join(b.dossier, '42.md'), 'consigne')
+    mkdirSync(suivi[fichier])
+    let ouvert = 0
+    const fin = commandeSession(enfant.args, { cwd: b.dossier, lancer: (o, gestes) => lancerSession(o, {
+      ...gestes, contexte: (worktree) => ({ worktree, gitCommun: b.dossier, branche: 'b', racine: b.dossier, head: 'a'.repeat(40) }),
+      natif: () => b.fichiers.claude, contrat: () => {}, terminal: () => ({ nom: 'PS' }), sessionsDe: () => b.sessions,
+      lancerWT: () => { ouvert++; return { status: 1 } },
+    }) })
+    if (fichier === 'reprise') {
+      assert.equal(await fin, 1)
+      assert.equal(ouvert, 0)
+      assert.equal(readFileSync(suivi.code, 'utf8'), '1')
+    } else {
+      await assert.rejects(fin)
+      assert.equal(ouvert, 1)
+      assert.equal(existsSync(suivi.code), false)
+      const r = JSON.parse(readFileSync(suivi.reprise, 'utf8'))
+      assert.equal(b.sessions.etat(r.sessionId).etat, 'echec-reservation')
+    }
+    const [carte] = b.sessions.lister().cartes
+    assert.equal(carte.etat, 'echec-reservation')
+    assert.equal(existsSync(join(b.dossier, `${carte.sessionId}.bootstrap`)), false)
+  }
+})
+
+test('#3176 — le budget du parent Windows se limite au broker CIM, chaque sonde tient dans un appel', async (t) => {
+  let timeoutMs
+  await handleLancement(t, ['42.md'], (appel) => lancerDetache({
+    ...appel, plateforme: 'win32', executerSync: (_exe, _args, options) => {
+      timeoutMs = options.timeout
+      return { status: 0, stdout: '{"ReturnValue":0,"ProcessId":42}' }
+    },
+  }))
+  assert.equal(timeoutMs, 10_000)
+  assert.ok(timeoutMs < BORNE_D_APPEL_MS && BORNE_DE_SONDE_S * 1000 < BORNE_D_APPEL_MS)
+})
+
+test('#3176 — CLI détachée réelle : sonde du handle depuis un cwd extérieur au dépôt', (t) => {
+  const cwd = mkdtempSync(join(tmpdir(), "hors dépôt d'ops $variable-"))
+  t.after(() => rmSync(cwd, { recursive: true, force: true }))
+  const env = { ...process.env, TMPDIR: cwd, TMP: cwd, TEMP: cwd }
+  const cli = spawnSync(process.execPath, [join(racineScripts, 'scripts/ops/session.mjs'), 'lancer', '42.md', '--worktree', join(cwd, 'absent'), '--detache', '--json'], { cwd, env, encoding: 'utf8', timeout: 20_000 })
+  assert.equal(cli.status, 0, cli.stderr)
+  const suivi = JSON.parse(cli.stdout)
+  const windows = process.platform === 'win32'
+  const sonde = spawnSync(windows ? 'powershell.exe' : 'sh', [
+    ...(windows ? ['-NoProfile', '-Command'] : ['-c']), (windows ? suivi.sondePowerShell : suivi.sonde) + ' --borne 15' + (windows ? '; exit $LASTEXITCODE' : ''),
+  ], { cwd, env, encoding: 'utf8', timeout: 20_000 })
+  assert.equal(sonde.status, 1, sonde.stderr)
+  assert.match(sonde.stdout, /WORKTREE ABSENT/)
+  assert.equal(existsSync(suivi.reprise), false)
 })
 
 test('fermer attend cleanup du host ; crash contrôleur avec agent vivant donne orpheline et refuse arrêt', async (t) => {

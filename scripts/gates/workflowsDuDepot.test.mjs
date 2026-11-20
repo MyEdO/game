@@ -239,9 +239,13 @@ test('un workflow déclaré mais ABSENT du disque fait rougir la garde', () => {
 
 test('la PORTE est celle que `coursesCi` consulte — mesuré sur les args réellement passés à `gh`', () => {
   let vus = null
-  coursesCi({ commit: 'a'.repeat(40), spawn: (cmd, args) => { vus = args; return { status: 0, stdout: '[]', stderr: '' } } })
-  const consulte = vus[vus.indexOf('--workflow') + 1]
-  assert.ok(vus.includes('--workflow'), `coursesCi ne filtre aucun workflow : ${vus.join(' ')}`)
+  coursesCi({ commit: 'a'.repeat(40), spawn: (cmd, args) => {
+    vus = [cmd, ...args]
+    return { status: 0, stdout: '{"total_count":0,"workflow_runs":[]}', stderr: '' }
+  } })
+  const [cmd, api, chemin] = vus
+  assert.deepEqual([cmd, api], ['gh', 'api'])
+  const consulte = /\/actions\/workflows\/([^/]+)\/runs\?/.exec(chemin)?.[1]
   assert.equal(consulte, PORTE, 'la porte au push consulte un autre workflow que PORTE')
   assert.equal(WORKFLOWS[consulte]?.etat, 'porte', `${consulte} n’est pas déclaré « porte » au registre`)
 })

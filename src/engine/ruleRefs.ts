@@ -91,6 +91,7 @@ export type RuleId =
   | 'meteo-maritime'
   | 'echouer-en-mer'
   | 'navigation-echouage'
+  | 'lieu-de-l-entretien-du-navire'
   /** Métier (Charpentier) au lieu de Métier (Constructeur de navires) pour réparer un navire (`MDG 13 l.641`). */
   | 'reparer-les-navires';
 
@@ -123,6 +124,7 @@ export const RANGEES_DE_REGLE = {
   'equipe-incomplete-machine-de-guerre': ['equipe-incomplete'],
   avantage: ['par-point'],
   'allure-forcee-attelage': ['par-km'],
+  'lieu-de-l-entretien-du-navire': ['en-mer', 'chantier-specialise'],
 } as const satisfies Partial<Record<RuleId & IdsParEspace['regles.json'], readonly string[]>>;
 
 export type RegleChiffree = keyof typeof RANGEES_DE_REGLE;

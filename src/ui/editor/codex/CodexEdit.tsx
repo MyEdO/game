@@ -14,12 +14,15 @@ import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import {
   metaPourFichier,
   chargeDiscriminee,
+  champDeProvenanceEcarte,
+  valeurDeProvenanceAuBrouillon,
   brouillonNeuf,
   noeudDuChamp,
   noeudObjet,
   noeudDeLEntree,
   RangeeSansNoeud,
   rapportDeFautes,
+  type ChargeDiscriminee,
 } from '../../../data/schemas/validate';
 import { enfantsDe, ouverts } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
@@ -535,14 +538,20 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const typeFige = !!metaPourFichier(src.file);
   const fields = useMemo(() => {
     const handled = dedicatedFieldKeys(categoryKey);
+    const provenanceEcartee = champDeProvenanceEcarte(src.file, entry);
     return allFields
       // Un champ DÉRIVÉ de l'entrée ÉDITÉE ne s'offre pas à la saisie (`estDerive`, `editFields.ts`) :
       // le filtre est sur `entry`, pas sur l'échantillon du dataset — une entrée à la prose ADRESSÉE
       // n'expose pas son `desc` matérialisé, sa voisine à prose inline garde le sien.
-      .filter((f) => !handled.has(f.key) && !estDerive(entry, f.key) && (!charge || f.key === charge.champ || charge.duCas.includes(f.key) || !charge.toutes.includes(f.key)))
+      .filter((f) => f.key !== provenanceEcartee && !handled.has(f.key) && !estDerive(entry, f.key))
+      .filter((f) => champAdmisParLaCharge(f.key, charge))
       .map((f) => (typeFige && f.key === 'type' ? { ...f, fige: true } : f));
-  }, [allFields, categoryKey, charge, entry, typeFige]);
-  const edit = (key: string, v: unknown) => { setEntry((e) => ({ ...e, [key]: v })); setDirty(true); setSchemaError(null); };
+  }, [allFields, categoryKey, charge, entry, src.file, typeFige]);
+  const edit = (key: string, v: unknown) => {
+    setEntry((e) => ({ ...e, [key]: valeurDeProvenanceAuBrouillon(src.file, key, v) }));
+    setDirty(true);
+    setSchemaError(null);
+  };
   // Erreurs BLOQUANTES avant persist (identité + refs résolvables) — pas de validation des
   // datasets-objet (`details`, fiches de règle : pas d'identité par entrée).
   const errors = useMemo(() => (obj ? [] : validateEntry(categoryKey, entry, src.entries, src.index)), [obj, categoryKey, entry, src]);
@@ -556,7 +565,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
     const cfg = refFieldCfg(categoryKey, f.key);
     return cfg
       ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
-      : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
+      : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)}
+          chargeDesRangees={f.key === 'variants' ? charge : undefined} />;
   };
 
   const save = async () => {
@@ -1737,10 +1747,21 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
   );
 }
 
+function champAdmisParLaCharge(cle: string, charge: ChargeDiscriminee | undefined): boolean {
+  return !charge || cle === charge.champ || charge.duCas.includes(cle) || !charge.toutes.includes(cle);
+}
+
 /** Rendu d'un champ ; une liste de références passe par le mode liste de `RefField` (`cfgDeLaListe`). `sujet` = sa
  *  POSITION dans un conteneur (« de la rangée 2 de windModifiers »), qui complète ses noms accessibles :
  *  deux champs de même libellé, dans deux rangées, ne se confondent pas. */
-function Field({ chemin, sujet, field, value, onChange }: { chemin: string; sujet?: string; field: FieldDesc; value: unknown; onChange: (v: unknown) => void }) {
+function Field({ chemin, sujet, field, value, onChange, chargeDesRangees }: {
+  chemin: string;
+  sujet?: string;
+  field: FieldDesc;
+  value: unknown;
+  onChange: (v: unknown) => void;
+  chargeDesRangees?: ChargeDiscriminee;
+}) {
   const { kind, label } = field;
   const nom = sujet ? `${label} ${sujet}` : label;
   const nomPositionne = sujet ? nom : undefined;
@@ -1831,8 +1852,13 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
     // (champ optionnel non renseigné sur cette entrée : `GenericArrayField` démarre vide, « + Ajouter »
     // fonctionnel) quand son nœud admet une liste. `JsonField` reste le filet d'une forme hors gabarit
     // (tableau de tableaux, nœud sans contrôle typé).
-    if (offreDesRangees(field, value))
-      return <GenericArrayField chemin={chemin} sujet={sujet} label={label} value={value as Record<string, unknown>[] | undefined} noeud={field.noeud} onChange={onChange as (v: Record<string, unknown>[]) => void} />;
+    if (offreDesRangees(field, value)) {
+      const rangees = value as Record<string, unknown>[] | undefined;
+      const columns = chargeDesRangees && inferFields(rangees ?? [], { niveau: 'profondeur', noeud: noeudObjet(field.noeud) })
+        .filter((f) => champAdmisParLaCharge(f.key, chargeDesRangees));
+      return <GenericArrayField chemin={chemin} sujet={sujet} label={label} value={rangees} noeud={field.noeud}
+        columns={columns} onChange={onChange as (v: Record<string, unknown>[]) => void} />;
+    }
     return <JsonField label={label} sujet={sujet} value={value} onChange={onChange} />;
   }
   // `fige` : valeur POSÉE par le def — affichée, jamais saisie (un champ ouvert à la frappe dont une
@@ -2015,8 +2041,8 @@ function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, colum
   // Colonnes de PROFONDEUR : même régime que `ObjectField`, nommées par le nœud de rangée.
   const objet = useMemo(() => noeudObjet(noeud), [noeud]);
   const cfgSpec = cfgDuNoeudASpec(objet);
-  const selfCols = useMemo(() => inferFields(list, { niveau: 'profondeur', noeud: objet }), [list, objet]);
-  const cols = horsDeLaRef(columns ?? selfCols, cfgSpec !== undefined);
+  const colonnes = useMemo(() => columns ?? inferFields(value ?? [], { niveau: 'profondeur', noeud: objet }), [columns, value, objet]);
+  const cols = horsDeLaRef(colonnes, cfgSpec !== undefined);
   const nestedCols = useMemo(() => {
     const map = new Map<string, FieldDesc[]>();
     for (const f of cols) {

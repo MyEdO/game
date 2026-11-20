@@ -1,7 +1,7 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from './policy';
-import { statusCharmMod, statusCharmLabel, decalerLeStatut, tirerLaReactionAuStatut } from './social';
+import { ligneDeStatut, decalerLeStatut, tirerLaReactionAuStatut } from './social';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 import type { Status } from './money';
 import { createHero } from './character';
@@ -10,6 +10,10 @@ import { desDuTest, deSelonLaPlage, desEnSuite } from './dice.testkit';
 import { conditionCtx, evalCondition } from './flowCore';
 
 const S = (tier: Status['tier'], standing: number): Status => ({ tier, standing });
+const statusCharmMod = (actor: Status, target: Status, options?: Parameters<typeof ligneDeStatut>[3]) =>
+  ligneDeStatut('charme', actor, target, options)?.value ?? 0;
+const statusCharmLabel = (actor: Status, target: Status, options?: Parameters<typeof ligneDeStatut>[3]) =>
+  ligneDeStatut('charme', actor, target, options)?.label;
 
 
 afterEach(() => {
@@ -34,7 +38,7 @@ describe('statusCharmMod — inter-Échelon (RAW de base, LDB 08 l.57)', () => {
   });
 });
 
-describe('statusCharmMod — intra-Échelon (option social-statut-meme-echelon, l.88)', () => {
+describe('statusCharmMod — intra-Échelon (option social-statut-meme-echelon, l.57)', () => {
   it('gaté par la règle : sans elle, 0', () => {
     expect(statusCharmMod(S('argent', 5), S('argent', 1))).toBe(0);
   });
@@ -50,7 +54,7 @@ describe('statusCharmMod — intra-Échelon (option social-statut-meme-echelon, 
   });
 });
 
-describe('statusCharmMod — mendicité (option social-mendicite-statut, l.92)', () => {
+describe('statusCharmMod — mendicité (option social-mendicite-statut, l.63)', () => {
   it('Bronze → Argent + begging : +10 au lieu de −10', () => {
     setRule('social-mendicite-statut', true);
     expect(statusCharmMod(S('bronze', 2), S('argent', 1), { begging: true })).toBe(10);
@@ -101,7 +105,31 @@ describe('statusCharmMod — issue de la Réaction au Statut (option social-reac
     expect(statusCharmMod(S('bronze', 1), S('or', 1), { reaction: 'opinions-extremes' })).toBe(10);
   });
   it('enveloppe aussi un mod de 0 (rien à inverser)', () => {
-    expect(statusCharmMod(S('argent', 3), S('argent', 1), { reaction: 'opinions-extremes' })).toBe(-0);
+    expect(statusCharmMod(S('argent', 3), S('argent', 1), { reaction: 'opinions-extremes' })).toBe(0);
+  });
+});
+
+describe('Statut par Compétence (LDB 08 l.73,77,83)', () => {
+  it.each([
+    ['commandement', S('or', 1), S('bronze', 4), 20],
+    ['commandement', S('argent', 1), S('bronze', 4), 10],
+    ['commandement', S('bronze', 2), S('argent', 1), 0],
+    ['commandement', S('argent', 2), S('argent', 1), 0],
+    ['ragot', S('or', 1), S('bronze', 4), -10],
+    ['ragot', S('bronze', 4), S('or', 1), -10],
+    ['ragot', S('argent', 4), S('argent', 1), 0],
+    ['intimidation', S('argent', 2), S('argent', 1), 10],
+    ['intimidation', S('argent', 1), S('argent', 1), 0],
+    ['intimidation', S('bronze', 2), S('argent', 1), 0],
+  ] as const)('%s, acteur %j, interlocuteur %j : %i', (competence, actor, target, attendu) => {
+    expect(ligneDeStatut(competence, actor, target)?.value ?? 0).toBe(attendu);
+  });
+
+  it('Charme suit l’inversion du Standing et ignore l’avis explicite', () => {
+    setRule('social-statut-meme-echelon', true);
+    const options = { reaction: 'opinions-extremes', avisSurLeStatut: 'favorable' } as const;
+    expect(ligneDeStatut('charme', S('argent', 3), S('argent', 2), options)?.value).toBe(-10);
+    expect(ligneDeStatut('charme', S('argent', 1), S('argent', 2), options)?.value).toBe(10);
   });
 });
 

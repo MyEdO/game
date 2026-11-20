@@ -17,4 +17,4 @@ export const CADRE: Pick<Editeur, 'projet' | 'documents' | 'gestes'> = {
 };
 
 /** La validation du projet, sans défaut. */
-export const VALIDATION = 'Validation : aucun défaut détecté. Contrôlé : réfs de logique (déclencheurs, dialogues, rencontres, entités, carte du monde), architecture (corps, étages, façades, toitures).';
+export const VALIDATION = 'Aucun défaut détecté. Contrôlé : réfs de logique (déclencheurs, dialogues, rencontres, entités, carte du monde), architecture (corps, étages, façades, toitures).';

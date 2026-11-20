@@ -39,6 +39,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const regler = useGame((s) => s.jetRegler);
   const setLocation = (v: ReglagesDuJet['attaque']['localisation']) => regler('attaque', 'localisation', v);
   const setWeapon = (v: ReglagesDuJet['attaque']['arme']) => regler('attaque', 'arme', v);
+  const setAtout = (v: ReglagesDuJet['attaque']['atoutOptionnel']) => regler('attaque', 'atoutOptionnel', v);
   const setDualMode = (v: ReglagesDuJet['attaque']['deuxArmes']) => regler('attaque', 'deuxArmes', v);
   const roll = useGesteDeJet('jetLancer', 'attaque');
   const reroll = useGesteDeJet('jetRelancer', 'attaque');
@@ -122,6 +123,14 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
               </select>
               <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </div>
+          )}
+          {vue.choixDAtout && (
+            <label className="rm-loc-inline">
+              <span className="mini-title">{vue.choixDAtout.libelle}</span>
+              <select className="rm-loc-select" value={vue.choixDAtout.choisie ?? ''} onChange={(e) => setAtout(e.target.value)}>
+                {vue.choixDAtout.options.map((o) => <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>)}
+              </select>
+            </label>
           )}
           {vue.localisation && (
             <div className="rm-loc-inline">

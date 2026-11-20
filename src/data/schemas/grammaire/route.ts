@@ -4,18 +4,23 @@ import { nommerChamps } from './meta';
  * les nœuds que les concepts du lexique des structures portent (`interne/poses.ts`, #3012). EDO 01 l.142 ; #2533.
  */
 import { z } from 'zod';
-import { maisonSchema, palierSchema, sourceRefSchema } from './valeurs';
+import { enumNomme, maisonSchema, ouReserve, palierSchema, sourceRefSchema } from './valeurs';
 import { refuserSansProvenance } from './document';
 import { marquerCollection, marqueDeRecord } from './collection-cle';
-import { ref, refs, type PorteeLocale } from './ref';
+import { idDe, ref, refs, type PorteeLocale } from './ref';
 
 /** Les lieux de la carte, que désignent les extrémités d'une route et le départ d'un billet. */
 export const LIEUX_DE_LA_CARTE = { collection: 'places', catalogue: 'lieux de la carte' } as const satisfies PorteeLocale;
 /** Les routes de la carte, que désigne la suite d'un billet. */
 export const ROUTES_DE_LA_CARTE = { collection: 'routes', catalogue: 'routes de la carte' } as const satisfies PorteeLocale;
 
+export const modesDeVoyageReservesSchema = enumNomme({ pied: 'À pied', monture: 'En selle', mer: 'En mer' });
+
+/** Le catalogue vivant peut recevoir de nouveaux véhicules en cours de session. */
+export const travelModeSchema = ouReserve(idDe('vehicle', undefined, { nue: true }), modesDeVoyageReservesSchema);
+
 /** Prix d'un passage par classe du véhicule (`vehicles.json` `travel.classes[].id`), en sous par passager. */
-const prixParClasseSchema = marquerCollection(z.record(z.string(), z.number().int().min(0)), marqueDeRecord());
+const prixParClasseSchema = marquerCollection(z.partialRecord(z.string(), z.number().int().min(0)), marqueDeRecord());
 
 /** `PalierDeBillet` (`engine/travel.ts`) — prix d'un billet marchandé, palier (`palierSchema`) de DR net gagné. */
 export const palierDeBilletSchema = nommerChamps(z.strictObject({

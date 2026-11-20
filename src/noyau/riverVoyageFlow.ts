@@ -24,11 +24,15 @@
 import type { IconId } from '../data/icons';
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
-import { minutesUntilNext, duskMinute } from '../engine/clock';
+import { minutesUntilNext, duskMinute, MINUTES_PER_DAY } from '../engine/clock';
 import { effectTargets, openWaterExposure } from './combatEffects';
 import { ouvrirLeRepos, placesOfKind, routeLieu } from './restFlow';
 import { placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { arriverAuLieu } from './lieuFlow';
+import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
+import { bandesDeContagion } from './contagion';
+import { calculerLesTestsDExposition } from './expositionAMaladie';
+import { porteursABord } from './shipCrew';
 import {
   damageVesselHull,
   healVesselHull,
@@ -43,7 +47,7 @@ import { rule } from '../engine/policy';
 import { baseHoursPerDay } from './travelFlow';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
-import { travelSpeed, type TravelMode } from '../engine/travel';
+import type { TravelMode } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
 import { propulsionDuNavire, type PropulsionDuNavire } from '../engine/shipBuild';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
@@ -68,7 +72,7 @@ import {
   CAPSIZE, TEMPORARY_REPAIR, riverForceLabel,
 } from '../engine/riverNavigation';
 import type { RiverWindDirId } from '../data/schemas/defs/river-navigation';
-import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTY_LABELS, type Combatant, type Difficulty, type VehicleData } from '../engine/types';
 import { jouerLaJournee, type CascadeApplier } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import {
@@ -88,7 +92,7 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { actorIn, equipageApte } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
-import type { CascadeStep, CascadeStepMeta } from './pendings';
+import { WORLD_STEP_OWNER, type CascadeStep, type CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
@@ -144,10 +148,8 @@ export interface RiverVoyageState {
   /** Facteur de progression du jour EN COURS (déblaiement d'un barrage, MSRC 7 l.128), posé par l'applier
    *  `fleuveChoixDObstacle`, lu à la clôture pour les km — transitoire comme `day`. Défaut 1. */
   dayAgilityFactor?: number;
-  /** Progression du jour FIGÉE pendant que la cascade d'Exposition hydrique (purpose `riverExposure`) est
-   *  ouverte : la halte de nuit / l'arrivée sont DIFFÉRÉES à sa clôture (`continueRiverDayAfterExposure`,
-   *  #344). Transitoire — jamais persisté au-delà d'une journée. */
-  pendingFinish?: { kmDay: number; dayLines: string[] };
+  /** Progression figée pendant le Test hydrique, puis récapitulatif de la journée pendant les Tests de Contraction. */
+  pendingFinish?: { kmDay: number; dayLines: string[] } | { recap: TravelRecapDay; journalMark: number };
 }
 
 /** Entrées de VITESSE d'une journée fluviale, figées au build de la cascade du jour (vent) et
@@ -172,22 +174,20 @@ const log = (get: Get, _set: Set, lines: string[]) => {
   if (lines.length) get().ecrireAuJournal(lines);
 };
 
-/** La COQUE de trajet fluviale : le navire de campagne si c'en est un, sinon le véhicule-bateau de la route
- *  (`vehicles.json`, facette `ship`+`hull`). Repart des Blessures persistées (#30) si c'est le navire de
- *  campagne. `null` si aucun bateau exploitable. */
-function riverHull(get: Get<Jeu>, route: MapRoute): { coque: Combatant } | null {
-  const boatMode = route.modes.find((m) => findVehicleById(m)?.ship && findVehicleById(m)?.hull);
-  const vessel = get().vessel;
-  const vId = vessel && findVehicleById(vessel.vehicleId)?.ship ? vessel.vehicleId : boatMode;
-  const v = vId ? findVehicleById(vId) : undefined;
-  if (!v?.ship || !v.hull) return null;
-  const coque = vehicleCombatant(v);
+/** Coque de campagne (Blessures persistées, #30) ou coque du mode choisi (MSRC 07 l.172-178). */
+function riverHull(vessel: Jeu['vessel'], ficheDeRoute: VehicleData): Combatant | null {
+  const ficheDeCampagne = vessel && findVehicleById(vessel.vehicleId);
+  const profilDeCampagne = ficheDeCampagne?.ship && ficheDeCampagne.hull ? ficheDeCampagne : undefined;
+  const navire = profilDeCampagne ? vessel : undefined;
+  const coque = vehicleCombatant(profilDeCampagne ?? ficheDeRoute, navire?.uid, 'fluvial');
   if (!coque) return null;
-  if (vessel && vessel.vehicleId === vId) {
-    coque.label = nomDuNavire(vessel); // #230
-    syncHullWoundsFromVessel(coque, vessel);
+  if (navire) {
+    lierLaCoqueDeCampagne(coque, navire);
+    coque.label = nomDuNavire(navire);
+    syncHullWoundsFromVessel(coque, navire);
+    coque.upgrades = navire.upgrades ? [...navire.upgrades] : undefined;
   }
-  return { coque };
+  return coque;
 }
 
 /** Un « batelier » : un PJ vivant qui a augmenté la `competence` de Navigation du bateau (MSRC 5 l.11-17),
@@ -202,28 +202,27 @@ function aAugmente(c: Combatant, competence: RefDesignee): boolean {
   return possesses(c, competence) && (c.skills ?? []).some((s) => refCouvre({ id: competence.id }, s) && s.advances > 0);
 }
 
-/** La coque d'une descente JOUABLE : un bateau et un batelier — `null` sinon (→ repli transport payant) ;
- *  un bateau à 0 Blessure navigue (MSRC 07 l.74, l.90). */
-function coqueJouable(get: Get<Jeu>, route: MapRoute): Combatant | null {
-  const hull = riverHull(get, route);
-  return hull && hasBatelier(get().party, riverNavSkill(hull.coque)) ? hull.coque : null;
+/** Coque de la descente jouable avec le pilote de sa Compétence (MSRC 07 l.11-17, l.74, l.90). */
+export function coqueDeDescente(s: Pick<Jeu, 'party' | 'vessel'>, route: MapRoute, mode: TravelMode): Combatant | null {
+  if (!route.river || !route.modes.includes(mode) || mode === 'pied' || mode === 'monture' || mode === 'mer') return null;
+  const fiche = findVehicleById(mode);
+  if (!fiche?.ship || !fiche.hull) return null;
+  const coque = riverHull(s.vessel, fiche);
+  return coque && hasBatelier(s.party, riverNavSkill(coque)) ? coque : null;
 }
 
-/** Le départ de `route` en `mode` est-il une descente fluviale JOUÉE (MSRC 7) : route `river`, véhicule
- *  bateau, coque jouable ? */
-export function descenteJouee(get: Get<Jeu>, route: MapRoute, mode: TravelMode): boolean {
-  return !!route.river && mode !== 'pied' && mode !== 'monture' && !!findVehicleById(mode)?.ship && !!coqueJouable(get, route);
+/** MSRC 07 l.172-178 ; LDB 51 l.178. */
+export function vitesseDeDescente(route: MapRoute, mode: TravelMode, coque: Combatant): number {
+  return route.speed?.[mode] ?? riverPropulsion(coque).m;
 }
 
-/** Construit le TravelPlan d'une DESCENTE fluviale (route `river`, mode barge) — `null` sans coque
- *  jouable (`coqueJouable`). PUR de RNG hormis le tirage du vent de départ. */
-export function buildRiverPlan(get: Get, routeId: string, fromPlaceId: string, toPlaceId: string, route: MapRoute, opts: { cadence?: VoyageCadence } = {}): TravelPlan | null {
-  const coque = coqueJouable(get, route);
+export function buildRiverPlan(get: Get, routeId: string, fromPlaceId: string, toPlaceId: string, route: MapRoute, mode: TravelMode, opts: { cadence?: VoyageCadence } = {}): TravelPlan | null {
+  const coque = coqueDeDescente(get(), route, mode);
   if (!coque) return null;
   const wind = rollRiverWind(battleRng());
   const orders: VoyageOrders = { cadence: opts.cadence ?? DEFAULT_VOYAGE_ORDERS.cadence };
   return {
-    routeId, fromPlaceId, toPlaceId, mode: 'barge', hoursPerDay: 24, km: route.km, kmDone: 0, interrupted: false,
+    routeId, fromPlaceId, toPlaceId, mode, hoursPerDay: 24, km: route.km, kmDone: 0, interrupted: false,
     orders,
     vehicle: coque,
     river: { windForce: wind.force, windDir: wind.dir, daysAfloat: 0 },
@@ -318,7 +317,7 @@ function riverNavSkill(hull: Combatant | undefined): RefDesignee {
   return riverPropulsion(hull).competence;
 }
 
-/** Propulsion FLUVIALE de la coque `hull` (MSRC 10 l.255). PUR. */
+/** Propulsion FLUVIALE de la coque `hull` (MSRC 12 l.255). PUR. */
 function riverPropulsion(hull: Combatant | undefined): PropulsionDuNavire {
   return garanti(propulsionDuNavire(hull?.creatureId, hull?.upgrades, 'fluvial'), hull?.creatureId, 'propulsion de l’embarcation');
 }
@@ -345,7 +344,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
     dir: t(river.windDir === 'arriere' ? 'fleuve.ventArriere' : river.windDir === 'cote' ? 'fleuve.ventDeCote' : 'fleuve.ventContraire'),
   }));
 
-  const baseKm = travelSpeed(get().party, get().possessions, plan.mode, route.speed?.[plan.mode]) * baseHoursPerDay(worldMap);
+  const baseKm = vitesseDeDescente(route, plan.mode, coque) * baseHoursPerDay(worldMap);
   const competence = riverNavSkill(coque);
   const pilot = riverPilot(get, competence);
 
@@ -517,19 +516,28 @@ function marqueExpositionDuJour(get: Get, set: Set): boolean {
   return true;
 }
 
-/** Reprise de la FIN du jour fluvial après la cascade d'Exposition hydrique (purpose `riverExposure`,
- *  posée par `continueRiverDayAfterCascade`) : la halte de nuit / l'arrivée, DIFFÉRÉES le temps du Test de
- *  Résistance. Rejoue `finishRiverDay` avec la progression du jour FIGÉE (`river.pendingFinish`). */
+/** Reprise après l'Exposition hydrique, puis après les Tests de Contraction si la journée en comporte. */
 export function continueRiverDayAfterExposure(get: Get, set: Set): void {
   const plan = get().travelPlan;
-  if (!plan?.river) return;
-  const fin = plan.river.pendingFinish;
+  const river = plan?.river;
+  const fin = river?.pendingFinish;
+  if (!plan || !river || !fin) return;
   const worldMap = get().worldMap as WorldMap;
   const route = worldMap?.routes.find((r) => r.id === plan.routeId);
   const to = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
-  set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, pendingFinish: undefined } } });
   if (!route || !to) { set({ travelPlan: null }); return; }
-  finishRiverDay(get, set, to, fin?.kmDay ?? 0, fin?.dayLines ?? []);
+  if ('kmDay' in fin) {
+    finishRiverDay(get, set, fin.kmDay, fin.dayLines);
+    return;
+  }
+
+  set({ travelPlan: { ...plan, river: { ...river, pendingFinish: undefined } } });
+  if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to); return; }
+
+  fin.recap.lines.push(...toRecapLines(get().journal.slice(fin.journalMark)));
+  // MDG 03 l.71
+  const places = { ...placesOfKind(route.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
+  ouvrirLeRepos(get, set, { places, lieu: routeLieu(worldMap, plan), travelHalt: true, travelDay: fin.recap });
 }
 
 /**
@@ -769,7 +777,7 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
 }
 
 /** S'ÉCHOUER (MSRC 7 l.97-99) : 12 Dégâts de coque, puis le Test de Force de renflouage. L'Enc PROPRE du
- *  bateau (`VehicleData.enc`) et celle de la CARGAISON des porteurs réels du groupe (`partyCargoTotalEnc`)
+ *  bateau (MSRC 07 l.172-182) et celle de la CARGAISON des porteurs réels du groupe (`partyCargoTotalEnc`)
  *  font la pénalité. */
 export function applyEchouage(get: Get, set: Set, tell: (l: string[]) => void): void {
   const coque = get().travelPlan!.vehicle!;
@@ -789,7 +797,8 @@ const ECHOUAGE_DIFFICULTY: Difficulty = 'intermediaire';
  *  IA/synchrone (`applyEchouage`) et l'étape-jet JOUEUR (`fleuveEchouageForce`, #270). */
 function echouagePenalty(get: Get): { penalite: ModLine | null; encTxt: string } {
   const coque = get().travelPlan!.vehicle!;
-  const boatEnc = findVehicleById(coque.creatureId ?? '')?.enc ?? 0;
+  const bateau = findVehicleById(coque.creatureId ?? '');
+  const boatEnc = bateau?.ship?.fluvialEnc ?? bateau?.enc ?? 0;
   const cargoEnc = partyCargoTotalEnc(get());
   const penalite = strandingPenaltyLine(boatEnc, cargoEnc, RULE_REF['navigation-echouage']);
   const encTxt: string = penalite ? t('fleuve.malusDEncombrement', { total: -penalite.value, boat: boatEnc, cargo: cargoEnc }) : '';
@@ -818,16 +827,14 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   return st ? [st] : [];
 }
 
-/** Fin de journée : horloge avancée (arrivée = +24 h ; halte = jusqu'au crépuscule), puis arrivée ou
- *  halte de nuit (la coque est déjà PERSISTÉE au coup par coup, `damageVesselHull`/`healVesselHull`,
- *  #296). L'entretien du jour se résout dans la cascade de nuit. */
-function finishRiverDay(get: Get, set: Set, to: MapPlace, kmDay: number, dayLines: string[]): void {
+/** LDB 20 l.206 ; MDG 14 l.208 */
+function finishRiverDay(get: Get, set: Set, kmDay: number, dayLines: string[]): void {
   const plan = get().travelPlan!;
   const river = plan.river!;
 
   // Naufrage : voyage perdu.
   if (river.sunk) {
-    get().avancerLHorloge(24 * 60);
+    get().avancerLHorloge(MINUTES_PER_DAY);
     set({ travelPlan: null });
     log(get, set, [t('fleuve.naufrage')]);
     return;
@@ -844,22 +851,28 @@ function finishRiverDay(get: Get, set: Set, to: MapPlace, kmDay: number, dayLine
   // UN SEUL franchissement de jour par cycle jour+nuit (comme le voyage terrestre).
   // L'ENTRETIEN n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans la
   // cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
-  get().avancerLHorloge(arrived ? 24 * 60 : minutesUntilNext(get().gameTime, duskMinute()));
+  const minutes = arrived ? MINUTES_PER_DAY : minutesUntilNext(get().gameTime, duskMinute());
+  const navireDeCampagne = estLeNavireDeCampagne(plan.vehicle, get().vessel);
+  const voyageurs = porteursABord(get, set).filter(({ id }) => navireDeCampagne || id !== WORLD_STEP_OWNER);
+  const dus = calculerLesTestsDExposition(get, set, minutes, [voyageurs]);
+  get().avancerLHorloge(minutes);
+  const recap: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(dayLines) };
   set({
     travelPlan: {
       ...get().travelPlan!, kmDone,
-      river: { ...river, windForce: nextForce, daysAfloat: river.daysAfloat + 1 },
+      river: {
+        ...river, windForce: nextForce, daysAfloat: river.daysAfloat + 1,
+        pendingFinish: { recap, journalMark: get().journal.length },
+      },
     },
   });
 
-  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(dayLines) };
-
-  if (arrived) { arriveRiver(get, set, to); return; }
-  const route = (get().worldMap as WorldMap)?.routes.find((r) => r.id === plan.routeId);
-  // Sur la rivière on peut mouiller le long de la berge : coucher À BORD (hamacs, MDG 03 l.71) offert
-  // en plus du campement/de l'auberge de la halte — la belle étoile sur la berge reste possible.
-  const places = { ...placesOfKind(route?.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
-  ouvrirLeRepos(get, set, { places, lieu: routeLieu(get().worldMap!, plan), travelHalt: true, travelDay: recapDay });
+  const steps = bandesDeContagion(get, set, dus);
+  if (steps.length) {
+    jouerLaJournee(get, set, steps, { title: t('fleuve.titreDeLaJournee'), purpose: 'riverExposure' }, traverseeCommandee(get()));
+  } else {
+    continueRiverDayAfterExposure(get, set);
+  }
 }
 
 /** `reparationTemporaireFluviale` du bateau de la route, tant qu'il flotte. MSRC 7 l.117 */

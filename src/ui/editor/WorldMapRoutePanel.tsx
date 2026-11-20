@@ -12,6 +12,7 @@ import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { Scene } from '../../noyau/monde/scene';
 import { type WorldMap, type MapRoute, type RouteBillet, placeById } from '../../noyau/worldMap';
+import { champ } from '../../noyau/edition/formulaire';
 import { peripetieNeuve, type PatchDeRoute } from '../../noyau/worldMapEdit';
 import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import type { VehicleData } from '../../engine/types';
@@ -87,10 +88,10 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
             </>
           )}
           <div className="mini-title">Modes de voyage</div>
-          {(['pied', ...travelVehicles().map((v) => v.id)] as TravelMode[]).map((mode) => (
+          {Object.entries(travelModeLabels()).map(([mode, label]) => (
             <label key={mode} className="ed-check">
               <input type="checkbox" checked={route.modes.includes(mode)} onChange={() => toggleMode(route.id, mode)} />
-              <Icon id={travelModeIcon(mode)} /> {travelModeLabels()[mode] ?? mode}
+              <Icon id={travelModeIcon(mode)} /> {label}
             </label>
           ))}
           {travelVehicles().filter((v) => route.modes.includes(v.id)).map((v) => (
@@ -100,12 +101,12 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
                 <NumberField
                   variant="nu" label={`${v.label} — Déplacement (km/h)`} min={1} placeholder={String(v.travel!.movement)}
                   vide value={route.speed?.[v.id]}
-                  onChange={(n) => updRoute(route.id, { speed: { ...route.speed, [v.id]: n ?? undefined } })}
+                  onChange={(n) => updRoute(route.id, { speed: champ(route.speed ?? {}, v.id, n ?? undefined) })}
                 />
               </label>
             </div>
           ))}
-          {Object.values(route.speed ?? {}).some((n) => n !== undefined) && (
+          {Object.keys(route.speed ?? {}).length > 0 && (
             <div className="ed-field"><ProvenanceDeValeur identite={`${route.id}/speed`} sujet="de la vitesse" value={route.provenances?.speed} onChange={(speed) => updRoute(route.id, { provenances: { ...route.provenances, speed } })} /></div>
           )}
           <label className="ed-field">Péripétie : seuil du d10 (vide = défaut carte ; 0 = désactivé)
@@ -248,13 +249,13 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
   const billet = route.billets?.[v];
   const couvreuse = routeQuiCouvre(map, route, v);
   const nomDe = (r: MapRoute) => `${nomDuLieu(map, r.a)} → ${nomDuLieu(map, r.b)}`;
-  const poser = (b: RouteBillet | undefined) => updRoute(route.id, { billets: { ...route.billets, [v]: b } });
+  const poser = (b: RouteBillet | undefined) => updRoute(route.id, { billets: champ(route.billets ?? {}, v, b) });
   const patch = (p: Partial<RouteBillet>) => poser({ ...billet!, ...p });
   const prixDe = (prix: RouteBillet['prix'], onPrix: (prix: RouteBillet['prix']) => void, sujet: string) => classes.map((c) => (
     <label key={c.id} className="ed-field">{vehicule.label} — {c.label} {sujet} (sous par place ; RAW : {c.brassPerKm} sou(s)/km)
       <NumberField
         variant="nu" label={`${vehicule.label} — ${c.label} ${sujet} (sous par place)`} min={0} vide value={prix[c.id]}
-        onChange={(n) => onPrix({ ...prix, [c.id]: n ?? undefined })}
+        onChange={(n) => onPrix(champ(prix, c.id, n ?? undefined))}
       />
     </label>
   ));

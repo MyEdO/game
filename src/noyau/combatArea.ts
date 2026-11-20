@@ -26,6 +26,7 @@
  *
  * APPLIQUE les effets (mute via `loseWounds` + `fireTriggers`) et renvoie les lignes de journal. RNG injecté.
  */
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant, Weapon, HitLocation } from '../engine/types';
 import { estNavire } from '../engine/coque';
@@ -146,7 +147,7 @@ export function resolveWeaponArea(
   const tz = quals.find((r) => r.caps?.areaFire);
   if (tz) {
     const indice = tz.indice ?? 1;
-    const rangeM = porteeDeTir(hit.attacker, weapon); // Portée résolue (BF) + modificateur de munition
+    const rangeM = porteeDeTir(objetDuNarratif(get().campaignNarratif), hit.attacker, weapon); // Portée résolue (BF) + modificateur de munition
     const band = rangeM != null ? rangeBandName(hit.distanceTiles, rangeM, sceneMetresPerTile(get().scene)) : 'Bout portant';
     if (band === 'Bout portant' && target) {
       // +Indice aux DÉGÂTS sur la cible seule (≠ +Indice Blessures brut). La cible a déjà encaissé `damage` ;

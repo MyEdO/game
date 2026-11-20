@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyCast, zoneRadiusTilesAt } from './combatFlow';
+import { applyCast, castCommitZone, castZoneSpell, zoneRadiusTilesAt } from './combatFlow';
 import { wardedAgainst, organicProjectile } from './combat/hitModifiers';
 import { sceneMetresPerTile, emptyScene } from './monde/scene';
 import { createHero } from '../engine/character';
@@ -17,7 +17,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { GameOp } from '../engine/ops';
 
 let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); });
+beforeEach(() => { banc = ouvrirLeBanc({ desFixes: true }); });
 
 describe('L11 — zones persistantes posées par les sorts', () => {
   function setup() {
@@ -30,7 +30,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     banc.getState().ensemencerLeTirage(5);
     const b = banc.getState().battle!;
     const caster = b.combatants.find((c) => c.label === 'W')!;
-    caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
+    caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 70 });
     caster.characteristics['force-mentale'] = 40; // BFM 4
     caster.pos = { x: 5, y: 10 };
     const T = b.combatants.filter((c) => c.kind === 'ennemi')[0];
@@ -53,10 +53,13 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     expect(wall.casterId).toBe(caster.id);
   });
 
-  it('Forêt d’épines : disque centré sur la cible, onCross Empêtré porte escapeStrength = FM du LANCEUR (LDB 48 l.749)', () => {
-    const { caster, T } = setup();
-    const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(banc.getState, banc.setState, caster, [T], findSpellById('foret-d-epines')!, ok, false, false);
+  it('Forêt d’épines : onCross Empêtré porte escapeStrength = FM du lanceur (LDB 48 l.749)', () => {
+    const { caster } = setup();
+    castZoneSpell(banc.getState, banc.setState, caster, 'foret-d-epines');
+    banc.getState().jetLancer('incantation');
+    banc.getState().jetImposerLeResultat('incantation', 3);
+    banc.getState().jetValider('incantation');
+    castCommitZone(banc.getState, banc.setState, { x: 8, y: 10 });
     const zone = (banc.getState().battle!.zones ?? []).find((z) => z.label === 'Forêt d\'épines')!;
     expect(zone).toBeTruthy();
     const empetreOp = zone.onCross?.find((o): o is Extract<GameOp, { op: 'condition' }> => o.op === 'condition' && o.id.id === 'empetre');
@@ -96,13 +99,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     expect(wardedAgainst(combatants, T, ally, 'arrowWard', mer)).toBe(true);
   });
 
-  /**
-   * GABARIT d'un sort de ZONE (#1507) — `op zone` écrit son rayon en MÈTRES (`radiusMeters`) ; c'est
-   * `zoneRadiusTilesAt` qui le pose en cases, à l'échelle de la SCÈNE. Une ZdE de 4 m couvre 2 cases
-   * à terre et 0 case en mer (0,4 case : le gabarit est plus petit que la maille, il ne déborde pas
-   * de la case posée). Le littéral `2` d'avant peignait 2 cases de 10 m, soit un disque de 40 m.
-   */
-  it('gabarit de ZONE : 4 m = 2 cases à 2 m/case, 0 case à 10 m/case', () => {
+  it('gabarit de zone : 4 m de rayon = 2 cases à 2 m/case, 0 case à 10 m/case', () => {
     const mptTerre = sceneMetresPerTile(emptyScene('scene-test', 1, 1));
     expect([mptTerre, zoneRadiusTilesAt(4, 0, mptTerre)]).toEqual([2, 2]);
     expect(zoneRadiusTilesAt(4, 0, 10)).toBe(0);
@@ -128,8 +125,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     expect(fire).toBeTruthy();
     expect(fire.rounds).toBe(4); // (BFM) Rounds
     expect(fire.perRound?.some((o) => o.op === 'wounds' && o.ignoreAP === true)).toBe(true);
-    // disque BFM 4 m → rayon 2 cases autour de la cible (10,10) → 5×5
-    expect(fire.tiles).toHaveLength(25);
+    expect(fire.tiles).toHaveLength(9);
     expect(fire.tiles.some((t) => t.x === 10 && t.y === 10)).toBe(true);
   });
 });

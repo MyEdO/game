@@ -53,13 +53,13 @@ export default {
     ouvert: {
       domaine: 'Destin & Résistance', feuillet: 1, feuillets: 1, droite: [],
       gauche: [{
-        nom: 'Chance regagnée en cours de session', valeurs: ['off', 'manual', 'auto'], tenue: 1, modifiee: true, action: 'Regagner la Chance maintenant',
-        aide: 'Longues Séances de Jeu : regagner des Points de Chance en cours de session (≈ 1×/h). off = seulement en début de session (RAW, via l’Effet de scène) ; manual = un bouton « Regagner la Chance maintenant » ici, à la demande ; auto = informationnel (le temps réel n’est pas traçable par le moteur — déclenchez-le à la main).',
+        nom: 'Chance regagnée en cours de session', valeurs: ['Non', 'Manuelle', 'Auto'], tenue: 1, modifiee: true, action: 'Regagner la Chance maintenant',
+        aide: 'Longues Séances de Jeu : regagner des Points de Chance en cours de session, environ une fois par heure. Non : seulement en début de session ; Manuelle : le bouton « Regagner la Chance maintenant », à la demande ; Auto : un rappel seulement, le jeu ne mesure pas le temps passé, regagnez-la à la main.',
       }],
     },
   }, {
     ...OPTIONS, nom: 'verrou', domaines: domaines(),
     ouvert: { domaine: 'Combat', feuillet: 1, feuillets: 2, ...COMBAT },
-    verrou: 'Règles verrouillées : un combat est en cours. Le moteur les lit en direct — les changer maintenant réécrirait un combat déjà commencé (réserves d’Avantage, Initiative, Blessures). Terminez le combat pour les modifier.',
+    verrou: 'Règles verrouillées : un combat est en cours. Les changer maintenant réécrirait un combat déjà commencé (réserves d’Avantage, Initiative, Blessures). Terminez le combat pour les modifier.',
   }],
 } satisfies Ecran;

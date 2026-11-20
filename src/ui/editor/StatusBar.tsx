@@ -10,7 +10,7 @@ import type { Layers, Tool } from '../../noyau/sceneEditLecture';
 import type { Pt } from '../../noyau/sceneEdit';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema } from '../../data/schemas/defs-scenes/scene';
-import { creatureLabel, findPropById, siegeEngines } from '../../data';
+import { creatureLabel, findPropById, findSiegeEngineById, libelleDAuteur } from '../../data';
 import { layerLabel } from './LayerField';
 
 const LAYER_LABEL: Record<keyof Layers, string> = {
@@ -38,7 +38,7 @@ export function toolLabel(tool: Tool): ReactNode {
     case 'casesDeZone': return <><Icon id="outil-de-carte/zone" size="sm" /> Emprise · {tool.paint === 'add' ? 'ajouter' : 'retirer'}</>;
     case 'entree': return <><Icon id="navigation/point-d-entree" size="sm" /> Point d’entrée</>;
     case 'rencontre': return <><Icon id="action/attaquer" size="sm" /> Placer des ennemis</>;
-    case 'emplacement': return <><Icon id="scenario/siege" size="sm" /> {garanti(siegeEngines().find((t) => t.id === tool.trappingId), tool.trappingId, 'engin de la palette').label}</>;
+    case 'emplacement': return <><Icon id="scenario/siege" size="sm" /> {libelleDAuteur(garanti(findSiegeEngineById(tool.trappingId), tool.trappingId, 'engin de la palette'))}</>;
     case 'arete': return tool.paint === 'door' ? <><Icon id="outil-de-carte/porte" size="sm" /> Porte</> : tool.paint === 'diagBack' || tool.paint === 'diagFwd' ? <><Icon id="outil-de-carte/mur" size="sm" /> Diagonale</> : <><Icon id="outil-de-carte/mur" size="sm" /> Cloison</>;
     case 'hauteur': return <><Icon id="outil-de-carte/hauteur" size="sm" /> Hauteur {tool.metres} m</>;
     case 'escalier': return <>↗ Volée → {layerLabel(tool.toZ)}</>;

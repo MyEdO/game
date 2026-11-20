@@ -367,10 +367,9 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
   });
 
   it('dataset à source FACULTATIVE : une entrée sans source ne se dit pas incomplète', () => {
-    type Regle = { id: string; label: string; source?: SourceRef };
-    const sans = (datasetArray('reglesOptionnelles') as unknown as Regle[]).find((r) => !r.source)!;
-    expect(sans, 'aucune règle optionnelle sans source — la sonde mesurerait un cas absent').toBeTruthy();
-    monter(<CodexEdit categoryKey="reglesOptionnelles" id={sans.id} onClose={() => {}} />);
+    const sans = datasetArray('crewRoles').find((r) => !r.source)!;
+    expect(sans, 'aucun rôle d’équipage sans source — la sonde mesurerait un cas absent').toBeTruthy();
+    monter(<CodexEdit categoryKey="crewRoles" id={sans.id} onClose={() => {}} />);
     const nom = (c: string) => [...container!.querySelectorAll('[aria-label]')].map((e) => e.getAttribute('aria-label')!).find((n) => n.startsWith(`${c} — `))!;
     expect(livre(nom('Livre')).value).toBe('');
     expect(incomplet(), 'une source facultative absente est dite incomplète').toBeNull();
@@ -390,13 +389,12 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
   });
 
   it('deux entrées sans source : le brouillon de l’une ne passe pas à l’autre', () => {
-    type Regle = { id: string; label: string; source?: SourceRef };
-    const [a, b] = (datasetArray('reglesOptionnelles') as unknown as Regle[]).filter((r) => !r.source);
-    expect(b, 'moins de deux règles optionnelles sans source').toBeTruthy();
-    monter(<CodexEdit categoryKey="reglesOptionnelles" id={a.id} onClose={() => {}} />);
+    const [a, b] = datasetArray('crewRoles').filter((r) => !r.source);
+    expect(b, 'moins de deux rôles d’équipage sans source').toBeTruthy();
+    monter(<CodexEdit categoryKey="crewRoles" id={a.id} onClose={() => {}} />);
     const nom = (c: string) => [...container!.querySelectorAll('[aria-label]')].map((e) => e.getAttribute('aria-label')!).find((n) => n.startsWith(`${c} — `))!;
     saisir(livre(nom('Livre')), 'livre-de-base');
-    act(() => { root!.render(<CodexEdit categoryKey="reglesOptionnelles" id={b.id} onClose={() => {}} />); });
+    act(() => { root!.render(<CodexEdit categoryKey="crewRoles" id={b.id} onClose={() => {}} />); });
     expect(livre(nom('Livre')).value, 'le livre choisi sur A s’affiche sur B').toBe('');
     expect(incomplet()).toBeNull();
   });

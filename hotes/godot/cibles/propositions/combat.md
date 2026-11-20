@@ -88,8 +88,9 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - Verbes : `fenetreFermer('defaite')`, `fenetreFermer('repli')`, `fenetreFermer('aneantissement')`.
 - Réfs : le repli est la défaite d'une Scène de combat de bataille de masse, la bataille continue (ADE II 08 l.175,
   l.223 ; `src/noyau/issueDeCombat.ts:71-84`) ; l'anéantissement ramène au menu (`issueDeCombat.ts:67`).
-- À valider : la ligne de conséquence sous le cartouche (« Les héros sont soignés, la bataille continue. », « Aucun
-  héros ne tient debout. ») est une phrase d'exemple, absente du jeu ; cartouche centré, comme `fin-defaite`.
+- À valider : la ligne de conséquence sous le cartouche (« Le combat est perdu, la compagnie reprend pied sur les
+  lieux. », « Les héros sont soignés, la bataille continue. », « Aucun héros ne tient debout. ») est une phrase
+  d'exemple, absente du jeu ; cartouche centré, comme `fin-defaite`.
 
 ## journal-ouvert (T19)
 - Panneau de parchemin ouvert au-dessus de sa pastille, qui passe en laiton plein ; rangé par round, ruban
@@ -187,7 +188,7 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
   `fenetreFermer('frappeMortelle')`.
 - Réfs : LDB 10 l.767-773 ; LDB 14 l.5-9 (option Frappe mortelle) ; `fenetre.secondeFrappe`, `fenetre.frappeMortelle`,
   `consigne.deuxArmes`, `consigne.frappeMortelle` (`src/i18n/messages/fr.ts:489-490`, `fr.ts:4451-4452`).
-- À valider : bandeau de 170 px au lieu de 212 ; aucune plaque de laiton plein (le clic du champ commet) ; les dés
+- À valider : aucune plaque de laiton plein (le clic du champ commet) ; les dés
   vides de l'enchaînement annoncent le jet à venir ; la cible montée et la visée de siège : `cible-montee` et
   `visee-de-siege`, plus bas.
 

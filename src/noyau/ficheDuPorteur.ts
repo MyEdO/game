@@ -8,8 +8,10 @@
  * tout hôte qui montre la partie.
  */
 import type { Jeu } from './etat';
-import { porteurParId } from './monde/combatants';
-import { nomDIndividu } from './monde/sceneNpc';
+import { porteurParId, rencontreEngagee } from './monde/combatants';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
+import { ficheDuPersonnage, nomDIndividu } from './monde/sceneNpc';
+import { entiteConnue } from './visionDuGroupe';
 import type { NomDIndividu } from '../engine/psych/ciblage';
 import { CHAR_KEYS, CHAR_LABELS, LOCALISATIONS_DE_COUP, locationLabel, type CharKey, type Combatant } from '../engine/types';
 import { effectiveArmourAt, effectiveChar, forceDuPorteur } from '../engine/characteristics';
@@ -156,16 +158,23 @@ const enTeteDuCombattant = (c: Combatant): EnTeteDeFiche => ({
   etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
 });
 
-/** La fiche du porteur `id` (`porteurParId` : le combattant en combat, le héros du groupe hors combat), `null` sans
- *  lui ou pour une coque (`ficheDuCombattant`). PUR. */
+/** Le porteur de la fiche : le combattant de la partie ou le personnage de la scène en vue hors rencontre. */
+function porteurDeLaFiche(s: Jeu, id: string): Combatant | undefined {
+  const porteur = porteurParId(s, id);
+  if (porteur || rencontreEngagee(s)) return porteur;
+  const entite = s.scene?.entities.find((e) => e.id === id && e.kind === 'personnage');
+  return entite && entiteConnue(s, entite) ? ficheDuPersonnage(entite, presetDuNarratif(s.campaignNarratif), objetDuNarratif(s.campaignNarratif)) : undefined;
+}
+
+/** La fiche du porteur `id`, `null` sans porteur ou pour une coque (`ficheDuCombattant`). PUR. */
 export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
-  const c = porteurParId(s, id);
+  const c = porteurDeLaFiche(s, id);
   return c ? ficheDuCombattant(c, nomDIndividu(s)) : null;
 }
 
 /** L'en-tête de la fiche du porteur `id`, au domaine de `ficheDuPorteur` : `null` sans lui ou pour une coque. PUR. */
 export function enTeteDuPorteur(s: Jeu, id: string): EnTeteDeFiche | null {
-  const c = porteurParId(s, id);
+  const c = porteurDeLaFiche(s, id);
   return aUneFiche(c) ? enTeteDuCombattant(c) : null;
 }
 

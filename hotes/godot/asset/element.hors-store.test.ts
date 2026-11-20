@@ -298,12 +298,12 @@ describe('validerElement : un décor, un véhicule ou une arête n’a pas de ba
       ok: false, ecarts: [{ code: 'rigide-sur-os-absent', ou: 'liaison.mode', detail: `lame pend à hand_r, mais un élément \`${categorie}\` n’a pas de base dont il serait un os` }],
     });
   });
-  it.each(['caraque', 'barge', 'canon-petit', 'trebuchet-ade2'])('la `definition` %s, coque ou engin de siège, se résout', (definition) => {
+  it.each(['caraque', 'barge-fluviale', 'canon-petit', 'trebuchet-ade2'])('la `definition` %s, coque ou engin de siège, se résout', (definition) => {
     expect(verdict(manifeste('vehicule', { cle: { definition } })).ok).toBe(true);
   });
   it.each(['carrosse', 'cheval-de-monte'])('la `definition` %s, qui n’est ni coque ni engin de siège, est refusée', (definition) => {
     expect(verdict(manifeste('vehicule', { cle: { definition } }))).toEqual({
-      ok: false, ecarts: [{ code: 'cle-inconnue', ou: 'cle.definition', detail: `${definition} n’est aucune coque de \`vehicles.json\` ni engin \`armes-de-siege\` de \`trappings.json\`` }],
+      ok: false, ecarts: [{ code: 'cle-inconnue', ou: 'cle.definition', detail: `${definition} n’est aucune coque de \`vehicles.json\` ni engin de \`siege-engines.json\`` }],
     });
   });
 });

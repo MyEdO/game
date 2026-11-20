@@ -5,6 +5,7 @@
  * (`stage/VolumetricWorld` → `backends/webgl/highlightMeshes`).
  * Aucune projection ici : cette couche ne connaît ni caméra ni couleur.
  */
+import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { GameState } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
 import type { PendingAttack, PendingCleave, PendingDualStrike, PendingCast } from '../../noyau/pendings';
@@ -93,7 +94,7 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
       if (!c?.pos) return null;
       const weapon = attackWeapon(c.weapons, false);
       if (!weapon || weapon.type !== 'distance') return null; // structure/décor sans arme (porte…) — pas de bande (#203 régression)
-      const rangeM = porteeDeTir(c, weapon);
+      const rangeM = porteeDeTir(objetDuNarratif(get().campaignNarratif), c, weapon);
       return rangeM != null ? { pos: c.pos, rangeM } : null;
     })(),
   };

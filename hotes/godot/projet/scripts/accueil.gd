@@ -31,24 +31,27 @@ const SCENES := {
 @onready var _panne: Label = $Menu/Entrees/Panne
 @onready var _reglages: PanneauDesReglages = $Reglages
 
+var _publication: PublicationDeLEcran
+
 
 func _ready() -> void:
 	await get_tree().process_frame
 	if _pont.parametre("planche") != "":
 		PontDuNoyau.remplacer(get_tree(), PontDePlanche.new())
 		return
+	_publication = PublicationDeLEcran.new(_pont, self, self, _ecran_publie)
 	var famille := Dessin.famille_du_catalogue("paysage")
 	_fond.texture = Dessin.trace("paysage", [FOND], MiseEnPage.echelle_de_dessin(size.x, size.y, famille.largeur, famille.hauteur))
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	for zone in Zone.racines(_menu):
 		zone.geste.connect(_jouer)
-	_reglages.change.connect(_publier)
+	_reglages.change.connect(_publication.demander)
 	var reponse := _pont.appeler("accueil")
 	if reponse.get("ok") != true:
 		return
 	Zone.montrer_toutes(Zone.racines(_menu), reponse.zones)
-	_publier()
+	_publication.demander()
 
 
 ## L'intention d'un geste : le panneau des réglages ouvert, ou l'entrée de l'accueil suivie vers sa scène.
@@ -60,9 +63,9 @@ func _jouer(jeu: Dictionary) -> void:
 	get_tree().change_scene_to_file(SCENES[jeu.accueil])
 
 
-## Ce que l'écran porte, publié une fois mis en page.
-func _publier() -> void:
-	await get_tree().process_frame
-	if not is_inside_tree():
-		return
-	_pont.publier_l_ecran(func() -> Dictionary: return {boutons = PontDuNoyau.boutons_a_l_ecran([_menu, _reglages.racine()]), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()])})
+## Les boutons de l'accueil et les réglages posés à l'écran.
+func _ecran_publie() -> Dictionary:
+	return {
+		boutons = PontDuNoyau.boutons_a_l_ecran([_menu, _reglages.racine()]),
+		curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
+	}

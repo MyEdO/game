@@ -395,12 +395,12 @@ export interface BarreDeLActif {
   outils: ActionDuTour[];
 }
 
-/** Un Sort tel que son aperçu le dit : son nom, son Niveau d'incantation, sa portée, ses cibles, sa durée, ce qu'il
- *  coûte, ce que le clic fait. */
+/** Un Sort tel que son aperçu le dit : son nom, son Niveau d'incantation, sa portée calculée pour le lanceur (ses
+ *  mètres et la Caractéristique qui les donne), ses cibles, sa durée, ce qu'il coûte, ce que le clic fait. */
 export interface FicheDeSort {
   nom: string;
   ni: number;
-  portee: string;
+  portee: { metres: number; selon: string };
   cibles: number;
   duree: string;
   cout: string;
@@ -879,14 +879,13 @@ export interface Part {
 }
 
 /** Une voie offerte sur une page de service (un soin, une vente, un travail) : son id (son pictogramme), son nom, son
- *  Test, ce qu'elle fait, son prix ; `maison`, un prix de valeur maison ; `prise`, la voie choisie ; fermée, sa raison. */
+ *  Test, ce qu'elle fait, son prix ; `prise`, la voie choisie ; fermée, sa raison. */
 export interface Voie {
   id: string;
   nom: string;
   test: string;
   texte?: string;
   prix?: Sous;
-  maison?: true;
   prise?: true;
   refus?: string;
 }

@@ -247,7 +247,10 @@ export const ECRIT_LU = {
   'test:corpus': {
     ecrit: [],
     lit: LIT_DES_AUDITS,
-    raison: 'Les audits et rendus du dépôt réel lisent leurs corpus ; les copies, mutations et rapports des bancs restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; les rendus sont lus sans publication dans l’arbre.',
+    raison: 'Les audits et rendus du dépôt réel lisent leurs corpus. `scripts/corpus/docs/manual-docs-ratchet.test.mjs` ' +
+      'lit la table de routage d’AGENTS.md pour vérifier que les docs à plat sont atteignables. Les copies, mutations et rapports des bancs ' +
+      'restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; ' +
+      'les rendus sont lus sans publication dans l’arbre.',
   },
   'test:corpus-isole': {
     ecrit: [],
@@ -367,7 +370,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       'docs/', ...DOSSIERS_DES_ZONES, '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
-      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md', 'AGENTS.md',
+      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
       'scripts/etape-profilee.mjs',
       'scripts/git-hooks/', 'scripts/hooks/',
       'scripts/test/verrou.mjs', 'scripts/test/memoire.mjs', 'scripts/test/mesures.mjs', 'scripts/test/memoire-precharge.cjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
@@ -393,15 +396,13 @@ export const ECRIT_LU = {
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
-      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ : ' +
-      '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
-      'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
-      'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
-      'LIT AGENTS.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
-      'd’AGENTS.md (`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
-      'scripts/gen-registry.mjs et Source/ (#2203) : `manual-docs-ratchet.test.mjs` rend chaque cible ' +
-      '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
-      'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
+      'ramène (sonde 2026-09-08, 50 lectures) ; LIT les fiches de docs/dossiers/ et les projets livrés sous src/scenes/ ' +
+      'quand `scripts/docs/build-dossiers-de-chapitre.test.mjs` rend leur état des lieux. ' +
+      '`scripts/docs/lib/enregistreur-lectures.test.mjs` charge `src/lib/coupeAuMot.mjs` depuis une fixture ' +
+      'pour vérifier la mesure d’un module préchauffé ; ' +
+      'LIT scripts/raw/ et scripts/gen-registry.mjs : `scripts/docs/generateurs-contrat.test.mjs` charge les modules ' +
+      'des générateurs de `GENERATORS`. LIT Source/ : `scripts/docs/rendre-cible.test.mjs` vérifie le rendu des ' +
+      'catalogues de l’Atlas par `build-catalogs.mjs`, qui lit les chapitres. LIT les sources, configurations et inventaires du runbook ' +
       'par `build-reprise.test.mjs` et `rendre` (sonde du 2026-10-07, #2499 : zéro écriture mesurée). ' +
       '`scripts/gates/toutes.mjs` atteint `purgerPerimes`, mais `principal` reste derrière `import.meta.main` ; ' +
       'ni ses mkdir/writeFile ni sa purge ne sont appelés. `scripts/ops/reprendre-file.mjs` garde sa CLI ' +
@@ -552,23 +553,21 @@ export const ECRIT_LU = {
     ecrit: [],
     ecritFerme: {
       'hotes/godot/projet/modeles/':
-        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `piloter`) : `recupererModeles` ' +
-        'n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis ' +
-        'renommage, que ses jeux menés de front répètent sans rien écrire ; `godot:recette` suit `godot:sonde` et ' +
+        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `preparerLePilotage`) : ' +
+        '`recupererModeles` n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par ' +
+        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde` et ' +
         '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
-      'Les recettes natives de l’hôte Godot (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) : les jeux `combat` et ' +
-      '`editeur`, menés de front (`jeuxPilotesDeFront`, #3412), par `recette.mjs --natif`, qui bâtit le pont en mémoire (`write: false`), sert le jeu sans ' +
-      'export (`servir.mjs`) et lance Godot `--headless` sur une COPIE importée du projet sous `os.tmpdir()`, effacée ' +
-      '(`piloter`, hotes/godot/construire.mjs), tirée de la copie importée de `godot:sonde`, hors de l’arbre ' +
-      '(`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935) ; le parcours `editeur` sert une COPIE des projets manuscrits sous ' +
-      '`os.tmpdir()` (`depot`), où son enregistrement écrit, jamais sous src/scenes/ ; les journaux vont sous ' +
-      '`dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit ; LIT ce que lit `godot:sonde`. Écrit sous ' +
-      'hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`) ; `deposerLesModeles`, `deposerLesPlanches` et ' +
-      '`deposerLesAvis` n’écrivent que sous `--export` et `--bureau`, dans leur `--sortie`, et le stockage du pont est ' +
-      'celui du processus de la recette (`stockageDuProcessus(null)`, hotes/godot/stockage.mjs), qui ne dure que lui',
+      'Le lot natif (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) prépare sous `os.tmpdir()` le bundle du pont ' +
+      'et un clone de la copie importée hors de l’arbre (`~/.cache/wfrp-godot-copies/`). Les jeux `combat`, `editeur` et ' +
+      '`compendium` se jouent de front (`jeuxPilotesDeFront`, #3412) par `recette.mjs --natif`. Chaque processus lit ' +
+      'le bundle, sert le jeu sans export (`servir.mjs`), possède son stockage du pont (`stockageDuProcessus(null)`) ' +
+      'et lance Godot `--headless` sur son clone jetable (`piloter`, hotes/godot/construire.mjs). Les parcours ' +
+      '`editeur` et `compendium` servent chacun un dépôt temporaire pour leurs enregistrements. La préparation et les ' +
+      'copies sont effacées. Les journaux vont sous `dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit. ' +
+      'LIT ce que lit `godot:sonde` et écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
   },
   'personnage-3d:tests': {
     ecrit: [],

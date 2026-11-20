@@ -4,6 +4,7 @@
  * (`freeAttackWeapon` via `armeDeLaGratuite`).
  * LDB 85 l.387 ; LDB 85 l.237 ; LDB 85 l.47 — #1765.
  */
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -65,7 +66,7 @@ function nomsDeLAttaque(kind: string): { option: string; reticule: string; modal
   const pa = g().pendingAttack;
   if (pa?.freeKind !== kind) throw new Error(`le clic n'a pas ouvert la gratuite « ${kind} »`);
   const b = g().battle!;
-  const modale = attackWeaponOf(banc.getState().scene, b, b.combatants.find((c) => c.id === H.id)!, b.combatants.find((c) => c.id === E.id)!, pa).label;
+  const modale = attackWeaponOf(findTrappingById, banc.getState().scene, b, b.combatants.find((c) => c.id === H.id)!, b.combatants.find((c) => c.id === E.id)!, pa).label;
   return { option: option.label, reticule: ht.title, modale };
 }
 

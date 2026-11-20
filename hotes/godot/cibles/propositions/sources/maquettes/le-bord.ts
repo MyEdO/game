@@ -53,7 +53,7 @@ export default {
         { id: 'aucune', nom: 'Aucune Activité', sous: 'La semaine passe', tenants: ['bjorn', 'greta'] },
         { id: 'commerce', nom: 'Commerce d’opportunité', sous: 'Marchandage · Complexe (–10)', tenants: ['mira'], vise: true },
         { id: 'cartographie', nom: 'Cartographie', sous: 'Métier (Cartographe) · Complexe (–10)', tenants: ['aldric'] },
-        { id: 'entrainement', nom: 'Entraînement d’équipage', sous: 'Commandement · Difficile (–20)', refus: 'L’équipage du navire de campagne est tenu par les PJ — aucun équipage PNJ à entraîner.', survol: true }],
+        { id: 'entrainement', nom: 'Entraînement d’équipage', sous: 'Commandement · Difficile (–20)', refus: 'Vos héros forment tout l’équipage : aucun marin à entraîner.', survol: true }],
       billet: { role: 'etendu', poste: 'commerce', aCumuler: 10, tentatives: 3, issues: [
         { issue: 'Succès de 6 DR', effet: 'la mise +20 %' }, { issue: 'Succès', effet: 'la mise +10 %' },
         { issue: 'Échec', effet: 'la moitié de la mise' }, { issue: 'Échec de 6 DR', effet: 'la mise perdue' }] },

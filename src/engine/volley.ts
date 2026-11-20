@@ -4,6 +4,7 @@
  * pièce, et l'appelant fait naître chaque coup (`toucheAuJetPose`, MDG 12 l.375, EDOC 07 l.332) sur la cible
  * vivante, juste avant de l'appliquer par la couture du coup (`applyAttackResult`).
  */
+import { findTrappingById } from '../data';
 import { d100, type RNG } from './dice';
 import type { RollBreakdown } from './combat';
 import { attackDRAdjust } from './qualities/dispatch';
@@ -51,7 +52,7 @@ export function resolveVolley(
     let weapon = mannedPosteWeapon(firingShip, poste);
     if (!weapon) continue;
     const tireur = byId.get((poste.crewIds ?? [])[0]) ?? (abstract ? shipCrew[0] : servants[0]);
-    const ammo = loadedAmmo(tireur, weapon);
+    const ammo = loadedAmmo(findTrappingById, tireur, weapon);
     if (ammo) weapon = weaponWithAmmo(weapon, ammo);
     const presents = abstract ? crewedTeamIndice(weapon) : servants.length;
     weapon = crewedFireWeapon(weapon, presents);

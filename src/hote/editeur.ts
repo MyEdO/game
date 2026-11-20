@@ -27,6 +27,7 @@ import {
   assoirALaPlace,
   idDuCorps,
   labelEmplacement,
+  libelleDAuteur,
   lightTones,
   lumiereAllumee,
   PARTY_MAX,
@@ -126,7 +127,8 @@ import {
   groupesDuLieu,
   isWearable,
   objetsDeLInventaire,
-  trappingsInstanciables,
+  objetDuNarratif,
+  objetsInstanciablesDuProjet,
   candidatsDuSlot,
   carriereActuelle,
   careers,
@@ -348,9 +350,9 @@ export interface ZonesDeLEditeur {
    */
   'editeur.historique': Bouton[];
   /**
-   * copier l'entité sélectionnée et la dupliquer sur la case voisine au sud-est, sur sa couche, refusés sans entité
-   * sélectionnée ; coller la copie sur la dernière case appuyée, sur la couche éditée, refusé sans copie ou quand cette
-   * case est d'une autre couche
+   * copier l'entité sélectionnée et la dupliquer sur la case libre la plus proche de sa couche, en préférant la voisine
+   * au sud-est si elle est libre. Ces gestes exigent une sélection et la duplication est sans effet faute de place.
+   * Coller la copie sur la dernière case appuyée, sur la couche éditée, exige une copie et une case de cette couche.
    */
   'editeur.presse': Bouton[];
   /**
@@ -428,11 +430,11 @@ export interface ZonesDeLEditeur {
    * d'un emplacement de siège, l'engin de son poste en liste, son arc, omni ou l'un des quatre, ses servants parmi les
    * personnages de la scène et, parmi eux, le chef de pièce ; d'un emplacement ou d'une coque, son équipage exposé ;
    *
-   * d'un personnage, son inventaire d'auteur (`inventaire`, chaque objet du catalogue par son id, vrai s'il est
+   * d'un personnage, son inventaire d'auteur (`inventaire`, chaque objet du projet par son id, vrai s'il est
    * porté) : chaque objet sur sa ligne `inventaire/<id>`, nommé du catalogue, « Porté » pour un objet qui se porte
    * (`isWearable`), pressé s'il l'est, que sa pression bascule en ôtant les pièces qu'il chevauche (`inventaireApres`,
    * `equipConflicts`), et « Retirer », ou une ligne qui dit qu'il n'en a aucun, puis, en liste, chaque objet du
-   * catalogue instanciable (`trappingsInstanciables`) qu'il n'a pas, à ajouter, non porté ;
+   * catalogue et du narratif (`objetsInstanciablesDuProjet`) qu'il n'a pas, à ajouter, non porté ;
    *
    * d'un personnage d'une fiche du bestiaire sans profil d'auteur ni préréglage, son parcours de carrière (EDO 11
    * l.17-21, `porterAuParcours`) : chaque carrière portée, la dernière l'actuelle, ses Niveaux en boutons
@@ -788,7 +790,7 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (outil.mode === 'casesDeZone') return [...emprise(outil.zoneId, outil), boutonDEdition('emprise/finir', t('ecran.editeur.zone.emprise.finir'), { geste: 'outil', outil: { mode: 'selection' } })];
   if (outil.mode === 'emplacement') {
     return [choix('engins', t('ecran.editeur.engins'),
-      siegeEngines().map((e) => boutonDEdition(`engin/${e.id}`, e.label, { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
+      siegeEngines().map((e) => boutonDEdition(`engin/${e.id}`, libelleDAuteur(e), { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
   }
   if (outil.mode === 'navire') {
     const scene = sceneEditee(s);
@@ -984,7 +986,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || ent.vehicule
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(s, ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
     ...formulaireDuPorteur(s, { sorte: 'entite', id: ent.id }, ent),
     boutonDEdition('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
@@ -1073,7 +1075,7 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
   const parId = new Map(sceneEditee(s).entities.map((e) => [e.id, e]));
   const nom = (id: string) => { const e = parId.get(id); return e ? nomALEcran(s, e) : id; };
   return [
-    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => boutonDEdition(`poste/engin/${e.id}`, e.label, { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
+    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => boutonDEdition(`poste/engin/${e.id}`, libelleDAuteur(e), { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
     choix('poste/arc', t('ecran.editeur.poste.arc'), [
       boutonDEdition('poste/arc/omni', t('ecran.editeur.poste.arc.omni'), { geste: 'poste', patch: { arc: null } }, !p.side),
       ...FIRE_ARCS.map((a) => boutonDEdition(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),
@@ -1085,24 +1087,28 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
 }
 
 /** L'inventaire du personnage `ent` : chaque objet, par son id, à retirer et, s'il se porte (`isWearable`), porté ou
- *  non ; ou la ligne qui dit qu'il n'en a aucun ; puis, en liste, chaque objet du catalogue (`trappingsInstanciables`)
+ *  non ; ou la ligne qui dit qu'il n'en a aucun ; puis, en liste, chaque objet du projet (`objetsInstanciablesDuProjet`)
  *  qu'il n'a pas, à y ajouter. Chaque bouton écrit son intention sur l'objet (`inventaireApres`). */
-function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
+function inventaire(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne)[] {
+  const { narratif } = projetEdite(s);
   const objets = ent.inventaire ?? {};
-  const instances = objetsDeLInventaire(objets, String);
+  const resolveTrapping = objetDuNarratif(narratif);
+  const instances = new Map(objetsDeLInventaire(objets, String, undefined, resolveTrapping).map((objet) => [objet.uid, objet]));
+  const ids = Object.keys(objets);
   const ecrire = (objet: NonNullable<PatchDEntite['objet']>): GesteDEdition => ({ geste: 'entite', patch: { objet } });
   return [
-    ...(instances.length
-      ? instances.map((objet) => {
-        const id = `inventaire/${objet.uid}`;
-        return choix(id, objet.label, [
-          ...(isWearable(objet) ? [boutonDEdition(`${id}/porte`, t('ecran.editeur.inventaire.porte'), ecrire({ porter: objet.uid }), objet.equipped)] : []),
-          boutonDEdition(`${id}/retirer`, t('ecran.editeur.inventaire.retirer'), ecrire({ retirer: objet.uid })),
+    ...(ids.length
+      ? ids.map((trappingId) => {
+        const objet = instances.get(trappingId);
+        const id = `inventaire/${trappingId}`;
+        return choix(id, objet?.label ?? resolveTrapping(trappingId)?.label ?? trappingId, [
+          ...(objet && isWearable(objet) ? [boutonDEdition(`${id}/porte`, t('ecran.editeur.inventaire.porte'), ecrire({ porter: trappingId }), objet.equipped)] : []),
+          boutonDEdition(`${id}/retirer`, t('ecran.editeur.inventaire.retirer'), ecrire({ retirer: trappingId })),
         ]);
       })
       : [ligne('inventaire', t('ecran.editeur.inventaire.aucun'))]),
     choix('inventaire/ajouter', t('ecran.editeur.inventaire.ajouter'),
-      trappingsInstanciables().filter((tr) => !(tr.id in objets)).map((tr) => boutonDEdition(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ajouter: tr.id }))), 'liste'),
+      objetsInstanciablesDuProjet(narratif).filter((tr) => !(tr.id in objets)).map((tr) => boutonDEdition(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ajouter: tr.id }))), 'liste'),
   ];
 }
 
@@ -1181,7 +1187,7 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
  *  Compétences à la valeur de leur Test, ses Talents, ses possessions et ses mentions, une ligne par nature. */
 function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
   const scene = sceneEditee(s);
-  const porte = ficheEditee(ent, presetDuNarratif(projetEdite(s).narratif));
+  const porte = ficheEditee(ent, projetEdite(s).narratif);
   const fiche = porte && ficheDuCombattant(porte, (id) => {
     const e = scene.entities.find((x) => x.id === id);
     return e && nomALEcran(s, e);
@@ -1204,7 +1210,7 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
  *  imprime ; sinon, s'il a une liste de sorts (`listesDeSorts`), ses sorts au combat, choisis et tirés (`sortsDuPnj`).
  *  Les sorts choisis s'écrivent au formulaire tiré du schéma (`formulaireDe`). */
 function sorts(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
-  const fiche = ficheEditee(ent, presetDuNarratif(projetEdite(s).narratif));
+  const fiche = ficheEditee(ent, projetEdite(s).narratif);
   if (!fiche) return [];
   const liste = (ids: readonly string[]) => ids.map((id) => findSpellById(id)?.label ?? id).join(', ') || t('ecran.editeur.profil.aucun');
   const imprimes = sortsImprimes(fiche.porteurDeFiche);

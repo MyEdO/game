@@ -26,7 +26,7 @@ const PARTIE = /^\[partie\] (\d+\/\d+) : (\d+) fichier\(s\)/
 const LIGNE_NODE = /^\[durees\] node (\S+) (\{.*\})$/
 
 /**
- * Les durées par fichier d'un journal `gh run view <id> --log` (`lignesDuJournal`). `lus` : les durées Vitest lues ;
+ * Les durées par fichier d'un journal de tentative complet (`lignesDuJournal`). `lus` : les durées Vitest lues ;
  * `attendus` : la somme des fichiers annoncés par les `[partie]`, chacune comptée une fois ; `parties` : les `i/K`
  * lues ; `manquantes` : les `i/K` absentes, i ∈ 1..K de chaque K lu ; `illisibles` : les gates dont la ligne
  * `[durees] node` ne se lit pas. PURE.

@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, expect } from 'vitest';
 import { resolveMelee, resolveRanged } from './combat';
 import { addCondition, cannotDefend } from './conditions';
@@ -52,7 +53,7 @@ describe('Attaque contre un Inconscient (LDB 16 l.113)', () => {
   it('distance : touche automatiquement et inflige un Critique', () => {
     const target = mk();
     addCondition(target, 'inconscient');
-    const res = resolveRanged(mk(), target, bow, rngOf(95), 5, undefined, undefined, undefined, 2);
+    const res = resolveRanged(findTrappingById, mk(), target, bow, rngOf(95), 5, undefined, undefined, undefined, 2);
     expect(res.hit).toBe(true);
     expect(res.critical).toBe(true);
   });
@@ -62,8 +63,8 @@ describe('Attaque contre un Inconscient (LDB 16 l.113)', () => {
     const ko = mk();
     addCondition(ko, 'inconscient');
     // Jet 35 ≤ CT 40 → réussite dans les deux cas ; l'Inconscient ajoute +6 DR (bout portant).
-    const hitConsc = resolveRanged(mk(), consc, bow, rngOf(35), 30, undefined, undefined, undefined, 2); // portée moyenne
-    const hitKO = resolveRanged(mk(), ko, bow, rngOf(35), 30, undefined, undefined, undefined, 2);
+    const hitConsc = resolveRanged(findTrappingById, mk(), consc, bow, rngOf(35), 30, undefined, undefined, undefined, 2); // portée moyenne
+    const hitKO = resolveRanged(findTrappingById, mk(), ko, bow, rngOf(35), 30, undefined, undefined, undefined, 2);
     expect(hitConsc.hit).toBe(true);
     expect(hitKO.hit).toBe(true);
     expect(hitKO.damage!).toBeGreaterThan(hitConsc.damage!);

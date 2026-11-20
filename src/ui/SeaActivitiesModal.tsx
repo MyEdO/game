@@ -17,7 +17,7 @@ import { Icon } from './Icon';
 import { Grid } from './Layout';
 import { GatedAction, raisonSi } from './GatedAction';
 
-/** MDG 15 l.266-306 — chaque choix est un choix de la fenêtre (`fenetreChoisir('activitesEnMer', axe, valeur, héros)`),
+/** MDG 15 l.268 — chaque choix est un choix de la fenêtre (`fenetreChoisir('activitesEnMer', axe, valeur, héros)`),
  *  lu dans le noyau avec ses refus (`refusDuChoixNomme`) ; l'hôte valide la semaine (`fenetreValider('activitesEnMer')`). */
 export function SeaActivitiesModal() {
   const pending = useGame((s) => s.pendingSeaActivities);

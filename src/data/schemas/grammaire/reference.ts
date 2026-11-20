@@ -11,6 +11,7 @@ import {
   countSpecSchema,
   monnaieSchema,
   natureDeMentionSchema,
+  OBJETS_DU_PROJET,
   difficultySchema,
   enumNomme,
   formuleSansTirageSchema,
@@ -28,7 +29,8 @@ import {
   weaponRangeSpecSchema,
 } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { ENGINS_DE_SIEGE } from './sousListes';
+import { listeSansCle } from './liste-sans-cle';
+import { estObjet } from '../../../lib/objet.mjs';
 import {
   idDe,
   marqueurDeLaForme,
@@ -202,7 +204,7 @@ const poseDeTrait = (regime: RegimeDeCible): z.ZodType<TraitPose> => {
     ...champsDuTraitPose,
     /** Traits conférés aux touches de ce Trait d'attaque (ZI 03 l.75, l.77 ; ZI 06 l.32) ; admis si la def
      *  déclare `attaque`. */
-    confere: z.array(z.lazy(() => pose)).optional(),
+    confere: listeSansCle(z.array(z.lazy(() => pose))).optional(),
   }).superRefine((t, ctx) => refusDuTraitPose(t, ctx, regime)), CHAMPS_DU_TRAIT_POSE), 'traitPose', 'pose', { value: formuleSansTirageSchema });
   return pose;
 };
@@ -225,7 +227,7 @@ export const optionalSwapSchema = nommerNoeud(nommerChamps(z.strictObject({
   label: z.string(),
   remove: z.array(idDe('trait', undefined, { nue: true })),
   /** Un ou plusieurs octrois (Vouivre ZI : 4 — 3 caractéristiques + 1 compétence). */
-  grant: z.array(swapGrantSchema),
+  grant: listeSansCle(z.array(swapGrantSchema)),
   size: sizeCategorySchema.optional(),
   wounds: z.number().optional(),
 }), { note: { label: "note" }, label: { label: "libellé" }, remove: { label: "retirer" }, grant: { label: "ajouts" }, size: { label: "Taille" }, wounds: { label: "Blessures" } }), { label: 'remplacement de Traits' });
@@ -280,7 +282,7 @@ export type QualiteDObjetRef = (QualityRef & { majoration?: never }) | (z.infer<
 /** `ManiementAlternatif` (`src/data/index.ts`), keyé par les Groupes de Corps à corps qui manient aussi
  *  l'arme : `TrappingData.manieAussi`, `GroupeDArme.manieAussi`. AA 08 l.188 ; AA 08 l.194 ; AA 08 l.343 */
 export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictObject({
-  qualites: z.array(qualityRefSchema).optional(),
+  qualites: listeSansCle(z.array(qualityRefSchema)).optional(),
   retire: refs('quality').optional(),
   aPied: z.literal(true).optional(),
   mains: z.literal(1).optional(),
@@ -308,7 +310,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
   damage: weaponDamageSpecSchema,
   reach: reachSchema.nullable().optional(),
   range: weaponRangeSpecSchema.nullable().optional(),
-  qualities: z.array(qualityRefSchema),
+  qualities: listeSansCle(z.array(qualityRefSchema)),
   subType: ref('weaponGroup').optional(),
   weaponGroup: ref('weaponGroup').optional(),
   perteSansEquipe: perteSansEquipeSchema.optional(),
@@ -353,9 +355,15 @@ export const objetDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({
   id: idDe('trapping'),
   spec: z.string().optional(),
   count: countSpecSchema.optional(),
-  qualities: z.array(qualityRefSchema).optional(),
+  qualities: listeSansCle(z.array(qualityRefSchema)).optional(),
   valeur: sommeSchema.optional(),
 }), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, valeur: { label: 'valeur' } }), { label: 'objet du catalogue' });
+
+/** HCVM p.265 ; LDB 84 l.7 ; #4053. */
+export const armureDecriteParLeTraitSchema = nommerNoeud(ref('trapping', {
+  spec: nommerNoeud(objetDeCatalogueSchema.shape.spec, { nom: 'précision' }),
+  decritLeTraitArmure: nommerNoeud(z.literal(true), { nom: 'Décrit le Trait Armure' }),
+}, 'armor'), { label: 'pièce de l’armure décrite par le Trait' });
 
 /** La classe de qualité d'un objet doté dont les Atouts sont au choix. LDB 60 l.7 ; LDB 60 l.11 */
 export const classeDeQualiteSchema = enumNomme({ qualite: 'de qualité', haute: 'de Haute Qualité' });
@@ -363,7 +371,12 @@ export type ClasseDeQualite = z.infer<typeof classeDeQualiteSchema>;
 
 /** Dotation d'un objet du catalogue : l'objet, et son emplacement « Atouts au choix » (`qualityChoice`), sa classe de
  *  qualité. LDB 60 */
-export const dotationDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({ ...objetDeCatalogueSchema.shape, qualityChoice: classeDeQualiteSchema.optional() }), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } }), { label: 'objet du catalogue' });
+const dotationDObjet = (id = objetDeCatalogueSchema.shape.id) => marquerProduit(nommerNoeud(nommerChamps(z.strictObject({
+  ...objetDeCatalogueSchema.shape,
+  id,
+  qualityChoice: classeDeQualiteSchema.optional(),
+}), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } }), { label: 'objet du catalogue' }), 'dotationDObjet', 'objet', { id });
+export const dotationDeCatalogueSchema = dotationDObjet();
 
 /** Dotation d'une MENTION : un bien imprimé que la fiche porte sous sa nature, sans mécanique. #4053 */
 export const dotationDeMentionSchema = nommerNoeud(nommerChamps(z.strictObject({
@@ -380,10 +393,10 @@ export const dotationDeTexteSchema = nommerNoeud(nommerChamps(z.strictObject({ t
 const LIBELLES_DE_POSSESSION = { creature: 'Créature', vehicle: 'Véhicule' } as const;
 export const typeDePossessionSchema = enumNomme(LIBELLES_DE_POSSESSION);
 /** Ce qu'une dotation POSSÈDE hors du sac : une possession, ou un engin de siège servi en poste
- *  (sous-liste `ENGINS_DE_SIEGE`, jamais un objet de sac). AA 02 l.335-339 ; #4143 */
+ *  (AA 02 l.335-339). */
 export const typeDeDotationDePossessionSchema = enumNomme({ ...LIBELLES_DE_POSSESSION, engin: 'Engin de siège' });
 /** Dotation d'une POSSESSION : la référence typée, sa quantité et son libellé imprimé. */
-export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDeDotationDePossessionSchema, { engin: { type: 'trapping', sousListe: ENGINS_DE_SIEGE } }, {
+export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDeDotationDePossessionSchema, undefined, {
   count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 }), { label: 'possession' });
@@ -409,21 +422,46 @@ type JokerDeDotation = z.infer<typeof jokerDeDotationSchema>;
 
 /** Plusieurs objets ou possessions dotés ENSEMBLE, option d'un « 1 parmi » : ni emplacement, ni somme, ni mention, ni texte. */
 const lotDeDotationSchema = nommerNoeud(nommerChamps(z.strictObject({
-  lot: z.array(z.union([objetDeCatalogueSchema, dotationDePossessionSchema], { error: messageDeFormes })).min(2),
+  lot: listeSansCle(z.array(z.union([objetDeCatalogueSchema, dotationDePossessionSchema], { error: messageDeFormes })).min(2)),
 }), { lot: { label: 'lot' } }), { label: 'lot' });
 
-/** Les `formes` d'une dotation, et le « 1 parmi » de ces formes et des options `enPlusDansOf` (`parmi`). */
-function formesDeDotation<F, O = never>(formes: readonly z.ZodType<F>[], enPlusDansOf: readonly z.ZodType<O>[] = []): z.ZodType<F | Parmi<1, F | O>> {
-  return z.union([nommerNoeud(parmi<F | O, 1>([...formes, ...enPlusDansOf], z.literal(1)), { label: 'une parmi' }), ...formes], { error: messageDeFormes });
+/** Les formes d'une dotation et son « 1 parmi ». HCVM p.265 ; #4210. */
+function formesDeDotation<F, O = never, D = never>(
+  formes: readonly z.ZodType<F>[],
+  enPlusDansOf: readonly z.ZodType<O>[] = [],
+  formesDirectes: readonly z.ZodType<D>[] = [],
+  formesAuChoix: readonly z.ZodType<F>[] = formes,
+): z.ZodType<F | D | Parmi<1, F | O>> {
+  const auChoix = nommerNoeud(parmi<F | O, 1>([...formesAuChoix, ...enPlusDansOf], z.literal(1)), { label: 'une parmi' });
+  return z.union([auChoix, ...formes, ...formesDirectes], { error: messageDeFormes });
 }
 
 /** Dotation sans texte, mention, joker ni lot : `classes.json`. LDB 05 l.552 ; #4053 */
 export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation<FormeSansTexte>([dotationDeCatalogueSchema, dotationDePossessionSchema, sommeSchema]);
-/** Dotation de `careerLevels.json` et `creatures.json` (`trappingRefSchema`) : l'annotation de ce schéma récursif. */
+/** Dotation de `careerLevels.json` (`trappingRefSchema`) : l'annotation de ce schéma récursif. */
 export type TrappingRef = FormeDeDotation | Parmi<1, FormeDeDotation | LotDeDotation>;
-/** Dotation de `careerLevels.json` et `creatures.json`. */
+const autresFormesDesPossessions = [
+  dotationDeTexteSchema, dotationDeMentionSchema, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema,
+];
+const formesDesPossessions: readonly z.ZodType<FormeDeDotation>[] = [dotationDeCatalogueSchema, ...autresFormesDesPossessions];
+
+/** Dotation de `careerLevels.json`. */
 export const trappingRefSchema: z.ZodType<TrappingRef> = formesDeDotation<FormeDeDotation, LotDeDotation>(
-  [dotationDeCatalogueSchema, dotationDeTexteSchema, dotationDeMentionSchema, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema],
-  [lotDeDotationSchema],
+  formesDesPossessions, [lotDeDotationSchema],
 );
+
+const dotationDirecteDeCreature = dotationDObjet(idDe('trapping', undefined, { portee: OBJETS_DU_PROJET }));
+
+/** HCVM p.265 ; LDB 84 l.7 ; #4210. */
+export const possessionDeCreatureSchema = formesDeDotation<FormeDeDotation, LotDeDotation, z.infer<typeof armureDecriteParLeTraitSchema>>(
+  [dotationDirecteDeCreature, ...autresFormesDesPossessions],
+  [lotDeDotationSchema], [armureDecriteParLeTraitSchema], formesDesPossessions,
+).meta({
+  retientBrancheDeLUnion: (branche: unknown, valeur: unknown) => {
+    if (!estObjet(valeur)) return true;
+    if ('type' in valeur) return branche === dotationDePossessionSchema;
+    if ('decritLeTraitArmure' in valeur) return branche === armureDecriteParLeTraitSchema;
+    return branche !== dotationDePossessionSchema && branche !== armureDecriteParLeTraitSchema;
+  },
+});
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runFlow } from './combatEffects';
 import { testFlow } from './monde/flow';
@@ -8,7 +8,7 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type ModLine } from '../engine/ty
 import { clampTarget } from '../engine/tests';
 import { testStatePenalty } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
-import { seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from './battleRng';
 import { RULE_REF } from '../engine/ruleRefs';
 import { ligneDe, lignesDe } from '../engine/modLine.testkit';
 import type { TravelPlan } from './travelFlow';
@@ -216,35 +216,62 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
     ));
     const pt = banc.getState().pendingTest!;
     const statut = ligneDe(pt.mods, RULE_REF.statut)!;
-    expect(statut.value).toBe(pt.psychMod); // la ligne EST le mod fondu, pas un doublon d'affichage
+    expect(statut.value).toBe(10);
+    expect(pt.psychMod).toBeUndefined();
     expect(pt.base! + pt.mods!.reduce((s, m) => s + m.value, 0) + DIFFICULTY_MODIFIERS[pt.difficulty]).toBe(pt.target);
   });
 
   it('sous l’option « Réaction au Statut », la ligne DIT l’inversion (label et valeur de la même source)', () => {
-    // d10 forcé à 9-10 par le RNG seedé : « Opinions extrêmes » inverse le modificateur. La ligne
-    // affichée est CELLE qui a fait la cible — libellé et valeur ne peuvent plus diverger.
     setRule('social-reaction-au-statut', true);
+    const h = noble('h1');
+    banc.setState({ party: [h] });
+    seedBattleRng(1);
+    const int = vi.spyOn(battleRng(), 'int').mockReturnValue(9);
     try {
-      const h = noble('h1');
-      banc.setState({ party: [h] });
-      let pt = null as ReturnType<typeof banc.getState>['pendingTest'];
-      for (let seed = 1; seed <= 40 && !pt; seed += 1) {
-        seedBattleRng(seed);
-        banc.setState({ pendingTest: null, pendingCascade: null });
-        runFlow(banc.getState, banc.setState, testFlow(
-          { skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: { tier: 'bronze', standing: 1 }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW,
-        ));
-        const cur = banc.getState().pendingTest!;
-        if ((cur.psychMod ?? 0) < 0) pt = cur; // inversion tirée (le mod d'un Or vers un Bronze est +10)
-      }
-      expect(pt, 'aucun seed n’a tiré 9-10 en 40 essais').toBeTruthy();
-      const statut = ligneDe(pt!.mods, RULE_REF.statut)!;
-      expect(statut.value).toBe(pt!.psychMod);
-      expect(statut.value).toBeLessThan(0);
-      expect(pt!.base! + pt!.mods!.reduce((s, m) => s + m.value, 0) + DIFFICULTY_MODIFIERS[pt!.difficulty]).toBe(pt!.target);
+      runFlow(banc.getState, banc.setState, testFlow(
+        { skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: { tier: 'bronze', standing: 1 }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW,
+      ));
+      const pt = banc.getState().pendingTest!;
+      expect(int.mock.calls).toEqual([[1, 10]]);
+      expect(ligneDe(pt.mods, RULE_REF.statut)).toMatchObject({ label: 'Statut (Or>Bronze) −10', value: -10 });
+      expect(pt).toMatchObject({ base: 50, target: 40 });
+      expect(pt.psychMod).toBeUndefined();
     } finally {
+      int.mockRestore();
       resetRule('social-reaction-au-statut');
     }
+  });
+
+  it('la Détermination garde le Statut et l’immunité suit le testeur', () => {
+    const h = noble('h1', {
+      psychTraits: [{ type: 'prejuge', cible: ciblePsy.groupe('elfe') }],
+      resolve: 2,
+    });
+    const autre = noble('h2', { characteristics: { ...CHARS, sociabilite: 30 } });
+    banc.setState({ party: [h, autre] });
+    runFlow(banc.getState, banc.setState, testFlow({
+      skill: { id: 'charme' },
+      difficulty: 'intermediaire',
+      vsStatus: { tier: 'bronze', standing: 1 },
+      vsGroups: ['elfe'],
+      noSupport: true,
+    }, EMPTY_FLOW, EMPTY_FLOW));
+    const avant = banc.getState().pendingTest!;
+    expect(avant).toMatchObject({ base: 50, skillValue: 50, target: 50, psychMod: -10 });
+    expect(ligneDe(avant.mods, RULE_REF.statut)?.value).toBe(10);
+    expect(avant.mods?.filter((mod) => mod.ref?.category === 'psychologies')).toHaveLength(1);
+
+    banc.getState().depenserLaDetermination(h.id, 'immuniserALaPsychologie');
+    const apres = banc.getState().pendingTest!;
+    expect(apres).toMatchObject({ base: 50, skillValue: 60, target: 60, psychMod: 0 });
+    expect(apres.mods).toEqual([ligneDe(avant.mods, RULE_REF.statut)]);
+
+    banc.getState().jetRegler('test', 'testeur', autre.id);
+    expect(banc.getState().pendingTest).toMatchObject({ actorId: autre.id, target: 45 });
+    banc.getState().jetRegler('test', 'testeur', h.id);
+    expect(banc.getState().pendingTest).toMatchObject({
+      actorId: h.id, skillValue: 60, target: 60, psychMod: 0, mods: apres.mods,
+    });
   });
 
   it('MULTI-candidats : chaque candidat porte SA ligne, et réglage `test.testeur` la fait suivre', () => {

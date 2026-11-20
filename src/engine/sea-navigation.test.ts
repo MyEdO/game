@@ -94,7 +94,8 @@ describe('Phares & clochers (MDG 13 l.333-351)', () => {
   it('Voir la lumière : ≤5 milles Facile (+40) ; 5-10 Intermédiaire ; 10-15 Difficile ; au-delà : invisible', () => {
     expect(lighthouseSpotDifficulty(3, false)).toBe('facile');
     expect(lighthouseSpotDifficulty(8, false)).toBe('intermediaire');
-    expect(lighthouseSpotDifficulty(14, false)).toBe('difficile');
+    expect(lighthouseSpotDifficulty(15, false)).toBe('difficile');
+    expect(lighthouseSpotDifficulty(15.01, false)).toBeNull();
     expect(lighthouseSpotDifficulty(20, false)).toBeNull();
   });
 
@@ -139,8 +140,18 @@ describe('Longs voyages & Poursuite (MDG 15 l.53-78 ; ch.13 l.354-420)', () => {
   it('milles/jour = 18 × M ; ÷2 sans voguer de nuit ; ±10 % par DR de Progression', () => {
     expect(seaMilesPerDay(5, true)).toBe(90);
     expect(seaMilesPerDay(5, false)).toBe(45);
-    expect(seaMilesPerDay(5, true, 2)).toBeCloseTo(108); // +20 %
-    expect(seaMilesPerDay(5, true, -3)).toBeCloseTo(63); // −30 %
+    expect(seaMilesPerDay(5, true, 2)).toBe(108); // +20 %
+    expect(seaMilesPerDay(5, true, -3)).toBe(63); // −30 %
+  });
+
+  // #4419 : les demi-milles sont EXACTS, l'arrondi au mille des appelants les monte (31,5 → 32).
+  it.each([
+    [-9, 4.5],
+    [-7, 13.5],
+    [-3, 31.5],
+  ] as const)('M 5 sans voguer de nuit, Progression %s DR → %s milles exacts', (dr, milles) => {
+    expect(seaMilesPerDay(5, false, dr)).toBe(milles);
+    expect(Math.round(seaMilesPerDay(5, false, dr))).toBe(milles + 0.5);
   });
 
   it('Poursuite : Distance gagnée = mètres ÷ 10 (min 1) ±1/−2 selon la bande de DR (l.378-397)', () => {

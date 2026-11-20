@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, expect } from 'vitest';
 import { parseQualityInstance } from '../data/refFormatLivre';
 import { makeRNG } from './dice';
@@ -47,7 +48,7 @@ describe('Golden master — combat (iso-comportement du registre de qualités)',
       for (let seed = 1; seed <= 25; seed++) {
         const atk = mk('A', { 'capacite-de-tir': 55 }, { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 50, qualities: q.map((s) => parseQualityInstance(s)!) });
         const def = mk('D', { endurance: 35 }, { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }, 2);
-        out.push(`${q.join(',')}|${seed}=${ser(resolveRanged(atk, def, atk.weapons[0], makeRNG(seed), 10, undefined, undefined, undefined, 2))}`);
+        out.push(`${q.join(',')}|${seed}=${ser(resolveRanged(findTrappingById, atk, def, atk.weapons[0], makeRNG(seed), 10, undefined, undefined, undefined, 2))}`);
       }
     }
     expect(out).toMatchSnapshot();

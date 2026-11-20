@@ -1,8 +1,9 @@
+import { findTrappingById } from '../../data';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyShipPostes } from './shipPostes';
 import { firedWeapon, firedAttackBlock } from '../combatFlow';
-import { itemFromTrappingById } from '../../engine/items';
+import { hydratePoste } from '../../engine/items';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import type { Scene } from './scene';
 import type { JeuDuNoyau } from '../machinerieDuNoyau';
@@ -36,7 +37,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
     inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
+  hydratePoste({ trappingId: engineId, crewIds }, idsDeTest('it'));
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 2,
@@ -52,7 +53,7 @@ describe('firedWeapon — bélier ADE II (Équipe 6) : −20 plat en sous-effect
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     const all = [mkEmplacement(poste), chef, ...crewIds.slice(1).map((id) => mkCrewman(id)), mkEnemy('cible', 6, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(groundScene(), chef, mkEnemy('cible', 6, 5), poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, groundScene(), chef, mkEnemy('cible', 6, 5), poste.item.uid, all);
     expect(w.crewTeamIncomplete).toBeUndefined();
     expect(w.resolveChar).toBe('force'); // Force, pas CC
     expect(w.reload).toBe(0); // ADE II n'a AUCUNE Recharge (≠ AA) — rien à doubler
@@ -64,7 +65,7 @@ describe('firedWeapon — bélier ADE II (Équipe 6) : −20 plat en sous-effect
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     const all = [mkEmplacement(poste), chef, ...crewIds.slice(1).map((id) => mkCrewman(id)), mkEnemy('cible', 6, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(groundScene(), chef, mkEnemy('cible', 6, 5), poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, groundScene(), chef, mkEnemy('cible', 6, 5), poste.item.uid, all);
     expect(w.crewTeamIncomplete).toBe(true);
     expect(firedAttackBlock(mkGet(groundScene(), all), chef, mkEnemy('cible', 6, 5), poste.item.uid)).toBeNull();
   });
@@ -85,7 +86,7 @@ describe('firedWeapon — bélier ADE II (Équipe 6) : −20 plat en sous-effect
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     const all = [mkEmplacement(poste), chef, mkCrewman('c1'), mkEnemy('cible', 12, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(groundScene(), chef, mkEnemy('cible', 12, 5), poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, groundScene(), chef, mkEnemy('cible', 12, 5), poste.item.uid, all);
     expect(w.crewTeamIncomplete).toBe(true);
     expect(w.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(false); // ADE II ne porte PAS cette Qualité AA
   });

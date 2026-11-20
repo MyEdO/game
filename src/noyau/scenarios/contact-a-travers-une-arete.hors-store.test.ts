@@ -8,7 +8,7 @@ import { areteOcculteEntre, isWalkable, porteEnJeu, setDoorOpen, setStructureDow
 import { lineOfSightCover } from '../monde/lineOfSight';
 import { attackEnv, attackPlan } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
-import { effectifAuContact } from '../combat/surnombre';
+import { effectifAuContactParmi } from '../combat/surnombre';
 import { isStructure } from '../../engine/structures';
 import { chebyshev } from '../../engine/grid';
 import { t } from '../../i18n';
@@ -72,7 +72,7 @@ describe('#4105 — la coque de la barge d’embuscade-fluviale', () => {
     expect(contact(H, E)).toBe(Infinity);
     expect(attackPlan(banc.getState, H, E).kind).toBe('bloque');
     expect(attackPlan(banc.getState, E, H).kind).toBe('bloque');
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(0);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente();
     expect(banc.getState().pendingAttack).toBeFalsy();
@@ -218,7 +218,7 @@ describe('#4105 lot 3 — la herse baissée sépare pour le corps à corps', () 
       expect(plan.kind, `${A.id} ne frappe pas à travers`).not.toBe('attaque');
       if (plan.kind === 'charge') expect(plan.dest, `la Charge de ${A.id} ne s’arrête pas sur sa case`).not.toMatchObject({ x: A.pos!.x, y: A.pos!.y });
     }
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(0);
   });
 
   it('baissée : la vue passe, et le tir à travers reste offert sans couvert', () => {

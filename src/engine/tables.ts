@@ -1,14 +1,12 @@
+import { garanti } from '../lib/garanti';
 import { formatDice, totalDuDe, type DiceSpec } from './dice';
 
 /**
- * Lookup PARTAGÉ d'une entrée de table d100 par fourchette `[min, max]` — SOURCE UNIQUE des tirages
- * sur table (Critiques, Oups !, Imparfaites/Colère, Corruptions, péripéties d'interlude…). Repli sur
- * la DERNIÈRE entrée si le jet dépasse la table (ne devrait jamais arriver pour une table bien formée).
- *
- * Réutiliser ; ne JAMAIS réécrire `table.find((e) => roll >= e.min && roll <= e.max) ?? table.at(-1)`.
+ * Lecture PARTAGÉE d'une rangée par fourchette `[min, max]`, bornes incluses.
+ * Signale le jet qui ne tombe dans aucune rangée.
  */
 export function findTableEntry<T extends { min: number; max: number }>(table: T[], roll: number): T {
-  return table.find((e) => roll >= e.min && roll <= e.max) ?? table[table.length - 1];
+  return garanti(table.find((e) => roll >= e.min && roll <= e.max), roll, 'rangée de table');
 }
 
 /**
@@ -33,9 +31,7 @@ export interface BandeOuverte { min: number | null; max: number | null }
 
 /**
  * La table telle que `findTableEntry` la lit : la borne que le livre n'écrit pas s'ouvre à l'infini
- * (`min: null` → −∞, `max: null` → +∞). Une borne ÉCRITE reste FERMÉE : une valeur qui ne tombe
- * dans aucune bande est une ANOMALIE que l'appelant NOMME (`findTableEntryIndex` < 0), jamais le
- * repli de `findTableEntry` sur la dernière bande.
+ * (`min: null` → −∞, `max: null` → +∞). Une borne ÉCRITE reste FERMÉE.
  *
  * SOURCE UNIQUE des tables ouvertes du moteur et de leurs lecteurs : la forme ouverte est déclarée
  * UNE fois en grammaire (`plageOuverteSchema`), elle s'ouvre UNE fois ici. PUR.
@@ -91,8 +87,7 @@ export function bandeAuDe(de: DeDeTable, min: number | null, max: number | null)
 }
 
 /** Variante INDEX de `findTableEntry` — pour les appelants qui doivent ensuite décaler l'entrée
- *  trouvée dans la table (crans de bonus/malus). Repli à −1 si aucune entrée ne couvre `roll` (le
- *  repli, contrairement à `findTableEntry`, est laissé à l'appelant). */
+ *  trouvée dans la table (crans de bonus/malus). Renvoie −1 si aucune rangée ne couvre le jet. */
 export function findTableEntryIndex<T extends { min: number; max: number }>(table: T[], roll: number): number {
   return table.findIndex((e) => roll >= e.min && roll <= e.max);
 }

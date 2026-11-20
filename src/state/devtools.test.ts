@@ -8,7 +8,7 @@ import { bourseOf } from '../engine/bourse';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { isOutOfAction } from '../engine/conditions';
-import { itemFromTrappingById, formeResolue } from '../engine/items';
+import { hydratePoste, formeResolue } from '../engine/items';
 import { herosDeTest } from '../noyau/creation/pretireDeTest.testkit';
 import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -861,7 +861,7 @@ describe('__wfrp.projectMinimal / projectSave — poser un projet en bibliothèq
 
 describe('__wfrp.place — piège composite (coque à postes / membre de crew)', () => {
   const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-  const mkPoste = (crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById('belier-ade2', idsDeTest)!, crewIds });
+  const mkPoste = (crewIds: string[]): ShipPoste => hydratePoste({ trappingId: 'belier-ade2', crewIds }, idsDeTest('it'));
   const mkHull = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
     combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'ennemi', pos, conditions: [], weapons: [],
       inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] });
@@ -1062,7 +1062,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
       suspendedCascades: [],
       gameTime: 8 * 60,
       lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
       journal: [],
     } as never);
   };

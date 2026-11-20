@@ -14,6 +14,7 @@ import { DATASET_KEYS, datasetArray } from '../../overrides';
 import { scanDuCorpus } from '../../../../scripts/docs/lib/structures-scan.mjs';
 import { projetSchema } from '../defs-scenes/projet';
 import { sceneSchema } from '../defs-scenes/scene';
+import { routePerilSchema } from '../defs-scenes/worldmap';
 import { validateDocument, cheminLisible } from '../validate';
 import { parseProject, ProjetRefuse } from '../../../noyau/worldMap';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
@@ -32,7 +33,9 @@ import {
 import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { champsDeChoix } from './choixDeCreation';
 import { schema as schemaDesTailles } from '../defs/sizes';
-import { estFeuilleDId, estRefEmboitee, idDe } from './ref';
+import { idDe } from './ref';
+import { conditionSchema } from './mecanique';
+import { estListeSansCle, listeSansCle } from './liste-sans-cle';
 
 const nomDeMarque = (m: MarqueDeCollection | undefined): string | undefined => (m?.forme === 'liste' ? m.nom : m?.sous);
 const nomDe = (n: unknown): string | undefined => nomDeMarque(collectionDe(n));
@@ -71,50 +74,64 @@ describe('anti-perte — le seul détecteur du zéro SILENCIEUX', () => {
   });
 });
 
-/**
- * Exemptions NOMMÉES : listes d'objets du schéma de projet dont l'élément porte un `id` hors feuille `idDe`
- * (`porteUnIdDIdentite`) SANS en être l'identité : l'`id` y DÉSIGNE une cible, la liste n'a pas de clé propre.
- * Clé = chemin de la marche, branches d'union effacées.
- */
-const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
-  '.scenes[].triggers[].when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
-  '.narratif.cloture.when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
-  '.worldMap.routes[].perils[].effects[]': 'effets de scène : `id` d’une cible désignée',
-};
-
-/** L'élément de liste porte-t-il, à travers enveloppes ET branches d'union (`ouverts`), un `id` qui n'est ni la
- *  référence emboîtée `{ id }` d'une op (`refDEtatSchema`, `grammaire/mecanique.ts`) ni une feuille `idDe`
- *  (`estFeuilleDId`) ? Une liste dont l'`id` est une feuille `idDe` est lue comme une liste de références, sans clé
- *  exigée. */
-function porteUnIdDIdentite(noeud: unknown): boolean {
-  return ouverts([noeud]).some((n) => enfantsDe(n).some((e) => e.cle === 'id' && !ouverts([e.noeud]).some((f) => estRefEmboitee(f) || estFeuilleDId(f))));
-}
-
-/** Listes d'objets du schéma dont l'élément déclare un `id` d'identité, avec leur chemin et leur marque de clé. */
-function listesAId(schema: unknown): { chemin: string; cle?: string }[] {
-  const out: { chemin: string; cle?: string }[] = [];
+/** Listes dont une branche d'élément porte un champ `id`, à travers unions et enveloppes. */
+function listesAId(schema: unknown): { chemin: string; avecCle: boolean; sansCle: boolean }[] {
+  const listes: { chemin: string; avecCle: boolean; sansCle: boolean }[] = [];
   descendre([schema], ({ noeud, def, path }) => {
-    if (def.type === 'array' && porteUnIdDIdentite(enfantsDe(noeud).find((e) => e.segment === '[]')?.noeud)) out.push({ chemin: `${path.replace(/\|\d+/g, '')}[]`, cle: nomDe(noeud) });
+    if (def.type !== 'array') return;
+    const branches = ouverts(pasDeDonnee([noeud], 0));
+    if (!branches.some((branche) => enfantsDe(branche).some((enfant) => enfant.cle === 'id'))) return;
+    listes.push({ chemin: `${path}[]`, avecCle: collectionDe(noeud)?.forme === 'liste', sansCle: estListeSansCle(noeud) });
   });
-  return out;
+  return listes;
 }
 
-describe('complétude — toute liste d’objets à `id` du schéma de projet DÉCLARE sa clé par `listeCle`, porte son `id` en feuille `idDe` (liste de RÉFÉRENCES), ou est une exemption NOMMÉE', () => {
+describe('complétude — toute liste d’objets à `id` du schéma de projet déclare sa politique au nœud de liste', () => {
   const listes = listesAId(projetSchema);
 
-  it('la marche VOIT les listes à `id` (une marche aveugle rendrait la garde vacueuse)', () => {
-    expect(listes.map((l) => l.chemin)).toEqual(expect.arrayContaining(['.scenes[]', '.scenes[].entities[]', '.narratif.affaires[]']));
+  it('la marche voit les listes à `id` dans les collections et les séquences', () => {
+    expect(listes.map((l) => l.chemin)).toEqual(expect.arrayContaining([
+      '.scenes[]', '.scenes[].entities[]', '.narratif.affaires[]', '.worldMap.routes[].perils[].effects[]',
+    ]));
   });
 
-  it('aucune liste à `id` n’est muette : clé déclarée par `listeCle`, `id` en feuille `idDe` (liste de références), ou exemption NOMMÉE', () => {
-    const muettes = listes.filter((l) => l.cle === undefined && !(l.chemin in LISTES_DE_REFERENCES)).map((l) => l.chemin);
-    expect(muettes, 'liste(s) d’objets à `id` sans clé : l’envelopper dans `listeCle(…, \'id\')` à son def, désigner son `id` par une feuille `idDe` si elle liste des références, ou l’exempter nommément').toEqual([]);
+  it('chaque liste à `id` déclare une clé par `listeCle` ou une séquence par `listeSansCle`', () => {
+    const muettes = listes.filter((l) => !l.avecCle && !l.sansCle).map((l) => l.chemin);
+    const contradictoires = listes.filter((l) => l.avecCle && l.sansCle).map((l) => l.chemin);
+    expect(muettes, 'liste(s) d’objets à `id` sans déclaration au nœud de liste').toEqual([]);
+    expect(contradictoires, 'liste(s) déclarée(s) à clé et sans clé').toEqual([]);
   });
 
-  it('une exemption ne couvre qu’une liste RÉELLE et SANS clé : la liste des références ne peut que décroître', () => {
-    const parChemin = new Map(listes.map((l) => [l.chemin, l.cle]));
-    const mortes = Object.keys(LISTES_DE_REFERENCES).filter((c) => !parChemin.has(c) || parChemin.get(c) !== undefined);
-    expect(mortes).toEqual([]);
+  it('une même feuille référencée permet une clé, une séquence ou un tableau sans déclaration', () => {
+    const ligne = z.strictObject({ id: idDe('skill'), poids: z.number() });
+    const tirage = listeCle(ligne, 'id');
+    const sequence = listeSansCle(z.array(ligne).min(1));
+    const muette = z.array(ligne);
+    const schema = z.strictObject({ tirage, sequence: sequence.optional(), muette });
+    expect(listesAId(schema)).toEqual([
+      { chemin: '.tirage[]', avecCle: true, sansCle: false },
+      { chemin: '.muette[]', avecCle: false, sansCle: false },
+      { chemin: '.sequence[]', avecCle: false, sansCle: true },
+    ]);
+
+    const lignes = [{ id: 'corps-a-corps', poids: 1 }, { id: 'corps-a-corps', poids: 2 }];
+    expect(sequence.parse(lignes)).toEqual(lignes);
+    expect(sequence.safeParse([]).success).toBe(false);
+    expect(tirage.safeParse(lignes).error?.issues).toEqual([expect.objectContaining({ path: [1] })]);
+  });
+
+  it.each(['all', 'any'])('les conditions %s admettent plusieurs usages de la même référence', (kind) => {
+    const of = [{ kind: 'career', id: 'soldat', who: 'any' }, { kind: 'career', id: 'soldat', who: 'all' }];
+    expect(conditionSchema.parse({ kind, of })).toEqual({ kind, of });
+  });
+
+  it('une péripétie garde les effets qui posent puis retirent le même objectif', () => {
+    const effects = [
+      { type: 'setObjective', id: 'objectif', desc: 'Première consigne.' },
+      { type: 'setObjective', id: 'objectif', desc: 'Nouvelle consigne.' },
+      { type: 'clearObjective', id: 'objectif' },
+    ];
+    expect(routePerilSchema.parse({ label: 'Épreuve', chancePct: 5, effects }).effects).toEqual(effects);
   });
 });
 

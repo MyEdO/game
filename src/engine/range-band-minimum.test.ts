@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { belowMinRangeBand, rangeBandId } from './combat';
-import { trappings } from '../data';
+import { siegeEngines } from '../data';
 
 /**
  * PORTÉE MINIMALE d'une machine de siège (ADE II 8 l.251/253) — `belowMinRangeBand` est le prédicat
@@ -26,9 +26,9 @@ describe('belowMinRangeBand — comparaison ordinale des bandes', () => {
   });
 });
 
-/** Les 9 machines de siège à DISTANCE d'ADE II (dérivées du catalogue : livre + catégorie + subType). */
-const ade2RangedSiege = trappings.filter(
-  (t) => t.categorie === 'distance' && t.subType?.id === 'armes-de-siege' && t.source.book === 'archives-de-l-empire-2',
+/** Les 9 machines de siège à DISTANCE d'ADE II (dérivées du catalogue : livre + catégorie). */
+const ade2RangedSiege = siegeEngines().filter(
+  (t) => t.categorie === 'distance' && t.source.book === 'archives-de-l-empire-2',
 );
 
 describe('catalogue ADE II — portée minimale des machines de siège à distance', () => {

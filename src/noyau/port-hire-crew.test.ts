@@ -62,6 +62,28 @@ describe('recruterLEquipage / renvoyerLEquipage (#228)', () => {
     expect(weeklyCrewWageBrass(v.crew)).toBe(1152);
   });
 
+  it('l’embauche comble les places vacantes dans la limite du complément nominal', () => {
+    const { get, set, read } = mkStore({
+      ...baseVessel([{ roleId: 'mousse', count: 12 }]),
+      crewLost: 2,
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    });
+    recruterLEquipage(get, set, 'timonier', 5);
+    expect(read().vessel).toMatchObject({
+      crewLost: 0,
+      crew: [{ roleId: 'mousse', count: 12 }, { roleId: 'timonier', count: 2 }],
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    });
+    recruterLEquipage(get, set, 'timonier', 1);
+    expect(read().vessel!.crew).toEqual([{ roleId: 'mousse', count: 12 }, { roleId: 'timonier', count: 2 }]);
+    renvoyerLEquipage(get, set, 'timonier', 5);
+    expect(read().vessel).toMatchObject({
+      crewLost: 2,
+      crew: [{ roleId: 'mousse', count: 12 }],
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    });
+  });
+
   it('débarquement décrémente puis SUPPRIME le poste à 0', () => {
     const { get, set, read } = mkStore(baseVessel([{ roleId: 'timonier', count: 2 }]));
     renvoyerLEquipage(get, set, 'timonier', 1);

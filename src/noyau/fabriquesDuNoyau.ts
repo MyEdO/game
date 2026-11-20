@@ -76,7 +76,7 @@ import { choixDuVoyageEnMer, creerActionsDuVoyageEnMer, type SeaVoyageState } fr
 import { creerActionsDuMarcheTerrestre, sortiesDuMarcheTerrestre } from './landMarketFlow';
 import { choixDesMarches } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
-import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
+import { choixDeLaSemaineEnMer, creerActionsDesActivitesEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 import type { BattleState, NetState, ShootingStanceKey } from './etat';
 import type { AttackPlan, MovementResolution } from './combatFlow';
 import type {
@@ -192,7 +192,7 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'acteur' | 'action' | 'active' | 'activite' | 'activites' | 'adapte' | 'adversaire' | 'adversaires' | 'adverse' | 'affaler' | 'aggrave' | 'agir'
   | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'allies' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animosite'
   | 'anneau' | 'annulation' | 'apercu' | 'approche' | 'apres' | 'architecture' | 'arete' | 'argent' | 'arme' | 'armee' | 'armes' | 'armure' | 'arriere'
-  | 'aspersion' | 'asphyxie' | 'attaquant' | 'attaque' | 'attaques' | 'atteints' | 'attenuation' | 'attenue' | 'attribut' | 'au' | 'auberge' | 'aucun' | 'aucune' | 'aucun' | 'aucune'
+  | 'aspersion' | 'asphyxie' | 'attaquant' | 'attaque' | 'attaques' | 'atteints' | 'attenuation' | 'attenue' | 'atout' | 'attribut' | 'au' | 'auberge' | 'aucun' | 'aucune' | 'aucun' | 'aucune'
   | 'augmentee' | 'auto' | 'autour' | 'avant' | 'avantage' | 'b' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bannissement' | 'bas'
   | 'bataille' | 'battement' | 'batterie' | 'benediction' | 'bilan' | 'blessures' | 'bloque' | 'bois' | 'boisson'
   | 'bonus' | 'bord' | 'bordee' | 'bouclier' | 'bourse' | 'bras' | 'breche' | 'brisee' | 'briser' | 'butin' | 'cacher'
@@ -228,11 +228,11 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'langue' | 'le' | 'les' | 'liberation' | 'liberer' | 'lieu' | 'ligne' | 'local' | 'localisation' | 'longue' | 'lot'
   | 'lumiere' | 'm' | 'magie' | 'magique' | 'main' | 'mains' | 'maison' | 'maj' | 'majeure' | 'mal' | 'maladie'
   | 'maladresse' | 'malus' | 'manann' | 'manche' | 'manches' | 'manoeuvre' | 'marchand' | 'marchandage' | 'marche' | 'marin' | 'martyr'
-  | 'masse' | 'max' | 'mecenat' | 'medicale' | 'melee' | 'membre' | 'menu' | 'mer' | 'mes' | 'metal' | 'meteo' | 'mineure' | 'mise'
+  | 'masse' | 'materiaux' | 'max' | 'mecenat' | 'medicale' | 'melee' | 'membre' | 'menu' | 'mer' | 'mes' | 'metal' | 'meteo' | 'mineure' | 'mise'
   | 'mode' | 'modificateur' | 'moitie' | 'monde' | 'monture' | 'moral' | 'morsure' | 'mort' | 'mortelle' | 'mot'
   | 'motivation' | 'mouvement' | 'munition' | 'mur' | 'mutation' | 'narratif' | 'natation' | 'nature' | 'naturelle' | 'naufrage'
   | 'navigation' | 'navire' | 'negatifs' | 'neutre' | 'nocturne' | 'nombre' | 'non' | 'normal' | 'objet' | 'obstacle'
-  | 'octroi' | 'offre' | 'op' | 'operations' | 'oppose' | 'opposition' | 'option' | 'options' | 'or' | 'orientation' | 'oter' | 'oui' | 'ouverture'
+  | 'octroi' | 'offre' | 'op' | 'operations' | 'oppose' | 'opposition' | 'option' | 'optionnel' | 'options' | 'or' | 'orientation' | 'oter' | 'oui' | 'ouverture'
   | 'ouvrage' | 'p' | 'pa' | 'paie' | 'panier' | 'panoplie' | 'panoramique' | 'par' | 'parade' | 'parametres' | 'pas' | 'passer'
   | 'patient' | 'pause' | 'pave' | 'payer' | 'peche' | 'pendant' | 'penurie' | 'perce' | 'perception' | 'perd' | 'perdants' | 'perdu'
   | 'perdue' | 'perdus' | 'peril' | 'permanente' | 'persistance' | 'persistante' | 'personne' | 'personnelle' | 'perte'
@@ -257,7 +257,7 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'suspendre' | 'symptome' | 'systeme' | 'table' | 'tableau' | 'talent' | 'talents' | 'tapi' | 'tas' | 'taverne' | 'teleportation'
   | 'temporaire' | 'tentacules' | 'terrain' | 'terre' | 'terreur' | 'test' | 'testeur' | 'tete' | 'tir' | 'tirage' | 'tire' | 'toit'
   | 'tonneau' | 'touche' | 'tour' | 'tourbillon' | 'tous' | 'tout' | 'toutes' | 'trait' | 'transformation' | 'traumatisme'
-  | 'tribut' | 'troc' | 'troquer' | 'trot' | 'un' | 'une' | 'unique' | 'usage' | 'utile' | 'vainqueurs' | 'validation' | 'vapeur' | 'variable' | 'vdm' | 'vendre'
+  | 'tribut' | 'troc' | 'troquer' | 'trot' | 'un' | 'une' | 'unique' | 'usage' | 'usure' | 'utile' | 'vainqueurs' | 'validation' | 'vapeur' | 'variable' | 'vdm' | 'vendre'
   | 'vent' | 'vente' | 'victime' | 'victoire' | 'vider' | 'vie' | 'vin' | 'virage' | 'virement' | 'visee' | 'viser' | 'vol'
   | 'volontaire' | 'volontaires' | 'vomi' | 'voyage' | 'vue' | 'zero' | 'zone';
 /** Une clé de libellé, ses segments joints par des tirets. */
@@ -493,6 +493,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDuBillet(get, set),
     ...creerActionsDuPort(get, set),
     ...creerActionsDuVoyageEnMer(get, set),
+    ...creerActionsDesActivitesEnMer(get, set),
     ...creerActionsDuMarcheTerrestre(get, set),
     ...creerActionsDeLAuberge(get, set),
   };

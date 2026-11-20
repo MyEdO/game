@@ -1,10 +1,14 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { cleaveTargets, doAttack, autoCleave } from './combatFlow';
+import { attackWeaponOf, cleaveTargets, doAttack, autoCleave } from './combatFlow';
 import { occupiesTile, footprintN } from './monde/footprint';
 import { createHero } from '../engine/character';
+import { itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../engine/items';
 import { setRule, resetRule } from '../engine/policy';
+import { resetDesFixes, setDesFixes } from '../engine/fixedDie';
+import { isOutOfAction } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
@@ -13,9 +17,15 @@ import { draineCascade } from './cascade.testkit';
 import { reluDans } from './combatDeTest.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { currentTargetingMode } from './targetingModes';
+import { spawnEnemy } from './monde/spawn';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
+afterEach(() => {
+  resetRule('combat-frappe-mortelle');
+  resetDesFixes();
+});
 
 // ---------------------------------------------------------------------------
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)
@@ -49,9 +59,9 @@ describe('cleaveTargets — cibles de balayage adjacentes (pur)', () => {
     const ally = at('ennemi', 'E2', 4, 5); // même camp que l'attaquant
     const battle = { combatants: [attacker, adj1, adj2, far, dead, ally] } as unknown as BattleState;
 
-    expect(cleaveTargets(banc.getState().scene, battle, attacker, []).map((c) => c.id).sort()).toEqual(['H1', 'H2']);
+    expect(cleaveTargets(findTrappingById, banc.getState().scene, battle, attacker, []).map((c) => c.id).sort()).toEqual(['H1', 'H2']);
     // une cible déjà frappée ce balayage est exclue
-    expect(cleaveTargets(banc.getState().scene, battle, attacker, ['H1']).map((c) => c.id)).toEqual(['H2']);
+    expect(cleaveTargets(findTrappingById, banc.getState().scene, battle, attacker, ['H1']).map((c) => c.id)).toEqual(['H2']);
   });
 });
 
@@ -68,6 +78,163 @@ describe('Balayage en combat (store)', () => {
     banc.abandonner(); // on pilote l'ordre nous-mêmes
     return banc.getState().battle!;
   }
+
+  it.each([
+    { arme: 'arme-simple', distance: 1, aPortee: true, monte: false },
+    { arme: 'arme-simple', distance: 2, aPortee: false, monte: false },
+    { arme: 'lance', distance: 2, aPortee: true, monte: false },
+    { arme: 'lance', distance: 2, aPortee: true, monte: true },
+  ])('Frappe Mortelle, $arme à $distance case(s) de la case libérée, monté : $monte (LDB 14 l.9 ; 62 l.163)', ({ arme, distance, aPortee, monte }) => {
+    const get = banc.getState;
+    const battle = setupBattle(1);
+    const [hero, primaire, suivante, horsAllonge] = [
+      battle.combatants.find((c) => c.kind === 'heros')!,
+      ...battle.combatants.filter((c) => c.kind === 'ennemi'),
+    ];
+    setRule('combat-frappe-mortelle', true);
+    setDesFixes(true);
+    hero.pos = { x: 10, y: 10 };
+    hero.size = 'moyenne';
+    const monture = monte ? spawnEnemy({ ref: 'cheval-de-monte' }, 'monture', hero.pos) : undefined;
+    if (monture) {
+      monture.kind = 'heros';
+      hero.mountId = monture.id;
+      monture.riderId = hero.id;
+      battle.combatants.push(monture);
+    }
+    hero.characteristics['capacite-de-combat'] = 85;
+    hero.items = [{ ...itemFromTrappingById(arme, idsDeTest)!, equipped: true }];
+    hero.loadouts = [];
+    recomputeLoadout(hero);
+    primaire.pos = { x: 9, y: 10 };
+    suivante.pos = { x: 9 - distance, y: 10 };
+    horsAllonge.pos = { x: monte ? 13 : 12, y: 10 };
+    const reserve = aPortee ? spawnEnemy({ ref: 'mutant' }, 'reserve', { x: 9, y: 9 }) : undefined;
+    if (reserve) {
+      battle.combatants.push(reserve);
+      battle.order.push(reserve.id);
+      battle.baseOrder?.push(reserve.id);
+    }
+    for (const c of [primaire, suivante, horsAllonge]) {
+      c.size = 'moyenne';
+      c.conditions = [{ id: 'surpris', value: 1 }];
+      c.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    }
+    primaire.important = false;
+    primaire.wounds = blessuresDeBase(12, 1, primaire);
+    suivante.wounds = blessuresDeBase(60, 60, suivante);
+    banc.setState({ battle: { ...battle, turn: battle.order.indexOf(hero.id), action: null, movementUsed: 99, acted: false } });
+
+    cliquerSurLeCombattant(get, primaire.id, { confirm: true });
+    expect(get().pendingAttack?.targetId).toBe(primaire.id);
+    get().jetLancer('attaque');
+    get().jetImposerLeResultat('attaque', 21);
+    get().jetValider('attaque');
+    draineCascade(get);
+    expect(isOutOfAction(reluDans(get, primaire)), 'Mort subite (LDB 18 l.46)').toBe(true);
+    expect(reluDans(get, hero).pos).toEqual(primaire.pos);
+    if (monture) expect(reluDans(get, monture).pos).toEqual(primaire.pos);
+
+    const mode = currentTargetingMode(get);
+    if (!aPortee) {
+      expect(get().pendingCleave).toBeNull();
+      return;
+    }
+    expect(get().pendingCleave).toMatchObject({ count: 0, hitIds: [primaire.id], fm: true });
+    expect(mode.id).toBe('frappeMortelle');
+    expect(mode.candidates!(get, hero).map((c) => c.id)).toEqual([suivante.id, reserve!.id]);
+    expect(mode.affordance!(get, hero, suivante).kind).toBe('ok');
+    expect(mode.affordance!(get, hero, horsAllonge).kind).toBe('none');
+    cliquerSurLeCombattant(get, horsAllonge.id, { confirm: true });
+    expect(get().pendingAttack).toBeNull();
+    cliquerSurLeCombattant(get, suivante.id, { confirm: true });
+    const pa = get().pendingAttack!;
+    expect(pa).toMatchObject({ targetId: suivante.id, cleave: true });
+    expect(attackWeaponOf(findTrappingById, get().scene, get().battle!, reluDans(get, hero), reluDans(get, suivante), pa).trappingId).toBe(arme);
+    get().jetLancer('attaque');
+    get().jetImposerLeResultat('attaque', 21);
+    get().jetValider('attaque');
+    draineCascade(get);
+    expect(reluDans(get, suivante).wounds.current).toBeLessThan(60);
+    expect(reluDans(get, suivante).wounds.current).toBeGreaterThan(0);
+    expect(isOutOfAction(reluDans(get, reserve!))).toBe(false);
+    expect(cleaveTargets(findTrappingById, get().scene, get().battle!, reluDans(get, hero), [primaire.id, suivante.id]).map((c) => c.id)).toEqual([reserve!.id]);
+    expect(get().pendingCleave).toBeNull();
+  });
+
+  it('le maillon du cavalier IA donne sa défense au héros atteint par l’empreinte du cheval (LDB 14 l.9 ; 62 l.163)', () => {
+    const get = banc.getState;
+    const battle = setupBattle(2);
+    const [primaire, suivante] = battle.combatants.filter((c) => c.kind === 'heros');
+    const [cavalier, ...autres] = battle.combatants.filter((c) => c.kind === 'ennemi');
+    for (const c of autres) c.dead = true;
+    setRule('combat-frappe-mortelle', true);
+    cavalier.pos = { x: 10, y: 10 };
+    cavalier.size = 'moyenne';
+    cavalier.characteristics['capacite-de-combat'] = 95;
+    cavalier.characteristics.force = 85;
+    cavalier.weapons = [weaponFromItem(itemFromTrappingById('lance', idsDeTest)!)];
+    const monture = spawnEnemy({ ref: 'cheval-de-monte' }, 'monture', cavalier.pos);
+    monture.riderId = cavalier.id;
+    cavalier.mountId = monture.id;
+    battle.combatants.push(monture);
+    primaire.pos = { x: 9, y: 10 };
+    primaire.kind = 'pnj';
+    primaire.aiControlled = true;
+    primaire.important = false;
+    primaire.conditions = [{ id: 'surpris', value: 1 }];
+    primaire.wounds = blessuresDeBase(12, 1, primaire);
+    suivante.pos = { x: 12, y: 10 };
+    suivante.conditions = [];
+    suivante.wounds = blessuresDeBase(100, 100, suivante);
+    banc.setState({ battle: { ...battle, turn: battle.order.indexOf(cavalier.id), action: null, movementUsed: 0, acted: false } });
+    get().ensemencerLeTirage(2);
+
+    doAttack(get, banc.setState, reluDans(get, cavalier), reluDans(get, primaire));
+
+    expect(isOutOfAction(reluDans(get, primaire))).toBe(true);
+    expect(reluDans(get, monture).pos).toEqual(primaire.pos);
+    expect(get().pendingDefense?.defenderId).toBe(suivante.id);
+    expect(reluDans(get, suivante).wounds.current).toBe(100);
+  });
+
+  it('une Mort subite causée par un tir ne déclenche ni déplacement ni Frappe Mortelle (LDB 14 l.9)', () => {
+    const get = banc.getState;
+    const battle = setupBattle(1);
+    const hero = battle.combatants.find((c) => c.kind === 'heros')!;
+    const [primaire, voisine, autre] = battle.combatants.filter((c) => c.kind === 'ennemi');
+    setRule('combat-frappe-mortelle', true);
+    setDesFixes(true);
+    const depart = { x: 10, y: 10 };
+    hero.pos = depart;
+    hero.characteristics['capacite-de-tir'] = 85;
+    const hache = itemFromTrappingById('hache-de-lancer', idsDeTest)!;
+    const dague = itemFromTrappingById('dague', idsDeTest)!;
+    hero.items = [hache, dague];
+    hero.loadouts = [{ id: 'armes-en-main', main: hache.uid, secondaire: dague.uid }];
+    hero.activeLoadoutId = 'armes-en-main';
+    recomputeLoadout(hero);
+    primaire.pos = { x: 8, y: 10 };
+    primaire.important = false;
+    primaire.wounds = blessuresDeBase(12, 1, primaire);
+    primaire.conditions = [{ id: 'surpris', value: 1 }];
+    primaire.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    voisine.pos = { x: 7, y: 10 };
+    autre.pos = { x: 14, y: 10 };
+    banc.setState({ battle: { ...battle, turn: battle.order.indexOf(hero.id), action: null, movementUsed: 99, acted: false } });
+
+    cliquerSurLeCombattant(get, primaire.id, { confirm: true });
+    const pa = get().pendingAttack!;
+    expect(pa?.targetId).toBe(primaire.id);
+    expect(attackWeaponOf(findTrappingById, get().scene, get().battle!, hero, primaire, pa).type).toBe('distance');
+    get().jetLancer('attaque');
+    get().jetImposerLeResultat('attaque', 21);
+    get().jetValider('attaque');
+    draineCascade(get);
+    expect(isOutOfAction(reluDans(get, primaire)), 'Mort subite (LDB 18 l.46)').toBe(true);
+    expect(reluDans(get, hero).pos).toEqual(depart);
+    expect(get().pendingCleave).toBeNull();
+  });
 
   it('IA : un Énorme adjacent à deux héros enchaîne (Frappe Mortelle) sur le second', () => {
     banc.getState().ensemencerLeTirage(2);
@@ -223,6 +390,9 @@ describe('Balayage en combat (store)', () => {
       pendingAttack: null,
       pendingCleave: { attackerId: H.id, hitIds: ['x', 'y'], count: 2 }, // quota BCC déjà atteint
     });
+    const mode = currentTargetingMode(banc.getState);
+    expect(mode.candidates!(banc.getState, H)).toEqual([]);
+    expect(mode.affordance!(banc.getState, H, E1).kind).toBe('none');
     banc.getState().frapperEnBalayage(E1.id);
     expect(banc.getState().pendingAttack).toBeNull(); // refusé : count >= BCC
 

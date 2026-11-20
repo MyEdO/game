@@ -989,7 +989,8 @@
      "members": [
       {
        "entityId": "louve-grise",
-       "side": "allie"
+       "side": "allie",
+       "navireDeCampagne": true
       },
       {
        "entityId": "cogue-pirate",

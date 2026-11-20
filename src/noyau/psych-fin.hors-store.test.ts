@@ -20,7 +20,7 @@ import { emptyScene, type Scene } from './monde/scene';
 import { parseWalledAscii } from './monde/asciiMap';
 import { ciblePsy, estCibleType } from '../engine/psych/ciblage';
 import { applyOps } from '../engine/ops';
-import { psychologies } from '../data';
+import { findTrappingById, psychologies } from '../data';
 import { applyAttackResult } from './combatFlow';
 import { sourcesPsyEnVue } from './monde/porteurs';
 import type { AttackResult } from '../engine/combat';
@@ -112,7 +112,7 @@ describe('Fin d’une affliction ciblée en fin de Round : la Condition `cibleEn
   it('une instance INACTIVE n’émet aucun effet (marqueur seul)', () => {
     const { H, E } = setup();
     H.psychState = [{ ...visant('haine', E.id), active: false }];
-    expect(effectSourcesOf(live(H.id)).filter((s) => s.key.startsWith('psy:'))).toEqual([]);
+    expect(effectSourcesOf(live(H.id), findTrappingById).filter((s) => s.key.startsWith('psy:'))).toEqual([]);
   });
 });
 

@@ -58,6 +58,7 @@ import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId, rencontreEngagee } from '../monde/combatants';
+import { objetDuNarratif } from '../monde/resolveursDuNarratif';
 import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
 import { acquerirLeTrait, poserLeTraitAcquis } from '../cibleAcquise';
 import { ciblePsyLue } from '../../engine/psych/ciblage';
@@ -140,7 +141,9 @@ export function applyTriggeredTestBranch(
   const caster = exec.opsCtx?.caster ?? c;
   // Le contexte d'ops du Flow qui a posé le Test suit sa branche (horloge, libellé, source, durées…) ;
   // `sl` y devient le DR de CE Test.
-  const oc: Omit<OpsCtx, 'rng' | 'idNeuf'> = { ...exec.opsCtx, caster, sl: t.sl };
+  const oc: Omit<OpsCtx, 'rng' | 'idNeuf'> = {
+    ...exec.opsCtx, caster, sl: t.sl, resolveTrapping: objetDuNarratif(exec.get().campaignNarratif),
+  };
   // TROIS raisons de passer par le walker de COMBAT plutôt que par le chemin PUR : une op IMPURE
   // (adossée à un hook), un Test imbriqué (cadence-aware), et — #1508 — une op qui DEMANDE UN DÉ à la
   // porte. Le chemin pur applique par `applyOps` : il tirerait hauteur et Dégâts en silence, alors que
@@ -353,7 +356,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
   // `ConditionCtx` de combat (géométrie d'arène : caché/Engagé/proximité du Brisé) — MÊME géométrie que
   // celle injectée par le dispatcher dans la voie inline, pour évaluer GATE et difficulté DYNAMIQUE.
   const cc = combatConditionCtx(c, { caster: c, ...recoveryGeometry(get, c) });
-  for (const src of effectSourcesOf(c)) {
+  for (const src of effectSourcesOf(c, objetDuNarratif(get().campaignNarratif))) {
     for (const eff of src.effects) {
       if (eff.trigger !== 'onRoundEnd' || eff.flow.kind !== 'test') continue;
       const ft = eff.flow.test;

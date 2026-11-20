@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, expect } from 'vitest';
 import { firedWeapon, attackerFumbled, defenderFumbled } from './combatFlow';
 import { hasQuality } from '../engine/qualities/dispatch';
@@ -29,7 +30,7 @@ const weaponRight: Weapon = { label: 'Dague', type: 'melee', hands: 1, qualities
 describe('firedWeapon — règles d’arme contextuelles repliées sur le profil (LDB 62)', () => {
   it('Fléau SANS la Spé → Dangereuse + Atouts retirés ; un RATÉ avec 9 fumble', () => {
     const atk = mk({ skills: [], weapons: [fleau] });
-    const w = firedWeapon(null, atk, target, 'fl');
+    const w = firedWeapon(findTrappingById, null, atk, target, 'fl');
     expect(hasQuality(w, 'dangereuse')).toBe(true);
     expect(hasQuality(w, 'perturbante')).toBe(false);
     // Le RATÉ passe par le MÊME `w` que la touche → la Maladresse Dangereuse se déclenche.
@@ -38,15 +39,15 @@ describe('firedWeapon — règles d’arme contextuelles repliées sur le profil
   });
   it('Fléau AVEC la Spé → intact (pas Dangereuse, Atouts conservés)', () => {
     const atk = mk({ skills: [{ id: 'corps-a-corps', spec: 'fleau', advances: 10 } as any], weapons: [fleau] });
-    const w = firedWeapon(null, atk, target, 'fl');
+    const w = firedWeapon(findTrappingById, null, atk, target, 'fl');
     expect(hasQuality(w, 'dangereuse')).toBe(false);
     expect(hasQuality(w, 'perturbante')).toBe(true);
   });
   it('Lance de cavalerie : improvisée hors Charge, normale en Charge', () => {
-    const notCharged = firedWeapon(null, mk({ weapons: [lance] }), target, 'la');
+    const notCharged = firedWeapon(findTrappingById, null, mk({ weapons: [lance] }), target, 'la');
     expect(notCharged.damage).toEqual({ plusBF: true, flat: 1 });
     expect(hasQuality(notCharged, 'inoffensive')).toBe(true);
-    const charged = firedWeapon(null, mk({ weapons: [lance], chargedThisTurn: true }), target, 'la');
+    const charged = firedWeapon(findTrappingById, null, mk({ weapons: [lance], chargedThisTurn: true }), target, 'la');
     expect(charged.damage).toEqual({ plusBF: true, flat: 6 });
     expect(hasQuality(charged, 'empaleuse')).toBe(true);
   });

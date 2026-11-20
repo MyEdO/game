@@ -53,7 +53,7 @@ describe('le roster par le pont', () => {
     expect(recrute.vue.projection.pas, 'le recrutement est un geste de la partie').toBe(s.vue.projection.pas + 1);
     expect(recrute.zones['journal.lignes'].some((l) => l.texte.includes('Alda')), 'sa bourse de départ au journal').toBe(true);
     expect(boutonDe(recrute, alda, 'recruter').refus, 'déjà au groupe').toBe(t('pf.partyDuplicate', { name: 'Alda' }));
-    expect(erreurDe(appel('roster', { roster: { recruter: alda } })), 'le bouton refusé se refuse en règle').toEqual({ categorie: 'regle', message: `roster : ${t('pf.partyDuplicate', { name: 'Alda' })}` });
+    expect(erreurDe(appel('roster', { roster: { recruter: alda } })), 'le bouton refusé se refuse en règle').toEqual({ categorie: 'regle', message: t('pf.partyDuplicate', { name: 'Alda' }) });
     expect(boutonDe(recrute, bruno, 'recruter').refus).toBeNull();
     expect(chargerLeRoster(stockage).map((e) => e.hero.id), 'le roster garde ses deux héros').toEqual([alda, bruno]);
   });

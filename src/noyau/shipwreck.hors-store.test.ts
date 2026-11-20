@@ -6,6 +6,7 @@ import { beginShipwreck } from './shipwreck';
 import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
 import { checkBattleOver } from './combatFlow';
 import { vehicleCombatant } from '../engine/vehicle';
+import { lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { findVehicleById } from '../data';
 import { seedBattleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
@@ -78,7 +79,7 @@ function freshState() {
     document: null,
     gameTime: 8 * 60,
     lastUpkeepDay: 0,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }] },
+    vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }] },
     journal: [],
     pendingCascade: null,
     suspendedCascades: [],
@@ -365,6 +366,7 @@ describe('détection en combat — coque de campagne coulée → naufrage (pas d
 
   const coqueDeCampagne = (heroes: Combatant[], coulee: boolean): Combatant => {
     const hull = vehicleCombatant(findVehicleById('cogue')!)!;
+    lierLaCoqueDeCampagne(hull, get().vessel!);
     hull.id = 'hull-campagne'; hull.kind = 'ennemi';
     hull.crewIds = heroes.map((h) => h.id);
     hull.wounds = { ...hull.wounds, current: 0 };
@@ -386,12 +388,13 @@ describe('détection en combat — coque de campagne coulée → naufrage (pas d
     expect(heroes.every((h) => !h.outOfRencontre)).toBe(true);
   });
 
-  it('checkBattleOver route l’équipage par-dessus bord vers la survie', () => {
+  it('route l’équipage de la coque de campagne coulée même si l’ennemi du même type est listé en premier', () => {
     setRule('mer-naufrage-natation', 'intermediaire');
     const heroes = get().party.slice(0, 2).map((h) => swim(h, 200)); // bons nageurs → rescapés
     const hull = coqueDeCampagne(heroes, true);
+    const hostile = vehicleCombatant(findVehicleById('cogue')!, 'hull-hostile')!;
     const battle = {
-      combatants: [hull, ...heroes], order: [], turn: 0, round: 1, action: null, selectedSpellId: null,
+      combatants: [hostile, hull, ...heroes], order: [], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as never;
     set({ party: heroes, battle } as never);

@@ -113,7 +113,7 @@ export type ActivityResolver =
   | 'punchausen' | 'knowledgeResearch' | 'reputation' | 'wrathOfTheGods' | 'dissensionScout'
   | 'dissensionEmeute' | 'contremaitre'
   // Voyage (EDOC 8) · Mer (MDG)
-  | 'forage' | 'seaChart' | 'opportunityTrade' | 'crewTraining';
+  | 'forage' | 'seaChart' | 'opportunityTrade' | 'crewTraining' | 'shipMaintenance';
 
 /** Familles de flux qui POSSÈDENT des résolveurs — un propriétaire = un dispatch, un seul. Un
  *  contexte d'Activité sans famille ici (`bataille`, `bataille-round`, `auberge`) n'a AUCUN résolveur
@@ -138,7 +138,7 @@ export const RESOLVER_OWNER = {
   punchausen: 'interlude', knowledgeResearch: 'interlude', reputation: 'interlude',
   wrathOfTheGods: 'interlude', dissensionScout: 'interlude', dissensionEmeute: 'interlude',
   contremaitre: 'interlude',
-  seaChart: 'mer', opportunityTrade: 'mer', crewTraining: 'mer',
+  seaChart: 'mer', opportunityTrade: 'mer', crewTraining: 'mer', shipMaintenance: 'mer',
   forage: 'voyage',
 } as const satisfies Record<ActivityResolver, ResolverOwner>;
 
@@ -517,10 +517,10 @@ export function applyTravelActivityResult(
 
 /** Agrégation d'une issue d'Activité quand 0..N héros tiennent le poste (EDOC 8 l.131) :
  *  - `gate` : un SEUL succès suffit à dispenser/protéger tout le groupe (Plein air, Aux aguets) ;
- *  - `stack` : les DR des succès s'ADDITIONNENT (Monter le camp) ;
+ *  - `spend` : DR à répartir sur chaque succès, porteur conservé (Monter un camp) ;
  *  - `self` : l'effet revient à CHAQUE titulaire qui réussit (Récupérer, Pratiquer, Recueillir infos) ;
  *  - `extended` : Test ÉTENDU, chaque jet compte, réussi ou non (Établir des cartes, EDOC 8 l.161 ; LDB 12 l.170-185). */
-export type StageOutcomeAgg = 'gate' | 'stack' | 'self' | 'extended';
+export type StageOutcomeAgg = 'gate' | 'spend' | 'self' | 'extended';
 
 /** Classification (DONNÉE) des issues d'ACTIVITÉ par mode d'agrégation. Les issues de RENCONTRE
  *  (`extraActivity`/`skipStage`/`fullRecovery`/`worsenWeather`) sont de portée Étape (appliquées une
@@ -528,7 +528,7 @@ export type StageOutcomeAgg = 'gate' | 'stack' | 'self' | 'extended';
 export const STAGE_OUTCOME_AGG: Partial<Record<StageOutcome, StageOutcomeAgg>> = {
   suppressExposure: 'gate',
   noSurprise: 'gate',
-  campCare: 'stack',
+  campCare: 'spend',
   mapMade: 'extended',
   countsAsRest: 'self',
   reverseToken: 'self',
@@ -539,12 +539,12 @@ export const STAGE_OUTCOME_AGG: Partial<Record<StageOutcome, StageOutcomeAgg>> =
  *  marche PERSISTANT (`Combatant.travelRole`) comme poste d'une Étape (`TravelPlan.postes`). */
 export interface StagePosting { activityId: string; freeSkill?: RefDesignee }
 
-/** Issues d'Étape agrégées (l'appelant APPLIQUE : portes au groupe, cumuls répartis, individuels par héros). */
+/** Issues d'Étape agrégées pour l'appelant : portes de groupe, DR à répartir et issues individuelles. */
 export interface StageAggregation {
   /** Portes OUVERTES (≥ 1 succès) — ex. `suppressExposure`, `noSurprise`. */
   gates: StageOutcome[];
-  /** Cumul des DR des succès par issue — ex. `campCare`. */
-  stacks: Partial<Record<StageOutcome, number>>;
+  /** DR à répartir par résultat réussi, dans l'ordre des tests — ex. `campCare`. */
+  aRepartir: Partial<Record<StageOutcome, Pick<TravelActivityResult, 'actorId' | 'sl'>[]>>;
   /** Jets d'un Test ÉTENDU par issue, dans l'ordre, réussis ou non — ex. `mapMade` ; cumulés par
    *  `extendedTestSteps` (LDB 12 l.170-185). */
   etendus: Partial<Record<StageOutcome, { success: boolean; sl: number }[]>>;
@@ -556,7 +556,7 @@ export interface StageAggregation {
  *  n'apporte pas l'issue (mais a déjà donné l'Exténué via `result.extenue`). PUR. */
 export function aggregateActivityOutcomes(results: TravelActivityResult[]): StageAggregation {
   const gates = new Set<StageOutcome>();
-  const stacks: Partial<Record<StageOutcome, number>> = {};
+  const aRepartir: StageAggregation['aRepartir'] = {};
   const selfByHero: Record<string, StageOutcome[]> = {};
   const etendus: Partial<Record<StageOutcome, { success: boolean; sl: number }[]>> = {};
   for (const r of results) {
@@ -569,11 +569,13 @@ export function aggregateActivityOutcomes(results: TravelActivityResult[]): Stag
     if (!r.success) continue;
     switch (mode) {
       case 'gate': gates.add(r.stageOutcome); break;
-      case 'stack': stacks[r.stageOutcome] = (stacks[r.stageOutcome] ?? 0) + Math.max(0, r.sl); break;
+      case 'spend':
+        if (r.sl > 0) (aRepartir[r.stageOutcome] ??= []).push({ actorId: r.actorId, sl: r.sl });
+        break;
       case 'self': (selfByHero[r.actorId] ??= []).push(r.stageOutcome); break;
     }
   }
-  return { gates: [...gates], stacks, etendus, selfByHero };
+  return { gates: [...gates], aRepartir, etendus, selfByHero };
 }
 
 // ── Rôle de marche PERSISTANT : « les mêmes tiennent toujours le même poste » ────────────────────

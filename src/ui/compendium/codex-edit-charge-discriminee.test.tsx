@@ -20,10 +20,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import { CodexEdit, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 import { editableDataset, editableObjectDataset } from '../../data/atelierDuCodex';
 import { libelleDuChamp, inferFields } from '../../noyau/codex/editFields';
-import { metaPourFichier, chargeDiscriminee, noeudDeLEntree, schemaForFile } from '../../data/schemas/validate';
+import { metaPourFichier, chargeDiscriminee, champDeProvenanceEcarte, noeudDeLEntree, schemaForFile } from '../../data/schemas/validate';
 import { CODEX } from '../../noyau/codex/registry';
 import { setDataset, datasetArray, datasetFile } from '../../data/overrides';
-import { creatures, materials, oups } from '../../data';
+import { creatures, materials, oups, type TrappingData } from '../../data';
 import { META_PROSE, versDisque } from '../../data/schemas/grammaire/prose';
 
 beforeAll(() => {
@@ -60,10 +60,28 @@ function monteNeuf(categoryKey: string) {
   act(() => { root.render(<CodexEdit categoryKey={categoryKey} isNew onClose={() => {}} />); });
 }
 
+const AJOUT_ATOUT_AU_PROFIL = '.codex-edit-form > .ed-field > button[aria-label="Ajouter à Atouts au choix"]';
+
+function champsDeLaPremiereVariante(): string[] {
+  const retirer = container.querySelector('button[aria-label="Retirer la rangée 1 de Variantes"]');
+  expect(retirer, 'la première rangée de variante doit être montée').not.toBeNull();
+  return [...retirer!.parentElement!.querySelectorAll(':scope > .ed-field > span')]
+    .map((span) => span.firstChild?.textContent?.trim() ?? '');
+}
+
 /** Le champ nommé `label`, tel que l'écran le porte. */
 function champ(label: string): HTMLLabelElement | undefined {
   return [...container.querySelectorAll<HTMLLabelElement>('.codex-edit-form label.ed-field')]
     .find((l) => l.querySelector('span')?.textContent?.trim() === label);
+}
+
+function saisir(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, valeur: string) {
+  const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value')!.set!;
+  act(() => {
+    setter.call(el, valeur);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
 }
 
 const META = metaPourFichier('materials.json');
@@ -178,6 +196,90 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
     expect(bornes(presentes)).toEqual([]);
   });
 
+  it('une règle sourcée propose la raison maison après retrait de la source', () => {
+    const regle = datasetArray('reglesOptionnelles').find((r) => r.source)!;
+    monte('reglesOptionnelles', regle.id);
+    expect(champsPresentes()).toContain('Source');
+    expect(champsPresentes()).not.toContain('Arbitrage maison');
+    const livre = container.querySelector<HTMLSelectElement>('select[aria-label="Livre — Source"]')!;
+    saisir(livre, '');
+    expect(champsPresentes()).toEqual(expect.arrayContaining(['Source', 'Arbitrage maison']));
+    saisir(champ('Arbitrage maison')!.querySelector('textarea')!, 'Raison d’arbitrage.');
+    expect(champsPresentes()).toContain('Arbitrage maison');
+    expect(champsPresentes()).not.toContain('Source');
+  });
+
+  it('une règle maison propose la source après effacement de la raison dans la zone de texte', () => {
+    const regle = datasetArray('reglesOptionnelles').find((r) => (r.maison?.length ?? 0) > 240)!;
+    monte('reglesOptionnelles', regle.id);
+    expect(champsPresentes()).toContain('Arbitrage maison');
+    expect(champsPresentes()).not.toContain('Source');
+    const raison = champ('Arbitrage maison')!.querySelector('textarea')!;
+    expect(raison.value).toBe(regle.maison);
+    saisir(raison, '');
+    expect(champsPresentes()).toEqual(expect.arrayContaining(['Source', 'Arbitrage maison']));
+    saisir(container.querySelector('select[aria-label="Livre — Source"]')!, 'livre-de-base');
+    const page = container.querySelector<HTMLInputElement>('input[aria-label="Page — Source"]')!;
+    saisir(page, '150');
+    act(() => { page.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    expect(champsPresentes()).toContain('Source');
+    expect(champsPresentes()).not.toContain('Arbitrage maison');
+  });
+
+  it.each(['hache-d-armes', 'pistolet'])('Équipement %s : le profil permet des Atouts au choix', (id) => {
+    monte('trappings', id);
+    expect(container.querySelector(AJOUT_ATOUT_AU_PROFIL)).not.toBeNull();
+  });
+
+  it.each([
+    { categorie: 'trappings', id: 'hallebarde', champ: 'Atouts au choix' },
+    { categorie: 'weaponGroups', id: 'escrime', champ: 'Armes aussi maniées en' },
+  ])('$id : la variante conserve les champs de son profil d’arme', ({ categorie, id, champ }) => {
+    monte(categorie, id);
+    expect(champsDeLaPremiereVariante()).toEqual(expect.arrayContaining(['condition', 'Source', champ]));
+  });
+
+  it('Flèche elfique : la variante édite les Qualités de la munition, sans Atouts au choix', () => {
+    monte('trappings', 'fleche-elfique');
+    const champsDuProfil = [...container.querySelectorAll('.codex-edit-form > .ed-field > span')]
+      .map((span) => span.textContent);
+    expect(champsDuProfil).toContain('Variantes');
+    expect(container.querySelector(AJOUT_ATOUT_AU_PROFIL)).toBeNull();
+    const champsDeLaVariante = champsDeLaPremiereVariante();
+    expect(champsDeLaVariante).toEqual(expect.arrayContaining(['condition', 'Source', 'Qualités']));
+    expect(champsDeLaVariante).not.toContain('Atouts au choix');
+
+    const schema = schemaForFile('trappings.json')!;
+    const fleche = datasetArray('trappings').find((t) => t.id === 'fleche-elfique')!;
+    const parse = (entree: unknown) => schema.safeParse(versDisque([entree]));
+    expect(parse(fleche).success).toBe(true);
+    const qualitesAuChoix = fleche.variants![0].qualities!.slice(0, 2).map((qualite) => qualite.id);
+    const avecChoix = { ...fleche, variants: [{ ...fleche.variants![0], qualitesAuChoix }] };
+    expect(parse(avecChoix).error?.issues).toEqual([
+      expect.objectContaining({ path: [0, 'variants', 0, 'qualitesAuChoix'] }),
+    ]);
+  });
+
+  it('Groupe d’armure : le conteneur Variantes est admis, le maniement d’Escrime est refusé', () => {
+    monte('weaponGroups', 'cuir-souple');
+    expect(champsPresentes()).toContain('Variantes');
+    const ajouter = container.querySelector<HTMLButtonElement>('button[aria-label="Ajouter une rangée à Variantes"]')!;
+    act(() => { ajouter.click(); });
+    const champsDeLaVariante = champsDeLaPremiereVariante();
+    expect(champsDeLaVariante).toEqual(expect.arrayContaining(['condition', 'Source']));
+    expect(champsDeLaVariante).not.toContain('Armes aussi maniées en');
+    const groupes = datasetArray('weaponGroups');
+    const cuir = groupes.find((g) => g.id === 'cuir-souple')!;
+    const escrime = groupes.find((g) => g.id === 'escrime')!;
+    const schema = schemaForFile('weaponGroups.json')!;
+    const parse = (variants: typeof escrime.variants) => schema.safeParse(versDisque([{ ...cuir, variants }]));
+    const { when } = escrime.variants![0];
+    expect(parse([{ when }]).success).toBe(true);
+    expect(parse(escrime.variants).error?.issues).toEqual([
+      expect.objectContaining({ path: [0, 'variants'] }),
+    ]);
+  });
+
   it('TÉMOIN — un document sans `chargeParDiscriminant` DÉCLARÉ garde l’union', () => {
     expect(chargeDiscriminee('reglesOptionnelles.json', {})).toBeUndefined();
     // Une valeur INCONNUE du discriminant ne fabrique pas une charge : l'union reprend (saisie en cours).
@@ -185,17 +287,48 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
   });
 });
 
+function avecChampDuDonneur(
+  fichier: string,
+  champ: string,
+  entree: Record<string, unknown>,
+  donneur: Record<string, unknown>,
+): Record<string, unknown> {
+  const valeur = donneur[champ];
+  if (champ === 'variants') {
+    // On mesure le conteneur. Le delta d’une rangée peut dépendre du profil qui la porte.
+    const variantes = valeur as readonly { when: unknown }[];
+    return { ...entree, variants: variantes.map(({ when }) => ({ when })) };
+  }
+  if (fichier === 'trappings.json' && champ === 'qualitesAuChoix') {
+    // Les Atouts choisis doivent figurer parmi les Qualités de l’entrée qui reçoit la charge.
+    const [profil, exemple] = [entree, donneur] as unknown as [TrappingData, TrappingData];
+    const choix = new Set(exemple.qualitesAuChoix);
+    const qualitesDuChoix = exemple.qualities.filter((q) => choix.has(q.id));
+    const completer = (qualities: TrappingData['qualities']) => [
+      ...qualities,
+      ...qualitesDuChoix.filter((q) => !qualities.some((presente) => presente.id === q.id)),
+    ];
+    // Une variante qui redéfinit ses Qualités peut hériter des Atouts au choix du profil de base.
+    const variants = profil.variants?.map((v) => v.qualities && !v.qualitesAuChoix
+      ? { ...v, qualities: completer(v.qualities) }
+      : v);
+    return { ...entree, qualities: completer(profil.qualities), variants, [champ]: valeur };
+  }
+  return { ...entree, [champ]: valeur };
+}
+
 /**
  * CLIQUET DÉCROISSANT du champ ÉTRANGER : aucune catégorie éditable ne doit présenter, sur une de ses
  * entrées, un champ que le SCHÉMA du document refuserait sur cette entrée-là.
  *
  * La mesure est DÉRIVÉE, jamais récitée : pour chaque catégorie de dataset-liste éditable (`CODEX` ×
  * `editableDataset`), les champs présentés sont ceux de l'atelier (`inferFields` moins les éditeurs
- * dédiés, moins ce que `chargeDiscriminee` retranche), et un champ compte ÉTRANGER quand l'entrée
+ * dédiés et les champs écartés par la charge ou la provenance), et un champ compte ÉTRANGER quand l'entrée
  * parse SEULE mais ne parse PLUS une fois ce champ posé avec une valeur RÉELLE, prise à une autre
- * entrée du même document. C'est exactement la pathologie de `materials` avant ce lot : un formulaire
- * qui offre ce que le save refuse. Les entrées sont dédupliquées par SIGNATURE de clés (deux entrées
- * aux mêmes clés présentent le même formulaire) et les documents sans schéma-tableau sont hors mesure.
+ * entrée du même document. Une valeur contextuelle se monte dans le profil receveur avant le parse.
+ * C'est exactement la pathologie de `materials` avant ce lot : un formulaire
+ * qui offre ce que le save refuse. Les entrées qui ont les mêmes clés et le même cas de charge sont
+ * dédupliquées. Les documents sans schéma-tableau sont hors mesure.
  *
  * #1789 : le CONTEXTE du parse est le plus petit document qui PARSE, pas un singleton. Un schéma qui
  * porte un refine de CARDINALITÉ globale (`terrains.json` exige EXACTEMENT une entrée `absence` et une
@@ -261,22 +394,26 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
       const dedies = dedicatedFieldKeys(cat.key);
       // Les porteurs de prose (`desc` ⊕ `descRef`) passent d'un régime à l'autre par le geste « attacher/détacher » de l'atelier (`estDerive`, `editFields.ts`) : leur valeur se juge au contexte de l'entrée (le livre de sa `source`), jamais à celui d'un donneur (#1389).
       const champs = inferFields(entrees, { meta: metaPourFichier(fichier) }).map((f) => f.key).filter((k) => !dedies.has(k) && !(k in META_PROSE));
-      const donneur = new Map<string, unknown>();
-      for (const k of champs) for (const e of entrees) if (e[k] != null && !donneur.has(k)) donneur.set(k, e[k]);
+      const donneurs = new Map<string, Record<string, unknown>>();
+      for (const k of champs) for (const e of entrees) if (e[k] != null && !donneurs.has(k)) donneurs.set(k, e);
       const vues = new Set<string>();
       let pire: string[] = [];
       for (const e of entrees) {
-        const signature = Object.keys(e).sort().join('|');
+        const charge = chargeDiscriminee(fichier, e);
+        const signature = JSON.stringify([charge && e[charge.champ], Object.keys(e).sort()]);
         if (vues.has(signature)) continue;
         vues.add(signature);
         const solo = parse([e]);
         if (!solo && !entier) continue;
-        const charge = chargeDiscriminee(fichier, e);
-        const presentes = champs.filter((k) => !charge || k === charge.champ || charge.duCas.includes(k) || !charge.toutes.includes(k));
+        const provenanceEcartee = champDeProvenanceEcarte(fichier, e);
+        const presentes = champs
+          .filter((k) => k !== provenanceEcartee)
+          .filter((k) => !charge || k === charge.champ || charge.duCas.includes(k) || !charge.toutes.includes(k));
         const etrangers: string[] = [];
         for (const k of presentes) {
-          if (e[k] !== undefined || !donneur.has(k)) continue;
-          const avec = { ...e, [k]: donneur.get(k) };
+          const donneur = donneurs.get(k);
+          if (e[k] !== undefined || !donneur) continue;
+          const avec = avecChampDuDonneur(fichier, k, e, donneur);
           if (!parse(solo ? [avec] : entrees.map((x) => (x === e ? avec : x)))) etrangers.push(k);
         }
         if (etrangers.length > pire.length) pire = etrangers;

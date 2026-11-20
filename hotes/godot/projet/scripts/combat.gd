@@ -17,9 +17,9 @@
 ## reçoit donc toutes) ; le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son
 ## échéance. Chaque geste du joueur part en intention : celle de l'élément pressé (`Zone.geste` ; la fiche d'un
 ## combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode `creation`), un clic du
-## champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ; `null`, le champ ne se clique
-## pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant d'une case lu dans
-## `vue.occupants`. Une recette pose la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran reste tel quel,
+## champ (`vue.champ` : le verbe du clic, sur la case et, en combat, son occupant ; `null`, le champ ne se clique
+## pas), ou un clic droit, qui montre la fiche de l'occupant de la case, lu dans `vue.occupants`. Une recette pose
+## la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran reste tel quel,
 ## saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.indexer_les_modeles`), que chaque corps du plateau monte ; un échec se dit dans l'avis de
 ## panne (un listage illisible aussi à la console), et la partie ne s'ouvre pas : aucun corps ne se monte sans eux.
@@ -118,6 +118,7 @@ func _ready() -> void:
 	_plateau.case_cliquee.connect(_cliquer)
 	_plateau.case_inspectee.connect(_inspecter)
 	_plateau.habille.connect(_publier_l_ecran)
+	_plateau.deplacement_fini.connect(_publier_l_ecran)
 	_pont.suivre_les_listes(_ecran, _publier_l_ecran)
 	_monde.cadrage_change.connect(_recadrer)
 	_monde.volume.fondu_fini.connect(_publier_l_ecran)
@@ -433,8 +434,8 @@ func _publier_l_ecran() -> void:
 
 ## Ce que l'écran porte : ses boutons et ceux des panneaux (`PontDuNoyau.boutons_a_l_ecran`), les curseurs du panneau des réglages
 ## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
-## vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de la fenêtre que l'ossature laisse à la scène
-## (`Monde.cadre`), l'emprise de ses panneaux (`PontDuNoyau.panneaux_a_l_ecran`), ce que porte le corps de chaque
+## vision se fond encore (`VolumeDeScene.part_du_fondu`), si un combattant dessiné se déplace (`Plateau.marche`), la part
+## de la fenêtre que l'ossature laisse à la scène (`Monde.cadre`), l'emprise de ses panneaux (`PontDuNoyau.panneaux_a_l_ecran`), ce que porte le corps de chaque
 ## combattant dessiné (`Plateau.corps`), les navires posés (`Plateau.navires`) et si les arêtes sont toutes posées
 ## (`VolumeDeScene.aretes_en_lecture`).
 func _ecran_publie() -> Dictionary:
@@ -443,7 +444,7 @@ func _ecran_publie() -> Dictionary:
 	return {
 		boutons = PontDuNoyau.boutons_a_l_ecran(racines), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
 		panneaux = PontDuNoyau.panneaux_a_l_ecran(racines), cases = _plateau.points(), glisse = _monde.glisse(),
-		fondu = _monde.volume.part_du_fondu() != 1.0,
+		fondu = _monde.volume.part_du_fondu() != 1.0, marche = _plateau.marche(),
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 		aretes_lues = not _monde.volume.aretes_en_lecture(),
 		compendium = {zones = _compendium.vues()},
@@ -474,19 +475,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_suivre(_pont.appeler("regarder", {regard = _vue.plateau.regardSuivant}))
 
 
-## Un clic sur `case` : le clic du champ sur la case, et sur son occupant s'il en a un.
+## Un clic sur `case` : le clic du champ sur la case et, en combat, son occupant s'il en a un.
 func _cliquer(case: Vector3i) -> void:
 	var champ: Variant = _vue.get("champ")
 	if champ == null:
 		return
 	var args: Array = [{x = case.x, y = case.y} if case.z == 0 else {x = case.x, y = case.y, z = case.z}]
 	var occupant: Variant = _vue.occupants.get("%d,%d,%d" % [case.x, case.y, case.z])
-	if occupant != null:
+	if _vue.projection.combat != null and occupant != null:
 		args.append(occupant)
 	_jouer({type = champ, args = args})
 
 
-## Un clic droit sur `case` : la fiche du combattant qui s'y tient, s'il y en a un.
+## Un clic droit sur `case` : la fiche de l'occupant qui s'y tient, s'il y en a un.
 func _inspecter(case: Vector3i) -> void:
 	var occupant: Variant = _vue.occupants.get("%d,%d,%d" % [case.x, case.y, case.z])
 	if occupant != null:

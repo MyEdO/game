@@ -92,6 +92,25 @@ test('chaque gate porte la condition du classement SSI elle est sautable', () =>
   assert.deepEqual(ecarts, [])
 })
 
+test('les entrées des rendus docs et du routage corpus couvrent les deux classes de push', () => {
+  const entreeDocs = 'scripts/docs/build-icones.mjs'
+  const entreeCorpus = 'AGENTS.md'
+  const lit = (nom, fichier) => ECRIT_LU[nom].lit.some((chemin) => chemin.endsWith('/') ? fichier.startsWith(chemin) : fichier === chemin)
+
+  assert.equal(classer([entreeDocs]).produit, true)
+  assert.equal(lit('test:docs', entreeDocs), true)
+
+  const configurationDocs = '.claude/settings.json'
+  assert.equal(classer([configurationDocs]).produit, false)
+  assert.equal(lit('test:docs', configurationDocs), true)
+
+  assert.equal(classer([entreeCorpus]).produit, false)
+  assert.equal(lit('test:corpus', entreeCorpus), true)
+  assert.equal(lit('test:docs', entreeCorpus), false)
+  assert.equal(sautables.has('test:docs'), false)
+  assert.equal(sautables.has('test:corpus'), false)
+})
+
 test('un push qui ne touche qu’un mod est PRODUIT ; un skill `SKILL.md` reste documentaire (#2278)', () => {
   const mods = ['.claude/skills/harnais/']
   const verdict = classer(['.claude/skills/harnais/hooks/x.ts'], { mods })

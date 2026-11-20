@@ -9,7 +9,7 @@ import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { addCondition, COND } from '../engine/conditions';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { Combatant, Weapon } from '../engine/types';
-import { findCreatureById } from '../data';
+import { findTrappingById, findCreatureById } from '../data';
 import { firedWeapon } from './combatFlow';
 import { spawnEnemy } from './monde/spawn';
 import { creerPartie, etatInitialDuJeu, fenetreDAttaque, type EntreesDeLaPartie } from './index';
@@ -42,7 +42,7 @@ const voisin = (id: string, kind: Combatant['kind'], x: number, y: number): Comb
 /** Les qualités résolues de l'arme que `tireur` tire sur une cible à 6 cases, parmi `tireur`, la cible et `autres`. */
 function qualitesTirees(t: { tireur: Combatant; arme: Weapon }, autres: Combatant[]): string[] {
   const cible = voisin('cible', t.tireur.kind === 'heros' ? 'ennemi' : 'heros', 11, 5);
-  return resolveQualities(firedWeapon(null, t.tireur, cible, t.arme.uid, [t.tireur, cible, ...autres])).map((r) => r.id);
+  return resolveQualities(firedWeapon(findTrappingById, null, t.tireur, cible, t.arme.uid, [t.tireur, cible, ...autres])).map((r) => r.id);
 }
 
 const PERDUES = ['pointue', 'precise'];

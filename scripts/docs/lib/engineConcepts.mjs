@@ -23,6 +23,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/appraisal.ts', "Expertise, évaluation d'objets"],
   ['src/engine/armourBypass.ts', "Armure : contournement, Points d'Armure ignorés"],
   ['src/engine/artilleryMisfire.ts', "Enrayage d'artillerie"],
+  ['src/engine/atoutsOptionnels.ts', 'Atouts optionnels des armes : choix et application au jet'],
   ['src/engine/authoringAppearance.ts', "Apparence : authoring, résolution"],
   ['src/engine/axes.ts', 'Rose des forces (axes de profil)'],
   ['src/engine/bargain.ts', 'Marchandage, négociation de prix'],

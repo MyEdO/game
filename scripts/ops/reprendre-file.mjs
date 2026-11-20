@@ -4,7 +4,17 @@ import { DEPOT, appelGhRunner, pagesRest, poserCommentaire } from '../guards/lib
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { TRONC, estShaComplet } from '../guards/lib/gitPorte.mjs'
 import { estPrDuTrain, etatFileDePr } from '../guards/lib/fusionPr.mjs'
-import { ANNULEE, PLAFOND_RELANCES, WORKFLOW, jobsJuges, motifDAnnulation, phraseDesJobs, verdictJuge } from '../guards/lib/coursesCi.mjs'
+import {
+  ANNULEE,
+  PLAFOND_RELANCES,
+  WORKFLOW,
+  jobsJuges,
+  lireCoursesRest,
+  motifDAnnulation,
+  phraseDesJobs,
+  projeterCourseRest,
+  verdictJuge,
+} from '../guards/lib/coursesCi.mjs'
 
 /** #2392 */
 export const DELAI_RELANCE_MS = 10 * 60_000
@@ -21,20 +31,12 @@ function lire(chemin, appel) {
 }
 
 function coursesDe(pr, appel) {
-  const chemin = route(`actions/workflows/ci.yml/runs?head_sha=${pr.head.sha}&branch=${encodeURIComponent(pr.head.ref)}&event=push`)
-  const pages = pagesRest(chemin, (args) => {
-    const vu = appel(args)
-    if (!vu.ok) return vu
-    try {
-      const lu = JSON.parse(vu.stdout)
-      if (!Array.isArray(lu.workflow_runs) || lu.total_count > 1000) throw new Error('courses CI non exhaustives')
-      return { ok: true, stdout: JSON.stringify(lu.workflow_runs) }
-    } catch (e) { return { ok: false, raison: e.message } }
-  })
+  const pages = lireCoursesRest({ commit: pr.head.sha, branche: pr.head.ref, evenement: 'push', appel })
   if (!pages.ok) throw new Error(pages.raison)
-  return pages.entrees.filter((r) => r.head_sha === pr.head.sha && r.head_branch === pr.head.ref
+  const course = pages.entrees.filter((r) => r.head_sha === pr.head.sha && r.head_branch === pr.head.ref
     && r.event === 'push' && r.repository?.full_name === DEPOT)
-    .sort((a, b) => Number(b.id) - Number(a.id))[0] ?? null
+    .sort((a, b) => Number(b.id) - Number(a.id))[0]
+  return course ? { ...projeterCourseRest(course), updatedAt: course.updated_at } : null
 }
 
 /** Le motif d'annulation du job `id` (`motifDAnnulation`) ; une lecture refusée se dit. */
@@ -58,20 +60,19 @@ function jobsDeLEssai(id, attempt, appel) {
 
 /**
  * La relance d'une course de branche terminée sans succès et jugée ANNULÉE (`verdictJuge`, sur sa projection
- * `gh run list`), ou `null` : course rouge, ou annulée depuis moins de `DELAI_RELANCE_MS`. Au plafond
+ * REST), ou `null` : course rouge, ou annulée depuis moins de `DELAI_RELANCE_MS`. Au plafond
  * (`PLAFOND_RELANCES`), le geste revient à l'humain (#2392).
  */
 function relanceDe(pr, course, { appel, maintenant, lectureSeule }) {
-  const essai = course.run_attempt ?? 1
-  const projection = { databaseId: course.id, attempt: essai, headSha: course.head_sha, status: course.status, conclusion: course.conclusion, workflowName: course.name }
-  const ci = verdictJuge([projection], pr.head.sha, (id, attempt) => jobsDeLEssai(id, attempt, appel))
-  if (ci.etat !== 'annulee' || !(maintenant() - Date.parse(course.updated_at) >= DELAI_RELANCE_MS)) return null
+  const essai = course.attempt
+  const ci = verdictJuge([course], pr.head.sha, (id, attempt) => jobsDeLEssai(id, attempt, appel))
+  if (ci.etat !== 'annulee' || !(maintenant() - Date.parse(course.updatedAt) >= DELAI_RELANCE_MS)) return null
   const annulee = `course annulée — ${phraseDesJobs(ci) || `conclusion ${course.conclusion}`}`
   if (essai >= PLAFOND_RELANCES)
-    return { statut: 'plafond', raison: `${annulee} ; essai ${essai}/${PLAFOND_RELANCES}, plafond de relances atteint : \`gh run rerun ${course.id} --failed\`` }
+    return { statut: 'plafond', raison: `${annulee} ; essai ${essai}/${PLAFOND_RELANCES}, plafond de relances atteint : \`gh run rerun ${course.databaseId} --failed\`` }
   const relance = `${annulee} ; relance ${essai + 1}/${PLAFOND_RELANCES}`
   if (lectureSeule) return { statut: 'candidate', raison: `lecture seule — ${relance}` }
-  const vu = appel(['api', '-X', 'POST', route(`actions/runs/${course.id}/rerun-failed-jobs`)])
+  const vu = appel(['api', '-X', 'POST', route(`actions/runs/${course.databaseId}/rerun-failed-jobs`)])
   return vu.ok ? { statut: 'relancee', raison: relance } : { statut: 'refusee', raison: `${relance} refusée : ${vu.raison}` }
 }
 
@@ -85,7 +86,9 @@ function reprendrePr(pr, course, { appel, maintenant }) {
   let etat = actuelle()
   if (etat?.statut === 'merged') return etat
   if (!etat) return { statut: 'ignoree', raison: 'tête ou éligibilité changée' }
-  const ci = lire(route(`actions/runs/${course.id}`), appel)
+  const ci = lire(route(`actions/runs/${course.databaseId}`), appel)
+  if (ci.id !== course.databaseId || ci.run_attempt !== course.attempt)
+    return { statut: 'ignoree', raison: 'identité de la course ou de l’essai changée' }
   if (ci.status !== 'completed' || ci.conclusion !== 'success' || ci.head_sha !== pr.head.sha
     || ci.head_branch !== pr.head.ref || ci.event !== 'push' || ci.repository?.full_name !== DEPOT)
     return { statut: 'ignoree', raison: 'CI actuelle non verte' }
@@ -119,15 +122,15 @@ function signaler(pr, course, resultat, appel, veille) {
   }
   const tickets = numerosCites([pr.title, pr.body, ...messages].join('\n'))
   const identite = ['relancee', 'plafond', 'candidate'].includes(resultat.statut)
-    ? `${course.id}:${course.run_attempt ?? 1}` : resultat.entree ?? ''
+    ? `${course.databaseId}:${course.attempt}` : resultat.entree ?? ''
   const empreinte = createHash('sha256').update(`${resultat.statut}:${identite}`).digest('hex').slice(0, 16)
   const marque = `<!-- reprise-file:${pr.number}:${pr.head.sha}:${empreinte} -->`
-  const lienCi = `https://github.com/${DEPOT}/actions/runs/${course.id}/attempts/${course.run_attempt ?? 1}`
+  const lienCi = `https://github.com/${DEPOT}/actions/runs/${course.databaseId}/attempts/${course.attempt}`
   const lienVeille = veille.id ? `[veille ${veille.id}](${veille.serveur}/${DEPOT}/actions/runs/${veille.id})` : 'veille locale'
   const geste = resultat.statut === 'relancee' || (['enqueued', 'merged'].includes(resultat.statut) && !resultat.collecte) ? ''
-    : resultat.statut === 'plafond' ? `Reprise : \`gh run rerun ${course.id} --failed\`.`
+    : resultat.statut === 'plafond' ? `Reprise : \`gh run rerun ${course.databaseId} --failed\`.`
       : 'Reprise : `npm run ops:publier -- --detache`.'
-  const corps = `${marque}\nPR #${pr.number}, SHA \`${pr.head.sha}\`, [CI run ${course.id}/attempt ${course.run_attempt ?? 1}](${lienCi}), ${lienVeille} : **${resultat.statut}** — ${resultat.raison}.\n\n${geste}`
+  const corps = `${marque}\nPR #${pr.number}, SHA \`${pr.head.sha}\`, [CI run ${course.databaseId}/attempt ${course.attempt}](${lienCi}), ${lienVeille} : **${resultat.statut}** — ${resultat.raison}.\n\n${geste}`
   for (const numero of new Set([String(pr.number), ...tickets])) {
     const commentaires = pagesRest(route(`issues/${numero}/comments`), appel)
     if (!commentaires.ok) throw new Error(commentaires.raison)
@@ -156,7 +159,7 @@ export async function reprendreFile({ appel, evenement = {}, lectureSeule = fals
       : reprendrePr(pr, course, { appel, maintenant })
     if (!resultat) continue
     if (!lectureSeule && !['ignoree', 'armed', 'enqueued', 'merged'].includes(resultat.statut)) signaler(pr, course, resultat, appel, veille)
-    const mesure = { pr: pr.number, sha: pr.head.sha, run: course.id, attempt: course.run_attempt ?? 1, ...resultat }
+    const mesure = { pr: pr.number, sha: pr.head.sha, run: course.databaseId, attempt: course.attempt, ...resultat }
     resultats.push(mesure)
   }
   return resultats

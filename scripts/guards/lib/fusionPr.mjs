@@ -1,5 +1,5 @@
 import { estShaComplet } from './gitPorte.mjs'
-import { pagesRest } from './ticketsGh.mjs'
+import { lireCoursesRest } from './coursesCi.mjs'
 
 const SIGNATURE_PR = 'Train de publication (`npm run ops:publier`), tête '
 export const corpsDePr = (tete) => `${SIGNATURE_PR}${tete}.`
@@ -68,20 +68,8 @@ export function etatFileDePr({ depot, numero, sha, appel, maintenant = Date.now 
   if (entree.state !== 'AWAITING_CHECKS' || maintenant() - Date.parse(entree.enqueuedAt) < DELAI_FILE_MS) return identite
   const indetermine = (raison) => ({ ok: false, compte, entree, raison: `entrée ${entree.id} : ${raison}` })
   if (!estShaComplet(entree.headCommit?.oid)) return indetermine('tête de groupe indéterminée')
-  let total = null
-  const courses = pagesRest(`repos/${depot}/actions/workflows/ci.yml/runs?head_sha=${entree.headCommit.oid}&event=merge_group`, (args) => {
-    const vu = appel(args)
-    if (!vu.ok) return vu
-    try {
-      const lu = JSON.parse(vu.stdout)
-      if (!Number.isSafeInteger(lu.total_count) || lu.total_count < 0 || lu.total_count > 1000
-        || !Array.isArray(lu.workflow_runs) || (total !== null && total !== lu.total_count)) throw new Error('courses de groupe non exhaustives')
-      total = lu.total_count
-      return { ok: true, stdout: JSON.stringify(lu.workflow_runs) }
-    } catch (e) { return { ok: false, raison: e.message } }
-  })
+  const courses = lireCoursesRest({ depot, commit: entree.headCommit.oid, evenement: 'merge_group', appel })
   if (!courses.ok) return indetermine(`lecture des courses refusée : ${courses.raison}`)
-  if (courses.entrees.length !== total) return indetermine('courses de groupe non exhaustives')
   if (courses.entrees.some((r) => r.head_sha === entree.headCommit.oid && r.event === 'merge_group'
     && r.name === 'CI' && r.repository?.full_name === depot && Date.parse(r.created_at) >= Date.parse(entree.enqueuedAt))) return identite
   const relue = identiteDePr({ depot, numero, sha, appel })

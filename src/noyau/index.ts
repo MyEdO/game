@@ -28,6 +28,7 @@ export {
   findCareerById,
   findSpellById,
   levelsForCareer,
+  libelleDAuteur,
   lightLevels,
   lightTones,
   matieresCouvrantes,
@@ -38,7 +39,6 @@ export {
   siegeEngines,
   structureAppearances,
   trappingRefLabel,
-  trappingsInstanciables,
 } from '../data';
 export { isWearable, objetsDeLInventaire } from '../engine/items';
 export {
@@ -283,7 +283,7 @@ export { allMusicDefs } from '../data/sons/musique';
 export { BORNES_D_OUVERTURE, DEFAUTS_D_OUVERTURE, toitureEffective } from './sceneEdit';
 export { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 export { libelleDuBord } from './monde/fireArc';
-export { presetDuNarratif } from './monde/resolveursDuNarratif';
+export { objetDuNarratif, objetsInstanciablesDuProjet, presetDuNarratif } from './monde/resolveursDuNarratif';
 export { calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes } from './edition/calque';
 export { terrainIds, terrainLabel } from './monde/terrain';
 export { crenellatedAt, tileAt, heightAt, idDuCorps, porteAuteur, reposDeScene, sceneMetresPerTile, secretAuteur } from './monde/scene';
@@ -323,11 +323,12 @@ export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
-export { carteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
+export { carteEnVue, trajetsDepuis, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
 export { voyageEnVue } from './voyageEnVue';
+export { CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet } from './voyageCadence';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
@@ -414,4 +415,4 @@ export {
   type EntreeListee,
   type SavedProject,
 } from './persistance/bibliotheque';
-export { ProjetRefuse, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';
+export { ProjetRefuse, lieuDuGroupe, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';

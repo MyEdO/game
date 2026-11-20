@@ -58,6 +58,17 @@ const de = (part: 'nombre de dés' | 'faces') => container.querySelector<HTMLInp
 const derniere = () => ecrites[ecrites.length - 1]?.[0];
 const id = trappingsInstanciables()[0]!.id;
 
+describe('choix de l’engin d’une possession', () => {
+  it('distingue les balistes par leur livre et écrit l’identifiant choisi', () => {
+    monter([{ id: 'baliste', type: 'engin' }]);
+    const select = container.querySelector<HTMLSelectElement>('select:has(option[value="baliste-ade2"])')!;
+    expect(select.querySelector('option[value="baliste"]')?.textContent).toBe('Baliste (AA)');
+    expect(select.querySelector('option[value="baliste-ade2"]')?.textContent).toBe('Baliste (ADE II)');
+    choisir(select, 'baliste-ade2');
+    expect(derniere()).toMatchObject({ id: 'baliste-ade2', type: 'engin' });
+  });
+});
+
 describe('quantité d’une possession — `TrappingRefField`', () => {
   it('une quantité fixée s’affiche en nombre, sans saisie texte, et s’écrit entière de 1', () => {
     monter([{ id, count: { fixed: 10 } } as TrappingRef]);

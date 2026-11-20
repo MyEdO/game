@@ -20,6 +20,7 @@ import { seedBattleRng } from './battleRng';
 import { loadRuleOverrides } from '../engine/policy';
 import { setCadence } from '../engine/cadence';
 import { setDesFixes } from '../engine/fixedDie';
+import { patchDeLArmement } from './monde/carrier';
 
 /** Un écrit de zustand : un objet, ou une fonction de l'état, fusionné au premier niveau. */
 export type Ecrit = Partial<JeuDuNoyau> | ((s: JeuDuNoyau) => Partial<JeuDuNoyau>);
@@ -61,11 +62,11 @@ export function ouvrirLeProprietaire(
   };
   const set = ecrire as SetDesClesReservees;
   const actions = creerActionsDuNoyau(get, set);
-  let etat: JeuDuNoyau = { ...etatInitial, ...actions };
+  loadRuleOverrides(entrees.reglesMaison);
+  let etat: JeuDuNoyau = { ...etatInitial, ...patchDeLArmement(etatInitial), ...actions };
 
   brancherLeJeu(get, set, tablesDuJeu());
   seedBattleRng(entrees.graine);
-  loadRuleOverrides(entrees.reglesMaison);
   setCadence(entrees.cadence);
   setDesFixes(entrees.desFixes);
   poserLaPlateforme({

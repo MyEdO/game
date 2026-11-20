@@ -3,17 +3,15 @@
  * d'engagement, la Haute Sorcière choisit son sort dans la liste de ses sorts (une offre par candidat), puis sa cible
  * au clic : la fenêtre d'incantation s'ouvre sur ce sort.
  */
-import { describe, it, expect } from 'vitest';
-import { drainer, table, type Reponse, enFocus, gestesDessines } from './pont.testkit';
+import { afterEach, describe, it, expect } from 'vitest';
+import { corpsDe, drainer, table, type Reponse, enFocus, gestesDessines } from './pont.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix } from '../../../src/hote/elements';
-import { clicDuCombattant, type Suite } from './pont';
-
-const { appel } = table();
+import { clicDuCombattant, type Pont, type Suite } from './pont';
 
 /** Joue le geste que l'Entrée jouerait, ou la première valeur ouverte d'un choix de la fenêtre, tant qu'une fenêtre tient
  *  la main. */
-function viderLesFenetres(suite: Suite): Suite {
+function viderLesFenetres(appel: ReturnType<typeof table>['appel'], suite: Suite): Suite {
   for (let pas = 0; suite.vue.projection.fenetre; pas++) {
     expect(pas, 'les fenêtres se vident').toBeLessThan(20);
     const g = gestesDessines(suite.vue);
@@ -23,12 +21,25 @@ function viderLesFenetres(suite: Suite): Suite {
   return suite;
 }
 
-const jouer = (r: Reponse): Suite => drainer(appel, r).suite;
+let ouvert: Pont | null = null;
+afterEach(() => {
+  ouvert?.appeler('quitter');
+  ouvert = null;
+});
+
+function ouvrirLeCombatDeMagie() {
+  const { appel, pont } = table();
+  ouvert = pont;
+  const jouer = (r: Reponse): Suite => drainer(appel, r).suite;
+  viderLesFenetres(appel, jouer(appel('demarrer', { scenario: 'magie', graine: 7 })));
+  const suite = viderLesFenetres(appel, jouer(appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] })));
+  return { appel, jouer, suite };
+}
 
 describe('l’incantation par le pont', () => {
   it('choisir son sort parmi les siens, puis sa cible : la fenêtre d’incantation s’ouvre sur ce sort', () => {
-    viderLesFenetres(jouer(appel('demarrer', { scenario: 'magie', graine: 7 })));
-    let suite = viderLesFenetres(jouer(appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] })));
+    const { appel, jouer, suite: ouverture } = ouvrirLeCombatDeMagie();
+    let suite = ouverture;
     expect(suite.vue.zones['combat.actif'][0]).toMatchObject({ nom: 'Aelindra, Haute Sorcière' });
 
     const offres = suite.vue.zones['combat.offres'];
@@ -55,11 +66,13 @@ describe('l’incantation par le pont', () => {
     expect(suite.vue.zones['combat.actif'], 'la fenêtre de jet prend la place du meuble de l’actif, qui n’est plus servi').toEqual([]);
     const corps = () => Object.fromEntries(suite.vue.zones['fenetre.corps'].map((e) => [e.id, e]));
     expect(corps().sort, 'le sort et sa cible').toMatchObject({ texte: 'Fléchette sur Loup' });
-    expect(corps().jet, 'la ligne du lanceur, son NI au libellé, à jeter').toMatchObject({ qui: 'Aelindra, Haute Sorcière', libelle: 'Incantation / NI 0', resultat: null });
+    expect(corps().ni, 'le centre montre le NI avant le jet, y compris 0').toMatchObject({ type: 'ligne', texte: 'Sort · Niveau d’incantation 0' });
+    expect(corps().jet, 'la Compétence du lanceur, à jeter').toMatchObject({ qui: 'Aelindra, Haute Sorcière', libelle: 'Langue (Magick)', resultat: null });
     expect(suite.vue.zones['fenetre.reglages'], 'avant le jet, aucun pas de Surincantation').toEqual([]);
 
     suite = jouer(appel('jouer', enFocus(suite.vue)!.jeu));
     expect(corps().jet, 'le jet tombe').toMatchObject({ resultat: '15', verdict: 'réussite' });
+    expect(corps().ni).toMatchObject({ texte: 'Sort · Niveau d’incantation 0' });
     expect(corps().surincantation, 'le DR ouvre la Surincantation').toMatchObject({ valeur: '1 pas sur 1' });
     const reglages = suite.vue.zones['fenetre.reglages'];
     expect(reglages.map((r) => r.libelle), 'chaque axe que le sort ouvre est un choix de pas ; les cibles supplémentaires se désignent sur la carte').toEqual(['Surincantation : Portée', 'Surincantation : Cibles']);
@@ -76,5 +89,16 @@ describe('l’incantation par le pont', () => {
     suite = applique.suite;
     expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte), 'appliquée, la fenêtre d’incantation se referme').not.toContain('Incantation');
     expect(applique.effets.find((e) => e.quoi === 'coup'), 'la Fléchette rend son trait magique, de la sorcière à sa cible (#3771)').toMatchObject({ vers: cible, depart: { visuel: 'canalisation' }, trajet: { projectile: 'trait-magique' } });
+  });
+
+  it('une Zone d’Effet centrée sur le lanceur montre le sort, sa cible et son NI', () => {
+    const { appel, jouer, suite: ouverture } = ouvrirLeCombatDeMagie();
+    const sorts = ouverture.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/incantation')!;
+    const sang = sorts.valeurs.find((b) => b.libelle === 'Sang de la Terre')!;
+    const { vue } = jouer(appel('jouer', sang.jeu));
+
+    expect(corpsDe(vue, 'sort')).toMatchObject({ texte: 'Sang de la Terre sur soi-même' });
+    expect(corpsDe(vue, 'zone')).toMatchObject({ libelle: 'Zone', valeur: '3 × 3 cases' });
+    expect(corpsDe(vue, 'ni')).toMatchObject({ type: 'ligne', texte: 'Sort · Niveau d’incantation 6' });
   });
 });

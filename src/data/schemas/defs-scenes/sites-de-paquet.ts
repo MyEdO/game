@@ -92,9 +92,16 @@ function sitesDEffet(effet: unknown, chemin: Chemin, ou: Ou, out: Sortie): void 
 function sitesDeFlow(flow: Flow<unknown>, chemin: Chemin, ou: Ou, out: Sortie): void {
   walkFlow(flow, (noeud, sous: CheminDeFlow) => {
     const ici = [...chemin, ...sous];
-    if (noeud.kind === 'effet') sitesDEffet(noeud.effet, [...ici, 'effet'], ou, out);
-    else if (noeud.kind === 'si') pousseCondition(out, noeud.condition, [...ici, 'condition'], ou);
-    else if (noeud.kind === 'test') sitesDeTest(noeud.test, [...ici, 'test'], ou, out);
+    switch (noeud.kind) {
+      case 'effet': return sitesDEffet(noeud.effet, [...ici, 'effet'], ou, out);
+      case 'si': return pousseCondition(out, noeud.condition, [...ici, 'condition'], ou);
+      case 'test': return sitesDeTest(noeud.test, [...ici, 'test'], ou, out);
+      case 'sequence':
+      case 'choix':
+        return;
+      default:
+        noeud satisfies never;
+    }
   });
 }
 

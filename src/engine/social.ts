@@ -1,24 +1,4 @@
-/**
- * Modificateurs sociaux de **Statut** (LDB 08) — couche PURE (zéro accès store).
- *
- * Le Statut (Échelon Bronze < Argent < Or + Standing) module les Tests sociaux : « ceux de
- * l'Échelon supérieur obtiennent un bonus de +10 à leur Test de Charme lorsque ce dernier a pour
- * cible des personnes appartenant à un Échelon inférieur. De la même façon, les personnes
- * appartenant à un Échelon inférieur subissent une pénalité de -10 lorsqu'ils doivent influencer
- * des personnes d'Échelon supérieur. » (LDB 08 l.57). Ce ±10 INTER-Échelon est le RAW de base :
- * il s'applique TOUJOURS dès que la couche est présente (ce n'est pas une option).
- *
- * Trois règles optionnelles l'enrichissent (registre `policy.ts`, groupe « Social ») :
- *  - `social-reaction-au-statut` (l.38-46) : table `reaction-au-statut.json`.
- *  - `social-mendicite-statut` (l.92) : un Bronze qui mendie auprès d'un Argent (« juste au-dessus »)
- *    obtient +10 au lieu de −10.
- *  - `social-statut-meme-echelon` (l.88, « Le MJ peut décider, plus rarement, d'appliquer ces
- *    modificateurs à ceux qui sont de Standing différent au sein d'un même Échelon ») : ±10 entre
- *    deux personnes du MÊME Échelon selon leur Standing.
- *
- * Module FEUILLE pur : réutilise `Status`/`ECHELONS_DE_STATUT` de `money.ts` et
- * `rule` de `policy.ts` ; les tables tirées le sont au RNG INJECTÉ.
- */
+/** LDB 08. */
 import { ECHELONS_DE_STATUT, libelleDEchelon, libelleDuStatut, type Status } from './money';
 import { rule } from './policy';
 import { rollDice, type RNG } from './dice';
@@ -30,6 +10,9 @@ import type * as capricieux from '../data/schemas/defs/tableau-capricieux';
 import type * as reactionAuStatut from '../data/schemas/defs/reaction-au-statut';
 import { findCareerById, levelsForCareer } from '../data';
 import { t } from '../i18n';
+import type { FlowTest } from './flowCore';
+import { RULE_REF } from './ruleRefs';
+import type { ModLine } from './types';
 
 /** Ce que lisent les Statuts d'un personnage : carrière, niveau, effets actifs (forme structurelle, que la
  *  Condition PARTY-level `status` de `flowCore.ts` partage avec `Combatant`). */
@@ -71,13 +54,18 @@ export function actorStatus(c: PorteurDeStatut): Status {
   return decalerLeStatut(statutDeCarriere(c), (c.activeEffects ?? []).reduce((s, e) => s + (e.statusMod ?? 0), 0));
 }
 
-/** Le Statut `actual` atteint-il AU MOINS `atLeast` ? Compare l'Échelon
- *  par son rang dans `ECHELONS_DE_STATUT` puis, à Échelon égal, le Standing — utilisé par la Condition PARTY-level `status`
- *  (#711, `flowCore.ts`), SOURCE UNIQUE de comparaison de palier (partagée avec `statusCharmMod`). */
+function ecartDEchelon(actor: Status, target: Status): number {
+  return ECHELONS_DE_STATUT.indexOf(actor.tier) - ECHELONS_DE_STATUT.indexOf(target.tier);
+}
+
+/** LDB 08 l.9-11. */
+function ecartDeStatut(actor: Status, target: Status): number {
+  return ecartDEchelon(actor, target) || actor.standing - target.standing;
+}
+
+/** LDB 08 l.9-11. */
 export function statusMeets(actual: Status, need: Status): boolean {
-  const da = ECHELONS_DE_STATUT.indexOf(actual.tier), dn = ECHELONS_DE_STATUT.indexOf(need.tier);
-  if (da !== dn) return da > dn;
-  return actual.standing >= need.standing;
+  return ecartDeStatut(actual, need) >= 0;
 }
 
 /** La table Capricieux VIVANTE (MSRC 15 l.149-159) — la collection que le Codex édite (`tableauCapricieux`, `data/overrides.ts`). */
@@ -104,62 +92,69 @@ export function tirerLaReactionAuStatut(rng: RNG): IssueDeReaction {
   return findTableEntry(TABLE_DE_REACTION_AU_STATUT, rollDice(deDeTirageDe<typeof reactionAuStatut>(reactionAuStatutJson), rng)).issue;
 }
 
-/** Le mod de Statut `mod` sous l'issue de réaction `issue` (LDB 08 l.43-45). */
-const MOD_SOUS_LA_REACTION: Record<IssueDeReaction, (mod: number) => number> = {
-  'braver-le-statut': () => 0,
-  'reactions-classiques': (mod) => mod,
-  'opinions-extremes': (mod) => -mod,
-};
+type IdDeCompetence = NonNullable<FlowTest['skill']>['id'];
+type AvisSurLeStatut = FlowTest['avisSurLeStatut'];
+type ModDeBase = (actor: Status, target: Status, mendicite: boolean) => number;
 
-/** Mod social RAW (LDB 08) d'un `actor` envers une `target`, options de `policy.ts` comprises.
- *  - (a) inter-Échelon : actor > target → +10, < → −10, = → 0 (RAW de base, toujours actif).
- *  - (b) si même Échelon ET règle `social-statut-meme-echelon` : ±10 selon le Standing.
- *  - (c) règle `social-mendicite-statut` + actor Bronze + target Argent + `opts.begging` → force +10.
- *  - (d) règle `social-reaction-au-statut` : enveloppe le résultat selon l'issue PRÉ-TIRÉE par
- *        l'appelant (`opts.reaction`, `tirerLaReactionAuStatut`). PUR : aucun tirage ici. */
-export function statusCharmMod(
-  actor: Status,
-  target: Status,
-  opts?: { begging?: boolean; reaction?: IssueDeReaction },
-): number {
-  let mod: number;
-  const da = ECHELONS_DE_STATUT.indexOf(actor.tier), dt = ECHELONS_DE_STATUT.indexOf(target.tier);
-  if (da !== dt) {
-    // (a) Inter-Échelon : ±10 selon le sens (RAW de base, LDB 08 l.57).
-    mod = da > dt ? 10 : -10;
-    // (c) Mendicité (LDB 08 l.63) : Bronze → Argent « juste au-dessus » → +10 au lieu de −10.
-    if (
-      rule('social-mendicite-statut') && opts?.begging &&
-      actor.tier === 'bronze' && target.tier === 'argent'
-    ) {
-      mod = 10;
-    }
-  } else if (rule('social-statut-meme-echelon') && actor.standing !== target.standing) {
-    // (b) Intra-Échelon (option, l.88) : ±10 selon le Standing.
-    mod = actor.standing > target.standing ? 10 : -10;
-  } else {
-    mod = 0; // même Échelon (et option intra-Échelon off ou Standing égal) → aucun mod.
-  }
+const PAS_DU_STATUT = 10;
 
-  // (d) LDB 08 l.38-46
-  return opts?.reaction ? MOD_SOUS_LA_REACTION[opts.reaction](mod) : mod;
+const MOD_DE_BASE_DU_STATUT = {
+  /** LDB 08 l.57,63. */
+  charme: (actor, target, mendicite) => {
+    if (mendicite) return PAS_DU_STATUT;
+    const ecart = rule('social-statut-meme-echelon') ? ecartDeStatut(actor, target) : ecartDEchelon(actor, target);
+    return ecart === 0 ? 0 : Math.sign(ecart) * PAS_DU_STATUT;
+  },
+  /** LDB 08 l.73. */
+  intimidation: (actor, target) => ecartDeStatut(actor, target) > 0 ? PAS_DU_STATUT : 0,
+  /** LDB 08 l.77. */
+  ragot: (actor, target) => ecartDEchelon(actor, target) === 0 ? 0 : -PAS_DU_STATUT,
+  /** LDB 08 l.83. */
+  commandement: (actor, target) => Math.max(0, ecartDEchelon(actor, target)) * PAS_DU_STATUT,
+} satisfies Partial<Record<IdDeCompetence, ModDeBase>>;
+
+type CompetenceDeStatut = keyof typeof MOD_DE_BASE_DU_STATUT;
+
+export function estUneCompetenceDeStatut(id: IdDeCompetence | undefined): id is CompetenceDeStatut {
+  return id !== undefined && Object.prototype.hasOwnProperty.call(MOD_DE_BASE_DU_STATUT, id);
 }
 
-/** Libellé d'affichage du mod de Statut pour la modale (sur le modèle de `socialPsychLabel`), ou
- *  undefined si aucun mod. Le tirage de Réaction au Statut n'est PAS retiré ici (effet caché du MJ) :
- *  on décrit la base RAW. Ex. « Statut (Argent>Bronze) +10 ». */
-export function statusCharmLabel(
+/** LDB 08 l.44-46,59. */
+const MOD_SOUS_LA_REACTION: Record<IssueDeReaction, (base: number, competence: CompetenceDeStatut, avis: AvisSurLeStatut) => number> = {
+  'braver-le-statut': () => 0,
+  'reactions-classiques': (base) => base,
+  'opinions-extremes': (base, competence, avis) => {
+    if (competence === 'charme') return base === 0 ? 0 : -base;
+    const avisEffectif = avis ?? rule('social-opinions-extremes-avis-par-defaut');
+    if (avisEffectif === 'favorable') return base + PAS_DU_STATUT;
+    if (avisEffectif === 'hostile') return base - PAS_DU_STATUT;
+    return base;
+  },
+};
+
+/** LDB 08 l.46,57,59,63,73,77,83. */
+export function ligneDeStatut(
+  competence: CompetenceDeStatut,
   actor: Status,
   target: Status,
-  opts?: { begging?: boolean },
-): string | undefined {
-  const mod = statusCharmMod(actor, target, opts); // affichage = base RAW (jamais la réaction cachée)
-  if (!mod) return undefined;
-  const sign = mod > 0 ? '+' : '−';
-  const cmp = mod > 0 ? '>' : '<'; // le comparateur SUIT le sens du mod (cohérent même en mendicité)
-  const beg = rule('social-mendicite-statut') && opts?.begging && actor.tier === 'bronze' && target.tier === 'argent';
-  const side = actor.tier === target.tier && !beg
-    ? `${libelleDuStatut(actor)}${cmp}${target.standing}` // intra-Échelon : compare le Standing
+  { begging, reaction, avisSurLeStatut }: Pick<FlowTest, 'begging' | 'avisSurLeStatut'> & { reaction?: IssueDeReaction } = {},
+): ModLine | undefined {
+  const mendicite = competence === 'charme' && !!begging && rule('social-mendicite-statut')
+    && actor.tier === 'bronze' && target.tier === 'argent';
+  const base = MOD_DE_BASE_DU_STATUT[competence](actor, target, mendicite);
+  const value = reaction ? MOD_SOUS_LA_REACTION[reaction](base, competence, avisSurLeStatut) : base;
+  if (!value) return undefined;
+
+  const ecart = ecartDeStatut(actor, target);
+  const cmp = mendicite || ecart > 0 ? '>' : ecart < 0 ? '<' : '=';
+  const side = actor.tier === target.tier
+    ? `${libelleDuStatut(actor)}${cmp}${target.standing}`
     : `${libelleDEchelon(actor.tier)}${cmp}${libelleDEchelon(target.tier)}`;
-  return t('social.statusMod', { beg: beg ? t('social.fragBegging') : '', side, sign, mod: Math.abs(mod) });
+  const label = t('social.statusMod', {
+    beg: mendicite ? t('social.fragBegging') : '',
+    side,
+    sign: value > 0 ? '+' : '−',
+    mod: Math.abs(value),
+  });
+  return { label, value, famille: 'jet', ref: RULE_REF.statut };
 }

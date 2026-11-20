@@ -118,8 +118,8 @@ var _modeles_d_arete := {}
 var _en_lecture := {}
 var _illisibles := {}
 var _aretes_recues: Array = []
-## Par pièce d'un modèle d'arête et palette, `<id>|<pièce>|<palette>`, la pièce peinte hors de l'arbre
-## (`piece_peinte`).
+## Par pièce d'un modèle d'arête, palette et étirement, `<id>|<pièce>|<palette>|<étirement>`, la pièce peinte hors
+## de l'arbre (`piece_peinte`).
 var _pieces_peintes := {}
 ## Les clés des arêtes cachées à la caméra (`cacher`), indexées (`aretes`, chaque clé à `true`), et celles des nappes
 ## de toit et des couronnes cachées, en tableaux (`toits`, `couronnes`).
@@ -585,13 +585,13 @@ func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 
 
 ## Les arêtes `aretes` (`CONTRAT.md`, méthode `aretes`), chacune sur le côté de sa case, debout à son pied, en groupes
-## d'instances : les arêtes de même `bloc`, `famille`, `piece`, `sens`, `hauteurM` et `palette`, dans l'ordre reçu, une
-## instance chacune de chaque maillage de leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les groupes sont
-## réconciliés par clé (`reconcilier`) : un groupe dont les arêtes n'ont pas changé à la même échelle reste, un groupe
-## changé (une porte ouverte quitte un groupe et en rejoint un autre) est refait, un groupe parti quitte l'arbre. Une
-## arête dont la famille a un modèle servi (`modele_d_arete`) ne se pose qu'une fois ce modèle lu : il se lit une fois
-## les autres posées (`_lire_le_modele_d_arete`), et les arêtes reçues se reposent à sa lecture ; celle d'un modèle
-## illisible ne se pose pas.
+## d'instances : les arêtes de même `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM` et `palette`, dans
+## l'ordre reçu, une instance chacune de chaque maillage de leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les
+## groupes sont réconciliés par clé (`reconcilier`) : un groupe dont les arêtes n'ont pas changé à la même échelle
+## reste, un groupe changé (une porte ouverte quitte un groupe et en rejoint un autre) est refait, un groupe parti
+## quitte l'arbre. Une arête dont la famille a un modèle servi (`modele_d_arete`) ne se pose qu'une fois ce modèle lu :
+## il se lit une fois les autres posées (`_lire_le_modele_d_arete`), et les arêtes reçues se reposent à sa lecture ;
+## celle d'un modèle illisible ne se pose pas.
 func poser_les_aretes(aretes: Array) -> void:
 	_aretes_recues = aretes
 	var groupes := {}
@@ -602,7 +602,8 @@ func poser_les_aretes(aretes: Array) -> void:
 			if not _illisibles.has(modele):
 				a_lire[modele] = true
 			continue
-		var cle := "%s|%s|%s|%s|%s|%s|%s" % [a.bloc, a.famille, a.piece, a.sens.x, a.sens.y, a.hauteurM, a.palette]
+		var cle := "%s|%s|%s|%s|%s|%s|%s|%s" % [a.bloc, a.famille, a.piece, a.position, a.sens.x, a.sens.y, a.hauteurM,
+			a.palette]
 		groupes.get_or_add(cle, []).append(a)
 	reconcilier(_aretes, groupes.keys().map(func(cle: String) -> Dictionary: return {cle = cle, empreinte = [groupes[cle], metres_par_case]}), groupes, _groupe)
 	_montrer_le_pose()
@@ -853,23 +854,26 @@ static func texture_neutre_de(nom: String) -> String:
 ## `materiau`, une matière standard ou du shader de monde (qui nomme ses paramètres comme les propriétés de la matière
 ## standard), habillé de la texture `albedo` si elle est au projet, `texture_de(nom)` ou `texture_neutre_de(nom)`, et
 ## du relief de la matière `nom` s'il y est : projetés sur les trois axes du repère du mesh si `projetee`, lus aux UV
-## du mesh, en mètres, sinon (#4313) ; un motif tous les `MiseEnPage.METRES_PAR_MOTIF`.
-static func texturer(materiau: Material, nom: String, albedo: String, projetee: bool) -> void:
+## du mesh, en mètres, sinon (#4313) ; un motif tous les `MiseEnPage.METRES_PAR_MOTIF` du repère, ou à l'échelle
+## `motif`.
+static func texturer(materiau: Material, nom: String, albedo: String, projetee: bool,
+		motif := MiseEnPage.echelle_de_motif()) -> void:
 	if not ResourceLoader.exists(albedo):
 		return
 	var propriete := "shader_parameter/" if materiau is ShaderMaterial else ""
 	materiau.set(propriete + "albedo_texture", load(albedo))
 	materiau.set(propriete + "uv1_triplanar", projetee)
 	materiau.set(propriete + "uv1_triplanar_sharpness", NETTETE_DU_MOTIF)
-	materiau.set(propriete + "uv1_scale", MiseEnPage.echelle_de_motif())
+	materiau.set(propriete + "uv1_scale", motif)
 	if ResourceLoader.exists(relief_de(nom)):
 		materiau.set(propriete + "normal_enabled", true)
 		materiau.set(propriete + "normal_texture", load(relief_de(nom)))
 
 
-## Le nœud du groupe des arêtes `aretes` (même `bloc`, `famille`, `piece`, `sens`, `hauteurM` et `palette`), à
-## l'origine de `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur pièce : celle du modèle d'arête
-## lu de leur famille (`modele_d_arete`), peinte de leur palette (`piece_peinte`), le +Z de son repère vers le dehors
+## Le nœud du groupe des arêtes `aretes` (même `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM` et
+## `palette`), à l'origine de `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur pièce : celle du
+## modèle d'arête lu de leur famille (`modele_d_arete`) à leur position, s'il l'a (`noeud_de_la_piece`), peinte de leur
+## palette (`piece_peinte`), le +Z de son repère vers le dehors
 ## de l'arête, étirée sur leur longueur et mise à la hauteur de leur mur (`MiseEnPage.echelle_d_arete_servie`) ;
 ## sinon celle du kit, `<famille>--<pièce>`, mise à la hauteur de leur mur (`MiseEnPage.echelle_de_piece`) ; sinon
 ## leur boîte (`_boite`). Chaque maillage devient deux instances groupées de même place (`_instances`), une par
@@ -885,10 +889,12 @@ func _groupe(aretes: Array) -> Node3D:
 	_etirer_sur(groupe, sens)
 	var socle := 0.0
 	var modele := modele_d_arete(a.famille)
-	if not modele.is_empty():
+	var noeud := "" if modele.is_empty() else noeud_de_la_piece(_modeles_d_arete[modele].scene, a.piece, a.position)
+	if not noeud.is_empty():
 		var taille: Vector3 = _modeles_d_arete[modele].taille
-		groupe.scale = MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, metres_par_case)
-		groupe.add_child(piece_peinte(modele, a.piece, a.palette).duplicate())
+		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, metres_par_case)
+		groupe.scale = etirement
+		groupe.add_child(piece_peinte(modele, noeud, a.palette, etirement).duplicate())
 	elif _kit != null and a.famille != null and _kit.has_node(nom):
 		groupe.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, metres_par_case)
 		groupe.add_child(_kit.get_node(nom).duplicate())
@@ -913,17 +919,30 @@ func _groupe(aretes: Array) -> Node3D:
 	return groupe
 
 
-## La pièce `piece` (`Noyau.Piece`, un nœud racine) du modèle d'arête lu `modele`, hors de l'arbre, une par palette :
-## ses surfaces peintes de `palette` (`MontageDeComposition.peindre`, les `surfaces` du modèle servi) dans la matière
-## de chaque maillage, jamais aux sommets ni en matière propre au nœud, que les instances groupées perdraient.
-func piece_peinte(modele: String, piece: String, palette: Dictionary) -> Node3D:
-	var cle := "%s|%s|%s" % [modele, piece, palette]
+## Le nœud de la pièce `piece` (`Noyau.Piece`) d'une arête à la position `position` de son ouverture
+## (`Noyau.Position`) dans la scène `scene` d'un modèle d'arête : `<pièce>--<position>` s'il en est un nœud racine,
+## sinon `<pièce>` s'il en est un, sinon aucun (`""`).
+static func noeud_de_la_piece(scene: Node, piece: String, position: String) -> String:
+	var place := "%s--%s" % [piece, position]
+	if scene.has_node(place):
+		return place
+	return piece if scene.has_node(piece) else ""
+
+
+## Le nœud `piece` (`noeud_de_la_piece`, un nœud racine) du modèle d'arête lu `modele`, hors de l'arbre, une par palette et
+## par étirement : ses surfaces peintes de `palette` (`MontageDeComposition.peindre`, les `surfaces` du modèle servi)
+## dans la matière de chaque maillage, jamais aux sommets ni en matière propre au nœud, que les instances groupées
+## perdraient ; la texture d'une matière projetée sur les trois axes de la pièce, à l'échelle qui garde son motif
+## métrique sur la pièce étirée de `etirement` (`MiseEnPage.echelle_de_motif_etire`).
+func piece_peinte(modele: String, piece: String, palette: Dictionary, etirement: Vector3) -> Node3D:
+	var cle := "%s|%s|%s|%s" % [modele, piece, palette, etirement]
 	if not _pieces_peintes.has(cle):
 		var peinte: Node3D = _modeles_d_arete[modele].scene.get_node(piece).duplicate()
 		var maillages := peinte.find_children("*", "MeshInstance3D", true, false)
 		if peinte is MeshInstance3D:
 			maillages.append(peinte)
-		MontageDeComposition.peindre(maillages, MontageDeComposition.modeles.surfaces[modele], null, palette, {}, false)
+		MontageDeComposition.peindre(maillages, MontageDeComposition.modeles.surfaces[modele], null, palette, {}, false,
+			{}, {}, MiseEnPage.echelle_de_motif_etire(etirement, metres_par_case))
 		for maillage: MeshInstance3D in maillages:
 			var mesh: Mesh = maillage.mesh.duplicate()
 			for rang in mesh.get_surface_count():

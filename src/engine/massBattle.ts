@@ -7,15 +7,14 @@
  * spectaculaire de Puissance » NON opposé. Les Personnages influent sur l'issue via des Scènes
  * cinématiques (quelques Rounds de Combat OU un Test de Compétence) et un Discours inspirant.
  *
- * Moteur PUR (aucun import de couche supérieure, règle 3) + data-driven : les TABLES verbatim (estimation de
- * Puissance, modificateurs, machines de guerre, structures, aléas environnementaux) vivent dans
- * `mass-battle.json` ; les ACTIVITÉS de préparation et les SCÈNES cinématiques sont des `ActivityDef`
+ * Moteur PUR (aucun import de couche supérieure, règle 3) + data-driven : les tables de bataille vivent dans
+ * `mass-battle.json`. Les activités de préparation et les scènes cinématiques sont des `ActivityDef`
  * (contextes 'bataille'/'bataille-round') dans `activities.json` — mécanique unifiée avec les Activités
  * d'interlude/voyage (bandes d'issue `outcomes` + `battle`). Aucune valeur inventée (règle 1).
  */
 import type { Equipe } from './relations';
 import {
-  massBattlePowerEstimate, massBattleMightModifiers, massBattleWarMachines, massBattleStructures, massBattleHazards,
+  massBattlePowerEstimate, massBattleMightModifiers, massBattleStructures, massBattleHazards,
 } from '../data';
 import { rollTest, difficultyFromModifier, type TestResult } from './tests';
 import { type Difficulty } from './types';
@@ -24,12 +23,9 @@ import { findTableEntry } from './tables';
 
 // ── Tables verbatim (`mass-battle.json`) ─────────────────────────────────────────────────────────
 
-// Les 5 tables (`mass-battle.json`, l.26-33, l.36-47, l.235-247, l.282-288, l.311-322) sont portées par la façade
-// `data/index.ts` (seam `overrides.ts` — édition Codex), au type de leur schéma (`schemas/defs/mass-battle.ts`).
-// Mêmes références vivantes (pas de copie) : une édition Codex persistée se reflète immédiatement dans ces constantes.
+// ADE II 08 l.26-33, l.36-47, l.282-288, l.311-322
 export const POWER_ESTIMATE = massBattlePowerEstimate;
 export const MIGHT_MODIFIERS = massBattleMightModifiers;
-export const WAR_MACHINES = massBattleWarMachines;
 export const STRUCTURES = massBattleStructures;
 export const BATTLE_HAZARDS = massBattleHazards;
 /** Un facteur environnemental d'aléa de bataille (l.311-322). */

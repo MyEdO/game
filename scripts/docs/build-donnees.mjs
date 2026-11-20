@@ -297,13 +297,13 @@ function rendu() {
 
   out += `## §D — Pièges d'homonymes (un mot ≠ un concept)\n\n`
   out += `${MANIFEST.homonymes.intro}\n\n`
-  out += `| Fichier | Ce que « ${MANIFEST.homonymes.cas[0].mot} » y est |\n|---|---|\n`
   for (const cas of MANIFEST.homonymes.cas) {
+    out += `| Fichier | Ce que « ${cas.mot} » y est |\n|---|---|\n`
     for (const e of cas.entrees) {
       out += `| \`${e.file}\` | ${e.desc} |\n`
     }
+    out += `\n${cas.lecon}\n\n`
   }
-  out += `\n${MANIFEST.homonymes.cas[0].lecon}\n\n`
 
   // §E-bis — la fabrique `document()` est LE chemin (#1467 L1b). Lignes émises telles quelles :
   // des chaînes à guillemets doubles (les backticks Markdown y sont littéraux), jointes par \n.
@@ -467,8 +467,8 @@ function rendu() {
   out += `> 1. **CHECK-FIRST** : \`grep -rniE '<id>|<label>|<concept>' src/data/*.json\`. Le concept vit peut-être\n`
   out += `>    déjà dans un autre sous-système (ex. #148 : le Bélier est dans 6 fichiers). S'il existe → ne duplique\n`
   out += `>    pas, étends-le ou re-scope.\n`
-  out += `> 2. **Bon fichier** via \`docs/donnees.md\` §A. Une « machine de guerre / véhicule / navire » n'est pas un\n`
-  out += `>    \`trappings\`. Si c'est un **sort / un effet mécanique / une icône / un livre** → utilise\n`
+  out += `> 2. **Bon fichier** via \`docs/donnees.md\` §A. Ajoute les engins à \`siege-engines.json\` et référence-les\n`
+  out += `>    par id. Les véhicules et coques vivent dans \`vehicles.json\`. Pour un **sort / un effet mécanique / une icône / un livre**, utilise\n`
   out += `>    le skill de domaine dédié (\`ajouter-un-sort\`/\`ajouter-une-mecanique\`/…).\n`
   out += `> 3. **Chaque champ = Source RAW ⊕ voisins** : lis le **tableau ET son en-tête** au \`Source/\` (FR only ;\n`
   out += `>    ne confonds pas une colonne « Équipe » avec « Encombrement »). \`book\` = \`abr\` de \`books.json\` ;\n`

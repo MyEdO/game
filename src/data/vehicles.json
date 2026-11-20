@@ -141,64 +141,6 @@
     }
   },
   {
-    "id": "barge",
-    "type": "vehicles",
-    "label": "Barge",
-    "icon": "voyage/barge",
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 93
-    },
-    "travel": {
-      "movement": 8,
-      "medium": "fluvial",
-      "classes": [
-        {
-          "id": "cabine",
-          "label": "Cabine",
-          "brassPerKm": 5
-        },
-        {
-          "id": "pont",
-          "label": "Pont",
-          "brassPerKm": 2
-        }
-      ]
-    },
-    "hull": {
-      "char": {
-        "endurance": 45,
-        "B": 60
-      },
-      "bodyShape": "vehicule",
-      "propulsion": "maritime"
-    },
-    "ship": {
-      "crew": 4,
-      "manoeuvre": 0,
-      "lengthM": 20,
-      "footprint": 2,
-      "capacity": 300,
-      "sail": {
-        "m": 3,
-        "crew": 3,
-        "spec": "chaland"
-      },
-      "oars": {
-        "m": 3,
-        "crew": 4
-      },
-      "traits": []
-    },
-    "purchase": {
-      "price": {
-        "gold": 225,
-        "silver": 0,
-        "brass": 0
-      }
-    }
-  },
-  {
     "id": "barge-fluviale",
     "type": "vehicles",
     "label": "Barge fluviale",
@@ -248,7 +190,10 @@
     "ship": {
       "crew": 4,
       "manoeuvre": 0,
-      "lengthM": 15,
+      "lengthM": 20,
+      "fluvialLengthM": 15,
+      "fluvialMovement": 8,
+      "fluvialEnc": 100,
       "footprint": 2,
       "capacity": 300,
       "sail": {
@@ -304,7 +249,13 @@
     "alsoIn": [
       {
         "book": "mort-sur-le-reik-compagnon",
-        "page": 33
+        "page": 33,
+        "quote": "Barque"
+      },
+      {
+        "book": "mer-des-griffes",
+        "page": 93,
+        "quote": "Chaloupe"
       }
     ],
     "hull": {
@@ -318,13 +269,16 @@
       "criticalTable": "river-criticals"
     },
     "ship": {
-      "crew": 1,
-      "manoeuvre": 0,
-      "lengthM": 5,
+      "crew": 2,
+      "manoeuvre": 2,
+      "lengthM": 10,
+      "fluvialLengthM": 5,
+      "fluvialMovement": 4,
+      "fluvialEnc": 25,
       "footprint": 1,
       "capacity": 60,
       "oars": {
-        "m": 4,
+        "m": 3,
         "crew": 1
       },
       "traits": []
@@ -538,43 +492,6 @@
     }
   },
   {
-    "id": "chaloupe",
-    "type": "vehicles",
-    "label": "Chaloupe",
-    "icon": "voyage/navire-a-voile",
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 93
-    },
-    "purchase": {
-      "price": {
-        "gold": 6,
-        "silver": 0,
-        "brass": 0
-      }
-    },
-    "hull": {
-      "char": {
-        "endurance": 35,
-        "B": 10
-      },
-      "bodyShape": "vehicule",
-      "propulsion": "maritime"
-    },
-    "ship": {
-      "crew": 2,
-      "manoeuvre": 2,
-      "lengthM": 10,
-      "footprint": 1,
-      "capacity": 60,
-      "oars": {
-        "m": 3,
-        "crew": 1
-      },
-      "traits": []
-    }
-  },
-  {
     "id": "esquif",
     "type": "vehicles",
     "label": "Esquif",
@@ -583,12 +500,20 @@
       "book": "mer-des-griffes",
       "page": 93
     },
+    "alsoIn": [
+      {
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33,
+        "quote": "Esquif de pêche"
+      }
+    ],
     "purchase": {
       "price": {
         "gold": 45,
         "silver": 0,
         "brass": 0
-      }
+      },
+      "availability": "limitee"
     },
     "hull": {
       "char": {
@@ -602,6 +527,9 @@
       "crew": 3,
       "manoeuvre": 1,
       "lengthM": 15,
+      "fluvialLengthM": 10,
+      "fluvialMovement": 6,
+      "fluvialEnc": 35,
       "footprint": 2,
       "capacity": 120,
       "sail": {
@@ -625,12 +553,20 @@
       "book": "mer-des-griffes",
       "page": 93
     },
+    "alsoIn": [
+      {
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33,
+        "quote": "Grande Barge"
+      }
+    ],
     "purchase": {
       "price": {
         "gold": 445,
         "silver": 0,
         "brass": 0
-      }
+      },
+      "availability": "rare"
     },
     "hull": {
       "char": {
@@ -644,6 +580,9 @@
       "crew": 4,
       "manoeuvre": 0,
       "lengthM": 30,
+      "fluvialLengthM": 25,
+      "fluvialMovement": 6,
+      "fluvialEnc": 180,
       "footprint": 3,
       "capacity": 500,
       "sail": {
@@ -667,12 +606,20 @@
       "book": "mer-des-griffes",
       "page": 93
     },
+    "alsoIn": [
+      {
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33,
+        "quote": "Bateau de Patrouille"
+      }
+    ],
     "purchase": {
       "price": {
         "gold": 655,
         "silver": 0,
         "brass": 0
-      }
+      },
+      "availability": "exotique"
     },
     "hull": {
       "char": {
@@ -686,6 +633,9 @@
       "crew": 15,
       "manoeuvre": 0,
       "lengthM": 25,
+      "fluvialLengthM": 20,
+      "fluvialMovement": 9,
+      "fluvialEnc": 420,
       "footprint": 3,
       "capacity": 80,
       "sail": {
