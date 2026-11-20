@@ -36,7 +36,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
-import { resolveStake, findById, combatStakeRef, regles, type StakeRef, TAVERN_GAMES } from '../data';
+import { findTrappingById, resolveStake, findById, combatStakeRef, regles, type StakeRef, TAVERN_GAMES } from '../data';
 import { ACTIVITIES } from '../data';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import { scanFlowTestEngineRoll, siteLabel } from '../../scripts/guards/lib/flowTestEngineRoll.mjs';
@@ -327,7 +327,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   it('effet FONDU par un sort : l’enjeu nomme le SORT (jamais l’épée qui le porte)', () => {
     const c = porteur();
     applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Morsure de l’hiver', source: { kind: 'sort', id: 'morsure-de-l-hiver' }, defaultDurationRounds: 4 });
-    const src = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!;
+    const src = effectSourcesOf(c, findTrappingById, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!;
     const eff = src.effects[0];
     expect(eff.source, 'la provenance du sort est perdue en route').toEqual({ kind: 'sort', id: 'morsure-de-l-hiver' });
     const stake = withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!;
@@ -340,7 +340,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   it('effet FONDU par un POISON bu : l’enjeu nomme le poison (même règle, autre nature de source)', () => {
     const c = porteur();
     applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Lotus noir', source: { kind: 'objet', id: 'lotus-noir' }, defaultDurationRounds: 4 });
-    const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
+    const eff = effectSourcesOf(c, findTrappingById, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     const texte = resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text!;
     expect(texte).toContain(findById('trappings', 'lotus-noir')!.label);
     expect(texte).not.toContain('Épée');
@@ -349,7 +349,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   it('effet EN PROPRE de l’objet : l’enjeu nomme l’OBJET — c’est lui qui exige le jet', () => {
     const c = hero();
     const w = { label: 'Déchireur de sociabilité', trappingId: 'dechireur-de-sociabilite', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], onHitEffects: [testOnHit] } as unknown as Combatant['weapons'][number];
-    const eff = effectSourcesOf(c, w).find((s) => s.key.startsWith('weapon:'))!.effects[0];
+    const eff = effectSourcesOf(c, findTrappingById, w).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     expect(eff.source).toEqual({ kind: 'objet', id: 'dechireur-de-sociabilite' });
     expect(resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text)
       .toContain(findById('trappings', 'dechireur-de-sociabilite')!.label);
@@ -360,7 +360,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   it('effet fondu SANS provenance : la dérivation se tait plutôt que de nommer l’arme', () => {
     const c = porteur();
     applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Enchantement anonyme', defaultDurationRounds: 4 });
-    const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
+    const eff = effectSourcesOf(c, findTrappingById, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     // Le dispatcher tague au porteur ce qui n'a pas de source : ici l'arme est SANS id de catalogue
     // (arme forgée pour la sonde) → aucune fiche à nommer, la dérivation rend `undefined`.
     expect(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake).toBeUndefined();

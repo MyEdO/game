@@ -19,7 +19,8 @@ import { ref } from '../grammaire/ref';
 import { champAdapteDe, proseNommee, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { entreeEmbarquee as trappingEntree } from '../defs/trappings';
-import { findCreatureById, findStructureById, findTrappingById, findVehicleById } from '../../index';
+import { findCreatureById, findStructureById, findTrappingById, findVehicleById, stakeSpeaks } from '../../index';
+import { carriedFlows, walkFlow, type Flow } from '../../../engine/flowCore';
 import type { CreatureData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { exclusiviteAdapteDe, refuserSansProvenance } from '../grammaire/document';
@@ -173,10 +174,23 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
     }
   });
 
+  const verifierEnjeux = (flow: Flow, chemin: (string | number)[]): void => {
+    walkFlow(flow, (noeud, relatif) => {
+      if (noeud.kind === 'test' && !stakeSpeaks(noeud.test.stake))
+        faute([...chemin, ...relatif, 'test', 'stake'], 'Le Test d’un objet de campagne doit déclarer son enjeu.');
+      if (noeud.kind === 'effet') {
+        for (const porte of carriedFlows(noeud.effet))
+          verifierEnjeux(porte.flow, [...chemin, ...relatif, 'effet', ...porte.chemin]);
+      }
+    });
+  };
+
   nb.objets.forEach((objet, i) => {
     for (const champ of CHAMPS_DE_POSSESSION_RESERVES_AU_CATALOGUE) {
       if (objet[champ] !== undefined) faute(['objets', i, champ], 'Ce champ est réservé aux possessions du catalogue global.');
     }
+    if (objet.consumable) verifierEnjeux(objet.consumable, ['objets', i, 'consumable']);
+    objet.effects?.forEach((effet, rang) => verifierEnjeux(effet.flow, ['objets', i, 'effects', rang, 'flow']));
   });
 }
 

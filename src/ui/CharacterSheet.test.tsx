@@ -16,6 +16,9 @@ import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { gameDay } from '../noyau/merchantFlow';
 import { refusDeSoins } from '../noyau/medicFlow';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { combatantRingDecor } from '../gameIso/builders/dynamicMarks';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
@@ -385,6 +388,30 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     } as unknown as Combatant;
     const html = renderToStaticMarkup(<AdvancementPanel hero={porteur} />);
     expect(html).toContain('Fausse jambe — récupérer le dernier Point de Mouvement perdu');
+  });
+
+  it('propose et achète le palier d’un objet de campagne en accessoire seulement s’il est porté', () => {
+    const prothese = objetDeCampagne({
+      ...findTrappingById('fausse-jambe')!,
+      id: 'jambe-du-relais',
+      label: 'Jambe du relais',
+      subType: findTrappingById('cape')!.subType,
+    });
+    const resoudre = objetDuNarratif({ ...emptyNarratif(), objets: [prothese] });
+    const item = itemFromTrappingById(prothese.id, idsDeTest, resoudre)!;
+    const porteur = { ...hero(), items: [item] };
+    useGame.setState({ party: [porteur], battle: null, sheetId: porteur.id, sheetTab: 'avancement' });
+    mount(<CharacterSheet heroId={porteur.id} onClose={() => {}} />);
+    const entrainer = () => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Entraîner'));
+    expect(entrainer()).toBeUndefined();
+
+    act(() => useGame.getState().equiperLObjet(item.uid));
+    expect(useGame.getState().party[0].items![0].equipped).toBe(true);
+    const premierPalier = entrainer();
+    expect(premierPalier?.textContent).toBe('Entraîner · 100 PX');
+    act(() => premierPalier!.click());
+    expect(useGame.getState().party[0].xp).toBe(porteur.xp! - 100);
+    expect(entrainer()?.textContent).toBe('Entraîner · 200 PX');
   });
 
   it('badges de zone `FigZoneBadges` composés par `CharacterSheet` : PA d’armure en Possessions (seules les zones COUVERTES, ton `sang` si l’armure portée est entamée)', () => {

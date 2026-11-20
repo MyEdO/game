@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fireTriggers, applyTriggeredEffects } from './triggeredEffects';
-import { findConditionById } from '../data';
+import { findTrappingById, findConditionById } from '../data';
 import { runPureFlowLines } from './combat/flowEval';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
@@ -342,7 +342,7 @@ const cond = (c: Combatant, name: string) => c.conditions.find((x) => x.id === n
 describe('onOwnTestFailed — Crampes abdominales (MSRC 16 l.152-158)', () => {
   it('symptôme ACTIF = SOURCE du dispatcher (effectSourcesOf) : 3 effets, tous onOwnTestFailed', () => {
     const c = withCrampes();
-    const src = effectSourcesOf(c).find((s) => s.key === 'symptom:crampes-abdominales');
+    const src = effectSourcesOf(c, findTrappingById).find((s) => s.key === 'symptom:crampes-abdominales');
     expect(src).toBeTruthy();
     expect(src!.effects.length).toBe(3);
     expect(src!.effects.every((e) => e.trigger === 'onOwnTestFailed')).toBe(true);
@@ -528,7 +528,7 @@ describe('Test déclenché INLINE : la pénalité d’État lit la Compétence t
 
 /** ZI 03 l.75, l.77 ; LDB 16 l.70 ; MDG 16 l.226 */
 describe('Traits conférés par une attaque, Difficulté portée par l’État', () => {
-  const cles = (c: Combatant, w?: Weapon) => effectSourcesOf(c, w).map((s) => s.key);
+  const cles = (c: Combatant, w?: Weapon) => effectSourcesOf(c, findTrappingById, w).map((s) => s.key);
   it('un Trait conféré est une source de la touche de l’attaque qui le confère, et d’elle seule', () => {
     const porteur = mk({ id: 'po' });
     const arme = { label: 'Arme', type: 'melee', damage: { plusBF: true, flat: 0 }, traitsConferes: [{ id: 'venin' }] } as Weapon;
@@ -550,13 +550,13 @@ describe('Traits conférés par une attaque, Difficulté portée par l’État',
     }
   });
   it('l’État `argDifficulty` d’un Trait prend la Difficulté de l’arg, et reste posé sans arg (LDB 85 l.423, l.425)', () => {
-    const opsDuVenin = (arg?: string) => effectSourcesOf(mk({ traits: [{ id: 'venin', ...(arg ? { arg } : {}) }] }))
+    const opsDuVenin = (arg?: string) => effectSourcesOf(mk({ traits: [{ id: 'venin', ...(arg ? { arg } : {}) }] }), findTrappingById)
       .find((s) => s.key === 'trait:venin')!.effects.flatMap((e) => spellEffectOps(e.flow));
     expect(opsDuVenin('difficile')).toEqual([{ op: 'condition', id: { id: 'empoisonne' }, difficulte: 'difficile' }]);
     expect(opsDuVenin()).toEqual([{ op: 'condition', id: { id: 'empoisonne' } }]);
   });
   it('le Test qui élimine Empoisonné prend la Difficulté que l’État porte', () => {
-    const difficulteDuTest = (c: Combatant) => effectSourcesOf(c).find((s) => s.key === 'cond:empoisonne')!.effects
+    const difficulteDuTest = (c: Combatant) => effectSourcesOf(c, findTrappingById).find((s) => s.key === 'cond:empoisonne')!.effects
       .map((e) => e.flow).find((f): f is Extract<Flow, { kind: 'test' }> => f.kind === 'test')!.test.difficulty;
     expect(difficulteDuTest(mk({ conditions: [{ id: 'empoisonne', value: 1, difficulte: 'tresDifficile' }] }))).toBe('tresDifficile');
     const sansDifficulte = mk({ conditions: [{ id: 'empoisonne', value: 1 }] });

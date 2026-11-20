@@ -38,7 +38,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { toBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { ensureBourse, bourseInstanceOf, withBourseMoney } from '../engine/bourse';
-import { talentConcrete } from '../data';
+import { findTrappingById, talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
 import { entityPickables, OPS_DIFFEREES, applyEffects, applyEffectsLoot, runFlow } from './combatEffects';
 import { t } from '../i18n';
@@ -2774,7 +2774,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
 
     // (1) Set PISTOLET : on le charge (Test étendu abouti) — il porte SA munition.
     let h = swap('pist');
-    loadWeapon(h, h.weapons.find((w) => w.uid === 'w-pist')!);
+    loadWeapon(findTrappingById, h, h.weapons.find((w) => w.uid === 'w-pist')!);
     expect(loadRegister(h, h.weapons.find((w) => w.uid === 'w-pist')!).loadedAmmoUid).toBe('am-balles');
     // (2) Set ARBALÈTE : elle a tiré, son Test étendu est à 1 DR.
     h = swap('arb');
@@ -2811,8 +2811,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     recomputeLoadout(H);
     const of = (uid: string) => banc.getState().battle!.combatants.find((c) => c.id === H.id)!.weapons.find((w) => w.uid === uid)!;
     const hero = () => banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
-    loadWeapon(H, H.weapons.find((w) => w.uid === 'p1')!);
-    loadWeapon(H, H.weapons.find((w) => w.uid === 'p2')!);
+    loadWeapon(findTrappingById, H, H.weapons.find((w) => w.uid === 'p1')!);
+    loadWeapon(findTrappingById, H, H.weapons.find((w) => w.uid === 'p2')!);
 
     // (1) La munition se choisit ARME PAR ARME : le gauche passe aux balles fines, le droit n'y touche pas.
     banc.getState().approvisionnerLArme('balles-fines', 'p2');

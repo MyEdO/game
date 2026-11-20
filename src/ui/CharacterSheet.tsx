@@ -849,9 +849,8 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
         // action de possession, rejoint donc ce panneau (patron `AdvSection` déjà tenu ici).
         // Le PALIER achetable est DÉCLARÉ sur l'entrée de prothèse (`TrappingData.prosthesisTraining`,
         // LDB 73) et résolu par `nextProsthesisTier` — cet écran ne nomme aucune prothèse.
-        const prostheses = (hero.items ?? []).filter((it) => it.subType === 'protheses' && it.equipped);
         const rows: { key: string; label: string; cost: number; onBuy: () => void }[] = [];
-        for (const it of prostheses) {
+        for (const it of hero.items ?? []) {
           const tier = nextProsthesisTier(it);
           if (!tier) continue;
           rows.push({

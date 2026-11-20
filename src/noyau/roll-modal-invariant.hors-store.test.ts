@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -301,12 +302,12 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     let seed = 0;
     for (let sd = 1; sd <= 500 && !seed; sd++) {
       seedBattleRng(sd);
-      const r = resolveAttack(get, E, H, firedWeapon(get().scene, E, H, undefined, get().battle?.combatants));
+      const r = resolveAttack(get, E, H, firedWeapon(findTrappingById, get().scene, E, H, undefined, get().battle?.combatants));
       if (r && attackerFumbled(r.res, r.weapon)) seed = sd;
     }
     expect(seed, 'une graine de Maladresse existe').toBeGreaterThan(0);
     seedBattleRng(seed);
-    const r = resolveAttack(get, E, H, firedWeapon(get().scene, E, H, undefined, get().battle?.combatants))!; // résultat de Maladresse RÉEL (pas fabriqué)
+    const r = resolveAttack(get, E, H, firedWeapon(findTrappingById, get().scene, E, H, undefined, get().battle?.combatants))!; // résultat de Maladresse RÉEL (pas fabriqué)
     set({ pendingAttack: { attackerId: E.id, targetId: H.id, location: r.res.location ?? null, result: r.res, victimId: r.victim?.id, weaponUid: E.weapons[0].uid } });
     get().jetValider('attaque');
     // La défense du héros est SURFACÉE (#989) : `jetValider('attaque')` interpose SA fenêtre — le héros défend,

@@ -62,12 +62,12 @@ describe.each([
   it('formé : le tireur et le partenaire parent un tir en Ligne de Vue, et gagnent 2 PA en Parade', () => {
     const { T, P } = binome();
     const archer = combattantDeTest({ id: 'archer', label: 'archer', kind: adverse(kind), pos: { x: 15, y: 5 } });
-    expect(rangedDefenseModes(archer, T, ARC, 10, true, 2), 'le jezaïl seul ne pare aucun tir').not.toContain('parade');
+    expect(rangedDefenseModes(findTrappingById, archer, T, ARC, 10, true, 2), 'le jezaïl seul ne pare aucun tir').not.toContain('parade');
     for (const X of [T, P]) {
       const b = bouclierDuBinome(null, [T, P], X);
       expect(b?.trappingId).toBe(BOUCLIER);
       expect(b).toBe(tenu(P, BOUCLIER));
-      expect(rangedDefenseModes(archer, X, ARC, 10, true, 2, b)).toContain('parade');
+      expect(rangedDefenseModes(findTrappingById, archer, X, ARC, 10, true, 2, b)).toContain('parade');
       expect(protectriceAP(defaultParryWeapon(X), b)).toBe(2);
       const atk = evaluateTest(11, 90, 50);
       const def = evaluateTest(96, 30, 30);

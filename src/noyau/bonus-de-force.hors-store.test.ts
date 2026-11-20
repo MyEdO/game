@@ -15,7 +15,7 @@ import { effectiveMaxWounds, forceDuPorteur } from '../engine/characteristics';
 import { formulaExpectation } from '../engine/ops';
 import { indiceSurLeProfil, valeurSansTirage } from '../engine/formule';
 import { findTavernGameById } from '../engine/tavernGame';
-import { findSpellById } from '../data';
+import { findTrappingById, findSpellById } from '../data';
 import { weaponStatParts } from '../engine/weaponStats';
 import { deFixe } from '../engine/dice.testkit';
 import { blessuresDeBase, combattantDeTest } from '../engine/combattantDeTest.testkit';
@@ -65,7 +65,7 @@ describe('Bonus de Force en Frénésie (LDB 21 l.33)', () => {
   });
 
   it('portée d’une arme de jet BF×2 (Couteau de lancer), Force 40 → 10 m en Frénésie, 8 m sinon', () => {
-    const r = (fr: boolean): number | null => { const { c, w } = heros(fr, 'couteau-de-lancer'); return porteeDeTir(c, w); };
+    const r = (fr: boolean): number | null => { const { c, w } = heros(fr, 'couteau-de-lancer'); return porteeDeTir(findTrappingById, c, w); };
     expect(r(true)).toBe(10);
     expect(r(false)).toBe(8);
   });

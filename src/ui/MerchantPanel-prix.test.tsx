@@ -6,11 +6,13 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MerchantPanelView } from './MerchantPanel';
+import { findTrappingById } from '../data';
 import { statutLePlusHaut } from '../engine/statut.testkit';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
 const noop = {
+  resolveTrapping: findTrappingById,
   onAddToCart: () => {}, onDecCart: () => {}, onRemoveCart: () => {}, onClearCart: () => {}, onRefuse: () => {}, onPay: () => {},
   onAssignDist: () => {}, onConfirmDist: () => {}, onRepair: () => {}, onBargain: () => {},
   onAppraise: () => {}, onClose: () => {},

@@ -1,3 +1,4 @@
+import { findTrappingById } from '../../data';
 import { idsDeTest } from '../idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById, weaponFromItem } from '../items';
@@ -68,13 +69,13 @@ describe('modificateurs de Test (LDB 10)', () => {
   it('Tir mortel : pas de −20 de Localisation à distance', () => {
     const c = mk([{ name: 'Tir mortel', times: 1 }]);
     const tgt = mk([], { id: 't' });
-    const mods = attackModifiers(c, tgt, w({ type: 'distance', range: 30 }), { kind: 'distance', location: 'tete', distanceTiles: 5, metresPerTile: 2 });
+    const mods = attackModifiers(c, tgt, w({ type: 'distance', range: 30 }), { kind: 'distance', location: 'tete', distanceTiles: 5, metresPerTile: 2, resolveTrapping: findTrappingById });
     expect(ligneDe(mods, refDeRegle('viser-une-localisation'))).toBeUndefined();
   });
   it('Tireur d’élite : ignore la Taille de la cible ; Tireur embusqué : Longue 0 / Extrême ÷2', () => {
     const c = mk([{ name: "Tireur d'élite", times: 1 }]);
     const grand = mk([], { id: 't', size: 'enorme' });
-    const mods = attackModifiers(c, grand, w({ type: 'distance', range: 30 }), { kind: 'distance', distanceTiles: 5, metresPerTile: 2 });
+    const mods = attackModifiers(c, grand, w({ type: 'distance', range: 30 }), { kind: 'distance', distanceTiles: 5, metresPerTile: 2, resolveTrapping: findTrappingById });
     expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])).toBeUndefined();
     const sniper = mk([{ name: 'Tireur embusqué', times: 1 }]);
     expect(sniperRangeAdjust(sniper, 'longue', modDeRegle('portee-d-une-arme', 'longue'))).toBe(0);

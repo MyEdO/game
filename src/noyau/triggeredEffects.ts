@@ -30,7 +30,7 @@ import {
   type TriggeredEffect,
 } from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { armureUtilisable, weaponIdentity } from '../engine/items';
+import { armureUtilisable, ficheDObjetPorte, weaponIdentity, type TrappingResolver } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
 import { degatsDeLEtatIgnores } from '../engine/traits/dispatch';
@@ -54,7 +54,6 @@ import {
   findPsychologyById,
   findSymptomById,
   findMutationById,
-  findTrappingById,
   testSkillLabel,
 } from '../data';
 import { isHeld } from '../engine/capabilities';
@@ -135,14 +134,14 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
  * héros MANUEL deviennent des étapes de cascade au lieu d'être joués inline). AJOUTER UN
  * KIND = ICI seulement. Ordre FIGÉ (enchant → objets portés → traits → atouts → talents → symptômes → mutations →
  * États → psy) = déroulé RNG déterministe. */
-export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSource[] {
+export function effectSourcesOf(actor: Combatant, resolveTrapping: TrappingResolver, weapon?: Weapon): TriggerSource[] {
   const out: TriggerSource[] = [];
   if (weapon?.onHitEffects?.length) { const wid = weaponIdentity(weapon); out.push({ effects: withSource(weapon.onHitEffects, { kind: 'objet', id: wid }), cap: 1, key: `weapon:${wid}`, label: weapon.label }); }
-  // Objets PORTÉS ou TENUS (`isHeld`) : leurs `effects` lus au catalogue par id stable. #4202
+  // #4202 ; #2967
   const qualitesDArmure = new Set<string>();
   for (const it of actor.items ?? []) {
     if (!isHeld(actor, it)) continue;
-    const d = it.trappingId ? findTrappingById(it.trappingId) : undefined;
+    const d = ficheDObjetPorte(it, resolveTrapping);
     if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'objet', id: d.id }), cap: 1, key: `item:${it.uid}`, label: d.label });
     if (it.kind !== 'armor' || !it.equipped || !armureUtilisable(it)) continue;
     for (const { id, data, indice } of resolveQualities(it)) {
@@ -198,8 +197,8 @@ const isStatusSource = (s: TriggerSource): boolean => s.key.startsWith('cond:') 
 
 /** Effets déclenchés NON-statut à plat (Atouts d'arme → Traits → Qualités → Talents) — sous-vue de
  *  `effectSourcesOf`. Les États/psy ont leur propre dispatch (avec pions), d'où le filtre. Ordre RNG figé. */
-function effectsOf(actor: Combatant, weapon?: Weapon): TriggeredEffect[] {
-  return effectSourcesOf(actor, weapon).filter((s) => !isStatusSource(s)).flatMap((s) => s.effects);
+function effectsOf(actor: Combatant, resolveTrapping: TrappingResolver, weapon?: Weapon): TriggeredEffect[] {
+  return effectSourcesOf(actor, resolveTrapping, weapon).filter((s) => !isStatusSource(s)).flatMap((s) => s.effects);
 }
 
 /** Ops d'un déclencheur `trigger` portées par le combattant (Traits/Talents/Atouts), à plat, CHACUNE
@@ -214,8 +213,8 @@ function effectsOf(actor: Combatant, weapon?: Weapon): TriggeredEffect[] {
  *  La `source` voyage AVEC l'op parce que ce qu'elle produit (une zone à `crossTest`, une créature)
  *  peut à son tour exiger un jet : c'est d'elle que l'enjeu se dérive (#1262 V2 L6d). L'aplatir en
  *  `GameOp[]` nu perdait le porteur, et le jet se serait ouvert muet. */
-export function triggerEffectOps(actor: Combatant, trigger: EffectTrigger): { op: GameOp; source?: EffectSource }[] {
-  return effectsOf(actor)
+export function triggerEffectOps(actor: Combatant, trigger: EffectTrigger, resolveTrapping: TrappingResolver): { op: GameOp; source?: EffectSource }[] {
+  return effectsOf(actor, resolveTrapping)
     .filter((e) => e.trigger === trigger)
     .flatMap((e) => spellEffectOps(e.flow).map((op) => ({ op, ...(e.source ? { source: e.source } : {}) })));
 }
@@ -231,8 +230,8 @@ export interface TriggerSource { effects: TriggeredEffect[]; cap: number; key: s
  *  unique, arme de la touche comprise) — `resolveFreeAttacks` joue celles qui portent un `grantFreeAttack`
  *  (`flowHasFreeAttack`), que le bus saute, quel que soit le KIND (Atout d'arme/Trait/Qualité/Talent/État/psy). NB : l'attaque libre « disponible » de la
  *  Frénésie vit dans son `passive` (`when:'available'`) → `availableFreeAttackOps`/`aiAvailableFreeAttack`, pas ici. */
-export function freeAttackSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSource[] {
-  return effectSourcesOf(actor, weapon);
+export function freeAttackSourcesOf(actor: Combatant, resolveTrapping: TrappingResolver, weapon?: Weapon): TriggerSource[] {
+  return effectSourcesOf(actor, resolveTrapping, weapon);
 }
 
 /** Combattants visés par un effet selon `on` (le porteur, la victime touchée, ou TOUS ceux Engagés
@@ -577,7 +576,7 @@ export function applyTriggeredEffects(
  * profil via `maneuverEffectsOf`.)
  */
 export function fireTriggers(get: Get, actor: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
-  const lines = applyTriggeredEffects(get, actor, effectsOf(actor, ctx.weapon), trigger, ctx);
+  const lines = applyTriggeredEffects(get, actor, effectsOf(actor, objetDuNarratif(get().campaignNarratif), ctx.weapon), trigger, ctx);
   lines.push(...fireConditionEffects(get, actor, trigger, ctx)); // États dispatchés EXACTEMENT comme Traits
   lines.push(...firePsychEffects(get, actor, trigger, ctx)); // états PSY (Frénésie…) — MÊME folding générique
   return lines;
@@ -609,7 +608,7 @@ export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { s
   const a = typeof actor === 'string' ? actorIn(get(), actor) : actor;
   if (!a) return [];
   // EARLY-OUT : aucune source (symptôme/trait/état…) ne porte ce trigger → rien à faire (coût quasi nul).
-  if (!effectSourcesOf(a).some((s) => s.effects.some((e) => e.trigger === 'onOwnTestFailed'))) return [];
+  if (!effectSourcesOf(a, objetDuNarratif(get().campaignNarratif)).some((s) => s.effects.some((e) => e.trigger === 'onOwnTestFailed'))) return [];
   firingOwnTestFailed = true;
   try {
     return fireTriggers(get, a, 'onOwnTestFailed', { margin: opts.sl, rng: opts.rng, set: opts.set });
@@ -640,7 +639,7 @@ function fireStatusEffects(
  * (Hémorragique − Endurci `bleedIgnore`, LDB 10 — générique, jamais par-nom). Inerte sans `effects`.
  */
 export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
-  return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c).filter((s) => s.key.startsWith('cond:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1 })));
+  return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c, objetDuNarratif(get().campaignNarratif)).filter((s) => s.key.startsWith('cond:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1 })));
 }
 
 /**
@@ -649,7 +648,7 @@ export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrig
  * vit dans `psychology.json`. Inerte tant que `psychState` ne porte aucun type doté d'`effects`.
  */
 export function firePsychEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
-  return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c).filter((s) => s.key.startsWith('psy:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1, affliction: s.affliction })));
+  return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c, objetDuNarratif(get().campaignNarratif)).filter((s) => s.key.startsWith('psy:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1, affliction: s.affliction })));
 }
 
 /** Effets AUTHORÉS d'une MANŒUVRE, tagués de leur manœuvre source (`withSource`) — SOURCE UNIQUE des
