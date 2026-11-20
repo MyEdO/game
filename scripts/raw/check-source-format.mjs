@@ -82,6 +82,7 @@ import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
 import { EXEMPTIONS_IMPERATIF_SOUDE, sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
 import { PORTEURS } from '../guards/lib/porteursDesComptes.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', PORTEURS.SOURCE_FORMAT)
 
@@ -573,4 +574,7 @@ function main() {
   process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

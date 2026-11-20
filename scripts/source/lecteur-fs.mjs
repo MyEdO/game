@@ -3,11 +3,22 @@
 // que résoudre `bookId → dossier → fichier de chapitre`, lire le texte (CRLF-robuste, `readText`) et
 // mémoriser le chapitre parsé. Le `dir` d'un livre est relatif à la racine du dépôt (`books.json`) :
 // listages et lectures s'y résolvent, d'où que le processus soit lancé (#3120).
+import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { livreExtraitDe, readText } from '../raw/_lib.mjs'
+import { livreExtraitDe } from './registre-livres.mjs'
 import { fichierDuChapitre, parseChapitre, prefixesDeChapitres } from '../../src/data/source/decoupe.ts'
 import { cheminDuDepot } from './adresses.mjs'
+
+// Lecture CRLF-robuste (#604) -- SOURCE UNIQUE de lecture texte pour tout fichier Source/**/docs/raw/** :
+// une copie de travail peut porter des fins de ligne CRLF ou mixtes sur un index git en LF.
+// sectionsOf (coverage.mjs) decoupe les headings avec une regex de fin de ligne ancree sans flag m --
+// or le '.' de regex exclut TOUT LineTerminator (dont \r, ECMA-262), donc le heading pattern echoue
+// net des qu'une ligne se termine par \r (repro mesure : sectionsOf('# A\r\n## B\r\ntexte', 2)
+// -> un seul '(integral)', la boundary H2 jamais vue). readText normalise \r\n/\r isole -> \n AU POINT
+// DE LECTURE -- jamais dans les parseurs eux-memes (une seule couture, pas un remede par regex disperse).
+// N'affecte pas JSON.parse (deja tolerant aux fins de ligne) ni les fichiers deja en LF (no-op).
+export const readText = (path) => readFileSync(path, 'utf8').replace(/\r\n|\r/g, '\n')
 
 const _cache = new Map()
 const _chemins = new Map()

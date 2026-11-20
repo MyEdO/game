@@ -52,6 +52,7 @@ import {
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 import { rendreCible } from '../docs/build-all.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const TOL = 20 // tolérance en lignes : la synthèse Atlas pine un ancrage proche, pas la ligne exacte
 export const RAWDIR = 'docs/raw'
@@ -629,4 +630,7 @@ async function main() {
   })
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

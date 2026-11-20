@@ -7,6 +7,9 @@ import { readText, sortieMarkerDe } from './_lib.mjs'
 import { mdsDeMarker } from './lib/marker-pages.mjs'
 import { nomAscii } from '../source/nom-ascii.mjs'
 import { graphieDeChapitre, largeurDeChapitre, ligne1DePlage, plageEnTexte } from '../../src/data/source/decoupe.ts'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
+
+if (import.meta.main) exigerRacineAtlas()
 
 /** Id du livre que ce découpeur sert (`src/data/books.json`). */
 const LIVRE = 'vents-de-la-magie'

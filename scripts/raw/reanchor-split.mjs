@@ -12,6 +12,7 @@ import { livreDuSigle, normalize, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { graphieDuFichier, numeroDuFichier } from '../../src/data/source/decoupe.ts'
 import { RAWDIR, CLASSES } from './check-refs.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 // Commit qui a éclaté ces 2 livres (bloc unique numéroté « 01 ») en fichiers-chapitres.
 export const SPLIT_SOURCE_SHA = '77dab03c'
@@ -223,4 +224,7 @@ function main() {
   for (const u of unresolved) console.log(`  docs/raw/${u.doc}:${u.row} — \`${u.ref}\` — ${u.reason}`)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

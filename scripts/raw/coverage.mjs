@@ -23,6 +23,7 @@ import { echapperRegex } from '../../src/lib/regex.ts'
 import { graphieDuFichier, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture (`pagesDeLAtlasRendues`) : tout sauf les rapports générés — l'épreuve
 // datée et les pages d'auteur CITENT des chapitres, et ce qu'elles citent est couvert.
@@ -447,4 +448,7 @@ function main() {
   for (const l of journal) console.log(l)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

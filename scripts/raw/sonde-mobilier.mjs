@@ -8,6 +8,7 @@
 // Usage : node scripts/raw/sonde-mobilier.mjs <id du livre>
 import { decoupeDe, livreExtraitDe, ongletsDe, readText } from './_lib.mjs'
 import { mobilierDuDossier } from './lib/mobilier.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 /** Chemin POSIX d'un dossier, sans `/` final. */
 const posix = (dir) => String(dir).split('\\').join('/').replace(/\/$/, '')
@@ -35,4 +36,7 @@ function main() {
   }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

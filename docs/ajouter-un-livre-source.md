@@ -13,6 +13,9 @@ n'entre que s'il y est **NOMMÉMENT** autorisé ; à ce jour il y en a UN, le *C
 WFRP 4e est explicitement **exclue** (`docs/raw/sources.md` § *Exclu des règles* — ruleset simplifié
 divergent, jamais une source de règles ni de stats).
 
+Lancez les outils Atlas qui manipulent des chemins relatifs du dépôt depuis la racine du
+worktree. Les chemins relatifs donnés en argument partent du répertoire de lancement.
+
 ## 0. Format canonique (la forme UNE de toute extraction)
 
 Toutes les extractions de `Source/` ont **UN** format, décrit ici et mesuré par

@@ -14,6 +14,7 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, chapterFile as chapterFileLib, coeursDuRegistre, livresDeCatalogue, pagesDeLAtlas, readText, classeDePage } from './_lib.mjs'
 import { titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 
@@ -135,4 +136,7 @@ function main() {
   console.log(catalogues.map((c) => c.log).join('\n'))
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}
