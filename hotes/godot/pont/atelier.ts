@@ -182,6 +182,10 @@ export interface BaseDeLAtelier {
   vitesseAuSol: number;
   /** les os de ses chaînes (`ManifesteDeBase.chaines`, section « Pile des couches »). */
   osDeChaine: string[];
+  /** par os qui tient une zone de son corps, cette zone puis ses voisines (`zonesPortantes` du listage, #4351), vide
+   *  pour une base sans zone : un objet rangé à un emplacement de cet os ne s'appuie, parmi les pièces montées qui
+   *  portent une zone (`extras.zone`), que sur celles de ces zones (`MontageDeComposition._appuyer`). */
+  zonesPortantes: Record<string, string[]>;
 }
 
 /**
@@ -285,8 +289,9 @@ export const emblemeMonte = (embleme: EmblemeResolu | undefined, manifeste: unkn
  *  prise (#3319) ; toute pièce, accessoire rigide compris, à la ligne dont
  *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou de la pièce de sa variante (`pieceRacine`,
  *  #3446), ou l'emplacement de sa pièce
- *  d'accessoire (`emplacementDePiece`), que la base ou l'une de ses pièces offre. */
-export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>): ModelesDeLAtelier {
+ *  d'accessoire (`emplacementDePiece`), que la base ou l'une de ses pièces offre. `zonesPortantes` (id de base → os →
+ *  zones, du listage servi) passe à chaque base, vide sans entrée. */
+export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>, zonesPortantes: Readonly<Record<string, Record<string, string[]>>> = {}): ModelesDeLAtelier {
   const index = indexerModeles(Object.entries(manifestes).map(([id, brut]) => ({ id, brut })));
   const elements = [...index.elements.values()];
   const fichiers: ModelesDeLAtelier['fichiers'] = {};
@@ -361,7 +366,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]
           : []),
     ];
-    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, prisesOccupees: m.prisesOccupees ?? {}, vitesseAuSol: m.appuis.vitesseAuSol, osDeChaine: Object.values(m.chaines).flat() };
+    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, prisesOccupees: m.prisesOccupees ?? {}, vitesseAuSol: m.appuis.vitesseAuSol, osDeChaine: Object.values(m.chaines).flat(), zonesPortantes: zonesPortantes[id] ?? {} };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   const couches = Object.fromEntries(Object.entries(rangs).map(([id, couche]): [string, CoucheDeLAtelier] =>

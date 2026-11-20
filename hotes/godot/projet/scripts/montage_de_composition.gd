@@ -150,7 +150,8 @@ static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
 static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
 	if listage.is_empty():
 		return {}
-	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
+	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {}),
+		zonesPortantes = listage.get("zonesPortantes", {})})
 
 
 ## Le listage des modèles (`lister`) indexé par le pont que `hote` rejoint (`indexer`) et retenu (`retenir_les_modeles`) :
@@ -779,7 +780,10 @@ func _offrant_du_point(point: Dictionary) -> String:
 ## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
 ## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
 ## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
-## rien dessous, sa face arrière à 5 mm de l'emplacement. À un emplacement qu'offre une pièce, qui le pose elle-même
+## rien dessous, sa face arrière à 5 mm de l'emplacement. D'une pièce montée qui porte une zone (`extras.zone`), seule
+## compte celle qui habille la zone de l'os de l'emplacement ou une zone voisine (`zonesPortantes` de la base, #4351) :
+## la pointe d'une manche large qui pend devant la hanche ne repousse pas l'objet qui s'y range. À un emplacement
+## qu'offre une pièce, qui le pose elle-même
 ## (une case dans une hotte), l'objet ne descend pas plus bas, et de cette pièce ne compte que ce qu'elle porte sous
 ## l'emplacement, jamais une paroi au-dessus
 ## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
@@ -861,7 +865,7 @@ func _ranger() -> void:
 				sommets = _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension).rotated(Vector3.BACK, biais))
 			var boite := _boite_de(sommets)
 			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, biais = biais, sommets = sommets, portes = portes,
-				offrant = offrant}
+				offrant = offrant, zones = base.get("zonesPortantes", {}).get(attache.os)}
 			if id != ids[0]:
 				var pas := MiseEnPage.decalage_a_cote(0.0, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
 				decalage = MiseEnPage.decalage_a_cote(decalage, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
@@ -915,12 +919,12 @@ func _suivre_les_poids() -> void:
 ## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`
 ## qui le monte à son point de suspension (`_suspension`), `biais`, son tour autour de la normale sortante en
 ## bandoulière, ses `sommets` à plat, suspendus et tournés dans son repère de rangement,
-## ce qui est porté `portes`, l'élément `offrant` qui offre l'emplacement), tourné de `tour` autour de l'axe de l'os ou
+## ce qui est porté `portes`, l'élément `offrant` qui offre l'emplacement, les `zones` qui le portent), tourné de `tour` autour de l'axe de l'os ou
 ## décalé de `decalage` sur cet axe (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
 static func _poser_range(rangement: Dictionary, tour: float, decalage: float) -> Transform3D:
 	var repere_ := _repere_de_rangement(rangement.attache, tour, decalage)
 	var os: Transform3D = rangement.os
-	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes, rangement.offrant)
+	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes, rangement.offrant, rangement.zones)
 	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).rotated_local(Vector3.BACK, rangement.biais).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
 
 
@@ -972,8 +976,11 @@ static func _repere_de_rangement(attache: Dictionary, tour: float, decalage: flo
 ## de rangement, ou son haut s'il est plus bas), puis pivote pour passer de même plus bas
 ## (`MiseEnPage.recul_sur_la_case`, `recul_d_appui`, `pivot_sur_la_case`). Un emplacement qu'offre une pièce de
 ## l'élément `offrant` (vide si la base l'offre) est posé par elle : la visée de ses pièces part de l'emplacement, et
-## l'objet n'y recule pas sous sa place sans rien dessous.
-static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary], offrant: String) -> Vector2:
+## l'objet n'y recule pas sous sa place sans rien dessous. D'une pièce montée qui porte une zone (`zone` de
+## `_portes_au_repos`), seule compte celle d'une des `zones` qui portent l'emplacement (`zonesPortantes` de sa base,
+## toutes si `null`) : le pan d'une autre partie du corps passé devant lui ne le porte pas.
+static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary], offrant: String,
+		zones: Variant) -> Vector2:
 	var boite := _boite_de(sommets)
 	var arriere := {}
 	for v in sommets:
@@ -1008,7 +1015,8 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 
 
 ## Ce qui est porté, au repos : par mesh skinné de la base et des éléments montés, ses triangles (`maille`) et sa boîte
-## (`boite`) dans son repère, l'élément monté qui le porte (`element`, vide pour la base), et les transformations
+## (`boite`) dans son repère, l'élément monté qui le porte (`element`, vide pour la base), sa zone (`zone`, `extras.zone`
+## de son nœud, `null` sans elle), et les transformations
 ## (`_par`) du repère du squelette au sien (`vers_le_mesh`) et retour (`vers_le_squelette`), par le premier os du skin de son auteur (`_skin_de_l_auteur`) à son repos.
 func _portes_au_repos() -> Array[Dictionary]:
 	var meshes: Array = _pieces_de_la_base.map(func(mesh: MeshInstance3D) -> Array: return [mesh, ""])
@@ -1023,7 +1031,7 @@ func _portes_au_repos() -> Array[Dictionary]:
 		var os := squelette.get_bone_global_rest(squelette.find_bone(skin.get_bind_name(0)))
 		var liaison := skin.get_bind_pose(0)
 		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(), element = paire[1],
-			vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
+			zone = mesh.get_meta("extras", {}).get("zone"), vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
 	return portes
 
 
@@ -1033,7 +1041,7 @@ func _portes_au_repos() -> Array[Dictionary]:
 static func _porte_range(rangee: Dictionary, pose: Transform3D, os: Transform3D) -> Dictionary:
 	var piece: MeshInstance3D = rangee.piece
 	var noeud: Node3D = rangee.noeud
-	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(), element = "",
+	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(), element = "", zone = null,
 		vers_le_mesh = [os.affine_inverse(), pose.affine_inverse(), noeud.global_transform, piece.global_transform.affine_inverse()],
 		vers_le_squelette = [piece.global_transform, noeud.global_transform.affine_inverse(), pose, os]}
 

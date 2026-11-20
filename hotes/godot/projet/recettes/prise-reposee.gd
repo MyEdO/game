@@ -6,7 +6,8 @@ extends SceneTree
 ## le mesh garde, dans le repère de la prise retenue, la place qu'il avait dans celui de sa prise d'origine ; à sa
 ## propre prise, il garde sa place sous son os. Rangé à un emplacement du bassin, sa prise a la tête vers le bas du
 ## personnage, à plat, sa face arrière à `JEU_DE_RANGEMENT` de ce qui est porté dessous, de l'emplacement sans rien
-## dessous ; dans une case qu'offre une pièce, ni repoussé par sa paroi au-dessus, ni enfoncé vers son fond ; un second
+## dessous, hors du pan d'une pièce d'une zone qui ne porte pas l'emplacement (#4351) ; dans une case qu'offre une pièce,
+## ni repoussé par sa paroi au-dessus, ni enfoncé vers son fond ; un second
 ## objet au même point se range à côté du premier, vers l'avant du personnage. Un fourreau
 ## (`extras.fourreau`) n'est montré que rangé. Un objet qui pendrait jusqu'au sol passe en bandoulière, le fer en haut
 ## penché vers la droite du personnage, le milieu de sa boîte sur l'emplacement.
@@ -34,6 +35,7 @@ func _recetter() -> void:
 	await _verifier_l_empilement()
 	await _verifier_l_appui()
 	await _verifier_le_contenant()
+	await _verifier_le_pan_d_une_autre_zone()
 	await _verifier_la_bandouliere()
 	for faute in _fautes:
 		push_error("[prise-reposee] " + faute)
@@ -316,6 +318,31 @@ func _verifier_le_contenant() -> void:
 	montage.free()
 	squelette.queue_free()
 	await process_frame
+
+
+## Un objet rangé à `ceinture_g`, devant lequel passe, à 30 cm de l'emplacement, le pan d'une pièce montée : d'une zone
+## qui porte l'emplacement (`zonesPortantes` de la base), il repousse l'objet au-dessus de lui ; d'une autre zone (la
+## pointe d'une manche), il ne le repousse pas, et sa face arrière reste à `JEU_DE_RANGEMENT` de l'emplacement.
+func _verifier_le_pan_d_une_autre_zone() -> void:
+	for zone in ["hanches", "main_g"]:
+		var squelette := _squelette()
+		var pan := _plaque(squelette, 0.3)
+		pan.set_meta("extras", {zone = zone})
+		var montage := MontageDeComposition.new()
+		montage.base = {points = [HANCHE, MAIN, OFF], zonesPortantes = {bassin = ["hanches", "torse"]}}
+		montage.squelette = squelette
+		montage.montes = {"ligne/piece/robe": "robe"}
+		montage.pieces = {"ligne/piece/robe": [pan]}
+		var arriere: float = await _ranger_une_boite(montage, squelette, Vector3(0.03, 0.07, 0.03), "ceinture_g")
+		var attendue := 0.31 + MiseEnPage.JEU_DE_RANGEMENT if zone == "hanches" else MiseEnPage.JEU_DE_RANGEMENT
+		var juste := absf(arriere - attendue) < 0.001
+		if not juste:
+			_fautes.append("pan de zone %s : face arrière à %.4f de l'emplacement, attendue à %.4f" % [zone, arriere, attendue])
+		print("[prise-reposee] pan de zone %s : %s" % [zone, "OK" if juste else "KO"])
+		pan.free()
+		montage.free()
+		squelette.queue_free()
+		await process_frame
 
 
 ## Une hampe de 2 m rangée dans le dos, à 1,25 m du sol : en bandoulière, son +Y de prise (le fer) vers le haut, penché de

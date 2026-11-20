@@ -1,7 +1,7 @@
 // LES POSES DES OBJETS RANGÉS D'UNE TENUE (#4351) : le jeu range un objet sur l'emplacement que lui offre la base ou une
 // pièce (`MontageDeComposition._ranger`, `pont/CONTRAT.md`, « Atelier 3D »), et cette règle ne vit que dans Godot. Ce
 // pont la lui demande pour l'évaluateur (`evaluer.mjs --preset`) et pour le rendu de contrôle
-// (`scripts/personnage-3d/rendu.py --preset`) : la tenue se compose comme le pont la compose (`modelesDeLAtelier`,
+// (`scripts/personnage-3d/rendu.py --preset`) : la tenue se compose comme le pont la compose (`zonesPortantesDeLaBase`, `modelesDeLAtelier`,
 // `porteeDeComposition`, `composerSurLaBase`) sur les manifestes voisins des GLB donnés, hors dépôt compris, puis
 // l'éditeur épinglé la monte et rend la transformation de chaque mesh rangé à chaque instant demandé
 // (`poserLesRanges`, `construire.mjs` ; `projet/outils/poses_des_ranges.gd`).
@@ -24,6 +24,7 @@ const assets = () => chargerAssets([
   "export { porteeDeComposition } from '/src/noyau/index.ts';",
   "export { findPresetDePersonnageById } from '/src/data/index.ts';",
   "export { osDesRigides } from '/hotes/godot/asset/release.ts';",
+  "export { zonesPortantesDeLaBase } from '/hotes/godot/asset/evaluateur/zonesPortantes.ts';",
   "export { poseDuGabarit } from '/hotes/godot/asset/gabarit.ts';",
   "export { FACTEURS_NEUTRES } from '/hotes/godot/asset/facteursDuGabarit.ts';",
 ])
@@ -53,7 +54,7 @@ export async function posesDesRanges({ base, manifeste, elements, preset, instan
     chemins.set(ids[k], glb)
     manifestes[ids[k]] = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
   }
-  const modeles = a.modelesDeLAtelier(manifestes, Object.fromEntries([...chemins].map(([id, glb]) => [id, a.osDesRigides(readFileSync(glb))])))
+  const modeles = a.modelesDeLAtelier(manifestes, Object.fromEntries([...chemins].map(([id, glb]) => [id, a.osDesRigides(readFileSync(glb))])), { [brut.base]: await a.zonesPortantesDeLaBase(readFileSync(base)) })
   if (modeles.refus.length) throw new Error(`poses des objets rangés : ${modeles.refus.join(' ; ')}`)
   const { montes } = a.composerSurLaBase(modeles.bases.find((b) => b.id === brut.base), manifestes, a.porteeDeComposition(composition))
   const { poserLesRanges } = await import('../construire.mjs')
