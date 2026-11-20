@@ -778,7 +778,8 @@ func _offrant_du_point(point: Dictionary) -> String:
 ## ce qui est porté dessous, la base et les éléments skinnés montés au repos, que vise, par case de 2 cm de l'objet, une
 ## visée le long de la normale sortante ; de l'emplacement vers le dehors, une surface le porte tant qu'elle suit la
 ## précédente à la portée de couverture de la pile des couches au plus (`porteeDeCouverture` de `modeles`) ou qu'elle
-## clôt une matière, et rien de plus loin ne le porte (la pointe d'une manche large devant la hanche, #4351) : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
+## clôt une matière, et rien de plus loin ne le porte (la pointe d'une manche large devant la hanche, #4351) : reculé
+## sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
 ## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
 ## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
 ## rien dessous, sa face arrière à 5 mm de l'emplacement. À un emplacement qu'offre une pièce, qui le pose elle-même

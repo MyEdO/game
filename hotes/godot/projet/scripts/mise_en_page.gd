@@ -4,7 +4,8 @@
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses
 ## pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
-## appui sur ce qui est porté, de couche en couche depuis l'emplacement, et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
+## appui sur ce qui est porté, de couche en couche depuis l'emplacement, et sa place à côté des autres objets du même
+## point ou sur eux, le coin d'une bulle au-dessus
 ## d'un point, les deux faces d'un d100, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du
 ## tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de
 ## bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
