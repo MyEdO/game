@@ -17,7 +17,7 @@ test('dureesNodeTest : somme par fichier des tests de premier niveau, réussis o
     { type: 'test:pass', data: { nesting: 0, details: { duration_ms: 7 } } },
     { type: 'test:diagnostic', data: { nesting: 0, file: '/r/b.test.mjs', message: 'x' } },
   ]))) rendus.push(morceau)
-  assert.deepEqual(rendus.map((r) => JSON.parse(r)), [{ durees: { '/r/a.test.mjs': 8, '/r/b.test.mjs': 2 }, echecs: ['/r/a.test.mjs'] }])
+  assert.deepEqual(rendus.map((r) => JSON.parse(r)), [{ durees: { '/r/a.test.mjs': 8, '/r/b.test.mjs': 2 }, echecs: ['/r/a.test.mjs'], resume: null, fichiersTermines: {}, echecsDesTests: [] }])
 })
 
 test('dureesNodeTest : un `test:fail` `todo` ou `skip` ne rougit pas le run, son fichier n’est pas en échec', async () => {
@@ -39,5 +39,16 @@ test('dureesNodeTest : l’ENVELOPPE du fichier (`test:complete` sans `test:pass
     { type: 'test:complete', data: { nesting: 0, name: 'seul', file: '/r/b.test.mjs', details: { duration_ms: 3 } } },
     { type: 'test:fail', data: { nesting: 0, name: 'seul', file: '/r/b.test.mjs', details: { duration_ms: 3 } } },
   ]))) rendus.push(morceau)
-  assert.deepEqual(rendus.map((r) => JSON.parse(r)), [{ durees: { '/r/a.test.mjs': 70, '/r/b.test.mjs': 3 }, echecs: ['/r/b.test.mjs'] }])
+  assert.deepEqual(rendus.map((r) => JSON.parse(r)), [{ durees: { '/r/a.test.mjs': 70, '/r/b.test.mjs': 3 }, echecs: ['/r/b.test.mjs'], resume: null, fichiersTermines: {}, echecsDesTests: [] }])
+})
+
+test('dureesNodeTest : distingue l’assertion prouvée sans entryFile d’un échec d’enveloppe', async () => {
+  const erreur = { code: 'ERR_TEST_FAILURE', cause: { code: 'ERR_ASSERTION' } }
+  const echec = (file, error) => ({ type: 'test:fail', data: { nesting: 0, file, details: { error } } })
+  const rendus = []
+  for await (const morceau of dureesNodeTest(evenements([
+    echec('/r/assertion.test.mjs', erreur),
+    echec('/r/enveloppe.test.mjs', { code: 'ERR_TEST_FAILURE', exitCode: 1, signal: null }),
+  ]))) rendus.push(morceau)
+  assert.deepEqual(JSON.parse(rendus[0]).echecsDesTests, ['/r/assertion.test.mjs'])
 })
