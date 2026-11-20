@@ -12,6 +12,7 @@ import { Readable } from 'node:stream'
 import { preflightSessionStart, produireRecuSessionStart, validerRecuSessionStart, entreeHookNative, inscriptionDuHook } from './session-start.mjs'
 import { annexeDe, controleur, creerSessions, piloterAgent } from './session-runtime.mjs'
 import { dossierSessions, nomDeCarte } from './session-carte.mjs'
+import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { injectProjectCredo } from '../hooks/inject-project-credo.mjs'
@@ -39,7 +40,7 @@ const inventaire = () => mesurerProcessusWorktrees({ identites: true, timeout: 5
 const mesurer = (pid) => inventaire().find((p) => p.pid === pid)
 
 function git(worktree, args) {
-  const vu = spawnSync('git', args, { cwd: worktree, timeout: 5000, encoding: 'utf8' })
+  const vu = spawnSync('git', args, { cwd: worktree, timeout: 5000, encoding: 'utf8', env: envDeDepotForge() })
   assert.equal(vu.status, 0, vu.stderr || vu.error?.message)
 }
 async function contexte(t, agent, pid = process.ppid) {

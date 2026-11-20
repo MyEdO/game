@@ -46,6 +46,7 @@ import { BORNE_D_APPEL_MS } from '../hooks/appel-borne-guard.mjs'
 import { BORNE_DE_SONDE_S } from './sonde.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { dossierSessions } from './session-carte.mjs'
+import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { finDeTour } from '../hooks/fin-de-tour.mjs'
 import { ajouterTransition, lireTransitions } from './session-transitions.mjs'
@@ -2166,7 +2167,7 @@ test('#3150 lireRapportDe : une lecture tenue est transitoire, une lecture en pa
 function bancFinDeTour(t, pid = process.ppid) {
   const worktree = mkdtempSync(join(tmpdir(), 'session-stop-'))
   t.after(() => rmSync(worktree, { recursive: true, force: true }))
-  const init = spawnSync('git', ['init', '--quiet'], { cwd: worktree, encoding: 'utf8', timeout: 5000 })
+  const init = spawnSync('git', ['init', '--quiet'], { cwd: worktree, encoding: 'utf8', timeout: 5000, env: envDeDepotForge() })
   assert.equal(init.status, 0, init.stderr)
   const dossier = dossierSessions(join(worktree, '.git'))
   const inventaire = () => mesurerProcessusWorktrees({ identites: true, timeout: 5000 }).processus
