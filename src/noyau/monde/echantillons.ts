@@ -6,6 +6,7 @@
  * (`toitsDuMonde`) et les couronnes crénelées (`couronnesDuMonde`).
  */
 import { findPropById, matieresDe, props, structureAppearances, terrains, semencesDeScene } from '../../data';
+import { versionDesDatasets } from '../../data/versionDataset';
 import { structureAppearance } from './volume/structures';
 import { empreinteDuProp } from '../../data/props.types';
 import { parLibelle } from '../../lib/ordre.mjs';
@@ -25,6 +26,7 @@ import {
   setReliefDefault,
 } from '../sceneEdit';
 import { emptyScene, setStructureDown, type Scene, type WallSeg, type WallSide } from './scene';
+import { memoByDeps } from './sceneMemo';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainSolidHeightM } from './terrain';
 import { aretesDeLaScene, plateauDeLaScene, type AreteDessinee } from './aretes';
@@ -162,15 +164,21 @@ export function famillesDEchantillons(): FamilleDEchantillons[] {
   }));
 }
 
-/** La scène qui montre l'entrée `id` de la famille `famille`. PUR. */
+const sceneRetenue = memoByDeps<Scene>();
+
+/** La scène qui montre l'entrée `id` de la famille `famille`, retenue par famille, id et version des datasets. PUR. */
 export function sceneDEchantillon(famille: FamilleDEchantillon, id: string): Scene {
-  return FAMILLES[famille].scene(id);
+  return sceneRetenue([versionDesDatasets(), famille, id], () => FAMILLES[famille].scene(id));
 }
 
-/** L'échantillon de l'entrée `id` de la famille `famille`, dessiné comme le jeu dessine une scène pour son hôte, sous un
- *  regard qui ne retire rien (`immersion`). PUR. */
-export function echantillonDessine(famille: FamilleDEchantillon, id: string): EchantillonDessine {
-  const scene = sceneDEchantillon(famille, id);
+/** La scène de l'échantillon, sous un regard qui ne retire rien (`immersion`), avec les types de décor servis par
+ *  un modèle dans `decorsServis`. PUR. */
+export function echantillonDessine(scene: Scene, decorsServis?: ReadonlySet<string>): EchantillonDessine;
+/** L'échantillon de l'entrée `id` de la famille `famille`, sous un regard qui ne retire rien (`immersion`). PUR. */
+export function echantillonDessine(famille: FamilleDEchantillon, id: string): EchantillonDessine;
+export function echantillonDessine(familleOuScene: FamilleDEchantillon | Scene, idOuDecors?: string | ReadonlySet<string>): EchantillonDessine {
+  const scene = typeof familleOuScene === 'string' ? sceneDEchantillon(familleOuScene, idOuDecors as string) : familleOuScene;
+  const decorsServis = typeof idOuDecors === 'string' ? undefined : idOuDecors;
   const { couronnesAbattues } = plateauDeLaScene(scene, [], 'immersion');
-  return { monde: volumeDuMonde(scene), aretes: aretesDeLaScene(scene), toits: toitsDuMonde(scene), couronnes: couronnesDuMonde(scene), couronnesAbattues };
+  return { monde: volumeDuMonde(scene, decorsServis), aretes: aretesDeLaScene(scene), toits: toitsDuMonde(scene, decorsServis), couronnes: couronnesDuMonde(scene), couronnesAbattues };
 }
