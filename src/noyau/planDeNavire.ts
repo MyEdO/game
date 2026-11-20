@@ -15,7 +15,6 @@
 import type { NavalTraitRef } from '../engine/types';
 import { findNavalTrait } from '../data';
 import { aLEchelleDesPonts, rectangleDansLaGrille, rectangleDesPonts } from '../data/poseDesPonts';
-export { aLEchelleDesPonts } from '../data/poseDesPonts';
 import { nextEntityId } from '../lib/entityId';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { CAP_IDENTITE_PROP } from '../data/props.types';

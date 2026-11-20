@@ -98,8 +98,8 @@ export {
   type SurchargesDEmblemes,
 } from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
+export { aLEchelleDesPonts, rectangleDesPonts, refusDePoseDesPonts } from '../data/poseDesPonts';
 export {
-  aLEchelleDesPonts,
   capEnCombat,
   CAPS_DES_PONTS,
   estPoseParSesPonts,

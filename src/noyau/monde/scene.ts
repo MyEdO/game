@@ -29,8 +29,7 @@ import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 // (`scripts/guards/lib/couches.mjs`), donc pas de cycle.
 import { findStructureById, semencesDeScene } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
-import { sceneMetresPerTile } from '../../geometry/grid';
-export { sceneMetresPerTile } from '../../geometry/grid';
+import { sceneMetresPerTile as metresParCaseDeScene } from '../../geometry/grid';
 import type { Calage } from '../../data/props.types';
 import type { Pt } from './path';
 import { estAbsent, terrainHorsGrille, terrainWalkable } from './terrain';
@@ -428,6 +427,11 @@ export type SceneDesCouronnes = Pick<Scene, (typeof CHAMPS_DES_COURONNES)[number
 export const champsDuPlan = (scene: Scene): readonly unknown[] => CHAMPS_DU_PLAN.map((c) => scene[c]);
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
+
+/** Échelle métrique de la scène (LDB 15 l.12). */
+export function sceneMetresPerTile(scene: { metresPerTile?: number } | null | undefined): number {
+  return metresParCaseDeScene(scene);
+}
 
 /** Offre de repos EFFECTIVE de la scène entière : absente, le groupe peut camper. Source UNIQUE de l'offre
  *  implicite — la lisent le repos (`noyau/restFlow.restPlacesHere`), l'éditeur et la zone de repos neuve

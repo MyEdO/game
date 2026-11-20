@@ -10,7 +10,6 @@
  * que l'hôte pose sur le monde, et le calque de la couche, à l'affichage du calque (`calqueAffiche`), avec la planche
  * qu'il garde (`cheminDeLaPlanche`) et ce qu'il garde des calques (`memoireDesCalques`).
  */
-import { rectangleDesPonts, refusDePoseDesPonts } from '../data/poseDesPonts';
 import {
   calqueDeLaCouche,
   calquesAStocker,
@@ -159,6 +158,8 @@ import {
   listesDeSorts,
   sortsImprimes,
   aLEchelleDesPonts,
+  rectangleDesPonts,
+  refusDePoseDesPonts,
   CAPS_DES_PONTS,
   TYPES_DE_NAVIRE,
   vueDeLaScene,
