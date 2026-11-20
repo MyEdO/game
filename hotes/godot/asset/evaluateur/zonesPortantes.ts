@@ -7,6 +7,7 @@
  * chaque base (`hotes/godot/listage.mjs`) et `modeles` les sert à Godot.
  */
 import type { Mesh } from 'three';
+import { lireGlb } from '../glb.ts';
 import { chargerScene } from './chargement.ts';
 import { meshesDuCorps, zoneDe, zoneDeLOs } from './corps.ts';
 import { poseDeRepos } from './echantillonnage.ts';
@@ -15,6 +16,7 @@ import { zonesVoisines } from './gardes/membreDansUnVetement.ts';
 /** Par os de la base de GLB `octets` qui tient une zone du corps, cette zone puis ses voisines au repos ; un os lié à
  *  aucun mesh de zone, et toute base sans zone, n'y sont pas. */
 export async function zonesPortantesDeLaBase(octets: Uint8Array): Promise<Record<string, string[]>> {
+  if (!lireGlb(octets).zones.size) return {};
   const base = await chargerScene(octets);
   const corps = meshesDuCorps(base);
   const zone = (m: Mesh): string | undefined => { const z = zoneDe(m); return typeof z === 'string' ? z : undefined; };

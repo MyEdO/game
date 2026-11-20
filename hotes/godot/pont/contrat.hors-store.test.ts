@@ -66,6 +66,14 @@ describe('le pont avant sa partie', () => {
     expect(erreurDe(appel('modeles', { manifestes, osDesRigides: { epee: 'root' } }))).toEqual(sansOs);
   });
 
+  it('`modeles` passe à chaque base les zones qui portent ses os (#4351), aucune sans `zonesPortantes` ; une table mal formée se refuse', () => {
+    const [manifestes, osDesRigides] = [{ humanoide: baseDeTest(), epee: elementSchema3() }, { humanoide: [], epee: ['root'] }];
+    expect(appel('modeles', { manifestes, osDesRigides })).toMatchObject({ bases: [{ id: 'humanoide', zonesPortantes: {} }] });
+    const zonesPortantes = { humanoide: { pelvis: ['hanches', 'torse'] } };
+    expect(appel('modeles', { manifestes, osDesRigides, zonesPortantes })).toMatchObject({ bases: [{ id: 'humanoide', zonesPortantes: zonesPortantes.humanoide }] });
+    expect(erreurDe(appel('modeles', { manifestes, osDesRigides, zonesPortantes: { humanoide: { pelvis: 'hanches' } } }))).toEqual({ categorie: 'validation', message: 'modeles : zonesPortantes, un objet id de base → os → zones' });
+  });
+
   it('`scenarios` rend, sans partie, chaque scénario du catalogue une fois, sous sa section, et le bouton qui le démarre', () => {
     const { zones } = appel('scenarios') as unknown as { zones: ZonesDesScenarios };
     const sections = zones['scenarios.sections'];

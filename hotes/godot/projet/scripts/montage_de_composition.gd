@@ -992,6 +992,8 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 		var sous_l_emplacement := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, 0.0))
 		var fin := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, -MiseEnPage.PORTEE_DE_CONTACT))
 		for porte in portes:
+			if porte.element != "" and zones != null and porte.zone != null and not porte.zone in zones:
+				continue
 			var debut := sous_l_emplacement if offrant != "" and porte.element == offrant else dehors
 			var a := _par(porte.vers_le_mesh, debut)
 			var b := _par(porte.vers_le_mesh, fin)
