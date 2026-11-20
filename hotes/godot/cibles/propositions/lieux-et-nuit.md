@@ -67,7 +67,8 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
   de l'asile de nuit d'ACE 02 l.99, qui ne vend que la chambre commune et le repas ; la grande sans chambre commune) ;
   à la Dreieckeplatz, EDO 10 l.293 double tous les prix, LDB 66 l.5 les seules chambres et repas : le vin reste au prix
   du livre ; le barbier n'est qu'à la Fin du Voyage ; tenancier et maître d'hôtel anonymes, leurs répliques sont des
-  exemples ; un avis par risque, sans pictogramme propre.
+  exemples ; un avis par risque, sans pictogramme propre ; le ruban de l'hôte, « La nuit et le repas », libellé neuf
+  repris du service `nuit` du rail de la même maison.
 
 ### jeux-de-taverne
 - La même maison, service « Les jeux » : la table sous sa lanterne, trois joueurs PNJ, la place libre ; l'Al-zahr,
