@@ -23,7 +23,7 @@ const vessel = (): CampaignVessel => ({
   label: 'Le Cormoran',
   morale: { score: 62, lastMoraleWeek: 0, factors: [] },
   wounds: { current: 8, max: 20 },
-  fouling: { level: 2, lastWeek: 0 },
+  fouling: { level: 2, lastTestDay: 0 },
   manann: { score: 9, applied: ['vaincre-stromfels', 'grand-sacrifice'] },
   saboteurDR: -2,
   cargo: [{ uid: 'lot-1', cargoId: 'cereales', enc: 200, basePriceGold: 3 }],

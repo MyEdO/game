@@ -32,7 +32,7 @@ import {
   pionsRetirables,
 } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
-import { MINUTES_PER_DAY } from './clock';
+import { MINUTES_PER_DAY, joursParSemaine, minutesParSemaine } from './clock';
 import { contractDiseaseOnce, exposerALaMaladie, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
 import { findTableEntry } from './tables';
@@ -670,7 +670,7 @@ export type GameOp =
    *  Compétence de magie, Tests interdits, ou DR de Prière plafonné à 0. Durée en
    *  Rounds (combat + entretien hors combat) OU en minutes/jours d'horloge.
    *  `skill` absent = TOUTE magie (même idiome d'absence que `grantReverseToken` ci-dessous). */
-  | { op: 'castPenalty'; skill?: RefDesignee; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula }
+  | { op: 'castPenalty'; skill?: RefDesignee; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula; weeks?: Formula }
   /** Modificateur TEMPORAIRE de Standing (LDB 23 l.228-234 « Réputation » : +1 sur succès, +2 sur Succès
    *  Stupéfiant, −1 sur Échec Stupéfiant) — durée `{scale:'adventure'}` (« pour la prochaine aventure »),
    *  composé par `actorStatus` (engine/social.ts), purgé à l'interlude SUIVANT (`purgeAdventureEffects`). */
@@ -705,7 +705,7 @@ export type GameOp =
    *  par le noyau en `cible` d'individu AVANT `applyOps` (`noyau/personneChoisie.ts`) ; `resistanceSiAmis`, le
    *  Test qui permet à la cible de résister quand elle et la personne sont amies (VDM 10 l.327) ;
    *  `durationHours`, la durée d'HORLOGE du Trait, porté alors par un `ActiveEffect` (`grantedPsychTrait`). */
-  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible; envers?: 'personneChoisie'; resistanceSiAmis?: FlowTest; durationHours?: Formula }
+  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible; envers?: 'personneChoisie'; resistanceSiAmis?: FlowTest; durationHours?: Formula; durationWeeks?: Formula }
   /** Retire UN Trait psychologique de `c.psychTraits` (≠ `endPsych`, affliction de combat `psychState`) :
    *  `psychType` absent = le premier porté ; `psychType` seul = le premier de ce type ; `cible` = l'instance
    *  de ce type visant cette Cible (`identiteDeCiblage`). ADE II 09 l.33 */
@@ -1629,19 +1629,20 @@ function libelleDHorloge(duree: Duration, ctx: OpsCtx): string {
 }
 
 /** Champs de DURÉE qu'une op peut porter — consommés à la pose par `durationFromOp`. */
-interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula }
+interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula; durationWeeks?: Formula }
 
-/** L'op porte-t-elle une durée d'HORLOGE intrinsèque (minutes, heures ou jours) ? */
+/** L'op porte-t-elle une durée d'HORLOGE intrinsèque ? */
 function aUneHorloge(o: OpDuree): boolean {
-  return o.durationMinutes != null || o.durationHours != null || o.durationDays != null;
+  return o.durationMinutes != null || o.durationHours != null || o.durationDays != null || o.durationWeeks != null;
 }
 
 /** Minutes d'HORLOGE intrinsèques de l'op, résolues UNE fois dans `ctx` ; `undefined` sans champ
- *  d'horloge. Résolution UNIQUE des trois unités (LDB 47). */
+ *  d'horloge. */
 function minutesDHorloge(o: OpDuree, ref: Combatant, ctx: OpsCtx): number | undefined {
   if (!aUneHorloge(o)) return undefined;
   return formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60
-    + formuleDuCtx(o.durationDays ?? 0, ref, ctx) * MINUTES_PER_DAY;
+    + formuleDuCtx(o.durationDays ?? 0, ref, ctx) * MINUTES_PER_DAY
+    + formuleDuCtx(o.durationWeeks ?? 0, ref, ctx) * minutesParSemaine();
 }
 
 /** Résout `f` dans le contexte `ctx` de l'op qui la porte : TOUS les termes de contexte (`rolled`, `indiceOf`,
@@ -2355,7 +2356,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (o.envers) throw new Error(`grantPsychTrait « ${o.psychType.id} » : \`envers\` non résolu — le noyau le résout en Cible d'individu avant applyOps (noyau/personneChoisie.ts).`);
         const { type, cible } = traitOctroye(o);
         const pose = grantPsychTrait(target, type, cible, source);
-        if (o.durationHours != null) {
+        if (aUneHorloge(o)) {
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: durationFromOp(o, ctx, ref), grantedPsychTrait: pose });
         }
@@ -2500,9 +2501,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           const h = formuleDuCtx(o.hours, ref, ctx);
           cp.untilTime = (ctx.now ?? 0) + h * 60;
           dureeTxt = t('op.frag.heures', { n: h, s: h > 1 ? 's' : '' });
-        } else if (o.days != null) {
-          const d = formuleDuCtx(o.days, ref, ctx);
-          cp.untilTime = (ctx.now ?? 0) + d * 24 * 60;
+        } else if (o.days != null || o.weeks != null) {
+          const d = formuleDuCtx(o.days ?? 0, ref, ctx) + formuleDuCtx(o.weeks ?? 0, ref, ctx) * joursParSemaine();
+          cp.untilTime = (ctx.now ?? 0) + d * MINUTES_PER_DAY;
           dureeTxt = t('op.frag.jours', { n: d, s: d > 1 ? 's' : '' });
         }
         target.castPenalties = [...(target.castPenalties ?? []), cp];

@@ -300,7 +300,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
       + 'Revenus crédités à la reprise : 10/–. '
       + 'Dépôts conservés, récupérables à un prochain interlude : 3/–. '
       + 'Commandes en cours, livrées au prochain interlude : Dague. '
-      + 'Le temps passe : 14 jours (récupération et convalescence comprises) — reprise Bezahltag · 13 Nachhexen 2512 CI · 05:00.'
+      + 'Le temps passe : 16 jours (récupération et convalescence comprises) — reprise Angestag · 15 Nachhexen 2512 CI · 05:00.'
       + 'Pas encoreClore l\'interlude',
     );
   });

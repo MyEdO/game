@@ -42,7 +42,7 @@ interface PossessionCommon {
  *  un champ propre de la variante `navire` (individuation marins nommés #250, T2). */
 export interface NavalPossessionState {
   morale: ShipMoraleState;
-  fouling?: { level: number; lastWeek: number };
+  fouling?: { level: number; lastTestDay?: number };
   reparationTemporaire?: true;
   manann?: ManannMood;
   saboteurDR?: number;

@@ -18,7 +18,7 @@ import type { SceneMutation } from './monde/sceneInstance';
 import type { ClueState } from './monde/clues';
 import type { CombatEvent, ActorAim } from './combatLog';
 import { campaignStart, dayIndex } from '../engine/clock';
-import type { Possession } from '../engine/possession';
+import type { NavalPossessionState, Possession } from '../engine/possession';
 import type { MerchantState, MerchantStocks } from './merchantFlow';
 import type { FinDeSeance } from './partyFlow';
 import type * as tavernFlow from './tavernFlow';
@@ -287,7 +287,7 @@ export const REGISTRES_DU_BORD = ['crew', 'recueillisSansSolde'] as const satisf
 export type RegistreDuBord = (typeof REGISTRES_DU_BORD)[number];
 
 /** Navire que le groupe possède/commande en campagne — survit aux jours et aux combats (≠ la coque
- *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). */
+ *  transitoire d'un combat). Son Moral est recalculé hebdomadairement. */
 export interface CampaignVessel {
   /** Identité de l'instance, distincte de la fiche de véhicule. */
   uid?: string;
@@ -304,7 +304,7 @@ export interface CampaignVessel {
    *  sur la coque au départ (`voyageShip`). */
   upgrades?: import('../engine/types').NavalTraitRef[];
   /** Salissures (MDG 13 l.144-159) : niveau 0-5 + garde hebdomadaire du Test. */
-  fouling?: { level: number; lastWeek: number };
+  fouling?: NavalPossessionState['fouling'];
   /** Coque tenue par une réparation temporaire, jusqu'à la réparation au port (`portRepairVessel`). MDG 13 l.651 */
   reparationTemporaire?: true;
   /** Humeur de Manann (MDG 15 l.83-125) — par navire, registre des facteurs déjà appliqués. */
@@ -758,7 +758,7 @@ export interface EtatDeJeu {
    *  de nuit → « Attendre l'aube » (nuit jouée) ou annuler. `null` = pas de départ en attente. */
   pendingDeparture: { mode: import('../engine/travel').TravelMode; cause: 'nuit' | 'budget'; dawnAt: number } | null;
   /** Navire de campagne PERSISTANT (MDG 13-14) — porte son `vehicleId` et son MORAL (recalculé chaque
-   *  semaine par l'entretien quotidien via `tickShipMorale`). `null` hors campagne navale. */
+   *  semaine par l'entretien quotidien via `tickCampaignVesselWeek`). `null` hors campagne navale. */
   vessel: CampaignVessel | null;
   /** Registre UNIQUE des Possessions (#615, SOCLE POSSESSIONS §6) — bêtes/serviteurs/véhicules/navires/
    *  immeubles, hors héros de `party`. Aucun mirroir par kind ; `possessionsFlow.ts` en est la plomberie. */
@@ -782,7 +782,7 @@ export interface EtatDeJeu {
   /** Écran MARCHÉ TERRESTRE ouvert (commerce de cargaison à un Lieu `market` de la carte — MSRC 13 l.3) :
    *  offres d'achat générées à l'arrivée. `null` = fermé. */
   landMarket: import('./landMarketFlow').LandMarketState | null;
-  /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.268) — modale de choix par héros. */
+  /** MDG 15 l.268 */
   pendingSeaActivities: import('./seaActivities').PendingSeaActivities | null;
   /** Permission de RELÂCHE À TERRE en attente de CHOIX, posée à l'accostage AVANT l'événement de
    *  port (MDG 15 l.245). */

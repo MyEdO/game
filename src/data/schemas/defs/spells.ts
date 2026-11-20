@@ -142,7 +142,7 @@ const champs = {
   titreVO: z.string().optional(),
   livreVO: ref('book').optional(),
   /** Famille des sorts : le Trait psy d'un sort vise une personne choisie, à durée d'horloge (VDM 10 l.327-330). */
-  effects: mecaniqueDe({ 'grantPsychTrait.envers': 'admis', 'grantPsychTrait.resistanceSiAmis': 'admis', 'grantPsychTrait.durationHours': 'admis' }).flow.optional(),
+  effects: mecaniqueDe({ 'grantPsychTrait.envers': 'admis', 'grantPsychTrait.resistanceSiAmis': 'admis', 'grantPsychTrait.durationHours': 'admis', 'grantPsychTrait.durationWeeks': 'admis' }).flow.optional(),
 };
 
 /**

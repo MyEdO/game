@@ -2981,6 +2981,7 @@ export const fr = {
   // de la ligne de jet, qui porte la pénalité en clair (#1685).
   'dz.residualMod': 'Séquelle d’infection',
   // Unités d'incubation/durée (`formatDiseaseTime`) et échelle du restant (`formatRemaining`).
+  'dz.unitWeeks': 'sem.',
   'dz.unitDays': 'jours',
   'dz.unitHours': 'heures',
   'dz.unitMinutes': 'minutes',
@@ -4035,7 +4036,7 @@ export const fr = {
   'sact.entretienCritiqueRepare': 'Blessure Critique « {note} » réparée. Pièces détachées consommées : {pieces} Enc. Bois consommé : {bois} Enc.',
   'sact.tradeNoStake': "{name} — Commerce d'opportunité : aucune mise engagée.",
   'sact.tradeDone': "{name} — Commerce d'opportunité : mise {stake}, retour {back} ({pct} %).",
-  'sact.chartOk': "{name} — Cartographie : une Carte marine d'une valeur de {gold} CO (+2 DR d'Orientation).",
+  'sact.chartOk': "{name} — Cartographie : une Carte marine d'une valeur de {gold} CO.",
   'sact.chartKo': '{name} — Cartographie : les relevés sont inutilisables.',
   'sact.stash': '{name} — Planque : {money} cachés sur la carte — retrait libre, découverte sur ≤ 50.',
 

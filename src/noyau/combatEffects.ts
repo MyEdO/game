@@ -83,7 +83,6 @@ import {
   porteursABord,
   posteDuMembre,
   postesDuTirage,
-  semaineDuJour,
   shipboardSouls,
   type PorteurABord,
   type PosteDuBord,
@@ -101,7 +100,7 @@ import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
-import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt } from '../engine/clock';
+import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt, semainesCompletes } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
 import { feedFromMeal, applyFaimTest, applySoifTest, embarquerDesVivres, rationsDeCale, rationsDuVivre, retirerDuVivre } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
@@ -2251,7 +2250,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           uid: env.get().forgerUnId('navire'),
           vehicleId: e.vehicleId,
           ...(e.label?.trim() ? { label: e.label.trim() } : {}), // #230 — nom d'instance (affichage)
-          morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: semaineDuJour(dayIndex(env.get().gameTime)), factors: [] }, // MDG 14 l.143
+          morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: semainesCompletes(dayIndex(env.get().gameTime)), factors: [] }, // MDG 14 l.143
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
           ...(e.saboteurDR != null ? { saboteurDR: e.saboteurDR } : {}),
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),

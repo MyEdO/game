@@ -4,14 +4,14 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { passifsDe } from '../grammaire/mecanique';
 import { refs } from '../grammaire/ref';
-import { deckCoverSchema, enumNomme, maisonSchema } from '../grammaire/valeurs';
+import { deckCoverSchema, dureeEnJoursSchema, enumNomme, maisonSchema } from '../grammaire/valeurs';
 
 export const file = 'naval-traits.json';
 export const famille = 'entite';
 
 const installBandSchema = nommerChamps(z.strictObject({
   maxLengthM: z.number().nullable(),
-  value: z.number(),
+  value: dureeEnJoursSchema,
   /** MSRC 12 l.54-135. */
   vehicules: refs('vehicle').optional(),
   maison: maisonSchema.optional(),
@@ -48,7 +48,17 @@ const navalInstallSchema = nommerChamps(z.strictObject({
   jours: installBaremeSchema.optional(),
   /** MDG 12 l.230 */
   chantierSpecialise: z.boolean().optional(),
-}), { milieu: { label: 'Gabarit de référence' }, installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose (jours)' }, chantierSpecialise: { label: 'Exige un chantier naval spécialisé' } });
+}).superRefine((pose, ctx) => {
+  for (const champ of ['installation', 'weightEnc'] as const) {
+    const bareme = pose[champ];
+    if (!bareme || bareme === 'modele') continue;
+    bareme.bands.forEach(({ value }, i) => {
+      if (typeof value !== 'number') ctx.addIssue({
+        code: 'custom', path: [champ, 'bands', i, 'value'], message: 'Seule la durée de pose s’exprime en semaines.',
+      });
+    });
+  }
+}), { milieu: { label: 'Gabarit de référence' }, installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose' }, chantierSpecialise: { label: 'Exige un chantier naval spécialisé' } });
 
 const doc = document(
   'naval-traits',

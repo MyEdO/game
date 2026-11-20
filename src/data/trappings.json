@@ -16770,15 +16770,6 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "passive": [
-      {
-        "op": "skillDRBonus",
-        "skill": {
-          "id": "orientation"
-        },
-        "bonus": 2
-      }
-    ],
     "desc": "Vous dessinez une carte qui peut être reproduite et vendue pour faire un bénéfice, mais aussi servir d'outil pour s'orienter. En cas de succès, vous produisez une carte ayant une valeur en CO égale au nombre de DR obtenus sur le Test. Quand vous voyagez entre les deux ports désignés, la carte fournit +2 DR sur les Tests d'Orientation.",
     "price": null,
     "source": {

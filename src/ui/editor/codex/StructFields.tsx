@@ -7,6 +7,7 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
+import type { DureeEnJours } from '../../../data/schemas/grammaire/valeurs';
 import type { ReactElement } from 'react';
 import {
   cfgDuNoeudType,
@@ -134,17 +135,19 @@ export function SymptomsField({ value, onChange }: { value: DiseaseSymptom[] | u
 
 /** symptoms[].onTick — cycle quotidien de PHASE ACTIVE d'un symptôme : SOIT une épreuve (`test`, le
  *  nœud `test` du Flow, dont la branche d'échec porte la conséquence), SOIT des ops CERTAINES (`ops` —
- *  éclatement du Vers du Reik, sans jet) ; cadencé sur la phase active (`afterDays` : Vers de carie
- *  J+7 ; `once` : UNE fois). `difficultyBySeverity` (Toxine) préservée par fusion — jamais perdue à
+ *  éclatement du Vers du Reik, sans jet) ; cadencé sur la phase active (`afterDays`, `once` : MSRC 16 l.88, l.142). `difficultyBySeverity` (Toxine) préservée par fusion — jamais perdue à
  *  l'édition. */
 export type SymptomTick = {
   test?: NoeudTest;
   ops?: GameOp[];
   difficultyBySeverity?: Partial<Record<'moderee' | 'grave', Difficulty>>;
-  afterDays?: number;
+  afterDays?: DureeEnJours;
   once?: boolean;
 };
 export function SymptomTickField({ value, onChange }: { value: SymptomTick | undefined; onChange: (v: SymptomTick | undefined) => void }) {
+  const delai = value?.afterDays;
+  const enSemaines = typeof delai === 'object';
+  const unite = enSemaines ? 'semaines' : 'jours';
   const patch = (p: Partial<SymptomTick>) => onChange({ ...value, ...p });
   /** Bascule ÉPREUVE ↔ CERTAIN : les deux clefs sont EXCLUSIVES au schéma (`defs/symptoms.ts`), la
    *  Difficulté par sévérité n'a de sens que sous jet et s'efface avec lui. */
@@ -166,7 +169,7 @@ export function SymptomTickField({ value, onChange }: { value: SymptomTick | und
               { key: 'cycle-certain', label: 'certain (sans jet)', selected: value.test == null, onSelect: versCertain },
             ]}
           />
-          <label>à partir du jour de phase active <NumberField variant="nu" label="Jour de phase active" min={1} vide value={value.afterDays} onChange={(n) => patch({ afterDays: n ?? undefined })} /></label>
+          <label>Délai de phase active ({unite}) <NumberField variant="nu" label="Délai de phase active" min={1} vide value={enSemaines ? delai.semaines : delai} onChange={(n) => patch({ afterDays: n == null ? undefined : enSemaines ? { semaines: n } : n })} /></label>
           <label><input type="checkbox" checked={!!value.once} onChange={(e) => patch({ once: e.target.checked || undefined })} /> une seule fois (au jour exact)</label>
           {value.test
             ? <NoeudTestField racine="maladie" desc="jet du cycle (Difficulté, compétence, conséquence de l’échec)" retirable={false} branches="echec" value={value.test} onChange={(t) => patch({ test: t ?? noeudTestNeuf() })} />

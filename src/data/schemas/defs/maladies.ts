@@ -4,14 +4,14 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { flowSchema, noeudTestFixe, passifsDe, sujetDuJetSchema, type SujetDuJet } from '../grammaire/mecanique';
 import { idDe } from '../grammaire/ref';
-import { diceSpecSchema, difficultySchema, symptomSeveritySchema } from '../grammaire/valeurs';
+import { diceSpecSchema, difficultySchema, enumNomme, symptomSeveritySchema } from '../grammaire/valeurs';
 
 export const file = 'maladies.json';
 export const famille = 'entite';
 
 const diseaseTimeSchema = nommerChamps(z.strictObject({
   dice: diceSpecSchema,
-  unit: z.enum(['days', 'hours', 'minutes']),
+  unit: enumNomme({ weeks: 'Semaines', days: 'Jours', hours: 'Heures', minutes: 'Minutes' }),
 }), { dice: { label: 'dés' }, unit: { label: 'unité' } });
 
 const diseaseSymptomSchema = nommerChamps(z.strictObject({

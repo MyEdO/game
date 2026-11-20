@@ -1752,6 +1752,8 @@ export interface CascadeStepMeta {
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses
    *  paramètres DÉJÀ chiffrés (le naval : bande de Moral + Manque de bras + sabotage, MDG 14). */
   aggregateFlatDR?: number;
+  /** MDG 13 l.148 */
+  foulingDay?: number;
   /** Lignes nommées appliquées en DR au total de la bande avant plafond. */
   aggregateDRMods?: ModLine[];
   /** Plafond CHIFFRÉ du total sommé, versé par le flux propriétaire (naval : « jamais mieux qu'un

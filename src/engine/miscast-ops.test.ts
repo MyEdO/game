@@ -393,7 +393,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
 });
 
 describe('castPenalty.days — durée en jours FORMULAIRE (`GameOp[\'castPenalty\'].days: Formula`)', () => {
-  it('la donnée réelle à `days` nu traverse la résolution formulaire : « Pensez à vos actes » = 7 jours', () => {
+  it('LDB 40 l.57 — « Pensez à vos actes » dure la semaine suivante', () => {
     let ops: ReturnType<typeof rollMiscast>['ops'] | null = null;
     for (let seed = 0; seed < 600 && !ops; seed++) {
       const r = rollMiscast('colere', makeRNG(seed), 0);
@@ -402,7 +402,7 @@ describe('castPenalty.days — durée en jours FORMULAIRE (`GameOp[\'castPenalty
     expect(ops, 'rangée « Pensez à vos actes » introuvable').toBeTruthy();
     const c = hero();
     applyOps(c, ops!, { idNeuf: idsDeTest, label: 'Pensez à vos actes', now: 0, rng: makeRNG(1) });
-    expect(c.castPenalties![0].untilTime).toBe(7 * 24 * 60);
+    expect(c.castPenalties![0].untilTime).toBe(8 * 24 * 60);
   });
 
   it('une formule à dés en jours est résolue sous RNG semé : untilTime = (1d10 + 3) × 24 × 60', () => {
