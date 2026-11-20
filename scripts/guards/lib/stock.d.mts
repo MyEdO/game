@@ -1,3 +1,7 @@
+import type { Echeance } from '../../../src/lib/stock.mjs';
+
+export { CHAMPS_D_ECHEANCE, type Echeance } from '../../../src/lib/stock.mjs';
+
 export interface EcartsDeStock {
   /** Clés OBSERVÉES absentes du stock (décorées par `remede.neuve`). */
   neuves: string[];
@@ -41,7 +45,6 @@ export const CHAMPS_DE_CLE: readonly [...typeof CHAMPS_DE_GROUPE, typeof CHAMP_D
 export const CHAMPS_REQUIS: readonly ['fichier', 'ref', 'occurrence'];
 export const SEPARATEUR_DE_CLE: ' :: ';
 export const SEPARATEUR_DE_REMEDE: ' — ';
-export const CHAMPS_D_ECHEANCE: readonly ['lot', 'date'];
 export const CHAMPS_DE_SITE_OBSERVE: readonly ['file', 'ref'];
 
 type ChampRequis = (typeof CHAMPS_REQUIS)[number];
@@ -57,8 +60,8 @@ export type EntreeDeSite = { [C in Exclude<ChampRequis, typeof CHAMP_D_OCCURRENC
  *  cliquet, pas à l'un de ses audits. */
 export type Site = { [C in (typeof CHAMPS_DE_SITE_OBSERVE)[number]]: string };
 
-/** L'ÉCHÉANCE d'une entrée : le chantier qui l'éteint (`lot`), la mesure d'origine (`date`). */
-export type Echeance = { [C in (typeof CHAMPS_D_ECHEANCE)[number]]: string };
+/** À l’entrée de la régénération, `null` indique l’absence de valeur pour ce champ. */
+export type EcheanceNullable = { [C in keyof Echeance]: Echeance[C] | null };
 
 export function cleDeSite(e: EntreeDeSite): string;
 export function cleDeContenu(rel: string, texte: string, ligne: number): string;

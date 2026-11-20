@@ -21,6 +21,7 @@ import { analyserCorpus, typescript } from './dialecte.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { attributDe, depotDe, listerImage, refusDeGit, SUIVI } from './gitPorte.mjs';
 import { estModule } from './importGraph.mjs';
+import type { Echeance, EcheanceNullable } from './stock.mjs';
 import { ecartDeRegeneration, texteEnPlace, texteRegenere, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Le lot du chantier passé par `--lot <#N …>`, ou `null`. */
@@ -59,7 +60,7 @@ export function regenererStock(
 
 function regenererUn(
   r: RegenerationDeStock,
-  p: { check: boolean; amorce: boolean; lot: string | null; date: string; outil: string },
+  p: Pick<EcheanceNullable, 'lot'> & Pick<Echeance, 'date'> & { check: boolean; amorce: boolean; outil: string },
 ): number {
   const enPlace = texteEnPlace(r.chemin);
   if (p.check) {

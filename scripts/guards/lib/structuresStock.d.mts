@@ -1,3 +1,5 @@
+import type { Echeance } from './stock.mjs';
+
 export const STRUCTURES_CIBLES: ReadonlyArray<{
   concept: string;
   signature: string;
@@ -5,7 +7,7 @@ export const STRUCTURES_CIBLES: ReadonlyArray<{
   date: string;
 }>;
 
-export const STRUCTURES_REDECLARATIONS: ReadonlyArray<{
+export const STRUCTURES_REDECLARATIONS: ReadonlyArray<Echeance & {
   def: string;
   champ: string;
   concept: string;
@@ -13,6 +15,4 @@ export const STRUCTURES_REDECLARATIONS: ReadonlyArray<{
   statut: string;
   commun: string;
   occurrences: number;
-  lot: string;
-  date: string;
 }>;

@@ -7,10 +7,10 @@
 // des ENTRÉES DE SITE, `EntreeDeSite`, dont ce module déclare, une fois, les champs et tout ce qui en
 // dérive : `CHAMPS_DE_GROUPE`, `CHAMP_D_OCCURRENCE`, `CHAMPS_DE_CLE`, `CHAMPS_REQUIS`, les deux
 // séparateurs (`SEPARATEUR_DE_CLE` dans la clé, `SEPARATEUR_DE_REMEDE` entre une clé et son remède
-// dans un message d'écart), l'ÉCHÉANCE d'une entrée (`CHAMPS_D_ECHEANCE`, type `Echeance`) et le SITE
-// OBSERVÉ d'un balayage (`CHAMPS_DE_SITE_OBSERVE`, type `Site`), puis la clé (`cleDeSite`), le groupe
+// dans un message d'écart) et le SITE OBSERVÉ d'un balayage (`CHAMPS_DE_SITE_OBSERVE`, type `Site`), puis la clé (`cleDeSite`), le groupe
 // (`groupeDeSite`), le prédicat (`estEntreeDeSite`) et la traduction des sites en entrées
-// (`sitesEnEntrees`). Le chemin d'un fichier se dit `file` dans le site et `fichier` dans l'entrée
+// (`sitesEnEntrees`). L’échéance vient de la primitive partagée `src/lib/stock.mjs`. Le chemin d'un fichier
+// se dit `file` dans le site et `fichier` dans l'entrée
 // (#2022) ; le volet `STRUCTURES_LOCALES` y range le nom d'un document (`‹racine›#‹type›`). Les types de `stock.d.mts` DÉRIVENT des tuples qu'il déclare ; leur concordance avec les
 // valeurs d'ici est celle de tout module `.mjs` typé par un `.d.mts` (aucun `allowJs`) : aucun
 // outil ne la vérifie.
@@ -22,7 +22,7 @@
 // FRONTIÈRE (la même que `sourceCorpus.mjs`) : cette lib CALCULE, le VERDICT appartient à l'appelant.
 // C'est la garde qui décide ce qui est rouge, avec quel message, et à quel plafond — ici on ne rend
 // que des listes et un compte. La régénération d'un stock de sites (formats, politiques, écriture)
-// vit dans `stockDeSites.mjs` et `regenStock.mts` ; ce module n'importe rien (#1475).
+// vit dans `stockDeSites.mjs` et `regenStock.mts` (#1475).
 //
 // L'unité mesurée est la COLLECTION, jamais le fichier : un fichier de stock en porte parfois
 // plusieurs (`structuresStock.mjs` en porte 8), chacune se mesure pour elle-même. La CLÉ d'un écart
@@ -42,6 +42,10 @@
 //     ici servirait l'écart d'un AUTRE appel. Ce qui se mémoïse, c'est la LECTURE du disque, et elle
 //     vit dans `sourceCorpus.mjs` (`readCorpus`, clé de contenu).
 
+import { CHAMPS_D_ECHEANCE } from '../../../src/lib/stock.mjs';
+
+export { CHAMPS_D_ECHEANCE };
+
 /** Les champs du GROUPE d'une entrée de site : ses homonymes ne se distinguent que par l'occurrence. */
 export const CHAMPS_DE_GROUPE = Object.freeze(['famille', 'fichier', 'ref']);
 /** Le champ de l'OCCURRENCE d'une entrée de site : l'ordinal du site dans son groupe. */
@@ -55,8 +59,6 @@ export const CHAMPS_REQUIS = Object.freeze(CHAMPS_DE_CLE.filter((c) => c !== 'fa
 export const SEPARATEUR_DE_CLE = ' :: ';
 /** Le séparateur qui suit une clé de site dans un message d'écart, avant son remède. */
 export const SEPARATEUR_DE_REMEDE = ' — ';
-/** L'ÉCHÉANCE d'une entrée : le chantier qui l'éteint, la date de la mesure d'origine. */
-export const CHAMPS_D_ECHEANCE = Object.freeze(['lot', 'date']);
 /** Les champs du SITE OBSERVÉ d'un balayage, avant `sitesEnEntrees` (#2022). */
 export const CHAMPS_DE_SITE_OBSERVE = Object.freeze(['file', 'ref']);
 

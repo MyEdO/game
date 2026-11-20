@@ -8,7 +8,7 @@
 //     `FORMAT_MJS`, un module dont chaque `export const <NOM> = [ … ]` d'entrées de site est une
 //     collection, lu par l'AST ;
 //   - l'ORDRE canonique de toute collection, `parCleDeSite`, qui DÉRIVE de la clé que déclare
-//     `stock.mjs` et vit avec les formats qu'il range : `stock.mjs` n'importe rien (#1475) ;
+//     `stock.mjs` et vit avec les formats qu'il range (#1475) ;
 //   - les entrées qu'une régénération écrit (`entreesRegenerees`) et le compte des sites par famille
 //     (`comptesParFamille`) ;
 //   - le cœur PUR de la régénération : les trois politiques de croissance (`DECROISSANT`, `SOUS_LOT`,
@@ -71,8 +71,7 @@ export const texteDeStock = (quoi, entrees) => `${JSON.stringify({ quoi, entrees
  * clé (`CHAMPS_DE_GROUPE`, `stock.mjs`) par unités de code, puis l'occurrence en nombre. Il DÉRIVE de la
  * clé et ne doit rien à l'ordre du balayage : deux corpus parcourus dans deux ordres rendent le MÊME
  * fichier, donc un registre réordonné (`src/data/books.json`, #1825) ne réécrit aucun artefact commité.
- * Il vit ici, avec les formats qu'il range, et non dans `sitesEnEntrees` : `stock.mjs` n'importe rien
- * (#1475).
+ * Il vit ici avec les formats qu'il range (#1475).
  * @param {Partial<import('./stock.mjs').EntreeDeSite>} a @param {Partial<import('./stock.mjs').EntreeDeSite>} b
  */
 export function parCleDeSite(a, b) {
@@ -250,7 +249,7 @@ export const REMESURE = Object.freeze({ nom: 'REMESURE', datee: false, refus: ()
  * politique qui date, et la politique la juge. Rend `{ refus }`, ou `{ texte, tailles }` — `texte` `null`
  * quand le format est `absentSiVide` et que toutes ses collections sortent vides (l'état soldé).
  * @param {import('./stockDeSites.mjs').RegenerationDeStock} regeneration
- * @param {{ enPlace: string | null, lot?: string | null, date?: string | null, amorce?: boolean }} p
+ * @param {Partial<import('./stock.mjs').EcheanceNullable> & { enPlace: string | null, amorce?: boolean }} p
  */
 export function texteRegenere(regeneration, { enPlace, lot = null, date = null, amorce = false }) {
   const { chemin, politique, collections, horsCollections, manque = [] } = regeneration

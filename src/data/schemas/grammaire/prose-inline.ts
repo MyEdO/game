@@ -33,11 +33,11 @@
  * inconditionnel (DoD de #1390).
  */
 
+import type { Echeance } from '../../../lib/stock.mjs';
+
 /** Une ligne du stock : le compte MESURÉ, et le pilotage (lot, date, motif) qui la porte. */
-export interface LigneProseInline {
+export interface LigneProseInline extends Readonly<Echeance> {
   readonly entrees: number;
-  readonly lot: string;
-  readonly date: string;
   readonly motif: string;
 }
 
