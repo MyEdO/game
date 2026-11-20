@@ -889,6 +889,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     '  retires: retires.map((c) => c.id).sort(),',
     '  comptes: { formes: avec.formes.length, invisibles: avec.objets.invisibles, orphelines: avec.orphelines.length },',
     '  invisiblesEteints: sans.objets.invisibles - avec.objets.invisibles,',
+    '  documentsEmbarquesClasses: avec.objets.documentsEmbarquesAvecForme - sans.objets.documentsEmbarquesAvecForme,',
     '  formesGagnees: seuls(avec.formes, sans.formes, kf),',
     '  formesVolees: seuls(sans.formes, avec.formes, kf),',
     '  orphelinesEteintes: seuls(sans.orphelines, avec.orphelines, ko),',
@@ -902,7 +903,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
    * `Valeur`/`Référence` — une forme volée disparaîtrait de son concept d’origine sans qu’aucune
    * égalité de stock ne bouge (les lignes volées seraient simplement absentes des deux côtés).
    * Ici on mesure les DEUX scans et on exige : ce que la strate `Document` gagne, elle le prend à ce
-   * qui n’était CLASSÉ PAR PERSONNE (objets invisibles + orphelines), jamais à un concept existant.
+   * qui ne portait aucune forme (objets invisibles, orphelines et documents embarqués).
    */
   it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', { timeout: 60_000 }, () => {
     const dossier = mkdtempSync(join(tmpdir(), 'structures-strate-'));
@@ -914,6 +915,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
         retires: string[];
         comptes: { formes: number; invisibles: number; orphelines: number };
         invisiblesEteints: number;
+        documentsEmbarquesClasses: number;
         formesGagnees: string[];
         formesVolees: string[];
         orphelinesEteintes: string[];
@@ -939,7 +941,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
         'les formes que la strate `Document` ajoute ne sont pas exactement celles que le scan lui compte.',
       ).toEqual(lignes(scan.formes.filter((f) => f.strate === 'Document').map((f) => `${f.concept} | ${f.dataset} › ${f.champ} | ${f.signature} | ${f.occurrences}`)));
 
-      // La CONTREPARTIE : chaque gain sort du NON-CLASSÉ, compté en OBJETS — objets invisibles et orphelines éteints.
+      // La contrepartie se compte en objets : invisibles, orphelines et documents embarqués jusque-là sans forme.
       expect(diff.orphelinesNees, 'la strate `Document` fabrique une ORPHELINE : elle en perd une au lieu d’en classer.').toEqual([]);
       const siteDe = (l: string) => l.split(' | ')[0];
       const sitesGagnes = new Set(diff.formesGagnees.map((l) => l.split(' | ')[1]));
@@ -949,8 +951,8 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       ).toEqual([]);
       const occurrences = (l: string) => Number(l.split(' | ').pop());
       expect(
-        diff.invisiblesEteints + diff.orphelinesEteintes.map(occurrences).reduce((a, n) => a + n, 0),
-        'le compte ne se referme plus : un gain de la strate `Document` ne vient ni d’un objet invisible ni d’une orpheline — il vient donc d’ailleurs.',
+        diff.invisiblesEteints + diff.documentsEmbarquesClasses + diff.orphelinesEteintes.map(occurrences).reduce((a, n) => a + n, 0),
+        'le compte doit se refermer avec les objets invisibles, les orphelines et les documents embarqués jusque-là sans forme.',
       ).toBe(diff.formesGagnees.map(occurrences).reduce((a, n) => a + n, 0));
     } finally {
       rmSync(dossier, { recursive: true, force: true });

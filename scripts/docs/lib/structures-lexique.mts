@@ -216,6 +216,8 @@ export type Concept = {
   resolvables?: boolean;
   /** Concept exprimé en TABLEAU de chaînes (liste d'ids nus) : pas de signature d'objet. */
   listeIdsNus?: boolean;
+  /** Repli du scan des projets sur leur déclaration `PROSES_NOMMEES` pour les porteurs sans forme. */
+  reconnaitProseNommee?: true;
   /** Le concept est nommé par la CLÉ qui le porte — déclaré, jamais mesuré à un seuil — pour ce que sa
    *  pose ne reconnaît pas (`CONCEPT_DE_LA_POSE`) : un `{dice}` sous `price`, une `forme` d'état. */
   champs?: readonly string[];
@@ -289,7 +291,8 @@ export const GRAPHIES_ENVELOPPANTES = ['ref', 'wildcard', 'random'] as const;
 export const CONCEPTS: readonly Concept[] = [
   {
     id: 'prose-nommee',
-    label: 'porteur de prose nommée',
+    reconnaitProseNommee: true,
+    label: 'porteur de prose nommée (champ déclaré par `proseNommee` projeté en `texte`)',
     strate: 'Document',
     signatures: [
       { sig: 'texte', statut: 'cible' },

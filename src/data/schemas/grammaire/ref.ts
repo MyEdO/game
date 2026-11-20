@@ -347,28 +347,54 @@ type LecturesDeCatalogue = {
   readonly ids: () => ReadonlySet<string>;
   readonly idsDeLaSousListe: (sousListe: SousListe) => readonly string[];
   readonly refus: (id: string, sousListe?: SousListe) => string | null;
+  readonly refusDeLEntree: (sousListe: SousListe, entree: { readonly id: string }) => string | null;
   readonly porteLeMarqueur: (marqueur: string) => (id: string) => boolean;
 };
 
-type LecturesDuRaffinement = {
-  readonly catalogue: (type: TypeEntite) => LecturesDeCatalogue;
-  readonly racine: <R extends object>(type: TypeEntite, racineVivante: R) => R;
+type LecturesDeSpecialisations = {
+  readonly refus: (id: string, spec: string) => RefusDeSpec | null;
+  readonly message: (id: string, spec: string, refus: RefusDeSpec, admetChoix: boolean) => string;
+  readonly estSpecialisable: (id: string) => boolean;
+  readonly specAuCatalogue: (id: string, spec: string) => boolean;
+  readonly marqueurDeLaForme: (id: string, spec: string) => FormeDeMarqueur | undefined;
+  readonly specDe: (id: string) => z.ZodType<string>;
 };
 
-const ESPACES_PAR_RAFFINEMENT = new WeakMap<object, readonly string[]>();
+type LecturesDeLaSpecialisation = {
+  readonly refus: (spec: string) => RefusDeSpec | null;
+  readonly message: (spec: string, refus: RefusDeSpec, admetChoix: boolean) => string;
+  readonly entreeOuverte: () => boolean;
+};
 
-/** Un contrôle de schéma et les espaces que ses lecteurs désignent à sa construction. */
-export function raffinementDeCatalogue(
-  construire: (lire: LecturesDuRaffinement) => (valeur: unknown, ctx: z.RefinementCtx) => void,
-): z.core.$ZodCheck<unknown> {
+export type LecturesDuRaffinement = {
+  readonly catalogue: (type: TypeEntite, site?: string) => LecturesDeCatalogue;
+  readonly racine: <R extends object>(type: TypeEntite, racineVivante: R) => R;
+  readonly specialisations: (type: TypeEntite) => LecturesDeSpecialisations;
+  readonly specialisation: (type: TypeEntite, id: string) => LecturesDeLaSpecialisation;
+};
+
+type SpecialisationsLues = { readonly espace: string; readonly id?: string };
+type DependancesDuRaffinement = {
+  readonly espaces: readonly string[];
+  readonly specialisations: readonly SpecialisationsLues[];
+};
+
+const DEPENDANCES_PAR_RAFFINEMENT = new WeakMap<object, DependancesDuRaffinement>();
+
+/** Un contrôle de schéma et les lectures des catalogues qu'il construit. */
+export function raffinementDeCatalogue<V = unknown>(
+  construire: (lire: LecturesDuRaffinement) => (valeur: V, ctx: z.RefinementCtx) => void,
+): z.core.$ZodCheck<V> {
   const espaces = new Set<string>();
-  const controle = z.superRefine<unknown>(construire({
-    catalogue: (type) => {
+  const specialisations: SpecialisationsLues[] = [];
+  const controle = z.superRefine<V>(construire({
+    catalogue: (type, site = `raffinementDeCatalogue('${type}')`) => {
       espaces.add(espaceDe(type));
       return {
         ids: () => idsDe(type),
         idsDeLaSousListe: (sousListe) => idsDeLaSousListe(type, sousListe),
-        refus: (id, sousListe) => refusDe(type, sousListe, `raffinementDeCatalogue('${type}')`, id),
+        refus: (id, sousListe) => refusDe(type, sousListe, site, id),
+        refusDeLEntree: (sousListe, entree) => refusDeLEntree(type, sousListe, entree),
         porteLeMarqueur: (marqueur) => porteLeMarqueur(type, marqueur),
       };
     },
@@ -376,14 +402,45 @@ export function raffinementDeCatalogue(
       espaces.add(espaceDe(type));
       return racineVivante;
     },
+    specialisations: (type) => {
+      const espace = espaceDe(type);
+      espaces.add(espace);
+      specialisations.push({ espace });
+      return {
+        refus: (id, spec) => refusDeSpec(type, id, spec),
+        message: (id, spec, refus, admetChoix) => messageDeRefusDeSpec(type, id, spec, refus, admetChoix),
+        estSpecialisable: (id) => estSpecialisable(type, id),
+        specAuCatalogue: (id, spec) => specAuCatalogue(type, id, spec),
+        marqueurDeLaForme: (id, spec) => marqueurDeLaForme(type, id, spec),
+        specDe: (id) => specDe(type, id),
+      };
+    },
+    specialisation: (type, id) => {
+      const espace = espaceDe(type);
+      espaces.add(espace);
+      specialisations.push({ espace, id });
+      return {
+        refus: (spec) => refusDeSpec(type, id, spec),
+        message: (spec, refus, admetChoix) => messageDeRefusDeSpec(type, id, spec, refus, admetChoix),
+        entreeOuverte: () => entreeOuverte(type, id),
+      };
+    },
   }));
-  ESPACES_PAR_RAFFINEMENT.set(controle, [...espaces]);
+  DEPENDANCES_PAR_RAFFINEMENT.set(controle, { espaces: [...espaces], specialisations });
   return controle;
 }
 
-/** Les clés d'espace lues par ce contrôle. */
-export function espacesLusParRaffinement(controle: unknown): readonly string[] | undefined {
-  return typeof controle === 'object' && controle !== null ? ESPACES_PAR_RAFFINEMENT.get(controle) : undefined;
+/** Pose un raffinement de catalogue sur un nœud en conservant le type de ce dernier. */
+export function affinerAvecCatalogues<S extends z.ZodType>(
+  schema: S,
+  construire: (lire: LecturesDuRaffinement) => (valeur: z.output<S>, ctx: z.RefinementCtx) => void,
+): S {
+  return schema.check(raffinementDeCatalogue(construire));
+}
+
+/** Les catalogues directs et les univers de spécialisations lus par ce contrôle. */
+export function dependancesDuRaffinement(controle: unknown): DependancesDuRaffinement | undefined {
+  return typeof controle === 'object' && controle !== null ? DEPENDANCES_PAR_RAFFINEMENT.get(controle) : undefined;
 }
 
 /** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune, ou `id` n'est aucune entrée de
@@ -555,18 +612,23 @@ function siteDeFeuille(type: TypeEntite, sousListe: SousListe | undefined, porte
  *  la valeur). */
 function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type: T, sousListe: S | undefined, portee: PorteeLocale | undefined, avecRepere: boolean): z.ZodType<Id<T, S>, string> {
   const site = siteDeFeuille(type, sousListe, portee);
-  const feuille = z
-    .string()
-    .superRefine((v, ctx) => {
-      if (portee && !idsDesignes(espaceDe(type), site).has(v)) return;
-      const refus = refusDe(type, sousListe, site, v);
-      if (refus === null) {
-        if (parseDeMesure && avecRepere) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
-        return;
-      }
-      ctx.addIssue({ code: 'custom', message: refus });
-    })
-    .transform((v) => v as Id<T, S>);
+  const verifier = (refuser: (id: string) => string | null) => (v: string, ctx: z.RefinementCtx) => {
+    if (portee && !idsDesignes(espaceDe(type), site).has(v)) return;
+    const refus = refuser(v);
+    if (refus === null) {
+      if (parseDeMesure && avecRepere) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
+      return;
+    }
+    ctx.addIssue({ code: 'custom', message: refus });
+  };
+  const chaine = z.string();
+  const controlee = sousListe === undefined
+    ? chaine.superRefine(verifier((id) => refusDe(type, sousListe, site, id)))
+    : affinerAvecCatalogues(chaine, (lire) => {
+      const catalogue = lire.catalogue(type, site);
+      return verifier((id) => catalogue.refus(id, sousListe));
+    });
+  const feuille = controlee.transform((v) => v as Id<T, S>);
   const declaration: FeuilleDId = { type, ...(sousListe === undefined ? {} : { sousListe }), ...(portee === undefined ? {} : { portee }) };
   declarerFeuilleDId(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
@@ -968,11 +1030,15 @@ export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
  *  `fermee`, le refus d'une entrée OUVERTE. Une seule feuille porte les deux raffinements, puisque `.superRefine` clone
  *  le nœud que le registre déclare. */
 function feuilleDeSpec(type: TypeEntite, id: string, fermee: boolean): z.ZodType<string> {
-  return declarerFeuilleDeSpec(z.string().min(1).superRefine((spec, ctx) => {
-    const refus = refusDeSpec(type, id, spec);
-    if (refus) ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, id, spec, refus, false) });
-    if (fermee && entreeOuverte(type, id)) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
-  }), { type, id });
+  const feuille = affinerAvecCatalogues(z.string().min(1), (lire) => {
+    const specialisation = lire.specialisation(type, id);
+    return (spec, ctx) => {
+      const refus = specialisation.refus(spec);
+      if (refus) ctx.addIssue({ code: 'custom', message: specialisation.message(spec, refus, false) });
+      if (fermee && specialisation.entreeOuverte()) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
+    };
+  });
+  return declarerFeuilleDeSpec(feuille, { type, id });
 }
 
 /** Union GÉNÉRÉE des spécialisations de l'entrée `I` de `T` : l'espace `<espace>#[<id>].specs`
@@ -1046,11 +1112,9 @@ function noeudASpecialisation<T extends TypeEntite>(
   const { choix: _choix, ...designe } = champs;
   const metas = { id: META_ID, spec: { label: "spécialisation", texte: { regime: 'designation' as const } }, choix: { label: "choix", texte: { regime: 'designation' as const } }, ...metasExtra(extra) };
   const { choix: _metaChoix, ...metasDesignees } = metas;
-  return marquerProduit(nommerChamps(z
-    .strictObject(admetChoix ? champs : (designe as typeof champs), {
-      error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
-    })
-    .superRefine((v, ctx) => {
+  const controle = raffinementDeCatalogue<z.output<z.ZodObject<typeof champs>>>((lire) => {
+    const specs = lire.specialisations(type);
+    return (v, ctx) => {
       const aSpec = v.spec != null;
       const aChoix = v.choix != null;
       if (!aSpec && !aChoix) {
@@ -1058,8 +1122,8 @@ function noeudASpecialisation<T extends TypeEntite>(
         ctx.addIssue({ code: 'custom', message: unRegime(v.id) });
         return;
       }
-      if (!estSpecialisable(type, String(v.id))) {
-        ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, String(v.id), '', 'nonSpecialisable', admetChoix) });
+      if (!specs.estSpecialisable(String(v.id))) {
+        ctx.addIssue({ code: 'custom', message: specs.message(String(v.id), '', 'nonSpecialisable', admetChoix) });
         return;
       }
       if (aSpec && aChoix) {
@@ -1067,14 +1131,18 @@ function noeudASpecialisation<T extends TypeEntite>(
         return;
       }
       const candidats = aSpec ? [v.spec as string] : Array.isArray(v.choix) ? (v.choix as string[]) : [];
-      const refus = candidats.map((c) => [c, refusDeSpec(type, String(v.id), c)] as const);
+      const refus = candidats.map((c) => [c, specs.refus(String(v.id), c)] as const);
       // Une sentinelle masque le reste : l'auteur a écrit un emplacement là où il désignait.
       const sentinelle = refus.some(([, r]) => r === 'sentinelle');
       for (const [c, r] of refus) {
         if (r === null || (sentinelle && r !== 'sentinelle')) continue;
-        ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, admetChoix) });
+        ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: specs.message(String(v.id), c, r, admetChoix) });
       }
-    }), admetChoix ? metas : (metasDesignees as typeof metas)), 'noeudASpecialisation', regime, extra);
+    };
+  });
+  return marquerProduit(nommerChamps(z.strictObject(admetChoix ? champs : (designe as typeof champs), {
+    error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
+  }).check(controle), admetChoix ? metas : (metasDesignees as typeof metas)), 'noeudASpecialisation', regime, extra);
 }
 
 /**

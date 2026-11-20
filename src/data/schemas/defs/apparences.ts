@@ -14,7 +14,7 @@
  * `forme` ici et `shape`/`formChoices` de `trappings.json`.
  */
 import { document } from '../grammaire/document';
-import { porteLeMarqueur, ref, refs } from '../grammaire/ref';
+import { affinerAvecCatalogues, ref, refs } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
 import { maniementSchema } from '../grammaire/valeurs';
 
@@ -26,9 +26,6 @@ const CLES_DE_VARIANTE = ['especes', 'classes', 'qualites'] as const;
 
 /** Clés d'une RACINE : une variante suit celles de sa forme. */
 const CLES_DE_RACINE = ['maniement'] as const;
-
-/** Une Qualité d'ASPECT, seule à faire naître une variante (`aspect`, `defs/qualities.ts`). */
-const estDAspect = porteLeMarqueur('quality', 'aspect');
 
 const doc = document(
   'apparences',
@@ -60,31 +57,34 @@ const doc = document(
   {
     espace: { marqueurs: ['forme'] },
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const e = v as { id: string; forme?: unknown; qualites?: readonly string[] } & Record<string, unknown>;
-        if (e.forme === undefined)
-          for (const cle of CLES_DE_VARIANTE)
-            if (e[cle] !== undefined)
+      affinerAvecCatalogues(entree, (lire) => {
+        const estDAspect = lire.catalogue('quality').porteLeMarqueur('aspect');
+        return (v, ctx) => {
+          const e = v as { id: string; forme?: unknown; qualites?: readonly string[] } & Record<string, unknown>;
+          if (e.forme === undefined)
+            for (const cle of CLES_DE_VARIANTE)
+              if (e[cle] !== undefined)
+                ctx.addIssue({
+                  code: 'custom',
+                  path: [cle],
+                  message: `apparences : « ${e.id} » est une racine (sans \`forme\`) — l’étiquette « ${cle} » n’appartient qu’à une variante.`,
+                });
+          if (e.forme !== undefined)
+            for (const cle of CLES_DE_RACINE)
+              if (e[cle] !== undefined)
+                ctx.addIssue({
+                  code: 'custom',
+                  path: [cle],
+                  message: `apparences : « ${e.id} » est une variante — « ${cle} » n’appartient qu’à sa racine.`,
+                });
+          for (const q of e.qualites ?? [])
+            if (!estDAspect(q))
               ctx.addIssue({
                 code: 'custom',
-                path: [cle],
-                message: `apparences : « ${e.id} » est une racine (sans \`forme\`) — l’étiquette « ${cle} » n’appartient qu’à une variante.`,
+                path: ['qualites'],
+                message: `apparences : « ${q} » (${e.id}) n’est pas une Qualité d’aspect (\`aspect\`, \`qualities.json\`).`,
               });
-        if (e.forme !== undefined)
-          for (const cle of CLES_DE_RACINE)
-            if (e[cle] !== undefined)
-              ctx.addIssue({
-                code: 'custom',
-                path: [cle],
-                message: `apparences : « ${e.id} » est une variante — « ${cle} » n’appartient qu’à sa racine.`,
-              });
-        for (const q of e.qualites ?? [])
-          if (!estDAspect(q))
-            ctx.addIssue({
-              code: 'custom',
-              path: ['qualites'],
-              message: `apparences : « ${q} » (${e.id}) n’est pas une Qualité d’aspect (\`aspect\`, \`qualities.json\`).`,
-            });
+        };
       }),
   },
 );
