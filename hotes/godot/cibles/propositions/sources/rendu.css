@@ -308,22 +308,6 @@
 #salle{position:absolute;left:0;top:0}
 #campagnes .fond{height:100%;box-sizing:border-box;padding:22px 12px 0}
 
-/* 2. Gestion, le Compendium : le volet des catégories sous le cartouche, le registre tendu jusqu'aux signets, ses entrées
-   serrées ; le détail de l'entrée posé par-dessus le registre, au bord droit */
-#registre .entree{height:36px;line-height:36px;font-size:16px}
-#posee{right:10px;top:6px;bottom:10px;width:440px;z-index:2}
-/* la page de gauche s'arrête avant la fiche posée, qui dit la source de l'entrée pointée : ses entrées n'y gardent que
-   leur nom */
-#registre:has(>#posee) .feuille.g{flex:none;width:calc(100% - 445px);box-sizing:border-box;padding-left:14px;padding-right:14px}
-#registre:has(>#posee) .feuille.g .entree{height:34px;line-height:34px}
-#registre:has(>#posee) .feuille.g .entree em{display:none}
-#registre:has(>#posee) .feuille.g .pied{flex-wrap:wrap;justify-content:space-between;gap:0;height:auto}
-#registre:has(>#posee) .feuille.g .pied .folio{order:-1;flex:1 0 100%;text-align:center}
-#posee>.feuille{height:100%;box-sizing:border-box;padding:16px 22px 10px;border-radius:3px}
-#posee .fiche{overflow-y:auto;scrollbar-width:none}
-#posee>.croix{right:12px;top:12px}
-#posee .tete{padding-right:48px}
-
 /* 2. Gestion, la coop : la tablée tendue entre le panneau de gauche (rejoindre, l'invitation) et celui de droite
    (héberger, l'attribution), jusqu'à 24 du bas */
 #tablee{position:absolute}

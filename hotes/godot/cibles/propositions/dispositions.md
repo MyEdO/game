@@ -35,8 +35,8 @@ soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrê
 premier état du même rôle.
 
 **Le contenu s'adapte au cadre, jamais l'inverse.** Aucun panneau ne prend la hauteur de son contenu, aucune fenêtre
-ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile, se pagine ou passe en onglets
-(« Débordement »). L'action principale se pose au pied fixe de son cadre, le contenu part du haut.
+ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile ou passe en onglets ; seules la prose d'un
+document et les cartes de choix se paginent, une liste d'entrées défile (« Débordement »). L'action principale se pose au pied fixe de son cadre, le contenu part du haut.
 
 **Écran plus large ou plus haut que 16:9.** La hauteur logique reste 720 (ou la largeur 1280 si l'écran est plus
 haut) et la vue s'étend dans l'autre sens. Aucune pièce ne grandit (`placeDe`, `rendu.js`) : une ligne centrée sur
@@ -68,6 +68,7 @@ Les rects sont ceux de `CADRES` ; cette table dit qui occupe chaque rôle.
 | `fermer`, `colonne-gestion`, `registre`, `signets`, `affaire`, `emplacements`, `avis`, `feuillets-de-seance`, `groupe-de-seance`, `campagnes`, `tablee`, `volet-droit` | les écrans de gestion : croix, panneau de commande, registre et ses signets, affaire du carnet, sauvegardes, fin de séance, nouvelle partie, coop |
 | `titre-libre`, `entrees`, `outils`, `seance-du-chapitre` | l'ouverture : grand titre, colonne des entrées, outils de l'accueil, fin de séance d'un chapitre |
 | `barre-d-outils`, `volets`, `plan`, `pied`, `inspecteur` | l'outil d'édition |
+| `barre-du-compendium`, `liste-du-compendium`, `fiche-du-compendium`, `index-du-compendium` | la consultation : barre (16, 8, 1248 × 44), liste (16, 60, 300 × 644), fiche (328, 60, 936 × 644) ; l'Index posé par-dessus la liste et la fiche, sur leur rect commun (16, 60, 1248 × 644) |
 
 ## Débordement
 
@@ -93,7 +94,10 @@ cadre (`deborde`), une action principale cachée (`cache`) et une pièce du kit 
 Ce qui suit ce qu'il désigne porte `data-mobile` et `data-ancre` (`mobile(ancre)`, `gestes.js`), jamais une liste de
 noms : `survol` (aperçu, bulle de refus), `scene` (marques, pastilles d'entité, chose signalée, postes, voyageurs),
 `ancre` (liste déroulée, fiche d'un combattant). Un mobile n'a pas de ligne dans `CADRES` ; tout autre `data-piece` en a
-une.
+une. Un aperçu (`survol`) se pose par-dessus le cadre de ce qu'il désigne : `croise` ne le compte pas, `recouvert` et
+`chevauche` le gardent. Une surcouche (`data-surcouche`, l'Index du Compendium) a sa ligne dans `CADRES` et se pose
+par-dessus d'autres cadres, qu'elle voile : `croise` ne la compte pas, ce qu'elle cache n'est ni `recouvert` ni
+`chevauche`.
 
 ## Bulle de refus
 
@@ -123,11 +127,10 @@ L'élément survolé est en vue : ce qui le fait défiler l'y amène.
 principale en tête) ; aux chapitres « Continuer » au-dessus de « Plus tard » en `action-de-coin` ; le groupe au
 `socle` ; à l'accueil les `outils`, « Options » au bout ; au menu le système dans `coins`.
 
-**2. Écran de gestion** (options, sauvegardes, nouvelle partie, fin de séance, compendium, salon en ligne, carnet) :
+**2. Écran de gestion** (options, sauvegardes, nouvelle partie, fin de séance, salon en ligne, carnet) :
 `cartouche`, `fermer`, pas de retour ni de pastille du système ; le panneau de commande en `colonne-gestion` ; le
 registre et ses `signets`, ses lignes défilent ; l'action principale au pied de l'objet qu'elle concerne, ou en
-`action-de-coin` si elle concerne tout l'écran. Le détail d'une entrée (compendium, sauvegarde choisie) se pose
-par-dessus le registre, fermé par sa croix.
+`action-de-coin` si elle concerne tout l'écran. Le détail d'une sauvegarde choisie se pose par-dessus le registre.
 
 **3. Fiche** (fiche du héros, progression, création, dossiers) : `identite`, `profil`, puis `figure` et `sections`, ou
 les deux panneaux de la progression ; le groupe réduit au `socle` (une case par héros autre que celui de la fiche) ;
@@ -172,6 +175,21 @@ Une issue qui porte un texte (bataille de masse) reste un carton.
 onglets, `plan` et son `pied`, `inspecteur` ; les actions de la barre qui ne tiennent plus perdent leur libellé et
 gardent leur pictogramme.
 
+**9. Consultation** (le Compendium) : un plein écran à part, trois cadres fixes d'un état à l'autre. La
+`barre-du-compendium` : le titre, retour et suivant (les fiches vues), une seule recherche, dans tout le Compendium, le
+fil famille › catégorie › entrée (chaque maillon ouvre l'Index à son niveau), la bascule « Atelier », éteinte par
+défaut, la croix au bout, seule de l'écran. La `liste-du-compendium` : la tête (la catégorie et son compte, qui ouvre
+l'Index), le filtre de livre (les deux livres les plus fournis, les autres derrière leur nombre), les rangées de 23 px
+qui défilent, chacune sa source à droite, des séparateurs de groupe, le rail de lettres au bord droit ; la recherche y
+pose ses résultats, groupés par catégorie avec leur compte. La `fiche-du-compendium`, objet de l'écran (65 % de la
+vue) : la tête (nom, genre, source, « Épingler pour comparer ») ; le corps à gauche (puces, prose) ; tous les renvois à
+droite, un onglet par groupe avec son compte, la colonne défile, jamais « et N autres » ; le renvoi survolé ouvre son
+aperçu. « Modifier » et « Nouvelle entrée » n'existent qu'en mode Atelier ; l'atelier garde les rects : les champs à
+la place du corps, la description sur la hauteur qui reste, à droite les désignations qui ferment « Supprimer ».
+L'`index-du-compendium`, surcouche : les familles et leur nombre de catégories, celles de l'ouverte sur trois
+colonnes, sous-groupes en intertitres, compte par ligne. Pas de cartouche, de panneau de commande, de registre ni de
+signets.
+
 ## Les 25 arbitrages
 
 1. **Pastille du système.** Deux places, une seule frontière : en combat (tour de jeu, fenêtres posées sur le combat,
@@ -181,6 +199,7 @@ gardent leur pictogramme.
    nouvelle partie (pastille retirée : un écran de gestion a déjà la croix). *Raison :* en combat le bas-droit est la
    fin du tour ; aucune autre raison ne justifie de la déplacer.
 2. **Croix.** 22 / 18 du coin haut-droit partout, 44 px. Dans une barre : centrée en hauteur, à 25 px du bout droit de la barre.
+   Une seule croix par écran (relevé `croix`, `rendre.mjs`) : le détail qui est l'objet de l'écran n'a pas la sienne.
    En combat : 22 / 76. *Changent :* options et compendium (5 pages, de 14 / 8 à 22 / 18) ; dossiers (4 pages,
    la croix remonte à 22 / 18 puisque le système descend) ; éditeur (4 pages, croix de 38 → 44 px, 37 / 19).
    La création garde 51 / 27. *Raison :* même geste, même endroit ; les deux exceptions ont une raison d'écran.
@@ -216,8 +235,8 @@ gardent leur pictogramme.
     le cadre du bas. Hors combat il se déplie par la pastille du journal, juste dessous ; en combat par le rond au-dessus du fil.
     *Changent :* les 4 pages d'exploration (« Chronique » renommée, 30 px plus étroite et recalée). *Raison :* même
     rôle, même colonne.
-12. **Cartouche des options et du compendium.** 24 / 20 du coin haut-gauche, hauteur 96, comme les autres ; le panneau
-    de gauche descend à 20 px sous le cartouche ; le registre ne bouge pas. *Changent :* options (3 pages), compendium (2). *Raison :* rien ne saute en
+12. **Cartouche des options.** 24 / 20 du coin haut-gauche, hauteur 96, comme les autres ; le panneau
+    de gauche descend à 20 px sous le cartouche ; le registre ne bouge pas. *Changent :* options (3 pages). *Raison :* rien ne saute en
     passant de « Sauvegardes » à « Options ».
 13. **Fenêtre du bas.** Centrée, largeur 960, même bas que le socle, une seule hauteur (rôle `fenetre`, choix du
     19/11 : « Bandeau 152 + fenêtre 212 ») : consigne, liste et dialogue y tiennent, ce qui déborde suit « Débordement ».
@@ -245,8 +264,11 @@ gardent leur pictogramme.
     d'un navire ou d'une bête.
 20. **Création : le héros à droite.** Gardé. *Change :* rien. *Raison :* la création se lit de gauche à droite (choix,
     détail, résultat) ; le héros en cours est le résultat, avec « Suivant » à son pied.
-21. **Onglets ou signets.** Les deux, selon le nombre : jusqu'à 6 sections, onglets horizontaux ; au-delà, signets
-    verticaux au bord droit. *Change :* rien. *Raison :* treize catégories ne tiennent pas sur une rangée.
+21. **Onglets ou signets.** Les deux, selon le nombre, pour une hiérarchie à un seul niveau : jusqu'à 6 sections,
+    onglets horizontaux ; au-delà, signets verticaux au bord droit. Une hiérarchie à deux niveaux ou plus (les 7
+    familles et 140 catégories du Compendium) passe par un index posé par-dessus (type 9). *Change :* le Compendium.
+    *Raison :* treize catégories ne tiennent pas sur une rangée ; le second niveau d'une hiérarchie n'a pas de cadre
+    dans les signets.
 22. **Bandeau à l'ouverture de chapitre.** Centré, 960 × 152, à 8 px du bas. *Change :* ouverture de chapitre. *Raison :* il ne
     bouge pas quand le chapitre s'ouvre sur le premier lieu.
 23. **Aperçu au survol.** 300 px de large, la hauteur suit le texte. *Changent :* exploration (236), cible au combat

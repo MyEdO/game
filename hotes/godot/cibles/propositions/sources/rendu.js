@@ -41,6 +41,8 @@
     tablee: [412, 136, 428, 560], 'volet-droit': [856, 76, 400, 620],
     'titre-libre': [84, 52], entrees: [88, 236, 330, 433], outils: [772, 623, 484, 75], 'seance-du-chapitre': [24, 515, 1072, 197],
     /* l'outil d'édition */
+    /* la consultation : la barre, la liste, la fiche ; l'Index posé par-dessus la liste et la fiche */
+    'barre-du-compendium': [16, 8, 1248, 44], 'liste-du-compendium': [16, 60, 300, 644], 'fiche-du-compendium': [328, 60, 936, 644], 'index-du-compendium': [16, 60, 1248, 644],
     'barre-d-outils': [12, 10, 1256, 62], volets: [12, 92, 240, 616], plan: [264, 84, 692, 576], pied: [264, 672, 692, 36], inspecteur: [968, 84, 300, 624],
   };
   /* la place d'une ligne dans une vue plus large ou plus haute que 1280 × 720 : centrée si elle l'est, sinon ancrée au
@@ -290,7 +292,7 @@
     },
     etendu: (c, f) => ({ centre: etenduDu(c, f), ...(c.enjeu ? { droite: enjeuDu(c.enjeu) } : {}) }),
     nature: (c) => ({ centre: `<div class="nature"><div class="l rubrique">${echapper(c.libelle)}</div><div class="deux">${c.cartes.map(carteDe).join('')}</div></div>`, droite: enjeuDu(c.enjeu) }),
-    consequence: (c, f) => verdict({ sous: `${echapper(c.arme)} · ${echapper(c.coup)}`, mot: echapper(c.etats.etat), sens: sensDu(f.heros.jet), effet: `+${c.etats.nombre} États`, phrase: echapper(c.issue) }),
+    consequence: (c, f) => verdict({ sous: `${echapper(c.arme)} · ${echapper(c.coup)}`, mot: 'Échec', sens: sensDu(f.heros.jet), effet: c.etats.map(etatPose).join(' · '), phrase: echapper(c.issue) }),
     tests: (c) => {
       const nom = (l) => `${echapper(qui(l.qui).nom)}${l.poste ? `, ${echapper(l.poste)}` : ''} · ${echapper(l.test)} ≤ ${l.seuil}${l.de === undefined ? '' : ` · dé ${l.de}`}`;
       const issue = (l) => (l.dr !== undefined
@@ -341,6 +343,8 @@
   /* 5. Combat : la borne du round, l'ordre du tour (l'actif en bas, le round suivant au-delà de sa borne), le journal,
      le système, la fin du tour, fermée tant qu'une fenêtre tient la main */
   const PICTO_DE_L_ETAT = { aTerre: 'aTerre', hemorragique: 'goutte' };
+  /* un État que pose une conséquence : son pictogramme et son compte, le nom au survol ; son nom s'il n'a pas de pictogramme */
+  const etatPose = (e) => (PICTO_DE_L_ETAT[e.etat] ? `<span class="etat-pose" title="${echapper(e.nom)}">${picto(PICTO_DE_L_ETAT[e.etat], 16, 'currentColor', 1.8)}+${e.nombre}</span>` : `+${e.nombre} ${echapper(e.nom)}`);
   const etatPorte = (e) => `<div class="etat-porte${e.presse ? ' presse' : ''}">${sceau(PICTO_DE_L_ETAT[e.etat], 'menu')}<span class="rubrique">${echapper(e.nom)}</span>${e.n > 1 ? `<b>${e.n}</b>` : ''}</div>`;
   const rangDe = (id, classe) => { const c = qui(id); return combattant(c.buste, c.ennemi ? 'ennemi' : 'heros', echapper(c.nom), c.blessures, c.max, classe, classe.includes('fantome') ? '' : c.etats.map(etatPorte).join('')); };
   const entree = (e, k, toutes) => (typeof e === 'string' ? (k === toutes.length - 1 ? neuf : vieux)(echapper(e)) : borneJ(e.commence ? `Le combat commence ! (Round ${e.round})` : `Round ${e.round}`));
@@ -622,41 +626,68 @@
   /* ───────── les outils ───────── */
   /* la prose d'une donnée, son gras Markdown rendu ; au champ de l'atelier, telle qu'elle s'écrit */
   const prose = (t) => echapper(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-  /* le Compendium, registre relié : la famille ouverte au signet, ses catégories, la recherche et les livres sur le volet ;
-     la catégorie au feuillet de gauche ; l'entrée pointée, en fiche ou à l'atelier, posée par-dessus le registre avec sa
-     croix (`../dispositions.md`, « Par type d'écran », 2) */
-  const sourceDe = (e) => `${echapper(e.source.livre)} p. ${e.source.page}`;
-  const liensDe = (noms, reste = 0) => `<div class="liens">${noms.map((n) => `<span class="lien">${echapper(n)}</span>`).join('')}${reste ? `<span class="lien reste">et ${reste} autres</span>` : ''}</div>`;
-  const renvoiDe = (r) => `<div class="r rubrique">${echapper(r.rubrique)} <em>${r.compte}</em></div>${liensDe(r.noms, r.compte - r.noms.length)}`;
-  const ficheDe = (c, e) => `<div class="feuille parchemin">
-    <div class="tete"><span class="dom gothique" data-texte="entrée">${echapper(e.nom)}</span><span class="sous rubrique">${echapper(c.genre)} · ${sourceDe(e)}</span></div>${filet({ losange: true })}
-    <div class="fiche"><div class="puces">${c.fiche.puces.map((p) => `<div class="puce"><span class="rubrique">${echapper(p.rubrique)}</span>${echapper(p.valeur)}</div>`).join('')}</div>
-      <div class="r rubrique">Description</div>${c.fiche.description.map((p, k) => `<p data-texte="description ${k + 1}">${prose(p)}</p>`).join('')}${liensDe(c.fiche.liens)}${c.fiche.renvois.map(renvoiDe).join('')}</div>
-    <div class="pied">${plaque('Modifier', { icone: 'plume', taille: 'petite' })}<span class="marque"><i>Atelier : ${echapper(c.categorie)}</i></span></div></div>`;
-  const champDe = (f) => `<div>${champ(echapper(f.libelle), echapper(f.valeur).replace(/\n/g, '<br>'), { classe: `${f.long ? 'long' : ''}${f.saisi ? ' saisi' : ''}`, defile: !!f.long })}${f.aide ? `<div class="aide">${echapper(f.aide.texte)}${f.aide.lien ? ` <span class="lien">${echapper(f.aide.lien)}</span>` : ''}</div>` : ''}</div>`;
-  const atelierDe = (c, e) => `<div class="feuille parchemin atelier">
-    <div class="tete"><span class="dom gothique" data-texte="entrée">${echapper(e.nom)}</span><span class="sous rubrique">Atelier : ${echapper(c.categorie)}</span></div>${filet({ losange: true })}
-    <div class="fiche">${c.atelier.paires.map((p) => `<div class="${p.length > 1 ? 'deux' : 'un'}">${p.map(champDe).join('')}</div>`).join('')}
-      <div class="r rubrique">Champs que l’entrée ne porte pas</div><div class="facettes">${c.atelier.absents.map((n) => `<b>Ajouter : ${echapper(n)}</b>`).join('')}</div></div>
-    <div class="pied">${plaque('Enregistrer', { icone: 'disque', armee: true, taille: 'petite' })}${plaque('Abandonner', { taille: 'petite' })}${plaque(`Supprimer${raison(echapper(c.atelier.refus))}`, { fermee: true, taille: 'petite' })}</div></div>`;
-  const compendium = (c) => {
-    const pointee = c.feuillet.entrees.find((e) => e.pointee), ouverte = c.categories.find((k) => k.nom === c.categorie);
-    return [fondDeTable(),
-      cartouche({ icone: 'livre', nom: echapper(c.titre.nom), sous: echapper(c.titre.sous), taille: 'titre' }),
-      `<div id="categories" class="cadre bois" data-piece="colonne-gestion"><div class="fond bois">
-        <div>${c.categories.map((k) => ligneDeListe(echapper(k.nom), k.entrees, { la: k.nom === c.categorie })).join('')}</div><div class="trait"></div>
-        ${champ('Rechercher', echapper(c.recherche), { attente: 'Un nom, un mot de la fiche…' })}
-        <div class="r rubrique">Livre</div><div class="facettes">${c.livres.map((l) => `<b>${echapper(l.sigle)}<em>${l.entrees}</em></b>`).join('')}</div><div class="trait"></div>
-        ${plaque('Nouvelle entrée', { icone: 'plus', fermee: !!c.atelier })}</div>${ruban('Catégories')}${ferrures}</div>`,
-      signets(c.familles.map((nom) => ({ nom: echapper(nom) })), echapper(c.famille)),
-      `<div id="registre" data-piece="registre"><div class="tranche"></div>
-        <div class="feuille g parchemin"><div class="tete"><span class="dom gothique" data-texte="catégorie">${echapper(c.categorie)}</span><span class="sous rubrique">${pluriel(ouverte.entrees, 'entrée')}</span></div>
-          ${filet({ losange: true })}${c.feuillet.entrees.map((e) => `<div class="entree${e.pointee ? ' pointee' : ''}"><span>${echapper(e.nom)}</span><em class="chiffres">${sourceDe(e)}</em></div>`).join('')}
-          <div class="pied">${rond('gauche', 'petit', { ferme: c.feuillet.n === 1 })}<span class="folio rubrique">Feuillet ${c.feuillet.n} sur ${c.feuillet.sur}</span>${rond('droite', 'petit', { ferme: c.feuillet.n === c.feuillet.sur })}</div></div>
-        <div class="feuille d parchemin"></div>${CLOUS}
-        <div id="posee" class="cadre bois">${(c.atelier ? atelierDe : ficheDe)(c, pointee)}${croix({ dansLePanneau: true })}${ferrures}</div></div>`,
-      croix()];
+  /* le Compendium, plein écran de consultation (`../dispositions.md`, « Par type d'écran », 9) : la barre (retour et
+     suivant, la recherche dans tout le Compendium, le fil, la bascule de l'atelier, la croix) ; la liste de la catégorie,
+     ou les résultats de la recherche, qui défile, son rail de lettres ; la fiche de l'entrée lue, ses renvois en onglets
+     comptés qui défilent, ou son atelier ; l'Index posé par-dessus la liste et la fiche */
+  const sourceDe = (s) => `${echapper(s.livre)} p. ${s.page}`;
+  const lien = (t, classe = '') => `<span class="lien ${classe}">${t}</span>`;
+  const barreDuCompendium = (c) => `<div id="barre-du-compendium" class="bois" data-piece="barre-du-compendium">${medaillon('livre', { taille: 'moyen', inerte: true })}
+    <span class="nom gothique" data-texte="titre">${echapper(c.titre)}</span>${rond('gauche', 'petit')}${rond('droite', 'petit', { ferme: true })}
+    <div class="fond bois">${champ('', echapper(c.recherche?.texte ?? ''), { attente: 'Rechercher dans tout le Compendium…' })}</div>
+    <span class="fil rubrique" data-texte="fil">${c.recherche
+    ? `${pluriel(c.recherche.groupes.reduce((n, g) => n + g.entrees.length, 0), 'résultat')} dans ${pluriel(c.recherche.groupes.length, 'catégorie')}`
+    : `${lien(echapper(c.fil[0]))} › ${lien(echapper(c.fil[1]))} › <b>${echapper(c.entree.nom)}</b>`}</span>
+    ${plaque('Atelier', { icone: 'plume', armee: !!c.atelier, taille: 'petite' })}${croix({ dansLePanneau: true })}</div>`;
+  /* le filtre de livre : les deux livres les plus fournis, les autres derrière leur nombre */
+  const filtreDeLivre = (livres) => {
+    const tries = [...livres].sort((a, b) => b.entrees - a.entrees);
+    return `<div class="livres"><span class="rubrique">Livre</span><div class="facettes">${tries.slice(0, 2).map((l) => `<b>${echapper(l.sigle)}<em>${l.entrees}</em></b>`).join('')}${tries.length > 2 ? `<b>+${tries.length - 2}</b>` : ''}</div></div>`;
   };
+  const rangee = (e) => `<div class="rangee${e.pointee ? ' pointee' : ''}"><span>${echapper(e.nom)}</span><em class="chiffres">${echapper(e.livre)}</em></div>`;
+  const listeDuCompendium = (c) => {
+    const [tete, compte, corps] = c.recherche
+      ? ['Résultats', c.recherche.groupes.reduce((n, g) => n + g.entrees.length, 0), c.recherche.groupes.map((g) => `<div class="groupe rubrique"><span>${echapper(g.categorie)}</span><em class="chiffres">${g.entrees.length}</em></div>${g.entrees.map(rangee).join('')}`).join('')]
+      : [c.categorie.nom, c.categorie.entrees, c.liste.entrees.map(rangee).join('')];
+    const lue = c.entree.nom.normalize('NFD')[0].toUpperCase();
+    return cadre('liste-du-compendium', null, null, null, null, 'bois', `<div class="tete-de-liste"><span class="gothique" data-texte="catégorie">${echapper(tete)}</span><em class="chiffres">${compte}</em></div>
+      ${filtreDeLivre(c.livres)}<div class="corps-de-liste">${defile(corps)}<div class="rail rubrique">${[...c.liste.lettres].map((l) => `<b class="${!c.recherche && l === lue ? 'la' : ''}">${l}</b>`).join('')}</div></div>`);
+  };
+  /* les renvois : un onglet par groupe et son compte, toutes ses entrées, qui défilent */
+  const renvoisDe = (c, rubrique) => {
+    const ouvert = c.renvois.groupes.find((g) => g.rubrique === c.renvois.onglet);
+    return `<div class="renvois"><div class="onglets-comptes">${c.renvois.groupes.map((g) => `<b class="${g === ouvert ? 'la' : ''}">${echapper(g.rubrique)}<em class="chiffres">${g.noms.length}</em></b>`).join('')}</div>
+      <div class="r rubrique">${rubrique ?? `${ouvert.note ? `${echapper(ouvert.note)} · ` : ''}toutes, la colonne défile`}</div>
+      ${defile(`<div class="noms">${ouvert.noms.map((n) => `<div class="nom-renvoi${c.survol?.renvoi === n.nom ? ' survol' : ''}">${lien(echapper(n.nom))}${n.note ? `<em class="chiffres">${echapper(n.note)}</em>` : ''}</div>`).join('')}</div>`)}</div>`;
+  };
+  /* l'aperçu du renvoi survolé, à sa gauche, sa pointe sur sa ligne (rangées de 26 px, `outils.css`) */
+  const apercuDuRenvoi = (c) => {
+    const k = c.renvois.groupes.find((g) => g.rubrique === c.renvois.onglet).noms.findIndex((n) => n.nom === c.survol.renvoi);
+    return apercu({ nom: echapper(c.survol.nom), sous: echapper(c.survol.sous), vers: 'droite', style: `--rang:${k}`,
+      corps: `<p><i>${echapper(c.survol.texte)}</i></p><div class="source-du-renvoi rubrique">${sourceDe(c.survol.source)} · clic : ouvrir</div>` });
+  };
+  const teteDeFiche = (c, genre) => `<div class="tete"><span class="dom gothique" data-texte="entrée">${echapper(c.entree.nom)}</span><span class="sous rubrique">${genre}</span><span class="source chiffres">${sourceDe(c.entree.source)}</span>
+    <span class="epingle rubrique">${picto('epingle', 15, 'currentColor', 1.8)}Épingler pour comparer</span></div>${filet()}`;
+  const corpsDeFiche = (c) => `<div class="puces">${c.fiche.puces.map((p) => `<div class="puce"><span class="rubrique">${echapper(p.rubrique)}</span>${p.lien ? lien(echapper(p.valeur)) : echapper(p.valeur)}</div>`).join('')}</div>
+    ${c.fiche.description.map((p, k) => `<p data-texte="description ${k + 1}">${c.fiche.liens.reduce((t, l) => t.replace(echapper(l), lien(echapper(l))), prose(p))}</p>`).join('')}`;
+  const champDe = (f) => `<div class="${f.long ? 'long' : ''}">${champ(echapper(f.libelle), echapper(f.valeur).replace(/\n/g, '<br>'), { classe: `${f.long ? 'long' : ''}${f.saisi ? ' saisi' : ''}`, defile: !!f.long })}${f.aide ? `<div class="aide">${echapper(f.aide.texte)}${f.aide.lien ? ` ${lien(echapper(f.aide.lien))}` : ''}</div>` : ''}</div>`;
+  const atelierDe = (c) => `<div class="formulaire">${c.atelier.paires.map((p) => `<div class="${p.length > 1 ? 'deux' : 'un'}${p.some((f) => f.long) ? ' long' : ''}">${p.map(champDe).join('')}</div>`).join('')}
+      <div class="r rubrique">Champs que l’entrée ne porte pas</div><div class="facettes">${c.atelier.absents.map((n) => `<b>+ ${echapper(n)}</b>`).join('')}</div></div>`;
+  const ficheDuCompendium = (c) => cadre('fiche-du-compendium', null, null, null, null, 'parchemin', `${teteDeFiche(c, c.atelier ? `Atelier · ${echapper(c.categorie.nom)}` : echapper(c.entree.genre))}
+    <div class="corps-de-fiche${c.atelier ? ' atelier' : ''}"><div class="gauche">${c.atelier ? atelierDe(c) : corpsDeFiche(c)}</div>${renvoisDe(c, c.atelier ? 'Désignent cette entrée : « Supprimer » est fermé' : null)}</div>
+    ${c.atelier ? `<div class="pied">${plaque('Enregistrer', { icone: 'disque', armee: true, taille: 'petite' })}${plaque('Abandonner', { taille: 'petite' })}${plaque(`Supprimer${raison(echapper(c.atelier.refus))}`, { fermee: true, taille: 'petite' })}</div>` : ''}
+    ${c.survol ? apercuDuRenvoi(c) : ''}`);
+  /* l'Index : les familles et leur nombre de catégories, l'ouverte ; ses catégories sur trois colonnes, ses sous-groupes
+     en intertitres, le compte de chacune */
+  const ligneDIndex = (k) => `<div class="ligne-d-index"><span>${echapper(k.nom)}</span><em class="chiffres">${k.entrees}</em></div>`;
+  const indexDuCompendium = (c) => {
+    const i = c.index, total = i.familles.reduce((n, f) => n + f.categories, 0);
+    return cadre('index-du-compendium', null, null, null, null, 'bois', `<div class="tete-d-index"><span class="gothique">Index</span>${champ('', '', { attente: `Filtrer les ${total} catégories…` })}<span class="rubrique">${pluriel(i.familles.length, 'famille')} · ${total} catégories · ${i.entrees.toLocaleString('fr')} entrées</span></div>
+      <div class="familles">${i.familles.map((f) => ligneDeListe(echapper(f.nom), f.categories, { la: f.nom === i.ouverte.nom })).join('')}</div>
+      <div class="categories">${i.ouverte.categories.map(ligneDIndex).join('')}${i.ouverte.groupes.map((g) => `<div class="intertitre rubrique">${echapper(g.nom)}</div>${g.categories.map(ligneDIndex).join('')}`).join('')}</div>`, { classe: 'surcouche' })
+      .replace('data-piece="index-du-compendium"', 'data-piece="index-du-compendium" data-surcouche');
+  };
+  const compendium = (c) => [fondDeTable(), barreDuCompendium(c), listeDuCompendium(c), ficheDuCompendium(c), ...(c.index ? [indexDuCompendium(c)] : [])];
   /* la coop, sur la table : la tablée et ses quatre sièges, chacun son joueur et les héros qu'il tient ; sans partie,
      rejoindre par le code et héberger ; en salon, l'invitation et l'attribution des héros et du Maître du Jeu */
   const siegeDe = (s) => (s.joueur
@@ -1655,12 +1686,11 @@
     relais: { ...CHAPITRE, tracer: () => peindreLOuverture() },
     altdorf: { ...CHAPITRE, tracer: () => peindreLaCloture() },
   }[etat.decor];
-  /* 2. Gestion : sur la table, les options, les sauvegardes, le Compendium ou la coop ; le carnet posé sur la salle ; la
+  /* 2. Gestion : sur la table, les options, les sauvegardes ou la coop ; le carnet posé sur la salle ; la
      nouvelle partie dans la salle commune ; la fin de séance sur le jeu */
   const OUTILS = { feuilles: ['accueil-et-systeme/options.css', 'outils/outils.css'], scripts: ['outils/outils.js'] };
   const SUR_LA_TABLE = 'domaines' in etat ? { feuilles: ['accueil-et-systeme/options.css'], scripts: [], poser: ecranDesOptions }
-    : 'familles' in etat ? { ...OUTILS, poser: compendium }
-      : 'sieges' in etat ? { ...OUTILS, poser: coop }
+    : 'sieges' in etat ? { ...OUTILS, poser: coop }
         : { feuilles: ['accueil-et-systeme/sauvegardes.css'], scripts: [], poser: sauvegardes };
   const GESTIONS = {
     table: { feuilles: [...LIEU.feuilles, 'accueil-et-systeme/systeme.css', ...SUR_LA_TABLE.feuilles], scripts: [...LIEU.scripts, 'accueil-et-systeme/systeme.js', ...SUR_LA_TABLE.scripts], poser: SUR_LA_TABLE.poser },
@@ -1670,6 +1700,8 @@
     jeu: { ...JEU, feuilles: [...JEU.feuilles, 'accueil-et-systeme/seance.css'], scripts: [...JEU.scripts, 'accueil-et-systeme/seance.js'], poser: finDeSeance, tracer: () => assombrirLeJeu({ voile: 0.38 }) },
   };
   GABARITS.gestion = GESTIONS[etat.decor];
+  /* 9. Consultation : le Compendium, sur la table */
+  GABARITS.consultation = { feuilles: [...LIEU.feuilles, 'accueil-et-systeme/systeme.css', 'outils/outils.css'], scripts: [...LIEU.scripts, 'accueil-et-systeme/systeme.js', 'outils/outils.js'], poser: compendium };
   /* 8. Outil d'édition : la scène vue de dessus ou la carte du monde, sur la table */
   GABARITS.edition = { feuilles: [...LIEU.feuilles, 'accueil-et-systeme/systeme.css', 'outils/outils.css'], scripts: [...LIEU.scripts, 'accueil-et-systeme/systeme.js', 'outils/outils.js', 'outils/editeur.js'],
     poser: 'lieux' in etat ? editeurDeLaCarte : editeurDeScene };

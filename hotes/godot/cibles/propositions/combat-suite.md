@@ -246,8 +246,11 @@ exemple.
   (`src/noyau/pendings.ts:1280-1300`, `src/noyau/flowVerbs.ts:59`). Pas d'« Annuler » : le flux n'en a pas.
 - À valider : un seul verdict au centre pour deux Tests non opposés ; les Dégâts du coup ne sont pas montrés ; l'état
   avant le dé du Test de Calme et le coup qui manque (aucun Test de Calme) n'ont pas d'image ; chiffres d'exemple.
-- À valider : la grande ligne dit « Brisé · +3 États », en rouge de l'échec du Test de Calme, sans DR (la donnée
-  ne porte que les États) (`combat.md`, « Bandeau du jet », table des mots).
+- À valider : la grande ligne dit « Échec · +3 Brisé », en rouge de l'échec du Test de Calme, sans DR (la donnée
+  ne porte que les États, une liste : « +1 Sonné · +3 Brisé » tient dans la ligne) ; l'utilisateur, 2026-11-20 :
+  « Pour fuite je prefere "Echec" », « Car si un jour la fuite donne des etats données sonnées et brisé on aura l'air
+  con ». Brisé et Sonné n'ont pas d'icône dans `PICTOS` : leur nom s'écrit (`combat.md`, « Bandeau du jet », table
+  des mots).
 
 ## sauvetage-par-le-destin
 - Le coup fatal arrête le jeu dans le bandeau : la victime et sa réserve de Destin à gauche, trois cartes, « Éviter le

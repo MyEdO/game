@@ -8,12 +8,14 @@
 // ancêtre (`overflow`, ellipse) ou qui se chevauchent (`chevauche` : deux textes sur la même bande par la zone de
 // contenu de la police de leurs lignes, à moins de 3 px côte à côte ; un texte et un contrôle par le cœur des lignes), des actions principales (plaque armée, étape en cours) cachées
 // sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
-// (`retrecit`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
+// (`retrecit`), plus d'une croix dans l'écran (`croix`), et du défilement de la page. Ce qui se pose au survol
+// (`data-ancre="survol"`) ou par-dessus d'autres cadres (`data-surcouche`, l'Index du Compendium) n'est pas compté par
+// `croise` ; ce qu'une surcouche cache n'est ni `recouvert` ni `chevauche`. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
 // badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un autre contrôle, son libellé compris,
 // jamais un texte libre, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ;
 // la bulle qui n'a aucune pose libre (`data-sans-pose`, `gestes.js`) est `recouvert` ; ce
 // dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
-// `rogne` que le haut et le bas :
+// `rogne` que le haut et le bas, et cache à ses ancêtres ce qui défile hors de lui :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
@@ -51,12 +53,12 @@ async function chargerLEcran(nom, etat) {
 
 /** Le relevé des pièces de la page dans la fenêtre `largeur` × `hauteur`. */
 const releve = ([largeur, hauteur]) => {
-  const pieces = [...document.querySelectorAll('[data-piece]')].map((e) => ({ n: e.dataset.piece, r: e.getBoundingClientRect() }))
+  const pieces = [...document.querySelectorAll('[data-piece]')].map((e) => ({ n: e.dataset.piece, r: e.getBoundingClientRect(), pose: e.matches('[data-surcouche], [data-ancre="survol"]') }))
   const hors = pieces.filter(({ r }) => r.left < 0 || r.top < 0 || r.right > largeur || r.bottom > hauteur).map((x) => x.n)
   const croise = []
   for (let i = 0; i < pieces.length; i++) for (let j = i + 1; j < pieces.length; j++) {
     const a = pieces[i].r, c = pieces[j].r
-    if (a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom) croise.push(pieces[i].n + ' x ' + pieces[j].n)
+    if (!pieces[i].pose && !pieces[j].pose && a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom) croise.push(pieces[i].n + ' x ' + pieces[j].n)
   }
   /* le cœur d'une ligne de texte : la moitié du milieu de sa boîte de police, que les lignes voisines ne touchent pas */
   const coeur = (q) => new DOMRect(q.left, q.top + q.height / 4, q.width, q.height / 2)
@@ -115,7 +117,7 @@ const releve = ([largeur, hauteur]) => {
     const y = (q.top + q.bottom) / 2
     if (y < 0 || y > hauteur || x < 0 || x > largeur || rognePoint(e, x, y)) return false
     const v = document.elementFromPoint(x, y), m = v?.closest('[data-dessus]')
-    return v && (!e.contains(v) || (m && !e.closest('[data-dessus]'))) && cache(v, e) && !(m && couvrable(e, texte, m))
+    return v && (!e.contains(v) || (m && !e.closest('[data-dessus]'))) && cache(v, e) && !(m && couvrable(e, texte, m)) && !(v.closest('[data-surcouche]') && !e.closest('[data-surcouche]'))
   }))).map((f) => nomme(f.e))), ...[...document.querySelectorAll('[data-sans-pose]')].map((b) => `bulle sans pose libre : ${b.textContent}`)]
   /* une feuille qui sort d'un ancêtre qui la rogne ou la fait défiler (`overflow` non visible ; un texte : lui-même
      compris), sauf par le haut ou le bas de celui qui porte `data-defile`, dont le contenu défile en hauteur, ou dont la
@@ -126,6 +128,8 @@ const releve = ([largeur, hauteur]) => {
       const s = getComputedStyle(a), r = a.getBoundingClientRect()
       const x = s.overflowX !== 'visible', y = s.overflowY !== 'visible' && !a.hasAttribute('data-defile')
       if ((x || y) && rects.some((q) => (x && (q.left < r.left - 1 || q.right > r.right + 1)) || (y && (q.top < r.top - 1 || q.bottom > r.bottom + 1)))) return a.id || a.classList[0]
+      /* ce que `data-defile` cache, au-dessus ou au-dessous de lui, n'est plus mesuré par ses ancêtres */
+      if (a.hasAttribute('data-defile')) rects = rects.filter((q) => q.bottom > r.top && q.top < r.bottom)
     }
     return ''
   }
@@ -156,7 +160,7 @@ const releve = ([largeur, hauteur]) => {
   for (let i = 0; i < feuilles.length; i++) for (let j = i + 1; j < feuilles.length; j++) {
     const p = feuilles[i], q = feuilles[j]
     const porte = (f, g) => f.e.contains(g.e) && g.e.closest('[data-dessus]') === f.e.closest('[data-dessus]')
-    if (porte(p, q) || porte(q, p) || !croisent(p, q)) continue
+    if (porte(p, q) || porte(q, p) || !p.e.closest('[data-surcouche]') !== !q.e.closest('[data-surcouche]') || !croisent(p, q)) continue
     const dessus = (f, g) => f.e.closest('[data-dessus]') && !g.e.closest('[data-dessus]') && couvrable(g.e, g.texte, f.e.closest('[data-dessus]'))
     if (!dessus(p, q) && !dessus(q, p)) chevauche.add(nomme(p.e) + ' x ' + nomme(q.e).replace(/^[^:]*: /, ''))
   }
@@ -214,7 +218,11 @@ const releve = ([largeur, hauteur]) => {
     const fondu = parseFloat(getComputedStyle(d).getPropertyValue('--fondu')) || 0
     return q.top < r.top + (d.classList.contains('avant') ? fondu : 0) - 1 || q.bottom > r.bottom - (d.classList.contains('suite') ? fondu : 0) + 1
   }).map(nomme)
-  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  /* une seule croix par écran (`../dispositions.md`, arbitrage 2) : plus d'une croix visible, hors de ce qui suit ce
+     qu'il désigne */
+  const croixVues = [...document.querySelectorAll('#ui .croix')].filter((e) => !e.closest('[data-mobile]') && e.checkVisibility())
+  const croix = croixVues.length > 1 ? [`${croixVues.length} croix : ${croixVues.map((e) => e.closest('[data-piece]')?.dataset.piece ?? '-').join(', ')}`] : []
+  return { pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv

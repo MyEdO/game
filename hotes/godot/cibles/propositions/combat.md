@@ -49,7 +49,7 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
   | Défense (`jet-de-defense`) | Parée | Touché | la localisation du coup reçu (« au bras droit ») |
   | Contre-sort (`contre-sort`) | Contré | Raté | rien |
   | Incantation (`incantation`) | Lancé | — (le centre `sort` ne sert qu'au Sort lancé) | rien |
-  | Fuite (`fuite`, coup dans le dos) | — | l'État posé (« Brisé ») | « +3 États » |
+  | Fuite (`fuite`, coup dans le dos) | — | Échec (« Pour fuite je prefere "Echec" », utilisateur, 2026-11-20) | les États posés, chacun son compte (« +3 Brisé », « +1 Sonné · +3 Brisé ») : « Car si un jour la fuite donne des etats données sonnées et brisé on aura l'air con » (utilisateur, 2026-11-20) ; l'icône de l'État et son compte, le nom au survol, quand `PICTOS` en a une |
   | Corruption (`test-de-corruption-*`) | Réussite | Échec | les Points gagnés (« +2 Points de Corruption », « aucun Point ») |
   | Test étendu (`dissipation`, `focalisation`) | Réussite | Échec | rien ; le cumul sous la phrase |
   | Test simple (`jet-de-competence`, `evenement-de-route-echec`) | Réussite | Échec | rien |

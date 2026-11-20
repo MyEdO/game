@@ -34,6 +34,13 @@ export interface EtatPorte {
   presse?: true;
 }
 
+/** Un État que pose une conséquence (LDB 16) : son id, son nom, son compte. */
+export interface EtatPose {
+  etat: 'aTerre' | 'hemorragique' | 'brise' | 'sonne';
+  nom: string;
+  nombre: number;
+}
+
 /** Une ligne du journal : une phrase, ou la borne d'un round ; `commence`, celle du premier. */
 export type EntreeDuJournal = string | { round: number; commence?: true };
 
@@ -264,7 +271,7 @@ export type Centre =
    *  décide. */
   | { role: 'corruption'; influence: string; corruption: { points: number; seuil: number }; gain: number; issue: string; enjeu: Enjeu }
   /** Ce qu'un coup inflige au lieu d'un DR : l'arme, le coup, les États qu'il pose, la phrase d'issue. */
-  | { role: 'consequence'; arme: string; coup: string; etats: { nombre: number; etat: string }; issue: string }
+  | { role: 'consequence'; arme: string; coup: string; etats: [EtatPose, ...EtatPose[]]; issue: string }
   /** Les Tests de plusieurs testeurs, ligne à ligne : leur nom, leur Test commun, chaque ligne, la règle qui les départage ;
    *  `somme`, le cumul de leurs DR. */
   | { role: 'tests'; nom: string; test: string; lignes: LigneDeTest[]; regle?: { texte: string; effet: string }; somme?: true }
@@ -1878,18 +1885,32 @@ export interface NouvellePartie {
   modifier?: true;
 }
 
-/** Une entrée du Compendium : son nom, sa source (le sigle du livre, la page) ; `pointee`. */
+/** Une entrée d'une liste du Compendium : son nom, le sigle de son livre ; `pointee`, celle dont la fiche est lue. */
 export interface EntreeDuCompendium {
   nom: string;
-  source: { livre: string; page: number };
+  livre: string;
   pointee?: true;
 }
 
-/** Un renvoi de la fiche : sa rubrique, son compte, les entrées nommées (le reste se compte). */
-export interface Renvoi {
+/** Une catégorie du Codex : son nom, son nombre d'entrées. */
+export interface CategorieDuCompendium {
+  nom: string;
+  entrees: number;
+}
+
+/** Une famille du Codex ouverte à l'Index : ses catégories, puis ses sous-groupes et les leurs. */
+export interface FamilleDeLIndex {
+  nom: string;
+  categories: CategorieDuCompendium[];
+  groupes: { nom: string; categories: CategorieDuCompendium[] }[];
+}
+
+/** Un groupe de renvois de la fiche : sa rubrique (l'onglet), ce qui précise son ordre, toutes les entrées qui
+ *  désignent celle-ci (leur nombre fait le compte de l'onglet), chacune et sa note (rang, livre). */
+export interface GroupeDeRenvois {
   rubrique: string;
-  compte: number;
-  noms: string[];
+  note?: string;
+  noms: { nom: string; note?: string }[];
 }
 
 /** Un champ du formulaire de l'atelier : son libellé, sa valeur ; `long`, sur plusieurs lignes ; `saisi`, le curseur y
@@ -1902,25 +1923,29 @@ export interface ChampDeFormulaire {
   aide?: { texte: string; lien?: string };
 }
 
-/** Le Compendium, sur la table : le titre, les familles et l'ouverte, ses catégories (leur compte) et l'ouverte, la
- *  recherche, les livres (leur compte) ; la catégorie au feuillet ouvert ; l'entrée pointée, en fiche (ses puces, sa
- *  description, ses liens, ses renvois) ou à l'atelier (ses champs par paires, les champs qu'elle ne porte pas, la
- *  raison qui ferme « Supprimer ») ; « Nouvelle entrée » fermée tant que l'atelier est ouvert. */
+/** Le Compendium, plein écran de consultation : le titre, le fil (famille, catégorie ; l'entrée lue le clôt) ; la
+ *  catégorie ouverte et son compte, les livres de ses entrées (leur compte), sa liste (les lettres du rail, les
+ *  entrées) ; l'entrée lue et ses renvois (l'onglet ouvert, les groupes) ; sa fiche (ses puces, `lien` : la valeur
+ *  renvoie à une entrée ; sa description, les mots qui y renvoient à une entrée) et le renvoi survolé avec son aperçu ; ou l'atelier (ses champs par paires,
+ *  les champs qu'elle ne porte pas, la raison qui ferme « Supprimer ») ; l'Index posé par-dessus (les familles et leur
+ *  nombre de catégories, l'ouverte, le total des entrées) ; la recherche dans tout le Compendium et ses résultats,
+ *  groupés par catégorie, à la place de la liste. */
 export interface Compendium {
   nom: string;
-  gabarit: 'gestion';
+  gabarit: 'consultation';
   decor: 'table';
-  titre: { nom: string; sous: string };
-  familles: string[];
-  famille: string;
-  categories: { nom: string; entrees: number }[];
-  categorie: string;
-  recherche: string;
+  titre: string;
+  fil: [string, string];
+  categorie: CategorieDuCompendium;
   livres: { sigle: string; entrees: number }[];
-  feuillet: { n: number; sur: number; entrees: EntreeDuCompendium[] };
-  genre: string;
-  fiche?: { puces: { rubrique: string; valeur: string }[]; description: string[]; liens: string[]; renvois: Renvoi[] };
+  liste: { lettres: string; entrees: EntreeDuCompendium[] };
+  entree: { nom: string; genre: string; source: { livre: string; page: number } };
+  renvois: { onglet: string; groupes: GroupeDeRenvois[] };
+  fiche?: { puces: { rubrique: string; valeur: string; lien?: true }[]; description: string[]; liens: string[] };
+  survol?: { renvoi: string; nom: string; sous: string; texte: string; source: { livre: string; page: number } };
   atelier?: { paires: ChampDeFormulaire[][]; absents: string[]; refus: string };
+  index?: { familles: { nom: string; categories: number }[]; ouverte: FamilleDeLIndex; entrees: number };
+  recherche?: { texte: string; groupes: { categorie: string; entrees: EntreeDuCompendium[] }[] };
 }
 
 /** La coop, sur la table : le titre, les quatre sièges de la tablée (leur joueur et les héros qu'il tient, ou à
