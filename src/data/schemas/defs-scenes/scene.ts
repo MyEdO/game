@@ -54,6 +54,7 @@ import { champsDeChoix } from '../grammaire/choixDeCreation';
 import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../engine/pnjDeCarriere';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import { proseNommee } from '../grammaire/prose';
 import { estUnNavireAPonts, findCreatureById, findSiegeEngineById, findTrappingById } from '../../index';
 import { porteurDuProfil } from '../../../engine/trappingChoices';
@@ -230,7 +231,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   presetId: z.string().optional(),
   crewIds: z.array(z.string()).optional(),
   postes: z.array(authoredShipPosteSchema).optional(),
-  upgrades: z.array(navalTraitRefSchema).optional(),
+  upgrades: listeSansCle(z.array(navalTraitRefSchema)).optional(),
   dialogueId: ref(DIALOGUES_DE_LA_SCENE).optional(),
   /** Contrepartie d'un Test de Sociabilité qui lit les jetons de Mécénat — arbitrage MAISON (ACE 12 l.60-62). */
   amateur: amateurSchema.optional(),
@@ -242,8 +243,8 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
    *  Niveau atteint, la dernière actuelle ; les Talents choisis et les Compétences des emplacements à choix, par
    *  carrière ; les choix de dotation de la carrière actuelle. EDO 11 l.17-21 */
   carrieres: recordDIds('career', nommerNoeud(z.number().int().min(1), { nom: 'niveau' })).optional(),
-  talentsDeCarriere: recordDIds('career', z.array(refOuSpec('talent'))).optional(),
-  competencesDeCarriere: recordDIds('career', z.array(refOuSpec('skill'))).optional(),
+  talentsDeCarriere: recordDIds('career', listeSansCle(z.array(refOuSpec('talent')))).optional(),
+  competencesDeCarriere: recordDIds('career', listeSansCle(z.array(refOuSpec('skill')))).optional(),
   dotationsDeCarriere: champsDeChoix.trappingChoices,
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
@@ -265,12 +266,12 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   combat: nommerChamps(z
     .strictObject({
       /** OPTIONNELS choisis (`LDB 76 l.45`). */
-      optionals: z.array(optionalDeSceneSchema).optional(),
+      optionals: listeSansCle(z.array(optionalDeSceneSchema)).optional(),
       /** Sorts choisis par l'auteur (`sortsDuPnj`, `engine/sortsDuPnj.ts`). #3715 */
       spells: refs('spell').optional(),
       /** Caractéristiques aléatoires au spawn (`LDB 77 l.108`). */
       randomChars: z.boolean().optional(),
-      skills: z.array(competenceChiffreeSchema).optional(),
+      skills: listeSansCle(z.array(competenceChiffreeSchema)).optional(),
       /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. */
       hiddenUntilCombat: z.boolean().optional(),
     }), { optionals: { label: "options" }, spells: { label: "sorts" , texte: { regime: "technique"} }, randomChars: { label: "caractéristiques aléatoires" }, skills: { label: "Compétences" }, hiddenUntilCombat: { label: "caché jusqu’au combat" } })
@@ -315,7 +316,7 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     ent.postes?.forEach((p, rang) => {
       const piece = { trappingId: p.trappingId, subType: findSiegeEngineById(p.trappingId)?.subType?.id };
       for (const id of Object.keys(p.ammo ?? {})) {
-        if (!chargeLArme({ trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.trappingId} » ne charge pas` });
+        if (!chargeLArme(findTrappingById, { trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.trappingId} » ne charge pas` });
       }
       if (p.selectedAmmo && !(p.selectedAmmo.id in (p.ammo ?? {}))) fautes.push({ chemin: ['postes', rang, 'selectedAmmo'], message: `munition choisie « ${p.selectedAmmo.id} » hors du coffre du poste` });
     });

@@ -24,6 +24,7 @@ import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement } from '../mount';
 import { materialiserLaBarre } from '../dispositionConsole';
+import { objetDuNarratif } from '../monde/resolveursDuNarratif';
 import { isFrenzied, PSY, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
 import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
 import { combatStakeRef } from '../../data';
@@ -46,7 +47,7 @@ const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
  *  barre du combattant (`materialiserLaBarre`), avant tout rendu de son tour. */
 export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant | undefined): void {
   if (c && !isOutOfAction(c)) {
-    const { barre } = materialiserLaBarre(c);
+    const { barre } = materialiserLaBarre(c, objetDuNarratif(get().campaignNarratif));
     if (barre !== c.barre) c.barre = barre;
   }
   fireTurnEdgeTriggers(get, set, c, 'onTurnStart');

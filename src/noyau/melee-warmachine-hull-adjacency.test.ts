@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, expect } from 'vitest';
 import { attackPlan, firedWeapon } from './combatFlow';
 import { combatGeomOf, combatGeomOfList, pickAttackWeaponList } from './mount';
@@ -110,7 +111,7 @@ describe('pickAttackWeaponList — auto-choix EXCLUT toujours l\'arme du poste s
     const gate = door({ x: 5, y: 0 });
     const ram = hull({ x: 4, y: 0 }, ramPoste);
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste, weapons: [sword, { ...ramWeapon }] } as never);
-    const w = firedWeapon(scene(), chef, gate, ramWeapon.uid, [chef, ram, gate]);
+    const w = firedWeapon(findTrappingById, scene(), chef, gate, ramWeapon.uid, [chef, ram, gate]);
     expect(w.uid).toBe(ramWeapon.uid);
   });
 

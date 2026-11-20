@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { FLOWS } from './rollFlowSpecs';
 import { ARME_INTROUVABLE, defenseDodgeMods, mountUp } from './mount';
@@ -69,7 +70,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     const preview = previewAttack(get, a, b);
     expect(preview.inRange).toBe(true);
     seedBattleRng(1);
-    const r = resolveAttack(get, a, b, firedWeapon(get().scene, a, b, undefined, get().battle?.combatants));
+    const r = resolveAttack(get, a, b, firedWeapon(findTrappingById, get().scene, a, b, undefined, get().battle?.combatants));
     expect(r).not.toBeNull();
     expect(preview.target).toBe(r!.res.attackerDetail!.target); // l'aperçu ne ment pas
   });
@@ -143,7 +144,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
 
     const cibleDuJet = () => {
       seedBattleRng(1);
-      return resolveAttack(get, a1, b1, firedWeapon(get().scene, a1, b1))?.res.attackerDetail?.target;
+      return resolveAttack(get, a1, b1, firedWeapon(findTrappingById, get().scene, a1, b1))?.res.attackerDetail?.target;
     };
     expect(cibleDuJet()).toBe(70); // A1 et A2 contre B1
     engage(a1, b2);
@@ -482,7 +483,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     const p = previewAttack(get, a, b);
     expect(p.difficultyCombined, 'la fixture doit VRAIMENT tomber hors des crans — sinon elle ne juge pas le régime').toEqual(expect.any(Number));
     seedBattleRng(3);
-    const r = resolveAttack(get, a, b, firedWeapon(get().scene, a, b, undefined, get().battle?.combatants));
+    const r = resolveAttack(get, a, b, firedWeapon(findTrappingById, get().scene, a, b, undefined, get().battle?.combatants));
     const d = r!.res.attackerDetail!;
     expect(d.difficulty).toBe(p.difficulty);
     expect(d.difficultyCombined).toBe(p.difficultyCombined);
@@ -499,7 +500,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     const p = previewAttack(get, a, b, 'tete');
     expect(p.difficulty, 'entrée de la table `LDB 14 l.73`').toBe('difficile');
     seedBattleRng(4);
-    const r = resolveAttack(get, a, b, firedWeapon(get().scene, a, b, undefined, get().battle?.combatants), 'tete');
+    const r = resolveAttack(get, a, b, firedWeapon(findTrappingById, get().scene, a, b, undefined, get().battle?.combatants), 'tete');
     const d = r!.res.attackerDetail!;
     expect(d.difficulty).toBe('difficile');
     expect(d.difficultyCombined).toBeUndefined();
@@ -532,7 +533,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     expect(pending.difficulty, 'la circonstance compose le palier').toBe('tresDifficile');
 
     seedBattleRng(6);
-    const r = resolveAttack(neige, a, b, firedWeapon(neige().scene, a, b, undefined, neige().battle?.combatants));
+    const r = resolveAttack(neige, a, b, firedWeapon(findTrappingById, neige().scene, a, b, undefined, neige().battle?.combatants));
     const dd = r!.res.defenderDetail!;
     expect(dd.difficulty, 'le résultat dit la MÊME Difficulté que la rangée pré-jet').toBe(pending.difficulty);
     expect(dd.difficultyParts).toEqual(pending.difficultyParts);
@@ -559,13 +560,13 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     const dodge = defenseDodgeMods(neige(), b);
     expect(dodge.map((m) => m.value), 'la fixture doit VRAIMENT porter la pénalité de neige').toEqual([-30]);
 
-    const rd = bestRangedDefense(archer, b, archer.weapons[0], 1, true, 2);
+    const rd = bestRangedDefense(findTrappingById, archer, b, archer.weapons[0], 1, true, 2);
     expect(rd?.mode, 'la fixture doit VRAIMENT ouvrir une défense au tir').toBe('esquive');
     const pending = previewDefense(b, { mode: rd!.mode, parryWeapon: rd!.parryWeapon, vsWeapon: archer.weapons[0], dodgeMods: dodge });
     expect(pending.difficulty).toBe('tresDifficile');
 
     seedBattleRng(8);
-    const dd = resolveAttack(neige, archer, b, firedWeapon(neige().scene, archer, b, undefined, neige().battle?.combatants))!.res.defenderDetail!;
+    const dd = resolveAttack(neige, archer, b, firedWeapon(findTrappingById, neige().scene, archer, b, undefined, neige().battle?.combatants))!.res.defenderDetail!;
     expect(dd.difficulty, 'le tir défendu applique la MÊME pénalité d’esquive que l’aperçu').toBe(pending.difficulty);
     expect(dd.difficultyParts).toEqual(pending.difficultyParts);
     expect(inexplique({ base: dd.base, mods: dd.mods, target: dd.target, difficulty: dd.difficulty, difficultyCombined: dd.difficultyCombined, clamped: dd.clamped })).toBe(0);
@@ -588,7 +589,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
       net: { mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} },
     } as never);
     seedBattleRng(5);
-    const r = resolveAttack(banc.getState, a, b, firedWeapon(banc.getState().scene, a, b, undefined, banc.getState().battle?.combatants), 'tete')!; // Localisation visée : entrée de la table (−20)
+    const r = resolveAttack(banc.getState, a, b, firedWeapon(findTrappingById, banc.getState().scene, a, b, undefined, banc.getState().battle?.combatants), 'tete')!; // Localisation visée : entrée de la table (−20)
     const avant = r.res.attackerDetail!;
     expect(avant.difficulty, 'la fixture doit VRAIMENT composer un palier depuis l’env').toBe('tresDifficile');
 
@@ -819,11 +820,11 @@ describe('ATTAQUE NATURELLE : le gel du jet ne la transforme pas en arme tenue (
     const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const battle = { combatants: [a, b] } as never;
     const pa = { attackerId: a.id, targetId: b.id, location: null, result: null, freeKind: 'morsure' } as unknown as PendingAttack;
-    expect(attackWeaponOf(banc.getState().scene, battle, a, b, pa).type, 'la morsure est une attaque de MÊLÉE').toBe('melee');
+    expect(attackWeaponOf(findTrappingById, banc.getState().scene, battle, a, b, pa).type, 'la morsure est une attaque de MÊLÉE').toBe('melee');
 
     // Et APRÈS le gel du jet (l'objet arme figé est l'arme TENUE) : la morsure prime toujours.
     const gele = { ...pa, weapon: flechettes } as unknown as PendingAttack;
-    expect(attackWeaponOf(banc.getState().scene, battle, a, b, gele).type, 'le gel ne prime jamais sur l’attaque naturelle').toBe('melee');
+    expect(attackWeaponOf(findTrappingById, banc.getState().scene, battle, a, b, gele).type, 'le gel ne prime jamais sur l’attaque naturelle').toBe('melee');
   });
 });
 

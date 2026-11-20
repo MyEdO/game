@@ -12,9 +12,10 @@
 import { useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { HitLocation, ItemInstance } from '../engine/types';
-import { isCapeItem, containerFillEnc, armourLayer, itemLabel, objetAuProfilEffectif } from '../engine/items';
+import { isCapeItem, containerFillEnc, armourLayer, itemLabel, objetAuProfilEffectif, type TrappingResolver } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { gestesDeLObjet, type GestesDeLObjet } from '../noyau/gestesDeLObjet';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { weaponStatParts } from '../engine/weaponStats';
 import { PlaqueRow } from './PlaqueRow';
 import { ItemIcon } from './ItemIcon';
@@ -56,7 +57,7 @@ export interface CarrierInventoryProps {
 }
 
 /** Groupes d'affichage du Sac (E3, langage du registre État) — chaque objet dans son PREMIER groupe. */
-const GROUPS: { label: string; pred: (it: ItemInstance) => boolean }[] = [
+const GROUPS: { label: string; pred: (it: ItemInstance, resolveTrapping: TrappingResolver) => boolean }[] = [
   { label: 'Armes', pred: (it) => it.kind === 'melee' || it.kind === 'distance' },
   { label: 'Armures & protections', pred: (it) => it.kind === 'armor' || isCapeItem(it) },
   { label: 'Consommables', pred: isConsumable },
@@ -80,6 +81,8 @@ export function CarrierInventory({
   const possessions = useGame((s) => s.possessions);
   const gameTime = useGame((s) => s.gameTime);
   const scene = useGame((s) => s.scene);
+  const campaignNarratif = useGame((s) => s.campaignNarratif);
+  const resolveTrapping = objetDuNarratif(campaignNarratif);
   // Registre (#492 lot POSSESSIONS B) : un clic ÉLIT une seule rangée à la fois (ré-clic désélectionne).
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const carrier = { items };
@@ -106,7 +109,7 @@ export function CarrierInventory({
   const renderRow = (it: ItemInstance, indent = false): ReactNode => {
     const isProsthesis = it.subType === 'protheses'; // prothèse (LDB 73, Groupe id) : se PORTE pour annuler un malus d'amputation
     const isCape = isCapeItem(it); // cape/manteau : emplacement Cape (cosmétique, onglet Combat)
-    const gestes = gestesDeLObjet({ battle, party, possessions, gameTime, scene }, carrierId, it.uid);
+    const gestes = gestesDeLObjet({ battle, party, possessions, gameTime, scene, campaignNarratif }, carrierId, it.uid);
     const isWeaponItem = it.kind === 'melee' || it.kind === 'distance';
     const handLabel = isWeaponItem ? (weaponHandLabel?.(it) ?? null) : null;
     // Surbrillance « équipé » : arme tenue dans le set ACTIF (défaut `it.equipped`) ; sinon armure portée.
@@ -220,7 +223,7 @@ export function CarrierInventory({
   const partition: ItemInstance[][] = GROUPS.map(() => []);
   // Niveau supérieur = objets NON rangés ; les objets `inside` sont rendus IMBRIQUÉS sous leur contenant.
   for (const it of items.filter((i) => !i.inside)) {
-    const gi = GROUPS.findIndex((g) => g.pred(it));
+    const gi = GROUPS.findIndex((g) => g.pred(it, resolveTrapping));
     partition[gi].push(it);
   }
 

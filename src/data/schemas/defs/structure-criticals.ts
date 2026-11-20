@@ -47,7 +47,7 @@ const doc = document(
           ctx.addIssue({
             code: 'custom',
             path: ['entries'],
-            message: `structure-criticals.json : les rangées ne couvrent pas le ${formatDice(table.die)} d'un seul tenant — ${ecarts.join(' ; ')}. La table est lue par \`findTableEntry\` (\`src/engine/tables.ts\`), qui REPLIE sur la dernière rangée : un trou ferait tomber le Critique sur l'Effondrement.`,
+            message: `structure-criticals.json : les rangées ne couvrent pas le ${formatDice(table.die)} d'un seul tenant — ${ecarts.join(' ; ')}.`,
           });
         }
       }),

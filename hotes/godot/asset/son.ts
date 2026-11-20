@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { sha256 } from './empreinte.ts';
-import { DOSSIER_DES_SONS } from './epingles.ts';
+import { DOSSIER_DES_SONS, type ProvenanceFabriquee } from './epingles.ts';
 
 /** Ce que la provenance d'un son consigne de son origine, et ce que sa conversion en garde. */
 export interface DemandeDeSon {
@@ -22,14 +22,6 @@ export interface DemandeDeSon {
   readonly debut?: number;
   /** La durée de l'extrait gardé, en secondes. */
   readonly duree?: number;
-}
-
-/** L'entrée de provenance d'un son épinglé. */
-export interface ProvenanceDeSon {
-  readonly sha256: string;
-  readonly source: string;
-  readonly licence: string;
-  readonly traitement: string;
 }
 
 /** Les arguments de `ffmpeg` qui convertissent `entree` en `sortie` au format des sons, selon `demande`. */
@@ -64,17 +56,17 @@ export function refusDuSon(nom: string, demande: DemandeDeSon, provenance: Reado
 /** Épingle sous `nom` le fichier audio `entree` selon `demande` dans le dossier `dossier` : converti, déposé et inscrit
  *  à sa provenance, clés rangées. Rend son entrée de provenance, ou lève sur un refus (`refusDuSon`) ou un échec de
  *  `ffmpeg`, sans rien écrire. */
-export function epinglerUnSon(entree: string, nom: string, demande: DemandeDeSon, dossier = DOSSIER_DES_SONS): ProvenanceDeSon {
+export function epinglerUnSon(entree: string, nom: string, demande: DemandeDeSon, dossier = DOSSIER_DES_SONS): ProvenanceFabriquee {
   if (!existsSync(entree)) throw new Error(`${entree} : fichier introuvable`);
   const chemin = join(dossier, 'provenance.json');
-  const provenance = JSON.parse(readFileSync(chemin, 'utf8')) as Record<string, ProvenanceDeSon>;
+  const provenance = JSON.parse(readFileSync(chemin, 'utf8')) as Record<string, ProvenanceFabriquee>;
   const refus = refusDuSon(nom, demande, provenance);
   if (refus) throw new Error(refus);
   const sortie = join(dossier, nom);
   const conversion = spawnSync('ffmpeg', argumentsDeConversion(entree, sortie, demande), { encoding: 'utf8' });
   if (conversion.error) throw new Error(`ffmpeg : ${conversion.error.message}`);
   if (conversion.status !== 0) throw new Error(`ffmpeg : code de sortie ${conversion.status}\n${conversion.stderr}`);
-  const inscrite: ProvenanceDeSon = { sha256: sha256(readFileSync(sortie)), source: demande.source, licence: demande.licence, traitement: traitementDe(demande) };
+  const inscrite: ProvenanceFabriquee = { sha256: sha256(readFileSync(sortie)), source: demande.source, licence: demande.licence, traitement: traitementDe(demande) };
   const rangee = Object.fromEntries(Object.entries({ ...provenance, [nom]: inscrite }).sort(([a], [b]) => (a < b ? -1 : 1)));
   writeFileSync(chemin, `${JSON.stringify(rangee, null, 2)}\n`);
   return inscrite;

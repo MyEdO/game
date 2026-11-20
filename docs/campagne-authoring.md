@@ -367,9 +367,12 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `src/noyau/narratifEdit.ts`). `OBJETS_DU_PROJET` admet les objets possédables de `narratif.objets` dans
   `giveTrapping.trappingId`, `apparencesObjets`, l'inventaire d'une entité, la dotation directe du profil
   d'un preset et la silhouette fixe `grantWeapon.form`. Une arme de campagne maniable sans poste peut
-  désigner un autre objet du projet dans ses effets de touche, de critique et de fin d’attaque. Les références des passifs et des autres
-  canaux d'objet restent fermées au catalogue. Les choix et lots de dotation conservent leurs formes
-  de catalogue. Les effets de navire et l'opération `provisions` prennent leurs vivres dans la liste
+  désigner un autre objet du projet dans ses effets de touche, de critique et de fin d’attaque. Les opérations des
+  flux de consommation et des effets d’un objet porté ou tenu peuvent aussi désigner les objets du projet, selon les
+  fenêtres que leur chemin de jeu ouvre. Un effet facultatif qui désigne un objet du projet passe par une fenêtre de
+  choix. Un flux qui accorde une attaque gratuite admet ces références à la touche ou quand son porteur est chargé.
+  Saisissez l’enjeu de chaque Test de consommation ou d’effet porté d’un objet du projet. Les passifs gardent les
+  références du catalogue, comme les choix et lots de dotation. Les effets de navire et l'opération `provisions` prennent leurs vivres dans la liste
   `longsVoyages.vivresDeCale` de `sea-navigation.json`.
   Renommer met à jour les valeurs et les clés de record à leur rang. Le retrait est refusé tant qu'une
   référence désigne l'entrée et le refus indique ses lieux. À l'éditeur Godot, chaque

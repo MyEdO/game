@@ -69,7 +69,7 @@ import { isSorceryDomain } from '../engine/domainAttributes';
 import { itemCapability } from '../engine/capabilities';
 import { eligibleTalent, spellCost, verdictApprentissage } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { levelsForCareer, byId, careerLabelFor, findSpellById, findTrappingById, refLabel, type SpellData } from '../data/index';
+import { levelsForCareer, byId, careerLabelFor, findSpellById, refLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { rangDAjout, rangsDuGroupe, seatOwns } from './sieges';
@@ -730,7 +730,7 @@ export function entrainerLaProthese(get: Get, set: Set, uid: string): void {
     const tier = nextProsthesisTier(it);
     if (!tier) {
       // Prothèse non entraînable (aucun palier déclaré / non portée) vs. déjà entièrement maîtrisée.
-      const done = it.equipped && !!it.trappingId && (findTrappingById(it.trappingId)?.prosthesisTraining?.length ?? 0) > 0;
+      const done = it.equipped && (it.prosthesisTraining?.length ?? 0) > 0;
       msg = done ? t('pf.prosthesisTrained', { name: clone.label, item: it.label }) : t('pf.prosthesisNotTrainable', { name: clone.label });
       return h;
     }

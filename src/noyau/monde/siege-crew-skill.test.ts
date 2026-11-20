@@ -1,3 +1,4 @@
+import { findTrappingById } from '../../data';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyShipPostes, servingCrewPresent, servablePostes } from './shipPostes';
@@ -72,7 +73,7 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
     const all = [mkEmplacement(poste), chefArb, sArc, target];
     applyShipPostes(all);
 
-    const w = firedWeapon(null, chefArb, target, poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, null, chefArb, target, poste.item.uid, all);
     expect(w.reload).toBe(6); // Recharge 3 ×2 (sous-effectif : 1 < Indice 2)
     expect(combatValue(chefArb, 'distance', w)).toBe(38); // tir à la Projectiles (Arbalète) du chef, pas 55
     expect(hasQuality(w, 'pointue')).toBe(false); // 1 servant valide → solo → perd ses Atouts (l.3818)
@@ -87,7 +88,7 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
     applyShipPostes(all);
 
     expect(servingCrewPresent(chefArb, all)).toBe(2);
-    const w = firedWeapon(null, chefArb, target, poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, null, chefArb, target, poste.item.uid, all);
     expect(w.reload).toBe(3); // effectif complet → pas de ×2
     expect(hasQuality(w, 'pointue')).toBe(true); // équipe complète → Pointue conservée
   });
@@ -106,7 +107,7 @@ describe('(b) Poudre noire — Ingénierie qualifie pour un canon (l.3816)', () 
     applyShipPostes(all);
 
     expect(servingCrewPresent(chef, all)).toBe(2); // chef (Poudre noire) + sIng (Ingénierie) ; sArb exclu
-    const w = firedWeapon(null, chef, mkEnemy('cible', 9, 6), poste.item.uid, all);
+    const w = firedWeapon(findTrappingById, null, chef, mkEnemy('cible', 9, 6), poste.item.uid, all);
     expect(w.reload).toBe(4); // effectif complet (2 ≥ Indice 2) → Recharge normale
   });
 

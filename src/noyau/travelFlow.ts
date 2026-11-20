@@ -70,7 +70,7 @@ import { rule } from '../engine/policy';
 import { isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import { currentSeason, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
-import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
+import { buildStageSteps, buildWeatherResistanceSteps, groupeAuxAguets, type StageContext } from './travelPostes';
 import { rangerLesEvenements } from './evenementDuJour';
 import { jouerLaJournee, type TableStepDef, type TableStepRow } from './cascade';
 import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
@@ -127,7 +127,7 @@ export interface TravelRecapDay {
  *  ensuite se battre. Fermer la modale (bouton/Échap) DÉCLENCHE la suite : pas d'évitement. */
 export type TravelThen =
   | { kind: 'effects'; effects: import('../data/schemas/defs-scenes/effets').Effect[] }
-  | { kind: 'ambush'; scene: string; entry?: string; encounter: string; noSurprise: boolean };
+  | { kind: 'ambush'; scene: string; entry?: string; encounter: string; noSurprise: boolean | 'groupe' };
 
 /** Récapitulatif d'un segment de voyage — la résolution étant SYNCHRONE (l'horloge saute en
  *  bloc), le joueur n'en voyait rien hors journal (audit M4) : modale à l'arrivée, à
@@ -976,7 +976,12 @@ const tableDesPeripeties = memoParVersion('peripeties', () => new Map<string, Ta
 /** Pose l'INTERRUPTION du jour sur le contexte terrestre (relue par `continueTravelDayAfterCascade`). */
 function markLandInterrupt(get: Get, set: Set, then: TravelThen, destLabel: string): string[] {
   const plan = get().travelPlan;
-  if (plan?.land) set({ travelPlan: { ...plan, land: { ...plan.land, interrupt: then } } });
+  if (plan?.land) {
+    // EDOC 08 l.157.
+    const interrupt: TravelThen = then.kind === 'ambush' && !then.noSurprise && groupeAuxAguets(plan.stage)
+      ? { ...then, noSurprise: 'groupe' } : then;
+    set({ travelPlan: { ...plan, land: { ...plan.land, interrupt } } });
+  }
   return [t('tf.voyageInterrompu', { to: destLabel })];
 }
 

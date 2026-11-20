@@ -328,7 +328,7 @@ import {
   libelleMunitionRequise,
   damageArmour,
   deviatableArmourAt,
-  casserLaPieceBaclee,
+  casserLaPieceBaclee, type TrappingResolver,
   lacherLArme,
   laisserTomber,
   rederiverLArmeTenue,
@@ -720,14 +720,14 @@ export function applyIncomingMeleeAdvantage(get: Get, attacker: Combatant, targe
  *
  * Arme d'une gratuite : `armeDeLaGratuite`. LDB 85 l.387 ; LDB 85 l.405
  */
-export function attackWeaponOf(scene: Scene | null, battle: BattleState, attacker: Combatant, target: Combatant, pa: PendingAttack): Weapon {
+export function attackWeaponOf(resolveTrapping: TrappingResolver, scene: Scene | null, battle: BattleState, attacker: Combatant, target: Combatant, pa: PendingAttack): Weapon {
   // L'attaque NATURELLE prime : son arme est SYNTHÉTISÉE (aucune arme tenue ne la porte), donc le
   // repli par uid ne peut pas la rendre. Le JET la reçoit d'ici (`jetLancer('attaque')`, `FLOWS.attaque.resolve`).
   const freeNatural = pa.freeKind ? armeDeLaGratuite(attacker, pa.freeKind, pa.weaponUid) : null;
   // Sinon l'arme FIGÉE au jet (#1153) : `Combatant.weapons` ne porte que le loadout ACTIF, un uid seul
   // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
   // lancé (`openAttackCascade`, `frapperEnBalayage`) ou 2ᵉ frappe (`frapperDeLaSecondeArme`).
-  return freeNatural ?? pa.weapon ?? firedWeapon(scene, attacker, target, pa.weaponUid, battle.combatants, pa.harpoonRopeCut, pa.atoutChoisi);
+  return freeNatural ?? pa.weapon ?? firedWeapon(resolveTrapping, scene, attacker, target, pa.weaponUid, battle.combatants, pa.harpoonRopeCut, pa.atoutChoisi);
 }
 
 /** Combattant qui ENCAISSE la touche d'une attaque PILOTÉE (`PendingAttack`) — SOURCE UNIQUE de l'aperçu
@@ -750,14 +750,14 @@ export function armeDeLaGratuite(attacker: Combatant, kind: string, weaponUid?: 
 /** Arme effectivement tirée : mêlée au contact, distance sinon (Atout Pistolet pour tirer en Combat
  *  rapproché — LDB Armes l.297-298), AUGMENTÉE de la munition pour un héros (Dégâts + Atouts combinés).
  *  Centralisé pour que résolution / Chance / application voient la MÊME arme (munition, Empaleuse, reload). */
-export function firedWeapon(scene: Scene | null, attacker: Combatant, target: Combatant, weaponUid?: string, combatants?: Combatant[], harpoonRopeCut?: boolean, atoutChoisi?: PendingAttack['atoutChoisi']): Weapon {
+export function firedWeapon(resolveTrapping: TrappingResolver, scene: Scene | null, attacker: Combatant, target: Combatant, weaponUid?: string, combatants?: Combatant[], harpoonRopeCut?: boolean, atoutChoisi?: PendingAttack['atoutChoisi']): Weapon {
   // Choix explicite du joueur (uid) sinon auto-choix PAR-ARME (#BUG-A, poule-et-œuf) : chaque candidate de
   // mêlée est évaluée avec SA PROPRE géométrie (`pickAttackWeaponList`) — un cavalier au contact par sa
   // monture choisit la mêlée (LDB 14), un chef de bélier via l'empreinte de LA PIÈCE, mais une arme
   // personnelle (épée du chef) ne bénéficie JAMAIS de l'allonge de la coque servie.
   const arme = pickAttackWeaponList(scene, combatants, attacker, target, weaponUid);
   const base = appliquerAtoutOptionnel(arme, atoutChoisi && arme.uid === atoutChoisi.weaponUid ? atoutChoisi.id : undefined);
-  const ammo = base.type === 'distance' && attacker.kind === 'heros' ? loadedAmmo(attacker, base) : undefined;
+  const ammo = base.type === 'distance' && attacker.kind === 'heros' ? loadedAmmo(resolveTrapping, attacker, base) : undefined;
   let w = ammo ? weaponWithAmmo(base, ammo) : base;
   // Pièce SERVIE en sous-effectif (poste) : bake les Défauts d'Arme d'équipe selon les servants APTES présents
   // (MDG 12 l.448-460) — recharge ×2 / Imprécise / Dangereuse, effectif COMPLET → tir net. `combatants` n'est
@@ -866,8 +866,9 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // gate de ressource (Recharge/munition), pour ne pas dire « recharger » à une arme de toute façon bannie.
   if (banRangedActive(b)) return { reason: 'armeBannie', detail: `${w.label} : les armes à distance sont interdites (duel judiciaire).` };
   if (!weaponLoaded(active, w)) return { reason: 'unloaded', detail: `${active.label} doit recharger ${w.label}.` };
-  const need = libelleMunitionRequise(w);
-  if (need !== undefined && !loadedAmmo(active, w)) {
+  const resolveTrapping = objetDuNarratif(get().campaignNarratif);
+  const need = libelleMunitionRequise(resolveTrapping, w);
+  if (need !== undefined && !loadedAmmo(resolveTrapping, active, w)) {
     return { reason: 'noammo', detail: `Pas de munitions (${need}) pour ${w.label}.`, need };
   }
   // PORTÉE MINIMALE d'une machine de siège (ADE II 8 l.251/253) : REFUS (pas un malus) si la cible est
@@ -875,7 +876,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // trébuchet/mortier : rien sous la Portée Courte (l.251). DONNÉE générique `w.minRangeBand` (pas un flag par-machine).
   if (w.minRangeBand) {
     const distanceTiles = distanceDeLAttaque(get(), active, target, w);
-    const rangeM = porteeDeTir(active, w);
+    const rangeM = porteeDeTir(resolveTrapping, active, w);
     if (rangeM != null && belowMinRangeBand(distanceTiles, rangeM, w.minRangeBand, sceneMetresPerTile(get().scene)))
       return { reason: 'portee-min', detail: `${w.label} ne peut pas tirer d'aussi près (${rangeBandName(distanceTiles, rangeM, sceneMetresPerTile(get().scene)) ?? 'trop proche'}).` };
   }
@@ -1271,12 +1272,13 @@ export function resolveAttack(
   const { env, blocked, inMelee, crowd, cm, flankRear } = attackEnv(get, attacker, target, weapon, { dansLeTas, tirImmobile });
   if (blocked) return null; // pas de Ligne de Vue (mur/décor/fumée) → pas de tir (LDB 13 l.114)
   if (weapon.type === 'distance') {
+    const resolveTrapping = objetDuNarratif(s.campaignNarratif);
     const grille = garanti(battle, attacker.id, 'combat du tir');
     const dist = distanceDeLAttaque(s, attacker, target, weapon);
     const modsDR = visibiliteDeLAttaque(get, weapon, dist * mpt, tirIndirect);
     // « Tirer dans le tas » (LDB 14 l.106) : un ennemi AU HASARD est touché ; succès dû au seul bonus = 0 DR.
     if (dansLeTas) {
-      const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt, withhold, modsDR);
+      const res = resolveRanged(resolveTrapping, attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt, withhold, modsDR);
       if (res.hit && crowd.length) {
         const victim = crowd[battleRng().int(0, crowd.length - 1)]; // « appliqué au hasard parmi les cibles éligibles »
         const ad = res.attackerDetail!;
@@ -1297,10 +1299,10 @@ export function resolveAttack(
     const rd = defenseSurfaced(get(), target)
       ? undefined
       : (() => {
-        const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
+        const best = bestRangedDefense(resolveTrapping, attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
         return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
-    const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold, modsDR);
+    const res = resolveRanged(resolveTrapping, attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold, modsDR);
     // Tir dans la mêlée (LDB 14 l.116) : si sa pénalité a transformé une réussite en échec, le tir dévie
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
@@ -1419,7 +1421,8 @@ export function previewAttack(
   const { battle } = s;
   const mpt = sceneMetresPerTile(s.scene);
   // `weapon` : l'arme que le JET lira (`attackWeaponOf`, `armeDeLaGratuite`) ; absente = arme tirée.
-  const weapon = opts?.weapon ?? firedWeapon(get().scene, attacker, target, opts?.weaponUid, battle?.combatants, opts?.harpoonRopeCut);
+  const resolveTrapping = objetDuNarratif(get().campaignNarratif);
+  const weapon = opts?.weapon ?? firedWeapon(resolveTrapping, get().scene, attacker, target, opts?.weaponUid, battle?.combatants, opts?.harpoonRopeCut);
   const kind: 'melee' | 'distance' = weapon.type === 'distance' ? 'distance' : 'melee';
   const dist = distanceDeLAttaque(s, attacker, target, weapon);
   // Estimation de dégâts (R4) : dégâts d'arme (Force incluse).
@@ -1429,8 +1432,8 @@ export function previewAttack(
   const { env, blocked } = attackEnv(get, attacker, target, weapon, opts);
   if (blocked) return { weapon, kind, inRange: true, blocked: true, target: 0, base, mods: [], dmg, difficulty: 'intermediaire' };
   const distanceTiles = kind === 'distance' ? dist : undefined;
-  const mods = attackModifiers(attacker, target, weapon, { kind, location, distanceTiles, env, metresPerTile: mpt });
-  const rangeM = porteeDeTir(attacker, weapon); // Portée résolue (jet `{bf}` → BF×N) + modificateur de la munition sélectionnée ; null = hors bande
+  const mods = attackModifiers(attacker, target, weapon, { kind, location, distanceTiles, env, metresPerTile: mpt, resolveTrapping });
+  const rangeM = porteeDeTir(resolveTrapping, attacker, weapon); // Portée résolue (jet `{bf}` → BF×N) + modificateur de la munition sélectionnée ; null = hors bande
   const inRange = kind === 'distance' ? (rangeM != null && rangeBandModifier(dist, rangeM, mpt) != null) : dist <= reachTiles(weapon, mpt);
   // Ligne montée par le MONTEUR CANONIQUE (#1153) : base de combat NUE, composantes fondues dans la
   // valeur (lignes volatiles de Caractéristique — issue #202 — et mods de Test char-qualifiés) en
@@ -2724,8 +2727,8 @@ export function battleAreaTargets(get: Get): (indice: number) => AreaTargets {
 
 /** Rayon (cases) de l'aire d'une pièce indirecte servie par `gunner` (munition CHARGÉE prise en compte —
  *  l'Explosion vient de la bombe), à l'échelle de la scène. Sert à dimensionner le placeur de case. */
-export function siegeBlastRadiusTiles(gunner: Combatant, weapon: Weapon, scene: Scene | null): number {
-  const ammo = gunner.kind === 'heros' ? loadedAmmo(gunner, weapon) : undefined;
+export function siegeBlastRadiusTiles(resolveTrapping: TrappingResolver, gunner: Combatant, weapon: Weapon, scene: Scene | null): number {
+  const ammo = gunner.kind === 'heros' ? loadedAmmo(resolveTrapping, gunner, weapon) : undefined;
   const eff = ammo ? weaponWithAmmo(weapon, ammo) : weapon;
   return blastRadiusTiles(eff, sceneMetresPerTile(scene));
 }
@@ -3269,7 +3272,7 @@ function appliquerLaTouche(
   // LDB 62 l.307.
   if (toucheAvecPrise(res) && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
   // Munition du coup : CELLE QUI ÉTAIT DANS L'ARME (`loadedAmmo`), lue AVANT que le tir ne décharge.
-  const firedAmmo = weapon.type === 'distance' && attacker.kind === 'heros' ? loadedAmmo(attacker, weapon) : undefined;
+  const firedAmmo = weapon.type === 'distance' && attacker.kind === 'heros' ? loadedAmmo(objetDuNarratif(get().campaignNarratif), attacker, weapon) : undefined;
   // Tir avec une arme à Recharge → DÉCHARGÉE après le coup (LDB 62 l.335) : un Test étendu de Projectiles est
   // requis avant de retirer. Vaut pour TOUT tireur (héros ET ennemi) — parité du cycle de Rechargement (#126) ;
   // aucun état ni chemin parallèle pour l'IA.
@@ -3562,10 +3565,10 @@ export function defenderFumbled(res: AttackResult, parryWeapon?: Weapon, defende
 /** La cible est-elle dans une bande de tir/portée VALIDE de `weapon` pour `shooter` (LDB 14 l.54-84) ?
  *  Tir → bande de portée non nulle (munition + BF inclus) ; mêlée → Allonge (`reachTiles`). Position
  *  inconnue (tests) → vrai (aucun filtre géométrique). Source UNIQUE du test « à distance de frappe ». */
-export function inFiringBand(scene: Scene | null, shooter: Combatant, target: Combatant, weapon: Weapon): boolean {
+export function inFiringBand(resolveTrapping: TrappingResolver, scene: Scene | null, shooter: Combatant, target: Combatant, weapon: Weapon): boolean {
   if (!shooter.pos || !target.pos) return true;
   if (weapon.type === 'distance') {
-    const rm = porteeDeTir(shooter, weapon);
+    const rm = porteeDeTir(resolveTrapping, shooter, weapon);
     return rm != null && rangeBandModifier(distanceDeCombat(scene, shooter, target), rm, sceneMetresPerTile(scene)) != null;
   }
   return distanceDeContact(scene, shooter, target) <= reachTiles(weapon, sceneMetresPerTile(scene));
@@ -3573,8 +3576,8 @@ export function inFiringBand(scene: Scene | null, shooter: Combatant, target: Co
 
 /** Alliés (même camp) encore actifs, hors `c`, et À PORTÉE de `weapon` (LDB 14 l.30 : « à distance »).
  *  Sans position connue (tests), on ne filtre pas. Hors bataille, aucun : #3892 (P2). */
-function alliesAtRange(scene: Scene | null, battle: BattleState | null, c: Combatant, weapon: Weapon): Combatant[] {
-  return (battle?.combatants ?? []).filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(scene, c, x, weapon));
+function alliesAtRange(resolveTrapping: TrappingResolver, scene: Scene | null, battle: BattleState | null, c: Combatant, weapon: Weapon): Combatant[] {
+  return (battle?.combatants ?? []).filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(resolveTrapping, scene, c, x, weapon));
 }
 
 /**
@@ -3598,12 +3601,12 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
     // `losTo` que `resolveAttack`) AVANT le gate : un candidat masqué ne consomme aucun Test.
     const t0 = battle.combatants
       .filter((f) => f.kind !== shooter.kind && !isOutOfAction(f) && !!f.pos)
-      .map((f) => ({ f, weapon: firedWeapon(get().scene, shooter, f, undefined, battle.combatants) }))
-      .filter((x) => x.weapon.type === 'distance' && inFiringBand(get().scene, shooter, x.f, x.weapon))
+      .map((f) => ({ f, weapon: firedWeapon(objetDuNarratif(get().campaignNarratif), get().scene, shooter, f, undefined, battle.combatants) }))
+      .filter((x) => x.weapon.type === 'distance' && inFiringBand(objetDuNarratif(get().campaignNarratif), get().scene, shooter, x.f, x.weapon))
       .sort((a, b) => distanceDeCombat(get().scene, shooter, a.f) - distanceDeCombat(get().scene, shooter, b.f))
       .find((x) => losClear(scene, shooter.pos!, isStructure(x.f) ? structureAimCell(shooter.pos!, x.f) : x.f.pos!, smoke))?.f;
     if (!t0) continue;
-    const weapon = firedWeapon(get().scene, shooter, t0, undefined, battle.combatants);
+    const weapon = firedWeapon(objetDuNarratif(get().campaignNarratif), get().scene, shooter, t0, undefined, battle.combatants);
     // Main ensanglantée (AA 07 l.117) : point IA UNIQUE `aiHandGate` ; Échec → l'arme glisse, pas de tir.
     if (!aiHandGate(get, set, shooter, weapon.uid)) continue;
     shooter.loseNextAction = true; shooter.loseNextMovement = true; // LDB 11 l.97-103
@@ -3788,7 +3791,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
     case 'hitAlly': {
-      const allies = alliesAtRange(get().scene, battle, c, weapon);
+      const allies = alliesAtRange(objetDuNarratif(get().campaignNarratif), get().scene, battle, c, weapon);
       if (allies.length) {
         const ally = allies[battleRng().int(0, allies.length - 1)];
         const loc = hitLocationByShape(reverseRoll(r.roll), ally.bodyShape);
@@ -3994,7 +3997,7 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
   // TIR : LDB 62 l.296 ; LDB 14 l.40 ; LDB 14 l.44. LoS acquise : l'IA ne tire que si elle voit (doAttack).
   if (weapon?.type === 'distance') {
     const distanceTiles = distanceDeLAttaque(s, attacker, target, weapon);
-    const modes = rangedDefenseModes(attacker, target, weapon, distanceTiles, true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target));
+    const modes = rangedDefenseModes(objetDuNarratif(s.campaignNarratif), attacker, target, weapon, distanceTiles, true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target));
     return modes.length ? { refus: null, tir: { distanceTiles, modes } } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
@@ -4027,14 +4030,15 @@ export function maybeOpenDefense(
   if (verdict.refus === 'defense-en-cours') return refuserLaDefense(attacker, target);
   if (verdict.refus) return false;
   if (verdict.tir) {
+    const resolveTrapping = objetDuNarratif(get().campaignNarratif);
     const { modes, distanceTiles: dist } = verdict.tir;
     const mpt = sceneMetresPerTile(get().scene);
     const { env } = attackEnv(get, attacker, target, weapon);
-    const atk = rollRangedAttacker(attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
-    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
+    const atk = rollRangedAttacker(resolveTrapping, attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
+    const best = bestRangedDefense(resolveTrapping, attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
     // Composée HORS du littéral : la Difficulté du tir figé, avec les mêmes options que `rollRangedAttacker`.
     const modsDR = visibiliteDeLAttaque(get, weapon, dist * mpt);
-    const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'distance', distanceTiles: dist, env, metresPerTile: mpt }), modsDR);
+    const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'distance', distanceTiles: dist, env, metresPerTile: mpt, resolveTrapping }), modsDR);
     set({
       pendingDefense: {
         attackerId: attacker.id, defenderId: target.id, weapon, location: null, atk, env, atkCompo,
@@ -4101,7 +4105,7 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
   if (weapon.type === 'distance') {
     const dist = pa.distanceTiles ?? distanceDeLAttaque(s, attacker, target, weapon);
-    return rangedDefenseModes(attacker, target, weapon, dist, true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target)).length > 0;
+    return rangedDefenseModes(objetDuNarratif(s.campaignNarratif), attacker, target, weapon, dist, true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target)).length > 0;
   }
   return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon, sceneMetresPerTile(s.scene));
 }
@@ -4133,8 +4137,9 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
     const mpt = sceneMetresPerTile(s.scene);
     const dist = pa.distanceTiles ?? distanceDeLAttaque(s, attacker, target, weapon);
     const binome = bouclierDuBinomeEnJeu(s, target);
-    const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt, binome);
-    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, binome);
+    const resolveTrapping = objetDuNarratif(s.campaignNarratif);
+    const modes = rangedDefenseModes(resolveTrapping, attacker, target, weapon, dist, true, mpt, binome);
+    const best = bestRangedDefense(resolveTrapping, attacker, target, weapon, dist, true, mpt, binome);
     set({ pendingDefense: { ...base, mode: best?.mode ?? modes[0], parryWeaponUid: best?.parryWeapon?.uid, modes, distanceTiles: dist } });
   } else {
     set({ pendingDefense: { ...base, mode: bestDefenseMode(target) } });
@@ -4195,7 +4200,7 @@ function withArmedStance(get: Get, pa: PendingAttack): PendingAttack {
   const target = battle ? inBattleId(battle, pa.targetId) : null;
   const armee = battle?.stances?.[pa.attackerId];
   if (!battle || !attacker || !target || !armee) return pa;
-  const weapon = attackWeaponOf(get().scene, battle, attacker, target, pa);
+  const weapon = attackWeaponOf(objetDuNarratif(get().campaignNarratif), get().scene, battle, attacker, target, pa);
   let out = pa;
   for (const key of Object.keys(STANCE_BLOCK) as ShootingStanceKey[]) {
     if (!armee[key] || pa[key] !== undefined) continue;
@@ -4283,7 +4288,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   if (!ward.allowed) return undefined;
   // L'arme du coup, résolue une fois : `weaponUid` désigné par la décision, sinon auto-choix (`pickAttackWeaponList`).
   // Hors bataille aussi (série subie).
-  const arme = firedWeapon(get().scene, attacker, target, weaponUid, get().battle?.combatants);
+  const arme = firedWeapon(objetDuNarratif(get().campaignNarratif), get().scene, attacker, target, weaponUid, get().battle?.combatants);
   // Main ensanglantée (AA 07 l.117) : l'attaquant gaté joue le Test de Dextérité (+20) sur l'arme du coup ;
   // Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
   if (!aiHandGate(get, set, attacker, arme.uid)) return undefined;
@@ -4418,11 +4423,11 @@ export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee)
 // ---------------------------------------------------------------------------
 
 /** Cibles de balayage à portée de l'arme qui jouera le maillon. LDB 14 l.9 ; LDB 62 l.163-164 */
-export function cleaveTargets(scene: Scene | null, battle: BattleState, attacker: Combatant, hitIds: string[]): Combatant[] {
+export function cleaveTargets(resolveTrapping: TrappingResolver, scene: Scene | null, battle: BattleState, attacker: Combatant, hitIds: string[]): Combatant[] {
   const mpt = sceneMetresPerTile(scene);
   return battle.combatants.filter((c) => {
     if (c.kind === attacker.kind || isOutOfAction(c) || hitIds.includes(c.id)) return false;
-    const weapon = firedWeapon(scene, attacker, c, undefined, battle.combatants);
+    const weapon = firedWeapon(resolveTrapping, scene, attacker, c, undefined, battle.combatants);
     return weapon.type === 'melee' && distanceDeLAttaque({ scene, battle }, attacker, c, weapon) <= reachTiles(weapon, mpt);
   });
 }
@@ -4433,7 +4438,7 @@ export function ciblesDuBalayage(s: Jeu): Combatant[] {
   const pc = s.pendingCleave;
   const attaquant = pc && s.battle ? inBattleId(s.battle, pc.attackerId) : undefined;
   if (!pc || !s.battle || !attaquant || pc.count >= bonus(effectiveChar(attaquant, 'capacite-de-combat'))) return [];
-  return cleaveTargets(s.scene, s.battle, attaquant, pc.hitIds);
+  return cleaveTargets(objetDuNarratif(s.campaignNarratif), s.scene, s.battle, attaquant, pc.hitIds);
 }
 
 /** Poursuit la chaîne de balayage. Chaque enchaînement passe par la MÊME couture d'ouverture que l'attaque
@@ -4446,14 +4451,14 @@ function runCleaveChain(get: Get, set: SetFn, attacker: Combatant, chain: Chaine
   for (let n = chain.n; n < chain.bcc; n++) {
     const battle = get().battle;
     if (!battle || battle.over) break;
-    const next = cleaveTargets(get().scene, battle, attacker, hitIds)[0];
+    const next = cleaveTargets(objetDuNarratif(get().campaignNarratif), get().scene, battle, attacker, hitIds)[0];
     if (!next) break;
     hitIds = [...hitIds, next.id];
     // Le maillon SUIVANT entre AVEC le coup, par le HAUT : la MÊME valeur va à la fenêtre du défenseur
     // surfacé (qui la joue à sa fermeture) et à l'application instantanée ; la case libérée ne se lit
     // qu'APRÈS l'application (`resumeCleaveChain`).
     const suite: SuiteDeCoup = { enchainement: { mode: 'chaine', hitIds, n: n + 1, bcc: chain.bcc, fm: chain.fm }, ...(restitution ? { restitution } : {}) };
-    const arme = firedWeapon(get().scene, attacker, next, undefined, battle.combatants);
+    const arme = firedWeapon(objetDuNarratif(get().campaignNarratif), get().scene, attacker, next, undefined, battle.combatants);
     if (maybeOpenDefense(get, set, attacker, next, arme, suite)) return true; // chaîne suspendue : la reprise part de `jetValider('defense')`
     const r = resolveAttack(get, attacker, next, arme);
     if (!r) continue;
@@ -4532,7 +4537,7 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
   if (enAction && isOutOfAction(target) && target.pos) placerSurLaCaseLiberee(get, attacker, target.pos);
   const battle = get().battle!;
   const bcc = bonus(effectiveChar(attacker, 'capacite-de-combat'));
-  const remaining = cleaveTargets(get().scene, battle, attacker, hitIds);
+  const remaining = cleaveTargets(objetDuNarratif(get().campaignNarratif), get().scene, battle, attacker, hitIds);
   // Frappe Mortelle : la poursuite EXIGE d'avoir tué la cible enchaînée (LDB 14 l.9) ; la Taille enchaîne sur une touche.
   const fmStop = fm && wasChain && !isOutOfAction(target);
   if (enAction && !battle.over && count < bcc && remaining.length && !fmStop) {
@@ -4685,7 +4690,7 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   const target = inBattleId(get().battle, fa.targetId);
   if (!target || isOutOfAction(actor) || isOutOfAction(target) || !actor.pos || !target.pos) return undefined;
   const main = op.weapon === 'mainHand' ? armeDeMainPrincipale(actor) : null; // LDB 10 l.500
-  const arme = main ? effectiveWeapon(main, weaponContextOf(actor, main, target)) : firedWeapon(get().scene, actor, target, undefined, get().battle?.combatants);
+  const arme = main ? effectiveWeapon(main, weaponContextOf(actor, main, target)) : firedWeapon(objetDuNarratif(get().campaignNarratif), get().scene, actor, target, undefined, get().battle?.combatants);
   if (arme.type !== 'melee') return undefined;
   const uses = actor.freeAttacksThisTurn ?? {};
   if ((uses[fa.key] ?? 0) >= fa.cap) return undefined; // plafond /Round atteint (= niveau du talent)
@@ -4732,7 +4737,7 @@ export function resolveFreeAttacks(
 ): number {
   if (!victim) return 0;
   let joues = 0;
-  for (const src of freeAttackSourcesOf(actor, ctx.weapon)) {
+  for (const src of freeAttackSourcesOf(actor, objetDuNarratif(get().campaignNarratif), ctx.weapon)) {
     for (const eff of src.effects) {
       if (!flowHasFreeAttack(eff.flow)) continue;
       for (const t of ciblesDeLEffet(get, actor, eff, trigger, { ...ctx, victim })) {
@@ -5459,7 +5464,7 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   if (!attacker || !target) return;
   // L'arme du JET est celle de l'APPLICATION (`attackWeaponOf`, #1026) : arme naturelle synthétisée
   // d'une gratuite de créature comprise.
-  const weapon = attackWeaponOf(get().scene, battle, attacker, target, pa);
+  const weapon = attackWeaponOf(objetDuNarratif(get().campaignNarratif), get().scene, battle, attacker, target, pa);
   applyIncomingMeleeAdvantage(get, attacker, target, weapon); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
   const r = resolveAttack(get, attacker, target, weapon, pa.location ?? undefined, pa.fromCharge, pa.dansLeTas, pa.tirImmobile, pa.withhold, pa.siege); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
   if (!r) {
@@ -6163,7 +6168,8 @@ function ciblesDeStructureIA(battle: BattleState, acteur: Combatant): Combatant[
   });
 }
 
-export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
+export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { resolveTrapping: TrappingResolver } {
+  const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   const battle = get().battle!;
   const scene = get().scene!;
   const foeKind = enemy.kind === 'ennemi' ? 'heros' : 'ennemi';
@@ -6216,7 +6222,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
     && effectifDeLArmeSuffisant(enemy, arme, battle.combatants)) : [];
   const smoke = smokeOf(battle);
   return {
-    enemy, heroes, ...(pulsion.length ? { ciblesDePulsion: pulsion } : {}), scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
+    enemy, heroes, resolveTrapping, ...(pulsion.length ? { ciblesDePulsion: pulsion } : {}), scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
     smoke, flying: flyM != null, traverse: climbTraverseFor(enemy.traits), perceived, facing: get().facing, squad,
     combatants: battle.combatants,
     // Mémo de Ligne de Vue de CETTE décision : posé ici parce que c'est ici que la scène et les fumées de
@@ -6231,7 +6237,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
       meleeDeStructure: {
         cibles, combattants: battle.combatants, actionDepensee: battle.acted,
         profils: (cible) => armesDeMelee.map((arme) => arme.uid
-          ? firedWeapon(scene, enemy, cible, arme.uid, battle.combatants)
+          ? firedWeapon(resolveTrapping, scene, enemy, cible, arme.uid, battle.combatants)
           : effectiveWeapon(arme, weaponContextOf(enemy, arme, cible))),
         ...(poussee ? { poussee: { coque: poussee.hull, arrivees: poussee.reachable } } : {}),
       },
@@ -7220,7 +7226,7 @@ export function crochetDeZone(get: Get): Required<Pick<OpsCtx, 'onZone'>> {
  *  `crochetDeZone` du walker de combat, la frappe gratuite, les réactions de combat. */
 export function resolveTriggerImpureOps(get: Get, set: SetFn, actor: Combatant, trigger: EffectTrigger): string[] {
   const lines: string[] = [];
-  for (const { op } of triggerEffectOps(actor, trigger)) {
+  for (const { op } of triggerEffectOps(actor, trigger, objetDuNarratif(get().campaignNarratif))) {
     if (op.op === 'summon') lines.push(...applySummon(get, set, actor, op, { rng: battleRng() }));
     else if (op.op === 'scheduleRespawn') lines.push(...scheduleRespawnFromOp(get, set, actor, op));
   }
@@ -8409,7 +8415,7 @@ export function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: Ges
     const cible = inBattleId(battle, geste.cibleId);
     // Télégraphe (réticule + ligne — PLEINE en mêlée, pointillée au tir) pendant la pré-attaque :
     // même affordance que la visée du joueur, des deux côtés.
-    if (cible) set({ actorAim: { fromId: acteur.id, toId: cible.id, kind: firedWeapon(get().scene, acteur, cible, geste.weaponUid, battle.combatants).type === 'distance' ? 'tir' : acteur.chargedThisTurn ? 'charge' : 'melee' } });
+    if (cible) set({ actorAim: { fromId: acteur.id, toId: cible.id, kind: firedWeapon(objetDuNarratif(get().campaignNarratif), get().scene, acteur, cible, geste.weaponUid, battle.combatants).type === 'distance' ? 'tir' : acteur.chargedThisTurn ? 'charge' : 'melee' } });
     bus.emit(EVT.SCENE_DIRTY);
   }
   if (delai > 0) programmer(() => jouerLaSuite(get, set, acteur.id, cle, n), delai);
@@ -8692,10 +8698,10 @@ export function markActed(get: Get, set: SetFn): BattleState {
  *  charge (`selectedAmmo`, celle que `loadWeapon` capture), bakée par l'effectif de la pièce qu'elle est
  *  (`mannedPoste`), le Soutien de son équipage, le cumul déjà fait. Lu par `rechargerLArme` et le tour de l'IA.
  *  LDB 62 l.335 ; AA 08 l.497 ; MDG 12 l.448-462 ; LDB 12 l.187-200 */
-export function jetDeRecharge(scene: Scene | null, porteur: Combatant, arme: Weapon, combatants: Combatant[]): PendingReload {
+export function jetDeRecharge(resolveTrapping: TrappingResolver, scene: Scene | null, porteur: Combatant, arme: Weapon, combatants: Combatant[]): PendingReload {
   const piece = porteur.mannedPoste?.item.uid === arme.uid ? porteur.mannedPoste : undefined;
   const present = piece ? servingCrewPresent(porteur, combatants) : undefined;
-  const munition = selectedAmmo(porteur, arme);
+  const munition = selectedAmmo(resolveTrapping, porteur, arme);
   const chargee = munition ? weaponWithAmmo(arme, munition) : arme;
   const w = present != null ? crewedFireWeapon(chargee, present) : chargee;
   const equipage = (piece?.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
@@ -8720,7 +8726,7 @@ export function appliquerLaRecharge(get: Get, set: SetFn, pr: PendingReload, arm
   if (!battle || !porteur) return;
   porteur.aiming = false;
   const { total, done } = progresDeRecharge(pr, porteur);
-  if (done) loadWeapon(porteur, arme);
+  if (done) loadWeapon(objetDuNarratif(get().campaignNarratif), porteur, arme);
   else setReloadProgress(porteur, arme, total);
   if (pr.success && reloadGrantsAssessAdvantage(porteur)) campGain(get, porteur, 1);
   const issue = FLOWS.rechargement.apply(get, { p: pr, ctx: { after: total, weapon: arme.label } });
@@ -9386,7 +9392,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const rw = enemy.weapons.find((w) => w.type === 'distance');
       const recharge = rw && rechargeDuTour(enemy, battle, rw.uid);
       if (!recharge) return advanceTurn(get, set);
-      const jet = jetDeRecharge(get().scene, recharge.porteur, recharge.arme, battle.combatants);
+      const jet = jetDeRecharge(objetDuNarratif(get().campaignNarratif), get().scene, recharge.porteur, recharge.arme, battle.combatants);
       const test = rollSansPilote(get, recharge.porteur, jet.skillValue, 'intermediaire', battleRng());
       appliquerLaRecharge(get, set, { ...jet, roll: test.roll, target: test.target, sl: test.sl, success: test.success }, recharge.arme);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'afterMove'));

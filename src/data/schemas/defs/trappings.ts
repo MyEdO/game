@@ -9,7 +9,8 @@ import { tableTotale } from '../../../lib/tableTotale';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ouvrirPortees } from '../grammaire/collection-cle';
+import { restreindreSousPortee } from '../grammaire/collection-cle';
+import { listeSansCle } from '../grammaire/liste-sans-cle';
 import {
   ammoRangeModSchema,
   availabilitySchema,
@@ -26,6 +27,7 @@ import {
   weaponRangeSpecSchema,
 } from '../grammaire/valeurs';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
+import { flowHasFreeAttack, flowHasImpureOp, flowHasOpADe, flowHasTest } from '../../../engine/flowCore';
 import { hasQuality } from '../../../engine/qualities/dispatch';
 import { estObjet } from '../../../lib/objet.mjs';
 import { effetsDArmeDe, flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
@@ -99,6 +101,48 @@ const effetsAToucheDeCampagne = effetsDArmeDe(triggeredEffectSchema, (objet) => 
   return { genre };
 });
 
+/** #2967 */
+const refusDeLObjetHorsInventaire = (objet: unknown): string | undefined =>
+  estObjet(objet) && !dansLaSousListe(INSTANCIABLE_PAR_ID, objet) ? 'Le porteur de ce flux doit être un objet possédable.' : undefined;
+
+/** #2967 */
+const effetsDObjetPorte = restreindreSousPortee(z.array(triggeredEffectSchema), OBJETS_DU_PROJET, (branche, site) => {
+  const refus = refusDeLObjetHorsInventaire(branche.parent?.valeur);
+  if (refus) return refus;
+  const rang = site.chemin[branche.chemin.length];
+  const effet = Array.isArray(branche.valeur) && typeof rang === 'number' ? branche.valeur[rang] : undefined;
+  if (!estObjet(effet)) return;
+  const resultat = flowSchema.safeParse(effet.flow);
+  if (!resultat.success) return;
+  const flow = resultat.data;
+  const { trigger, optional } = effet;
+  if (flowHasFreeAttack(flow)) {
+    if (trigger !== 'onHit' && trigger !== 'onCharged')
+      return 'Ce déclencheur n’ouvre pas d’attaque gratuite pour la référence d’objet de campagne.';
+    return;
+  }
+  const avecFenetre = flowHasTest(flow);
+  if (trigger === 'onDayStart' || trigger === 'onWake') {
+    if (optional === true || avecFenetre || flowHasImpureOp(flow) || flowHasOpADe(flow))
+      return 'Une référence d’objet de campagne à l’horloge exige un flux exécutable sans fenêtre.';
+    return;
+  }
+  if (trigger === 'onRoundEnd' && flow.kind !== 'test' && avecFenetre)
+    return 'Une référence d’objet de campagne en fin de Round exige un Test à la racine du flux ou un flux sans Test.';
+  if (optional === true && !avecFenetre)
+    return 'Ce déclencheur n’ouvre pas de choix pour un effet facultatif sans fenêtre.';
+});
+
+/** #2967 */
+const effetDeConsommation = restreindreSousPortee(z.lazy(() => flowSchema), OBJETS_DU_PROJET, (branche, site) => {
+  const refus = refusDeLObjetHorsInventaire(branche.parent?.valeur);
+  if (refus) return refus;
+  const chemin = site.chemin.slice(branche.chemin.length);
+  const feuille = chemin.indexOf('effet');
+  if (feuille >= 0 && chemin.slice(0, feuille).includes('oui'))
+    return 'La branche Oui d’un choix de consommation ne se joue pas hors combat.';
+});
+
 export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
   hands: z.union([z.literal(1), z.literal(2)]).optional(),
   weaponGroup: ref('weaponGroup').optional(),
@@ -115,7 +159,7 @@ export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
   reach: reachSchema.nullable().optional(),
   range: weaponRangeSpecSchema.nullable().optional(),
   damage: weaponDamageSpecSchema.nullable().optional(),
-  qualities: z.array(qualiteDObjetRefSchema),
+  qualities: listeSansCle(z.array(qualiteDObjetRefSchema)),
 }), {
   hands: { label: 'Mains requises', hint: '1 ou 2 mains pour manier l’objet' },
   weaponGroup: {
@@ -210,7 +254,7 @@ const doc = document(
     /** LDB 47 */
     organicProjectile: z.boolean().optional(),
     /** The Horned Rat Companion 03 l.23-31 ; #4202 */
-    effects: ouvrirPortees(z.array(triggeredEffectSchema), [OBJETS_DU_PROJET], 'vide').optional(),
+    effects: effetsDObjetPorte.optional(),
     /** ZI 13 l.199 */
     passifDArme: passifsDe(undefined, OBJETS_DU_PROJET).optional(),
     ...apparenceDObjetSchema.shape,
@@ -232,7 +276,7 @@ const doc = document(
     ammoRangeMod: ammoRangeModSchema.nullable().optional(),
     loc: z.string().nullable().optional(),
     pa: z.number().nullable().optional(),
-    consumable: ouvrirPortees(z.lazy(() => flowSchema), [OBJETS_DU_PROJET], 'vide').optional(),
+    consumable: effetDeConsommation.optional(),
     consumableDuration: consumableDurationSchema.optional(),
     container: contenantSchema.optional(),
     /** VDM 02 l.165 */

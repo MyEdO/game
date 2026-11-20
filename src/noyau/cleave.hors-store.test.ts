@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -58,9 +59,9 @@ describe('cleaveTargets — cibles de balayage adjacentes (pur)', () => {
     const ally = at('ennemi', 'E2', 4, 5); // même camp que l'attaquant
     const battle = { combatants: [attacker, adj1, adj2, far, dead, ally] } as unknown as BattleState;
 
-    expect(cleaveTargets(banc.getState().scene, battle, attacker, []).map((c) => c.id).sort()).toEqual(['H1', 'H2']);
+    expect(cleaveTargets(findTrappingById, banc.getState().scene, battle, attacker, []).map((c) => c.id).sort()).toEqual(['H1', 'H2']);
     // une cible déjà frappée ce balayage est exclue
-    expect(cleaveTargets(banc.getState().scene, battle, attacker, ['H1']).map((c) => c.id)).toEqual(['H2']);
+    expect(cleaveTargets(findTrappingById, banc.getState().scene, battle, attacker, ['H1']).map((c) => c.id)).toEqual(['H2']);
   });
 });
 
@@ -149,7 +150,7 @@ describe('Balayage en combat (store)', () => {
     cliquerSurLeCombattant(get, suivante.id, { confirm: true });
     const pa = get().pendingAttack!;
     expect(pa).toMatchObject({ targetId: suivante.id, cleave: true });
-    expect(attackWeaponOf(get().scene, get().battle!, reluDans(get, hero), reluDans(get, suivante), pa).trappingId).toBe(arme);
+    expect(attackWeaponOf(findTrappingById, get().scene, get().battle!, reluDans(get, hero), reluDans(get, suivante), pa).trappingId).toBe(arme);
     get().jetLancer('attaque');
     get().jetImposerLeResultat('attaque', 21);
     get().jetValider('attaque');
@@ -157,7 +158,7 @@ describe('Balayage en combat (store)', () => {
     expect(reluDans(get, suivante).wounds.current).toBeLessThan(60);
     expect(reluDans(get, suivante).wounds.current).toBeGreaterThan(0);
     expect(isOutOfAction(reluDans(get, reserve!))).toBe(false);
-    expect(cleaveTargets(get().scene, get().battle!, reluDans(get, hero), [primaire.id, suivante.id]).map((c) => c.id)).toEqual([reserve!.id]);
+    expect(cleaveTargets(findTrappingById, get().scene, get().battle!, reluDans(get, hero), [primaire.id, suivante.id]).map((c) => c.id)).toEqual([reserve!.id]);
     expect(get().pendingCleave).toBeNull();
   });
 
@@ -225,7 +226,7 @@ describe('Balayage en combat (store)', () => {
     cliquerSurLeCombattant(get, primaire.id, { confirm: true });
     const pa = get().pendingAttack!;
     expect(pa?.targetId).toBe(primaire.id);
-    expect(attackWeaponOf(get().scene, get().battle!, hero, primaire, pa).type).toBe('distance');
+    expect(attackWeaponOf(findTrappingById, get().scene, get().battle!, hero, primaire, pa).type).toBe('distance');
     get().jetLancer('attaque');
     get().jetImposerLeResultat('attaque', 21);
     get().jetValider('attaque');

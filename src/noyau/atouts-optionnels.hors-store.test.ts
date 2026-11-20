@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, expect, it } from 'vitest';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { appliquerAtoutOptionnel } from '../engine/atoutsOptionnels';
@@ -30,7 +31,7 @@ function ouvrirLattaque(aa: boolean, usee = false) {
   openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attaquer');
   const armeDuCoup = () => {
     const s = banc.getState();
-    return attackWeaponOf(s.scene, s.battle!, H, E, s.pendingAttack!);
+    return attackWeaponOf(findTrappingById, s.scene, s.battle!, H, E, s.pendingAttack!);
   };
   return { banc, H, E, arme, armeDuCoup };
 }
@@ -80,7 +81,7 @@ describe('Atouts optionnels (AA 08 l.69-77, l.302)', () => {
     const roll = (w: Weapon) => resolveMelee(attaquant, defenseur, w, deSelonLaPlage((min, max) => max === 100 ? 10 : min), { defense: 'aucune' });
     expect(roll(arme)).toMatchObject({ hit: true, attackerRoll: 10, critical: false });
     expect(roll(appliquerAtoutOptionnel(arme, 'empaleuse'))).toMatchObject({ hit: true, attackerRoll: 10, critical: true });
-    expect(profil(firedWeapon(banc.getState().scene, H, E))).toEqual(['defensive', 'taille']);
+    expect(profil(firedWeapon(findTrappingById, banc.getState().scene, H, E))).toEqual(['defensive', 'taille']);
   });
 
   it('la Taille attachée à la dotation survit au retrait de son occurrence imprimée', () => {

@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MerchantPanelView } from './MerchantPanel';
+import { findTrappingById } from '../data';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const noop = {
+  resolveTrapping: findTrappingById,
   onAddToCart: () => {}, onDecCart: () => {}, onRemoveCart: () => {}, onClearCart: () => {}, onRefuse: () => {}, onPay: () => {},
   onAssignDist: () => {}, onConfirmDist: () => {}, onRepair: () => {}, onBargain: () => {},
   onAppraise: () => {}, onClose: () => {},

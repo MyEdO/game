@@ -61,9 +61,6 @@ const doc = document(
     // sa voisine s'arrête là où elle commence. `affinerDataset` (patron `names.ts`) le porte donc
     // après l'emballage par famille, et les trois portes le voient (elles valident le FICHIER,
     // `validateDataset`/`schemaForFile`).
-    // Sans lui, un trou ouvert au Codex (une borne haute abaissée, une bande supprimée) ne lèverait
-    // RIEN : `findTableEntry` replie sur la dernière bande, et la prochaine Augmentation serait
-    // facturée 520 PX (« 71 et + ») à un héros qui en a 12.
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         const bandes = (v as { id?: string; min?: number; max?: number | null }[]) ?? [];
@@ -72,7 +69,7 @@ const doc = document(
           ctx.addIssue({
             code: 'custom',
             path: [],
-            message: `advancementCosts.json : les bandes ne couvrent pas les Augmentations déjà achetées d'un seul tenant depuis 0 — ${ecarts.join(' ; ')}. La table est lue par \`findTableEntry\` (\`src/engine/tables.ts\`), qui REPLIE sur la dernière bande : un trou ferait payer 520 PX (« 71 et + », LDB 07 l.70) au lieu du coût de la bande manquante.`,
+            message: `advancementCosts.json : les bandes ne couvrent pas les Augmentations déjà achetées d'un seul tenant depuis 0 — ${ecarts.join(' ; ')}.`,
           });
         }
       }),

@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, surUnBancHorsTest, type Banc } from './banc.testkit';
 import type { BattleState, NetState } from './etat';
@@ -158,7 +159,7 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
     expect(defenseSurfaced(banc.getState(), hero)).toBe(false);
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])).toBe(false);
     seedBattleRng(7);
-    const r = resolveAttack(banc.getState, enemy, hero, firedWeapon(banc.getState().scene, enemy, hero, undefined, banc.getState().battle?.combatants))!;
+    const r = resolveAttack(banc.getState, enemy, hero, firedWeapon(findTrappingById, banc.getState().scene, enemy, hero, undefined, banc.getState().battle?.combatants))!;
     expect(r.res.defenderDetail, 'le héros piloté-IA oppose sa défense RAW (Bout Portant)').toBeTruthy();
   });
 });

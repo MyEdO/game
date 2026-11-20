@@ -6,6 +6,7 @@
  * de jet et par tout hôte qui lit la partie sans écran ; ses textes sortent du
  * catalogue par `t()`, comme ceux de `jetsEnVue`.
  */
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { Jeu } from './etat';
 import { FLOWS, refusDAnnulerLAttaque } from './rollFlowSpecs';
 import { composeRollLabel, type RollLabelRef } from './rollSeam';
@@ -152,7 +153,8 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const cible = inBattleId(battle, pa.targetId);
   if (!attaquant || !cible) return null;
   const get = () => s;
-  const arme = attackWeaponOf(s.scene, battle, attaquant, cible, pa);
+  const resolveTrapping = objetDuNarratif(s.campaignNarratif);
+  const arme = attackWeaponOf(resolveTrapping, s.scene, battle, attaquant, cible, pa);
   const armeTenue = !pa.freeKind;
   const intitule = armeTenue ? libelleDuJet('attaque') : arme.label;
   const res = pa.result;
@@ -188,7 +190,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const empoigne = !res && arme.type === 'melee' && isUnarmed(arme) && heros && peutEtreEmpoigne(cible);
   const apercu = !res ? previewAttack(get, attaquant, cible, pa.location ?? undefined, { dansLeTas: pa.dansLeTas, tirImmobile: pa.tirImmobile, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon: arme, tirIndirect: pa.siege }) : null;
   // LDB 13 l.135
-  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeLAttaque(s, attaquant, cible, arme), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, cible)) : undefined;
+  const defenseAuTir = !res && tir ? bestRangedDefense(resolveTrapping, attaquant, cible, arme, distanceDeLAttaque(s, attaquant, cible, arme), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, cible)) : undefined;
   const esquive = defenseDodgeMods(s, cible);
   const annonce = res
     ? undefined

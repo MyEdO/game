@@ -25,7 +25,17 @@ import { visibleFocusables } from '../focus';
 import { nomAccessible } from '../nomsAccessibles.testkit';
 import { sousLayoutJsdom } from '../layoutJsdom.testkit';
 import { hotbar } from '../../state/hotbarBridge';
-import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef } from '../../data/index';
+import {
+  findTrappingById,
+  regles,
+  findQualityById,
+  findActionById,
+  findConditionById,
+  findVehicleById,
+  ACTIONS,
+  etats,
+  type ActionDef,
+} from '../../data/index';
 import { ActiveModal } from '../ActiveModal';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { actionGate, ACTION_CANDIDATES, REMEDES } from '../../noyau/actionRegistry';
@@ -2191,8 +2201,8 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     recomputeLoadout(h);
     // On CHARGE l'arme par le moteur (jamais un champ forgé) : c'est `loadedAmmo` qui doit parler.
     const w = h.weapons.find((x) => x.type === 'distance')!;
-    loadWeapon(h, w); // capture la munition choisie pour CETTE arme (`selectedAmmo`) dans son registre
-    expect(loadedAmmo(h, w)?.uid, 'la couture de chargement doit désigner le carreau').toBe('i-c');
+    loadWeapon(findTrappingById, h, w); // capture la munition choisie pour CETTE arme (`selectedAmmo`) dans son registre
+    expect(loadedAmmo(findTrappingById, h, w)?.uid, 'la couture de chargement doit désigner le carreau').toBe('i-c');
     monter(h);
     const tete = host.querySelector('.cc-bay-head')!;
     const mun = tete.querySelector('[data-ammo]');
@@ -2714,7 +2724,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     h.activeLoadoutId = 'lo-tir';
     recomputeLoadout(h);
     // Le chargement passe par le MOTEUR (jamais un registre forgé) : c'est lui qui capture la munition.
-    if (opts.charge !== false) loadWeapon(h, h.weapons.find((w) => w.type === 'distance')!);
+    if (opts.charge !== false) loadWeapon(findTrappingById, h, h.weapons.find((w) => w.type === 'distance')!);
     return h;
   }
 
@@ -2759,7 +2769,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     ouvrir();
     act(() => { candidats()[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     const c = acteur();
-    expect(selectedAmmo(c, w)?.uid, 'la munition choisie est celle du candidat cliqué').toBe('i-c2');
+    expect(selectedAmmo(findTrappingById, c, w)?.uid, 'la munition choisie est celle du candidat cliqué').toBe('i-c2');
     expect(weaponLoaded(c, w), 'changer la munition d’une arme chargée la décharge (dispatcher)').toBe(false);
     expect(panneau(), 'le panneau se referme sur son commit').toBeNull();
   });
@@ -2779,7 +2789,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     expect(panneau()).toBeTruthy();
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(panneau()).toBeNull();
-    expect(selectedAmmo(acteur(), w)?.uid).toBe('i-c');
+    expect(selectedAmmo(findTrappingById, acteur(), w)?.uid).toBe('i-c');
     expect(weaponLoaded(acteur(), w), 'aucune décharge : rien n’a été commis').toBe(true);
   });
 
@@ -2798,7 +2808,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     expect(host.querySelector('.cc-bay-head [data-gate]'), 'aucune raison de refus portée').toBeNull();
     ouvrir();
     act(() => { candidats()[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    expect(selectedAmmo(acteur(), w)?.uid, 'le candidat cliqué est commis sous Frénésie').toBe('i-c2');
+    expect(selectedAmmo(findTrappingById, acteur(), w)?.uid, 'le candidat cliqué est commis sous Frénésie').toBe('i-c2');
   });
 
   // Le panneau appartient à l'ARME qui l'a ouvert. Commuter de set refait l'arme au poing : le chip
@@ -3042,7 +3052,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
     h.loadouts = [{ id: 'lo-2p', main: 'i-p1', ...(opts.deux === false ? {} : { secondaire: 'i-p2' }) }];
     h.activeLoadoutId = 'lo-2p';
     recomputeLoadout(h);
-    if (opts.charges) h.weapons.filter((w) => w.type === 'distance').forEach((w) => loadWeapon(h, w));
+    if (opts.charges) h.weapons.filter((w) => w.type === 'distance').forEach((w) => loadWeapon(findTrappingById, h, w));
     return h;
   }
 
@@ -3093,7 +3103,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
 
   it('une arme DÉJÀ CHARGÉE reste au panneau, INERTE et son état dit (même mesure que le dispatcher)', () => {
     const h = bretteur();
-    loadWeapon(h, h.weapons.find((w) => w.uid === 'i-p1')!);
+    loadWeapon(findTrappingById, h, h.weapons.find((w) => w.uid === 'i-p1')!);
     monter(h);
     act(() => { caseRecharger().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(candidats().map((b) => b.textContent)).toEqual([
@@ -3114,8 +3124,8 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
     const c = acteur();
     const p1 = c.weapons.find((w) => w.uid === 'i-p1')!;
     const p2 = c.weapons.find((w) => w.uid === 'i-p2')!;
-    expect(selectedAmmo(c, p2)?.uid, 'la munition élue va à l’arme de SA chip').toBe('i-a2');
-    expect(selectedAmmo(c, p1)?.uid, 'l’autre arme n’a pas bougé').toBe('i-a1');
+    expect(selectedAmmo(findTrappingById, c, p2)?.uid, 'la munition élue va à l’arme de SA chip').toBe('i-a2');
+    expect(selectedAmmo(findTrappingById, c, p1)?.uid, 'l’autre arme n’a pas bougé').toBe('i-a1');
   });
 });
 

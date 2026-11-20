@@ -34,7 +34,7 @@ import { REGISTRES_DU_BORD, type BattleState, type CampaignVessel, type Jeu, typ
 import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
-import { crewRoles, dataLabel, findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
+import { crewRoles, dataLabel, findCrewRoleById, findCrewTestTypeById, findTrappingById, findVehicleById, findSeaShantyById } from '../data';
 import { estNavire, milieuDeLaCoque, profilNavalDe } from '../engine/coque';
 import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 import { exposedCrew } from '../engine/shipCritical';
@@ -865,7 +865,7 @@ export function creerActionsDeLEquipage(get: Get, set: SetFn) {
       // arme : la décharge lui ôte aussi son coup (`choisirLaMunition`).
       const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
       const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
-      choisirLaMunition(gun ? chef : undefined, gun, ammoUid ?? undefined, poste);
+      choisirLaMunition(findTrappingById, gun ? chef : undefined, gun, ammoUid ?? undefined, poste);
       set({ battle: { ...b } });
     },
   } satisfies FabriqueDuNoyau;

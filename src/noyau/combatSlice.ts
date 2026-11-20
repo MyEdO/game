@@ -6,6 +6,7 @@
 import { nomDe } from '../engine/nom';
 import { atoutsOptionnelsDe } from '../engine/atoutsOptionnels';
 import type { Get, Set } from './flowTypes';
+import type { MachinerieDuNoyau } from './machinerieDuNoyau';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import {
@@ -22,6 +23,7 @@ import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeC
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
 import * as travelFlow from './travelFlow';
+import { groupeAuxAguets } from './travelPostes';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
 import { Combatant, CHAR_LABELS, type FireArc } from '../engine/types';
@@ -191,7 +193,7 @@ import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif'
 import { canPushback } from '../engine/qualities/dispatch';
 import { talentFearIndice, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
-import { isConsumable } from '../engine/consumables';
+import { consommableDe } from '../engine/consumables';
 import { refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import {
@@ -1029,7 +1031,7 @@ export function createCombatSlice(get: Get, set: Set) {
         const opt = availableAttacks(get().scene, active, battle).find((o) => o.id === attaqueId);
         if (opt?.indirect && opt.weaponUid) {
           const w = active.weapons.find((x) => x.uid === opt.weaponUid);
-          if (w?.uid) set({ pendingSiegeAim: { gunnerId: active.id, weaponUid: w.uid, radius: siegeBlastRadiusTiles(active, w, get().scene), rangeTiles: null } });
+          if (w?.uid) set({ pendingSiegeAim: { gunnerId: active.id, weaponUid: w.uid, radius: siegeBlastRadiusTiles(objetDuNarratif(get().campaignNarratif), active, w, get().scene), rangeTiles: null } });
         }
       }
     },
@@ -1325,11 +1327,11 @@ export function createCombatSlice(get: Get, set: Set) {
       // modale (le tir résolu hors-tour heurterait la cascade). Le refus se DIT au point du geste
       // (`refusVisible`) : le survol, lui, ne montre plus rien sur une cible invalide (arbitrage 2026-08-24).
       const scene = get().scene;
-      const weapon = firedWeapon(scene, hero, target, undefined, battle.combatants);
+      const weapon = firedWeapon(objetDuNarratif(get().campaignNarratif), scene, hero, target, undefined, battle.combatants);
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
       if (weapon.type !== 'distance') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
-      if (!inFiringBand(scene, hero, target, weapon)) return void refuserGeste(get, set, t('cf.horsDePortee'));
+      if (!inFiringBand(objetDuNarratif(get().campaignNarratif), scene, hero, target, weapon)) return void refuserGeste(get, set, t('cf.horsDePortee'));
       if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
       // `pendingAttack.interrupt` → jetValider('attaque') applique le tir sans avancer le tour + épuise son tour normal.
@@ -1447,7 +1449,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active) return;
       const recharge = rechargeDuTour(active, battle, weaponUid);
-      if (recharge) set({ pendingReload: jetDeRecharge(get().scene, recharge.porteur, recharge.arme, battle.combatants) });
+      if (recharge) set({ pendingReload: jetDeRecharge(objetDuNarratif(get().campaignNarratif), get().scene, recharge.porteur, recharge.arme, battle.combatants) });
     },
     seRemettreDeLEtat: (etat: string) => {
       const { battle } = get();
@@ -1485,7 +1487,7 @@ export function createCombatSlice(get: Get, set: Set) {
         : armeADistanceParDefaut(active);
       if (!rw) return; // aucune arme à distance : rien à choisir
       // Chef qui SERT cette pièce : le cycle de charge vit sur la PIÈCE — la bascule doit la décharger ELLE.
-      choisirLaMunition(active, rw, uid, active.mannedPoste?.item.uid === rw.uid ? active.mannedPoste : undefined);
+      choisirLaMunition(objetDuNarratif(get().campaignNarratif), active, rw, uid, active.mannedPoste?.item.uid === rw.uid ? active.mannedPoste : undefined);
       set({ battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -1592,7 +1594,7 @@ export function createCombatSlice(get: Get, set: Set) {
     frapperDeLaSecondeArme: (targetId: string) => frapperDeLaSeconde(get, set, targetId, false),
 
 
-    lancerLeCombat: (encounterId: string, onVictory?: Flow, opts?: { noSurprise?: boolean }) => {
+    lancerLeCombat: (encounterId: string, onVictory?: Flow, opts?: Parameters<MachinerieDuNoyau['lancerLeCombat']>[2]) => {
       const { scene, party, partyPos } = get();
       if (!scene) return;
       const rencontre = scene.encounters.find((e) => e.id === encounterId);
@@ -1611,6 +1613,8 @@ export function createCombatSlice(get: Get, set: Set) {
         return ent?.pos ? [tileKey(ent.pos.x, ent.pos.y, ent.z ?? 0)] : [];
       }));
       const formation = formationDeCombat(scene, partyPos, livingParty.length, prises);
+      const { campaignNarratif } = get();
+      const resolveTrapping = objetDuNarratif(campaignNarratif);
       const heroes = livingParty.map((h, i) => {
         const c: Combatant = { ...entreeEnRencontre(h), pos: formation[i] };
         // Re-dérive les armes ACTIVES depuis les items persistés : une arme usée/détruite au combat
@@ -1623,7 +1627,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // (AskUserQuestion 2026-08-16), donc celui posé au
         // combat précédent (ou à l'équipement) tient ; `loadWeapon` capture le choix courant, et
         // `selectedAmmo` retombe sur la 1re compatible quand il n'y en a aucun.
-        for (const rw of c.weapons.filter((w) => w.type === 'distance')) loadWeapon(c, rw);
+        for (const rw of c.weapons.filter((w) => w.type === 'distance')) loadWeapon(resolveTrapping, c, rw);
         return c;
       });
       // Chaque membre RÉFÉRENCE une entité de la scène. L'entité PORTE le profil/apparence/arme/traits
@@ -1634,9 +1638,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const roster = (enc.members ?? [])
         .map((m) => ({ m, ent: byEntity.get(m.entityId) }))
         .filter((r): r is { m: typeof r.m; ent: SceneEntity } => !!r.ent);
-      const { campaignNarratif } = get();
       const presetDe = presetDuNarratif(campaignNarratif);
-      const resolveTrapping = objetDuNarratif(campaignNarratif);
       const enemies = roster.map(({ ent }) => ficheDEntite(ent, presetDe, resolveTrapping));
       // Combat monté (LDB 14) : marquer les montures rideables, basculer les « alliés », puis appairer
       // les couples pré-montés (ridesEntityId → la monture). Le cavalier monte SUR sa monture.
@@ -1722,10 +1724,10 @@ export function createCombatSlice(get: Get, set: Set) {
       // partent justes (RAFRAÎCHIE ensuite à chaque déplacement via `placeCombatant`).
       for (const c of all) if (c.pos) placeCombatant(c, scene, c.pos);
       // Surprise (LDB 13) : si l'encounter le déclare, le camp embusqué teste Perception vs Discrétion.
-      // `noSurprise` : le voyage annule l'embuscade quand le groupe « les voit venir » (Perception réussie).
-      // Le Test (héros-atteignable) est ROUTÉ cadence-aware par `applySurprise` APRÈS la pose du `battle`
-      // (héros manuel → cascade influençable ; embusqué ennemi → inline) — d'où le drapeau retenu ici.
-      const doSurprise = !!enc.surprise && !opts?.noSurprise;
+      // EDOC 08 l.157.
+      const groupeProtege = enc.surprise === 'groupe'
+        && (opts?.noSurprise === 'groupe' || (!!travelPlan?.land && groupeAuxAguets(travelPlan.stage)));
+      const doSurprise = !!enc.surprise && opts?.noSurprise !== true && !groupeProtege;
       // Initiative : on fixe l'Initiative de chaque combattant (point nommé `rollInitiative` — seam de la
       // règle « méthode d'Initiative »). Combat instinctif (LDB 10) : +10 × niveau, via talentInitiativeBonus.
       for (const c of all) c.initiative = rollInitiative(c, battleRng());
@@ -1932,13 +1934,14 @@ export function createCombatSlice(get: Get, set: Set) {
         if (refus) return void refuserGesteDuSiege(get, set, refus);
       }
       const it = (porteur.items ?? []).find((i) => i.uid === uid)!;
-      if (!isConsumable(it)) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
-      if (refuseSi(get, set, () => refusDeConsommer(porteur, it))) return;
+      const flow = consommableDe(it, objetDuNarratif(s.campaignNarratif));
+      if (!flow) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
+      if (refuseSi(get, set, () => refusDeConsommer(porteur, it, flow))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
       porteur.aiming = false; // une autre action que le tir gâche la visée
       set(touchActors(get()));
       journaliser(get, set, [t('cs.useConsumable', { name: porteur.label, item: it.label })], 'objet', { actorId: porteur.id });
-      runConsumable(get, set, porteur, it);
+      runConsumable(get, set, porteur, it, flow);
       const b = get().battle;
       // Les lignes du Flow (inline) rejoignent le journal du combat.
       if (b) set({ battle: { ...b, action: null, log: [...b.log, ...drainPendingLog(get, set)] } });
@@ -2235,7 +2238,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const attaquant = inBattleId(battle, pa.attackerId);
         const cible = inBattleId(battle, pa.targetId);
         if (!attaquant || !cible) return;
-        const arme = attackWeaponOf(scene, battle, attaquant, cible, pa);
+        const arme = attackWeaponOf(objetDuNarratif(get().campaignNarratif), scene, battle, attaquant, cible, pa);
         if (!arme.uid || arme.atoutOptionnel === undefined || !atoutsOptionnelsDe(arme).some((q) => q.id === id)) return;
         set({ pendingAttack: { ...pa, atoutChoisi: { weaponUid: arme.uid, id } } });
       },
@@ -2259,7 +2262,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const attaquant = pa ? inBattleId(battle, pa.attackerId) : undefined;
         if (!battle || !pa || !pa.forcee || !pa.result || !cible || !attaquant) return;
         const victime = victimeDuCoup(battle, cible, pa);
-        if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(get().scene, battle, attaquant, cible, pa), attaquant).compte.relance) return;
+        if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(objetDuNarratif(get().campaignNarratif), get().scene, battle, attaquant, cible, pa), attaquant).compte.relance) return;
         set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
       },
     },
@@ -3040,7 +3043,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Arme RÉELLEMENT employée (arme naturelle d'une manœuvre de trait comprise) : primitive
       // PARTAGÉE avec la modale d'attaque (#1026) — deux résolutions divergentes rendraient deux
       // verdicts d'interposition opposés pour le même `pa`.
-      const weapon = attacker && target ? attackWeaponOf(get().scene, battle, attacker, target, pa) : undefined;
+      const weapon = attacker && target ? attackWeaponOf(objetDuNarratif(get().campaignNarratif), get().scene, battle, attacker, target, pa) : undefined;
       // Défense SURFACÉE du défenseur (#989) : le jet d'attaquant est FINAL (influence jouée) — on interpose
       // SA fenêtre de défense AVANT toute application, dans la cascade d'attaque EN COURS (le curseur passe
       // sur l'étape 'defense'). `jetValider('defense')` rend la main ICI avec le résultat opposé (`pa.defended`) →

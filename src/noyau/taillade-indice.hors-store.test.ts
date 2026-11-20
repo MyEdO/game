@@ -10,6 +10,7 @@
  * `combatFlow` fait sur un Critique) → `resolveFlowChoice` → étape de cascade `choixDeclenche` →
  * `jetRegler('cascade', 'choix')` → dépense d'Avantage + 2ᵉ État.
  */
+import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -144,7 +145,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const { H, E } = setup();
     H.advantage = 3;
     const sabre = sabreAPied(H, spec);
-    porterUnCritique(H, E, firedWeapon(banc.getState().scene, H, E, sabre.uid));
+    porterUnCritique(H, E, firedWeapon(findTrappingById, banc.getState().scene, H, E, sabre.uid));
 
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants[pc.cursor].options?.[0].label).toBe(offre);

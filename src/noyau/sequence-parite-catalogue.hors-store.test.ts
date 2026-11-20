@@ -18,7 +18,7 @@
 import { describe, it, expect } from 'vitest';
 import { t } from '../i18n';
 import { stepDetail, stepFraction, stepPrecision } from './rollSeam';
-import { dataLabel } from '../data';
+import { findTrappingById, dataLabel } from '../data';
 import { riverForceLabel } from '../engine/riverNavigation';
 import { DIFFICULTY_LABELS, locationLabel } from '../engine/types';
 import { shipLocationLabel } from '../engine/shipCritical';
@@ -673,7 +673,7 @@ const V8C5: Site[] = [
   {
     site: 'items.ts:959 — munition d’une pièce d’artillerie (fonction de PRODUCTION)',
     avant: 'Boulet et poudre',
-    apres: ammoFamilyLabel('armes-de-siege'),
+    apres: ammoFamilyLabel(findTrappingById, 'armes-de-siege'),
   },
   {
     site: 'money.ts:93-96 — épellation d’un montant mixte (PRODUCTION, pluriels portés par la valeur)',

@@ -1,3 +1,4 @@
+import { findTrappingById } from '../data';
 import { describe, it, expect } from 'vitest';
 import { fireTriggers, freeAttackSourcesOf, effectSourcesOf } from './triggeredEffects';
 import { flowHasFreeAttack } from '../engine/flowCore';
@@ -70,7 +71,7 @@ describe('Horloge — un TRAIT et une MUTATION passent par le MÊME dispatcher, 
   const doubleporteur = (): Combatant => mk({ traits: [{ id: 'desespoir' }], mutations: [{ id: 'haine-sporadique' }] } as never);
 
   it('effectSourcesOf énumère `trait:desespoir` et `mutation:haine-sporadique` côte à côte', () => {
-    const keys = effectSourcesOf(doubleporteur()).map((s) => s.key);
+    const keys = effectSourcesOf(doubleporteur(), findTrappingById).map((s) => s.key);
     expect(keys).toContain('trait:desespoir');
     expect(keys).toContain('mutation:haine-sporadique');
   });
@@ -93,19 +94,19 @@ describe('Attaques gratuites — résolveur kind-agnostique (plus de chemin tale
       talents: [{ talentId: 'assaut-feroce', times: 2 }] as never, // free-attack onHit
       conditions: [{ id: 'empoisonne', value: 1 }] as never, // a des effects
     });
-    const keys = freeAttackSourcesOf(c).map((s) => s.key);
+    const keys = freeAttackSourcesOf(c, findTrappingById).map((s) => s.key);
     expect(keys).toContain('trait:bestial');
     expect(keys).toContain('assaut-feroce'); // talent : clé brute = imputation /Round inchangée
     expect(keys).toContain('cond:empoisonne');
     // Le plafond du talent suit ses niveaux (times) ; le défaut des autres = 1.
-    expect(freeAttackSourcesOf(c).find((s) => s.key === 'assaut-feroce')!.cap).toBe(2);
-    expect(freeAttackSourcesOf(c).find((s) => s.key === 'trait:bestial')!.cap).toBe(1);
+    expect(freeAttackSourcesOf(c, findTrappingById).find((s) => s.key === 'assaut-feroce')!.cap).toBe(2);
+    expect(freeAttackSourcesOf(c, findTrappingById).find((s) => s.key === 'trait:bestial')!.cap).toBe(1);
   });
 
   it('flowHasFreeAttack ne retient QUE les Flows à grantFreeAttack (Assaut féroce oui ; Bestial non)', () => {
-    const af = freeAttackSourcesOf(mk({ talents: [{ talentId: 'assaut-feroce', times: 1 }] as never }))[0];
+    const af = freeAttackSourcesOf(mk({ talents: [{ talentId: 'assaut-feroce', times: 1 }] as never }), findTrappingById)[0];
     expect(af.effects.some((e) => flowHasFreeAttack(e.flow))).toBe(true);
-    const bestial = freeAttackSourcesOf(mk({ traits: [{ id: 'bestial' }] as never }))[0];
+    const bestial = freeAttackSourcesOf(mk({ traits: [{ id: 'bestial' }] as never }), findTrappingById)[0];
     expect(bestial.effects.some((e) => flowHasFreeAttack(e.flow))).toBe(false); // Bestial = onRoundEnd → Brisé, pas une frappe
   });
 });
