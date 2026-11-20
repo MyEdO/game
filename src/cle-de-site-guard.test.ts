@@ -1,6 +1,6 @@
 /**
- * `scripts/guards/lib/stock.mjs` fournit les champs de la clé de site et du site observé (#1903).
- * `src/lib/stock.mjs` fournit les champs de l’échéance (#2016).
+ * `src/lib/stock.mjs` déclare les champs de la clé de site, du site observé et de l’échéance
+ * (#1903, #2016).
  * La règle de l’échéance couvre `src/` et les dossiers d’outillage qui portent les stocks.
  * Le lexique des structures date l’inscription d’un peuplement attendu.
  *
@@ -26,13 +26,13 @@ import {
 } from '../scripts/guards/lib/canonUnique.mjs';
 import { corpusTypeScriptDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
 import {
-  CHAMPS_DE_GROUPE, CHAMPS_DE_SITE_OBSERVE, CHAMPS_REQUIS,
-  CHAMP_D_OCCURRENCE, SEPARATEUR_DE_CLE,
-  SEPARATEUR_DE_REMEDE,
-} from '../scripts/guards/lib/stock.mjs';
-import { CHAMPS_D_ECHEANCE } from './lib/stock.mjs';
+  CHAMPS_D_ECHEANCE, CHAMPS_DE_GROUPE, CHAMPS_DE_SITE_OBSERVE, CHAMPS_REQUIS,
+  CHAMP_D_OCCURRENCE, SEPARATEUR_DE_CLE, SEPARATEUR_DE_REMEDE,
+} from './lib/stock.mjs';
 
-const STOCK = 'scripts/guards/lib/stock.mjs';
+const STOCK = 'src/lib/stock.mjs';
+const ENTREE_HISTORIQUE = 'scripts/guards/lib/stock.mjs';
+const FONCTIONS_DE_CLE = ['cleDeSite', 'groupeDeSite'];
 const FOYER_DE_LA_CLE = [STOCK, 'scripts/guards/lib/stock.test.mjs', 'src/cle-de-site-guard.test.ts'];
 
 function domaineDesStocks(rel: string): boolean {
@@ -45,7 +45,7 @@ const CONSTRUCTIONS_DE_STOCK = [
     ...cleEnLigne({
       nom: 'clé de site en ligne', champsDeGroupe: CHAMPS_DE_GROUPE, occurrence: CHAMP_D_OCCURRENCE,
       separateur: SEPARATEUR_DE_CLE, separateurDeRemede: SEPARATEUR_DE_REMEDE,
-      fonctionsDeCle: { [STOCK]: ['cleDeSite', 'groupeDeSite'] },
+      fonctionsDeCle: { [STOCK]: FONCTIONS_DE_CLE, [ENTREE_HISTORIQUE]: FONCTIONS_DE_CLE },
     }),
     foyer: FOYER_DE_LA_CLE,
   },
@@ -55,7 +55,7 @@ const CONSTRUCTIONS_DE_STOCK = [
     ...recopieDeCanon({
       nom: 'échéance de stock', membres: CHAMPS_D_ECHEANCE, complet: true, formes: ['tableau', 'membres de type'],
     }),
-    foyer: 'src/lib/stock.mjs',
+    foyer: STOCK,
     domaine: domaineDesStocks,
   },
 ];
@@ -95,6 +95,8 @@ describe('clé de site (#1903)', () => {
   });
 
   it('clé calculée suivie de son remède', () => {
+    const importeCanon = "import { cleDeSite } from './lib/stock.mjs';\n";
+    expect(fixture(importeCanon + 'const m = `${cleDeSite(e)} — x`;')).toEqual(EN_LIGNE);
     const importe = "import { cleDeSite } from '../scripts/guards/lib/stock.mjs';\n";
     expect(fixture(`${importe}const m = \`\${cleDeSite(e)} — x\`;`)).toEqual(EN_LIGNE);
     expect(fixture("import { cleDeSite as k } from '../scripts/guards/lib/stock.mjs';\nconst m = `${k(e)} — x`;")).toEqual(EN_LIGNE);
