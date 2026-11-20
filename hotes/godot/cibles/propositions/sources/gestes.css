@@ -115,6 +115,11 @@ html,body{margin:0;background:var(--noir)}
 .onglets .ruban{position:static;transform:none}
 .onglets .plaque{flex:none}
 .onglets .plaque>div{padding:0 15px;font-size:12.5px}
+/* l'onglet à sa place (`onglets`, `cadre`) : la largeur de la place, actif ou non */
+.onglets .place{display:flex;align-items:center}
+.onglets .place>:is(.ruban,.plaque){width:100%;text-align:center}
+.onglets .place>.ruban{padding-left:12px;padding-right:12px}
+.onglets .place>.plaque>div{padding:0 6px}
 /* les signets : la forme verticale des onglets, au bord droit du registre */
 .signets{position:absolute;left:calc(100% - 184px);top:66px;display:flex;flex-direction:column;gap:4px}
 .signet{display:flex;align-items:center;gap:7px;width:160px;height:38px;padding:0 20px 2px 13px;color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,100% 0,calc(100% - 10px) 50%,100% 100%,0 100%);filter:drop-shadow(0 2px 3px var(--ombre))}
@@ -183,6 +188,8 @@ html,body{margin:0;background:var(--noir)}
    partir de quatre, la rangée se lit en liste (`ranger`), une ligne par carte, ou ses deux lignes quand elles n'y tiennent
    pas en une */
 .plaque.carte{flex:1 1 0;min-width:200px;max-width:262px;height:92px;min-height:0}
+/* la carte courte, à la hauteur d'une bande : son nom et la valeur qui décide sur une ligne */
+.plaque.carte.courte{height:26px}
 .plaque.carte>div{justify-content:flex-start;gap:13px;padding:0 13px;text-align:left}
 .plaque.carte .qui{min-width:0}
 .plaque.carte :is(.n,.c){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal}
@@ -225,10 +232,11 @@ html,body{margin:0;background:var(--noir)}
 .disque.petit{width:28px;height:28px;padding:2px;font-size:16px}
 .compteur{display:flex;align-items:center;gap:13px;font-size:14.5px}
 
-/* le sceau de cire : pictogramme gravé ou chiffre ; réussite, vide */
+/* le sceau de cire : pictogramme gravé ou chiffre ; réussite, critique (cerclé d'or), vide */
 .sceau{position:relative;flex:none;display:grid;place-items:center;color:var(--encre-cire);background:radial-gradient(circle at 38% 30%,var(--cire-clair),var(--cire) 50%,var(--cire-sombre) 100%);border-radius:48% 52% 55% 45%/52% 46% 54% 48%;box-shadow:0 2px 4px var(--ombre-forte),inset 0 0 0 3px var(--cire-creux),inset 2px 2px 3px var(--cire-reflet)}
 .sceau>b{font-family:"Grenze Gotisch";font-weight:600;color:var(--ivoire)}
 .sceau.reussite{background:radial-gradient(circle at 38% 30%,var(--vert-clair),var(--vert) 50%,var(--vert-sombre) 100%);box-shadow:0 2px 4px var(--ombre),inset 0 0 0 3px var(--vert-creux),inset 2px 2px 3px var(--vert-reflet)}
+.sceau.critique{box-shadow:0 0 0 3px var(--or-eclat),0 0 0 4px var(--or-sombre),0 0 7px 3px var(--or),0 2px 6px var(--ombre),inset 0 0 0 3px var(--vert-creux),inset 2px 2px 3px var(--vert-reflet)}
 .sceau.vide{background:radial-gradient(circle at 40% 32%,var(--empreinte-clair),var(--empreinte) 55%,var(--empreinte-sombre));box-shadow:inset 0 0 0 1px var(--filet-encre),inset 0 2px 6px var(--brou)}
 .sceau.menu{width:20px;height:20px;font-size:11px}
 .sceau.petit{width:28px;height:28px;font-size:15px}
@@ -237,7 +245,7 @@ html,body{margin:0;background:var(--noir)}
 .sceau.maitre{width:62px;height:62px;font-size:32px}
 .sceau.de{display:flex;flex-direction:column}
 .sceau.de b{font-weight:700;font-size:28px;line-height:26px}
-.sceau.de i{font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px;color:var(--ivoire)}
+.sceau.de i{margin-top:5px;font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px;color:var(--ivoire)}
 
 /* le filet : deux traits, un losange au milieu s'il en porte un ; teinte du fond */
 .filet{display:flex;align-items:center;margin:11px 0;color:var(--creme-2)}
@@ -299,6 +307,9 @@ html,body{margin:0;background:var(--noir)}
 .bulle-refus{position:absolute;left:50%;bottom:calc(100% + 11px);transform:translateX(-50%);padding:4px 11px 5px;font-family:"Spectral";font-style:italic;font-size:13px;line-height:17px;letter-spacing:0;white-space:nowrap;color:var(--encre);box-shadow:0 6px 14px var(--ombre),0 0 0 1px var(--contour),inset 0 0 14px var(--brou);border-radius:2px;z-index:4}
 .bulle-refus::before{content:"";position:absolute;left:calc(50% - 5px);bottom:-5px;width:9px;height:9px;background:var(--parchemin);transform:rotate(45deg);translate:var(--pointe,0) 0;box-shadow:2px 2px 0 var(--contour)}
 .bulle-refus.dessous::before{top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
+.bulle-refus:is(.cote-droit,.cote-gauche)::before{top:calc(50% - 5px);bottom:auto;translate:none}
+.bulle-refus.cote-droit::before{left:-5px;box-shadow:-2px 2px 0 var(--contour)}
+.bulle-refus.cote-gauche::before{left:auto;right:-5px;box-shadow:2px -2px 0 var(--contour)}
 /* la raison qui prend la place de la ligne secondaire de l'élément refusé, faute de place pour la bulle */
 .raison-de-refus{font-family:"Spectral";font-style:italic;font-variant:normal;letter-spacing:0;text-transform:none}
 /* qui paie */

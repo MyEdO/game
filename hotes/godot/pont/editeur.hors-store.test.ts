@@ -1713,6 +1713,31 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(editionDe(appel('editer', { ouvrir: CAMPAGNE })).decors![prop], 'sans horloge, le décor saisonnier tel que bâti').toMatchObject(enSaison(null));
   });
 
+  it('une réindexation pendant le trait renouvelle le manifeste et ses décors au relâché', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const initial = morceauxDe(appel, 'edition', ouverte.monde!);
+    const prop = initial.flatMap((m) => m.surfaces).find((s) => s.decor)!.decor!;
+    editionDe(appel('editer', boutonDe(ouverte, 'outil/tile').jeu));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    servirLesModeles(appel, COMMITES, avecLesSeulsDecors(COMMITES, prop));
+
+    expect(jouer({ geste: 'glisse', point: point(2, 1) }).monde).toBeUndefined();
+    expect(morceauxDe(appel, 'edition', ouverte.monde!)).toEqual(initial);
+    const relachee = jouer({ geste: 'relache', point: point(2, 1) });
+    expect(Object.keys(relachee.decors!)).toEqual([prop]);
+    const manifeste = relachee.monde!;
+    expect(manifeste.secoursDecors).toMatchObject({ source: 'edition', revision: expect.any(Number) });
+    const volume = morceauxDe(appel, 'edition', manifeste);
+    expect(volume.map(({ cle, empreinte }) => ({ cle, empreinte }))).toEqual(manifeste.morceaux);
+    expect(volume.flatMap((m) => m.surfaces).some((s) => s.decor === prop && s.priseSeulement)).toBe(true);
+    const secours = appel('retablirDecors', { ...manifeste.secoursDecors, prop }) as unknown as MorceauxDuPont & { ok: boolean };
+    expect(secours.ok).toBe(true);
+    expect(secours.toits).toEqual([]);
+    expect(secours.volume.some((m) => m.surfaces.some((s) => s.decor === prop && !s.priseSeulement))).toBe(true);
+  });
+
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {
     const { appel } = table();
     servirLesModeles(appel, COMMITES);

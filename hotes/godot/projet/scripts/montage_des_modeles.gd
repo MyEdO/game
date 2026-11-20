@@ -15,12 +15,13 @@
 ## par case.
 ## Un décor que la saison change (`palette`, `caches`) se remonte quand son corps change, ceux qu'elle ne change pas
 ## restent montés (`MontageDeVehicule.monter`).
-## Le volume ne peint pas les surfaces des décors servis (`VolumeDeScene.peindre_sans`), que leurs modèles montrent, et
-## lit les modèles de ses arêtes par le chargeur des décors (`VolumeDeScene.chargeur`).
+## Le volume laisse les surfaces des décors servis à leurs modèles (`VolumeDeScene.peindre_sans`) et retrouve
+## leurs recettes si un modèle est illisible (`VolumeDeScene.retablir_le_decor`). Il lit ses modèles d'arête par le
+## chargeur des décors (`VolumeDeScene.chargeur`).
 class_name MontageDesModeles
 extends Node3D
 
-## Le modèle d'une pose s'est posé.
+## Le modèle d’une pose ou la recette d’un décor s’est posé.
 signal pose
 
 ## Un décor se monte comme un véhicule nu : son élément, sa palette et ses nœuds cachés servis, sans poste, Amélioration
@@ -41,6 +42,9 @@ var _montes: Dictionary = {}
 var _servis: Dictionary = {}
 var _reperes: Dictionary = {}
 var _places: Dictionary = {}
+## Les décors revenus à leur recette, d'un index de `modeles` au suivant.
+var _decors_retablis: Dictionary = {}
+var _index_des_decors: Dictionary = MontageDeComposition.modeles
 ## L'échelle métrique du dernier plateau, en mètres par case.
 var _metres_par_case := 1.0
 
@@ -56,16 +60,22 @@ func _ready() -> void:
 ## décors de `decors` (`VolumeDeScene.peindre_sans`), dès qu'ils sont servis.
 func poser(navires: Dictionary, decors: Dictionary, coupes: Dictionary, metres_par_case: float) -> void:
 	_metres_par_case = metres_par_case
-	volume.peindre_sans(decors.keys())
-	var poses := _poses_servies(navires, decors)
+	var index_change := not is_same(_index_des_decors, MontageDeComposition.modeles)
+	if index_change:
+		_index_des_decors = MontageDeComposition.modeles
+		_decors_retablis.clear()
+	var servis := decors.duplicate()
+	for decor: String in _decors_retablis:
+		servis.erase(decor)
+	volume.peindre_sans(servis.keys())
+	var poses := _poses_servies(navires, servis)
 	for cle: String in _montes.keys():
-		if not poses.has(cle):
-			_montes[cle].queue_free()
-			volume.oublier_le_voile(cle)
-			for table in [_montes, _servis, _reperes, _places]:
-				table.erase(cle)
+		if not poses.has(cle) or (index_change and _servis[cle].has("decor")):
+			_retirer_la_pose(cle)
+	_servis = poses.duplicate()
 	for cle: String in poses:
-		_servis[cle] = poses[cle]
+		if not _servis.has(cle):
+			continue
 		if not _montes.has(cle):
 			var montage := MontageDeVehicule.new()
 			add_child(montage)
@@ -73,6 +83,16 @@ func poser(navires: Dictionary, decors: Dictionary, coupes: Dictionary, metres_p
 			montage.voiler(volume.voile(cle))
 		_montes[cle].couper(MiseEnPage.hauteur_de_coupe(coupes[cle], metres_par_case) if coupes.has(cle) else null)
 		_monter(cle)
+
+
+func _retirer_la_pose(cle: String) -> void:
+	var montage: MontageDeVehicule = _montes.get(cle)
+	if montage != null:
+		remove_child(montage)
+		montage.queue_free()
+		volume.oublier_le_voile(cle)
+	for table in [_montes, _servis, _reperes, _places]:
+		table.erase(cle)
 
 
 ## Aucune pose : chaque modèle retiré, et le volume peint entier.
@@ -93,7 +113,7 @@ static func _poses_servies(navires: Dictionary, decors: Dictionary) -> Dictionar
 	for prop: String in decors:
 		var corps: Dictionary = DECOR_NU.merged({element = decors[prop].element, palette = decors[prop].palette, caches = decors[prop].caches})
 		for p: Dictionary in decors[prop].poses:
-			var servie := {corps = corps, x = p.ancre.x, y = p.ancre.y, piedM = p.piedM, cap = p.cap, case = p.case}
+			var servie := {corps = corps, decor = prop, x = p.ancre.x, y = p.ancre.y, piedM = p.piedM, cap = p.cap, case = p.case}
 			if p.has("luminaire"):
 				servie.luminaire = true
 			if p.has("nappe"):
@@ -123,10 +143,22 @@ func navires() -> Array:
 ## flottaison bordée, et `pose` émis.
 func _monter(cle: String) -> void:
 	var montage: MontageDeVehicule = _montes[cle]
+	var index := _index_des_decors
 	var monte: bool = await montage.monter(_servis[cle].corps, chargeur, func(scene: Node3D) -> void:
 		_reperes[cle] = scene.transform
 		_placer(cle, scene))
-	if _montes.get(cle) != montage or montage.scene == null:
+	if _montes.get(cle) != montage:
+		return
+	var decor: String = _servis[cle].get("decor", "")
+	if not decor.is_empty() and not is_same(index, MontageDeComposition.modeles):
+		return
+	if montage.scene == null:
+		if monte and not decor.is_empty() and volume.retablir_le_decor(decor):
+			_decors_retablis[decor] = true
+			for autre: String in _servis.keys():
+				if _servis[autre].get("decor") == decor:
+					_retirer_la_pose(autre)
+			pose.emit()
 		return
 	if not monte:
 		if _places.get(cle) == _servis[cle]:

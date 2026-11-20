@@ -94,6 +94,7 @@ var cadre := Rect2():
 
 
 func _ready() -> void:
+	volume.empreintes_retablies.connect(_retenir_les_empreintes)
 	_lacet = _pivot.rotation.y
 	var lumiere := $Lumiere as Lumiere
 	if lumiere.brume != null:
@@ -113,6 +114,13 @@ func poser(monde: Dictionary, recus: Dictionary, zone := Rect2i()) -> void:
 		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.monde.metresParCase)))
 	_pivot.position = MiseEnPage.centre_de_la_zone(zone.position.x, zone.position.y, zone.size.x, zone.size.y) if zone.has_area() else MiseEnPage.centre_du_plateau(taille())
 
+
+## Les formes du rayon gardent leurs triangles quand le volume rétablit un décor (`VolumeDeScene.retablir_le_decor`).
+func _retenir_les_empreintes(empreintes: Dictionary) -> void:
+	for forme: CollisionShape3D in _corps.get_children():
+		var cle: String = forme.get_meta("cle")
+		if empreintes.has(cle):
+			forme.set_meta("empreinte", empreintes[cle])
 
 ## La forme du morceau `morceau` (`MorceauDuMonde`) que le rayon du pointeur touche des deux côtés, hors des mers des
 ## navires (`flottaison`), avec la case de chacun de ses triangles (`cases`, un `Vector3` par triangle, dans leur ordre,

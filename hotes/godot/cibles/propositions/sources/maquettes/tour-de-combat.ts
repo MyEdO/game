@@ -89,7 +89,7 @@ export default {
       pose: {
         role: 'fiche', fiche: {
           qui: 'berta', peuple: 'Humains (Reiklander)', carriere: 'Soldate',
-          reserves: [{ nom: 'Destin', valeur: 2 }, { nom: 'Chance', valeur: RESERVES.berta.chance }, { nom: 'Résilience', valeur: RESERVES.berta.resilience }, { nom: 'Détermination', valeur: RESERVES.berta.determination }],
+          reserves: [{ id: 'destin', nom: 'Destin', valeur: 2 }, { id: 'chance', nom: 'Chance', valeur: RESERVES.berta.chance }, { id: 'resilience', nom: 'Résilience', valeur: RESERVES.berta.resilience }, { id: 'determination', nom: 'Détermination', valeur: RESERVES.berta.determination }],
           caracteristiques: [['M', 4], ['CC', 41], ['CT', 33], ['F', 38], ['E', 35], ['I', 31], ['Ag', 34], ['Dex', 28], ['Int', 27], ['FM', 35], ['Soc', 30], ['B', 12]].map(([nom, valeur]) => ({ nom: String(nom), valeur: Number(valeur) })),
           sections: ['Attaques', 'Compétences', 'Talents', 'Possessions'], ouverte: 'Attaques',
           armes: [

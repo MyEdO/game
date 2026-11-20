@@ -471,6 +471,11 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
   ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
   `source`, jamais le texte recopié.
+- **Tirer les Caractéristiques d'un personnage à la pose (LDB 77 l.108, #3710).** Dans l'inspecteur
+  Godot, ouvre l'onglet Combat et ajoute au besoin le rôle au combat. Le réglage « Caractéristiques aléatoires »
+  écrit `combat.randomChars` sur la pose, qu'elle porte une carrière, un préréglage ou un statbloc.
+  Pour convertir les réglages de pose d'un ancien export avant de le réimporter, joue
+  `node scripts/campagne/migrer-caracteristiques-de-pose.mjs < ancien-projet.json > projet-migre.json`.
 - **Porter un PNJ à une carrière (`carrieres`, #773, `EDO 11 l.17-21`).** Une `SceneEntity` personnage dont le corps
   est une créature du bestiaire (`creature`), sans `statblock`, `presetId` ni `appearance.tenue`, porte `carrieres`, un record
   ordonné carrière → Niveau atteint dont la dernière clé est la carrière actuelle. Elle porte aussi, par carrière,

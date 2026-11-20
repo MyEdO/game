@@ -112,9 +112,11 @@ export function varianteDe(cible: CiblePsy): VarianteDeCible {
 }
 
 /** Le type de psychologie `type` admet-il la `variante` (`psychology.json`, `cibles`) ? */
-export function varianteAdmise(type: string, variante: VarianteDeCible): boolean {
-  return !!findPsychologyById(type)?.cibles?.includes(variante);
+export function varianteAdmise(type: string, variante: VarianteDeCible, lire = ciblesDuType): boolean {
+  return !!lire(type)?.includes(variante);
 }
+
+const ciblesDuType = (type: string): readonly VarianteDeCible[] | undefined => findPsychologyById(type)?.cibles;
 
 /** Identité d'un Trait psy ou d'une affliction : son type, et sa Cible s'il en porte une. Deux entrées de même
  *  identité sont la même entrée. */
@@ -144,6 +146,6 @@ export function libelleDePsy(type: string, cible?: CiblePsy, nomDIndividu?: NomD
 }
 
 /** Le type de psychologie vise-t-il une Cible (`psychology.json`, `cibles`) ? */
-export function estCibleType(type: string): boolean {
-  return findPsychologyById(type)?.cibles !== undefined;
+export function estCibleType(type: string, lire = ciblesDuType): boolean {
+  return lire(type) !== undefined;
 }

@@ -22,7 +22,7 @@ export default {
           ],
         }],
       },
-      gestes: [{ libelle: 'Confirmer', principal: true }], reserves: [{ nom: 'Destin', valeur: 2 }],
+      gestes: [{ libelle: 'Confirmer', principal: true }], reserves: [{ id: 'destin', nom: 'Destin', valeur: 2 }],
     },
   }],
 } satisfies Ecran;

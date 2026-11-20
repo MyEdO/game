@@ -61,15 +61,15 @@ import {
   tirageSchema,
   type FormuleAuPeche,
 } from './valeurs';
-import { traitInstanceSchema } from './reference';
+import { lireLesCiblesPsy, traitInstanceSchema } from './reference';
 import {
+  affinerAvecCatalogues,
   idDe,
   marquerOpAtteinte,
+  raffinementDeCatalogue,
   ref,
   refs,
   refOuSpec,
-  specAuCatalogue,
-  specDe,
   specFermeeDe,
   tirageSurTable,
   type RegimeDePorteur,
@@ -78,7 +78,6 @@ import {
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
-import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 
 /** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
@@ -240,7 +239,7 @@ export function reserve(noeud: z.ZodType): ChampReserveDeclare {
 type FormeDePayload = Readonly<Record<string, z.ZodType | ChampAChoixDeclare | ChampReserveDeclare>>;
 
 /** Contrainte ENTRE champs d'un payload déclaré, posée sur l'objet que la famille ferme. */
-type AffinageDePayload = (o: Record<string, unknown>, ctx: z.RefinementCtx) => void;
+type AffinageDePayload = z.core.$ZodCheck<Record<string, unknown>>;
 
 class PayloadDeclare<C extends FormeDePayload = FormeDePayload> {
   constructor(readonly champs: C, readonly meta: MetaDesChamps<FormeDePayload>, readonly affinage?: AffinageDePayload) {}
@@ -256,7 +255,9 @@ export const banishNarrationSchema = enumNomme({ chaos: 'banni aux Royaumes du C
 
 /** Une Cible n'est portée que par un type CIBLÉ, et celle d'une op est un Groupe que ce type admet
  *  (`psychology.json`, `cibles`). LDB 21 l.17-19, l.75 ; #3045 */
-function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.RefinementCtx): void {
+function refuserLaCibleHorsCiblage(
+  type: string, cible: unknown, ctx: z.RefinementCtx, { estCibleType, varianteAdmise }: ReturnType<typeof lireLesCiblesPsy>,
+): void {
   if (cible === undefined) return;
   if (!estCibleType(type)) {
     ctx.addIssue({ code: 'custom', path: ['cible'], message: `« ${type} » ne vise aucune Cible : « cible » est refusée.` });
@@ -629,7 +630,7 @@ const DECLARATIONS_D_OPS = {
    *  (LDB 47 l.441). Sa Cible est
    *  posée (`trait.arg`) ou TIRÉE (`cible`, `pick` tirages sur une table de Cibles) : EDOC 12 l.217, l.241.
    *  `indicePerSL` s'ajoute à l'Indice au DR du jet : LDB 47 l.420. */
-  grantTrait: nommerChamps(z.strictObject({
+  grantTrait: nommerChamps(affinerAvecCatalogues(z.strictObject({
     op: z.literal('grantTrait'),
     trait: traitInstanceSchema,
     cible: tirageDeCibleSchema.optional(),
@@ -638,34 +639,40 @@ const DECLARATIONS_D_OPS = {
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
-  }).superRefine((o, ctx) => {
-    if (!o.cible) return;
-    const { id, arg } = o.trait;
-    if (arg !== undefined) {
-      ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
-    }
-    const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !specAuCatalogue('trait', id, g));
-    if (absents.length) {
-      ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
-    }
+  }), (lire) => {
+    const { specAuCatalogue } = lire.specialisations('trait');
+    return (o, ctx) => {
+      if (!o.cible) return;
+      const { id, arg } = o.trait;
+      if (arg !== undefined) {
+        ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
+      }
+      const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !specAuCatalogue(id, g));
+      if (absents.length) {
+        ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
+      }
+    };
   }), { op: { label: "opération" }, trait: { label: "Trait" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   /** Pose d'AUTEUR d'un état psychologique : jamais une entrée qui en devient une autre (`becomes`). LDB 21 l.56 */
-  beginPsych: nommerChamps(z.strictObject({
+  beginPsych: nommerChamps(affinerAvecCatalogues(z.strictObject({
     op: z.literal('beginPsych'),
     type: ref('psychology', undefined, { horsMarqueurs: ['becomes'] }),
     cible: ref('groupe').optional(),
     indice: formulaSchema.optional(),
     active: z.boolean().optional(),
-  }).superRefine((o, ctx) => refuserLaCibleHorsCiblage(o.type.id, o.cible, ctx)), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, indice: { label: "Indice", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, active: { label: "subi" } }),
+  }), (lire) => {
+    const ciblage = lireLesCiblesPsy(lire);
+    return (o, ctx) => refuserLaCibleHorsCiblage(o.type.id, o.cible, ctx, ciblage);
+  }), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, indice: { label: "Indice", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, active: { label: "subi" } }),
   /** Fin des états d'un TYPE, ou de l'INSTANCE dont l'effet porte l'op (`instance`, réservé à la famille de
    *  `defs/psychology.ts` : ailleurs aucune instance ne voyage dans le contexte). */
   endPsych: declarerPayload({
     op: z.literal('endPsych'),
     type: ref('psychology').optional(),
     instance: reserve(z.literal('courante').optional()),
-  }, { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, instance: { label: "l’instance en cours" } }, (o, ctx) => {
+  }, { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, instance: { label: "l’instance en cours" } }, z.superRefine((o, ctx) => {
     if ((o.type === undefined) === (o.instance === undefined)) ctx.addIssue({ code: 'custom', message: 'fin d’état psychologique : « type » (un état du catalogue) OU « instance » (celle de l’effet qui porte l’op), exactement l’un des deux.' });
-  }),
+  })),
   /** `envers`, `resistanceSiAmis` et `durationHours` sont réservés à la famille des sorts (`defs/spells.ts`) :
    *  une mutation ou une maladie, qui pose son Trait sans `applyOps`, les refuse au parse. VDM 10 l.327-330 */
   grantPsychTrait: declarerPayload({
@@ -675,16 +682,22 @@ const DECLARATIONS_D_OPS = {
     envers: reserve(z.literal('personneChoisie').optional()),
     resistanceSiAmis: reserve(z.lazy(() => flowTestSchema).optional()),
     durationHours: reserve(formulaSchema.optional()),
-  }, { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, envers: { label: "envers une personne choisie" }, resistanceSiAmis: { label: "résistance si amis" }, durationHours: { label: "durée en heures", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }, (o, ctx) => {
-    const type = (o.psychType as { id: string }).id;
-    refuserLaCibleHorsCiblage(type, o.cible, ctx);
-    if (o.envers !== undefined && o.cible !== undefined) ctx.addIssue({ code: 'custom', path: ['envers'], message: '« envers » et « cible » sont exclusifs : la Cible est un Groupe posé, ou la personne que choisit le décideur.' });
-    if (o.envers !== undefined && !varianteAdmise(type, 'individu')) ctx.addIssue({ code: 'custom', path: ['envers'], message: `« ${type} » ne vise pas un individu : voir ses « cibles » (psychology.json).` });
-    if (o.resistanceSiAmis !== undefined && o.envers === undefined) ctx.addIssue({ code: 'custom', path: ['resistanceSiAmis'], message: '« resistanceSiAmis » suit la personne choisie : « envers » est requis.' });
-  }),
-  removePsychTrait: nommerChamps(z.strictObject({ op: z.literal('removePsychTrait'), psychType: ref('psychology').optional(), cible: ref('groupe').optional() }).superRefine((o, ctx) => {
-    if (o.cible !== undefined && !o.psychType) ctx.addIssue({ code: 'custom', path: ['cible'], message: '« cible » vise une instance d’un Trait : « psychType » est requis.' });
-    else if (o.psychType) refuserLaCibleHorsCiblage(o.psychType.id, o.cible, ctx);
+  }, { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, envers: { label: "envers une personne choisie" }, resistanceSiAmis: { label: "résistance si amis" }, durationHours: { label: "durée en heures", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }, raffinementDeCatalogue((lire) => {
+    const ciblage = lireLesCiblesPsy(lire);
+    return (o, ctx) => {
+      const type = (o.psychType as { id: string }).id;
+      refuserLaCibleHorsCiblage(type, o.cible, ctx, ciblage);
+      if (o.envers !== undefined && o.cible !== undefined) ctx.addIssue({ code: 'custom', path: ['envers'], message: '« envers » et « cible » sont exclusifs : la Cible est un Groupe posé, ou la personne que choisit le décideur.' });
+      if (o.envers !== undefined && !ciblage.varianteAdmise(type, 'individu')) ctx.addIssue({ code: 'custom', path: ['envers'], message: `« ${type} » ne vise pas un individu : voir ses « cibles » (psychology.json).` });
+      if (o.resistanceSiAmis !== undefined && o.envers === undefined) ctx.addIssue({ code: 'custom', path: ['resistanceSiAmis'], message: '« resistanceSiAmis » suit la personne choisie : « envers » est requis.' });
+    };
+  })),
+  removePsychTrait: nommerChamps(affinerAvecCatalogues(z.strictObject({ op: z.literal('removePsychTrait'), psychType: ref('psychology').optional(), cible: ref('groupe').optional() }), (lire) => {
+    const ciblage = lireLesCiblesPsy(lire);
+    return (o, ctx) => {
+      if (o.cible !== undefined && !o.psychType) ctx.addIssue({ code: 'custom', path: ['cible'], message: '« cible » vise une instance d’un Trait : « psychType » est requis.' });
+      else if (o.psychType) refuserLaCibleHorsCiblage(o.psychType.id, o.cible, ctx, ciblage);
+    };
   }), { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
   removeTrait: nommerChamps(z.strictObject({ op: z.literal('removeTrait'), trait: ref('trait') }), { op: { label: "opération"  }, trait: { label: "Trait" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } }),
   /** `domeWard` — le dôme OCTROIE un Trait à ceux qu'il couvre (`LDB 47 l.410`) : le Trait octroyé
@@ -1049,19 +1062,17 @@ export const hasWhatSchema = enumNomme({ group: 'le Groupe', talent: 'le Talent'
 /** Le `what` d'une branche de la Condition `has`, NOMMÉ par `hasWhatSchema`. */
 const whatDeHas = (what: z.infer<typeof hasWhatSchema>) => z.literal(what).pipe(hasWhatSchema);
 
-/** La `spec` d'une Condition `has` : une spécialisation de l'entrée de `type` que nomme sa `value` (`specDe`). */
-function refusDeSpecDeLaValeur(type: TypeEntite) {
-  return (c: { value?: string; spec?: string }, ctx: z.RefinementCtx): void => {
-    if (c.spec === undefined) return;
-    const lu = specDe(type, c.value ?? '').safeParse(c.spec);
-    for (const iss of lu.success ? [] : lu.error.issues) ctx.addIssue({ code: 'custom', path: ['spec'], message: iss.message });
-  };
-}
-
 /** Condition `has`, DISCRIMINÉE par `what` : `value` résout dans le registre de `what`, la `spec` n'appartient qu'au Talent. */
 export const hasConditionSchema = z.discriminatedUnion('what', [
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('group'), value: idDe('groupe', CIBLE_D_APPARTENANCE) }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
-  nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('talent'), value: idDe('talent'), spec: z.string().optional() }).superRefine(refusDeSpecDeLaValeur('talent')), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } }, spec: { label: "spécialisation", texte: { regime: "technique" } } }),
+  nommerChamps(affinerAvecCatalogues(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('talent'), value: idDe('talent'), spec: z.string().optional() }), (lire) => {
+    const { specDe } = lire.specialisations('talent');
+    return (c, ctx) => {
+      if (c.spec === undefined) return;
+      const lu = specDe(c.value ?? '').safeParse(c.spec);
+      for (const iss of lu.success ? [] : lu.error.issues) ctx.addIssue({ code: 'custom', path: ['spec'], message: iss.message });
+    };
+  }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } }, spec: { label: "spécialisation", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('trait'), value: idDe('trait') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('psych'), value: idDe('psychology') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('immunity'), value: idDe('damageType') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
@@ -1826,7 +1837,7 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
       // Les clés RÉSERVÉES admises sont le choix de la famille appelante (ses régimes).
       const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, feuille(v.noeud)]] : [])));
       const affinage = (d as PayloadDeclare).affinage;
-      return [op, nomme(marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)).check(...(affinage ? [z.superRefine(affinage)] : [])), meta), 'payloadsDe', op, reservesAdmises))];
+      return [op, nomme(marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)).check(...(affinage ? [affinage] : [])), meta), 'payloadsDe', op, reservesAdmises))];
     }),
   );
 }

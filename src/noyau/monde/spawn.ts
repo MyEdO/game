@@ -266,7 +266,7 @@ export interface SpawnExtras {
   /** Caractéristiques aléatoires (LDB 77 l.108). */
   randomChars?: boolean;
   /** Override DIRECT des caractéristiques (tirage FIGÉ d'une Possession — `Possession.charsRolled`,
-   *  LDB 77 l.108 seedé sur l'`uid` d'instance, jamais relancé) — PRIME sur `randomChars`/`sb.randomChars`. */
+   *  LDB 77 l.108 seedé sur l'`uid` d'instance, jamais relancé) — PRIME sur `randomChars`. */
   charsRolled?: Characteristics;
   /** Traits APPRIS unis aux traits de base (dresse-* octroyés par un Test de Dressage réussi, LDB 23
    *  l.130 → LDB 85 l.100-118 — ex. « Dressé (Monture) » d'une bête possédée). Ids seuls (sans value/arg) :
@@ -412,7 +412,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x:
   // Compétences (refs `SkillRef` structurées, avances dérivées du profil SAISI) + talents du statbloc.
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);
   const talents = talentsFromBook(sb.talents);
-  const aleatoire = !!sb.randomChars || !!extras?.randomChars;
+  const aleatoire = extras?.randomChars;
   const rolled = !!extras?.charsRolled || aleatoire;
   const livre = !rolled && typeof sb.char.B === 'number' ? sb.char.B : undefined;
   chars = profilDeLIndividu(chars, id, extras?.charsRolled, aleatoire);

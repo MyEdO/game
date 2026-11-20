@@ -20,7 +20,10 @@ const etat = (nom: string, fenetre: Fenetre): EtatDeCombat => ({ nom, gabarit: '
 const tombe = (nom: string, test: string, jet: JetTombe, modificateur: string | null, gain: number, issue: string, tombee: number, resistance: boolean | null, resilience: number): EtatDeCombat => etat(nom, {
   titre: 'Corruption',
   heros: { role: 'testeur', qui: 'berta', test, seuil: 45, jet, ...(modificateur ? { modificateurs: [{ nom: modificateur }] } : {}) },
-  centre: { role: 'corruption', influence: 'Influence physique', corruption: CORRUPTION, gain, issue, enjeu: decide(tombee) },
+  centre: {
+    role: 'issue', sorte: 'simple', sur: `Influence physique · Points de Corruption ${CORRUPTION.points} / ${CORRUPTION.seuil}`, verdict: jet.critique ? 'critique' : jet.reussite ? 'reussite' : 'echec', dr: jet.dr,
+    consequences: gain ? [{ genre: 'corruption', valeur: gain, cible: 'berta', ton: 'perte' }] : [], phrase: issue, enjeu: decide(tombee),
+  },
   gestes: [...apresLeDe({ ...RESERVES.berta, resilience }, { echec: !jet.reussite }), ...(resistance === null ? [] : [resistance ? { libelle: 'Résistance' } : { libelle: 'Résistance', refus: 'Aucune Résistance disponible contre cette menace.' }])],
   reserves: reserves({ ...RESERVES.berta, resilience }),
 });

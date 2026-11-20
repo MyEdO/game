@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, datasetSerializeRoot, setDataset } from '../../data/overrides';
 import { DEFS_DE_DOCUMENT, validateDataset } from '../../data/schemas/validate';
+import { traitCapabilitiesSchema } from '../../data/schemas/defs/traits';
 import { descendre } from '../../data/schemas/grammaire/descente';
 import { metaDesChamps } from '../../data/schemas/grammaire/meta';
 import { admetUneListe, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../noyau/codex/editFields';
@@ -111,24 +112,37 @@ describe('atelier du Codex — Type psychologique d’un Trait, référence au c
   it('psychType se saisit par le sélecteur de `RefField`, ses options = la sous-liste de sa feuille `idDe`, sous le libellé du jeu de données', async () => {
     const feuille = declarationDeFeuilleDId(ouverts([f().noeud]).find(estFeuilleDId));
     expect(feuille?.type).toBe('psychology');
-    const admis = idsDeLaSousListe(feuille!.type, feuille!.sousListe!);
-    const psy = new Map((datasetArray('psychologies') as { id: string; label: string }[]).map((e) => [e.id, e.label]));
-    const avant = datasetArray('traits').slice();
-    const porteur = avant.find((e) => e.capabilities?.psychType != null)!;
+    const livres = datasetArray('books').slice();
+    const psychologies = datasetArray('psychologies').slice();
+    const traits = datasetArray('traits').slice();
+    const source = { book: 'codex-test-livre-psychologie', page: 1 };
+    const initiale = { id: 'codex-test-psychologie-initiale', label: 'Psychologie initiale', type: 'psychology' as const, desc: 'Psychologie de test.', source };
+    const autre = { ...initiale, id: 'codex-test-psychologie-remplacement', label: 'Psychologie de remplacement' };
+    const idPorteur = 'codex-test-trait-psychologique';
     try {
-      monter('traits', porteur.id);
+      setDataset('books', [...livres, { id: source.book, label: 'Livre de test', type: 'books', abbr: 'CTP', language: null, folder: null }]);
+      setDataset('psychologies', [...psychologies, initiale, autre]);
+      setDataset('traits', [...traits, {
+        id: idPorteur, label: 'Trait de test', type: 'traits', desc: 'Trait de test.', source,
+        capabilities: { psychType: traitCapabilitiesSchema.shape.psychType.parse(initiale.id) },
+      }]);
+      const admis = idsDeLaSousListe(feuille!.type, feuille!.sousListe!);
+      const psy = new Map<string, string>(datasetArray('psychologies').map((e) => [e.id, e.label]));
+      monter('traits', idPorteur);
       const select = controle(`${f().label} de ${CHAMP}`) as HTMLSelectElement;
       expect(select).toBeInstanceOf(HTMLSelectElement);
       expect(select.closest('label.ed-field')?.querySelector('.ed-hint')?.textContent, 'indication du catalogue de `RefField`').toBe(` (${libelleDeDataset('psychologies')})`);
       expect(options(select).map((o) => o.value).sort()).toEqual([...admis].sort());
       for (const o of options(select)) expect(o.textContent, o.value).toBe(psy.get(o.value));
-      const autre = admis.find((id) => id !== porteur.capabilities!.psychType)!;
-      act(() => { saisir(select, autre); });
+      expect(select.value).toBe(initiale.id);
+      act(() => { saisir(select, autre.id); });
       await act(async () => { container.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!.click(); });
       expect([...container.querySelectorAll('.codex-edit-errors li')].map((l) => l.textContent)).toEqual([]);
-      expect(datasetArray('traits').find((e) => e.id === porteur.id)!.capabilities!.psychType).toBe(autre);
+      expect(datasetArray('traits').find((e) => String(e.id) === idPorteur)?.capabilities?.psychType).toBe(autre.id);
     } finally {
-      setDataset('traits', avant as never);
+      setDataset('traits', traits);
+      setDataset('psychologies', psychologies);
+      setDataset('books', livres);
     }
   });
 

@@ -16,7 +16,9 @@ const etendu = (nom: string, tombe: boolean): EtatDeCombat => ({
   fenetre: {
     titre: 'Dissipation',
     heros: { role: 'testeur', qui: 'ilyanwe', test: 'Langue (Magick) · coûte l’Action', seuil: 85, ...(tombe ? { jet: { des: [50, 1], dr: 3, reussite: true } } : {}) },
-    centre: { role: 'etendu', ni: 7, sort: 'Dôme', cumul: tombe ? 5 : 2, phrase: tombe ? 'Le Dôme vacille : encore 2 DR pour le dissiper.' : 'Encore 5 DR pour dissiper le Dôme.' },
+    centre: tombe
+      ? { role: 'issue', sorte: 'etendu', sur: 'Dôme · Niveau d’incantation 7', verdict: 'reussite', dr: 3, cumul: { dr: 5, vise: 7 }, consequences: [], phrase: 'Le Dôme vacille : encore 2 DR pour le dissiper.' }
+      : { role: 'etendu', ni: 7, sort: 'Dôme', cumul: 2, phrase: 'Encore 5 DR pour dissiper le Dôme.' },
     autre: { role: 'vise', qui: 'chamane', comme: 'Lanceur du Sort visé' },
     gestes: tombe ? apresLeDe(RESERVES.ilyanwe) : avantLeDe(RESERVES.ilyanwe, { annuler: true }), reserves: reserves(RESERVES.ilyanwe),
   },
