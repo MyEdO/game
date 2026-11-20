@@ -1,6 +1,6 @@
 /**
  * Garde-fou des Tables de Corruption (mutationTables.json) : chaque table doit couvrir son dé de tirage
- * (`die`) SANS trou ni chevauchement, et chaque `mutation` référencée doit exister dans mutations.json
+ * (`die`) SANS trou ni chevauchement, et chaque mutation référencée doit exister dans mutations.json
  * (réf par id stable). Protège la transcription des tables (LDB 19 + par Puissance du Chaos, EDOC 12).
  */
 import { describe, it, expect } from 'vitest';
@@ -29,7 +29,7 @@ describe('mutationTables — tables de Corruption', () => {
       expect(expected, `${t.id}: doit finir au plus grand total du ${t.die}`).toBe(totalDuDe(de, de.n * de.sides) + 1);
     });
     it(`${t.id} : toutes les mutations référencées existent`, () => {
-      const bad = t.entries.map((r) => r.mutation).filter((m) => !IDS.has(m));
+      const bad = t.entries.map((r) => r.id).filter((m) => !IDS.has(m));
       expect(bad, `${t.id}: réfs de mutation inconnues`).toEqual([]);
     });
   }

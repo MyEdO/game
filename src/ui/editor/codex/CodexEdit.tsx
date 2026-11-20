@@ -260,7 +260,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
   if (categoryKey === 'stars') add('sub');
-  if (['mutationTables', 'weather', 'effectTables'].includes(categoryKey)) add('entries');
+  if (['weather', 'effectTables'].includes(categoryKey)) add('entries');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
   if (EVENEMENTS_DE_MER.includes(categoryKey)) add('consequence'); // Flow joué par `runFlow` → FlowEditor (#1652)
@@ -435,8 +435,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isSymptom = categoryKey === 'symptoms';
   // Règle optionnelle : sa valeur par défaut (et le `when` de son action) sont typées par son `kind`.
   const isOptionalRule = categoryKey === 'reglesOptionnelles';
-  // Table de Corruption : ses `entries` (plages de son dé → réf mutation) ont leur éditeur dédié.
-  const isMutationTable = categoryKey === 'mutationTables';
   // Météo : ses `entries` (plages de son dé → type de météo) ont leur éditeur dédié.
   const isWeather = categoryKey === 'weather';
   // Table d'effets : ses `entries` (plages de son dé → opérations) ont leur éditeur dédié (#1667).
@@ -681,7 +679,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isTriggered && <TriggeredEffectsField noeud={noeudDe('effects')} value={entry.effects as TriggeredEffect[] | undefined} onChange={(v) => edit('effects', v)} />}
         {hasConsumable && <TriggeredEffectsField noeud={noeudDe('onHitEffects')} label="effets à la touche de l’arme (onHit → Flow d’ops, ADE II)" value={entry.onHitEffects as TriggeredEffect[] | undefined} onChange={(v) => edit('onHitEffects', v.length ? v : undefined)} />}
         {isManeuver && <ManeuverDefField entry={entry} edit={edit} />}
-        {isMutationTable && <MutationTableField domaine={domaineDuDe(deDeLEntree)} value={entry.entries as MutationRange[] | undefined} onChange={(v) => edit('entries', v)} />}
         {isEffectTable && <EffectTableRowsField domaine={domaineDuDe(deDeLEntree)} value={entry.entries as EffectTableRow[] | undefined} onChange={(v) => edit('entries', v)} />}
         {isWeather && <WeatherRangesField domaine={domaineDuDe(deDeLEntree)} value={entry.entries as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('entries', v)} />}
         {hasDerivedWeapon && <WeaponField value={entry.derivedWeapon as ArmeDerivee | undefined} onChange={(v) => edit('derivedWeapon', v)} />}
@@ -1371,7 +1368,7 @@ function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier
 
 /** Maladies contractées sur Exposition hydrique (`waterExposure.diseases`, MSRC 16 l.49-61) : le dé de la
  *  table (`die`, jet APRÈS échec du Test) et ses plages → maladie référencée par ID (sélecteur, comme
- *  `SkillSpecListField`/`ProsthesisField`/`MutationTableField` — la donnée est un id, jamais un label). */
+ *  `SkillSpecListField`/`ProsthesisField` — la donnée est un id, jamais un label). */
 function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['diseases']; onChange: (v: WaterExposureData['diseases']) => void }) {
   const { die, entries: list } = value;
   const de = deDeLaTableTiree(value);
@@ -1590,10 +1587,6 @@ function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefin
   );
 }
 
-/** Une plage d'une Table de Corruption : [min,max] → mutation référencée PAR ID (`mutations.ts` :
- *  `BY_ID.get(range.mutation)`). */
-interface MutationRange { min: number; max: number; mutation: string; }
-
 /** DOMAINE d'une plage tirée au dé de sa table (`die`) : son nom et ses bornes de saisie — aucun quand l'entrée ne porte pas de dé. */
 function domaineDuDe(spec: DiceSpec | undefined): PlageDomaine {
   return spec ? { nom: formatDice(spec), min: totalDuDe(spec, spec.n), max: totalDuDe(spec, spec.n * spec.sides) } : {};
@@ -1624,35 +1617,6 @@ function WeatherRangesField({ domaine, value, onChange }: { domaine: PlageDomain
         </div>
       ))}
       <button className="btn small" onClick={() => onChange([...list, { min: domaine.min ?? 1, max: domaine.max ?? 1, weather: 'beau' }])}>+ Plage</button>
-    </div>
-  );
-}
-
-/** Éditeur des PLAGES d'une Table de Corruption (`mutationTables.json`) : chaque rangée = un intervalle du dé
- *  → une mutation (sélecteur id→label, #173 — PAS le datalist par label : la donnée est un id). La table
- *  renvoie la mutation dont l'intervalle contient le jet (`findTableEntry`). DÉCOUPLÉ de la mutation :
- *  plusieurs tables (une par dieu du Chaos, Compagnon T1) peuvent pointer la même mutation à des plages
- *  différentes. */
-function MutationTableField({ domaine, value, onChange }: { domaine: PlageDomaine; value: MutationRange[] | undefined; onChange: (v: MutationRange[]) => void }) {
-  const list = value ?? [];
-  const mutationOpts = datasetArray('mutations') as { id: string; label: string }[];
-  const set = (i: number, patch: Partial<MutationRange>) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
-  return (
-    <div className="ed-field">
-      <span>plages {domaine.nom ?? 'du dé'} → mutation (la table renvoie la mutation dont l'intervalle contient le jet)</span>
-      {list.map((r, i) => (
-        <div className="ed-subfield" key={i}>
-          <div className="tf-row">
-            <label className="dr">{domaine.nom}&nbsp;<NumberField variant="nu" label="Plage — borne basse" min={domaine.min} max={domaine.max} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label="Plage — borne haute" min={domaine.min} max={domaine.max} value={r.max} onChange={(max) => set(i, { max })} /></label>
-            <select value={r.mutation} onChange={(e) => set(i, { mutation: e.target.value })}>
-              <option value="">— (choisir une mutation) —</option>
-              {mutationOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
-            <button className="btn small danger" title="Supprimer la plage" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
-          </div>
-        </div>
-      ))}
-      <button className="btn small" onClick={() => onChange([...list, { min: domaine.min ?? 1, max: domaine.min ?? 1, mutation: '' }])}>+ Plage</button>
     </div>
   );
 }

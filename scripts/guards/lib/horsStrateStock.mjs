@@ -124,7 +124,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#miscast', ref: '[].entries[]', occurrence: 1 },
   { fichier: 'src/data#miscast', ref: '[].entries[].test', occurrence: 1 },
   { fichier: 'src/data#miscast', ref: '[].entries[].test.onFailHard', occurrence: 1 },
-  { fichier: 'src/data#mutationTables', ref: '[].entries[]', occurrence: 1 },
   { fichier: 'src/data#names', ref: '[].lastNameSuffixes', occurrence: 1 },
   { fichier: 'src/data#naval-traits', ref: '[].install', occurrence: 1 },
   { fichier: 'src/data#naval-traits', ref: '[].install.installation|{bands,per=10m/5m/undefined/unite}', occurrence: 1 },
