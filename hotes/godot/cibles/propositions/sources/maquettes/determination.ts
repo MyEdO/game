@@ -27,7 +27,7 @@ const depense = (nom: string, choisie: number): EtatDeCombat => ({
       }],
     },
     gestes: [{ libelle: 'Dépenser', principal: true }, { libelle: 'Annuler' }],
-    reserves: [{ nom: 'Détermination', valeur: RESERVES.berta.determination, porteur: 'berta' }],
+    reserves: [{ id: 'determination', nom: 'Détermination', valeur: RESERVES.berta.determination, porteur: 'berta' }],
   },
 });
 

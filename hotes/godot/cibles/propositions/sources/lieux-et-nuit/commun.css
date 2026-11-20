@@ -4,9 +4,8 @@
 #recit p{margin:0;font-style:italic;font-size:17px;line-height:25px;color:#efe4c8}
 
 /* le bandeau des quatre héros */
-#bandeau .fond{display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
-.heros{position:relative;display:flex;gap:13px;padding:11px 14px 0 13px;min-width:0}
-.heros+.heros{border-left:1px solid rgba(0,0,0,.6);box-shadow:inset 1px 0 0 rgba(255,220,160,.07)}
+.heros{position:relative;display:flex;gap:13px;padding:11px 14px 0 13px;min-width:0;height:100%}
+.place+.place>.heros{border-left:1px solid rgba(0,0,0,.6);box-shadow:inset 1px 0 0 rgba(255,220,160,.07)}
 .heros .qui{flex:1;min-width:0}
 .heros .nom{font-size:20.5px;line-height:28px;margin:-3px 0 -3px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
 .heros .l2{display:flex;justify-content:space-between;align-items:baseline;margin-top:1px}

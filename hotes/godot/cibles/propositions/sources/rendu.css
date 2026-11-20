@@ -1,9 +1,9 @@
 /* La page de rendu des maquettes (#4411) : chaque bloc d'un gabarit ancré dans la vue logique (`../dispositions.md`,
    § « Vue de référence et ancrages »), par-dessus les feuilles des pièces qu'elle charge. Se lie en dernier. */
-/* 6. Fenêtre du bas : centrée, 960 de large, à 8 du bas ; les deux camps gardent leur place, le centre rétrécit */
-#jet .fond{grid-template-columns:auto minmax(0,1fr) auto;column-gap:10px;padding:22px 16px 0}
-#jet .camp .des{gap:6px}
-#jet .camp>div{max-width:272px}
+/* 6. Fenêtre du bas : centrée, 960 de large, à 8 du bas ; chaque place à son rect (`PLACES`, `rendu.js`), le contenu s'y adapte */
+#jet .camp{gap:10px}
+#jet .camp .des{gap:3px}
+#jet .place>.carte .c{-webkit-line-clamp:4}
 #verdict{padding:2px 4px 0}
 #verdict .dr{line-height:normal;margin:0}
 #verdict>.sous{font-size:11.5px;line-height:14px}
@@ -11,39 +11,25 @@
 #jet .camp .n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal;line-height:normal;margin-top:-4px}
 #jet .camp.droite .n{justify-content:flex-end}
 #jet .camp .n .modif{margin-top:0}
-/* des dés réglables tiennent au-dessus des réserves : leurs boutons mordent la marge transparente du dé */
-#jet .des.regles .moins-plus{gap:0}
-#jet .des.regles .moins-plus .bouton-rond{margin:-3px 0}
 #verdict .sous{display:flex;justify-content:center;align-items:center;gap:7px}
 #verdict .sous .point{width:3px;height:3px;border-radius:50%;background:currentColor}
 #verdict .sous .rubrique{font-size:12.5px;color:#4a3420}
-#jet .fond.debut .annonce{flex:none;white-space:nowrap}
+#jet .annonce{white-space:nowrap}
+/* la table tirée et la table de Tests, dans la place large : la tête fixe, le reste défile */
+#jet .place>:is(#critique,#verdict.tests){height:100%;display:flex;flex-direction:column}
+#jet .place>:is(#critique,#verdict.tests)>.defile{flex:1}
+#jet #critique .defile p{margin-top:3px}
+/* ce que le jet vise : sa vie sous son rôle, la jauge à la largeur de sa colonne */
+#jet .visee .pv .jauge{width:auto}
 #jet .annonce .dr{line-height:normal}
-#jet .fond.debut>.camp{flex:none}
-#jet .groupe{flex:1 1 auto;min-width:0}
-/* les réactions d'une défense tiennent dans le centre : à la ligne quand elles n'y tiennent pas côte à côte */
-#jet .reactions{flex-wrap:wrap;row-gap:6px}
-#jet .reactions .plaque.carte.courte{flex:1 1 auto;min-width:0}
-#verdict .groupe{margin-top:6px}
-/* le centre d'un jet avant le dé tient entre les deux camps : ses choix rétrécissent, une bascule ou une note passe à la ligne */
-#verdict .rangee .choix{min-width:0}
-#verdict .choix .bascule{white-space:normal;line-height:15px}
-#verdict .choix .bas{flex-wrap:wrap;row-gap:4px;margin-top:4px}
-#jet #verdict .choix p{white-space:normal}
-#jet .fond.consigne{grid-template-columns:auto minmax(0,1fr)}
-#jet .fond.critique{grid-template-columns:auto minmax(0,1fr)}
-#jet .fond.critique.duel{grid-template-columns:auto minmax(0,1fr) auto}
+/* le centre d'un jet avant le dé tient entre les deux camps : une bascule passe à la ligne */
+#jet .place .bascules .bascule{white-space:normal}
 /* une règle du centre tient sur sa ligne : son libellé passe à la ligne, ses options et son motif gardent leur largeur */
-#verdict .regle{gap:6px}
-#verdict .regle .l{white-space:normal;line-height:13px;letter-spacing:.4px;min-width:0}
-#verdict .regle>.modif,#verdict .regle>.options{flex:none}
-#jet #verdict .regle .options{gap:4px}
-#jet #verdict .regle .options .plaque>div{padding:0 4px;letter-spacing:0}
-#verdict.sort.reglages{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-auto-rows:max-content;column-gap:14px;align-content:start}
-#verdict.sort.reglages>:not(.rangee){grid-column:1}
-#verdict.sort.reglages>.rangee{grid-column:2;grid-row:1/span 4;align-self:center}
-#verdict.sort.reglages .dr{font-size:24px;line-height:normal}
-#verdict.sort.reglages p{font-size:12px;line-height:16px}
+#jet .place>.regle{gap:6px}
+#jet .place>.regle .l{white-space:normal;line-height:13px;letter-spacing:.4px;min-width:0}
+#jet .place>.regle>.modif,#jet .place>.regle>.options{flex:none}
+#jet .place>.regle .options{gap:4px}
+#jet .place>.regle .options .plaque>div{padding:0 4px;letter-spacing:0;white-space:normal;line-height:11px}
 #verdict.surinc{grid-template-columns:minmax(0,1fr) 192px;column-gap:12px;height:auto;padding:0 6px 0 10px}
 #verdict.surinc .axe{grid-template-columns:52px 40px 1fr 40px}
 #verdict.surinc .sort .dr{font-size:26px;line-height:32px}
@@ -53,12 +39,10 @@
 #critique .tete-c{display:flex;align-items:center;gap:18px}
 #critique .tete-c .dr{white-space:nowrap}
 #critique .tete-c .tirage{min-width:0}
-#verdict.etendu .dr{font-size:24px}
 #critique .dr{line-height:normal}
 #critique .tirage .sceau b{font-size:14px}
-#jet .fond.enjeu{grid-template-columns:auto minmax(0,1fr) 262px}
 /* les rangées d'un Test d'équipage tiennent au-dessus des suites : leur intitulé sur une ligne, une rangée à la hauteur de son portrait */
-#jet .rangees:not(.chansons){max-width:272px}
+#jet .rangees{max-width:272px}
 #jet .rangees .t{letter-spacing:.5px}
 #jet .rangees .rangee{height:32px}
 /* une ligne de butin à la hauteur de ses portraits */
@@ -134,8 +118,6 @@
 #panneau .fond{padding:20px 14px 10px}
 #panneau .jauge{margin:1px 0 7px}
 #panneau .plaque{margin-top:2px}
-#evenement .fond{padding:22px 24px 0 20px}
-#evenement .vignette{width:226px;height:226px}
 #apercu-test .apercu{left:576px;top:270px;--pointe:124px}
 .apercu td:first-child{white-space:nowrap;padding-right:10px}
 .apercu table{border-collapse:collapse;width:100%}
@@ -150,7 +132,6 @@
 #verdict.tests td:last-child{padding-left:10px;font-family:"Fell SC"}
 #verdict.tests tr.courant td{color:#7c1f14;font-weight:600}
 #verdict.tests tr.somme td{font-weight:600}
-#jet .fond.tests{grid-template-columns:auto minmax(0,1fr)}
 
 /* 4. Lieu, la bataille : le panneau de la Puissance au coin haut-droit, les Scènes sur leurs emplacements du champ, le
    carton du Test de Puissance ou de l'issue au-dessus du bandeau (gabarit 7) */
@@ -203,7 +184,7 @@
 
 /* 5. Combat : la borne du round 22 / 16, l'ordre du tour au bord gauche dans la marge de 160 sous la borne, l'actif en
    bas et le haut replié ; la fin du tour 49 / 48 */
-#ordre{flex-direction:column;justify-content:flex-end;overflow:hidden}
+#ordre{flex-direction:column;justify-content:flex-end;overflow:hidden;padding-bottom:166px}
 #ordre .rang{flex:none}
 #ordre .rang .nom{white-space:normal;line-height:normal}
 #ordre .rang .jauge,#ordre .rang.actif .jauge{flex:none;width:38px}
@@ -217,7 +198,6 @@
 /* 5. Combat, le tour : la barre de l'actif au rect `socle` ; les valeurs à gauche, le portrait au
    centre, les actions à droite, une famille par onglet au-dessus de sa rangée ; les outils du tour à cheval sur le bord
    haut, au-dessus du Mouvement qu'ils annulent */
-#barre>.onglets{left:479px}
 #barre>#tour-outils{left:22px;top:-17px;flex-direction:row;gap:9px;z-index:1}
 #ecran #barre #etat{left:13px;top:10px;width:282px;grid-template-columns:150px 114px;column-gap:18px;row-gap:5px}
 #etat .mesure .jauge{margin-top:4px}
@@ -225,14 +205,12 @@
 #etat .jeton{margin-top:0}
 #etat .jeton .v{font-size:13px;white-space:nowrap}
 #etat .tiers{grid-column:1 / 3;display:flex;align-items:center;gap:16px;height:34px}
+#etat .en-reserve{color:#f0e2c2}
 #etat .portes{gap:7px;height:auto}
 #ecran #barre #gestes{left:470px;top:24px;width:450px}
-#gestes .plaques{gap:9px}
-#gestes .plaques .plaque{flex:1}
-#ecran #barre .plaques.situation{flex-wrap:wrap;gap:6px;margin:0}
-#ecran #barre .plaques.situation .plaque{flex:1 1 auto}
-#ecran #barre .pastilles{margin-top:0;padding:0;justify-content:space-between;gap:0}
-#ecran #barre .outil{width:88px;flex-direction:column;gap:3px}
+#barre .place>.plaque{width:100%}
+#barre .place>.plaque>div{padding:0 8px;white-space:normal;text-align:center;line-height:15px}
+#ecran #barre .outil{width:100%;flex-direction:column;gap:3px}
 #ecran #barre .outil .bouton-rond{width:34px;height:34px}
 #ecran #barre .outil span{font-size:11.5px;letter-spacing:.7px}
 #gestes .rapides{display:flex;justify-content:space-between}
@@ -284,8 +262,6 @@
 
 /* 4. Lieu, l'exploration : le regard au coin haut-droit, les écrans à ouvrir dessous ; les gestes du groupe au bord
    gauche et le journal au bord droit ; le dialogue et la fouille dans la fenêtre du bas */
-#jet .fond.dialogue>.camp:first-child>div{max-width:120px}
-#jet .fond.dialogue>.camp.parle>div:not(.portrait){width:200px}
 
 /* 4. Lieu, la carte du monde : la destination en colonne de 360 au coin haut-droit, la carte tendue de la marge au
    panneau sous le cartouche, jusqu'à la ligne basse */
@@ -319,22 +295,6 @@
    du bandeau, les voyageurs entre les deux */
 #salle{position:absolute;left:0;top:0}
 #campagnes .fond{height:100%;box-sizing:border-box;padding:22px 12px 0}
-
-/* 2. Gestion, le Compendium : le volet des catégories sous le cartouche, le registre tendu jusqu'aux signets, ses entrées
-   serrées ; le détail de l'entrée posé par-dessus le registre, au bord droit */
-#registre .entree{height:36px;line-height:36px;font-size:16px}
-#posee{right:10px;top:6px;bottom:10px;width:440px;z-index:2}
-/* la page de gauche s'arrête avant la fiche posée, qui dit la source de l'entrée pointée : ses entrées n'y gardent que
-   leur nom */
-#registre:has(>#posee) .feuille.g{flex:none;width:calc(100% - 445px);box-sizing:border-box;padding-left:14px;padding-right:14px}
-#registre:has(>#posee) .feuille.g .entree{height:34px;line-height:34px}
-#registre:has(>#posee) .feuille.g .entree em{display:none}
-#registre:has(>#posee) .feuille.g .pied{flex-wrap:wrap;justify-content:space-between;gap:0;height:auto}
-#registre:has(>#posee) .feuille.g .pied .folio{order:-1;flex:1 0 100%;text-align:center}
-#posee>.feuille{height:100%;box-sizing:border-box;padding:16px 22px 10px;border-radius:3px}
-#posee .fiche{overflow-y:auto;scrollbar-width:none}
-#posee>.croix{right:12px;top:12px}
-#posee .tete{padding-right:48px}
 
 /* 2. Gestion, la coop : la tablée tendue entre le panneau de gauche (rejoindre, l'invitation) et celui de droite
    (héberger, l'attribution), jusqu'à 24 du bas */

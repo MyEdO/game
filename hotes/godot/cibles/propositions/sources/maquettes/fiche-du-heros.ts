@@ -26,7 +26,7 @@ const POSER = { libelle: 'Poser au sol' };
 /** La fiche d'Ilyanwe, la ligne `pressee` de son vrac ouverte. */
 const ilyanwe = (nom: string, pressee: 'dague' | 'composant', ouvert: ObjetOuvert): FicheDuHeros => ({
   nom, gabarit: 'fiche', identite: ILYANWE, profil: PROFIL_D_ILYANWE,
-  sections: ['Attaques', 'Compétences', 'Talents', 'Sorts', 'Possessions'], ouverte: 'Possessions',
+  sections: ['attaques', 'competences', 'talents', 'sorts', 'possessions'], ouverte: 'possessions',
   sets: [{ principale: { id: 'baton', nom: 'Bâton de combat' }, secondaire: null, enMain: true, deuxMains: true }, { principale: { id: 'dague', nom: 'Dague' }, secondaire: null }],
   porte: [{ id: 'baton', nom: 'Bâton de combat', ou: 'En main' }, { id: 'habit', nom: 'Robe', ou: 'Portée' }, { id: 'sac', nom: 'Sac à dos', ou: 'Porté' }],
   vrac: ([
@@ -39,7 +39,7 @@ const ilyanwe = (nom: string, pressee: 'dague' | 'composant', ouvert: ObjetOuver
 /** La fiche de Berta, sa `pressee` ouverte. */
 const berta = (nom: string, pressee: 'prothese' | 'faveur', ouvert: ObjetOuvert): FicheDuHeros => ({
   nom, gabarit: 'fiche', identite: BERTA, profil: profil([4, 41, 33, 38, 36, 31, 30, 28, 27, 34, 29, 12]),
-  sections: ['Attaques', 'Compétences', 'Talents', 'Possessions'], ouverte: 'Possessions',
+  sections: ['attaques', 'competences', 'talents', 'possessions'], ouverte: 'possessions',
   sets: [{ principale: { id: 'epee', nom: 'Arme simple' }, secondaire: { id: 'bouclier', nom: 'Bouclier' }, enMain: true, refus: 'Dernière panoplie — un héros en garde toujours une.', ...(pressee === 'prothese' ? { survol: true } : {}) }],
   porte: [
     { id: 'epee', nom: 'Arme simple', ou: 'En main' }, { id: 'bouclier', nom: 'Bouclier', ou: 'En main' }, { id: 'habit', nom: 'Veste de cuir', ou: 'Portée' },
