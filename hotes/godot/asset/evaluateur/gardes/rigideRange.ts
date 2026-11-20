@@ -7,13 +7,17 @@
  * et il ne pince pas le tissu contre le corps, donc aucun de ses sommets derrière un vêtement n'est écarté. Les meshes
  * de l'élément qui offre son emplacement n'y entrent pas : le jeu pose l'objet dans sa case, entre ses parois
  * (`MontageDeComposition._appuyer`).
+ * Au repos neutre, il se mesure comme une couche sous sa couverture (`lierLesCouches`, `traversee.ts`) : une arête qui
+ * traverse l'endroit d'un vêtement en sort par un bout, percé s'il est à plus de `ECART_DE_SUIVI_M` devant lui.
  * `objet-dans-un-vetement` : un écart par (rigide, mesh, clip), à son pire instant (`piresTraversees`), de valeur le
- * plus grand écart signé derrière.
+ * plus grand écart signé derrière ; au repos neutre, un écart par (rigide, mesh), de valeur l'écart signé le plus
+ * négatif.
  */
 import type { Mesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { piresTraversees, type MembreDUnEchantillon, type PaireHorsDeZone } from './membreDansUnVetement.ts';
+import type { PercementAuRepos } from './traversee.ts';
 
 const GARDE = 'rigideRange';
 
@@ -31,3 +35,10 @@ export function gardeRigideRange(mesures: readonly MembreDUnEchantillon[], libel
     detail: `${m.sommets} sommet(s) de l'objet rangé derrière ${libelle(m.vetement)} qu'il traverse : plus grand écart signé, en m`,
   }));
 }
+
+/** `objet-dans-un-vetement` au repos neutre : un écart par percement de `percements` (`lierLesCouches`, le rigide en
+ *  sujet). */
+export const gardeRigideRangeAuRepos = (percements: readonly PercementAuRepos[], libelle: LibelleDeMesh): Ecart[] => percements.map((p): Ecart => ({
+  garde: GARDE, code: 'objet-dans-un-vetement', mesh: libelle(p.sujet), valeur: p.pire, seuil: -ECART_DE_SUIVI_M,
+  detail: `${p.sommets} sommet(s) de l'objet rangé devant ${libelle(p.couverture)} qu'il traverse au repos neutre : écart signé le plus négatif, en m`,
+}));

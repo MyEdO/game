@@ -27,8 +27,9 @@ const base = glb([cube('corps', 0.3)], CLIP);
 const robe = glb([cube('robe', 0.4)]);
 const fiole = glb([PLAQUETTE]);
 const couches: (CoucheDeLElement | null)[] = [{ couche: 'tenue', couvre: ['torse'] }, null];
-/** La plaquette à cheval sur la face +Z de la robe (z = 0,2) : un bord 1 cm derrière, l'autre 1 cm devant. */
-const DEDANS = translation(0, 1, 0.2);
+/** La plaquette à cheval sur la face +Z de la robe (z = 0,2) : un bord 14 mm derrière, son milieu 4 mm derrière, l'autre
+ *  bord 6 mm devant. */
+const DEDANS = translation(0, 1, 0.196);
 /** La plaquette toute devant cette face, à 1 cm au plus près. */
 const POSEE = translation(0, 1, 0.22);
 const rigides = (fiche: Awaited<ReturnType<typeof evaluer>>) => fiche.ecarts.filter((e) => e.garde === 'rigideRange');
@@ -51,14 +52,17 @@ describe('rangement', () => {
     expect(ecarts[0]).toMatchObject({ code: 'objet-dans-un-vetement', mesh: 'élément 2/fiole#0', clip: CLIP, seuil: ECART_DE_SUIVI_M });
     expect(ecarts[0].detail).toContain('élément 1/robe#0');
     expect(ecarts[0].t).toBeGreaterThan(0.5);
-    expect(ecarts[0].valeur).toBeCloseTo(0.01, 6);
+    expect(ecarts[0].valeur).toBeCloseTo(0.014, 6);
   });
 
-  it('posé devant le vêtement, ou laissé où son GLB le pend : aucun écart ; à cheval sur lui tout le clip : un', async () => {
+  it('posé devant le vêtement, ou laissé où son GLB le pend : aucun écart ; à cheval sur lui : un sous le clip, un au repos', async () => {
     const sous = (pose: number[] | null, offrants: number[] = []) => evaluer({ base, elements: [robe, fiole], couches, ranger: async (i) => [null, { meshes: { fiole: i.map(() => pose) }, offrants }] });
     expect(rigides(await sous(POSEE))).toEqual([]);
     expect(rigides(await sous(null))).toEqual([]);
-    expect(rigides(await sous(DEDANS))).toHaveLength(1);
+    const dedans = rigides(await sous(DEDANS));
+    expect(dedans.map((e) => e.clip)).toEqual([CLIP, undefined]);
+    expect(dedans[1]).toMatchObject({ code: 'objet-dans-un-vetement', mesh: 'élément 2/fiole#0', seuil: -ECART_DE_SUIVI_M });
+    expect(dedans[1].valeur).toBeCloseTo(-0.006, 6);
     expect(rigides(await sous(DEDANS, [0])), 'la robe offre sa case').toEqual([]);
   });
 

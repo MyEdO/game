@@ -61,7 +61,7 @@ import {
   type MembreDUnEchantillon,
 } from './gardes/membreDansUnVetement.ts';
 import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
-import { gardeRigideRange, pairesDuRigide } from './gardes/rigideRange.ts';
+import { gardeRigideRange, gardeRigideRangeAuRepos, pairesDuRigide } from './gardes/rigideRange.ts';
 import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
 import { meshesDuCorps, peauDeLaTenue, zoneDe } from './corps.ts';
 import { poserLaPile } from './pile.ts';
@@ -297,6 +297,10 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const vetementsDeZone = declareesMontrees.flatMap((d) => d.meshes).filter((m) => zone(m) !== undefined);
   const pairesDesRanges = () => (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => pairesDuRigide(ranges, vetementsDeZone, new Set(offrants.flatMap((k) => elements[k].meshes)), libelle, endroit));
   const rigidesDansUnVetement: MembreDUnEchantillon[] = [];
+  const rigidesPercesAuRepos = (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => {
+    const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
+    return lierLesCouches(ranges, declareesMontrees.map((d) => ({ meshes: d.meshes.filter((m) => !offerts.has(m)) })), repos, () => false, endroit).percements;
+  });
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit, (clip, t) => rangement?.poser(rangDeLInstant.get(`${clip}\u0000${t}`) as number))) {
     rigidesDansUnVetement.push(...mesurerMembresDansUnVetement(pairesDesRanges(), [], e));
     traversees.push(...mesurerTraversee(couches.liaisons, e));
@@ -312,7 +316,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
   ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...gardeRigideRange(rigidesDansUnVetement, libelle), ...amplitudes.ecarts(), ...poignets.ecarts());
-  if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));
+  if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle), ...gardeRigideRangeAuRepos(rigidesPercesAuRepos, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
   return {
