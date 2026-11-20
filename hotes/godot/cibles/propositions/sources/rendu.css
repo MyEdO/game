@@ -12,13 +12,19 @@
 #jet .camp .n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal;line-height:normal;margin-top:-4px}
 #jet .camp.droite .n{justify-content:flex-end}
 #jet .camp .n .modif{margin-top:0}
-/* des dés réglables tiennent au-dessus des réserves : leurs boutons mordent la marge transparente du dé */
-#jet .des.regles .moins-plus{gap:0}
-#jet .des.regles .moins-plus .bouton-rond{margin:-3px 0}
 #verdict .sous{display:flex;justify-content:center;align-items:center;gap:7px}
 #verdict .sous .point{width:3px;height:3px;border-radius:50%;background:currentColor}
 #verdict .sous .rubrique{font-size:12.5px;color:#4a3420}
 #jet .annonce{white-space:nowrap}
+/* la table tirée et la table de Tests, dans la place large : la tête fixe, le reste défile */
+#jet .place>:is(#critique,#verdict.tests){height:100%;display:flex;flex-direction:column}
+#jet .place>:is(#critique,#verdict.tests)>.defile{flex:1}
+#jet #critique .defile p{margin-top:3px}
+/* ce que le jet vise : sa vie sous son rôle, la jauge à la largeur de sa colonne */
+#jet .visee>div{flex:1;min-width:0}
+#jet .visee .n{line-height:21px;margin-top:0}
+#jet .visee .pv{flex-direction:column;align-items:stretch;gap:2px;margin-top:8px}
+#jet .visee .pv .jauge{width:auto}
 #jet .annonce .dr{line-height:normal}
 /* les réactions d'une défense tiennent dans le centre : à la ligne quand elles n'y tiennent pas côte à côte */
 #jet .reactions{flex-wrap:wrap;row-gap:6px}
@@ -128,8 +134,6 @@
 #panneau .fond{padding:20px 14px 10px}
 #panneau .jauge{margin:1px 0 7px}
 #panneau .plaque{margin-top:2px}
-#evenement .fond{padding:22px 24px 0 20px}
-#evenement .vignette{width:226px;height:226px}
 #apercu-test .apercu{left:576px;top:270px;--pointe:124px}
 .apercu td:first-child{white-space:nowrap;padding-right:10px}
 .apercu table{border-collapse:collapse;width:100%}
@@ -196,7 +200,7 @@
 
 /* 5. Combat : la borne du round 22 / 16, l'ordre du tour au bord gauche dans la marge de 160 sous la borne, l'actif en
    bas et le haut replié ; la fin du tour 49 / 48 */
-#ordre{flex-direction:column;justify-content:flex-end;overflow:hidden}
+#ordre{flex-direction:column;justify-content:flex-end;overflow:hidden;padding-bottom:166px}
 #ordre .rang{flex:none}
 #ordre .rang .nom{white-space:normal;line-height:normal}
 #ordre .rang .jauge,#ordre .rang.actif .jauge{flex:none;width:38px}
@@ -210,7 +214,6 @@
 /* 5. Combat, le tour : la barre de l'actif au rect `socle` ; les valeurs à gauche, le portrait au
    centre, les actions à droite, une famille par onglet au-dessus de sa rangée ; les outils du tour à cheval sur le bord
    haut, au-dessus du Mouvement qu'ils annulent */
-#barre>.onglets{left:479px}
 #barre>#tour-outils{left:22px;top:-17px;flex-direction:row;gap:9px;z-index:1}
 #ecran #barre #etat{left:13px;top:10px;width:282px;grid-template-columns:150px 114px;column-gap:18px;row-gap:5px}
 #etat .mesure .jauge{margin-top:4px}
@@ -220,12 +223,9 @@
 #etat .tiers{grid-column:1 / 3;display:flex;align-items:center;gap:16px;height:34px}
 #etat .portes{gap:7px;height:auto}
 #ecran #barre #gestes{left:470px;top:24px;width:450px}
-#gestes .plaques{gap:9px}
-#gestes .plaques .plaque{flex:1}
-#ecran #barre .plaques.situation{flex-wrap:wrap;gap:6px;margin:0}
-#ecran #barre .plaques.situation .plaque{flex:1 1 auto}
-#ecran #barre .pastilles{margin-top:0;padding:0;justify-content:space-between;gap:0}
-#ecran #barre .outil{width:88px;flex-direction:column;gap:3px}
+#barre .place>.plaque{width:100%}
+#barre .place>.plaque>div{padding:0 8px;white-space:normal;text-align:center;line-height:15px}
+#ecran #barre .outil{width:100%;flex-direction:column;gap:3px}
 #ecran #barre .outil .bouton-rond{width:34px;height:34px}
 #ecran #barre .outil span{font-size:11.5px;letter-spacing:.7px}
 #gestes .rapides{display:flex;justify-content:space-between}

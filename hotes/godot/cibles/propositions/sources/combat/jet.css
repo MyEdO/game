@@ -4,14 +4,19 @@
 #jet .place{min-width:0}
 #jet .place>.carte{width:100%;height:100%}
 #jet .place>.t{font-size:12.5px;line-height:16px;color:#4a3420;white-space:nowrap}
-.camp{display:flex;gap:14px;align-items:flex-start}
+.camp{position:relative;display:flex;gap:14px;align-items:flex-start}
+#jet .place>.camp{height:100%}
 .camp.droite{flex-direction:row-reverse;text-align:right}
 .camp .n{font-size:21px;line-height:22px;color:#3a1a10;white-space:nowrap}
-.camp .c{font-size:12.5px;color:#4a3420;margin-top:1px;white-space:nowrap}
-.camp .des{display:flex;align-items:center;gap:10px;margin-top:7px}
+.camp .c{font-size:12.5px;line-height:14px;color:#4a3420;margin-top:1px}
+.camp .des{display:flex;align-items:center;gap:10px;margin-top:5px}
 .camp.droite .des{flex-direction:row-reverse}
 .camp .seuil{font-family:"Grenze Gotisch";font-weight:600;font-size:30px;line-height:34px;color:#2a1d12;white-space:nowrap}
 .camp .issue{line-height:17px}
+.camp>.issue{position:absolute;left:0;bottom:0;display:flex;align-items:baseline;gap:5px;white-space:nowrap}
+.camp.droite>.issue{left:auto;right:0}
+.camp>.issue b{display:inline;font-size:13px}
+.camp>.issue span{font-size:13px}
 .camp .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:#7c1f14}
 .camp .issue span{font-size:14px;color:#2a1d12;font-weight:600}
 .modif{display:inline-block;margin-top:5px;padding:0 9px 1px;font-size:12.5px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35)}
@@ -20,7 +25,7 @@
 #verdict .dr{font-size:30px;line-height:36px;color:#3a1a10;margin-top:2px}
 #verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
 #suites .place>.plaque{width:100%}
-#suites .place>.plaque>div{padding:0 6px;white-space:normal;text-align:center;font-size:13px;line-height:14px;letter-spacing:.5px}
+#suites .place>.plaque>div{padding:0 4px;white-space:normal;text-align:center;font-size:13px;line-height:12px;letter-spacing:.3px}
 .camp .issue.reussite b{color:#3d5a26}
 
 /* les réserves du héros : un disque par réserve, son nom dessous ; à gauche des gestes dans les suites */
@@ -29,7 +34,7 @@
 .en-reserve .res.vide{color:#6a5a40}
 
 /* avant le dé : le testeur, désigné aux suites, les réglages */
-.testeurs{flex:none;display:flex;align-items:center;gap:7px;margin-right:9px;font-size:11.5px;color:#4a3420}
+.testeurs{height:100%;display:flex;align-items:center;justify-content:flex-end;gap:7px;font-size:11.5px;color:#4a3420}
 .testeurs .t{opacity:.6}
 .testeurs .t.choisi{opacity:1}
 #verdict.reglages{padding-top:0}
@@ -40,7 +45,7 @@
 .bascule b{display:block;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1px #150d04,0 1px 2px rgba(0,0,0,.8)}
 .bascule:not(.allumee) b{filter:grayscale(1) brightness(.6)}
 .bascule.allumee b{margin-left:18px}
-/* les deux dés qui se règlent : + dessus, − dessous */
-.camp .des.regles{margin-top:0}
-.des.regles .moins-plus{flex-direction:column-reverse;gap:1px}
+/* les deux dés qui se règlent : − et + sous chacun */
+.des.regles .de-regle{display:flex;flex-direction:column;align-items:center}
+.des.regles .moins-plus{gap:0;margin-top:-3px}
 

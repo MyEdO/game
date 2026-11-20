@@ -300,8 +300,15 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
      `fin` au bout du rang */
   const rang = (genre, { camp, taille = 'moyen', choisi = false, nom, gothique = false, sous = '', corps = '', fin = '', classe = '' }) => `<div class="rang ${camp === 'ennemi' ? 'ennemi' : ''} ${classe}">${portrait(genre, { camp, taille, choisi })}
     <div class="qui"><div class="nom ${gothique ? 'gothique' : 'rubrique'} ombre" data-texte="rang ${nom}">${nom}</div>${sous ? `<div class="s rubrique">${sous}</div>` : ''}${corps}</div>${fin}</div>`;
-  /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques */
-  const onglets = (noms, active) => `<div class="onglets">${noms.map((s) => (s === active ? ruban(s, { gothique: true }) : plaque(s, { taille: 'petite' }))).join('')}</div>`;
+  /* le contenu de chaque place d'un cadre (`cadre/place`), que `rendu.js` pose au rect de sa ligne (`PLACES`) ; une
+     place sans contenu n'est pas posée */
+  const places = (cadre, contenus) => Object.entries(contenus).filter(([, html]) => html).map(([nom, html]) => `<div class="place" data-place="${cadre}/${nom}">${html}</div>`).join('');
+  /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques ; `cadre` :
+     chaque onglet à sa place `cadre/onglet-k`, de même largeur, une section absente (`null`) laisse la sienne vide */
+  const onglets = (noms, active, cadre = '') => {
+    const onglet = (s) => (s === active ? ruban(s, { gothique: true }) : plaque(s, { taille: 'petite' }));
+    return `<div class="onglets">${cadre ? places(cadre, Object.fromEntries(noms.map((s, k) => [`onglet-${k + 1}`, s && onglet(s)]))) : noms.map(onglet).join('')}</div>`;
+  };
   /* les sections d'un panneau en signets, au bord droit de son registre : `sections` = [{ nom, compte, marque }], le
      signet `ouverte` est de laiton ; `marque` : une règle de la section est modifiée */
   const signets = (sections, ouverte) => `<div class="signets" data-piece="signets">${sections.map(({ nom, compte = null, marque = false }) => `<div class="signet${nom === ouverte ? ` ouvert${nom.length > 12 ? ' serre' : ''}` : ''}"><span class="rubrique">${nom}</span>${marque ? '<i class="cire"></i>' : ''}${compte == null ? '' : `<em class="chiffres">${compte}</em>`}</div>`).join('')}</div>`;
@@ -382,7 +389,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, onglets, signets, apercu, issue,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, places, onglets, signets, apercu, issue,
     filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ, mobile, defile, de,
   });
 }

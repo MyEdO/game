@@ -23,7 +23,12 @@ Ce qui n'y figure pas suit ce qu'il désigne et porte `data-mobile` (« Mobiles 
 UN rectangle dans le fond du cadre, le même dans tous les états et sur tous les écrans : la table `PLACES` de
 `sources/rendu.js`, sœur de `CADRES`, seule copie des nombres. Ce qui manque à un état laisse sa place vide, rien ne
 glisse ; le fond ne range rien d'autre, aucune règle de feuille propre à un état n'y redéfinit colonnes, marges ou
-écarts. Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
+écarts. Les grilles de `PLACES` : la fenêtre du bas ; le socle (quatre cases égales du bandeau, `socle/case-*`, qu'il
+y ait quatre héros ou moins ; à la barre de l'actif une place d'onglet par famille dans l'ordre Action, Situation,
+Gestes, Rapides, de même largeur active ou non, trois places de plaque et cinq de geste) ; l'actif au pied de l'ordre
+du tour (`ordre/actif`) ; les onglets des sections de la fiche, des dossiers et de la progression (cinq places, la
+fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) ; le pied de l'identité qui progresse ;
+le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
 `habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
 premier état du même rôle.
 
@@ -46,7 +51,7 @@ Les rects sont ceux de `CADRES` ; cette table dit qui occupe chaque rôle.
 
 | Rôle | Ce qui l'occupe |
 |---|---|
-| `socle` | le bas de l'écran : bandeau du groupe (quatre cases de 240, y compris sur les écrans de héros) ou barre de l'actif en combat |
+| `socle` | le bas de l'écran : bandeau du groupe (quatre cases égales, `PLACES`, y compris sur les écrans de héros et les dossiers) ou barre de l'actif en combat |
 | `fenetre` | la fenêtre du bas (jet, choix, consigne, dialogue, butin) : une seule hauteur, même x, même largeur et même bas que le socle, qu'elle remplace ; seul son haut est plus haut |
 | `carton` | le carton d'un récit, d'un document, d'un arrêt de route ou d'un Test de Puissance, au-dessus du socle qui reste. Son bas est le haut de la fenêtre : 222 + 278 = 500. La grille de Fable donnait 328 de haut ; 278 est retenu pour qu'une fenêtre du bas qui s'ouvre sous un carton ne le couvre jamais |
 | `issue` | la bannière d'issue d'un combat et son action |
@@ -139,13 +144,18 @@ l'actif au `socle` (valeurs à gauche, portrait au centre, actions à droite, un
 Le journal passe par-dessus le champ, sans fond plein.
 
 **6. Fenêtre du bas** (jets et choix) : rôle `fenetre`, une seule hauteur ; ruban gothique centré ; ses places
-(`PLACES`) : `gauche` le héros concerné (portrait `grand`, nom à sa droite) ou le titre d'un choix, `centre`, `droite`
-l'adversaire ou l'interlocuteur en miroir, ou ce que le centre décide quand il n'y en a pas ; trois emplacements de
-carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique (`rubrique-1` à `rubrique-3`), une
-carte seule dans le premier, ce que le choix vise dans l'emplacement qui suit ses cartes ; `large`, la liste paginée
-par trois ou le partage d'une fouille, à la place des emplacements ; au pied, `gestes`, la rangée, avec `reserve` à
-gauche (la réserve dépensée, le testeur à désigner) et `plaques`, la principale en premier. La fenêtre remplace le
-socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois, défilement).
+(`PLACES`) : `gauche` le héros concerné (portrait `grand`, nom à sa droite) ou le titre d'un choix, aligné à droite
+contre ses cartes, `centre`, `droite` l'adversaire ou l'interlocuteur en miroir, ou ce que le centre décide quand il
+n'y en a pas ; trois emplacements de carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique
+(`rubrique-1` à `rubrique-3`), une carte seule dans le premier ; `cible`, ce que le choix vise, à la place du
+troisième emplacement, son portrait où se tient celui de l'autre camp ; `large`, à la place du centre, de la droite et
+des emplacements : la liste paginée par trois, le partage d'une fouille, la table tirée et la table de Tests, dont la
+tête reste et les lignes défilent ; au pied, `gestes`, la rangée, avec `reserve` à gauche (la réserve dépensée), les
+`plaques`, la principale en premier, et `testeurs` au bout (le testeur à désigner avant le dé, à la place des deux
+dernières plaques). Le camp d'un testeur tient dans sa place : nom, Test sur deux lignes au plus, puis seuil, deux
+dés et sceau `grand` ; l'issue (« réussite · DR ») se lit en une ligne sous le portrait ; un dé qui se règle porte son
+− et son + dessous. La fenêtre remplace le socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois,
+défilement).
 
 **7. Récit, document et issue** : `carton` (son action centrée au pied, la prose d'un document paginée) ; `issue` pour
 la bannière d'un combat, action unique dessous, sans socle ; ce que l'issue rend se lit ensuite dans la fenêtre du bas.

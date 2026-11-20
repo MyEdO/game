@@ -1187,7 +1187,7 @@ export type BlocDuDossier =
 
 /** Le dossier d'une possession, au gabarit de la fiche : son buste, son nom (en saisie quand on le renomme), son modèle, sa
  *  nature et son maître, sa longueur, son prix ; ses mesures (sur leur maximum, ou sur cent), ses compteurs, son profil,
- *  ses sections et celle qui est ouverte, ses blocs ; les combattants qui le possèdent. */
+ *  ses sections et celle qui est ouverte, ses blocs ; les combattants qui le possèdent ; le groupe. */
 export interface Dossier {
   nom: string;
   gabarit: 'fiche';
@@ -1199,6 +1199,7 @@ export interface Dossier {
   ouverte: string;
   blocs: BlocDuDossier[];
   combattants: Record<string, Combattant>;
+  groupe: HerosDuGroupe[];
 }
 
 /* ───────── l'exploration et le récit ───────── */
@@ -1615,6 +1616,9 @@ export interface IdentiteDuHeros {
   reserves: { nom: string; valeur: number }[];
 }
 
+/** Une section de la fiche du héros ; ses onglets suivent cet ordre, un héros sans Sorts laisse leur place vide. */
+export type SectionDeLaFiche = 'attaques' | 'competences' | 'talents' | 'sorts' | 'possessions';
+
 /** La fiche du héros, ouverte sur ses possessions : l'identité, le profil, les sections ; les sets d'armes, ce qu'il porte,
  *  ce qui est en vrac ou rangé, les Faveurs dues (le créancier, le niveau, le solde), la ligne ouverte ; le groupe. */
 export interface FicheDuHeros {
@@ -1622,8 +1626,8 @@ export interface FicheDuHeros {
   gabarit: 'fiche';
   identite: IdentiteDuHeros;
   profil: { carac: Carac; valeur: number }[];
-  sections: string[];
-  ouverte: string;
+  sections: SectionDeLaFiche[];
+  ouverte: SectionDeLaFiche;
   sets: SetDArmes[];
   porte: ObjetDuHeros[];
   vrac: ObjetDuHeros[];

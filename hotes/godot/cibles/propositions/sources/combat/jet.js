@@ -2,10 +2,14 @@
    comme après (les deux camps, le verdict), les réserves du héros. Se pose sur le combat (`socle.js`) comme sur un `commun.js`, sur les pièces de `../gestes.js` ; le portrait
    d'un camp arrive déjà dessiné. Se charge après `../gestes.js`.
    Maquette hors du jeu. */
+/* le camp d'un testeur dans sa place : le portrait, puis le nom, le Test (sur deux lignes au plus), le seuil, les deux dés
+   et le sceau du total ; l'issue se lit en une ligne au pied de la place, sous le portrait ; un dé qui se règle porte son
+   − et son + dessous */
 const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, modif = null, reussite = false, verdict = reussite ? 'réussite' : 'échec' }) => `
   <div class="camp ${cote}">${portrait}
     <div><div class="n gothique">${nom}${modif ? ` <span class="modif rubrique" style="vertical-align:3px;margin-left:6px">${modif}</span>` : ''}</div><div class="c rubrique">${carac}</div>
-    <div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}</span>${des.map((d) => (regles ? moinsPlus({ entre: d10(d) }) : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : reussite ? 'reussite' : '' })}${total == null ? '' : `<div class="issue${reussite ? ' reussite' : ''}"><b>${verdict}</b><span>DR ${dr}</span></div>`}</div></div>
+    <div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : reussite ? 'reussite' : '' })}</div></div>
+    ${total == null ? '' : `<div class="issue${reussite ? ' reussite' : ''}"><b>${verdict}</b><span>DR ${dr}</span></div>`}
   </div>`;
 const verdict = (sous, dr, phrase, classe = '') => `<div id="verdict" class="${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="dr gothique">${dr}</div><p data-texte="phrase d'issue">${phrase}</p></div>`;
 /* le bandeau, à la place de la barre de l'actif ou du bandeau des héros : ses places (`PLACES`, `../rendu.js`), la rangée
@@ -16,7 +20,7 @@ const bandeauDuJet = (titre, classe, contenu, plaques, reserve = '') => cadre('j
 `, { ruban: titre, tete: clouer(), piece: 'fenetre' });
 
 /* ───────── avant le dé : qui teste, ce qui se règle ───────── */
-/* aux suites, devant les réserves : les héros qui peuvent porter le Test, celui qui le porte choisi */
+/* au bout des gestes : les héros qui peuvent porter le Test, celui qui le porte choisi */
 const testeurs = (genres, choisi = 0) => `<div class="testeurs"><span class="rubrique">Testeur</span>${genres.map((g, k) => `<div class="t${k === choisi ? ' choisi' : ''}">${portrait(g, { taille: 'menu', choisi: k === choisi })}</div>`).join('')}</div>`;
 /* la colonne du centre : ce sur quoi porte le jet, puis ses réglages */
 const reglages = (sous, corps, classe = '') => `<div id="verdict" class="reglages ${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div>${corps}</div>`;

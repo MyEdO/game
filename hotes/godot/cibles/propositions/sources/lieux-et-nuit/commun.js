@@ -52,8 +52,8 @@ const fermer = () => { // le fond se ferme : coins, bas sous l'interface
 
 /* ───────── l'interface ───────── */
 /* `groupe` : les héros du bandeau, une place sans `id` est libre ; `dits` : par id, { texte, icone, mal, choisi, html } ;
-   quatre cases, celles sans héros restent vides */
-const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', groupe.map((h) => { const d = dits[h.id ?? 'libre'] ?? {}; return `
+   quatre cases, chacune à sa place, celles sans héros restent vides */
+const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', places('socle', Object.fromEntries(groupe.map((h, k) => { const d = dits[h.id ?? 'libre'] ?? {}; return [`case-${k + 1}`, `
   <div class="heros ${d.choisi ? 'choisi' : ''}">${portrait(h.id, { taille: 'grand', choisi: d.choisi })}
     <div class="qui"><div class="nom gothique" data-texte="héros ${h.nom}">${h.nom}</div>
       <div class="l2"><span class="car rubrique">${h.car}</span>${h.max ? `<span class="pv chiffres">${h.pv} / ${h.max}</span>` : ''}</div>
@@ -61,7 +61,7 @@ const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = ''
       ${d.texte ? `<div class="dit">${d.mal ? sceau(d.icone) : d.icone ? rond(d.icone, 'menu', { arme: true }) : ''}<p>${d.texte}</p></div>` : ''}
       ${d.html ?? ''}
     </div>
-  </div>`; }).join(''), { piece: 'socle', tete: (titre ? ruban(titre) : '') + clouer(4) });
+  </div>`]; }))), { piece: 'socle', tete: (titre ? ruban(titre) : '') + clouer(4) });
 /* l'hôte posé dans la scène : (x, y) son coin, `l` sa largeur, `pointe` l'abscisse de sa pointe depuis son bord gauche ;
    `piece` : son nom au relevé du rendu, celui d'un hôte qui suit la personne du décor qu'il désigne */
 const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', pointe = 60, piece = '' }) => `<div class="hote ${classe} cadre bois"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">

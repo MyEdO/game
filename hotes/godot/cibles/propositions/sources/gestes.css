@@ -115,6 +115,11 @@ html,body{margin:0;background:var(--noir)}
 .onglets .ruban{position:static;transform:none}
 .onglets .plaque{flex:none}
 .onglets .plaque>div{padding:0 15px;font-size:12.5px}
+/* l'onglet à sa place (`onglets`, `cadre`) : la largeur de la place, actif ou non */
+.onglets .place{display:flex;align-items:center}
+.onglets .place>:is(.ruban,.plaque){width:100%;text-align:center}
+.onglets .place>.ruban{padding-left:12px;padding-right:12px}
+.onglets .place>.plaque>div{padding:0 6px}
 /* les signets : la forme verticale des onglets, au bord droit du registre */
 .signets{position:absolute;left:calc(100% - 184px);top:66px;display:flex;flex-direction:column;gap:4px}
 .signet{display:flex;align-items:center;gap:7px;width:160px;height:38px;padding:0 20px 2px 13px;color:var(--ivoire);background:linear-gradient(180deg,var(--lie),var(--lie-sombre));box-shadow:inset 0 0 0 1px var(--filet-or);clip-path:polygon(0 0,100% 0,calc(100% - 10px) 50%,100% 100%,0 100%);filter:drop-shadow(0 2px 3px var(--ombre))}

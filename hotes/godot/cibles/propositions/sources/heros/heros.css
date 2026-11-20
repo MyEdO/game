@@ -226,7 +226,7 @@
 .exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"Fell";font-size:14px;line-height:17px;color:var(--encre)}
 .exige>span:not(.cpt){flex:1;min-width:0}
 .exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
-.ident .pied{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.ident .pied{display:flex;flex-direction:column;gap:7px}
 .ident .pied .rub{white-space:normal}
 .acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
