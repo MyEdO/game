@@ -100,6 +100,7 @@ export {
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
 export {
   aLEchelleDesPonts,
+  capEnCombat,
   CAPS_DES_PONTS,
   estPoseParSesPonts,
   naviresDeLaScene,

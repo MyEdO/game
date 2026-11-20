@@ -15,7 +15,6 @@
  */
 import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
-import { facingToward } from '../geometry/dir8';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, CHAR_LABELS } from '../engine/types';
 import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
@@ -491,7 +490,7 @@ export function resolveManeuver(
   const faceTarget = (tgt?: Combatant | null): void => {
     const from = attacker.pos!, to = tgt?.pos;
     if (!to || tgt!.id === attacker.id || (to.x === from.x && to.y === from.y)) return;
-    set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(from, to) } }));
+    get().orienterVers(attacker.id, from, to);
   };
   emitCreatureAttackAnim(attacker, def.kind);
   const flushLog = () => {

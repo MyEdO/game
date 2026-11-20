@@ -130,6 +130,7 @@ import {
 import { cheminOffert, type EcritureDeValeur, type RefusDeValeur, type Segment } from './formulaire';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { flottaisonDuNavire, poserLesNavires, poserUnNavire } from '../planDeNavire';
+import { refusDePoseDesPonts } from '../../data/poseDesPonts';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
 import { groupeVitrine } from '../../data/pregens';
@@ -1446,5 +1447,16 @@ function avecSonChapitreDemande(s: SessionDEdition): SessionDEdition {
  *  calage est celui de la couche éditée, changer de couche l'abandonne. */
 export function editer(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
   const suite = avecSonChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
+  const apres = sceneEditee(suite);
+  const avant = projetEdite(s).scenes.find((sc) => sc.id === apres.id);
+  if (avant && avant !== apres && (avant.entities !== apres.entities || avant.dimensions !== apres.dimensions || avant.metresPerTile !== apres.metresPerTile)) {
+    const debordementNeuf = apres.entities.some((entite) => {
+      const refus = refusDePoseDesPonts(apres, entite);
+      if (!refus) return false;
+      const precedente = avant.entities.find((e) => e.id === entite.id);
+      return !precedente || refus !== refusDePoseDesPonts(avant, precedente);
+    });
+    if (debordementNeuf) return s;
+  }
   return suite.z === s.z ? suite : { ...suite, calage: HORS_DU_CALAGE };
 }

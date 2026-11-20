@@ -10,6 +10,7 @@
  * que l'hôte pose sur le monde, et le calque de la couche, à l'affichage du calque (`calqueAffiche`), avec la planche
  * qu'il garde (`cheminDeLaPlanche`) et ce qu'il garde des calques (`memoireDesCalques`).
  */
+import { rectangleDesPonts, refusDePoseDesPonts } from '../data/poseDesPonts';
 import {
   calqueDeLaCouche,
   calquesAStocker,
@@ -796,7 +797,7 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
     const scene = sceneEditee(s);
     return [
       choix('navires', t('ecran.editeur.navires'), TYPES_DE_NAVIRE.map(({ id, label }) =>
-        boutonDEdition(`navire/${id}`, label, { geste: 'outil', outil: { ...outil, ref: id } }, outil.ref === id, refusDuNavire(scene, id))), 'liste'),
+        boutonDEdition(`navire/${id}`, label, { geste: 'outil', outil: { ...outil, ref: id } }, outil.ref === id, refusDuNavire(scene))), 'liste'),
       choix('navire/cap', t('ecran.editeur.entite.cap'), CAPS_DES_PONTS.map((cap) =>
         boutonDEdition(`navire/cap/${cap}`, t(`ecran.editeur.cap.${cap}`), { geste: 'outil', outil: { ...outil, cap } }, outil.cap === cap))),
     ];
@@ -952,10 +953,10 @@ function listeDIds(id: string, famille: 'zone.couvre' | 'scene.groupes', poses: 
 const couverture = (id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] =>
   listeDIds(id, 'zone.couvre', couvre, COURT_DE_L_ENTREE, jeu);
 
-/** Pourquoi le navire du type `ref` ne se pose pas dans `scene` : elle n'est pas à l'échelle de ses ponts
+/** Pourquoi l'outil ne pose pas de navire dans `scene` : elle n'est pas à l'échelle des ponts
  *  (`aLEchelleDesPonts`) ; `null` s'il s'y pose. */
-const refusDuNavire = (scene: Scene, ref: string): string | null =>
-  aLEchelleDesPonts(scene, ref) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
+const refusDuNavire = (scene: Scene): string | null =>
+  aLEchelleDesPonts(scene) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
 
 /** Les couches de la vue de la scène éditée de `s` (`vueDeLaScene`), dans l'ordre. */
 const couchesDeLaVue = (s: SessionDEdition): number[] => vueDeLaScene(s).layers.map((l) => l.z).sort((a, b) => a - b);
@@ -974,12 +975,17 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
-  const cap = capDeLEntite(ent);
+  const scene = sceneEditee(s);
+  const cap = rectangleDesPonts(scene, ent)?.cap ?? capDeLEntite(ent);
+  const caps = capsOfferts(ent).map((c) => boutonDEdition(
+    `entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } },
+    c === cap, refusDePoseDesPonts(scene, { ...ent, facing: c }) ?? null,
+  ));
   return [
     formulaireDuNom(ent.label, true),
     ...(types.length ? [choix('entite/type', t(ent.kind === 'prop' ? 'ecran.editeur.entite.type' : 'ecran.editeur.entite.fiche'),
       types.map((o) => boutonDEdition(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, idDuCorps(ent) === o.id)), 'liste')] : []),
-    choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => boutonDEdition(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
+    choix('entite/cap', t('ecran.editeur.entite.cap'), caps),
     choixDeLaCouche(s, 'entite/couche', ent.z ?? 0, (z) => ({ geste: 'entite', patch: { z } })),
     ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent), ...identifiantsDesActions(ent)] : []),
     ...(ent.postes?.length ? poste(s, ent, ent.postes[0]) : []),
@@ -2141,7 +2147,7 @@ function zonesDeLaScene(s: SessionDEdition): Partial<ZonesDeLEditeur> {
     boutonDEdition('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenelage', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenelage'),
     boutonDEdition('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entite', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
     boutonDEdition('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
-    boutonDEdition('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene, navire.ref)),
+    boutonDEdition('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene)),
     boutonDEdition('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     boutonDEdition('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entite', kind: 'heroStart' } }, s.outil.mode === 'entite' && s.outil.kind === 'heroStart'),
     boutonDEdition('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entree' } }, s.outil.mode === 'entree'),

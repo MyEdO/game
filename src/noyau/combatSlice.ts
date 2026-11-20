@@ -284,6 +284,7 @@ import { acquerirLeTrait } from './cibleAcquise';
 import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './monde/fireArc';
+import { capEnCombat, estPoseParSesPonts } from './planDeNavire';
 import { facingToward } from '../geometry/dir8';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { resolveVolley } from '../engine/volley';
@@ -1119,6 +1120,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // un héros-équipage prend la barre (`id` = le héros, navire dérivé via `shipOfCrew`).
       const ship = estNavire(active) ? active : shipOfCrew(battle.combatants, id);
       if (!ship) return;
+      if (estPoseParSesPonts(get().scene, ship.id)) return void refuserGeste(get, set, t('agate.navireAncre'));
       const opened = openCrewTestPending(get, ship, 'manoeuvre');
       if (!opened) return; // aucun rôle tenu → le navire ne peut pas manœuvrer
       set({
@@ -1143,7 +1145,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // clic tirait hors de portée, et l'arc ne se disait qu'au journal — invisible en combat.
       const block = batteryBlock(get, ship, target);
       if (block) return void refuserGeste(get, set, block.detail);
-      const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos, target.pos); // bord qui porte (auto-dérivé de la cible)
+      const side = targetArc(capEnCombat(get(), ship.id) ?? 'N', ship.pos, target.pos); // bord qui porte (auto-dérivé de la cible)
       const opened = openCrewTestPending(get, ship, 'batterie'); // Artilleurs (UN jet/poste)
       if (!opened) return; // aucun Artilleur apte → pas de bordée
       const modsDR = visibiliteDeLaBordee(get, ship, target);
@@ -1165,7 +1167,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const ship = inBattleId(battle, shipId);
       const target = inBattleId(battle, targetId);
       if (!ship || !target || !ship.pos || !target.pos || !estNavire(ship)) return false; // MDG 14 l.128
-      const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos, target.pos); // bord qui porte (auto-dérivé de la cible)
+      const side = targetArc(capEnCombat(get(), ship.id) ?? 'N', ship.pos, target.pos); // bord qui porte (auto-dérivé de la cible)
       if (!bearingPostes(ship, side).length) return false; // aucune pièce chargée sur ce bord → rien à lâcher
       const navigation = navigationDuNavire(get, ship);
       const assignments = shipCrewAssignments(ship, battle.combatants, 'batterie', navigation); // équipage abstrait → rôles tenus (Artilleur ★)

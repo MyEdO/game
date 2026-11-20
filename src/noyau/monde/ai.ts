@@ -25,6 +25,7 @@
 import { Combatant, Weapon } from '../../engine/types';
 import { Scene, sceneMetresPerTile } from './scene';
 import { positionPosee } from './spawn';
+import { capEnCombat } from '../planDeNavire';
 import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
 import { chebyshev } from '../../engine/grid';
 import { corpsDe, footprintChebyshev, footprintN, distanceDeContact } from './footprint';
@@ -976,8 +977,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const positionValue = (to: Pt, target: Combatant): number => {
     let v = 0;
     // Flanc/dos (LDB 14 l.62) : frapper hors du champ de vision avant de la cible (gratuit). Nécessite
-    // l'orientation de la cible (lue de `facing`) ; absente → 0 (graceful).
-    const tFacing = facing?.[target.id];
+    // l'orientation de la cible (`capEnCombat`) ; absente → 0.
+    const tFacing = capEnCombat({ scene, facing }, target.id);
     if (tFacing) {
       const dirToAttacker = facingToward(target.pos!, to);
       if (isFlankOrRear(tFacing, dirToAttacker)) v += Weff.flankRear;
