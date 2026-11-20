@@ -25,11 +25,12 @@ import { refLabel, testSkillLabel, weatherStakeRef, voyageStakeRef } from '../da
 import { stageEncounterCategory } from '../engine/travelEncounter';
 import { encounterTable, rollEncounter, encounterDie, type EncounterCategory } from '../engine/travelTables';
 import { applyOps, type GameOp } from '../engine/ops';
-import { applyHealWounds } from '../engine/healing';
-import { removeCondition, stacks } from '../engine/conditions';
+import { applyHealWounds, cappedHealAmount } from '../engine/healing';
+import { bonusDe } from '../engine/characteristics';
+import { pionsRetirables, removeCondition, stacks } from '../engine/conditions';
 import { extendedTestSteps, type EchecSansJet } from '../engine/tests';
 import { appliquerIssueActivite } from './activityIssue';
-import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, tableStep, type Consequence } from './rollSeam';
+import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, choiceStep, pousseSi, tableStep, type Consequence } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { toRecapLines, type RecapTone } from './recapLine';
 import { noteEvent } from './evenementDuJour';
@@ -86,6 +87,11 @@ export interface StageContext {
   livingIds: string[];
   /** Résultats des postes déjà validés cette Étape — l'agrégation les relit (fourrage/camp/carte/Rencontre). */
   results: TravelActivityResult[];
+}
+
+/** EDOC 08 l.157. */
+export function groupeAuxAguets(stage: StageContext | undefined): boolean {
+  return !!stage && aggregateActivityOutcomes(stage.results).gates.includes('noSurprise');
 }
 
 /** Reconstruit une réf de compétence libre depuis le meta sérialisé d'une étape. */
@@ -294,14 +300,14 @@ export function creerActionsDesPostesDeVoyage(get: Get, set: Set) {
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
-  'etapePoste', 'etapePosteEnBande', 'resistanceALaMeteo', 'etapeBilan', 'etapeRencontre', 'etapeExposition',
+  'etapePoste', 'etapePosteEnBande', 'resistanceALaMeteo', 'etapeBilan', 'etapePosteCamp', 'etapeRencontre', 'etapeExposition',
 ] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
 export const GENRES_HOTES = ['etapePosteFini'] as const;
 
 /** Le BILAN de l'Étape, lu sur l'état une fois ses postes résolus : les rations que le fourrage cumulé donne aux
- *  héros qui n'en ont plus, les Exténués que chaque DR du camp retire, la progression des cartes (Test ÉTENDU
+ *  héros qui n'en ont plus, la progression des cartes (Test ÉTENDU
  *  inter-Étapes, jets cumulés dans l'ordre des rangées comme leurs barres), la catégorie de Rencontre due, et
  *  si un « Plein air » réussi dispense des Expositions. Lu par son application.
  *  EDOC 8 l.141, l.161, l.180, l.182-233 ; LDB 12 l.170-185 */
@@ -318,33 +324,57 @@ function bilanDeLEtape(s: Jeu, stages: number) {
     fourrage -= 1;
   }
   const agg = aggregateActivityOutcomes(results);
-  let campDR = agg.stacks.campCare ?? 0;
-  const soins: { heroId: string; n: number }[] = [];
-  for (const h of s.party) {
-    if (campDR <= 0) break;
-    const n = Math.min(campDR, stacks(h, 'extenue'));
-    if (n <= 0) continue;
-    soins.push({ heroId: h.id, n });
-    campDR -= n;
-  }
   const jetsDeCarte = agg.etendus.mapMade ?? [];
   const cible = results.find((r) => r.drTarget != null)?.drTarget ?? 2 * stages;
   return {
-    rations, soins,
+    rations, camps: agg.aRepartir.campCare ?? [],
     carte: jetsDeCarte.length ? { cible, ...extendedTestSteps(plan.extendedProgress ?? 0, jetsDeCarte, cible) } : null,
     rencontre: stageEncounterCategory(results),
     pleinAir: agg.gates.includes('suppressExposure'),
   };
 }
 
-/** Les lignes du bilan `b` : les rations, le camp, les cartes. */
+/** Les lignes du bilan `b` : les rations et les cartes. */
 function lignesDuBilan(s: Jeu, b: NonNullable<ReturnType<typeof bilanDeLEtape>>): string[] {
   const nom = (heroId: string) => garanti(s.party.find((h) => h.id === heroId), heroId, 'héros du bilan').label;
   return [
     ...b.rations.map((heroId) => t('tp.rationFound', { name: nom(heroId) })),
-    ...b.soins.map(({ heroId, n }) => t('tp.campCare', { name: nom(heroId), n })),
     ...(b.carte ? [b.carte.done ? t('tp.mapDone', { dr: b.carte.cible }) : t('tp.mapProgress', { total: b.carte.total, target: b.carte.cible })] : []),
   ];
+}
+
+function soinDuCamp(campeur: Combatant, patient: Combatant, soignes: readonly string[]): number {
+  return cappedHealAmount(patient, 1 + (soignes.includes(patient.id) ? 0 : bonusDe(campeur, 'intelligence')));
+}
+
+/** EDOC 08 l.180 · LDB 09 l.260 · #4158 */
+function choixDuCamp(
+  s: Jeu,
+  camps: readonly Pick<TravelActivityResult, 'actorId' | 'sl'>[],
+  index = 0,
+  restant?: number,
+  soignes: string[] = [],
+): BuiltCascadeStep | undefined {
+  const resultat = camps[index];
+  if (!resultat) return undefined;
+  const { actorId, sl } = resultat;
+  const campeur = garanti(s.party.find((h) => h.id === actorId), actorId, 'campeur');
+  const dr = restant ?? sl;
+  const options = [];
+  for (const patient of s.party) {
+    if (patient.dead || patient.outOfRencontre) continue;
+    if (pionsRetirables(patient, 'extenue') > 0) {
+      options.push({ key: `extenue:${patient.id}`, label: t('tp.campRemoveFatigue', { name: patient.label }) });
+    }
+    const pb = soinDuCamp(campeur, patient, soignes);
+    if (pb > 0) options.push({ key: `guerison:${patient.id}`, label: t('tp.campHeal', { name: patient.label, n: pb }) });
+  }
+  options.push({ key: 'renoncer', label: t('tp.campPass') });
+  return choiceStep({
+    id: `camp-${actorId}-${dr}`, kind: 'etapePosteCamp', actorId, icon: 'repos/campement',
+    label: t('tp.campChoice', { name: campeur.label, n: dr }),
+    options, meta: { indexCamp: index, drDuCamp: dr, soignesAuCamp: soignes },
+  });
 }
 
 /** Les catégories de Rencontre, une table tirable chacune. EDOC 8 l.186-233 */
@@ -419,7 +449,6 @@ export const TABLES = {
         h.items = [...(h.items ?? []), ration];
         autoStowNewItem(h, ration); // #204 : rangement par défaut
       }
-      for (const { heroId, n } of bilan.soins) removeCondition(party.find((x) => x.id === heroId)!, 'extenue', n);
       // ACHEVÉ : progression FIGÉE à la cible, `buildStageSteps` n'ouvre plus de jet (F1).
       if (bilan.carte) set({ travelPlan: { ...get().travelPlan!, extendedProgress: bilan.carte.done ? bilan.carte.cible : bilan.carte.total } });
       set({ party: [...get().party] });
@@ -430,7 +459,41 @@ export const TABLES = {
         table: { tableId: tableDeRencontre(bilan.rencontre) },
         stake: voyageStakeRef('etape-rencontre'),
       }) : undefined;
-      return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert: [...(rencontre ? [rencontre] : []), ...(bilan.pleinAir ? [] : buildExposureSteps(get(), plan.stage))] };
+      const insert: BuiltCascadeStep[] = [];
+      pousseSi(insert, choixDuCamp(get(), bilan.camps));
+      pousseSi(insert, rencontre);
+      if (!bilan.pleinAir) insert.push(...buildExposureSteps(get(), plan.stage));
+      return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert };
+    },
+    etapePosteCamp: (get, set, step, campeur) => {
+      if (!campeur || !step.chosen) return;
+      const camps = aggregateActivityOutcomes(get().travelPlan?.stage?.results ?? []).aRepartir.campCare ?? [];
+      const index = Number(step.meta?.indexCamp);
+      const dr = Number(step.meta?.drDuCamp);
+      const soignes = step.meta?.soignesAuCamp as string[];
+      const insert: BuiltCascadeStep[] = [];
+      if (step.chosen === 'renoncer') {
+        pousseSi(insert, choixDuCamp(get(), camps, index + 1));
+        return { consequences: freeCons([t('tp.campForfeit', { name: campeur.label, n: dr })]), insert };
+      }
+      const separateur = step.chosen.indexOf(':');
+      const usage = step.chosen.slice(0, separateur);
+      const patientId = step.chosen.slice(separateur + 1);
+      const patient = garanti(get().party.find((h) => h.id === patientId), patientId, 'patient du camp');
+      let lignes: string[];
+      if (usage === 'extenue') {
+        removeCondition(patient, 'extenue', 1);
+        lignes = [t('tp.campCare', { name: patient.label, n: 1 })];
+      } else {
+        lignes = applyHealWounds(patient, soinDuCamp(campeur, patient, soignes));
+      }
+      set({ party: [...get().party] });
+      const patientsSoignes = usage === 'guerison' && !soignes.includes(patientId) ? [...soignes, patientId] : soignes;
+      const prochainChoix = dr > 1
+        ? choixDuCamp(get(), camps, index, dr - 1, patientsSoignes)
+        : choixDuCamp(get(), camps, index + 1);
+      pousseSi(insert, prochainChoix);
+      return { consequences: freeCons(lignes), insert };
     },
     /** La Rencontre tirée (EDOC 8 l.182-233) : l'événement du jour (`noteEvent`), dont la ligne est la
      *  conséquence de l'étape, et le repos complet d'un voyage tranquille. */

@@ -6,6 +6,7 @@
 import { nomDe } from '../engine/nom';
 import { atoutsOptionnelsDe } from '../engine/atoutsOptionnels';
 import type { Get, Set } from './flowTypes';
+import type { MachinerieDuNoyau } from './machinerieDuNoyau';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import {
@@ -22,6 +23,7 @@ import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeC
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
 import * as travelFlow from './travelFlow';
+import { groupeAuxAguets } from './travelPostes';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
 import { Combatant, CHAR_LABELS, type FireArc } from '../engine/types';
@@ -1592,7 +1594,7 @@ export function createCombatSlice(get: Get, set: Set) {
     frapperDeLaSecondeArme: (targetId: string) => frapperDeLaSeconde(get, set, targetId, false),
 
 
-    lancerLeCombat: (encounterId: string, onVictory?: Flow, opts?: { noSurprise?: boolean }) => {
+    lancerLeCombat: (encounterId: string, onVictory?: Flow, opts?: Parameters<MachinerieDuNoyau['lancerLeCombat']>[2]) => {
       const { scene, party, partyPos } = get();
       if (!scene) return;
       const rencontre = scene.encounters.find((e) => e.id === encounterId);
@@ -1722,10 +1724,10 @@ export function createCombatSlice(get: Get, set: Set) {
       // partent justes (RAFRAÎCHIE ensuite à chaque déplacement via `placeCombatant`).
       for (const c of all) if (c.pos) placeCombatant(c, scene, c.pos);
       // Surprise (LDB 13) : si l'encounter le déclare, le camp embusqué teste Perception vs Discrétion.
-      // `noSurprise` : le voyage annule l'embuscade quand le groupe « les voit venir » (Perception réussie).
-      // Le Test (héros-atteignable) est ROUTÉ cadence-aware par `applySurprise` APRÈS la pose du `battle`
-      // (héros manuel → cascade influençable ; embusqué ennemi → inline) — d'où le drapeau retenu ici.
-      const doSurprise = !!enc.surprise && !opts?.noSurprise;
+      // EDOC 08 l.157.
+      const groupeProtege = enc.surprise === 'groupe'
+        && (opts?.noSurprise === 'groupe' || (!!travelPlan?.land && groupeAuxAguets(travelPlan.stage)));
+      const doSurprise = !!enc.surprise && opts?.noSurprise !== true && !groupeProtege;
       // Initiative : on fixe l'Initiative de chaque combattant (point nommé `rollInitiative` — seam de la
       // règle « méthode d'Initiative »). Combat instinctif (LDB 10) : +10 × niveau, via talentInitiativeBonus.
       for (const c of all) c.initiative = rollInitiative(c, battleRng());

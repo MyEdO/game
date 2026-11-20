@@ -56,7 +56,7 @@ export interface MachinerieDuNoyau {
    *  ré-entre la boucle (auto-résolution de modale + tour de l'IA). No-op en manuel / hors combat. */
   reprendreLaCadence: () => void;
   // ── Combat ──
-  lancerLeCombat: (encounterId: string, onVictory?: Flow, opts?: { noSurprise?: boolean }) => void;
+  lancerLeCombat: (encounterId: string, onVictory?: Flow, opts?: { noSurprise?: boolean | 'groupe' }) => void;
   /** Amorce une bataille de masse et bascule sur sa vue. */
   amorcerLaBataille: (spec: MassBattleSpec) => void;
   /** Passe de la phase pré-bataille (Discours/Planification) aux Rounds de bataille. */
