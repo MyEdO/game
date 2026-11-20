@@ -10,9 +10,10 @@ extends SceneTree
 ##
 ## La commande, en JSON : `modeles`, la réponse de `modeles` sur les manifestes de la tenue ; `base`, l'id de sa base ;
 ## `fichiers`, par fichier de `modeles.fichiers`, le chemin du GLB à lire ; `montes`, les `montes` de `composer` ;
-## `instants`, chacun `{ gabarit?, morphes, clip, t }` (`gabarit` et `morphes` de `composer`, `clip` vide au repos).
-## La sortie, en JSON : `pieces`, chaque mesh rangé `{ ligne, mesh }` (la ligne de `montes` qui le monte, le nom de son
-## nœud) ; `poses`, par instant, par pièce, sa transformation dans le repère de la base en 16 nombres, colonne par
+## `instants`, chacun `{ gabarit?, morphes, clip, t }` (`gabarit` et `morphes` de `composer`, `clip` vide au repos, qui
+## se demande avant tout clip).
+## La sortie, en JSON : `pieces`, chaque mesh rangé `{ ligne, mesh, offrant }` (la ligne de `montes` qui le monte, le nom
+## de son nœud, l'élément monté qui offre son emplacement, vide si la base l'offre) ; `poses`, par instant, par pièce, sa transformation dans le repère de la base en 16 nombres, colonne par
 ## colonne, `null` si elle n'est pas montrée rangée à cet instant ; `erreurs`, celles du montage.
 ##
 ##   godot --headless --path <projet> --script res://outils/poses_des_ranges.gd -- <commande.json> <sortie.json>
@@ -56,20 +57,17 @@ func _poser() -> void:
 	var meshes: Array[MeshInstance3D] = []
 	for ligne: String in montage._rangements:
 		for rangee: Dictionary in montage._rangements[ligne]:
-			pieces.append({ligne = lignes.get(ligne, ligne), mesh = String(rangee.piece.name)})
+			pieces.append({ligne = lignes.get(ligne, ligne), mesh = String(rangee.piece.name), offrant = montage._offrant_du_point(montage._point(ligne))})
 			meshes.append(rangee.piece)
 	var poses := []
 	for instant: Dictionary in commande.instants:
 		montage.composee = {montes = commande.montes, gabarit = instant.get("gabarit", {}), morphes = instant.morphes}
-		if montage.lecteur != null:
-			if instant.clip == "":
-				montage.lecteur.stop()
-				montage.lecteur.assigned_animation = ""
-				montage.poser_le_clip()
-			else:
-				montage.lecteur.play(instant.clip)
-				montage.lecteur.pause()
-				montage.lecteur.seek(instant.t, true)
+		if instant.clip != "":
+			montage.lecteur.play(instant.clip)
+			montage.lecteur.pause()
+			montage.lecteur.seek(instant.t, true)
+		elif montage.lecteur != null and montage.lecteur.assigned_animation != "":
+			erreurs.append("repos-apres-un-clip : le repos se demande avant tout clip, un lecteur ne se désengage pas")
 		erreurs.append_array(montage.poser_le_gabarit().map(func(os: String) -> String: return "os-absent : %s" % os))
 		montage.poser_les_morphes()
 		for _image in IMAGES_DE_MISE_A_JOUR:

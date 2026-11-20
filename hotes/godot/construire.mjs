@@ -43,7 +43,8 @@
 // déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`).
 // `--coop` (#3009) lance le relay local (`npm run relay:dev`, `server/` installé) et joue la coop par deux processus Godot
 // sans écran, l'hôte et l'invité (`coop`) ; la CI le joue (`npm run godot:coop`). L'import de ce module
-// ne lance aucun mode et ne charge pas les assets (#3963).
+// ne lance aucun mode et ne charge pas les assets (#3963) ; `poserLesRanges` rend les poses des objets rangés d'une
+// tenue, que l'évaluateur et le rendu de contrôle demandent (`asset/posesDesRanges.mjs`, #4351).
 import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
@@ -901,6 +902,26 @@ function fabriquer(binaire, copie, modeles) {
   const { erreurs } = godot(binaire, copie, ['--script', FABRIQUE, '--', commande])
   if (!erreurs.length) console.log(`[godot] ${modeles.length} modèles fabriqués en scène`)
   return erreurs
+}
+
+/** L'outil du projet qui pose les objets rangés d'une tenue (`projet/outils/poses_des_ranges.gd`). */
+const POSES_DES_RANGES = 'res://outils/poses_des_ranges.gd'
+
+/** Les poses des objets rangés de la `commande` (`projet/outils/poses_des_ranges.gd`), lues par l'éditeur épinglé sur
+ *  une copie jetable du projet importé : sa sortie, `{ pieces, poses, erreurs }` ; lève si l'éditeur échoue. */
+export async function poserLesRanges(commande) {
+  const { figerLesDessins } = await assetsDeLHote()
+  const binaire = await editeur()
+  let sortie = null
+  const erreurs = await surUneCopie(binaire, figerLesDessins, (copie) => {
+    const fichiers = ['commande-des-poses.json', 'poses-des-ranges.json'].map((nom) => join(copie, nom))
+    writeFileSync(fichiers[0], JSON.stringify(commande))
+    const lancement = godot(binaire, copie, ['--script', POSES_DES_RANGES, '--', ...fichiers])
+    if (!lancement.erreurs.length) sortie = JSON.parse(readFileSync(fichiers[1], 'utf8'))
+    return lancement.erreurs
+  })
+  if (erreurs.length) throw new Error(`poses des objets rangés : ${erreurs.join(' ; ')}`)
+  return sortie
 }
 
 /** Le script du projet qui écrit ce que le moteur rend de ses licences (`avisDeGodot`). */

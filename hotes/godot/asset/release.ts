@@ -131,7 +131,7 @@ export function verifiesDu(cache: string): {
 }
 
 /** Les os, sans doublon, qui portent les meshes sans skin du GLB `octets` (`lireGlb`). */
-const osDesRigides = (octets: Uint8Array): string[] => [...new Set(lireGlb(octets).meshes.flatMap((m) => (m.skinne || m.os === null ? [] : [m.os])))];
+export const osDesRigides = (octets: Uint8Array): string[] => [...new Set(lireGlb(octets).meshes.flatMap((m) => (m.skinne || m.os === null ? [] : [m.os])))];
 
 /** Le verdict d'un manifeste du dossier : accepté, avec les os de ses meshes rigides (`osDesRigides`), ou refusé. */
 export type VerdictDuDossier = { readonly ok: true; readonly os: readonly string[] } | { readonly ok: false; readonly refus: readonly string[] };
