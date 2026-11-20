@@ -43,7 +43,7 @@ const TABLES: FamilleDeLIndex = {
     ['Enjeux de jet', 146], ['Niveaux de carrière', 432], ['Oups !', 8], ['Entre deux aventures', 31], ['Activités', 64], ['Semences de scène', 1],
     ['Défauts de compilation', 1], ['Obsessions (table)', 19], ['Talents aléatoires (table)', 1], ['Carrières aléatoires (table)', 27],
     ['Races aléatoires (table)', 4], ['Cargaisons aléatoires (table)', 8], ['Corps ou esprit de la mutation (table)', 7], ['Règles optionnelles', 105],
-    ['Tableau de Surincantation (VDM)', 7],
+    ['Tableau de Surincantation', 7],
   ].map(([nom, entrees]) => ({ nom: nom as string, entrees: entrees as number })),
   groupes: Object.entries({
     'Création de personnage': [['Coût des Augmentations', 15], ['Couleur des yeux', 10], ['Couleur des cheveux', 10], ['Apparences', 21], ['Pré-tirés', 15], ['Détails de création', 1], ['Banque de noms', 7]],
