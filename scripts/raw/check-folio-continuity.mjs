@@ -31,6 +31,7 @@ import { BOOKS, readText } from './_lib.mjs'
 import { estNomDExtraction, numeroDExtraction, plageDeLigne1 } from '../../src/data/source/decoupe.ts'
 import { cleDeSite, ecartDuVolet, sitesEnEntrees } from '../guards/lib/stock.mjs'
 import { DECROISSANT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 export const STOCK_PATH = join(ICI, 'folio-gaps-stock.json')
@@ -337,4 +338,7 @@ function main() {
   if (koGaps || koEmpty) process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

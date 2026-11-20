@@ -6,6 +6,9 @@
 // registre `src/data/books.json`.
 import { readFileSync, writeFileSync } from 'node:fs'
 import { BOOKS, livreDuSigle, marqueurIntegration, readText, REGISTRE_LIVRES } from './_lib.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
+
+if (import.meta.main) exigerRacineAtlas()
 
 const USAGE = 'usage: node scripts/raw/apply-livre.mjs <ABRÉV> <workflow-output.json>'
 const [, , ABBR, OUTFILE] = process.argv

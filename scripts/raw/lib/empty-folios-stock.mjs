@@ -25,6 +25,7 @@ import { resolveBookOffset, porteUnMot } from '../anchor-fill.mjs'
 import { extractPages } from './pdf-extract.mjs'
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { REMESURE } from '../../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './entree-atlas.mjs'
 
 // Caractères utiles d'une page PDF : lignes portant un MOT réel (`porteUnMot` de `anchor-fill.mjs`,
 // qui écarte titre courant, numéro de folio, codes de chapitre et filigrane), espaces retirés.
@@ -110,4 +111,7 @@ function main() {
   }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

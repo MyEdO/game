@@ -21,6 +21,7 @@ import { join, basename } from 'node:path'
 import { livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
 import { numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { lireBoites, pagesEnLignes, runBook } from './anchor-fill.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 const FOLIO_LINE_RE = /^(\d{1,4})$/
 const EDGE_LINES = 4             // profondeur de recherche du folio en tête et en pied de page
@@ -163,4 +164,7 @@ function main() {
   }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

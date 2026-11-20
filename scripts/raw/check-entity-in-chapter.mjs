@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url'
 import { chapterFile, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture : les FICHES seules. Le garde lit les entrées `### <Nom>` de la
@@ -161,4 +162,7 @@ function main() {
   process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

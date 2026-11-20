@@ -8,12 +8,11 @@
 // (hors-règle, catalogues), sa LISTE DE DÉCOUPE dans `scripts/raw/decoupes/<id>.json`, et ce qu'on
 // sait des DOMAINES d'un cœur dans `scripts/raw/domaines.json` : registres d'OUTILLAGE dont ce
 // fichier est le LECTEUR UNIQUE. Zéro ligne de code pour aucun d'eux.
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
 import { listerArbre, listerDossier } from '../guards/lib/lister.mjs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import booksData from '../../src/data/books.json' with { type: 'json' }
 import chapitresData from './chapitres.json' with { type: 'json' }
 import domainesData from './domaines.json' with { type: 'json' }
 // Normalisation de citation : SOURCE UNIQUE dans `src/data/source/normalize.ts` (module feuille en
@@ -22,40 +21,26 @@ import domainesData from './domaines.json' with { type: 'json' }
 import { normalize, ELLIPSIS_SENTINEL } from '../../src/data/source/normalize.ts'
 // Le NUMÉRO DE CHAPITRE (prédicat, regex de nom, résolution) vit dans sa maison unique
 // `src/data/source/decoupe.ts` — module PUR, chargé tel quel par Node nu comme par vitest.
-import { fichierDuChapitre, graphieDeChapitre, largeurDeChapitre, numeroDuFichier } from '../../src/data/source/decoupe.ts'
+import { graphieDeChapitre, largeurDeChapitre, numeroDuFichier } from '../../src/data/source/decoupe.ts'
 import { nomAscii } from '../source/nom-ascii.mjs'
+import { cheminDuDepot } from '../source/adresses.mjs'
+import { cheminChapitre, readText } from '../source/lecteur-fs.mjs'
+import { livreExtraitDe, REGISTRE_LIVRES } from '../source/registre-livres.mjs'
 // « Livre EXTRAIT » : définition UNIQUE app/outillage, `src/data/source/livre-extrait.ts` (#1739).
 import { estLivreExtrait } from '../../src/data/source/livre-extrait.ts'
 import { alternationDe } from '../../src/lib/regex.ts'
 
-// Lecture CRLF-robuste (#604) -- SOURCE UNIQUE de lecture texte pour tout fichier Source/**/docs/raw/** :
-// une copie de travail peut porter des fins de ligne CRLF ou mixtes sur un index git en LF.
-// sectionsOf (coverage.mjs) decoupe les headings avec une regex de fin de ligne ancree sans flag m --
-// or le '.' de regex exclut TOUT LineTerminator (dont \r, ECMA-262), donc le heading pattern echoue
-// net des qu'une ligne se termine par \r (repro mesure : sectionsOf('# A\r\n## B\r\ntexte', 2)
-// -> un seul '(integral)', la boundary H2 jamais vue). readText normalise \r\n/\r isole -> \n AU POINT
-// DE LECTURE -- jamais dans les parseurs eux-memes (une seule couture, pas un remede par regex disperse).
-// N'affecte pas JSON.parse (deja tolerant aux fins de ligne) ni les fichiers deja en LF (no-op).
-export const readText = (path) => readFileSync(path, 'utf8').replace(/\r\n|\r/g, '\n')
-
 // Un livre est-il EXTRAIT (donc adressable par l'outillage Atlas) ? Définition UNIQUE, partagée avec
 // l'app (import en tête). Tout `scripts/` en juge par elle (`booksDe`,
 // `livreExtraitDe`, `livreDuSigle`, `sigleDe`…), ré-exportée ICI.
-export { estLivreExtrait }
+export { estLivreExtrait, livreExtraitDe, readText, REGISTRE_LIVRES }
 
 // ABRÉV → dossier Source, DÉRIVÉ de `books.json` (SOURCE UNIQUE des acronymes ET de l'ordre,
 // ref #585, #1825) : les entrées porteuses d'un `dir` (les livres couverts par l'Atlas RAW), dans
 // l'ORDRE DU FICHIER — le même que l'app sert au joueur (`src/data/index.ts` `books`).
 // C'est aussi l'ordre d'affichage des rapports : un livre de plus est UNE entrée de `books.json`, zéro ligne ici.
 export const booksDe = (registre) => registre.filter(estLivreExtrait).map((b) => [b.abbr, b.dir])
-// Registre BRUT des livres, tel que `books.json` le porte — la lecture du fichier vit ICI et nulle
-// part ailleurs, pour que tout consommateur puisse recevoir un registre FIXTURE par injection.
-export const REGISTRE_LIVRES = booksData
-export const BOOKS = booksDe(booksData)
-/** L'entrée du registre d'un livre EXTRAIT (porteur d'un `dir`), par son id STABLE — ou `null`.
- *  SEULE résolution id → livre de l'outillage : un outil reçoit un id, il ne compare rien lui-même. */
-export const livreExtraitDe = (id, registre = REGISTRE_LIVRES) =>
-  registre.find((b) => b.id === id && estLivreExtrait(b)) ?? null
+export const BOOKS = booksDe(REGISTRE_LIVRES)
 /** L'entrée du registre d'un livre EXTRAIT par son SIGLE — ou `null`. SEULE résolution sigle → livre
  *  de l'outillage, pour les outils qui reçoivent un sigle (ligne de commande, réf `<ABRÉV> <ch>`). */
 export const livreDuSigle = (abbr, registre = REGISTRE_LIVRES) =>
@@ -78,7 +63,7 @@ export const sigleDe = (id, registre = REGISTRE_LIVRES) =>
 // les livres (`refRe`), ni une identité de livre écrite dans le code : un cœur de plus est UNE clé
 // de `books.json`. Lu par `abbr`, l'unité que les rapports et les clés de stock nomment déjà.
 export const coeursDe = (registre) => new Map(registre.filter((b) => b.abbr && b.coeur).map((b) => [b.abbr, b.coeur]))
-const COEURS = coeursDe(booksData)
+const COEURS = coeursDe(REGISTRE_LIVRES)
 export const coeurDe = (abbr, coeurs = COEURS) => coeurs.get(abbr) ?? null
 
 // Les livres de CŒUR du registre, `[[abbr, dir], …]`, dans l'ORDRE DU FICHIER — la population que
@@ -106,14 +91,14 @@ export const coeursDuRegistre = (registre = REGISTRE_LIVRES) =>
 // `null` pour un livre de RÈGLES. C'est elle qui ventile les sections 0-réf de `coverage.mjs` ; un
 // livre de plus est UNE entrée de `books.json`, zéro ligne ici. Registre INJECTABLE (fixture).
 export const teneursDe = (registre) => new Map(registre.filter((b) => b.abbr && b.teneur).map((b) => [b.abbr, b.teneur]))
-const TENEURS = teneursDe(booksData)
+const TENEURS = teneursDe(REGISTRE_LIVRES)
 export const teneurDe = (abbr, teneurs = TENEURS) => teneurs.get(abbr) ?? null
 
 // NIVEAU DE SECTION d'un livre (`books.json`, champ `niveauDeSection`) : le niveau de heading qui
 // porte ses SUJETS (#604 — un argmax brut se fait piéger par les listes imbriquées). ABSENT = 2.
 export const niveauxDeSectionDe = (registre) =>
   new Map(registre.filter((b) => b.abbr && b.niveauDeSection).map((b) => [b.abbr, b.niveauDeSection]))
-const NIVEAUX_DE_SECTION = niveauxDeSectionDe(booksData)
+const NIVEAUX_DE_SECTION = niveauxDeSectionDe(REGISTRE_LIVRES)
 export const niveauDeSectionDe = (abbr, niveaux = NIVEAUX_DE_SECTION) => niveaux.get(abbr) ?? 2
 
 // Ce qu'on sait des CHAPITRES d'un livre vit dans le registre d'OUTILLAGE `scripts/raw/chapitres.json`,
@@ -125,7 +110,7 @@ export const REGISTRE_CHAPITRES = chapitresData
 // Chapitres HORS-RÈGLE (`chapitres.json`, `horsRegle`) : sigle → (numéro de chapitre → MOTIF de son
 // exclusion du dénominateur de couverture). Le motif est de la DONNÉE — c'est lui que
 // `chapitres.test.mjs` exige non vide et sans réf citable.
-export const horsRegleDe = (chapitres, registre = booksData) => {
+export const horsRegleDe = (chapitres, registre = REGISTRE_LIVRES) => {
   const parSigle = new Map()
   for (const { book, ch, motif } of chapitres.horsRegle ?? []) {
     const ab = sigleDe(book, registre)
@@ -142,7 +127,7 @@ export const estHorsRegle = (abbr, ch, table = HORS_REGLE) => motifHorsRegle(abb
 // Chapitres ou PLAGES de sections qui cataloguent des ENTITÉS (`chapitres.json`, `entites`) : sigle →
 // `[{ ch, from?, to?, motif }, …]` dans l'ORDRE DU FICHIER ; `from`/`to` sont des `{ slug, occ }`,
 // bornes incluses. Lu par `releve.mjs`.
-export const entitesDe = (chapitres, registre = booksData) => {
+export const entitesDe = (chapitres, registre = REGISTRE_LIVRES) => {
   const parSigle = new Map()
   for (const { book, ...plage } of chapitres.entites ?? []) {
     const ab = sigleDe(book, registre)
@@ -160,7 +145,7 @@ export const plagesDEntites = (abbr, table = ENTITES) => table.get(abbr) ?? []
 // l'ORDRE DU FICHIER (registre des livres puis numéro de chapitre, tenu par `chapitres.test.mjs` —
 // aucun tri à la lecture). `build-catalogs.mjs` ne garde que ce qui appartient au CATALOGUE (fichier,
 // titre, fiche de règles), jamais une liste de livres.
-export const cataloguesDe = (chapitres, registre = booksData) => {
+export const cataloguesDe = (chapitres, registre = REGISTRE_LIVRES) => {
   const parCatalogue = new Map()
   for (const { book, catalogue, ...spec } of chapitres.enCatalogue ?? []) {
     const ab = sigleDe(book, registre)
@@ -356,7 +341,7 @@ export const allAbbrAlternation = () => ABBR_ALT
 // porteur d'un `abbr`, extrait ou non. `allAbbrAlternation` ne couvre que les livres extraits, que
 // l'Atlas adresse ; un livre sans extraction se cite quand même, et la garde qui juge une réf rendue
 // (`src/book-ref-guard.test.ts`, #1826) doit voir tout le registre.
-const ABBR_ALT_REGISTRE = alternationDe(booksData.filter((b) => b.abbr).map((b) => b.abbr))
+const ABBR_ALT_REGISTRE = alternationDe(REGISTRE_LIVRES.filter((b) => b.abbr).map((b) => b.abbr))
 export const alternationDuRegistre = () => ABBR_ALT_REGISTRE
 
 // Sentinel d'intégration d'un livre dans une fiche de l'Atlas : `apply-livre.mjs`.
@@ -418,28 +403,19 @@ export function span(line, suffix) {
 }
 
 // Résout (ABRÉV, NN[, range]) → { path, file, dir } du `.md` chapitre, ou null. Lookup par ENTIER
-// (`fichierDuChapitre`, `src/data/source/decoupe.ts`) : ce fichier-ci n'ajoute que le DISQUE.
+// par la résolution canonique `cheminChapitre`, depuis la racine du dépôt.
 // `range` optionnel = { from, to? } route une SOUS-SECTION du chapitre (jamais un second mécanisme) : `from`/
 // `to` sont chacun une ancre — texte de heading Markdown (n'importe quel niveau `#`, markup ignoré) OU
 // `folio:NN` pour un `<span … data-folio="NN">` — bornant un extrait VERBATIM ajouté en `.text` (trim).
 // `to` omis = jusqu'à la fin du fichier. Lève si une ancre est introuvable (fail-fast, jamais un extrait silencieux faux).
-const _chapterCache = new Map()
 export function chapterFile(abbr, nn, range) {
-  const key = `${abbr}|${nn}`
-  let res
-  if (_chapterCache.has(key)) {
-    res = _chapterCache.get(key)
-  } else {
-    const dir = livreDuSigle(abbr)?.dir
-    res = null
-    if (dir) {
-      const f = fichierDuChapitre(listerDossier(dir, { absent: 'vide' }), nn)
-      if (f) res = { path: join(dir, f), file: f, dir }
-    }
-    _chapterCache.set(key, res)
-  }
-  if (!res || !range) return res
-  const lines = readText(res.path).split('\n')
+  const livre = livreDuSigle(abbr)
+  if (!livre) return null
+  const path = cheminChapitre(livre.id, nn)
+  if (!path) return null
+  const res = { path, file: basename(path), dir: livre.dir }
+  if (!range) return res
+  const lines = readText(cheminDuDepot(path)).split('\n')
   const startIdx = findAnchor(lines, range.from)
   if (startIdx == null) throw new Error(`chapterFile(${abbr} ${nn}) : ancre de départ "${range.from}" introuvable dans ${res.path}`)
   let endIdx = lines.length

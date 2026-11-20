@@ -46,6 +46,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { z } from 'zod'
 import { estObjet } from '../../src/lib/objet.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 const CHOIX = { '--avec-supplements': true, '--coeur-seul': false }
 const CHOIX_DITS = Object.keys(CHOIX).join(' | ')
@@ -340,6 +341,7 @@ const listeDuDrapeau = (args, nom) => (valeurDeDrapeau(args, nom) ?? '').split('
 function main() {
   const [, , demande, ...reste] = process.argv
   if (Object.hasOwn(COMMANDES_DE_DOSSIER, demande)) {
+    exigerRacineAtlas()
     try {
       console.log(JSON.stringify(COMMANDES_DE_DOSSIER[demande](reste), null, 2))
     } catch (e) {

@@ -25,6 +25,9 @@ import { nomAscii } from '../source/nom-ascii.mjs'
 import { copieMarkerDe, decoupeDe, livreExtraitDe, pdfRequisDe, sortieMarkerDe } from './_lib.mjs'
 import { indexDe, spanDe } from './recouper-source.mjs'
 import { graphieDeChapitre, largeurDeChapitre, ligne1DePlage } from '../../src/data/source/decoupe.ts'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
+
+if (import.meta.main) exigerRacineAtlas()
 
 const DRY = process.argv.slice(2).includes('--dry')
 
