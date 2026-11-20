@@ -7,19 +7,27 @@
    dont l'état porte le verdict (vert la réussite, cerclé d'or le critique, rouge l'échec), l'issue sous le portrait (le
    verdict écrit et le DR, une ligne, de la couleur du verdict) ; un dé qui se règle porte son − et son + dessous ;
    `survol` : le seuil survolé porte la bulle des influences du jet, une ligne chacune */
-const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, influences = [], survol = null, reussite = false, critique = false }) => `
-  <div class="camp ${cote}">${places('fenetre', {
+const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, influences = [], survol = null, reussite = false, critique = false }) => fiche({
+  cote, portrait, nom, ligne: carac,
+  rangee: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${survol === 'seuil' ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : critique ? 'reussite critique' : reussite ? 'reussite' : '' })}</div>`,
+  issue: total == null ? '' : `<div class="issue ${critique ? 'critique' : reussite ? 'reussite' : 'echec'}"><b>${critique ? 'Critique' : reussite ? 'Réussite' : 'Échec'}</b> DR ${dr}</div>`,
+});
+/* qui occupe un camp de la fenêtre, quel que soit son rôle (testeur, cible, lanceur visé, interlocuteur, touché) : les
+   places du camp (`PLACES_DU_CAMP`, `../rendu.js`), en miroir à droite : le portrait, l'identité (le nom, la ligne de
+   son rôle), la rangée sous l'identité (les dés, une jauge, une réplique), l'issue */
+const fiche = ({ cote = '', portrait, nom, ligne, rangee = '', issue = '', classe = '' }) => `
+  <div class="camp ${cote} ${classe}">${places('fenetre', {
     [`${cote || 'gauche'}-portrait`]: portrait,
-    [`${cote || 'gauche'}-identite`]: `<div class="n gothique">${nom}</div><div class="c rubrique" data-texte="Test">${carac}</div>`,
-    [`${cote || 'gauche'}-des`]: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${survol === 'seuil' ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : critique ? 'reussite critique' : reussite ? 'reussite' : '' })}</div>`,
-    [`${cote || 'gauche'}-issue`]: total == null ? '' : `<div class="issue ${critique ? 'critique' : reussite ? 'reussite' : 'echec'}"><b>${critique ? 'Critique' : reussite ? 'Réussite' : 'Échec'}</b> DR ${dr}</div>`,
+    [`${cote || 'gauche'}-identite`]: `<div class="n gothique">${nom}</div><div class="c rubrique" data-texte="Test">${ligne}</div>`,
+    [`${cote || 'gauche'}-des`]: rangee,
+    [`${cote || 'gauche'}-issue`]: issue,
   })}</div>`;
 /* le verdict d'un jet tombé, au centre : le cadre du centre et cinq places fixes (`PLACES`, `../rendu.js`), les mêmes
    quelle que soit la situation : sur quoi il porte (`sous`) ; la grande ligne, l'issue en un mot générique (`mot`) de la
    couleur de l'issue (`sens` : reussite, echec, critique) ; la ligne des conséquences (`consequences`) ; le DR en petit
    (`dr`) ; la phrase d'issue. Rend le contenu de chaque place de la fenêtre */
 const verdict = ({ sous, mot, sens, consequences, dr, phrase }) => ({
-  centre: '<div id="verdict" class="tombe"></div>',
+  centre: '<div id="verdict" class="grille"></div>',
   'issue-sous': `<div class="sous rubrique" data-texte="sous-titre">${sous}</div>`,
   'issue-mot': `<div class="issue-du-jet gothique ${sens}" data-texte="issue"><span>${mot}</span></div>`,
   'issue-consequences': consequences,
@@ -40,8 +48,21 @@ const bandeauDuJet = (titre, classe, contenu, plaques, reserve = '') => cadre('j
 /* ───────── avant le dé : qui teste, ce qui se règle ───────── */
 /* au bout des gestes : les héros qui peuvent porter le Test, celui qui le porte choisi */
 const testeurs = (genres, choisi = 0) => `<div class="testeurs"><span class="rubrique">Testeur</span>${genres.map((g, k) => `<div class="t${k === choisi ? ' choisi' : ''}">${portrait(g, { taille: 'menu', choisi: k === choisi })}</div>`).join('')}</div>`;
-/* la colonne du centre : ce sur quoi porte le jet, puis ses réglages */
-const reglages = (sous, corps, classe = '') => `<div id="verdict" class="reglages ${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div>${corps}</div>`;
+/* les réglages d'un jet avant le dé, au centre : le cadre du centre (le même que celui du jet tombé) et ses places
+   fixes (`PLACES_DU_REGLAGE`, `../rendu.js`), les mêmes quelle que soit la situation : sur quoi il porte (`sous`) ; la
+   sorte du Test et sa difficulté (`mot`) ; la figure (la silhouette des localisations) ; les lignes de réglage, une par
+   place (`lignes`, rangées par leur rang) ; les cartes de choix ou d'enjeu (`cartes`) ; le cumul d'un Test étendu ; la
+   phrase. Une nature absente laisse sa place vide. Rend le contenu de chaque place de la fenêtre */
+const reglage = ({ sous, mot, figure = '', lignes = [], cartes = [], cumul = '', phrase = '' }) => ({
+  centre: '<div id="verdict" class="grille"></div>',
+  'reglage-sous': `<div class="sous rubrique" data-texte="sous-titre">${sous}</div>`,
+  'reglage-mot': `<div class="sorte-du-jet gothique" data-texte="sorte">${mot}</div>`,
+  'reglage-figure': figure,
+  ...Object.fromEntries(lignes.map((l, k) => [`reglage-ligne-${k + 1}`, l])),
+  ...Object.fromEntries(cartes.map((c, k) => [`reglage-carte-${k + 1}`, c])),
+  'reglage-cumul': cumul,
+  'reglage-phrase': phrase && `<p class="phrase-du-jet" data-texte="phrase">${phrase}</p>`,
+});
 /* un choix exclusif court : une plaque par option, la choisie en laiton plein */
 const options = (liste) => `<div class="options">${liste.map(([libelle, o = {}]) => plaque(libelle, { taille: 'petite', ...o })).join('')}</div>`;
 /* une option qui s'allume ou s'éteint */
@@ -64,4 +85,4 @@ const ZONES = {
 const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}" height="${h}" viewBox="0 0 60 100">${Object.entries(ZONES).map(([z, d]) => `<g class="zone ${etats[z] ?? ''}">${d}</g>`).join('')}</svg>`;
 
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { camp, verdict, consequences, bandeauDuJet, testeurs, reglages, options, bascule, reserves, silhouette });
+Object.assign(globalThis, { camp, fiche, verdict, reglage, consequences, bandeauDuJet, testeurs, options, bascule, reserves, silhouette });

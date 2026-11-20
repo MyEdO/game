@@ -156,15 +156,19 @@ du Test (`simple`, `oppose`, `etendu`) : le cadre du centre et cinq places fixes
 (une pièce par conséquence, vide quand le jet n'en porte pas), `issue-dr` (le DR, le DR net d'un Test opposé, le cumul
 d'un Test étendu sur le DR visé) et `issue-phrase` (deux lignes), les mêmes rects à chaque état ; `droite` suit la
 sorte du Test : l'adversaire en miroir pour un Test opposé, l'interlocuteur ou ce que le Test décide (`enjeu`) pour un
-Test simple ou étendu quand la donnée le porte ; trois emplacements de carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique
+Test simple ou étendu quand la donnée le porte ; avant le dé, tout jet a de même un seul centre (`reglage`), le même
+cadre et ses places fixes `reglage-*`, vides quand la nature manque : `sous` (au rect de `issue-sous`), `mot` (la sorte
+du Test et sa difficulté, 22 de haut), `figure` (la silhouette, colonne réservée), `ligne-1` à `ligne-3` (280 de
+large, à côté de la figure), `carte-1` à `carte-4` (deux par bande, sur la largeur du centre), `cumul` et `phrase` (aux
+rects de `issue-dr` et `issue-phrase`) ; trois emplacements de carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique
 (`rubrique-1` à `rubrique-3`), une carte seule dans le premier ; `cible`, ce que le choix vise, à la place du
 troisième emplacement, son portrait où se tient celui de l'autre camp ; `large`, à la place du centre, de la droite et
 des emplacements : la liste paginée par trois, le partage d'une fouille, la table tirée et la table de Tests, dont la
 tête reste et les lignes défilent ; au pied, `gestes`, la rangée, avec `reserve` à gauche (la réserve dépensée), les
 `plaques`, la principale en premier, et `testeurs` au bout (le testeur à désigner avant le dé, à la place des deux
-dernières plaques). Le camp d'un testeur, dans `gauche` ou `droite` (hautes de 124), a ses places, en miroir à droite
+dernières plaques). Tout camp, testeur ou non (cible, lanceur visé, interlocuteur, touché), dans `gauche` ou `droite` (hautes de 124), a ses places, en miroir à droite
 (`gauche-*`, `droite-*`) : `portrait` (`grand`), `identite` (le nom seul sur sa ligne, le Test borné à deux
-lignes, `data-texte` au relevé `coupe`), `des` (le seuil dans une case de 52, deux dés et le sceau `grand`, à un y fixe
+lignes, `data-texte` au relevé `coupe`), `des` (une jauge, une réplique, la silhouette touchée hors dé ; le seuil dans une case de 52, deux dés et le sceau `grand`, à un y fixe
 quelle que soit la longueur du Test et à un x fixe quel que soit le seuil ; l'état du sceau double le verdict) et `issue` (le verdict écrit et le DR, sur une ligne de sa couleur, du pied du portrait sur la largeur du camp, à 10 px
 au-dessus de la rangée des gestes) ; un dé qui se règle porte son − et son + dessous. Les influences du jet
 (modificateurs) ne s'écrivent pas : le seuil survolé les montre dans la bulle à pointe, une ligne chacune. Les réserves de `reserve` : un jeton par réserve, son pictogramme et son disque, son

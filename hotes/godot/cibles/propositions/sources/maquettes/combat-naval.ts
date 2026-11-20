@@ -50,8 +50,7 @@ export default {
     fenetre('combat-naval-chanson', {
       titre: 'Chanson de marin',
       heros: { role: 'testeur', qui: 'aldric', poste: 'Chansonnier', test: 'Divertissement (Chant)', seuil: 43 },
-      centre: { role: 'simple', sur: 'La Sterne · une seule chanson par quart', phrase: 'L’effet dure trois minutes plus un nombre de minutes égal au DR.' },
-      autre: { role: 'choix', libelle: 'Chanson', cartes: [
+      centre: { role: 'simple', sur: 'La Sterne · une seule chanson par quart', phrase: 'L’effet dure trois minutes plus un nombre de minutes égal au DR.', cartes: [
         { nom: 'Naviguons tous ensemble, ho hisse, ho hisse…', detail: ['+10 sur les Tests individuels d’un Test d’équipage'], choisie: true },
         { nom: 'Jacques Bret a rencontré notre acier sur les mers !', detail: ['+1 DR sur tout Test de Corps à corps réussi'] }] },
       gestes: avantLeDe(RESERVES.aldric), reserves: reserves(RESERVES.aldric),

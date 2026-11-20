@@ -102,7 +102,9 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 
 ## incantation (J10)
 - Bandeau à un seul camp lanceur ; le centre porte le sort en gothique et « Sort · Niveau d'incantation 0 ».
-- À valider : cible à droite en bloc sans dé (portrait de fer, « Cible du sort », Blessures) ; seuil « Langue
+- À valider : cible à droite sur les places du camp de droite (`fiche`, `sources/combat/jet.js`), le portrait au rect
+  de celui de l'adversaire (« pourquoi les portrait a droite explosent en taille sans raison ? », utilisateur,
+  2026-11-20), la jauge des Blessures à la rangée des dés ; seuil « Langue
   (Magick) ≤ 85 » d'exemple ; mêmes cinq gestes qu'à l'attaque.
 - Jet réussi (34 sous 85) : « Relancer » et « Résilience » fermés, la raison en bulle au survol (LDB 17 l.23, l.68) ;
   « Chance : +1 DR » reste ouverte (LDB 17 l.24). 34 n'est pas un double : pas d'Incantation Critique à choisir
@@ -194,7 +196,8 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
 - À valider : deux images parce que le noyau n'offre jamais Porte-bouclier et Riposte ensemble (l'un veut un bouclier
   qui pare, l'autre une arme Rapide) ; la Rapière de `defense-riposte` est un exemple hors de la fiche de Berta ;
   colonnes inégales (330, centre, 384) pour loger le dé tombé de l'attaquant ; un réglage que le jet n'offre pas est
-  absent, jamais grisé ; la substitution sociale : `defense-sociale`, plus bas.
+  absent, jamais grisé ; la substitution sociale : `defense-sociale`, plus bas. Réactions en cartes 1-2 (la
+  sociale en carte 3), réglages en lignes 2-3 de la grille d'avant le dé (« Grille », plus haut, écran 4).
 
 ## meuble-engage-a-terre, meuble-tireur, meuble-chef-de-piece (écran 2)
 - Le meuble garde ses trois plaques ; un second rang de plaques sans pictogramme n'existe que s'il porte une offre
@@ -235,11 +238,25 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
 - Les réglages manquants de `jet-avant-le-de`, en rangées à droite de la silhouette : « Arme » (Épée, « Bouclier
   (2nde −20) »), « Localisation » (« Au hasard » choisie, une zone de la silhouette sinon), bascules « Des deux
   armes » et « Retenir ses coups » ; à mains nues, « Empoigner » et sa note du jeu.
-- Chaque réglage a sa place fixe au centre, vide quand il manque (`PLACES_DU_REGLAGE`, `sources/rendu.js`) : la
-  silhouette ; la ligne propre à la porte (« Arme », ou la note de ce que la porte change) ; « Localisation » (son
-  libellé, la zone tenue et son malus, « Au hasard ») ; les bascules. Inventaire : `jet-avant-le-de`, ses trois
-  variantes et `localisation-du-critique` ; les autres centres avant le dé (défense, marchandage, équipage, Test
-  simple) n'ont pas de réglage qui varie d'un état à l'autre.
+- À valider : une seule grille du centre avant le dé pour toute la classe (« Chaque élément doit avoir sa place »,
+  utilisateur, 2026-11-20), primitive `reglage` (`sources/combat/jet.js`), places `PLACES_DU_REGLAGE`
+  (`sources/rendu.js`), le cadre du centre celui du jet tombé (`#verdict.grille`, 112). Inventaire (état : places) :
+  attaque ×4 et `localisation-du-critique` : sous, mot, figure, lignes 1-3 ; `defense-avant-le-de`, `defense-riposte` :
+  sous, mot, cartes 1-2, lignes 2-3 ; `defense-sociale` : sous, mot, cartes 1-3, ligne 3 ; `marchandage-avant-le-de` :
+  sous, mot, cartes 1-4 ; `combat-naval`, `combat-naval-bordee` : sous, mot, ligne 1, phrase ; `combat-naval-chanson` :
+  sous, mot, cartes 1-2, phrase ; `mer-fuite-de-vapeur`, `evenement-de-route` : sous, mot, phrase ;
+  `focalisation-avant-le-de`, `dissipation-avant-le-de` : sous, mot, cumul, phrase ; `test-de-corruption` : sous, mot,
+  cartes 1-2. Grille (x, y, l, h dans le fond de la fenêtre) : sous 308,14,326,14 (le rect du sous-titre du jet tombé) ;
+  mot 308,28,326,26 (la sorte du Test et sa difficulté, « Test opposé », « Test simple · Accessible +20 ») ; figure
+  300,55,54,84 ; lignes 362,55|83|111,280,28 ; cartes 308|473,55|84,161,26 ; cumul 308,88,326,14 et phrase
+  308,104,326,34 (les rects du DR et de la phrase du jet tombé). Un seul régime : la colonne de la figure reste
+  réservée, vide hors de l'attaque, et toute ligne a 280 de large, sinon une ligne aurait deux rects selon la présence
+  de la silhouette. Des places partagent une bande quand aucun état ne les porte ensemble (cartes 1-2 et ligne 1,
+  cartes 3-4, cumul et ligne 2, phrase et lignes 2-3). Écarts : la grande ligne d'avant le dé fait 26 de haut et non
+  les 38 du mot du jet tombé (l'attaque et la défense n'y logeraient pas leurs trois rangs) ; une carte du centre
+  montre son nom et la valeur qui décide (seuil, prix), le reste de son détail au survol (la chanson de marin ne
+  montre que son nom) ; la sorte se lit opposée quand l'autre camp teste aussi, simple sinon (le harpon contre une
+  cible qui ne teste pas).
 - Verbes : `jetRegler('attaque', 'arme' | 'localisation' | 'deuxArmes' | 'retenirSesCoups' | 'empoigner', valeur)`,
   `jetLancer('attaque')`, `jetForcerLaReussite('attaque')`, `jetAnnuler('attaque')`.
 - Réfs : LDB 10 l.767-773, LDB 14 l.78 (main secondaire, −20), LDB 14 l.159, AA 07 l.59-61 ; conditions de chaque

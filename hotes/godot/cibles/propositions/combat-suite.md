@@ -132,6 +132,11 @@ exemple.
 - Verbes : `jetLancer('focalisation')`, `jetForcerLaReussite('focalisation')`, `jetAnnuler('focalisation')`
   (`src/noyau/flowVerbs.ts:73`). Aucun réglage.
 - À valider : la colonne de droite affichée dès avant le dé.
+- À valider : avant le dé, `focalisation-avant-le-de` et `dissipation-avant-le-de` prennent la grille commune (`combat.md`,
+  grille d'avant le dé) : le Sort et son NI au sous-titre comme après le dé, « Test étendu » en grande ligne, le cumul
+  au rect du DR du jet tombé, la phrase à son rect ; à droite, ce que la Focalisation ouvre, le lanceur visé de la
+  Dissipation. `test-de-corruption` : la nature au sous-titre, « Test simple », les deux natures en cartes 1-2 (seuil
+  visible, le Test au survol), ce que le Test décide à droite.
 
 ## focalisation-atteinte, focalisation-critique
 - Les deux fins de la Focalisation. Atteinte : le cumul rejoint le Niveau d'incantation, tous les losanges pleins,

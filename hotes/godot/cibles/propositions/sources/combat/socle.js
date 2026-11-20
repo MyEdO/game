@@ -19,7 +19,5 @@ const vieux = (t) => `<p class="vieux ombre">${t}</p>`, neuf = (t) => `<p class=
 /* la pièce fixe : le système */
 const SYSTEME = `<div id="systeme" data-piece="systeme">${rond('systeme')}</div>`;
 const mesure = (nom, valeur, teinte = 'cire') => { const [a, b] = valeur.split(' / '); return `<div class="mesure"><div class="tete rubrique"><span>${nom}</span><b>${valeur}</b></div>${jauge(a / b, { teinte, taille: 'forte' })}</div>`; };
-/* la cible d'un sort, sans dé */
-const vise = (genre, nom, role, pv) => `<div class="camp droite visee">${portrait(genre, { camp: 'ennemi', taille: 'grand' })}<div><div class="n gothique">${nom}</div><div class="c rubrique">${role}</div>${pv ? `<div class="pv">${jauge(1, { taille: 'forte' })}<b class="rubrique">${pv}</b></div>` : ''}</div></div>`;
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { P, losange, combattant, borne, vieux, neuf, borneJ, SYSTEME, mesure, vise });
+Object.assign(globalThis, { P, losange, combattant, borne, vieux, neuf, borneJ, SYSTEME, mesure });

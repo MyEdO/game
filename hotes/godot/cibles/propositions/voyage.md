@@ -46,6 +46,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   livre ne disant pas lequel teste (règle 7 : choix du joueur) ; ruban « Péripétie de la route » ; date impériale et
   « 2ᵉ jour de route » dans l'objet du temps ; la route coupée par un pont effondré comme lecture du texte du livre.
 
+- À valider : le centre est la grille commune d'avant le dé (`combat.md`) : ce qui pose le Test et le jour au
+  sous-titre, « Test simple » en grande ligne, la phrase à son rect ; la difficulté n'est pas dans la donnée du centre
+  (elle reste une influence du seuil), la grande ligne ne la porte donc pas ici.
 ## evenement-de-route-issue
 - Cible écrite : le résultat raconté par une phrase sur l'image, le jet en pastille sur la carte du héros, son
   détail (seuil, dé, degrés) ouvert en billet de parchemin ; la frise revient (nuit en croissant, un seul chiffre).
@@ -266,6 +269,10 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   manœuvre (plaques « Manœuvrer », « Bordée », « Attaque ») n'est plus l'image ; la Distance de course-poursuite
   (MDG 13 l.354-403) se joue pendant la traversée, son écran est `combat-suite/course-poursuite-en-mer.jpg`.
 
+- À valider : le Test d'équipage (DR additionnés, MDG 14 l.13) n'est ni simple, ni opposé, ni étendu : il garde la grille
+  commune d'avant le dé (`combat.md`) avec « Test d'équipage » en grande ligne, son réglage en ligne 1, ses notes à la
+  place de la phrase, les testeurs à droite ; écart porté au ticket #4574.
+
 ## combat-naval-bordee
 - Même écran que `combat-naval` : « Bordée » ouvre le bandeau « Tir de batterie », avant le dé. À
   gauche l'Artilleur, Bjorn, rôle essentiel compté double ; au centre la munition des pièces qui portent, en deux
@@ -287,6 +294,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : les chansons en cartes dans la colonne de droite du bandeau ; « une seule chanson par quart » en
   sous-titre.
 
+- À valider : les deux chansons passent de la droite au centre, en cartes 1-2 de la grille d'avant le dé (le Test
+  simple porte le choix) ; une carte ne montre que son nom, son effet au survol ; la droite reste vide.
 ## meuble-piece-de-bord
 - Même écran que `combat-naval` : le tour de Bjorn, qui sert le « Canon (petit) de bâbord ». Le meuble de l'actif
   (`combat/meuble-chef-de-piece`) : Blessures, « Chargé 1 / 1 », Action, Avantage et médaillon de Détermination
@@ -335,6 +344,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : la panne dans le contenant d'événement de la route ; le navire petit et hors du contenant, qui tient
   le centre.
 
+- À valider : le centre est la grille commune d'avant le dé (`combat.md`) : ce qui pose le Test et le jour au
+  sous-titre, « Test simple » en grande ligne, la phrase à son rect ; la difficulté n'est pas dans la donnée du centre
+  (elle reste une influence du seuil), la grande ligne ne la porte donc pas ici.
 ## Payer en mer
 Les gages sont dessinés (`mer-conseil-de-bord`). L'avitaillement (`avitaillerLeNavire`) reste à la page du port de
 la famille commerce : entreprise commune (#3004), `bourse({ parts, total })` de `sources/gestes.js`, jamais « Bourse

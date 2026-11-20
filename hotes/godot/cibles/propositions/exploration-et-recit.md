@@ -34,7 +34,8 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - Le même bandeau que le jet d'attaque : le héros, son seuil, les dés, le sceau de réussite et ses DR ; le PNJ en
   face ; les réserves du héros, « Appliquer », « Relancer » et « Résilience » fermées sur une réussite (LDB 17 l.23,
   l.68), « Chance : +1 DR » (LDB 17 l.24), « Pacte ».
-- À valider : l'interlocuteur montré en face.
+- À valider : l'interlocuteur montré en face, sur les places du camp de droite (`fiche`, `sources/combat/jet.js`) : le
+  portrait au rect de celui de l'adversaire, le nom et son rôle à l'identité, la réplique à la rangée des dés.
 - À valider : la grande ligne dit « Réussite », aucune conséquence, le DR en petit (`combat.md`, « Bandeau du
   jet »).
 

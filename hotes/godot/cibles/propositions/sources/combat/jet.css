@@ -6,7 +6,9 @@
 #jet .place>.t{font-size:12.5px;line-height:16px;color:#4a3420;white-space:nowrap}
 .camp{position:relative;display:flex;gap:14px;align-items:flex-start}
 #jet .place>.camp{height:100%}
-.camp.droite{flex-direction:row-reverse;text-align:right}
+.camp:is(.droite,.cible){flex-direction:row-reverse;text-align:right}
+/* ce que le choix vise : son nom sur deux lignes au plus, dans l'identité étroite du troisième emplacement */
+#jet .camp.cible .n{font-size:17px;line-height:18px}
 .camp .n{font-size:21px;line-height:22px;color:#3a1a10;white-space:nowrap}
 .camp .c{font-size:12.5px;line-height:14px;color:#4a3420;margin-top:1px}
 .camp .des{display:flex;align-items:center;gap:10px;margin-top:5px}
@@ -38,7 +40,7 @@
 #verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
 /* le verdict d'un jet tombé (`verdict`) : le cadre du centre, vide ; chaque rang dans sa place fixe, le mot générique
    de la couleur de l'issue, les conséquences en pièces, le DR en petit, la phrase sur deux lignes au plus */
-#verdict.tombe{height:112px}
+#verdict.grille{height:112px}
 #jet .place>.sous{height:14px;line-height:14px;white-space:nowrap;text-align:center;font-size:12.5px;color:#4a3420}
 #jet .issue-du-jet{height:38px;line-height:38px;text-align:center;font-size:27px;white-space:nowrap;color:#3a1a10}
 #jet .issue-du-jet.reussite{color:#3d5a26}
@@ -63,11 +65,19 @@
 .en-reserve.grand .res{width:66px}
 .en-reserve .res.vide>svg{opacity:.5}
 
+/* avant le dé, chaque nature à sa place (`PLACES_DU_REGLAGE`, `../rendu.js`) : la sorte du Test en grande ligne, une
+   carte à la hauteur de sa bande, son nom à gauche, sa valeur à droite */
+#jet .sorte-du-jet{height:22px;line-height:22px;text-align:center;font-size:16px;white-space:nowrap;color:#3a1a10}
+#jet .place>.plaque.carte.courte{width:100%;max-width:none;min-width:0}
+.plaque.carte.courte>div{gap:6px;padding:0 8px}
+.plaque.carte.courte .qui{flex:1;display:flex;justify-content:space-between;align-items:center;gap:6px;min-width:0}
+.plaque.carte.courte .n{font-size:13px;line-height:12px}
+.plaque.carte.courte .c{flex:none;font-family:"Grenze Gotisch";font-weight:600;font-size:14px;line-height:15px;-webkit-line-clamp:1}
+#jet .place>p.phrase-du-jet .modif{margin:0 3px}
 /* avant le dé : le testeur, désigné aux suites, les réglages */
 .testeurs{height:100%;display:flex;align-items:center;justify-content:flex-end;gap:7px;font-size:11.5px;color:#4a3420}
 .testeurs .t{opacity:.6}
 .testeurs .t.choisi{opacity:1}
-#verdict.reglages{padding-top:0}
 #jet .options{display:flex;justify-content:center;gap:8px}
 #jet .options .plaque{flex:none;min-width:104px}
 .bascule{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#2a1d12;white-space:nowrap}

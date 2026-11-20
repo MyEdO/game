@@ -254,6 +254,8 @@ export interface Consequence {
   icone?: string;
   ton?: 'gain' | 'perte';
   detail?: string;
+  /** Le prix qu'un prix en pourcent change, l'ancien barré, le nouveau visible : le chiffre qui décide de conclure. */
+  prix?: { de: Sous; vers: Sous };
 }
 
 /** Un jet tombé au centre : la sorte du Test, sur quoi il porte, sa cible, le jet relancé ; le verdict de celui qui
@@ -307,8 +309,9 @@ export type Centre =
   /** Un Test d'équipage avant le dé : ce que le navire fait, sa cible, le réglage qui vaut pour tout le bord, ce qui le
    *  modifie. */
   | { role: 'equipage'; fait: string; cible?: string; reglage: Reglage; notes: NoteDEquipage[] }
-  /** Un Test simple avant le dé : ce qui le pose, sa difficulté, la phrase de ce qu'il décide. */
-  | { role: 'simple'; sur: string; difficulte?: { nom: string; valeur: number }; phrase: string }
+  /** Un Test simple avant le dé : ce qui le pose, sa difficulté, les cartes du choix qu'il porte, la phrase de ce qu'il
+   *  décide. */
+  | { role: 'simple'; sur: string; difficulte?: { nom: string; valeur: number }; cartes?: Carte[]; phrase: string }
   /** Les réponses d'un dialogue, la première en tête. */
   | { role: 'dialogue'; reponses: Reponse[] };
 
@@ -319,13 +322,6 @@ export type NoteDEquipage = { nom: string; dr: number } | { pieces: number; bord
 export interface Rangees {
   role: 'rangees';
   rangees: { qui: string; poste: string; competence: string; seuil: number }[];
-}
-
-/** Un choix à droite de la fenêtre : son libellé, ses cartes. */
-export interface ChoixADroite {
-  role: 'choix';
-  libelle: string;
-  cartes: Carte[];
 }
 
 /** Le lot marchandé : sa denrée, son Encombrement. */
@@ -380,7 +376,7 @@ export interface Reserve {
 export interface Fenetre {
   titre: string;
   heros?: Testeur | HerosSansDe | Subit | Expose;
-  autre?: Testeur | Vise | Touche | Rangees | ChoixADroite | Interlocuteur;
+  autre?: Testeur | Vise | Touche | Rangees | Interlocuteur;
   centre: Centre;
   gestes: Geste[];
   reserves: Reserve[];

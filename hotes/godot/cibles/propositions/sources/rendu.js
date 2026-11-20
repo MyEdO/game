@@ -75,11 +75,20 @@
      portrait, l'identité, la rangée des dés à un y fixe, l'issue (le verdict et le DR, une ligne) du pied du portrait sur la largeur du camp, à 10 px au-dessus de la rangée des gestes,
      en miroir à droite (`camp`, `combat/jet.js`) */
   const PLACES_DU_CAMP = { portrait: [0, 0, 74, 92], identite: [86, 0, 186, 50], des: [86, 54, 186, 50], issue: [0, 98, 272, 18] };
-  /* les réglages de l'attaque avant le dé, au centre (`localisationDe`) : la silhouette ; la ligne propre à la porte (le
-     choix d'arme, ou la note de ce que la porte change) ; la localisation (son libellé, la zone tenue et son malus,
-     « Au hasard ») ; les bascules ; une place sans réglage reste vide (inventaire : `jet-avant-le-de`, ses variantes et
-     `localisation-du-critique`) */
-  const PLACES_DU_REGLAGE = { silhouette: [300, 32, 54, 92], propre: [362, 32, 280, 32], localisation: [362, 66, 280, 28], bascules: [362, 96, 280, 30] };
+  /* un jet avant le dé au centre, quelle que soit sa situation (`reglage`, `combat/jet.js`) ; une nature absente laisse sa
+     place vide (inventaire : `../combat.md`, « Grille du centre avant le dé ») : ce sur quoi il porte, au rect de la
+     même ligne du jet tombé ; la sorte du Test et sa difficulté ; la figure (la silhouette des localisations) et, à côté
+     d'elle, trois lignes de réglage de 280, la colonne de la figure réservée même vide, pour qu'une ligne ait un seul
+     rect d'un état à l'autre ; quatre cartes de choix ou d'enjeu, deux par bande, sur la largeur du centre ; le cumul
+     d'un Test étendu et la phrase, aux rects du DR et de la phrase du jet tombé. Deux places partagent une bande quand
+     aucun état ne les porte ensemble : les cartes 1-2 et la ligne 1, les cartes 3-4 et la ligne 2, le cumul et la
+     ligne 2, la phrase et les lignes 2-3 */
+  const PLACES_DU_REGLAGE = {
+    sous: [308, 14, 326, 14], mot: [308, 28, 326, 22], figure: [300, 51, 54, 90],
+    'ligne-1': [362, 51, 280, 30], 'ligne-2': [362, 81, 280, 30], 'ligne-3': [362, 111, 280, 30],
+    'carte-1': [308, 53, 161, 26], 'carte-2': [473, 53, 161, 26], 'carte-3': [308, 83, 161, 26], 'carte-4': [473, 83, 161, 26],
+    cumul: [308, 88, 326, 14], phrase: [308, 104, 326, 34],
+  };
   /* un jet tombé au centre, quelle que soit sa situation (`verdict`, `combat/jet.js`) : ce sur quoi il porte, la grande
      ligne de l'issue, la ligne des conséquences, le DR (net, ou le cumul d'un Test étendu sur le DR visé), la phrase
      d'issue ; une conséquence absente laisse sa ligne vide */
@@ -93,6 +102,9 @@
     'fenetre/rubrique-1': [300, 14, 200, 16], 'fenetre/rubrique-2': [513, 14, 200, 16], 'fenetre/rubrique-3': [726, 14, 200, 16],
     'fenetre/carte-1': [300, 32, 200, 92], 'fenetre/carte-2': [513, 32, 200, 92], 'fenetre/carte-3': [726, 32, 200, 92],
     'fenetre/cible': [726, 14, 200, 112],
+    /* ce que le choix vise, à la place du troisième emplacement : le portrait au rect de celui du camp de droite,
+       l'identité et sa rangée à sa gauche */
+    'fenetre/cible-portrait': [852, 14, 74, 92], 'fenetre/cible-identite': [726, 14, 116, 50], 'fenetre/cible-des': [726, 54, 116, 50], 'fenetre/cible-issue': [726, 112, 200, 14],
     'fenetre/gestes': [20, 141, 902, 40], 'fenetre/reserve': [20, 140, 214, 42], 'fenetre/testeurs': [702, 141, 219, 40],
     ...Object.fromEntries(Array.from({ length: 6 }, (_, k) => [`fenetre/plaque-${k + 1}`, [246 + 114 * k, 141, 105, 40]])),
     /* le socle : quatre cases égales du bandeau ; la barre de l'actif, ses onglets (une place par famille, `FAMILLES`,
@@ -196,13 +208,13 @@
   /* à droite : l'autre camp, ce que le jet vise, ce qu'un Critique touche */
   const AUTRES = {
     testeur: (a) => testeur(a, 'droite'),
-    vise: (v) => vise(qui(v.qui).buste, echapper(qui(v.qui).nom), echapper(v.comme), `${qui(v.qui).blessures} / ${qui(v.qui).max}`),
-    touche: (t) => `<div class="camp droite touche">${portraitDe(t.qui)}${silhouette(100, { [t.zone]: 'touchee' })}
-      <div><div class="n gothique">${echapper(qui(t.qui).nom)}</div><div class="c rubrique">${echapper(t.atteinte)}</div>
-      <div class="des">${sceau(t.blessures, 'grand')}<div class="issue"><b>Blessures</b><b>perdues</b></div></div></div></div>`,
+    /* ce que le jet vise, sans dé : sa vie sous son rôle */
+    vise: (v, cote = 'droite') => fiche({ cote, classe: 'visee', portrait: portraitDe(v.qui), nom: echapper(qui(v.qui).nom), ligne: echapper(v.comme),
+      rangee: `<div class="pv">${jauge(qui(v.qui).blessures / qui(v.qui).max, { taille: 'forte' })}<b class="rubrique">${qui(v.qui).blessures} / ${qui(v.qui).max}</b></div>` }),
+    touche: (t, cote = 'droite') => fiche({ cote, classe: 'touche', portrait: portraitDe(t.qui), nom: echapper(qui(t.qui).nom), ligne: echapper(t.atteinte),
+      rangee: `<div class="des">${silhouette(50, { [t.zone]: 'touchee' })}${sceau(t.blessures, 'grand')}<div class="issue"><b>Blessures</b><b>perdues</b></div></div>` }),
     rangees: (r) => `<div class="rangees"><div class="t rubrique">Chacun lance son jet, les DR s’additionnent</div>${r.rangees.map((x) => `<div class="rangee">${portrait(qui(x.qui).buste, { taille: 'menu' })}<div class="q" data-texte="rangée ${echapper(qui(x.qui).nom)}"><b class="gothique">${echapper(qui(x.qui).nom)}</b><span class="rubrique">${echapper(x.poste)} · ${echapper(x.competence)}</span></div><span class="seuil">≤ ${x.seuil}</span></div>`).join('')}</div>`,
-    choix: (c) => `<div class="rangees chansons"><div class="t rubrique">${echapper(c.libelle)}</div>${c.cartes.map(carteDe).join('')}</div>`,
-    interlocuteur: (i) => `<div class="camp droite parle">${portraitDe(i.qui)}<div><div class="n gothique">${echapper(qui(i.qui).nom)}</div><div class="c rubrique">${echapper(i.comme)}</div><p data-texte="réplique">${echapper(i.dit)}</p></div></div>`,
+    interlocuteur: (i, cote = 'droite') => fiche({ cote, classe: 'parle', portrait: portraitDe(i.qui), nom: echapper(qui(i.qui).nom), ligne: echapper(i.comme), rangee: `<p data-texte="réplique">${echapper(i.dit)}</p>` }),
   };
 
   /* une carte de choix : son nom ou le combattant qu'elle nomme, son détail ligne à ligne (une ligne en liste quand il y tient), sa marque */
@@ -241,7 +253,7 @@
      ce qu'elle désigne ; son nom, sa cible et son détail au survol */
   const consequenceDe = (c, k, survol) => {
     const icone = c.icone ?? PICTO_DE_LA_CONSEQUENCE[c.genre];
-    const valeur = typeof c.valeur === 'number' ? `${signe(c.valeur)}${UNITE_DE_LA_CONSEQUENCE[c.genre] ?? ''}` : c.genre === 'localisation' ? NOM_DE_LA_ZONE[c.valeur] : echapper(c.valeur ?? '');
+    const valeur = `${typeof c.valeur === 'number' ? `${signe(c.valeur)}${UNITE_DE_LA_CONSEQUENCE[c.genre] ?? ''}` : c.genre === 'localisation' ? NOM_DE_LA_ZONE[c.valeur] : echapper(c.valeur ?? '')}${c.prix ? ` <s>${prix(c.prix.de)}</s> ${prix(c.prix.vers)}` : ''}`;
     const nom = c.detail && c.genre === 'etat' ? echapper(c.detail) : NOM_DE_LA_CONSEQUENCE[c.genre];
     return { icone: icone ? picto(icone, 17, 'currentColor', 1.8) : null, nom, valeur, ton: c.ton ?? '', survol: survol === k,
       bulle: [nom, c.cible && echapper(qui(c.cible).nom), c.genre !== 'etat' && c.detail && echapper(c.detail)].filter(Boolean).join(' · ') };
@@ -250,16 +262,17 @@
     ? `<div id="critique"><div class="dr gothique">${echapper(c.nom)}</div>${defile(`<p data-texte="texte de la table">${echapper(c.texte)}</p>`)}</div>`
     : `<div id="critique"><div class="tete-c"><div class="dr gothique">${echapper(c.nom)}</div><div class="tirage">${c.tire === null ? sceau('', 'moyen', { etat: 'vide' }) : sceau(c.tire, 'moyen')}<span class="rubrique">${echapper(c.table)}<br>${c.tire === null ? 'à tirer' : 'tirée'} au d100</span></div></div>
       ${defile(`<p data-texte="texte de la table">${echapper(c.texte)}</p>`)}</div>`);
-  const localisationDe = (c) => {
-    const l = c.localisation;
-    const zone = l.zone ? `<span class="gothique">${echapper(l.zone.nom)}</span>${l.malus === null ? '' : modif(`${signe(l.malus)} au Test`)}` : '';
-    return reglages(porte(c.porte), places('fenetre', {
-      'reglage-silhouette': silhouette(88, l.zone ? { [l.zone.id]: 'choisie' } : {}),
-      'reglage-propre': `${c.reglages.map((r) => regle(r.libelle, optionsDu(r))).join('')}${c.note ? `<p data-texte="note">${echapper(c.note)}</p>` : ''}`,
-      'reglage-localisation': `<div class="regle localisation"><span class="l rubrique">${echapper(l.libelle)}</span>${zone}${l.hasard || !l.zone ? options([['Au hasard', { armee: !l.zone }]]) : ''}</div>`,
-      'reglage-bascules': c.bascules.length ? `<div class="bascules">${c.bascules.map((b) => bascule(echapper(b.libelle), b.allumee)).join('')}</div>` : '',
-    }), 'haut');
-  };
+  /* la sorte d'un Test avant le dé : opposé quand l'autre camp teste aussi */
+  const sorteDe = (f) => (f.autre?.role === 'testeur' ? 'Test opposé' : 'Test simple');
+  const difficulteDe = (c) => (c.difficulte ? ` · ${echapper(c.difficulte.nom)} ${signe(c.difficulte.valeur)}` : '');
+  const jourDuVoyage = () => (etat.titre?.jourDeVoyage ? ` · ${jourDe(etat.titre.jourDeVoyage, etat.decor)}` : '');
+  /* une carte du centre, à la hauteur d'une bande : son nom, sa valeur ou son détail ; `armee`, la choisie */
+  const carteCourte = (nom, sous, o = {}) => carte(nom, sous, { classe: 'courte', ...o });
+  /* une carte de choix au centre : son nom, la valeur qui décide (un seuil, un prix, une mesure) ; tout son détail au survol */
+  const valeurDeCarte = (l) => (typeof l === 'string' ? '' : 'seuil' in l && !('contre' in l) ? `≤ ${l.seuil}` : ligneDeCarte(l));
+  const carteDuCentre = (c) => carteCourte(echapper(c.nom), c.detail.map(valeurDeCarte).filter(Boolean).join(' · '), { armee: !!c.choisie })
+    .replace('<div class="plaque', `<div title="${c.detail.map(ligneDeCarte).join(' · ')}" class="plaque`);
+  const regles = (liste) => liste.map((r) => regle(r.libelle, optionsDu(r)));
   /* le lot qu'un Marchandage traite */
   const lotMarchande = (l) => `${echapper(l.nom)} · ${l.enc} Enc`;
   /* le centre de la fenêtre, et ce qu'il demande à sa mise en page (`combat/combat.css`, `combat-suite/suite.css`) */
@@ -275,9 +288,21 @@
       }),
       ...(c.enjeu ? { droite: enjeuDu(c.enjeu) } : {}),
     }),
-    attaque: (c) => localisationDe(c),
-    defense: (c) => reglages(porte(c.porte), `<div class="reactions">${c.reactions.map((r, k) => carte(echapper(r.nom), `≤ ${r.seuil}`, { armee: k === c.tenue, classe: 'courte' })).join('')}</div>
-      ${c.sociale ? regle('À la place de Corps à corps', modif(echapper(c.sociale))) : c.reglages.map((r) => regle(r.libelle, optionsDu(r))).join('')}`, 'haut'),
+    attaque: (c, f) => {
+      const l = c.localisation;
+      const zone = l.zone ? `<span class="gothique">${echapper(l.zone.nom)}</span>${l.malus === null ? '' : modif(`${signe(l.malus)} au Test`)}` : '';
+      return reglage({
+        sous: porte(c.porte), mot: sorteDe(f), figure: silhouette(86, l.zone ? { [l.zone.id]: 'choisie' } : {}),
+        lignes: [`${regles(c.reglages).join('')}${c.note ? `<p data-texte="note">${echapper(c.note)}</p>` : ''}`,
+          `<div class="regle localisation"><span class="l rubrique">${echapper(l.libelle)}</span>${zone}${l.hasard || !l.zone ? options([['Au hasard', { armee: !l.zone }]]) : ''}</div>`,
+          c.bascules.length ? `<div class="bascules">${c.bascules.map((b) => bascule(echapper(b.libelle), b.allumee)).join('')}</div>` : ''],
+      });
+    },
+    defense: (c, f) => reglage({
+      sous: porte(c.porte), mot: sorteDe(f),
+      cartes: c.reactions.map((r, k) => carteCourte(echapper(r.nom), `≤ ${r.seuil}`, { armee: k === c.tenue })),
+      lignes: ['', ...(c.sociale ? ['', regle('À la place de Corps à corps', modif(echapper(c.sociale)))] : regles(c.reglages))],
+    }),
     choix: (c, f) => {
       const annonce = !c.annonce ? '' : 'round' in c.annonce
         ? `<div class="annonce"><div class="dr gothique">Round ${c.annonce.round}</div><div class="sous rubrique">${echapper(c.annonce.sous)}</div></div>`
@@ -286,7 +311,7 @@
          du troisième ; au-delà, la liste paginée tient la place des emplacements */
       const cartes = c.groupes.flatMap((g) => g.cartes.map((x, k) => [carteDe(x), k ? '' : g.libelle ?? '']));
       const lieu = cartes.length + (f.autre ? 1 : 0) > PAR_PAGE ? { large: cartesDu(c.groupes[0]) }
-        : Object.fromEntries([...(f.autre ? [['cible', AUTRES[f.autre.role](f.autre)]] : []), ...cartes.flatMap(([html, t], k) => [[`carte-${k + 1}`, html], ...(t ? [[`rubrique-${k + 1}`, `<div class="t rubrique">${echapper(t)}</div>`]] : [])])]);
+        : Object.fromEntries([...(f.autre ? [['cible', AUTRES[f.autre.role](f.autre, 'cible')]] : []), ...cartes.flatMap(([html, t], k) => [[`carte-${k + 1}`, html], ...(t ? [[`rubrique-${k + 1}`, `<div class="t rubrique">${echapper(t)}</div>`]] : [])])]);
       return { ...(annonce ? { gauche: annonce } : {}), ...lieu, droite: undefined };
     },
     consigne: (c) => `<p class="consigne" data-texte="consigne">${echapper(c.consigne)}</p>`,
@@ -302,10 +327,13 @@
       </div>`,
       droite: `<div class="cibles-du-sort">${c.cibles.map((x) => `<div class="c-s">${portraitDe(x.qui, 'petit')}<div><div class="n gothique">${echapper(qui(x.qui).nom)}</div><div class="c rubrique">${echapper(x.comme)}</div></div></div>`).join('')}</div>` };
     },
-    /* un Test étendu avant le dé : le Sort en grande ligne, le cumul sous sa phrase */
-    etendu: (c) => ({ centre: `<div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation ${c.ni}</div><div class="dr gothique">${echapper(c.sort)}</div>
-      <div class="cumul">${rangDePas(c.cumul, c.ni, 'petit')}<b class="rubrique" data-texte="cumul">${c.cumul} DR sur ${c.ni}</b></div><p data-texte="phrase d'issue">${echapper(c.phrase)}</p></div>`, ...(c.enjeu ? { droite: enjeuDu(c.enjeu) } : {}) }),
-    nature: (c) => ({ centre: `<div class="nature"><div class="l rubrique">${echapper(c.libelle)}</div><div class="deux">${c.cartes.map(carteDe).join('')}</div></div>`, droite: enjeuDu(c.enjeu) }),
+    /* un Test étendu avant le dé : le Sort et son Niveau d'incantation sur la ligne du jet tombé, le cumul à la place du DR */
+    etendu: (c) => ({
+      ...reglage({ sous: `${echapper(c.sort)} · Niveau d’incantation ${c.ni}`, mot: 'Test étendu',
+        cumul: `<div class="dr-du-jet rubrique">${rangDePas(c.cumul, c.ni, 'petit')}<b data-texte="cumul">${c.cumul} DR sur ${c.ni}</b></div>`, phrase: echapper(c.phrase) }),
+      ...(c.enjeu ? { droite: enjeuDu(c.enjeu) } : {}),
+    }),
+    nature: (c) => ({ ...reglage({ sous: echapper(c.libelle), mot: 'Test simple', cartes: c.cartes.map(carteDuCentre) }), droite: enjeuDu(c.enjeu) }),
     tests: (c) => {
       const nom = (l) => `${echapper(qui(l.qui).nom)}${l.poste ? `, ${echapper(l.poste)}` : ''} · ${echapper(l.test)} ≤ ${l.seuil}${l.de === undefined ? '' : ` · dé ${l.de}`}`;
       const issue = (l) => (l.dr !== undefined
@@ -316,13 +344,19 @@
         ${defile(`<table>${c.lignes.map((l) => `<tr${l.courant ? ' class="courant en-cours"' : ''}><td>${nom(l)}</td><td>${issue(l)}</td></tr>`).join('')}
         ${c.regle ? `<tr><td>${echapper(c.regle.texte)}</td><td>${echapper(c.regle.effet)}</td></tr>` : ''}${c.somme ? `<tr class="somme"><td>Somme</td><td>${signe(somme)} DR</td></tr>` : ''}</table>`)}</div>` };
     },
-    marchandage: (c) => reglages(`${lotMarchande(c.lot)} · estimation ${prix(c.estimation)}`, `<div class="dr gothique">Test opposé</div>
-      <div class="enjeux">${c.enjeux.map((e) => modif(e.enPlus ? `${echapper(e.issue)} : ${e.pourcent} % de plus` : `${echapper(e.issue)} : ${signe(e.pourcent)} %`)).join('')}</div>`),
-    equipage: (c) => reglages(`Test d’équipage · ${echapper(c.fait)}${c.cible ? ` · Cible : ${echapper(qui(c.cible).nom)}` : ''}`, `<div class="l rubrique">${echapper(c.reglage.libelle)}</div>${optionsDu(c.reglage)}
-      <div class="enjeux">${c.notes.map((n) => modif(typeof n === 'string' ? echapper(n) : 'dr' in n ? `${echapper(n.nom)} ${signe(n.dr)} DR` : `${pluriel(n.pieces, 'pièce')} à ${echapper(n.bord)}`)).join('')}</div>`),
-    /* le Test simple avant le dé : ce qui le pose, et le jour du voyage où il tombe */
-    simple: (c) => reglages(`${echapper(c.sur)}${c.difficulte ? ` · ${echapper(c.difficulte.nom)} (${signe(c.difficulte.valeur)})` : ''}${etat.titre?.jourDeVoyage ? ` · ${jourDe(etat.titre.jourDeVoyage, etat.decor)}` : ''}`,
-      `<div class="dr gothique">Test simple</div><p data-texte="phrase">${echapper(c.phrase)}</p>`),
+    marchandage: (c, f) => reglage({
+      sous: `${lotMarchande(c.lot)} · estimation ${prix(c.estimation)}`, mot: sorteDe(f),
+      cartes: c.enjeux.map((e) => carteCourte(echapper(e.issue), e.enPlus ? `${e.pourcent} % de plus` : `${signe(e.pourcent)} %`)),
+    }),
+    /* le Test d'équipage avant le dé (MDG 14 l.13) : ni simple, ni opposé, ni étendu (`../voyage.md`, « À valider ») */
+    equipage: (c) => reglage({
+      sous: `${echapper(c.fait)}${c.cible ? ` · Cible : ${echapper(qui(c.cible).nom)}` : ''}`, mot: 'Test d’équipage',
+      lignes: [regle(c.reglage.libelle, optionsDu(c.reglage))],
+      phrase: c.notes.map((n) => modif(typeof n === 'string' ? echapper(n) : 'dr' in n ? `${echapper(n.nom)} ${signe(n.dr)} DR` : `${pluriel(n.pieces, 'pièce')} à ${echapper(n.bord)}`)).join(' '),
+    }),
+    /* le Test simple avant le dé : ce qui le pose et le jour du voyage où il tombe, sa difficulté, les cartes du choix
+       qu'il porte, ce qu'il décide */
+    simple: (c) => reglage({ sous: `${echapper(c.sur)}${jourDuVoyage()}`, mot: `Test simple${difficulteDe(c)}`, cartes: (c.cartes ?? []).map(carteDuCentre), phrase: echapper(c.phrase) }),
     /* les réponses d'un dialogue, numérotées : le Test qu'une réponse demande en tête, ce qu'elle coûte au bout */
     dialogue: (c) => `<div class="reponses">${c.reponses.map((r, k) => plaque(`<span class="dit">${r.test ? `<span class="annonce">${picto('de', 14)}${echapper(r.test.competence)} · ${echapper(r.test.difficulte)}</span>` : ''}<span data-texte="réponse ${k + 1}">${echapper(r.texte)}</span></span>`,
       { numero: k + 1, survol: !!r.survol, prix: r.prix === undefined ? null : prix(r.prix), taille: 'petite', classe: 'gauche' })).join('')}</div>`,

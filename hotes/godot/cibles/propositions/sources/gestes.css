@@ -188,6 +188,8 @@ html,body{margin:0;background:var(--noir)}
    partir de quatre, la rangée se lit en liste (`ranger`), une ligne par carte, ou ses deux lignes quand elles n'y tiennent
    pas en une */
 .plaque.carte{flex:1 1 0;min-width:200px;max-width:262px;height:92px;min-height:0}
+/* la carte courte, à la hauteur d'une bande : son nom et la valeur qui décide sur une ligne */
+.plaque.carte.courte{height:26px}
 .plaque.carte>div{justify-content:flex-start;gap:13px;padding:0 13px;text-align:left}
 .plaque.carte .qui{min-width:0}
 .plaque.carte :is(.n,.c){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal}

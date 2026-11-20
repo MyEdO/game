@@ -64,6 +64,11 @@ bandeau de jet opposé est celui du combat.
 - RAW : Marchandage, « augmenter ou diminuer le prix de 10 % », jusqu'à 20 % sur Succès Stupéfiant (+6) ou avec
   Négociateur LDB 59 l.43, MSRC 13 l.127 ; le marchand qui gagne monte le prix (`src/noyau/landMarketFlow.ts:325`) ;
   marchand 2d10+30 MSRC 13 l.129. Code : `src/engine/bargain.ts:15-29`, `src/noyau/merchantFlow.ts:236`, `:861`.
+- À valider : le centre est celui de tout jet avant le dé (`combat.md`, grille d'avant le dé) : le lot et
+  l'estimation au sous-titre, « Test opposé » en grande ligne, les quatre enjeux en cartes 1-4, le négociant à droite.
+- À valider : tombé, le prix conclu reste visible dans la valeur de la conséquence prix (« −10 % », l'ancien prix
+  barré, le nouveau), le chiffre qui décide entre « Conclure » et « Refuser le marché » (fiche
+  `user-doctrine-icone-identifie-survol-detaille`).
 - À valider : le Marchandage dans le bandeau de jet, la halle restant visible ; les enjeux affichés avant le dé ; le
   seuil du négociant masqué ; « Soutien du groupe » en pastille près du nom.
 
