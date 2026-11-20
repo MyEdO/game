@@ -8,7 +8,7 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildApi, setDialogueProbe } from './devtools';
-import { categoryByKey } from '../noyau/codex/registry';
+import { categoryByKey, codexGroupLabel } from '../noyau/codex/registry';
 import { dialogueDuDessus, useDismissLayer, resetDismissLayers } from '../ui/useDismissLayer';
 import { useRef } from 'react';
 import { getStagePan, poserPan, resetStagePan } from './stagePan';
@@ -56,7 +56,7 @@ describe('__wfrp — observation du Codex et de la caméra', () => {
   it('localise skills et weather par le registre vivant, en copie détachée et sans changer l’état', () => {
     const api = buildApi();
     const avant = useGame.getState();
-    expect(api.codexLocate('skills')).toEqual({ tab: 'Compétences', group: 'Compétences', cluster: null });
+    expect(api.codexLocate('skills')).toEqual({ tab: 'Compétences', group: codexGroupLabel('competences'), cluster: null });
     expect(api.codexLocate('weather')).toEqual({ tab: 'Météo de voyage', group: 'Tables', cluster: 'Voyage terrestre' });
     const copie = api.codexLocate('skills');
     copie.tab = 'copie';
