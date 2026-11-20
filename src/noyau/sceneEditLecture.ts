@@ -124,7 +124,7 @@ import type { Warning } from './validateScene';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
 import { parcoursDe } from '../engine/pnjDeCarriere';
-import { entityAppearanceSchema } from '../data/schemas/grammaire/valeurs';
+import { entityAppearanceSchema, OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
 import { apparencesChoisissablesDObjet, objetsAApparenceChoisie } from '../data/apparencesObjets';
 import { armesDEntite, equipementDAuteurDe } from './equipementDessine';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
@@ -1280,9 +1280,13 @@ const ouvreursDuCadre = (porteur: Ouvreur, { scene, projet }: CadreDuPorteur): r
  *  `idDe(type, sousListe, { portee })`), résolue par le parse (`entreesDeLaPortee`) sur le premier des `ouvreurs` qui
  *  l'ouvre : son id, et son libellé, lu comme celui d'une entrée du catalogue (`LIBELLE_AU_LABEL`), sinon son id ;
  *  `undefined` sans une telle feuille, ou si aucun ne l'ouvre. */
-function entreesDeLaFeuilleLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly { id: string; libelle: string }[] | undefined {
+function entreesDeLaFeuilleLocale(
+  noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[], ouvreursInterieursDesObjets: readonly Ouvreur[],
+): readonly { id: string; libelle: string }[] | undefined {
   const portee = noeuds.map((n) => porteeDuJugementLocal(n)).find((p) => p !== undefined);
-  const entrees = portee && ouvreurs.map(([ouvreur, valeur]) => entreesDeLaPortee(ouvreur, valeur, portee)).find((e) => e !== undefined);
+  if (portee === undefined) return undefined;
+  const prioritaires = portee === OBJETS_DU_PROJET ? [...ouvreursInterieursDesObjets, ...ouvreurs] : ouvreurs;
+  const entrees = prioritaires.map(([ouvreur, valeur]) => entreesDeLaPortee(ouvreur, valeur, portee)).find((e) => e !== undefined);
   return entrees && [...entrees].map(([id, e]) => ({ id, libelle: (estObjet(e) ? libelleDeLElement(e, LIBELLE_AU_LABEL.champs) : undefined) ?? id }));
 }
 
@@ -1296,12 +1300,14 @@ const choixDuCatalogueOuvert = (noeuds: readonly unknown[]): ChoixDuContexte[] =
  *  si elle est ouverte (`choixDuCatalogueOuvert`), un record y contribuant le nœud de sa clé (`recordDuNoeud`), dont
  *  les choix sont les clés qu'il offre (`FieldDesc.contexte`) ; d'une référence `{ id }` dont l'identifiant en est une,
  *  chacun posé entier ; `undefined` sinon. */
-export function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
+export function choixDeLaReferenceLocale(
+  noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[], ouvreursInterieursDesObjets: readonly Ouvreur[] = [],
+): readonly ChoixDuContexte[] | undefined {
   const feuilles = noeuds.map((n) => recordDuNoeud(n)?.cle ?? n);
-  const entrees = entreesDeLaFeuilleLocale(feuilles, ouvreurs);
+  const entrees = entreesDeLaFeuilleLocale(feuilles, ouvreurs, ouvreursInterieursDesObjets);
   if (entrees) return [...choixDuCatalogueOuvert(feuilles), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
   const ids = ouverts(pasDeDonnee(noeuds.filter(estRefEmboitee), 'id'));
-  const emboites = entreesDeLaFeuilleLocale(ids, ouvreurs);
+  const emboites = entreesDeLaFeuilleLocale(ids, ouvreurs, ouvreursInterieursDesObjets);
   return emboites && [
     ...choixDuCatalogueOuvert(ids).map((c) => ({ ...c, valeur: { id: c.valeur } })),
     ...emboites.map(({ id, libelle }) => ({ valeur: { id }, libelle, refus: null })),
@@ -1323,11 +1329,11 @@ export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeD
   if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   const sous = estSousReference(cle) ? choixDeLaSousReference(donnee, chemin, cle, cadre.projet.narratif) : undefined;
   if (sous) return sous;
-  const interieurs: Ouvreur[] = [];
+  const ouvreursInterieursDesObjets: Ouvreur[] = [];
   const noeuds = noeudsAuChemin(formulaire.schema, donnee, chemin, (ancetres, valeur) => {
-    for (const n of ancetres) if (porteesOuvertes(n).length) interieurs.push([n, valeur]);
+    for (const n of ancetres) if (porteesOuvertes(n).includes(OBJETS_DU_PROJET)) ouvreursInterieursDesObjets.push([n, valeur]);
   });
-  const locaux = choixDeLaReferenceLocale(noeuds, [...interieurs.reverse(), ...ouvreursDuCadre([formulaire.schema, donnee], cadre)]);
+  const locaux = choixDeLaReferenceLocale(noeuds, ouvreursDuCadre([formulaire.schema, donnee], cadre), ouvreursInterieursDesObjets.reverse());
   const duPorteur = formulaire.choix?.(donnee, chemin, cadre);
   return locaux && duPorteur ? duPorteur.filter((c) => locaux.some((l) => jsonCanonique(l.valeur) === jsonCanonique(c.valeur))) : locaux ?? duPorteur;
 }

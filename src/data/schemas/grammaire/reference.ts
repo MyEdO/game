@@ -370,11 +370,11 @@ export type ClasseDeQualite = z.infer<typeof classeDeQualiteSchema>;
 
 /** Dotation d'un objet du catalogue : l'objet, et son emplacement « Atouts au choix » (`qualityChoice`), sa classe de
  *  qualité. LDB 60 */
-const dotationDObjet = (id = objetDeCatalogueSchema.shape.id) => nommerNoeud(nommerChamps(z.strictObject({
+const dotationDObjet = (id = objetDeCatalogueSchema.shape.id) => marquerProduit(nommerNoeud(nommerChamps(z.strictObject({
   ...objetDeCatalogueSchema.shape,
   id,
   qualityChoice: classeDeQualiteSchema.optional(),
-}), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } }), { label: 'objet du catalogue' });
+}), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } }), { label: 'objet du catalogue' }), 'dotationDObjet', 'objet', { id });
 export const dotationDeCatalogueSchema = dotationDObjet();
 
 /** Dotation d'une MENTION : un bien imprimé que la fiche porte sous sa nature, sans mécanique. #4053 */

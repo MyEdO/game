@@ -11,12 +11,14 @@ import { OP_DEFS, conditionSchema, facilitationSchema, flowTestSchema } from './
 import { descendre, enfantsDe } from './descente';
 import { declarationDeRefASpecialisation, refOuSpec } from './ref';
 import { nommerChamps } from './meta';
+import { produitDe } from './interne/produits';
 import { armureDecriteParLeTraitSchema, dotationDeCatalogueSchema, objetDeCatalogueSchema } from './reference';
 
-const OBJETS_DE_CATALOGUE: ReadonlySet<unknown> = new Set([objetDeCatalogueSchema, dotationDeCatalogueSchema, armureDecriteParLeTraitSchema]);
+const OBJETS_DE_CATALOGUE: ReadonlySet<unknown> = new Set([objetDeCatalogueSchema, armureDecriteParLeTraitSchema]);
 
 /** Toute `spec` désigne une Spécialisation, sauf celle de l'objet de catalogue d'une dotation. */
-const specDesigneUneSpecialisation = (noeud: unknown): boolean => !OBJETS_DE_CATALOGUE.has(noeud);
+const specDesigneUneSpecialisation = (noeud: unknown): boolean =>
+  !OBJETS_DE_CATALOGUE.has(noeud) && produitDe(noeud)?.fabrique !== 'dotationDObjet';
 
 /** Les objets `{ id, spec }` désignant une Spécialisation qu'aucune fabrique à spécialisation n'a construits,
  *  nommés `<racine> <chemin>`. */

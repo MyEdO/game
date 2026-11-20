@@ -39,7 +39,6 @@ export {
   siegeEngines,
   structureAppearances,
   trappingRefLabel,
-  trappingsInstanciables,
 } from '../data';
 export { isWearable, objetsDeLInventaire } from '../engine/items';
 export {
