@@ -26,7 +26,7 @@
 /* le cumul d'un Test étendu */
 .cumul{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:5px}
 .cumul b{font-weight:400;font-size:13px;color:#2a1d12}
-#verdict.etendu p{margin-top:5px}
+#verdict.etendu:not(.tombe) p{margin-top:5px}
 
 /* une table tirée, dans le gabarit du coup critique */
 .camp.lanceur .c{color:#7c1f14}

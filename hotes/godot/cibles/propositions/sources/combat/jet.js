@@ -14,7 +14,11 @@ const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles =
     [`${cote || 'gauche'}-des`]: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${survol === 'seuil' ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : critique ? 'reussite critique' : reussite ? 'reussite' : '' })}</div>`,
     [`${cote || 'gauche'}-issue`]: total == null ? '' : `<div class="issue ${critique ? 'critique' : reussite ? 'reussite' : 'echec'}"><b>${critique ? 'Critique' : reussite ? 'Réussite' : 'Échec'}</b> DR ${dr}</div>`,
   })}</div>`;
-const verdict = (sous, dr, phrase, classe = '') => `<div id="verdict" class="${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="dr gothique">${dr}</div><p data-texte="phrase d'issue">${phrase}</p></div>`;
+/* le verdict d'un jet tombé, au centre, quatre rangs à leur place et leur hauteur fixes : sur quoi il porte (`sous`) ; la
+   grande ligne, l'issue de l'action en un mot (`mot`) de la couleur de l'issue du camp (`sens` : reussite, echec,
+   critique), puis ce qu'elle change (`effet`) ; le DR en petit (`dr`), sa place gardée vide ; la phrase d'issue, puis
+   ce qui la suit (`suite` : le prix, le cumul) */
+const verdict = ({ sous, mot, sens, effet = '', dr = '', phrase = '', suite = '', classe = '' }) => `<div id="verdict" class="tombe ${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="issue-du-jet gothique ${sens}" data-texte="issue"><span>${mot}${effet ? `<small> · ${effet}</small>` : ''}</span></div><div class="dr-du-jet rubrique" data-texte="DR">${dr}</div><p data-texte="phrase d'issue">${phrase}</p>${suite}</div>`;
 /* le bandeau, à la place de la barre de l'actif ou du bandeau des héros : ses places (`PLACES`, `../rendu.js`), la rangée
    des gestes, une place par plaque (`plaques`, une liste) et la réserve qu'elles dépensent */
 const bandeauDuJet = (titre, classe, contenu, plaques, reserve = '') => cadre('jet', null, null, null, null, `parchemin ${classe}`, `

@@ -240,8 +240,10 @@
 .bande .c .jeton{margin-top:1px;height:19px;font-size:10.5px;padding:0 6px}
 .bande .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
 .bande .c>*{position:relative}
-/* la bande tient dans ses 96 : l'augmentation se pose au coin haut-droit de la valeur */
-.bande .c .aug{position:absolute;top:32px;right:2px;height:auto}
+/* la bande tient dans ses 96 : l'augmentation se pose au coin haut-droit de la valeur, la valeur décalée d'autant pour
+   que les deux tiennent dans le cadre de laiton d'une case de carrière */
+.bande .c .v{margin-right:16px}
+.bande .c .aug{position:absolute;top:32px;left:calc(50% + 9px);height:auto}
 .niche{flex:none;width:100%;height:100%;padding:4px;border-radius:2px;box-shadow:0 4px 10px var(--ombre),0 0 0 1px var(--contour)}
 .niche>div{width:100%;height:100%;background:radial-gradient(90% 70% at 50% 34%,#eadbb4,#d3bf90 60%,#b9a070);box-shadow:inset 0 0 0 1px var(--ombre),inset 0 0 22px var(--brou)}
 .niche svg{display:block;width:100%;height:100%}

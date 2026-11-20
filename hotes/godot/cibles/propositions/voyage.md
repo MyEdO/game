@@ -67,6 +67,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : le jour s'arrête sur un échec que son porteur peut encore influencer (audit M2), ce que le noyau ne
   fait pas : jour par jour il s'arrête avant le dé, sous ordres jamais (`attendUnVraiChoix`, à retoucher, verbes
   inchangés) ; « Appliquer » (charte) pour laisser l'échec ; dé d'exemple.
+- À valider : la grande ligne dit « Échec », le DR en petit dessous (`combat.md`, « Bandeau du jet », table des mots).
 
 ## arrivee-aucune, arrivee-palissade, arrivee-rempart
 - Cible écrite `lieu.md` : l'arrivée est l'écran du lieu, sa première ligne est le récit du trajet (« Arrivée à

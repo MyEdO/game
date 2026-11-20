@@ -76,6 +76,9 @@ bandeau de jet opposé est celui du combat.
 - RAW : LDB 59 l.43 ; MSRC 13 l.127.
 - À valider : le verdict au centre avec le prix avant et après ; les suites en plaques sous le verdict, « Conclure »
   armée ; le compte de la page mis à jour dès le verdict.
+- À valider : la grande ligne dit l'issue du livre et son effet au prix (« Gagné · −10 % à l’achat »), le DR net en petit
+  dessous ; la phrase d'issue qui le redisait est retirée, le prix avant et après la remplace (`combat.md`, « Bandeau
+  du jet », table des mots).
 
 ## port
 - Le port est un lieu (Salzenmund, `src/data/naval-ports.json`) : récit, quai, navire du groupe à l'amarre. Les

@@ -236,8 +236,9 @@ export type AxeDeSurincantation = { nom: string; alloues: number; sur: number; e
 
 /** Le centre d'une fenêtre, selon ce qu'elle résout. */
 export type Centre =
-  /** Le verdict des jets opposés tombés : sur quoi ils portent, le jet relancé, le DR net, la phrase d'issue. */
-  | { role: 'verdict'; porte: Porte; relance?: number; drNet: number; issue: string }
+  /** Le verdict des jets opposés tombés : sur quoi ils portent, l'action du héros qui en nomme l'issue, ce qu'elle change,
+   *  le jet relancé, le DR net, la phrase d'issue. */
+  | { role: 'verdict'; porte: Porte; action: 'attaque' | 'defense' | 'contre-sort'; effet?: string; relance?: number; drNet: number; issue: string }
   /** Les réglages d'une attaque : la localisation (la zone choisie et son malus, « Au hasard » offert), les réglages,
    *  les bascules, la note de ce qu'ils font. */
   | { role: 'attaque'; porte: Porte; localisation: { libelle: string; zone: { id: Zone; nom: string } | null; malus: number | null; hasard: boolean }; reglages: Reglage[]; bascules: Bascule[]; note?: string }

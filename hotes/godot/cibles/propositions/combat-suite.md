@@ -83,6 +83,8 @@ exemple.
 - À valider : le cumul « 5 DR sur 7 » en losanges ; le Dôme (NI 7, `src/data/spells.json`) en exemple, alors que sa
   Durée se compte en Rounds ; le dôme dessiné sur le pion ; ruban « Dissipation » ; l'entrée est
   `dissipation-entree`, l'état avant le dé `dissipation-avant-le-de`.
+- À valider : tombé, la grande ligne dit l'issue du jet (« Réussite »), le Sort passe au sous-titre, le DR du jet en
+  petit, le cumul sous la phrase ; avant le dé, le Sort reste en grande ligne (`combat.md`, « Bandeau du jet »).
 
 ## dissipation-avant-le-de
 - Le même Test étendu avant le dé (LDB 46 l.160-162) : le dissipeur, son seuil, les deux dés et le sceau vides ; au
@@ -119,6 +121,8 @@ exemple.
 - À valider : la colonne de droite (libellés absents du jeu) ; « Focalisation » sans le Vent de sa spécialisation ;
   le Dôme d'Ilyanwe en exemple (`src/scenes/test-scenarios/22-dome.ts:30`) ; les autres
   temps sont `focalisation-avant-le-de`, `focalisation-atteinte` et `focalisation-critique`.
+- À valider : même verdict que la Dissipation ; le critique en « Critique » sur marque d'or (`combat.md`, « Bandeau du
+  jet »).
 
 ## focalisation-avant-le-de
 - La Focalisation avant le dé (LDB 46 l.128-136), nouvel état de la page `focalisation` : le lanceur, son seuil et
@@ -176,6 +180,8 @@ exemple.
   `jetValider` sur `'corruption'` (`src/noyau/flowVerbs.ts:84`).
 - À valider : la ligne tombée marquée dans la table ; « Résistance » en sixième plaque, à droite de « Résilience » ;
   la plaque ouverte est `test-de-corruption-resistance`.
+- À valider : la grande ligne dit « Échec · +2 Points de Corruption » (« Réussite · aucun Point » à la Résilience),
+  le DR du héros en petit dessous (`combat.md`, « Bandeau du jet », table des mots).
 
 ## test-de-corruption-resistance
 - Le même Test tombé pour un héros doté du Talent Résistance (Corruption) : le Talent nommé à côté du nom, la plaque
@@ -240,6 +246,8 @@ exemple.
   (`src/noyau/pendings.ts:1280-1300`, `src/noyau/flowVerbs.ts:59`). Pas d'« Annuler » : le flux n'en a pas.
 - À valider : un seul verdict au centre pour deux Tests non opposés ; les Dégâts du coup ne sont pas montrés ; l'état
   avant le dé du Test de Calme et le coup qui manque (aucun Test de Calme) n'ont pas d'image ; chiffres d'exemple.
+- À valider : la grande ligne dit « Brisé · +3 États », en rouge de l'échec du Test de Calme, sans DR (la donnée
+  ne porte que les États) (`combat.md`, « Bandeau du jet », table des mots).
 
 ## sauvetage-par-le-destin
 - Le coup fatal arrête le jeu dans le bandeau : la victime et sa réserve de Destin à gauche, trois cartes, « Éviter le

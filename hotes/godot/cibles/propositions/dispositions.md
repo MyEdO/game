@@ -147,7 +147,8 @@ Le journal passe par-dessus le champ, sans fond plein.
 
 **6. Fenêtre du bas** (jets et choix) : rôle `fenetre`, une seule hauteur ; ruban gothique centré ; ses places
 (`PLACES`) : `gauche` le héros concerné (portrait `grand`, nom à sa droite) ou le titre d'un choix, aligné à droite
-contre ses cartes, `centre`, `droite` l'adversaire ou l'interlocuteur en miroir, ou ce que le centre décide quand il
+contre ses cartes, `centre` (un jet tombé : le `verdict`, sous-titre, grande ligne de l'issue à un rect fixe, DR en petit,
+phrase), `droite` l'adversaire ou l'interlocuteur en miroir, ou ce que le centre décide quand il
 n'y en a pas ; trois emplacements de carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique
 (`rubrique-1` à `rubrique-3`), une carte seule dans le premier ; `cible`, ce que le choix vise, à la place du
 troisième emplacement, son portrait où se tient celui de l'autre camp ; `large`, à la place du centre, de la droite et

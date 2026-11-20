@@ -23,9 +23,10 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - À valider : chaque réserve, un jeton dans une case de largeur fixe, son pictogramme à gauche du disque, sans nom
   écrit ; le nom et la valeur (« Chance : 3 ») dans la bulle du jeton survolé (`reserves`, `sources/combat/jet.js`).
   Pictogrammes (`PICTO_DE_LA_RESERVE`, `sources/rendu.js`) : Chance `etoile`, Résilience `coeur`, Détermination
-  `poing`, Destin `sablier` (le temps compté ; le `fin` de la fin du tour est le même sablier, qui n'en diffère que par
-  le trait de sable du bas : les deux se confondent à 20 px), Expérience `livre` (ce qui s'est
-  appris ; aucun pictogramme de progression au kit). La Chance au pied d'un billet de jet : l'étoile une fois, puis un
+  `poing` (un poing fermé, quatre jointures et le pouce replié, qui ne se lit plus en main ouverte à 20 px), Destin
+  `noeud` (le nœud du fil du destin : le sablier se confondait à 20 px avec le `fin` de la fin du tour ; `roue` et
+  `couronne` sont déjà la diligence et les Courtisans),
+  Expérience `livre` (ce qui s'est appris ; aucun pictogramme de progression au kit). La Chance au pied d'un billet de jet : l'étoile une fois, puis un
   jeton par lanceur, identifié par son portrait `menu`.
 - À valider : l'issue du camp est le verdict écrit suivi du DR, sur une ligne, de la couleur du verdict (« Réussite
   DR +2 » vert, « Échec DR −3 » rouge sang, « Critique DR +5 » vert, le mot sur une marque d'or), du pied du portrait sur
@@ -33,6 +34,34 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
   Le sceau du total garde son état (vert la réussite, cerclé d'or le critique, rouge l'échec), mais la couleur seule ne
   dit pas le verdict : le mot s'écrit, aucune bulle au survol du sceau. Le cercle d'or du critique est neuf et épais de
   3 px pour se voir à la taille de jeu (`.sceau.critique`, `sources/gestes.css`).
+- À valider : la grande ligne du centre d'un jet tombé dit l'issue de l'action, jamais un DR seul (verbatims du
+  2026-11-20 : « Genre parfois on a "DR net" et parfois "3 etats brisés" » ; « l'élément central doit indiquer l'echec
+  ou la réussite, pas juste "DR net +1", c'est la ou se trouve l'information capital ») : un mot de la couleur de
+  l'issue du camp (vert la réussite, rouge sang l'échec, marque d'or le critique), puis, plus petit, ce que l'action
+  change quand la donnée le porte ; le DR (« DR net +6 », « DR −3 ») en petit dessous, à sa place même vide ; quatre
+  rangs fixes (sous-titre 14, grande ligne 38, DR 14, phrase), la grande ligne au même rect pour tout jet
+  (`verdict`, `sources/combat/jet.js`). Un Test opposé se lit du côté de l'action du héros, gagné quand son DR passe
+  celui de l'autre camp. Mots choisis, courts et du point de vue de qui agit :
+
+  | Jet | Gagné | Perdu | Ce qui suit le mot |
+  |---|---|---|---|
+  | Attaque (`jet-d-attaque`) | Touche | Manquée | la localisation (« au corps ») |
+  | Défense (`jet-de-defense`) | Parée | Touché | la localisation du coup reçu (« au bras droit ») |
+  | Contre-sort (`contre-sort`) | Contré | Raté | rien |
+  | Incantation (`incantation`) | Lancé | — (le centre `sort` ne sert qu'au Sort lancé) | rien |
+  | Fuite (`fuite`, coup dans le dos) | — | l'État posé (« Brisé ») | « +3 États » |
+  | Corruption (`test-de-corruption-*`) | Réussite | Échec | les Points gagnés (« +2 Points de Corruption », « aucun Point ») |
+  | Test étendu (`dissipation`, `focalisation`) | Réussite | Échec | rien ; le cumul sous la phrase |
+  | Test simple (`jet-de-competence`, `evenement-de-route-echec`) | Réussite | Échec | rien |
+  | Marchandage (`marchandage`) | l'issue du livre (« Gagné ») | (« Perdu ») | l'effet au prix (« −10 % à l’achat ») |
+
+  « Touche » et « Manquée » disent l'attaque, « Parée » et « Touché » ce qui arrive au défenseur ; Réussite, Échec et
+  Critique reprennent le mot de l'issue du camp quand l'action n'a pas de verbe propre. Restent hors de la règle, faute
+  d'une issue unique : la table de Tests (`tests`, une issue par ligne), le carton de la bataille de masse (son milieu
+  dit déjà qui l'emporte), le Coup Critique et la table tirée (un nom de table), l'annonce d'un choix, les réglages
+  avant le dé (« Test simple », « Test opposé »), la Surincantation et la consigne.
+- À valider : le DR net reste la marge du vainqueur, sans signe du côté du héros (« DR net +4 » sous « Touché ») ;
+  le signer du côté du héros (« DR net −4 ») dirait l'écart sans relire les camps.
 
 ## tour-adverse (A1, A2, T3)
 - Le meuble garde sa place et montre l'adversaire : portrait de fer, nom, arme (« Hache »), Blessures.
@@ -62,6 +91,8 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - Jet réussi (34 sous 85) : « Relancer » et « Résilience » fermés, la raison en bulle au survol (LDB 17 l.23, l.68) ;
   « Chance : +1 DR » reste ouverte (LDB 17 l.24). 34 n'est pas un double : pas d'Incantation Critique à choisir
   dans cet état (LDB 46 l.26-32).
+- À valider : la grande ligne dit « Lancé », le Sort et son NI au sous-titre, le DR du jet en petit dessous (« Bandeau
+  du jet », table des mots).
 
 ## coup-critique (C1, C2, C3)
 - Le bandeau reste en place : à gauche la victime, sa silhouette, « Touché à la tête », sceau « 2 » Blessures

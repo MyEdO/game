@@ -222,8 +222,20 @@
     return `<div class="cartes liste paginee">${g.cartes.slice(debut, fin).map(carteDe).join('')}<span class="pas-a-pas page-de-liste">${picto('gauche', 13, '#5a4530', 2)}<b class="rubrique">${debut + 1}-${fin} sur ${g.cartes.length}</b>${picto('droite', 13, '#5a4530', 2)}</span></div>`;
   };
   const enjeuDu = (e) => `<div class="enjeu"><div class="l rubrique">${echapper(e.libelle)}</div><table>${e.issues.map((i, k) => `<tr${k === e.tombee ? ' class="tombee"' : ''}><td>${echapper(i.issue)}</td><td>${echapper(i.effet)}</td></tr>`).join('')}</table></div>`;
-  const etenduDu = (c) => `<div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation ${c.ni}</div><div class="dr gothique">${echapper(c.sort)}</div>
-    <div class="cumul">${rangDePas(c.cumul, c.ni, 'petit')}<b class="rubrique" data-texte="cumul">${c.cumul} DR sur ${c.ni}</b></div><p data-texte="phrase d'issue">${echapper(c.phrase)}</p></div>`;
+  /* l'issue d'un jet tombé, de la couleur de l'issue du camp : seul, sa réussite ; opposé, le testeur au plus haut DR */
+  const sensDu = (jet, gagne = jet.reussite) => (gagne && jet.critique ? 'critique' : gagne ? 'reussite' : 'echec');
+  const gagneOppose = (f) => f.heros.jet.dr > f.autre.jet.dr;
+  const MOT_DU_SENS = { reussite: 'Réussite', echec: 'Échec', critique: 'Critique' };
+  /* le mot de l'issue d'un Test opposé, du point de vue de l'action, gagné puis perdu (`../combat.md`, « À valider ») */
+  const MOTS_DE_L_ACTION = { attaque: ['Touche', 'Manquée'], defense: ['Parée', 'Touché'], 'contre-sort': ['Contré', 'Raté'] };
+  /* un Test étendu : avant le dé, le Sort en grande ligne ; tombé, le verdict du jet, le cumul sous sa phrase */
+  const etenduDu = (c, f) => {
+    const cumul = `<div class="cumul">${rangDePas(c.cumul, c.ni, 'petit')}<b class="rubrique" data-texte="cumul">${c.cumul} DR sur ${c.ni}</b></div>`;
+    if (!f.heros.jet) return `<div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation ${c.ni}</div><div class="dr gothique">${echapper(c.sort)}</div>
+    ${cumul}<p data-texte="phrase d'issue">${echapper(c.phrase)}</p></div>`;
+    const sens = sensDu(f.heros.jet);
+    return verdict({ sous: `${echapper(c.sort)} · Test étendu · Niveau d’incantation ${c.ni}`, mot: MOT_DU_SENS[sens], sens, dr: `DR ${signe(f.heros.jet.dr)}`, phrase: echapper(c.phrase), suite: cumul, classe: 'etendu' });
+  };
   const tableDu = (c) => (c.tire === undefined
     ? `<div id="critique"><div class="dr gothique">${echapper(c.nom)}</div>${defile(`<p data-texte="texte de la table">${echapper(c.texte)}</p>`)}</div>`
     : `<div id="critique"><div class="tete-c"><div class="dr gothique">${echapper(c.nom)}</div><div class="tirage">${c.tire === null ? sceau('', 'moyen', { etat: 'vide' }) : sceau(c.tire, 'moyen')}<span class="rubrique">${echapper(c.table)}<br>${c.tire === null ? 'à tirer' : 'tirée'} au d100</span></div></div>
@@ -243,7 +255,11 @@
   const SENS_DU_MARCHE = { achat: 'à l’achat', vente: 'à la vente' };
   /* le centre de la fenêtre, et ce qu'il demande à sa mise en page (`combat/combat.css`, `combat-suite/suite.css`) */
   const CENTRES = {
-    verdict: (c) => verdict(c.relance === undefined ? porte(c.porte) : `${echapper(c.porte.arme)} · ${echapper(qui(c.porte.cible).nom)} · <span class="relance">relancé, <s>${d100(c.relance)}</s></span>`, `DR net ${signe(c.drNet)}`, echapper(c.issue)),
+    verdict: (c, f) => {
+      const gagne = gagneOppose(f);
+      return verdict({ sous: c.relance === undefined ? porte(c.porte) : `${echapper(c.porte.arme)} · ${echapper(qui(c.porte.cible).nom)} · <span class="relance">relancé, <s>${d100(c.relance)}</s></span>`,
+        mot: MOTS_DE_L_ACTION[c.action][gagne ? 0 : 1], sens: sensDu(f.heros.jet, gagne), effet: c.effet ? echapper(c.effet) : '', dr: `DR net ${signe(c.drNet)}`, phrase: echapper(c.issue) });
+    },
     attaque: (c) => localisationDe(c),
     defense: (c) => reglages(porte(c.porte), `<div class="reactions">${c.reactions.map((r, k) => carte(echapper(r.nom), `≤ ${r.seuil}`, { armee: k === c.tenue, classe: 'courte' })).join('')}</div>
       ${c.sociale ? regle('À la place de Corps à corps', modif(echapper(c.sociale))) : c.reglages.map((r) => regle(r.libelle, optionsDu(r))).join('')}`, 'haut'),
@@ -261,7 +277,7 @@
     consigne: (c) => `<p class="consigne" data-texte="consigne">${echapper(c.consigne)}</p>`,
     critique: (c) => `<div id="critique"><div class="dr gothique">${echapper(c.nom)}</div><p data-texte="texte du critique">${echapper(c.effet)}</p></div>`,
     table: (c) => ({ large: tableDu(c) }),
-    sort: (c) => `<div id="verdict" class="sort"><div class="sous rubrique">Sort · Niveau d’incantation ${c.ni}</div><div class="dr gothique">${echapper(c.sort)}</div><p>${echapper(c.issue)}</p></div>`,
+    sort: (c, f) => verdict({ sous: `${echapper(c.sort)} · Niveau d’incantation ${c.ni}`, mot: 'Lancé', sens: sensDu(f.heros.jet), dr: `DR ${signe(f.heros.jet.dr)}`, phrase: echapper(c.issue) }),
     surincantation: (c) => {
       const axe = (a) => ('sansObjet' in a ? `<div class="axe ferme"><span class="rubrique">${echapper(a.nom)}</span><em>sans objet</em></div>`
         : `<div class="axe"><span class="rubrique">${echapper(a.nom)}</span>${rangDePas(a.alloues, a.sur, 'petit')}<b>${'cibles' in a.effet ? pluriel(a.effet.cibles, 'cible') : `×${a.effet.facteur}`}</b>${moinsPlus({ moins: a.alloues > 0, plus: a.alloues < a.sur })}</div>`);
@@ -272,9 +288,9 @@
       </div>`,
       droite: `<div class="cibles-du-sort">${c.cibles.map((x) => `<div class="c-s">${portraitDe(x.qui, 'petit')}<div><div class="n gothique">${echapper(qui(x.qui).nom)}</div><div class="c rubrique">${echapper(x.comme)}</div></div></div>`).join('')}</div>` };
     },
-    etendu: (c) => ({ centre: etenduDu(c), ...(c.enjeu ? { droite: enjeuDu(c.enjeu) } : {}) }),
+    etendu: (c, f) => ({ centre: etenduDu(c, f), ...(c.enjeu ? { droite: enjeuDu(c.enjeu) } : {}) }),
     nature: (c) => ({ centre: `<div class="nature"><div class="l rubrique">${echapper(c.libelle)}</div><div class="deux">${c.cartes.map(carteDe).join('')}</div></div>`, droite: enjeuDu(c.enjeu) }),
-    consequence: (c) => verdict(`${echapper(c.arme)} · ${echapper(c.coup)}`, `${c.etats.nombre} États ${echapper(c.etats.etat)}`, echapper(c.issue)),
+    consequence: (c, f) => verdict({ sous: `${echapper(c.arme)} · ${echapper(c.coup)}`, mot: echapper(c.etats.etat), sens: sensDu(f.heros.jet), effet: `+${c.etats.nombre} États`, phrase: echapper(c.issue) }),
     tests: (c) => {
       const nom = (l) => `${echapper(qui(l.qui).nom)}${l.poste ? `, ${echapper(l.poste)}` : ''} · ${echapper(l.test)} ≤ ${l.seuil}${l.de === undefined ? '' : ` · dé ${l.de}`}`;
       const issue = (l) => (l.dr !== undefined
@@ -287,22 +303,26 @@
     },
     marchandage: (c) => reglages(`${lotMarchande(c.lot)} · estimation ${prix(c.estimation)}`, `<div class="dr gothique">Test opposé</div>
       <div class="enjeux">${c.enjeux.map((e) => modif(e.enPlus ? `${echapper(e.issue)} : ${e.pourcent} % de plus` : `${echapper(e.issue)} : ${signe(e.pourcent)} %`)).join('')}</div>`),
-    marche: (c) => `<div id="verdict"><div class="sous rubrique" data-texte="sous-titre">${lotMarchande(c.lot)}</div><div class="dr gothique">DR net ${signe(c.drNet)}</div>
-      <p data-texte="phrase d'issue">${echapper(c.issue.issue)} (${signe(c.issue.pourcent)} % ${SENS_DU_MARCHE[c.lot.sens]})</p><div class="prix chiffres"><s>${prix(c.avant)}</s><b>${prix(c.apres)}</b></div></div>`,
+    marche: (c, f) => verdict({ sous: lotMarchande(c.lot), mot: echapper(c.issue.issue), sens: sensDu(f.heros.jet, gagneOppose(f)), effet: `${signe(c.issue.pourcent)} % ${SENS_DU_MARCHE[c.lot.sens]}`, dr: `DR net ${signe(c.drNet)}`,
+      suite: `<div class="prix chiffres"><s>${prix(c.avant)}</s><b>${prix(c.apres)}</b></div>` }),
     equipage: (c) => reglages(`Test d’équipage · ${echapper(c.fait)}${c.cible ? ` · Cible : ${echapper(qui(c.cible).nom)}` : ''}`, `<div class="l rubrique">${echapper(c.reglage.libelle)}</div>${optionsDu(c.reglage)}
       <div class="enjeux">${c.notes.map((n) => modif(typeof n === 'string' ? echapper(n) : 'dr' in n ? `${echapper(n.nom)} ${signe(n.dr)} DR` : `${pluriel(n.pieces, 'pièce')} à ${echapper(n.bord)}`)).join('')}</div>`),
     /* le Test simple : ce qui le pose, et le jour du voyage où il tombe */
-    simple: (c) => {
+    simple: (c, f) => {
       const sur = `${echapper(c.sur)}${c.difficulte ? ` · ${echapper(c.difficulte.nom)} (${signe(c.difficulte.valeur)})` : ''}${etat.titre?.jourDeVoyage ? ` · ${jourDe(etat.titre.jourDeVoyage, etat.decor)}` : ''}`;
-      return c.dr === undefined ? reglages(sur, `<div class="dr gothique">Test simple</div><p data-texte="phrase">${echapper(c.phrase)}</p>`) : verdict(sur, `DR ${signe(c.dr)}`, echapper(c.phrase));
+      return c.dr === undefined ? reglages(sur, `<div class="dr gothique">Test simple</div><p data-texte="phrase">${echapper(c.phrase)}</p>`) : verdict({ sous: sur, mot: MOT_DU_SENS[sensDu(f.heros.jet)], sens: sensDu(f.heros.jet), dr: `DR ${signe(c.dr)}`, phrase: echapper(c.phrase) });
     },
     /* les réponses d'un dialogue, numérotées : le Test qu'une réponse demande en tête, ce qu'elle coûte au bout */
     dialogue: (c) => `<div class="reponses">${c.reponses.map((r, k) => plaque(`<span class="dit">${r.test ? `<span class="annonce">${picto('de', 14)}${echapper(r.test.competence)} · ${echapper(r.test.difficulte)}</span>` : ''}<span data-texte="réponse ${k + 1}">${echapper(r.texte)}</span></span>`,
       { numero: k + 1, survol: !!r.survol, prix: r.prix === undefined ? null : prix(r.prix), taille: 'petite', classe: 'gauche' })).join('')}</div>`,
-    corruption: (c) => ({ centre: verdict(`${echapper(c.influence)} · Points de Corruption ${c.corruption.points} / ${c.corruption.seuil}`, c.gain ? `+${pluriel(c.gain, 'Point')}` : 'Aucun Point', echapper(c.issue)), droite: enjeuDu(c.enjeu) }),
+    corruption: (c, f) => {
+      const sens = sensDu(f.heros.jet);
+      return { centre: verdict({ sous: `${echapper(c.influence)} · Points de Corruption ${c.corruption.points} / ${c.corruption.seuil}`, mot: MOT_DU_SENS[sens], sens,
+        effet: c.gain ? `+${pluriel(c.gain, 'Point')} de Corruption` : 'aucun Point', dr: `DR ${signe(f.heros.jet.dr)}`, phrase: echapper(c.issue) }), droite: enjeuDu(c.enjeu) };
+    },
   };
   /* le pictogramme qui identifie chaque réserve d'un héros, et l'Expérience (`../combat.md`, « À valider ») */
-  const PICTO_DE_LA_RESERVE = { destin: 'sablier', chance: 'etoile', resilience: 'coeur', determination: 'poing', experience: 'livre' };
+  const PICTO_DE_LA_RESERVE = { destin: 'noeud', chance: 'etoile', resilience: 'coeur', determination: 'poing', experience: 'livre' };
   /* le jeton d'une réserve : son pictogramme ; son nom, de qui la porte quand elle est seule, au survol */
   const jetonDe = (r) => ({ valeur: r.valeur, icone: picto(PICTO_DE_LA_RESERVE[r.id], 20, undefined, 1.8), nom: r.porteur ? `${echapper(r.nom)} ${de(echapper(qui(r.porteur).nom))}` : echapper(r.nom), survol: !!r.survol });
   /* les gestes : la réserve dépensée à gauche, la plaque principale en premier, la raison d'un refus au survol */

@@ -18,7 +18,7 @@ const relance = (nom: string, chanceSurvolee: boolean): Etat => ({
   fenetre: {
     titre: 'Attaque',
     heros: { role: 'testeur', qui: 'ilyanwe', test: 'Corps à corps (Armes d’hast)', seuil: 48, modificateurs: AVANTAGE, jet: { des: [20, 7], dr: 2, reussite: true } },
-    centre: { role: 'verdict', porte: { arme: 'Bâton de combat', cible: 'orc' }, relance: 98, drNet: 6, issue: 'Ilyanwe la Voilée touche Orc au corps.' },
+    centre: { role: 'verdict', porte: { arme: 'Bâton de combat', cible: 'orc' }, action: 'attaque', effet: 'au corps', relance: 98, drNet: 6, issue: 'Ilyanwe la Voilée touche Orc au corps.' },
     autre: PARADE,
     gestes: apresLeDe(APRES_RELANCE, { relance: true, ...(chanceSurvolee ? {} : { survol: 'relancer' }) }),
     reserves: reserves(APRES_RELANCE).map((r) => (chanceSurvolee && r.id === 'chance' ? { ...r, survol: true } : r)),
@@ -32,7 +32,7 @@ export default {
       fenetre: {
         titre: 'Attaque',
         heros: { role: 'testeur', qui: 'ilyanwe', test: 'Corps à corps (Armes d’hast)', seuil: 48, modificateurs: AVANTAGE, jet: { des: [90, 8], dr: -5, reussite: false } },
-        centre: { role: 'verdict', porte: { arme: 'Bâton de combat', cible: 'orc' }, drNet: 1, issue: 'Ilyanwe la Voilée rate son attaque ; Orc gagne +1 Avantage.' },
+        centre: { role: 'verdict', porte: { arme: 'Bâton de combat', cible: 'orc' }, action: 'attaque', drNet: 1, issue: 'Ilyanwe la Voilée rate son attaque ; Orc gagne +1 Avantage.' },
         autre: PARADE,
         gestes: apresLeDe(RESERVES.ilyanwe, { echec: true }), reserves: reserves(RESERVES.ilyanwe),
       },
