@@ -19,7 +19,8 @@ export { DOSSIER_DES_MODELES } from './asset/dossierDeProduction.ts'
  * tel que le site le publie :
  *
  * - `GET modeles/listage.json` : le listage,
- *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>, zonesPortantes: Record<id, Record<os, string[]>>, erreurs: string[], forme }`, que le
+ *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>,
+ *   zonesPortantes: Record<id, Record<os, string[]>>, erreurs: string[], forme }`, que le
  *   serveur du dossier vivant prépare à son lancement puis calcule à nouveau quand un fichier du dossier change, en
  *   `Cache-Control: no-store`. `forme` nomme le fichier de
  *   `fichiers` (réponse de `modeles`) que Godot demande pour chaque modèle : `glb` au dossier vivant, que Godot lit à
