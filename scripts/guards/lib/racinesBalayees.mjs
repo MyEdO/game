@@ -20,12 +20,18 @@
 // son site sort au rapport de l'appelant.
 // ACQUISITIONS (#3058 B2) : l'argument d'une acquisition calculée se lit à part, en forme FERMÉE (`valeursDAcquisition`) :
 // une liste blanche de formes, sans les transparences des lectures, et tout le reste en `non`.
+// Le contrat d'acquisition de `rendreCible` (#3400) s'évalue au site d'appel, sur ses cibles et le registre du cliché.
+// Il produit des dépendances du consommateur, sans élargir la règle du mur de clôture.
 import { posix } from 'node:path'
 import { types } from 'node:util'
 import { typescript } from './dialecte.mjs'
 import { gelerLaConstante } from '../../../src/lib/gelerProfond.ts'
 import { clesCanoniques } from './clesCanoniques.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
+import { correspondGlob } from './lister.mjs'
+
+/** Préfiltre des consommateurs de la primitive de rendu. La liaison au contrat se vérifie dans le noyau. */
+export const APPEL_D_ACQUISITION = /\brendreCible\b/
 
 /** Les primitives de LECTURE et de LISTAGE du système de fichiers : l'argument 0 est la racine. Une
  *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict. */
@@ -67,6 +73,27 @@ const REENTREES = 1
 /** Les raisons d'une lecture COUPÉE par les bornes de `sousPile` : sans elles, la lecture aurait pu continuer. */
 const COUPE = /^(cycle|profondeur) d'appels/
 
+/** Le tableau littéral dans l'argument `[…].map(Object.freeze)` d'un gel, avec le `Object` du site. */
+const tableauGeleDe = (ts, n, estObjectFreeze) => ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) &&
+  n.expression.name.text === 'map' && ts.isArrayLiteralExpression(n.expression.expression) &&
+  n.arguments.length === 1 && estObjectFreeze(n.arguments[0]) ? n.expression.expression : null
+
+/** Les portées qui déclarent leurs paramètres. */
+const FONCTIONS = ['isArrowFunction', 'isFunctionExpression', 'isFunctionDeclaration', 'isMethodDeclaration', 'isConstructorDeclaration', 'isGetAccessorDeclaration', 'isSetAccessorDeclaration']
+
+const aUnePorteeDeFonction = (ts, n) => FONCTIONS.some((p) => ts[p](n))
+
+/** Les `var` du corps d'un module ou d'une fonction, hors des fonctions et classes imbriquées. */
+const parcourirVarsDePortee = (ts, corps, poser) => {
+  const visiter = (n) => {
+    if (aUnePorteeDeFonction(ts, n) || ts.isClassDeclaration(n) || ts.isClassExpression(n)) return
+    if (ts.isVariableDeclarationList(n) && (n.flags & ts.NodeFlags.BlockScoped) === 0)
+      for (const d of n.declarations) poser(d)
+    n.forEachChild(visiter)
+  }
+  corps.forEachChild(visiter)
+}
+
 /**
  * Le LECTEUR d'expressions de chemin d'un module : `expr(noeud)` rend son `Expr`, constantes locales et
  * importées comprises (`lier`), paramètres des fonctions de premier niveau (`fonctions`) compris.
@@ -87,6 +114,22 @@ export function lecteurDExpressions(rel, arbre) {
   const texteDe = (n) => n.getText(arbre).replace(/\s+/g, ' ')
   const estFonction = (n) => ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isFunctionDeclaration(n) || ts.isMethodDeclaration(n)
   const ligneDe = (n) => arbre.getLineAndCharacterOfPosition(n.getStart(arbre)).line + 1
+  const varObjectParPortee = new Map()
+  const objetMasqueParVar = (id) => {
+    for (let n = parents.get(id), enfant = id; n; enfant = n, n = parents.get(n)) {
+      const corps = ts.isSourceFile(n) ? n : aUnePorteeDeFonction(ts, n) && enfant === n.body ? n.body : null
+      if (!corps) continue
+      if (!varObjectParPortee.has(corps)) {
+        let masque = false
+        parcourirVarsDePortee(ts, corps, (d) => { masque ||= lie(d.name, 'Object') })
+        varObjectParPortee.set(corps, masque)
+      }
+      if (varObjectParPortee.get(corps)) return true
+    }
+    return false
+  }
+  const methodeDeLObjet = (n, nom) => ts.isPropertyAccessExpression(n) && n.name.text === nom &&
+    ts.isIdentifier(n.expression) && n.expression.text === 'Object' && !liaisonDe(n.expression) && !objetMasqueParVar(n.expression)
   /** Les expressions RENDUES par la fonction `n` : son corps d'expression, ou ses `return` hors fonctions imbriquées. */
   const retoursDe = (n) => {
     if (!n.body) return []
@@ -198,6 +241,7 @@ export function lecteurDExpressions(rel, arbre) {
     const poser = (nom, decl) => { if (!index.has(nom)) index.set(nom, decl) }
     for (const s of instructions) {
       if (ts.isFunctionDeclaration(s) && s.name) poser(s.name.text, { fonction: s })
+      if (ts.isClassDeclaration(s) && s.name) poser(s.name.text, { opaque: true })
       if (ts.isVariableStatement(s))
         for (const d of s.declarationList.declarations) for (const nom of nomsLies(d.name)) poser(nom, { variable: d })
       if (ts.isImportDeclaration(s) && ts.isStringLiteralLikeNode(s.moduleSpecifier) && s.importClause) {
@@ -222,6 +266,8 @@ export function lecteurDExpressions(rel, arbre) {
     const texte = id.text
     for (let n = parents.get(id), enfant = id; n; enfant = n, n = parents.get(n)) {
       if (estFonction(n) && parametresDe(n).some((noms) => noms.has(texte))) return { n, parametre: true }
+      if ((ts.isCatchClause(n) && lie(n.variableDeclaration?.name, texte)) ||
+        (ts.isClassExpression(n) && n.name?.text === texte)) return { n, decl: { opaque: true } }
       if ((ts.isForOfStatement(n) || ts.isForInStatement(n)) && enfant !== n.initializer && ts.isVariableDeclarationList(n.initializer) &&
         n.initializer.declarations.some((d) => lie(d.name, texte))) return { n, boucle: true }
       const instructions = ts.isSourceFile(n) || ts.isBlock(n) || ts.isModuleBlock(n) || ts.isCaseClause(n) || ts.isDefaultClause(n) ? n.statements : null
@@ -338,6 +384,7 @@ export function lecteurDExpressions(rel, arbre) {
         : parChamps(expr(d.initializer, profondeur), champsVers(d.name, texte), texte, d.name, profondeur)
     }
     if (decl.importe) return { k: 'importe', spec: decl.importe, nom: decl.nom }
+    if (decl.opaque) return non(`liaison opaque ${texte}`)
     return non(`import par défaut ou espace ${texte}`)
   }
 
@@ -463,7 +510,15 @@ export function lecteurDExpressions(rel, arbre) {
       if (lie?.k === 'importe' && ['node:os', 'os'].includes(lie.spec) && lie.nom === 'tmpdir') return { k: 'couverture', origine: 'node:os#tmpdir', raison: 'répertoire temporaire dépendant de l’environnement' }
       if (lie?.k === 'importe' && ['node:fs', 'fs'].includes(lie.spec) && lie.nom === 'mkdtempSync' && args[0]) return { k: 'temporaire', prefixe: expr(args[0], p) }
       if (lie?.k === 'importe' && ['node:fs', 'fs'].includes(lie.spec) && lie.nom === 'readdirSync' && args[0]) return { k: 'repertoire', de: expr(args[0], p), options: args[1] ? expr(args[1], p) : null }
-      if (['fileURLToPath', 'freeze'].includes(nom) && args[0]) return expr(args[0], p)
+      if (methodeDeLObjet(n.expression, 'values') && args.length === 1)
+        return { k: 'valeursObjetAcquisition', de: expr(args[0], p), raison: `appel ${texteDe(n.expression)}` }
+      if (['fileURLToPath', 'freeze'].includes(nom) && args[0]) {
+        const [argument] = args
+        const tableau = args.length === 1 && methodeDeLObjet(n.expression, 'freeze') &&
+          tableauGeleDe(ts, argument, (rappel) => methodeDeLObjet(rappel, 'freeze'))
+        const de = expr(argument, p)
+        return tableau ? { ...de, registreGele: expr(tableau, p) } : de
+      }
       if (nom === 'flat' && receveur) return { k: 'aplatir', de: expr(receveur, p), profondeur: args[0] ? expr(args[0], p) : { k: 'scalaire', v: '1' } }
       if ((nom === 'replace' || nom === 'replaceAll') && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
       if (SOUS_ENSEMBLES.has(nom) && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
@@ -609,11 +664,16 @@ export function lectureDeModule(rel, arbre) {
   }
   if (declaration?.k === 'liste') for (const descriptor of declaration.v) {
     if (descriptor.k !== 'objet') continue
-    const { fonction, namespace, champ, lectures, retour } = descriptor.v
+    const { fonction, namespace, champ, lectures, retour, acquisition } = descriptor.v
     if (fonction?.k !== 'fn' || !Object.hasOwn(fonctions, fonction.id)) continue
     if (namespace?.k === 'lit' && typeof namespace.v === 'string' && namespace.v && !namespace.v.split('/').includes('..'))
       fonctions[fonction.id].contrat = { namespace: namespace.v, ...(champ?.k === 'lit' ? { champ: champ.v } : {}) }
     if (lectures?.k === 'lit' && lectures.v === 'corpus') fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, lectures: 'corpus' }
+    if (acquisition?.k === 'objet' && acquisition.v.argument?.k === 'scalaire' && acquisition.v.registre) {
+      const argument = Number(acquisition.v.argument.v)
+      if (Number.isSafeInteger(argument) && argument >= 0 && argument < fonctions[fonction.id].params.length)
+        fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, acquisition: { argument, registre: acquisition.v.registre } }
+    }
     const resume = resumeDeRetour(retour, `${rel}#${fonction.id}:retour`, fonction.id)
     if (resume) fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, retour: resume }
   }
@@ -858,7 +918,7 @@ const natureAffichee = (v) => v !== null && (typeof v === 'object' || typeof v =
  * toute clé symbole, `SNAPSHOT_NATURE_INVALIDE:<nature>` (`natureAffichee`), `SNAPSHOT_QUESTION_F_HORS_DOMAINE:<i>`).
  * Un module est une chaîne non vide (`estModuleDuLot`).
  * @param {unknown} resolutions @param {unknown} lecteurs @param {unknown} questions
- * @returns {{ resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: 'sitesDe' | 'relaisExportes', f: string }[] }}
+ * @returns {{ resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: 'sitesDe' | 'relaisExportes' | 'acquisitionsDe', f: string }[] }}
  */
 function validerDomaineDuLot(resolutions, lecteurs, questions) {
   if (!estTableauNu(resolutions)) throw new Error('SNAPSHOT_RESOLUTIONS_NON_TABLEAU')
@@ -887,7 +947,7 @@ function validerDomaineDuLot(resolutions, lecteurs, questions) {
     copieLecteurs.push(/** @type {string} */ (lecteur))
   }
   if (!estTableauNu(questions)) throw new Error('SNAPSHOT_QUESTIONS_NON_TABLEAU')
-  /** @type {{ nature: 'sitesDe' | 'relaisExportes', f: string }[]} */
+  /** @type {{ nature: 'sitesDe' | 'relaisExportes' | 'acquisitionsDe', f: string }[]} */
   const copieQuestions = []
   for (let i = 0, n = questions.length; i < n; i++) {
     const question = valeurPropre(questions, i, `questions[${i}]`)
@@ -896,7 +956,7 @@ function validerDomaineDuLot(resolutions, lecteurs, questions) {
     if (cles.some((cle) => typeof cle !== 'string') || cles.sort().join() !== 'f,nature') throw new Error(`SNAPSHOT_QUESTION_CLES:${i}`)
     const nature = valeurPropre(question, 'nature', `questions[${i}].nature`)
     const f = valeurPropre(question, 'f', `questions[${i}].f`)
-    if (nature !== 'sitesDe' && nature !== 'relaisExportes') throw new Error(`SNAPSHOT_NATURE_INVALIDE:${natureAffichee(nature)}`)
+    if (nature !== 'sitesDe' && nature !== 'relaisExportes' && nature !== 'acquisitionsDe') throw new Error(`SNAPSHOT_NATURE_INVALIDE:${natureAffichee(nature)}`)
     if (!estModuleDuLot(f)) throw new Error(`SNAPSHOT_QUESTION_F_HORS_DOMAINE:${i}`)
     copieQuestions.push({ nature, f: /** @type {string} */ (f) })
   }
@@ -906,7 +966,7 @@ function validerDomaineDuLot(resolutions, lecteurs, questions) {
 /**
  * L'évaluation d'un LOT, sans accès au disque, par un noyau fermé NEUF : `lectures` = les `[module, lecture]`
  * (`certifierLecture`), `resolutions` = les `[module, spécificateur, cible]`, `lecteurs` = les modules qui peuvent porter
- * un relais, `questions` = les `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend `{ nature, f, resultat, requetes }` par
+ * un relais, `questions` = les `{ nature: 'sitesDe' | 'relaisExportes' | 'acquisitionsDe', f }`. Rend `{ nature, f, resultat, requetes }` par
  * question, détachés du noyau par leur JSON : le résultat sort du noyau sérialisé, et le rendu le reparse. `lectures`
  * se valide comme le reste du domaine (`validerDomaineDuLot`) : tableau NU, sinon `SNAPSHOT_LECTURES_NON_TABLEAU`, lu
  * entrée par entrée à son indice d'entrée `<i>` par son descripteur propre (`valeurPropre`) ; chaque entrée est une
@@ -1078,7 +1138,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   const relais = new Map()
   const atteintes = new Map()
 
-  const importe = (f, spec, nom, vus = new Set()) => {
+  const importe = (f, spec, nom, registre, vus = new Set()) => {
     const g = cible(f, spec)
     if (!g) return [{ non: `import ${spec} non résolu` }]
     const cle = `${g}#${nom}`
@@ -1086,11 +1146,11 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     vus.add(cle)
     const lu = lecture(g)
     if (!lu) return [{ non: `module ${g} illisible` }]
-    if (Object.hasOwn(lu.exports, nom)) return valeurs(lu.exports[nom], { f: g, env: null })
+    if (Object.hasOwn(lu.exports, nom)) return valeurs(lu.exports[nom], { f: g, env: null, registre })
     for (const s of lu.etoiles) {
       const h = cible(g, s)
       const vu = h && lecture(h)
-      if (vu && (Object.hasOwn(vu.exports, nom) || vu.etoiles.length)) return importe(g, s, nom, vus)
+      if (vu && (Object.hasOwn(vu.exports, nom) || vu.etoiles.length)) return importe(g, s, nom, registre, vus)
     }
     return [{ non: `${nom} non exporté par ${g}` }]
   }
@@ -1266,6 +1326,10 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   function valeurs(e, ctx) {
     const k = e.k
     if (Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, k)) return EVALUATIONS_SANS_CONTEXTE[k](e, valeurs)
+    if (ctx.registre === 'table') {
+      if (e.registreGele) return valeurs(e.registreGele, { ...ctx, registre: 'champ' })
+      if (k !== 'importe') return [{ non: 'registre d’acquisition non gelé' }]
+    }
     switch (k) {
       case 'negation': {
         const b = booleenDe(e.de, ctx)
@@ -1308,7 +1372,11 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
             : 'lambda' in c ? rendusDeLambda(c, e.texte, [argumentDElement(x, ctx)]) : [{ non: `rappel ${e.texte} non résolu` }]))
         return uniques([...rendu, ...collectionsOpaquesDe(e.de, ctx).flatMap((x) => valeurs(x, ctx))])
       }
-      case 'importe': return importe(ctx.f, e.spec, e.nom)
+      case 'valeursObjetAcquisition': return ctx.registre === 'champ'
+        ? valeurs(e.de, ctx).flatMap((v) => 'objet' in v && !v.etales?.length
+          ? Object.values(v.objet).flatMap((de) => valeurs(de, v.ctx)) : [{ non: e.raison }])
+        : [{ non: e.raison }]
+      case 'importe': return importe(ctx.f, e.spec, e.nom, ctx.registre)
       case 'fn': return [{ fn: { f: ctx.f, id: e.id } }]
       case 'lambda': {
         const lexique = lecture(ctx.f)?.lambdas
@@ -1601,6 +1669,30 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     return { ligne: site.ligne, appel: site.appel, relais: vals.some((v) => 'relais' in v), valeurs: vals.filter((v) => !('relais' in v)) }
   }
 
+  /** Les entrées du registre se lisent dans l'image, dans l'ordre de sélection d'un générateur. */
+  const registres = new Map()
+  const registreDe = (fn, expression) => {
+    const cle = `${fn.f}#${fn.id}`
+    if (!registres.has(cle)) registres.set(cle, tracer(() => valeurs(expression, { f: fn.f, env: null, registre: 'table' })
+      .map((entree) => {
+        if (!('objet' in entree) || entree.etales?.length || !Object.hasOwn(entree.objet, 'script') || !Object.hasOwn(entree.objet, 'targets')) return null
+        const script = valeurs(entree.objet.script, entree.ctx)
+        const motifs = valeurs(entree.objet.targets, entree.ctx).filter((v) => !('absent' in v))
+        return script.length === 1 && 'texte' in script[0] && motifs.every((m) => 'texte' in m)
+          ? { script: script[0].texte, motifs: motifs.map((m) => m.texte) } : null
+      })))
+    const { resultat, requetes } = registres.get(cle)
+    fusionner(requetes)
+    return resultat
+  }
+  const scriptDe = (cible, registre) => {
+    for (const entree of registre) {
+      if (!entree) return null
+      if (entree.motifs.some((motif) => correspondGlob(cible, motif))) return entree.script
+    }
+    return null
+  }
+
   return {
     ...(ferme ? { siteDe: (f, index) => evaluerSite(f, lecture(f).sites[index]) } : {}),
     /** Les sites de lecture d'un module et leurs racines ; un site RELAIS (racine liée à un paramètre de
@@ -1612,6 +1704,31 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       for (const site of lu.sites) {
         const rendu = evaluerSite(f, site)
         if (rendu) rendus.push(rendu)
+      }
+      return rendus
+    },
+    /** Les acquisitions prouvées au site qui choisit une cible, avant le chargeur commun. */
+    acquisitionsDe(f) {
+      const lu = lecture(f)
+      if (!lu) return []
+      const rendus = []
+      for (const site of lu.sites) {
+        if (site.cible?.k !== 'importe' || !APPEL_D_ACQUISITION.test(site.cible.nom)) continue
+        const ctx = { f, env: site.dans ? { fn: site.dans, args: null } : null }
+        for (const val of valeurs(site.cible, ctx)) {
+          if (!('fn' in val)) continue
+          const { fn } = val
+          const fonctions = lecture(fn.f)?.fonctions
+          const acquisition = fonctions && Object.hasOwn(fonctions, fn.id) && fonctions[fn.id].contrat?.acquisition
+          if (!acquisition || !site.args[acquisition.argument]) continue
+          const cibles = valeurs(site.args[acquisition.argument], ctx).filter((v) => !('absent' in v))
+          if (!cibles.length || cibles.some((v) => !('texte' in v))) continue
+          const registre = registreDe(fn, acquisition.registre)
+          for (const { texte } of cibles) {
+            const script = scriptDe(texte, registre)
+            if (script) rendus.push({ script, ligne: site.ligne })
+          }
+        }
       }
       return rendus
     },
@@ -1722,8 +1839,6 @@ const MODULES_DE_NODE = Object.freeze({ 'node:path': 'path', path: 'path', 'node
 
 /** Les enveloppes de TYPE, qui rendent leur opérande inchangé. */
 const ENVELOPPES_DE_TYPE = ['isParenthesizedExpression', 'isAsExpression', 'isNonNullExpression', 'isSatisfiesExpression']
-/** Les portées qui déclarent leurs paramètres. */
-const FONCTIONS = ['isArrowFunction', 'isFunctionExpression', 'isFunctionDeclaration', 'isMethodDeclaration', 'isConstructorDeclaration', 'isGetAccessorDeclaration', 'isSetAccessorDeclaration']
 
 /** Les parents de chaque nœud d'un arbre, posés une fois par arbre. */
 const parentsParArbre = new WeakMap()
@@ -1776,13 +1891,9 @@ export function valeursDAcquisition(rel, arbre, argument, { arbreDe, cible }) {
   /** Les `var` d'une portée de fonction, hors fonctions imbriquées. */
   const varsDe = (n, nom) => {
     const vus = []
-    const visiter = (x) => {
-      if (est(x, FONCTIONS) || ts.isClassDeclaration(x) || ts.isClassExpression(x)) return
-      if (ts.isVariableDeclarationList(x) && (x.flags & ts.NodeFlags.BlockScoped) === 0)
-        for (const d of x.declarations) for (const id of nomsLies(d.name)) if (id.text === nom) vus.push({ genre: 'var', declaration: d, id })
-      x.forEachChild(visiter)
-    }
-    n.forEachChild(visiter)
+    parcourirVarsDePortee(ts, n, (d) => {
+      for (const id of nomsLies(d.name)) if (id.text === nom) vus.push({ genre: 'var', declaration: d, id })
+    })
     return vus
   }
   /** Les déclarations de `nom` que pose la portée `p`. */
@@ -1938,10 +2049,9 @@ export function valeursDAcquisition(rel, arbre, argument, { arbreDe, cible }) {
         return lit === null ? non(`fileURLToPath hors de new URL(<littéral>, import.meta.url) : ${texteDe(n, m)}`) : [ancre(posix.dirname(m.rel), lit)]
       }
       if (estObjectFreeze(n.expression, m)) {
-        const [x] = n.arguments
-        const gele = n.arguments.length === 1 && ts.isCallExpression(x) && ts.isPropertyAccessExpression(x.expression) && x.expression.name.text === 'map' &&
-          ts.isArrayLiteralExpression(x.expression.expression) && x.arguments.length === 1 && estObjectFreeze(x.arguments[0], m)
-        return gele ? [{ tableauGele: { noeud: x.expression.expression, m } }] : non(`Object.freeze hors de Object.freeze(<tableau littéral>.map(Object.freeze)) : ${texteDe(n, m)}`)
+        const tableau = n.arguments.length === 1 &&
+          tableauGeleDe(ts, n.arguments[0], (rappel) => estObjectFreeze(rappel, m))
+        return tableau ? [{ tableauGele: { noeud: tableau, m } }] : non(`Object.freeze hors de Object.freeze(<tableau littéral>.map(Object.freeze)) : ${texteDe(n, m)}`)
       }
       if (ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'find' && n.arguments.length === 1)
         return evaluer(n.expression.expression, m, profondeur + 1).flatMap((v) => 'tableauGele' in v
