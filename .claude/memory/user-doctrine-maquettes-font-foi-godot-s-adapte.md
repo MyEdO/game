@@ -15,7 +15,7 @@ metadata:
 
 **Why :** les maquettes ont révélé ce que le contrat et l'hôte ne portent pas.
 **How to apply :**
-- Valider les maquettes avant leur branchement visuel dans Godot (#4411). Le contrat générique et ses preuves peuvent avancer en parallèle, selon la précision du 2026-11-20 au #4574 ([[user-doctrine-le-jeu-envoie-des-donnees-pas-leur-affichage]]).
+- Valider les maquettes avant leur branchement visuel dans Godot (#4411). Le contrat générique et ses preuves peuvent avancer en parallèle, selon la précision au #4574 ([[user-doctrine-le-jeu-envoie-des-donnees-pas-leur-affichage]]).
 - Une maquette est autonome : aucun import du jeu, même de type, aucune capture de ses planches.
 - Son JSON porte les données (valeurs, ids, états, mots), jamais la disposition, qui vit au rendu.
 - Après validation, la trame que le jeu produit s'oppose à la trame cible pour guider la migration.

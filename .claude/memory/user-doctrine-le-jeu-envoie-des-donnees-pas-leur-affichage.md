@@ -11,12 +11,11 @@ metadata:
 
 **Verbatim (2026-11-20)**, sur le périmètre des deux chantiers ([#4574](https://github.com/MyEdO/game/issues/4574)) : « Je pensais les 2 chantier séparé. Le noyau godot est sensé etre générique et exposer les données a n'importe quel hote, et qu'actuellement le noyau perds la moitié des infoirmations et surtout vomi du texte ».
 
-**Why :** une phrase composée par le noyau fige une mise en page. La maquette ne peut alors ni la redisposer ni se nourrir des mêmes données que le jeu (#4411).
+**Why :** un texte composé fige la disposition (#4411).
 
 **How to apply :**
-- Le contrat générique du noyau, ses résolveurs et ses preuves de sérialisation avancent indépendamment des maquettes (#4574). Il expose les faits de jeu et leur visibilité à tout hôte.
-- La maquette porte les données de son projet dans son JSON, et le rendu dessine le kit. Sa validation précède son branchement visuel dans Godot (#4411).
-- Un élément de `src/hote/elements.ts` porte ses valeurs typées (nombres, ids, états) et ses mots (libellés traduits, keyés par id) séparément.
-- L'hôte et la page de rendu des maquettes les disposent selon la maquette. Aucun hôte n'écrit de mot en dur : la règle « un hôte n'écrit aucun libellé » tient toujours.
-- Un texte composé qui mêle valeurs et mots (« tour 1 sur 26 », « ≤ 48 », « DR +3 ») est une dette du contrat. Il se résout en champs.
-- Voir aussi [[user-doctrine-maquettes-font-foi-godot-s-adapte]] et [[user-doctrine-ids-stables-labels-affichage]].
+- Le contrat générique, ses résolveurs et ses preuves avancent indépendamment des maquettes (#4574).
+- Valider chaque maquette avant son branchement visuel dans Godot (#4411).
+- Les éléments de `src/hote/elements.ts` séparent valeurs typées et libellés traduits. L'hôte dispose ces valeurs avec les mots fournis.
+- Décomposer les valeurs composées (« tour 1 sur 26 », « ≤ 48 », « DR +3 ») en champs.
+- Voir [[user-doctrine-maquettes-font-foi-godot-s-adapte]] et [[user-doctrine-ids-stables-labels-affichage]].

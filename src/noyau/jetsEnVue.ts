@@ -564,8 +564,8 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
       ligneFixe(pb.playerId, 'marchandage', pb.roll, clampTarget(cibleDuTest(pb.playerSkill)).target, { id: 'joueur' }),
       ligneFixe(null, 'marchandage', pb.merchantRoll, null, { id: 'marchand', masque: revele ? 'value' : 'roll' }),
     ];
-    const o = revele && pb.roll ? pb.result : null;
-    return vue('marchandage', lignes, o ? oppositionEnVue(o) : null, undefined, 'oppose');
+    const oppose = revele && pb.roll && pb.result ? oppositionEnVue(pb.result) : null;
+    return vue('marchandage', lignes, oppose, undefined, 'oppose');
   },
   evaluation: (s) => {
     const p = s.pendingAppraise;
