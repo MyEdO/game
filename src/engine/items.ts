@@ -81,6 +81,7 @@ import { garanti } from '../lib/garanti';
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, aRecharger, chambrePleine, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
+import { tableTotale } from '../lib/tableTotale';
 import type { FabriqueDId } from './fabriqueDId';
 import type { TraitInstance } from './statEntry';
 import { armesDuProfil, armourFromTraits, profilDArmeDuTrait, uidDeLArmeDuTrait } from './creatureEquip';
@@ -1005,8 +1006,8 @@ export function appliquerProfilDuTrait(arme: Weapon, profil?: ProfilDArmePorte):
   if (allonge !== undefined) w.reach = allonge;
   if (ajusteeAuPorteur) w.sizeless = true;
   if (groupesDeManiement) {
-    const maniements = Object.fromEntries(groupesDeManiement.map((id) => [id, {}]));
-    w.manieAussi = { ...w.manieAussi, ...maniements };
+    const maniements = tableTotale(groupesDeManiement, () => ({}));
+    w.manieAussi = { ...maniements, ...w.manieAussi };
   }
   if (sansSpecialisation) w.sansSpecialisation = true;
   if (qualites === undefined && retire === undefined) return w;
