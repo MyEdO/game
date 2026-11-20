@@ -46,7 +46,8 @@ const ouvrir = (paquet: ReturnType<typeof paquetDuJeu>): SessionDEdition =>
 
 /** Les zones d'une session réduites à son inspecteur (`inspecteurDeLaSession`), seul lu par le jeu de ses offres. */
 type Inspecteur = Pick<ZonesDeLEditeur, 'editeur.inspecteur'>;
-const inspecteur = (s: SessionDEdition): Inspecteur => ({ 'editeur.inspecteur': inspecteurDeLaSession(s) });
+const inspecteur = (s: SessionDEdition, retraitDuPorteurLogique = true): Inspecteur =>
+  ({ 'editeur.inspecteur': inspecteurDeLaSession(s, { retraitDuPorteurLogique }) });
 
 /** Les boutons des zones `zones` : chaque bouton, et chaque valeur d'un choix ou d'une liste. */
 const boutonsDesZones = (zones: ZonesDeLEditeur) =>
@@ -85,7 +86,7 @@ const porteurDuJeu = (jeu: Jeu): { sorte: SorteDePorteur; id: string } | undefin
  *  nommé par sa sorte, lu dans son document (`porteurDu`, `documentDu`) ; le schéma du porteur du jeu d'une offre
  *  (`porteurDuJeu`), celui de son formulaire (`FORMULAIRES`), et sa donnée. */
 const BANC: BancDuFormulaire<SessionDEdition, Inspecteur & Partial<ZonesDeLEditeur>, GesteDEdition> = {
-  zones: inspecteur,
+  zones: (s) => inspecteur(s, s.document !== 'narratif'),
   elements: (z) => z['editeur.inspecteur'],
   deballe: (jeu) => ('edition' in jeu ? jeu.edition : undefined),
   geste: (zones, _s, recu) => ('edition' in recu ? (boutonDeLEdition(zones, recu.edition) ? recu.edition : undefined) : gesteDuFormulaire(zones, recu)),

@@ -1686,17 +1686,25 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  qui le nomme, de son identifiant, quand sa sorte se renomme par la table (`ECRITURES_DES_PORTEURS`, `renommer`), au
  *  choix parmi le sien et ceux qu'elle offre à la création (`avecs`) quand elle en offre ; ses
  *  éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer, refusé avec la raison
- *  du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 */
-function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sorte: SorteDePorteur; id: string }, propres: (Choix | Ligne | Bouton | Formulaire)[]): (Choix | Ligne | Bouton | Formulaire)[] {
+ *  du retrait (`refusDeRetrait`) quand sa sorte se retire par la table et que le retrait du porteur est demandé. #3606 */
+function inspecteurDuPorteur(
+  s: SessionDEdition,
+  prefixe: string,
+  porteur: { sorte: SorteDePorteur; id: string },
+  propres: (Choix | Ligne | Bouton | Formulaire)[],
+  avecRetrait = true,
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const donnee = porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee;
   const { renommer, retirer, avecs } = ECRITURES_DES_PORTEURS[porteur.sorte];
-  const refus = retirer ? refusDeRetrait(s) : null;
+  const retrait = avecRetrait
+    ? [boutonDEdition(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, retirer ? refusDeRetrait(s) : null)]
+    : [];
   const noms = avecs && [porteur.id, ...avecs(projetEdite(s), idDeLaSceneEditee(s), s.sel, s.entreesDeFiche)];
   return [
     ...(renommer ? [formulaireDuNom(porteur.id, false, noms)] : []),
     ...propres,
     ...formulaireDuPorteur(s, porteur, donnee),
-    boutonDEdition(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus),
+    ...retrait,
   ];
 }
 
@@ -1841,9 +1849,14 @@ const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdit
 
 /** L'inspecteur du porteur de sorte `sorte` et de donnée `donnee` de la session `s` qui se liste à la zone Logique
  *  (`inspecteurDuPorteur`, ses éléments d'id `<sorte>/…`), ses éléments propres (`PROPRES_DE_LA_LOGIQUE`). */
-function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sorte: S, donnee: DonneeDuPorteur[S]): (Choix | Ligne | Bouton | Formulaire)[] {
+function inspecteurDeLaLogique<S extends SorteDePorteur>(
+  s: SessionDEdition,
+  sorte: S,
+  donnee: DonneeDuPorteur[S],
+  avecRetrait: boolean,
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const propres: ((s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[]) | undefined = PROPRES_DE_LA_LOGIQUE[sorte];
-  return inspecteurDuPorteur(s, sorte, { sorte, id: idDuPorteur(accesDe(sorte), donnee, idDeLaSceneEditee(s)) }, propres?.(s, donnee) ?? []);
+  return inspecteurDuPorteur(s, sorte, { sorte, id: idDuPorteur(accesDe(sorte), donnee, idDeLaSceneEditee(s)) }, propres?.(s, donnee) ?? [], avecRetrait);
 }
 
 /** Les documents dont l'inspecteur de la carte du monde, sans sélection, montre le porteur singulier : la carte, puis le
@@ -1868,8 +1881,11 @@ const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Form
  *  son formulaire tiré du schéma (`formulaireDuPorteur`), puis, quand sa sorte se retire par la table (la carte du
  *  monde), le bouton qui le retire du projet, refusé avec sa raison (`refusDeRetrait`) ; rien sans lui. Chaque
  *  inspecteur propre s'appelle par son nom dans la table : la fermeture d'appels de la garde #841 le suit depuis
- *  `editer`. */
-export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
+ *  `editer`. `retraitDuPorteurLogique` inclut le bouton de retrait du porteur entier dans l'inspecteur de la zone Logique. */
+export function inspecteurDeLaSession(
+  s: SessionDEdition,
+  { retraitDuPorteurLogique = true }: { retraitDuPorteurLogique?: boolean } = {},
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const ent = entiteDeLaSelection(scene, s.sel);
   const entree = entreeDeLaSelection(s);
@@ -1879,7 +1895,7 @@ export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bout
   if (ent) return inspecteurDEntite(s, ent);
   if (entree) return inspecteurDEntree(s, entree);
   if (zone) return inspecteurDeZone(s, zone);
-  if (s.sel && porteur && donnee) return inspecteurDeLaLogique(s, porteur.sorte, donnee);
+  if (s.sel && porteur && donnee) return inspecteurDeLaLogique(s, porteur.sorte, donnee, retraitDuPorteurLogique);
   const architecture = inspecteurDArchitecture(s);
   if (architecture.length) return architecture;
   if (s.sel) return inspecteurDArete(s);
