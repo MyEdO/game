@@ -521,7 +521,7 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 |---|---|---|
 | base humanoïde | 14 500 | 1024² |
 | tête | 2 500 | 512² |
-| tête humanoïde MakeHuman (`element/tete_makehuman.py`) | 6 500 | 512² |
+| tête humanoïde MakeHuman (`element/tete_makehuman.py`) | 6 600 | 512² |
 | pilosité | 1 500 | 256² |
 | vêtement par pièce | 2 500 | 512² |
 | armure par pièce | 2 000 | 512² |

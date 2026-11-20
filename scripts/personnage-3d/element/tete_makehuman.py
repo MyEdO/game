@@ -13,7 +13,8 @@ l'enveloppe haute de la couture du cou de la base vue de `CENTRE` (`tete.elevati
 la tête de la base à celle de MakeHuman sur `FONDU_DU_COU` (`tete.fondre_sur_le_cou`), et les écarts venus de
 MakeHuman (`feminin`, traits) y prennent la même part. Les faces qu'on ne voit de nulle part (`cachees` :
 orbites, dessous des paupières, cavité de la bouche, fond des narines), ni au repos ni sous `feminin` ni sous un
-trait, sont retirées. Le bord bas se coud à la couture (`tete.coudre`), aux poids, aux clés et aux normales du cou ;
+trait, sont retirées. Le bord bas se coud à un rang posé sur la peau de la base (`RANG_DU_COU`,
+`tete.directions_des_rangs`), lui-même cousu à la couture (`tete.coudre`), aux poids, aux clés et aux normales du cou ;
 tout autre bord (entre les lèvres, entre les paupières derrière chaque œil) se ferme d'un éventail à ses propres
 sommets (`fermer`), qui prend les poids et les clés du bord qu'il double : sous `visage_inverse`, qui emporte l'œil,
 la peau est close derrière lui. Les poids, empruntés au plus près à la peau de la tête de la base, sont adoucis
@@ -25,8 +26,8 @@ Clés : les silhouettes et les clés `gabarit_*` de la base, transférées du co
 ajoute l'écart, sommet à sommet, de la même forme à l'état macro `ETAT_FEMININ`, recalée et calée comme elle : le calage
 annule l'écart de taille de MakeHuman entre les deux états, qui est celui de la stature, que la base ne change pas, et
 les pièces de tête restent bâties à cette taille ; hors du visage et des oreilles, cet écart ne garde que ce qu'il
-change de la forme (`sans_glissement`), et au-dessus de la couture la clé passe de celle du cou de la base à celle de
-la tête sur `FONDU_DU_FEMININ`. Chaque trait de
+change de la forme (`sans_glissement`), et à la nuque, hors de l'avant (`part_de_l_avant`), la clé passe au-dessus de
+la couture de celle du cou de la base à celle de la tête sur `FONDU_DU_FEMININ`. Chaque trait de
 `TRAITS`, partagé par toutes ces têtes, ses cibles lues sommet à sommet ; `visage_inverse`
 (mutation « Visage inversé », `mutations.json`), le visage retourné tête en bas : de `AXE` (sur l'axe avant-arrière à la
 hauteur `AXE_DU_VISAGE`), chaque sommet du visage prend le rayon de la peau dans la direction reflétée par le plan
@@ -46,7 +47,7 @@ from formes import poser_la_cle
 from noms_formes_de_tete import ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAGE_INVERSE, VISAGE_LONG
 from noms_silhouettes import FEMININ
 from production import pack_source
-from tete import (CONFONDUS_M, PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere,
+from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere,
                   directions_des_rangs, elevation,
                   elevation_de_la_couture, fondre_sur_le_cou, normales_de_sommet, parts_du_fondu,
                   poser_les_normales_de_la_couture)
@@ -61,8 +62,8 @@ adoucit le ressaut de la nuque sans l'effacer. Les têtes de `tete.py` ont la le
 0,2), qui efface mieux ce ressaut mais ne laisse au nain que 6,4 mm."""
 RANG_DU_COU = 0.045
 """Part de l'arc de la couture au pôle où se pose, sur la peau de la base, le rang qui relie la couture à la peau de
-MakeHuman : celle du premier rang de l'orc (`RANGS` de son `donnees.py`), sous `MARGE_DE_COUTURE_DEG`. Cousue d'un trait
-de la couture à MakeHuman, la bande se plissait sous `carrure_plus` (points sombres le long de la couture, dans le jeu)."""
+MakeHuman, comme le premier rang d'une tête de `tete.py` : celle du premier rang de l'orc (`RANGS` de son
+`donnees.py`), sous `MARGE_DE_COUTURE_DEG`."""
 FONDU_DU_FEMININ = 0.25
 """HYPOTHÈSE : part de l'arc de la couture au pôle sur laquelle, hors de l'avant (`part_de_l_avant`), la clé `feminin`
 passe de celle du cou de la base, à la couture, à celle de la tête (`tete.parts_du_fondu`), réglée à l'œil : le cou de
@@ -267,25 +268,6 @@ def fermer(M, boucle, X, C):
     for i, (a, b_, n) in enumerate(zip(A, B, normales)):
         M.triangle(siens[i], siens[(i + 1) % len(boucle)], siens[-1], (a + b_ + milieu) / 3.0 - n / np.linalg.norm(n))
     return siens
-
-
-def dents_de_la_base(porteur, S):
-    """Les triangles de la peau de la tête de la base (`porteur`) dont les trois sommets sont trois sommets de suite de la
-    couture `S` : le rang, dans `S`, de leur sommet du milieu. La couture est en dents de scie parce que ces triangles
-    pointent entre ceux du cou ; sans eux, la bande cousue enjambe chaque creux d'un triangle plat, que `carrure_plus`,
-    qui déplace les creux de 12 mm et les pointes de 4, plisse en points sombres le long de la couture."""
-    rang = {}
-    for i, p in enumerate(porteur['P']):
-        proches = np.flatnonzero(np.linalg.norm(S - p, axis=1) < CONFONDUS_M)
-        if len(proches):
-            rang[i] = int(proches[0])
-    creux = []
-    for t in porteur['T']:
-        if all(i in rang for i in t):
-            for k in {rang[i] for i in t}:
-                if {(k - 1) % len(S), k, (k + 1) % len(S)} == {rang[i] for i in t}:
-                    creux.append(k)
-    return sorted(set(creux))
 
 
 def poids_adoucis(W, P, orientes, couture):
@@ -495,12 +477,7 @@ def construire(D, materiaux, b):
     vers_le_rang = directions_des_rangs(colonnes, elevation_de_la_couture(S, C, colonnes), [RANG_DU_COU])
     du_rang = C + fondre_sur_le_cou(porteur, C, vers_le_rang, np.zeros(len(bas)), np.zeros(len(bas)), FONDU_DU_COU)[0][:, None] * vers_le_rang
     anneau = M.ajouter(list(du_rang), 'peau')
-    creux = dents_de_la_base(porteur, S)
-    for k in creux:
-        M.triangle(bord[k - 1], bord[k], bord[(k + 1) % len(S)], C)
-    pointes = [k for k in range(len(S)) if k not in creux]
-    print('TETE_MH couture :', len(creux), 'dents de la base reprises sur', len(S), 'sommets', flush=True)
-    coudre(M, [bord[k] for k in pointes], S[pointes], anneau, du_rang, C)
+    coudre(M, bord, S, anneau, du_rang, C)
     coudre(M, anneau, du_rang, [rang[i] for i in bas], X[bas], C)
     normales = np.cross(X[triangles[:, 1]] - X[triangles[:, 0]], X[triangles[:, 2]] - X[triangles[:, 0]])
     normales /= np.maximum(np.linalg.norm(normales, axis=1, keepdims=True), 1e-12)
