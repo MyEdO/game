@@ -1,68 +1,65 @@
 // Les rigides rangés d'une tenue évaluée (#4351) : un rigide que le jeu range se mesure à la transformation que le jeu
-// lui donne, au repos comme à chaque instant d'un clip, et la garde `rigideRange` le mesure contre ce qui est porté.
+// lui donne à chaque instant d'un clip, et la garde `rigideRange` le mesure contre les vêtements comme un membre.
 import { describe, expect, it } from 'vitest';
-import { evaluer } from './evaluer.ts';
+import { evaluer, type CoucheDeLElement } from './evaluer.ts';
 import { ECART_DE_SUIVI_M } from './gardes/suiviDuCorps.ts';
 import { glb, type Piece, type Point } from './gardes/pieces.testkit.ts';
 import type { InstantDeRangement } from './rangement.ts';
 
-/** Un cube de côté `cote` centré en `centre`, ses faces tournées vers le dehors. */
-function cube(nom: string, cote: number, centre: Point, rigide?: true): Piece {
+/** Un cube de côté `cote` centré en (0, 1, 0), ses faces tournées vers le dehors, de zone `torse`. */
+function cube(nom: string, cote: number): Piece {
   const d = cote / 2;
-  const sommets = [0, 1, 2, 3, 4, 5, 6, 7].map((k): Point => [centre[0] + (k & 1 ? d : -d), centre[1] + (k & 2 ? d : -d), centre[2] + (k & 4 ? d : -d)]);
-  return { nom, sommets, triangles: [0, 2, 1, 1, 2, 3, 4, 5, 6, 5, 7, 6, 0, 1, 4, 1, 5, 4, 2, 6, 3, 3, 6, 7, 0, 4, 2, 2, 4, 6, 1, 3, 5, 3, 7, 5], ...(rigide ? { rigide } : {}) };
+  const sommets = [0, 1, 2, 3, 4, 5, 6, 7].map((k): Point => [k & 1 ? d : -d, 1 + (k & 2 ? d : -d), k & 4 ? d : -d]);
+  return { nom, sommets, triangles: [0, 2, 1, 1, 2, 3, 4, 5, 6, 5, 7, 6, 0, 1, 4, 1, 5, 4, 2, 6, 3, 3, 6, 7, 0, 4, 2, 2, 4, 6, 1, 3, 5, 3, 7, 5], zone: 'torse' };
 }
+/** Une plaquette rigide de 4 cm tournée vers +Z, en grille 3 × 3, penchée : son bord -X à 1 cm derrière son centre, son
+ *  bord +X à 1 cm devant. */
+const PLAQUETTE: Piece = {
+  nom: 'fiole', rigide: true,
+  sommets: [-1, 0, 1].flatMap((y) => [-1, 0, 1].map((x): Point => [x * 0.02, y * 0.02, x * 0.01])),
+  triangles: [0, 1, 3, 4].flatMap((i) => [i, i + 1, i + 3, i + 1, i + 4, i + 3]),
+};
 /** La translation de (x, y, z), en 16 nombres colonne par colonne. */
 const translation = (x: number, y: number, z: number): number[] => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1];
 
 const CLIP = 'Marche';
-const base = glb([cube('corps', 0.4, [0, 1, 0])], CLIP);
-const fiole = glb([cube('fiole', 0.04, [0, 0, 0], true)]);
-/** La fiole à cheval sur la face +Z du corps (z = 0,2), enfoncée de 15 mm. */
-const DEDANS = translation(0, 1, 0.205);
-/** La fiole posée à 5 mm devant cette face. */
-const POSEE = translation(0, 1, 0.225);
-const ENFONCEMENT = 0.015;
+const base = glb([cube('corps', 0.3)], CLIP);
+const robe = glb([cube('robe', 0.4)]);
+const fiole = glb([PLAQUETTE]);
+const couches: (CoucheDeLElement | null)[] = [{ couche: 'tenue', couvre: ['torse'] }, null];
+/** La plaquette à cheval sur la face +Z de la robe (z = 0,2) : un bord 1 cm derrière, l'autre 1 cm devant. */
+const DEDANS = translation(0, 1, 0.2);
+/** La plaquette toute devant cette face, à 1 cm au plus près. */
+const POSEE = translation(0, 1, 0.22);
+const rigides = (fiche: Awaited<ReturnType<typeof evaluer>>) => fiche.ecarts.filter((e) => e.garde === 'rigideRange');
 
 describe('rangement', () => {
   it('le rangeur reçoit le repos puis chaque instant échantillonné, et le rigide se mesure où il le pose à chacun', async () => {
     const demandes: InstantDeRangement[] = [];
     const fiche = await evaluer({
-      base, elements: [fiole],
-      ranger: async (demandes_) => {
-        demandes.push(...demandes_);
-        return [{ meshes: { fiole: demandes_.map((i) => (i.clip === CLIP && i.t > 0.5 ? DEDANS : POSEE)) }, offrants: [] }];
+      base, elements: [robe, fiole], couches,
+      ranger: async (instants) => {
+        demandes.push(...instants);
+        return [null, { meshes: { fiole: instants.map((i) => (i.clip === CLIP && i.t > 0.5 ? DEDANS : POSEE)) }, offrants: [] }];
       },
     });
     expect(demandes[0]).toMatchObject({ clip: '', t: 0 });
     expect(demandes.slice(1).every((i) => i.clip === CLIP)).toBe(true);
     expect(demandes).toHaveLength(1 + fiche.mesures.clips[0].echantillons);
-    const ecarts = fiche.ecarts.filter((e) => e.garde === 'rigideRange');
+    const ecarts = rigides(fiche);
     expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toMatchObject({ code: 'objet-dans-un-vetement', mesh: 'élément 1/fiole#0', clip: CLIP, seuil: ECART_DE_SUIVI_M });
+    expect(ecarts[0]).toMatchObject({ code: 'objet-dans-un-vetement', mesh: 'élément 2/fiole#0', clip: CLIP, seuil: ECART_DE_SUIVI_M });
+    expect(ecarts[0].detail).toContain('élément 1/robe#0');
     expect(ecarts[0].t).toBeGreaterThan(0.5);
-    expect(ecarts[0].valeur).toBeCloseTo(ENFONCEMENT, 6);
+    expect(ecarts[0].valeur).toBeCloseTo(0.01, 6);
   });
 
-  it('ROUGE au repos : rangé dans le corps, un écart sans clip ; posé devant lui, aucun', async () => {
-    const dedans = await evaluer({ base, elements: [fiole], ranger: async (i) => [{ meshes: { fiole: i.map((x) => (x.clip === '' ? DEDANS : POSEE)) }, offrants: [] }] });
-    const ecarts = dedans.ecarts.filter((e) => e.garde === 'rigideRange');
-    expect(ecarts).toHaveLength(1);
-    expect(ecarts[0].clip).toBeUndefined();
-    expect(ecarts[0].valeur).toBeCloseTo(ENFONCEMENT, 6);
-    const posee = await evaluer({ base, elements: [fiole], ranger: async (i) => [{ meshes: { fiole: i.map(() => POSEE) }, offrants: [] }] });
-    expect(posee.ecarts.filter((e) => e.garde === 'rigideRange')).toEqual([]);
-  });
-
-  it('ni rangeur, ni pose à un instant : le rigide reste où son GLB le pend ; ce qu’offre un élément ne compte pas contre son objet', async () => {
-    const tenu = await evaluer({ base, elements: [fiole], ranger: async (i) => [{ meshes: { fiole: i.map(() => null) }, offrants: [] }] });
-    expect(tenu.ecarts.filter((e) => e.garde === 'rigideRange')).toEqual([]);
-    const sangle = glb([cube('sangle', 0.1, [0, 1, 0.205])]);
-    const ranger = (offrants: number[]) => async (i: readonly InstantDeRangement[]) => [null, { meshes: { fiole: i.map(() => translation(0, 1, 0.26)) }, offrants }];
-    const offerte = await evaluer({ base, elements: [sangle, fiole], ranger: ranger([0]) });
-    expect(offerte.ecarts.filter((e) => e.garde === 'rigideRange')).toEqual([]);
-    const autre = await evaluer({ base, elements: [sangle, fiole], ranger: ranger([]) });
-    expect(autre.ecarts.filter((e) => e.garde === 'rigideRange').map((e) => [e.clip, e.detail])).toEqual([[undefined, expect.stringContaining('élément 1/sangle#0')], [CLIP, expect.stringContaining('élément 1/sangle#0')]]);
+  it('posé devant le vêtement, ou laissé où son GLB le pend : aucun écart ; à cheval sur lui tout le clip : un', async () => {
+    const sous = (pose: number[] | null, offrants: number[] = []) => evaluer({ base, elements: [robe, fiole], couches, ranger: async (i) => [null, { meshes: { fiole: i.map(() => pose) }, offrants }] });
+    expect(rigides(await sous(POSEE))).toEqual([]);
+    expect(rigides(await sous(null))).toEqual([]);
+    expect(rigides(await sous(DEDANS))).toHaveLength(1);
+    expect(rigides(await sous(DEDANS, [0])), 'la robe offre sa case').toEqual([]);
   });
 
   it('un nom qu’aucun nœud de l’élément ne porte est refusé', async () => {

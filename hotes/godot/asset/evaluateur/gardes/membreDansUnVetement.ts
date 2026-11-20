@@ -157,17 +157,22 @@ export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[],
   return [...parZone.values()].flatMap(({ zone, vetement, derriere, devant, pire }) => (derriere && devant ? [{ zone, vetement, clip: e.clip, t: e.t, sommets: derriere, pire }] : []));
 }
 
-/** Un écart par (zone, vêtement, clip), à l'instant de son plus grand écart signé. `plafonds` : par clip échantillonné,
- *  le nombre de ces écarts que la tenue admet, 0 sans entrée. */
-export function gardeMembreDansUnVetement(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh, plafonds: Readonly<Record<string, number>> = {}): Ecart[] {
+/** Par (zone, vêtement, clip) de `mesures`, celle de son plus grand écart signé. */
+export function piresTraversees(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh): MembreDUnEchantillon[] {
   const pires = new Map<string, MembreDUnEchantillon>();
   for (const m of mesures) {
     const k = `${m.zone}|${libelle(m.vetement)}|${m.clip}`;
     const avant = pires.get(k);
     if (!avant || m.pire > avant.pire) pires.set(k, m);
   }
+  return [...pires.values()];
+}
+
+/** Un écart par (zone, vêtement, clip), à l'instant de son plus grand écart signé (`piresTraversees`). `plafonds` : par clip échantillonné,
+ *  le nombre de ces écarts que la tenue admet, 0 sans entrée. */
+export function gardeMembreDansUnVetement(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh, plafonds: Readonly<Record<string, number>> = {}): Ecart[] {
   const parClip = new Map<string, MembreDUnEchantillon[]>();
-  for (const m of pires.values()) parClip.set(m.clip, [...(parClip.get(m.clip) ?? []), m]);
+  for (const m of piresTraversees(mesures, libelle)) parClip.set(m.clip, [...(parClip.get(m.clip) ?? []), m]);
   return [...new Set([...parClip.keys(), ...Object.keys(plafonds)])].flatMap((clip): Ecart[] => {
     const [traverses, plafond] = [parClip.get(clip) ?? [], plafonds[clip] ?? 0];
     if (traverses.length === plafond) return [];

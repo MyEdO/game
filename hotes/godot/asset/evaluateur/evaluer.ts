@@ -61,7 +61,7 @@ import {
   type MembreDUnEchantillon,
 } from './gardes/membreDansUnVetement.ts';
 import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
-import { gardeRigideRange, mesurerLesRigidesRanges, type RigideDUnEchantillon, type RigideRange } from './gardes/rigideRange.ts';
+import { gardeRigideRange, pairesDuRigide } from './gardes/rigideRange.ts';
 import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
 import { meshesDuCorps, peauDeLaTenue, zoneDe } from './corps.ts';
 import { poserLaPile } from './pile.ts';
@@ -294,14 +294,11 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const dansLesZones = (noms: readonly string[]) => corps.filter((m) => noms.includes(zone(m) as string));
   const [membres, tronc] = [dansLesZones(ZONES_DES_MEMBRES), dansLesZones(ZONES_DU_TRONC)];
   const membresDansLeTronc: MembreDansLeTronc[] = [];
-  const portes = skinnes.filter((m) => !masques.has(m)).map((m) => ({ mesh: m, indices: endroits.get(m) ?? indicesDe(m, positionsDe(repos, m).length / 3) }));
-  const rigidesRanges = (): RigideRange[] => (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => {
-    const offerts = new Set(offrants.flatMap((k) => elements[k].meshes));
-    return ranges.map((rigide) => ({ rigide, aretes: aretes.get(rigide) as Uint32Array, portes: portes.filter((p) => !offerts.has(p.mesh)) }));
-  });
-  const rigidesDansUnVetement: RigideDUnEchantillon[] = mesurerLesRigidesRanges(rigidesRanges(), repos);
+  const vetementsDeZone = declareesMontrees.flatMap((d) => d.meshes).filter((m) => zone(m) !== undefined);
+  const pairesDesRanges = () => (rangement?.ranges() ?? []).flatMap(({ meshes: ranges, offrants }) => pairesDuRigide(ranges, vetementsDeZone, new Set(offrants.flatMap((k) => elements[k].meshes)), libelle, endroit));
+  const rigidesDansUnVetement: MembreDUnEchantillon[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit, (clip, t) => rangement?.poser(rangDeLInstant.get(`${clip}\u0000${t}`) as number))) {
-    rigidesDansUnVetement.push(...mesurerLesRigidesRanges(rigidesRanges(), e));
+    rigidesDansUnVetement.push(...mesurerMembresDansUnVetement(pairesDesRanges(), [], e));
     traversees.push(...mesurerTraversee(couches.liaisons, e));
     membresSousVetement.push(...mesurerMembresDansUnVetement(horsDeZone, peauxHorsDeZone, e));
     membresDansLeTronc.push(...mesurerMembres(membres, tronc, e));

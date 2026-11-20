@@ -1,109 +1,33 @@
 /**
  * GARDE DU RIGIDE RANGÉ (#4351) : un objet rangé, posé où le jeu le range (`rangerLesRigides`, `../rangement.ts`), ne
- * s'enfonce pas dans ce qui est porté. À un échantillon, une arête du rigide qui traverse un mesh skinné montré, le
- * corps ou un vêtement par son endroit (`endroitDe`, `pile.ts`), a un bout derrière lui (`croiserLaCouverture`) :
- * l'objet est dans ce mesh si ce bout est à plus de `ECART_DE_SUIVI_M` derrière. Les meshes de l'élément qui offre son
- * emplacement n'y entrent pas : le jeu pose l'objet dans sa case, entre ses parois (`MontageDeComposition._appuyer`).
- * `objet-dans-un-vetement` : un écart par (rigide, mesh, clip), le repos à part, à son pire instant, de valeur la plus
- * grande profondeur derrière. Cette profondeur est la distance du bout d'arête au plan du triangle traversé, pas une
- * épaisseur de matière : une longue arête à travers un pan mince rend la longueur qui dépasse derrière lui.
+ * passe pas à travers un vêtement. Il se mesure comme un membre (`mesurerMembresDansUnVetement`,
+ * `membreDansUnVetement.ts`) : à chaque échantillon d'un clip, contre l'endroit de chaque mesh de zone d'un élément
+ * montré, il le traverse s'il a des sommets de chaque côté, au même seuil `ECART_DE_SUIVI_M` et à la même portée
+ * `PORTEE_DE_COUVERTURE_M`. Deux écarts au membre : un objet n'a pas de zone, donc aucun vêtement ne lui est voisin ;
+ * et il ne pince pas le tissu contre le corps, donc aucun de ses sommets derrière un vêtement n'est écarté. Les meshes
+ * de l'élément qui offre son emplacement n'y entrent pas : le jeu pose l'objet dans sa case, entre ses parois
+ * (`MontageDeComposition._appuyer`).
+ * `objet-dans-un-vetement` : un écart par (rigide, mesh, clip), à son pire instant (`piresTraversees`), de valeur le
+ * plus grand écart signé derrière.
  */
 import type { Mesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
-import type { Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
-import { positionsDe } from './traversee.ts';
-import { couvertureDe, croiserLaCouverture } from '../../pile.ts';
+import { piresTraversees, type MembreDUnEchantillon, type PaireHorsDeZone } from './membreDansUnVetement.ts';
 
 const GARDE = 'rigideRange';
 
-/** Un mesh rigide rangé, ses arêtes (`aretesDe`), et ce qui est porté contre quoi il se mesure : chaque mesh skinné
- *  montré hors de l'élément qui offre son emplacement, et ses triangles, par trois indices. */
-export interface RigideRange {
-  readonly rigide: Mesh;
-  readonly aretes: Uint32Array;
-  readonly portes: readonly { readonly mesh: Mesh; readonly indices: ArrayLike<number> }[];
+/** Les paires de chaque mesh de `rigides`, sous son libellé, et de chaque mesh de `vetements` hors de `offerts`, ceux
+ *  de l'élément qui offre son emplacement ; `triangles` : par vêtement, ceux d'une paire. */
+export function pairesDuRigide(rigides: readonly Mesh[], vetements: readonly Mesh[], offerts: ReadonlySet<Mesh>, libelle: LibelleDeMesh, triangles: (vetement: Mesh) => ArrayLike<number>): PaireHorsDeZone[] {
+  return rigides.flatMap((membre) => vetements.flatMap((vetement) => (offerts.has(vetement) ? [] : [{ membre, zone: libelle(membre), vetement, triangles: triangles(vetement) }])));
 }
 
-/** La profondeur à laquelle `rigide` s'enfonce dans `porte` à un échantillon, `clip` et `t` absents au repos. */
-export interface RigideDUnEchantillon {
-  readonly rigide: Mesh;
-  readonly porte: Mesh;
-  readonly clip?: string;
-  readonly t?: number;
-  readonly profondeur: number;
-}
-
-/** La boîte (min puis max, par axe) des positions `p`, élargie à `boite`. */
-function elargir(boite: number[], p: Float32Array): number[] {
-  for (let i = 0; i < p.length; i++) {
-    const axe = i % 3;
-    if (p[i] < boite[axe]) boite[axe] = p[i];
-    if (p[i] > boite[3 + axe]) boite[3 + axe] = p[i];
-  }
-  return boite;
-}
-const boiteVide = (): number[] => [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
-
-/** Les triangles de `indices` dont la boîte touche `boite`, sur les positions `p`. */
-function trianglesVoisins(p: Float32Array, indices: ArrayLike<number>, boite: readonly number[]): number[] {
-  const voisins: number[] = [];
-  for (let t = 0; t + 2 < indices.length; t += 3) {
-    const [a, b, c] = [indices[t] * 3, indices[t + 1] * 3, indices[t + 2] * 3];
-    let touche = true;
-    for (let axe = 0; axe < 3 && touche; axe++) {
-      const [x, y, z] = [p[a + axe], p[b + axe], p[c + axe]];
-      touche = Math.max(x, y, z) >= boite[axe] && Math.min(x, y, z) <= boite[3 + axe];
-    }
-    if (touche) voisins.push(indices[t], indices[t + 1], indices[t + 2]);
-  }
-  return voisins;
-}
-
-/** Pour chaque rigide de `ranges` et chaque mesh porté qu'une de ses arêtes traverse dans `pose`, la plus grande
- *  profondeur d'un bout d'arête derrière ce mesh. Les triangles d'un mesh porté se trient une fois par échantillon
- *  contre la boîte de tous les rigides, puis contre celle de chacun. */
-export function mesurerLesRigidesRanges(ranges: readonly RigideRange[], pose: Pick<Pose, 'positions'> & { readonly clip?: string; readonly t?: number }): RigideDUnEchantillon[] {
-  const mesures: RigideDUnEchantillon[] = [];
-  const toutes = ranges.reduce((boite, { rigide }) => elargir(boite, positionsDe(pose, rigide)), boiteVide());
-  const proches = new Map<Mesh, number[]>();
-  for (const { rigide, aretes, portes } of ranges) {
-    const r = positionsDe(pose, rigide);
-    const boite = elargir(boiteVide(), r);
-    for (const { mesh, indices } of portes) {
-      const p = positionsDe(pose, mesh);
-      if (!proches.has(mesh)) proches.set(mesh, trianglesVoisins(p, indices, toutes));
-      const voisins = trianglesVoisins(p, proches.get(mesh) as number[], boite);
-      if (!voisins.length) continue;
-      const couverture = couvertureDe(p, voisins);
-      let profondeur = 0;
-      for (let k = 0; k + 1 < aretes.length; k += 2) {
-        const [a, b] = [aretes[k] * 3, aretes[k + 1] * 3];
-        croiserLaCouverture(r[a], r[a + 1], r[a + 2], r[b], r[b + 1], r[b + 2], couverture, (part, ea) => {
-          profondeur = Math.max(profondeur, ea > 0 ? ea : ea * (1 - 1 / part));
-        });
-      }
-      if (profondeur > 0) mesures.push({ rigide, porte: mesh, ...(pose.clip === undefined ? {} : { clip: pose.clip, t: pose.t }), profondeur });
-    }
-  }
-  return mesures;
-}
-
-/** `objet-dans-un-vetement` : par (rigide, mesh porté, clip) de `mesures`, le repos à part, son pire échantillon si sa
- *  profondeur dépasse `ECART_DE_SUIVI_M`. */
-export function gardeRigideRange(mesures: readonly RigideDUnEchantillon[], libelle: LibelleDeMesh): Ecart[] {
-  const pires = new Map<string, RigideDUnEchantillon>();
-  for (const m of mesures) {
-    const cle = [libelle(m.rigide), libelle(m.porte), m.clip ?? ''].join('\u0000');
-    if (m.profondeur > (pires.get(cle)?.profondeur ?? ECART_DE_SUIVI_M)) pires.set(cle, m);
-  }
-  return [...pires.values()].map((m): Ecart => ({
-    garde: GARDE,
-    code: 'objet-dans-un-vetement',
-    mesh: libelle(m.rigide),
-    ...(m.clip === undefined ? {} : { clip: m.clip, t: m.t }),
-    valeur: m.profondeur,
-    seuil: ECART_DE_SUIVI_M,
-    detail: `objet rangé à ${(m.profondeur * 1000).toFixed(1)} mm dans ${libelle(m.porte)}${m.clip === undefined ? ', au repos' : ''}`,
+/** `objet-dans-un-vetement` : par (rigide, vêtement, clip) de `mesures` (`mesurerMembresDansUnVetement` sur
+ *  `pairesDuRigide`), son pire échantillon. */
+export function gardeRigideRange(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh): Ecart[] {
+  return piresTraversees(mesures, libelle).map((m): Ecart => ({
+    garde: GARDE, code: 'objet-dans-un-vetement', mesh: m.zone, clip: m.clip, t: m.t, valeur: m.pire, seuil: ECART_DE_SUIVI_M,
+    detail: `${m.sommets} sommet(s) de l'objet rangé derrière ${libelle(m.vetement)} qu'il traverse : plus grand écart signé, en m`,
   }));
 }
