@@ -34,32 +34,46 @@ export interface RigideDUnEchantillon {
   readonly profondeur: number;
 }
 
-const AXES = [0, 1, 2];
+/** La boîte (min puis max, par axe) des positions `p`, élargie à `boite`. */
+function elargir(boite: number[], p: Float32Array): number[] {
+  for (let i = 0; i < p.length; i++) {
+    const axe = i % 3;
+    if (p[i] < boite[axe]) boite[axe] = p[i];
+    if (p[i] > boite[3 + axe]) boite[3 + axe] = p[i];
+  }
+  return boite;
+}
+const boiteVide = (): number[] => [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
 
-/** Les triangles de `indices` dont la boîte touche celle de `bornes` (min puis max, par axe), sur les positions `p`. */
-function trianglesVoisins(p: Float32Array, indices: ArrayLike<number>, bornes: readonly number[]): number[] {
+/** Les triangles de `indices` dont la boîte touche `boite`, sur les positions `p`. */
+function trianglesVoisins(p: Float32Array, indices: ArrayLike<number>, boite: readonly number[]): number[] {
   const voisins: number[] = [];
   for (let t = 0; t + 2 < indices.length; t += 3) {
-    const coins = [indices[t], indices[t + 1], indices[t + 2]];
-    if (AXES.every((axe) => Math.max(...coins.map((s) => p[s * 3 + axe])) >= bornes[axe] && Math.min(...coins.map((s) => p[s * 3 + axe])) <= bornes[3 + axe])) voisins.push(...coins);
+    const [a, b, c] = [indices[t] * 3, indices[t + 1] * 3, indices[t + 2] * 3];
+    let touche = true;
+    for (let axe = 0; axe < 3 && touche; axe++) {
+      const [x, y, z] = [p[a + axe], p[b + axe], p[c + axe]];
+      touche = Math.max(x, y, z) >= boite[axe] && Math.min(x, y, z) <= boite[3 + axe];
+    }
+    if (touche) voisins.push(indices[t], indices[t + 1], indices[t + 2]);
   }
   return voisins;
 }
 
 /** Pour chaque rigide de `ranges` et chaque mesh porté qu'une de ses arêtes traverse dans `pose`, la plus grande
- *  profondeur d'un bout d'arête derrière ce mesh. */
+ *  profondeur d'un bout d'arête derrière ce mesh. Les triangles d'un mesh porté se trient une fois par échantillon
+ *  contre la boîte de tous les rigides, puis contre celle de chacun. */
 export function mesurerLesRigidesRanges(ranges: readonly RigideRange[], pose: Pick<Pose, 'positions'> & { readonly clip?: string; readonly t?: number }): RigideDUnEchantillon[] {
   const mesures: RigideDUnEchantillon[] = [];
+  const toutes = ranges.reduce((boite, { rigide }) => elargir(boite, positionsDe(pose, rigide)), boiteVide());
+  const proches = new Map<Mesh, number[]>();
   for (const { rigide, aretes, portes } of ranges) {
     const r = positionsDe(pose, rigide);
-    const bornes = [...AXES.map(() => Infinity), ...AXES.map(() => -Infinity)];
-    for (let i = 0; i < r.length; i++) {
-      bornes[i % 3] = Math.min(bornes[i % 3], r[i]);
-      bornes[3 + (i % 3)] = Math.max(bornes[3 + (i % 3)], r[i]);
-    }
+    const boite = elargir(boiteVide(), r);
     for (const { mesh, indices } of portes) {
       const p = positionsDe(pose, mesh);
-      const voisins = trianglesVoisins(p, indices, bornes);
+      if (!proches.has(mesh)) proches.set(mesh, trianglesVoisins(p, indices, toutes));
+      const voisins = trianglesVoisins(p, proches.get(mesh) as number[], boite);
       if (!voisins.length) continue;
       const couverture = couvertureDe(p, voisins);
       let profondeur = 0;
