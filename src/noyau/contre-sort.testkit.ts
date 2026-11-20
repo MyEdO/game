@@ -1,4 +1,5 @@
 import type { Combatant } from '../engine/types';
+import { tableTotale } from '../lib/tableTotale';
 import type { Scene } from './monde/scene';
 import type { Banc } from './banc.testkit';
 import type { NetState } from './etat';
@@ -22,7 +23,7 @@ export function armerLeCarreau(banc: Banc, scene: Scene, creerSorcier: () => Com
   const get = banc.getState;
   const set = banc.setState;
   const net = netDuTest('hote', 0, ids[0]);
-  net.ownership = Object.fromEntries(ids.map((id, i) => [id, i + 1]));
+  net.ownership = tableTotale(ids, (_id, i) => i + 1);
   set({ party: sorciers, net });
   get().lancerLaScene(scene);
   get().lancerLeCombat('enc-mutants');
