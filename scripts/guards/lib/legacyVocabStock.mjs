@@ -15,7 +15,7 @@
 // 2026-08-23 ; 2026-09-26 (lot `L7`).
 
 /**
- * @typedef {{ fichier: string, motif: string, ancre: string, lot: string, date: string }} SiteVocab
+ * @typedef {import('./stock.mjs').Echeance & { fichier: string, motif: string, ancre: string }} SiteVocab
  */
 
 /** @type {SiteVocab[]} */
