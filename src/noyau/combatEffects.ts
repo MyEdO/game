@@ -393,7 +393,9 @@ export function creaturesDeLaRecolte(s: Jeu): string[] {
 export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
 
 /** Les créatures que le choix `victoire.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
-export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
+export function creaturesADepecer(s: Jeu): string[] {
+  return creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
+}
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
  *  `test` de Savoir (Bêtes) → `giveTrapping` — la réussite donne les pièces fraîches à pleine quantité,
