@@ -813,22 +813,21 @@ func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool, rete
 	for surface: Dictionary in geometrie.surfaces:
 		if surface.get("priseSeulement", false):
 			continue
-		var debut := int(surface.debut)
-		var fin := int(surface.fin)
-		var debut_d_attribut := rang_d_attribut
-		rang_d_attribut += fin - debut
+		var plage := Vector2i(int(surface.debut), int(surface.fin))
+		var plage_d_attribut := MiseEnPage.plage_reportee(plage, rang_d_attribut)
+		rang_d_attribut = plage_d_attribut.y
 		if surface.has("navire") or _decors_montres.has(surface.get("decor")) or (retenue.is_valid() and not retenue.call(surface)):
 			continue
 		var texels := PackedVector2Array()
 		# Chaque triangle a trois sommets et trois coordonnées de case.
-		for c: Vector3 in cases.slice(debut, fin).to_byte_array().to_vector3_array():
+		for c: Vector3 in cases.slice(plage.x, plage.y).to_byte_array().to_vector3_array():
 			var texel := Vector2(texel_de.call(c))
 			texels.append_array([texel, texel, texel])
 		var tableaux := []
 		tableaux.resize(Mesh.ARRAY_MAX)
-		tableaux[Mesh.ARRAY_VERTEX] = positions.slice(3 * debut, 3 * fin).to_byte_array().to_vector3_array()
-		tableaux[Mesh.ARRAY_NORMAL] = normales.slice(3 * debut_d_attribut, 3 * rang_d_attribut).to_byte_array().to_vector3_array()
-		tableaux[Mesh.ARRAY_COLOR] = couleurs.slice(4 * debut_d_attribut, 4 * rang_d_attribut).to_byte_array().to_color_array()
+		tableaux[Mesh.ARRAY_VERTEX] = _octets_des_composantes(positions, plage, 3).to_vector3_array()
+		tableaux[Mesh.ARRAY_NORMAL] = _octets_des_composantes(normales, plage_d_attribut, 3).to_vector3_array()
+		tableaux[Mesh.ARRAY_COLOR] = _octets_des_composantes(couleurs, plage_d_attribut, 4).to_color_array()
 		tableaux[Mesh.ARRAY_TEX_UV2] = texels
 		if surface.has("flottaison") and _coques.has(surface.flottaison):
 			tableaux = _hors_du_contour(tableaux, _coques[surface.flottaison])
@@ -840,6 +839,12 @@ func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool, rete
 		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
 		maillage.surface_set_material(indice, _matiere(surface.matiere, masquee))
 	return maillage
+
+
+## Les octets des composantes des rangs de `plage` dans `tableau`.
+static func _octets_des_composantes(tableau: PackedFloat32Array, plage: Vector2i, composantes: int) -> PackedByteArray:
+	var bornes := MiseEnPage.plage_des_composantes(plage, composantes)
+	return tableau.slice(bornes.x, bornes.y).to_byte_array()
 
 
 ## Les triangles horizontaux de `tableaux` (sommets, normales, couleurs, cases au masque en `UV2`) hors du contour
