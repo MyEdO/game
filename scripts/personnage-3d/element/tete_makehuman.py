@@ -53,16 +53,17 @@ ETAT = 'male-young-averagemuscle-averageweight'
 ETAT_FEMININ = 'female-young-averagemuscle-averageweight'
 FONDU_DU_COU = 0.1
 """HYPOTHÈSE : part de l'arc de la couture au pôle sur laquelle la tête passe de la peau de la base à MakeHuman
-(`tete.fondre_sur_le_cou`), réglée à l'œil : la plus courte qui efface le ressaut de la nuque. Les têtes de `tete.py`
-ont la leur (`FONDU_DU_COU` de leur `donnees.py`, 0,2), qui ramenait l'angle de la mâchoire d'une race à celui de la
-base."""
+(`tete.fondre_sur_le_cou`) : elle garde à une race sa mâchoire (nain : 8,6 mm sur 8,7 de son écart à l'humain) et
+adoucit le ressaut de la nuque sans l'effacer. Les têtes de `tete.py` ont la leur (`FONDU_DU_COU` de leur `donnees.py`,
+0,2), qui efface mieux ce ressaut mais ne laisse au nain que 6,4 mm."""
 SOURCILS = 'eyebrows/eyebrows-trans-forward'
 """Cible dont les faces les plus déplacées portent les sourcils (`faces_des_sourcils`)."""
 OREILLES = ('ears/l-ear-trans-backward', 'ears/r-ear-trans-backward')
 """Cibles qui déplacent chaque oreille d'un bloc : la part d'un sommet dans une oreille est son déplacement sur le plus
 grand de sa cible."""
 EPAISSEUR_DES_SOURCILS_M = 0.001
-"""Écart des sourcils à la peau (décision du 2026-11-20, #4413 : « environ 1 mm »)."""
+"""HYPOTHÈSE : écart des sourcils à la peau (brief de l'orchestrateur du 2026-11-20, #4413, « environ 1 mm » : une
+évaluation d'ingénierie, pas un arbitrage de l'utilisateur)."""
 OS_DE_LA_TETE = ('Head', 'neck_01')
 YEUX = ('helper-l-eye', 'helper-r-eye')
 BOUCHE_FERMEE = (('mouth/mouth-upperlip-height-incr', 1.0),
