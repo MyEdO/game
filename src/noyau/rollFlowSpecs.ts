@@ -139,6 +139,7 @@ import {
   type DefenseSub,
 } from '../engine/combat';
 import {
+  clampTarget,
   rollTest,
   resolveOpposed,
   opposedBranchSuccess,
@@ -2632,8 +2633,15 @@ export function bandeCourante(s: Jeu) {
 export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<Jeu, 'pendingTest' | 'pendingCascade'>>; ligne: string | null } | null {
   const test = s.pendingTest;
   if (test?.actorId === porteur.id && test.psychMod && test.roll == null) {
+    const { target, clamped } = clampTarget(cibleBrute(test) - test.psychMod);
+    const mods = test.mods?.filter((mod) => mod.ref?.category !== 'psychologies');
+    const value = test.skillValue - test.psychMod;
+    const immunite = { target, clamped, mods: mods?.length ? mods : undefined, psychMod: 0, psychDetail: undefined };
+    const candidates = test.candidates?.map((candidat) => candidat.id === porteur.id
+      ? { ...candidat, value, ...immunite }
+      : candidat);
     return {
-      patch: { pendingTest: { ...test, skillValue: test.skillValue - test.psychMod, target: test.target - test.psychMod, psychMod: 0, psychDetail: undefined } },
+      patch: { pendingTest: { ...test, skillValue: value, ...immunite, candidates } },
       ligne: t('psy.determinationSocial', { name: porteur.label }),
     };
   }

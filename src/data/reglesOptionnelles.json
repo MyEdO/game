@@ -527,7 +527,28 @@
     "group": "Social",
     "kind": "flag",
     "default": false,
-    "hint": "Au-delà de la norme sociale : avant un Test social ciblant un PNJ, un tirage sur la table de Réaction au Statut (Codex) : « Braver le Statut » annule les mods de Statut, « Réactions classiques » les garde, « Opinions extrêmes » les inverse."
+    "hint": "Tire la réaction des PNJ sur la table de Réaction au Statut. « Braver le Statut » annule le modificateur et « Réactions classiques » le garde. « Opinions extrêmes » l’inverse en Charme. En Commandement, Intimidation et Ragot, la réaction ajoute +10 ou −10 selon l’avis de l’interlocuteur."
+  },
+  {
+    "id": "social-opinions-extremes-avis-par-defaut",
+    "type": "reglesOptionnelles",
+    "label": "Opinions extrêmes — avis par défaut",
+    "ref": "LDB 08 l.46,50",
+    "maison": "Le signe dépend de l’avis renseigné pour l’interlocuteur (arbitrage #4147, 20 novembre 2026). En l’absence d’avis renseigné et de surcharge, le modificateur habituel s’applique.",
+    "group": "Social",
+    "kind": "mode",
+    "default": "non-renseigne",
+    "options": [
+      "non-renseigne",
+      "favorable",
+      "hostile"
+    ],
+    "libelles": {
+      "non-renseigne": "Non renseigné",
+      "favorable": "Favorable (+10)",
+      "hostile": "Hostile (−10)"
+    },
+    "hint": "Fixe le signe en Commandement, Intimidation et Ragot quand la Réaction au Statut donne « Opinions extrêmes » et que la scène ne renseigne aucun avis."
   },
   {
     "id": "social-mendicite-statut",
