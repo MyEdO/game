@@ -144,7 +144,7 @@ describe('narratifSchema — apparence d’un objet embarqué (#2972)', () => {
   });
 });
 
-/** #4171 — l'objet de campagne est une entrée ENTIÈRE du catalogue des possessions (`defs/trappings.ts`, `entree`). */
+/** #4171 — l'objet de campagne reprend l'entrée du catalogue des possessions avec un profil fixe. */
 describe('narratifSchema — objet de campagne au schéma du catalogue (#4171)', () => {
   const chemins = (objet: Record<string, unknown>) => {
     const r = narratifSchema.safeParse({ ...vide, objets: [objet] });

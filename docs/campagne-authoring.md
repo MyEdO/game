@@ -350,8 +350,9 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   (`revealClue`, `src/noyau/monde/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
   `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
   pré-composés (`base` = `ref('creature')`, la créature globale surchargée par `profil`/`apparence`) ; **`objets`**
-  — possessions propres à la campagne, chacune une entrée ENTIÈRE du catalogue des possessions
-  (l'`entree` de `src/data/schemas/defs/trappings.ts` : enveloppe, `source`, affinage compris) ; **`documents`** (`DocumentNarratif`,
+  — possessions propres à la campagne, chacune avec un profil fixe. Elles reprennent l’enveloppe,
+  la `source` et les validations d’une entrée de possession (`src/data/schemas/defs/trappings.ts`).
+  Le catalogue global porte les variantes réglées et les Atouts au choix. **`documents`** (`DocumentNarratif`,
   `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
   (règle 5), non vide ; **`etats`** (`{ id, label, source?, maison?, forme }`, #2539) — les états de campagne
   (§ 9), provenance `source` (le passage qui pose l'état) OU `maison` (sa raison), exigée comme celle

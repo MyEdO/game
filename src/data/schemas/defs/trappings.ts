@@ -63,6 +63,16 @@ export const trappingCategorieSchema = enumNomme({
   trapping: 'Équipement',
 });
 
+type Categorie = z.infer<typeof trappingCategorieSchema>;
+
+const chargeParDiscriminant = {
+  melee: ['qualitesAuChoix'],
+  distance: ['qualitesAuChoix'],
+  ammunition: [],
+  armor: [],
+  trapping: [],
+} as const satisfies Record<Categorie, readonly string[]>;
+
 export const estGroupeDeSiege = porteLeMarqueur('weaponGroup', 'siege');
 
 export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
@@ -113,7 +123,7 @@ type QualitesDuProfil = {
 
 type EntreeDePossessionAAffiner = QualitesDuProfil & {
   id: string;
-  categorie: string;
+  categorie: Categorie;
   subType: { id: string } | null;
   shape?: { id: string };
   variants?: readonly Partial<QualitesDuProfil>[];
@@ -132,7 +142,8 @@ function affinerLesQualites(
   }
   if (qualitesAuChoix === undefined) return;
   const cheminDuChoix = [...chemin, 'qualitesAuChoix'];
-  if (categorie !== 'melee' && categorie !== 'distance') {
+  const charge: readonly string[] = chargeParDiscriminant[categorie];
+  if (chemin.length && !charge.includes('qualitesAuChoix')) {
     ctx.addIssue({ code: 'custom', path: cheminDuChoix, message: `${id} : seuls les profils d'arme portent des Atouts au choix` });
   }
   const imprimees = new Set<string>(qualities.map((q) => q.id));
@@ -302,7 +313,13 @@ const doc = document(
   {
     exiges: ['source'],
     variantes: VARIANT_RESOLVED_FIELDS,
-    espace: { discriminant: ['categorie', 'subType'], marqueurs: ['service'] },
+    espace: {
+      discriminant: ['categorie', 'subType'],
+      champDeCharge: 'categorie',
+      chargeParDiscriminant,
+      requisesParDiscriminant: { melee: [], distance: [] },
+      marqueurs: ['service'],
+    },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as EntreeDePossessionAAffiner;
@@ -324,8 +341,7 @@ const doc = document(
 );
 
 export const schema = doc.schema;
-/** L'ENTRÉE scellée (une possession), pour l'embarquement (`defs-scenes/narratif.ts`, `objets`) — `schema`
- *  emballe le FICHIER (`z.array`, famille `entite`). */
+/** L'entrée scellée d'une possession, également composée par les objets du narratif. */
 export const entree = doc.entree;
 export const meta = doc.meta;
 

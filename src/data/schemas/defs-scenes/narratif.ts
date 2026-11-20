@@ -1,4 +1,4 @@
-import { nommerChamps, nommerNoeud } from '../grammaire/meta';
+import { metaDesChamps, nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma zod du bloc NARRATIF embarqué d'un projet (#765) — la DÉFINITION : ses types (`NarratifBlock`
  * et frères, en fin de module) en dérivent par `z.infer`.
@@ -25,6 +25,8 @@ import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { exclusiviteAdapteDe, refuserSansProvenance } from '../grammaire/document';
 import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 import type { FormeDEtatKind } from './formes-d-etat';
+
+export const CHAMPS_DE_POSSESSION_RESERVES_AU_CATALOGUE = ['variants', 'qualitesAuChoix'] as const;
 
 /** Un stade RÉVÉLABLE d'un indice : la prose dévoilée à ce palier, le document qu'il croise
  *  (`narratif.documents`, #679), ou les deux — au moins l'un (`raffineNarratif`). */
@@ -171,12 +173,9 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
     }
   });
 
-  // Les objets embarqués reprennent l'entrée scellée du catalogue, qui reste la borne de prose.
   nb.objets.forEach((objet, i) => {
-    for (const champ of ['variants', 'qualitesAuChoix'] as const) {
-      if (objet[champ] !== undefined) {
-        faute(['objets', i, champ], 'Ce champ est réservé aux possessions du catalogue global.');
-      }
+    for (const champ of CHAMPS_DE_POSSESSION_RESERVES_AU_CATALOGUE) {
+      if (objet[champ] !== undefined) faute(['objets', i, champ], 'Ce champ est réservé aux possessions du catalogue global.');
     }
   });
 }
@@ -192,10 +191,19 @@ const formeNarratif = nommerChamps(z.strictObject({
   ouverture: ouvertureSchema.optional(),
   cloture: clotureSchema.optional(),
   ecartes: listeCle(ecartSchema, 'entree').optional(),
-}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués, entrées entières du catalogue des possessions"} }, documents: { label: "documents" }, etats: { label: "états de campagne" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
+}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués au profil fixe"} }, documents: { label: "documents" }, etats: { label: "états de campagne" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
 
-/** `NarratifBlock` (fin de module) — forme + sémantique. */
-export const narratifSchema = formeNarratif.superRefine(raffineNarratif);
+export const metaNarratif = metaDesChamps(formeNarratif, { exigees: true });
+
+type FormeNarrative = z.infer<typeof formeNarratif>;
+type ChampReserveAuCatalogue = (typeof CHAMPS_DE_POSSESSION_RESERVES_AU_CATALOGUE)[number];
+export type NarratifBlock = Omit<FormeNarrative, 'objets'> & {
+  objets: Omit<FormeNarrative['objets'][number], ChampReserveAuCatalogue>[];
+};
+
+/** L'entrée de possession reste partagée. La sortie reflète le profil fixe vérifié par `raffineNarratif`. */
+export const narratifSchema: z.ZodType<NarratifBlock> & Pick<typeof formeNarratif, 'shape'> =
+  formeNarratif.superRefine(raffineNarratif);
 
 nommerNoeud(indiceSchema, { element: 'indice' });
 nommerNoeud(indiceStadeSchema, { element: 'stade' });
@@ -217,4 +225,3 @@ export type OuvertureBlock = z.infer<typeof ouvertureSchema>;
  *  (`styles/base.css`), portée en `data-ambiance` par la coquille d'écran. */
 export type AmbianceCadre = NonNullable<OuvertureBlock['ambiance']>;
 export type ClotureBlock = z.infer<typeof clotureSchema>;
-export type NarratifBlock = z.infer<typeof narratifSchema>;
