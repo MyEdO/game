@@ -9,7 +9,9 @@ se mesure sur la forme sans cibles cuites, pour qu'une race garde l'écart que s
 
 Maillage : les faces de `body` dont l'os dominant est la tête ou le cou (`corpulence.os_des_faces`), au-dessus de
 l'enveloppe haute de la couture du cou de la base vue de `CENTRE` (`tete.elevation_de_la_couture`, plus
-`MARGE_DE_COUTURE_DEG`), choisies sur la forme sans cibles cuites. Les faces qu'on ne voit de nulle part (`cachees` :
+`MARGE_DE_COUTURE_DEG`), choisies sur la forme sans cibles cuites. Au-dessus de la couture, la peau passe de celle de
+la tête de la base à celle de MakeHuman sur `FONDU_DU_COU` (`tete.fondre_sur_le_cou`), et les écarts venus de
+MakeHuman (`feminin`, traits) y prennent la même part. Les faces qu'on ne voit de nulle part (`cachees` :
 orbites, dessous des paupières, cavité de la bouche, fond des narines), ni au repos ni sous `feminin` ni sous un
 trait, sont retirées. Le bord bas se coud à la couture (`tete.coudre`), aux poids, aux clés et aux normales du cou ;
 tout autre bord (entre les lèvres, entre les paupières derrière chaque œil) se ferme d'un éventail à ses propres
@@ -44,11 +46,16 @@ from noms_formes_de_tete import ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAG
 from noms_silhouettes import FEMININ
 from production import pack_source
 from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere, elevation,
-                  elevation_de_la_couture, normales_de_sommet, poser_les_normales_de_la_couture)
+                  elevation_de_la_couture, fondre_sur_le_cou, normales_de_sommet, poser_les_normales_de_la_couture)
 from tissu import Maillage, emprunter, fondu, lisser, maillage_skinne, poids_normalises, porteur_de, voisinage
 
 ETAT = 'male-young-averagemuscle-averageweight'
 ETAT_FEMININ = 'female-young-averagemuscle-averageweight'
+FONDU_DU_COU = 0.1
+"""HYPOTHÈSE : part de l'arc de la couture au pôle sur laquelle la tête passe de la peau de la base à MakeHuman
+(`tete.fondre_sur_le_cou`), réglée à l'œil : la plus courte qui efface le ressaut de la nuque. Les têtes de `tete.py`
+ont la leur (`FONDU_DU_COU` de leur `donnees.py`, 0,2), qui ramenait l'angle de la mâchoire d'une race à celui de la
+base."""
 SOURCILS = 'eyebrows/eyebrows-trans-forward'
 """Cible dont les faces les plus déplacées portent les sourcils (`faces_des_sourcils`)."""
 OREILLES = ('ears/l-ear-trans-backward', 'ears/r-ear-trans-backward')
@@ -412,7 +419,16 @@ def construire(D, materiaux, b):
     au_dessus[utiles] = np.array([elevation(cale[i] - C) for i in utiles]) > seuil
     triangles = composante_du_haut(triangles[au_dessus[triangles].all(axis=1)], cale)
     oreilles = np.max([a / a.max() for a in (np.linalg.norm(cible([(nom, 1.0)]), axis=1) for nom in OREILLES)], axis=0)
-    de_makehuman[FEMININ] = sans_glissement(X, de_makehuman[FEMININ], np.unique(triangles), triangles, oreilles, H)
+    utiles = np.unique(triangles)
+    de_makehuman[FEMININ] = sans_glissement(X, de_makehuman[FEMININ], utiles, triangles, oreilles, H)
+    rayons = np.linalg.norm(X[utiles] - C, axis=1)
+    enveloppe = elevation_de_la_couture(S, C, np.array([azimut(x - C) for x in X[utiles]]))
+    arcs = (np.array([elevation(x - C) for x in X[utiles]]) - enveloppe) / (90.0 - enveloppe)
+    fondus, parts = fondre_sur_le_cou(b.porteur(ZONES_DES_CLES), C, (X[utiles] - C) / rayons[:, None], rayons, arcs,
+                                      FONDU_DU_COU)
+    X[utiles] = C + (fondus / rayons)[:, None] * (X[utiles] - C)
+    for delta in de_makehuman.values():
+        delta[utiles] *= parts[:, None]
     bas = boucles_de_bord(triangles, X)[0]
     normales = np.cross(X[triangles[:, 1]] - X[triangles[:, 0]], X[triangles[:, 2]] - X[triangles[:, 0]])
     sens = np.sign(np.einsum('ij,ij->', normales, X[triangles].mean(axis=1) - C))
