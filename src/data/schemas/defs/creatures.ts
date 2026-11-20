@@ -16,8 +16,8 @@ import {
   moneySchema,
   profilChiffreSchema,
 } from '../grammaire/valeurs';
-import { optionalSwapSchema, possessionDeCreatureSchema, talentRefSchema, traitAdmet, traitInstanceSchema } from '../grammaire/reference';
-import { ref, refOuSpec, refs } from '../grammaire/ref';
+import { optionalSwapSchema, possessionDeCreatureSchema, talentRefSchema, lireLaCapaciteDuTrait, traitInstanceSchema } from '../grammaire/reference';
+import { affinerAvecCatalogues, ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { estObjet } from '../../../lib/objet.mjs';
 
@@ -136,16 +136,22 @@ const doc = document(
     exiges: ['source'],
     /** #2993 */
     affinerEntree: (entree) =>
-      entree.refine((e): e is { appearance: { species: string } } => estObjet(e.appearance) && typeof e.appearance.species === 'string', {
+      affinerAvecCatalogues(entree.refine((e): e is { appearance: { species: string } } => estObjet(e.appearance) && typeof e.appearance.species === 'string', {
         path: ['appearance', 'species'],
         error: (iss) => `${estObjet(iss.input) ? String(iss.input.id) : ''} : statbloc sans \`appearance.species\` — son espèce range son corps au plan de bestiaire (planDeBestiaire.json).`,
-      }).refine((e) => {
-        const decritArmure = Array.isArray(e.trappings) && e.trappings.some((p: unknown) => estObjet(p) && p.decritLeTraitArmure === true);
-        return !decritArmure || Array.isArray(e.traits) && e.traits.some((t: unknown) =>
-          estObjet(t) && typeof t.id === 'string' && traitAdmet(t.id, 'matiere') && t.matiere !== 'peau');
-      }, {
-        path: ['trappings'],
-        error: 'Une pièce décrite par le Trait Armure exige un Trait Armure porté sur la fiche.',
+      }), (lire) => {
+        const admetLaMatiere = lireLaCapaciteDuTrait(lire, 'matiere');
+        return (e, ctx) => {
+          const decritArmure = Array.isArray(e.trappings) && e.trappings.some((p: unknown) => estObjet(p) && p.decritLeTraitArmure === true);
+          if (!decritArmure) return;
+          const porteUneArmure = Array.isArray(e.traits) && e.traits.some((t: unknown) =>
+            estObjet(t) && typeof t.id === 'string' && admetLaMatiere(t.id) && t.matiere !== 'peau');
+          if (!porteUneArmure) ctx.addIssue({
+            code: 'custom',
+            path: ['trappings'],
+            message: 'Une pièce décrite par le Trait Armure exige un Trait Armure porté sur la fiche.',
+          });
+        };
       }),
   },
 );
