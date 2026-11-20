@@ -4,11 +4,9 @@
 // la gate `pont:godot` l'atteint par `construire.mjs`.
 import { cpSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { assetsDeLHote } from './asset/charger.mjs'
+import { assetsDuListage } from './asset/charger.mjs'
 
-const { DOSSIER_DES_MODELES, fichiersDuModele, verdictsDuDossier } = await assetsDeLHote()
-
-export { DOSSIER_DES_MODELES }
+export { DOSSIER_DES_MODELES } from './asset/dossierDeProduction.ts'
 
 /**
  * @contrat Atelier 3D
@@ -22,7 +20,7 @@ export { DOSSIER_DES_MODELES }
  *
  * - `GET modeles/listage.json` : le listage,
  *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>, erreurs: string[], forme }`, que le
- *   serveur du dossier vivant calcule à son lancement puis à nouveau quand un fichier du dossier change, en
+ *   serveur du dossier vivant prépare à son lancement puis calcule à nouveau quand un fichier du dossier change, en
  *   `Cache-Control: no-store`. `forme` nomme le fichier de
  *   `fichiers` (réponse de `modeles`) que Godot demande pour chaque modèle : `glb` au dossier vivant, que Godot lit à
  *   l'exécution ; `scene` au dossier déposé par l'export, qui ne porte aucun GLB mais, pour chaque modèle du listage,
@@ -52,8 +50,9 @@ export const LISTAGE = 'listage.json'
 /** Le listage de `dossier`, servi en GLB : les manifestes que `verdictsDuDossier` (`asset/release.ts`) accepte contre
  *  leur GLB, de chacun les os qui portent ses meshes rigides, et les erreurs (manifeste illisible, GLB illisible, refus,
  *  dossier illisible). */
-export function listage(dossier) {
+export async function listage(dossier) {
   try {
+    const { fichiersDuModele, verdictsDuDossier } = await assetsDuListage()
     const { verdicts, erreurs: illisibles } = verdictsDuDossier(dossier)
     const erreurs = [...illisibles]
     const manifestes = {}
@@ -73,11 +72,12 @@ export function listage(dossier) {
 /** Le dossier des modèles `dossier` déposé sous `modeles/` de `sortie`, en fichiers statiques : ses fichiers sans ses GLB
  *  ni leur fiche d'import par Godot (`<glb>.import`), son listage (`LISTAGE`) en forme `scene`, et la scène de chaque modèle du listage, que `fabriquer` reçoit à
  *  fabriquer (`{ id, glb, scene }` : le GLB à lire, la scène à écrire). Rend ce que `fabriquer` rend. */
-export function deposerLesModeles(dossier, sortie, fabriquer) {
+export async function deposerLesModeles(dossier, sortie, fabriquer) {
+  const { fichiersDuModele } = await assetsDuListage()
   const cible = join(sortie, 'modeles')
   const glb = fichiersDuModele('').glb
   cpSync(dossier, cible, { recursive: true, filter: (source) => !source.endsWith(glb) && !source.endsWith(`${glb}.import`) })
-  const servi = listage(dossier)
+  const servi = await listage(dossier)
   writeFileSync(join(cible, LISTAGE), JSON.stringify({ ...servi, forme: 'scene' }))
   return fabriquer(Object.keys(servi.manifestes).map((id) => {
     const { glb, scene } = fichiersDuModele(id)

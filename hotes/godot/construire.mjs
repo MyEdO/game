@@ -43,7 +43,7 @@
 // déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`).
 // `--coop` (#3009) lance le relay local (`npm run relay:dev`, `server/` installé) et joue la coop par deux processus Godot
 // sans écran, l'hôte et l'invité (`coop`) ; la CI le joue (`npm run godot:coop`). L'import de ce module
-// ne lance aucun mode ; il charge les assets par `listage.mjs` (#3963).
+// ne lance aucun mode et ne charge pas les assets (#3963).
 import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
@@ -68,7 +68,7 @@ import { assetsDeLHote } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches, VUE_DE_BASE } from './planches.mjs'
-import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs'
+import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundleDeReference } from './processus.mjs'
 import { stockageDuProcessus } from './stockage.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -190,14 +190,14 @@ export function lecturesDuBundle(code) {
   return lectures
 }
 
-/** Lit le bundle (`lecturesDuBundle`), puis l'exécute comme la page de Godot (`pontDuBundle`), son pont appelé. Rend la
- *  liste des écarts au contrat (`hotes/godot/pont/CONTRAT.md`), vide quand il tient : un nom lu que le processus ne
+/** Lit le bundle (`lecturesDuBundle`), puis appelle son pont dans le contexte de référence (`pontDuBundleDeReference`).
+ *  Rend la liste des écarts au contrat (`hotes/godot/pont/CONTRAT.md`), vide quand il tient : un nom lu que le processus ne
  *  porte pas, hors de `HORS_DU_PROCESSUS` ou à un autre compte, en est un, même dans une branche que l'exécution ne joue pas. */
 function executer(code) {
   const lus = ecartsDesLectures(lecturesDuBundle(code), API_DU_NAVIGATEUR, HORS_DU_PROCESSUS)
   let pont
   try {
-    pont = pontDuBundle(code, console, stockageDuProcessus(null))
+    pont = pontDuBundleDeReference(code, console, stockageDuProcessus(null))
   } catch (erreur) {
     return [...lus, `l’évaluation lève : ${erreur}`]
   }
@@ -516,12 +516,16 @@ async function menerDeFront(copie, lancements, coeurs = 1) {
 
 /** Le lancement `{ commande, args(donnees), juger({ lignes, echec }) }` sans tenir le fil, un dossier `donnees` neuf
  *  sous le projet `copie` pour ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), `env` ajouté à son
- *  environnement, tué à `signal` ou à `ECHEANCE_MS` : les erreurs que `juger` rend à sa sortie. */
+ *  environnement, tué à `signal` ou à `ECHEANCE_MS`. Le pont d’une recette annonce son adresse après le listage. */
 async function lancerAvecSesDonnees(copie, { commande, args, juger }, signal, env = {}) {
   const donnees = mkdtempSync(join(copie, 'donnees-'))
   const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
   return juger(await lancerSansTenirLeFil(
-    commande, args(donnees), { ...env, ...(DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {}) },
+    commande, args(donnees), {
+      ...env,
+      WFRP_GODOT_ATTENDRE_LISTAGE: '1',
+      ...(DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {}),
+    },
     (tuer) => arret.addEventListener('abort', tuer, { once: true }),
   ))
 }
@@ -754,7 +758,7 @@ function deposerLaVue(copie, nom, vue) {
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
     deposerLaVue(copie, 'ecran', figerVuesDeLEcran())
-    const modeles = listage(DOSSIER_DES_MODELES)
+    const modeles = await listage(DOSSIER_DES_MODELES)
     deposerLaVue(copie, 'vehicule', figerLeVehicule(modeles))
     deposerLaVue(copie, 'repos', figerLeRepos(modeles))
     deposerLaVue(copie, 'decor', figerLeDecor(modeles))
@@ -804,7 +808,7 @@ export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_R
  *  de clôture (`erreurs=<n>`) ; ce que le moteur écrit ensuite en se fermant n'en est pas. */
 function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
-    deposerLaVue(copie, 'decor', figerLeDecor(listage(DOSSIER_DES_MODELES)))
+    deposerLaVue(copie, 'decor', figerLeDecor(await listage(DOSSIER_DES_MODELES)))
     const recettes = scriptsDe(copie).filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_RENDUE := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
     if (!recettes.length) return [`aucune recette rendue sous ${PROJET}`]
@@ -845,7 +849,7 @@ const FIN_DU_PILOTE = '[pilote] fin'
 
 /** Les planches figées (`figerLesPlanches`) sur les modèles du projet, déposées sous `planches/` de `sortie`
  *  (`deposerLesPlanches`), les assets `a` chargés (`deposerLesAssets`). */
-const deposerLesPlanchesFigees = (sortie, a) => chronometrer('planches figées', () => deposerLesPlanches(sortie, a.figerLesPlanches(listage(a.DOSSIER_DES_MODELES))))
+const deposerLesPlanchesFigees = (sortie, a) => chronometrer('planches figées', async () => deposerLesPlanches(sortie, a.figerLesPlanches(await listage(a.DOSSIER_DES_MODELES))))
 
 /** Le jeu piloté par une recette (#3945) : une copie du projet importé par l'éditeur épinglé (`surUneCopie`)
  *  ou du projet de la `preparation` du lot, puis `PILOTE` en boucle principale, à la fenêtre `fenetre`
@@ -910,7 +914,7 @@ const AVIS_DU_MOTEUR = 'res://outils/avis_du_moteur.gd'
  *  embarque (`deposerLesAvis`) : ceux du moteur, des assets du projet, et `embarques`, ceux de ce que la fabrication
  *  ajoute à côté. */
 function exporter(binaire, { preset, fichier, modele, paquets = [] }, sortie, { DOSSIER_DES_MODELES, figerLesDessins }, embarques) {
-  return surUneCopie(binaire, figerLesDessins, (copie) => {
+  return surUneCopie(binaire, figerLesDessins, async (copie) => {
     const release = { 'custom_template/release': () => modele.split(sep).join('/') }
     const exclus = paquets.length ? { exclude_filter: (avant) => [avant, ...paquets.map((dossier) => `${dossier}/*`)].join(',') } : {}
     const refus = reglerLePreset(copie, preset, { ...release, ...exclus })
@@ -924,7 +928,7 @@ function exporter(binaire, { preset, fichier, modele, paquets = [] }, sortie, { 
       if (paquet.erreurs.length) return paquet.erreurs
     }
     if (paquets.length) writeFileSync(join(sortie, PAQUETS), JSON.stringify(paquets))
-    const fabrication = deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
+    const fabrication = await deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
     if (fabrication.length) return fabrication
     const moteur = join(copie, 'avis-du-moteur.json')
     const lancement = godot(binaire, copie, ['--script', AVIS_DU_MOTEUR, '--', moteur])
