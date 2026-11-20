@@ -65,8 +65,8 @@ func _poser() -> void:
 
 ## Le relevé des objets rangés de `montage`, monté dans `arbre`, sous les `montes` de sa composition : `pieces`, chaque
 ## mesh rangé (`ligne`, `mesh`, `offrant`), et `poses`, par instant d'`instants`, la transformation de chacun (`_matrice`),
-## `null` s'il n'est pas montré rangé. À chaque instant, le gabarit et les morphes se posent, le clip s'engage en pause à
-## son instant, et le squelette joue `IMAGES_DE_MISE_A_JOUR` images ; un repos demandé après un clip et un clip que la
+## `null` s'il n'est pas montré rangé. À chaque instant, le clip s'engage en pause à son instant, le gabarit et les
+## morphes se posent s'ils ne sont pas ceux de l'instant précédent (les poser refond les pièces), et le squelette joue `IMAGES_DE_MISE_A_JOUR` images ; un repos demandé après un clip et un clip que la
 ## base n'a pas vont à `erreurs`.
 static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Array, instants: Array, erreurs: Array[String]) -> Dictionary:
 	var lignes := {}
@@ -79,8 +79,8 @@ static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Arr
 			pieces.append({ligne = lignes.get(ligne, ligne), mesh = String(rangee.piece.name), offrant = montage._offrant_du_point(montage._point(ligne))})
 			meshes.append(rangee.piece)
 	var poses := []
+	var corps := {}
 	for instant: Dictionary in instants:
-		montage.composee = {montes = montes, gabarit = instant.get("gabarit", {}), morphes = instant.morphes}
 		if instant.clip != "" and (montage.lecteur == null or not montage.lecteur.has_animation(instant.clip)):
 			erreurs.append("clip-absent : %s" % instant.clip)
 		elif instant.clip != "":
@@ -89,8 +89,12 @@ static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Arr
 			montage.lecteur.seek(instant.t, true)
 		elif montage.lecteur != null and montage.lecteur.assigned_animation != "":
 			erreurs.append("repos-apres-un-clip : le repos se demande avant tout clip, un lecteur ne se désengage pas")
-		erreurs.append_array(montage.poser_le_gabarit().map(func(os: String) -> String: return "os-absent : %s" % os))
-		montage.poser_les_morphes()
+		var compose := {montes = montes, gabarit = instant.get("gabarit", {}), morphes = instant.morphes}
+		if compose != corps:
+			corps = compose
+			montage.composee = compose
+			erreurs.append_array(montage.poser_le_gabarit().map(func(os: String) -> String: return "os-absent : %s" % os))
+			montage.poser_les_morphes()
 		for _image in IMAGES_DE_MISE_A_JOUR:
 			await arbre.process_frame
 		poses.append(meshes.map(func(mesh: MeshInstance3D) -> Variant: return _matrice(mesh.global_transform) if mesh.is_visible_in_tree() else null))

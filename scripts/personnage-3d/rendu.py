@@ -666,7 +666,9 @@ def main():
                 rig.animation_data.action_slot = action.slots[0]
             bpy.context.scene.frame_set(args.image)
         if args.preset and args.element:
-            instant = {'clip': args.clip, 't': args.image / bpy.context.scene.render.fps} if args.clip else {}
+            # io_scene_gltf2/blender/imp/animation_node.py : l'import pose la clé de l'instant t à l'image t × fps × fps_base.
+            cadence = bpy.context.scene.render.fps * bpy.context.scene.render.fps_base
+            instant = {'clip': args.clip, 't': args.image / cadence} if args.clip else {}
             ranger(elements, poses_des_ranges(source, chemin, [Path(glb).resolve(strict=True) for glb in args.element], args.preset,
                                               args.silhouettes, **instant))
             bpy.context.view_layer.update()
