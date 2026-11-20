@@ -27,6 +27,8 @@ export function pontDuBundle(
   stockage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>,
 ): PontDuBundle;
 
+export const pontDuBundleDeReference: typeof pontDuBundle;
+
 export function tenirLeTuyau(code: string, serveur: { url: string; fermer: () => void }): Promise<void>;
 
 export function servirLeCanal(

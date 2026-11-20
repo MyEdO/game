@@ -15,6 +15,7 @@
  * ses fichiers, en forme dépôt, sur le disque tel que l'export l'a lu (`If-Match`, l'empreinte `hash32` de son texte).
  * Sans export (le pont vivant, `vivant.mjs`), seuls `modeles/`, `depot/` et `source/` répondent.
  */
+import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
@@ -69,6 +70,21 @@ afterAll(() => {
 });
 
 describe('servir', () => {
+  it('importer le listage laisse Vite et le mode de Node en attente', () => {
+    const entree = new URL('./listage.mjs', import.meta.url).href;
+    const code = `
+      import { registerHooks } from 'node:module';
+      delete process.env.NODE_ENV;
+      registerHooks({ resolve(nom, contexte, suivant) {
+        if (nom === 'vite') throw new Error('Vite chargé à l’import');
+        return suivant(nom, contexte);
+      } });
+      await import(${JSON.stringify(entree)});
+      if ('NODE_ENV' in process.env) throw new Error('NODE_ENV modifié à l’import');
+    `;
+    expect(execFileSync(process.execPath, ['--input-type=module', '-e', code], { encoding: 'utf8' })).toBe('');
+  });
+
   it('le listage rend exactement les manifestes validés contre leur GLB, et les erreurs des autres, en no-store', async () => {
     const r = await fetch(`${await demarrer()}modeles/${LISTAGE}`);
     expect(r.status).toBe(200);
@@ -119,7 +135,7 @@ describe('servir', () => {
     const sortie = join(racine, 'export');
     const cible = join(sortie, 'modeles');
     writeFileSync(join(modeles, 'epee.glb.import'), '[remap]');
-    const commandes = deposerLesModeles(modeles, sortie, (aFabriquer) => aFabriquer);
+    const commandes = await deposerLesModeles(modeles, sortie, (aFabriquer) => aFabriquer);
     const servi = await (await fetch(`${url}modeles/${LISTAGE}`)).json();
     expect(servi.forme).toBe('glb');
     expect(JSON.parse(readFileSync(join(cible, LISTAGE), 'utf8'))).toEqual({ ...servi, forme: 'scene' });

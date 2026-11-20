@@ -75,7 +75,9 @@ export function boursesDuGroupe(appel: ReturnType<typeof table>['appel'], vue: V
  *  elle. */
 export const sectionDeLaFiche = (vue: VueDuPont, id: string): Element[] => vue.zones['fiche.sections'].find((e) => e.id === `section/${id}`)?.elements ?? [];
 
-let commites: Promise<ReturnType<typeof listage>> | undefined;
+type Listage = Awaited<ReturnType<typeof listage>>;
+
+let commites: Promise<Listage> | undefined;
 
 /** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert, le GLB épinglé de
  *  chacun déposé d'abord (`recupererModeles`) ; lu une fois par graphe de modules. */
@@ -83,14 +85,14 @@ export const modelesCommites = () => (commites ??= recupererModeles({ dossier: D
 
 /** Les manifestes du listage commité `commites`, ceux des éléments `decor` retirés, plus l'élément `decor` de test
  *  `decor--<prop>` (`decorDeTest`) de chaque type de `props` : les seuls décors qu'ils servent. */
-export const avecLesSeulsDecors = (commites: ReturnType<typeof listage>, ...props: string[]): Record<string, unknown> => ({
+export const avecLesSeulsDecors = (commites: Listage, ...props: string[]): Record<string, unknown> => ({
   ...Object.fromEntries(Object.entries(commites.manifestes).filter(([, m]) => (m as { categorie?: string }).categorie !== 'decor')),
   ...Object.fromEntries(props.map((prop) => [`decor--${prop}`, decorDeTest(prop)])),
 });
 
 /** Les manifestes du listage commité `commites` sans décor, plus le décor saisonnier de test du type `prop`
  *  (`decorSaisonnierDeTest`). */
-export const avecLeSaisonnier = (commites: ReturnType<typeof listage>, prop: string): Record<string, unknown> => ({ ...avecLesSeulsDecors(commites), [`decor--${prop}`]: decorSaisonnierDeTest(prop) });
+export const avecLeSaisonnier = (commites: Listage, prop: string): Record<string, unknown> => ({ ...avecLesSeulsDecors(commites), [`decor--${prop}`]: decorSaisonnierDeTest(prop) });
 
 /** Ce que la saison `saison` (`null` : aucune) change du décor saisonnier de test servi : ses branches nues
  *  (`avec-hiver`) cachées hors de l'hiver, son feuillage (`sans-hiver`) en hiver, et sa teinte d'automne. */
@@ -100,7 +102,7 @@ export const enSaison = (saison: Saison | null) => ({
 });
 
 /** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité `commites`. */
-export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof listage>, manifestes = commites.manifestes): void {
+export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: Listage, manifestes = commites.manifestes): void {
   expect(appel('modeles', { manifestes, osDesRigides: tableTotale(Object.keys(manifestes), (id) => commites.osDesRigides[id] ?? []) })).toMatchObject({ ok: true });
 }
 

@@ -1,9 +1,8 @@
 import { fileURLToPath } from 'node:url'
-import { runnerImport } from 'vite'
-import { entreeDHote } from '../../../scripts/entree-d-hote.mjs'
 
 /** Le module `id` chargé par le module runner de Vite à la racine du dépôt, servi par `greffons`. */
 async function importer(id, greffons) {
+  const { runnerImport } = await import('vite')
   const { module } = await runnerImport(id, {
     root: fileURLToPath(new URL('../../..', import.meta.url)),
     configFile: false,
@@ -14,22 +13,30 @@ async function importer(id, greffons) {
   return module
 }
 
+async function importerDHote(nom, exports) {
+  const { entreeDHote } = await import('../../../scripts/entree-d-hote.mjs')
+  const { id, greffons } = entreeDHote(nom, exports)
+  return importer(id, greffons)
+}
+
 /** Les assets de Godot dans le graphe de l’hôte : catalogue gelé, noyau et sources de prose. */
-export async function chargerAssets(exportsSupplementaires = []) {
-  const entree = entreeDHote('godot-assets', [
+export function chargerAssets(exportsSupplementaires = []) {
+  return importerDHote('godot-assets', [
     "export { importerPersonnage } from '/hotes/godot/asset/importer.ts';",
     "export { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme, publierAssets, TAG } from '/hotes/godot/asset/release.ts';",
     ...exportsSupplementaires,
   ])
-  return importer(entree.id, entree.greffons)
 }
 
-let assetsDeLHoteCharges = null
-/** Les assets que lisent le listage des modèles (`listage.mjs`) et les modes de `construire.mjs` (`chargerAssets`) :
- *  un seul chargement par processus, qu'ils partagent. */
-export const assetsDeLHote = () => (assetsDeLHoteCharges ??= chargerAssets([
+const EXPORTS_DU_LISTAGE = [
   "export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';",
   "export { verdictsDuDossier } from '/hotes/godot/asset/release.ts';",
+]
+
+let assetsDeLHoteCharges = null
+/** Les assets préparés par les modes de `construire.mjs`. */
+export const assetsDeLHote = () => (assetsDeLHoteCharges ??= chargerAssets([
+  ...EXPORTS_DU_LISTAGE,
   "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
   "export { figerVuesDeLEcran, figerLesPlanches } from '/hotes/godot/recettes/ecran.ts';",
   "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
@@ -40,6 +47,10 @@ export const assetsDeLHote = () => (assetsDeLHoteCharges ??= chargerAssets([
   "export { figerLeDegagement } from '/hotes/godot/recettes/degagement.ts';",
   "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
 ]))
+
+let assetsDuListageCharges = null
+/** Les fonctions de validation du listage, reprises du chargement du mode s'il a déjà commencé. */
+export const assetsDuListage = () => (assetsDuListageCharges ??= assetsDeLHoteCharges ?? importerDHote('godot-listage', EXPORTS_DU_LISTAGE))
 
 /** Le module `module` de l’évaluateur d’assets (`evaluateur/`, par défaut `evaluer.ts`), hors du graphe de l’hôte : il
  *  ne lit ni le catalogue ni le noyau. */
