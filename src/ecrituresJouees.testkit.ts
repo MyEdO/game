@@ -273,15 +273,15 @@ const personnageDuDialogue = (): SessionDEdition => poserPersonnage(ajouter(pres
 /** La `COQUE`, sélectionnée. */
 const coqueChoisie = (): SessionDEdition => cliquer(presser(presser(projetDuJeu(COQUE.campagne), `scenes/${COQUE.scene}`), 'outil/select'), COQUE.case.x, COQUE.case.y);
 
-/** La case de la scène neuve de la première campagne du jeu, à l'échelle des ponts, où l'outil navire pose un navire
- *  neuf. */
-const NAVIRE_NEUF = { x: 2, y: 6 } as const;
+/** L'ancre de la caraque à un cap qui tient dans la scène neuve de 20 × 15 cases. */
+const NAVIRE_NEUF = { x: 8, y: 6 } as const;
 
 /** La session `s` où l'outil navire pose un navire à la case `(x, y)`, sélectionné ; l'écriture de son entité, à son
  *  rang parmi les entités de la scène, s'ajoute à `out`. */
 function poserUnNavire(s: SessionDEdition, x: number, y: number, out: EcritureJouee[]): SessionDEdition {
   const avant = sceneEditee(s);
-  const suite = jouer(presser(s, 'outil/navire'), { geste: 'appui', point: point(x, y) });
+  const outil = presser(presser(s, 'outil/navire'), 'navire/cap/E');
+  const suite = jouer(outil, { geste: 'appui', point: point(x, y) });
   const porteur = porteurChoisi(suite);
   const apres = sceneEditee(suite);
   const rang = apres.entities.findIndex((e) => e.id === porteur?.id);
