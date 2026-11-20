@@ -19,22 +19,24 @@ export interface InstantDeRangement {
 
 /** Les meshes rangés d'un élément : par nom de nœud glTF, sa transformation dans le repère de la base à chaque instant
  *  demandé, en 16 nombres colonne par colonne, `null` quand le jeu ne le montre pas rangé ; `offrants`, les rangs, parmi
- *  les éléments, de l'élément qui offre son emplacement, aucun si la base l'offre. */
+ *  les éléments, de l'élément qui offre son emplacement, aucun si la base l'offre ; `os`, l'os de cet emplacement. */
 interface ElementRange {
   readonly meshes: Readonly<Record<string, readonly (readonly number[] | null)[]>>;
   readonly offrants: readonly number[];
+  readonly os: string;
 }
 
 /** Les poses des éléments d'une évaluation aux `instants`, par élément dans son ordre, `null` sans mesh rangé. */
 export type Rangeur = (instants: readonly InstantDeRangement[]) => Promise<readonly (ElementRange | null)[]>;
 
-/** Un nœud rangé : ses meshes, l'élément qui les porte et ceux qui offrent son emplacement. */
+/** Un nœud rangé : ses meshes, les éléments qui offrent son emplacement et l'os de celui-ci. */
 interface NoeudRange {
   readonly meshes: readonly Mesh[];
   readonly offrants: readonly number[];
+  readonly os: string;
 }
 
-/** Les nœuds des `elements` montés sur `base` que `poses` range. `poser(k)` met chacun à sa transformation de l'instant
+/** Les nœuds des `elements` montés sur `base` que `poses` range (`noeuds`). `poser(k)` met chacun à sa transformation de l'instant
  *  de rang k, ou le rend à l'os de sa prise si le jeu ne l'y montre pas rangé ; `ranges()` rend ceux que le dernier
  *  `poser` a rangés. Un nom de `poses` qu'aucun nœud de son élément ne porte est refusé. */
 export function rangerLesRigides(base: SceneChargee, elements: readonly SceneChargee[], poses: readonly (ElementRange | null)[]) {
@@ -42,12 +44,13 @@ export function rangerLesRigides(base: SceneChargee, elements: readonly SceneCha
     const origines = [...element.origines].filter(([, o]) => o.noeud === nom);
     if (!origines.length) throw new Error(`évaluation : mesh rangé « ${nom} » absent de l’élément ${k + 1}`);
     const objet: Object3D = origines[0][1].objet;
-    return { objet, matrices, tenu: { parent: objet.parent as Object3D, matrice: objet.matrix.clone() }, meshes: origines.map(([m]) => m), offrants: poses[k]?.offrants ?? [] };
+    return { objet, matrices, tenu: { parent: objet.parent as Object3D, matrice: objet.matrix.clone() }, meshes: origines.map(([m]) => m), offrants: poses[k]?.offrants ?? [], os: poses[k]?.os ?? '' };
   }));
   const versLaBase = new Matrix4();
   const locale = new Matrix4();
   let ranges: NoeudRange[] = [];
   return {
+    noeuds: noeuds as readonly NoeudRange[],
     poser(instant: number): void {
       base.scene.updateMatrixWorld(true);
       versLaBase.copy(base.scene.matrixWorld).invert();

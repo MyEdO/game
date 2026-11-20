@@ -34,10 +34,10 @@ const assets = () => chargerAssets([
  * (`{ gabarit?, morphes, clip, t }` : `gabarit` et `morphes` de `composer`, `clip` vide au repos).
  * La tenue montée est celle du preset réduite aux éléments donnés. Un élément répété monte, à son k-ième GLB, la k-ième
  * ligne du preset qui le monte.
- * @returns `elements`, par GLB de `elements`, `null` s'il n'a aucun mesh rangé, sinon `{ ligne, meshes, offrants }` : sa
+ * @returns `elements`, par GLB de `elements`, `null` s'il n'a aucun mesh rangé, sinon `{ ligne, meshes, offrants, os }` : sa
  *   ligne de montage ; par nom de nœud, la transformation du mesh dans le repère de la base à chaque instant, en 16
  *   nombres colonne par colonne, `null` quand le jeu ne le montre pas rangé ; les rangs dans `elements` de l'élément
- *   qui offre son emplacement, aucun si la base l'offre ; `sans`, les lignes que le jeu monte d'un élément
+ *   qui offre son emplacement, aucun si la base l'offre, et l'os de cet emplacement ; `sans`, les lignes que le jeu monte d'un élément
  *   donné moins de fois que le preset ne le porte.
  */
 export async function posesDesRanges({ base, manifeste, elements, preset, instants }) {
@@ -70,8 +70,8 @@ export async function posesDesRanges({ base, manifeste, elements, preset, instan
       donnes.set(id, rang + 1)
       const ligne = lignes.get(id)?.[rang]
       const meshes = Object.fromEntries(pieces.flatMap((p, k) => (p.ligne === ligne ? [[p.mesh, poses.map((instant) => instant[k])]] : [])))
-      const offrant = pieces.find((p) => p.ligne === ligne)?.offrant
-      return Object.keys(meshes).length ? { ligne, meshes, offrants: ids.flatMap((autre, k) => (autre === offrant ? [k] : [])) } : null
+      const { offrant, os } = pieces.find((p) => p.ligne === ligne) ?? {}
+      return Object.keys(meshes).length ? { ligne, meshes, offrants: ids.flatMap((autre, k) => (autre === offrant ? [k] : [])), os } : null
     }),
     sans: [...lignes].flatMap(([id, montees]) => montees.slice(donnes.get(id) ?? 0)),
   }

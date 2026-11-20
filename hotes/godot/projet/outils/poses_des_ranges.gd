@@ -12,8 +12,8 @@ extends SceneTree
 ## `fichiers`, par fichier de `modeles.fichiers`, le chemin du GLB à lire ; `montes`, les `montes` de `composer` ;
 ## `instants`, chacun `{ gabarit?, morphes, clip, t }` (`gabarit` et `morphes` de `composer`, `clip` vide au repos, qui
 ## se demande avant tout clip).
-## La sortie, en JSON : `pieces`, chaque mesh rangé `{ ligne, mesh, offrant }` (la ligne de `montes` qui le monte, le nom
-## de son nœud, l'élément monté qui offre son emplacement, vide si la base l'offre) ; `poses`, par instant, par pièce,
+## La sortie, en JSON : `pieces`, chaque mesh rangé `{ ligne, mesh, offrant, os }` (la ligne de `montes` qui le monte, le
+## nom de son nœud, l'élément monté qui offre son emplacement, vide si la base l'offre, et l'os de cet emplacement) ; `poses`, par instant, par pièce,
 ## sa transformation dans le repère de la base en 16 nombres, colonne par colonne, `null` si elle n'est pas montrée
 ## rangée à cet instant. Une erreur du montage ou du relevé se dit en erreur,
 ## et le code de sortie vaut 1, comme à la fabrique des modèles (`outils/fabrique_de_modeles.gd`).
@@ -68,7 +68,7 @@ func _poser() -> void:
 
 
 ## Le relevé des objets rangés de `montage`, monté dans `arbre`, sous les `montes` de sa composition : `pieces`, chaque
-## mesh rangé (`ligne`, `mesh`, `offrant`), et `poses`, par instant d'`instants`, la transformation de chacun (`_matrice`),
+## mesh rangé (`ligne`, `mesh`, `offrant`, `os`), et `poses`, par instant d'`instants`, la transformation de chacun (`_matrice`),
 ## `null` s'il n'est pas montré rangé. À chaque instant, le clip s'engage en pause à son instant, le gabarit et les
 ## morphes se posent s'ils ne sont pas ceux de l'instant précédent (les poser refond les pièces), et le squelette joue `IMAGES_DE_MISE_A_JOUR` images ; un repos demandé après un clip et un clip que la
 ## base n'a pas vont à `erreurs`.
@@ -80,7 +80,9 @@ static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Arr
 	var meshes: Array[MeshInstance3D] = []
 	for ligne: String in montage._rangements:
 		for rangee: Dictionary in montage._rangements[ligne]:
-			pieces.append({ligne = lignes.get(ligne, ligne), mesh = String(rangee.piece.name), offrant = montage._offrant_du_point(montage._point(ligne))})
+			var point := montage._point(ligne)
+			pieces.append({ligne = lignes.get(ligne, ligne), mesh = String(rangee.piece.name), offrant = montage._offrant_du_point(point),
+				os = montage._attache_du_point(point).get("os", "")})
 			meshes.append(rangee.piece)
 	var poses := []
 	var corps := {}

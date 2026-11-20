@@ -11,6 +11,9 @@
  * `membre-dans-un-vetement` : un écart par (zone, mesh, clip), à son pire instant, de valeur le plus grand e derrière.
  * Plafond : une tenue admet par clip un nombre mesuré de ces écarts ; à ce compte le clip n'en rend aucun, au-delà il
  * les rend tous, en deçà il rend `plafond-a-baisser`.
+ * Objet rangé (#4351) : un rigide que le jeu range (`../rangement.ts`) se mesure comme un membre de la zone de l'os de
+ * son emplacement (`zoneDeLOs`, `../corps.ts`), aux mêmes voisines, au même tissu pincé et au même plafond du clip ; ses
+ * paires portent son libellé (`objet`), et son écart est `objet-dans-un-vetement`.
  */
 import type { Mesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
@@ -29,10 +32,14 @@ export interface PaireHorsDeZone {
   readonly zone: string;
   readonly vetement: Mesh;
   readonly triangles: ArrayLike<number>;
+  /** Le libellé du rigide rangé qui tient lieu de membre ; absent pour un mesh du corps. */
+  readonly objet?: string;
 }
 
 export interface MembreDUnEchantillon {
   readonly zone: string;
+  /** Le libellé du rigide rangé mesuré (`PaireHorsDeZone.objet`) ; absent pour une zone du corps. */
+  readonly objet?: string;
   readonly vetement: Mesh;
   readonly clip: string;
   readonly t: number;
@@ -126,16 +133,16 @@ export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[],
   };
   const normales = new Map<Mesh, Float32Array>();
   const peauxDe = new Map<Mesh, Couverture[]>();
-  const parZone = new Map<string, { zone: string; vetement: Mesh; derriere: number; devant: number; pire: number }>();
-  for (const { membre, zone, vetement, triangles } of paires) {
+  const parZone = new Map<string, { zone: string; objet?: string; vetement: Mesh; derriere: number; devant: number; pire: number }>();
+  for (const { membre, zone, vetement, triangles, objet } of paires) {
     const bm = boite(membre);
     const surface = couvertureProche(bm, vetement, triangles);
     if (!surface) continue;
     const pm = positionsDe(e, membre);
     const nm = normales.get(membre) ?? normalesDe(membre, pm);
     normales.set(membre, nm);
-    const k = `${zone}\u0000${vetement.uuid}`;
-    const cote = parZone.get(k) ?? { zone, vetement, derriere: 0, devant: 0, pire: 0 };
+    const k = `${zone}\u0000${objet ?? ''}\u0000${vetement.uuid}`;
+    const cote = parZone.get(k) ?? { zone, ...(objet === undefined ? {} : { objet }), vetement, derriere: 0, devant: 0, pire: 0 };
     parZone.set(k, cote);
     const bv = boite(vetement);
     for (let s = 0; s < pm.length / 3; s++) {
@@ -154,21 +161,21 @@ export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[],
       cote.pire = Math.max(cote.pire, proche);
     }
   }
-  return [...parZone.values()].flatMap(({ zone, vetement, derriere, devant, pire }) => (derriere && devant ? [{ zone, vetement, clip: e.clip, t: e.t, sommets: derriere, pire }] : []));
+  return [...parZone.values()].flatMap(({ derriere, devant, pire, ...cote }) => (derriere && devant ? [{ ...cote, clip: e.clip, t: e.t, sommets: derriere, pire }] : []));
 }
 
-/** Par (zone, vêtement, clip) de `mesures`, celle de son plus grand écart signé. */
-export function piresTraversees(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh): MembreDUnEchantillon[] {
+/** Par (zone, objet, vêtement, clip) de `mesures`, celle de son plus grand écart signé. */
+function piresTraversees(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh): MembreDUnEchantillon[] {
   const pires = new Map<string, MembreDUnEchantillon>();
   for (const m of mesures) {
-    const k = `${m.zone}|${libelle(m.vetement)}|${m.clip}`;
+    const k = `${m.zone}|${m.objet ?? ''}|${libelle(m.vetement)}|${m.clip}`;
     const avant = pires.get(k);
     if (!avant || m.pire > avant.pire) pires.set(k, m);
   }
   return [...pires.values()];
 }
 
-/** Un écart par (zone, vêtement, clip), à l'instant de son plus grand écart signé (`piresTraversees`). `plafonds` : par clip échantillonné,
+/** Un écart par (zone, objet, vêtement, clip), à l'instant de son plus grand écart signé (`piresTraversees`). `plafonds` : par clip échantillonné,
  *  le nombre de ces écarts que la tenue admet, 0 sans entrée. */
 export function gardeMembreDansUnVetement(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh, plafonds: Readonly<Record<string, number>> = {}): Ecart[] {
   const parClip = new Map<string, MembreDUnEchantillon[]>();
@@ -177,9 +184,12 @@ export function gardeMembreDansUnVetement(mesures: readonly MembreDUnEchantillon
     const [traverses, plafond] = [parClip.get(clip) ?? [], plafonds[clip] ?? 0];
     if (traverses.length === plafond) return [];
     if (traverses.length < plafond) return [{ garde: GARDE, code: 'plafond-a-baisser', clip, valeur: traverses.length, seuil: plafond, detail: 'vêtement(s) traversé(s) par une zone du corps, sous le plafond admis du clip : le baisser à cette mesure' }];
-    return traverses.map((m) => ({
+    return traverses.map((m) => (m.objet === undefined ? {
       garde: GARDE, code: 'membre-dans-un-vetement', mesh: libelle(m.vetement), clip: m.clip, t: m.t, valeur: m.pire, seuil: ECART_DE_SUIVI_M,
       detail: `${m.sommets} sommet(s) du corps de zone ${m.zone} derrière le vêtement qu'elle traverse : plus grand écart signé, en m`,
+    } : {
+      garde: GARDE, code: 'objet-dans-un-vetement', mesh: m.objet, clip: m.clip, t: m.t, valeur: m.pire, seuil: ECART_DE_SUIVI_M,
+      detail: `${m.sommets} sommet(s) de l'objet rangé, de zone ${m.zone}, derrière ${libelle(m.vetement)} qu'il traverse : plus grand écart signé, en m`,
     }));
   });
 }
