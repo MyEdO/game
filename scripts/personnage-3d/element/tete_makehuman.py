@@ -46,7 +46,8 @@ from formes import poser_la_cle
 from noms_formes_de_tete import ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAGE_INVERSE, VISAGE_LONG
 from noms_silhouettes import FEMININ
 from production import pack_source
-from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere, elevation,
+from tete import (CONFONDUS_M, PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere,
+                  directions_des_rangs, elevation,
                   elevation_de_la_couture, fondre_sur_le_cou, normales_de_sommet, parts_du_fondu,
                   poser_les_normales_de_la_couture)
 from tissu import Maillage, emprunter, fondu, lisser, maillage_skinne, poids_normalises, porteur_de, voisinage
@@ -58,12 +59,16 @@ FONDU_DU_COU = 0.1
 (`tete.fondre_sur_le_cou`) : elle garde à une race sa mâchoire (nain : 8,6 mm sur 8,7 de son écart à l'humain) et
 adoucit le ressaut de la nuque sans l'effacer. Les têtes de `tete.py` ont la leur (`FONDU_DU_COU` de leur `donnees.py`,
 0,2), qui efface mieux ce ressaut mais ne laisse au nain que 6,4 mm."""
+RANG_DU_COU = 0.045
+"""Part de l'arc de la couture au pôle où se pose, sur la peau de la base, le rang qui relie la couture à la peau de
+MakeHuman : celle du premier rang de l'orc (`RANGS` de son `donnees.py`), sous `MARGE_DE_COUTURE_DEG`. Cousue d'un trait
+de la couture à MakeHuman, la bande se plissait sous `carrure_plus` (points sombres le long de la couture, dans le jeu)."""
 FONDU_DU_FEMININ = 0.25
-"""HYPOTHÈSE : part de l'arc de la couture au pôle sur laquelle la clé `feminin` passe de celle du cou de la base, à la
-couture, à celle de la tête (`tete.parts_du_fondu`), réglée à l'œil : le cou de la base s'amincit, la nuque le suit et
-le ressaut sous le crâne s'adoucit, au prix d'une facette sous le menton. Étendu aux autres clés du corps, ce fondu
-rompt leur suivi du corps (`suiviDuCorps`, `gabarit_head_plus`) sans défaire les plis de la couture sous
-`carrure_plus`."""
+"""HYPOTHÈSE : part de l'arc de la couture au pôle sur laquelle, hors de l'avant (`part_de_l_avant`), la clé `feminin`
+passe de celle du cou de la base, à la couture, à celle de la tête (`tete.parts_du_fondu`), réglée à l'œil : le cou de
+la base s'amincit, la nuque le suit et le ressaut sous le crâne s'adoucit ; devant, sous la mâchoire, la tête garde sa
+clé, sans facette sous le menton. Étendu aux autres clés du corps, ce fondu rompt leur suivi du corps (`suiviDuCorps`,
+`gabarit_head_plus`)."""
 SOURCILS = 'eyebrows/eyebrows-trans-forward'
 """Cible dont les faces les plus déplacées portent les sourcils (`faces_des_sourcils`)."""
 OREILLES = ('ears/l-ear-trans-backward', 'ears/r-ear-trans-backward')
@@ -264,6 +269,25 @@ def fermer(M, boucle, X, C):
     return siens
 
 
+def dents_de_la_base(porteur, S):
+    """Les triangles de la peau de la tête de la base (`porteur`) dont les trois sommets sont trois sommets de suite de la
+    couture `S` : le rang, dans `S`, de leur sommet du milieu. La couture est en dents de scie parce que ces triangles
+    pointent entre ceux du cou ; sans eux, la bande cousue enjambe chaque creux d'un triangle plat, que `carrure_plus`,
+    qui déplace les creux de 12 mm et les pointes de 4, plisse en points sombres le long de la couture."""
+    rang = {}
+    for i, p in enumerate(porteur['P']):
+        proches = np.flatnonzero(np.linalg.norm(S - p, axis=1) < CONFONDUS_M)
+        if len(proches):
+            rang[i] = int(proches[0])
+    creux = []
+    for t in porteur['T']:
+        if all(i in rang for i in t):
+            for k in {rang[i] for i in t}:
+                if {(k - 1) % len(S), k, (k + 1) % len(S)} == {rang[i] for i in t}:
+                    creux.append(k)
+    return sorted(set(creux))
+
+
 def poids_adoucis(W, P, orientes, couture):
     """Les poids `W` des sommets `P` (triangles `orientes`) lissés (`tissu.lisser`), ceux des `couture` premiers sommets
     tenus, jusqu'à ce qu'aucune arête ne porte un saut de poids par mètre plus fort que la couture du cou de la base :
@@ -319,12 +343,18 @@ def calage(peau, yeux, H):
     return echelle, H * (1.0 - echelle) + translation
 
 
-def part_du_visage(direction):
-    """La part du visage dans la `direction` vue de `AXE` : entière devant, nulle hors de `OUVERTURE_DU_VISAGE_DEG`."""
-    def part(angle, bornes):
-        return fondu((bornes[1] - abs(angle)) / (bornes[1] - bornes[0]))
+def part_de_l_avant(direction):
+    """La part de l'avant dans la `direction` vue de `AXE` : entière devant, nulle au-delà de l'azimut de
+    `OUVERTURE_DU_VISAGE_DEG`."""
+    bornes = OUVERTURE_DU_VISAGE_DEG['azimut']
+    return fondu((bornes[1] - abs(azimut(direction))) / (bornes[1] - bornes[0]))
 
-    return part(azimut(direction), OUVERTURE_DU_VISAGE_DEG['azimut']) * part(elevation(direction), OUVERTURE_DU_VISAGE_DEG['elevation'])
+
+def part_du_visage(direction):
+    """La part du visage dans la `direction` vue de `AXE` : celle de l'avant (`part_de_l_avant`), nulle hors de
+    l'élévation de `OUVERTURE_DU_VISAGE_DEG`."""
+    bornes = OUVERTURE_DU_VISAGE_DEG['elevation']
+    return part_de_l_avant(direction) * fondu((bornes[1] - abs(elevation(direction))) / (bornes[1] - bornes[0]))
 
 
 def sans_glissement(X, ecart, utiles, triangles, oreilles, H):
@@ -433,8 +463,8 @@ def construire(D, materiaux, b):
     rayons = np.linalg.norm(X[utiles] - C, axis=1)
     enveloppe = elevation_de_la_couture(S, C, np.array([azimut(x - C) for x in X[utiles]]))
     arcs = (np.array([elevation(x - C) for x in X[utiles]]) - enveloppe) / (90.0 - enveloppe)
-    fondus, parts = fondre_sur_le_cou(b.porteur(ZONES_DES_CLES), C, (X[utiles] - C) / rayons[:, None], rayons, arcs,
-                                      FONDU_DU_COU)
+    porteur = b.porteur(ZONES_DES_CLES)
+    fondus, parts = fondre_sur_le_cou(porteur, C, (X[utiles] - C) / rayons[:, None], rayons, arcs, FONDU_DU_COU)
     X[utiles] = C + (fondus / rayons)[:, None] * (X[utiles] - C)
     for delta in de_makehuman.values():
         delta[utiles] *= parts[:, None]
@@ -461,13 +491,24 @@ def construire(D, materiaux, b):
     bord = M.ajouter(list(S), 'peau')
     utiles = np.unique(triangles)
     rang = dict(zip(utiles.tolist(), M.ajouter(list(X[utiles]), 'peau')))
-    coudre(M, bord, S, [rang[i] for i in bas], X[bas], C)
+    colonnes = -180.0 + 360.0 * np.arange(len(bas)) / len(bas)
+    vers_le_rang = directions_des_rangs(colonnes, elevation_de_la_couture(S, C, colonnes), [RANG_DU_COU])
+    du_rang = C + fondre_sur_le_cou(porteur, C, vers_le_rang, np.zeros(len(bas)), np.zeros(len(bas)), FONDU_DU_COU)[0][:, None] * vers_le_rang
+    anneau = M.ajouter(list(du_rang), 'peau')
+    creux = dents_de_la_base(porteur, S)
+    for k in creux:
+        M.triangle(bord[k - 1], bord[k], bord[(k + 1) % len(S)], C)
+    pointes = [k for k in range(len(S)) if k not in creux]
+    print('TETE_MH couture :', len(creux), 'dents de la base reprises sur', len(S), 'sommets', flush=True)
+    coudre(M, [bord[k] for k in pointes], S[pointes], anneau, du_rang, C)
+    coudre(M, anneau, du_rang, [rang[i] for i in bas], X[bas], C)
     normales = np.cross(X[triangles[:, 1]] - X[triangles[:, 0]], X[triangles[:, 2]] - X[triangles[:, 0]])
     normales /= np.maximum(np.linalg.norm(normales, axis=1, keepdims=True), 1e-12)
     centres = X[triangles].mean(axis=1)
     for tri, n, c in zip(triangles.tolist(), normales, centres):
         M.triangle(*(rang[i] for i in tri), c - sens * 1e-4 * n)
-    lus = [lambda champ: champ[utiles]]          # par groupe de sommets ajoutés, son champ lu dans un champ du donneur
+    lus = [lambda champ: champ[utiles],          # par groupe de sommets ajoutés, son champ lu dans un champ du donneur
+           lambda champ: np.zeros((len(anneau), 3))]
     doublures = []                               # (sommets qui en doublent d'autres, leur champ lu dans celui de la pièce)
     for boucle in autres:
         print('TETE_MH bord fermé :', len(boucle), 'arêtes, milieu', np.round(X[boucle].mean(axis=0) - H, 3).tolist(),
@@ -501,7 +542,6 @@ def construire(D, materiaux, b):
     print('TETE_MH', D['NOM'], ': triangles de peau', len(triangles), ', de sourcils', len(sourcils), ', bord du cou',
           len(bas), 'arêtes ; cotes',
           {k: round(float(x), 4) for k, x in cotes(P[len(bord):peau], P[peau:fin_des_yeux], H).items()}, flush=True)
-    porteur = b.porteur(ZONES_DES_CLES)
     W = np.zeros((len(P), len(b.os)))
     W[:len(bord)] = b.corps('cou')[2][indices_du_cou]
     for v in range(len(bord), len(P)):
@@ -521,8 +561,10 @@ def construire(D, materiaux, b):
     tours = np.degrees(np.unwrap(np.radians([azimut(p - C) for p in S])))
     azimuts = np.array([azimut(p - C) for p in P[len(bord):]])
     enveloppe = elevation_de_la_couture(S, C, azimuts)
-    de_la_tete = parts_du_fondu((np.array([elevation(p - C) for p in P[len(bord):]]) - enveloppe) / (90.0 - enveloppe),
-                                FONDU_DU_FEMININ)[:, None]
+    du_cou_a_la_nuque = 1.0 - parts_du_fondu((np.array([elevation(p - C) for p in P[len(bord):]]) - enveloppe)
+                                             / (90.0 - enveloppe), FONDU_DU_FEMININ)
+    axe = H + np.array([0.0, CENTRE[1], AXE_DU_VISAGE])
+    de_la_tete = (1.0 - du_cou_a_la_nuque * np.array([1.0 - part_de_l_avant(p - axe) for p in P[len(bord):]]))[:, None]
     for nom, champ in cles_du_corps(b, ZONES_DES_CLES, P[len(bord):]).items():
         du_cou = decalages_monde(b.zones['cou'], nom)[indices_du_cou]
         if nom == FEMININ:

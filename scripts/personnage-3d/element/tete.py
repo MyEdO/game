@@ -214,6 +214,12 @@ def elevation_de_la_couture(S, C, phis):
     return np.maximum(E, enveloppe)
 
 
+def directions_des_rangs(phis, E, rangs):
+    """Les directions, rang par rang, des colonnes d'azimuts `phis` : chaque rang de `rangs` à sa part de l'arc qui va
+    de l'enveloppe de la couture `E` (par colonne) au pôle."""
+    return np.array([direction_spatiale(phi, e + (90.0 - e) * g) for g in rangs for phi, e in zip(phis, E)])
+
+
 def parts_du_fondu(arcs, portee):
     """La part de la tête, par part `arcs` de l'arc de la couture au pôle : nulle à la couture, entière à `portee`."""
     return np.array([fondu(a / portee) for a in arcs])
@@ -496,7 +502,7 @@ def construire(D, materiaux, b):
     E = elevation_de_la_couture(S, C, phis)
     rangs = np.asarray(D['RANGS'], float)
 
-    dirs = np.array([direction_spatiale(phi, e + (90.0 - e) * g) for g in rangs for phi, e in zip(phis, E)] + [POLE])
+    dirs = np.concatenate([directions_des_rangs(phis, E, rangs), [POLE]])
     r_forme = rayons_vises(C - H, dirs, vols)
     r_inverse = rayons_vises(C - H, dirs, vols_inverses)
     porteur = b.porteur(zones)
