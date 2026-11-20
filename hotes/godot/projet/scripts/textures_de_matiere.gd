@@ -1,74 +1,103 @@
-## Le catalogue des textures de matière que `Demarrage` prépare et que les poses consultent pendant toute la partie.
+## Les textures importées que préparent et tiennent les porteurs de matière, un lot par besoin.
 class_name TexturesDeMatiere
 extends Node
 
-const DOSSIER := "res://textures"
-static var _textures: Dictionary[String, Texture2D] = {}
+
+class Lecture extends RefCounted:
+	var terminee := false
+	var texture: Texture2D
 
 
-## Les recettes lancées directement instancient les scènes depuis leur propre boucle principale.
+var _en_vol: Dictionary[String, Lecture] = {}
+
+
 func _ready() -> void:
-	var boucle := get_tree().get_script() as Script
-	if boucle != null and boucle.resource_path.begins_with("res://recettes/"):
-		var recueil: Array[String] = []
-		await preparer(recueil, true)
-		for erreur in recueil:
-			push_error(erreur)
+	set_process(false)
 
 
-## La texture retenue à ce chemin, ou `null` si le catalogue ne la porte pas.
+## La texture déjà tenue à ce chemin. Le cache de Godot la connaît tant qu'un porteur la référence.
 static func retenue(chemin: String) -> Texture2D:
-	return _textures.get(chemin)
+	return ResourceLoader.get_cached_ref(chemin) as Texture2D
 
 
-## Remplit le catalogue après montage des paquets. Le gabarit Web sans threads répartit les lectures entre les images.
-func preparer(recueil: Array[String], synchrone := false) -> void:
-	if not _textures.is_empty():
-		return
-	var chemins := PackedStringArray()
-	for fichier: String in ResourceLoader.list_directory(DOSSIER):
-		if fichier.ends_with(".jpg"):
-			chemins.append(DOSSIER.path_join(fichier))
-	if chemins.is_empty():
-		recueil.append("catalogue-de-textures-vide : %s" % DOSSIER)
-		return
-	chemins.sort()
-	var lues: Dictionary[String, Texture2D] = {}
-	if synchrone or OS.has_feature("web"):
+## Les chemins d'une matière, y compris sa variante neutre si une palette peut la teinter.
+static func chemins_de(matiere: String, neutre: bool) -> PackedStringArray:
+	var chemins := PackedStringArray([VolumeDeScene.texture_de(matiere), VolumeDeScene.relief_de(matiere)])
+	if neutre:
+		chemins.append(VolumeDeScene.texture_neutre_de(matiere))
+	return chemins
+
+
+## Par chemin, les textures présentes des matières demandées (chaque nom à vrai si sa variante neutre sert).
+## Le lot rendu tient les textures jusqu'à leur pose ou tant que le porteur les utilise.
+static func preparer(hote: Node, matieres: Dictionary) -> Dictionary:
+	if matieres.is_empty():
+		return {}
+	var chargeur := hote.get_node("/root/Textures") as TexturesDeMatiere
+	return await chargeur._preparer(matieres)
+
+
+func _preparer(matieres: Dictionary) -> Dictionary:
+	var textures := {}
+	var attendues: Dictionary[String, Lecture] = {}
+	for matiere: String in matieres:
+		var chemins := chemins_de(matiere, matieres[matiere])
+		if not ResourceLoader.exists(chemins[0], "Texture2D"):
+			continue
 		for chemin: String in chemins:
-			if not synchrone:
-				await get_tree().process_frame
-			_retenir(chemin, ResourceLoader.load(chemin, "Texture2D"), lues, recueil)
-	else:
-		await _preparer_en_fond(chemins, lues, recueil)
-	if recueil.is_empty():
-		_textures = lues
-
-
-func _preparer_en_fond(chemins: PackedStringArray, lues: Dictionary[String, Texture2D], recueil: Array[String]) -> void:
-	var demandes := {}
-	for chemin: String in chemins:
-		var code := ResourceLoader.load_threaded_request(chemin, "Texture2D")
-		if code == OK:
-			demandes[chemin] = true
-		else:
-			recueil.append("texture-illisible : %s (%s)" % [chemin, error_string(code)])
-	while not demandes.is_empty():
-		await get_tree().process_frame
-		for chemin: String in demandes.keys():
-			var statut := ResourceLoader.load_threaded_get_status(chemin)
-			if statut == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			if not ResourceLoader.exists(chemin, "Texture2D"):
 				continue
-			demandes.erase(chemin)
-			var texture: Resource = null
-			if statut in [ResourceLoader.THREAD_LOAD_LOADED, ResourceLoader.THREAD_LOAD_FAILED]:
-				texture = ResourceLoader.load_threaded_get(chemin)
-			_retenir(chemin, texture, lues, recueil)
+			if _en_vol.has(chemin):
+				attendues[chemin] = _en_vol[chemin]
+				continue
+			var texture := retenue(chemin)
+			if texture == null:
+				attendues[chemin] = _demander(chemin)
+			else:
+				textures[chemin] = texture
+	var arbre := get_tree()
+	while not attendues.is_empty():
+		await arbre.process_frame
+		for chemin: String in attendues.keys():
+			var lecture := attendues[chemin]
+			if lecture.terminee:
+				if lecture.texture != null:
+					textures[chemin] = lecture.texture
+				attendues.erase(chemin)
+	return textures
 
 
-static func _retenir(chemin: String, ressource: Resource, lues: Dictionary[String, Texture2D], recueil: Array[String]) -> void:
-	var texture := ressource as Texture2D
-	if texture == null:
-		recueil.append("texture-illisible : %s" % chemin)
+func _demander(chemin: String) -> Lecture:
+	var lecture := Lecture.new()
+	if not OS.has_feature("web") and ResourceLoader.load_threaded_request(chemin, "Texture2D") != OK:
+		lecture.terminee = true
+		push_warning("[textures] texture-illisible : %s" % chemin)
+		return lecture
+	_en_vol[chemin] = lecture
+	set_process(true)
+	return lecture
+
+
+func _process(_delta: float) -> void:
+	if OS.has_feature("web"):
+		var chemin: String = _en_vol.keys().front()
+		_terminer(chemin, ResourceLoader.load(chemin, "Texture2D"))
 	else:
-		lues[chemin] = texture
+		for chemin: String in _en_vol.keys():
+			var statut := ResourceLoader.load_threaded_get_status(chemin)
+			if statut != ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+				var ressource: Resource = null
+				if statut in [ResourceLoader.THREAD_LOAD_LOADED, ResourceLoader.THREAD_LOAD_FAILED]:
+					ressource = ResourceLoader.load_threaded_get(chemin)
+				_terminer(chemin, ressource)
+	if _en_vol.is_empty():
+		set_process(false)
+
+
+func _terminer(chemin: String, ressource: Resource) -> void:
+	var lecture := _en_vol[chemin]
+	lecture.texture = ressource as Texture2D
+	lecture.terminee = true
+	_en_vol.erase(chemin)
+	if lecture.texture == null:
+		push_warning("[textures] texture-illisible : %s" % chemin)

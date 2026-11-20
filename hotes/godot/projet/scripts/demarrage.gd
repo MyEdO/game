@@ -1,4 +1,4 @@
-## La scène de démarrage (`run/main_scene`) prépare le catalogue des textures de matière, puis ouvre l'accueil.
+## La scène de démarrage (`run/main_scene`) ouvre l'accueil.
 ## Dans la page, elle monte d'abord chaque paquet nommé par `paquets.json` (`PAQUETS_DU_WEB`, #4402). Les fichiers du
 ## paquet remplacent ceux de même chemin, dont `.godot/uid_cache.bin` qui porte ses UID. Une panne s'affiche à l'écran.
 extends CenterContainer
@@ -14,14 +14,16 @@ func _ready() -> void:
 	var recueil: Array[String] = []
 	if OS.has_feature("web"):
 		await _monter_les_paquets(recueil)
-	if recueil.is_empty():
-		var textures := get_node("/root/Textures") as TexturesDeMatiere
-		await textures.preparer(recueil)
 	if not recueil.is_empty():
 		push_error("[demarrage] ", "\n".join(recueil))
 		_etat.text = "\n".join(recueil)
 		return
-	get_tree().change_scene_to_file(ACCUEIL)
+	_ouvrir_l_accueil.call_deferred()
+
+
+func _ouvrir_l_accueil() -> void:
+	if is_inside_tree() and get_tree().current_scene == self:
+		get_tree().change_scene_to_file(ACCUEIL)
 
 
 func _monter_les_paquets(recueil: Array[String]) -> void:

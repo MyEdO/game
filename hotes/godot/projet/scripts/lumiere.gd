@@ -110,14 +110,20 @@ func eclairer(lumiere: Dictionary, plateau: Dictionary) -> void:
 func _poser_le_hors_carte(hors_carte: Dictionary, plateau: Dictionary) -> void:
 	_hors_carte.visible = hors_carte.sol != null
 	if hors_carte.sol == null:
+		sol_hors_carte.set_shader_parameter("albedo_texture", null)
+		sol_hors_carte.set_shader_parameter("normal_texture", null)
+		sol_hors_carte.set_shader_parameter("normal_enabled", false)
 		return
 	var taille := Vector2i(plateau.w, plateau.h)
 	var texture := TexturesDeMatiere.retenue(VolumeDeScene.texture_de(hors_carte.sol.matiere))
 	_hors_carte.position = MiseEnPage.centre_du_hors_carte(taille)
 	_hors_carte.scale = MiseEnPage.etendue_du_hors_carte(taille)
-	sol_hors_carte.set_shader_parameter("albedo_texture", null)
+	if texture == null:
+		sol_hors_carte.set_shader_parameter("albedo_texture", null)
 	sol_hors_carte.set_shader_parameter("normal_enabled", false)
 	VolumeDeScene.texturer(sol_hors_carte, hors_carte.sol.matiere, texture, false)
+	if not sol_hors_carte.get_shader_parameter("normal_enabled"):
+		sol_hors_carte.set_shader_parameter("normal_texture", null)
 	sol_hors_carte.set_shader_parameter("teinte", Color.WHITE if texture != null else Color(hors_carte.sol.couleur))
 	sol_hors_carte.set_shader_parameter("metres_par_case", plateau.metresParCase)
 	sol_hors_carte.set_shader_parameter("plateau", Vector2(taille))

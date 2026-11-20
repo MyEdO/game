@@ -227,7 +227,7 @@ func _avant_apres(pont: PontDuDecor) -> bool:
 	if not _verifier(sans_decors.get("ok") == true and sans_decors.decors.is_empty(), "l'index sans décors n'est pas servi"):
 		return false
 	var avant: Image
-	if _poser_le_volume(pont):
+	if await _poser_le_volume(pont):
 		_modeles.poser(_vue.corps.navires, {}, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
 		_verifier(_modeles.poses().is_empty(), "sans décors servis, %d modèles encore posés" % _modeles.poses().size())
 		var triangles_recette: int = _monde.volume.ce_qui_est_pose().triangles - triangles_servis
@@ -236,7 +236,7 @@ func _avant_apres(pont: PontDuDecor) -> bool:
 			_verifier(avant.get_data() != apres.get_data(), "l'image des primitives est celle des modèles")
 	if not _verifier(pont.appeler("modeles", entree).get("ok") == true, "l'index initial n'est pas rétabli"):
 		return false
-	if not _poser_le_volume(pont):
+	if not await _poser_le_volume(pont):
 		return false
 	_modeles.poser(_vue.corps.navires, _vue.corps.decors, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
 	_verifier(_monde.volume.ce_qui_est_pose().triangles == triangles_servis, "les décors servis de nouveau, le volume n'a pas retrouvé ses %d triangles peints" % triangles_servis)
@@ -264,6 +264,7 @@ func _poser_le_volume(pont: PontDuDecor) -> bool:
 	var recus := pont.appeler("morceaux", manquants.merged({source = "partie"}))
 	if not _verifier(recus.get("ok") == true, "les morceaux du monde ne sont pas servis"):
 		return false
+	var _textures_gardees := await TexturesDeMatiere.preparer(_monde, VolumeDeScene.matieres_des_morceaux(recus))
 	_monde.volume.poser(monde, recus)
 	return _verifier(_monde.volume.manquants(monde).values().all(func(cles: Array) -> bool: return cles.is_empty()), "des morceaux du monde restent à poser")
 

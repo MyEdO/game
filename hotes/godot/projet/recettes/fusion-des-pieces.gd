@@ -55,9 +55,11 @@ func _recetter() -> void:
 	if matiere.is_empty():
 		_fautes.append("aucune texture neutre au projet (`res://textures/<matiere>.neutre.jpg`)")
 		return _finir()
+	var textures := await TexturesDeMatiere.preparer(root, {matiere: true})
 	MontageDeComposition.peindre([tunique], [{nom = TOILE, palette = "vet1", matiere = matiere}], null, {vet1 = "#a03020"}, _locaux, true)
 	var peinte := tunique.get_active_material(0) as BaseMaterial3D
-	if peinte.albedo_texture != load(VolumeDeScene.texture_neutre_de(matiere)) or peinte.uv1_triplanar:
+	var neutre: Texture2D = textures.get(VolumeDeScene.texture_neutre_de(matiere))
+	if neutre == null or peinte.albedo_texture != neutre or peinte.uv1_triplanar:
 		_fautes.append("tunique : texture %s (triplanaire %s), %s aux UV attendue" % [peinte.albedo_texture, peinte.uv1_triplanar, VolumeDeScene.texture_neutre_de(matiere)])
 	squelette.set_bone_pose_rotation(squelette.find_bone("torse"), Quaternion.from_euler(Vector3(0.4, -0.2, 0.1)))
 	squelette.set_bone_pose_rotation(squelette.find_bone("main"), Quaternion.from_euler(Vector3(-0.7, 0.5, 0.3)))
