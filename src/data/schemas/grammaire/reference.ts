@@ -141,12 +141,44 @@ function refusDeVarianteDeCible(id: string, arg: string): string | null {
 /** L'id d'un Trait posé : le moteur porte des ids nus (`TraitInstance.id`, `engine/statEntry.ts`). */
 const idDeTrait: z.ZodType<string, string> = idDe('trait');
 
+/** Référence par id de `type` portant une MAGNITUDE, et rien d'autre — forme CANONIQUE de la « référence
+ *  indicée » du dépôt (`scripts/guards/lib/structuresStock.mjs`, signature `id,value`). Elle ne porte PAS
+ *  de `spec` : ce qu'une magnitude qualifie n'est pas une SPÉCIALISATION. */
+const refIndicee = <T extends 'quality' | 'navalTrait'>(type: T) => ref(type, { value: nommerNoeud(z.number().optional(), { nom: 'valeur' }) });
+
+/** `QualityRef` — id + Indice éventuel (« Solide 3 », « Taillade (1A) » → `value`). Vue COMMUNE du joker de
+ *  qualité d'une dotation (`TrappingRef.qualities`, #657 Lot 1) ET du catalogue `trappings.json` lui-même, qui
+ *  l'importe (#1463 L-gram-2). C'est la référence INDICÉE ci-dessus : ce que le livre imprime entre parenthèses
+ *  (`AA 08 l.87` « Taillade (XA) ») est une MAGNITUDE, portée par `value` et déclarée par la qualité
+ *  (`QualityData.indice`) ; aucune `spec`. */
+export const qualityRefSchema = refIndicee('quality');
+export type QualityRef = z.infer<typeof qualityRefSchema>;
+
+/** ADE II 02 l.710 ; ZI 13 l.224, l.240, l.242 ; HCVM 26 l.882 */
+const ajustementsDArmeSchema = nommerChamps(z.strictObject({
+  qualites: listeSansCle(z.array(qualityRefSchema).min(1)).optional(),
+  retire: refs('quality', { min: 1 }).optional(),
+  allonge: reachSchema.optional(),
+  ajusteeAuPorteur: z.literal(true).optional(),
+  groupesDeManiement: refs('weaponGroup', { sousListe: 'melee', min: 1 }).optional(),
+  sansSpecialisation: z.literal(true).optional(),
+}).refine((p) => Object.values(p).some((v) => v !== undefined), {
+  message: 'Indiquer au moins un écart au profil de l’arme.',
+}), {
+  qualites: { label: 'Atouts et Défauts', hint: 'Remplacent ceux de même id de l’arme' },
+  retire: { label: 'Atouts et Défauts ôtés' },
+  allonge: { label: 'Allonge' },
+  ajusteeAuPorteur: { label: 'Ajustée au porteur' },
+  groupesDeManiement: { label: 'Groupes de maniement alternatifs' },
+  sansSpecialisation: { label: 'Compétence sans spécialisation imprimée' },
+});
+
 /** Les libellés des champs du Trait posé. */
-const CHAMPS_DU_TRAIT_POSE = { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, plage: { label: "fourchette" }, parLocalisation: { label: "par Localisation" }, matiere: { label: "matière" }, difficulte: { label: "Difficulté" }, confere: { label: "Traits conférés" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } } as const;
+const CHAMPS_DU_TRAIT_POSE = { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, plage: { label: "fourchette" }, parLocalisation: { label: "par Localisation" }, matiere: { label: "matière" }, difficulte: { label: "Difficulté" }, confere: { label: "Traits conférés" }, profilDArme: { label: "Profil d’arme" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } } as const;
 
 /** Les refus du Trait posé : une seule clé de valeur, la capacité de la def, l'`arg` (un individu, hors du
  *  registre, n'est admis que dans une scène, `regime`). EDOC 11 l.648 ; #3045 */
-function refusDuTraitPose(t: { id: string; value?: unknown; arg?: string; plage?: { min: number; max: number }; parLocalisation?: unknown; matiere?: unknown; confere?: unknown; difficulte?: unknown }, ctx: z.RefinementCtx, regime: RegimeDeCible): void {
+function refusDuTraitPose(t: TraitPose, ctx: z.RefinementCtx, regime: RegimeDeCible): void {
   const valeurs = (['value', 'plage', 'parLocalisation'] as const).filter((k) => t[k] !== undefined);
   if (valeurs.length > 1) ctx.addIssue({ code: 'custom', path: [valeurs[1]], message: `Trait « ${t.id} » : « ${valeurs.join(' » et « ')} » disent tous deux sa valeur — une seule de ces clés.` });
   if (t.parLocalisation && t.arg !== undefined) ctx.addIssue({ code: 'custom', path: ['arg'], message: `Trait « ${t.id} » : un Indice par Localisation nomme ses zones, sans Aspect.` });
@@ -154,6 +186,17 @@ function refusDuTraitPose(t: { id: string; value?: unknown; arg?: string; plage?
   for (const champ of ['plage', 'parLocalisation', 'matiere', 'confere', 'difficulte'] as const) {
     const refus = t[champ] === undefined ? null : refusDeCapaciteDeTrait(t.id, champ);
     if (refus) ctx.addIssue({ code: 'custom', path: [champ], message: refus });
+  }
+  if (t.profilDArme !== undefined) {
+    const source = findTraitById(t.id)?.specsSource;
+    if (source !== 'weaponsMelee' && source !== 'weaponsRanged')
+      ctx.addIssue({ code: 'custom', path: ['profilDArme'], message: 'Ce Trait ne définit pas de profil d’arme.' });
+    else if (source === 'weaponsRanged') {
+      if (t.profilDArme.allonge !== undefined)
+        ctx.addIssue({ code: 'custom', path: ['profilDArme', 'allonge'], message: 'L’Allonge se pose sur un profil de mêlée.' });
+      if (t.profilDArme.groupesDeManiement !== undefined)
+        ctx.addIssue({ code: 'custom', path: ['profilDArme', 'groupesDeManiement'], message: 'Les Groupes de maniement alternatifs se posent sur un profil de mêlée.' });
+    }
   }
   if (t.arg === undefined) return;
   const refusDIndividu = regime === 'scene' ? null : `Trait « ${t.id} » : « ${t.arg} » désigne une personne de la scène ; hors d'une scène, sa Cible est un Groupe.`;
@@ -181,6 +224,7 @@ const champsDuTraitPose = {
   /** Difficulté des Tests qui éliminent l'État que le Trait inflige (MDG 16 l.226 ; LDB 16 l.70) ; admise
    *  si la def la déclare. */
   difficulte: difficultySchema.optional(),
+  profilDArme: ajustementsDArmeSchema.optional(),
   natural: z.boolean().optional(),
   hidden: z.boolean().optional(),
   /** PROVENANCE de la valeur posée, quand elle ne vient pas du passage de l'entrée qui la porte : la
@@ -250,23 +294,10 @@ export const talentRefSchema = nommerChamps(z.strictObject({ id: idDe('talent', 
   ctx.addIssue({ code: 'custom', path: ['spec'], message: messageDeRefusDeSpec('talent', r.id, r.spec, refus, false) });
 }), { id: { label: "identifiant" }, spec: { label: "spécialisation" }, times: { label: "multiplicateur" } });
 
-/** Référence par id de `type` portant une MAGNITUDE, et rien d'autre — forme CANONIQUE de la « référence
- *  indicée » du dépôt (`scripts/guards/lib/structuresStock.mjs`, signature `id,value`). Elle ne porte PAS
- *  de `spec` : ce qu'une magnitude qualifie n'est pas une SPÉCIALISATION. */
-const refIndicee = <T extends 'quality' | 'navalTrait'>(type: T) => ref(type, { value: nommerNoeud(z.number().optional(), { nom: 'valeur' }) });
-
 /** `NavalTraitRef` (`src/data/index.ts`) — Trait ou Amélioration de navire (MDG 12), + Indice éventuel. Son
  *  foyer est `naval-traits.json`, jamais `traits.json` : `traitInstanceSchema` ouvrirait les Traits de
  *  créature aux navires. */
 export const navalTraitRefSchema = refIndicee('navalTrait');
-
-/** `QualityRef` — id + Indice éventuel (« Solide 3 », « Taillade (1A) » → `value`). Vue COMMUNE du joker de
- *  qualité d'une dotation (`TrappingRef.qualities`, #657 Lot 1) ET du catalogue `trappings.json` lui-même, qui
- *  l'importe (#1463 L-gram-2). C'est la référence INDICÉE ci-dessus : ce que le livre imprime entre parenthèses
- *  (`AA 08 l.87` « Taillade (XA) ») est une MAGNITUDE, portée par `value` et déclarée par la qualité
- *  (`QualityData.indice`) ; aucune `spec`. */
-export const qualityRefSchema = refIndicee('quality');
-export type QualityRef = z.infer<typeof qualityRefSchema>;
 
 /** Qualité MAJORÉE d'une munition (« Explosion +1 », « Tir de zone +3 ») : `majoration` s'ajoute à l'Indice de la même
  *  qualité de l'arme, exclusive de `value`. Résolue par `weaponWithAmmo` (`engine/items.ts`). LDB 62 l.123 ; AA 08 l.496-497 ;

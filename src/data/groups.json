@@ -69,6 +69,15 @@
     "race": true
   },
   {
+    "id": "clan-eshin",
+    "type": "groups",
+    "label": "Clan Eshin",
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 32
+    }
+  },
+  {
     "id": "cultiste",
     "type": "groups",
     "label": "Cultiste"

@@ -2175,13 +2175,13 @@ export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, Tra
 export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | null }): G | undefined {
   return arme.weaponGroup ?? arme.subType ?? undefined;
 }
-/** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` hors « Mains nues »
- *  (`TrappingData.unarmed`) et hors des armes magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3),
+/** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` avec profil de Dégâts,
+ *  hors « Mains nues » (`TrappingData.unarmed`) et hors des armes magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3),
  *  triée au libellé. `id` = `trappingId`
  *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue ; `reserveeA`, le seul Groupe
  *  de peuple à qui elle s'offre. */
 export const armesChoisissables = memoParVersion(['trappings', 'qualities', 'reglesOptionnelles'], () => trappingsInstanciables()
-  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed)
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && t.damage != null && !t.unarmed)
   .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
   .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor, reserveeA: t.reserveeA?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));

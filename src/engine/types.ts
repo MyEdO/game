@@ -380,6 +380,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  ≠ `natural` — exempte SEULEMENT du
    *  mismatch de Taille (`attackModifiers`), n'étant pas une POSSESSION manufacturée réelle. */
   sizeless?: boolean;
+  /** HCVM 26 l.827, l.832 ; HCVM 51 l.350, l.354 */
+  sansSpecialisation?: true;
   /** Uid de l'objet PORTÉ dont l'arme est DÉRIVÉE (`TrappingData.derivedWeapon`, prothèse-arme : Crochet),
    *  posé par `recomputeLoadout` : une arme dérivée n'est pas une arme tenue que l'on lâche. */
   derivedFromItem?: string;

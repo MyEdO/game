@@ -157,6 +157,8 @@ export interface TraitInstance extends SansFourchette {
   difficulte?: Difficulty;
   /** Traits conférés aux touches de ce Trait d'attaque, lus par l'arme qui en naît. ZI 03 l.75, l.77 */
   confere?: TraitInstance[];
+  /** ZI 13 l.224, l.240, l.242 ; HCVM 26 l.882 */
+  profilDArme?: TraitPose['profilDArme'];
 }
 
 /**
