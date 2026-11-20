@@ -57,10 +57,12 @@ FONDU_DU_COU = 0.1
 (`tete.fondre_sur_le_cou`) : elle garde à une race sa mâchoire (nain : 8,6 mm sur 8,7 de son écart à l'humain) et
 adoucit le ressaut de la nuque sans l'effacer. Les têtes de `tete.py` ont la leur (`FONDU_DU_COU` de leur `donnees.py`,
 0,2), qui efface mieux ce ressaut mais ne laisse au nain que 6,4 mm."""
-FONDU_DES_CLES = 0.25
-"""HYPOTHÈSE : part de l'arc de la couture au pôle sur laquelle une clé du corps (silhouette, `gabarit_*`) passe de
-celle du cou de la base, à la couture, à celle de la tête (`tete.parts_du_fondu`), réglée à l'œil : quand le cou de la
-base s'amincit ou s'épaissit, la nuque et le dessous de la mâchoire le suivent, sans ressaut ni pli sous le crâne."""
+FONDU_DU_FEMININ = 0.25
+"""HYPOTHÈSE : part de l'arc de la couture au pôle sur laquelle la clé `feminin` passe de celle du cou de la base, à la
+couture, à celle de la tête (`tete.parts_du_fondu`), réglée à l'œil : le cou de la base s'amincit, la nuque le suit et
+le ressaut sous le crâne s'adoucit, au prix d'une facette sous le menton. Étendu aux autres clés du corps, ce fondu
+rompt leur suivi du corps (`suiviDuCorps`, `gabarit_head_plus`) sans défaire les plis de la couture sous
+`carrure_plus`."""
 SOURCILS = 'eyebrows/eyebrows-trans-forward'
 """Cible dont les faces les plus déplacées portent les sourcils (`faces_des_sourcils`)."""
 OREILLES = ('ears/l-ear-trans-backward', 'ears/r-ear-trans-backward')
@@ -519,13 +521,14 @@ def construire(D, materiaux, b):
     azimuts = np.array([azimut(p - C) for p in P[len(bord):]])
     enveloppe = elevation_de_la_couture(S, C, azimuts)
     de_la_tete = parts_du_fondu((np.array([elevation(p - C) for p in P[len(bord):]]) - enveloppe) / (90.0 - enveloppe),
-                                FONDU_DES_CLES)[:, None]
+                                FONDU_DU_FEMININ)[:, None]
     for nom, champ in cles_du_corps(b, ZONES_DES_CLES, P[len(bord):]).items():
         du_cou = decalages_monde(b.zones['cou'], nom)[indices_du_cou]
         if nom == FEMININ:
             champ = champ + np.concatenate([lu(de_makehuman[FEMININ]) for lu in lus])
-        au_cou = np.column_stack([np.interp(azimuts, tours, du_cou[:, k], period=360.0) for k in range(3)])
-        poser_la_cle(piece, nom, np.concatenate([du_cou, de_la_tete * champ + (1.0 - de_la_tete) * au_cou]))
+            au_cou = np.column_stack([np.interp(azimuts, tours, du_cou[:, k], period=360.0) for k in range(3)])
+            champ = de_la_tete * champ + (1.0 - de_la_tete) * au_cou
+        poser_la_cle(piece, nom, np.concatenate([du_cou, champ]))
     for nom in TRAITS:
         poser_la_cle(piece, nom, np.concatenate([np.zeros((len(bord), 3))] + [lu(de_makehuman[nom]) for lu in lus]))
     de_peau = np.array([tri for tri in orientes if M.parties[tri[0]] == 'peau'])
