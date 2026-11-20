@@ -11,6 +11,7 @@ import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants, defDe } from './descente';
 import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './collection-cle';
+import { listeSansCle } from './liste-sans-cle';
 import { marquerProduit } from './interne/produits';
 import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
@@ -547,7 +548,7 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('combatEnMer'),
     adversaire: ref('creature', {
       nombre: nommerNoeud(z.number().int().min(1), { nom: 'effectif' }),
-      optionals: nommerNoeud(z.array(traitInstanceSchema).min(1).optional(), { nom: 'Traits facultatifs' }),
+      optionals: nommerNoeud(listeSansCle(z.array(traitInstanceSchema).min(1)).optional(), { nom: 'Traits facultatifs' }),
     }),
     repousseAPct: z.number().int().min(1).max(99).optional(),
     victoire: z.lazy(() => flowSchema).optional(),
@@ -740,7 +741,7 @@ const DECLARATIONS_D_OPS = {
   grantCareerSkill: declarerPayload({ op: z.literal('grantCareerSkill'), skill: aChoix('skill') }, { op: { label: "opération" }, skill: { label: "Compétence" } }),
   grantCareerTalent: declarerPayload({ op: z.literal('grantCareerTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
   grantTalent: declarerPayload({ op: z.literal('grantTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
-  suppressTalents: nommerChamps(z.strictObject({ op: z.literal('suppressTalents'), talents: z.array(ref('talent')).min(1), durationDays: formulaSchema }), { op: { label: "opération" }, talents: { label: "Talents suspendus", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+  suppressTalents: nommerChamps(z.strictObject({ op: z.literal('suppressTalents'), talents: listeSansCle(z.array(ref('talent')).min(1)), durationDays: formulaSchema }), { op: { label: "opération" }, talents: { label: "Talents suspendus", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   deityBan: nommerChamps(z.strictObject({ op: z.literal('deityBan'), durationDays: formulaSchema }), { op: { label: "opération" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   prayerForAction: nommerChamps(z.strictObject({ op: z.literal('prayerForAction'), durationRounds: formulaSchema }), { op: { label: "opération" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   grantReverseToken: nommerChamps(z.strictObject({ op: z.literal('grantReverseToken'), ...sujetDuJetSchema.shape, contexte: contexteDeTestSchema.optional(), illimite: z.literal(true).optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, characteristic: { label: "Caractéristique du Test" }, contexte: { label: "contexte du Test" }, illimite: { label: "jamais consommé" } }),
@@ -777,7 +778,7 @@ const DECLARATIONS_D_OPS = {
     ref: idDe('creature'),
     count: formulaSchema,
     countPerSL: perSLSchema.optional(),
-    addTraits: z.array(traitInstanceSchema).optional(),
+    addTraits: listeSansCle(z.array(traitInstanceSchema)).optional(),
     size: sizeCategorySchema.optional(),
     allyOfCaster: z.boolean().optional(),
     despawnIfCasterDown: z.boolean().optional(),
@@ -833,7 +834,7 @@ const DECLARATIONS_D_OPS = {
     movementOnly: z.boolean().optional(),
     sense: senseSchema.optional(),
     diseases: refs('maladie').optional(),
-    exceptSkills: z.array(ref('skill')).optional(),
+    exceptSkills: listeSansCle(z.array(ref('skill'))).optional(),
     weaponHand: mainSchema.optional(),
   }), { op: { label: "opération"  }, amount: { label: "quantité" }, characteristic: { label: "caractéristique" }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
   incomingAttackMod: nommerChamps(z.strictObject({
@@ -1178,8 +1179,8 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('Atteinte VISIBLE (apparence)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.visiblePassive')),
       variante('Est un NAVIRE', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('navire'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.navire')),
       variante('Cible de l’affliction en vue (psychologie)', reservee('cibleEnVue', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('cibleEnVue'), hostiles: z.literal(true).optional() }), { kind: { label: "type"  }, hostiles: { label: "hostiles seulement" } }), 'conditionDe', 'condition.cibleEnVue'))),
-      variante('TOUS (ET)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('all'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.all')),
-      variante('AU MOINS UN (OU)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('any'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.any')),
+      variante('TOUS (ET)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('all'), of: listeSansCle(z.array(conditionSchema)) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.all')),
+      variante('AU MOINS UN (OU)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('any'), of: listeSansCle(z.array(conditionSchema)) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.any')),
       variante('NON', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('not'), of: conditionSchema }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.not')),
     ]),
   );
@@ -2133,13 +2134,13 @@ export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema, catalogueSeul?: 
   });
   const passive = catalogueSeul ? ouvrirPortees(liste, [catalogueSeul], 'vide') : liste;
   REGIMES_DES_LISTES.set(passive, 'passive');
-  return passive as z.ZodType<OpPassive[]>;
+  return listeSansCle(passive) as z.ZodType<OpPassive[]>;
 }
 
 /** Liste d'ops EXÉCUTÉE (`applyOps`, ou un interprète restreint : `applyStarOps`, `applyOnFailInline`) : `auTotal` y
  *  marque, sous `applyOps`, les modificateurs de Caractéristique qu'elle porte (#3060). */
 export function executeesDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodArray<z.ZodType<GameOp>> {
-  const liste = z.array(op);
+  const liste = listeSansCle(z.array(op));
   REGIMES_DES_LISTES.set(liste, 'executee');
   return liste;
 }
