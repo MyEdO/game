@@ -1512,9 +1512,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée qui
      * régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), celle du mur qui prolonge
      * son ouverture pour une porte en jeu, `null` pour une apparence hors du catalogue ; par emplacement de palette, la
-     * couleur `#rrggbb` de sa partie de mur dans cette apparence, celles du mur (`corps`, `bois`) dans celle du mur qui
-     * la porte (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la hauteur de son mur en
-     * mètres, `wallHeightM` sinon un étage ; son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`,
+     * couleur `#rrggbb` de sa partie de mur dans cette apparence, celles du mur (`corps`, `bois`, `joint`, `gravats`)
+     * dans celle du mur qui la porte (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la
+     * hauteur de son mur en mètres, `wallHeightM` sinon un étage ; son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`,
      * `src/noyau/monde/volume/volume.ts`)
      */
     aretes(json): { aretes: AreteDessinee[] } {

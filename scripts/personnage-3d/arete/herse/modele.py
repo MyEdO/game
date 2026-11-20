@@ -89,7 +89,7 @@ def grille(abattue, position=None):
                 poutre(m, X * x + depart, X * x + arrivee, section, section, X, BARREAU)
                 depart = arrivee
             pan_couche(m, alea, D)
-            geometrie.eboulis(m, R, alea, B["gravats"], demi, lambda tirage: tirage.choice((BARREAU, TRAVERSE)))
+            geometrie.eboulis(m, R, alea, B["gravats"], demi)
     return batir
 
 

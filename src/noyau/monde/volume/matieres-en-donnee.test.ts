@@ -1,3 +1,4 @@
+import { posix } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { dossierDe } from '../../../../scripts/guards/lib/couches.mjs';
@@ -11,7 +12,8 @@ import { detenteur } from '../../../lib/detenteur.testkit';
  * `terrains.json` en littéral (#1716, #1789).
  *
  * Les trois scans partagent le corpus (`fichiers`). Les neutraliseurs de matières et de sols
- * décrivent les homonymes par leur champ ou leur union de types. Chaque entrée est éprouvée
+ * décrivent les homonymes par leur champ, leur union de types ou leur tableau de vocabulaire.
+ * Chaque entrée est éprouvée
  * sur les producteurs réels pour qu'une exemption devenue inutile soit retirée.
  *
  * Le relief était le dernier domaine de `MaterialRef` dont l'id était choisi EN CODE
@@ -127,52 +129,94 @@ const idsTerrain = (() => {
 
 /** CLAUSE PARTAGÉE du bras terrain : une union dont TOUS les membres sont des ids de terrain n'est
  *  pas un vocabulaire propre, c'est une LISTE RÉCITÉE — elle n'entre pas au répertoire
- *  (`vocabulaireDUnion`) et le neutraliseur d'union en place ne la blanchit pas. */
+ *  (`vocabulaireDeclare`) et le neutraliseur d'union en place ne la blanchit pas. */
 const membresSontTousDesTerrains = (union: string): boolean => {
   const membres = membresDUnion(union);
   return membres.length > 0 && membres.every((v) => idsTerrain().has(v));
 };
 
+/** Une liste de littéraux est un VOCABULAIRE PROPRE si elle a au moins deux membres et n'est pas une
+ *  LISTE DE TERRAINS récitée (`membresSontTousDesTerrains`) : la clause du répertoire, commune à ses
+ *  deux formes de déclaration. */
+const estUnVocabulaire = (liste: string): boolean => membresDUnion(liste).length >= 2 && !membresSontTousDesTerrains(liste);
+
+/** Les TABLEAUX `as const` exportés d'une source (`export const X = ['a', 'b'] as const`), par nom : une
+ *  déclaration de vocabulaire du même rang qu'une union, dont `typeof X[number]` dérive le type. */
+const tableauxDeVocabulaire = (src: string): Map<string, string> =>
+  new Map(
+    [...src.matchAll(/\bexport\s+const\s+(\w+)\s*(?::[^=]*)?=\s*\[([^\]]*)\]\s*as\s+const\b/g)]
+      .filter((m) => estUnVocabulaire(m[2]))
+      .map((m) => [m[1], m[2]]),
+  );
+
+/** Les tableaux de vocabulaire qu'une source IMPORTE d'un module relatif (`import { X } from './m'`),
+ *  lus dans le corpus du noyau. Sans contexte de corpus, une source synthétique est lue seule. */
+type ContexteDeVocabulaire = { rel: string; sources: ReadonlyMap<string, string> };
+
+const vocabulairesImportes = (src: string, contexte?: ContexteDeVocabulaire): string[] => {
+  if (!contexte) return [];
+  const { rel, sources } = contexte;
+  const listes: string[] = [];
+  for (const m of src.matchAll(/\bimport\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"](\.[^'"]+)['"]/g)) {
+    const base = posix.join(posix.dirname(rel), m[2]);
+    const module = sources.get(`${base}.ts`) ?? sources.get(`${base}/index.ts`);
+    if (module === undefined) continue;
+    const tableaux = tableauxDeVocabulaire(module);
+    for (const nom of m[1].split(',').map((n) => n.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0]))
+      if (tableaux.has(nom)) listes.push(tableaux.get(nom)!);
+  }
+  return listes;
+};
+
 /**
- * VOCABULAIRE D'UNION déclaré DANS LE FICHIER (`type X = 'a' | 'b' | …`) — le pendant, pour les ids de
- * terrain, de ce que `clesDOnglet` fait des clés d'IU : une valeur qui appartient à un vocabulaire
- * déclaré ici est de CE vocabulaire, pas du registre des sols, et sa lecture (`=== 'vide'`,
- * `capacite: 'porte'`, une table de priorité) est le MÊME signal que sa déclaration.
+ * VOCABULAIRE DÉCLARÉ — union de type (`type X = 'a' | 'b' | …`) ou tableau `as const` exporté
+ * (`export const X = ['a', 'b'] as const`) du fichier ou d'un import relatif. La déclaration et
+ * ses lectures (`=== 'vide'`, `capacite: 'porte'`, `return 'mur'`) relèvent du même vocabulaire.
  *
- * La garde reste fermée sur le cas qui compte : une union dont TOUS les membres sont des ids de
+ * La garde reste fermée sur le cas qui compte : une liste dont TOUS les membres sont des ids de
  * terrain n'est pas un vocabulaire propre, c'est une LISTE DE TERRAINS récitée en code — elle
  * n'entre pas dans le répertoire, et la ligne reste comptée.
  */
-const vocabulaireDUnion = (src: string): Set<string> => {
-  const mots = new Set<string>();
-  for (const m of src.matchAll(/\btype\s+\w+\s*=\s*([^;{}]*?);/g)) {
-    const membres = membresDUnion(m[1]);
-    if (membres.length < 2 || membresSontTousDesTerrains(m[1])) continue;
-    for (const v of membres) mots.add(v);
-  }
-  return mots;
+const vocabulaireDeclare = (src: string, contexte?: ContexteDeVocabulaire): Record<FormeDeVocabulaire, Set<string>> => {
+  const mots = (listes: Iterable<string>) => new Set([...listes].flatMap(membresDUnion));
+  return {
+    union: mots([...src.matchAll(/\btype\s+\w+\s*=\s*([^;{}]*?);/g)].map((m) => m[1]).filter(estUnVocabulaire)),
+    tableau: mots(tableauxDeVocabulaire(src).values()),
+    importe: mots(vocabulairesImportes(src, contexte)),
+  };
 };
+
+/** Les trois FORMES de vocabulaire déclaré (`vocabulaireDeclare`), chacune son neutraliseur : chacune rougit SEULE
+ *  quand son site meurt. */
+type FormeDeVocabulaire = 'union' | 'tableau' | 'importe';
+
+/** Les littéraux de `code` qui sont des `mots` d'un vocabulaire, vidés. */
+const blanchitLesMots = (code: string, mots: Set<string>) =>
+  mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].map(echappe).join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code;
 
 /**
  * Les NEUTRALISEURS du bras TERRAIN, chacun NOMMÉ — même contrat que `NEUTRALISEURS` : un neutraliseur
  * que plus aucun site du PÉRIMÈTRE n'exerce est une exemption morte, et le test de vie le rend ROUGE.
  * Aucun nom de fichier, aucune ligne : c'est la FORME qui dit qu'un littéral n'est pas un id de sol.
- *  - le VOCABULAIRE D'UNION déclaré dans le fichier (capacité d'arête, résultat de dépilage…) ;
+ *  - le VOCABULAIRE DÉCLARÉ (`vocabulaireDeclare`), une entrée par forme : union de type du fichier
+ *    (capacité d'arête, résultat de dépilage…), tableau `as const` exporté du fichier, tableau `as const`
+ *    importé (pièce d'arête) ;
  *  - une UNION de littéraux ÉCRITE EN PLACE (paramètre, champ) qui porte AU MOINS un membre hors du
  *    registre des sols : elle DÉCLARE un vocabulaire propre, elle n'émet pas. Une union dont TOUS les
  *    membres sont des ids de terrain est une LISTE RÉCITÉE — même clause qu'au répertoire
- *    `vocabulaireDUnion`, et la ligne reste comptée ;
+ *    `vocabulaireDeclare`, et la ligne reste comptée ;
  *  - UNE entrée par CHAMP dont le vocabulaire n'est pas celui des sols (`neutraliseursDeChamp`, la
  *    même fabrique que le bras des matières) — `key` (clé de récap / d'IU), `kind` (type de
  *    SÉLECTION d'un éditeur, `route`), `weather` (météo, `neige`) :
  *    chacun a un homonyme au registre des terrains, et chacun rougit SEUL quand son site meurt.
  */
-const NEUTRALISEURS_TERRAIN: readonly { nom: string; applique: (code: string, mots: Set<string>) => string }[] = [
-  {
-    nom: 'VOCABULAIRE d’union déclaré dans le fichier',
-    applique: (code, mots) =>
-      mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].map(echappe).join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code,
-  },
+const NEUTRALISEURS_TERRAIN: readonly {
+  nom: string;
+  applique: (code: string, vocabulaires: Record<FormeDeVocabulaire, Set<string>>) => string;
+}[] = [
+  { nom: 'VOCABULAIRE d’union déclaré dans le fichier', applique: (code, v) => blanchitLesMots(code, v.union) },
+  { nom: 'VOCABULAIRE d’un tableau `as const` exporté du fichier', applique: (code, v) => blanchitLesMots(code, v.tableau) },
+  { nom: 'VOCABULAIRE d’un tableau `as const` importé', applique: (code, v) => blanchitLesMots(code, v.importe) },
   {
     nom: 'UNION de littéraux écrite en place',
     applique: (code) =>
@@ -187,12 +231,12 @@ const NEUTRALISEURS_TERRAIN: readonly { nom: string; applique: (code: string, mo
 
 /** Le code d'une couche SANS ses commentaires ni ses homonymes de terrain, lignes préservées. `sauf` en
  *  retire UN neutraliseur — c'est ainsi que le test de vie mesure ce que chacun blanchit RÉELLEMENT. */
-function codeHorsTerrain(src: string, sauf?: string): string {
-  const mots = vocabulaireDUnion(src);
+function codeHorsTerrain(src: string, sauf?: string, contexte?: ContexteDeVocabulaire): string {
+  const vocabulaires = vocabulaireDeclare(src, contexte);
   return codeNu(src)
     .map((l) => {
       let code = l;
-      for (const n of NEUTRALISEURS_TERRAIN) if (n.nom !== sauf) code = n.applique(code, mots);
+      for (const n of NEUTRALISEURS_TERRAIN) if (n.nom !== sauf) code = n.applique(code, vocabulaires);
       return code;
     })
     .join('\n');
@@ -289,8 +333,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    *
    * Les HOMONYMES (`porte` capacité d’arête, `vide` résultat de dépilage, `neige` météo, `bois`
    * cargaison, `route` clé de récap et type de SÉLECTION d’éditeur) sont neutralisés par FORME
-   * (`NEUTRALISEURS_TERRAIN`) : vocabulaire d’union déclaré dans le fichier, union écrite en place,
-   * nom de champ. AUCUN site toléré, aucune liste d’exemption, aucun nom de fichier :
+   * (`NEUTRALISEURS_TERRAIN`) : déclaration de vocabulaire, union écrite en place ou nom de champ. AUCUN site toléré, aucune liste d’exemption, aucun nom de fichier :
    * le stock mesuré est vide.
    *
    * Périmètre : le même corpus `fichiers` que le scan des matières (#1789).
@@ -299,8 +342,9 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     const ids = terrains.map((t) => t.id);
     expect(ids.length, 'vocabulaire de terrains VIDE : la garde mesurerait le néant.').toBeGreaterThan(0);
     const fautes: string[] = [];
+    const sources = new Map(fichiers().map(({ rel, code }) => [rel, code]));
     for (const f of fichiers()) {
-      codeHorsTerrain(f.code).split('\n').forEach((l, i) => {
+      codeHorsTerrain(f.code, undefined, { rel: f.rel, sources }).split('\n').forEach((l, i) => {
         for (const id of ids) if (citeId(id).test(l)) fautes.push(`${f.rel}:${i + 1} — « ${id} »`);
       });
     }
@@ -324,10 +368,12 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
   it('chaque neutraliseur du bras TERRAIN est exercé par un site du périmètre (aucune exemption morte)', { timeout: 30_000 }, () => {
     const ids = terrains.map((t) => t.id);
     const cite = (l: string) => ids.some((id) => citeId(id).test(l));
+    const sources = new Map(fichiers().map(({ rel, code }) => [rel, code]));
     for (const n of NEUTRALISEURS_TERRAIN) {
       const exerce = fichiers().some((f) => {
-        const avec = codeHorsTerrain(f.code).split('\n');
-        return codeHorsTerrain(f.code, n.nom)
+        const contexte = { rel: f.rel, sources };
+        const avec = codeHorsTerrain(f.code, undefined, contexte).split('\n');
+        return codeHorsTerrain(f.code, n.nom, contexte)
           .split('\n')
           .some((l, i) => cite(l) && !cite(avec[i]));
       });
@@ -340,7 +386,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * dataset (aucun id récité ici) : une union dont TOUS les membres sont des sols est une LISTE
    * RÉCITÉE et reste comptée ; un SEUL membre hors registre en fait un vocabulaire propre, blanchi.
    */
-  it('une union TOUT-TERRAIN reste comptée, une union à membre hors registre est blanchie', () => {
+  it('une union ou un tableau `as const` TOUT-TERRAIN reste compté, à membre hors registre il est blanchi', () => {
     const ids = terrains.map((t) => t.id);
     expect(ids.length, 'moins de deux terrains : la sonde d’union ne mesure rien.').toBeGreaterThan(1);
     const [a, b] = ids;
@@ -357,6 +403,14 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     expect(
       compte(`function f(x: '${horsRegistre}' | '${a}') {}`),
       'une union qui porte un membre hors du registre des sols DÉCLARE un vocabulaire : elle se blanchit.',
+    ).toBe(0);
+    expect(
+      compte(`export const SOLS = ['${a}', '${b}'] as const;\nconst x = '${a}';`),
+      `tableau \`as const\` de terrains récité blanchi : « ${a}, ${b} » doit rester compté, à sa déclaration comme à sa lecture.`,
+    ).toBe(2);
+    expect(
+      compte(`export const PIECES = ['${horsRegistre}', '${a}'] as const;\nconst x = '${a}';`),
+      'un tableau `as const` exporté qui porte un membre hors registre DÉCLARE un vocabulaire, du rang d’une union : ses littéraux se blanchissent.',
     ).toBe(0);
   });
 

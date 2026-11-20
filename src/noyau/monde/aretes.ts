@@ -48,10 +48,11 @@ import { outwardSide } from './volume/ornements';
 import { DIR8_DELTA } from '../../geometry/dir8';
 import { wallPartColor } from './volume/structures';
 import type { WallPart } from '../../data/structureAppearance.types';
+import type { Slot } from '../../lib/palette';
+import type { PIECES_D_ARETE } from './piecesDArete';
 
-/** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
- *  la brèche d'une structure abattue. */
-export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' | 'fenetre-close' | 'breche';
+/** La pièce qu'une arête porte, l'une de `PIECES_D_ARETE`. */
+export type PieceDArete = (typeof PIECES_D_ARETE)[number];
 
 /** La place d'une arête dans son ouverture (`ouverturesDeLaScene`) : seule, ou à son bout -X (`gauche`), entre ses
  *  deux bouts (`milieu`), à son bout +X (`droite`), X le long du `sens` de l'arête (#4471). */
@@ -177,13 +178,16 @@ const ouverturesDeLaScene = memoByRef((scene: Scene): ReadonlyMap<string, DansLO
 
 /** Par emplacement de palette (les `surfaces` d'un modèle d'arête), la partie de mur dont il prend la couleur : celles
  *  du mur, puis celles de la menuiserie. */
-const PARTIES_DU_MUR = { corps: 'face', bois: 'poteau' } as const satisfies Record<string, WallPart>;
+const PARTIES_DU_MUR = {
+  corps: 'face', bois: 'poteau', joint: 'joint', gravats: 'gravats',
+} as const satisfies Partial<Record<Slot, WallPart>>;
 const PARTIES_DE_LA_MENUISERIE = {
-  accent: 'vantail', vet1: 'meneau', metal: 'poignee',
-} as const satisfies Record<string, WallPart>;
+  accent: 'vantail', vet1: 'meneau', metal: 'poignee', planche: 'vantail-planche', vitre: 'vitre',
+  barreau: 'herse-barreau', traverse: 'herse-traverse',
+} as const satisfies Partial<Record<Slot, WallPart>>;
 
 /** Par emplacement de `parties`, la couleur de sa partie de mur dans l'apparence `apparence` (`wallPartColor`). */
-const teintes = (apparence: Apparence, parties: Record<string, WallPart>): Record<string, string> =>
+const teintes = (apparence: Apparence, parties: Partial<Record<Slot, WallPart>>): Record<string, string> =>
   Object.fromEntries(Object.entries(parties).map(([emplacement, partie]) => [
     emplacement, wallPartColor(apparence, partie),
   ]));

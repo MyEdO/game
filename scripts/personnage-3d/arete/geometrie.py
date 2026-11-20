@@ -16,6 +16,7 @@ X, HAUT = Vector((1, 0, 0)), Vector((0, 0, 1))
 DEHORS = Vector((0, -1, 0))
 """Le sens de la face du dehors d'une arête, dans le repère de Blender."""
 SEPARATEUR = "--"
+GRAVATS = "gravats"
 GAUCHE, MILIEU, DROITE = "gauche", "milieu", "droite"
 """La position d'une arête dans une ouverture de plusieurs arêtes : son nœud est `<pièce>--<position>`, `gauche` au
 bout -X de l'ouverture, `droite` à son bout +X ; l'arête d'une ouverture d'une seule arête prend le nœud `<pièce>`."""
@@ -56,15 +57,15 @@ def biais(m, a, h_gauche, h_droite, c, mat):
     m.v[-8:] = [(x, y, hauteurs[k // 4][k % 2]) for k, (x, y, _) in enumerate(m.v[-8:])]
 
 
-def eboulis(m, R, alea, G, demi, matiere):
+def eboulis(m, R, alea, G, demi):
     """Les gravats au pied d'une brèche, d'après `G` : leur `nombre`, leur `etendue` (fraction de la demi-longueur
     `demi`, puis mètres de part et d'autre du mur), leur `cote` (m, tiré), ce dont chaque coin s'écarte (`ecart`,
-    fraction du côté, tirée jusqu'à cette borne) ; `matiere(alea)` rend le matériau de chacun."""
+    fraction du côté, tirée jusqu'à cette borne), du matériau `GRAVATS`, que le kit déclare."""
     for _ in range(G["nombre"]):
         cote = alea.uniform(*G["cote"])
         ca = demi * alea.uniform(-G["etendue"][0], G["etendue"][0])
         cc = alea.uniform(-G["etendue"][1], G["etendue"][1])
-        R.boite(m, (ca - cote / 2, ca + cote / 2), (0.0, cote * 0.6), (cc - cote / 2, cc + cote / 2), matiere(alea))
+        R.boite(m, (ca - cote / 2, ca + cote / 2), (0.0, cote * 0.6), (cc - cote / 2, cc + cote / 2), GRAVATS)
         ecart = cote * G["ecart"]
         m.v[-8:] = [(px + alea.uniform(-ecart, ecart), py + alea.uniform(-ecart, ecart),
                      pz + (k % 2) * alea.uniform(-ecart, ecart)) for k, (px, py, pz) in enumerate(m.v[-8:])]

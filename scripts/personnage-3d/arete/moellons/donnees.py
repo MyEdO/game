@@ -15,7 +15,8 @@ ceux de `menuiserie`. Dans une ouverture de deux arêtes (`PORTAIL`), chaque ar�
 moitié d'un porche voûté dont la clef est au joint des deux arêtes, et un vantail gondé à son piédroit. La brèche
 éventre le mur jusqu'à sa tête, son âme à nu, ses pierres au pied.
 
-Matières : la pierre prend `pierre-atre`, le mortier `terre-battue`, le bois `bois-chene`, les ferrures `fer-noirci`.
+Matières : la pierre et ses gravats prennent `pierre-atre`, le mortier `terre-battue`, le bois `bois-chene`, les ferrures
+`fer-noirci`, la vitre `verre`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import MOELLONS_MACONNES, apparence, assises, hauteur
@@ -34,10 +35,13 @@ EPAISSEUR = 0.4
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {
     "moellons": ("corps", "pierre-atre"),
-    "ame": ("bois", "terre-battue"),
+    "joint": ("joint", "terre-battue"),
     "menuiserie": ("accent", "bois-chene"),
+    "barres": ("planche", "bois-chene"),
     "croisee": ("vet1", "bois-chene"),
+    "vitre": ("vitre", "verre"),
     "ferrure": ("metal", "fer-noirci"),
+    "gravats": ("gravats", "pierre-atre"),
 }
 
 BUDGET_TRIANGLES = {"mur": 2100, "porte-fermee": 2100, "porte-ouverte": 2100,

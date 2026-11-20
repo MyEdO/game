@@ -60,12 +60,13 @@ export function wallPartColor(app: EntreeVivante<StructureAppearanceDef>, part: 
     case 'arase': case 'merlon': return app.cap ?? app.face;
     case 'bande': case 'herse-barreau': return app.band ?? app.face;
     case 'jambage': return app.door?.jamb ?? app.face;
-    case 'vantail': return app.door?.leaf ?? app.wood?.inset ?? shade(app.face, 0.78);
+    case 'vantail': return app.door?.leaf ?? app.wood?.inset ?? app.window?.frame ?? shade(app.face, 0.78);
     case 'vantail-planche': return app.door?.plank ?? app.wood?.skirt ?? app.post;
     case 'poignee': return app.door?.handle ?? app.cap ?? app.wood?.cap ?? app.face;
     case 'vitre': return app.window?.glass ?? defaultWindow()?.glass ?? app.face;
     case 'meneau': return app.window?.mullion ?? app.wood?.frame ?? app.post;
     case 'poteau': return app.post;
+    case 'joint': return app.detail?.courses?.joint ?? app.post;
     case 'herse-traverse': return app.door?.herse?.traverseColor ?? app.band ?? app.face;
     case 'gravats': case 'seuil': return app.rubble ?? app.wood?.rubble ?? app.face;
     case 'gravats-tas': return app.rubbleHi ?? app.wood?.rubbleHi ?? app.face;
@@ -95,7 +96,7 @@ export type WallPartRelief =
 export function wallPartRelief(part: WallPart): WallPartRelief {
   switch (part) {
     case 'face': case 'parapet': case 'arase': case 'merlon': case 'couronnement':
-    case 'poteau': case 'jambage':
+    case 'poteau': case 'jambage': case 'joint':
       return { famille: 'matiere' };
     case 'panneau': case 'plinthe': case 'bande':
       return { famille: 'saillie', jutM: 0.26 };

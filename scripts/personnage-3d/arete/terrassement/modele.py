@@ -179,9 +179,7 @@ def breche(D, m, alea):
         for rang, devers in B["pieux"]:
             pied = Vector((pieux(D)[rang], 0.0, 0.0)) + DEHORS * cote * axe + HAUT * section / 2 * devers / C["hauteur"]
             poutre(m, pied, pied + HAUT * C["hauteur"] + DEHORS * cote * devers, section, section, X, CLAYONNAGE)
-    G = B["gravats"]
-    geometrie.eboulis(m, Repere((0, 0, 0), X, DEHORS), alea, G, demi,
-                      lambda tirage: CLAYONNAGE if tirage.random() < G["bois"] else TERRE)
+    geometrie.eboulis(m, Repere((0, 0, 0), X, DEHORS), alea, B["gravats"], demi)
 
 
 BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True), "fenetre": mur, "fenetre-close": mur,

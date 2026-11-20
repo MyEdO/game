@@ -570,7 +570,7 @@ export const ECRIT_LU = {
     },
     lit: ['scripts/personnage-3d/', 'hotes/godot/asset/charger.mjs', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
       'src/data/materials.json', 'src/data/props.json', 'src/data/props.types.ts', 'src/data/structureAppearance.json',
-      'src/data/vehicles.json', 'src/geometry/dir8.ts', 'src/noyau/monde/relief.ts'],
+      'src/data/vehicles.json', 'src/geometry/dir8.ts', 'src/noyau/monde/piecesDArete.ts', 'src/noyau/monde/relief.ts'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
@@ -584,7 +584,8 @@ export const ECRIT_LU = {
       '`polygonesDePrimitive` de `src/data/props.types.ts`, qui importe `src/geometry/dir8.ts`, que lance ' +
       '`decor/polygones.mjs`), `test_arete.py` les arêtes d’`arete/`, d’après la forme des apparences de ' +
       '`src/data/structureAppearance.json` et la hauteur d’un niveau (`METRES_PER_LEVEL` de ' +
-      '`src/noyau/monde/relief.ts`, que lance `arete/niveau.mjs`), et `test_element.py` les éléments ' +
+      '`src/noyau/monde/relief.ts`, que lance `arete/niveau.mjs`) et les pièces d’une arête (`PIECES_D_ARETE` de ' +
+      '`src/noyau/monde/piecesDArete.ts`, que lance `arete/pieces.mjs`), et `test_element.py` les éléments ' +
       'sur base d’`element/`, sur les GLB ' +
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
       'dans la lane) ; tous comparent ' +
