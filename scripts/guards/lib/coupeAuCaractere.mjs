@@ -20,6 +20,8 @@ import { virtualProgram, libererSessions } from './tsProgram.mjs'
 
 /** Méthodes qui prennent un préfixe au caractère. */
 const COUPES = new Set(['slice', 'substring', 'substr'])
+/** Les noms littéraux ou susceptibles de contenir un échappement Unicode passent au parseur. */
+const APPEL_POSSIBLE = /slice|substr|\\/
 /** Méthodes d'une chaîne qui gardent le préfixe pour texte : `x.slice(0, n).trimEnd()` reste une coupe. */
 const SUITES_DE_TEXTE = new Set(['trim', 'trimEnd', 'trimRight', 'padEnd', 'concat'])
 /** L'ellipse, typographique ou en trois points. */
@@ -36,7 +38,7 @@ const DECLARATION = { foyer: 'src/lib/coupeAuMot.mjs' }
 export function coupesAuCaractere(fichiers) {
   const ts = typescript()
   const sites = []
-  for (const { fichier, sourceFile } of analyserCorpus(fichiers.filter((f) => sAppliqueA(f, DECLARATION)))) {
+  for (const { fichier, sourceFile } of analyserCorpus(fichiers.filter((f) => sAppliqueA(f, DECLARATION) && APPEL_POSSIBLE.test(f.text)))) {
     if (!sourceFile) continue
     const porteCoupe = (n) => (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)
       && COUPES.has(n.expression.name.text) && n.arguments.length === 2

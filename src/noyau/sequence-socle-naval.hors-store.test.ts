@@ -16,7 +16,8 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { specificateursDe } from '../../scripts/guards/lib/importGraph.mjs';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -32,7 +33,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** LA STRUCTURE = le contrat + son implémentation légère. Les deux sont sous garde. */
 const FICHIERS = ['./sequenceContract.ts', './sequenceCore.ts'];
-const DOSSIER = import.meta.dirname;
+const DOSSIER = dirname(fileURLToPath(import.meta.url));
 const SOURCES = FICHIERS.map((fichier) => ({ fichier, texte: readFileSync(join(DOSSIER, fichier), 'utf-8') }));
 const SOURCE = SOURCES.map(({ texte }) => texte).join('\n');
 

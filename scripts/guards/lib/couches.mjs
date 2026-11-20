@@ -98,18 +98,13 @@ export const RACINES_DES_ZONES = Object.freeze([...new Set(Object.keys(COUCHES).
 /** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte (`portes`). */
 export const HOTES_DU_NOYAU = Object.freeze(Object.keys(COUCHES).filter((z) => COUCHES[z].portes?.noyau === SURFACE_DU_NOYAU));
 
-/** La portée d'une garde de corpus, dérivée de la table (#3556) : les dossiers (`dossierDe`) des zones `survivent`, qui
- *  survivent à la bascule (`survit`), puis ceux des zones `web`, qui n'y survivent pas et que la garde balaie avec elles.
- *  Une zone hors de la table, ou rangée du mauvais bord, lève : la portée suit la table, jamais un chemin écrit à la main.
- *  PURE. */
-export function porteeDeGarde(survivent, web = []) {
-  const bord = (zones, attendu) => zones.map((z) => {
-    if (!estZone(z) || z === 'racine' || (COUCHES[z].survit === true) !== attendu) {
-      throw new Error(`porteeDeGarde : « ${z} » n’est pas une zone ${attendu ? 'qui survit' : 'de l’hôte web'} de \`COUCHES\``);
-    }
+/** Les dossiers des zones déclarées d’une garde de corpus, issus de `COUCHES` (#3556). La zone `racine` ne
+ *  désigne pas un dossier à parcourir séparément. */
+export function porteeDeGarde(zones) {
+  return Object.freeze(zones.map((z) => {
+    if (!estZone(z) || z === 'racine') throw new Error(`porteeDeGarde : « ${z} » ne désigne pas une zone de corpus`);
     return dossierDe(z);
-  });
-  return Object.freeze([...bord(survivent, true), ...bord(web, false)]);
+  }));
 }
 
 /** Les zones à dossier propre, du plus long dossier au plus court : un dossier imbriqué se lit avant son parent. */

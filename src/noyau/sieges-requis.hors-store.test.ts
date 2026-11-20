@@ -7,7 +7,8 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { siegesRequis, quorumAtteint, withActingSeat } from './netOwnership';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -18,7 +19,7 @@ import type { Combatant } from '../engine/types';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const DOSSIER = import.meta.dirname;
+const DOSSIER = dirname(fileURLToPath(import.meta.url));
 const src = (rel: string) => readFileSync(join(DOSSIER, rel), 'utf8');
 
 function hero(id: string, label: string): Combatant {

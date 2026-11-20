@@ -23,6 +23,8 @@ const COMBAT := "res://scenes/Combat.tscn"
 ## Le temps sans écran publié (s) après lequel la planche est dite montrée, ses portraits pris.
 const CALME_S := 0.5
 
+static var _empreinte_communes := RegEx.create_from_string("^[0-9a-f]{64}\\z")
+
 var _nom := ""
 var _parametres := {}
 ## Les réponses de la planche par méthode, vides avant la planche lue.
@@ -47,7 +49,7 @@ func _montrer(nom: String) -> void:
 	var recueil: Array[String] = []
 	var planche: Variant = JSON.parse_string((await requeter("%s/%s.json" % [DOSSIER, nom], recueil)).get_string_from_utf8())
 	var communes: Variant = null
-	if planche is Dictionary and str(planche.get("communes", "")).length() == 64:
+	if planche is Dictionary and planche.get("communes") is String and _empreinte_communes.search(planche.communes) != null:
 		communes = JSON.parse_string((await requeter("%s/communes/%s.json" % [DOSSIER, planche.communes], recueil)).get_string_from_utf8())
 	if not communes is Dictionary:
 		_signaler("planche %s illisible : %s" % [nom, " ; ".join(recueil)])

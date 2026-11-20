@@ -104,8 +104,7 @@ test('MUR : un module de `hotes/` hors du dossier de l’évaluateur ne l’impo
 test('ORACLE : `porteeDeGarde` rend les dossiers des zones déclarées et refuse les portées inconnues', () => {
   const zones = Object.keys(COUCHES).filter((z) => z !== 'racine')
   assert.deepEqual(porteeDeGarde(zones), zones.map(dossierDe))
-  for (const z of ['racine', 'zz-inconnue', 'constructor', 'state']) {
+  for (const z of ['racine', 'zz-inconnue', 'constructor']) {
     assert.throws(() => porteeDeGarde([z]), /porteeDeGarde/, z)
-    assert.throws(() => porteeDeGarde([], [z]), /porteeDeGarde/, z)
   }
 })

@@ -10,9 +10,10 @@ import type { Combatant } from '../engine/types';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const DOSSIER = import.meta.dirname;
+const DOSSIER = dirname(fileURLToPath(import.meta.url));
 const lire = (rel: string) => readFileSync(join(DOSSIER, rel), 'utf8');
 
 let banc: Banc;
