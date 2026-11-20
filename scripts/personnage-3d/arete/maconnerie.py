@@ -1,6 +1,7 @@
 """La maçonnerie commune aux kits de pierre (#4471) : l'appareil d'une arête (`Appareil`), ses assises de moellons
-bruts posées sur une âme en retrait, ses chaînes de pierres de taille, son couronnement, son porche voûté et sa
-brèche. Un kit qui le bâtit déclare les matériaux `PIERRE` et `AME`, et l'appareil `D["APPAREIL"]` :
+bruts posées sur une âme en retrait, ses chaînes de pierres de taille, son couronnement, son porche voûté, la porte
+cintrée qu'il abrite et sa brèche. Un kit qui le bâtit déclare les matériaux `PIERRE` et `AME`, ceux de `menuiserie`
+s'il pose la porte cintrée, et l'appareil `D["APPAREIL"]` :
 
 - `assise` : la hauteur moyenne (m) d'une assise, joint compris ; `inegalite` : ce dont celle de chacune s'en écarte
   (fraction, tirée jusqu'à cette borne) ; `joint` : sa largeur (m) ; `bloc` : la longueur (m) d'un moellon, la plus
@@ -24,6 +25,7 @@ import random
 
 from geometrie import DEHORS, X, Repere, biais
 from maille import lineaire
+from menuiserie import vantail
 
 PIERRE, AME = "moellons", "ame"
 MINCE = 0.1
@@ -211,6 +213,20 @@ class Appareil:
                 faces = [[0, 1, 2, 3], [7, 6, 5, 4], *([i, (i + 1) % 4, 4 + (i + 1) % 4, 4 + i] for i in range(4))]
                 self.m.ajouter(sommets, faces, PIERRE)
         return lambda x: cercle(x, rayon)
+
+    def porte_cintree(self, axe, cotes, V, seuil, jeu, T, ouverte):
+        """La porte cintrée sous le porche `V` d'axe `axe` (`porche`), de chaque côté de `cotes` : son `seuil`
+        (hauteur, m), et son vantail `T` (`menuiserie.vantail`) à `jeu` (m) de la pierre, gondé au piédroit du premier
+        côté, sa tête cintrée sous l'arc ; il ferme la baie jusqu'à l'autre piédroit, ou jusqu'à l'axe, à demi-jeu,
+        quand l'arête n'en porte qu'un côté, et tourne d'un quart de tour vers le dedans s'il est `ouverte`."""
+        portee, cote = V["portee"], cotes[0]
+        intrados = self.porche(axe, cotes, V)
+        baie = tuple(axe + c * portee if c in cotes else axe for c in (-1, 1))
+        self.R.boite(self.m, baie, (0.0, seuil), (-self.nu, self.nu), PIERRE)
+        gond = self.R.point(axe + cote * (portee - jeu), 0, -T["epaisseur"] / 2)
+        repere = Repere(gond, -DEHORS, -cote * X) if ouverte else Repere(gond, -cote * X, DEHORS)
+        vantail(self.m, repere, len(cotes) * portee - (1 + len(cotes) / 2) * jeu,
+                (seuil + jeu, V["naissance"] - jeu), T, lambda a: intrados(axe + cote * (portee - jeu - a)) - jeu)
 
     def breche(self, contour, plancher):
         """Le mur éventré jusqu'à sa tête : `contour`, à chaque abscisse (fraction de la demi-longueur, d'un bout à

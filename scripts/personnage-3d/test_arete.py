@@ -1,10 +1,12 @@
 """Construction des arêtes (#4471) : chaque modèle d'`arete/` se bâtit par `construire.py`, deux fois aux mêmes octets,
-et reproduit ses éléments publiés sans lire hors de ses entrées (`reconstruction.DUneFamille`). Son GLB porte un
-nœud racine à mesh par pièce (`PieceDArete`, `src/noyau/monde/aretes.ts`), à l'origine de l'arête, dans son repère
+et reproduit ses éléments publiés sans lire hors de ses entrées (`reconstruction.DUneFamille`). Chaque famille `kit`
+d'une apparence de `src/data/structureAppearance.json` a son modèle. Son GLB porte un nœud racine à mesh pour chaque
+pièce (`PieceDArete`, `src/noyau/monde/aretes.ts`), à l'origine de l'arête, dans son repère
 (`arete/geometrie.py`) : X le long d'elle, centrée, d'un bout à l'autre de sa longueur ; Y de son pied à sa hauteur ;
 Z son épaisseur, centrée pour le mur. Chaque nœud tient dans son budget de triangles et n'est fait que de coques closes
 aux faces vers le dehors (`glb.coques_en_defaut`). Une pièce pleine (`PLEINES`) ne laisse passer aucun jour à
-travers son épaisseur, d'un bout à l'autre de l'arête. Les données d'un modèle ne portent aucune couleur."""
+travers son épaisseur, d'un bout à l'autre de l'arête, hors le kit dont les données se déclarent à claire-voie
+(`CLAIRE_VOIE`). Les données d'un modèle ne portent aucune couleur."""
 import json
 import re
 import runpy
@@ -92,8 +94,10 @@ class Construction(unittest.TestCase):
             sortie[noeud['name']] = (np.concatenate(positions), triangles)
         return sortie
 
-    def test_un_modele_existe(self):
-        self.assertLessEqual({'colombage', 'moellons', 'pierres-seches', 'porterie'}, set(self.bati))
+    def test_chaque_kit_d_une_apparence_a_son_modele(self):
+        donnee = ICI.parents[1] / 'src' / 'data' / 'structureAppearance.json'
+        apparences = json.loads(donnee.read_text(encoding='utf-8'))
+        self.assertEqual(sorted({a['kit'] for a in apparences} - set(self.bati)), [])
 
     def test_deux_constructions_rendent_les_memes_octets(self):
         for _, bati, _ in self.chaque():
@@ -116,11 +120,11 @@ class Construction(unittest.TestCase):
     def test_chaque_noeud_racine_est_une_piece_ou_sa_position_dans_une_ouverture(self):
         for _, _, glb in self.chaque():
             noeuds = set(self.noeuds(glb))
-            self.assertLessEqual({'mur', 'breche'}, noeuds)
+            self.assertEqual(sorted(PIECES - noeuds), [])
             for nom in noeuds:
                 with self.subTest(noeud=nom):
                     piece, _, position = nom.partition(SEPARATEUR)
-                    self.assertIn(piece, PIECES & noeuds)
+                    self.assertIn(piece, PIECES)
                     self.assertIn(position, ('', *POSITIONS))
 
     def test_chaque_piece_tient_dans_le_repere_de_l_arete(self):
@@ -148,6 +152,8 @@ class Construction(unittest.TestCase):
 
     def test_une_piece_pleine_ne_laisse_passer_aucun_jour(self):
         for _, bati, glb in self.chaque():
+            if bati['D'].get('CLAIRE_VOIE'):
+                continue
             couronnement = bati['D'].get('APPAREIL', {}).get('couronnement')
             haut = bati['D']['HAUTEUR'] - (couronnement['hauteur'] if couronnement else 0.0)
             for piece in (nom for nom in self.noeuds(glb) if nom.partition(SEPARATEUR)[0] in PLEINES):

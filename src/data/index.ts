@@ -1290,7 +1290,7 @@ export const findStructureById: (id: string) => StructureData | undefined = stru
 export const structureAppearances = datasetDe<typeof structureAppearanceDef>(structureAppearanceJson);
 /** Apparence PARTAGÉE d'une structure d'arête (mur/porte), au type de son schéma (`schemas/defs/structureAppearance.ts`). */
 export type StructureAppearanceDef = EntreeDe<typeof structureAppearanceDef>;
-/** Les familles de pièces du kit 3D des arêtes (`hotes/godot/asset/kit.ts`). */
+/** Les familles de kit 3D des arêtes, une par modèle `arete--<famille>` (`kitSchema`). */
 export type FamilleDuKit = StructureAppearanceDef['kit'];
 
 /** ADE II 08 l.13-321. */

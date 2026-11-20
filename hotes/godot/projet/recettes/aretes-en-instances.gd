@@ -1,12 +1,12 @@
 extends SceneTree
 
 ## Les arêtes en instances groupées (#3948) rendues comme à `851700b3a` : chaque maillage de chaque pièce, mur et porte
-## ouverte du kit, mur et porte fermée du modèle d'arête servi d'une famille (#4471, `aretes` de la réponse de
-## `modeles`, figée avec les échantillons de l'atelier, `hotes/godot/recettes/decor.ts`, lue par le chargeur des
-## décors une fois `VolumeDeScene.attendre_les_aretes` rendu), boîte sans pièce au kit, dans les deux sens, à un pied
-## et à une hauteur de mur quelconques, sur un volume déplacé et un plateau de 2 m par case, a, à l'instance de son
-## arête dans `Vu_<maillage>` et dans
-## `Ombre_<maillage>`, la transformation dans le monde, le maillage et les matières qu'il avait sous la pièce d'avant,
+## fermée du modèle d'arête servi d'une famille (#4471, `aretes` de la réponse de `modeles`, figée avec les
+## échantillons de l'atelier, `hotes/godot/recettes/decor.ts`, lue par le chargeur des décors une fois
+## `VolumeDeScene.attendre_les_aretes` rendu), boîte d'un mur ou d'une porte ouverte sans modèle servi, de famille nulle
+## ou d'une famille qu'aucun modèle ne sert (`FAMILLE_SANS_MODELE` de la recette des arêtes au pied), dans les deux
+## sens, à un pied et à une hauteur de mur quelconques, sur un volume déplacé et un plateau de 2 m par case, a, à
+## l'instance de son arête dans `Vu_<maillage>` et dans `Ombre_<maillage>`, la transformation dans le monde, le maillage et les matières qu'il avait sous la pièce d'avant,
 ## rebâtie ici en témoin hors du volume (une pièce par arête, `_piece_d_avant` ; celle d'un modèle servi, sa pièce
 ## peinte de la palette de l'arête, `VolumeDeScene.piece_peinte`, au centre de l'arête, son +Z vers son dehors, à
 ## l'échelle qui la porte à sa longueur et à sa hauteur, `MiseEnPage.echelle_d_arete_servie`), `Vu` dans la copie
@@ -25,11 +25,6 @@ extends SceneTree
 const RECETTE_RENDUE := true
 ## La recette des arêtes au pied : son figé servi (`servir_le_fige`), ses volumes (`volume_neuf`) et sa palette.
 const ARETE := preload("res://recettes/arete-au-pied.gd")
-## La famille du kit des arêtes sans modèle servi, et la longueur et la hauteur, en mètres, du modèle d'arête servi
-## (`scripts/personnage-3d/arete/`, #4471).
-const FAMILLE_DU_KIT := "pierre"
-const LONGUEUR_DU_MODELE_M := 2.0
-const HAUTEUR_DU_MODELE_M := 4.0
 const EPSILON := 1e-4
 const METRES_PAR_CASE := 2.0
 const DECALAGE := Vector3(2.5, 0.0, -1.5)
@@ -91,7 +86,6 @@ func _recetter() -> void:
 func _poses_d_avant(scene: Node3D) -> void:
 	var volume := ARETE.volume_neuf(scene, METRES_PAR_CASE)
 	volume.position = DECALAGE
-	var kit: Node3D = (load(VolumeDeScene.KIT) as PackedScene).instantiate()
 	var aretes := _aretes()
 	var rangee := []
 	rangee.resize(COLONNES)
@@ -110,26 +104,25 @@ func _poses_d_avant(scene: Node3D) -> void:
 	for etape: Array in [["posées", []], ["cachées", CACHEES], ["rendues", []]]:
 		volume.cacher(etape[1], [], [])
 		await _image()
-		_controler(etape[0], volume, temoin, kit, aretes, etape[1])
+		_controler(etape[0], volume, temoin, aretes, etape[1])
 	print("[aretes-en-instances] %d comparaisons aux pièces d'avant ; écart maximal : origine %.9f, base %.9f (borne %s)" % [_comparaisons, _ecart_origine, _ecart_base, EPSILON])
-	kit.free()
 	volume.free()
 
 
-## Les arêtes de la recette : deux blocs (et une couche), le mur du kit dans les deux sens, à 4 m et à 1,25 m de haut,
-## la porte ouverte du kit à un pied de 4 m, le mur du modèle servi vers l'ouest, sa porte fermée à 2 m de haut, la
-## boîte d'un mur et le seuil d'une porte ouverte sans famille.
+## Les arêtes de la recette : deux blocs (et une couche), la boîte du mur d'une famille sans modèle dans les deux sens,
+## à 4 m et à 1,25 m de haut, le seuil de sa porte ouverte à un pied de 4 m, le mur du modèle servi vers l'ouest, sa
+## porte fermée à 2 m de haut, la boîte d'un mur et le seuil d'une porte ouverte sans famille.
 func _aretes() -> Array:
 	var aretes := []
 	for k in 3:
-		aretes.append(_arete("m%d" % (k + 1), "0/0/0", FAMILLE_DU_KIT, Noyau.Piece.MUR, Vector2(1, 0), 4.0, 0.0,
+		aretes.append(_arete("m%d" % (k + 1), "0/0/0", ARETE.FAMILLE_SANS_MODELE, Noyau.Piece.MUR, Vector2(1, 0), 4.0, 0.0,
 			Vector2(k, -0.5)))
 	for k in 2:
-		aretes.append(_arete("n%d" % (k + 1), "0/0/0", FAMILLE_DU_KIT, Noyau.Piece.MUR, Vector2(0, 1), 1.25, 2.0,
+		aretes.append(_arete("n%d" % (k + 1), "0/0/0", ARETE.FAMILLE_SANS_MODELE, Noyau.Piece.MUR, Vector2(0, 1), 1.25, 2.0,
 			Vector2(-0.5, k)))
 	for k in 2:
-		aretes.append(_arete("o%d" % (k + 1), "0/1/0", FAMILLE_DU_KIT, Noyau.Piece.PORTE_OUVERTE, Vector2(1, 0), 4.0, 4.0,
-			Vector2(8 + 2 * k, 1.5)))
+		aretes.append(_arete("o%d" % (k + 1), "0/1/0", ARETE.FAMILLE_SANS_MODELE, Noyau.Piece.PORTE_OUVERTE,
+			Vector2(1, 0), 4.0, 4.0, Vector2(8 + 2 * k, 1.5)))
 	for k in 2:
 		aretes.append(_arete("c%d" % (k + 1), "0/0/0", _servie, Noyau.Piece.MUR, Vector2(0, -1), 4.0, 0.0,
 			Vector2(4.5, 1 + k)))
@@ -161,7 +154,7 @@ func _arete(cle: String, bloc: String, famille: Variant, piece: String, sens: Ve
 
 ## Chaque groupe posé, ses comptes d'instances, et chacune de ses instances à son rang (les montrées puis les cachées
 ## `cachees`, dans l'ordre de `aretes`) contre la pièce d'avant de son arête.
-func _controler(etape: String, volume: VolumeDeScene, temoin: Node3D, kit: Node3D, aretes: Array, cachees: Array) -> void:
+func _controler(etape: String, volume: VolumeDeScene, temoin: Node3D, aretes: Array, cachees: Array) -> void:
 	var groupes := {}
 	for groupe: Node3D in volume.get_node("Aretes").get_children():
 		groupes[groupe.get_meta("aretes").map(func(a: Dictionary) -> String: return a.cle)] = groupe
@@ -186,7 +179,7 @@ func _controler(etape: String, volume: VolumeDeScene, temoin: Node3D, kit: Node3
 			if ombre == null or ombre.multimesh.instance_count != membres.size() or not [-1, membres.size()].has(ombre.multimesh.visible_instance_count):
 				_fautes.append("%s, groupe %s : l'ombre de %s ne porte pas ses %d instances" % [etape, cles, vu.name, membres.size()])
 		for rang in ordre.size():
-			var piece := _piece_d_avant(temoin, kit, volume, ordre[rang])
+			var piece := _piece_d_avant(temoin, volume, ordre[rang])
 			var maillages := piece.find_children("*", "MeshInstance3D", true, false)
 			if piece is MeshInstance3D:
 				maillages.append(piece)
@@ -203,11 +196,11 @@ func _controler(etape: String, volume: VolumeDeScene, temoin: Node3D, kit: Node3
 
 
 ## La pièce de l'arête `a` posée comme à `851700b3a` (`_piece`) sous `temoin` : celle du modèle servi de sa famille,
-## peinte de sa palette, au centre de l'arête, orientée sur son sens, à l'échelle métrique mise à sa hauteur ; celle du
-## kit, au centre de l'arête, orientée et mise à l'échelle sur son nœud ; sinon sa boîte, par
+## peinte de sa palette, au centre de l'arête, orientée sur son sens, étirée de la taille du modèle lu
+## (`VolumeDeScene.taille_du_modele_d_arete`) à sa longueur et à sa hauteur ; sinon sa boîte, par
 ## `VolumeDeScene.poser_sur_l_arete`.
-func _piece_d_avant(temoin: Node3D, kit: Node3D, volume: VolumeDeScene, a: Dictionary) -> Node3D:
-	if a.famille == null:
+func _piece_d_avant(temoin: Node3D, volume: VolumeDeScene, a: Dictionary) -> Node3D:
+	if a.famille != _servie:
 		var boite := MeshInstance3D.new()
 		boite.name = "Boite"
 		temoin.add_child(boite)
@@ -217,14 +210,10 @@ func _piece_d_avant(temoin: Node3D, kit: Node3D, volume: VolumeDeScene, a: Dicti
 	var piece := Node3D.new()
 	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, volume.metres_par_case, 0.0)
 	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
-	if a.famille == _servie:
-		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, LONGUEUR_DU_MODELE_M, HAUTEUR_DU_MODELE_M,
-			volume.metres_par_case)
-		piece.scale = etirement
-		piece.add_child(volume.piece_peinte(_modele, a.piece, a.palette, etirement).duplicate())
-	else:
-		piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, volume.metres_par_case)
-		piece.add_child(kit.get_node("%s--%s" % [a.famille, a.piece]).duplicate())
+	var taille := volume.taille_du_modele_d_arete(_modele)
+	var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, volume.metres_par_case)
+	piece.scale = etirement
+	piece.add_child(volume.piece_peinte(_modele, a.piece, a.palette, etirement).duplicate())
 	temoin.add_child(piece)
 	return piece
 

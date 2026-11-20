@@ -48,13 +48,7 @@ def portail(ouverte, cote):
     tour vers le dedans."""
     def batir(D, m, alea):
         A, P = Appareil(D, m, alea), D["PORTAIL"]
-        V, jeu, axe, portee = P["vantail"], P["jeu"], -cote * A.demi, P["porche"]["portee"]
-        intrados = A.porche(axe, (cote,), P["porche"])
-        A.R.boite(m, tuple(sorted((axe, axe + cote * portee))), (0.0, P["seuil"]), (-A.nu, A.nu), PIERRE)
-        gond = A.R.point(axe + cote * (portee - jeu), 0, -V["epaisseur"] / 2)
-        repere = Repere(gond, -DEHORS, -cote * X) if ouverte else Repere(gond, -cote * X, DEHORS)
-        vantail(m, repere, portee - 1.5 * jeu, (P["seuil"] + jeu, P["porche"]["naissance"] - jeu), V,
-                lambda a: intrados(axe + cote * (portee - jeu - a)) - jeu)
+        A.porte_cintree(-cote * A.demi, (cote,), P["porche"], P["seuil"], P["jeu"], P["vantail"], ouverte)
     return batir
 
 

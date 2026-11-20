@@ -1,16 +1,13 @@
 .godot/
 # Les GLB se tirent de la Release des modèles (`hotes/godot/asset/release.ts`, #2948).
 /modeles/*.glb
-# Les textures du sol, le kit des arêtes et les sons aussi (`hotes/godot/asset/epingles.ts`, #3476, #3771).
+# Les textures du sol et les sons aussi (`hotes/godot/asset/epingles.ts`, #3476, #3771).
 /textures/*.jpg
-/kit/*.glb
 /sons/*.ogg
 /sons/*.mp3
 # Ce que l'éditeur en dérive quand il ouvre le projet en place (`npm run godot:ouvrir`, #3945).
 /modeles/*.glb.import
 /textures/*.import
-/kit/*.png
-/kit/*.import
 /sons/*.import
 # Le catalogue des dessins que `npm run godot:ouvrir` dépose dans le projet en place (`deposerLesDessins`, #3935).
 /art/dessins.json

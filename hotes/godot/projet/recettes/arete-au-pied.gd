@@ -4,8 +4,8 @@ extends SceneTree
 ## `pied` et `hauteurM` sont en mètres, le volume de la scène (`scripts/volume_de_scene.gd`, `poser_les_aretes`) les
 ## porte à l'échelle de son plateau, en groupes d'instances (#3948), chacune lue à l'instance de son arête
 ## (`VolumeDeScene.translation_d_instance`, l'instance d'un groupe ne se lit pas sans rendu).
-## Sur un plateau de 2 m par case, le mur d'étage du kit, pied à 4 m et haut de 4 m, va de 2 à 4 unités, centré sur le
-## côté de sa case, et la boîte d'une arête sans pièce au kit part de 2 unités. Posées à nouveau (#3947), le groupe
+## Sur un plateau de 2 m par case, la boîte d'une arête sans modèle servi, de famille nulle ou d'une famille qu'aucun
+## modèle ne sert, pied à 4 m, part de 2 unités, centrée sur le côté de sa case. Posées à nouveau (#3947), le groupe
 ## inchangé reste, le groupe dont une arête change est refait, celui de l'arête changée naît, le groupe parti quitte
 ## l'arbre.
 ## Une arête dont la famille a un modèle d'arête servi (#4471, `aretes` de la réponse de `modeles`, figée par la sonde
@@ -23,15 +23,23 @@ extends SceneTree
 ## (`VolumeDeScene.vider`), elle ne fait pas croître les maillages et les matières teints du volume. Les deux portes
 ## d'une ouverture de deux arêtes ont chacune leur groupe, et pour pièce le nœud `<pièce>--<position>` du modèle quand
 ## il l'a, sinon `<pièce>` (`VolumeDeScene.noeud_de_la_piece`) ; une pièce que le modèle n'a pas se pose hors de lui.
+## Une arête dont le modèle servi ne se lit pas se pose en boîte une fois sa lecture close, l'erreur dite une fois
+## (`ERREURS_ATTENDUES`) ; posée à nouveau, en boîte, son modèle n'est pas relu.
 
 const RECETTE_AUTONOME := true
+## L'erreur que dit la lecture du modèle `MODELE_ILLISIBLE` (`VolumeDeScene._lire_le_modele_d_arete`), une fois
+## (`hotes/godot/construire.mjs`, `erreursDeLaRecette`).
+const ERREURS_ATTENDUES := ["[aretes] modele-absent : absent-du-listage"]
+## Un id de modèle que le listage du figé n'a pas, servi à la famille `FAMILLE_ILLISIBLE` (`_d_un_modele_illisible`).
+const MODELE_ILLISIBLE := "absent-du-listage"
+const FAMILLE_ILLISIBLE := "illisible"
 const FIGE := "res://recettes/vues/decor.json"
 const EPSILON := 0.001
 const METRES_PAR_CASE := 2.0
 const PIED_M := 4.0
 const HAUTEUR_M := 4.0
-## La famille du kit des arêtes sans modèle servi que la recette pose.
-const FAMILLE_DU_KIT := "pierre"
+## Une famille qu'aucun modèle d'arête du figé ne sert (`servir_le_fige`).
+const FAMILLE_SANS_MODELE := "sans-modele"
 ## La palette des arêtes servies des recettes : celle de `mur-a-ossature-en-bois` (`structureAppearance.json`), son
 ## accent et son métal pris à `porte`, sa croisée à son meneau.
 const PALETTE := {corps = "#cdbb9a", bois = "#43301c", accent = "#5a4632", vet1 = "#3b2e1f", metal = "#b9902f"}
@@ -53,7 +61,7 @@ func _recetter() -> void:
 	var decor := servir_le_fige(self, "arete-au-pied")
 	if decor.is_empty():
 		return
-	_du_kit_et_des_boites(_volume_neuf(METRES_PAR_CASE))
+	_des_boites(_volume_neuf(METRES_PAR_CASE))
 	_noeud_de_la_piece()
 	for famille: String in decor.modeles.aretes:
 		var avant := _fautes.size()
@@ -64,6 +72,7 @@ func _recetter() -> void:
 		await _caches_bornes(_volume_neuf(METRES_PAR_CASE), famille)
 		for rang in range(avant, _fautes.size()):
 			_fautes[rang] = "%s, %s" % [famille, _fautes[rang]]
+	await _d_un_modele_illisible(_volume_neuf(METRES_PAR_CASE))
 	for faute in _fautes:
 		push_error("[arete-au-pied] " + faute)
 	print("[arete-au-pied] erreurs=", _fautes.size())
@@ -71,12 +80,12 @@ func _recetter() -> void:
 
 
 ## Le figé `FIGE` servi sous `arbre` par un `PontFige`, ses modèles retenus
-## (`MontageDeComposition.retenir_les_modeles`) ; sans modèle d'arête servi, l'erreur dite au nom de `recette`, `arbre`
-## quitté en 2 et rien de rendu (`{}`).
+## (`MontageDeComposition.retenir_les_modeles`) ; sans modèle d'arête servi, ou s'il en sert un à `FAMILLE_SANS_MODELE`,
+## l'erreur dite au nom de `recette`, `arbre` quitté en 2 et rien de rendu (`{}`).
 static func servir_le_fige(arbre: SceneTree, recette: String) -> Dictionary:
 	var decor: Variant = JSON.parse_string(FileAccess.get_file_as_string(FIGE))
-	if not decor is Dictionary or decor.modeles.get("aretes", {}).is_empty():
-		push_error("[%s] %s : aucun modèle d'arête servi" % [recette, FIGE])
+	if not decor is Dictionary or decor.modeles.get("aretes", {}).is_empty() or decor.modeles.aretes.has(FAMILLE_SANS_MODELE):
+		push_error("[%s] %s : aucun modèle d'arête servi, ou un servi à %s" % [recette, FIGE, FAMILLE_SANS_MODELE])
 		arbre.quit(2)
 		return {}
 	PontFige.poser(arbre, decor)
@@ -112,26 +121,27 @@ func _volume_neuf(metres_par_case: float) -> VolumeDeScene:
 	return volume_neuf(scene, metres_par_case)
 
 
-## La pièce du kit, les boîtes et leurs groupes, posés puis posés à nouveau.
-func _du_kit_et_des_boites(volume: VolumeDeScene) -> void:
+## Les boîtes des arêtes sans modèle servi et leurs groupes, posés puis posés à nouveau.
+func _des_boites(volume: VolumeDeScene) -> void:
 	var arete := {milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = PIED_M, hauteurM = HAUTEUR_M,
 		palette = {}, piece = Noyau.Piece.MUR, position = Noyau.Position.SEULE, bloc = "0/0/0"}
-	var du_kit := arete.merged({cle = "kit", famille = FAMILLE_DU_KIT})
+	var sans_modele := arete.merged({cle = "sans-modele", famille = FAMILLE_SANS_MODELE})
 	var boite := arete.merged({cle = "boite", famille = null})
 	var voisine := arete.merged({cle = "voisine", famille = null, milieu = {x = 1.0, y = -0.5}}, true)
 	var partie := arete.merged({cle = "partie", famille = null, bloc = "0/1/0"}, true)
-	volume.poser_les_aretes([du_kit, boite, voisine, partie])
+	volume.poser_les_aretes([sans_modele, boite, voisine, partie])
 	var aretes := volume.get_node("Aretes")
 	var groupes := _groupes(aretes)
-	if groupes.keys() != [["kit"], ["boite", "voisine"], ["partie"]]:
-		_fautes.append("posées, les groupes sont %s, attendu le kit, les deux boîtes du bloc, la boîte de l'autre bloc"
+	if groupes.keys() != [["sans-modele"], ["boite", "voisine"], ["partie"]]:
+		_fautes.append("posées, les groupes sont %s, attendu la boîte sans modèle, les deux du bloc, celle de l'autre bloc"
 			% [groupes.keys()])
 	else:
 		var boites: Node3D = groupes[["boite", "voisine"]]
-		var mur := _boite_de(volume, groupes[["kit"]], du_kit)
-		_verifier("pièce du kit", mur, PIED_M / METRES_PAR_CASE, (PIED_M + HAUTEUR_M) / METRES_PAR_CASE)
-		_centree("pièce du kit", mur, du_kit, EPSILON)
-		_verifier("boîte sans pièce", _boite_de(volume, boites, boite), PIED_M / METRES_PAR_CASE, NAN)
+		var mur := _boite_de(volume, groupes[["sans-modele"]], sans_modele)
+		_verifier("boîte sans modèle", mur, PIED_M / METRES_PAR_CASE, NAN)
+		_centree("boîte sans modèle", mur, sans_modele, EPSILON)
+		_verifier("boîte sans famille", _boite_de(volume, boites, boite), PIED_M / METRES_PAR_CASE, NAN)
+		_centree("boîte sans famille", _boite_de(volume, boites, boite), boite, EPSILON)
 		_verifier("boîte voisine", _boite_de(volume, boites, voisine), PIED_M / METRES_PAR_CASE, NAN)
 		var ecart := _boite_de(volume, boites, voisine).get_center().x - _boite_de(volume, boites, boite).get_center().x
 		if absf(ecart - 1.0) > EPSILON:
@@ -139,17 +149,18 @@ func _du_kit_et_des_boites(volume: VolumeDeScene) -> void:
 	if volume.ce_qui_est_pose().aretes != 4:
 		_fautes.append("posées, %d arêtes comptées, attendu 4" % volume.ce_qui_est_pose().aretes)
 	var seuil := voisine.merged({piece = Noyau.Piece.PORTE_OUVERTE}, true)
-	volume.poser_les_aretes([du_kit.duplicate(true), boite.duplicate(true), seuil])
+	volume.poser_les_aretes([sans_modele.duplicate(true), boite.duplicate(true), seuil])
 	var reposes := _groupes(aretes)
-	if reposes.keys() != [["kit"], ["boite"], ["voisine"]]:
-		_fautes.append("posées à nouveau, les groupes sont %s, attendu le kit, la boîte, le seuil" % [reposes.keys()])
+	if reposes.keys() != [["sans-modele"], ["boite"], ["voisine"]]:
+		_fautes.append("posées à nouveau, les groupes sont %s, attendu la boîte sans modèle, la boîte, le seuil"
+			% [reposes.keys()])
 	elif groupes.size() == 3:
-		if reposes[["kit"]] != groupes[["kit"]]:
+		if reposes[["sans-modele"]] != groupes[["sans-modele"]]:
 			_fautes.append("posé à nouveau, le groupe inchangé n'est pas gardé")
 		if reposes.values().has(groupes[["boite", "voisine"]]) or reposes.values().has(groupes[["partie"]]):
 			_fautes.append("posés à nouveau, le groupe changé ou le groupe parti est gardé")
 		var partis: bool = not is_instance_valid(groupes[["boite", "voisine"]]) and not is_instance_valid(groupes[["partie"]])
-		if not is_instance_valid(groupes[["kit"]]) or not partis:
+		if not is_instance_valid(groupes[["sans-modele"]]) or not partis:
 			_fautes.append("posés à nouveau, le groupe changé ou le groupe parti n'a pas quitté l'arbre")
 	if volume.ce_qui_est_pose().aretes != 3:
 		_fautes.append("posées à nouveau, %d arêtes comptées, attendu 3" % volume.ce_qui_est_pose().aretes)
@@ -204,6 +215,38 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 	var reposes := _groupes(volume.get_node("Aretes"))
 	if reposes.values() != groupes.values() or volume.ce_qui_est_pose().aretes != aretes.size():
 		_fautes.append("modèle lu, posées à nouveau, les groupes ne sont pas gardés")
+
+
+## Sur le volume `volume`, la famille `FAMILLE_ILLISIBLE` servie par `MODELE_ILLISIBLE`, que le listage n'a pas
+## (`MontageDeComposition.scene_du_modele` le rend `null`, `modele-absent`) : son arête se pose en boîte une fois la
+## lecture close ; posée à nouveau, en boîte, le modèle n'est pas relu (`aretes_posees` émis une seule fois) ; les
+## modèles retenus rendus ensuite.
+func _d_un_modele_illisible(volume: VolumeDeScene) -> void:
+	var retenus := MontageDeComposition.modeles
+	MontageDeComposition.modeles = retenus.merged({aretes = {FAMILLE_ILLISIBLE: MODELE_ILLISIBLE}}, true)
+	var lectures := [0]
+	volume.aretes_posees.connect(func() -> void: lectures[0] += 1)
+	var arete := {cle = "illisible", famille = FAMILLE_ILLISIBLE, palette = PALETTE, piece = Noyau.Piece.MUR,
+		position = Noyau.Position.SEULE, bloc = "0/0/0", pied = PIED_M, hauteurM = HAUTEUR_M,
+		milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}}
+	volume.poser_les_aretes([arete])
+	await volume.attendre_les_aretes()
+	_seule_boite(volume, "lu")
+	volume.poser_les_aretes([arete.duplicate(true)])
+	_seule_boite(volume, "posé à nouveau")
+	print("[arete-au-pied] modèle illisible : en lecture %s, %d lecture(s) close(s)" % [volume.aretes_en_lecture(), lectures[0]])
+	if volume.aretes_en_lecture() or lectures[0] != 1:
+		_fautes.append("modèle illisible, posé à nouveau : en lecture %s, %d lectures closes, attendu une" % [volume.aretes_en_lecture(), lectures[0]])
+	MontageDeComposition.modeles = retenus
+
+
+## Sur le volume `volume`, l'arête `illisible` seule posée, en boîte, au moment `moment`.
+func _seule_boite(volume: VolumeDeScene, moment: String) -> void:
+	var groupes := _groupes(volume.get_node("Aretes"))
+	if groupes.keys() != [["illisible"]] or not groupes[["illisible"]].has_node("Vu_Boite"):
+		_fautes.append("modèle illisible, %s : groupes %s, attendu la seule boîte" % [moment, groupes.keys()])
+	if volume.ce_qui_est_pose().aretes != 1:
+		_fautes.append("modèle illisible, %s : %d arêtes comptées, attendu 1" % [moment, volume.ce_qui_est_pose().aretes])
 
 
 ## Dans un modèle qui a le nœud `porte-fermee--gauche` et pas `porte-fermee--droite`, la porte gauche prend le sien, la
