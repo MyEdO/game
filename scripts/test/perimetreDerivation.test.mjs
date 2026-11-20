@@ -135,40 +135,40 @@ test('acquisition déclarée : cible précise, clôture transitive et invalidati
   `
   const textes = new Map([
     [appelant, "import { rendreCible as rendre } from './rendu.mjs'; import { CIBLE } from './choix.mjs'; rendre(CIBLE)"],
-    [origine, "export const CIBLE = 'docs/a-choisi.md'"],
+    [origine, "export const CIBLE = 'cibles/a-choisi.txt'"],
     ['scripts/rendu.mjs', rendre('registre.mjs')],
     ['scripts/registre.mjs', `
       export const GENERATORS = Object.freeze([
-        {script: '${a}', targets: ['docs/a-*.md']},
-        {script: '${b}', targets: ['docs/b.md']},
-        {script: '${masque}', targets: ['docs/a-choisi.md']},
-        {script: '${descendant}', targets: ['docs/descendant.md']},
+        {script: '${a}', targets: ['cibles/a-*.txt']},
+        {script: '${b}', targets: ['cibles/b.txt']},
+        {script: '${masque}', targets: ['cibles/a-choisi.txt']},
+        {script: '${descendant}', targets: ['cibles/descendant.txt']},
       ].map(Object.freeze))
     `],
-    [a, "import { rendreCible } from './rendu.mjs'; rendreCible('docs/descendant.md')"],
+    [a, "import { rendreCible } from './rendu.mjs'; rendreCible('cibles/descendant.txt')"],
     [b, 'export const b = 1'],
     [masque, 'export const masque = 1'],
     [descendant, 'export const descendant = 1'],
-    ['scripts/homonyme.test.mjs', "import { rendreCible } from './homonyme.mjs'; rendreCible('docs/a-choisi.md')"],
+    ['scripts/homonyme.test.mjs', "import { rendreCible } from './homonyme.mjs'; rendreCible('cibles/a-choisi.txt')"],
     ['scripts/homonyme.mjs', 'export function rendreCible(cible) { return cible }'],
     ['scripts/inconnu.test.mjs', "import { rendreCible } from './rendu.mjs'; rendreCible(process.env.CIBLE)"],
     ['scripts/masque-catch.test.mjs', `
       import { rendreCible } from './rendu.mjs'
-      try { throw () => '' } catch (rendreCible) { rendreCible('docs/a-choisi.md') }
+      try { throw () => '' } catch (rendreCible) { rendreCible('cibles/a-choisi.txt') }
     `],
-    ['scripts/masque-registre.test.mjs', "import { rendreCible } from './rendu-masque.mjs'; rendreCible('docs/a-choisi.md')"],
+    ['scripts/masque-registre.test.mjs', "import { rendreCible } from './rendu-masque.mjs'; rendreCible('cibles/a-choisi.txt')"],
     ['scripts/rendu-masque.mjs', rendre('registre-masque.mjs')],
     ['scripts/registre-masque.mjs', `
       class Object { static freeze() { return [] } }
-      export const GENERATORS = Object.freeze([{script: '${a}', targets: ['docs/a-choisi.md']}].map(Object.freeze))
+      export const GENERATORS = Object.freeze([{script: '${a}', targets: ['cibles/a-choisi.txt']}].map(Object.freeze))
     `],
-    ['scripts/masque-var.test.mjs', "import { rendreCible } from './rendu-var.mjs'; rendreCible('docs/a-choisi.md')"],
+    ['scripts/masque-var.test.mjs', "import { rendreCible } from './rendu-var.mjs'; rendreCible('cibles/a-choisi.txt')"],
     ['scripts/rendu-var.mjs', rendre('registre-var.mjs')],
     ['scripts/registre-var.mjs', `
       if (true) { var Object = { freeze(x) { return Array.isArray(x) ? x.slice(1) : x } } }
       export const GENERATORS = Object.freeze([
-        {script: '${a}', targets: ['docs/a-choisi.md']},
-        {script: '${b}', targets: ['docs/a-choisi.md']},
+        {script: '${a}', targets: ['cibles/a-choisi.txt']},
+        {script: '${b}', targets: ['cibles/a-choisi.txt']},
       ].map(Object.freeze))
     `],
   ])
@@ -194,7 +194,7 @@ test('acquisition déclarée : cible précise, clôture transitive et invalidati
   assert.equal(mesurer(masque).retenus.size, 0, 'le premier motif correspondant gagne')
   assert.deepEqual(mesurer(descendant).retenus.get(appelant).chaine, [appelant, a, descendant])
 
-  textes.set(origine, "export const CIBLE = 'docs/b.md'")
+  textes.set(origine, "export const CIBLE = 'cibles/b.txt'")
   assert.equal(empreinte(), initiale)
   stades.length = 0
   assert.equal(mesurer(a).retenus.size, 0)
@@ -203,7 +203,7 @@ test('acquisition déclarée : cible précise, clôture transitive et invalidati
   assert.deepEqual([...bascule.retenus.keys()], [appelant])
   assert.deepEqual(bascule.retenus.get(appelant).chaine, [appelant, b])
 
-  textes.set(origine, "export const CIBLE = 'docs/a-choisi.md'")
+  textes.set(origine, "export const CIBLE = 'cibles/a-choisi.txt'")
   stades.length = 0
   assert.deepEqual(mesurer(a), froid)
   assert.ok(!stades.includes('acquisitionsDe'), 'l’ancienne variante reste valable pour la même image')
