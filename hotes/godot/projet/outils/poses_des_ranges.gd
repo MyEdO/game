@@ -13,8 +13,10 @@ extends SceneTree
 ## `instants`, chacun `{ gabarit?, morphes, clip, t }` (`gabarit` et `morphes` de `composer`, `clip` vide au repos, qui
 ## se demande avant tout clip).
 ## La sortie, en JSON : `pieces`, chaque mesh rangé `{ ligne, mesh, offrant }` (la ligne de `montes` qui le monte, le nom
-## de son nœud, l'élément monté qui offre son emplacement, vide si la base l'offre) ; `poses`, par instant, par pièce, sa transformation dans le repère de la base en 16 nombres, colonne par
-## colonne, `null` si elle n'est pas montrée rangée à cet instant ; `erreurs`, celles du montage.
+## de son nœud, l'élément monté qui offre son emplacement, vide si la base l'offre) ; `poses`, par instant, par pièce,
+## sa transformation dans le repère de la base en 16 nombres, colonne par colonne, `null` si elle n'est pas montrée
+## rangée à cet instant. Une erreur du montage ou du relevé se dit en erreur,
+## et le code de sortie vaut 1, comme à la fabrique des modèles (`outils/fabrique_de_modeles.gd`).
 ##
 ##   godot --headless --path <projet> --script res://outils/poses_des_ranges.gd -- <commande.json> <sortie.json>
 
@@ -57,10 +59,12 @@ func _poser() -> void:
 		push_error("[poses] sortie illisible : %s" % arguments[1])
 		quit(2)
 		return
-	sortie.store_string(JSON.stringify({pieces = releve.pieces, poses = releve.poses, erreurs = erreurs}, "", false, true))
+	sortie.store_string(JSON.stringify(releve, "", false, true))
 	sortie.close()
+	for erreur in erreurs:
+		push_error("[poses] " + erreur)
 	print("[poses] %d pièce(s) rangée(s), %d instant(s), %d erreur(s)" % [releve.pieces.size(), releve.poses.size(), erreurs.size()])
-	quit(0)
+	quit(0 if erreurs.is_empty() else 1)
 
 
 ## Le relevé des objets rangés de `montage`, monté dans `arbre`, sous les `montes` de sa composition : `pieces`, chaque

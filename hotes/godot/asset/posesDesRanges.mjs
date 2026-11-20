@@ -57,11 +57,10 @@ export async function posesDesRanges({ base, manifeste, elements, preset, instan
   if (modeles.refus.length) throw new Error(`poses des objets rangés : ${modeles.refus.join(' ; ')}`)
   const { montes } = a.composerSurLaBase(modeles.bases.find((b) => b.id === brut.base), manifestes, a.porteeDeComposition(composition))
   const { poserLesRanges } = await import('../construire.mjs')
-  const { pieces, poses, erreurs } = await poserLesRanges({
+  const { pieces, poses } = await poserLesRanges({
     modeles, base: brut.base, montes, instants,
     fichiers: Object.fromEntries([...chemins].map(([id, glb]) => [modeles.fichiers[id].glb, resolve(glb)])),
   })
-  if (erreurs.length) throw new Error(`poses des objets rangés : ${erreurs.join(' ; ')}`)
   const lignes = new Map()
   for (const { ligne, element } of montes) if (element !== null) lignes.set(element, [...(lignes.get(element) ?? []), ligne])
   const donnes = new Map()

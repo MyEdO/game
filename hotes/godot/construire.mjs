@@ -908,7 +908,7 @@ function fabriquer(binaire, copie, modeles) {
 const POSES_DES_RANGES = 'res://outils/poses_des_ranges.gd'
 
 /** Les poses des objets rangés de la `commande` (`projet/outils/poses_des_ranges.gd`), lues par l'éditeur épinglé sur
- *  une copie jetable du projet importé : sa sortie, `{ pieces, poses, erreurs }` ; lève si l'éditeur échoue. */
+ *  une copie jetable du projet importé : sa sortie, `{ pieces, poses }` ; lève si l'éditeur échoue ou dit une erreur. */
 export async function poserLesRanges(commande) {
   const { figerLesDessins } = await assetsDeLHote()
   const binaire = await editeur()
