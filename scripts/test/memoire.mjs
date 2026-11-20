@@ -339,7 +339,7 @@ const aConcurrenceSansProfil = (argv, fichiers) => {
  *  à `CONCURRENCE_SANS_PROFIL`, rien d'appris, raison au journal ; `forcer` y échoue fermé en `ENONSUPPORTE`
  *  (#2586 c.6245552712). */
 export async function lancerNodeMesure({ racine, fichiers, argv = [], env = process.env, signal, mesures, forcer = false,
-  journal = console.log, platform = process.platform }) {
+  journal = console.log, platform = process.platform }, { collecter = collecterMemoire } = {}) {
   const limiteMs = 30 * 60_000
   const diffuser = async (...argumentsSupervision) => {
     const lancement = await lancerProcessusSupervise(...argumentsSupervision)
@@ -398,7 +398,8 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     concurrence = admission.concurrence
     args = [...admission.argv, ...fichiers]
   }
-  if (signal?.aborted) return { code: 1, annulee: true, arret: { etat: 'mort', erreurs: [] } }
+  if (signal?.aborted) return { code: 1, annulee: true, arret: { etat: 'mort', erreurs: [] },
+    defautCollecte: Object.assign(erreur('lancement annulé avant démarrage'), { cause: signal.reason }) }
   const dossier = mkdtempSync(join(env.WFRP_MEMOIRE_DOSSIER ?? tmpdir(), 'wfrp-memoire-'))
   const generation = randomUUID()
   mkdirSync(join(dossier, 'emissions'))
@@ -407,9 +408,10 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
   let minuterie
   let resultat
   let controle
+  let arret
+  let defautCollecte
   const annulationCollecte = new AbortController()
   const signalCompose = signal ? AbortSignal.any([signal, annulationCollecte.signal]) : annulationCollecte.signal
-  let defautSignale = false
   try {
     resultat = await spawnBorne({ argv: args, cwd: racine,
       env: { ...environnementDeLaMesure(env, args, racine), WFRP_MEMOIRE_DOSSIER: dossier, WFRP_MEMOIRE_GENERATION: generation },
@@ -417,23 +419,40 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
       superviser: diffuser,
       surControle: (vu) => { controle = vu },
       surPid: (pidCible) => {
-        collecte = collecterMemoire({ controle, pid: pidCible, fichiers, racine, dossier, generation })
+        collecte = collecter({ controle, pid: pidCible, fichiers, racine, dossier, generation })
         const echantillonner = () => {
           if (controle.phase !== 'execution') { clearInterval(minuterie); return }
           collecte.echantillonner()
-          if (collecte.cloturee) { clearInterval(minuterie); return }
-          if (collecte.defaut && !defautSignale) {
-            defautSignale = true
-            journal('[memoire] défaut initial : ' + JSON.stringify(diagnosticDuLancement({ defautCollecte: collecte.defaut })))
-            annulationCollecte.abort(collecte.defaut)
+          if (collecte.cloturee || collecte.defaut) clearInterval(minuterie)
+          if (!collecte.defaut) return
+          defautCollecte = collecte.defaut
+          journal('[memoire] défaut initial : ' + JSON.stringify(diagnosticDuLancement({ defautCollecte })))
+          if (controle.phase === 'execution' && !signal?.aborted && concurrence === CONCURRENCE_SANS_PROFIL) {
+            try {
+              ecrireJsonAtomique(join(dossier, 'collecte-abandonnee.json'), { version: 1, generation })
+              return
+            } catch (cause) {
+              defautCollecte = Object.assign(erreur('abandon de la collecte non publié'), { cause, errors: [collecte.defaut] })
+            }
           }
+          annulationCollecte.abort(defautCollecte)
         }
         echantillonner()
-        if (!collecte.defaut) minuterie = setInterval(echantillonner, 100)
+        if (!collecte.defaut && !collecte.cloturee) minuterie = setInterval(echantillonner, 100)
       } })
     clearInterval(minuterie)
-    if (resultat.annulee || resultat.expiree || resultat.arret?.etat !== 'mort' || resultat.error) throw Object.assign(erreur('lancement interrompu ou arrêt non confirmé'), { cause: collecte?.defaut ?? resultat.error })
-    if (profils.entrees.some((e) => empreinte(lire(resolve(racine, e.fichier))) !== e.blob)) throw erreur('source modifiée pendant la mesure')
+    arret = resultat.arret
+    const lancementNormal = !resultat.annulee && !resultat.expiree && !resultat.signal && arret?.etat === 'mort' && !resultat.error
+    if (lancementNormal) {
+      try {
+        if (profils.entrees.some((e) => empreinte(lire(resolve(racine, e.fichier))) !== e.blob)) throw erreur('source modifiée pendant la mesure')
+      } catch (cause) {
+        resultat = { ...resultat, error: cause }
+        if (!defautCollecte) throw cause
+      }
+    }
+    if (defautCollecte) throw defautCollecte
+    if (!lancementNormal) throw Object.assign(erreur('lancement interrompu ou arrêt non confirmé'), { cause: resultat.error })
     if (!collecte) throw erreur('cible non capturée')
     const observe = collecte.terminer()
     const date = new Date().toISOString()
@@ -451,16 +470,18 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     return { ...resultat, acquisition, concurrence, memoire: observe }
   } catch (cause) {
     clearInterval(minuterie)
-    const arret = resultat ? resultat.arret : controle && await tuerArbre(controle, cause)
-    const rendu = { ...resultat, code: resultat?.code || 1, error: cause, arret, acquisition, concurrence, defautCollecte: collecte?.defaut, qualiteCollecte: collecte && { ...collecte.qualite, resultat: 'incomplete' } }
+    if (!resultat && controle) arret = await tuerArbre(controle, cause)
+    const defaut = cause.code === 'MESURE_MEMOIRE_INCOMPLETE' ? cause : Object.assign(erreur(cause.message), { cause })
+    const rendu = { ...resultat, code: resultat?.code ?? 1, arret, acquisition, concurrence, defautCollecte: defaut,
+      qualiteCollecte: collecte && { ...collecte.qualite, resultat: 'incomplete' } }
     const diagnostic = { ...diagnosticDuLancement({ ...rendu, dossier }), qualiteCollecte: rendu.qualiteCollecte }
-    journal('[memoire] MESURE_MEMOIRE_INCOMPLETE : ' + cause.message)
+    journal('[memoire] MESURE_MEMOIRE_INCOMPLETE : ' + defaut.message)
     diagnosticArret(rendu, journal, '[memoire] ')
     journal('[memoire] diagnostic lancement : ' + JSON.stringify(diagnostic))
     try {
       const fichier = join(dossier, 'diagnostic-arret')
       ecrireJsonAtomique(fichier, diagnostic)
-      if (resultat && resultat.arret?.etat !== 'mort') {
+      if (controle && arret?.etat !== 'mort') {
         rendu.diagnostic = fichier
         journal('[memoire] diagnostic conservé : ' + fichier)
       }
@@ -470,6 +491,6 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     return rendu
   } finally {
     clearInterval(minuterie)
-    if (resultat?.arret?.etat === 'mort' || !controle) rmSync(dossier, { recursive: true, force: true, maxRetries: 3, retryDelay: 25 })
+    if (arret?.etat === 'mort' || !controle) rmSync(dossier, { recursive: true, force: true, maxRetries: 3, retryDelay: 25 })
   }
 }

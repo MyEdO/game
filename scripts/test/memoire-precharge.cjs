@@ -8,6 +8,18 @@ if (isMainThread && dossier) {
   const generation = process.env.WFRP_MEMOIRE_GENERATION
   const echouer = () => { throw Object.assign(new Error('première mesure mémoire non acquittée'), { code: 'MESURE_MEMOIRE_INCOMPLETE' }) }
   if (!generation) echouer()
+  const lire = (fichier) => {
+    try { return JSON.parse(readFileSync(fichier, 'utf8')) }
+    catch (cause) { if (cause.code === 'ENOENT') return null; throw cause }
+  }
+  const collecteAbandonnee = () => {
+    const abandon = lire(dossier + '/collecte-abandonnee.json')
+    if (abandon === null) return false
+    if (abandon.version !== 1 || abandon.generation !== generation) echouer()
+    return true
+  }
+  if (collecteAbandonnee()) return
+
   const id = randomUUID()
   const base = dossier + '/emissions/' + id
   const challenges = base + '.challenges'
@@ -17,16 +29,13 @@ if (isMainThread && dossier) {
     writeFileSync(temporaire, JSON.stringify(valeur), { flag: 'wx' })
     renameSync(temporaire, fichier)
   }
-  const lire = (fichier) => {
-    try { return JSON.parse(readFileSync(fichier, 'utf8')) }
-    catch (cause) { if (cause.code === 'ENOENT') return null; throw cause }
-  }
   const enveloppe = { version: 1, generation, id, pid: process.pid }
   publier(base + '.json', enveloppe)
   const echeance = Date.now() + 30_000
   const pause = new Int32Array(new SharedArrayBuffer(4))
   const nonces = new Set(), acquittementsVus = new Set()
   while (true) {
+    if (collecteAbandonnee()) break
     if (Date.now() >= echeance) echouer()
     for (const nom of readdirSync(challenges).filter((n) => n.endsWith('.json'))) {
       const challenge = lire(challenges + '/' + nom)
