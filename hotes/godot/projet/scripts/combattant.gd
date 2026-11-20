@@ -14,6 +14,8 @@ extends Node3D
 
 ## Son corps a changé : sa base posée, un élément monté ou démonté, un emblème posé.
 signal habille
+## Le combattant a rejoint la fin de son déplacement.
+signal deplacement_fini
 
 const DUREE_DEPLACEMENT_S := 0.45
 const OPACITE_HORS_COMBAT := 0.35
@@ -135,6 +137,11 @@ func parcourir(lieux: Array, metres: Array) -> void:
 	_deplacement = create_tween()
 	parcourir_les_lieux(_deplacement, self, _montage, lieux, metres.map(_duree_du_pas))
 	_deplacement.tween_callback(_reposer)
+
+
+## Si le combattant se déplace encore, en ligne droite ou le long d'un chemin.
+func se_deplace() -> bool:
+	return _deplacement != null
 
 
 ## Tourné vers `cible` (une position du plateau), il frappe : l'état de son rôle d'attaque, `tir` si sa table en
@@ -319,8 +326,10 @@ func _aller(lieu: Vector3) -> void:
 
 
 func _reposer() -> void:
+	_deplacement = null
 	if not _hors_combat:
 		_etats.jouer(EtatsDuCorps.REPOS)
+	deplacement_fini.emit()
 
 
 ## La durée (s) d'un pas de `metres` mètres de son chemin (`parcourir`).
