@@ -142,7 +142,7 @@ export const estPoseParSesPonts = (scene: Scene, id: string): boolean =>
   idsDesNaviresPoses(scene).has(id);
 
 /** La case hôte, en cases continues, de chaque point (x, y) des ponts `navire` posés selon `pose`. */
-function versLaScene(navire: Scene, pose: PoseDeNavire): (x: number, y: number) => Pt {
+function versLaScene(navire: Pick<Scene, 'dimensions'>, pose: PoseDeNavire): (x: number, y: number) => Pt {
   const tourne = versLHote(pose.cap, navire.dimensions.w, navire.dimensions.h);
   return (x, y) => {
     const p = tourne(x, y);
@@ -251,6 +251,21 @@ export function poserUnNavire(scene: Scene, ref: string, p: Pt, z: number, cap: 
   return { scene: addEntity(scene, { id, kind: 'personnage', vehicule: { id: ref }, pos: { x: p.x, y: p.y }, facing: cap, label }, z), id };
 }
 
+/** Les cases du rectangle de flottaison du plan dans la scène hôte. */
+function casesDeFlottaison(navire: Pick<Scene, 'dimensions'>, pose: PoseDeNavire): Pt[] {
+  const vers = versLaScene(navire, pose);
+  const { w, h } = navire.dimensions;
+  return Array.from({ length: w * h }, (_, i) => ({ ...vers(i % w, Math.floor(i / w)), z: pose.z }));
+}
+
+/** L'empreinte de flottaison d'un navire qui pose ses ponts dans la scène. */
+export function flottaisonDuNavire(scene: Pick<Scene, 'metresPerTile'>, entite: SceneEntity): Pt[] | undefined {
+  const pose = poseDe(scene, entite);
+  if (!pose) return undefined;
+  const [w, h] = garanti(planDe(pose.ref), pose.ref, 'plan de navire').ponts.size;
+  return casesDeFlottaison({ dimensions: { w, h } }, pose);
+}
+
 /** Ce que les ponts des navires de `scene` y posent, par l'id de leur entité : leurs cases (clés `x,y,z`) et leurs arêtes
  *  (`edgeKey`), qu'un hôte garde pour la marche et le pointage, le navire se montrant par son modèle 3D
  *  (`naviresDeLaScene`) ; et sa flottaison : les cases (clés `x,y,z`) du rectangle de ses ponts à l'étage de son pont le
@@ -263,12 +278,7 @@ export function provenanceDesNavires(scene: Pick<Scene, 'entities' | 'metresPerT
     const e = emprise(navire, pose);
     for (const c of e.cases) cases.set(`${c.x},${c.y},${c.z}`, pose.id);
     for (const { place } of e.aretes) aretes.set(edgeKey(place), pose.id);
-    const vers = versLaScene(navire, pose);
-    const { w, h } = navire.dimensions;
-    for (let i = 0; i < w * h; i++) {
-      const c = vers(i % w, Math.floor(i / w));
-      flottaison.set(`${c.x},${c.y},${pose.z}`, pose.id);
-    }
+    for (const c of casesDeFlottaison(navire, pose)) flottaison.set(`${c.x},${c.y},${c.z}`, pose.id);
   }
   return { cases, aretes, flottaison };
 }

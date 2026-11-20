@@ -30,6 +30,7 @@ import {
   planDuLieuOuvert,
   projetEdite,
   sceneEditee,
+  texteAEnregistrer,
   vueDeLaScene,
   type GesteDEdition,
   type SessionDEdition,
@@ -91,7 +92,7 @@ import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { allBuiltinCampaigns, areneCampaign, paquetDuJeu } from '../../scenes/campaign';
-import { boutonDeLEdition, inspecteurDeLaSession } from '../../hote/editeur';
+import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession } from '../../hote/editeur';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
@@ -203,7 +204,15 @@ describe('session d’édition', () => {
 
   it('copier, coller, dupliquer : la copie se colle sur la case pointée de la couche éditée, la duplication sur la couche de l’entité', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-    const pose = jouer(ouverte(), { geste: 'ajouterCouche' }, { geste: 'outil', outil: { mode: 'entite', kind: 'heroStart' } }, { geste: 'appui', point: point(1, 1) });
+    const pose = jouer(ouverte(),
+      { geste: 'ajouterCouche' },
+      { geste: 'outil', outil: { mode: 'terrain', terrain: 'pierre' } },
+      { geste: 'rectangle', actif: true },
+      { geste: 'appui', point: point(1, 1) },
+      { geste: 'relache', point: point(3, 2) },
+      { geste: 'outil', outil: { mode: 'entite', kind: 'heroStart' } },
+      { geste: 'appui', point: point(1, 1) },
+    );
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel);
     expect(jouer(pose, { geste: 'coller' }), 'rien de copié').toBe(pose);
     const copiee = jouer(pose, { geste: 'copier' });
@@ -214,6 +223,52 @@ describe('session d’édition', () => {
     const ailleurs = jouer(copiee, { geste: 'outil', outil: { mode: 'selection' } }, { geste: 'appui', point: point(3, 2) }, { geste: 'couche', z: 0 });
     expect(jouer(ailleurs, { geste: 'coller' }), 'la case pointée est sur une autre couche').toBe(ailleurs);
     expect(ent(jouer(pose, { geste: 'dupliquer' }))).toMatchObject({ kind: 'heroStart', pos: { x: 2, y: 2 }, z: 1 });
+  });
+
+  it('dupliquer évite la case sud-est occupée comme la troupe et conserve l’entité sur sa couche (#3709)', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const s = jouer(ouverte(),
+      { geste: 'ajouterCouche' },
+      { geste: 'outil', outil: { mode: 'terrain', terrain: 'pierre' } },
+      { geste: 'rectangle', actif: true },
+      { geste: 'appui', point: point(0, 0) },
+      { geste: 'relache', point: point(3, 3) },
+      { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'humain' } },
+      { geste: 'appui', point: point(2, 2) },
+      { geste: 'appui', point: point(1, 1) },
+      { geste: 'nommer', nom: 'Éclaireur' },
+    );
+    const original = entiteDeLaSelection(sceneEditee(s), s.sel)!;
+    const copie = jouer(s, { geste: 'dupliquer' });
+    const ent = entiteDeLaSelection(sceneEditee(copie), copie.sel)!;
+    const troupe = jouer(s, { geste: 'troupe', nombre: 1 });
+    expect(ent.pos).toEqual(sceneEditee(troupe).entities[sceneEditee(s).entities.length]?.pos);
+    expect(ent.pos).toEqual({ x: 0, y: 0 });
+    expect(ent.id).not.toBe(original.id);
+    expect(ent).toEqual({ ...original, id: ent.id, pos: ent.pos, z: 1 });
+    expect(copie.historique.passe).toHaveLength(s.historique.passe.length + 1);
+  });
+
+  it('dupliquer au bord choisit une case libre et sur une carte pleine laisse la session intacte (#3709)', () => {
+    const poser = (scene: Scene, x: number, y: number) => [
+      { geste: 'outil', outil: { mode: 'entite', kind: 'heroStart' } } as const,
+      { geste: 'appui', point: point(x, y) } as const,
+    ].reduce<SessionDEdition>(editer, ouverteSur(scene));
+    const bord = poser(emptyScene('bord', 2, 2), 1, 1);
+    const copie = editer(bord, { geste: 'dupliquer' });
+    expect(entiteDeLaSelection(sceneEditee(copie), copie.sel)?.pos).toEqual({ x: 0, y: 0 });
+    const pleine = poser(emptyScene('pleine', 1, 1), 0, 0);
+    expect(editer(pleine, { geste: 'dupliquer' })).toBe(pleine);
+    expect(sceneEditee(pleine).entities).toHaveLength(1);
+    expect(pleine.historique.passe).toHaveLength(1);
+  });
+
+  it('dupliquer un pur décor le pose aussi en dehors de la zone jouable (#3709)', () => {
+    const scene = { ...emptyScene('decor-exterieur', 6, 6), zoneJouable: { x: 0, y: 0, w: 2, h: 2 } };
+    const s = editer(ouverteSur(scene), { geste: 'outil', outil: { mode: 'entite', kind: 'prop', ref: 'brasero' } });
+    const pose = editer(s, { geste: 'appui', point: point(4, 4) });
+    const copie = editer(pose, { geste: 'dupliquer' });
+    expect(entiteDeLaSelection(sceneEditee(copie), copie.sel)?.pos).toEqual({ x: 5, y: 5 });
   });
 
   it('une entrée : renommée, gardée sélectionnée ; un nom vide ou déjà pris la laisse ; sur une autre couche', () => {
@@ -806,7 +861,7 @@ describe('le navire de la scène éditée (#3772)', () => {
   const bassin = (metresPerTile = 2) => ({ ...emptyScene('bassin', 24, 16), metresPerTile });
   const poserLaCaraque = (s: SessionDEdition, cap: 'N' | 'E' | 'S' | 'O' = 'E') =>
     [{ geste: 'outil', outil: { mode: 'navire', ref: 'caraque', cap } }, { geste: 'appui', point: point(10, 6) }].reduce<SessionDEdition>((t, g) => editer(t, g as GesteDEdition), s);
-  const caraque = { id: 'navire-0', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 6 }, facing: 'E', label: 'Caraque' };
+  const caraque: Scene['entities'][number] = { id: 'navire-0', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 6 }, facing: 'E', label: 'Caraque' };
 
   it('l’outil navire pose la caraque à la case visée, à son cap, sélectionnée : la scène éditée ne porte que son entité', () => {
     const s = poserLaCaraque(ouverteSur(bassin()));
@@ -825,8 +880,40 @@ describe('le navire de la scène éditée (#3772)', () => {
     expect([vise.sel, vise.pointee]).toEqual([{ type: 'entity', id: 'navire-0' }, { x, y, z: 2 }]);
     const marin = editer(editer(surLePont, { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'humain' } }), { geste: 'appui', point: point(x, y) });
     expect(sceneEditee(marin).entities.find((e) => e.creature?.id === 'humain')).toMatchObject({ pos: { x, y }, z: 2 });
+    const duplique = editer(marin, { geste: 'dupliquer' });
+    const copie = entiteDeLaSelection(sceneEditee(duplique), duplique.sel)!;
+    expect(sceneEditee(duplique).entities).toHaveLength(sceneEditee(marin).entities.length + 1);
+    expect(copie.z).toBe(2);
+    expect(isWalkable(vueDeLaScene(duplique), copie.pos.x, copie.pos.y, 2)).toBe(true);
+    expect(sceneEditee(duplique).layers.map((l) => l.z)).toEqual([0]);
     expect(avertissementsDeLaSession(marin).map((w) => w.message).filter((m) => m.includes('inexistant'))).toEqual([]);
     expect(sceneEditee(marin).layers.map((l) => l.z), 'la scène éditée ne reçoit aucune couche des ponts').toEqual([0]);
+  });
+
+  const coqueSurLEau = (metresPerTile: number) => {
+    const eau = buildScene({ id: 'eau', label: 'Eau', size: [48, 32], terrain: 'eau', metresPerTile });
+    const coque = { ...caraque, pos: { x: 14, y: 14 } } satisfies Scene['entities'][number];
+    const s = ouverteSur({ ...eau, entities: [coque] });
+    return editer(s, { geste: 'selectionner', porteur: { sorte: 'entite', id: coque.id } });
+  };
+
+  it('dupliquer une coque à l’échelle du pas réserve toute sa flottaison (#3709)', () => {
+    const s = coqueSurLEau(2);
+    const empreinte = provenanceDesNavires(sceneEditee(s)).flottaison;
+    expect(empreinte.size).toBeGreaterThan(1);
+    const duplique = editer(s, { geste: 'dupliquer' });
+    expect(sceneEditee(duplique).entities).toHaveLength(2);
+    const occupees = provenanceDesNavires(sceneEditee(duplique)).flottaison;
+    expect(occupees.size).toBe(2 * empreinte.size);
+    for (const [caseOriginale, id] of empreinte) expect(occupees.get(caseOriginale)).toBe(id);
+  });
+
+  it('dupliquer une coque à l’échelle de la mer la pose sur l’eau hors de l’empreinte 4 × 4 de l’original (#3709)', () => {
+    const s = coqueSurLEau(10);
+    const duplique = editer(s, { geste: 'dupliquer' });
+    expect(sceneEditee(duplique).entities).toHaveLength(2);
+    const copie = entiteDeLaSelection(sceneEditee(duplique), duplique.sel);
+    expect(copie).toMatchObject({ vehicule: { id: 'caraque' }, pos: { x: 10, y: 10 } });
   });
 
   it('une couche que seuls les ponts posent ne se retire pas ; ajouter une couche la pose au-dessus des ponts', () => {
@@ -1380,6 +1467,133 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
     const enregistree = jouer(retiree, { geste: 'enregistrer' }, { geste: 'enregistrement', reussi: true });
     expect(Object.keys(enregistree.calques)).toEqual([]);
     expect(Object.keys(jouer(retiree, { geste: 'enregistrer' }, { geste: 'enregistrement', reussi: false }).calques)).toEqual(['a']);
+  });
+});
+
+describe('les renommages de scène, d’entrée et de dialogue du projet (#3483)', () => {
+  const transition = (id: string, entry = 'quai'): Effect => ({ type: 'transition', scene: { id }, entry });
+  const dialogue = (id: string) => ({ id, start: { id: 'debut' }, nodes: [{ id: 'debut', desc: 'Bienvenue sur les deux rives.', choices: [] }] });
+  const objet = objetDeCampagne();
+  const bourg: Scene = {
+    ...emptyScene('bourg', 4, 4),
+    entryPoints: { quai: { x: 1, y: 1 }, porte: { x: 1, y: 2 } },
+    encounters: [{ id: 'embuscade', members: [] }],
+    dialogues: [dialogue('accueil'), dialogue('adieu')],
+    entities: [{ id: 'groupe', kind: 'heroStart', pos: { x: 0, y: 0 } }],
+    triggers: [
+      { id: 'accueil', rect: { x: 1, y: 1, w: 1, h: 1 }, flow: flowFromEffects([
+        { type: 'startDialogue', dialogue: { id: 'accueil' } },
+        { type: 'giveTrapping', trappingId: objet.id },
+      ]) },
+      { id: 'adieu', rect: { x: 1, y: 3, w: 1, h: 1 }, flow: flowFromEffects([
+        { type: 'startDialogue', dialogue: { id: 'adieu' } },
+      ]) },
+    ],
+  };
+  const val: Scene = {
+    ...emptyScene('val', 4, 4),
+    entryPoints: { quai: { x: 1, y: 1 } },
+    stations: [{ sceneId: 'bourg', pos: { x: 2, y: 2 } }],
+    dialogues: [dialogue('accueil')],
+    triggers: [{ id: 'passage', rect: { x: 1, y: 2, w: 1, h: 1 }, flow: flowFromEffects([
+      transition('bourg'), transition('val'), { type: 'startDialogue', dialogue: { id: 'accueil' } },
+    ]) }],
+  };
+  const monde: WorldMap = {
+    ...emptyWorldMap('monde'),
+    places: [
+      { id: 'lieu-bourg', label: 'Bourg', pos: { x: 20, y: 20 }, scene: { id: 'bourg' }, entry: 'quai' },
+      { id: 'lieu-val', label: 'Val', pos: { x: 60, y: 20 }, scene: { id: 'val' }, entry: 'quai',
+        poi: [{ id: 'pont', label: 'Pont', pos: { x: 30, y: 25 }, sceneId: { id: 'bourg' } }] },
+    ],
+    routes: [{
+      id: 'route', a: { id: 'lieu-bourg' }, b: { id: 'lieu-val' }, km: 12, modes: ['pied'],
+      ambush: { scene: { id: 'bourg' }, entry: 'quai', encounter: 'embuscade' },
+      perils: [{ label: 'Détour', chancePct: 10, effects: [transition('bourg')] }],
+    }],
+  };
+  const campagne = {
+    type: 'projet', id: 'campagne-renommage', label: 'Les deux rives', versionContenu: 1, maison: 'Campagne de test',
+    scenes: [bourg, val], worldMap: monde, narratif: { ...NARRATIF_VIDE, objets: [objet] },
+  };
+  const ouverte = () => ouvrirLEdition(parseProject(campagne), false);
+  const valider = (s: SessionDEdition) => {
+    const { scenes, worldMap, narratif } = parseProject(projetEdite(s));
+    expect(validateScene(scenes, worldMap, narratif)).toEqual([]);
+    expect(texteAEnregistrer(s)).toMatchObject({ ok: true });
+  };
+  const formulaire = (s: SessionDEdition, type: 'identifier' | 'nommer', texte: string) => {
+    const geste = gesteDuFormulaire({ 'editeur.inspecteur': inspecteurDeLaSession(s) }, { type, args: [texte] });
+    if (geste?.geste !== 'identifier' && geste?.geste !== 'nommer') throw new Error('Le formulaire de renommage ne produit aucun geste.');
+    return geste;
+  };
+  const references = (s: SessionDEdition, cible: string, entree: string) => {
+    const { scenes, worldMap } = projetEdite(s);
+    const [destination, voisine] = scenes;
+    expect(destination.id).toBe(cible);
+    expect(voisine.triggers[0].flow).toEqual(flowFromEffects([
+      transition(cible, entree), transition('val'), { type: 'startDialogue', dialogue: { id: 'accueil' } },
+    ]));
+    expect(voisine.stations).toEqual(val.stations);
+    const [lieu, autreLieu] = worldMap!.places;
+    expect(lieu).toMatchObject({ scene: { id: cible }, entry: entree });
+    expect(autreLieu).toMatchObject({ scene: { id: 'val' }, entry: 'quai', poi: [{ sceneId: { id: cible } }] });
+    expect(worldMap!.routes[0]).toMatchObject({
+      ambush: { scene: { id: cible }, entry: entree, encounter: 'embuscade' },
+      perils: [{ effects: [transition(cible, entree)] }],
+    });
+  };
+
+  it('identifier une scène propage dans chaque cran et refuse une collision sans changer le projet', () => {
+    const avant = ouverte();
+    valider(avant);
+    const avecCran = editer(avant, { geste: 'ajouterCouche' });
+    const collision = formulaire(avecCran, 'identifier', 'val');
+    expect(editer(avecCran, collision)).toBe(avecCran);
+    const renommee = editer(avecCran, formulaire(avecCran, 'identifier', ' relais '));
+    references(renommee, 'relais', 'quai');
+    expect(refusDuRenommage(avecCran, collision)).toContain('val');
+    expect(renommee.historique.passe).toHaveLength(avecCran.historique.passe.length);
+    valider(renommee);
+    const annulee = editer(renommee, { geste: 'annuler' });
+    references(annulee, 'relais', 'quai');
+    valider(annulee);
+    references(editer(annulee, { geste: 'retablir' }), 'relais', 'quai');
+    references(avant, 'bourg', 'quai');
+  });
+
+  it('nommer l’entrée propage seulement les références à cette scène, en un cran annulable', () => {
+    const avant = ouverte();
+    valider(avant);
+    const selection = editer(avant, { geste: 'appui', point: point(1, 1) });
+    expect(selection.sel).toEqual({ type: 'entry', id: 'quai' });
+    const collision = formulaire(selection, 'nommer', 'porte');
+    expect(editer(selection, collision)).toBe(selection);
+    const renommee = editer(selection, formulaire(selection, 'nommer', ' débarcadère '));
+    expect(renommee.sel).toEqual({ type: 'entry', id: 'débarcadère' });
+    references(renommee, 'bourg', 'débarcadère');
+    expect(refusDuRenommage(selection, collision)).toContain('porte');
+    expect(sceneEditee(renommee).entryPoints).toEqual({ débarcadère: { x: 1, y: 1 }, porte: { x: 1, y: 2 } });
+    expect(renommee.historique.passe).toHaveLength(selection.historique.passe.length + 1);
+    valider(renommee);
+    expect(projetEdite(editer(renommee, { geste: 'annuler' }))).toBe(projetEdite(selection));
+  });
+
+  it('nommer le dialogue propage ses ouvreurs de la scène, garde son homonyme ailleurs et le projet valide', () => {
+    const avant = ouverte();
+    valider(avant);
+    const selection = editer(avant, { geste: 'selectionner', porteur: { sorte: 'dialogue', id: 'accueil' } });
+    const collision = formulaire(selection, 'nommer', 'adieu');
+    expect(editer(selection, collision)).toBe(selection);
+    const renommee = editer(selection, formulaire(selection, 'nommer', 'arrivée'));
+    expect(sceneEditee(renommee).triggers[0].flow).toEqual(flowFromEffects([
+      { type: 'startDialogue', dialogue: { id: 'arrivée' } }, { type: 'giveTrapping', trappingId: objet.id },
+    ]));
+    expect(refusDuRenommage(selection, collision)).toContain('adieu');
+    expect(renommee.historique.passe).toHaveLength(selection.historique.passe.length + 1);
+    expect(projetEdite(renommee).narratif).toBe(projetEdite(avant).narratif);
+    expect(projetEdite(renommee).scenes[1]).toBe(projetEdite(avant).scenes[1]);
+    valider(renommee);
   });
 });
 
