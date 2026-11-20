@@ -164,11 +164,11 @@ export interface Choix {
 export interface Valeur { libelle: string; valeur: unknown; presse: boolean; refus: string | null }
 
 /** Une saisie d'un formulaire : sa position parmi les arguments du verbe (`nom`), et son contrôle. `fixe` : posée par
- *  la fenêtre, jamais saisie ; `saisieCoches` : la liste des valeurs cochées, chacune pressée quand elle l'est déjà ;
+ *  la fenêtre, jamais saisie ;
  *  `saisieMultiligne` : un texte sur plusieurs lignes, saisi tel quel. */
 export type Saisie =
   | { type: 'fixe'; id: string; nom: string; optionnel: boolean; valeur: unknown }
-  | { type: 'saisieChoix' | 'saisieCoches'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeurs: Valeur[] }
+  | { type: 'saisieChoix'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeurs: Valeur[] }
   | { type: 'saisieNombre'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: number; min: number; max: number; pas: number }
   | { type: 'saisieTexte' | 'saisieMultiligne' | 'saisieJson'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: string }
   | { type: 'saisieObjet'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; champs: Saisie[] };
