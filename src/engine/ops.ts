@@ -94,6 +94,7 @@ import {
   objetDeSlot,
   isWeaponActive,
   uidDArme,
+  type TrappingResolver,
 } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
@@ -1440,6 +1441,8 @@ export interface OpsCtx {
   rng: RNG;
   /** Forge les uids des objets donnés, des armes invoquées et des enchantements (#2907). */
   idNeuf: FabriqueDId;
+  /** Résout les références d'objet à la création d'un don ou d'une arme invoquée. #4257 */
+  resolveTrapping?: TrappingResolver;
   /** Référent des formules « (Bonus de X) » (le lanceur d'un sort) ; défaut : la cible. */
   caster?: Combatant;
   /** Équipage d'une COQUE (`crewIds` résolus en Combattants) — pour les ops de navire : `removeShipPoste`
@@ -1897,10 +1900,10 @@ export const OPS_CTX_GELES = [
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
 /** REBÂTIS à la reprise par un chemin NOMMÉ (`noyau/combatEffects.ctxRepris`) : le rng et la fabrique d'ids de la partie,
- *  les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage et du sol, qui reçoivent leur
- *  cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
+ *  le résolveur d'objets et les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage
+ *  et du sol, qui reçoivent leur cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
  *  sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
@@ -2920,11 +2923,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, ctx.idNeuf, source, undefined, contexteDeNaissanceDObjet(target));
+          const it = itemFromGive(o, ctx.idNeuf, source, ctx.resolveTrapping, contexteDeNaissanceDObjet(target));
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }
-        lines.push(t('op.objetDonne', { name: target.label, count: n > 1 ? `${n}× ` : '', item: giveTrappingLabel(o), src: nomDeSource(ctx) }));
+        lines.push(t('op.objetDonne', { name: target.label, count: n > 1 ? `${n}× ` : '', item: giveTrappingLabel(o, ctx.resolveTrapping), src: nomDeSource(ctx) }));
         break;
       }
       case 'money': {
@@ -3005,7 +3008,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const flat = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
         // #2967
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
-        const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form, `conjure-${ctx.idNeuf('it')}`));
+        const item = weaponItem(specDArmeInvoquee(ctx.resolveTrapping ?? findTrappingById, o, flat, source, form, `conjure-${ctx.idNeuf('it')}`));
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses
         // armes ; à l'expiration, le set d'origine est restauré (engine/conjuredWeapons).
         // Effets « à la touche » (Épée ardente → En flammes) PORTÉS PAR L'OBJET invoqué (enchant) ;

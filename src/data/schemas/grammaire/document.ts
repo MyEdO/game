@@ -427,6 +427,8 @@ export interface DocumentHandle<T extends string, S = unknown, E = unknown> {
    * l'entrée porte l'enveloppe ET ses rangées. Sa sortie `E` est l'entrée au type (`EntreeDuDocument`).
    */
   readonly entree: z.ZodType<E>;
+  /** Entrée scellée sous les portées de son document d’accueil. */
+  readonly entreeEmbarquee: z.ZodType<E>;
   /**
    * L'entrée en PATCH (tous champs optionnels, sans l'`id` : une surcharge n'a pas d'identité),
    * dérivée AVANT le sceau puis SCELLÉE à son tour :
@@ -760,9 +762,12 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   const avecCharge = refusCharge
     ? (avecProse.superRefine((v, ctx) => refusCharge(v as Record<string, unknown>, ctx)) as z.ZodObject<z.ZodRawShape>)
     : avecProse;
-  // PORTÉES LOCALES sans collection : une feuille `idDe(…, { portee })` du document y vaut son catalogue seul.
-  const affine = ouvrirLesPorteesSansCollection(affinerEntree ? affinerEntree(avecCharge) : avecCharge, `document('${type}')`);
-  nommerChamps(affine as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affine) });
+  const affinee = affinerEntree ? affinerEntree(avecCharge) : avecCharge;
+  const nommerEntree = (noeud: z.ZodType<unknown>) =>
+    nommerChamps(noeud as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affinee) });
+  nommerEntree(affinee);
+  const autonome = ouvrirLesPorteesSansCollection(affinee, `document('${type}')`);
+  if (autonome !== affinee) nommerEntree(autonome);
   const sceau = z.transform((v) => v);
   // La provenance exclusive se juge à la validation du document. Le nœud objet du brouillon permet de
   // retirer la provenance courante avant d’en choisir une autre.
@@ -773,7 +778,8 @@ export function document<T extends string, F extends FamilleDocument, C extends 
       ctx.addIssue({ code: 'custom', path: ['maison'], message: 'provenance double : choisis la référence au livre ou la raison maison.' });
     }
   }) : sceau;
-  const entreeScellee: z.ZodType<unknown> = affine.pipe(sceauAvecProvenance);
+  const entreeScellee: z.ZodType<unknown> = autonome.pipe(sceauAvecProvenance);
+  const entreeEmbarquee = autonome === affinee ? entreeScellee : affinee.pipe(sceauAvecProvenance);
 
   // EMBALLAGE par FAMILLE (#1467) : le dataset est ce que le FICHIER porte — une LISTE d'entrées
   // (`entite`), ou l'entrée elle-même (`config`, `record`).
@@ -795,6 +801,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
     // les mêmes `champs` et `options` qui l'ont composé.
     schema: schema as z.ZodType<DatasetDuDocument<T, F, C, O>>,
     entree: entreeScellee as z.ZodType<EntreeDuDocument<T, F, C, O>>,
+    entreeEmbarquee: entreeEmbarquee as z.ZodType<EntreeDuDocument<T, F, C, O>>,
     entreePartielle,
     cles: clesEntree,
     type,

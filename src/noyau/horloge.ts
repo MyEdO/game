@@ -7,6 +7,7 @@ import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { battleRng } from './battleRng';
 import { releaseSeatsOfDowned } from './combatFlow';
 import { type DeferredUpkeepTest, runDailyUpkeep } from './upkeep';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { nightBands } from './nightBands';
 import * as restFlow from './restFlow';
 import { openSequence } from './rollSeam';
@@ -34,8 +35,8 @@ export function preparerLEntretienApresAvance(get: Get, set: Set, minutes: numbe
   if (!get().battle) {
     const rounds = Math.floor(minutes / TIME_COST.combatRound);
     if (rounds > 0) {
-      const party = get().party;
-      const log = outOfCombatUpkeep(party, rounds, battleRng(), get().forgerUnId);
+      const { party, forgerUnId, campaignNarratif } = get();
+      const log = outOfCombatUpkeep(party, rounds, battleRng(), forgerUnId, objetDuNarratif(campaignNarratif));
       if (log.length) { set({ party: [...party] }); get().ecrireAuJournal(log); }
       // L'agonie hors combat est la SEULE voie par laquelle un corps assis s'éteint sans combat :
       // la couture unique de libération y est appelée (no-op si personne n'est assis).

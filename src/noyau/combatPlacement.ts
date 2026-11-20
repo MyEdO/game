@@ -10,6 +10,7 @@ import { Scene, isWalkable } from './monde/scene';
 import { Pt, tileKey } from './monde/path';
 import { footprintTiles, footprintN, occupiesTile } from './monde/footprint';
 import { actorIn } from './monde/combatants';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { sizeGap } from '../engine/size';
 import { isOutOfAction } from '../engine/conditions';
 import { crossZones, zoneCovers, zoneSansEffetSur } from './monde/zones';
@@ -123,7 +124,8 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
   const battle = get().battle;
   if (!battle?.zones?.length || !path.length) return;
   const resolveCaster = (id?: string) => (id ? actorIn(get(), id) : undefined);
-  const lines = crossZones(battle.zones, mover, path, resolveCaster, battleRng(), get().forgerUnId);
+  const { forgerUnId, campaignNarratif } = get();
+  const lines = crossZones(battle.zones, mover, path, resolveCaster, battleRng(), forgerUnId, objetDuNarratif(campaignNarratif));
   for (const l of lines) battle.log.push(ev('etat', l, mover.id));
   if (lines.length) bus.emit(EVT.SCENE_DIRTY);
   if (mover.dead || isOutOfAction(mover)) return;

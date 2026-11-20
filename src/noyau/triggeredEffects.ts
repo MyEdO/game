@@ -38,6 +38,7 @@ import type { CombatFeature } from '../engine/combatFeatures/types';
 import { isOutOfAction, combatTestPenalty } from '../engine/conditions';
 import { surfaceOf } from './rollSeam';
 import { actorIn } from './monde/combatants';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { isEngagedWith, isEngaged, resteEngageAuRoundSuivant } from '../engine/engagement';
 import { SIZE_ORDER, effectiveSize } from '../engine/size';
 import { distanceDeCombat } from './monde/footprint';
@@ -504,6 +505,7 @@ export function applyTriggeredEffects(
 ): string[] {
   const lines: string[] = [];
   const rng = ctx.rng;
+  const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   // Valeur RELATIONNELLE de combat calculée UNE fois pour le porteur (battle-aware) : écart d'Avantage
   // avec ses adversaires Engagés (Instable, LDB 85 l.177). Voyage dans l'opsCtx → Formula/Condition.
   const gap = ctx.engagedAdvantageGap ?? engagedAdvantageGap(get, actor);
@@ -526,7 +528,7 @@ export function applyTriggeredEffects(
       // fournit `set`. Un Flow `test` non routé (pas de `set`) atteindrait
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `si`.
-      const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
+      const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, resolveTrapping, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
         ...(ctx.set ? crochetsDeCorruption(get, ctx.set) : {}),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).

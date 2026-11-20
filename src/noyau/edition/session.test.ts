@@ -17,7 +17,7 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { emptyWorldMap, parseSceneDeProjet, placeServices, resolvePortRef, type WorldMap } from '../worldMap';
+import { emptyWorldMap, parseProject, parseSceneDeProjet, placeServices, resolvePortRef, type WorldMap } from '../worldMap';
 import {
   avertissementsDeLaSession,
   cadreDeLaSession,
@@ -51,6 +51,7 @@ import {
   capsOfferts,
   choixDuChamp,
   entiteDeLaSelection,
+  ficheEditee,
   formulaireDe,
   porteurDeLaSel,
   segmentDeLaSelection,
@@ -90,6 +91,7 @@ import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { allBuiltinCampaigns, areneCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { boutonDeLEdition, inspecteurDeLaSession } from '../../hote/editeur';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
@@ -295,6 +297,95 @@ describe('session d’édition', () => {
     const equipe = jouer(pose, { geste: 'entite', patch: { objet: { ajouter: 'cotte-de-mailles' } } }, { geste: 'entite', patch: { objet: { ajouter: 'arme-simple' } } }, { geste: 'entite', patch: { objet: { porter: 'cotte-de-mailles' } } });
     expect(ent(equipe)?.inventaire).toEqual({ 'cotte-de-mailles': true, 'arme-simple': false });
     expect(ent(jouer(equipe, { geste: 'entite', patch: { objet: { retirer: 'cotte-de-mailles' } } }, { geste: 'entite', patch: { objet: { retirer: 'arme-simple' } } }))?.inventaire).toBeUndefined();
+  });
+
+  it('l’inspecteur ajoute, fait porter et retire une armure de la campagne', () => {
+    const armure = objetDeCampagne({ ...findTrappingById('chemise-de-mailles'), id: 'mailles-du-relais', label: 'Mailles du relais' });
+    const service = objetDeCampagne({ id: 'prix-du-relais', service: true });
+    let s = ouverteSur(emptyScene('session', 4, 4), false, { ...NARRATIF_VIDE, objets: [armure, service] });
+    s = editer(s, { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'humain' } });
+    s = editer(s, { geste: 'appui', point: point(1, 1) });
+    const bouton = (objet: NonNullable<Extract<GesteDEdition, { geste: 'entite' }>['patch']['objet']>) => {
+      const geste = { geste: 'entite', patch: { objet } } as const;
+      return boutonDeLEdition({ 'editeur.inspecteur': inspecteurDeLaSession(s) }, geste);
+    };
+    const presser = (objet: NonNullable<Extract<GesteDEdition, { geste: 'entite' }>['patch']['objet']>) => {
+      const offre = bouton(objet);
+      expect(offre?.refus).toBeFalsy();
+      if (!offre || !('edition' in offre.jeu)) throw new Error('Geste d’inventaire absent');
+      s = editer(s, offre.jeu.edition);
+    };
+    expect(bouton({ ajouter: service.id })).toBeUndefined();
+    presser({ ajouter: 'cotte-de-mailles' });
+    presser({ porter: 'cotte-de-mailles' });
+    expect(bouton({ ajouter: armure.id })?.libelle).toBe(armure.label);
+    presser({ ajouter: armure.id });
+    presser({ porter: armure.id });
+    const inventaire = () => entiteDeLaSelection(sceneEditee(s), s.sel)?.inventaire;
+    expect(inventaire()).toEqual({ 'cotte-de-mailles': false, [armure.id]: true });
+    presser({ retirer: armure.id });
+    expect(inventaire()).toEqual({ 'cotte-de-mailles': false });
+  });
+
+  it('un objet devenu service reste retirable de l’inventaire du brouillon et ne naît plus dans sa fiche', () => {
+    const objet = objetDeCampagne();
+    const scene = emptyScene('inventaire-service', 4, 4);
+    scene.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'pnj-du-relais', inventaire: { [objet.id]: true } });
+    const projet = parseProject({
+      type: 'projet', id: 'test-inventaire-service', label: 'Inventaire du relais', versionContenu: 1, maison: 'fixture de test',
+      scenes: [scene], narratif: {
+        ...NARRATIF_VIDE,
+        objets: [objet],
+        presetsPnj: [{ id: 'pnj-du-relais', base: { id: 'humain' }, profil: { trappings: [{ id: objet.id }] } }],
+      },
+    });
+    let s = editer(ouvrirLEdition(projet, false), { geste: 'document', document: 'narratif' });
+    const porteur = { sorte: 'objets', id: objet.id } as const;
+    s = editer(s, { geste: 'selectionner', porteur });
+    s = editer(s, { geste: 'valeur', porteur, chemin: ['service'], valeur: true });
+    s = editer(s, { geste: 'document', document: 'scene' });
+    s = editer(s, { geste: 'selectionner', porteur: { sorte: 'entite', id: 'pnj' } });
+
+    const narratif = projetEdite(s).narratif;
+    expect(narratif.objets[0].service).toBe(true);
+    const entite = entiteDeLaSelection(sceneEditee(s), s.sel)!;
+    const fiche = ficheEditee(entite, narratif);
+    expect(fiche?.label).toBeTruthy();
+    expect(fiche?.items?.every((item) => item.trappingId !== objet.id) ?? true).toBe(true);
+    expect(avertissementsDeLaSession(s).some((w) => w.level === 'error' && w.message.includes(objet.id))).toBe(true);
+    expect(() => parseProject({ ...projet, ...projetEdite(s) })).toThrow(objet.id);
+
+    const retrait = { geste: 'entite', patch: { objet: { retirer: objet.id } } } as const;
+    const bouton = boutonDeLEdition({ 'editeur.inspecteur': inspecteurDeLaSession(s) }, retrait);
+    expect(bouton).toBeDefined();
+    expect(bouton?.refus).toBeFalsy();
+    const repare = editer(s, retrait);
+    expect(entiteDeLaSelection(sceneEditee(repare), repare.sel)?.inventaire).toBeUndefined();
+  });
+
+  it('une apparence locale caduque garde son diagnostic et la fiche projette la silhouette par défaut', () => {
+    const objet = objetDeCampagne();
+    const scene = emptyScene('inventaire-apparence', 4, 4);
+    const apparence = { id: 'hache_naine' };
+    const pnj = { id: 'pnj', kind: 'personnage' as const, pos: { x: 1, y: 1 }, creature: { id: 'humain' },
+      inventaire: { [objet.id]: false }, appearance: { apparencesObjets: { [objet.id]: apparence } } };
+    scene.entities.push(pnj);
+    let s = editer(ouverteSur(scene, false, { ...NARRATIF_VIDE, objets: [objet] }), { geste: 'document', document: 'narratif' });
+    const porteur = { sorte: 'objets', id: objet.id } as const;
+    s = editer(s, { geste: 'selectionner', porteur });
+    s = editer(s, { geste: 'valeur', porteur, chemin: ['formChoices'] });
+    s = editer(s, { geste: 'document', document: 'scene' });
+    s = editer(s, { geste: 'selectionner', porteur: { sorte: 'entite', id: pnj.id } });
+
+    const narratif = projetEdite(s).narratif;
+    expect(narratif.objets[0].formChoices).toBeUndefined();
+    const entite = entiteDeLaSelection(sceneEditee(s), s.sel)!;
+    expect(entite.appearance?.apparencesObjets?.[objet.id]).toEqual(apparence);
+    const objetProjete = ficheEditee(entite, narratif)?.items?.find((item) => item.trappingId === objet.id);
+    expect(objetProjete).toMatchObject({ shape: objet.shape });
+    expect(objetProjete?.apparence).toBeUndefined();
+    expect(inspecteurDeLaSession(s).length).toBeGreaterThan(0);
+    expect(avertissementsDeLaSession(s).some((w) => w.level === 'error' && w.message.includes(apparence.id))).toBe(true);
   });
 
   it('un objet porté ôte ceux qui sont en conflit de port avec lui ; porté, il s’ôte (`inventaireApres`, #3684)', () => {

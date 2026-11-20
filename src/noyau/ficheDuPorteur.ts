@@ -9,7 +9,7 @@
  */
 import type { Jeu } from './etat';
 import { porteurParId, rencontreEngagee } from './monde/combatants';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { ficheDuPersonnage, nomDIndividu } from './monde/sceneNpc';
 import { entiteConnue } from './visionDuGroupe';
 import type { NomDIndividu } from '../engine/psych/ciblage';
@@ -163,7 +163,7 @@ function porteurDeLaFiche(s: Jeu, id: string): Combatant | undefined {
   const porteur = porteurParId(s, id);
   if (porteur || rencontreEngagee(s)) return porteur;
   const entite = s.scene?.entities.find((e) => e.id === id && e.kind === 'personnage');
-  return entite && entiteConnue(s, entite) ? ficheDuPersonnage(entite, presetDuNarratif(s.campaignNarratif)) : undefined;
+  return entite && entiteConnue(s, entite) ? ficheDuPersonnage(entite, presetDuNarratif(s.campaignNarratif), objetDuNarratif(s.campaignNarratif)) : undefined;
 }
 
 /** La fiche du porteur `id`, `null` sans porteur ou pour une coque (`ficheDuCombattant`). PUR. */

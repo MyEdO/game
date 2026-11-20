@@ -11,7 +11,7 @@
  * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine`. La racine
  * OUVRE la portée des scènes (`ouvrirPortees`, `SCENES_DU_PROJET`) : une scène visée est un `ref(portee)`,
  * jugé contre les `scenes` du MÊME projet, hors de l'index des ids ; et celle des objets de la campagne
- * (`OBJETS_DU_PROJET`) : un objet donné ou une clé d'apparence par objet absents du catalogue sont jugés
+ * (`OBJETS_DU_PROJET`) : les références de cette portée absentes du catalogue sont jugées
  * contre `narratif.objets`.
  *
  * L'ENVELOPPE est PLATE (#1467 L1b) : les champs d'identité vivent à la RACINE, sans poche `meta`.

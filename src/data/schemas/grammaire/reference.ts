@@ -11,6 +11,7 @@ import {
   countSpecSchema,
   monnaieSchema,
   natureDeMentionSchema,
+  OBJETS_DU_PROJET,
   difficultySchema,
   enumNomme,
   formuleSansTirageSchema,
@@ -28,6 +29,7 @@ import {
   weaponRangeSpecSchema,
 } from './valeurs';
 import { marquerProduit } from './interne/produits';
+import { estObjet } from '../../../lib/objet.mjs';
 import {
   idDe,
   marqueurDeLaForme,
@@ -368,7 +370,12 @@ export type ClasseDeQualite = z.infer<typeof classeDeQualiteSchema>;
 
 /** Dotation d'un objet du catalogue : l'objet, et son emplacement « Atouts au choix » (`qualityChoice`), sa classe de
  *  qualité. LDB 60 */
-export const dotationDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({ ...objetDeCatalogueSchema.shape, qualityChoice: classeDeQualiteSchema.optional() }), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } }), { label: 'objet du catalogue' });
+const dotationDObjet = (id = objetDeCatalogueSchema.shape.id) => marquerProduit(nommerNoeud(nommerChamps(z.strictObject({
+  ...objetDeCatalogueSchema.shape,
+  id,
+  qualityChoice: classeDeQualiteSchema.optional(),
+}), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } }), { label: 'objet du catalogue' }), 'dotationDObjet', 'objet', { id });
+export const dotationDeCatalogueSchema = dotationDObjet();
 
 /** Dotation d'une MENTION : un bien imprimé que la fiche porte sous sa nature, sans mécanique. #4053 */
 export const dotationDeMentionSchema = nommerNoeud(nommerChamps(z.strictObject({
@@ -422,8 +429,9 @@ function formesDeDotation<F, O = never, D = never>(
   formes: readonly z.ZodType<F>[],
   enPlusDansOf: readonly z.ZodType<O>[] = [],
   formesDirectes: readonly z.ZodType<D>[] = [],
+  formesAuChoix: readonly z.ZodType<F>[] = formes,
 ): z.ZodType<F | D | Parmi<1, F | O>> {
-  const auChoix = nommerNoeud(parmi<F | O, 1>([...formes, ...enPlusDansOf], z.literal(1)), { label: 'une parmi' });
+  const auChoix = nommerNoeud(parmi<F | O, 1>([...formesAuChoix, ...enPlusDansOf], z.literal(1)), { label: 'une parmi' });
   return z.union([auChoix, ...formes, ...formesDirectes], { error: messageDeFormes });
 }
 
@@ -431,17 +439,28 @@ function formesDeDotation<F, O = never, D = never>(
 export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation<FormeSansTexte>([dotationDeCatalogueSchema, dotationDePossessionSchema, sommeSchema]);
 /** Dotation de `careerLevels.json` (`trappingRefSchema`) : l'annotation de ce schéma récursif. */
 export type TrappingRef = FormeDeDotation | Parmi<1, FormeDeDotation | LotDeDotation>;
-const formesDesPossessions: readonly z.ZodType<FormeDeDotation>[] = [
-  dotationDeCatalogueSchema, dotationDeTexteSchema, dotationDeMentionSchema, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema,
+const autresFormesDesPossessions = [
+  dotationDeTexteSchema, dotationDeMentionSchema, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema,
 ];
+const formesDesPossessions: readonly z.ZodType<FormeDeDotation>[] = [dotationDeCatalogueSchema, ...autresFormesDesPossessions];
 
 /** Dotation de `careerLevels.json`. */
 export const trappingRefSchema: z.ZodType<TrappingRef> = formesDeDotation<FormeDeDotation, LotDeDotation>(
   formesDesPossessions, [lotDeDotationSchema],
 );
 
+const dotationDirecteDeCreature = dotationDObjet(idDe('trapping', undefined, { portee: OBJETS_DU_PROJET }));
+
 /** HCVM p.265 ; LDB 84 l.7 ; #4210. */
-export const possessionDeCreatureSchema = formesDeDotation(
-  formesDesPossessions, [lotDeDotationSchema], [armureDecriteParLeTraitSchema],
-);
+export const possessionDeCreatureSchema = formesDeDotation<FormeDeDotation, LotDeDotation, z.infer<typeof armureDecriteParLeTraitSchema>>(
+  [dotationDirecteDeCreature, ...autresFormesDesPossessions],
+  [lotDeDotationSchema], [armureDecriteParLeTraitSchema], formesDesPossessions,
+).meta({
+  retientBrancheDeLUnion: (branche: unknown, valeur: unknown) => {
+    if (!estObjet(valeur)) return true;
+    if ('type' in valeur) return branche === dotationDePossessionSchema;
+    if ('decritLeTraitArmure' in valeur) return branche === armureDecriteParLeTraitSchema;
+    return branche !== dotationDePossessionSchema && branche !== armureDecriteParLeTraitSchema;
+  },
+});
 

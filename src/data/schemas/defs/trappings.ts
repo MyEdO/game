@@ -9,6 +9,7 @@ import { tableTotale } from '../../../lib/tableTotale';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { ouvrirPortees } from '../grammaire/collection-cle';
 import {
   ammoRangeModSchema,
   availabilitySchema,
@@ -18,16 +19,19 @@ import {
   enumNomme,
   itemCapabilitiesSchema,
   moneySchema,
+  OBJETS_DU_PROJET,
   reachSchema,
   sizeCategorySchema,
   weaponDamageSpecSchema,
   weaponRangeSpecSchema,
 } from '../grammaire/valeurs';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
-import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { hasQuality } from '../../../engine/qualities/dispatch';
+import { estObjet } from '../../../lib/objet.mjs';
+import { effetsDArmeDe, flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, perteSansEquipeSchema, qualiteDObjetRefSchema, weaponSchema, type QualiteDObjetRef } from '../grammaire/reference';
-import { porteLeMarqueur, ref, refs, refusDeLEntree } from '../grammaire/ref';
-import { DECLARABLE_PAR_UN_PORTEUR, RACINE_D_APPARENCE } from '../grammaire/sousListes';
+import { dansLaSousListe, porteLeMarqueur, ref, refs, refusDeLEntree } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
 export const file = 'trappings.json';
@@ -63,6 +67,19 @@ export const trappingCategorieSchema = enumNomme({
 });
 
 export const estGroupeDeSiege = porteLeMarqueur('weaponGroup', 'siege');
+
+const effetsAToucheDeCampagne = effetsDArmeDe(triggeredEffectSchema, (objet) => {
+  if (!estObjet(objet)) return {};
+  const genre = objet.categorie;
+  const subType = estObjet(objet.subType) && typeof objet.subType.id === 'string' ? objet.subType.id : undefined;
+  const weaponGroup = estObjet(objet.weaponGroup) && typeof objet.weaponGroup.id === 'string' ? objet.weaponGroup.id : undefined;
+  const qualities = Array.isArray(objet.qualities)
+    ? objet.qualities.flatMap((q: unknown) => estObjet(q) && typeof q.id === 'string' ? [{ id: q.id }] : [])
+    : [];
+  if ((genre !== 'melee' && genre !== 'distance') || !dansLaSousListe(INSTANCIABLE_PAR_ID, objet) || hasQuality({ subType, weaponGroup, qualities }, 'equipe'))
+    return { refus: 'Une référence locale à la touche exige une arme de campagne maniable sans poste.' };
+  return { genre };
+});
 
 export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
   hands: z.union([z.literal(1), z.literal(2)]).optional(),
@@ -110,6 +127,7 @@ const doc = document(
   famille,
   {
     ...profilDArmeDeCatalogueSchema.shape,
+    onHitEffects: effetsAToucheDeCampagne.optional(),
     packSize: z.number().optional(),
     /** CATÉGORIE de catalogue — vocabulaire FERMÉ de `trappingCategorieSchema`, obligatoire sur toute
      *  entrée. ≠ `Weapon.type` du moteur (`src/engine/types.ts`, `'melee' | 'distance'`, persisté) et
@@ -129,9 +147,9 @@ const doc = document(
     /** LDB 47 */
     organicProjectile: z.boolean().optional(),
     /** The Horned Rat Companion 03 l.23-31 ; #4202 */
-    effects: z.array(triggeredEffectSchema).optional(),
+    effects: ouvrirPortees(z.array(triggeredEffectSchema), [OBJETS_DU_PROJET], 'vide').optional(),
     /** ZI 13 l.199 */
-    passifDArme: passifsDe().optional(),
+    passifDArme: passifsDe(undefined, OBJETS_DU_PROJET).optional(),
     ...apparenceDObjetSchema.shape,
     /** #3086 D6(c), #3116 */
     rangement: ref('gardeRobe', undefined, 'emplacement').optional(),
@@ -151,7 +169,7 @@ const doc = document(
     ammoRangeMod: ammoRangeModSchema.nullable().optional(),
     loc: z.string().nullable().optional(),
     pa: z.number().nullable().optional(),
-    consumable: flowSchema.optional(),
+    consumable: ouvrirPortees(z.lazy(() => flowSchema), [OBJETS_DU_PROJET], 'vide').optional(),
     consumableDuration: consumableDurationSchema.optional(),
     container: contenantSchema.optional(),
     /** VDM 02 l.165 */
@@ -162,7 +180,7 @@ const doc = document(
     price: z.union([moneySchema, nommerNoeud(z.literal('ND'), { label: 'non disponible' })]).nullable(),
     derivedWeapon: weaponSchema.optional(),
     capabilities: itemCapabilitiesSchema.optional(),
-    passive: passifsDe().optional(),
+    passive: passifsDe(undefined, OBJETS_DU_PROJET).optional(),
     /** LDB 66 l.12-14 */
     service: z.boolean().optional(),
   },
@@ -276,9 +294,8 @@ const doc = document(
 );
 
 export const schema = doc.schema;
-/** L'ENTRÉE scellée (une possession), pour l'embarquement (`defs-scenes/narratif.ts`, `objets`) — `schema`
- *  emballe le FICHIER (`z.array`, famille `entite`). */
 export const entree = doc.entree;
+export const entreeEmbarquee = doc.entreeEmbarquee;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;

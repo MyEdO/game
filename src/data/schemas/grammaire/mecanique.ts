@@ -10,6 +10,7 @@ import { estObjet } from '../../../lib/objet.mjs';
 import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants, defDe } from './descente';
+import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './collection-cle';
 import { marquerProduit } from './interne/produits';
 import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
@@ -889,10 +890,10 @@ const DECLARATIONS_D_OPS = {
     removeQualities: refs('quality').optional(),
     removeType: z.enum(['atout', 'defaut']).optional(),
     suppressEnchants: z.boolean().optional(),
-    passive: passifsDe(z.lazy(() => gameOpSchema)).optional(),
-    onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
+    passive: passifsDe(z.lazy(() => gameOpSchema), OBJETS_DU_PROJET).optional(),
+    onHitEffects: effetsDArmeDe(z.lazy(() => triggeredEffectSchema)).optional(),
   }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "formes requises", texte: { regime: "technique" } }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
-  grantWeapon: nommerChamps(z.strictObject({
+  grantWeapon: nommerChamps(controlerSousPortee(z.strictObject({
     op: z.literal('grantWeapon'),
     label: z.string(),
     damage: formulaSchema,
@@ -902,10 +903,16 @@ const DECLARATIONS_D_OPS = {
     subType: ref('weaponGroup').optional(),
     reach: reachSchema.optional(),
     hands: z.union([z.literal(1), z.literal(2)]).optional(),
-    onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
+    onHitEffects: effetsDArmeDe(z.lazy(() => triggeredEffectSchema), () => ({ genre: 'melee' })).optional(),
     teinte: ref('material', undefined, 'objet').optional(),
-    form: ref('trapping', undefined, INSTANCIABLE_PAR_ID).optional(),
+    form: ref(idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET })).optional(),
     chooseForm: z.boolean().optional(),
+  }), OBJETS_DU_PROJET, (valeur, entree) => {
+    if (!estObjet(valeur) || !estObjet(valeur.form) || typeof valeur.form.id !== 'string') return [];
+    const modele = entree(valeur.form.id);
+    if (!estObjet(modele)) return [];
+    if (valeur.chooseForm === true) return [{ path: ['form', 'id'], message: 'Une forme fixe de campagne est incompatible avec le choix de la forme.' }];
+    return estObjet(modele.shape) ? [] : [{ path: ['form', 'id'], message: 'L’objet de campagne choisi doit déclarer une forme.' }];
   }), { op: { label: "opération"  }, label: { label: "libellé" , texte: { regime: "designation"} }, damage: { label: "dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, damagePlus: { label: "dégâts supplémentaires" }, plusBF: { label: "ajouter le Bonus de Force" }, qualities: { label: "qualités" , texte: { regime: "technique"} }, subType: { label: "sous-type" , texte: { regime: "technique"} }, reach: { label: "allonge"  }, hands: { label: "mains" }, onHitEffects: { label: "à la touche" }, teinte: { label: "teinte" }, form: { label: "forme" , texte: { regime: "technique"} }, chooseForm: { label: "choisir la forme" } }),
   rollThreshold: nommerChamps(z.strictObject({
     op: z.literal('rollThreshold'),
@@ -2089,10 +2096,27 @@ const FERMEE = mecaniqueDe({});
 export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = FERMEE.opDefs;
 export const gameOpSchema: z.ZodType<GameOp> = FERMEE.gameOp;
 
+type ContexteDEffetDArme = { genre?: z.output<typeof genreDArmeSchema>; refus?: string };
+
+/** Les références locales d'un effet d'arme exigent un événement qui reçoit l'arme du coup. */
+export function effetsDArmeDe<E extends z.ZodType>(effet: E, contexte: (porteur: unknown) => ContexteDEffetDArme = () => ({})): z.ZodArray<E> {
+  return restreindreSousPortee(z.array(effet), OBJETS_DU_PROJET, (branche, site) => {
+    const { genre, refus } = contexte(branche.parent?.valeur);
+    if (refus) return refus;
+    const rang = site.chemin[branche.chemin.length];
+    const effet = Array.isArray(branche.valeur) && typeof rang === 'number' ? branche.valeur[rang] : undefined;
+    if (!estObjet(effet)) return;
+    if (effet.trigger !== 'onHit' && effet.trigger !== 'onCrit' && effet.trigger !== 'onAttackResolved')
+      return 'Ce déclencheur ne reçoit pas l’arme du coup et ne peut pas résoudre une référence de campagne à la touche.';
+    if (genre && typeof effet.attackType === 'string' && effet.attackType !== genre)
+      return 'Le type d’attaque demandé par cet effet est incompatible avec son arme.';
+  });
+}
+
 /** Liste passive d'un porteur, lue par un collecteur de passifs (`passiveMods`, `weaponPassiveOps`, `navalPassiveOps`,
  *  passifs de maladie) : le marquage `auTotal` d'un `attrMod` de Blessures ne vit que sur le canal exécuté (`applyOps`,
  *  #3060), il est donc refusé ici. */
-export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodType<OpPassive[]> {
+export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema, catalogueSeul?: typeof OBJETS_DU_PROJET): z.ZodType<OpPassive[]> {
   const liste = z.array(op).superRefine((ops, ctx) => {
     ops.forEach((o, i) => {
       if (o.op === 'attrMod' && o.attr === 'wounds' && o.auTotal) {
@@ -2105,8 +2129,9 @@ export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodType<OpPas
       }
     });
   });
-  REGIMES_DES_LISTES.set(liste, 'passive');
-  return liste as z.ZodType<OpPassive[]>;
+  const passive = catalogueSeul ? ouvrirPortees(liste, [catalogueSeul], 'vide') : liste;
+  REGIMES_DES_LISTES.set(passive, 'passive');
+  return passive as z.ZodType<OpPassive[]>;
 }
 
 /** Liste d'ops EXÉCUTÉE (`applyOps`, ou un interprète restreint : `applyStarOps`, `applyOnFailInline`) : `auTotal` y

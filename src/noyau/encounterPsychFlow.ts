@@ -19,7 +19,8 @@ import { Combatant } from '../engine/types';
 import { Scene } from './monde/scene';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import { ficheDEntite, nomDIndividu } from './monde/sceneNpc';
-import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
+import type { TrappingResolver } from '../engine/items';
+import { objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { enEmbuscade } from './visionDuGroupe';
 import { etiquetteDeScene } from './monde/porteurs';
 import { encounterPsych } from '../engine/encounterPsych';
@@ -71,14 +72,15 @@ export interface PendingEncounterPsych {
 
 /** PNJ « personnage » présents dans la scène, dérivés en Combatant (groups/causesPeur/Terreur/size).
  *  Un embusqueur caché n'inspire pas la Peur avant le combat. */
-export function sceneFearSources(scene: Scene, presetDe: ResolveurDePreset): Combatant[] {
+export function sceneFearSources(scene: Scene, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): Combatant[] {
   return (scene.entities ?? [])
     .filter((e) => e.kind === 'personnage' && !enEmbuscade(e))
-    .map((e) => ficheDEntite(e, presetDe));
+    .map((e) => ficheDEntite(e, presetDe, resolveTrapping));
 }
 
 /** Les sources de Peur/Terreur de la scène en cours (`sceneFearSources`) ; aucune hors scène. */
-const sourcesDeLaScene = (s: ReturnType<Get>): Combatant[] => (s.scene ? sceneFearSources(s.scene, presetDuNarratif(s.campaignNarratif)) : []);
+const sourcesDeLaScene = ({ scene, campaignNarratif }: ReturnType<Get>): Combatant[] =>
+  scene ? sceneFearSources(scene, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif)) : [];
 
 /** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.psychologieDeRencontre`). */
 type PsychBandDecl = NonNullable<CascadeStep['psychologieDeRencontre']>;
