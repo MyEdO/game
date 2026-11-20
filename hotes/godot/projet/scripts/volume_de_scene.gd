@@ -898,8 +898,9 @@ func _retournes(tableau: Variant) -> Variant:
 func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
 	var matieres := _matieres_masquees if masquee else _matieres_des_nappes
 	if not matieres.has(nom):
-		var matiere: ShaderMaterial = (matiere_texturee_masquee if ResourceLoader.exists(texture_de(nom)) else couleur_des_sommets_masquee).duplicate()
-		texturer(matiere, nom, texture_de(nom), true)
+		var albedo := TexturesDeMatiere.retenue(texture_de(nom))
+		var matiere: ShaderMaterial = (matiere_texturee_masquee if albedo != null else couleur_des_sommets_masquee).duplicate()
+		texturer(matiere, nom, albedo, true)
 		if masquee:
 			matiere.set_shader_parameter("retrait", _retrait)
 		_lier_la_vision_a(matiere)
@@ -923,22 +924,22 @@ static func texture_neutre_de(nom: String) -> String:
 
 
 ## `materiau`, une matière standard ou du shader de monde (qui nomme ses paramètres comme les propriétés de la matière
-## standard), habillé de la texture `albedo` si elle est au projet, `texture_de(nom)` ou `texture_neutre_de(nom)`, et
-## du relief de la matière `nom` s'il y est : projetés sur les trois axes du repère du mesh si `projetee`, lus aux UV
-## du mesh, en mètres, sinon (#4313) ; un motif tous les `MiseEnPage.METRES_PAR_MOTIF` du repère, ou à l'échelle
-## `motif`.
-static func texturer(materiau: Material, nom: String, albedo: String, projetee: bool,
+## standard), habillé de la texture `albedo` et du relief de `nom` que porte le catalogue, projetés sur les trois axes
+## du repère du mesh si `projetee`, lus aux UV du mesh, en mètres, sinon (#4313). Le motif se répète à l'échelle
+## `motif`, un pour `MiseEnPage.METRES_PAR_MOTIF` par défaut.
+static func texturer(materiau: Material, nom: String, albedo: Texture2D, projetee: bool,
 		motif := MiseEnPage.echelle_de_motif()) -> void:
-	if not ResourceLoader.exists(albedo):
+	if albedo == null:
 		return
 	var propriete := "shader_parameter/" if materiau is ShaderMaterial else ""
-	materiau.set(propriete + "albedo_texture", load(albedo))
+	materiau.set(propriete + "albedo_texture", albedo)
 	materiau.set(propriete + "uv1_triplanar", projetee)
 	materiau.set(propriete + "uv1_triplanar_sharpness", NETTETE_DU_MOTIF)
 	materiau.set(propriete + "uv1_scale", motif)
-	if ResourceLoader.exists(relief_de(nom)):
+	var relief := TexturesDeMatiere.retenue(relief_de(nom))
+	if relief != null:
 		materiau.set(propriete + "normal_enabled", true)
-		materiau.set(propriete + "normal_texture", load(relief_de(nom)))
+		materiau.set(propriete + "normal_texture", relief)
 
 
 ## Le nœud du groupe des arêtes `aretes` (même `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM` et
