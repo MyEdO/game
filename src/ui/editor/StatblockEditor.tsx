@@ -15,7 +15,6 @@ import { woundsForSize, resizeBySteps, stepSize, SIZE_LABEL, SIZE_ORDER } from '
 import { bonus } from '../../engine/characteristics';
 import { SpellsField } from './OptionalTraitsPicker';
 import { TraitListField } from './codex/StructFields';
-import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { parseSkillRef, parseTalentRef } from '../../data/refFormatLivre';
 import { ListeDIds } from '../compendium/refField/RefField';
@@ -135,14 +134,6 @@ export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; st
         />
       </label>
       <SpellsField value={stat.spells} onChange={(spells) => onChange({ ...stat, spells })} />
-      <label className="ed-field" title="LDB 77 l.108 : « soustrayez -10 et ajoutez 2d10. Une Caractéristique de 30 se traduit donc par 2d10+20. » Tirage stable au spawn (rejouable) ; Blessures recalculées par la formule.">
-        <input
-          type="checkbox"
-          checked={stat.randomChars ?? false}
-          onChange={(e) => onChange({ ...stat, randomChars: e.target.checked || undefined })}
-        />{' '}
-        <Icon id="navigation/des" size="sm" /> Caractéristiques aléatoires (LDB 77 l.108 : −10 + 2d10)
-      </label>
       <label className="ed-field" title="#143 : un PNJ humain hostile MODÉLISÉ (ex. sorcier ennemi nommé) suit les mécaniques de Personnage — Corruption (LDB 19), composant d'incantation (LDB 46), Tests de fin de combat Maladie/Corruption (LDB 18/20). Une créature générique ne le coche pas.">
         <input
           type="checkbox"

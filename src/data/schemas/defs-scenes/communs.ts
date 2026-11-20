@@ -81,10 +81,8 @@ export const customStatblockSchema = nommerChamps(z.strictObject({
   spells: sortsConnusSchema.optional(),
   skills: listeSansCle(z.array(competenceChiffreeSchema)).optional(),
   talents: listeSansCle(z.array(talentRefSchema)).optional(),
-  /** LDB 77 l.108 (`randomizeChars`). */
-  randomChars: z.boolean().optional(),
   /** AA/MDG 12 : un affût servi, sans réaction de combat ni tour propre (`isInanimate`). */
   inert: z.boolean().optional(),
   /** #143 : propagé au spawn (`Combatant.followsCharacterRules`, `engine/relations.ts`). */
   followsCharacterRules: z.boolean().optional(),
-}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, char: { label: "caractéristiques" }, traits: { label: "Traits" }, size: { label: "Taille"  }, groups: { label: "groupes" , texte: { regime: "technique"} }, spells: { label: "sorts" , texte: { regime: "technique"} }, skills: { label: "Compétences" }, talents: { label: "Talents" }, randomChars: { label: "caractéristiques aléatoires" }, inert: { label: "inerte" }, followsCharacterRules: { label: "règles de personnage" } });
+}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, char: { label: "caractéristiques" }, traits: { label: "Traits" }, size: { label: "Taille"  }, groups: { label: "groupes" , texte: { regime: "technique"} }, spells: { label: "sorts" , texte: { regime: "technique"} }, skills: { label: "Compétences" }, talents: { label: "Talents" }, inert: { label: "inerte" }, followsCharacterRules: { label: "règles de personnage" } });

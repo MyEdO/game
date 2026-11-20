@@ -572,7 +572,6 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.groups @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.inert @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.label @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.randomChars @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.size @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.skills @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.skills.value @ src/data/index.ts',
