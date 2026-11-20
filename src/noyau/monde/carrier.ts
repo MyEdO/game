@@ -9,7 +9,7 @@ import type { Possession } from '../../engine/possession';
 import type { PorteurLocalise } from '../../engine/cargo';
 import type { Jeu } from '../etat';
 import { t } from '../../i18n';
-import { recomputeLoadout } from '../../engine/items';
+import { armementDuPorteurVariable, porteurAvecArmementEffectif, recomputeLoadout } from '../../engine/items';
 import { BOURSE_TRAPPING_ID } from '../../engine/bourse';
 import { fromBrass, toBrass } from '../../engine/money';
 import { ecrireActeur } from './combatants';
@@ -97,4 +97,23 @@ export function ecrireLesPorteurs(
     : {};
   if (!Object.keys(ecritures).some(estPossession)) return patch;
   return { ...patch, possessions: s.possessions.map((p) => (p.uid in ecritures ? { ...structuredClone(p), items: ecritures[p.uid](structuredClone(p.items)) } : p)) };
+}
+
+/** Reprojette les armes tenues lorsque le réglage d'armement ou l'état chargé change. Les armes déjà capturées
+ *  par un jet restent dans ses pendings. AA 02 l.17, l.21 ; AA 08 l.65 */
+export function patchDeLArmement(s: Pick<Jeu, 'party' | 'battle' | 'serieSubie'>): Partial<Pick<Jeu, 'party' | 'battle' | 'serieSubie'>> | undefined {
+  const ids = [...s.party, ...(s.battle?.combatants ?? [])].filter(armementDuPorteurVariable).map((c) => c.id);
+  const acteurs = ids.length ? ecrireActeur(s, ids, porteurAvecArmementEffectif) : undefined;
+  const serie = s.serieSubie;
+  if (!serie) return acteurs;
+  const assaillant = porteurAvecArmementEffectif(serie.assaillant);
+  const cibleAvant = serie.membre ? serie.membre.combattant : serie.avant;
+  const cible = porteurAvecArmementEffectif(cibleAvant);
+  if (assaillant === serie.assaillant && cible === cibleAvant) return acteurs;
+  return {
+    ...acteurs,
+    serieSubie: serie.membre
+      ? { ...serie, assaillant, membre: { ...serie.membre, combattant: cible } }
+      : { ...serie, assaillant, avant: cible },
+  };
 }

@@ -144,7 +144,7 @@ describe('narratifSchema — apparence d’un objet embarqué (#2972)', () => {
   });
 });
 
-/** #4171 — l'objet de campagne est une entrée ENTIÈRE du catalogue des possessions (`defs/trappings.ts`, `entree`). */
+/** #4171 — l'objet de campagne reprend l'entrée du catalogue des possessions avec un profil fixe. */
 describe('narratifSchema — objet de campagne au schéma du catalogue (#4171)', () => {
   const chemins = (objet: Record<string, unknown>) => {
     const r = narratifSchema.safeParse({ ...vide, objets: [objet] });
@@ -155,6 +155,20 @@ describe('narratifSchema — objet de campagne au schéma du catalogue (#4171)',
 
   it('l’objet de la fixture parse', () => {
     expect(chemins(objetDeCampagne())).toEqual([]);
+  });
+
+  it('réserve les variantes réglées et les Atouts au choix aux possessions du catalogue global', () => {
+    const armeLocale = {
+      ...findTrappingById('hallebarde')!,
+      id: 'arme-de-campagne',
+      label: 'Arme de campagne',
+    };
+    const { variants, ...profilFixe } = armeLocale;
+    const variante = variants?.[0];
+    expect(variante).toBeDefined();
+    expect(chemins(profilFixe)).toEqual([]);
+    expect(chemins({ ...profilFixe, variants: [variante] })).toEqual(['objets.0.variants']);
+    expect(chemins({ ...profilFixe, qualitesAuChoix: ['taille', 'empaleuse'] })).toEqual(['objets.0.qualitesAuChoix']);
   });
 
   it('sans `source`, sans `categorie`, sans `qualities` : refusé, chaque champ au chemin de sa faute', () => {

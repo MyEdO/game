@@ -85,7 +85,23 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 96,
+          "note": "AA 08 l.302"
+        },
+        "qualitesAuChoix": [
+          "taille",
+          "empaleuse"
+        ]
+      }
+    ]
   },
   {
     "id": "lance",
@@ -255,7 +271,27 @@
     },
     "shape": {
       "id": "improvisee"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 91,
+          "note": "AA 08 l.135"
+        },
+        "qualities": [
+          {
+            "id": "desequilibree"
+          },
+          {
+            "id": "inoffensive"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "arme-simple",
@@ -721,7 +757,6 @@
         "id": "percutante"
       }
     ],
-    "desc": "Les Lances de cavalerie sont considérées comme des Armes improvisées si vous les utilisez lors d'un Round où vous n'avez pas Chargé.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -739,7 +774,48 @@
     },
     "capabilities": {
       "improvisedWithoutCharge": true
-    }
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "62",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armes-de-corps-a-corps",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "955c02c436d74c07"
+        }
+      ]
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 93,
+          "note": "AA 08 l.208"
+        },
+        "availability": "limitee",
+        "descRef": {
+          "book": "aux-armes",
+          "ch": "08",
+          "parts": [
+            {
+              "kind": "blocs",
+              "sec": "tableau-des-armes-de-cavalerie",
+              "secOcc": 1,
+              "b0": 1,
+              "b1": 1,
+              "sum": "0fd27deae0b89165"
+            }
+          ]
+        }
+      }
+    ]
   },
   {
     "id": "marteau-a-bec-de-corbin",
@@ -827,19 +903,31 @@
       "id": "dos"
     },
     "bladed": true,
-    "manieAussi": {
-      "base": {
-        "qualites": [
-          {
-            "id": "epuisante"
-          },
-          {
-            "id": "lente"
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 97,
+          "note": "AA 08 l.343"
+        },
+        "manieAussi": {
+          "base": {
+            "qualites": [
+              {
+                "id": "epuisante"
+              },
+              {
+                "id": "lente"
+              }
+            ],
+            "mains": 1
           }
-        ],
-        "mains": 1
+        }
       }
-    }
+    ]
   },
   {
     "id": "grande-hache",
@@ -885,7 +973,20 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 98,
+          "note": "AA 08 l.360"
+        },
+        "availability": "commune"
+      }
+    ]
   },
   {
     "id": "marteau-de-guerre",
@@ -1060,7 +1161,27 @@
     "rangement": {
       "id": "ceinture_g"
     },
-    "bladed": true
+    "bladed": true,
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 93,
+          "note": "AA 08 l.220"
+        },
+        "qualities": [
+          {
+            "id": "precise"
+          },
+          {
+            "id": "inoffensive"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "rapiere",
@@ -1248,7 +1369,23 @@
     "rangement": {
       "id": "ceinture_d"
     },
-    "bladed": true
+    "bladed": true,
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 95,
+          "note": "AA 08 l.288"
+        },
+        "damage": {
+          "plusBF": true,
+          "flat": 1
+        }
+      }
+    ]
   },
   {
     "id": "main-gauche",
@@ -1284,13 +1421,25 @@
       "id": "ceinture_d"
     },
     "bladed": true,
-    "manieAussi": {
-      "base": {
-        "retire": [
-          "defensive"
-        ]
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 96,
+          "note": "AA 08 l.314"
+        },
+        "manieAussi": {
+          "base": {
+            "retire": [
+              "defensive"
+            ]
+          }
+        }
       }
-    }
+    ]
   },
   {
     "id": "arbalete",
@@ -2151,7 +2300,32 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.451"
+        },
+        "qualities": [
+          {
+            "id": "dangereuse"
+          },
+          {
+            "id": "recharge",
+            "value": 5
+          },
+          {
+            "id": "a-repetition",
+            "value": 4
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "pistolet-a-repetition",
@@ -2207,7 +2381,35 @@
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.454"
+        },
+        "qualities": [
+          {
+            "id": "dangereuse"
+          },
+          {
+            "id": "pistolet"
+          },
+          {
+            "id": "recharge",
+            "value": 4
+          },
+          {
+            "id": "a-repetition",
+            "value": 4
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "arquebuse",
@@ -2257,7 +2459,28 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.457"
+        },
+        "qualities": [
+          {
+            "id": "dangereuse"
+          },
+          {
+            "id": "recharge",
+            "value": 3
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "long-fusil-d-hochland",
@@ -2310,7 +2533,36 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.463"
+        },
+        "qualities": [
+          {
+            "id": "pointue"
+          },
+          {
+            "id": "precise"
+          },
+          {
+            "id": "recharge",
+            "value": 4
+          }
+        ],
+        "price": {
+          "gold": 50,
+          "silver": 0,
+          "brass": 0
+        }
+      }
+    ]
   },
   {
     "id": "pistolet",
@@ -2359,7 +2611,28 @@
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.464"
+        },
+        "qualities": [
+          {
+            "id": "pistolet"
+          },
+          {
+            "id": "recharge",
+            "value": 1
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "tromblon",
@@ -2418,6 +2691,31 @@
       "petites-munitions-et-poudre",
       "ferraille-et-poudre",
       "munitions-improvisees-et-poudre"
+    ],
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 101,
+          "note": "AA 08 l.466"
+        },
+        "qualities": [
+          {
+            "id": "dangereuse"
+          },
+          {
+            "id": "recharge",
+            "value": 2
+          },
+          {
+            "id": "tir-de-zone",
+            "value": 3
+          }
+        ]
+      }
     ]
   },
   {
@@ -2539,6 +2837,36 @@
         "book": "aux-armes",
         "page": 98,
         "quote": "Flèche elfique"
+      }
+    ],
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 98,
+          "note": "AA 08 l.377"
+        },
+        "alsoIn": [
+          {
+            "book": "livre-de-base",
+            "page": 296,
+            "quote": "Flèche elfe"
+          }
+        ],
+        "qualities": [
+          {
+            "id": "pointue"
+          },
+          {
+            "id": "empaleuse"
+          },
+          {
+            "id": "perforante"
+          }
+        ]
       }
     ]
   },
@@ -11777,7 +12105,12 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "qualitesAuChoix": [
+      "taille",
+      "empaleuse",
+      "assommante"
+    ]
   },
   {
     "id": "pertuisane-fauchard",
@@ -11832,7 +12165,11 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "qualitesAuChoix": [
+      "empaleuse",
+      "taillade"
+    ]
   },
   {
     "id": "serpe-de-guerre",
@@ -11886,7 +12223,11 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "qualitesAuChoix": [
+      "taille",
+      "destabilisante"
+    ]
   },
   {
     "id": "zweihander-flamberge",

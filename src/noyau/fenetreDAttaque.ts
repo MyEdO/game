@@ -39,7 +39,8 @@ import { itemCapability } from '../engine/capabilities';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
 import { retraitsDits } from '../engine/weaponDamage';
 import { attackModesFor } from '../engine/combatFeatures/dispatch';
-import { testSkillLabel } from '../data';
+import { qualityRefLabel, testSkillLabel } from '../data';
+import { atoutsOptionnelsDe } from '../engine/atoutsOptionnels';
 import { t } from '../i18n';
 import { difficultyText } from './difficultyText';
 import { libelleDuJet, libelleDuReglage } from './libelles';
@@ -91,6 +92,7 @@ export interface FenetreDAttaque {
   /** L'arme et la Localisation visée se règlent avant le jet ; `null` une fois jeté. */
   deuxArmes: BasculeNommee | null;
   choixDArme: ChoixNomme | null;
+  choixDAtout: ChoixNomme | null;
   localisation: ChoixNomme<HitLocation> | null;
   tirDansLeTas: PostureDeTir | null;
   tirImmobile: PostureDeTir | null;
@@ -215,6 +217,9 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
           valeur: w.uid!,
           libelle: w.hand === 'secondaire' && penaliteSecondaire ? t('attaque.armeSecondaire', { arme: w.label, penalite: penaliteSecondaire }) : w.label,
         })))
+      : null,
+    choixDAtout: !res && !pa.weapon && arme.uid && arme.atoutOptionnel !== undefined
+      ? choix('atoutOptionnel', arme.atoutOptionnel, atoutsOptionnelsDe(arme).map((q) => ({ valeur: q.id, libelle: qualityRefLabel(q) })))
       : null,
     localisation: res || isInanimate(cible)
       ? null

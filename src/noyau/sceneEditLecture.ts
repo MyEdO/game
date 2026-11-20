@@ -45,6 +45,7 @@ import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
 import {
   affaireSchema,
+  CHAMPS_DE_POSSESSION_RESERVES_AU_CATALOGUE,
   documentNarratifSchema,
   ecartSchema,
   etatNarratifSchema,
@@ -1063,7 +1064,10 @@ const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<Formula
   presetsPnj: { schema: presetPnjSchema, champs: () => champsSauf(presetPnjSchema, ['id']), choix: choixDuPreset },
   documents: { schema: documentNarratifSchema, champs: () => champsSauf(documentNarratifSchema, ['id']) },
   etats: { schema: etatNarratifSchema, champs: champsDeLEtat, retraits: retraitsDeLEtat, choix: choixDeLEtat },
-  objets: { schema: trappingEntree, champs: () => champsSauf(trappingEntree, ['id', 'type']) },
+  objets: {
+    schema: trappingEntree,
+    champs: () => champsSauf(trappingEntree, ['id', 'type', ...CHAMPS_DE_POSSESSION_RESERVES_AU_CATALOGUE]),
+  },
 };
 
 /** Le formulaire d'une entrée de chaque registre créable du narratif (`FORMULAIRES_DES_REGISTRES`) : dans la collection

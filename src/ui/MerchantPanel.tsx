@@ -6,10 +6,11 @@ import { isRepairable } from '../engine/repair';
 import { Row } from './Layout';
 import { verdictDeVente } from '../noyau/flowOutcomes';
 import { compareEquip } from '../engine/equipCompare';
-import { gabaritDObjet, isWeaponActive, type GabaritDObjet } from '../engine/items';
+import { gabaritDObjet, isWeaponActive, objetAuProfilEffectif, type GabaritDObjet } from '../engine/items';
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 import {
   libelleDeLaRepartition,
   sellGain,
@@ -154,11 +155,15 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   const cartQtyOf = (id: string) => cart.find((c) => c.id === id)?.qty ?? 0;
   const dist = merchant.pendingDistribution ?? null;
 
+  const versionDesFiches = useVersionDesDatasets();
   const previews = useMemo(() => {
     const map: Record<string, GabaritDObjet> = {};
-    for (const l of inStock) { const it = gabaritDObjet(l.id); if (it) map[l.id] = it; }
+    for (const l of inStock) {
+      const it = gabaritDObjet(l.id);
+      if (it) map[l.id] = objetAuProfilEffectif(it);
+    }
     return map;
-  }, [inStock.map((l) => l.id).join('|')]);
+  }, [inStock.map((l) => l.id).join('|'), versionDesFiches]);
 
   // Bloc de comparaison d'un héros (info : la neuve vs l'équipement actuel). Pas de bouton d'équipement (cart).
   const heroCompareBlock = (item: GabaritDObjet, h: Combatant) => {

@@ -692,6 +692,7 @@ import {
   type TableSpec,
 } from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
+import { appliquerAtoutOptionnel } from '../engine/atoutsOptionnels';
 import { ligneDeContraction } from './contraction';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -726,7 +727,7 @@ export function attackWeaponOf(scene: Scene | null, battle: BattleState, attacke
   // Sinon l'arme FIGÉE au jet (#1153) : `Combatant.weapons` ne porte que le loadout ACTIF, un uid seul
   // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
   // lancé (`openAttackCascade`, `frapperEnBalayage`) ou 2ᵉ frappe (`frapperDeLaSecondeArme`).
-  return freeNatural ?? pa.weapon ?? firedWeapon(scene, attacker, target, pa.weaponUid, battle.combatants, pa.harpoonRopeCut);
+  return freeNatural ?? pa.weapon ?? firedWeapon(scene, attacker, target, pa.weaponUid, battle.combatants, pa.harpoonRopeCut, pa.atoutChoisi);
 }
 
 /** Combattant qui ENCAISSE la touche d'une attaque PILOTÉE (`PendingAttack`) — SOURCE UNIQUE de l'aperçu
@@ -749,12 +750,13 @@ export function armeDeLaGratuite(attacker: Combatant, kind: string, weaponUid?: 
 /** Arme effectivement tirée : mêlée au contact, distance sinon (Atout Pistolet pour tirer en Combat
  *  rapproché — LDB Armes l.297-298), AUGMENTÉE de la munition pour un héros (Dégâts + Atouts combinés).
  *  Centralisé pour que résolution / Chance / application voient la MÊME arme (munition, Empaleuse, reload). */
-export function firedWeapon(scene: Scene | null, attacker: Combatant, target: Combatant, weaponUid?: string, combatants?: Combatant[], harpoonRopeCut?: boolean): Weapon {
+export function firedWeapon(scene: Scene | null, attacker: Combatant, target: Combatant, weaponUid?: string, combatants?: Combatant[], harpoonRopeCut?: boolean, atoutChoisi?: PendingAttack['atoutChoisi']): Weapon {
   // Choix explicite du joueur (uid) sinon auto-choix PAR-ARME (#BUG-A, poule-et-œuf) : chaque candidate de
   // mêlée est évaluée avec SA PROPRE géométrie (`pickAttackWeaponList`) — un cavalier au contact par sa
   // monture choisit la mêlée (LDB 14), un chef de bélier via l'empreinte de LA PIÈCE, mais une arme
   // personnelle (épée du chef) ne bénéficie JAMAIS de l'allonge de la coque servie.
-  const base = pickAttackWeaponList(scene, combatants, attacker, target, weaponUid);
+  const arme = pickAttackWeaponList(scene, combatants, attacker, target, weaponUid);
+  const base = appliquerAtoutOptionnel(arme, atoutChoisi && arme.uid === atoutChoisi.weaponUid ? atoutChoisi.id : undefined);
   const ammo = base.type === 'distance' && attacker.kind === 'heros' ? loadedAmmo(attacker, base) : undefined;
   let w = ammo ? weaponWithAmmo(base, ammo) : base;
   // Pièce SERVIE en sous-effectif (poste) : bake les Défauts d'Arme d'équipe selon les servants APTES présents
@@ -3456,7 +3458,7 @@ export function defenseGagneeEnMelee(attacker: Combatant, target: Combatant, wea
  *  `true` quand une fenêtre tient la main. LDB 10 l.1037 ; LDB 85 l.71 ; LDB 13 l.151 ; LDB 14 l.3 ;
  *  LDB 14 l.208-209 ; #1595 c.6234104573. */
 function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defenseur: Combatant, q: QueueDuCoup, suivant: QueueDuCoup, ajout: string): boolean {
-  const arme = q.res.parryWeapon ?? armeDeMainPrincipale(defenseur);
+  const arme = effectiveWeapon(q.res.parryWeapon ?? armeDeMainPrincipale(defenseur));
   if (contreSurDefenseGagnee(defenseur, q.res.parryWeapon)?.plafond != null) defenseur.ripostesThisRound = (defenseur.ripostesThisRound ?? 0) + 1;
   const frappe = toucheDuTestDeDefense(defenseur, attacker, arme, q.res.defenderDetail!, q.res.netSL, { rng: battleRng() });
   const res: AttackResult = { ...frappe, advantageTo: null, ajouts: [...(frappe.ajouts ?? []), ajout] };

@@ -30,9 +30,9 @@ import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { PERSONNAGES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
 import { idsDeLaPortee, ouvrirPortees } from '../data/schemas/grammaire/collection-cle';
 import { OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
-import { metaDesChamps, nommerChamps } from '../data/schemas/grammaire/meta';
+import { nommerChamps } from '../data/schemas/grammaire/meta';
 import { z } from 'zod';
-import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
+import { metaNarratif, narratifSchema } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
@@ -126,7 +126,7 @@ const OUVREURS_DES_OBJETS = new Map<z.ZodType, z.ZodType>();
 function sousLesObjetsDuProjet(schema: z.ZodType): z.ZodType {
   const connu = OUVREURS_DES_OBJETS.get(schema);
   if (connu) return connu;
-  const narratif = nommerChamps(z.strictObject({ objets: narratifSchema.shape.objets }), { objets: metaDesChamps(narratifSchema, { exigees: true }).objets });
+  const narratif = nommerChamps(z.strictObject({ objets: narratifSchema.shape.objets }), { objets: metaNarratif.objets });
   const ouvreur = ouvrirPortees(nommerChamps(z.strictObject({ narratif, valeur: schema }), { narratif: { label: 'Bloc narratif' }, valeur: { label: 'valeur' } }), [OBJETS_DU_PROJET]);
   OUVREURS_DES_OBJETS.set(schema, ouvreur);
   return ouvreur;

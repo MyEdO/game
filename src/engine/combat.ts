@@ -51,6 +51,7 @@ import { findTableEntry } from './tables';
 import { maxBy } from './pick';
 import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestModParts, type EtatTestCtx } from './conditions';
 import { effectiveWeaponDamage, effectiveWeapon } from './weaponDamage';
+import { appliquerAtoutOptionnel } from './atoutsOptionnels';
 import { maniementRetenu, speDeCorpsACorps } from './weaponGroup';
 import { traumaDodgePenaltyParts, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
 import type { GameOp } from './ops';
@@ -1168,7 +1169,7 @@ export function rollGrappleForce(c: Combatant, rng: RNG): TestResult {
  *  ne convient pas, son dernier repli rend `weapons[0]`, fût-il une arme à distance). SOURCE UNIQUE : la
  *  spec du flux et l'application du résultat doivent voir la MÊME arme que le résolveur. */
 export function backstabWeapon(foe: Combatant): Weapon {
-  return foe.weapons.find((w) => w.type === 'melee') ?? unarmedWeapon();
+  return effectiveWeapon(foe.weapons.find((w) => w.type === 'melee') ?? unarmedWeapon());
 }
 
 /** Arme de MÊLÉE de la main principale de `c`, la plus forte non Défensive ; Mains nues si cette main est
@@ -1401,6 +1402,7 @@ export function resolveMelee(
   rng: RNG,
   opts: AttackOptions = {},
 ): AttackResult {
+  weapon = appliquerAtoutOptionnel(weapon);
   // Un OBJET INANIMÉ (structure de siège / véhicule-coque / affût inerte) n'a ni CC/Ag, ni Parade, ni Esquive → jamais de défense.
   const defenseMode = (cannotDefend(defender) || isInanimate(defender)) ? 'aucune' : opts.defense ?? 'parade';
   let atk = rollMeleeAttacker(attacker, defender, weapon, rng, opts.location, opts.env, opts.flankRear);
@@ -1523,6 +1525,7 @@ export function resolveRanged(
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
   modsDR?: ModLine[],
 ): AttackResult {
+  weapon = appliquerAtoutOptionnel(weapon);
   const atkVal = combatValue(attacker, 'distance', weapon);
   const rangeM = porteeDeTir(attacker, weapon);
   if (distanceTiles != null && rangeM != null && rangeBandModifier(distanceTiles, rangeM, metresPerTile) == null)

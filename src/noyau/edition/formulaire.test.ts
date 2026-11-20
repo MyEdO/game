@@ -45,7 +45,7 @@ import { emptyWorldMap, type MapPlace, type WorldMap } from '../worldMap';
 import { newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema, playSfxSchema } from '../../data/schemas/defs-scenes/effets';
-import { entree as objetDeCampagneSchema } from '../../data/schemas/defs/trappings';
+import { entree as entreeDePossession } from '../../data/schemas/defs/trappings';
 import {
   bornesAuPoint,
   champDeLElement,
@@ -856,7 +856,7 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
       'objets/derivedWeapon/reach': 'choix',
     };
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
-    expect(unionDuNoeud(new Map(champsDeclares(objetDeCampagneSchema)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
+    expect(unionDuNoeud(new Map(champsDeclares(entreeDePossession)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
   });
 
   it('une référence à un vocabulaire se choisit parmi ses ids, nommés par sa table ; les rencontres d’une bataille rangée s’ajoutent par activité offerte, chacune désignée comme la rencontre d’un `startCombat` (#4234)', () => {
@@ -1010,6 +1010,14 @@ describe('les porteurs du narratif : une entrée de chaque registre créable, un
     expect(cles(formulaireDe('narratif', NARRATIF, cadre))).toEqual(['ouverture', 'cloture']);
     expect([['stades', 1, 'prose'], ['stades', 1, 'documentId'], ['stades', 1, 'id'], ['stades']].map((c) => avecLaValeurDuPorteur('indices', lettre, c as Segment[], c[2] === 'documentId' ? 'doc-affiche' : 'z', cadre).ok))
       .toEqual([true, true, false, false]);
+  });
+
+  it('un objet de campagne offre son profil fixe, avec les champs réservés au catalogue absents', () => {
+    const objet = objetDeCampagne();
+    const champs = cles(formulaireDe('objets', objet, cadre));
+    expect(champs).toEqual(expect.arrayContaining(['source', 'qualities', 'damage']));
+    expect(champs).not.toContain('variants');
+    expect(champs).not.toContain('qualitesAuChoix');
   });
 
   it('les références du narratif reçoivent leurs choix : l’affaire d’un indice, le document d’un stade, par le registre ; ses renvois, les autres indices hors des renvoyés', () => {

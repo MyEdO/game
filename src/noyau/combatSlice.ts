@@ -4,6 +4,7 @@
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
 import { nomDe } from '../engine/nom';
+import { atoutsOptionnelsDe } from '../engine/atoutsOptionnels';
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
@@ -2225,7 +2226,18 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       localisation: attaque('location'),
       arme: (uid) => {
         const pa = get().pendingAttack;
-        if (pa) set({ pendingAttack: { ...pa, weaponUid: uid ?? undefined } });
+        const weaponUid = uid ?? undefined;
+        if (pa) set({ pendingAttack: { ...pa, weaponUid, atoutChoisi: weaponUid === pa.weaponUid ? pa.atoutChoisi : undefined } });
+      },
+      atoutOptionnel: (id) => {
+        const { pendingAttack: pa, battle, scene } = get();
+        if (!pa || pa.result || pa.weapon || !battle) return;
+        const attaquant = inBattleId(battle, pa.attackerId);
+        const cible = inBattleId(battle, pa.targetId);
+        if (!attaquant || !cible) return;
+        const arme = attackWeaponOf(scene, battle, attaquant, cible, pa);
+        if (!arme.uid || arme.atoutOptionnel === undefined || !atoutsOptionnelsDe(arme).some((q) => q.id === id)) return;
+        set({ pendingAttack: { ...pa, atoutChoisi: { weaponUid: arme.uid, id } } });
       },
       deuxArmes: (on) => {
         const pa = get().pendingAttack;
@@ -2233,7 +2245,8 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         // Mode « des deux armes » : l'attaque-Action utilise la MAIN DIRECTRICE (la 2ᵉ frappe suit, off-hand).
         const a = inBattleId(get().battle, pa.attackerId);
         const mainUid = a?.weapons.find((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)?.uid;
-        set({ pendingAttack: { ...pa, dualMode: on, weaponUid: on ? (mainUid ?? pa.weaponUid) : pa.weaponUid } });
+        const weaponUid = on ? (mainUid ?? pa.weaponUid) : pa.weaponUid;
+        set({ pendingAttack: { ...pa, dualMode: on, weaponUid, atoutChoisi: weaponUid === pa.weaponUid ? pa.atoutChoisi : undefined } });
       },
       sansLaCorde: attaque('harpoonRopeCut'),
       retenirSesCoups: attaque('withhold'),
