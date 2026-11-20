@@ -8,6 +8,7 @@
 // La sortie est TRIÉE par `createdAt` décroissant ICI : un consommateur qui prend `courses[0]` prend
 // la plus récente sans avoir à le savoir, et deux consommateurs ne trient pas différemment.
 import { spawnSync } from 'node:child_process'
+import { estObjet } from '../../../src/lib/objet.mjs'
 import { classer, fait, indisponible } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 import { PORTE } from '../../gates/workflowsDuDepot.mjs'
@@ -95,7 +96,7 @@ export function lireCoursesRest({ depot = DEPOT, workflow = PORTE, commit, evene
       attendues = limite === null ? total : Math.min(total, limite)
       if (attendues > PLAFOND_DE_COURSES)
         throw new Error(`courses CI non exhaustives : ${attendues} attendues, plafond REST ${PLAFOND_DE_COURSES}`)
-      if (page.workflow_runs.length > taillePage || page.workflow_runs.some((course) => !course || typeof course !== 'object' || Array.isArray(course)))
+      if (page.workflow_runs.length > taillePage || page.workflow_runs.some((course) => !estObjet(course)))
         throw new Error('réponse REST de courses CI hors schéma (page de courses)')
       return page.workflow_runs
     },
