@@ -1370,6 +1370,13 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<Formula> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<Formula>, ...z.ZodType<Formula>[]]));
 
+/** MDG 12 l.230, l.293 ; MSRC 16 l.88, l.142 */
+export const dureeEnJoursSchema = z.union([
+  nommerNoeud(z.number(), { label: 'Jours' }),
+  nommerChamps(z.strictObject({ semaines: z.number() }), { semaines: { label: 'Semaines' } }),
+]);
+export type DureeEnJours = z.infer<typeof dureeEnJoursSchema>;
+
 /** `ConsumableDuration` (`src/engine/consumables.ts`) — UNE durée par objet (minutes/heures/jours). */
 export const consumableDurationSchema = nommerChamps(z.strictObject({
   minutes: formulaSchema.optional(),

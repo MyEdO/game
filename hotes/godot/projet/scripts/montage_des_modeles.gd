@@ -153,7 +153,11 @@ func _monter(cle: String) -> void:
 	if not decor.is_empty() and not is_same(index, MontageDeComposition.modeles):
 		return
 	if montage.scene == null:
-		if monte and not decor.is_empty() and volume.retablir_le_decor(decor):
+		if not monte or decor.is_empty():
+			return
+		if await volume.retablir_le_decor(decor):
+			if _montes.get(cle) != montage or _servis[cle].get("decor") != decor or not is_same(index, MontageDeComposition.modeles):
+				return
 			_decors_retablis[decor] = true
 			for autre: String in _servis.keys():
 				if _servis[autre].get("decor") == decor:

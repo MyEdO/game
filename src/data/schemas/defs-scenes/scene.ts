@@ -60,6 +60,7 @@ import { estUnNavireAPonts, findCreatureById, findSiegeEngineById, findTrappingB
 import { porteurDuProfil } from '../../../engine/trappingChoices';
 import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
+import { refusDePoseDesPonts } from '../../poseDesPonts';
 import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../../materials.types';
 import { posteSideSchema } from '../defs/vehicles';
@@ -1007,6 +1008,11 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
         message: `\`${champ}\` porte ${n} entrée(s) pour une grille ${scene.dimensions.w}×${scene.dimensions.h} — il en faut EXACTEMENT ${attendu}`,
       });
     }
+  });
+  (scene.entities ?? []).forEach((entite, i) => {
+    if (entite.kind !== 'personnage') return;
+    const message = refusDePoseDesPonts(scene, entite);
+    if (message) ctx.addIssue({ code: 'custom', path: ['entities', i, 'pos'], message });
   });
   const zone = scene.zoneJouable;
   if (zone && (zone.x + zone.w > scene.dimensions.w || zone.y + zone.h > scene.dimensions.h)) {

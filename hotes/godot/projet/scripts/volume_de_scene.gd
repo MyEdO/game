@@ -30,6 +30,8 @@ signal aretes_posees
 ## Plus aucun modèle d'arête en lecture : chacun lu, ou sa lecture périmée à la sortie de l'arbre
 ## (`attendre_les_aretes`).
 signal _lectures_closes
+## Le repli en cours a fini de préparer et de poser sa réponse.
+signal _secours_libre
 
 ## La couche de rendu de l'ombre des luminaires (`_morceau`), la deuxième (`VisualInstance3D.layers`), que la lampe d'un
 ## foyer exclut de son ombre (`Foyer`).
@@ -73,8 +75,9 @@ var _coques := {}
 var _decors_montres := {}
 ## La source et la révision du volume posé dont le pont peut rendre les recettes de décor.
 var _secours_des_decors := {}
-## Par nom de matière, la matière de rendu des surfaces des morceaux, que le masque lie (`retirer`), et celle des
-## nappes et des couronnes, qu'il ne lie jamais : le retrait d'une nappe est par nœud (`cacher`).
+var _secours_en_cours := false
+## Par nom de matière, une référence faible à la matière des morceaux ou des nappes et couronnes qui la portent.
+## Le retrait lie les matières des morceaux (`retirer`) et écarte chaque nappe par nœud (`cacher`).
 var _matieres_masquees := {}
 var _matieres_des_nappes := {}
 ## L'indice de chaque couche du volume posé (`poser`, dans l'ordre de `hauteurs`), par son `z`, et les rangées d'une
@@ -171,6 +174,21 @@ func manquants(monde: Dictionary) -> Dictionary:
 	}
 
 
+## Les matières des géométries reçues que leurs maillages peuvent employer, y compris après remaillage d'un décor.
+static func matieres_des_morceaux(recus: Dictionary) -> Dictionary:
+	var matieres := {}
+	for famille in ["volume", "toits", "couronnes"]:
+		for geometrie: Dictionary in recus.get(famille, []):
+			_relever_les_matieres(geometrie, matieres)
+	return matieres
+
+
+static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary) -> void:
+	for surface: Dictionary in geometrie.surfaces:
+		if not surface.get("priseSeulement", false) and not surface.has("navire"):
+			matieres[surface.matiere] = false
+
+
 ## Le volume du manifeste `monde` (`{ monde, toits, couronnes }`) à l'échelle d'une unité par case, sa case (0, 0) sur
 ## la case (0, 0) du plateau, ses morceaux, ses nappes de toit et ses couronnes réconciliés par clé (`reconcilier`) : un
 ## posé dont l'empreinte n'a pas bougé reste, un reçu (`recus`, la réponse de `morceaux` : `{ volume, toits, couronnes }`)
@@ -201,7 +219,7 @@ func poser(monde: Dictionary, recus: Dictionary) -> void:
 func retirer(retrait: Variant) -> void:
 	_masque = null if retrait == null else Image.create_from_data(int(retrait.largeur), int(retrait.rangees), false, Image.FORMAT_R8, Marshalls.base64_to_raw(retrait.masque))
 	_retrait = null if _masque == null else ImageTexture.create_from_image(_masque)
-	for matiere: ShaderMaterial in _matieres_masquees.values():
+	for matiere in _matieres_vivantes(_matieres_masquees):
 		matiere.set_shader_parameter("retrait", _retrait)
 	retire.emit()
 
@@ -312,9 +330,21 @@ func _lier_la_vision() -> void:
 ## (`lier_a_la_vision`).
 func _matieres_de_la_vision() -> Array[ShaderMaterial]:
 	var matieres: Array[ShaderMaterial] = []
-	for parmi: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
-		matieres.append_array(parmi.values())
+	matieres.append_array(_matieres_vivantes(_matieres_masquees))
+	matieres.append_array(_matieres_vivantes(_matieres_des_nappes))
+	matieres.append_array(_voiles.values())
 	matieres.append_array(_liees)
+	return matieres
+
+
+static func _matieres_vivantes(references: Dictionary) -> Array[ShaderMaterial]:
+	var matieres: Array[ShaderMaterial] = []
+	for nom: String in references.keys():
+		var matiere := (references[nom] as WeakRef).get_ref() as ShaderMaterial
+		if matiere == null:
+			references.erase(nom)
+		else:
+			matieres.append(matiere)
 	return matieres
 
 
@@ -400,10 +430,24 @@ func _batir_les_sols(hauteurs: Array) -> void:
 ## oubliés (`_oublier_les_modeles_d_arete`), relus à la prochaine pose.
 func vider() -> void:
 	_secours_des_decors = {}
-	_aretes_recues = []
-	_oublier_les_modeles_d_arete()
-	for parent: Node3D in [_morceaux, _toits, _couronnes, _aretes]:
+	oublier_les_aretes()
+	for parent: Node3D in [_morceaux, _toits, _couronnes]:
 		reconcilier(parent, [], {}, Callable())
+	_matieres_masquees.clear()
+	_matieres_des_nappes.clear()
+
+
+## Les arêtes de la scène quittée et les ressources de ses pièces, dont les lectures encore en vol.
+func oublier_les_aretes() -> void:
+	var lectures_en_cours := aretes_en_lecture()
+	_en_lecture.clear()
+	_aretes_recues = []
+	reconcilier(_aretes, [], {}, Callable())
+	_a_teindre.clear()
+	_du_fondu.clear()
+	_oublier_les_modeles_d_arete()
+	if lectures_en_cours:
+		_lectures_closes.emit()
 
 
 ## Les surfaces des décors `decors` (ids de `props.json`, `decor` d'une surface, `CONTRAT.md`, section « Monde ») ni
@@ -443,10 +487,33 @@ func retablir_le_decor(decor: String) -> bool:
 					peindre_sans(montres)
 					return true
 		return false
+	var secours := _secours_des_decors
+	while _secours_en_cours:
+		await _secours_libre
+	if not is_inside_tree() or secours != _secours_des_decors or not _decors_montres.has(decor):
+		return false
+	_secours_en_cours = true
+	var retabli := await _preparer_le_repli(decor, secours)
+	_secours_en_cours = false
+	_secours_libre.emit()
+	return retabli
+
+
+## La préparation et la pose d'une même réponse de secours précèdent la demande suivante sur le pont.
+func _preparer_le_repli(decor: String, secours: Dictionary) -> bool:
 	var pont := get_node("/root/Pont") as PontDuNoyau
-	var recus := pont.appeler("retablirDecors", _secours_des_decors.merged({prop = decor}))
+	var recus := pont.appeler("retablirDecors", secours.merged({prop = decor}))
 	if recus.get("ok") != true:
 		return false
+	var textures := await TexturesDeMatiere.preparer(self, matieres_des_morceaux(recus))
+	if not is_inside_tree() or secours != _secours_des_decors:
+		return false
+	_poser_le_repli(decor, recus)
+	textures.clear()
+	return true
+
+
+func _poser_le_repli(decor: String, recus: Dictionary) -> void:
 	_decors_montres.erase(decor)
 	_retablir_sous(_morceaux, recus.volume)
 	_retablir_sous(_toits, recus.toits)
@@ -456,7 +523,6 @@ func retablir_le_decor(decor: String) -> bool:
 		empreintes[morceau.cle] = morceau.empreinte
 	if not empreintes.is_empty():
 		empreintes_retablies.emit(empreintes)
-	return true
 
 
 func _retablir_sous(parent: Node3D, recus: Array) -> void:
@@ -565,6 +631,10 @@ func _poser_le_morceau(noeud: Node3D, morceau: Dictionary) -> void:
 	noeud.set_meta("decors", decors)
 	if not flottaisons.is_empty() or not decors.is_empty():
 		noeud.set_meta("geometrie", morceau)
+		_retenir_les_textures_du_remaillage(noeud, morceau)
+	else:
+		noeud.remove_meta("geometrie")
+		noeud.remove_meta("textures_du_remaillage")
 	_mailler(noeud, morceau)
 
 
@@ -628,9 +698,28 @@ func _nappe(nappe: Dictionary) -> Node3D:
 
 
 func _poser_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
-	noeud.set_meta("decors", _decors_de(nappe))
-	noeud.set_meta("geometrie", nappe)
+	var decors := _decors_de(nappe)
+	noeud.set_meta("decors", decors)
+	if not decors.is_empty():
+		noeud.set_meta("geometrie", nappe)
+		_retenir_les_textures_du_remaillage(noeud, nappe)
+	else:
+		noeud.remove_meta("geometrie")
+		noeud.remove_meta("textures_du_remaillage")
 	_mailler_la_nappe(noeud, nappe)
+
+
+## Les textures déjà préparées des surfaces qu'un remaillage de ce nœud peut faire revenir.
+static func _retenir_les_textures_du_remaillage(noeud: Node3D, geometrie: Dictionary) -> void:
+	var matieres := {}
+	_relever_les_matieres(geometrie, matieres)
+	var textures: Array[Texture2D] = []
+	for nom: String in matieres:
+		for chemin: String in [texture_de(nom), relief_de(nom)]:
+			var texture := TexturesDeMatiere.retenue(chemin)
+			if texture != null:
+				textures.append(texture)
+	noeud.set_meta("textures_du_remaillage", textures)
 
 
 ## Le maillage de la nappe `nappe` (`_maillage_de`, chaque case au plan `sol` de sa couche, `MiseEnPage.texel_de_nappe`,
@@ -653,18 +742,47 @@ func poser_les_aretes(aretes: Array) -> void:
 	_aretes_recues = aretes
 	var groupes := {}
 	var a_lire := {}
+	var demandes := {}
 	for a: Dictionary in aretes:
 		var modele := modele_d_arete(a.famille)
-		if not modele.is_empty() and not _modeles_d_arete.has(modele) and not _illisibles.has(modele):
-			a_lire[modele] = true
-			continue
+		if not modele.is_empty():
+			demandes[modele] = true
+			if not _modeles_d_arete.has(modele) and not _illisibles.has(modele):
+				a_lire[modele] = true
+				continue
 		var cle := "%s|%s|%s|%s|%s|%s|%s|%s" % [a.bloc, a.famille, a.piece, a.position, a.sens.x, a.sens.y, a.hauteurM,
 			a.palette]
 		groupes.get_or_add(cle, []).append(a)
 	reconcilier(_aretes, groupes.keys().map(func(cle: String) -> Dictionary: return {cle = cle, empreinte = [groupes[cle], metres_par_case]}), groupes, _groupe)
 	_montrer_le_pose()
+	var lectures_ecartees := _ecarter_les_modeles_d_arete(demandes)
 	for modele: String in a_lire:
 		_lire_le_modele_d_arete(modele)
+	if lectures_ecartees and a_lire.is_empty() and not aretes_en_lecture():
+		_lectures_closes.emit()
+
+
+## Les ressources de pièces dont aucune arête reçue ne demande le modèle, libérées avec leurs lectures.
+func _ecarter_les_modeles_d_arete(demandes: Dictionary) -> bool:
+	var lectures_ecartees := false
+	for modele: String in _en_lecture.keys():
+		if not demandes.has(modele):
+			_en_lecture.erase(modele)
+			lectures_ecartees = true
+	var lus_ecartes := false
+	for modele: String in _modeles_d_arete.keys():
+		if not demandes.has(modele):
+			_modeles_d_arete[modele].scene.free()
+			_modeles_d_arete.erase(modele)
+			lus_ecartes = true
+	if lus_ecartes:
+		for cle: String in _pieces_peintes.keys():
+			if not demandes.has(cle.get_slice("|", 0)):
+				_pieces_peintes[cle].free()
+				_pieces_peintes.erase(cle)
+		_maillages_teints.clear()
+		_matieres_teintes.clear()
+	return lectures_ecartees
 
 
 ## L'id de l'élément `arete` servi pour la famille de kit `famille` (`aretes` de la réponse de `modeles` retenue,
@@ -897,14 +1015,18 @@ func _retournes(tableau: Variant) -> Variant:
 ## de retrait reste la noire par défaut, rien ne s'y replie.
 func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
 	var matieres := _matieres_masquees if masquee else _matieres_des_nappes
-	if not matieres.has(nom):
-		var matiere: ShaderMaterial = (matiere_texturee_masquee if ResourceLoader.exists(texture_de(nom)) else couleur_des_sommets_masquee).duplicate()
-		texturer(matiere, nom, texture_de(nom), true)
-		if masquee:
-			matiere.set_shader_parameter("retrait", _retrait)
-		_lier_la_vision_a(matiere)
-		matieres[nom] = matiere
-	return matieres[nom]
+	var reference := matieres.get(nom) as WeakRef
+	var matiere := reference.get_ref() as ShaderMaterial if reference != null else null
+	if matiere != null:
+		return matiere
+	var albedo := TexturesDeMatiere.retenue(texture_de(nom))
+	matiere = (matiere_texturee_masquee if albedo != null else couleur_des_sommets_masquee).duplicate()
+	texturer(matiere, nom, albedo, true)
+	if masquee:
+		matiere.set_shader_parameter("retrait", _retrait)
+	_lier_la_vision_a(matiere)
+	matieres[nom] = weakref(matiere)
+	return matiere
 
 
 ## Le chemin de la texture de la matière `nom` au projet.
@@ -923,22 +1045,22 @@ static func texture_neutre_de(nom: String) -> String:
 
 
 ## `materiau`, une matière standard ou du shader de monde (qui nomme ses paramètres comme les propriétés de la matière
-## standard), habillé de la texture `albedo` si elle est au projet, `texture_de(nom)` ou `texture_neutre_de(nom)`, et
-## du relief de la matière `nom` s'il y est : projetés sur les trois axes du repère du mesh si `projetee`, lus aux UV
-## du mesh, en mètres, sinon (#4313) ; un motif tous les `MiseEnPage.METRES_PAR_MOTIF` du repère, ou à l'échelle
-## `motif`.
-static func texturer(materiau: Material, nom: String, albedo: String, projetee: bool,
+## standard), habillé de la texture `albedo` et du relief de `nom` que porte le catalogue, projetés sur les trois axes
+## du repère du mesh si `projetee`, lus aux UV du mesh, en mètres, sinon (#4313). Le motif se répète à l'échelle
+## `motif`, un pour `MiseEnPage.METRES_PAR_MOTIF` par défaut.
+static func texturer(materiau: Material, nom: String, albedo: Texture2D, projetee: bool,
 		motif := MiseEnPage.echelle_de_motif()) -> void:
-	if not ResourceLoader.exists(albedo):
+	if albedo == null:
 		return
 	var propriete := "shader_parameter/" if materiau is ShaderMaterial else ""
-	materiau.set(propriete + "albedo_texture", load(albedo))
+	materiau.set(propriete + "albedo_texture", albedo)
 	materiau.set(propriete + "uv1_triplanar", projetee)
 	materiau.set(propriete + "uv1_triplanar_sharpness", NETTETE_DU_MOTIF)
 	materiau.set(propriete + "uv1_scale", motif)
-	if ResourceLoader.exists(relief_de(nom)):
+	var relief := TexturesDeMatiere.retenue(relief_de(nom))
+	if relief != null:
 		materiau.set(propriete + "normal_enabled", true)
-		materiau.set(propriete + "normal_texture", load(relief_de(nom)))
+		materiau.set(propriete + "normal_texture", relief)
 
 
 ## Le nœud du groupe des arêtes `aretes` (même `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM` et

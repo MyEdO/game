@@ -1179,6 +1179,86 @@ test('killChromeTree : sous CIM (milliseconde), une date de création qui diffè
   assert.throws(() => killChromeTree({ pid: 42 }, { plateforme: 'linux', tuerPid: () => {}, observer: observer(recree), attenteMs: 0 }), /survivants 43/)
 })
 
+function arretChromeObserve(instantanes, { plateforme = 'win32', attenteMs = 0 } = {}) {
+  let lecture = 0
+  let maintenant = 20_000
+  const tues = []
+  return {
+    tues,
+    arreter: () => killChromeTree({ pid: 42 }, {
+      plateforme,
+      attenteMs,
+      observer: () => instantanes[Math.min(lecture++, instantanes.length - 1)],
+      executer: () => ({ status: 255, stderr: 'arrêt simulé' }),
+      tuerPid: (pid) => tues.push(pid),
+      horloge: () => maintenant,
+      patienter: (ms) => { maintenant += ms },
+    }),
+  }
+}
+
+for (const phase of ['avant', 'après']) {
+  test(`killChromeTree : l’orphelin ancien et sa branche ne survivent pas dans le verdict (première vue ${phase} l’arrêt)`, () => {
+    const racine = { pid: 42, parent: 1, cree: 10_000 }
+    const orphelin = { pid: 43, parent: 42, cree: 9_999 }
+    const branche = [orphelin, { pid: 44, parent: 43, cree: 10_001 }]
+    const avant = phase === 'avant' ? [...branche, racine] : [racine]
+    const { arreter } = arretChromeObserve([avant, branche])
+    assert.deepEqual(arreter(), { racine: 42, observes: [42], survivants: [] })
+  })
+}
+
+test('killChromeTree : la filiation par ps tolère 1 500 ms et garde l’arrêt du descendant avant le parent', () => {
+  const avant = [
+    { pid: 44, parent: 43, cree: 9_000 },
+    { pid: 43, parent: 42, cree: 8_500 },
+    { pid: 45, parent: 42, cree: 8_499 },
+    { pid: 46, parent: 45, cree: 10_000 },
+    { pid: 42, parent: 1, cree: 10_000 },
+  ]
+  const { arreter, tues } = arretChromeObserve([avant, []], { plateforme: 'linux' })
+  assert.deepEqual(arreter().observes, [42, 43, 44])
+  assert.deepEqual(tues, [44, 43, 42])
+})
+
+test('killChromeTree : parent absent, une date connue autorise la filiation à la milliseconde près', () => {
+  const racine = { pid: 42, parent: 1, cree: 10_000 }
+  const parent = { pid: 43, parent: 42, cree: 11_000 }
+  const orphelinAncien = { pid: 44, parent: 43, cree: 10_999 }
+  const orphelinConnu = { pid: 45, parent: 43, cree: 11_000 }
+  const sansDate = { pid: 46, parent: 42, cree: 12_000 }
+  const { arreter } = arretChromeObserve([[racine, parent], [orphelinAncien, orphelinConnu], []], { attenteMs: 50 })
+  assert.deepEqual(arreter().observes, [42, 43, 45])
+  assert.deepEqual(arretChromeObserve([[sansDate], [sansDate]]).arreter().observes, [42])
+})
+
+test('killChromeTree : le remplacement d’un parent borne les admissions aux relevés suivants', () => {
+  const racine = { pid: 42, parent: 1, cree: 10_000 }
+  const parent = { pid: 43, parent: 42, cree: 11_000 }
+  const remplace = { ...parent, cree: 12_000 }
+  const descendant = { pid: 44, parent: 43, cree: 11_250 }
+  const orphelin = { pid: 45, parent: 43, cree: 11_500 }
+  const enfantRemplace = { pid: 46, parent: 43, cree: 12_500 }
+  const tardif = { pid: 47, parent: 44, cree: 20_001 }
+  const avant = [racine, descendant, parent]
+  const orphelinAvecRemplacant = arretChromeObserve([avant, [remplace, orphelin, enfantRemplace]])
+  assert.throws(orphelinAvecRemplacant.arreter, /survivants 45 après arrêt de 42/)
+  const apres = [
+    [remplace, { ...descendant, parent: 1 }, enfantRemplace],
+    [tardif, { ...descendant, parent: 1 }, orphelin, enfantRemplace],
+  ]
+  const { arreter } = arretChromeObserve([avant, ...apres], { attenteMs: 50 })
+  assert.throws(arreter, /survivants 44, 45 après arrêt de 42 \(code 255\) et 50 ms d’attente — arrêt simulé$/)
+})
+
+test('killChromeTree : un descendant découvert après l’arrêt conserve aussi sa première naissance', () => {
+  const racine = { pid: 42, parent: 1, cree: 10_000 }
+  const parent = { pid: 43, parent: 42, cree: 11_000 }
+  const enfantRemplace = { pid: 44, parent: 43, cree: 12_500 }
+  const { arreter } = arretChromeObserve([[racine], [parent], [{ ...parent, cree: 12_000 }, enfantRemplace]], { attenteMs: 50 })
+  assert.deepEqual(arreter(), { racine: 42, observes: [42, 43], survivants: [] })
+})
+
 test('lireProcessus : sous CIM, un processus SANS date de création fait échouer la lecture, jamais une date 0', { skip: process.platform !== 'win32' && 'PowerShell absent' }, () => {
   const executer = (commande, args, options) => {
     const cim = 'Get-CimInstance Win32_Process -Filter "ProcessId > 0"'

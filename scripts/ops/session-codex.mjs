@@ -201,7 +201,7 @@ export async function veillerCodex({ dossier, sessionId, depuis = 0, timeoutMs =
     throw e
   }
 }
-export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, notifier, lancer = spawn, echo, rejeu = {} }) {
+export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, notifier, lancer = spawn, echo, inscription, rejeu = {} }) {
   identite(carte.sessionId)
   if (typeof notifier !== 'function' || !/^[0-9a-f]{64}$/.test(carte.empreinteJeton)) throw refus('validation', 'Projection et empreinte de capacité requises')
   const outputSchema = typeof schema === 'string' ? JSON.parse(readFileSync(schema, 'utf8')) : schema
@@ -470,6 +470,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
   serveur.on('error', (e) => { echouer(refus('panne', `IPC Codex : ${e.message}`)); child.kill() })
   serveur.listen(adresse(dossier, carte.sessionId))
   const pret = (async () => {
+    await inscription
     await requete('initialize', { clientInfo: { name: 'wfrp-session', version: '1' }, capabilities: { experimentalApi: true } })
     natif.stdin.write(`${JSON.stringify({ method: 'initialized', params: {} })}\n`)
     const r = await requete('thread/start', { cwd: carte.worktree }, carte.demarrageJusqua - Date.now())

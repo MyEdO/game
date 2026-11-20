@@ -454,6 +454,41 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
 describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
   beforeEach(freshState);
 
+  afterEach(() => resetRule('mer-carte-orientation-dr'));
+
+  it.each([0, 2, 3])('Carte portée par le Navigateur : le réglage %i donne exactement ces DR au total (MDG 15 l.290)', (bonus) => {
+    setRule('mer-carte-orientation-dr', bonus);
+    function orienter(avecCarte: boolean) {
+      freshState();
+      const [navigateur, ...autres] = get().party;
+      const carte = itemFromTrappingById('carte-marine', idsDeTest)!;
+      set({ party: [{
+        ...navigateur,
+        shipRole: 'navigateur',
+        skills: [{ id: 'orientation', characteristic: 'intelligence', advances: 40 }],
+        items: avecCarte ? [carte] : [],
+      }, ...autres] });
+      get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+      for (let i = 0; i < 30; i++) {
+        const p = get().pendingCascade;
+        const etape = p?.participants[p.cursor];
+        expect(etape).toBeDefined();
+        if (etape!.kind === 'equipage-orientation') break;
+        avanceEtapeCascade(get, () => 29);
+      }
+      const p = get().pendingCascade!;
+      const etape = p.participants[p.cursor];
+      expect(etape.kind).toBe('equipage-orientation');
+      expect(etape.participants!.find((r) => r.id === navigateur.id))
+        .toMatchObject({ roleId: 'navigateur', essential: true, skill: { id: 'orientation' } });
+      avanceEtapeCascade(get, () => 29);
+      const bilan = get().journal.find((l) => l.startsWith('Orientation (DR '));
+      expect(bilan).toBeDefined();
+      return Number(bilan!.match(/DR ([+-]\d+)/)?.[1]);
+    }
+    expect(orienter(true) - orienter(false)).toBe(bonus);
+  });
+
   function driveDayCaptureOrientation(): number | undefined {
     let extra: number | undefined;
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
@@ -3798,11 +3833,10 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
   beforeEach(freshState);
   afterEach(() => resetRule('mer-salissures-difficulte'));
 
-  /** 7ᵉ jour en mer, en semaine 1 : le Test de la semaine est dû. */
-  function septiemeJour(fouling?: { level: number; lastWeek: number }) {
-    set({ gameTime: 7 * 24 * 60 + 8 * 60, vessel: { ...get().vessel!, ...(fouling ? { fouling } : {}) } });
+  function jourDeMer(jour = 8) {
+    set({ gameTime: (jour + 3) * MINUTES_PER_DAY + 8 * 60 });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 6 } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: jour - 1 } } });
   }
   /** Joue la journée comme un joueur jusqu'au Test de Salissures, dont le dé est POSÉ à `de`. */
   function jusquAuxSalissures(de: number): CascadeStep | undefined {
@@ -3819,8 +3853,14 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
   const entreeSalissures = () => (get().travelPlan?.procesVerbal ?? []).find((e) => e.id?.startsWith('mer-salissures'));
   const lignesDeMer = () => get().travelPlan?.sea?.lines ?? [];
 
+  it('le septième jour ne déclenche aucun Test (MDG 13 l.148)', () => {
+    jourDeMer(7);
+    expect(jusquAuxSalissures(96)).toBeUndefined();
+    expect(get().vessel!.fouling).toBeUndefined();
+  });
+
   it('le Test est une ÉTAPE de la journée, tenue par le MONDE, sur l’Endurance du NAVIRE (MDG 12 l.58)', () => {
-    septiemeJour();
+    jourDeMer();
     const st = jusquAuxSalissures(5);
     expect(st, 'le Test de la semaine passe par la porte des jets').toBeTruthy();
     expect(st!.worldOwner).toBe(true);
@@ -3832,7 +3872,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
 
   it('règle maison `mer-salissures-difficulte` (LDB 12 l.137) : la Difficulté éditée entre dans la cible', () => {
     setRule('mer-salissures-difficulte', 'complexe');
-    septiemeJour();
+    jourDeMer();
     const st = jusquAuxSalissures(5);
     expect(st!.difficulty).toBe('complexe');
     expect(st!.target).toBe(effectiveChar(get().travelPlan!.vehicle!, 'endurance') + DIFFICULTY_MODIFIERS.complexe);
@@ -3842,7 +3882,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     const cible = (groupe: Combatant[]) => {
       freshState();
       set({ party: groupe });
-      septiemeJour();
+      jourDeMer();
       return jusquAuxSalissures(5)?.target;
     };
     const [a, b, c, d] = tousLesHerosDeScenario(idsDeTest);
@@ -3852,13 +3892,13 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
   });
 
   it('la fenêtre du Test du navire s’ouvre chez l’hôte en solo', () => {
-    septiemeJour();
+    jourDeMer();
     jusquAuxSalissures(96);
     expect(seatOwns(get(), 0, WORLD_STEP_OWNER), 'en solo, l’hôte tient le monde').toBe(true);
   });
 
   it('la Résilience d’un PJ ne bascule pas l’issue du Test du navire (LDB 17 l.21-24)', () => {
-    septiemeJour();
+    jourDeMer();
     runSeaDay(get, set);
     let id: string | undefined;
     for (let i = 0; i < 40 && get().pendingCascade && !id; i++) {
@@ -3880,47 +3920,64 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
   it('aucun PJ apte : le Test du navire a lieu quand même, et la semaine est notée', () => {
     set({ party: get().party.map((h) => (blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 }, conditions: [...(h.conditions ?? []), { id: 'inconscient', value: 1 }] }))) } as never);
     expect(get().party.every((h) => isOutOfAction(h)), 'précondition : tout le groupe est hors de combat').toBe(true);
-    septiemeJour();
+    jourDeMer();
     const st = jusquAuxSalissures(96);
     expect(st, 'le navire teste sans porteur de groupe').toBeTruthy();
     draineCascade(get);
-    expect(get().vessel!.fouling).toEqual({ level: 1, lastWeek: 1 });
+    expect(get().vessel!.fouling).toEqual({ level: 1, lastTestDay: 11 });
   });
 
   it('échec → +1 niveau, semaine notée, conséquence au fil de la journée, aucune entrée de procès-verbal', () => {
-    septiemeJour();
+    jourDeMer();
     jusquAuxSalissures(96);
-    expect(get().vessel!.fouling).toEqual({ level: 1, lastWeek: 1 });
+    expect(get().vessel!.fouling).toEqual({ level: 1, lastTestDay: 11 });
     expect(lignesDeMer()).toContain(t('sv.fouling', { level: 1, desc: foulingEffects(1).desc }));
     expect(entreeSalissures()).toBeUndefined();
   });
 
   it('réussite → niveau inchangé, semaine notée, conséquence au fil de la journée', () => {
-    septiemeJour();
+    jourDeMer();
     jusquAuxSalissures(5);
-    expect(get().vessel!.fouling).toEqual({ level: 0, lastWeek: 1 });
+    expect(get().vessel!.fouling).toEqual({ level: 0, lastTestDay: 11 });
     expect(lignesDeMer()).toContain(t('sv.foulingHolds'));
     expect(entreeSalissures()).toBeUndefined();
   });
 
   it('échec au niveau MAXIMUM → niveau inchangé, conséquence dite quand même', () => {
-    septiemeJour({ level: 5, lastWeek: 0 });
+    set({ vessel: { ...get().vessel!, fouling: { level: 5 } } });
+    jourDeMer();
     jusquAuxSalissures(96);
-    expect(get().vessel!.fouling).toEqual({ level: 5, lastWeek: 1 });
+    expect(get().vessel!.fouling).toEqual({ level: 5, lastTestDay: 11 });
     expect(lignesDeMer(), 'aucun jet silencieux, même sans effet').toContain(t('sv.foulingMax', { level: 5 }));
   });
 
-  it('semaine déjà testée → aucun Test', () => {
-    septiemeJour({ level: 0, lastWeek: 1 });
+  it('après sauvegarde, reprendre le même jour ne rejoue pas le Test, et le suivant tombe au seizième jour de mer', () => {
+    jourDeMer();
+    const plan = get().travelPlan!;
+    expect(jusquAuxSalissures(96)).toBeDefined();
+    const relecture = lireSave(JSON.stringify(snapshotSave(get(), '2026-11-20T00:00:00.000Z')));
+    if (typeof relecture === 'string') throw new Error(relecture);
+    const reprise = chargerLaSave(relecture).etat;
+    set({ ...reprise, travelPlan: plan, pendingCascade: null });
     expect(jusquAuxSalissures(96)).toBeUndefined();
+    expect(get().vessel!.fouling).toEqual({ level: 1, lastTestDay: 11 });
+
+    for (const jour of [9, 15, 16]) {
+      set({ pendingCascade: null, pendingRest: null });
+      jourDeMer(jour);
+      const test = jusquAuxSalissures(96);
+      if (jour < 16) expect(test).toBeUndefined();
+      else expect(test).toBeDefined();
+    }
+    expect(get().vessel!.fouling).toEqual({ level: 2, lastTestDay: 19 });
   });
 
   it('traversée commandée : la Salissure se résout sans fenêtre', () => {
-    septiemeJour();
+    jourDeMer();
     set({ travelPlan: { ...get().travelPlan!, orders: { cadence: 'commande' } } });
     runSeaDay(get, set);
     expect(get().pendingCascade, 'traversée commandée = sans fenêtre (attendu validé en recette #1426)').toBeNull();
-    expect(get().vessel!.fouling?.lastWeek, 'le Test de la semaine a eu lieu').toBe(1);
+    expect(get().vessel!.fouling?.lastTestDay, 'le Test de la semaine a eu lieu').toBe(11);
     const pv = get().travelPlan?.log?.slice(-1)[0]?.entries ?? [];
     expect(pv.some((e) => e.id?.startsWith('mer-salissures')), 'le procès-verbal ne recopie pas le dé').toBe(false);
     const navire = get().travelPlan!.vehicle!.label;

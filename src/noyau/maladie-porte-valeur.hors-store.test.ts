@@ -82,7 +82,7 @@ beforeEach(() => {
 describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE', () => {
   it('ver de carie (MSRC 16 l.90) : étape influençable, cible = `testValue` d’ENDURANCE, États comptés', () => {
     // J+7 : la cadence du ver (`afterDays: 7`) démarre — le Test tombe alors chaque jour.
-    const h = rendMalade('h1', 'vers-de-carie', 7);
+    const h = rendMalade('h1', 'vers-de-carie', 8);
     addCondition(h, 'sonne', 2); // LDB 16 l.125 : −10 par État à TOUS les Tests
     banc.setState((s) => ({ party: [...s.party] }));
 

@@ -24,7 +24,7 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { createHero } from '../engine/character';
 import type { Combatant, EffectSource, EffectSourceKind } from '../engine/types';
 import { contractDisease, tickDisease } from '../engine/disease';
-import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
+import { dayIndex, dureeEnJours, MINUTES_PER_DAY } from '../engine/clock';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { lierLesTirages, tiragesDuFlow, type FlowTest } from '../engine/flowCore';
 import type { Get } from './flowTypes';
@@ -146,7 +146,7 @@ export function porteDeMaladie(n: Noeud): { maladie: string; symptomId: string; 
     if (!porteuse) throw new Error(`symptôme « ${n.entryId} » : aucune maladie de maladies.json ne le porte`);
     const cycle = findSymptomById(n.entryId)?.onTick;
     if (!cycle) throw new Error(`symptôme « ${n.entryId} » : aucun cycle (\`onTick\`) dans symptoms.json`);
-    return { maladie: porteuse.id, symptomId: n.entryId, jours: cycle.afterDays ?? 0 };
+    return { maladie: porteuse.id, symptomId: n.entryId, jours: dureeEnJours(cycle.afterDays ?? 0) };
   }
   return undefined;
 }

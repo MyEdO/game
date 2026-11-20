@@ -225,7 +225,9 @@
         "bands": [
           {
             "maxLengthM": 35,
-            "value": 16
+            "value": {
+              "semaines": 2
+            }
           },
           {
             "maxLengthM": null,
@@ -281,7 +283,9 @@
         "bands": [
           {
             "maxLengthM": 35,
-            "value": 16
+            "value": {
+              "semaines": 2
+            }
           },
           {
             "maxLengthM": null,
@@ -479,11 +483,15 @@
         "bands": [
           {
             "maxLengthM": 35,
-            "value": 8
+            "value": {
+              "semaines": 1
+            }
           },
           {
             "maxLengthM": null,
-            "value": 16
+            "value": {
+              "semaines": 2
+            }
           }
         ]
       }

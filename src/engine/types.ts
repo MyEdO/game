@@ -887,6 +887,8 @@ export interface ActiveEffect {
   /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
    *  `prayerForActionBy`). LDB 40 l.74 */
   prayerForAction?: true;
+  /** VDM 09 l.354 */
+  fleeForbidden?: true;
   /** Divinité (id de `gods.json`) dont les Bénédictions et Miracles échouent sur le porteur (op `deityBan`,
    *  lu par `prayerBannedOn`). LDB 40 l.64 */
   deityBan?: string;

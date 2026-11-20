@@ -16,7 +16,7 @@ import { initialNet } from './etat';
 import { ligneDe } from '../engine/modLine.testkit';
 import { psychTest, sansPeurLabel } from '../engine/psychology';
 import { parsePsychTraits } from '../engine/psych/registry';
-import { refLabel } from '../data';
+import { groupLabel, psychologyLabel, refLabel } from '../data';
 import { t } from '../i18n';
 import { ciblePsy } from '../engine/psych/ciblage';
 
@@ -118,6 +118,11 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(step.kind).toBe('psychologieDeRencontre');
     expect(step.psychologieDeRencontre?.kind).toBe('animosite');
     expect(step.psychologieDeRencontre?.cible).toBe(ciblePsy.groupe('elfe'));
+    const psych = psychologyLabel('animosite');
+    const groupe = groupLabel('elfe');
+    expect(psych).not.toBe('animosite');
+    expect(groupe).not.toBe('elfe');
+    expect(step.label).toBe(t('step.sujetPrecision', { sujet: psych, precision: groupe }));
     // BANDE : le jet vit sur la RANGÉE, jamais sur l'étape (contrat `aggregate:'none'`).
     expect(step.aggregate).toBe('none');
     expect(step.target).toBeUndefined();
@@ -125,7 +130,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(step.participants?.[0].result).toBeNull();
   });
 
-  it('Animosité ratée + Continuer → affliction active en psychState ; cascade close (1 héros)', () => {
+  it('Animosité ratée + Continuer → affliction active, verdict libellé au journal et cascade close', () => {
     const h = animosite('H');
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
@@ -133,6 +138,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.getState().jetValider('cascade');
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('elfe') && p.active === true)).toBe(true);
+    expect(banc.getState().journal).toContain(t('out.cibleGrip', { name: h.label, psych: psychologyLabel('animosite') }));
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -146,6 +152,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.active === true)).toBe(false);
     expect(hero.resilience).toBe(0);
+    expect(banc.getState().journal).toContain(t('out.cibleMaster', { name: h.label, psych: psychologyLabel('animosite') }));
   });
 
   it('Détermination = immunité temporaire (LDB 17 l.59) : psychImmuneRoundsLeft posé, animosité inerte (≈ succès one-shot), -1 Détermination', () => {

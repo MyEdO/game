@@ -87,6 +87,7 @@ import {
   verdictDeTrace,
 } from './publicationDonnee.mjs'
 import {
+  CODE_CONSTAT_IMPOSSIBLE,
   ECHEANCE_SANS_RUN_MS,
   RACINE,
   borneDeVeilleMin,
@@ -2149,6 +2150,206 @@ const gitDeLaCli = (racine, branche) => envGitFeint([
   { si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 },
   { si: [], status: 97, stderr: 'GARDE CLI : commande interdite' },
 ])
+
+test('#4602 CLI : journal vivant ou jugé en cache lisible, interruption constatable ou refusée', (t) => {
+  const { racine, sha } = implantationDuCli()
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const branche = 'chantier/4602-veille'
+  const chemins = cheminsDeJournal(racine, branche)
+  const journalEnVol = (pid) => {
+    const lancement = Date.now()
+    const run = idDeRun({ pid, lancement })
+    const journal = entameDuRun(journalVide(branche), { run, pid, creation: lancement, fileTimeoutMin: 10 })
+    transitionDuRun(journal, 'file', { etat: 'en-vol' })
+    return { ...journal, tete: sha }
+  }
+  const vivant = journalEnVol(process.pid)
+  const juge = { ...vivant, verdict: { etat: 'vert' } }
+  const mort = journalEnVol(2 ** 31 - 1)
+  const cli = (args, feinte) => {
+    const source = `
+      import fs from 'node:fs'
+      import enfant from 'node:child_process'
+      import { syncBuiltinESMExports } from 'node:module'
+      const { dossier, json, log } = ${JSON.stringify(chemins)}
+      const erreur = (code, chemin) => Object.assign(new Error(code + ': ' + chemin), { code })
+      const tuer = process.kill
+      process.kill = (pid, signal) => {
+        if (signal === 0 && pid === ${mort.pid}) throw erreur('ESRCH', pid)
+        return tuer(pid, signal)
+      }
+      ${feinte}
+      syncBuiltinESMExports()
+    `
+    const vu = spawnSync(process.execPath, ['--import', 'data:text/javascript,' + encodeURIComponent(source), join(racine, 'scripts/ops/publier.mjs'), ...args], {
+      cwd: racine, encoding: 'utf8', timeout: 15_000,
+      env: { ...envDeDepotForge(), ...gitDeLaCli(racine, branche), WFRP_PUBLIER_ENFANT: '', WFRP_PUBLIER_LOG: '' },
+    })
+    assert.ifError(vu.error)
+    return vu
+  }
+  const verrouEnLectureSeule = `
+    const ecrire = fs.writeFileSync
+    fs.writeFileSync = (chemin, ...args) => {
+      if (String(chemin).startsWith(json + '.constat.verrou.')) throw erreur('EROFS', chemin)
+      return ecrire(chemin, ...args)
+    }
+  `
+  const sansMkdir = `
+    const mkdir = fs.mkdirSync
+    fs.mkdirSync = (chemin, ...args) => {
+      if (chemin === dossier) throw erreur('EROFS', chemin)
+      return mkdir(chemin, ...args)
+    }
+  `
+  const identiteInaccessible = `
+    let existenceSondee = false
+    let identiteRefusee = false
+    const sonder = process.kill
+    process.kill = (pid, signal) => {
+      if (signal === 0 && pid === ${vivant.pid}) {
+        existenceSondee = true
+        throw erreur('EPERM', pid)
+      }
+      return sonder(pid, signal)
+    }
+    const lire = fs.readFileSync
+    fs.readFileSync = (chemin, ...args) => {
+      if (chemin === '/proc/${vivant.pid}/stat') {
+        identiteRefusee = true
+        throw erreur('EACCES', chemin)
+      }
+      return lire(chemin, ...args)
+    }
+    const executer = enfant.execFileSync
+    enfant.execFileSync = (commande, args, ...options) => {
+      if (args?.includes('-Pids') && args.includes('${vivant.pid}')) {
+        identiteRefusee = true
+        throw erreur('EACCES', commande)
+      }
+      return executer(commande, args, ...options)
+    }
+    const attendre = Atomics.wait
+    Atomics.wait = (...args) => {
+      if (args[3] !== 5000) return attendre(...args)
+      if (!existenceSondee || (['linux', 'win32'].includes(process.platform) && !identiteRefusee))
+        throw new Error('sondes de l’existence et de la naissance attendues avant la relecture')
+      ecrire(json, ${JSON.stringify(JSON.stringify(juge) + '\n')})
+      return 'timed-out'
+    }
+  `
+  for (const constat of [[], ['--constat']]) {
+    ecrireJsonAtomique(chemins.json, vivant)
+    const veille = cli(['--veiller', vivant.run, ...constat], verrouEnLectureSeule + sansMkdir + identiteInaccessible)
+    assert.equal(veille.status, 0, veille.stdout + veille.stderr)
+    assert.doesNotMatch(veille.stderr, /EROFS|PUBLICATION:/)
+    assert.doesNotMatch(veille.stdout, /constat impossible/)
+    assert.equal(veille.stdout.trimEnd().split('\n').at(-1), `PUBLICATION: vert ${sha}`)
+    assert.deepEqual(lireJournal(chemins.json, branche).verdict, juge.verdict)
+
+    const avant = readFileSync(chemins.json, 'utf8')
+    const relu = cli(['--veiller', vivant.run, ...constat], verrouEnLectureSeule + sansMkdir)
+    assert.equal(relu.status, 0, relu.stdout + relu.stderr)
+    assert.doesNotMatch(relu.stderr, /EROFS|PUBLICATION:/)
+    assert.equal(relu.stdout.trimEnd().split('\n').at(-1), `PUBLICATION: vert ${sha}`)
+    assert.equal(readFileSync(chemins.json, 'utf8'), avant)
+  }
+
+  ecrireJsonAtomique(chemins.json, mort)
+  writeFileSync(chemins.log, 'preuve initiale\n')
+  const avant = readFileSync(chemins.json, 'utf8')
+  for (const constat of [[], ['--constat']]) {
+    const refuse = cli(['--veiller', mort.run, ...constat], verrouEnLectureSeule)
+    assert.equal(refuse.status, CODE_CONSTAT_IMPOSSIBLE, refuse.stdout + refuse.stderr)
+    assert.match(refuse.stdout, /\[veille\] constat impossible .*EROFS.*\.constat\.verrou\./)
+    assert.doesNotMatch(refuse.stdout + refuse.stderr, /PUBLICATION:/)
+    assert.equal(readFileSync(chemins.json, 'utf8'), avant)
+    assert.equal(readFileSync(chemins.log, 'utf8'), 'preuve initiale\n')
+  }
+  const blocCommunAuTrain = cli(['--etapes'], verrouEnLectureSeule)
+  assert.equal(blocCommunAuTrain.status, CODE_ARRET_MOTEUR, blocCommunAuTrain.stderr)
+  assert.match(blocCommunAuTrain.stderr, /PUBLICATION: rouge moteur — EROFS.*\.constat\.verrou\./)
+
+  const autorise = cli(['--veiller', mort.run], '')
+  assert.equal(autorise.status, CODE_ARRET_MOTEUR, autorise.stdout + autorise.stderr)
+  const verdict = lireJournal(chemins.json, branche).verdict
+  assert.match(verdict.constat.par, /^veille \d+$/)
+  assert.match(autorise.stdout, /#2 file — rouge — INTERROMPUE/)
+  assert.equal(autorise.stdout.trimEnd().split('\n').at(-1), ligneDePublication(verdict, sha))
+  assert.ok(readFileSync(chemins.log, 'utf8').endsWith(ligneDePublication(verdict, sha) + '\n'))
+
+  ecrireJsonAtomique(chemins.json, mort)
+  const logAvant = readFileSync(chemins.log, 'utf8')
+  const journalSeul = cli(['--veiller', mort.run], `
+    const ajouter = fs.appendFileSync
+    fs.appendFileSync = (chemin, ...args) => {
+      if (chemin === log) throw erreur('EACCES', chemin)
+      return ajouter(chemin, ...args)
+    }
+  `)
+  assert.equal(journalSeul.status, CODE_ARRET_MOTEUR, journalSeul.stdout + journalSeul.stderr)
+  assert.match(journalSeul.stdout, /\[veille\] constat impossible .*EACCES/)
+  assert.equal(journalSeul.stdout.trimEnd().split('\n').at(-1), ligneDePublication(lireJournal(chemins.json, branche).verdict, sha))
+  assert.equal(readFileSync(chemins.log, 'utf8'), logAvant)
+})
+
+test('#4602 : un changement de run ou un verdict concurrent gagne à la relecture sous verrou', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'constat-concurrent-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const chemins = { json: join(dossier, 'journal.json'), log: join(dossier, 'journal.log') }
+  const [, interruption] = journauxDuRun([factice('file', { ok: true })])
+  const nouveauRun = { ...interruption, run: AVANT }
+  const verdictConcurrent = { ...interruption, verdict: { etat: 'vert' } }
+  writeFileSync(chemins.log, '')
+  for (const publie of [nouveauRun, verdictConcurrent]) {
+    ecrireJsonAtomique(chemins.json, interruption)
+    const tenant = prendreVerrou({ chemin: chemins.json + '.constat.verrou', libelle: 'constat concurrent' })
+    assert.equal(tenant.etat, 'pris')
+    let horloge = LANCEMENT_DU_RUN
+    let sommeil = 0
+    assert.equal(constaterLaMort({
+      chemins, par: 'veille', runAttendu: RUN, vivant: () => false, maintenant: () => horloge,
+      dormir: (ms) => {
+        assert.equal(++sommeil, 1)
+        horloge += ms
+        ecrireJsonAtomique(chemins.json, publie)
+        tenant.liberer()
+      },
+    }), null)
+    assert.equal(sommeil, 1)
+    assert.deepEqual(JSON.parse(readFileSync(chemins.json, 'utf8')), publie)
+    assert.equal(readFileSync(chemins.log, 'utf8'), '')
+  }
+})
+
+test('#4602 : le verrou de constat indisponible ne repousse pas la décision de veille au-delà de son échéance', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'constat-refuse-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const chemins = { json: join(dossier, 'journal.json'), log: join(dossier, 'journal.log') }
+  const [, interruption] = journauxDuRun([factice('file', { ok: true })])
+  ecrireJsonAtomique(chemins.json, interruption)
+  const tenant = prendreVerrou({ chemin: chemins.json + '.constat.verrou', libelle: 'constat concurrent' })
+  assert.equal(tenant.etat, 'pris')
+  try {
+    let horloge = LANCEMENT_DU_RUN
+    const vue = veille([], {
+      lire: () => lireJournal(chemins.json, null),
+      vivant: () => false,
+      constater: () => constaterLaMort({
+        chemins, par: 'veille', runAttendu: RUN, vivant: () => false, maintenant: () => horloge,
+        dormir: (ms) => { horloge += ms },
+      }),
+      dormir: () => assert.fail('le refus du verrou ne rend pas la veille à son cycle de sondage'),
+    })
+    assert.equal(horloge - LANCEMENT_DU_RUN, 10_000)
+    assert.equal(vue.code, CODE_CONSTAT_IMPOSSIBLE)
+    assert.match(vue.lignes.at(-1), /constat impossible .*tenu par le PID/)
+    assert.deepEqual(JSON.parse(readFileSync(chemins.json, 'utf8')), interruption)
+    assert.equal(existsSync(chemins.log), false)
+  } finally {
+    tenant.liberer()
+  }
+})
 
 // #2603
 test('publication concurrente : l’enfant refusé au verrou laisse sa trace, sa veille rend le refus en ≤ 10 s, puis toute veille lancée après coup', () => {

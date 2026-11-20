@@ -57,6 +57,7 @@ import type { QuantitesDeVivres } from '../engine/provisions';
 import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { setVesselSchema, adjustVesselSchema } from '../data/schemas/defs-scenes/effets';
 import { chargerLaSave, snapshotSave } from './persistance/save';
+import { capEnCombat, provenanceDesNavires } from './planDeNavire';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -1347,6 +1348,24 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     expect(ennemis().map((c) => c.creatureId)).toEqual(['triton']);
     expect(get().battle!.victoryCondition).toBeUndefined();
     expect(get().travelPlan!.interrupted).toBe(true);
+  });
+
+  it('la scène de combat générée contient le pont entier de la caraque sans changer l’écart aux adversaires (#3994, #3835)', () => {
+    set((etat) => ({ vessel: { ...etat.vessel!, vehicleId: 'caraque' } }));
+    enMer();
+    jouerFlowEntier(runFlow(get, set, consequence('triton')!, 'Triton !'));
+    const etat = get();
+    const scene = etat.scene!;
+    const coque = etat.battle!.combatants.find((c) => c.creatureId === 'caraque')!;
+    const triton = ennemis()[0];
+    expect(scene.dimensions).toEqual({ w: 18, h: 18 });
+    expect(coque.pos).toMatchObject({ x: 3, y: 7 });
+    expect({ x: triton.pos!.x - coque.pos!.x, y: triton.pos!.y - coque.pos!.y }).toEqual({ x: 9, y: -4 });
+    expect(capEnCombat(etat, coque.id)).toBe('N');
+    const { flottaison } = provenanceDesNavires(scene);
+    expect(flottaison.size).toBe(90);
+    const rangs = [...flottaison.keys()].map((c) => Number(c.split(',')[1]));
+    expect([Math.min(...rangs), Math.max(...rangs)]).toEqual([0, 17]);
   });
 
   it('Triton vaincu : 1d10, l’Humeur de Manann gagne ou perd 2d10 (l.137-139)', () => {

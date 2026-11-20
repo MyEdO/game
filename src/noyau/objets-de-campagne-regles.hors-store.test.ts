@@ -49,6 +49,14 @@ function orienter(banc: Banc): number {
 }
 
 describe('règles intrinsèques des objets d’une campagne jouée', () => {
+  it('la Carte marine ne modifie pas les DR d’un Test d’Orientation à terre (MDG 15 l.290)', () => {
+    const banc = ouvrirLeBanc({ etat: { party: [combattantDeTest({ kind: 'heros' })] } });
+    ouvrir(banc, []);
+    const drATerre = orienter(banc);
+    expect(donner(banc, 'carte-marine')).toBeDefined();
+    expect(orienter(banc) - drATerre).toBe(0);
+  });
+
   /** MDG 14 l.275 ; LDB 74 l.58 */
   it('éclaire la scène quand la lampe est portée et bonifie l’Orientation même lorsqu’elle est rangée, après sauvegarde', () => {
     const lampe = objetDeCampagne({

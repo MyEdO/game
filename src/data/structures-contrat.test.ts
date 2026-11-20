@@ -54,6 +54,7 @@ import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
 import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
+import { CHAMPS_D_ECHEANCE, type Echeance } from '../../scripts/guards/lib/stock.mjs';
 import { STRUCTURES_CIBLES, STRUCTURES_REDECLARATIONS } from '../../scripts/guards/lib/structuresStock.mjs';
 import { sujetDuJetSchema } from './schemas/grammaire/mecanique';
 import { estObjet } from '../lib/objet.mjs';
@@ -121,7 +122,7 @@ const lignes = (xs: string[]): string[] => [...xs].sort();
 const DATE_STOCK = '2026-08-23';
 /** `lot` et `date` ENTRENT dans la clé comparée (#1465 F1) ; le LOT attendu se DÉDUIT du concept quand la ligne n'en
  *  déclare pas. */
-type Trace = { lot?: string; date?: string };
+type Trace = Partial<Echeance>;
 const trace = (x: Trace, lot: string) => ` | ${x.lot ?? lot} | ${x.date ?? DATE_STOCK}`;
 /** Identité d'une redéclaration (`def | champ | concept | signature | statut | commun`), sans son compte. */
 const siteRedeclaration = (r: { def: string; champ: string; concept: string; signature: string; statut: string; commun: string }) =>
@@ -492,7 +493,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const avecCompte = <E,>(cle: (e: E) => string) => (e: E & { occurrences: number }) => `${cle(e)} | ${occurrencesDe(e)}`;
     const stocks: Array<[string, readonly Record<string, unknown>[], (x: never) => string, string[]]> = [
       ['STRUCTURES_CIBLES', STRUCTURES_CIBLES, ((c: { concept: string; signature: string; pose?: string; date: string }) => `${c.concept} | ${c.signature} | ${c.pose ?? ''} | ${c.date}`) as never, ['concept', 'signature', 'pose', 'date']],
-      ['STRUCTURES_REDECLARATIONS', STRUCTURES_REDECLARATIONS, avecCompte(cleRedeclaration) as never, ['def', 'champ', 'concept', 'signature', 'statut', 'commun', 'occurrences', 'lot', 'date']],
+      ['STRUCTURES_REDECLARATIONS', STRUCTURES_REDECLARATIONS, avecCompte(cleRedeclaration) as never, ['def', 'champ', 'concept', 'signature', 'statut', 'commun', 'occurrences', ...CHAMPS_D_ECHEANCE]],
     ];
     const aveugles: string[] = [];
     for (const [nom, arr, cle, champs] of stocks) {

@@ -63,6 +63,7 @@ import {
   refusSansMouvement,
 } from './refusDuTour';
 import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde/shipPostes';
+import { estPoseParSesPonts } from './planDeNavire';
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ItemInstance, type ShipPoste, type Weapon, type WeaponLoadout } from '../engine/types';
 import { pushSlot } from './siegePush';
@@ -326,8 +327,11 @@ export const ACTION_GATES: Record<GateDAction, (ctx: ActionCtx) => ActionGate> =
   monte: ({ active }) => (active.mountId ? ok : no(t('agate.notMounted'))),
   'poste-servi': ({ active }) => (active.mannedPoste ? ok : no(t('agate.noPosteManned'))),
   /** La barre : le BARREUR la tient (`shipOfCrew`), et la COQUE elle-même (`manoeuvrerLeNavire` accepte l'un ou l'autre). */
-  'a-la-barre': ({ active, battle }) =>
-    (estNavire(active) || shipOfCrew(battle.combatants, active.id) ? ok : no(t('agate.notAtHelm'))),
+  'a-la-barre': ({ active, battle, scene }) => {
+    const navire = estNavire(active) ? active : shipOfCrew(battle.combatants, active.id);
+    if (!navire) return no(t('agate.notAtHelm'));
+    return estPoseParSesPonts(scene, navire.id) ? no(t('agate.navireAncre')) : ok;
+  },
   navire: ({ active }) => (estNavire(active) ? ok : no(t('agate.notAVessel'))),
   vehicule: ({ active }) => (isVehicle(active) ? ok : no(t('agate.notAVehicle'))),
   /** La pause de début de Round (`LDB 17 l.25`) : personne n'agit encore (`turn: -1`, `enterRoundStartPause`). */

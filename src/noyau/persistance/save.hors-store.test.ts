@@ -80,6 +80,11 @@ describe('lireSave — le format courant seul', () => {
     }
   });
 
+  it('refuse le format qui persistait les semaines de sept jours et les anciennes Cartes marines (#2404)', () => {
+    const save = snapshotSave(etatInitialDuJeu(), '2026-11-20T00:00:00.000Z');
+    expect(lireSave(exporterLaSauvegarde({ ...save, version: '188b93914cd22280' }))).toBe('autreFormat');
+  });
+
   it('la lecture rend la save exportée, ou la cause du refus', () => {
     const save = snapshotSave(etatInitialDuJeu(), '2026-10-27T00:00:00.000Z');
     expect(lireSave(exporterLaSauvegarde(save))).toEqual(save);

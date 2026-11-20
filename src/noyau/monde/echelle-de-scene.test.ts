@@ -34,7 +34,7 @@ const RECOPIE = /metresPerTile\s*\?\?\s*2/;
  */
 const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   // ── LA LECTURE canonique de l'échelle (le seul endroit où le défaut RAW est écrit)
-  { fichier: 'noyau/monde/scene.ts', texte: 'return scene?.metresPerTile ?? 2;', role: 'sceneMetresPerTile — LE défaut du monde (LDB 15 l.12), lu par tous les autres' },
+  { fichier: 'geometry/grid.ts', texte: 'return scene?.metresPerTile ?? 2;', role: 'sceneMetresPerTile — LE défaut du monde (LDB 15 l.12), lu par tous les autres' },
 
   // ── LES COUTURES du décor volumique (#1507) : une par CONCEPT, jamais deux pour le même
   { fichier: 'noyau/monde/volume/propVolumes.ts', texte: 'const [rx, ry] = rotatePropLocal(p.xM / mpt, p.yM / mpt, facing);', role: 'GÉOMÉTRIE d’une recette de décor → cases du monde' },
@@ -92,6 +92,6 @@ describe('échelle de la scène — les sites de traduction mètres ⇄ cases so
 
   it('plus AUCUNE recopie du défaut (`metresPerTile ?? 2`) hors de sa lecture canonique', () => {
     const recopies = mesures().filter((s) => RECOPIE.test(s.texte));
-    expect(recopies.map((s) => s.fichier)).toEqual(['noyau/monde/scene.ts']);
+    expect(recopies.map((s) => s.fichier)).toEqual(['geometry/grid.ts']);
   });
 });

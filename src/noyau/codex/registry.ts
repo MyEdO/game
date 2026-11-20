@@ -127,6 +127,7 @@ import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
 import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
+import { dureeEnJours } from '../../engine/clock';
 import { formatDiseaseTime, sujetDeContraction } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
@@ -1629,7 +1630,7 @@ const CODEX_SPECS = {
               title: tr('codex.fiche.cycleQuotidien'), layout: 'list',
               rows: [
                 { t: 'kv', k: tr('codex.fiche.difficulte'), v: s.onTick.test?.test.difficulty ? DIFFICULTY_LABELS[s.onTick.test.test.difficulty] : tr('codex.fiche.inconditionnel') } as CodexRow,
-                s.onTick.afterDays ? ({ t: 'kv', k: tr('codex.fiche.declenchement'), v: tr('codex.fiche.jourDePhaseActive', { v: s.onTick.once ? tr('codex.fiche.uneFoisAu') : tr('codex.fiche.aPartirDu'), afterDays: s.onTick.afterDays }) } as CodexRow) : null,
+                s.onTick.afterDays ? ({ t: 'kv', k: tr('codex.fiche.declenchement'), v: tr('codex.fiche.jourDePhaseActive', { v: s.onTick.once ? tr('codex.fiche.uneFoisAu') : tr('codex.fiche.aPartirDu'), afterDays: dureeEnJours(s.onTick.afterDays) }) } as CodexRow) : null,
                 // Conséquence : branche `echec` du nœud `test`, ou ops CERTAINES d'un cycle sans jet (ops
                 // directes ou `rollTable` : table EXPANSÉE en rangées lisibles).
                 ...opRows(s.onTick.test ? spellOps(s.onTick.test.echec, 'target') : (s.onTick.ops ?? [])),

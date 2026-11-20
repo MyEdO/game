@@ -218,6 +218,7 @@ const NOMMES = [
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
+  'weeks|days|hours|minutes',
   // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
   'reussite|echec',
   'reussite|echec|maladresse',
@@ -320,7 +321,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'complet|partiel',
   'current|ever',
   'dangereuse|tresDangereuse|extreme',
-  'days|hours|minutes',
   'dechirure|fracture',
   'dechirure|fracture|amputation',
   'declare|tirage',

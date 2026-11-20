@@ -282,6 +282,9 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
 /** Période de relecture du journal par la veille, en millisecondes (un fichier local). */
 export const PERIODE_DE_VEILLE_MS = 5_000
 
+/** Code de la veille quand le constat échoue et qu'aucun verdict du run n'est publié. */
+export const CODE_CONSTAT_IMPOSSIBLE = 6
+
 /**
  * Échéance d'une veille sans son run au journal, depuis le LANCEMENT : une ESTIMATION, pas une borne (#2603). Elle somme
  * `ls-remote` et `fetch`, bornés chacun par `TIMEOUT_DU_DISTANT_MS`, et `TIMEOUT_READ_TREE_MS` comme ordre de grandeur de
@@ -330,23 +333,32 @@ export function mortDuRun(journal, { vivant: estVivant = estPidVivant, identite 
 
 /**
  * Le CONSTAT de la mort d'un run sans verdict (#2493, verdict §2), sous le verrou `<journal>.constat.verrou` :
- * le journal relu, rien s'il ne porte pas de run, un verdict, ou un run vivant (`mortDuRun`). Mort en `fin`,
+ * le journal relu, rien s'il ne porte pas de run, un verdict, un run vivant (`mortDuRun`) ou un autre run que
+ * `runAttendu`. Une acquisition refusée à la veille ciblée lève avec sa raison. Mort en `fin`,
  * la publication est faite : transition `fin` VERTE, `INTERROMPUE`, avec la mesure du principal sur la
  * fusion (`mesurer`). Mort ailleurs : transition ROUGE, verdict `rouge moteur`. Le verdict porte
  * `constat: { par, a }` ; journal et log écrits. REND le verdict, `null` sans constat.
- * @param {{chemins:{json:string, log:string}, par:string, vivant?:(pid:number) => boolean, identite?:typeof IDENTITE_MESUREE, maintenant?:() => number,
- *          dormir?:(ms:number) => void, mesurer?:(visee:string|null) => object}} p
+ * @param {{chemins:{json:string, log:string}, par:string, runAttendu?:string, vivant?:(pid:number) => boolean,
+ *          identite?:typeof IDENTITE_MESUREE, maintenant?:() => number, dormir?:(ms:number) => void, mesurer?:(visee:string|null) => object}} p
  */
-export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant, identite = IDENTITE_MESUREE, maintenant = Date.now, dormir = attendreSync, mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee, horloge: maintenant, dormir }) }) {
+export function constaterLaMort({
+  chemins, par, runAttendu, vivant: estVivant = estPidVivant, identite = IDENTITE_MESUREE,
+  maintenant = Date.now, dormir = attendreSync,
+  mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee, horloge: maintenant, dormir }),
+}) {
   if (!existsSync(chemins.json)) return null
   const verrou = prendreVerrou({
     chemin: `${chemins.json}.constat.verrou`, libelle: 'constat de la mort du train', commande: par,
     attente: { echeanceMs: 10_000, pasMs: 100 }, horloge: maintenant, dormir,
     maintenant: () => new Date(maintenant()).toISOString(),
   })
-  if (verrou.etat !== 'pris') return null
+  if (verrou.etat !== 'pris') {
+    if (runAttendu !== undefined) throw new Error(verrou.message)
+    return null
+  }
   try {
     const journal = lireJournal(chemins.json, null)
+    if (runAttendu !== undefined && journal.run !== runAttendu) return null
     const mort = mortDuRun(journal, { vivant: estVivant, identite, maintenant })
     if (!mort) return null
     const { pid, nom } = mort
@@ -383,7 +395,8 @@ export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant
  * (course d'ouverture : le run d'avant), elle se tait. Ré-armée (`depuis` = le dernier `#seq` lu), elle ne
  * ré-émet aucune transition ; `constat` (`--constat`, après la sortie d'une veille) part de la dernière
  * transition du journal. Le run mort sans verdict (`mortDuRun`) est CONSTATÉ (`constater`, qui l'écrit au
- * journal), puis relu. Sans son run au journal, la TRACE du run (`trace`, `verdictDeTrace`) fait le verdict : sa raison,
+ * journal), puis relu. En cas d'échec, la veille le nomme, relit et sort en `CODE_CONSTAT_IMPOSSIBLE` en
+ * l'absence de verdict publié. Sans son run au journal, la TRACE du run (`trace`, `verdictDeTrace`) fait le verdict : sa raison,
  * sa ligne `PUBLICATION:`, son code. Ni run ni trace : rien n'est conclu (indéterminé), `ECHEANCE_SANS_RUN_MS` après le
  * LANCEMENT du run, la veille sort en `CODE_BORNE_DEPASSEE`, jamais sur la vie d'un pid. La borne (`borneDeVeilleMin` de la borne de file du run, ou de `fileTimeoutMin` tant
  * qu'il n'a rien écrit), comptée depuis le LANCEMENT du run (`runDe`), jamais depuis le départ de la veille,
@@ -419,6 +432,7 @@ export function veillerLeTrain({
     ecrire(`[veille] constat du run ${run} après la sortie de sa veille`)
   }
   let borneMin = fileTimeoutMin
+  let constatImpossible = false
   for (;;) {
     const journal = lire()
     const vu = transitionsDuRun(journal, run, seq)
@@ -429,12 +443,21 @@ export function veillerLeTrain({
       ecrire(ligneDePublication(vu.verdict, journal.tete))
       return codeDeVerdict(vu.verdict)
     }
-    if (vu.courant && mortDuRun(journal, { vivant: estVivant, identite, maintenant }) && constater()) continue
     const sortie = vu.courant ? null : trace()
     if (sortie) {
       ecrire(sortie.raison)
       ecrire(ligneDePublication(sortie))
       return codeDeVerdict(sortie)
+    }
+    if (constatImpossible) return CODE_CONSTAT_IMPOSSIBLE
+    if (vu.courant && mortDuRun(journal, { vivant: estVivant, identite, maintenant })) {
+      try {
+        if (constater()) continue
+      } catch (e) {
+        ecrire(`[veille] constat impossible pour le run ${run} — ${enUneLigne(raisonDeLErreur(e))}`)
+        constatImpossible = true
+        continue
+      }
     }
     if (!vu.courant && maintenant() - lancement >= ECHEANCE_SANS_RUN_MS) {
       ecrire(`[veille] aucun run ${run} au journal ${ECHEANCE_SANS_RUN_MS / 60_000} min après son lancement — \`npm run ops:publier -- --etapes\``)
@@ -689,15 +712,11 @@ async function main({ maintenant, dormir }) {
   const publication = publicationDe(process.env, RACINE)
   const branche = publication?.branche ?? brancheDe(depot) ?? 'HEAD'
   const chemins = cheminsDeJournal(publication?.source ?? RACINE, branche)
-  mkdirSync(chemins.dossier, { recursive: true })
-  const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
-  // #2493 : le run mort sans verdict est constaté AVANT tout mode, et avant la rotation du log (`ouvrirLog`).
   const identite = identiteDuTrain()
-  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}`, identite, maintenant, dormir })
-
-  if (options.veiller) {
+  const runVeille = options.veiller
+  if (runVeille) {
     return veillerLeTrain({
-      run: options.veiller,
+      run: runVeille,
       fileTimeoutMin: options.fileTimeoutMin,
       depuis: options.depuis,
       constat: options.constat,
@@ -705,11 +724,16 @@ async function main({ maintenant, dormir }) {
       lire: () => lireJournal(chemins.json, branche),
       ecrire: (ligne) => process.stdout.write(`${ligne}\n`),
       identite,
-      constater: () => constaterLaMort({ chemins, par: `veille ${process.pid}`, identite, maintenant, dormir }),
-      trace: () => verdictDeTrace(chemins.dossier, options.veiller),
+      constater: () => constaterLaMort({ chemins, par: `veille ${process.pid}`, runAttendu: runVeille, identite, maintenant, dormir }),
+      trace: () => verdictDeTrace(chemins.dossier, runVeille),
       maintenant, dormir,
     })
   }
+
+  mkdirSync(chemins.dossier, { recursive: true })
+  const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
+  // #2493 : constater l'interruption avant la rotation du log (`ouvrirLog`).
+  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}`, identite, maintenant, dormir })
 
   // La TÊTE VIVANTE : la seule contre laquelle une étape verte se juge (`planDeReprise`).
   const teteVivante = shaDe(depot, 'HEAD')

@@ -21,6 +21,7 @@ describe('le véhicule des combattants dans la vue', () => {
   });
 
   it('une coque se projette en véhicule, sa fiche, son empreinte, son cap et ses postes, sans portée', () => {
+    expect([barge.id, barge.pos]).toEqual(['enemy-enc-fluvial-5', [3, 6, 0]]);
     expect([barge.vehicule, barge.portee]).toEqual([{ definition: 'barge-fluviale', empreinte: 2, taille: 'empreinte', cap: 'E', postes: [], ameliorations: [] }, null]);
   });
 
@@ -32,6 +33,8 @@ describe('le véhicule des combattants dans la vue', () => {
     const { corps } = vueDe(appel('vue'));
     expect(corps.refus).toMatch(/^\[base-ambigue\] /);
     expect(corps.vehicules).toEqual({});
-    expect(corps.navires[barge.id]?.corps).toEqual({ element: 'barge-fluviale', empreinte: 2, taille: 'reelle', cap: 'N', palette: {}, postes: [], ameliorations: [], caches: [], clips: {} });
+    const navire = corps.navires[barge.id];
+    expect(navire.centre).toEqual({ x: 3.5, y: 7 });
+    expect(navire.corps).toEqual({ element: 'barge-fluviale', empreinte: 2, taille: 'reelle', cap: barge.vehicule!.cap, palette: {}, postes: [], ameliorations: [], caches: [], clips: {} });
   });
 });

@@ -230,7 +230,7 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
     banc.setState({
       party: [solo], battle: null, pendingRest: null, scene: emptyScene('scene-test', 10, 10),
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
-      gameTime: 6 * MINUTES_PER_DAY + 6 * 60, lastUpkeepDay: 6, // veille d'un franchissement de semaine (MDG 14)
+      gameTime: 7 * MINUTES_PER_DAY + 6 * 60, lastUpkeepDay: 7, // veille d'un franchissement de semaine (MDG 14)
     });
     creditBourse(banc.getState, banc.setState, 'h1', { gold: 10, silver: 0, brass: 0 }); // couvre largement le gage du Mousse (288 sc)
     expect(stacks(banc.getState().party[0], 'extenue')).toBe(1);

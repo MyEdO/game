@@ -122,7 +122,7 @@ const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJ
   { lire: fenetreDeDefense, regle: duFlux('defense') },
   // La fenêtre d'incantation nomme ses choix et les pas de Surincantation de chaque axe ; les cibles supplémentaires se
   // désignent sur la carte, que la carte tient (`carte`) ; les jets sur le Tableau sont un réglage qu'elle ne nomme pas.
-  { lire: fenetreDIncantation, regle: duFlux('incantation', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
+  { lire: fenetreDIncantation, regle: duFlux('incantation', ['discret', 'formeConjuree', 'choixDeCibles', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
   { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
   { lire: fenetreDeDetermination, regle: parmi(VERBES_DU_JET_PSY) },

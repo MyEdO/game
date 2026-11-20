@@ -12,6 +12,7 @@ import { testScene } from '../scenes/test-fixture';
 import { castSpell } from './combatFlow';
 import { resolveFormula } from '../engine/ops';
 import { desDuTest } from '../engine/dice.testkit';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { ciblePsy } from '../engine/psych/ciblage';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
@@ -96,7 +97,7 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
     reussirEtJouer(banc, 9, { haine: true, personne: p.id, calme: 100 });
     expect(accordes(heros(s.id))).toEqual({
       traits: [{ type: 'haine', cible: ciblePsy.individu(p.id), src: SOURCE }],
-      echeances: [maintenant + bfm(w) * 168 * HEURE],
+      echeances: [maintenant + bfm(w) * 8 * MINUTES_PER_DAY],
     });
   });
 

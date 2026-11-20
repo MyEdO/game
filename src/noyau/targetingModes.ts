@@ -40,6 +40,7 @@ import { tileKey, type Pt } from './monde/path';
 import { sceneMetresPerTile } from './monde/scene';
 import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { targetArc } from './monde/fireArc';
+import { capEnCombat } from './planDeNavire';
 import { bearingPostes } from './monde/shipBattery';
 import { serveTargetPoste, isPosteManned } from './monde/shipPostes';
 import { executerPoussee } from './pousseeDeCombat';
@@ -226,7 +227,7 @@ export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById
  * clic tirait hors de portée (aucun gate au commit) et l'arc ne se disait qu'au journal.
  */
 export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { reason: 'arc' | 'range'; detail: PlayerText } | null {
-  const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos!, target.pos!);
+  const side = targetArc(capEnCombat(get(), ship.id) ?? 'N', ship.pos!, target.pos!);
   const postes = bearingPostes(ship, side); // sur ce bord ET chargées (pas en cours de recharge, ch.12)
   if (!postes.length) return { reason: 'arc', detail: t('cs.bordeeNoArc', { ship: ship.label, side }) };
   // PORTÉE : les BANDES du socle (`rangeBandModifier`, rangées de `portee-d-une-arme`, LDB 62 l.198-206).
@@ -246,7 +247,7 @@ function batteryAffordance(get: Get, active: Combatant, target: Combatant): Hove
   if (target.kind === active.kind || isOutOfAction(target)) return { kind: 'none' };
   const block = batteryBlock(get, active, target);
   if (block) return { kind: 'invalid', reason: block.reason };
-  const side = targetArc(get().facing[active.id] ?? 'N', active.pos!, target.pos!);
+  const side = targetArc(capEnCombat(get(), active.id) ?? 'N', active.pos!, target.pos!);
   return { kind: 'ok', line: 'dashed', title: `Bordée ${side}`, skill: 'Tir de batterie', base: 0, mod: 0, dmg: null };
 }
 

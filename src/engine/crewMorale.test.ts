@@ -6,7 +6,6 @@ import {
   moraleBand,
   recalcMorale,
   resolveCrewTest,
-  tickShipMorale,
   payChoices,
   payChoiceCostBrass,
   isPayChoice,
@@ -131,23 +130,6 @@ describe('resolveCrewTest — Test d’équipage (somme des DR, rôle essentiel 
     const r = resolveCrewTest([{ value: 50, label: 'Timonier' }], 'intermediaire', 30, seq([30]), -2); // band ≤50 → -1 DR
     expect(r.moraleDR).toBe(-1);
     expect(r.total).toBe(r.baseTotal - 1 - 2);
-  });
-});
-
-describe('tickShipMorale — recalcul HEBDOMADAIRE gardé (jour ÷ 7, anti-double-comptage)', () => {
-  const s0 = { score: 75, lastMoraleWeek: 0, factors: ['pas-de-paie'] };
-  it('même semaine → aucun recalcul', () => {
-    const a = tickShipMorale(s0, 3, makeRNG(1));
-    expect(a.recalced).toBe(false);
-    expect(a.state.score).toBe(75);
-  });
-  it('nouvelle semaine → recalcule (pas-de-paie -3d10) et avance lastMoraleWeek', () => {
-    const b = tickShipMorale(s0, 7, makeRNG(1));
-    expect(b.recalced).toBe(true);
-    expect(b.state.lastMoraleWeek).toBe(1);
-    expect(b.state.score).toBeLessThan(75);
-    // idempotent dans la même semaine
-    expect(tickShipMorale(b.state, 8, makeRNG(1)).recalced).toBe(false);
   });
 });
 

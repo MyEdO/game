@@ -53,7 +53,7 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[voile-du-bati] version=", Engine.get_version_info().string, " rendu=", RenderingServer.get_current_rendering_method())
-	var monde := monde_du_bati(root)
+	var monde := await monde_du_bati(root)
 	var volume := monde.volume
 	volume.set_process(false)
 	var objets := _objets(monde)
@@ -135,8 +135,9 @@ static func monde_du_bati(racine: Node) -> Monde:
 		rangee.resize(LARGEUR)
 		rangee.fill(0.0)
 		plat.append(rangee)
-	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [sol]}, toits = toits, couronnes = couronnes},
-		{volume = [sol], toits = toits, couronnes = couronnes})
+	var recus := {volume = [sol], toits = toits, couronnes = couronnes}
+	var _textures_gardees := await TexturesDeMatiere.preparer(monde, VolumeDeScene.matieres_des_morceaux(recus))
+	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [sol]}, toits = toits, couronnes = couronnes}, recus)
 	monde.volume.poser_les_aretes([MUR, BOITE].map(func(a: Dictionary) -> Dictionary:
 		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, palette = {}, piece = Noyau.Piece.MUR,
 			position = Noyau.Position.SEULE, bloc = "0/0/0"})))
@@ -191,7 +192,10 @@ func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 	var creux := 0.0 if Lumiere.rendu_complet() else CREUX_DU_PILOTE
 	for camera in ["en plongée", "au ras du sol"]:
 		var regard := "tactique" if camera == "en plongée" else "immersion"
-		(monde.get_node("Lumiere") as Lumiere).eclairer(PIXELS.LUMIERE_DU_JEU[regard], PLATEAU)
+		var lumiere: Dictionary = PIXELS.LUMIERE_DU_JEU[regard]
+		var matiere: String = lumiere.horsCarte.sol.matiere
+		var _textures_gardees := await TexturesDeMatiere.preparer(monde, {matiere: false})
+		(monde.get_node("Lumiere") as Lumiere).eclairer(lumiere, PLATEAU)
 		monde.regarder(regard)
 		if camera == "en plongée":
 			monde.cadrer(Vector3(3.5, 0.0, 3.5), MiseEnPage.lacet_de_l_azimut(180.0), 10.0)
