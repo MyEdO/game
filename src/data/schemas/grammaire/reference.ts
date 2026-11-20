@@ -39,6 +39,7 @@ import {
   messageDeFormes,
   parmi,
   porteLeMarqueur,
+  raffinementDeCatalogue,
   recordDIds,
   ref,
   refOuSpec,
@@ -273,12 +274,12 @@ export type TraitPose = z.infer<z.ZodObject<typeof champsDuTraitPose>> & { confe
  * (« Arme (BF +4) », Middenheim 04 l.29) ou sur le lanceur à l'octroi (LDB 47 l.441).
  */
 const poseDeTrait = (regime: RegimeDeCible): z.ZodType<TraitPose> => {
-  const pose: z.ZodType<TraitPose> = marquerProduit(nommerChamps(affinerAvecCatalogues(z.strictObject({
+  const pose: z.ZodType<TraitPose> = marquerProduit(nommerChamps(z.strictObject({
     ...champsDuTraitPose,
     /** Traits conférés aux touches de ce Trait d'attaque (ZI 03 l.75, l.77 ; ZI 06 l.32) ; admis si la def
      *  déclare `attaque`. */
     confere: listeSansCle(z.array(z.lazy(() => pose))).optional(),
-  }), (lire) => refusDuTraitPose(lire, regime)), CHAMPS_DU_TRAIT_POSE), 'traitPose', 'pose', { value: formuleSansTirageSchema });
+  }).check(raffinementDeCatalogue((lire) => refusDuTraitPose(lire, regime))), CHAMPS_DU_TRAIT_POSE), 'traitPose', 'pose', { value: formuleSansTirageSchema });
   return pose;
 };
 

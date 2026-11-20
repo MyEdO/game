@@ -1113,10 +1113,7 @@ function noeudASpecialisation<T extends TypeEntite>(
   const { choix: _choix, ...designe } = champs;
   const metas = { id: META_ID, spec: { label: "spécialisation", texte: { regime: 'designation' as const } }, choix: { label: "choix", texte: { regime: 'designation' as const } }, ...metasExtra(extra) };
   const { choix: _metaChoix, ...metasDesignees } = metas;
-  const objet = z.strictObject(admetChoix ? champs : (designe as typeof champs), {
-    error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
-  });
-  const controle = affinerAvecCatalogues(objet, (lire) => {
+  const controle = raffinementDeCatalogue<z.output<z.ZodObject<typeof champs>>>((lire) => {
     const specs = lire.specialisations(type);
     return (v, ctx) => {
       const aSpec = v.spec != null;
@@ -1144,7 +1141,9 @@ function noeudASpecialisation<T extends TypeEntite>(
       }
     };
   });
-  return marquerProduit(nommerChamps(controle, admetChoix ? metas : (metasDesignees as typeof metas)), 'noeudASpecialisation', regime, extra);
+  return marquerProduit(nommerChamps(z.strictObject(admetChoix ? champs : (designe as typeof champs), {
+    error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
+  }).check(controle), admetChoix ? metas : (metasDesignees as typeof metas)), 'noeudASpecialisation', regime, extra);
 }
 
 /**
