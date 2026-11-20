@@ -67,7 +67,7 @@ func _recetter() -> void:
 	var releve: Dictionary = await Outil.relever(self, montage, [], [{morphes = {}, clip = "", t = 0.0}, {morphes = {}, clip = CLIP, t = INSTANT}], erreurs)
 	for erreur in erreurs:
 		_fautes.append("relevé : %s" % erreur)
-	if releve.pieces != [{ligne = "bandouliere", mesh = "Fiole", offrant = "sangle"}]:
+	if releve.pieces != [{ligne = "bandouliere", mesh = "Fiole", offrant = "sangle", os = "torse"}]:
 		_fautes.append("pièces relevées : %s" % [releve.pieces])
 	var au_repos := _repere(releve.poses[0][0])
 	var a_l_instant := _repere(releve.poses[1][0])
