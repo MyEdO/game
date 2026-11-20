@@ -12,7 +12,7 @@ import { Readable } from 'node:stream'
 import { preflightSessionStart, produireRecuSessionStart, validerRecuSessionStart, entreeHookNative, inscriptionDuHook } from './session-start.mjs'
 import { annexeDe, controleur, creerSessions, piloterAgent } from './session-runtime.mjs'
 import { dossierSessions, nomDeCarte } from './session-carte.mjs'
-import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { injectProjectCredo } from '../hooks/inject-project-credo.mjs'
@@ -22,8 +22,7 @@ import { lancerSession } from './session.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
-function fixture(t) {
-  const worktree = fs.mkdtempSync(join(tmpdir(), 'sessionstart-'))
+function fixture(t, worktree = fs.mkdtempSync(join(tmpdir(), 'sessionstart-'))) {
   t.after(() => fs.rmSync(worktree, { recursive: true, force: true }))
   fs.mkdirSync(join(worktree, '.claude'), { recursive: true })
   fs.copyFileSync(join(root, '.claude/credo.md'), join(worktree, '.claude/credo.md'))
@@ -39,13 +38,8 @@ function fixture(t) {
 const inventaire = () => mesurerProcessusWorktrees({ identites: true, timeout: 5000 }).processus
 const mesurer = (pid) => inventaire().find((p) => p.pid === pid)
 
-function git(worktree, args) {
-  const vu = spawnSync('git', args, { cwd: worktree, timeout: 5000, encoding: 'utf8', env: envDeDepotForge() })
-  assert.equal(vu.status, 0, vu.stderr || vu.error?.message)
-}
 async function contexte(t, agent, pid = process.ppid) {
-  const worktree = fixture(t)
-  git(worktree, ['init', '--quiet'])
+  const worktree = fixture(t, instanceDeDepot({ commit: false }).racine)
   const dossier = dossierSessions(join(worktree, '.git'))
   const sessions = creerSessions({ dossier, inventaire, processus: mesurer })
   const consigne = join(worktree, 'brief.md')
@@ -296,9 +290,7 @@ if (mode === 'enfant') {
 `
 
 test('#3295 : le lanceur inscrit le parent, ignore l’enfant hérité et suit l’identifiant repris', { timeout: 30000 }, async (t) => {
-  const worktree = fixture(t)
-  git(worktree, ['init', '--quiet'])
-  git(worktree, ['-c', 'core.hooksPath=hooks-test-inexistants', '-c', 'user.name=Banc', '-c', 'user.email=banc@example.test', 'commit', '--quiet', '--allow-empty', '-m', 'Banc #3295'])
+  const worktree = fixture(t, instanceDeDepot({ message: 'Banc #3295' }).racine)
   const consigne = join(worktree, 'brief.md'), client = join(worktree, 'client.mjs'), marqueur = join(worktree, 'sessionstart-appel')
   fs.writeFileSync(consigne, 'Banc de suivi')
   fs.writeFileSync(client, CLIENT_CLAUDE_DU_BANC)
