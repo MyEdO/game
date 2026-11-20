@@ -2,8 +2,8 @@
 class_name TexturesDeMatiere
 extends Node
 
-## Après cette échéance, la prochaine lecture attend une image. Une lecture entamée va jusqu'au bout.
-const BUDGET_DE_LECTURE_WEB_US := 100_000
+## Nombre maximal de lectures groupées consécutives sur une image Web.
+const LECTURES_GROUPEES_PAR_IMAGE := 5
 
 
 class Lecture extends RefCounted:
@@ -100,11 +100,10 @@ func _process(_delta: float) -> void:
 
 
 func _lire_sur_web() -> void:
-	var echeance := Time.get_ticks_usec() + BUDGET_DE_LECTURE_WEB_US
 	var premiere := true
-	for chemin: String in _en_vol.keys():
+	for chemin: String in _en_vol.keys().slice(0, LECTURES_GROUPEES_PAR_IMAGE):
 		var groupee := _en_vol[chemin].grouper_sur_web
-		if not premiere and (not groupee or Time.get_ticks_usec() >= echeance):
+		if not premiere and not groupee:
 			break
 		_terminer(chemin, ResourceLoader.load(chemin, "Texture2D"))
 		if not groupee:
