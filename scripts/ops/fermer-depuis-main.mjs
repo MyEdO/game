@@ -122,7 +122,7 @@ function plageRattrapee(plage) {
   const [avant, tete] = plage.split('..')
   const depot = depotDe(RACINE)
   const parent = (sha) => parentsDe(depot, sha)?.[0] ?? null
-  // `gh run list --commit` ne reconnaît qu'un sha COMPLET : la base est résolue avant toute lecture.
+  // La base est résolue en SHA complet avant la lecture REST filtrée par `head_sha`.
   const depart = /^0+$/.test(avant) ? parent(tete) : shaDe(depot, avant)
   if (!depart) throw new Error(`base de ${plage} inconnue de ce dépôt`)
   const courses = (sha) => coursesCi({ cwd: RACINE, workflow: WORKFLOW_FERMETURES, commit: sha, limit: 5 })
