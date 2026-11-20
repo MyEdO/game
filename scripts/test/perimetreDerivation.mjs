@@ -17,6 +17,7 @@ import {
 } from '../guards/lib/importGraph.mjs'
 import {
   APPEL_DE_LECTURE,
+  APPEL_D_ACQUISITION,
   certifierLecture,
   evaluerLotDuDepot,
   evaluer,
@@ -126,28 +127,20 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     }))
   }
   const cache = new Map()
-  clotureDImports([...vitest, ...node, ...setup], {
+  const optionsDImports = {
     racine, typesEffaces: true, cache, analyser,
     arbre: { existe: (a) => ensemble.has(rel(a)), lire: lireAbs, fichiers: [...ensemble].map(abs) },
     specificateurs: memos && {
       lire: (a, t) => memos.lire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`),
       ecrire: (a, t, sites) => memos.ecrire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`, sites.map(({ spec, motifs, nature, ligne }) => ({ spec, motifs, nature, ligne }))),
     },
-  })
+  }
+  clotureDImports([...vitest, ...node, ...setup], optionsDImports)
   memos?.sauver?.()
   /** @type {Map<string, { importeur: string, spec: string }[]>} */
   const inverse = new Map()
-  for (const [cible, arcs] of grapheInverse(cache))
-    inverse.set(rel(cible), arcs.map((a) => ({ importeur: rel(a.importeur), spec: a.spec })))
   /** La clôture des `setupFiles` : ce que tout test Vitest atteint par eux, hors des distances. */
   const clotureSetup = new Set()
-  const pile = setup.map(abs)
-  while (pile.length) {
-    const a = pile.pop()
-    if (clotureSetup.has(rel(a))) continue
-    clotureSetup.add(rel(a))
-    for (const arc of cache.get(a) ?? []) pile.push(arc.cible)
-  }
   const estTest = (f) => presents.has(f) && (estDeLaSuiteVitest(f) || estTestNode(f))
 
   /** Tests qui atteignent `depart`, avec leur distance et la chaîne la plus courte (test → … → depart). */
@@ -193,13 +186,6 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   }
   const parSetup = (lien) => { for (const t of vitest) retenir(t, { nature: 'setup', distance: 0, ...lien }) }
   const toolchain = touches.filter((t) => TOOLCHAIN.includes(t))
-  if (toolchain.length) for (const t of [...vitest, ...node]) retenir(t, { nature: 'toolchain', distance: 0, touche: toolchain[0] })
-  for (const t of touches) {
-    if (estTest(t)) retenir(t, { nature: 'touché', distance: 0, touche: t })
-    for (const [test, { distance, chaine }] of remonter(t)) if (distance > 0) retenir(test, { nature: 'import', distance, chaine, touche: t })
-    if (clotureSetup.has(t)) parSetup({ touche: t })
-  }
-
   const lectures = new Map()
   /** L'IR de `f` prélue par sa vague de clôture (`clotureDesLectures`) ; `null` pour un module illisible ou un fichier
    *  hors modules. */
@@ -236,7 +222,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   /** Les modules LECTEURS : ceux qui appellent une lecture, puis, au point fixe, les importeurs qui
    *  nomment un relais exporté d'un lecteur. L'ensemble reste stable pendant chaque tour : un relais se juge
    *  sur l'ensemble final. */
-  const lecteurs = new Set([...textes].filter(([, t]) => APPEL_DE_LECTURE.test(t)).map(([f]) => f))
+  const lecteurs = new Set()
   /** La réponse COURANTE à une requête de l'évaluateur (`partiesDeRequete`) : l'empreinte de la lecture
    *  d'un module (blob, `null` s'il n'est pas un module lisible), la cible d'un spécificateur — stables
    *  le temps d'une dérivation —, `peutLire`, qui suit les tours des lecteurs. */
@@ -248,7 +234,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     const texte = nature === 'lecture' ? textes.get(f) ?? lire([f]).get(f) ?? null : null
     return stables.set(requete, nature === 'cible' ? cibleDe(f, spec) : texte === null || !estModule(f) ? null : blobDe(texte)).get(requete)
   }
-  /** L'évaluation `nature` (`sitesDe`, `relaisExportes`) du module `f`, mémoïsée sous `evaluations` avec
+  /** L'évaluation `nature` du module `f`, mémoïsée sous `evaluations` avec
    *  les réponses de ses requêtes : une variante vaut tant que chacune de ses réponses tient. */
   const variante = (nature, f) => (memos?.lire('evaluations', `${nature}:${f}`) ?? [])
     .find(({ requetes }) => requetes.every(([r, reponse]) => reponseA(r) === reponse))
@@ -320,6 +306,46 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
       for (const f of lot) yield [f, vues.get(f)?.resultat ?? resultats.get(f)]
     }
   }
+  /** Une acquisition ajoute un arc au consommateur et ouvre la clôture du module acquis. Les arcs résolus
+   *  restent dans le graphe de cette image, les requêtes qui les justifient dans le mémo d'évaluation. */
+  const vus = new Set()
+  for (;;) {
+    const candidats = [...textes].filter(([f, t]) => !vus.has(f) && APPEL_D_ACQUISITION.test(t)).map(([f]) => f)
+    const nouveaux = new Set()
+    for (const [f, acquisitions] of evaluationsEnLots('acquisitionsDe', candidats)) {
+      vus.add(f)
+      const arcs = cache.get(abs(f))
+      for (const { script, ligne } of acquisitions) {
+        if (!ensemble.has(script) || !estModule(script)) continue
+        const cible = abs(script)
+        if (arcs.some((arc) => arc.cible === cible)) continue
+        const relatif = posix.relative(posix.dirname(f), script)
+        const spec = relatif.startsWith('../') ? relatif : `./${relatif}`
+        arcs.push({ cible, spec, nature: 'dynamique', ligne })
+        if (!cache.has(cible)) nouveaux.add(cible)
+      }
+    }
+    if (!nouveaux.size) break
+    clotureDImports([...nouveaux], optionsDImports)
+  }
+  for (const [cible, arcs] of grapheInverse(cache))
+    inverse.set(rel(cible), arcs.map((a) => ({ importeur: rel(a.importeur), spec: a.spec })))
+  const pile = setup.map(abs)
+  while (pile.length) {
+    const a = pile.pop()
+    if (clotureSetup.has(rel(a))) continue
+    clotureSetup.add(rel(a))
+    for (const arc of cache.get(a) ?? []) pile.push(arc.cible)
+  }
+
+  if (toolchain.length) for (const t of [...vitest, ...node]) retenir(t, { nature: 'toolchain', distance: 0, touche: toolchain[0] })
+  for (const t of touches) {
+    if (estTest(t)) retenir(t, { nature: 'touché', distance: 0, touche: t })
+    for (const [test, { distance, chaine }] of remonter(t)) if (distance > 0) retenir(test, { nature: 'import', distance, chaine, touche: t })
+    if (clotureSetup.has(t)) parSetup({ touche: t })
+  }
+
+  for (const [f, texte] of textes) if (APPEL_DE_LECTURE.test(texte)) lecteurs.add(f)
   for (let frontiere = [...lecteurs]; ;) {
     const suivante = new Set()
     for (const [f, noms] of evaluationsEnLots('relaisExportes', frontiere)) {

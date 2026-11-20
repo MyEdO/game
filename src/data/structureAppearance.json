@@ -366,7 +366,7 @@
     "id": "herse",
     "type": "structureAppearance",
     "label": "Herse",
-    "kit": "pierre",
+    "kit": "herse",
     "face": "#4a4d54",
     "post": "#2b2d30",
     "door": {
@@ -587,7 +587,7 @@
     "id": "terrassement",
     "type": "structureAppearance",
     "label": "Terrassement",
-    "kit": "pierre",
+    "kit": "terrassement",
     "detail": {
       "seedScope": "edge",
       "courses": {

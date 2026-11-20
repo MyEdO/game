@@ -462,7 +462,7 @@ export function ligneDeRelance({ code, lancements, lint, appelLint }) {
     const deLaFamille = lancements.filter((l) => l.famille === famille)
     const fichiers = deLaFamille.flatMap((l) => l.echecs)
     if (fichiers.length) commandes.push(`${lanceur} ${liste(fichiers)}`)
-    const sansFichier = deLaFamille.filter((l) => l.code !== 0 && !l.echecs.length && !l.refus).length
+    const sansFichier = deLaFamille.filter((l) => l.code !== 0 && !l.echecs.length && !l.refus && !l.rejeu).length
     if (sansFichier) muets.push(`${famille} : ${sansFichier} lancement(s) rouge(s) sans fichier en échec rapporté`)
   }
   const lintes = lint.defauts.map(({ site }) => fichierDuSite(site)).filter((f) => f !== null)
@@ -474,6 +474,11 @@ export function ligneDeRelance({ code, lancements, lint, appelLint }) {
   const nommer = muets.length ? [`rouge sans fichier nommé : ${muets.join(' ; ')}`] : []
   const refuses = lancements.filter((l) => l.refus).map((l) => `${l.famille} : ${l.refus}`)
   const refuser = refuses.length ? [`refus d'admission, aucun test joué : ${refuses.join(' ; ')}`] : []
+  const rejeux = lancements.flatMap((l) => l.rejeu ? [l.rejeu] : [])
+  if (rejeux.length) {
+    const verdict = code === 1 ? 'rouge' : 'erreur d’outillage'
+    return `${verdict} — ${[...rejeux, ...refuser, ...relancer, ...nommer].join(' — ')}`
+  }
   return `rouge — ${[...refuser, ...relancer, ...nommer].join(' — ') || 'aucun rapport ne nomme de fichier en échec'}`
 }
 
@@ -634,9 +639,39 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
 /** La raison d'un refus d'admission `r` : son `message`, sinon la dernière ligne non vide de sa `sortie`. PURE. */
 export const raisonDuRefus = (r) => r.message ?? (r.sortie ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).at(-1) ?? 'raison non rapportée'
 
+/** #3163 */
+function verdictSansMemoire(lancement, fichiers, racine, rapport) {
+  const termine = lancement.arret?.etat === 'mort' && !lancement.error && !lancement.annulee &&
+    !lancement.expiree && lancement.signal === null
+  let lu
+  let defautRapport
+  if (lancement.arret?.etat === 'mort') {
+    try { lu = lireRapport(rapport) }
+    catch (cause) { defautRapport = texteDeLEchec(cause) }
+  }
+  const resumeValide = (r) => Number.isSafeInteger(r?.echecs) && r.echecs >= 0 && typeof r.succes === 'boolean' ? r : null
+  const global = resumeValide(lu?.resume)
+  const absolus = fichiers.map((f) => resolve(racine, f))
+  const resumes = absolus.map((f) => resumeValide(lu?.fichiersTermines?.[f]))
+  const echecsPartiels = new Set(echecsDuRapport(lu?.echecsDesTests))
+  const echecs = fichiers.filter((_, i) => resumes[i]
+    ? !resumes[i].succes && resumes[i].echecs > 0
+    : echecsPartiels.has(absolus[i]))
+  const complet = fichiers.length > 0 && resumes.every((r) => r?.succes ? r.echecs === 0 : r?.echecs > 0)
+  if (termine && complet) {
+    if (lancement.status === 0 && global?.succes === true && global.echecs === 0 && echecs.length === 0)
+      return { code: 0, echecs, lu }
+    if (lancement.status === 1 && global?.succes === false && global.echecs > 0 && echecs.length)
+      return { code: 1, echecs, lu }
+  }
+  const raison = !termine ? 'lancement interrompu ou arrêt non confirmé' : defautRapport ?? 'résultat Node non attesté'
+  const detail = !termine && lancement.error?.message ? `: ${lancement.error.message}` : ''
+  return { code: echecs.length ? 1 : 2, echecs, rejeu: `${raison}${detail} ; relancer npm run test:perimetre` }
+}
+
 /** Joue les `lancements` dans l'ordre (#2586) : node par `lancerNode`, vitest et docs par `lancer`. Une clôture non
  *  confirmée (`retenir`) ou un lancement interrompu arrête la suite sans apprendre ; sinon chaque famille apprend ses
- *  durées (`apprendre`) et son surcoût (`bilanDuLancement`, sous les environnements `environnementDe`). Rend le premier code non nul, le mur réel par famille,
+ *  durées (`apprendre`) et son surcoût (`bilanDuLancement`, sous les environnements `environnementDe`). Rend le premier code non nul, avec priorité à une assertion attestée sur un défaut de mesure, le mur réel par famille,
  *  les lancements joués et les fichiers joués (`fichiersJoues`, ceux que leur rapport mesure). */
 export async function executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code, forcer, platform, environnementDe }, { lancerNode = lancerNodeMesure, lancer = spawnBorne } = {}) {
   const reels = {}
@@ -651,6 +686,21 @@ export async function executerLancements({ lancements, racine, node, env, signal
       : await lancer({ argv: args, cwd: racine, env, signal, fichier: join(cache, 'lancement-' + process.pid + '.log'),
         limiteMs: 30 * 60_000, maxBuffer: 16 * 2 ** 20 })
     if (famille !== 'node' && r.sortie) process.stdout.write(r.sortie)
+    const mesureIncomplete = famille === 'node' && r.defautCollecte?.code === 'MESURE_MEMOIRE_INCOMPLETE'
+    const verdict = mesureIncomplete ? verdictSansMemoire(r, fichiers, racine, sortie) : null
+    if (verdict?.rejeu) {
+      if (r.arret?.etat !== 'mort') retenir()
+      if (verdict.code === 1 || joues.some((l) => l.code === 1 && l.echecs.length)) code = 1
+      else if (code === 0 || code === CODE_DIFFERE) code = verdict.code
+      const rejeu = `node : MESURE_MEMOIRE_INCOMPLETE — ${r.defautCollecte.message} ; ${verdict.rejeu}`
+      joues.push({ famille, code: verdict.code, echecs: verdict.echecs, args, rejeu })
+      journal(`${rejeu} ; rapports conservés, aucun apprentissage${r.arret?.etat !== 'mort' ? ', verrou conservé' : ''}`)
+      break
+    }
+    if (verdict) {
+      journal(`node : ${verdict.code === 0 ? 'vert' : 'rouge'} attesté, mesure mémoire indisponible — MESURE_MEMOIRE_INCOMPLETE : ${r.defautCollecte.message}`)
+      if (verdict.code === 1) code = 1
+    }
     if (r.arret?.etat !== 'mort') {
       retenir()
       const codeDuLancement = r.code || 1
@@ -669,14 +719,14 @@ export async function executerLancements({ lancements, racine, node, env, signal
       diagnosticArret(r, journal, '')
       break
     }
-    const codeDuLancement = r.code
+    const codeDuLancement = verdict?.code ?? r.code
     if (code === 0) code = codeDuLancement
     const refus = codeDuLancement === CODE_DIFFERE ? { refus: raisonDuRefus(r) } : {}
     if (!famille) { joues.push({ famille: nom, code: codeDuLancement, echecs: [], args, ...refus }); continue }
     reels[famille] = (reels[famille] ?? 0) + murMs
-    const lecture = apprendre(racine, sortie, mesures, famille, famille === 'node' ? r.concurrence ?? null : workers[famille])
+    const lecture = apprendre(racine, sortie, mesures, famille, famille === 'node' ? r.concurrence ?? null : workers[famille], verdict?.lu)
     for (const f of Object.keys(lecture.appris)) fichiersJoues.add(f)
-    joues.push({ famille, code: codeDuLancement, echecs: lecture.echecs, args, ...refus })
+    joues.push({ famille, code: codeDuLancement, echecs: verdict?.echecs ?? lecture.echecs, args, ...refus })
     if (!Object.keys(lecture.appris).length) continue
     const { surcout, texte } = bilanDuLancement(famille, murMs, lecture, workers[famille], environnementDe)
     journal(texte)
@@ -697,20 +747,25 @@ const LECTURES_DE_RAPPORT = Object.freeze({
   node: (lu, planifies) => ({ durees: lu?.durees ?? {}, echecs: echecsDuRapport(lu?.echecs), workers: planifies }),
 })
 
+function lireRapport(rapport) {
+  try { return JSON.parse(readFileSync(rapport, 'utf8')) }
+  catch (cause) {
+    if (cause?.code === 'ENOENT') return null
+    throw new Error(`perimetre : rapport ${rapport} illisible`, { cause })
+  }
+}
+
 /** Fusionne dans les `DUREES` de `mesures` (`mesuresDe`) les durées du rapport `rapport` d'UN lancement de la famille
  *  `famille` (`rapportDuLancement`, `LECTURES_DE_RAPPORT` ; chemins rendus relatifs), puis l'efface, que l'écriture
  *  (`ecrireLesMesures`) réussisse ou échoue. Rend les durées apprises, les workers servis et les fichiers en échec, chemins
  *  relatifs ; `{ appris: {}, workers: null, echecs: [] }` sans rapport ; un rapport illisible lève avec sa `cause` (#2586). */
-export function apprendre(racine, rapport, mesures, famille, planifies) {
+export function apprendre(racine, rapport, mesures, famille, planifies, rapportValide) {
   const base = resolve(racine).split(sep).join('/')
   const relDe = (a) => a.split(sep).join('/').replace(`${base}/`, '')
   let lu
-  try { lu = JSON.parse(readFileSync(rapport, 'utf8')) }
-  catch (cause) {
-    if (cause?.code === 'ENOENT') return { appris: {}, workers: null, echecs: [] }
-    throw new Error(`perimetre : rapport ${rapport} illisible`, { cause })
-  }
+  try { lu = rapportValide ?? lireRapport(rapport) }
   finally { rmSync(rapport, { force: true }) }
+  if (lu === null) return { appris: {}, workers: null, echecs: [] }
   const { durees, echecs, workers } = LECTURES_DE_RAPPORT[famille](lu, planifies)
   const appris = Object.fromEntries(Object.entries(durees).map(([f, ms]) => [relDe(f), Math.round(ms)]))
   if (Object.keys(appris).length) ecrireLesMesures(mesures, DUREES, appris)

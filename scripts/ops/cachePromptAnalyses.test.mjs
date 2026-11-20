@@ -130,7 +130,21 @@ test('verdict de test:perimetre par codeur : code du résultat, de la notificati
     ev('s', 'a3', 0, { type: 'tool_use', nom: 'Bash', id: 't4', resume: { command: 'npm run test:perimetre' } }),
   ]
   const v = verdictPerimetre({ evenements })
-  assert.deepEqual(v.parFil.map((f) => [f.fil, f.runs, f.rouges, f.verdict]), [['a1', 2, 1, 'vert'], ['a2', 1, 1, 'rouge'], ['a3', 1, 0, 'inconnu']])
+  assert.deepEqual(v.parFil.map((f) => [f.fil, f.runs, f.rouges, f.verdict]), [['a1', 2, 1, 'vert'], ['a2', 1, 0, 'erreur d’outillage'], ['a3', 1, 0, 'inconnu']])
+})
+
+test('verdict historique de test:perimetre : défaut mémoire et seul rouge Node sans fichier', () => {
+  const defaut = '[perimetre] [memoire] MESURE_MEMOIRE_INCOMPLETE : lancement interrompu ou arrêt non confirmé'
+  const muet = 'rouge sans fichier nommé : node : 1 lancement(s) rouge(s) sans fichier en échec rapporté'
+  const evenements = [
+    [defaut, '[perimetre] rouge — ' + muet],
+    [defaut, '[perimetre] rouge — relancer les SEULS fichiers en échec : node --test scripts/n.test.mjs — ' + muet],
+    ['[perimetre] rouge — ' + muet],
+  ].flatMap((lignes, i) => [
+    ev('s', 'a' + i, 0, { type: 'tool_use', nom: 'Bash', id: 't' + i, resume: { command: 'npm run test:perimetre' } }),
+    ev('s', 'a' + i, 3, { type: 'tool_result', outil: 'Bash', id: 't' + i, taille: 1, code: 1, fin: lignes.join('\n') }),
+  ])
+  assert.deepEqual(verdictPerimetre({ evenements }).runs.map(({ verdict }) => verdict), ['erreur d’outillage', 'rouge', 'rouge'])
 })
 
 test('verdict en fond sous la forme à `.code` (#2596) : la SONDE terminée fait le code, jamais la notification de l’enveloppe', () => {
@@ -154,9 +168,13 @@ test('verdict en fond sous la forme à `.code` (#2596) : la SONDE terminée fait
     sonde('a4', 1, 's5', '/tmp/appel-a4'), rendu('a4', 4, 's5', '[sonde] TERMINÉE — code 2', 2),
     fond('a5', 0, 'toolu_A5aaaaaaaaaaaaaaaa', 'npm run test:perimetre'),
     notif('a5', 9, 'toolu_A5aaaaaaaaaaaa'),
+    fond('a6', 0, 'toolu_A6aaaaaaaaaaaaaaaa', bash('/tmp/appel-a6')),
+    sonde('a6', 1, 's6', '/tmp/appel-a6'), rendu('a6', 4, 's6', '[sonde] TERMINÉE — code 75', 75),
+    fond('a7', 0, 'toolu_A7aaaaaaaaaaaaaaaa', bash('/tmp/appel-a7')),
+    sonde('a7', 1, 's7', '/tmp/appel-a7'), rendu('a7', 4, 's7', '[sonde] TERMINÉE — code 124', 124),
   ]
   const v = verdictPerimetre({ evenements })
-  assert.deepEqual(v.runs.map((r) => [r.fil, r.code, r.verdict]), [['a1', 1, 'rouge'], ['a2', null, 'inconnu'], ['a3', 0, 'vert'], ['a4', 2, 'rouge'], ['a5', 0, 'vert']])
+  assert.deepEqual(v.runs.map((r) => [r.fil, r.code, r.verdict]), [['a1', 1, 'rouge'], ['a2', null, 'inconnu'], ['a3', 0, 'vert'], ['a4', 2, 'erreur d’outillage'], ['a5', 0, 'vert'], ['a6', 75, 'différé'], ['a7', 124, 'inconnu']])
   assert.match(v.parFil.find((f) => f.fil === 'a1').fin, /\[perimetre\] tests : 2 rouges/)
 })
 

@@ -350,9 +350,9 @@ export interface ZonesDeLEditeur {
    */
   'editeur.historique': Bouton[];
   /**
-   * copier l'entité sélectionnée et la dupliquer sur la case voisine au sud-est, sur sa couche, refusés sans entité
-   * sélectionnée ; coller la copie sur la dernière case appuyée, sur la couche éditée, refusé sans copie ou quand cette
-   * case est d'une autre couche
+   * copier l'entité sélectionnée et la dupliquer sur la case libre la plus proche de sa couche, en préférant la voisine
+   * au sud-est si elle est libre. Ces gestes exigent une sélection et la duplication est sans effet faute de place.
+   * Coller la copie sur la dernière case appuyée, sur la couche éditée, exige une copie et une case de cette couche.
    */
   'editeur.presse': Bouton[];
   /**

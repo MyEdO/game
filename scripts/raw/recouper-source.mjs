@@ -35,6 +35,7 @@ import {
   estNomDExtraction, graphieDeChapitre, largeurDeChapitre, ligne1DePlage, numeroDuFichier,
   parseChapitre, plageDeLigne1, plageEnTexte, tablesOf,
 } from '../../src/data/source/decoupe.ts'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 /** Les `.md` de CHAPITRE d'un dossier, dans l'ordre de leur numéro — le FLUX du livre. */
 export function chapitresEnService(dir) {
@@ -462,4 +463,7 @@ function main() {
   console.log(aEcrire.length || aSupprimer.length || indexAEcrire ? 'écrit' : 'déjà au grain — aucun changement')
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

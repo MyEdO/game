@@ -7,21 +7,28 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { designations, enregistrerEntree, supprimerEntree } from './atelierDuCodex';
 import { reperesDuParse } from './schemas/grammaire/ref';
+import { rangee } from './schemas/defs/mutationTables';
+import { validateDataset } from './schemas/validate';
 import { projetSchema } from './schemas/defs-scenes/projet';
 import { versDisque } from './schemas/grammaire/prose';
 import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import diligence from '../scenes/diligence/diligence-projet.json';
-import { ancetreDuDe, champDEnTete, datasetArray, deDeLaTable, entreesDuDataset, resetData, setDataset, type DatasetKey } from './overrides';
+import { ancetreDuDe, champDEnTete, datasetArray, datasetObject, deDeLaTable, entreesDuDataset, resetData, setDataset, type DatasetKey } from './overrides';
 import { CATEGORY_DATASET_DERIVE } from './schemas/exposition-derivee';
 import { effectTableDie, findEffectTableById } from './effectTables';
+import { findCareerById, levelsForCareer, tableDesRacesAleatoires } from './index';
+import { abonnerAuxDatasets } from './versionDataset';
+import { rollSeasonalCargo, type CargoEntry } from '../engine/cargo';
+import { randomSpeciesTable } from '../engine/creation';
 import { findTableEntry } from '../engine/tables';
 import { miscastDie, miscastRowAt } from '../engine/miscast';
 import { deDuVoyageRapide, resolveFastVoyage } from '../engine/seaVoyage';
 import { makeRNG, type DiceSpec } from '../engine/dice';
 import { deSelonLaPlage } from '../engine/dice.testkit';
 import { scatter } from '../engine/scatter';
+import { SIZE_RANGED_MOD } from '../engine/size';
 import { tirerLaReactionAuStatut, tirerLeCapricieux } from '../engine/social';
 import { auChemin } from '../lib/objet.mjs';
 
@@ -57,6 +64,34 @@ describe('enregistrerEntree — transaction d’une entrée éditée', () => {
     expect(issue.erreurs.length).toBeGreaterThan(0);
     expect(traits()).toEqual(avant);
     expect(traits()[0]).toBe(avant[0]);
+  });
+
+  it('un dataset-objet refusé garde la table de Tailles lue par le moteur (#4047)', () => {
+    const tailles = datasetObject('sizes');
+    const vueMoteur = SIZE_RANGED_MOD;
+    const etatInitial = structuredClone(tailles);
+    expect(tailles.rangedMod).toBe(vueMoteur);
+
+    const { rangedMod: _modificateurs, ...incomplet } = etatInitial;
+    const refus = enregistrerEntree('sizes', incomplet, 0);
+    if (refus.ok) refus.reprendre();
+    expect(refus.ok).toBe(false);
+    expect(datasetObject('sizes')).toBe(tailles);
+    expect(tailles).toEqual(etatInitial);
+    expect(tailles.rangedMod).toBe(vueMoteur);
+
+    const minuscule = etatInitial.rangedMod.minuscule + 1;
+    const valide = enregistrerEntree('sizes', { ...etatInitial, rangedMod: { ...etatInitial.rangedMod, minuscule } }, 0);
+    expect(valide.ok).toBe(true);
+    if (!valide.ok) return;
+    try {
+      expect(tailles.rangedMod).toBe(vueMoteur);
+      expect(vueMoteur.minuscule).toBe(minuscule);
+    } finally {
+      valide.reprendre();
+    }
+    expect(tailles.rangedMod).toBe(vueMoteur);
+    expect(tailles).toEqual(etatInitial);
   });
 
   it('une collision d’id est refusée sans rien poser', () => {
@@ -99,6 +134,160 @@ describe('enregistrerEntree — une référence morte d’un champ typé est ref
     const issue = enregistrerEntree('careerLevels', { ...entree, trappings }, marchand);
     expect(issue.ok).toBe(false);
     expect(issue.ok ? '' : issue.erreurs.join('\n')).toMatch(/« vehicule-fantome » est absent du catalogue des véhicules/);
+  });
+});
+
+describe('enregistrerEntree — invariants de collection entre datasets (#4047)', () => {
+  afterEach(() => resetData());
+
+  it('refuse une Espèce qui rend ambigu le tableau de ses Races', () => {
+    const especes = datasetArray('species');
+    const index = especes.findIndex((e) => e.id === 'gnomes');
+    const gnomes = especes[index];
+    const racesDuLdb = new Set<typeof gnomes.refChar>(['humain', 'halfling', 'nain', 'haut-elfe', 'elfe-sylvain']);
+    const table = tableDesRacesAleatoires(racesDuLdb);
+    expect(table.id).toBe('races-ldb');
+
+    const refCharsVus: (typeof gnomes.refChar)[] = [];
+    const desabonner = abonnerAuxDatasets(() => { refCharsVus.push(especes[index].refChar); });
+    let issue;
+    try {
+      issue = enregistrerEntree('races', { ...gnomes, refChar: 'nain' }, index);
+    } finally {
+      desabonner();
+    }
+
+    expect(issue).toMatchObject({
+      ok: false,
+      erreurs: expect.arrayContaining([
+        expect.stringContaining('especes-aleatoires.json'),
+        expect.stringContaining('un seul document par jeu de races'),
+      ]),
+    });
+    expect(refCharsVus).toEqual([]);
+    expect(especes[index]).toBe(gnomes);
+    expect(tableDesRacesAleatoires(racesDuLdb)).toBe(table);
+  });
+
+  it.each([
+    {
+      cas: 'refuse un tableau de Races manquant quand une Espèce change de Race',
+      id: 'humains-reiklander',
+      modification: { refChar: 'nain' },
+      diagnostic: 'aucun document pour le jeu de races',
+    },
+    {
+      cas: 'refuse un tableau de Races manquant quand une Espèce devient optionnelle',
+      id: 'hauts-elfes',
+      modification: { gatedByRule: { id: 'creation-gnome-jouable' } },
+      diagnostic: 'aucun document pour le jeu de races',
+    },
+    {
+      cas: 'refuse deux rangées pour la même Race quand une Espèce change de Race',
+      id: 'hauts-elfes',
+      modification: { refChar: 'nain' },
+      diagnostic: 'plusieurs rangées pour la race « nain »',
+    },
+  ])('$cas', ({ id, modification, diagnostic }) => {
+    const especes = datasetArray('species');
+    const index = especes.findIndex((e) => e.id === id);
+    const espece = especes[index];
+    const table = randomSpeciesTable();
+
+    const issue = enregistrerEntree('races', { ...espece, ...modification }, index);
+
+    expect(issue).toMatchObject({
+      ok: false,
+      erreurs: expect.arrayContaining([
+        expect.stringContaining('especes-aleatoires.json'),
+        expect.stringContaining(diagnostic),
+      ]),
+    });
+    expect(especes[index]).toBe(espece);
+    expect(randomSpeciesTable()).toEqual(table);
+  });
+
+  it('refuse une Carrière créée sans aucun Niveau (LDB 07 l.26)', () => {
+    const carrieres = datasetArray('careers');
+    const existantes = carrieres.slice();
+    const id = 'carriere-sans-niveau';
+    expect(findCareerById(id)).toBeUndefined();
+
+    const issue = enregistrerEntree('careers', { ...carrieres[0], id, label: 'Carrière sans Niveau' }, -1);
+
+    expect(issue).toMatchObject({
+      ok: false,
+      erreurs: expect.arrayContaining([
+        expect.stringContaining('careerLevels.json'),
+        expect.stringContaining(`la carrière « ${id} » doit porter les niveaux 1, 2, 3 et 4 une fois chacun`),
+      ]),
+    });
+    expect(carrieres).toEqual(existantes);
+    expect(carrieres[0]).toBe(existantes[0]);
+    expect(findCareerById(id)).toBeUndefined();
+    expect(levelsForCareer(id)).toEqual([]);
+  });
+
+  const mutationsDeCargaison = [
+    {
+      cas: 'qui quitte la voie de sa table',
+      modifier: (cargaison: CargoEntry) => ({ ...cargaison, voie: 'terre' }),
+      message: 'hors de la sous-liste « mer »',
+    },
+    {
+      cas: 'qui devient un marqueur sans prix',
+      modifier: ({ price: _prix, ...cargaison }: CargoEntry) => ({ ...cargaison, echangeable: false }),
+      message: 'ne porte aucun prix',
+    },
+  ];
+
+  it.each(mutationsDeCargaison)('refuse une cargaison $cas', ({ modifier, message }) => {
+    const cargaisons = datasetArray('cargoes');
+    const index = cargaisons.findIndex((c) => c.id === 'cereales');
+    const cereales = cargaisons[index];
+    const de = deSelonLaPlage((min) => min);
+    expect(rollSeasonalCargo('mer', 'printemps', de)).toBe(cereales);
+
+    const issue = enregistrerEntree('cargoes', modifier(cereales), index);
+
+    expect(issue).toMatchObject({
+      ok: false,
+      erreurs: expect.arrayContaining([
+        expect.stringContaining('cargaisons-aleatoires.json'),
+        expect.stringContaining(message),
+      ]),
+    });
+    expect(cargaisons[index]).toBe(cereales);
+    expect(rollSeasonalCargo('mer', 'printemps', de)).toBe(cereales);
+  });
+
+  it('publie la Carrière valide avec ses Niveaux et peut reprendre son édition', () => {
+    const carriere = datasetArray('careers')[0];
+    const label = 'Libellé de Carrière édité';
+    const observations: { label: string | undefined; niveaux: number[] }[] = [];
+    const desabonner = abonnerAuxDatasets(() => {
+      observations.push({
+        label: findCareerById(carriere.id)?.label,
+        niveaux: levelsForCareer(carriere.id).map((niveau) => niveau.level),
+      });
+    });
+    let issue;
+    try {
+      issue = enregistrerEntree('careers', { ...carriere, label }, 0);
+    } finally {
+      desabonner();
+    }
+
+    expect(issue.ok).toBe(true);
+    if (!issue.ok) return;
+    expect(issue.fichier).toBe('careers.json');
+    expect(JSON.parse(issue.texte)[0]).toMatchObject({ id: carriere.id, label });
+    expect(findCareerById(carriere.id)?.label).toBe(label);
+    expect(observations).toEqual([{ label, niveaux: [1, 2, 3, 4] }]);
+
+    issue.reprendre();
+
+    expect(findCareerById(carriere.id)).toBe(carriere);
   });
 });
 
@@ -206,6 +395,59 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
   });
 });
 
+describe('mutationTables — références et couverture dans la transaction de l’atelier', () => {
+  const fichier = 'mutationTables.json';
+  const premierId = 'premiere-mutation-3915';
+  const secondId = 'seconde-mutation-3915';
+  const table = {
+    id: 'table-de-corruption-3915',
+    type: 'mutationTables' as const,
+    label: 'Table de test',
+    maison: 'Table de test',
+    die: { n: 1, sides: 20 },
+  };
+  const rangs = [
+    { id: premierId, min: 1, max: 10 },
+    { id: secondId, min: 11, max: 20 },
+  ];
+
+  beforeEach(() => {
+    const mutations = [premierId, secondId].map((id) => ({
+      id, type: 'mutations' as const, label: id, maison: 'Mutation de test', desc: 'Mutation de test.', kind: 'physique' as const,
+    }));
+    setDataset('mutations', [...datasetArray('mutations'), ...mutations]);
+    setDataset('mutationTables', [...datasetArray('mutationTables'), { ...table, entries: rangs.map((r) => rangee.parse(r)) }]);
+  });
+  afterEach(() => resetData());
+
+  it.each([
+    ['un identifiant absent du catalogue', [{ ...rangs[0], id: 'mutation-3915-inexistante' }, rangs[1]], /mutation-3915-inexistante.*absent du catalogue des mutations/],
+    ['une borne basse hors du dé', [{ ...rangs[0], min: 0 }, rangs[1]], /commence à 0 au lieu de 1/],
+    ['un trou entre deux rangées', [rangs[0], { ...rangs[1], min: 12 }], /commence à 12 au lieu de 11/],
+    ['un chevauchement entre deux rangées', [rangs[0], { ...rangs[1], min: 10 }], /commence à 10 au lieu de 11/],
+    ['deux bornes fractionnaires consécutives', [{ ...rangs[0], max: 9.5 }, { ...rangs[1], min: 10.5 }], /entier attendu/],
+  ] as const)('refuse %s au schéma et restaure l’entrée', (_cas, entries, erreur) => {
+    const index = datasetArray('mutationTables').length - 1;
+    const avant = datasetArray('mutationTables')[index];
+    const editee = { ...table, entries };
+    expect(validateDataset(fichier, [avant])).toBeNull();
+    expect(validateDataset(fichier, [editee])).toMatch(erreur);
+    const resultat = enregistrerEntree('mutationTables', editee, index);
+    if (resultat.ok) resultat.reprendre();
+    expect(resultat).toEqual({ ok: false, erreurs: expect.arrayContaining([expect.stringMatching(erreur)]) });
+    expect(datasetArray('mutationTables')[index]).toBe(avant);
+  });
+
+  it('désigne la mutation par son catalogue et protège son retrait', () => {
+    const designe = designations('mutations', premierId, []);
+    expect(designe).toEqual([expect.stringContaining(`${fichier} › élément « ${table.id} »`)]);
+    const mutations = datasetArray('mutations').slice();
+    const index = mutations.findIndex((m: { id: string }) => m.id === premierId);
+    expect(supprimerEntree('mutations', index, []).ok).toBe(false);
+    expect(datasetArray('mutations')).toEqual(mutations);
+  });
+});
+
 describe('designations et supprimerEntree — ce qui désigne une entrée, et son retrait (#4020)', () => {
   afterEach(() => resetData());
   const niveau = () => datasetArray('careerLevels')[0];
@@ -228,16 +470,6 @@ describe('designations et supprimerEntree — ce qui désigne une entrée, et so
     expect(enregistrerEntree('talents', { ...base, id: 'talent-accorde', label: 'Talent accordé' }, -1).ok).toBe(true);
     expect(enregistrerEntree('talents', { ...base, id: 'talent-qui-accorde', label: 'Talent qui accorde', passive: [{ op: 'grantTalent', talent: { id: 'talent-accorde' } }] }, -1).ok).toBe(true);
     expect(designations('talents', 'talent-accorde', []).filter((d) => d.startsWith('talents.json › élément « talent-qui-accorde » › '))).toHaveLength(1);
-  });
-
-  it('une chaîne qu’aucun schéma ne type désigne l’entrée de même id : la mutation qu’une table de mutations tire', () => {
-    const rangee = datasetArray('mutationTables').flatMap((t) => t.entries).find((r) => r.mutation !== undefined)!;
-    const par = designations('mutations', rangee.mutation!, []);
-    expect(par.filter((d) => d.startsWith('mutationTables.json › ')).length).toBeGreaterThan(0);
-    const index = datasetArray('mutations').findIndex((m) => m.id === rangee.mutation);
-    const mutations = datasetArray('mutations').slice();
-    expect(supprimerEntree('mutations', index, []).ok).toBe(false);
-    expect(datasetArray('mutations')).toEqual(mutations);
   });
 
   it('une référence typée vers un autre espace qui porte le même id ne désigne pas', () => {

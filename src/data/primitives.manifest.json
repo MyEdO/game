@@ -1138,7 +1138,7 @@
     "type": "primitives.manifest",
     "label": "profilsDuLancement/collecterMemoire/admettreLancementNode/lancerNodeMesure",
     "fichier": "scripts/test/memoire.mjs",
-    "concept": "admission des familles Node et profils résidents par entrée native exclusive ; challenge frais de gate CommonJS bloquée, attribution sur identité native tenue, vue exhaustive dédupliquée, parent explicite et ACK seulement après échantillon complet ; expirations structurées sans publication ni apprentissage sur échec",
+    "concept": "admission des familles Node et profils résidents par entrée native exclusive ; challenge frais de gate CommonJS bloquée, attribution sur identité native tenue, vue exhaustive dédupliquée, parent explicite et ACK seulement après échantillon complet ; abandon de collecte à concurrence un, aucun profil appris sur défaut de mesure, verdict de suite attesté séparément",
     "perimetre": "test:perimetre ; gate builtin-only scripts/test/memoire-precharge.cjs première --require, même collecteur et contrôle natif de lancerProcessusSupervise",
     "verrou": "memoire.test.mjs, scripts/guards/lib/domaineNatif.test.mjs"
   },

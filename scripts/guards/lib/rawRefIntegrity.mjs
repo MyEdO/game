@@ -156,7 +156,7 @@ function chapterLinesOf(path) {
 const isExempt = (hit) => SITE_EXEMPTIONS.some((e) => e.file === hit.file && e.row === hit.row && e.ref === hit.ref)
 
 /** Scanne `racines` et retourne les réfs AVEUGLES : `{ file, row, ref, abbr, nn, lo, hi }`. */
-export function scanBlindRefs(racines = RACINES_CITANTES) {
+export function scanBlindRefs(racines = RACINES_CITANTES, chapitreDe = chapterFile) {
   const blind = []
   for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
@@ -164,7 +164,7 @@ export function scanBlindRefs(racines = RACINES_CITANTES) {
     const src = readFileSync(f, 'utf8').split('\n')
     src.forEach((ln, i) => {
       for (const { abbr, nn, lo, hi, ref } of refsInLine(ln)) {
-        const cf = chapterFile(abbr, nn)
+        const cf = chapitreDe(abbr, nn)
         if (!cf) continue // chapitre introuvable = domaine de check-code-refs
         const context = windowText(src, i + 1, i + 1)
         if (!isBlindRef(chapterLinesOf(cf.path), lo, hi, context)) continue

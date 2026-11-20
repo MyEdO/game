@@ -35,6 +35,7 @@ import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
 import { SEPARATEUR_DE_REMEDE, ecartDuVolet, sitesEnEntrees, cleDeSite, phraseDeNaissance } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
 import { parseChapitre, tablesOf, normText, estCleDePlage, plageDeLigne1, lignesDesignees } from '../../src/data/source/decoupe.ts'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-tables-stock.json')
 
@@ -357,4 +358,7 @@ function main() {
   process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "arete",
+  "cle": {
+    "kit": "terrassement"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "terre",
+      "palette": "corps",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "clayonnage",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "boisage",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "menuiserie",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "d2021f4807f564e0eba09c3a3eb079237eb450b81f9a770484e225dcdd73028e",
+    "octets": 444892
+  }
+}

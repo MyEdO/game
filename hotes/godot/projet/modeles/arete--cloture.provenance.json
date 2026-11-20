@@ -1,0 +1,13 @@
+{
+  "model": "arete--cloture.glb",
+  "model_sha256": "dced685c6be5e2007bfb69a94c7bf76024aa4a21404d8ffb546b0507a565f08f",
+  "importe_le": "2026-11-20",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

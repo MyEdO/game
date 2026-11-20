@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateEntry } from './atelierDuCodex';
-import { entryKey, type MutationData } from '.';
+import { entryKey } from '.';
 import { datasetArray, DATASET_KEYS, entreesDuDataset } from './overrides';
 
 
@@ -36,20 +36,11 @@ describe('validateEntry — porte d’`enregistrerEntree` (Enregistrer bloqué t
 /**
  * #173 — garde de CLASSE : un éditeur de ref (datalist ou sélecteur) ne doit JAMAIS écrire un LIBELLÉ
  * dans un champ que le lecteur résout par ID. Ces cas couvrent une réf NICHÉE sous un sous-objet/sous-tableau
- * (`NESTED_REF_FIELDS`, ex. `mutationTables.entries[].mutation`, `domains.castBonus.perCondition`) ; un
+ * (`NESTED_REF_FIELDS`, ex. `domains.castBonus.perCondition`) ; un
  * champ typé par la grammaire se refuse au parse (`atelierDuCodex.test.ts`). Le dernier test balaie TOUTE
  * la donnée committée : round-trip = déjà résolvable.
  */
 describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datalist/sélecteur) → bloquant', () => {
-  it('mutationTables.entries[].mutation (réf NICHÉE) : id résolvable → OK ; libellé → bloquant', () => {
-    const tables = entreesDuDataset('mutationTables');
-    const goodId: MutationData['id'] = 'pattes-d-animaux';
-    const base = tables[0];
-    expect(validateEntry('mutationTables', { ...base, entries: [{ min: 1, max: 100, mutation: goodId }] }, tables, 0)).toEqual([]);
-    const errs = validateEntry('mutationTables', { ...base, entries: [{ min: 1, max: 100, mutation: 'Pattes d’animaux' }] }, tables, 0);
-    expect(errs.some((e) => /entries\[\]\.mutation.*introuvable/.test(e))).toBe(true);
-  });
-
   it('domains.castBonus.perCondition (réf NICHÉE) : id d’État résolvable → OK ; libellé → bloquant', () => {
     const domains = datasetArray('domains');
     const base = domains[0];

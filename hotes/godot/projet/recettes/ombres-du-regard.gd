@@ -3,7 +3,8 @@ extends SceneTree
 ## Le regard ne change que ce que voit la caméra, jamais l'éclairage (#3758, #3948, `hotes/godot/pont/CONTRAT.md`,
 ## sections « Vue », `plateau`, et « Monde », `RetraitDuMonde`) : sur un plateau de 2 m par case, un morceau du sol
 ## au rez, un morceau d'étage à 3 m que le masque du regard retire (`VolumeDeScene.retirer`), une nappe de toit à
-## 5 m, deux arêtes, une boîte et une pièce du kit, chacune sous sa couronne, et la couronne d'un mur abattu. Le toit
+## 5 m, deux arêtes en deux groupes, la boîte d'une arête sans famille et celle d'une famille sans modèle servi,
+## chacune sous sa couronne, et la couronne d'un mur abattu. Le toit
 ## levé, les arêtes dégagées sous tout cran : la caméra ne voit ni le toit, ni les arêtes, ni leurs couronnes, qui
 ## projettent toutes leur ombre ; la pose d'un décor que le toit porte (`PoseDeDecor.nappe`), sur une case de
 ## l'étage que le masque retire, est retirée avec le toit levé et montrée avec le toit rendu, seule la nappe en
@@ -21,6 +22,8 @@ extends SceneTree
 ## (`VolumeDeScene.peindre_sans`), la nappe ne peint plus ses surfaces ; plus servi, elle les repeint.
 
 const RECETTE_AUTONOME := true
+## La recette des arêtes au pied : sa famille sans modèle servi (`FAMILLE_SANS_MODELE`).
+const AU_PIED := preload("res://recettes/arete-au-pied.gd")
 const METRES_PAR_CASE := 2.0
 const NORMALES := [0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0]
 const COULEURS := [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
@@ -54,7 +57,7 @@ func _recetter() -> void:
 	var etage := _nappe("sol/1/0/0", 3.0).merged({rangee = ETAGE_AU_MASQUE, cases = [0, 0, 1, 0, 0, 1]}, true)
 	var toits := [_nappe("maison", 5.0)]
 	toits[0].surfaces[0].decor = "cheminee"
-	var nappes_des_murs := [_nappe("boite", 3.0), _nappe("kit", 3.0), _nappe("abattue", 3.0)]
+	var nappes_des_murs := [_nappe("boite", 3.0), _nappe("sans-modele", 3.0), _nappe("abattue", 3.0)]
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = SOLS}, {z = 1, rangees = SOLS}], morceaux = [rez, etage]},
 		toits = toits, couronnes = nappes_des_murs}, {volume = [rez, etage], toits = toits, couronnes = nappes_des_murs})
 	var masque := PackedByteArray()
@@ -63,8 +66,8 @@ func _recetter() -> void:
 	masque[POSE_DE_L_ETAGE_AU_MASQUE * LARGEUR] = 255
 	monde.volume.retirer({masque = Marshalls.raw_to_base64(masque), largeur = LARGEUR, rangees = RANGEES})
 	monde.volume.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}),
-		ARETE.merged({cle = "kit", famille = "pierre"})])
-	var degagees: Array = JSON.parse_string(JSON.stringify(["boite", "kit"].map(func(cle: String) -> Dictionary: return {cle = cle, abattueSous = [0, 1, 2, 3]})))
+		ARETE.merged({cle = "sans-modele", famille = AU_PIED.FAMILLE_SANS_MODELE})])
+	var degagees: Array = JSON.parse_string(JSON.stringify(["boite", "sans-modele"].map(func(cle: String) -> Dictionary: return {cle = cle, abattueSous = [0, 1, 2, 3]})))
 	var retraits := [0]
 	monde.volume.retire.connect(func() -> void: retraits[0] += 1)
 	monde.cacher_le_bati(["maison"], ["abattue"], degagees)
@@ -84,14 +87,14 @@ func _recetter() -> void:
 		_fautes.append("l'étage retiré : son instance en ombre seule n'est pas entière, dans la matière d'ombre standard, du même maillage")
 	var groupes := monde.get_node("VolumeDeScene/Aretes").get_children()
 	if groupes.size() != 2:
-		_fautes.append("%d groupes d'arêtes posés, attendu la boîte et la pièce du kit" % groupes.size())
+		_fautes.append("%d groupes d'arêtes posés, attendu les deux boîtes" % groupes.size())
 	_aretes_montrees(groupes, 0, "retirées")
 	var retires := {toit = toit}
 	var couronnes := {}
 	for couronne: Node3D in monde.get_node("VolumeDeScene/Volume/Couronnes").get_children():
 		couronnes[couronne.get_meta("cle")] = couronne
 	retires["couronne boite"] = couronnes.boite
-	retires["couronne kit"] = couronnes.kit
+	retires["couronne sans modèle"] = couronnes["sans-modele"]
 	retires["ombre de l'étage"] = ombre_de_l_etage
 	for nom: String in retires:
 		if not _vus(retires[nom]).is_empty() or _projetants(retires[nom]).is_empty():

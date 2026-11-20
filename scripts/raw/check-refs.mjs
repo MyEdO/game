@@ -16,6 +16,7 @@ import { refRe, span, chapterFile, bookOf, readText } from './_lib.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture : tout sauf les rapports générés — une réf morte est une réf
@@ -105,4 +106,7 @@ function main() {
   process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

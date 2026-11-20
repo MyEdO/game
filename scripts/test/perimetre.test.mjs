@@ -1,6 +1,6 @@
 // Banc du périmètre de tests (#2400) : un dépôt git FORGÉ par classe de lien, sous mkdtempSync.
 import { test } from 'node:test'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, rmSync, writeFileSync } from 'node:fs'
@@ -48,7 +48,7 @@ import { exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimet
 import { memosDe } from '../guards/lib/memosDAnalyse.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
-import { profilsDuLancement } from './memoire.mjs'
+import { collecterMemoire, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { PORTEE_LOT_S, VARIABLE_PARTIE, regimeDeArgv } from './partition.mjs'
 import DureesVitest from './dureesVitest.mjs'
@@ -129,6 +129,120 @@ test('apprentissage du surcoût (#3412) : le lancement vitest simule son mur sou
   await executerLancements(b.options, { lancer })
   assert.deepEqual([...new Set(lus)].sort(), ['src/a.test.tsx', 'src/b.test.ts'])
   assert.equal(b.ecritures.filter(([nom]) => nom === SURCOUTS).length, 1)
+})
+
+test('#3163 : le verdict du périmètre suit les résumés Node quand la collecte échoue', async (t) => {
+  const fichier = 'scripts/mesure.test.mjs'
+  const fichierAbsent = 'scripts/absent.test.mjs'
+  const script = (attendu) => `import { test } from 'node:test'
+import assert from 'node:assert/strict'
+test('assertion', () => assert.equal(1, ${attendu}))
+`
+  const couper = `test('interruption', async () => {
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    process.exit(0)
+  })
+`
+  const imbrique = (todo) => `import { test } from 'node:test'
+import assert from 'node:assert/strict'
+test('parent', { todo: ${todo} }, async (t) => {
+  await t.test('enfant rouge', () => assert.fail())
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  process.exit(0)
+})
+`
+  const cas = [
+    { nom: 'vert attesté', source: script(1), code: 0, texte: /vert attesté, mesure mémoire indisponible/ },
+    { nom: 'assertion rouge attestée', source: script(2), code: 1, texte: /rouge attesté, mesure mémoire indisponible/ },
+    { nom: 'sortie zéro sans suite', source: 'process.exit(0)', code: 2, texte: /résultat Node non attesté/ },
+    { nom: 'sortie un sans assertion', source: 'process.exit(1)', code: 2, statut: 1, texte: /résultat Node non attesté/ },
+    { nom: 'clôture engagée par l’hôte', source: script(1), fermer: true, code: 2, texte: /lancement interrompu/ },
+    { nom: 'source modifiée pendant le lancement', source: script(1), modifier: true, code: 2, texte: /source modifiée pendant la mesure/ },
+    { nom: 'assertion rouge et fichier non attesté', source: script(2), incomplet: true, code: 1, texte: /résultat Node non attesté/ },
+    { nom: 'assertion suivie d’une interruption du même fichier', source: script(2) + couper, code: 1, rejeu: true, texte: /résultat Node non attesté/ },
+    { nom: 'panne avant les assertions', source: "throw new Error('amorce')", code: 2, statut: 1, texte: /résultat Node non attesté/ },
+    { nom: 'assertion imbriquée suivie d’une interruption du parent', source: imbrique(false), code: 1, rejeu: true, texte: /résultat Node non attesté/ },
+    { nom: 'todo imbriqué suivi d’une interruption', source: imbrique(true), code: 2, texte: /résultat Node non attesté/ },
+  ]
+  for (const { nom, source, fermer, incomplet, modifier, code, statut = code === 1 ? 1 : 0, rejeu, texte } of cas) await t.test(nom, async (s) => {
+    const b = bancDeCloture(s, fichier, ['node'])
+    const [{ sortie, args }] = b.options.lancements
+    mkdirSync(join(b.options.racine, 'scripts'))
+    writeFileSync(join(b.options.racine, fichier), source)
+    if (incomplet) {
+      b.options.node.push(fichierAbsent)
+      args.push(fichierAbsent)
+      writeFileSync(join(b.options.racine, fichierAbsent), 'process.exit(0)')
+    }
+    args.unshift('--test', `--test-reporter=${new URL('./dureesNodeTest.mjs', import.meta.url).href}`, `--test-reporter-destination=${sortie}`)
+    b.options.platform = 'win32'
+    const vueVide = { metriqueMemoire: 'working-set', processus: [] }
+    const collecter = (options) => {
+      if (modifier) writeFileSync(join(b.options.racine, fichier), source + '// version suivante')
+      const id = randomUUID()
+      writeFileSync(join(options.dossier, 'emissions', id + '.json'), JSON.stringify({ version: 1, generation: options.generation, id, pid: 2147483647 }))
+      const controle = { mesurerDomaine() {
+        if (fermer) options.controle.demanderArret(new Error('arrêt du contrôle'))
+        return vueVide
+      } }
+      return collecterMemoire({ ...options, controle })
+    }
+    let natif
+    const lancerNode = async (options) => {
+      natif = await lancerNodeMesure(options, { collecter })
+      return natif
+    }
+    const rendu = await executerLancements(b.options, { lancerNode })
+    const relance = ligneDeRelance({ ...rendu, lancements: rendu.joues, lint: { code: 0, defauts: [] } })
+    assert.equal(rendu.code, code, JSON.stringify(b.journal))
+    assert.match(b.journal.join('\n'), texte)
+    assert.match(b.journal.join('\n'), /MESURE_MEMOIRE_INCOMPLETE.*émission sans instance native vivante/)
+    assert.equal(b.ecritures.some(([nom]) => nom === 'memoire-node.json'), false)
+    if (code === 1) assert.match(relance, /node --test scripts\/mesure.test.mjs/)
+    if (code === 2 || incomplet || rejeu) {
+      assert.match(relance, /relancer npm run test:perimetre/)
+      assert.doesNotMatch(relance, /rouge sans fichier nommé/)
+      assert.equal(b.ecritures.length, 0)
+    }
+    if (code === 2) assert.match(relance, /^erreur d’outillage/)
+    if (incomplet || rejeu) assert.match(relance, /^rouge/)
+    if (!fermer) {
+      assert.equal(natif.arret?.etat, 'mort', JSON.stringify(b.journal))
+      assert.equal(natif.status, statut)
+      assert.equal(natif.annulee, false)
+    } else {
+      assert.equal(natif.annulee, true)
+    }
+  })
+})
+
+test('#3163 : une annulation avant la collecte demande le rejeu', async (t) => {
+  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['node'])
+  const rendu = await executerLancements({ ...b.options, platform: 'win32', signal: AbortSignal.abort() })
+  const relance = ligneDeRelance({ ...rendu, lancements: rendu.joues, lint: { code: 0, defauts: [] } })
+  assert.equal(rendu.code, 2)
+  assert.match(relance, /^erreur d’outillage — node : MESURE_MEMOIRE_INCOMPLETE — lancement annulé avant démarrage/)
+  assert.deepEqual(b.ecritures, [])
+})
+
+test('#3163 : le rejeu d’une collecte ne masque pas une assertion précédente après refus', async (t) => {
+  const fichier = 'scripts/a.test.mjs'
+  const b = bancDeCloture(t, fichier, ['node', 'node', 'node'])
+  const arret = { etat: 'mort' }
+  const tenter = [
+    { code: CODE_DIFFERE, arret, message: 'mémoire insuffisante' },
+    { code: 1, arret },
+    { code: 1, arret, annulee: true, defautCollecte: { code: 'MESURE_MEMOIRE_INCOMPLETE', message: 'défaut' } },
+  ]
+  let i = 0
+  const lancerNode = async () => {
+    if (i === 1) writeFileSync(b.options.lancements[i].sortie, JSON.stringify({ echecs: [join(b.options.racine, fichier)] }))
+    return tenter[i++]
+  }
+  const rendu = await executerLancements(b.options, { lancerNode })
+  const relance = ligneDeRelance({ ...rendu, lancements: rendu.joues, lint: { code: 0, defauts: [] } })
+  assert.equal(rendu.code, 1)
+  assert.match(relance, /^rouge — .*MESURE_MEMOIRE_INCOMPLETE.*relancer npm run test:perimetre.*node --test scripts\/a.test.mjs/)
 })
 
 test('refus d’admission : un lanceur qui rend `CODE_DIFFERE` est nommé avec sa raison, jamais compté rouge sans fichier', async (t) => {

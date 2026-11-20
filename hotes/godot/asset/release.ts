@@ -5,7 +5,7 @@
  * qui porte l'empreinte. `recupererModeles` tire de la Release le GLB qui manque dans le cache, le vérifie et le dépose
  * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas. Un modèle dont la provenance
  * porte `hors_release` (`CLE_HORS_RELEASE`) vit sur le poste seulement : ni dans la Release, ni suivi par git
- * (`suivisHorsRelease`). Les textures du sol et le kit des arêtes y vivent de même (`./epingles.ts`, #3476).
+ * (`suivisHorsRelease`). Les textures du sol et les sons y vivent de même (`./epingles.ts`, #3476).
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';

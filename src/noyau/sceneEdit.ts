@@ -46,6 +46,9 @@ import {
   ZoneArea,
   type SceneDesToits,
   rectJouable,
+  isWalkable,
+  isMerScene,
+  solPraticable,
 } from './monde/scene';
 import { aretesA } from './monde/wallIndex';
 import { estUneCoqueNavale } from './monde/coqueDeCampagne';
@@ -54,7 +57,6 @@ import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { type MapPlace, type MapRoute, type PlacePoi, type WorldMap } from './worldMap';
 import {
@@ -74,10 +76,10 @@ import {
 } from './worldMapEdit';
 import { t as tr, type MsgKey } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
-import { creatures, findCreatureById, findPropById, findSiegeEngineById, refEstVolumique, semencesDeScene } from '../data';
+import { creatures, findCreatureById, findPropById, findSiegeEngineById, findVehicleById, refEstVolumique, semencesDeScene } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
-import { estAbsent, terrainAbsent } from './monde/terrain';
+import { estAbsent, terrainAbsent, terrainsAvecGlyphe } from './monde/terrain';
 import { PARTY_MAX } from './monde/combatants';
 import {
   assignSeat,
@@ -120,15 +122,16 @@ import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
 import { entiteFootTiles } from './monde/spawn';
 import { actionNeuve, aUnRoleEnJeu } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
-import { ancreDuDecor } from './monde/footprint';
+import { ancreDuDecor, footprintN, footprintTiles } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaPortee } from '../data/schemas/grammaire/collection-cle';
-import { RENCONTRES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
-import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
+import { DIALOGUES_DE_LA_SCENE, RENCONTRES_DE_LA_SCENE, SCENES_DU_PROJET } from '../data/schemas/defs-scenes/communs';
+import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { SOUS_ENTREES, ajouteEntree, etatCouvert, indiceCouple, type CorpsNeuf, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
-import { ecritAuChemin, type CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
+import { ecritAuChemin, type CibleNarrative, type SiteLocal } from '../data/schemas/defs-scenes/refs-narratives';
+import { auChemin, estObjet } from '../lib/objet.mjs';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { refusDId, refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
 import {
@@ -950,34 +953,68 @@ export function pasteEntity(scene: Scene, data: SceneEntity, p: Pt, z = 0): { sc
   return { scene: addEntity(scene, ent, z), id };
 }
 
-/** Colle une copie de l'entité `ent` sur la case voisine au sud-est de la sienne (`pasteEntity`), sur sa couche. */
-export function dupliquerLEntite(scene: Scene, ent: SceneEntity): { scene: Scene; id: string } {
-  return pasteEntity(scene, ent, { x: ent.pos.x + 1, y: ent.pos.y + 1 }, ent.z ?? 0);
+/** La géométrie de l'éditeur : une vue où l'on marche et l'empreinte de flottaison des plans de navire. */
+interface ContexteDesCopies {
+  vue: Scene;
+  flottaison: (entite: SceneEntity) => readonly Pt[] | undefined;
 }
 
-/** Pose une troupe de `n` copies du personnage `ent` (`pasteEntity`), chacune sur la case la plus proche de la sienne
- *  (`premiereCaseEnAnneaux`), sur sa couche, où toute son empreinte (`entiteFootTiles`) tient debout (`tientDebout`,
- *  joignable à pied depuis `ent`) hors des cases d'une autre entité de la couche ou d'une copie déjà posée. Chaque copie
- *  tire ses Caractéristiques au hasard (LDB 77 l.108) et entre dans chaque rencontre de `ent` au même titre, sans la
- *  monture qu'il chevauche ni la désignation du navire de campagne. Moins de `n` copies quand la couche manque de cases. */
-export function poserUneTroupe(scene: Scene, ent: SceneEntity, n: number): { scene: Scene; ids: string[] } {
-  const z = ent.z ?? 0;
+/** Place les copies sur la couche du modèle, de proche en proche, où toute leur empreinte tient hors des cases
+ *  occupées. On marche sur la vue, ponts compris. Une coque occupe sa flottaison sur la carte d'auteur et peut
+ *  se poser sur l'eau. Les copies s'écrivent à la scène d'auteur. */
+function placerDesCopies(scene: Scene, modele: SceneEntity, nombre: number, contexte?: ContexteDesCopies, priorite?: Pt): { scene: Scene; ids: string[] } {
+  const z = modele.z ?? 0;
   const mpt = sceneMetresPerTile(scene);
-  const cles = (e: SceneEntity) => entiteFootTiles(e, mpt).map((t) => tileKey(t.x, t.y, z));
-  const tenues = new Set(scene.entities.filter((e) => (e.z ?? 0) === z).flatMap(cles));
-  const tient = tientDebout(scene, { ...ent.pos, z }, tenues);
-  const modele: SceneEntity = { ...ent, combat: { ...ent.combat, randomChars: true } };
-  const portee = Math.max(scene.dimensions.w, scene.dimensions.h);
+  const flottaison = contexte?.flottaison(modele);
+  const navire = flottaison !== undefined || (isMerScene(scene) && estUneCoqueNavale(modele));
+  const carte = navire ? scene : (contexte?.vue ?? scene);
+  const empreinteSansPlan = (e: SceneEntity) => {
+    const coque = navire && e.vehicule && findVehicleById(e.vehicule.id)?.ship;
+    return coque ? footprintTiles(e.pos, footprintN(coque)) : entiteFootTiles(e, mpt);
+  };
+  const empreinte = flottaison ?? empreinteSansPlan(modele);
+  const decalages = empreinte.map((t) => ({ x: t.x - modele.pos.x, y: t.y - modele.pos.y }));
+  const cle = (t: Pt) => tileKey(t.x, t.y, z);
+  const casesTenues = (e: SceneEntity) => {
+    if (e.id === modele.id) return empreinte.map(cle);
+    const plan = navire ? contexte?.flottaison(e) : undefined;
+    return (plan ?? empreinteSansPlan(e)).map(cle);
+  };
+  const tenues = new Set(carte.entities.filter((e) => (e.z ?? 0) === z).flatMap(casesTenues));
+  const sol = aUnRoleEnJeu(scene, modele) ? isWalkable : solPraticable;
+  const terrainsAdmis = navire ? new Set([terrainsAvecGlyphe()['~']]) : undefined;
+  const tient = navire || modele.kind === 'prop'
+    ? (x: number, y: number) => dansLaCarte(carte, { x, y }) && !tenues.has(cle({ x, y })) && sol(carte, x, y, z, terrainsAdmis)
+    : tientDebout(carte, { ...modele.pos, z }, tenues);
+  const accepte = (x: number, y: number) => decalages.every((d) => tient(x + d.x, y + d.y));
+  const portee = Math.max(carte.dimensions.w, carte.dimensions.h);
   let posee = scene;
   const ids: string[] = [];
-  for (let i = 0; i < n; i++) {
-    const p = premiereCaseEnAnneaux(ent.pos, 1, portee, (x, y) => entiteFootTiles({ ...modele, pos: { x, y } }, mpt).every((t) => tient(t.x, t.y)));
+  for (let i = 0; i < nombre; i++) {
+    const p = priorite && accepte(priorite.x, priorite.y) ? priorite : premiereCaseEnAnneaux(modele.pos, 1, portee, accepte);
     if (!p) break;
-    for (const k of cles({ ...modele, pos: p })) tenues.add(k);
+    for (const d of decalages) tenues.add(tileKey(p.x + d.x, p.y + d.y, z));
     const copie = pasteEntity(posee, modele, p, z);
     posee = copie.scene;
     ids.push(copie.id);
   }
+  return { scene: posee, ids };
+}
+
+/** Duplique l'entité sur sa couche, en préférant la case sud-est du premier anneau si son empreinte y tient.
+ *  Sans place, garde la scène et l'identifiant de l'entité sélectionnée. */
+export function dupliquerLEntite(scene: Scene, ent: SceneEntity, contexte?: ContexteDesCopies): { scene: Scene; id: string } {
+  const posee = placerDesCopies(scene, ent, 1, contexte, { x: ent.pos.x + 1, y: ent.pos.y + 1 });
+  return { scene: posee.scene, id: posee.ids[0] ?? ent.id };
+}
+
+/** Pose une troupe de `n` copies du personnage `ent` (`placerDesCopies`). Chaque copie tire ses Caractéristiques
+ *  au hasard (LDB 77 l.108) et entre dans chaque rencontre de `ent` au même titre, sans la monture qu'il chevauche ni
+ *  la désignation du navire de campagne. Moins de `n` copies quand la couche manque de cases. */
+export function poserUneTroupe(scene: Scene, ent: SceneEntity, n: number, contexte?: ContexteDesCopies): { scene: Scene; ids: string[] } {
+  const modele: SceneEntity = { ...ent, combat: { ...ent.combat, randomChars: true } };
+  const { scene: posee, ids } = placerDesCopies(scene, modele, n, contexte);
+  if (!ids.length) return { scene, ids };
   const encounters = posee.encounters.map((enc) => {
     const m = enc.members?.find((mm) => mm.entityId === ent.id);
     return m ? { ...enc, members: [...enc.members!, ...ids.map((entityId) => champs(m, {
@@ -995,13 +1032,35 @@ export function placeEntry(scene: Scene, p: Pt, z = 0): { scene: Scene; id: stri
   return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, p, true), ...(z ? { z } : {}) } } }, id };
 }
 
+/** Le refus d'un identifiant d'entrée vide ou pris dans sa scène. */
+export function refusDIdDEntree(scene: Scene, de: string, vers: string): string | null {
+  return refusDId(de, vers.trim(), (candidat) => scene.entryPoints?.[candidat] ? `« ${candidat} »` : null);
+}
+
 /** Renomme un point d'entrée (clé unique, non vide). Renvoie la scène inchangée si conflit. */
 export function renameEntry(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
-  if (!next || next === from || scene.entryPoints?.[next] || !scene.entryPoints?.[from]) return scene;
-  const entries: Record<string, Pt> = {};
-  for (const [k, v] of Object.entries(scene.entryPoints)) entries[k === from ? next : k] = v;
-  return { ...scene, entryPoints: entries };
+  if (next === from || !Object.prototype.hasOwnProperty.call(scene.entryPoints ?? {}, from) || refusDIdDEntree(scene, from, next)) return scene;
+  const entryPoints = Object.fromEntries(Object.entries(scene.entryPoints ?? {}).map(([id, pos]) => [id === from ? next : id, pos]));
+  return { ...scene, entryPoints };
+}
+
+/** Renomme une entrée et tous les points d'arrivée qui la désignent avec sa scène. */
+export function renommeEntreeDuProjet(projet: ProjetDEdition, sceneId: string, de: string, vers: string): ProjetDEdition {
+  const scene = DOCUMENTS.scene.lire(projet, sceneId);
+  if (!scene) return projet;
+  const renommee = renameEntry(scene, de, vers);
+  if (renommee === scene) return projet;
+  const sites = sitesVisantLaScene(projet, sceneId).flatMap(({ chemin, parCle }) => {
+    const [champ, identifiant] = chemin.slice(-2);
+    if (parCle || champ !== 'scene' || identifiant !== 'id') return [];
+    const parent = chemin.slice(0, -2);
+    const destination = auChemin(projet, parent);
+    return estObjet(destination) && Object.prototype.hasOwnProperty.call(destination, 'entry') && destination.entry === de
+      ? [{ chemin: [...parent, 'entry'], parCle: false, id: de }]
+      : [];
+  });
+  return reecritSitesDuProjet(DOCUMENTS.scene.ecrire(projet, sceneId, renommee), sites, vers.trim());
 }
 
 /** Crée un trigger sur `rect`, à l'étage `z` (id frais). */
@@ -1051,20 +1110,18 @@ export function removeDialogue(scene: Scene, id: string): Scene {
   return { ...scene, dialogues: scene.dialogues.filter((d) => d.id !== id) };
 }
 
-/** Renomme le dialogue `from` et le PROPAGE à ses ouvreurs : le `dialogueId` des entités et chaque effet
- *  « Ouvrir un dialogue » de la scène (`sitesDeLaScene`). Refusé (scène inchangée) pour un id vide ou
- *  déjà porté par un autre dialogue. `sceneSchema` (portée `dialogues`), `EFFECT_HANDLERS.startDialogue.refs`. */
+/** Le refus d'un identifiant de dialogue vide ou pris dans sa scène. */
+function refusDIdDeDialogue(scene: Scene, de: string, vers: string): string | null {
+  return refusDId(de, vers.trim(), (candidat) => dialoguesDeLaScene(scene).has(candidat) ? `« ${candidat} »` : null);
+}
+
+/** Renomme le dialogue et propage son identifiant à ses ouvreurs par la portée des dialogues de sa scène. */
 export function renameDialogue(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
-  const declares = dialoguesDeLaScene(scene);
-  if (!next || next === from || declares.has(next) || !declares.has(from)) return scene;
-  const copie = structuredClone(scene);
-  for (const { effet } of sitesDeLaScene(copie).effets) {
-    const ouvre = effet as Effect;
-    if (ouvre.type === 'startDialogue' && ouvre.dialogue.id === from) ouvre.dialogue = { id: next };
-  }
-  const renomme = { ...copie, dialogues: copie.dialogues.map((d) => (d.id === from ? { ...d, id: next } : d)) };
-  return renomme.entities.filter((e) => e.dialogueId?.id === from).reduce((s, e) => editEntity(s, e.id, { dialogueId: { id: next } }), renomme);
+  if (next === from || !dialoguesDeLaScene(scene).has(from) || refusDIdDeDialogue(scene, from, next)) return scene;
+  const sites = sitesDeLaPortee(sceneSchema, scene, DIALOGUES_DE_LA_SCENE).filter((site) => site.id === from);
+  const copie = reecritSites(scene, sites, next);
+  return { ...copie, dialogues: copie.dialogues.map((d) => (d.id === from ? { ...d, id: next } : d)) };
 }
 
 /** Ajoute au dialogue son nœud neuf (`noeudNeuf`). */
@@ -1367,9 +1424,10 @@ function soeursDansLeDialogue(dialogue: Dialogue, parent: string | undefined): {
  *  parent `parent` (`soeursDansLeDialogue`) : vide, ou déjà porté par un de ses sœurs (`refusDId`) ; `null` s'il est
  *  retenu, inchangé, ou sans élément désigné. */
 function refusDIdentifierDansLeDialogue(scene: Scene, id: string, vers: string, element: string | undefined, parent?: string): string | null {
+  if (element === undefined) return refusDIdDeDialogue(scene, id, vers);
   const dialogue = scene.dialogues.find((d) => d.id === id);
   const soeurs = dialogue && soeursDansLeDialogue(dialogue, parent);
-  if (element === undefined || !soeurs?.elements.some((e) => e.id === element)) return null;
+  if (!soeurs?.elements.some((e) => e.id === element)) return null;
   return refusDId(element, vers.trim(), (candidat) => {
     const j = soeurs.elements.findIndex((e) => e.id === candidat);
     return j >= 0 ? tr(soeurs.porteur, { n: j + 1 }) : null;
@@ -1841,13 +1899,52 @@ export function setNorthDeg(scene: Scene, deg: number | undefined): Scene {
   return champ(scene, 'northDeg', deg === undefined || !Number.isFinite(deg) ? undefined : ((deg % 360) + 360) % 360);
 }
 
-/** Renomme la racine éditée du projet, une scène ou la carte du monde. Refusé (racine rendue inchangée) pour un id
- *  vide, ou déjà porté par une autre racine (`autres`) : les transitions et la carte du monde désignent une scène par
- *  son id, et `validateScene` range les fautes de la carte sous le sien. */
+/** Le refus d'un identifiant de racine vide ou pris par une autre scène ou carte. */
+export function refusDIdDeRacine(de: string, autres: readonly Pick<Scene, 'id'>[], vers: string): string | null {
+  return refusDId(de, vers.trim(), (candidat) => autres.some((racine) => racine.id === candidat) ? `« ${candidat} »` : null);
+}
+
+/** Renomme la racine éditée du projet, une scène ou la carte du monde, sous un identifiant libre et non vide. */
 export function renameScene<R extends Pick<Scene, 'id'>>(racine: R, autres: readonly Pick<Scene, 'id'>[], to: string): R {
   const next = to.trim();
-  if (!next || next === racine.id || autres.some((s) => s.id === next)) return racine;
+  if (next === racine.id || refusDIdDeRacine(racine.id, autres, next)) return racine;
   return { ...racine, id: next };
+}
+
+type CheminDeSite = SiteLocal['chemin'];
+
+/** Réécrit par chemin les sites visés sous une racine, du plus profond au moins profond. */
+function reecritSites<T>(racine: T, sites: readonly SiteLocal[], vers: string, prefixe: CheminDeSite = []): T {
+  const ici = sites.filter(({ chemin }) => prefixe.every((pas, rang) => chemin[rang] === pas));
+  if (!ici.length) return racine;
+  const copie = structuredClone(racine);
+  for (const { chemin, parCle } of ici.sort((a, b) => b.chemin.length - a.chemin.length))
+    ecritAuChemin(copie, chemin.slice(prefixe.length), parCle, vers);
+  return copie;
+}
+
+/** Réécrit les références recensées à la racine du projet, en recopiant les seuls documents visés. */
+function reecritSitesDuProjet(projet: ProjetDEdition, sites: readonly SiteLocal[], vers: string): ProjetDEdition {
+  if (!sites.length) return projet;
+  return {
+    ...projet,
+    scenes: projet.scenes.map((scene, rang) => reecritSites(scene, sites, vers, ['scenes', rang])),
+    ...(projet.worldMap ? { worldMap: reecritSites(projet.worldMap, sites, vers, ['worldMap']) } : {}),
+    narratif: reecritSites(projet.narratif, sites, vers, ['narratif']),
+  };
+}
+
+const sitesVisantLaScene = (projet: ProjetDEdition, id: string): SiteLocal[] =>
+  sitesDeLaPortee(projetSchema, projet, SCENES_DU_PROJET).filter((site) => site.id === id);
+
+/** Renomme une scène et propage son identifiant à ses références dans le même projet. */
+export function renommeSceneDuProjet(projet: ProjetDEdition, de: string, vers: string): ProjetDEdition {
+  const scene = DOCUMENTS.scene.lire(projet, de);
+  if (!scene) return projet;
+  const autres = projet.worldMap ? [...projet.scenes, projet.worldMap] : projet.scenes;
+  const renommee = renameScene(scene, autres, vers);
+  if (renommee === scene) return projet;
+  return reecritSitesDuProjet(DOCUMENTS.scene.ecrire(projet, de, renommee), sitesVisantLaScene(projet, de), renommee.id);
 }
 
 /** Réécrit le point d'entrée `id` : sa case est plafonnée à la zone jouable et ramenée à une case entière

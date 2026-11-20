@@ -9,8 +9,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
 import type { Bouton, Choix, Entite, Formulaire } from '../../../src/hote/elements';
 import type { ZonesDuCompendium } from '../../../src/hote/compendium';
-import { datasetArray, datasetObject, resetData } from '../../../src/data/overrides';
+import { datasetArray, datasetObject, resetData, setDataset } from '../../../src/data/overrides';
 import { hash32 } from '../../../src/lib/hash';
+import { rangee } from '../../../src/data/schemas/defs/mutationTables';
+import { validateDataset } from '../../../src/data/schemas/validate';
 import { categoryByKey } from '../../../src/noyau/index';
 
 /** Le libellé de fiche de l'entrée `id` de la catégorie `categorie`. */
@@ -83,6 +85,40 @@ describe('compendium', () => {
     expect(fermee['compendium.atelier'].map((e) => e.id)).toEqual(['modifier', 'creer']);
     expect(fermee['compendium.fiche'][0].nom).toBe('Libellé édité');
     expect(erreurDe(appel('compendium', { compendium: { geste: 'enregistrement', reussi: true } })).message).toBe('compendium : aucun enregistrement ni suppression en cours');
+  });
+
+  it('choisit la mutation d’une rangée par son libellé et exporte son id avec ses bornes', () => {
+    const mutations = [
+      { id: 'mutation-3915-originale', label: 'Mutation originale' },
+      { id: 'mutation-3915-choisie', label: 'Mutation choisie' },
+    ].map((m) => ({ ...m, type: 'mutations' as const, maison: 'Mutation de test', desc: 'Mutation de test.', kind: 'physique' as const }));
+    setDataset('mutations', [...datasetArray('mutations'), ...mutations]);
+    const bornes = { min: 1, max: 6 };
+    const originale = { id: mutations[0].id, ...bornes };
+    const document = {
+      id: 'table-de-corruption-3915',
+      type: 'mutationTables' as const,
+      label: 'Table de test',
+      maison: 'Table de test',
+      die: { n: 1, sides: 6 },
+      entries: [rangee.parse(originale)],
+    };
+    setDataset('mutationTables', [...datasetArray('mutationTables'), document]);
+
+    const { appel } = table();
+    const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'mutationTables', id: document.id }));
+    const atelier = zonesDe(appel('compendium', boutonDe(ouvert, 'modifier').jeu));
+    const mutation = boutonDe(atelier, `valeur/entries/0/id/${JSON.stringify(mutations[1].id)}`);
+    expect(mutation.libelle).toBe(mutations[1].label);
+    const ecrit = zonesDe(appel('compendium', mutation.jeu));
+    const enregistre = appel('compendium', boutonDe(ecrit, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
+    const exportees = JSON.parse(enregistre.donnees.texte);
+    expect(enregistre.donnees.fichier).toBe('mutationTables.json');
+    expect(validateDataset(enregistre.donnees.fichier, exportees)).toBeNull();
+    expect(exportees.find((e: { id: string }) => e.id === document.id)).toEqual({
+      ...document,
+      entries: [{ id: mutations[1].id, ...bornes }],
+    });
   });
 
   it('un nombre que le schéma veut entier se saisit au pas de 1 : la page d’une source', () => {

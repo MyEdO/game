@@ -35,7 +35,6 @@
     "godot:epingles": "node hotes/godot/epingles.mjs",
     "godot:son": "node hotes/godot/son.mjs",
     "godot:textures": "node hotes/godot/textures.mjs",
-    "godot:kit": "node hotes/godot/kit.mjs",
     "godot:evaluer": "node hotes/godot/asset/evaluer.mjs",
     "godot:valider": "node hotes/godot/asset/valider.mjs",
     "bench": "node scripts/lancer-local.mjs vitest -- vitest bench --run",

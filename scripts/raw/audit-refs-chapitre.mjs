@@ -24,6 +24,7 @@ import { join } from 'node:path'
 import { parUnitesDeCode, listerArbre } from '../guards/lib/lister.mjs'
 import { refRe, refNums, isRangeSuffix, chapterFile, bookOf, readText, pagesDeLAtlas } from './_lib.mjs'
 import { EXTS_CITANTES } from './lib/fichiersCitants.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const ROOTS = ['src', 'scripts', 'docs']
 export const SKIP_DIRS = new Set(['node_modules', '.git', 'plans', 'superpowers'])
@@ -125,4 +126,7 @@ function main() {
   console.log(`\n${vides} ancre(s) VIDE!!/HORS BORNE!! — triage, pas un verdict.`)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

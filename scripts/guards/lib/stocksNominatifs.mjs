@@ -548,28 +548,33 @@ const extensionAjoutee = (sans, avec) => !EXTENSION.test(sans) && avec.replace(E
  * Les objets rendus sont ceux reçus : `paires` = `[avant, apres]`.
  * @template {{ cle: string, texte: string }} E
  * @param {E[]} avant @param {E[]} apres
+ * @param {{ cle?: (e: E) => string, extensions?: boolean }} [options]
  * @returns {{ paires: [E, E][], nees: E[], mortes: E[] }}
  */
-function apparier(avant, apres) {
+function apparier(avant, apres, { cle = (e) => e.cle, extensions = true } = {}) {
   /** @type {Map<string, E[]>} */
   const restantes = new Map();
-  for (const e of avant) (restantes.get(e.cle) ?? restantes.set(e.cle, []).get(e.cle)).push(e);
+  for (const e of avant) {
+    const k = cle(e);
+    (restantes.get(k) ?? restantes.set(k, []).get(k)).push(e);
+  }
   const paires = [];
   const aTexteInegal = apres.filter((e) => {
-    const memes = restantes.get(e.cle) ?? [];
+    const memes = restantes.get(cle(e)) ?? [];
     const i = memes.findIndex((m) => m.texte === e.texte);
     if (i < 0) return true;
     paires.push([memes.splice(i, 1)[0], e]);
     return false;
   });
   const aCleInegale = aTexteInegal.filter((e) => {
-    const [a] = (restantes.get(e.cle) ?? []).splice(0, 1);
+    const [a] = (restantes.get(cle(e)) ?? []).splice(0, 1);
     if (a) paires.push([a, e]);
     return !a;
   });
   const mortes = [...restantes.values()].flat();
+  if (!extensions) return { paires, nees: aCleInegale, mortes };
   const nees = aCleInegale.filter((e) => {
-    const i = mortes.findIndex((m) => extensionAjoutee(m.cle, e.cle) || extensionAjoutee(e.cle, m.cle));
+    const i = mortes.findIndex((m) => extensionAjoutee(cle(m), cle(e)) || extensionAjoutee(cle(e), cle(m)));
     if (i < 0) return true;
     paires.push([mortes.splice(i, 1)[0], e]);
     return false;
@@ -595,6 +600,139 @@ function ecartDEntrees(pre, post) {
   return { nees: nees.map(vueDEntree), mortes: mortes.map(vueDEntree) };
 }
 
+/** @typedef {{ cle: string, texte: string }} EntreeDeFusion */
+/** @typedef {{ retenues: EntreeDeFusion[], perdues: EntreeDeFusion[], autorisees: number, parents?: number[], lireApres?: () => string | null }} TransactionDeStock */
+
+/** #3050 */
+function provenanceDuStock(base, transactions, suivies, fichier) {
+  const socle = base.map((e) => ({ ...e, origine: { base: e } }))
+  const etats = new Map([[-1, socle]])
+  const retraits = new Map()
+  const etat = (i) => {
+    if (etats.has(i)) return etats.get(i)
+    const transaction = transactions[i]
+    const image = transaction.lireApres && entreesDeLImage(transaction.lireApres, fichier)
+    const textes = new Set(image?.map(identite))
+    const versions = new Map()
+    for (const entree of (transaction.parents ?? [i - 1]).flatMap(etat)) {
+      if (!versions.has(entree.origine) || textes.has(identite(entree))) versions.set(entree.origine, entree)
+    }
+    const avant = [...versions.values()]
+    const parties = new Set(apparier(avant, transaction.perdues, suivies).paires.map(([e]) => e))
+    retraits.set(i, [...parties].map((e) => e.origine))
+    const apres = [
+      ...transaction.retenues.map((e) => ({ ...e, origine: { commit: i } })),
+      ...avant.filter((e) => !parties.has(e)),
+    ]
+    const projetees = image ? apparier(apres, image, suivies).paires.map(([ancienne, e]) => ({ ...e, origine: ancienne.origine })) : apres
+    etats.set(i, projetees)
+    return projetees
+  }
+  return { presentes: etat(transactions.length - 1), retraits }
+}
+
+/** #3050 */
+function financerLesNaissances({ transactions, retraits, communes, effectives, cibles }) {
+  const source = Symbol()
+  const puits = Symbol()
+  const graphe = new Map()
+  const pertes = []
+  const donnes = new Set()
+  const jetons = new Set()
+  const relier = (de, vers, capacite = 1) => {
+    const sorties = graphe.get(de) ?? new Map()
+    const retours = graphe.get(vers) ?? new Map()
+    sorties.set(vers, (sorties.get(vers) ?? 0) + capacite)
+    if (!retours.has(de)) retours.set(de, 0)
+    graphe.set(de, sorties)
+    graphe.set(vers, retours)
+  }
+  const limiter = (origine) => {
+    if (!jetons.has(origine)) {
+      relier(origine.commit, origine)
+      jetons.add(origine)
+    }
+  }
+  for (const [i, { autorisees }] of transactions.entries()) {
+    if (autorisees) relier(source, i, autorisees)
+    for (const origine of retraits.get(i) ?? []) {
+      if (origine.commit !== undefined) {
+        limiter(origine)
+        relier(origine, i)
+      } else if (effectives.has(origine.base)) {
+        if (!donnes.has(origine.base)) relier(source, origine.base)
+        donnes.add(origine.base)
+        relier(origine.base, i)
+      } else if (communes.has(origine.base)) {
+        pertes.push(i)
+      }
+    }
+  }
+  for (const [entree, origine] of cibles) {
+    limiter(origine)
+    relier(origine, entree)
+    relier(entree, puits)
+  }
+  const augmenter = () => {
+    const chemin = new Map([[source, null]])
+    const visites = [source]
+    for (const noeud of visites) {
+      if (noeud === puits) break
+      for (const [vers, capacite] of graphe.get(noeud) ?? []) {
+        if (capacite > 0 && !chemin.has(vers)) {
+          chemin.set(vers, noeud)
+          visites.push(vers)
+        }
+      }
+    }
+    const payee = chemin.get(puits)
+    if (!payee) return null
+    for (let etape = puits; etape !== source;) {
+      const avant = chemin.get(etape)
+      graphe.get(avant).set(etape, graphe.get(avant).get(etape) - 1)
+      graphe.get(etape).set(avant, graphe.get(etape).get(avant) + 1)
+      etape = avant
+    }
+    return payee
+  }
+  const financer = () => {
+    const payees = []
+    for (let entree = augmenter(); entree !== null; entree = augmenter()) payees.push(entree)
+    return payees
+  }
+  if (financer().length === cibles.size) return []
+  for (const i of pertes) relier(source, i)
+  return financer()
+}
+
+/** #3050 */
+function naissancesDuDoubleSolde({ base, chantier, tronc, vueDuChantier, vueDuTronc, fusion, cleSuivie, journal, fichier }) {
+  const mortsDuTronc = new Set(vueDuTronc.mortes)
+  const communs = new Set(vueDuChantier.mortes.filter((e) => mortsDuTronc.has(e)))
+  if (!communs.size) return []
+  const { nees, mortes } = apparier(tronc, fusion, { extensions: false })
+  const auDelaDuTronc = new Set(nees)
+  const neesDansLeChantier = new Set(vueDuChantier.nees)
+  const suivies = { cle: cleSuivie }
+  const nouvellesVivantes = new Map(apparier(chantier, fusion, suivies).paires
+    .filter(([origine, finale]) => neesDansLeChantier.has(origine) && auDelaDuTronc.has(finale)))
+  if (!nouvellesVivantes.size) return []
+  const sortiesEffectives = new Set(mortes)
+  const surLeTronc = new Map(vueDuTronc.paires)
+  const soldesEffectifs = new Set(vueDuChantier.mortes.filter((e) => sortiesEffectives.has(surLeTronc.get(e))))
+  const transactions = journal?.() ?? [{
+    retenues: vueDuChantier.nees,
+    perdues: vueDuChantier.mortes,
+    autorisees: Math.max(0, vueDuChantier.nees.length - vueDuChantier.mortes.length),
+  }]
+  const { presentes, retraits } = provenanceDuStock(base, transactions, suivies, fichier)
+  const cibles = new Map(apparier(presentes, chantier, suivies).paires
+    .filter(([e, actuelle]) => e.origine.commit !== undefined && nouvellesVivantes.has(actuelle))
+    .map(([e, actuelle]) => [nouvellesVivantes.get(actuelle), e.origine]))
+  if (!cibles.size) return []
+  return financerLesNaissances({ transactions, retraits, communes: communs, effectives: soldesEffectifs, cibles })
+}
+
 /**
  * Ce qu'une FUSION fait naître ou mourir, en ENTRÉES comptées par CLÉ, PUR (#2223) : contre sa fusion AUTOMATIQUE,
  * rejouée sur les entrées de ses parents réels et de leur `base` commune, et contre son parent TRONC (#1463, #3023).
@@ -609,10 +747,10 @@ function ecartDEntrees(pre, post) {
  * commune ↦ chemin d'un parent) compte une clé sous le nom que son fichier prend, comme `bilanDuPorteur` d'un commit.
  * CONTRAT : les entrées de `base` sont des objets DISTINCTS — l'appariement les reconnaît par
  * identité d'objet, et deux entrées partageant un objet n'en feraient qu'une.
- * @param {{ base: { cle: string, texte: string }[], parents: [{ cle: string, texte: string }[], { cle: string, texte: string }[]], fusion: { cle: string, texte: string }[], tronc?: 0 | 1 | null, renommages?: Map<string, string> }} p
- * @returns {{ nees: { cle: string, texte: string }[], mortes: { cle: string, texte: string }[] }}
+ * @param {{ base: EntreeDeFusion[], parents: [EntreeDeFusion[], EntreeDeFusion[]], fusion: EntreeDeFusion[], tronc?: 0 | 1 | null, renommages?: Map<string, string>, journal?: () => TransactionDeStock[], fichier?: string }} p
+ * @returns {{ nees: EntreeDeFusion[], mortes: EntreeDeFusion[], clesDuSolde?: Set<string>, soldeSeul?: boolean }}
  */
-export function apportDeFusion({ base, parents, fusion, tronc = null, renommages = new Map() }) {
+export function apportDeFusion({ base, parents, fusion, tronc = null, renommages = new Map(), journal, fichier }) {
   const [c1, c2] = parents.map((cote) => apparier(base, cote))
   const [g1, g2] = [c1, c2].map((c) => new Map(c.paires))
   const gardees = base.flatMap((e) => {
@@ -649,10 +787,22 @@ export function apportDeFusion({ base, parents, fusion, tronc = null, renommages
     return [...entrees].sort((a, b) => vues(a) - vues(b))
   }
   const prises = (entrees, contre, quota) => cles.flatMap((k) => inedites(entrees.filter((e) => cleSuivie(e) === k), contre).slice(0, quota(k)))
-  if (croissance > 0) {
-    const parCle = prises(fusion, references, nait)
-    const enPlus = inedites(fusion.filter((e) => !parCle.includes(e)), references).slice(0, croissance - parCle.length)
-    return { nees: [...parCle, ...enPlus].map(vueDEntree), mortes: [] }
+  const soldes = tronc === null ? [] : naissancesDuDoubleSolde({
+    base, chantier: parents[1 - tronc], tronc: parents[tronc], vueDuChantier: [c2, c1][tronc],
+    vueDuTronc: [c1, c2][tronc], fusion, cleSuivie, journal, fichier,
+  })
+  if (croissance > 0 || soldes.length > 0) {
+    const reprises = new Set(soldes)
+    const disponibles = fusion.filter((e) => !reprises.has(e))
+    const parCle = prises(disponibles, references, nait)
+    const enPlus = inedites(disponibles.filter((e) => !parCle.includes(e)), references).slice(0, croissance - parCle.length)
+    return {
+      nees: [...parCle, ...enPlus, ...soldes].map(vueDEntree), mortes: [],
+      ...(soldes.length ? {
+        clesDuSolde: new Set(soldes.map((e) => e.cle)),
+        soldeSeul: parCle.length + enPlus.length === 0,
+      } : {}),
+    }
   }
   return { nees: [], mortes: prises(tronc === null ? automatique : parents[tronc], [fusion], meurt).map(vueDEntree) }
 }
@@ -666,21 +816,31 @@ const identite = (e) => `${e.cle}\n${e.texte}`
  * Une image absente (`null`) n'a aucune entrée ; une image hors `DIALECTE` non plus (les familles de
  * `PORTEURS` sont toutes dans un dialecte). `tronc` = le rang du parent tronc, `renommages()` = les fichiers que ses
  * parents renomment depuis la base commune, lus à la demande (`apportDeFusion`).
- * @param {{ fichiers: string[], lire: { fusion: (c: string) => string | null, parents: [(c: string) => string | null, (c: string) => string | null], commune: (c: string) => string | null }, tronc?: 0 | 1 | null, renommages?: () => Map<string, string> }} p
+ * @param {{ fichiers: string[], lire: { fusion: (c: string) => string | null, parents: [(c: string) => string | null, (c: string) => string | null], commune: (c: string) => string | null }, tronc?: 0 | 1 | null, renommages?: () => Map<string, string>, journal?: (fichier: string) => TransactionDeStock[] }} p
  * @returns {ReturnType<typeof bilanDesStocks>}
  */
-export function bilanDeFusion({ fichiers, lire, tronc = null, renommages = () => new Map() }) {
+export function bilanDeFusion({ fichiers, lire, tronc = null, renommages = () => new Map(), journal }) {
   const porteurs = fichiers.filter(estPorteurDeStock).sort(parUnitesDeCode)
   const suivis = porteurs.length ? renommages() : new Map()
   return porteurs.map((fichier) => {
     const entrees = (l) => entreesDeLImage(l, fichier) ?? []
-    const { nees, mortes } = apportDeFusion({
+    const { nees, mortes, clesDuSolde, soldeSeul } = apportDeFusion({
       base: entrees(lire.commune),
       parents: [entrees(lire.parents[0]), entrees(lire.parents[1])],
       fusion: entrees(lire.fusion),
       tronc,
       renommages: suivis,
+      journal: journal && (() => journal(fichier)),
+      fichier,
     })
+    return { ...bilanDuPorteur(fichier, nees, mortes, new Map()), ...(clesDuSolde && { clesDuSolde, soldeSeul }) }
+  })
+}
+
+/** #3050 */
+export function bilanDesClesReelles(fichiers, lireAvant, lireApres) {
+  return fichiers.filter(estPorteurDeStock).map((fichier) => {
+    const { nees, mortes } = apparier(entreesDeLImage(lireAvant, fichier) ?? [], entreesDeLImage(lireApres, fichier) ?? [], { extensions: false })
     return bilanDuPorteur(fichier, nees, mortes, new Map())
   })
 }

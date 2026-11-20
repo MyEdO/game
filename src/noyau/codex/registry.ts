@@ -1660,8 +1660,8 @@ const CODEX_SPECS = {
       sections: sections({
         title: tr('codex.fiche.tirageMutation', { die: formatDice(deDeLaTableTiree(t)) }), layout: 'list',
         rows: t.entries.map((r) => {
-          const label = mutations.find((mu) => mu.id === r.mutation)?.label ?? r.mutation;
-          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(t))) } as CodexRow;
+          const label = refLabel('mutations', r);
+          return { t: 'ref', category: 'mutations', id: r.id, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(t))) } as CodexRow;
         }),
       }),
     })),

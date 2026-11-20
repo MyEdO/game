@@ -8,6 +8,7 @@ import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
 import { EXTS_IMPLEMENTANTES, RACINES_DU_CODE, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Manifests ÉDITORIAUX de `src/data/` : ils parlent DU dépôt (dette d'un topic, inventaire d'une
@@ -746,4 +747,7 @@ function main() {
   if (orphans.length || sansObjet.length) process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}
