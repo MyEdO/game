@@ -50,7 +50,6 @@ import {
   ficheDuPorteur,
   gestesDeLObjet,
   interludeEnVue,
-  jetsEnVue,
   porteurParId,
   recitEnVue,
   refLabel,
@@ -76,7 +75,6 @@ import {
   type LigneDeJet,
   type LigneDuJournal,
   type ModLine,
-  type RollBreakdown,
   type TrajetEnVue,
   cibleDuCodex,
   ordreDuRoundSuivant,
@@ -296,17 +294,21 @@ const puces = (id: string, mods: readonly ModLine[] | undefined, modsDR?: readon
   ...(modsDR ?? []).map((m, i) => puce(`${id}/mDR${i}`, m.label, `${avecSigne(m.value)} DR`)),
 ];
 
-/** Ce dont une cible est faite, une ligne par part : sa base, sa Difficulté et les paliers qui la composent
- *  (LDB 14 l.91-96), puis son écrêtage MESURÉ (`clamped`, `engine/tests.ts` : négatif au plafond, positif au plancher). */
-interface CompositionDeLaCible { base: number | null; difficulte: string | null; paliers?: readonly ModLine[]; target: number | null; clamped?: number }
+type LigneDeTest = Extract<LigneDeJet, { genre: 'test' }>;
+
+const difficulteDuJet = (c: LigneDeTest['composition']): string | null =>
+  c?.difficulty ? difficultyText(c.difficulty, c.difficultyCombined) : null;
 
 /** Le détail d'un jet : la composition de sa cible, puis `enPlus` ; `null` sans rien à dire. */
-function detailDuJet(c: CompositionDeLaCible, enPlus: readonly string[] = []): string | null {
+function detailDuJet(l: LigneDeTest, enPlus: readonly string[]): string | null {
+  const { composition: c, cible } = l;
+  if (cible === null || !c) return null;
+  const difficulte = difficulteDuJet(c);
   const lignes = [
     ...(c.base === null ? [] : [t('ecran.jet.base', { base: c.base })]),
-    ...(c.difficulte === null ? [] : [c.difficulte]),
-    ...(c.paliers ?? []).map((m) => t('ecran.jet.part', { libelle: m.label, valeur: avecSigne(m.value) })),
-    ...(c.clamped && c.target !== null ? [t(c.clamped < 0 ? 'ecran.jet.plafond' : 'ecran.jet.plancher', { cible: c.target, ecart: avecSigne(c.clamped) })] : []),
+    ...(difficulte === null ? [] : [difficulte]),
+    ...(c.difficultyParts ?? []).map((m) => t('ecran.jet.part', { libelle: m.label, valeur: avecSigne(m.value) })),
+    ...(c.clamped ? [t(c.clamped < 0 ? 'ecran.jet.plafond' : 'ecran.jet.plancher', { cible, ecart: avecSigne(c.clamped) })] : []),
     ...enPlus,
   ];
   return lignes.length ? lignes.join('\n') : null;
@@ -323,23 +325,15 @@ const jeteur = (etat: Jeu, id: string | null): Pick<Jet, 'qui' | 'combattant'> =
 
 const verdictDuTest = (reussi: boolean) => ({ verdict: t(reussi ? 'ecran.jet.reussite' : 'ecran.jet.echec'), ton: reussi ? 'reussite' as const : 'echec' as const });
 
-/** Un jet tombé : le dé contre la cible, le DR et le verdict ; masqué quand la ligne l'est (`RollBreakdown.mask`), son
- *  seuil pur dit sans DR (`seuil`). `enPlus` : ce que son détail ajoute à la composition de sa cible. */
-function jetTombe(id: string, d: RollBreakdown, qui: Pick<Jet, 'qui' | 'combattant'>, enPlus: readonly string[] = []): Jet {
-  if (d.mask === 'roll') return jet(id, { ...qui, libelle: d.label, resultat: t('ecran.jet.cache') });
-  const verdict = d.seuil
-    ? { verdict: d.success ? d.seuil.reussite : d.seuil.echec, ton: d.success ? 'reussite' as const : 'echec' as const }
-    : verdictDuTest(d.success);
-  const cache = d.mask === 'value';
-  return jet(id, {
-    ...qui, libelle: d.label, resultat: String(d.roll), ...verdict,
-    cible: cache ? null : t('ecran.jet.cible', { cible: d.target }),
-    dr: cache || d.seuil ? null : t('ecran.jet.dr', { dr: avecSigne(d.sl) }),
-    modificateurs: cache ? [] : puces(id, d.mods, d.modsDR),
-    detail: cache ? null : detailDuJet({
-      base: d.base, difficulte: d.difficulty ? difficultyText(d.difficulty, d.difficultyCombined) : null, paliers: d.difficultyParts, target: d.target, clamped: d.clamped,
-    }, enPlus),
-  });
+/** Une rangée du duel, avec le détail de la cible quand elle est publiée. */
+function jetDuDuel(etat: Jeu, id: string, l: LigneDeTest, enPlus: readonly string[] = []): Jet {
+  const element = jetDeLaLigne(etat, id, l);
+  if (l.etat === 'masque') return element;
+  return {
+    ...element,
+    modificateurs: puces(id, l.mods, l.modsDR),
+    detail: detailDuJet(l, enPlus),
+  };
 }
 
 /** Le DR net d'un Test opposé tranché. */
@@ -352,10 +346,16 @@ const posture = (id: string, p: FenetreDAttaque['tirDansLeTas']): Puce | null =>
 /** Le corps de la fenêtre d'attaque : l'arme, la cible, les Dégâts, les postures de tir, la ligne de l'attaquant et
  *  celle de la défense (à jeter ou tombées ; l'issue que l'inversion du dé donnerait au détail de l'attaquant), le DR
  *  net, l'issue ou l'attente d'une Défense. */
-function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
-  const attaquant = jeteur(etat, a.attaquantId);
+function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque, lecture: JetEnVue | undefined): Element[] {
   const cible = jeteur(etat, a.cibleId);
   const inversion = a.influences.inversion?.apercu ?? null;
+  const jetDAttaque = lecture?.lignes.find((l) => l.id === 'attaquant');
+  const jetDeDefense = lecture?.lignes.find((l) => l.id === 'defenseur');
+  const defense = jetDeDefense?.genre === 'test' ? jetDuDuel(etat, 'defense', jetDeDefense) : null;
+  const defenseAnnoncee = defense && jetDeDefense?.genre === 'test' && jetDeDefense.etat === 'aJouer'
+    ? { ...defense, detail: difficulteDuJet(jetDeDefense.composition) } : defense;
+  const detailDInversion = inversion ? [t('ecran.attaque.inversion', { d100: inversion.roll, dr: avecSigne(inversion.sl), verdict: verdictDuTest(inversion.success).verdict })] : [];
+  const issueVisible = lecture?.lignes.every((l) => l.etat === 'revele');
   const elements: (Element | null)[] = [
     ligne('arme', a.arme),
     ligne('cible', t('ecran.attaque.cible', { cible: cible.qui ?? '' })),
@@ -364,17 +364,10 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
     posture('tirDansLeTas', a.tirDansLeTas),
     posture('tirImmobile', a.tirImmobile),
     a.bloque === null ? null : ligne('bloque', a.bloque, 'alerte'),
-    a.jet === null ? null : 'd' in a.jet
-      ? jetTombe('jet', a.jet.d, attaquant, inversion ? [t('ecran.attaque.inversion', { d100: inversion.roll, dr: avecSigne(inversion.sl), verdict: verdictDuTest(inversion.success).verdict })] : [])
-      : jet('jet', {
-          ...attaquant, libelle: a.jet.pending.label, cible: t('ecran.jet.cible', { cible: a.jet.pending.target }), modificateurs: puces('jet', a.jet.pending.mods, a.jet.pending.modsDR),
-          detail: detailDuJet({ ...a.jet.pending, paliers: a.jet.pending.difficultyParts }),
-        }),
-    a.defense === null ? null : 'd' in a.defense
-      ? jetTombe('defense', a.defense.d, cible)
-      : jet('defense', { ...cible, libelle: a.defense.pending.label, modificateurs: puces('defense', a.defense.pending.mods), detail: detailDuJet({ base: null, difficulte: a.defense.pending.difficulte, target: null }) }),
-    a.opposition ? drNet('drNet', a.opposition.drNet) : null,
-    a.issue ? ligne('issue', a.issue.ligne) : null,
+    jetDAttaque?.genre === 'test' ? jetDuDuel(etat, 'jet', jetDAttaque, detailDInversion) : null,
+    defenseAnnoncee,
+    lecture?.oppose ? drNet('drNet', lecture.oppose.drNet) : null,
+    issueVisible && a.issue ? ligne('issue', a.issue.ligne) : null,
     a.attente === null ? null : ligne('attente', a.attente),
   ];
   return elements.filter((e): e is Element => e !== null);
@@ -383,26 +376,23 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
 /** Le corps de la fenêtre d'incantation (`fenetreDIncantation`) : le NI effectif au-dessus du Sort et de sa cible, la
  *  Zone d'Effet, la ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles
  *  supplémentaires à désigner sur la carte, l'issue. */
-function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
-  const lanceur = jeteur(etat, f.lanceurId);
+function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation, l: LigneDeTest | undefined): Element[] {
   const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(nomEnVue(etat, f.cibleId), f.cibleId, 'cible de l’incantation');
-  const l = f.ligne;
-  const s = f.surincantation;
+  const avantLeJet = l?.etat === 'aJouer';
+  const revele = l?.etat === 'revele';
+  const s = revele ? f.surincantation : null;
   const elements: (Element | null)[] = [
     f.ni === null ? null : ligne('ni', t('ecran.incantation.ni', { ni: f.ni })),
     ligne('sort', t('ecran.incantation.sort', { sort: f.sort, cible })),
-    f.zone ? puce('zone', t('ecran.incantation.zone'), t('ecran.incantation.cote', { cote: f.zone.cote }), null, f.zone.aPoser ? 'alerte' : 'neutre') : null,
-    jet('jet', {
-      ...lanceur,
-      qui: garanti(lanceur.qui, f.lanceurId, 'lanceur de l’incantation'),
-      libelle: f.priere ? l.label : refLabel('skills', { id: 'langue', spec: 'magick' }),
-      cible: t('ecran.jet.cible', { cible: l.jet?.target ?? l.target }),
-      modificateurs: puces('jet', l.mods),
-      ...(l.jet ? { resultat: String(l.jet.roll), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.sl) }), ...verdictDuTest(l.jet.success) } : {}),
-    }),
+    f.zone && (avantLeJet || revele) ? puce('zone', t('ecran.incantation.zone'), t('ecran.incantation.cote', { cote: f.zone.cote }), null, f.zone.aPoser ? 'alerte' : 'neutre') : null,
+    l ? {
+      ...jetDeLaLigne(etat, 'jet', l),
+      libelle: f.priere ? l.test : refLabel('skills', { id: 'langue', spec: 'magick' }),
+      modificateurs: puces('jet', l.mods, l.modsDR),
+    } : null,
     s ? puce('surincantation', t('ecran.incantation.surincantation'), t('ecran.incantation.pas', { restant: s.restant, budget: s.budget })) : null,
     s?.cibles?.surLaCarte ? ligne('cibles', t('ecran.incantation.cibles', { designees: s.cibles.designees, capacite: s.cibles.capacite })) : null,
-    f.issue ? ligne('issue', f.issue) : null,
+    revele && f.issue ? ligne('issue', f.issue) : null,
   ];
   return elements.filter((e): e is Element => e !== null);
 }
@@ -412,10 +402,17 @@ function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
 function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
   const qui = jeteur(etat, l.qui);
   switch (l.genre) {
-    case 'test': return jet(id, {
-      ...qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }), modificateurs: puces(id, undefined, l.modsDR),
-      ...(l.jet ? { resultat: String(l.jet.d100), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.dr) }), ...verdictDuTest(l.jet.reussi) } : {}),
-    });
+    case 'test':
+      if (l.etat === 'masque') return jet(id, { ...qui, libelle: l.test, resultat: t('ecran.jet.cache') });
+      return jet(id, {
+        ...qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }), modificateurs: puces(id, undefined, l.modsDR),
+        ...(l.jet ? {
+          resultat: String(l.jet.d100),
+          dr: l.jet.dr === null || l.seuil ? null : t('ecran.jet.dr', { dr: avecSigne(l.jet.dr) }),
+          ...verdictDuTest(l.jet.verdict === 'reussite'),
+          ...(l.seuil ? { verdict: l.jet.verdict === 'reussite' ? l.seuil.reussite : l.seuil.echec } : {}),
+        } : {}),
+      });
     case 'table': return jet(id, { ...qui, libelle: l.table, ...(l.jet ? { resultat: String(l.jet.effectif), verdict: l.jet.ligne } : {}) });
     case 'de': return jet(id, { ...qui, libelle: l.de, ...(l.jet ? { resultat: String(l.jet.total), verdict: l.jet.lecture } : {}) });
   }
@@ -423,7 +420,8 @@ function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
 
 const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
   ...puces(`jets/${i}`, undefined, j.modsDR),
-  ...j.lignes.map((l, k) => jetDeLaLigne(etat, `jets/${i}/${k}`, l)),
+  ...j.lignes.map((l, k) => j.flux === 'defense' && l.genre === 'test' && l.id === 'defenseur' && l.etat === 'aJouer'
+    ? jetDuDuel(etat, 'defense/jet', l) : jetDeLaLigne(etat, `jets/${i}/${k}`, l)),
   ...(j.oppose ? [drNet(`jets/${i}/drNet`, j.oppose.drNet)] : []),
 ];
 
@@ -431,8 +429,7 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
  *  route (`voyageEnVue`), chaque jet qu'il jette, sans redire son nom ; à la halte (`reposEnVue`), son couchage et sa
  *  pitance, en listes comme tout choix d'une carte, et ce qui l'attend cette nuit en puces d'alerte. `restants` : les
  *  jets de la fenêtre (`jetsEnVue`) qu'aucune carte ne porte. */
-function surLesCartes(etat: Jeu): { restants: Element[]; parHeros: Map<string, Element[]> } {
-  const vues = jetsEnVue(etat);
+function surLesCartes(etat: Jeu, vues: readonly JetEnVue[]): { restants: Element[]; parHeros: Map<string, Element[]> } {
   const jets = vues.flatMap((j, i) => elementsDuJet(etat, j, i));
   const parHeros = new Map<string, Element[]>();
   const poser = (h: string, e: Element) => parHeros.set(h, [...(parHeros.get(h) ?? []), e]);
@@ -457,22 +454,19 @@ function surLesCartes(etat: Jeu): { restants: Element[]; parHeros: Map<string, E
  *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle ou
  *  annonce, le Sauvetage par le Destin et la victoire en attente ; les éléments propres à la fenêtre ont pour id la clé
  *  qu'en donne le noyau (`fenetreDuJeu`). */
-function corpsDeLaFenetre(etat: Jeu): Element[] {
+function corpsDeLaFenetre(etat: Jeu, jets: readonly JetEnVue[], jetsRestants: Element[]): Element[] {
   const { cle } = garanti(fenetreDuJeu(etat), 'fenetre', 'fenêtre qui tient la main');
   const pc = etat.pendingCascade;
   const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
   const attaque = jetDeLEtape === 'attaque' ? fenetreDAttaque(etat) : null;
-  if (attaque) return corpsDeLAttaque(etat, attaque);
+  if (attaque) return corpsDeLAttaque(etat, attaque, jets.find((j) => j.flux === 'attaque'));
   const incantation = jetDeLEtape === 'incantation' ? fenetreDIncantation(etat) : null;
-  if (incantation) return corpsDeLIncantation(etat, incantation);
+  if (incantation) return corpsDeLIncantation(etat, incantation, jets.find((j) => j.flux === 'incantation')?.lignes.find((l) => l.genre === 'test'));
   const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
+  const defenseVisible = jets.find((j) => j.flux === 'defense')?.lignes.every((l) => l.etat === 'revele');
   const nom = (id: string) => garanti(nomEnVue(etat, id), id, 'combattant de la Défense');
   return [
     ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme }))] : []),
-    ...(defense?.jet ? [jet('defense/jet', {
-      ...jeteur(etat, defense.defenseurId), qui: nom(defense.defenseurId), libelle: defense.test, cible: t('ecran.jet.cible', { cible: defense.jet.target }), modificateurs: puces('defense/jet', defense.jet.mods),
-      detail: detailDuJet({ ...defense.jet, paliers: defense.jet.difficultyParts }),
-    })] : []),
     ...patientDuSoin(etat),
     ...trajetsDeLaCarte(etat),
     ...ecranDuLieu(etat),
@@ -483,8 +477,8 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
     ...nuitDuRepos(etat, cle),
-    ...surLesCartes(etat).restants,
-    ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
+    ...jetsRestants,
+    ...(defenseVisible && defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
     ...issueDeLEtape(etat),
     ...destinEnJeu(etat, cle),
@@ -1166,8 +1160,7 @@ function gestesDesCartes(etat: Jeu, gestes: (Bouton | Choix | Formulaire)[]): { 
  *  ce que la fenêtre dit de lui (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes` ; en `alerte` quand l'un d'eux a le
  *  focus : c'est à lui d'agir ; tant qu'aucune partie n'est en cours (`partieEnCours`), le bouton qui le renvoie,
  *  refusé par `refusDeRenvoyer`. */
-function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>): Entite[] {
-  const { parHeros } = surLesCartes(etat);
+function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>, parHeros: Map<string, Element[]>): Entite[] {
   return etat.party.map((h): Entite => {
     const f = garanti(enTeteDuPorteur(etat, h.id), h.id, 'héros du groupe');
     const presse = ouverte?.porteur === h.id;
@@ -1375,10 +1368,13 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
 export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, panneau: PanneauDeLHote, roster: RosterMontre): ZonesDeLEcran {
   const fiche = panneau && 'fiche' in panneau ? panneau.fiche : null;
   const c = p.combat;
-  const { restants: gestes, parHeros: gestesSurLesCartes } = gestesDesCartes(etat, fenetre ? elementsDesGestes(fenetre.gestes) : []);
-  const corps = fenetre ? corpsDeLaFenetre(etat) : [];
+  const clesDesGestes = new Set(p.fenetre?.gestes.map(cleDuGeste));
+  const gestesDeLaFenetre = fenetre?.gestes.filter((g) => clesDesGestes.has(g.cle)) ?? [];
+  const { restants: gestes, parHeros: gestesSurLesCartes } = gestesDesCartes(etat, elementsDesGestes(gestesDeLaFenetre));
+  const { restants: jetsRestants, parHeros: jetsSurLesCartes } = surLesCartes(etat, p.jets);
+  const corps = fenetre ? corpsDeLaFenetre(etat, p.jets, jetsRestants) : [];
   const portes = choixPortes(corps);
-  const reglages = new Set(fenetre?.gestes.filter((g) => g.reglage).map((g) => g.cle));
+  const reglages = new Set(gestesDeLaFenetre.filter((g) => g.reglage).map((g) => g.cle));
   const proprietaire = fenetreDuJeu(etat)?.proprietaire;
   const ditParSonJet = corps.some((e) => e.type === 'jet' && e.combattant !== null && e.combattant === proprietaire);
   const etape = fenetre ? [fenetre.etape === fenetre.titre ? null : fenetre.etape, fenetre.proprietaire.genre === 'porteur' && !ditParSonJet ? fenetre.proprietaire.nom : null].filter((x): x is string => x !== null) : [];
@@ -1400,7 +1396,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     })),
     ...zonesDuDialogue(etat, fenetre !== null),
     'journal.titre': c ? [{ type: 'entite', id: 'journal', ton: 'neutre', nom: t('ecran.journal'), elements: [{ type: 'icone', id: 'icone', icone: 'navigation/carnet' }] }] : [],
-    'groupe.heros': c ? [] : herosDuGroupe(etat, fiche, gestesSurLesCartes),
+    'groupe.heros': c ? [] : herosDuGroupe(etat, fiche, gestesSurLesCartes, jetsSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
     ...zonesDeLaPartie(etat, roster),

@@ -1196,7 +1196,9 @@ export const FLOWS = paresseux({
         const target = actorIn(s, p.targetId);
         const spell = effectiveSpellOf(p);
         if (!target || !spell) return null;
-        return castRelance(s, p, rederiveCastSL(actor, target, spell, p.result!, p.missile, p.focused, 1));
+        const courant = p.result!;
+        const result = rederiveCastSL(actor, target, spell, courant, p.missile, p.focused, 1);
+        return castRelance(s, p, courant.slPropre == null ? result : { ...result, slPropre: courant.slPropre + 1 });
       },
     },
   }),

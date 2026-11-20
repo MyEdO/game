@@ -173,7 +173,7 @@ export function tavernGameValue(hero: Combatant, game: TavernGame): number {
 
 /** L'ACTEUR d'un id de partie, quel que soit son banc : héros (combat ou groupe) ou PNJ de la scène.
  *  SOURCE UNIQUE — sans elle, un site lirait `party` seul et le PNJ à fiche redeviendrait anonyme. */
-function tavernActor(get: Get, id: string | undefined): Combatant | undefined {
+function tavernActor(get: Get<Jeu>, id: string | undefined): Combatant | undefined {
   if (!id) return undefined;
   const s = get();
   return actorIn(s, id) ?? sceneNpc(s.scene, id, presetDuNarratif(s.campaignNarratif), objetDuNarratif(s.campaignNarratif));
@@ -1025,13 +1025,9 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
 
 /** Les DEUX jets d'une manche close, quel que soit son montage — SOURCE UNIQUE de lecture du
  *  réducteur (bande : une rangée par camp ; mono : le jet du challenger et le jet adverse FIGÉ). */
-function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
+function jetsDesCamps(get: Get<Jeu>, p: TavernPayload, step: CascadeStep): {
   joueur: TestResult; adversaire: TestResult; acteurDuJoueur?: Combatant; acteurDeLAdversaire?: Combatant;
 } | undefined {
-  const { get, seq, mancheClose } = ctx;
-  const p = seq.chargeUtile;
-  const step = mancheClose.participants.find((s) => s.kind === TAVERN_ROUND_KIND);
-  if (!step) return undefined;
   if (step.participants) {
     const mien = step.participants.find((r) => r.id === p.challengerId);
     const sien = step.participants.find((r) => r.id === p.opponentId);
@@ -1047,6 +1043,38 @@ function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
     adversaire: garanti(step.meta?.opposed?.aT, step.id, 'jet adverse figé de la manche'),
     acteurDuJoueur: actorIn(get(), p.challengerId),
   };
+}
+
+function tavernSides(ctx: SequenceCloseCtx<TavernPayload>) {
+  const step = ctx.mancheClose.participants.find((s) => s.kind === TAVERN_ROUND_KIND);
+  return step && jetsDesCamps(ctx.get, ctx.seq.chargeUtile, step);
+}
+
+function issueDeLaManche(game: TavernGame, seq: SequenceState<TavernPayload>, sides: NonNullable<ReturnType<typeof jetsDesCamps>>) {
+  const bonusPlayer = sequenceDrBonus(seq.parametres, sides.acteurDuJoueur);
+  const bonusOpponent = sequenceDrBonus(seq.parametres, sides.acteurDeLAdversaire, seq.chargeUtile.opponentValue);
+  const { winner, dr } = resolveTavernRound(game, sides.joueur, sides.adversaire, { joueur: bonusPlayer, adversaire: bonusOpponent });
+  const drNet = Math.abs(dr.joueur - dr.adversaire);
+  if (winner !== 'egalite') return { gagnant: winner, dr, drNet, departage: null };
+  const joueur = { roll: sides.joueur.roll, sl: dr.joueur };
+  const adversaire = { roll: sides.adversaire.roll, sl: dr.adversaire };
+  const tie = resolveSequenceTie(seq.parametres.tieBreak, joueur, adversaire);
+  const gagnant: TavernGameResult['winner'] = tie === 'a' ? 'joueur' : tie === 'b' ? 'adversaire' : 'egalite';
+  return { gagnant, dr, drNet, departage: { joueur, adversaire } };
+}
+
+/** Lecture d'une manche ordinaire, sur les mêmes jets et départages que le réducteur de clôture. */
+export function mancheOpposeeDeTaverneEnVue(s: Jeu, etape: CascadeStep) {
+  if (etape.kind !== TAVERN_ROUND_KIND || !tavernPartieEnCours(s)) return null;
+  const get = () => s;
+  const seq = activeSequence<TavernPayload>(get);
+  if (!seq) return null;
+  const p = seq.chargeUtile;
+  const jeu = findTavernGameById(p.gameId);
+  if (!jeu || jeu.roundShape || jeu.combined || jeu.sides?.length) return null;
+  const jets = jetsDesCamps(get, p, etape);
+  const issue = jets ? issueDeLaManche(jeu, seq, jets) : null;
+  return { joueurId: p.challengerId, adversaireId: p.opponentId, etendue: seq.parametres.target != null, issue };
 }
 
 /**
@@ -1682,18 +1710,8 @@ function tavernClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tave
   const sides = tavernSides(ctx);
   if (!game || !sides) return { suite: 'fin', issue: 'egalite' };
 
-  const bonusPlayer = sequenceDrBonus(seq.parametres, sides.acteurDuJoueur);
-  const bonusOpponent = sequenceDrBonus(seq.parametres, sides.acteurDeLAdversaire, p.opponentValue);
-  const { winner, dr } = resolveTavernRound(game, sides.joueur, sides.adversaire, {
-    joueur: bonusPlayer, adversaire: bonusOpponent,
-  });
-  const mien = { roll: sides.joueur.roll, sl: dr.joueur };
-  const sien = { roll: sides.adversaire.roll, sl: dr.adversaire };
-  const departage = winner === 'egalite' ? resolveSequenceTie(seq.parametres.tieBreak, mien, sien) : 'egalite';
-  const recit = winner === 'egalite' ? recitDuDepartage(seq.parametres.tieBreak, mien, sien) : undefined;
-  const manche: TavernGameResult['winner'] = winner !== 'egalite'
-    ? winner
-    : departage === 'a' ? 'joueur' : departage === 'b' ? 'adversaire' : 'egalite';
+  const { gagnant: manche, dr, departage } = issueDeLaManche(game, seq, sides);
+  const recit = departage ? recitDuDepartage(seq.parametres.tieBreak, departage.joueur, departage.adversaire) : undefined;
 
   // PORTEURS des effets de manche (famille 4) : le vainqueur et le perdant de la manche (l.34, LDB 14
   // l.219), et tous les participants pour l'attrition d'intervalle (l.34). Aucun perdant sur égalité.

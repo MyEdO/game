@@ -112,6 +112,7 @@ import {
   ligneDuCoup,
   freeAttackWeapon,
   defaultParryWeapon,
+  defenseTestOf,
   advantageModLine,
   toucheAvecPrise,
   toucheNonIgnoree,
@@ -1480,11 +1481,12 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
 export function previewDefense(
   defender: Combatant,
   ctx?: { mode?: 'parade' | 'esquive'; parryWeapon?: Weapon; vsWeapon?: Weapon; dodgeMods?: ModLine[] },
-): { label: string; mods: ModLine[]; difficulty: Difficulty; difficultyCombined?: number; difficultyParts?: ModLine[] } {
+): { label: string; test: ReturnType<typeof defenseTestOf>; mods: ModLine[]; difficulty: Difficulty; difficultyCombined?: number; difficultyParts?: ModLine[] } {
   const mode = ctx?.mode ?? bestDefenseMode(defender);
-  const { mods, difficulty, difficultyCombined, difficultyParts } = ligneDeDefense(defender, { ...ctx, mode, parryWeapon: ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defaultParryWeapon(defender) });
+  const arme = ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defaultParryWeapon(defender);
+  const { mods, difficulty, difficultyCombined, difficultyParts } = ligneDeDefense(defender, { ...ctx, mode, parryWeapon: arme });
   return {
-    label: DEFENSE_LABEL[mode], mods, difficulty,
+    label: DEFENSE_LABEL[mode], test: defenseTestOf(defender, mode, arme), mods, difficulty,
     ...(difficultyCombined != null ? { difficultyCombined } : {}),
     ...(difficultyParts ? { difficultyParts } : {}),
   };
@@ -6420,6 +6422,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
     next = rederiveCastSL(caster, target, spell, res, pc.missile && !unplacedZone, pc.focused, out.casterNetSL - res.sl);
     next.log = `${out.log} ${next.log}`;
   }
+  next = { ...next, slPropre: res.slPropre ?? res.sl };
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
   const oc = aiDriven(get(), caster) && pc.missile && !pc.zone
     ? aiOvercastPlan(get().scene, caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, pc.critChoice)
