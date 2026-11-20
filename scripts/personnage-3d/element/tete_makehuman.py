@@ -25,7 +25,8 @@ Clés : les silhouettes et les clés `gabarit_*` de la base, transférées du co
 ajoute l'écart, sommet à sommet, de la même forme à l'état macro `ETAT_FEMININ`, recalée et calée comme elle : le calage
 annule l'écart de taille de MakeHuman entre les deux états, qui est celui de la stature, que la base ne change pas, et
 les pièces de tête restent bâties à cette taille ; hors du visage et des oreilles, cet écart ne garde que ce qu'il
-change de la forme (`sans_glissement`). Chaque trait de
+change de la forme (`sans_glissement`), et au-dessus de la couture la clé passe de celle du cou de la base à celle de
+la tête sur `FONDU_DU_FEMININ`. Chaque trait de
 `TRAITS`, partagé par toutes ces têtes, ses cibles lues sommet à sommet ; `visage_inverse`
 (mutation « Visage inversé », `mutations.json`), le visage retourné tête en bas : de `AXE` (sur l'axe avant-arrière à la
 hauteur `AXE_DU_VISAGE`), chaque sommet du visage prend le rayon de la peau dans la direction reflétée par le plan
