@@ -10,6 +10,7 @@
  * defenseModifiers — et ne s'applique qu'aux jets d'arme qui IMPLIQUENT la main blessée (jamais un charMod
  * CC/CT global). Le trauma est enregistré (label+note) même sans effet modélisé.
  */
+import { joursParSemaine } from './clock';
 import {
   Combatant,
   CharKey,
@@ -727,8 +728,8 @@ function eligibleForHeal(t: Trauma): boolean {
   // Un seul jet de Guérison par trauma (l.222 : « une seule fois ») — l'échec consomme aussi le jet.
   if (t.recoveryDays == null || t.healAccelerated) return false;
   if (t.kind === 'dechirure') return true;
-  // fracture : la pose (bandage) doit intervenir dans la SEMAINE suivant la fracture (l.204).
-  return t.kind === 'fracture' && !t.fractureSet && t.recoveryTotal != null && t.recoveryDays > t.recoveryTotal - 7;
+  // LDB 18 l.204
+  return t.kind === 'fracture' && !t.fractureSet && t.recoveryTotal != null && t.recoveryDays > t.recoveryTotal - joursParSemaine();
 }
 
 /**

@@ -580,8 +580,7 @@ export const TABLES = {
     merEntretienBlessures: appliquerEntretien,
     merEntretienMateriaux: appliquerEntretien,
     merEntretienCritique: appliquerEntretien,
-    /** Cartographie (l.288-290, `merActiviteCarte`) : réussite → Carte marine (valeur = DR en CO, +2 DR
-     *  d'Orientation) + Planque optionnelle (l.292). */
+    /** MDG 15 l.288-292 */
     'merActiviteCarte': (get, set, step, hero) => {
       if (!step.result || !hero) return;
       const stashGold = typeof step.meta?.stashGold === 'number' ? step.meta.stashGold : 0;

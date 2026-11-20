@@ -46,7 +46,7 @@ import type { Jeu } from './etat';
 import { refusDeBourse } from './bourseFlow';
 import { refusDePx } from './depenseDePx';
 import { bourseOf } from '../engine/bourse';
-import { aubeApresNuits } from '../engine/clock';
+import { aubeApresNuits, joursParSemaine } from '../engine/clock';
 import { garanti } from '../lib/garanti';
 
 /** L'état que lisent les verdicts d'interlude. */
@@ -638,7 +638,7 @@ export function devisDeCloture(s: EtatDeCloture): DevisDeCloture | null {
   const participants = s.party.filter((h) => itl.perHero[h.id] && !h.dead);
   const gaspillages = s.party.map((h) => ({ heroId: h.id, brass: toBrass(bourseOf(h)) })).filter((g) => g.brass > 0);
   const revenus = participants.map((h) => ({ heroId: h.id, brass: itl.perHero[h.id].revenueBrass })).filter((r) => r.brass > 0);
-  const jours = itl.weeks * 7;
+  const jours = itl.weeks * joursParSemaine();
   return {
     gaspillages,
     gaspille: gaspillages.reduce((n, g) => n + g.brass, 0),

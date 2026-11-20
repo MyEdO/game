@@ -57,7 +57,7 @@ describe('le navire d’un scénario au lancement', () => {
   it('reçoit la semaine de sa pose (MDG 14 l.143), quelle que soit la semaine de la donnée', () => {
     lancer('voyage-maritime');
     const s = banc.getState();
-    expect(s.vessel?.morale.lastMoraleWeek).toBe(Math.floor(dayIndex(s.gameTime) / 7));
+    expect(s.vessel?.morale.lastMoraleWeek).toBe(Math.floor(dayIndex(s.gameTime) / 8));
     expect(s.vessel?.morale.lastMoraleWeek).toBeGreaterThan(0);
   });
 

@@ -673,7 +673,7 @@ const DECLARATIONS_D_OPS = {
   }, { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, instance: { label: "l’instance en cours" } }, z.superRefine((o, ctx) => {
     if ((o.type === undefined) === (o.instance === undefined)) ctx.addIssue({ code: 'custom', message: 'fin d’état psychologique : « type » (un état du catalogue) OU « instance » (celle de l’effet qui porte l’op), exactement l’un des deux.' });
   })),
-  /** `envers`, `resistanceSiAmis` et `durationHours` sont réservés à la famille des sorts (`defs/spells.ts`) :
+  /** `envers`, `resistanceSiAmis` et les durées sont réservés à la famille des sorts (`defs/spells.ts`) :
    *  une mutation ou une maladie, qui pose son Trait sans `applyOps`, les refuse au parse. VDM 10 l.327-330 */
   grantPsychTrait: declarerPayload({
     op: z.literal('grantPsychTrait'),
@@ -682,13 +682,15 @@ const DECLARATIONS_D_OPS = {
     envers: reserve(z.literal('personneChoisie').optional()),
     resistanceSiAmis: reserve(z.lazy(() => flowTestSchema).optional()),
     durationHours: reserve(formulaSchema.optional()),
-  }, { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, envers: { label: "envers une personne choisie" }, resistanceSiAmis: { label: "résistance si amis" }, durationHours: { label: "durée en heures", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }, raffinementDeCatalogue((lire) => {
+    durationWeeks: reserve(formulaSchema.optional()),
+  }, { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, envers: { label: "envers une personne choisie" }, resistanceSiAmis: { label: "résistance si amis" }, durationHours: { label: "durée en heures", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, durationWeeks: { label: "durée en semaines", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }, raffinementDeCatalogue((lire) => {
     const ciblage = lireLesCiblesPsy(lire);
     return (o, ctx) => {
       const type = (o.psychType as { id: string }).id;
       refuserLaCibleHorsCiblage(type, o.cible, ctx, ciblage);
       if (o.envers !== undefined && o.cible !== undefined) ctx.addIssue({ code: 'custom', path: ['envers'], message: '« envers » et « cible » sont exclusifs : la Cible est un Groupe posé, ou la personne que choisit le décideur.' });
       if (o.envers !== undefined && !ciblage.varianteAdmise(type, 'individu')) ctx.addIssue({ code: 'custom', path: ['envers'], message: `« ${type} » ne vise pas un individu : voir ses « cibles » (psychology.json).` });
+      if (o.durationHours !== undefined && o.durationWeeks !== undefined) ctx.addIssue({ code: 'custom', path: ['durationWeeks'], message: 'Une durée de Trait psychologique s’exprime en heures ou en semaines.' });
       if (o.resistanceSiAmis !== undefined && o.envers === undefined) ctx.addIssue({ code: 'custom', path: ['resistanceSiAmis'], message: '« resistanceSiAmis » suit la personne choisie : « envers » est requis.' });
     };
   })),
@@ -750,7 +752,8 @@ const DECLARATIONS_D_OPS = {
     minutes: formulaSchema.optional(),
     hours: formulaSchema.optional(),
     days: formulaSchema.optional(),
-  }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, blocked: { label: "bloqué" }, maxZeroDR: { label: "plafond de zéro DR" }, rounds: { label: "Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, minutes: { label: "minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, hours: { label: "heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, days: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    weeks: formulaSchema.optional(),
+  }).refine((o) => o.days === undefined || o.weeks === undefined, { path: ['weeks'], message: 'Une durée de contrecoup s’exprime en jours ou en semaines.' }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, blocked: { label: "bloqué" }, maxZeroDR: { label: "plafond de zéro DR" }, rounds: { label: "Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, minutes: { label: "minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, hours: { label: "heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, days: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, weeks: { label: "semaines", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   grantCareerSkill: declarerPayload({ op: z.literal('grantCareerSkill'), skill: aChoix('skill') }, { op: { label: "opération" }, skill: { label: "Compétence" } }),
   grantCareerTalent: declarerPayload({ op: z.literal('grantCareerTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
   grantTalent: declarerPayload({ op: z.literal('grantTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),

@@ -10,6 +10,7 @@
  * `DAY_PHASES`, `WEEKDAYS`) restent valides et live.
  */
 import type { IconId } from '../data/icons';
+import type { DureeEnJours } from '../data/schemas/grammaire/valeurs';
 import { calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases } from '../data';
 import { findTierEntry } from './tables';
 import { memoParVersion } from '../data/versionDataset';
@@ -21,7 +22,25 @@ export const IMPERIAL_MONTHS: ImperialMonth[] = calendarMonths;
 export const INTERCALARY: { label: string; afterMonth: number }[] = calendarIntercalary;
 export const WEEKDAYS: { label: string }[] = calendarWeekdays;
 
+/** EDO 12 l.19-30 ; MDG 15 l.268 */
+export function joursParSemaine(): number { return WEEKDAYS.length; }
+
+/** Convertit une durée déclarée en jours ou en semaines vers des jours. */
+export function dureeEnJours(duree: DureeEnJours): number {
+  return typeof duree === 'number' ? duree : duree.semaines * joursParSemaine();
+}
+
+/** Nombre de semaines entières dans une durée en jours. */
+export function semainesCompletes(jours: number): number { return Math.floor(jours / joursParSemaine()); }
+
+/** Cette durée en jours se termine-t-elle au terme d'une semaine entière ? */
+export function termineUneSemaine(jours: number): boolean { return jours > 0 && jours % joursParSemaine() === 0; }
+
 export const MINUTES_PER_DAY = 24 * 60;
+
+/** Durée en minutes d'une semaine impériale. */
+export function minutesParSemaine(): number { return joursParSemaine() * MINUTES_PER_DAY; }
+
 export const EPOCH_YEAR = 2512; // minute 0 = Hexenstag 2512 00:00 (scalaire de config)
 
 /** Un « slot de jour » de l'année : soit un jour intercalaire, soit un (mois, jour). */
@@ -79,7 +98,7 @@ export function toDate(minutes: number): ImperialDate {
   const slot = yd.slots[dayOfYear];
   // Semaine CONTINUE qui enjambe les intercalaires : seuls les jours de MOIS comptent ; un intercalaire
   // est hors du cycle (weekday = null). Ancre : 1 Nachhexen 2512 = 1er jour de semaine (convention).
-  const week = WEEKDAYS.length;
+  const week = joursParSemaine();
   const monthDaysElapsed = (year - EPOCH_YEAR) * yd.monthDaysPerYear + yd.monthDaysBeforeSlot[dayOfYear];
   const weekday = 'intercalary' in slot ? null : WEEKDAYS[((monthDaysElapsed % week) + week) % week].label;
   const base = { year, weekday, hour: Math.floor(minOfDay / 60), minute: minOfDay % 60 };

@@ -16,8 +16,7 @@ import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { CampaignDoc, CampaignVessel } from './etat';
 import type { Get, Set } from './flowTypes';
 import { creditBourse } from './bourseFlow';
-import { semaineDuJour } from './shipCrew';
-import { dayIndex } from '../engine/clock';
+import { dayIndex, semainesCompletes } from '../engine/clock';
 
 /** Ce qu'un scénario CONSTRUIT, à chaque appel de sa fabrique, sur les datasets VIVANTS (#1692). */
 export interface ContenuDeScenario {
@@ -82,7 +81,7 @@ export function demarrerLeLancement(get: Get, set: Set, l: LancementDeScenario):
   if (l.vessel) set({ vessel: {
     ...l.vessel,
     uid: get().forgerUnId('navire'),
-    morale: { ...l.vessel.morale, lastMoraleWeek: semaineDuJour(dayIndex(now)) },
+    morale: { ...l.vessel.morale, lastMoraleWeek: semainesCompletes(dayIndex(now)) },
     ...(l.vessel.provisions ? { provisions: l.vessel.provisions.map((lot) => ({ ...lot, entre: now })) } : {}),
     ...quaiDuGroupe(get()),
   } });

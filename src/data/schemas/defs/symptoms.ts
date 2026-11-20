@@ -5,7 +5,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { executeesDe, flowSchema, noeudTestFixe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { difficultySchema, hitLocationSchema } from '../grammaire/valeurs';
+import { difficultySchema, dureeEnJoursSchema, hitLocationSchema } from '../grammaire/valeurs';
 
 export const file = 'symptoms.json';
 export const famille = 'entite';
@@ -43,7 +43,7 @@ const onTickSchema = nommerChamps(z
       }), { moderee: { label: 'Modérée' }, grave: { label: 'Grave' } })
       .optional(),
     /** MSRC 16 */
-    afterDays: z.number().optional(),
+    afterDays: dureeEnJoursSchema.optional(),
     /** UNE seule fois (au jour `afterDays` exact — Vers du Reik) ; absent = quotidien (Vers de carie). */
     once: z.boolean().optional(),
   })
@@ -65,7 +65,7 @@ const onTickSchema = nommerChamps(z
   test: { label: 'Test' },
   ops: { label: 'Opérations' },
   difficultyBySeverity: { label: 'Difficulté par gravité' },
-  afterDays: { label: 'Délai en jours' },
+  afterDays: { label: 'Délai de phase active' },
   once: { label: 'Une seule fois' },
 });
 

@@ -22791,13 +22791,8 @@
                       },
                       "difficulty": "accessible"
                     },
-                    "durationHours": {
-                      "times": {
-                        "of": {
-                          "bonusOf": "force-mentale"
-                        },
-                        "factor": 168
-                      }
+                    "durationWeeks": {
+                      "bonusOf": "force-mentale"
                     }
                   }
                 ]

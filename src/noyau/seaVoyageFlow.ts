@@ -116,7 +116,7 @@ import { buildWeapon, consommerLaCapacite, encDeLaCapacite } from '../engine/ite
 import { maxBy } from '../engine/pick';
 import { applyOps, resolveFormula, type Formula, type GameOp, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
-import { MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
+import { MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex, semainesCompletes, termineUneSemaine } from '../engine/clock';
 import { currentSeason } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, directionOpposee, VENT_DOMINANT, windAspect, tickWindForceDay, windEffect, windAdjustedM,
@@ -358,10 +358,6 @@ export interface SeaRecapChrome {
   milesLeft: number;
   daysLeft: number;
 }
-
-/** Semaine impériale (8 jours, MDG 15 l.268) — cadence de la pénalité « −1 par semaine en mer » du
- *  voyage rapide (l.28) et des Activités en mer (`daysAtSea % 8`, `continueSeaDayAfterCascade`). */
-const SEA_WEEK_DAYS = 8;
 
 /** Précipitations du jour de mer ACTIF (MDG 13 l.185) — la déclaration `pont` d'une ligne de jet
  *  (`ligneDeJet.rollLine`) hors combat, et la source de `Combatant.envPrecipitation` à l'ouverture d'un combat. `undefined` hors
@@ -970,15 +966,13 @@ export function buildOverspeedSteps(get: Get): BuiltCascadeStep[] {
   return out;
 }
 
-/** Étape MONO « Salissures » (MDG 13 l.144-159, `mer-salissures`, applier ci-dessous), Test du
- *  vaisseau ; Difficulté : règle maison `mer-salissures-difficulte` (LDB 12 l.137). `undefined` =
- *  semaine déjà testée, ou moins de 7 jours en mer. */
+/** MDG 13 l.144-159 */
 function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
   const vessel = get().vessel;
   const sea = get().travelPlan?.sea;
   if (!vessel || !sea) return undefined;
-  const week = Math.floor(dayIndex(get().gameTime) / 7);
-  if (week <= (vessel.fouling?.lastWeek ?? -1) || sea.daysAtSea + 1 < 7) return undefined;
+  const foulingDay = dayIndex(get().gameTime);
+  if (!termineUneSemaine(sea.daysAtSea + 1) || foulingDay === vessel.fouling?.lastTestDay) return undefined;
   const plan = get().travelPlan!;
   const hull = garanti(plan.vehicle, plan.routeId, 'navire du voyage');
   return monoStep({
@@ -987,7 +981,7 @@ function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
     difficulty: rule('mer-salissures-difficulte') as Difficulty,
     ligne: ligneDuVaisseau(hull),
     stake: voyageStakeRef('mer-salissures'),
-    meta: { week },
+    meta: { foulingDay },
   });
 }
 
@@ -1372,7 +1366,7 @@ export function startFastVoyage(
   const plan = buildSeaPlan(get, routeId, fromPlaceId, toPlaceId, route, opts);
   if (!plan) return false;
   const days = dureeDeTraversee(plan.km, mDeCroisiere(navireDeLaCoque(plan.vehicle!)));
-  const weeks = Math.floor(days / SEA_WEEK_DAYS); // « par semaine passée en mer » (l.28)
+  const weeks = semainesCompletes(days); // « par semaine passée en mer » (l.28)
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
   log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
@@ -2010,10 +2004,8 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
     openPortAt(get, set, to);
     return;
   }
-  // ACTIVITÉS EN MER (MDG 15 l.266-272) : « Pour chaque semaine (8 jours) de voyage en mer, chaque
-  // Personnage a l'occasion d'effectuer une Activité » — la 8ᵉ journée révolue ouvre le choix (modale),
-  // la halte de nuit suit à la confirmation (le recap du jour lui est transmis).
-  if (daysAtSea > 0 && daysAtSea % 8 === 0) {
+  // MDG 15 l.266-272
+  if (termineUneSemaine(daysAtSea)) {
     poserLesActivitesDuNavire(set, { picks: {}, day: recapDay });
     return;
   }
@@ -2756,7 +2748,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
   const { carenageGold: cost, carenagePct: pct } = devis;
   const costMoney = toMoney({ gold: cost });
   if (cost > 0) payFromGroup(get, set, costMoney, { purpose: 'carénage navire' });
-  set({ vessel: { ...vessel, fouling: { level: 0, lastWeek: vessel.fouling?.lastWeek ?? 0 }, modificateurs: (vessel.modificateurs ?? []).filter((m) => m.jusqua !== 'carenage') } }); // MDG 15 l.185
+  set({ vessel: { ...vessel, fouling: { ...vessel.fouling, level: 0 }, modificateurs: (vessel.modificateurs ?? []).filter((m) => m.jusqua !== 'carenage') } }); // MDG 15 l.185
   return [t('sv.careened', { cost: cost ? t('sv.fragCareenCost', { cost, pct }) : '' })];
 }
 
@@ -3120,14 +3112,14 @@ export const TABLES = {
       noteSeaLine(get, set, line);
       return { consequences: freeCons(line) };
     },
-    /** Salissures (MDG 13 l.148, #1105) : la semaine est notée sur TOUT résultat ; échec → +1 niveau,
-     *  plafonné (`weeklyFoulingLevel`). */
+    /** MDG 13 l.148 */
     'mer-salissures': (get, set, step) => {
       const vessel = get().vessel;
       if (!step.result || !vessel) return;
       const before = vessel.fouling?.level ?? 0;
       const r = weeklyFoulingLevel(before, step.result.success);
-      set({ vessel: { ...vessel, fouling: { level: r.level, lastWeek: Number(step.meta?.week) } } });
+      const lastTestDay = garanti(step.meta?.foulingDay, step.id, 'jour du Test de Salissures');
+      set({ vessel: { ...vessel, fouling: { level: r.level, lastTestDay } } });
       const line = step.result.success ? t('sv.foulingHolds')
         : r.gained ? t('sv.fouling', { level: r.level, desc: foulingEffects(r.level).desc })
         : t('sv.foulingMax', { level: r.level });
