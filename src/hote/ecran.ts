@@ -134,7 +134,7 @@ import {
  * pas, à défaut le premier bouton) et `refus` (pourquoi il ne se joue pas, dit sous lui ; le geste désactivé) ; un
  * `choix` ou une `liste` porte son `refus` et chacune de ses valeurs en bouton, refusée avec lui ; un `formulaire`
  * porte son verbe, son `refus` et ses saisies dans l'ordre de ses paramètres (`fixe`, posée par la fenêtre,
- * `saisieChoix`, `saisieCoches` et la liste de ses valeurs cochées, `saisieNombre` et ses bornes, `saisieTexte`,
+ * `saisieChoix`, `saisieNombre` et ses bornes, `saisieTexte`,
  * `saisieMultiligne` (un texte sur plusieurs lignes), `saisieJson`, `saisieObjet` et ses champs), dont Godot lit les
  * valeurs à l'instant où il se joue ; une saisie optionnelle laissée vide clôt les arguments, une saisie requise
  * laissée vide part `null`. Seuls les gestes `ouvert` de la fenêtre (`fenetreADessiner`, `src/hote/gestes.ts`) se
