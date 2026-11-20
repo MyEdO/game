@@ -308,7 +308,7 @@ import { resolveRecoverTest } from './combat/recover';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { declarationDuReglageNomme, type CorpsDesReglages } from './reglagesDuJet';
 import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
-import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuPasDeSurincantation } from './fenetreDIncantation';
+import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuChoixDeCibles, refusDuPasDeSurincantation } from './fenetreDIncantation';
 import { findSpellById } from '../data/index';
 import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
@@ -2341,6 +2341,11 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const pc = garanti(get().pendingCast, 'pendingCast', 'forme d’arme invoquée');
         const lanceur = garanti(actorIn(get(), pc.casterId), pc.casterId, 'forme d’arme invoquée');
         set({ pendingCast: { ...pc, conjureForm: garanti(conjureFormOptions(lanceur).find((f) => f.weapon === arme), arme, 'forme d’arme invoquée') } });
+      },
+      choixDeCibles: (id) => {
+        if (refuseSi(get, set, (s) => refusDuChoixDeCibles(s, id))) return;
+        const pc = garanti(get().pendingCast, 'pendingCast', 'choix des cibles du sort');
+        set({ pendingCast: { ...pc, choixDeCibles: id } });
       },
       discret: (discreet) => {
         const pc = get().pendingCast;

@@ -78,6 +78,7 @@ const SIZES = Object.keys(SIZE_LABEL) as SizeCategory[];
 const OP_ICON: Record<GameOp['op'], IconId> = {
   wounds: 'journal/degats', heal: 'journal/soin', healCaster: 'journal/soin', fall: 'journal/chute',
   condition: 'magie/zone', removeCondition: 'magie/souffle',
+  forbidFlee: 'melee/fuir',
   charMod: 'mecanique/modificateur', ap: 'mecanique/protection', testMod: 'mecanique/modificateur',
   skillDRBonus: 'mecanique/modificateur', charDRBonus: 'mecanique/modificateur', offTerrainMod: 'mecanique/modificateur',
   crewTestMod: 'voyage/ancre', incomingAttackMod: 'mecanique/protection', incomingAdvantage: 'drapeau/focalisation',

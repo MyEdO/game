@@ -37,7 +37,7 @@ import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
 import type { RegistreDuBord } from './etat';
-import type { IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
+import type { IdDeChoixDeCibles, IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -1385,6 +1385,8 @@ export interface PendingCast {
    *  `chooseForm`) — le lanceur sélectionne la Compétence de Corps à corps/profil d'arme. Défaut
    *  (absent) : sa meilleure Spé de Corps à corps. */
   conjureForm?: ConjureForm;
+  /** Option de ciblage retenue pour toute la Zone d'Effet. */
+  choixDeCibles?: IdDeChoixDeCibles;
   /** Surincantation : nombre de PAS alloués à chaque axe (chaque pas = +2 DR du surplus). L'effet
    *  d'UN pas est SOURCE-AWARE (`engine/overcast.ts`) — Sort/Miracle : +valeur initiale (×initial,
    *  LDB 47 l.13-17 / 42 l.7-13) ; Bénédiction : +6 m Portée / +1 Cible / +6 Rounds (FIXE, LDB 41

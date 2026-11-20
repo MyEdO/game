@@ -65,9 +65,13 @@ export function refusDEsquiveDeDesengagement({ active, battle }: CtxDeDesengagem
   return refusActionDepensee(battle) ?? refusHorsDEtatDAgir(active) ?? refusPriereImposee(active);
 }
 
-/** La Fuite : LDB 15 l.61 ; LDB 16 l.125. Ouverte tant que `canMove`, hors binôme au bouclier (`refusDuBinome`, ZI 13 l.193). */
+/** LDB 15 l.61 ; LDB 16 l.125 ; ZI 13 l.193 ; VDM 09 l.354 */
 export function peutFuir(ctx: CtxDeFuite): boolean {
-  return adversairesEngages(ctx).length > 0 && canMove(ctx.battle, ctx.active) && !refusDuBinome(ctx.scene, ctx.battle, ctx.active);
+  const { active, battle, scene } = ctx;
+  return !active.activeEffects?.some((effect) => effect.fleeForbidden)
+    && adversairesEngages(ctx).length > 0
+    && canMove(battle, active)
+    && !refusDuBinome(scene, battle, active);
 }
 
 /** Une option qui ne coûte pas l'Action reste-t-elle ouverte (Avantage, départ libre ou Fuite) ? */

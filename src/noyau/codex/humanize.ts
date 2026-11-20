@@ -495,6 +495,7 @@ export function humanizeOp(o: GameOp): string {
     case 'suppressTalents': return t('codex.op.suppressionDeTalents', { noms: o.talents.map((x) => refLabel('talents', x)).join(', '), duree: pendant(o) });
     case 'deityBan': return t('codex.op.interditDivin', { duree: pendant(o) });
     case 'prayerForAction': return t('codex.op.priereContreAction', { duree: pendant(o) });
+    case 'forbidFlee': return t('codex.op.interditDeFuir');
     case 'grantCareerSkill': return t('codex.op.octroiDeCompetenceDeCarriere', { nom: refLabel('skills', o.skill) });
     case 'grantCareerTalent': return t('codex.op.octroiDeTalentDeCarriere', { nom: refLabel('talents', o.talent) });
     case 'augmentWeapon': return t('codex.op.armeAugmentee', {

@@ -306,6 +306,7 @@ import { structureCriticalsDie } from '../data/structureCriticals';
 import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
 import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
+import { choixDeCiblesDuSort, filtreDeCiblesDuSort } from './reglagesDIncantation';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
 import { progresDeRecharge } from './progresEtendu';
@@ -6082,7 +6083,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const excludesCaster = spell.target?.kind === 'area' && spell.target.excludesCaster === true;
   // `affects` (src/engine/spellRange.ts:34) : Condition évaluée PAR CANDIDAT (`target` = le candidat,
   // `caster` = le lanceur). Absente → LDB 47 l.28.
-  const affects = spell.target?.kind === 'area' ? spell.target.affects : undefined;
+  const affects = filtreDeCiblesDuSort(spell.target, pc.choixDeCibles);
   // Le DR confronté par la Condition est celui que SUBIT le candidat (Résistance à la Magie, LDB 85
   // l.302 / LDB 10 l.1026). C'est ce filtre qui CONSTITUE la zone : chaque candidat est donc sa zone.
   const affected = (c: Combatant): boolean =>
@@ -6506,6 +6507,11 @@ function ctxDuLancer(get: Get, set: SetFn, caster: Combatant, spell: SortJoue, p
   };
 }
 
+/** Un lancement sans pose de Zone ne reçoit que l'option de ciblage par défaut. */
+function filtreHorsPoseDuSort(spell: SortJoue) {
+  return choixDeCiblesDuSort(spell.target).length ? filtreDeCiblesDuSort(spell.target) : undefined;
+}
+
 /** Lancer GARANTI de l'Effet d'auteur `castSpell` `mode:'forcerLaReussite'` (#98) : aucun jet, DR = NI ; le
  *  Flow se joue par le walker (`runCastFlow`), une passe par côté (`spellFlowFor`). */
 function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Combatant, spellId: string): string[] {
@@ -6513,8 +6519,12 @@ function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Co
   if (!spell) return [];
   const sl = spell.cn ?? 0;
   const sourceSpell = sourceDissipableDe(spell, caster);
-  const lignes = runCastFlow(get, set, target, caster, spellFlowFor(spell.effects, 'target'),
-    ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }));
+  const affects = filtreHorsPoseDuSort(spell);
+  const cibleAdmise = !affects || evalCondition(affects, combatConditionCtx(target, { caster, now: get().gameTime, sl }));
+  const lignes = cibleAdmise
+    ? runCastFlow(get, set, target, caster, spellFlowFor(spell.effects, 'target'),
+      ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }))
+    : [];
   if (spellOps(spell.effects, 'caster').length) {
     lignes.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'),
       ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell })));
@@ -6772,7 +6782,7 @@ export function applyCast(
   get: Get,
   set: SetFn,
   caster: Combatant,
-  targets: readonly Combatant[],
+  ciblesDuLancer: readonly Combatant[],
   spell: NonNullable<ReturnType<typeof findSpell>>,
   res: CastResult & Partial<MissileResult>,
   missile: boolean,
@@ -6791,6 +6801,10 @@ export function applyCast(
   },
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
+  const affects = extras?.pose ? undefined : filtreHorsPoseDuSort(spell);
+  const targets = affects
+    ? ciblesDuLancer.filter((c) => evalCondition(affects, combatConditionCtx(c, { caster, now: get().gameTime, sl: spellSLFor(res.sl, c) })))
+    : ciblesDuLancer;
   // Durée surincantée DÉCOMPOSÉE (engine/overcast) : `rounds = base × mult + bonus`. Arcane/Miracle :
   // mult = 1+pas, bonus = 0 (×initial, joue aussi sur une durée d'horloge). Bénédiction : mult = 1,
   // bonus = 6 Rounds × pas (FIXE, rounds-only — pas de Bénédiction à durée d'horloge).

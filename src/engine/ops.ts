@@ -736,6 +736,8 @@ export type GameOp =
   /** Le porteur doit effectuer des Tests de Prière pour son Action tant que l'effet dure
    *  (`prayerForActionBy`) ; le Mouvement reste libre. LDB 40 l.74 */
   | { op: 'prayerForAction'; durationRounds: Formula }
+  /** VDM 09 l.354 */
+  | { op: 'forbidFlee' }
   /** Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) —
    *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée :
    *  `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe.
@@ -2709,6 +2711,15 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, prayerForAction: true });
         const n = duree.scale === 'rounds' ? duree.left : 0;
         lines.push(t('op.prierePourAgir', { name: target.label, duree: t('op.frag.plafondDeRounds', { n, s: n > 1 ? 's' : '' }), src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'forbidFlee': {
+        const duration = durationFromCtx(ctx);
+        if (duration.scale === 'rounds' && duration.left <= 0) break;
+        const label = nomDeSource(ctx);
+        target.activeEffects ??= [];
+        target.activeEffects.push({ label, bonus: 0, duration, fleeForbidden: true });
+        lines.push(t('op.fuiteInterdite', { name: target.label, src: label }));
         break;
       }
       case 'reduceToZero': {

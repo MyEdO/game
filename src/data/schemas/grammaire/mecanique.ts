@@ -757,6 +757,7 @@ const DECLARATIONS_D_OPS = {
   suppressTalents: nommerChamps(z.strictObject({ op: z.literal('suppressTalents'), talents: listeSansCle(z.array(ref('talent')).min(1)), durationDays: formulaSchema }), { op: { label: "opération" }, talents: { label: "Talents suspendus", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   deityBan: nommerChamps(z.strictObject({ op: z.literal('deityBan'), durationDays: formulaSchema }), { op: { label: "opération" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   prayerForAction: nommerChamps(z.strictObject({ op: z.literal('prayerForAction'), durationRounds: formulaSchema }), { op: { label: "opération" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
+  forbidFlee: nommerChamps(z.strictObject({ op: z.literal('forbidFlee') }), { op: { label: "opération" } }),
   grantReverseToken: nommerChamps(z.strictObject({ op: z.literal('grantReverseToken'), ...sujetDuJetSchema.shape, contexte: contexteDeTestSchema.optional(), illimite: z.literal(true).optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, characteristic: { label: "Caractéristique du Test" }, contexte: { label: "contexte du Test" }, illimite: { label: "jamais consommé" } }),
   exposeDisease: nommerChamps(z.strictObject({
     op: z.literal('exposeDisease'),
@@ -1201,7 +1202,6 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
 
 /** L'algèbre `Condition` de la famille FERMÉE : aucune Condition réservée. */
 export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
-
 
 /** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
@@ -1719,6 +1719,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   deitySkillMod: 'Modifier les Compétences du dieu',
   deityBan: 'Bannir des Prières du dieu (jours)',
   prayerForAction: 'Imposer la Prière pour l’Action (Rounds)',
+  forbidFlee: 'Interdire la Fuite',
   grantCareerSkill: 'Compétence ajoutée aux carrières',
   grantCareerTalent: 'Talent ajouté aux carrières',
   augmentWeapon: 'Enchanter l’arme',

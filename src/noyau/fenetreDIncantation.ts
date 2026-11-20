@@ -10,7 +10,8 @@
 import type { Jeu } from './etat';
 import type { FermeturesDuJet } from './rollFlowFactory';
 import { REGLAGE_DE_L_AXE, type ReglageDu } from './reglagesDuJet';
-import type { IdDeFormeConjuree } from './designations';
+import type { IdDeChoixDeCibles, IdDeFormeConjuree } from './designations';
+import { choixDeCiblesEnAttente, choixDeCiblesRetenu } from './reglagesDIncantation';
 import { actorIn } from './monde/combatants';
 import { aiDriven, influencesLocally } from './netOwnership';
 import { ventsAnnonces } from './combatOrParty';
@@ -80,6 +81,7 @@ export interface FenetreDIncantation {
   ligne: LigneDIncantation;
   ton: ChoixNomme<boolean> | null;
   forme: ChoixNomme | null;
+  cibles: ChoixNomme | null;
   critique: ChoixNomme<CritChoice> | null;
   surincantation: SurincantationEnVue | null;
   /** Les pas de Surincantation de chaque axe ouvert, en choix réglés (`REGLAGE_DE_L_AXE`) : de 0 au budget, chaque pas
@@ -119,6 +121,12 @@ export function refusDeLaForme(s: Jeu, arme: IdDeFormeConjuree): string | null {
   if (ferme) return ferme;
   const lanceur = s.pendingCast && actorIn(s, s.pendingCast.casterId);
   return lanceur && conjureFormOptions(lanceur).some((f) => f.weapon === arme) ? null : t('incantation.refus.formeNonOfferte');
+}
+
+/** Refus du choix de cibles dans la phase ou hors des options déclarées par le sort. */
+export function refusDuChoixDeCibles(s: Jeu, id: IdDeChoixDeCibles): string | null {
+  return refusDuReglage(s, 'choixDeCibles')
+    ?? (choixDeCiblesEnAttente(s).some((option) => option.id === id) ? null : t('incantation.refus.choixDeCibles'));
 }
 
 /** Ce que permet maintenant la Surincantation du jet en attente : `null` sans jet, sans lanceur ou sans Sort. */
@@ -217,6 +225,9 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
   const zoneAPoser = zoneNonResolue && ancreDeLaZdE(sort) === 'point';
   const apercu = previewCast(lanceur, sort, { missile: pc.missile, focused: pc.focused, jete: !!res, ctx: { s, target: cible, skipWard: zoneNonResolue } });
   const formes = conjureFormOptions(lanceur);
+  const optionsDeCibles = choixDeCiblesEnAttente(s);
+  const valeurDeCibles = choixDeCiblesRetenu(optionsDeCibles, pc.choixDeCibles)?.id ?? null;
+  const refusDesCibles = refusDuReglage(s, 'choixDeCibles');
   const refusDeForme = refusDuReglage(s, 'formeConjuree');
   const fermetures = fermeturesDuFlux(s, 'incantation');
   const surincantation = surincantationEnVue(s);
@@ -249,6 +260,11 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
     forme: montre('formeConjuree')
       ? choix('formeConjuree', pc.conjureForm?.weapon ?? formes[0]?.weapon ?? null, formes.map((f) => ({
           valeur: f.weapon, libelle: t('incantation.forme', { arme: findTrappingById(f.weapon)?.label ?? f.weapon, groupe: weaponGroupLabel(f.group) }), refus: refusDeForme,
+        })))
+      : null,
+    cibles: montre('choixDeCibles')
+      ? choix('choixDeCibles', valeurDeCibles, optionsDeCibles.map((option) => ({
+          valeur: option.id, libelle: option.label, refus: refusDesCibles,
         })))
       : null,
     // LDB 46 l.26-32 : aucun effet n'est retenu tant que le lanceur n'a pas choisi.
