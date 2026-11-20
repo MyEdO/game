@@ -93,14 +93,11 @@ extends Node
 
 var _vue: Dictionary = {}
 var _musique := Musique.new()
-## La scène et la clé du volume du monde posé au plateau, vide avant le premier.
-var _cle_du_monde := ""
-## La scène et l'empreinte du masque du retrait posé au volume (`plateau.cleDuRetrait`), vide avant le premier.
-var _cle_du_retrait := ""
-## La scène et la clé de la vision posée au volume (`vue.vision`), vide avant la première.
-var _cle_de_la_vision := ""
-## La scène et l'empreinte des arêtes posées au plateau (`plateau.cleDesAretes`), vide avant les premières.
-var _cle_des_aretes := ""
+## Les empreintes du dernier plan reçu, qui précède les suivants même si ses textures sont en lecture.
+var _empreintes_lues := {monde = "", retrait = "", vision = "", aretes = ""}
+var _scene_lue := ""
+var _file_des_vues: Array[Dictionary] = []
+var _pose_des_vues: RefCounted
 var _zones: Array[Zone] = []
 ## Ce que les suites ont ajouté à l'écran depuis le début de la partie (`zones`), par source : une zone posée en
 ## cours de partie (`Disposition`) le reçoit en entier.
@@ -164,10 +161,11 @@ func _ready() -> void:
 	_suivre(_pont.appeler("demarrer", entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
 
 
-## Sorti de l'arbre (l'accueil revenu, `PontDuNoyau.revenir_a_l_accueil`), il n'y revient pas (#4195) : ses attentes en vol sont
-## abandonnées (`_en_vol`).
+## Sorti de l'arbre (l'accueil revenu, `PontDuNoyau.revenir_a_l_accueil`), il n'y revient pas (#4195).
 func _exit_tree() -> void:
 	_en_vol.clear()
+	_pose_des_vues = null
+	_file_des_vues.clear()
 
 
 ## Le scénario que le joueur choisit au panneau des scénarios (`scenarios`, #3786) : l'id que porte le bouton pressé
@@ -200,7 +198,8 @@ func _indexer_les_modeles() -> bool:
 ## quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à `sauvegardes` ou à fermer
 ## (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à `_charger`, le panneau des
 ## réglages à ouvrir à `PanneauDesReglages.ouvrir`, le panneau du salon à ouvrir à `PanneauDuSalon.ouvrir`, le renvoi d'un terme
-## de la fiche à `PanneauDuCompendium.ouvrir`, toute autre à `jouer`.
+## de la fiche à `PanneauDuCompendium.ouvrir`, toute autre à `jouer`. Pendant la préparation d'une vue, les commandes
+## qui agissent sur la partie attendent qu'elle soit affichée ; les panneaux, la sortie et le chargement restent accessibles.
 func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("quitter"):
 		_quitter()
@@ -211,23 +210,25 @@ func _jouer(jeu: Dictionary) -> void:
 		else:
 			_fermer_les_sauvegardes()
 		return
-	if jeu.has("sauvegarder"):
-		_montrer_les_sauvegardes(_pont.appeler("sauvegarder", jeu))
-		return
 	if jeu.has("reglages"):
 		_reglages.ouvrir()
 		return
 	if jeu.has("charger"):
 		_charger(jeu.charger)
 		return
-	if jeu.has("roster"):
-		_jouer_le_roster(jeu)
-		return
 	if jeu.has("salon"):
 		_salon.ouvrir()
 		return
 	if jeu.has("compendium"):
 		_compendium.ouvrir(jeu.compendium)
+		return
+	if _pose_des_vues != null:
+		return
+	if jeu.has("sauvegarder"):
+		_montrer_les_sauvegardes(_pont.appeler("sauvegarder", jeu))
+		return
+	if jeu.has("roster"):
+		_jouer_le_roster(jeu)
 		return
 	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
 
@@ -268,7 +269,7 @@ func _montrer_les_sauvegardes(reponse: Dictionary) -> void:
 
 ## Le panneau des sauvegardes fermé : sur la partie ouverte, ou, sans partie, sur l'accueil.
 func _fermer_les_sauvegardes() -> void:
-	if _vue.is_empty():
+	if not _partie_ouverte():
 		_pont.revenir_a_l_accueil()
 		return
 	_sauvegardes.visible = false
@@ -278,7 +279,7 @@ func _fermer_les_sauvegardes() -> void:
 ## La sauvegarde de l'emplacement `emplacement` à charger : la partie ouverte quittée (`quitter`, son point de reprise
 ## gardé), le combat se recharge et l'ouvre (`PontDuNoyau.a_charger`), son monde reposé de zéro.
 func _charger(emplacement: Variant) -> void:
-	if not _vue.is_empty() and _pont.appeler("quitter").get("ok") != true:
+	if _partie_ouverte() and _pont.appeler("quitter").get("ok") != true:
 		return
 	_pont.a_charger = emplacement
 	_recharger_sur("")
@@ -286,7 +287,7 @@ func _charger(emplacement: Variant) -> void:
 
 ## Le panneau du salon fermé (`PanneauDuSalon.ferme`) : sur la partie ouverte, ou, sans partie, sur l'accueil.
 func _fermer_le_salon() -> void:
-	if _vue.is_empty():
+	if not _partie_ouverte():
 		_pont.revenir_a_l_accueil()
 
 
@@ -294,7 +295,7 @@ func _fermer_le_salon() -> void:
 ## (`PontDuNoyau.fin_du_salon`), le combat se recharge sur le panneau du salon, sans partie ; sans partie, le panneau
 ## les montre lui-même.
 func _finir_le_salon(lignes: Array) -> void:
-	if _vue.is_empty():
+	if not _partie_ouverte():
 		return
 	_pont.fin_du_salon = lignes
 	_recharger_sur("salon")
@@ -312,17 +313,108 @@ func _reprendre(jeton: int) -> void:
 	_suivre(_pont.appeler("reprendre", {jeton = jeton}))
 
 
-## Une `Suite` du contrat : sa vue montrée, ses effets rendus, sa musique jouée, son journal écrit, ses jetons armés,
-## puis le panneau du salon relu (`PanneauDuSalon.relire`).
+## Une première vue en préparation appartient déjà à la partie ouverte.
+func _partie_ouverte() -> bool:
+	return not _vue.is_empty() or not _file_des_vues.is_empty()
+
+
+## Chaque suite est lue avec les réponses qui dépendent encore de l'état courant du pont, puis posée dans l'ordre.
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
+	_file_des_vues.append(_lire_la_vue(reponse))
+	if _pose_des_vues != null:
+		return
+	var pose := RefCounted.new()
+	_pose_des_vues = pose
+	while not _file_des_vues.is_empty():
+		var plan: Dictionary = _file_des_vues.front()
+		var matieres := VolumeDeScene.matieres_des_morceaux(plan.get("recus", {}))
+		var lumiere: Variant = plan.suite.vue.lumiere
+		if lumiere != null and lumiere.horsCarte.sol != null:
+			matieres[lumiere.horsCarte.sol.matiere] = false
+		var _textures_gardees := await TexturesDeMatiere.preparer(self, matieres)
+		if pose != _pose_des_vues:
+			return
+		_file_des_vues.pop_front()
+		_poser_la_suite(plan)
+	_pose_des_vues = null
+
+
+## Les réponses de scène encore associées à cette suite. Si une autre pose est en cours, les morceaux sont demandés
+## en entier : un morceau égal au présent posé peut différer de celui du plan qui précède dans la file.
+func _lire_la_vue(reponse: Dictionary) -> Dictionary:
+	var vue: Dictionary = reponse.vue
+	var scene: Variant = vue.projection.scene
+	var id_de_scene: String = "" if scene == null else scene.id
+	var plateau: Variant = vue.plateau
+	var plan := {suite = reponse, nouvelle_scene = id_de_scene != _scene_lue}
+	_scene_lue = id_de_scene
+	var monde := _lire_si_change("monde", id_de_scene, null if plateau == null else plateau.cleDuMonde)
+	if not monde.is_empty() and monde.monde != null:
+		var manquants := _monde.volume.manquants(monde) if _pose_des_vues == null else {
+			volume = monde.monde.morceaux.map(_cle_du_morceau),
+			toits = monde.toits.map(_cle_du_morceau),
+			couronnes = monde.couronnes.map(_cle_du_morceau),
+		}
+		var recus := {volume = [], toits = [], couronnes = []}
+		if not manquants.values().all(func(cles: Array) -> bool: return cles.is_empty()):
+			recus = _pont.appeler("morceaux", manquants.merged({source = "partie"}))
+		if recus.get("ok", true) == true:
+			var zone: Dictionary = plateau.zoneJouable
+			plan.monde = monde
+			plan.recus = recus
+			plan.zone = Rect2i(int(zone.x), int(zone.y), int(zone.w), int(zone.h))
+	plan.retrait = _lire_si_change("retrait", id_de_scene, null if plateau == null else plateau.cleDuRetrait)
+	plan.vision = _lire_la_vision(id_de_scene, vue.vision)
+	plan.aretes = _lire_si_change("aretes", id_de_scene, null if plateau == null else plateau.cleDesAretes)
+	return plan
+
+
+static func _cle_du_morceau(morceau: Dictionary) -> String:
+	return morceau.cle
+
+
+## La réponse du pont si l'empreinte de la méthode a changé dans la scène.
+func _lire_si_change(methode: String, scene: String, empreinte: Variant) -> Dictionary:
+	var cle := "" if scene.is_empty() or empreinte == null else "%s|%s" % [scene, empreinte]
+	var avant: String = _empreintes_lues[methode]
+	_empreintes_lues[methode] = cle
+	if cle.is_empty() or cle == avant:
+		return {}
+	var reponse := _pont.appeler(methode)
+	return reponse if reponse.get("ok") == true else {}
+
+
+## La vision à poser avec le plan, première si elle ouvre une scène.
+func _lire_la_vision(scene: String, empreinte: Variant) -> Dictionary:
+	var avant: String = _empreintes_lues.vision
+	return {reponse = _lire_si_change("vision", scene, empreinte), neuve = not avant.begins_with("%s|" % scene)}
+
+
+## La première vision d'une scène se pose sans fondu depuis celle d'avant.
+func _poser_la_vision_de(vision: Dictionary) -> void:
+	if vision.reponse.is_empty():
+		return
+	if vision.neuve:
+		_monde.volume.voir(null)
+	_monde.volume.voir(vision.reponse)
+
+
+## La vue du plan montrée avec ses textures prêtes, puis ses effets, sa musique, son journal et ses jetons.
+func _poser_la_suite(plan: Dictionary) -> void:
+	var reponse: Dictionary = plan.suite
 	_vue = reponse.vue
 	_refus.text = ""
-	_poser_le_monde_de(_vue.projection.scene, _vue.plateau)
-	_poser_le_retrait_de(_vue.projection.scene, _vue.plateau)
-	_poser_la_vision_de(_vue.projection.scene, _vue.vision)
-	_poser_les_aretes_de(_vue.projection.scene, _vue.plateau)
+	if plan.nouvelle_scene:
+		_monde.volume.oublier_les_aretes()
+	if plan.has("monde"):
+		_plateau.poser_le_monde(plan.monde, plan.recus, plan.zone)
+	if not plan.retrait.is_empty():
+		_monde.volume.retirer(plan.retrait)
+	_poser_la_vision_de(plan.vision)
+	if not plan.aretes.is_empty():
+		_monde.volume.poser_les_aretes(plan.aretes.aretes)
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
@@ -338,63 +430,6 @@ func _suivre(reponse: Dictionary) -> void:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_salon.relire()
 	_publier_l_ecran()
-
-
-## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
-## (`Plateau.poser_le_monde`), s'il n'y est pas déjà : son manifeste (`monde`), la géométrie des seules clés dont
-## l'empreinte posée diffère (`VolumeDeScene.manquants`, `morceaux` de la partie), demandée s'il en manque, et la zone
-## jouable du plateau (`plateau.zoneJouable`), que vise le cadrage.
-func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
-	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuMonde]
-	if cle == _cle_du_monde:
-		return
-	_cle_du_monde = cle
-	var monde := _pont.appeler("monde")
-	if monde.get("ok") != true or monde.monde == null:
-		return
-	var manquants := _monde.volume.manquants(monde)
-	var recus := {volume = [], toits = [], couronnes = []}
-	if not manquants.values().all(func(cles: Array) -> bool: return cles.is_empty()):
-		recus = _pont.appeler("morceaux", manquants.merged({source = "partie"}))
-		if recus.get("ok") != true:
-			return
-	var zone: Dictionary = plateau.zoneJouable
-	_plateau.poser_le_monde(monde, recus, Rect2i(int(zone.x), int(zone.y), int(zone.w), int(zone.h)))
-
-
-## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le
-## masque de son empreinte (`plateau.cleDuRetrait`) n'y est pas déjà.
-func _poser_le_retrait_de(scene: Variant, plateau: Variant) -> void:
-	_cle_du_retrait = _reposer(_cle_du_retrait, scene, null if plateau == null else plateau.cleDuRetrait, "retrait", _monde.volume.retirer)
-
-
-## Ce que le groupe connaît de la scène `scene` (`vision`) voilé au volume (`VolumeDeScene.voir`), si la vision de sa clé
-## (`vue.vision`) n'y est pas déjà ; la première d'une scène posée sans fondu, la vision de la scène d'avant levée.
-func _poser_la_vision_de(scene: Variant, vision: Variant) -> void:
-	var avant := _cle_de_la_vision
-	_cle_de_la_vision = _reposer(avant, scene, vision, "vision", func(reponse: Dictionary) -> void:
-		if not avant.begins_with("%s|" % scene.id):
-			_monde.volume.voir(null)
-		_monde.volume.voir(reponse))
-
-
-## La réponse de la méthode `methode` du pont posée par `poser`, si l'empreinte `empreinte` de la scène `scene` n'est pas
-## celle de la clé `cle` déjà posée : rend la clé `scène|empreinte` de ce qui est posé, `""` sans scène ni empreinte,
-## sans rien demander.
-func _reposer(cle: String, scene: Variant, empreinte: Variant, methode: String, poser: Callable) -> String:
-	var neuve := "" if scene == null or empreinte == null else "%s|%s" % [scene.id, empreinte]
-	if neuve != cle and neuve != "":
-		var reponse := _pont.appeler(methode)
-		if reponse.get("ok") == true:
-			poser.call(reponse)
-	return neuve
-
-
-## Les arêtes de la scène `scene` (`aretes`) sur le volume du monde (`VolumeDeScene.poser_les_aretes`), si celles de
-## leur empreinte (`plateau.cleDesAretes`) n'y sont pas déjà.
-func _poser_les_aretes_de(scene: Variant, plateau: Variant) -> void:
-	_cle_des_aretes = _reposer(_cle_des_aretes, scene, null if plateau == null else plateau.cleDesAretes, "aretes", func(reponse: Dictionary) -> void:
-		_monde.volume.poser_les_aretes(reponse.aretes))
 
 
 ## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.
@@ -472,7 +507,8 @@ func _cadrer(entree: String, rendre: Callable) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("changer_de_regard") and _vue.get("plateau") != null:
 		get_viewport().set_input_as_handled()
-		_suivre(_pont.appeler("regarder", {regard = _vue.plateau.regardSuivant}))
+		if _pose_des_vues == null:
+			_suivre(_pont.appeler("regarder", {regard = _vue.plateau.regardSuivant}))
 
 
 ## Un clic sur `case` : le clic du champ sur la case et, en combat, son occupant s'il en a un.
