@@ -883,6 +883,53 @@
     "stakeForm": "descripteur"
   },
   {
+    "id": "entretien-du-navire",
+    "type": "activities",
+    "label": "Entretien du navire",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "15",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "entretien-du-navire",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 1,
+          "sum": "42d3c3ce108a7a21"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 134,
+      "note": "MDG 15 l.302-306"
+    },
+    "icon": "voyage/reparer",
+    "contexts": [
+      "mer"
+    ],
+    "tests": [
+      {
+        "skill": {
+          "id": "metier",
+          "spec": "charpentier"
+        },
+        "difficulty": "intermediaire"
+      },
+      {
+        "skill": {
+          "id": "metier",
+          "spec": "constructeur-de-navires"
+        },
+        "difficulty": "intermediaire"
+      }
+    ],
+    "resolver": "shipMaintenance",
+    "stake": "En cas de réussite, les matériaux sont dépensés et le dommage visé est réparé.",
+    "stakeForm": "descripteur"
+  },
+  {
     "id": "inspire",
     "type": "activities",
     "label": "Discours inspirant",
@@ -1425,7 +1472,6 @@
       "page": 173
     },
     "sceneKind": "combat",
-    "encounter": "enc-percee",
     "rounds": 3,
     "desc": "Qu'il s'agisse d'aborder un navire ennemi, ou charger les remparts d'un château à l'aide d'une tour de siège, une Scène de Percée nécessite qu'un Personnage prenne le contrôle d'une position ennemie en éliminant tous les soldats adverses ou en remplissant un objectif précis. Les Personnages disposent de 3 Rounds pour accomplir leur objectif, ce qui augmentera la Puissance de leur armée de +10. En cas d'échec, les Personnages peuvent décider de battre en retraite ou participer à une Scène de Charge si l'ennemi appelle des renforts.",
     "outcomes": [
@@ -1642,7 +1688,6 @@
       "page": 223
     },
     "sceneKind": "combat",
-    "encounter": "enc-duel",
     "desc": "Le champ de bataille se retrouve soudainement figé lorsque les généraux (dont idéalement l'un des Personnages) de chaque armée se font face. D'un accord tacite, chacun dégaine son arme, tandis que les troupes les encerclent pour les laisser se battre. Le camp vaincu au cours du duel voit sa Puissance réduite de –20 tandis que les troupes assistent à la mort de leur commandant. Si un autre Personnage intervient et tue le général adverse, leur Puissance n'est réduite que de –10 et ils sont impliqués dans une Scène de Charge contre l'ennemi.",
     "outcomes": [
       {
@@ -1699,7 +1744,6 @@
       "page": 219
     },
     "sceneKind": "threat",
-    "encounter": "enc-intrus",
     "threat": {
       "penalty": -20
     },

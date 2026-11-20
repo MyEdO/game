@@ -1,6 +1,6 @@
 import { Combatant, type SkillInstance } from '../../engine/types';
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { byId, findTrappingById, type SkillRef } from '../../data';
+import { byId, findSiegeEngineById, type SkillRef } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import { Scene } from '../../noyau/monde/scene';
 import type { Terrain } from '../../data/schemas/defs-scenes/scene';
@@ -23,9 +23,9 @@ export function renforcerCompetence(c: Combatant, skillId: string, advances: num
 }
 
 /** Projectiles du Groupe de l'engin servi, que possède un servant compté dans l'équipe — AA 10 l.230, AA 10 l.253.
- *  Spé = id du `weaponGroup` du trapping. */
+ *  Spé = id du `weaponGroup` de l’engin. */
 export const projForPiece = (trappingId: string): SkillRef[] => {
-  const g = findTrappingById(trappingId)?.weaponGroup?.id;
+  const g = findSiegeEngineById(trappingId)?.weaponGroup?.id;
   return g ? [{ id: 'projectiles', spec: g, value: 40 }] : [];
 };
 

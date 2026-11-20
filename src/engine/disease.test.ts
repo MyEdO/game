@@ -10,7 +10,7 @@ import {
   diseaseBlesseCount,
   diseasePassiveOps,
   diseasePsychTraits,
-  rollContraction,
+  applyContraction,
   applyDiseasePersist,
   symptomOnTick,
 } from './disease';
@@ -272,26 +272,27 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     });
   });
 
-  describe('rollContraction (post-critique +60, Chirurgie +20)', () => {
+  describe('applyContraction', () => {
     it('Test de Résistance réussi → aucune maladie', () => {
       const c = sick();
-      // resVal 80, Très Facile (+60) → cible plafonnée ; d100=5 réussit.
-      const log = rollContraction(c, 'infection-mineure', 80, 'tresFacile', seq([5]));
+      const log = applyContraction(c, 'infection-mineure', true, seq([]));
       expect(c.diseases ?? []).toHaveLength(0);
       expect(log).toHaveLength(0);
     });
 
     it('Test raté → contracte la maladie (incubation/durée tirées ensuite)', () => {
       const c = sick();
-      // resVal 1, Très Facile (+60) → cible 61 ; d100=99 échoue → contractDisease tire incubation=3, durée=5.
-      const log = rollContraction(c, 'infection-mineure', 1, 'tresFacile', seq([99, 3, 5]));
-      expect(c.diseases!.map((d) => d.id)).toEqual(['infection-mineure']);
+      const log = applyContraction(c, 'infection-mineure', false, seq([3, 5]));
+      expect(c.diseases).toMatchObject([{
+        id: 'infection-mineure', phase: 'incubation',
+        minutesLeft: 3 * MINUTES_PER_DAY, durationMinutes: 5 * MINUTES_PER_DAY,
+      }]);
       expect(log.some((l) => /contracte/.test(l))).toBe(true);
     });
 
-    it('déjà porteur de la maladie → ne relance rien (dédoublonnage)', () => {
+    it('déjà porteur de la maladie → une seule instance', () => {
       const c = sick({ diseases: [contractDisease('infection-mineure', seq([]), { incubation: 0, duration: 5 })!] });
-      const log = rollContraction(c, 'infection-mineure', 1, 'tresFacile', seq([])); // aucun jet
+      const log = applyContraction(c, 'infection-mineure', false, seq([]));
       expect(c.diseases!).toHaveLength(1);
       expect(log).toHaveLength(0);
     });

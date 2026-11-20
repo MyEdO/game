@@ -13,7 +13,8 @@ import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES
 import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
-  byId, findTalentById, findTrappingById, findSeaShantyById,
+  byId, findTalentById, findSeaShantyById,
+  findSiegeEngineById,
   findWeaponGroupById, findGroupById,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
@@ -25,6 +26,8 @@ import { itemFromTrappingById } from '../engine/items';
 import { MANANN_FACTORS } from '../engine/seaVoyage';
 import { pretires } from './pregens';
 import areneProject from '../scenes/arene/arene-projet.json';
+import bargeProject from '../scenes/barge-du-sel/barge-du-sel-projet.json';
+import diligenceProject from '../scenes/diligence/diligence-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
 import { CHAR_KEYS } from '../engine/types';
@@ -583,10 +586,12 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
     const bad: string[] = [];
     const hard = (p: Record<string, unknown>, where: string): void => {
       if (typeof p.trappingId !== 'string') return; // forme ancienne (item) → report ci-dessous
-      if (!findTrappingById(p.trappingId)) bad.push(`${where} : trappingId « ${p.trappingId} » inconnu du catalogue`);
+      if (!findSiegeEngineById(p.trappingId)) bad.push(`${where} : trappingId « ${p.trappingId} » inconnu du catalogue`);
       for (const f of BASE_FIELDS) if (f in p) bad.push(`${where} : « ${f} » copié alors qu'hydratable de « ${p.trappingId} » (base interdite en donnée, #222)`);
     };
     walkPostes(areneProject, 'arene-projet.json', hard);
+    walkPostes(bargeProject, 'barge-du-sel-projet.json', hard);
+    walkPostes(diligenceProject, 'diligence-projet.json', hard);
     walkPostes(loupProject, 'loup-et-saumure-projet.json', hard);
     for (const s of SCENARIOS) {
       const c = s.construire(idsDeTest);

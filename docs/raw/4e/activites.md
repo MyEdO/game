@@ -784,6 +784,8 @@ Former l'équipage (PNJ) dans une **Compétence utile à la gestion du bateau**.
 
 **Source :** MDG 15 l.302-306.
 
+**Preuve d’implémentation :** MDG 15 l.304
+
 Réparer l'usure du vaisseau (planches pourries, voiles, coque incrustée). **De préférence au port** ; en mer, **pénalité supplémentaire de −20** ; un port doté de vastes installations de construction navale donne **+20**.
 
 **Usure générale** — **Test de Métier (Charpentier *ou* Constructeur de navires) Intermédiaire (+0)**. Succès → dépenser un Encombrement de **pièces détachées de navire égal à la Taille du navire** et retirer les effets de l'événement de bord *Usure*.

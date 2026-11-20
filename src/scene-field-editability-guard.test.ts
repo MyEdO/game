@@ -662,6 +662,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.page @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.quote @ src/data/schemas/grammaire/valeurs.ts',
+      'SujetDuJet.avisSurLeStatut @ src/data/schemas/grammaire/mecanique.ts',
       'SujetDuJet.begging @ src/data/schemas/grammaire/mecanique.ts',
       'SujetDuJet.characteristic @ src/data/schemas/grammaire/mecanique.ts',
       'SujetDuJet.crewTestType @ src/data/schemas/grammaire/mecanique.ts',

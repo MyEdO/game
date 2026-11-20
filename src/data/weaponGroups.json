@@ -97,14 +97,26 @@
     "rendu": {
       "id": "arme-blanche"
     },
-    "manieAussi": {
-      "base": {}
-    },
     "source": {
       "book": "livre-de-base",
       "page": 296,
       "note": "Les groupes d'armes de Corps à corps, LDB 62 l.137."
-    }
+    },
+    "variants": [
+      {
+        "when": {
+          "rule": "combat-aa-armement"
+        },
+        "source": {
+          "book": "aux-armes",
+          "page": 93,
+          "note": "AA 08 l.194"
+        },
+        "manieAussi": {
+          "base": {}
+        }
+      }
+    ]
   },
   {
     "id": "fleau",

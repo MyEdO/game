@@ -9,7 +9,9 @@ import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { TrappingResolver } from '../../engine/items';
 import type { DocumentNarratif, Indice, NarratifBlock, PresetPnj, ProfilDePreset } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from '../../data/schemas/defs-scenes/registres-narratifs';
-import { findCreatureById, findTrappingById, trappingDesObjetsPuisDuCatalogue, type CreatureData } from '../../data';
+import { findCreatureById, findTrappingById, trappingDesObjetsPuisDuCatalogue, trappingsInstanciables, type CreatureData } from '../../data';
+import { dansLaSousListe } from '../../data/schemas/grammaire/ref';
+import { INSTANCIABLE_PAR_ID } from '../../data/schemas/grammaire/sousListes';
 
 /** Le narratif résolu : celui de la partie (`campaignNarratif`, `null` hors campagne) ou celui du projet édité. */
 type Narratif = NarratifBlock | null | undefined;
@@ -46,6 +48,20 @@ export const documentDuNarratif = (n: Narratif) => (id: string): DocumentNarrati
 const objetsDuNarratifConnu = memoByRef<NarratifBlock, TrappingResolver>((n) => (id) => trappingDesObjetsPuisDuCatalogue(tablesDuNarratif(n).objets, id));
 export const objetDuNarratif = (n: Narratif): TrappingResolver => n ? objetsDuNarratifConnu(n) : findTrappingById;
 
+/** Les objets qu'une fiche d'auteur peut matérialiser pendant l'édition ou sa validation. #4257 */
+export function objetInstanciableDuNarratif(narratif: Narratif): TrappingResolver {
+  const resoudre = objetDuNarratif(narratif);
+  return (id) => {
+    const objet = resoudre(id);
+    return objet && dansLaSousListe(INSTANCIABLE_PAR_ID, objet) ? objet : undefined;
+  };
+}
+
+/** #4257 */
+export function objetsInstanciablesDuProjet(narratif: NarratifBlock) {
+  return [...trappingsInstanciables(), ...narratif.objets.filter((objet) => dansLaSousListe(INSTANCIABLE_PAR_ID, objet))];
+}
+
 /** Le NOM d'un preset : celui de son profil, sinon celui de sa créature de base, comme `mergeCreatureProfile`
  *  le pose ; `undefined` sans l'un ni l'autre. */
 export function nomDePreset(p: PresetPnj): string | undefined {
@@ -66,6 +82,7 @@ export function mergeCreatureProfile(base: CreatureData, profil?: ProfilDePreset
   return {
     ...base,
     ...rest, // surcharge au niveau champ (tableaux remplacés en bloc si présents)
+    id: base.id,
     char: char ? { ...base.char, ...char } : base.char, // char fusionné par caractéristique
   };
 }

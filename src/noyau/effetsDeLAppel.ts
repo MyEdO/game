@@ -17,9 +17,11 @@ import {
   etats,
   findDomainById,
   findRenduById,
+  findSiegeEngineById,
   findSpellById,
   findTrappingById,
   findWeaponGroupById,
+  groupeDeSiege,
   lightTones,
   maneuvers,
   rendus,
@@ -63,7 +65,7 @@ export type Effet =
    * secondes, sa cloche haute de `hauteurM` mètres à mi-vol (la vitesse et la cloche de son rendu sur la distance des
    * deux combattants, bornée par un vol le plus court), puis la phase `arrivee` de son `issue` joue sur la cible :
    * l'impact d'une touche ou d'un critique, le manque, ou la parade de l'arme qui a paré. Le rendu d'une arme est celui
-   * de son objet (un engin de siège, `trappings.json › rendu`), à défaut celui de son Groupe (`weaponGroups.json ›
+   * de sa fiche (dont `siege-engines.json › rendu`), à défaut celui de son Groupe (`weaponGroups.json ›
    * rendu`) ; celui d'un sort, celui de son Domaine (`domains.json › rendu`), teint de sa `couleur` ; une Prière a le
    * sien.
    */
@@ -236,10 +238,11 @@ const depart = (r: RenduDef): PhaseRendue | null => phase(r.departVisuel, r.depa
 /** La phase d'arrivée du rendu `r` : son impact, ou son manque. */
 const arriveeDe = (r: RenduDef, manque: boolean): PhaseRendue | null => (manque ? phase(r.manqueVisuel, r.manqueSon) : phase(r.impactVisuel, r.impactSon));
 
-/** Le rendu de l'arme `w` : celui de son objet (un engin de siège), de son Groupe, à défaut le repli de sa sorte. */
+/** Le rendu de l'arme `w` : celui de sa fiche, de son Groupe, à défaut le repli de sa sorte. */
 function renduDeLArme(w: Weapon): RenduDef {
   const groupe = findWeaponGroupById(w.subType);
-  const propre = findTrappingById(w.trappingId)?.rendu ?? (groupe?.kind === 'weapon' ? groupe.rendu : undefined);
+  const fiche = groupeDeSiege(w.subType) ? findSiegeEngineById(w.trappingId) : findTrappingById(w.trappingId);
+  const propre = fiche?.rendu ?? (groupe?.kind === 'weapon' ? groupe.rendu : undefined);
   return catalogue(propre?.id ?? (w.natural ? REPLI.naturelle : REPLI[w.type]));
 }
 

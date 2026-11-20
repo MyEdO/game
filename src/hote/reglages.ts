@@ -190,7 +190,7 @@ export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, '
 /** Joue le geste des réglages `geste` sur `stockage` et le persiste ; `etat` : la partie ouverte, `null` sans partie.
  *  Lève l'erreur de validation d'un geste, d'un id ou d'une valeur que la table ou le registre refuse, et l'erreur de
  *  règle du verrou du noyau (`reglesMaisonMutables` : un combat en cours, un invité). */
-export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'battle' | 'net'> | null, geste: { type: unknown; args: unknown }): void {
+export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'battle' | 'net'> | null, geste: { type: unknown; args: unknown }, reprojeter?: () => void): void {
   const args = Array.isArray(geste.args) ? geste.args : [];
   const [id, valeur] = args;
   const refuser = (categorie: 'validation' | 'regle', raison: string): never => {
@@ -212,6 +212,6 @@ export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'ba
   const jeu = etat ?? { battle: null, net: initialNet() };
   const verrou = reglesMaisonMutables(jeu);
   if (!verrou.mutable) return refuser('regle', verrou.reason);
-  if (geste.type === 'retablir') remettreUneRegleMaison(stockage, jeu, regle.id);
-  else if (conforme) reglerUneRegleMaison(stockage, jeu, regle.id, valeur);
+  if (geste.type === 'retablir') remettreUneRegleMaison(stockage, jeu, regle.id, reprojeter);
+  else if (conforme) reglerUneRegleMaison(stockage, jeu, regle.id, valeur, reprojeter);
 }

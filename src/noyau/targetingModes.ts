@@ -6,10 +6,7 @@
  * l'aiguilleur. Les facettes (réticule au survol / cibles Tab-curseur / commit) qui vivaient à
  * trois endroits (targeting.ts, combatSlice.ts, la surcouche de plateau) sont ICI, unifiées.
  *
- * CONTRAT D'AFFICHAGE (arbitrage utilisateur 2026-08-24, verbatim : « Dans RT, mettre sa souris sur un
- * ennemi ou une case hors porté ca n'affiche rien de particulier ») : LE SURVOL N'AFFICHE QUE LE
- * FAISABLE — une affordance `ok` porte le réticule et la carte de jet, une affordance `invalid` ne
- * rend RIEN. L'INFAISABLE SE DIT AU CLIC, par `refuserGeste` (`noyau/refusVisible`), au point du geste.
+ * `.claude/memory/user-arbitrage-survol-rt-strict-refus-au-clic.md`
  *
  * Importe combatFlow, qui l'atteint en retour par combatOrParty (`touchActors`…) : un cycle de modules
  * que seuls des appels de fonction traversent, jamais une valeur lue au chargement. Consommé par
@@ -59,7 +56,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
 import {
-  attackPlan, previewAttack, previewCast, firedAttackBlock, outOfSightTargetIds, castOutOfSightTargetIds, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
+  attackPlan, previewAttack, previewCast, firedAttackBlock, outOfSightTargetIds, castOutOfSightTargetIds, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, ciblesDuBalayage, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
 } from './combatFlow';
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
 import { captureMoveSnapshot, campAuContact } from './monde/combatGeometry';
@@ -491,13 +488,13 @@ function overcastAffordance(get: Get, _active: Combatant, target: Combatant): Ho
   return { kind: 'ok', line: 'dashed', title: spell.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
-/** Mode FRAPPE MORTELLE (cleave, LDB 14 l.9) : enchaînements adjacents non encore frappés. */
+/** Mode FRAPPE MORTELLE. LDB 14 l.9 ; LDB 62 l.163-164 */
 function cleaveAffordance(get: Get, _active: Combatant, target: Combatant): HoverTargeting {
   const s = get();
   const battle = s.battle!;
   const pc = s.pendingCleave!;
   const atk = inBattleId(battle, pc.attackerId);
-  if (!atk || !cleaveTargets(s.scene, battle, atk, pc.hitIds).some((c) => c.id === target.id)) return { kind: 'none' };
+  if (!atk || !ciblesDuBalayage(s).some((c) => c.id === target.id)) return { kind: 'none' };
   const weapon = firedWeapon(s.scene, atk, target, undefined, battle.combatants); // MÊME résolution que la chaîne (resolveAttack, aucun weaponUid)
   // L'enchaînement est une VRAIE frappe : son réticule porte la valeur et la Difficulté du jet qu'il
   // ouvrira, comme le ciblage ordinaire (`attackAffordance`) — un interlude n'est pas un ciblage aveugle.
@@ -806,13 +803,7 @@ const OVERCAST_MODE = {
 } satisfies TargetingMode;
 const CLEAVE_MODE = {
   id: 'frappeMortelle', label: 'Frappe Mortelle', consigne: 'consigne.frappeMortelle', affordance: cleaveAffordance, anneauCandidats: 'hostile',
-  candidates: (get) => {
-    const s = get();
-    const battle = s.battle;
-    const pc = s.pendingCleave;
-    const atk = battle && pc && inBattleId(battle, pc.attackerId);
-    return battle && pc && atk ? cleaveTargets(s.scene, battle, atk, pc.hitIds) : [];
-  },
+  candidates: (get) => ciblesDuBalayage(get()),
   commitCombatant: (get, _set, _active, id) => { get().frapperEnBalayage(id); },
 } satisfies TargetingMode;
 const DUAL_MODE = {

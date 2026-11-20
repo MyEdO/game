@@ -32,7 +32,7 @@ import { SceneBackdrop } from './SceneBackdrop';
 import { NumberField } from './NumberField';
 import { deDeLaTableTiree, fourchette } from '../engine/tables';
 import { formatDice } from '../engine/dice';
-import { presetPnjById } from '../state/campaignData';
+import { objetDuNarratif, presetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 
 /** Le PROFIL STANDARD d'un figurant de la salle (`LDB 77 l.7`) et la valeur de jeu que sa fiche en dérive. */
 function ChoixDeProfil({ titre, profils, choisi, onChoisir, fiche, game }: {
@@ -97,9 +97,12 @@ export function TavernGameModal() {
   // Lu par SÉLECTEUR — la scène change (transition, PNJ retiré) et l'offre doit se re-rendre ; une
   // lecture directe de `getState` la figeait au premier rendu.
   const scene = useGame((s) => s.scene);
-  const npcs = tavernNpcOffers(scene, presetPnjById);
+  const narratif = useGame((s) => s.campaignNarratif);
+  const presetDe = presetDuNarratif(narratif);
+  const resolveTrapping = objetDuNarratif(narratif);
+  const npcs = tavernNpcOffers(scene, presetDe, resolveTrapping);
   const npc = npcs.find((n) => n.id === oppNpcId) ?? npcs[0];
-  const npcActor = npc ? sceneNpc(scene, npc.id, presetPnjById) : undefined;
+  const npcActor = npc ? sceneNpc(scene, npc.id, presetDe, resolveTrapping) : undefined;
   // CE QUE L'AUTEUR PRESCRIT (`NADJ 04 l.72` : un jeu ET une mise de départ) : la modale s'y POSE
   // quand on choisit ce PNJ — le joueur reste libre d'en dévier, l'auteur ne fait qu'ouvrir la table.
   useEffect(() => {

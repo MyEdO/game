@@ -11,10 +11,11 @@ import { addLayer, paintHeight, paintTiles } from '../sceneEdit';
 import { advanceTurn, aiAvailableFreeAttack, attackEnv, attackPlan, buildAiInput, collapseStructure } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
 import { hoverTargeting } from '../targeting';
-import { effectifAuContact } from '../combat/surnombre';
+import { effectifAuContactParmi } from '../combat/surnombre';
 import { ligneDeRegle, refDeRegle } from '../../engine/reglesChiffrees';
 import { ligneDe } from '../../engine/modLine.testkit';
 import { isInanimate } from '../../engine/structures';
+import { engage } from '../../engine/engagement';
 import type { Combatant } from '../../engine/types';
 
 /**
@@ -46,7 +47,7 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     expect(distanceDeContact(banc.getState().scene, E, H), 'la cale est sous le pont').toBe(Infinity);
     expect(melee(H, E).aTraversLeSol).toBe(false);
     expect(attackPlan(banc.getState, E, H).kind, 'ni attaque ni charge de la cale vers le pont').toBe('bloque');
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(0);
     E.aiControlled = true;
     (E.psychState ??= []).push({ type: 'frenesie' });
     expect(aiAvailableFreeAttack(banc.getState, banc.setState, E)).toBe(false);
@@ -61,7 +62,7 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     expect(attackPlan(banc.getState, H, E).kind).not.toBe('attaque');
     expect(melee(H, E).aTraversLeSol).toBe(false);
     expect(melee(E, H).aTraversLeSol).toBe(false);
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(0);
   });
 
   it('sous la trappe, la case (4,7) de la cale garde le contact avec le pont voisin (5,7,1)', () => {
@@ -69,7 +70,7 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     poser(E, { x: 4, y: 7, z: 0 });
     poser(H, { x: 5, y: 7, z: 1 });
     expect(offert(H, E)).toBe(true);
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(1);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(1);
     E.aiControlled = true;
     (E.psychState ??= []).push({ type: 'frenesie' });
     expect(aiAvailableFreeAttack(banc.getState, banc.setState, E)).toBe(true);
@@ -168,7 +169,7 @@ describe('#4090 — embuscade-fluviale : le Surnombre ne compte que des Personna
     if (D) poser(D, { x: 12, y: 7, z: 0 });
     E.aiControlled = true;
     banc.setState({ battle: { ...banc.getState().battle!, order: [H.id, E.id], turn: 0 }, pendingDefense: null });
-    return { H, E, B };
+    return { H, E, B, D };
   }
   /** La mêlée réelle de E sur H : la fin du tour de H rend la main à l'IA, dont l'attaque ouvre la défense de H. */
   const attaqueDeE = (H: Combatant, E: Combatant) => {
@@ -180,18 +181,23 @@ describe('#4090 — embuscade-fluviale : le Surnombre ne compte que des Personna
     return ligneDe(def!.env, refDeRegle('superiorite-numerique'));
   };
 
-  it('au contact de la barque et d’un seul Pirate, le héros n’est pas en infériorité : la mêlée du Pirate est sans Surnombre', () => {
+  it('la barque reste exclue du Surnombre même si une partie contient un lien avec elle', () => {
     const { H, E, B } = abordage();
+    engage(B, H);
     expect(distanceDeContact(banc.getState().scene, B, H), 'la barque touche le héros').toBe(1);
     expect(distanceDeContact(banc.getState().scene, E, H)).toBe(1);
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, H, 'ennemi')).toBe(1);
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, H, 'ennemi')).toBe(1);
     expect(attaqueDeE(H, E)).toBeUndefined();
   });
 
-  it('un second Pirate au contact donne le Surnombre à la même mêlée', () => {
-    const { H, E } = abordage('ennemi');
-    expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, H, 'ennemi')).toBe(2);
-    expect(attaqueDeE(H, E)).toEqual(ligneDeRegle('superiorite-numerique', 'deux-contre-un'));
+  it.each([
+    { lie: false, ligne: undefined },
+    { lie: true, ligne: ligneDeRegle('superiorite-numerique', 'deux-contre-un') },
+  ])('la mêlée réelle du Pirate lit le lien du second Pirate : Engagé = $lie', ({ lie, ligne }) => {
+    const { H, E, D } = abordage('ennemi');
+    expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, H, 'ennemi')).toBe(2);
+    if (lie) engage(D!, H);
+    expect(attaqueDeE(H, E)).toEqual(ligne);
   });
 
   it('l’escouade que l’IA reçoit du jeu porte la barque', () => {

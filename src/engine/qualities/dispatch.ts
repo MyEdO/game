@@ -226,7 +226,7 @@ export function canStrikeFirst(weapons: QualityCarrier[] | undefined): boolean {
 
 /** Dangereuse (LDB 62 l.315) : ce jet RATÉ avec cette arme inclut-il un chiffre de Maladresse
  *  (dizaines ou unités) ? Une Arme d'équipe d'Indice ≥ 4 maniée en sous-effectif devient Dangereuse
- *  (Aux Armes p.124) — seuil {9}. La Poudre imprégnée d'Aqshy (AA 08 l.544) élargit le seuil à {8,9}
+ *  (Aux Armes p.124) — seuil {9}. La Poudre imprégnée d'Aqshy (AA 08 l.542) élargit le seuil à {8,9}
  *  via `fumbleDigits` ; le seuil effectif est l'UNION des digits de toutes les qualités résolues. */
 export function dangerousNine(w: QualityCarrier | undefined, roll: number, success: boolean): boolean {
   const digits = new Set<number>();

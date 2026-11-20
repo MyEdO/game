@@ -35,7 +35,7 @@ import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
 import { crewRoles, dataLabel, findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
-import { estNavire, profilNavalDe } from '../engine/coque';
+import { estNavire, milieuDeLaCoque, profilNavalDe } from '../engine/coque';
 import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
@@ -50,7 +50,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import { equipageApte, ecrireActeur, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
-import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
+import { propulsionDuNavire } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { choisirLaMunition } from '../engine/items';
@@ -135,10 +135,11 @@ export function equipageImplique(party: readonly Combatant[], manieurs: readonly
   return apte.filter((c) => manieurs.includes(c.id) || roleDePropulsion(postes.get(c.id)));
 }
 
-/** Compétence de Navigation de la coque `ship` dans le milieu du voyage en cours (`propulsionDuNavire`,
- *  MDG 13 l.18-19), que le schéma de véhicule garantit. */
+/** Compétence de Navigation de la coque `ship` dans le milieu de la rencontre ou du voyage (`propulsionDuNavire`).
+ *  MSRC 07 l.11–17 ; MDG 13 l.18–19. */
 export function navigationDuNavire(get: Get, ship: Combatant): RefDesignee {
-  return garanti(propulsionDuNavire(ship.creatureId, ship.upgrades, milieuDuVoyage(get().travelPlan)), ship.creatureId, 'propulsion du navire').competence;
+  const milieu = milieuDeLaCoque(ship, get().travelPlan);
+  return garanti(propulsionDuNavire(ship.creatureId, ship.upgrades, milieu), ship.creatureId, 'propulsion du navire').competence;
 }
 
 export function shipCrewAssignments(ship: Combatant, combatants: Combatant[], testTypeId: string, navigation: RefDesignee): CrewAssignment[] {
@@ -233,8 +234,17 @@ const enContraction = (r: BandPorteur): BandPorteur => ({ ...r, menace: 'maladie
 function avecLEquipage(vessel: CampaignVessel, equipage: CampaignVessel['porteurDeLEquipage']): CampaignVessel {
   const { porteurDeLEquipage: _ancien, ...reste } = vessel;
   const diseases = equipage?.diseases?.length ? equipage.diseases : undefined;
+  const diseaseImmunities = equipage?.diseaseImmunities?.length ? equipage.diseaseImmunities : undefined;
   const regimeDeBord = equipage?.regimeDeBord;
-  return diseases || regimeDeBord ? { ...reste, porteurDeLEquipage: { ...(diseases ? { diseases } : {}), ...(regimeDeBord ? { regimeDeBord } : {}) } } : reste;
+  if (!diseases && !diseaseImmunities && !regimeDeBord) return reste;
+  return {
+    ...reste,
+    porteurDeLEquipage: {
+      ...(diseases ? { diseases } : {}),
+      ...(diseaseImmunities ? { diseaseImmunities } : {}),
+      ...(regimeDeBord ? { regimeDeBord } : {}),
+    },
+  };
 }
 
 /**

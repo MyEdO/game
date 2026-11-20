@@ -116,29 +116,19 @@ export const FOLIO_RATCHET = new Set([
   'traits.json:salive-anticoagulante', // p.89 -> 90
   // trappings.json
   'trappings.json:arme-simple', // p.294 -> 296
-  'trappings.json:arquebuse-a-double-canon', // p.100 -> 101
-  'trappings.json:arquebuse-a-meche', // p.100 -> 101
   'trappings.json:bombe-incendiaire-mortier', // p.106 -> 101
   'trappings.json:boussole', // p.127 -> 126
-  'trappings.json:canne-pistolet', // p.100 -> 103
   'trappings.json:canon-crache-plomb', // p.29 -> 30
-  'trappings.json:catapulte-grande', // p.122 -> 123
-  'trappings.json:catapulte-moyenne', // p.122 -> 123
-  'trappings.json:catapulte-petite', // p.122 -> 123
   'trappings.json:epee-de-cour', // p.90 -> 93
   'trappings.json:gaffe-2', // p.90 -> 94
   'trappings.json:gantelet-a-pointes', // p.90 -> 94
   'trappings.json:grande-lance', // p.29 -> 30
   'trappings.json:grande-massue-ogre', // p.29 -> 30
-  'trappings.json:hache-arquebuse', // p.100 -> 101
-  'trappings.json:hallebarde-arquebuse', // p.100 -> 102
-  'trappings.json:haquebute', // p.100 -> 102
   'trappings.json:huile-de-lampe', // p.308 -> 309+
   'trappings.json:lampe-tempete', // p.308 -> 309+
   'trappings.json:livre-medecine', // p.304 -> 305+
   'trappings.json:livre-religion', // p.304 -> 305+
   'trappings.json:massue-ogre', // p.29 -> 30
-  'trappings.json:mortier-a-main', // p.100 -> 103
   'trappings.json:necessaire-de-deguisement', // p.303 -> 304+
   'trappings.json:outils-de-crochetage', // p.303 -> 304+
   'trappings.json:peau-de-phoque', // p.127 -> 126
@@ -146,9 +136,7 @@ export const FOLIO_RATCHET = new Set([
   'trappings.json:piege-a-animaux', // p.303 -> 304+
   'trappings.json:piege-a-chaines', // p.29 -> 30
   'trappings.json:pistolet-ogre', // p.29 -> 30
-  'trappings.json:pistolet-patte-de-griffon', // p.100 -> 102
   'trappings.json:poing-de-fer', // p.29 -> 30
-  'trappings.json:poivriere', // p.100 -> 103
   'trappings.json:ration-biscuits-de-mer', // p.127 -> 126
   'trappings.json:ration-nourriture-preservee', // p.127 -> 126
   'trappings.json:ration-soupe-chou-fermente', // p.127 -> 126

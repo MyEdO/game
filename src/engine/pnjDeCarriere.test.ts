@@ -17,7 +17,7 @@ import { combattantDeTest } from './combattantDeTest.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
-import { fabricationAtouts, findCreatureById, findSpeciesById, findTrappingById, groupeDeLArme, levelsForCareer } from '../data';
+import { fabricationAtouts, findCreatureById, findSiegeEngineById, findSpeciesById, findTrappingById, groupeDeLArme, levelsForCareer } from '../data';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
 import { dotationsDuPnj, emplacementsDeDotation, porteurDeLEspece, porteurDuProfil, valeursDeLEmplacement } from './trappingChoices';
 import { craftAtoutCount } from './qualities/craftEconomy';
@@ -28,7 +28,6 @@ import type { Combatant } from './types';
 import { bourseOf, bourseInstanceOf, setBourseBrass } from './bourse';
 import { toBrass } from './money';
 import { wornArmourPoints } from './items';
-import { ENGINS_DE_SIEGE } from '../data/schemas/grammaire/sousListes';
 
 const porte = (p: ParcoursDeCarriere, id = 'pnj'): Combatant => {
   const c = combattantDeTest({ id });
@@ -168,7 +167,7 @@ describe('dotations de la carrière actuelle et de ses Niveaux inférieurs, sans
     const piece = emplacementsDeDotation(dotationsDuPnj('artilleur', 4)).find((e) => e.sorte === 'branches' && e.ref.of.every((b) => 'type' in b && b.type === 'engin'))!;
     for (const j of valeursDeLEmplacement(piece, { size: 'moyenne' })) {
       const artilleur = porte({ carrieres: { artilleur: 4 }, dotationsDeCarriere: { [piece.adresse]: j } });
-      expect(artilleur.items!.filter((i) => findTrappingById(i.trappingId!)?.subType?.id === ENGINS_DE_SIEGE), `choix ${j}`).toEqual([]);
+      expect(artilleur.items!.filter((i) => findSiegeEngineById(i.trappingId) !== undefined), `choix ${j}`).toEqual([]);
     }
   });
   it('le Statut est celui du Niveau atteint de la carrière actuelle : le Doktor de l’exemple est Argent 5 (EDO 11 l.27)', () => {

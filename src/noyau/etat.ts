@@ -79,6 +79,7 @@ import { initialFields } from './stateFields';
 import type { NarratifBlock, OuvertureBlock } from '../data/schemas/defs-scenes/narratif';
 import type { ChapitreDepuis, ChapterRecap } from './chapitreRecap';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { EtatDeContagion } from './expositionAMaladie';
 
 /** Source unique des écrans valides — `Ecran` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
@@ -297,6 +298,8 @@ export interface CampaignVessel {
   /** #30 — Blessures de COQUE persistantes (absent = coque intacte). Synchronisées par le voyage
    *  maritime (`persistHullWounds`) et les réparations ; la coque de trajet en repart. */
   wounds?: { current: number; max: number };
+  /** MDG 15 l.200 */
+  usure?: number;
   /** Améliorations d'INSTANCE posées au chantier (MDG 12 — Clinfoc, Blindage, Ancre…), recopiées
    *  sur la coque au départ (`voyageShip`). */
   upgrades?: import('../engine/types').NavalTraitRef[];
@@ -331,9 +334,9 @@ export interface CampaignVessel {
    *  plafonné au complément nominal du type (`vehicles.json` ship.crew — `applyVesselCrewLoss`). Absent
    *  = aucune perte. #150. */
   crewLost?: number;
-  /** L'équipage PNJ, UN porteur de maladies collectif sans fiche ; lu et écrit par `porteursABord` (`shipCrew.ts`), vidé
-   *  quand l'effectif PNJ tombe à 0 (`applyVesselCrewLoss`). MDG 14 l.172, l.208-209, l.230-232. Absent = équipage sain. #4243 */
-  porteurDeLEquipage?: Pick<import('../engine/disease').PorteurDeMaladies, 'diseases' | 'regimeDeBord'>;
+  /** L'équipage PNJ, un porteur de maladies collectif lu et écrit par `porteursABord`.
+   *  LDB 20 l.127-129 ; MDG 14 l.172, l.208-209, l.230-232 */
+  porteurDeLEquipage?: Omit<import('../engine/disease').PorteurDeMaladies, 'label'>;
   /** #216 — Équipage SALARIÉ embauché (barème `crew-roles.json`). Absent/vide = aucun équipage salarié
    *  = aucune paie prélevée à l'entretien hebdomadaire. */
   crew?: import('../engine/crewMorale').CrewHire[];
@@ -741,6 +744,8 @@ export interface EtatDeJeu {
   travelRecap: import('./travelFlow').TravelRecap | null;
   /** Dernier jour (index d'horloge) traité par l'entretien quotidien (rations/faim) — anti-double-comptage. */
   lastUpkeepDay: number;
+  /** Fenêtres ouvertes et repères de phase observés chez leurs sources. LDB 20 l.12-13, l.206 */
+  etatDeContagion: EtatDeContagion;
   /** Budget d'heures de voyage CONSOMMÉ le jour calendaire courant (#340) — SOURCE UNIQUE keyée sur
    *  `dayIndex(gameTime)`, remise à zéro au franchissement de jour. `foot`/`mount` = heures à pied / en
    *  selle déjà parcourues aujourd'hui (le budget RAW de 6 h se compte PAR JOUR, pas par trajet) ;
@@ -777,7 +782,7 @@ export interface EtatDeJeu {
   /** Écran MARCHÉ TERRESTRE ouvert (commerce de cargaison à un Lieu `market` de la carte — MSRC 13 l.3) :
    *  offres d'achat générées à l'arrivée. `null` = fermé. */
   landMarket: import('./landMarketFlow').LandMarketState | null;
-  /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.266-306) — modale de choix par héros. */
+  /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.268) — modale de choix par héros. */
   pendingSeaActivities: import('./seaActivities').PendingSeaActivities | null;
   /** Permission de RELÂCHE À TERRE en attente de CHOIX, posée à l'accostage AVANT l'événement de
    *  port (MDG 15 l.245). */
@@ -793,6 +798,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     screen: 'menu',
     gameTime: campaignStart(),
     lastUpkeepDay: dayIndex(campaignStart()),
+    etatDeContagion: { fenetres: [], sources: [] },
     travelDayHours: { day: dayIndex(campaignStart()), foot: 0, mount: 0, marched: false },
     lastNightDay: dayIndex(campaignStart()),
     vessel: null,

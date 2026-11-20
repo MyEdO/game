@@ -210,7 +210,7 @@ describe('deplacerLaCargaison — co-localisation des porteurs de cargaison (`ca
   it('hors carte, la cale du navire et la mule, tous deux avec le groupe, échangent leur vrac', () => {
     const h = heroDuDuel();
     const mule = { uid: 'pos-mule', ownerId: h.id, nature: 'bete', ref: { id: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [], cargo: [] } as unknown as Possession;
-    const vessel = { vehicleId: 'barge', cargo: [{ uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 10, basePriceGold: 1 }] } as unknown as EtatDeJeu['vessel'];
+    const vessel = { vehicleId: 'barge-fluviale', cargo: [{ uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 10, basePriceGold: 1 }] } as unknown as EtatDeJeu['vessel'];
     avecPartie({ ...etatInitialDuJeu(), party: [h], possessions: [mule], vessel, worldMap: null }, (partie) => {
       partie.envoyer({ type: 'deplacerLaCargaison', args: ['lot-1', 'pos-mule', 2] });
       expect(partie.etat().vessel!.cargo).toEqual([{ uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 8, basePriceGold: 1 }]);
@@ -323,7 +323,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
 describe('gestes de possession — le verdict (`refusGestePossession`) est celui des cinq gestes', () => {
   const mule: Possession = { uid: 'pos-1', ownerId: 'h1', nature: 'bete', ref: { id: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [] } as Possession;
   const navire = (location: Possession['location']): Possession => ({
-    uid: 'pos-2', ownerId: 'h1', nature: 'navire', vehicleId: 'barge', location, items: [],
+    uid: 'pos-2', ownerId: 'h1', nature: 'navire', vehicleId: 'barge-fluviale', location, items: [],
     naval: { morale: { score: 0, lastMoraleWeek: 0, factors: [] } },
   }) as unknown as Possession;
   const heros = () => ({ ...heroDuDuel(), id: 'h1' });

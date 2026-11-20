@@ -14,8 +14,8 @@ import type { FlowKey } from './flowVerbs';
 import type { HostJet } from './slotsDeJet';
 import type { BatchParticipant, CascadeRoll, IssueOpposee, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
 import { fleeBackstab, fleeTouche } from './pendings';
-import type { AttackResult, RollBreakdown } from '../engine/combat';
-import type { Combatant } from '../engine/types';
+import { sommeDesModificateursDR, type AttackResult, type RollBreakdown } from '../engine/combat';
+import type { Combatant, ModLine } from '../engine/types';
 import { CHAR_LABELS } from '../engine/types';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { estJete, evaluateTest, type EchecSansJet } from '../engine/tests';
@@ -40,7 +40,7 @@ export interface DeDuTest { d100: number; dr: number; reussi: boolean }
 /** UNE ligne de jet : un Test, un tirage sur table, ou un dé nu. `qui` : l'id du combattant qui jette (`null` :
  *  le monde, ou un adversaire sans combattant — le libellé le nomme). `jet: null` : le dé n'est pas tombé. */
 export type LigneDeJet =
-  | { genre: 'test'; qui: string | null; test: string; cible: number | null; jet: DeDuTest | null }
+  | { genre: 'test'; qui: string | null; test: string; cible: number | null; jet: DeDuTest | null; modsDR?: ModLine[] }
   | { genre: 'table'; qui: string | null; table: string; jet: { d100: number; effectif: number; ligne: string } | null }
   | { genre: 'de'; qui: string | null; de: string; jet: { naturel: number; total: number; lecture: string } | null };
 
@@ -49,7 +49,13 @@ export type LigneDeJet =
 export interface OppositionEnVue { gagnante: number | null; drNet: number }
 
 /** Les jets d'UN flux de la fenêtre (ou d'une étape de cascade), dans l'ordre où la fenêtre les range. */
-export interface JetEnVue { flux: FlowKey; lignes: LigneDeJet[]; oppose: OppositionEnVue | null }
+export interface JetEnVue {
+  flux: FlowKey;
+  lignes: LigneDeJet[];
+  oppose: OppositionEnVue | null;
+  /** Modificateurs de DR du Test collectif. */
+  modsDR?: ModLine[];
+}
 
 /** Les Tests dont la Compétence ou la Caractéristique est fixée par la situation. */
 const TESTS_FIXES = {
@@ -130,6 +136,12 @@ export function libelleDuJetFige(opp: NonNullable<Parameters<typeof opposedAttac
 export const libelleDeLAttaqueFigee = (pd: Pick<PendingDefense, 'suite' | 'weapon'>): string =>
   (pd.suite.mode === 'machine' && pd.suite.coup.manoeuvre?.kind ? pd.weapon.label : t('jet.attaque'));
 
+/** Le jet d'attaque figé tel qu'il se lit avant la réponse de la Défense. */
+export function lectureDeLAttaqueFigee(pd: Pick<PendingDefense, 'atk' | 'atkCompo'>) {
+  const modsDR = pd.atkCompo?.modsDR;
+  return { jet: { ...pd.atk, sl: pd.atk.sl + sommeDesModificateursDR(modsDR) }, modsDR };
+}
+
 /** La graphie du seuil d'un dé (#1508). */
 export const libelleDuSeuil = (seuil: SeuilDeSauvegarde): string =>
   `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.sauvegardeDuDome') : ''}`;
@@ -150,19 +162,21 @@ export const libelleDeTable = (s: CascadeStep): string | undefined => (s.table ?
 type JetLu = { roll: number; target?: number; sl?: number; success?: boolean } | null | undefined;
 
 /** La ligne d'un Test : le dé se lit comme la rangée l'affiche (`testBreakdown`). */
-function ligne(qui: string | null | undefined, test: string, r: JetLu, cible?: number | null): LigneDeJet {
+function ligne(qui: string | null | undefined, test: string, r: JetLu, cible?: number | null, modsDR?: ModLine[]): LigneDeJet {
   const c = r?.target ?? cible ?? null;
   return {
     genre: 'test', qui: qui ?? null, test, cible: c,
     jet: r ? { d100: r.roll, dr: r.sl ?? 0, reussi: r.success ?? (c != null && evaluateTest(r.roll, c).success) } : null,
+    ...(modsDR?.length ? { modsDR } : {}),
   };
 }
 
-const ligneDuDetail = (qui: string, d: RollBreakdown): LigneDeJet => ligne(qui, d.label, d);
+const ligneDuDetail = (qui: string, d: RollBreakdown): LigneDeJet => ligne(qui, d.label, d, undefined, d.mask ? undefined : d.modsDR);
 
 const jete = <T extends object>(r: T | EchecSansJet | null | undefined): T | null => (estJete(r) ? r : null);
 
-const vue = (flux: JetEnVue['flux'], lignes: LigneDeJet[], oppose: OppositionEnVue | null = null): JetEnVue => ({ flux, lignes, oppose });
+const vue = (flux: JetEnVue['flux'], lignes: LigneDeJet[], oppose: OppositionEnVue | null = null, modsDR?: ModLine[]): JetEnVue =>
+  ({ flux, lignes, oppose, ...(modsDR?.length ? { modsDR } : {}) });
 
 const drNet = (a: JetLu, b: JetLu): number => Math.abs((a?.sl ?? 0) - (b?.sl ?? 0));
 
@@ -217,7 +231,8 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     const pd = s.pendingDefense;
     if (!pd) return null;
     if (pd.result) return lireCoup('defense', pd.attackerId, pd.defenderId, pd.result);
-    return vue('defense', [ligne(pd.attackerId, libelleDeLAttaqueFigee(pd), jetFigeRevele(s, JET_FIGE.defense(pd)) ? pd.atk : null)]);
+    const attaque = jetFigeRevele(s, JET_FIGE.defense(pd)) ? lectureDeLAttaqueFigee(pd) : null;
+    return vue('defense', [ligne(pd.attackerId, libelleDeLAttaqueFigee(pd), attaque?.jet, undefined, attaque?.modsDR)]);
   },
   incantation: (s) => {
     const pc = s.pendingCast;
@@ -262,7 +277,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   },
   cascadeEnBande: (s) => {
     const cur = etapeCourante(s);
-    return cur?.participants ? vue('cascadeEnBande', lireEtape(s, cur, true).flatMap((v) => v.lignes)) : null;
+    return cur?.participants ? vue('cascadeEnBande', lireEtape(s, cur, true).flatMap((v) => v.lignes), null, cur.meta?.aggregateDRMods) : null;
   },
   etalLot: (s) => s.pendingEtalLot && vue('etalLot', s.pendingEtalLot.participants.map((r) => ({
     genre: 'de', qui: null, de: r.label, jet: { naturel: r.value, total: r.value, lecture: String(r.value) },
@@ -390,7 +405,10 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   },
   chansonDeMarin: (s) => s.pendingShanty && vue('chansonDeMarin', [ligne(s.pendingShanty.singerId, libelleDeTest('chant'), s.pendingShanty.result)]),
   manoeuvreDuNavire: (s) => s.pendingShipManeuver && vue('manoeuvreDuNavire', rangees(s.pendingShipManeuver.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
-  tirDeBatterie: (s) => s.pendingShipBattery && vue('tirDeBatterie', rangees(s.pendingShipBattery.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
+  tirDeBatterie: (s) => {
+    const p = s.pendingShipBattery;
+    return p && vue('tirDeBatterie', rangees(p.participants, (r) => ligne(r.id, libelleDeRole(r), jete(r.result))), null, p.modsDR);
+  },
 };
 
 /** Les flux qu'une étape-JET de cascade héberge, dans l'ordre de sa fenêtre : le sien, puis ceux des fenêtres qu'elle
@@ -429,7 +447,7 @@ function opposeDEtape(s: Jeu, step: CascadeStep, reponse: LigneDeJet, r: Cascade
 function lireEtape(s: Jeu, step: CascadeStep, courante: boolean): JetEnVue[] {
   if (step.participants) {
     if (courante && step.meta?.opposed) return step.participants.filter((p) => p.refus == null).map((p) => opposeDEtape(s, step, ligneDeBande(s, p), jete(p.result)));
-    return [vue('cascadeEnBande', rangees(step.participants, (p) => ligneDeBande(s, p)))];
+    return [vue('cascadeEnBande', rangees(step.participants, (p) => ligneDeBande(s, p)), null, step.meta?.aggregateDRMods)];
   }
   if (step.refus != null) return [];
   if (step.target != null) {

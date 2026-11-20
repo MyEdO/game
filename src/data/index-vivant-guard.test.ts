@@ -21,7 +21,7 @@
  * flèche (`const f = () => 1, PAR_ID = new Map(traits.map(…))`), l'IIFE de module
  * (`const M = (() => …)()`), la DÉSTRUCTURATION (`const [premier] = traits`), l'`export default`,
  * l'AFFECTATION NUE (`let M; M = new Map(…)`), et l'ACCESSEUR VIVANT RE-FIGÉ — appeler au niveau module
- * un accesseur issu de `memoParVersion`/`indexParId`/`indexParChamp` (`const ENGINS = siegeEngines()`)
+ * un accesseur issu de `memoParVersion`/`indexParId`/`indexParChamp` (`const OBJETS = trappingsInstanciables()`)
  * re-fige exactement ce que cet accesseur venait de dévier.
  *
  * Périmètre : tout `src/**` en `.ts(x)` NON-test. Vocabulaire IMPORTÉ du seam (`bindingsVivants`, dérivé
@@ -236,16 +236,16 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
   });
 
   it('CONTRÔLE POSITIF : l’ACCESSEUR VIVANT appelé au niveau module est re-figé — la classe née de #1692', () => {
-    // `siegeEngines`/`oupsTable` sont des accesseurs RÉELS du dépôt (`memoParVersion`) : le
+    // `trappingsInstanciables`/`oupsTable` sont des accesseurs RÉELS du dépôt (`memoParVersion`) : le
     // vocabulaire les connaît parce qu'il les LIT sous `src/`, pas parce qu'ils sont nommés ici.
-    expect([...accesseursVivants()]).toContain('siegeEngines');
-    const vueRefigee = `import { siegeEngines } from '../data';\nconst ENGINS = siegeEngines().filter((t) => t.siegeFootprint);\n`;
+    expect([...accesseursVivants()]).toContain('trappingsInstanciables');
+    const vueRefigee = `import { trappingsInstanciables } from '../data';\nconst OBJETS = trappingsInstanciables().filter((t) => t.shape);\n`;
     expect(indexFiges('copie.ts', vueRefigee, parBinding)).toHaveLength(1);
     const indexRefige = `import { oupsTable } from '../data/oups';\nconst PAR_ID = new Map(oupsTable().map((o) => [o.id, o]));\n`;
     expect(indexFiges('copie.ts', indexRefige, parBinding)).toHaveLength(1);
-    const captureNue = `import { siegeEngines } from '../data';\nconst ENGINS = siegeEngines();\n`;
+    const captureNue = `import { trappingsInstanciables } from '../data';\nconst OBJETS = trappingsInstanciables();\n`;
     expect(indexFiges('copie.ts', captureNue, parBinding)).toHaveLength(1);
-    const dansUnCorps = `import { siegeEngines } from '../data';\nexport const f = () => siegeEngines().filter((t) => t.siegeFootprint);\n`;
+    const dansUnCorps = `import { trappingsInstanciables } from '../data';\nexport const f = () => trappingsInstanciables().filter((t) => t.shape);\n`;
     expect(indexFiges('copie.ts', dansUnCorps, parBinding)).toEqual([]);
   });
 

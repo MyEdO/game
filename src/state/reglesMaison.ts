@@ -8,6 +8,7 @@ import type { RetraitsDElagage } from '../noyau/persistance/elagage';
 import { stockageWeb } from '../hote/stockageWeb';
 import { chargerLesReglesMaison, prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleMaison } from '../hote/reglesMaison';
 import { useGame } from './store';
+import { patchDeLArmement } from '../noyau/monde/carrier';
 
 /** Le stockage des règles maison du web : `localStorage`, relu à chaque appel. */
 const stockageDesReglesMaison = (): Stockage | null => stockageWeb('localStorage');
@@ -18,9 +19,13 @@ export const chargerLesReglesMaisonWeb = (): void => chargerLesReglesMaison(stoc
 /** Le témoin des règles retirées du web, consommé (`prendreLeTemoinDesReglesMaison`). */
 export const prendreLeTemoinDesReglesMaisonWeb = (): RetraitsDElagage | null => prendreLeTemoinDesReglesMaison(stockageDesReglesMaison());
 
+function reprojeterLArmementWeb(): void {
+  useGame.setState(patchDeLArmement(useGame.getState()) ?? {});
+}
+
 /** Le geste JOUEUR qui surcharge la règle `id`, sous le verrou de l'état du store (`reglerUneRegleMaison`). */
 export const reglerUneRegleMaisonWeb = (id: RegleOptionnelleId, valeur: RuleValue): void =>
-  reglerUneRegleMaison(stockageDesReglesMaison(), useGame.getState(), id, valeur);
+  reglerUneRegleMaison(stockageDesReglesMaison(), useGame.getState(), id, valeur, reprojeterLArmementWeb);
 
 /** Le geste JOUEUR qui remet la règle `id` à son défaut, sous le verrou de l'état du store (`remettreUneRegleMaison`). */
-export const remettreUneRegleMaisonWeb = (id: RegleOptionnelleId): void => remettreUneRegleMaison(stockageDesReglesMaison(), useGame.getState(), id);
+export const remettreUneRegleMaisonWeb = (id: RegleOptionnelleId): void => remettreUneRegleMaison(stockageDesReglesMaison(), useGame.getState(), id, reprojeterLArmementWeb);

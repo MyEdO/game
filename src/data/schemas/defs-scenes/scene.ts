@@ -20,7 +20,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
+import { OBJETS_DU_PROJET, ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
 import {
   amateurSchema,
   cell2Schema,
@@ -55,7 +55,7 @@ import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../e
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { estUnNavireAPonts, findCreatureById, findTrappingById, siegeEngines } from '../../index';
+import { estUnNavireAPonts, findCreatureById, findSiegeEngineById, findTrappingById } from '../../index';
 import { porteurDuProfil } from '../../../engine/trappingChoices';
 import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
@@ -84,7 +84,7 @@ export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean
 
 /** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn (`hydratePoste`, #222). MDG 12-13 */
 export const authoredShipPosteSchema = nommerChamps(z.strictObject({
-  trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { nue: true }),
+  trappingId: idDe('engin', undefined, { nue: true }),
   /** Absent : pivot libre (`inFireArc`). */
   side: posteSideSchema.optional(),
   cover: deckCoverSchema.optional(),
@@ -195,9 +195,9 @@ export const marchandDeSceneSchema = nommerChamps(z.strictObject({
   tenirComptes: z.boolean().optional(),
 }), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "colonne de Disponibilité hors lieu" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
 
-/** L'inventaire d'auteur d'un personnage : chaque objet du catalogue par son id, vrai s'il le porte (`isWearable` ;
+/** L'inventaire d'auteur d'un personnage : chaque objet par son id, vrai s'il le porte (`isWearable` ;
  *  une arme se tient par les sets d'armes). Il devient les objets du combattant au spawn. LDB 77 l.7, #3684 */
-export const inventaireDAuteurSchema = recordDIds('trapping', nommerNoeud(z.boolean(), { nom: 'porté' }), INSTANCIABLE_PAR_ID);
+export const inventaireDAuteurSchema = recordDIds('trapping', nommerNoeud(z.boolean(), { nom: 'porté' }), INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET });
 export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
 
 /** La faute d'un personnage porté à un parcours de carrière (`parcoursDe`), `undefined` s'il est admis ou n'en porte
@@ -236,7 +236,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   amateur: amateurSchema.optional(),
   appearance: entityAppearanceSchema.optional(),
   anim: roleAmbiantSchema.optional(),
-  /** Inventaire d'auteur d'un personnage, objets du catalogue. */
+  /** Inventaire d'auteur d'un personnage. */
   inventaire: inventaireDAuteurSchema.optional(),
   /** Parcours de carrière d'un personnage (`ParcoursDeCarriere`, `engine/pnjDeCarriere.ts`) : chaque carrière au
    *  Niveau atteint, la dernière actuelle ; les Talents choisis et les Compétences des emplacements à choix, par
@@ -298,7 +298,7 @@ export interface FauteDEntite { chemin: readonly (string | number)[]; message: s
 
 /** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
  *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
- *  un corps au plus, un engin qui en est un (`siegeEngines`), le parcours de carrière (`refusDuPnjDeCarriere`) et le cap
+ *  un corps au plus, le parcours de carrière (`refusDuPnjDeCarriere`) et le cap
  *  cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
@@ -308,14 +308,12 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
   if (ent.kind === 'personnage') {
     const corps = CLES_DU_CORPS.filter((k) => ent[k] !== undefined);
     if (corps.length > 1) fautes.push({ chemin: [corps[1]], message: `corps EXCLUSIFS — ${corps.map((k) => `« ${k} »`).join(', ')} : un personnage en porte un au plus` });
-    const engin = ent.engin?.id;
-    if (engin !== undefined && !siegeEngines().some((t) => t.id === engin)) fautes.push({ chemin: ['engin', 'id'], message: `« ${engin} » n'est pas un engin de siège` });
     const carriere = refusDuPnjDeCarriere(ent);
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
     if (estUnNavireAPonts(ent.vehicule?.id) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
     ent.postes?.forEach((p, rang) => {
-      const piece = { trappingId: p.trappingId, subType: findTrappingById(p.trappingId)?.subType?.id };
+      const piece = { trappingId: p.trappingId, subType: findSiegeEngineById(p.trappingId)?.subType?.id };
       for (const id of Object.keys(p.ammo ?? {})) {
         if (!chargeLArme({ trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.trappingId} » ne charge pas` });
       }
@@ -342,7 +340,7 @@ const fautesDeLaBranche = (ent: Parameters<typeof refusDeLEntite>[0], ctx: z.Ref
  *  (`CLES_DU_CORPS`, #1882, #2968). Le `superRefine` d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', {}, {}),
-  brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('trapping').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } }).superRefine(fautesDeLaBranche),
+  brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } }).superRefine(fautesDeLaBranche),
   brancheDuDecor.superRefine(fautesDeLaBranche),
 ]);
 
@@ -667,16 +665,16 @@ export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme
 export const victoryConditionSchema = z.discriminatedUnion('type', [
   variante('Tous les ennemis hors d’action', nommerChamps(z.strictObject({ type: z.literal('allEnemiesDead') }), { type: { label: "type"  } })),
   variante('Détruire une structure', nommerChamps(z.strictObject({ type: z.literal('destroyStructure'), edge: architectureEdgeRefSchema }), { type: { label: "type"  }, edge: { label: "arête" } })),
-  variante('Survivre N Rounds', nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number() }), { type: { label: "type"  }, rounds: { label: "Rounds" } })),
+  variante('Survivre N Rounds', nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number().int().min(1) }), { type: { label: "type"  }, rounds: { label: "Rounds" } })),
   variante('Atteindre une zone', nommerChamps(z.strictObject({
     type: z.literal('reachZone'),
     rect: rectDeCasesSchema,
     camp: campSchema.optional(),
   }), { type: { label: "type"  }, rect: { label: "rectangle" }, camp: { label: "camp"  } })),
   /** Sortie à seuil de dommage partiel (#215) — `targetId` parmi les membres de la rencontre, absent = chaque adversaire. */
-  variante('Sortie à seuil de dommage', nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: ref(MEMBRES_DE_LA_RENCONTRE).optional(), atOrBelowPercent: z.number() }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, atOrBelowPercent: { label: "seuil en pourcentage" } })),
+  variante('Sortie à seuil de dommage', nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: ref(MEMBRES_DE_LA_RENCONTRE).optional(), atOrBelowPercent: z.number().min(0).max(100) }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, atOrBelowPercent: { label: "seuil en pourcentage" } })),
   /** Duel judiciaire (`NADJ 06 l.175-177`) — `threshold` ÉDITABLE, défaut 3. */
-  variante('Duel judiciaire — premier sang', nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().optional() }), { type: { label: "type"  }, threshold: { label: "seuil" } })),
+  variante('Duel judiciaire — premier sang', nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().int().nonnegative().optional() }), { type: { label: "type"  }, threshold: { label: "seuil" } })),
 ]);
 
 /** Membre d'une rencontre : RÉFÉRENCE une `SceneEntity` (kind 'personnage') de la scène — c'est

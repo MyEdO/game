@@ -1722,6 +1722,7 @@
         "id": "usure",
         "label": "Usure",
         "desc": "Usure. Le bateau subit 1d10 Blessures à cause de l'usure générale du voyage.",
+        "infligeUsure": true,
         "consequence": {
           "kind": "effet",
           "effet": {

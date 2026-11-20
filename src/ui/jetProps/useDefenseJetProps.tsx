@@ -8,7 +8,7 @@ import { defenseTestOf, type DefenseMode } from '../../engine/combat';
 import { composeRollLabel } from '../../noyau/rollSeam';
 import { RollShell, type RollAction } from '../RollShell';
 import { JET_FIGE, jetFigeRevele } from '../../noyau/netOwnership';
-import { libelleDeLAttaqueFigee } from '../../noyau/jetsEnVue';
+import { lectureDeLAttaqueFigee, libelleDeLAttaqueFigee } from '../../noyau/jetsEnVue';
 import { buildRollRow, frozenOpposedRow } from '../rollRowBuild';
 import { OptionChooser } from '../OptionChooser';
 import { opposedLines } from '../breakdown';
@@ -92,18 +92,20 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const riposteOuverte = riposte?.choisie != null;
 
   // NATURE de l'attaque figée, lue de la suite portée par la fenêtre (`libelleDeLAttaqueFigee`, #1858).
+  const { jet: attaqueFigee, modsDR } = lectureDeLAttaqueFigee(pd);
   const [attackLine] = opposedLines([{
     label: libelleDeLAttaqueFigee(pd),
-    base: pd.atk.target,
-    r: { roll: pd.atk.roll, target: pd.atk.target, sl: pd.atk.sl, success: pd.atk.success },
+    base: attaqueFigee.target,
+    r: { roll: attaqueFigee.roll, target: attaqueFigee.target, sl: attaqueFigee.sl, success: attaqueFigee.success },
   }]);
+  const detailFige = attackLine.d && modsDR?.length ? { ...attackLine.d, modsDR } : attackLine.d;
   // Rangée [0] = TÉMOIN : l'attaque FIGÉE (jet déjà eu lieu, aucun bouton), MASQUÉE tant que ce siège
   // n'a pas répondu (#990, calendrier unique `frozenOpposedRow` — mono = N=1 participant : moi).
   const attackerRow = frozenOpposedRow({
     revele: jetFigeRevele(useGame.getState(), JET_FIGE.defense(pd)),
     row: {
       combatant: attacker,
-      d: res ? res.attackerDetail : attackLine.d,
+      d: res ? res.attackerDetail : detailFige,
     },
   });
   // Rangée [1] = INTERACTIVE : MA défense, avant le dé la ligne de la fenêtre (`fenetreDeDefense.jet`), après le dé

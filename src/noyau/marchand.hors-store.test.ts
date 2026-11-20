@@ -16,7 +16,8 @@ import type { ItemInstance } from '../engine/types';
 import { itemFromTrappingById } from '../engine/items';
 import { t } from '../i18n';
 import { choixDuTroc } from './marchand.testkit';
-import { catalogEntryOf, devisDuPanier, prixDeLigne, coutDeReparation, devisDeTroc, devisDeVente, sellGain } from './merchantFlow';
+import { reglerUneRegleMaison, remettreUneRegleMaison } from '../hote/reglesMaison';
+import { catalogEntryOf, devisDuPanier, prixDeLigne, coutDeReparation, objetsAReparer, devisDeTroc, devisDeVente, sellGain } from './merchantFlow';
 
 const bourseDuGroupe = (p: Partie) => toBrass(p.etat().party.reduce((s, h) => moneyAdd(s, bourseOf(h)), fromBrass(0)));
 
@@ -110,6 +111,34 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', 'abimee'] });
       expect(avant - bourseDuGroupe(partie)).toBe(cout);
       expect(partie.etat().party[0].items!.find((i) => i.uid === 'abimee')!.damageTaken).toBe(0);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+
+  it('le Brise-épée abîmé suit le profil actif pour le devis et le geste de réparation', () => {
+    const briseEpee = { ...itemFromTrappingById('brise-epee', idsDeTest)!, damageTaken: 1 };
+    const { partie } = ouvrir(false, [briseEpee]);
+    try {
+      const ligne = () => objetsAReparer(partie.etat().party).find(({ item }) => item.uid === briseEpee.uid)!;
+      expect(ligne().refus).toBeNull();
+      const cout = toBrass(coutDeReparation(ligne().item));
+      expect(cout).toBeGreaterThan(0);
+
+      reglerUneRegleMaison(null, partie.etat(), 'combat-aa-armement', true, partie.reprojeterLArmement);
+      expect(ligne().refus).toBe(t('mf.irreparable', { label: briseEpee.label }));
+      expect(toBrass(coutDeReparation(ligne().item))).toBe(0);
+      const avant = bourseDuGroupe(partie);
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', briseEpee.uid] });
+      expect(bourseDuGroupe(partie)).toBe(avant);
+      expect(ligne().item.damageTaken).toBe(1);
+
+      remettreUneRegleMaison(null, partie.etat(), 'combat-aa-armement', partie.reprojeterLArmement);
+      expect(ligne().refus).toBeNull();
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', briseEpee.uid] });
+      expect(avant - bourseDuGroupe(partie)).toBe(cout);
+      expect(partie.etat().party[0].items?.find((i) => i.uid === briseEpee.uid)?.damageTaken).toBe(0);
     } finally {
       partie.fermer();
     }

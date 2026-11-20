@@ -155,6 +155,26 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
     }
   });
 
+  // MSRC 12 l.62-64 ; MSRC 07 l.174, l.178
+  it.each([
+    ['barque-fluviale', 8, 5],
+    ['bateau-de-patrouille', 60, 55],
+  ] as const)('Bouteur sur %s : le chantier propose et débite le tarif de ce type', (vehicleId, gold, enc) => {
+    const bourse = { gold: 100, silver: 0, brass: 0 };
+    const partie = aQuai(navire({ vehicleId }), bourse, 'local', auPort(PORT_A_CHANTIER));
+    try {
+      const devis = ameliorationsAuChantier(partie.etat().vessel!, bourse, null, PORT_A_CHANTIER)
+        .find(({ traitId }) => traitId === 'bouteur');
+      expect(devis).toMatchObject({ gold, enc, refus: null });
+      const avant = bourseDuGroupe(partie);
+      partie.envoyer({ type: 'installerLAmelioration', args: ['bouteur', 1] });
+      expect(avant - bourseDuGroupe(partie)).toBe(toBrass(toMoney({ gold })));
+      expect(partie.etat().vessel!.upgrades).toContainEqual({ id: 'bouteur' });
+    } finally {
+      partie.fermer();
+    }
+  });
+
   it('bourse vide : refus du devis, dit par le geste, rien de posé', () => {
     const vide = { gold: 0, silver: 0, brass: 0 };
     const partie = aQuai(navire(), vide);

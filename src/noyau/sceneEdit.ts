@@ -74,7 +74,7 @@ import {
 } from './worldMapEdit';
 import { t as tr, type MsgKey } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
-import { creatures, findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
+import { creatures, findCreatureById, findPropById, findSiegeEngineById, refEstVolumique, semencesDeScene } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
 import { estAbsent, terrainAbsent } from './monde/terrain';
@@ -94,6 +94,7 @@ import { METRES_PER_LEVEL } from './monde/relief';
 import {
   entityKindSchema,
   refusDeLEntite,
+  sceneSchema,
   typeNonNomme,
   type Terrain,
   type SceneRoofDefaults,
@@ -123,9 +124,11 @@ import { ancreDuDecor } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { sitesDeLaPortee } from '../data/schemas/grammaire/collection-cle';
+import { RENCONTRES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { SOUS_ENTREES, ajouteEntree, etatCouvert, indiceCouple, type CorpsNeuf, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
-import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
+import { ecritAuChemin, type CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { refusDId, refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
 import {
@@ -593,8 +596,8 @@ export function paintCrenellated(scene: Scene, p: Pt, structure: string | null, 
   return { ...scene, layers: scene.layers.map((l) => (l.z === layer.z ? { ...l, crenellated } : l)) };
 }
 
-/** Pose à p un emplacement via `siegeEmplacementEntity` : sa référence et son poste désignent un
- *  trapping du sous-type `armes-de-siege`. Les autres trappings et les ids inconnus rendent `null`. */
+/** Pose à p un emplacement via `siegeEmplacementEntity` : sa référence et son poste désignent le
+ *  catalogue des engins de siège. */
 export function placeEmplacement(scene: Scene, trappingId: string, p: Pt, z = 0, facing?: Dir8): { scene: Scene; id: string } | null {
   const id = nextEntityId('personnage', scene.entities.map((e) => e.id));
   const ent = siegeEmplacementEntity(id, trappingId, p, facing ? { facing } : {});
@@ -620,9 +623,9 @@ export function setPosteSide(scene: Scene, entityId: string, side: FireArc | und
 }
 
 /** Change l'engin du poste : référence catalogue, libellé et `engin` de l'entité, équipage conservé.
- *  Seul un trapping du sous-type `armes-de-siege`, sélectionné par `siegeEngines`, est accepté. */
+ *  L’engin est résolu dans son catalogue. */
 export function setPosteEngine(scene: Scene, entityId: string, trappingId: string): Scene {
-  const t = siegeEngines().find((engin) => engin.id === trappingId);
+  const t = findSiegeEngineById(trappingId);
   if (!t) return scene;
   const ent = scene.entities.find((e) => e.id === entityId && e.postes?.length);
   if (!ent) return scene;
@@ -1019,17 +1022,16 @@ export function renameTrigger(scene: Scene, from: string, to: string): Scene {
   return { ...scene, triggers: scene.triggers.map((t) => (t.id === from ? { ...t, id: next } : t)) };
 }
 
-/** Renomme la rencontre `from` et le PROPAGE à chaque effet « Démarrer un combat » et « Poursuite » de la scène qui la
- *  désigne (`sitesDeLaScene`). Refusé (scène inchangée) pour un id vide ou déjà porté par une autre rencontre.
- *  `sceneSchema` (portée `encounters`). */
+/** Renomme la rencontre `from` et ses références dans la portée `encounters` de `sceneSchema`.
+ *  Refusé (scène inchangée) pour un id vide ou déjà porté par une autre rencontre. */
 export function renameEncounter(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
   if (!next || next === from || scene.encounters.some((e) => e.id === next) || !scene.encounters.some((e) => e.id === from)) return scene;
   const copie = structuredClone(scene);
-  for (const { effet } of sitesDeLaScene(copie).effets) {
-    const lance = effet as Effect;
-    if ((lance.type === 'startCombat' || lance.type === 'startPursuit') && lance.encounter?.id === from) lance.encounter = { id: next };
-  }
+  const references = sitesDeLaPortee(sceneSchema, copie, RENCONTRES_DE_LA_SCENE)
+    .filter((site) => site.id === from)
+    .sort((a, b) => b.chemin.length - a.chemin.length);
+  for (const { chemin, parCle } of references) ecritAuChemin(copie, chemin, parCle, next);
   return { ...copie, encounters: copie.encounters.map((e) => (e.id === from ? { ...e, id: next } : e)) };
 }
 

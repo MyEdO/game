@@ -1,0 +1,1656 @@
+[
+  {
+    "id": "baliste",
+    "type": "siege-engines",
+    "label": "Baliste",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "arbalete"
+    },
+    "rendu": {
+      "id": "baliste"
+    },
+    "munitions": [
+      "carreau-de-baliste",
+      "carreau-nain-norse"
+    ],
+    "perteSansEquipe": {
+      "removeType": "atout"
+    },
+    "enc": 20,
+    "availability": "limitee",
+    "reach": null,
+    "range": 150,
+    "damage": {
+      "plusBF": false,
+      "flat": 12
+    },
+    "qualities": [
+      {
+        "id": "pointue"
+      },
+      {
+        "id": "recharge",
+        "value": 3
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
+      }
+    ],
+    "price": {
+      "gold": 30,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 122
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 7,
+          "b1": 7,
+          "sum": "e39caa08852476c7"
+        },
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 5,
+          "sum": "580520fc38c7712d"
+        }
+      ]
+    }
+  },
+  {
+    "id": "catapulte-petite",
+    "type": "siege-engines",
+    "label": "Catapulte (petite)",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "catapulte"
+    },
+    "rendu": {
+      "id": "catapulte"
+    },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
+    "indirect": true,
+    "enc": 25,
+    "availability": "limitee",
+    "reach": null,
+    "range": 75,
+    "damage": {
+      "plusBF": false,
+      "flat": 10
+    },
+    "qualities": [
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "recharge",
+        "value": 3
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
+      },
+      {
+        "id": "siege"
+      }
+    ],
+    "price": {
+      "gold": 20,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 123
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 14,
+          "b1": 14,
+          "sum": "b18efda2e28799d9"
+        }
+      ]
+    }
+  },
+  {
+    "id": "catapulte-moyenne",
+    "type": "siege-engines",
+    "label": "Catapulte (moyenne)",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "catapulte"
+    },
+    "rendu": {
+      "id": "catapulte"
+    },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
+    "indirect": true,
+    "enc": 40,
+    "availability": "limitee",
+    "reach": null,
+    "range": 100,
+    "damage": {
+      "plusBF": false,
+      "flat": 15
+    },
+    "qualities": [
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "recharge",
+        "value": 3
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 3
+      },
+      {
+        "id": "siege"
+      }
+    ],
+    "price": {
+      "gold": 40,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 123
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 14,
+          "b1": 14,
+          "sum": "b18efda2e28799d9"
+        }
+      ]
+    }
+  },
+  {
+    "id": "catapulte-grande",
+    "type": "siege-engines",
+    "label": "Catapulte (grande)",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "catapulte"
+    },
+    "rendu": {
+      "id": "catapulte"
+    },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
+    "indirect": true,
+    "enc": 65,
+    "availability": "limitee",
+    "reach": null,
+    "range": 175,
+    "damage": {
+      "plusBF": false,
+      "flat": 18
+    },
+    "qualities": [
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "recharge",
+        "value": 4
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 4
+      },
+      {
+        "id": "siege"
+      }
+    ],
+    "price": {
+      "gold": 60,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 123
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 14,
+          "b1": 14,
+          "sum": "b18efda2e28799d9"
+        }
+      ]
+    }
+  },
+  {
+    "id": "batterie-tonnerre-de-feu",
+    "type": "siege-engines",
+    "label": "Batterie tonnerre de feu",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "ingenierie"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
+    },
+    "enc": 75,
+    "availability": "exotique",
+    "reach": null,
+    "range": 185,
+    "damage": {
+      "plusBF": false,
+      "flat": 12
+    },
+    "qualities": [
+      {
+        "id": "a-explosion",
+        "value": 5
+      },
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "recharge",
+        "value": 6
+      },
+      {
+        "id": "salve",
+        "value": 9
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 3
+      }
+    ],
+    "price": {
+      "gold": 500,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 122
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 123,
+        "quote": "Batterie tonnerre"
+      }
+    ],
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 8,
+          "b1": 8,
+          "sum": "4c149db48438c5ed"
+        }
+      ]
+    }
+  },
+  {
+    "id": "canon-a-repetition",
+    "type": "siege-engines",
+    "label": "Canon à répétition",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "ingenierie"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
+    },
+    "enc": 5,
+    "availability": "exotique",
+    "reach": null,
+    "range": 50,
+    "damage": {
+      "plusBF": false,
+      "flat": 9
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "recharge",
+        "value": 4
+      },
+      {
+        "id": "salve",
+        "value": 7
+      }
+    ],
+    "price": {
+      "gold": 10,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 123
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 10,
+          "b1": 12,
+          "sum": "fed7092cc5ec718b"
+        }
+      ]
+    }
+  },
+  {
+    "id": "canon-a-repetition-feu-d-enfer",
+    "type": "siege-engines",
+    "label": "Canon à répétition feu d'enfer",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "ingenierie"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
+    },
+    "enc": 85,
+    "availability": "exotique",
+    "reach": null,
+    "range": 100,
+    "damage": {
+      "plusBF": false,
+      "flat": 10
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "recharge",
+        "value": 4
+      },
+      {
+        "id": "salve",
+        "value": 9
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 3
+      }
+    ],
+    "price": {
+      "gold": 500,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 123
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 13,
+          "b1": 13,
+          "sum": "a1bf8f049bd5fc8b"
+        }
+      ]
+    }
+  },
+  {
+    "id": "canon-petit",
+    "type": "siege-engines",
+    "label": "Canon (petit)",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "rendu": {
+      "id": "canon"
+    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
+    "enc": 30,
+    "availability": "limitee",
+    "reach": null,
+    "range": 50,
+    "damage": {
+      "plusBF": false,
+      "flat": 10
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "recharge",
+        "value": 4
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
+      },
+      {
+        "id": "siege"
+      }
+    ],
+    "price": {
+      "gold": 40,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 122
+    },
+    "siegeFootprint": 2,
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 9,
+          "b1": 9,
+          "sum": "a4dd2bfdb6ea42de"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 123
+      }
+    ]
+  },
+  {
+    "id": "canon-moyen",
+    "type": "siege-engines",
+    "label": "Canon (moyen)",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "rendu": {
+      "id": "canon"
+    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
+    "enc": 50,
+    "availability": "exotique",
+    "reach": null,
+    "range": 75,
+    "damage": {
+      "plusBF": false,
+      "flat": 14
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "recharge",
+        "value": 6
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 3
+      },
+      {
+        "id": "siege"
+      }
+    ],
+    "price": {
+      "gold": 100,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 122
+    },
+    "siegeFootprint": 2,
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 9,
+          "b1": 9,
+          "sum": "a4dd2bfdb6ea42de"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 123
+      }
+    ]
+  },
+  {
+    "id": "canon-grand",
+    "type": "siege-engines",
+    "label": "Canon (grand)",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "rendu": {
+      "id": "canon"
+    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
+    "enc": 75,
+    "availability": "exotique",
+    "reach": null,
+    "range": 150,
+    "damage": {
+      "plusBF": false,
+      "flat": 16
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "recharge",
+        "value": 8
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 4
+      },
+      {
+        "id": "siege"
+      }
+    ],
+    "price": {
+      "gold": 250,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 122
+    },
+    "siegeFootprint": 2,
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 9,
+          "b1": 9,
+          "sum": "a4dd2bfdb6ea42de"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 123
+      }
+    ]
+  },
+  {
+    "id": "mortier",
+    "type": "siege-engines",
+    "label": "Mortier",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "rendu": {
+      "id": "mortier"
+    },
+    "munitions": [
+      "bombe-de-mortier",
+      "bombe-incendiaire-mortier"
+    ],
+    "indirect": true,
+    "enc": 50,
+    "availability": "exotique",
+    "reach": null,
+    "range": 100,
+    "damage": {
+      "aucun": true
+    },
+    "qualities": [
+      {
+        "id": "recharge",
+        "value": 4
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 3
+      },
+      {
+        "id": "siege"
+      }
+    ],
+    "price": {
+      "gold": 50,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 123
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 15,
+          "b1": 15,
+          "sum": "2383aeebefbe7f8c"
+        }
+      ]
+    }
+  },
+  {
+    "id": "pierrier",
+    "type": "siege-engines",
+    "label": "Pierrier",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "rendu": {
+      "id": "canon"
+    },
+    "munitions": [
+      "balles-et-poudre-pierrier",
+      "petites-munitions-et-poudre-pierrier"
+    ],
+    "enc": 5,
+    "availability": "rare",
+    "reach": null,
+    "range": 30,
+    "damage": {
+      "plusBF": false,
+      "flat": 14
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "recharge",
+        "value": 4
+      }
+    ],
+    "price": {
+      "gold": 20,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 123
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "10",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-siege",
+          "secOcc": 1,
+          "b0": 16,
+          "b1": 16,
+          "sum": "8ee699614c924b2a"
+        }
+      ]
+    }
+  },
+  {
+    "id": "baliste-ade2",
+    "type": "siege-engines",
+    "label": "Baliste",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "baliste"
+    },
+    "munitions": [
+      "carreau-de-baliste",
+      "carreau-nain-norse"
+    ],
+    "minRangeBand": "courte",
+    "availability": "rare",
+    "reach": null,
+    "range": 150,
+    "damage": {
+      "plusBF": false,
+      "flat": 14
+    },
+    "qualities": [
+      {
+        "id": "empaleuse"
+      },
+      {
+        "id": "perforante"
+      },
+      {
+        "id": "recharge",
+        "value": 2
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 4
+      }
+    ],
+    "price": {
+      "gold": 75,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 7,
+          "b1": 7,
+          "sum": "e234447c5378ae9b"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 6,
+          "b1": 6,
+          "sum": "57092bd6270e5019"
+        }
+      ]
+    }
+  },
+  {
+    "id": "belier-ade2",
+    "type": "siege-engines",
+    "label": "Bélier",
+    "categorie": "melee",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "siegeFootprint": 2,
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "belier"
+    },
+    "availability": "limitee",
+    "reach": "Moyenne",
+    "range": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 10
+    },
+    "qualities": [
+      {
+        "id": "siege"
+      },
+      {
+        "id": "belier"
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 6
+      }
+    ],
+    "price": {
+      "gold": 10,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 8,
+          "b1": 8,
+          "sum": "c2030c55e64fe2b8"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 4,
+          "sum": "08e9e8fb5a3010d4"
+        }
+      ]
+    }
+  },
+  {
+    "id": "batterie-tonnerre-de-feu-ade2",
+    "type": "siege-engines",
+    "label": "Batterie tonnerre de feu",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
+    },
+    "minRangeBand": "courte",
+    "availability": "exotique",
+    "reach": null,
+    "range": 200,
+    "damage": {
+      "plusBF": false,
+      "flat": 12
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "a-explosion",
+        "value": 15
+      },
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "recharge",
+        "value": 5
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 4
+      },
+      {
+        "id": "a-poudre-noire"
+      }
+    ],
+    "price": {
+      "gold": 200,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 122
+      }
+    ],
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 9,
+          "b1": 9,
+          "sum": "a1f918a6777b9865"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 6,
+          "b1": 6,
+          "sum": "57092bd6270e5019"
+        }
+      ]
+    }
+  },
+  {
+    "id": "canon-a-repetition-feu-d-enfer-ade2",
+    "type": "siege-engines",
+    "label": "Canon à répétition feu d'enfer",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
+    },
+    "minRangeBand": "courte",
+    "availability": "exotique",
+    "reach": null,
+    "range": 100,
+    "damage": {
+      "plusBF": false,
+      "flat": 14
+    },
+    "qualities": [
+      {
+        "id": "a-poudre-noire"
+      },
+      {
+        "id": "a-repetition",
+        "value": 3
+      },
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "a-explosion",
+        "value": 5
+      },
+      {
+        "id": "recharge",
+        "value": 5
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 4
+      }
+    ],
+    "price": {
+      "gold": 300,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 10,
+          "b1": 10,
+          "sum": "8fcb879354d9d008"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 6,
+          "b1": 6,
+          "sum": "57092bd6270e5019"
+        }
+      ]
+    }
+  },
+  {
+    "id": "canon-ade2",
+    "type": "siege-engines",
+    "label": "Canon",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "canon"
+    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
+    "minRangeBand": "courte",
+    "availability": "exotique",
+    "reach": null,
+    "range": 120,
+    "damage": {
+      "plusBF": false,
+      "flat": 20
+    },
+    "qualities": [
+      {
+        "id": "a-poudre-noire"
+      },
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "a-explosion",
+        "value": 3
+      },
+      {
+        "id": "recharge",
+        "value": 3
+      },
+      {
+        "id": "siege"
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 4
+      }
+    ],
+    "price": {
+      "gold": 120,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 11,
+          "b1": 11,
+          "sum": "d72f8ac4c671ca53"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 6,
+          "b1": 6,
+          "sum": "57092bd6270e5019"
+        }
+      ]
+    }
+  },
+  {
+    "id": "canon-a-flammes-nain-ade2",
+    "type": "siege-engines",
+    "label": "Canon à flammes nain",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "canon-a-flammes"
+    },
+    "minRangeBand": "courte",
+    "availability": "exotique",
+    "reach": null,
+    "range": 60,
+    "damage": {
+      "literal": "Spéciaux"
+    },
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "condition",
+                "id": {
+                  "id": "en-flammes"
+                },
+                "value": 2,
+                "valuePerSL": {
+                  "every": 1,
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "a-explosion",
+        "value": 5
+      },
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "recharge",
+        "value": 3
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 4
+      }
+    ],
+    "price": {
+      "gold": 200,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "vert-de-jalousie",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "b64d672baa276c44"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 6,
+          "b1": 6,
+          "sum": "57092bd6270e5019"
+        }
+      ]
+    }
+  },
+  {
+    "id": "mangonneau-ade2",
+    "type": "siege-engines",
+    "label": "Mangonneau",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "catapulte"
+    },
+    "indirect": true,
+    "minRangeBand": "courte",
+    "availability": "rare",
+    "reach": null,
+    "range": 60,
+    "damage": {
+      "plusBF": false,
+      "flat": 10
+    },
+    "qualities": [
+      {
+        "id": "a-explosion",
+        "value": 5
+      },
+      {
+        "id": "recharge",
+        "value": 4
+      },
+      {
+        "id": "siege"
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 6
+      }
+    ],
+    "price": {
+      "gold": 60,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "vert-de-jalousie",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 2,
+          "sum": "41eb0d533428df9e"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 6,
+          "b1": 6,
+          "sum": "57092bd6270e5019"
+        }
+      ]
+    }
+  },
+  {
+    "id": "onagre-ade2",
+    "type": "siege-engines",
+    "label": "Onagre",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "catapulte"
+    },
+    "indirect": true,
+    "minRangeBand": "courte",
+    "availability": "rare",
+    "reach": null,
+    "range": 100,
+    "damage": {
+      "plusBF": false,
+      "flat": 12
+    },
+    "qualities": [
+      {
+        "id": "a-explosion",
+        "value": 5
+      },
+      {
+        "id": "recharge",
+        "value": 4
+      },
+      {
+        "id": "siege"
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 6
+      }
+    ],
+    "price": {
+      "gold": 80,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "vert-de-jalousie",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 3,
+          "sum": "3741c7901bff401b"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 6,
+          "b1": 6,
+          "sum": "57092bd6270e5019"
+        }
+      ]
+    }
+  },
+  {
+    "id": "trebuchet-ade2",
+    "type": "siege-engines",
+    "label": "Trébuchet",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "catapulte"
+    },
+    "indirect": true,
+    "minRangeBand": "moyenne",
+    "availability": "limitee",
+    "reach": null,
+    "range": 150,
+    "damage": {
+      "plusBF": false,
+      "flat": 14
+    },
+    "qualities": [
+      {
+        "id": "a-explosion",
+        "value": 5
+      },
+      {
+        "id": "recharge",
+        "value": 5
+      },
+      {
+        "id": "siege"
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 8
+      }
+    ],
+    "price": {
+      "gold": 40,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "vert-de-jalousie",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 4,
+          "sum": "ab438961e5df4f66"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 6,
+          "sum": "62f39ed885325771"
+        }
+      ]
+    }
+  },
+  {
+    "id": "mortier-ade2",
+    "type": "siege-engines",
+    "label": "Mortier",
+    "categorie": "distance",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "mortier"
+    },
+    "munitions": [
+      "bombe-de-mortier",
+      "bombe-incendiaire-mortier"
+    ],
+    "indirect": true,
+    "minRangeBand": "moyenne",
+    "availability": "exotique",
+    "reach": null,
+    "range": 200,
+    "damage": {
+      "plusBF": false,
+      "flat": 20
+    },
+    "qualities": [
+      {
+        "id": "a-poudre-noire"
+      },
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "a-explosion",
+        "value": 5
+      },
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "recharge",
+        "value": 2
+      },
+      {
+        "id": "siege"
+      },
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "equipe",
+        "value": 6
+      }
+    ],
+    "price": {
+      "gold": 100,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 88
+    },
+    "descRef": {
+      "book": "archives-de-l-empire-2",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "vert-de-jalousie",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 5,
+          "sum": "67991f9ae96df789"
+        },
+        {
+          "kind": "blocs",
+          "sec": "machines-de-guerre",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 6,
+          "sum": "62f39ed885325771"
+        }
+      ]
+    }
+  }
+]

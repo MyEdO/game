@@ -63,6 +63,7 @@ export const TYPES = {
   talent: { espace: 'talents.json', catalogue: 'talents' },
   trait: { espace: 'traits.json', catalogue: 'traits' },
   trapping: { espace: 'trappings.json', catalogue: 'objets' },
+  engin: { espace: 'siege-engines.json', catalogue: 'engins de siège' },
   spell: { espace: 'spells.json', catalogue: 'sorts' },
   creature: { espace: 'creatures.json', catalogue: 'créatures' },
   vehicle: { espace: 'vehicles.json', catalogue: 'véhicules' },

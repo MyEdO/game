@@ -28,6 +28,7 @@ import { recomputeLoadout } from '../engine/items';
 import {
   corruptionThresholdExceeded,
   corruptionGain,
+  recoitLaCorruption,
   type ExposureLevel,
   mutationLimitExceeded,
   attachMutation,
@@ -55,7 +56,6 @@ import { pushReveal } from './combatEffects';
 import { checkPartyWiped } from './partyWipe';
 import { journaliser } from './combatLog';
 import { tenuParUnHumain } from './sieges';
-import { followsCharacterRules } from '../engine/relations';
 import { resultLine, freeCons, tableStep, rollSansPilote } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { t, deElide } from '../i18n';
@@ -103,16 +103,15 @@ export function poseCorruptionPending(get: Get, set: Set, pending: PendingCorrup
  * installée aux portes qui tiennent l'état (`combatEffects.applyLeafOps`, `combatEffects.ctxRepris`, le contexte
  * des effets déclenchés, les `applyOps` directs d'ops d'auteur). La cible arrive en argument, jamais capturée.
  *
- * Seul un personnage a des Points de Corruption (#143, `followsCharacterRules`) : hors personnage, aucun point,
- * aucun Test, aucune ligne. L'exposition d'un porteur tenu par un siège humain ouvre la modale de Corruption
+ * L'exposition d'un porteur éligible tenu par un siège humain ouvre la modale de Corruption
  * (file #1282) ; sans siège, le Test passe par la porte sans pilote et sa ligne de dé va au journal.
  * LDB 19 l.29 ; LDB 19 l.70
  */
 export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 'onCorruption' | 'onCorruptionExposure'>> {
   return {
-    onCorruption: (cible, n, align) => (followsCharacterRules(cible) ? gainCorruption(get, set, cible, n, align) : []),
+    onCorruption: (cible, n, align) => gainCorruption(get, set, cible, n, align),
     onCorruptionExposure: (cible, level, nature, difficulty) => {
-      if (!followsCharacterRules(cible)) return [];
+      if (!recoitLaCorruption(cible)) return [];
       if (tenuParUnHumain(get(), cible.id)) {
         poseCorruptionPending(get, set, expositionPending(cible.id, level, nature, undefined, difficulty));
         return [ligneDExposition(cible, level)];
@@ -143,6 +142,7 @@ function denouementDExposition(get: Get, set: Set, hero: Combatant, level: Expos
  * la séquence en cours (`pushReveal` — jet SUBI, montré puis acquitté).
  */
 export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, align?: ChaosAlign): string[] {
+  if (!recoitLaCorruption(hero)) return [];
   const rng = battleRng();
   const lines: string[] = [];
   // Protection de Phâ (LDB 48 l.393) : un occupant d'une Zone `noCorruption` ne gagne aucune Corruption.
@@ -244,8 +244,7 @@ export function mutationTableIdFor(kind: 'physique' | 'mentale', align?: ChaosAl
  *  cours), en séquence autonome sinon — doctrine du slot (#942 L1) : jamais d'écrasement. */
 const mutationPurpose = (get: Get): PendingCascade['purpose'] => (get().battle ? 'combat' : 'test');
 
-function natureStep(hero: Combatant, align: ChaosAlign | undefined, index: number): BuiltCascadeStep | undefined {
-  const table = natureDeMutationDe(hero.species);
+function natureStep(table: ReturnType<typeof natureDeMutationDe>, hero: Combatant, align: ChaosAlign | undefined, index: number): BuiltCascadeStep | undefined {
   return tableStep({
     id: `mutation-nature-${hero.id}-${index}`,
     kind: 'mutationNature', actorId: hero.id, icon: 'navigation/mutation',
@@ -270,6 +269,8 @@ function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutatio
 /** Applique la MUTATION (l.82-91) : −BFM Points, d100 corps/esprit par espèce, tirage sur le
  *  Tableau de Corruption physique/mentale, effets dérivés, puis LIMITES (l.87) → damné. */
 export function applyMutation(get: Get, set: Set, hero: Combatant, _test?: { roll: number; target: number }, align?: ChaosAlign): string[] {
+  if (!recoitLaCorruption(hero)) return [];
+  const table = natureDeMutationDe(hero.species);
   // LDB 19 l.76, dans CET ordre : « D'abord, vous perdez autant de Points de Corruption que la valeur
   // de votre Bonus de Force Mentale […] Ensuite, effectuez un lancer de pourcentage ». Le débit est
   // donc À L'ENTRÉE, avant la première étape : pendant la séquence des dés, un nouveau gain relit
@@ -282,7 +283,7 @@ export function applyMutation(get: Get, set: Set, hero: Combatant, _test?: { rol
   // advient de chaque étape appartient au socle (`cascade.poserLeCurseur`) : fenêtre pour le siège
   // qui tient la victime, résolution d'office si nul siège ne la tient — l'option « Dés fixés » n'y
   // ajoute que la POSE. Les dés tombent au RANG de leur étape, jamais tous à l'appel.
-  pushStep(set, (index) => natureStep(hero, align, index), mutationPurpose(get));
+  pushStep(set, (index) => natureStep(table, hero, align, index), mutationPurpose(get));
   return [];
 }
 
@@ -346,9 +347,17 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
  * fenêtres de Corruption ouvertes en même temps se recouvriraient).
  */
 export function releaseCorruptionSlot(get: Get, set: Set): void {
-  const q = get().corruptionQueue;
-  if (!q.length || get().pendingCorruption || get().pendingRenounce) return;
-  set({ pendingCorruption: q[0], corruptionQueue: q.slice(1) });
+  const s = get();
+  if (!s.corruptionQueue.length || s.pendingCorruption || s.pendingRenounce) return;
+  const prochain = s.corruptionQueue.findIndex(({ heroId }) => {
+    const acteur = actorIn(s, heroId);
+    return acteur !== undefined && recoitLaCorruption(acteur);
+  });
+  if (prochain === -1) {
+    set({ corruptionQueue: [] });
+    return;
+  }
+  set({ pendingCorruption: s.corruptionQueue[prochain], corruptionQueue: s.corruptionQueue.slice(prochain + 1) });
 }
 
 /**
@@ -360,7 +369,7 @@ export function releaseCorruptionSlot(get: Get, set: Set): void {
  */
 export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorruption): void {
   const hero = actorIn(get(), pc.heroId);
-  if (!hero || pc.roll == null) return;
+  if (!hero || !recoitLaCorruption(hero) || pc.roll == null) return;
   if (pc.kind === 'seuil') {
     // Le jet (roll/target) est DÉJÀ affiché par la rangée de la modale de Corruption — pas de
     // re-print au journal (#295 Lot 4).
@@ -380,12 +389,13 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
   set({ ...touchActors(get()) });
 }
 
-/** Cible d'un effet de Corruption : héros désigné, sinon le premier vivant. #152 (suite #143) : le pool
- *  en combat est celui des PERSONNAGES (`followsCharacterRules`, PAS un proxy `kind==='heros'`) — un PNJ
- *  humain hostile MODÉLISÉ (statbloc d'éditeur ou bestiaire rétro-flagué) y est éligible comme un héros. */
+/** Cible désignée et éligible ou, sans désignation, premier personnage vivant éligible. */
 export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined {
-  const pool = s.battle?.combatants.filter((c) => followsCharacterRules(c)) ?? s.party;
-  return (heroId ? pool.find((h) => h.id === heroId) : undefined) ?? pool.find((h) => !h.dead && !h.outOfRencontre);
+  if (heroId) {
+    const actor = actorIn(s, heroId);
+    return actor && recoitLaCorruption(actor) ? actor : undefined;
+  }
+  return (s.battle?.combatants ?? s.party).find((c) => !c.dead && !c.outOfRencontre && recoitLaCorruption(c));
 }
 
 /** Le choix de « Je te renie ! » (`CorpsDesChoix`, LDB 17 l.67) : `resolveRenounce`. */
@@ -418,7 +428,7 @@ export const TABLES = {
     mutationNature: (_get, _set, step, hero) => {
       const ctx = step.mutation;
       const rolled = step.table?.result;
-      if (!ctx || !rolled || !hero) return;
+      if (!ctx || !rolled || !hero || !recoitLaCorruption(hero)) return;
       const kind = rolled.id as 'physique' | 'mentale';
       const suivante = mutationTableStep(hero, mutationTableIdFor(kind, ctx.align), { ...ctx, kind, natureRoll: rolled.roll });
       return suivante ? { insert: [suivante] } : undefined;
@@ -428,7 +438,7 @@ export const TABLES = {
     mutationTable: (get, set, step, hero) => {
       const ctx = step.mutation;
       const rolled = step.table?.result;
-      if (!ctx?.tableId || !rolled || !hero) return;
+      if (!ctx?.tableId || !rolled || !hero || !recoitLaCorruption(hero)) return;
       const m = mutationOfRow(rolled.id, rolled.roll);
       const sub = mutationSubTableFor(ctx.tableId, m);
       if (sub) {

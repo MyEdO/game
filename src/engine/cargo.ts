@@ -124,9 +124,12 @@ export function valeurDeLaCargaison(lots: CargoLot[]): number {
   return Math.round(lots.reduce((s, l) => s + Math.max(0, l.enc) * l.basePriceGold, 0) * PA_PER_CO);
 }
 
-/** Enc TOTAL embarqué (pénalités de Contenance, avaries « gâtent 1d10 Enc »…). PUR. */
-export function cargoTotalEnc(lots: CargoLot[]): number {
-  return lots.reduce((s, l) => s + Math.max(0, l.enc), 0);
+/** Enc embarqué sur l'ensemble des lots ou pour une marchandise donnée. PUR. */
+export function cargoTotalEnc(lots: readonly CargoLot[], cargoId?: string): number {
+  return lots.reduce((enc, lot) => {
+    if (cargoId !== undefined && lot.cargoId !== cargoId) return enc;
+    return enc + Math.max(0, lot.enc);
+  }, 0);
 }
 
 /** SÉPARE jusqu'à `enc` points d'une cargaison (au fil des lots de cet id) en deux parts qui conservent

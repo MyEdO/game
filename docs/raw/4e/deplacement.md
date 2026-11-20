@@ -1275,6 +1275,8 @@ Pour chaque **semaine (8 jours)** en mer, chaque Personnage peut faire une Activ
 
 **Source :** MDG 15 l.302-306
 
+**Preuve d’implémentation :** MDG 15 l.304
+
 Activité de réparation/usure, de préférence au port. En mer : **–20** supplémentaire ; vastes installations de chantier : **+20**. **Test de Métier (Charpentier *ou* Constructeur de navires) Intermédiaire (+0)** : succès = dépenser des pièces détachées de navire (Enc = Taille du navire) et retirer l'événement *Usure*. Réparer des Blessures : **2 Enc de pièces détachées pour 5 Blessures** restaurées. Réparer une **Blessure Critique** : **Métier Difficile (–20)** + pièces détachées et bois (Enc = Taille du navire). `MDG 15 l.304-306`
 
 **Voir aussi :** [Réparer un navire (MDG)](#réparer-un-navire-mdg), [Salissures de coque (MDG)](#salissures-de-coque-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg) (Entretien).

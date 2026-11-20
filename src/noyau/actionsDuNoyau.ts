@@ -329,6 +329,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   cederLaPossession: (possessionUid: IdDePossession) => void;
   /** Ouvre l'écran Port si le groupe est à un lieu portuaire de la carte avec un navire de campagne. */
   ouvrirLePort: () => void;
+  /** MDG 15 l.302-306 */
+  ouvrirEntretienDuNavire: () => void;
   /** Répare la coque au chantier (1 CO/Blessure, MDG 13 l.643) — journalise le résultat. */
   reparerLeNavire: () => void;
   /** Le groupe répare lui-même la coque au chantier : un Test de Métier, des pièces détachées (MDG 13 l.641-643). */

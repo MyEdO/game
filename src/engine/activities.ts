@@ -113,7 +113,7 @@ export type ActivityResolver =
   | 'punchausen' | 'knowledgeResearch' | 'reputation' | 'wrathOfTheGods' | 'dissensionScout'
   | 'dissensionEmeute' | 'contremaitre'
   // Voyage (EDOC 8) · Mer (MDG)
-  | 'forage' | 'seaChart' | 'opportunityTrade' | 'crewTraining';
+  | 'forage' | 'seaChart' | 'opportunityTrade' | 'crewTraining' | 'shipMaintenance';
 
 /** Familles de flux qui POSSÈDENT des résolveurs — un propriétaire = un dispatch, un seul. Un
  *  contexte d'Activité sans famille ici (`bataille`, `bataille-round`, `auberge`) n'a AUCUN résolveur
@@ -138,7 +138,7 @@ export const RESOLVER_OWNER = {
   punchausen: 'interlude', knowledgeResearch: 'interlude', reputation: 'interlude',
   wrathOfTheGods: 'interlude', dissensionScout: 'interlude', dissensionEmeute: 'interlude',
   contremaitre: 'interlude',
-  seaChart: 'mer', opportunityTrade: 'mer', crewTraining: 'mer',
+  seaChart: 'mer', opportunityTrade: 'mer', crewTraining: 'mer', shipMaintenance: 'mer',
   forage: 'voyage',
 } as const satisfies Record<ActivityResolver, ResolverOwner>;
 

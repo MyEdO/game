@@ -9,10 +9,6 @@
  *  l'espace `trappings.json` privé des entrées marquées `service` (LDB 66 l.12-14). */
 export const INSTANCIABLE_PAR_ID = { horsMarqueurs: ['service'] } as const;
 
-/** Les engins de siège : la sous-liste DISCRIMINÉE `subType` de `trappings.json`, celle des trappings du
- *  Groupe d'engins de siège (`weaponGroups.json`, marqueur `siege`). AA 10 l.136 */
-export const ENGINS_DE_SIEGE = 'armes-de-siege';
-
 /** Les RACINES du catalogue des apparences (`defs/apparences.ts`) : l'espace `apparences.json` privé
  *  des entrées marquées `forme`, qui sont des variantes. Cible de `forme` et de `trappings.json ›
  *  shape`/`formChoices`. */

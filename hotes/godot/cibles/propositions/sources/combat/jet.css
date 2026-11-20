@@ -1,6 +1,5 @@
 /* Le socle du jet (#3935) : le bandeau du bas et les pièces de `jet.js`. `combat.css` l'importe ; un écran bâti sur
    `../lieux-et-nuit/commun.css` le lie après sa feuille commune. */
-#jet{left:260px;top:560px;width:1186px;height:212px}
 #jet .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
 /* un choix à la place du jet : ses cartes en rang, centrées ; le héros qui choisit à gauche, puis le filet, ses cartes
    centrées dans la place restante */
@@ -34,8 +33,8 @@
 .en-reserve .res{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;letter-spacing:.7px;line-height:13px;color:#2a1d12;white-space:nowrap}
 .en-reserve .res.vide{color:#6a5a40}
 
-/* avant le dé : le testeur, les réglages */
-.testeurs{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11.5px;color:#4a3420}
+/* avant le dé : le testeur, désigné aux suites, les réglages */
+.testeurs{flex:none;display:flex;align-items:center;gap:7px;margin-right:9px;font-size:11.5px;color:#4a3420}
 .testeurs .t{opacity:.6}
 .testeurs .t.choisi{opacity:1}
 #verdict.reglages{padding-top:0}

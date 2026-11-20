@@ -175,13 +175,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/variants-integrity.test.ts",
-    motif: "désormais",
-    ancre: "désormais adoptés : aucun ne se lit plus au nœud zod. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/engine/buildWeapon.test.ts",
     motif: "désormais",
     ancre: "quelle (jamais une chaîne re-parsée). Le token `BF` est désormais porté par le flag `plusBF` (lu par",
@@ -626,13 +619,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/noyau/sea-finition.hors-store.test.ts",
     motif: "désormais",
     ancre: "// Seam de jet (#273 Étape 2) : Cartographie est désormais une étape de CASCADE influençable —",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/noyau/seaVoyageFlow.ts",
-    motif: "désormais",
-    ancre: "Lot 1) est désormais écrit par `commitStep` depuis les `consequences` retournées (`freeCons`), pas",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

@@ -23,6 +23,9 @@
 import { battleRng } from './battleRng';
 import { garanti } from '../lib/garanti';
 import { buildAuthorPerilSteps } from './authorPerils';
+import { bandesDeContagion } from './contagion';
+import { calculerLesTestsDExposition, cleDeMaladieDeVoyage, incubationPendantLeVoyage } from './expositionAMaladie';
+import { porteursABord } from './shipCrew';
 
 /** Id du protocole de reprise TERRESTRE (effets DIFFÉRÉS dans `travelPlan.land.interrupt`). */
 const LAND_PERIL_INTERRUPT = 'travel-land';
@@ -64,7 +67,7 @@ import { refuseSi } from './verrousDeFiche';
 import { rollDice } from '../engine/dice';
 import { facesDuDe } from '../engine/tables';
 import { rule } from '../engine/policy';
-import { isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
+import { isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import { currentSeason, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
@@ -72,11 +75,11 @@ import { rangerLesEvenements } from './evenementDuJour';
 import { jouerLaJournee, type TableStepDef, type TableStepRow } from './cascade';
 import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
 import { t } from '../i18n';
-import type { CascadeStep, PendingCascade } from './pendings';
+import { WORLD_STEP_OWNER, type CascadeStep, type PendingCascade } from './pendings';
 import type { RecapLine } from './recapLine';
 import { toRecapLines, phaseOfKind } from './recapLine';
 import { buildSeaPlan, refusDuDepartEnMer, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
-import { buildRiverPlan, descenteJouee, runRiverDays } from './riverVoyageFlow';
+import { buildRiverPlan, coqueDeDescente, runRiverDays, vitesseDeDescente } from './riverVoyageFlow';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { Combatant } from '../engine/types';
 
@@ -182,7 +185,7 @@ export interface TravelPlan {
   /** État NAVAL du trajet (route `sea` — MDG 13/15) : météo/vent, événements, crises, étape du jour.
    *  Présent = la résolution du jour est déléguée à `seaVoyageFlow.runSeaDay` (cascade-jour). */
   sea?: import('./seaVoyageFlow').SeaVoyageState;
-  /** État FLUVIAL du trajet (route `river`, mode barge — MSRC 7) : vent, dérive/chavirage, jours à flot.
+  /** État FLUVIAL du trajet (route `river` — MSRC 7) : vent, dérive/chavirage, jours à flot.
    *  Présent = la résolution du jour est déléguée à `riverVoyageFlow.runRiverDays`. */
   river?: import('./riverVoyageFlow').RiverVoyageState;
   /** CONTEXTE TRANSITOIRE de l'Étape EDOC en cours (météo/saison/postes accumulés) — posé par
@@ -215,22 +218,15 @@ export interface TravelPlan {
   procesVerbal?: import('./restFlow').NightEntry[];
 }
 
-/** Entrées d'une journée de route terrestre, figées au build de la cascade `travelDay` : l'horloge/les
- *  km avancent AVANT la cascade (marche terrestre déterministe — heures × vitesse, comportement
- *  conservé ; seuls les JETS d'Étape/péripétie sont influençables), donc la clôture a seulement à
- *  enchaîner. Porte la destination, les héros en marche forcée (→ cascade de NUIT), le résultat
- *  d'INTERRUPTION d'une péripétie (combat/embuscade différé), et `arrived`. Jamais persisté au-delà d'une
- *  journée. La ligne de récap du jour vit dans `plan.recap.days[dernier]` (le `while` la relit). */
+/** Entrées de la cascade `travelDay` : destination, héros en marche forcée et éventuelle interruption.
+ *  Le récapitulatif du jour vit dans `plan.recap.days`. */
 export interface LandDayContext {
   toLabel: string;
   destLabel: string;
   marchHeroes: string[];
   /** INTERRUPTION posée par une péripétie (le voyage s'arrête, le combat/l'embuscade attend le recap). */
   interrupt?: TravelThen;
-  /** Attelage FORCÉ (#270) : progression/conséquences du jour ACCUMULÉES par la chaîne de jets
-   *  `rythmeForceATerre`/`rythmeForceATerreControle`, relues à la clôture pour poser `kmDone`/`gameTime`
-   *  (DIFFÉRÉS depuis le build, comme la vitesse fluviale `RiverDayContext`). Absent = conducteur non
-   *  humain (chemin synchrone `forcedPaceDay`, kmDone/gameTime déjà posés au build). */
+  /** Progression et état de l'attelage surfacé, relus à la clôture pour poser `kmDone` et l'allure (#270). */
   forcedPaceResult?: { km: number; hours: number; vehicleOut: boolean; vehicleLame: boolean };
 }
 
@@ -328,13 +324,6 @@ function differerALAube(get: Get, set: Set, depart: Omit<NonNullable<Jeu['pendin
   set({ pendingDeparture: { ...depart, dawnAt: get().gameTime + minutesUntilNext(get().gameTime, dawnMinute()) } });
 }
 
-/** Le départ de `route` en `mode` est-il un passage PAYANT — un billet (EDO 01 l.142 ; implicite,
- *  LDB 51 l.178) ? Ni la marche, ni la selle, ni le navire de campagne, ni la descente fluviale jouée
- *  (`descenteJouee`). Lu par l'écran de départ ET par `partirEnVoyage`. */
-export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode): boolean {
-  return mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !descenteJouee(get, route, mode);
-}
-
 /** Réglages d'un départ choisis à la carte du monde : classe du billet, heures de route par jour, allure,
  *  rythme forcé en mer, cadence du trajet, traversée rapide. */
 export interface OptionsDeDepart {
@@ -351,6 +340,8 @@ export interface DevisDeTrajet {
   allure: Allure | undefined;
   /** Vitesse du premier jour (LDB 51 l.193) ; 0 en mer (milles/jour, `seaVoyageFlow`). */
   kmh: number;
+  /** Coque de la descente jouée (MSRC 07 l.11-17). */
+  coqueFluviale: Combatant | null;
   /** Budget d'heures qu'il reste aujourd'hui (LDB 51 l.195), et sa route déjà faite. */
   premierJour: number;
   aLAube: boolean;
@@ -375,18 +366,21 @@ export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: Tra
   const allure: Allure | undefined = mode === 'monture'
     ? (opts.allure ?? 'pas')
     : opts.allure === 'galop' && rule('voyage-allures') && vehicleTravel(mode)?.draft ? 'galop' : undefined;
-  const kmh = travelSpeed(s.party, s.possessions, mode, route.speed?.[mode], allure);
+  const coqueFluviale = coqueDeDescente(s, route, mode);
+  const kmh = coqueFluviale ? vitesseDeDescente(route, mode, coqueFluviale)
+    : travelSpeed(s.party, s.possessions, mode, route.speed?.[mode], allure);
   const prior = hoursTravelledToday(s);
   const premierJour = travelDayBudget(mode, hours, prior);
   const plan = travelPlanCalc(route.km, kmh, hours, premierJour);
   const enRoute = s.party.filter((h) => !h.dead && !h.outOfRencontre);
   const manifeste = provisioningManifest(enRoute, undefined, plan ? plan.days - 1 : 0, s.gameTime);
-  const offre = passagePayant(() => s, route, mode) ? offreDePassage(map, route, mode, fromId, s.billetEnMain, s.marchandagesDeBillet) : undefined;
+  const passagePayant = mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !coqueFluviale;
+  const offre = passagePayant ? offreDePassage(map, route, mode, fromId, s.billetEnMain, s.marchandagesDeBillet) : undefined;
   const achat = offre && !offre.couvert ? offre : null;
   const classeId = achat ? classeRetenue(achat.tarif, opts.classeId ?? '') : '';
   const cost = achat ? transportCost(achat.tarif, classeId, enRoute.length, achat.issue) : null;
   return {
-    hours, allure, kmh, premierJour, aLAube: routeDuJourFaite(mode, hours, prior), plan, voyageurs: enRoute.length,
+    hours, allure, kmh, coqueFluviale, premierJour, aLAube: routeDuJourFaite(mode, hours, prior), plan, voyageurs: enRoute.length,
     rations: { requises: manifeste.rationsRequises, portees: manifeste.rationsDispo },
     passage: offre === undefined ? null : { offre, classeId, cost, abordable: !cost || canAfford(totalDesBourses(s.party), cost) },
   };
@@ -419,10 +413,11 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
   // EDOC 07 l.140
   if (mode === 'monture' && !rule('voyage-allures')) return t('tf.refusMode');
   if (mode === 'monture' && !partyFullyMounted(s.party, s.possessions)) return t('tf.refusMonture');
-  if (!route.modes.includes(mode === 'monture' ? 'pied' : mode) || (mode === 'mer') !== !!route.sea) return t('tf.refusMode');
+  const modeDesservi = route.modes.includes(mode) || (mode === 'monture' && route.modes.includes('pied'));
+  if (!modeDesservi || (mode === 'mer') !== !!route.sea) return t('tf.refusMode');
   if (mode === 'mer') return refusDuDepartEnMer(() => s);
   const devis = devisDeTrajet(s, route, from.id, mode, opts);
-  if (!descenteJouee(() => s, route, mode) && devis.kmh <= 0) return t('wm.refusSurcharge'); // MSRC 7 : la descente jouée a sa propre allure
+  if (!devis.coqueFluviale && devis.kmh <= 0) return t('wm.refusSurcharge');
   if (devis.passage && !devis.passage.offre) return t('tf.refusSansTarif');
   if (devis.passage?.cost && !devis.passage.abordable) {
     return t('tf.passageTropCher', { mode: travelModeLabels()[mode].toLowerCase(), cost: formatMoney(devis.passage.cost) });
@@ -435,16 +430,16 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   if (refuseSi(get, set, (s) => refusDeDepart(s, routeId, mode, opts))) return;
   const { from, route, to } = trajetDIci(get(), routeId) as Exclude<ReturnType<typeof trajetDIci>, string>;
   const { party } = get();
+  const devis = devisDeTrajet(get(), route, from.id, mode, opts);
 
   // Porte d'heure de départ (maison `voyage-heure-de-depart`, #340) : terre (pied/monture) et fleuve
   // JOUÉ ne s'ébranlent que de l'aube au crépuscule. La MER est exemptée (voguer de nuit = équipage +
   // installations, MDG 15 l.76). De nuit → on mémorise le trajet et on propose « Attendre l'aube ».
-  if (mode !== 'mer' && (mode === 'pied' || mode === 'monture' || descenteJouee(get, route, mode)) && departureGated(get)) {
+  if (mode !== 'mer' && (mode === 'pied' || mode === 'monture' || devis.coqueFluviale) && departureGated(get)) {
     differerALAube(get, set, { mode, cause: 'nuit' });
     return;
   }
 
-  const devis = devisDeTrajet(get(), route, from.id, mode, opts);
   const { hours, allure } = devis;
   // Budget du jour déjà épuisé par un tronçon précédent (LDB 51 l.195) : la nuit se passe SUR PLACE et le
   // trajet attend l'aube (porte de départ), sans ouvrir de jour de 0 h.
@@ -481,8 +476,9 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   // Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : sur une embarcation (barge…), la descente
   // se JOUE jour par jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport
   // payant. Repli sur le transport payant (« on paie un passeur ») si aucun batelier/embarcation.
-  const riverPlan = descenteJouee(get, route, mode) ? buildRiverPlan(get, routeId, from.id, to.id, route, { cadence: opts.cadence }) : null;
-  if (riverPlan) {
+  if (devis.coqueFluviale) {
+    const riverPlan = garanti(buildRiverPlan(get, routeId, from.id, to.id, route, mode, { cadence: opts.cadence }),
+      routeId, 'plan de descente fluviale');
     set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode), ...quitterLeLieu });
     log(get, set, [t('tf.departFluvial', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
     runRiverDays(get, set);
@@ -640,8 +636,8 @@ function runTravelDays(get: Get, set: Set): void {
     const forcedDriver = forcedEligible ? partyAssisted(party, { skill: { id: 'conduite-d-attelage' } }) : null;
     // Conducteur dont le jet se SURFACE (#1262) : chaque Test de Conduite d'attelage au km devient une
     // ÉTAPE de la cascade `travelDay` (Chance/Pacte/Résilience possibles), chaînée par insertions
-    // successives jusqu'au premier échec (`buildForcedPaceDaySteps`) — gameTime/kmDone sont alors
-    // DIFFÉRÉS à la clôture (`continueTravelDayAfterCascade`), comme la progression fluviale.
+    // successives jusqu'au premier échec. `finalizeForcedPace` avance le temps et `continueTravelDayAfterCascade`
+    // reporte la progression et l'état de l'attelage.
     // Repli : allure forcée non éligible, ou aucun siège humain ne tient le conducteur → chemin SYNCHRONE (`forcedPaceDay`).
     const premierKm = forcedDriver && surfaceOf(get, forcedDriver.actor.id)
       ? buildForcedPaceStep(forcedDriver, kmLeft)
@@ -656,7 +652,7 @@ function runTravelDays(get: Get, set: Set): void {
     }
     const forced = forcedDriver ? forcedPaceDay(get, set, kmLeft, forcedDriver) : null;
     const hoursToday = forced ? forced.hours : Math.min(budget, kmLeft / kmh);
-    get().avancerLHorloge(Math.round(hoursToday * 60));
+    const contagion = avancerLeTrajetTerrestre(get, set, Math.round(hoursToday * 60));
     if (plan.mode === 'pied' || plan.mode === 'monture') addTravelHoursToday(get, set, today0, plan.mode, hoursToday);
     // L'ENTRETIEN du jour (rations/faim, maladies, convalescence) n'est PAS roulé ici : il se résout
     // dans la cascade de la halte de nuit (`buildNightCascade`), APRÈS le repas — sinon la Faim
@@ -715,12 +711,10 @@ function runTravelDays(get: Get, set: Set): void {
     // jour (d'auteur puis table d10 RAW). TOUS les JETS du jour (Activités d'Étape, Exposition de fin
     // d'Étape, Survie/Perception des péripéties) sont des ÉTAPES d'une CASCADE influençable
     // (`purpose:'travelDay'`, Chance/Pacte/Résilience) — plus d'auto-résolution inline. Ordre RAW (l.10)
-    // : Météo (tirée ici, ambiance) → activités → péripéties. Quand aucun jet n'est produit (règle
-    // Étapes éteinte ET pas de péripétie testable), la cascade est VIDE → on finalise directement (le
-    // chemin jour-par-jour du LdB reste BYTE-IDENTIQUE).
+    // : Météo (tirée ici, ambiance) → activités → péripéties.
     const daySteps = buildTravelDayCascade(get, set, route, recapDay, marchHeroes, {
       toLabel: to.label, destLabel: to.label,
-    });
+    }, contagion);
     // Récap du SEGMENT posé sur le plan : la cascade suspend le `while`, donc son `recap`/`recapDay`
     // locaux ne survivent pas — `continueTravelDayAfterCascade` les relit depuis `plan.recap`.
     if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
@@ -789,7 +783,7 @@ const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepD
 
 function buildTravelDayCascade(
   get: Get, set: Set, route: MapRoute, recapDay: TravelRecapDay, marchHeroes: string[],
-  dest: { toLabel: string; destLabel: string },
+  dest: { toLabel: string; destLabel: string }, contagion: readonly BuiltCascadeStep[] = [],
 ): CascadeStep[] {
   const steps: BuiltCascadeStep[] = [];
 
@@ -808,6 +802,8 @@ function buildTravelDayCascade(
       stake: voyageStakeRef(STAGE_WEATHER_KIND),
     }));
   }
+
+  steps.push(...contagion);
 
   // PÉRIPÉTIES du jour (LDB 51 l.208) : les péripéties d'AUTEUR (une étape de MONDE par péril), puis
   // le dé de SEUIL (`peripetieSeuilDie`) — un dé de MONDE à table, sur le patron de la météo : le siège
@@ -868,13 +864,9 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   // Récap du jour : les lignes des étapes de la cascade close (météo/hors-cascade déjà poussées au
   // build, cf. `buildTravelDayCascade`) — phase-taguées via le catalogue partagé (dette 3).
   if (recapDay && done) recapDay.lines.push(...done.participants.flatMap(stepRecapLines));
-  // Attelage FORCÉ conducteur JOUEUR (#270) : gameTime/kmDone étaient DIFFÉRÉS depuis le build (la
-  // chaîne `rythmeForceATerre` n'a résolu km/heures qu'au fil des jets) — on les pose maintenant, comme
-  // le chemin synchrone les pose avant le build. Absent (conducteur IA / pas d'attelage forcé) : rien
-  // à faire ici, `plan.kmDone`/`gameTime` sont déjà à jour.
+  // Attelage FORCÉ conducteur JOUEUR (#270) : le temps a avancé à la fin de la chaîne de Conduite.
   const fp = ctx?.forcedPaceResult;
   if (fp) {
-    get().avancerLHorloge(Math.round(fp.hours * 60));
     const kmDone = Math.min(plan.km, plan.kmDone + fp.km);
     set({ travelPlan: { ...get().travelPlan!, kmDone } });
     if (fp.vehicleLame) set({ travelPlan: { ...get().travelPlan!, vehicleLame: true } });
@@ -1235,17 +1227,25 @@ function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?
   });
 }
 
-/** Pose l'aggrégat FINAL de l'attelage forcé sur `travelPlan.land` (relu par `continueTravelDayAfterCascade`
- *  pour poser `kmDone`/`gameTime`, DIFFÉRÉS depuis le build — cf. `LandDayContext.forcedPaceResult`). */
-function finalizeForcedPace(get: Get, set: Set, result: { km: number; hours: number; vehicleOut: boolean; vehicleLame: boolean }): void {
+/** LDB 20 l.206 ; EDOC 09 l.21 */
+function avancerLeTrajetTerrestre(get: Get, set: Set, minutes: number): BuiltCascadeStep[] {
+  const voyageurs = porteursABord(get, set).filter(({ id }) => id !== WORLD_STEP_OWNER);
+  const dus = calculerLesTestsDExposition(get, set, minutes, [voyageurs], incubationPendantLeVoyage(get));
+  get().avancerLHorloge(minutes);
+  return bandesDeContagion(get, set, dus);
+}
+
+function finalizeForcedPace(get: Get, set: Set, result: NonNullable<LandDayContext['forcedPaceResult']>, lines: string[]) {
   const land = get().travelPlan?.land;
-  if (!land) return;
+  const consequences = freeCons(lines);
+  if (!land) return { consequences };
   set({ travelPlan: { ...get().travelPlan!, land: { ...land, forcedPaceResult: result } } });
+  return { consequences, insert: avancerLeTrajetTerrestre(get, set, Math.round(result.hours * 60)) };
 }
 
 /** Clés `<idHéros>|<idMaladie>` des maladies portées par le groupe — empreinte de départ d'un trajet. */
 const diseaseKeys = (party: Combatant[]): string[] =>
-  party.flatMap((h) => (h.diseases ?? []).map((d) => `${h.id}|${d.id}`));
+  party.flatMap((h) => (h.diseases ?? []).map((d) => cleDeMaladieDeVoyage(h.id, d.id)));
 
 /**
  * PHASE D'ARRIVÉE, volet maladies — EDOC 09 l.21. Toute maladie encore en INCUBATION qui n'était pas
@@ -1258,7 +1258,7 @@ function declareArrivalDiseases(get: Get, set: Set, atStart: string[]): string[]
   const party = get().party;
   for (const h of party) {
     for (const dz of h.diseases ?? []) {
-      if (dz.phase !== 'incubation' || avant.has(`${h.id}|${dz.id}`)) continue;
+      if (dz.phase !== 'incubation' || avant.has(cleDeMaladieDeVoyage(h.id, dz.id))) continue;
       lines.push(...declareDisease(h, dz, battleRng()));
     }
   }
@@ -1288,9 +1288,8 @@ function travelArrivalCare(get: Get, set: Set): string[] {
   return lines;
 }
 
-/** « Voyage éreintant » raté : +1 jour de retard (le groupe erre) et +1 Exténué chacun.
- *  Renvoie les lignes journalisées (reprises par le récapitulatif de voyage). */
-function applyEreintant(get: Get, set: Set): string[] {
+/** LDB 51 l.215 */
+function applyEreintant(get: Get, set: Set, avant: string[] = []) {
   const party = get().party;
   const lines: string[] = [];
   for (const h of party) {
@@ -1299,13 +1298,13 @@ function applyEreintant(get: Get, set: Set): string[] {
     lines.push(t('tf.detourEpuise', { name: h.label }));
   }
   set({ party: [...party] });
-  get().avancerLHorloge(24 * 60); // un jour de plus sur la route
+  const insert = avancerLeTrajetTerrestre(get, set, MINUTES_PER_DAY);
   // Le jour de retard NE roule PAS l'entretien en eager (sinon Faim avant le repas de la halte) :
   // ce franchissement supplémentaire est décompté dans la cascade de nuit (`buildNightCascade`), qui
   // couvre tous les jours écoulés depuis `lastUpkeepDay` — donc ce détour aussi (non nourri : pas de repas ce jour-là).
   lines.push(t('tf.jourDeDetour'));
   log(get, set, lines);
-  return lines;
+  return { consequences: freeCons([...avant, ...lines]), insert };
 }
 
 export function creerActionsDuVoyage(get: Get, set: Set) {
@@ -1425,7 +1424,7 @@ export const TABLES = {
           ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
-        j.push(...applyEreintant(get, set)); // personne pour tester : retard direct
+        return applyEreintant(get, set, j); // personne pour tester : retard direct
       } else if (entry.kind === 'attaque') {
         // Perception Accessible (+20) INFLUENÇABLE → étape-jet insérée ; son applier pose l'embuscade
         // différée (le `noSurprise` suit le jet). Sans tester (aucun héros vivant) : interruption directe.
@@ -1452,7 +1451,7 @@ export const TABLES = {
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence, l'échec parle par son effet (`applyEreintant`).
       if (step.result.success) return { consequences: freeCons([t('tf.survieReussie', { who: garanti(hero, step.actorId, 'survivant du péril').label })]) };
-      return { consequences: freeCons(applyEreintant(get, set)) };
+      return applyEreintant(get, set);
     },
     /** « Attaqués ! » (LDB 51 l.221) : Perception (+20) INFLUENÇABLE ; réussie → le groupe les voit venir (sans
      *  surprise) ; l'embuscade configurée est DIFFÉRÉE derrière le récit (le `noSurprise` suit le jet). */
@@ -1499,8 +1498,7 @@ export const TABLES = {
           const suivant = buildForcedPaceStep(driver, kmLeft, galloped + 1, km, hours);
           if (suivant) return { consequences: freeCons(j), insert: [suivant] };
         }
-        finalizeForcedPace(get, set, { km: Math.min(km, kmLeft), hours, vehicleOut: false, vehicleLame: false });
-        return { consequences: freeCons(j) };
+        return finalizeForcedPace(get, set, { km: Math.min(km, kmLeft), hours, vehicleOut: false, vehicleLame: false }, j);
       }
       const stupefiant = step.result.sl <= -6; // Échec Stupéfiant (EDOC 07 l.253)
       // Le jet du conducteur est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print
@@ -1516,8 +1514,7 @@ export const TABLES = {
       const restHours = walkKmh > 0 ? Math.min(plan.hoursPerDay - hours, remaining / walkKmh) : 0;
       const finalKm = Math.min(kmLeft, km + restHours * walkKmh), finalHours = hours + restHours;
       if (!stupefiant) {
-        finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false });
-        return { consequences: freeCons(j) };
+        return finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }, j);
       }
       const roll = rollDice(vehicleProblemDie(), battleRng());
       let entry = rollVehicleProblem(roll);
@@ -1547,7 +1544,7 @@ export const TABLES = {
             roll: rt.roll, target: rt.target, success: rt.success,
             issue: rt.success ? t('tf.controleTenu') : t('tf.controlePerdu'),
           }));
-          if (rt.success) { finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }); return { consequences: freeCons(j) }; }
+          if (rt.success) return finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }, j);
         } else j.push(t('tf.sansConducteur'));
         entry = rollVehicleProblem(96);
       } else if (entry.id === 'casse') {
@@ -1555,8 +1552,7 @@ export const TABLES = {
         entry = rollVehicleProblem(96);
       }
       const outcome = applyVehicleProblemEffects(get, set, entry, j);
-      finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, ...outcome });
-      return { consequences: freeCons(j) };
+      return finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, ...outcome }, j);
     },
     /** Reprise de contrôle INFLUENÇABLE d'un attelage « Incontrôlable » (#270, EDOC 07 l.284) : succès →
      *  l'attelage est maîtrisé (pas d'Accident) ; échec → Accident (96-00 de la table, verbatim). */
@@ -1567,11 +1563,10 @@ export const TABLES = {
       const name = garanti(hero, step.actorId, 'conducteur').label;
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
       const j = [t('tf.controleRepris', { name, issue: t(step.result.success ? 'tf.controleTenuPoint' : 'tf.controlePerduExclamation') })];
-      if (step.result.success) { finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }); return { consequences: freeCons(j) }; }
+      if (step.result.success) return finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }, j);
       const entry = rollVehicleProblem(96); // 96-00 = Accident (table verbatim)
       const outcome = applyVehicleProblemEffects(get, set, entry, j);
-      finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, ...outcome });
-      return { consequences: freeCons(j) };
+      return finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, ...outcome }, j);
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   famillesTirables: [

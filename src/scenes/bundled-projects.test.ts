@@ -46,12 +46,13 @@ function erreursDe(doc: Pick<ProjectDoc, 'scenes' | 'worldMap'>): string[] {
  *  (`racinesDeFlow`), l'arbre entier (`walkFlow`) et les Flows portés par une feuille (`carriedFlows`). */
 function effetsDuProjet(doc: Pick<ProjectDoc, 'scenes'>): { sceneId: string; eff: Effect }[] {
   const out: { sceneId: string; eff: Effect }[] = [];
-  const marche = (flow: Flow, sceneId: string): void =>
+  const marche = (flow: Flow, sceneId: string): void => {
     walkFlow(flow, (noeud) => {
       if (noeud.kind !== 'effet') return;
       out.push({ sceneId, eff: noeud.effet });
       for (const { flow: porte } of carriedFlows(noeud.effet)) marche(porte, sceneId);
     });
+  };
   for (const sc of doc.scenes) for (const r of racinesDeFlow(sc)) marche(r.flow as Flow, sc.id);
   return out;
 }

@@ -38,6 +38,7 @@ import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLo
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { controlerSousPortee, listeCle } from './collection-cle';
+import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit, produitDe } from './interne/produits';
@@ -1177,7 +1178,11 @@ export const mainSchema = enumNomme({ main: 'Main directrice', secondaire: 'Main
 /** Les objets de la campagne (`narratif.objets`), que désignent hors du catalogue l'objet donné (Effet et GameOp
  *  `giveTrapping`) et la clé d'une apparence par objet (`apparencesDObjetsSchema`) ; le projet l'ouvre (`projetSchema`).
  *  Déclarée ici et non dans `defs-scenes/communs.ts`, qui importe ce module. */
-export const OBJETS_DU_PROJET = { collection: 'narratif.objets', catalogue: 'objets de la campagne' } as const satisfies PorteeLocale;
+export const OBJETS_DU_PROJET = {
+  collection: 'narratif.objets',
+  catalogue: 'objets de la campagne',
+  retient: [INSTANCIABLE_PAR_ID],
+} as const satisfies PorteeLocale;
 
 type FauteDApparence = { readonly path: readonly (string | number)[]; readonly message: string };
 

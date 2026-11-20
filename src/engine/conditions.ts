@@ -37,7 +37,7 @@ import { dropExpiredGrantedPsych, dropExpiredGrantedTraits } from './grantedTrai
 import { dropExpiredGrantedResources } from './grantedResources';
 import { dropExpiredGrantedWeapons } from './conjuredWeapons';
 import { dropExpiredGrantedMutations } from './corruption';
-import { recomputeLoadout } from './items';
+import { recomputeLoadout, type TrappingResolver } from './items';
 import { isFrenzied, isFrenzyCapable, restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
@@ -872,7 +872,7 @@ export function isActionLocked(c: Combatant): boolean {
  * de cascade influençable (cf. `collectHeroRoundEndUpkeep`). Les DÉGÂTS restent ici pour tous ; seul
  * le Test est différé. ENNEMIS : `opts` absent → comportement (et ORDRE RNG) inchangé.
  */
-export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: ConditionEmit): string[] {
+export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: ConditionEmit, resolveTrapping?: TrappingResolver): string[] {
   const log: string[] = [];
   // Hémorragique : dégâts par-round (« 1 Blessure par pion, en ignorant les modificateurs », l.104) MIGRÉS
   // en données — etats.json hemorragique `effects: onRoundEnd → wounds {stacks:'self'}` (défaut : ignore
@@ -900,7 +900,7 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: C
     // L'ancrage du re-jeu est celui MEMORISE sur l'effet a sa pose (`applyOps` l'y stampe) : il se relaie,
     // il ne se reconstruit pas.
     applyOps(c, e.opsPerRound, {
-      label: e.label, rng, idNeuf, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId, onCondition: emit,
+      label: e.label, rng, idNeuf, resolveTrapping, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId, onCondition: emit,
       rejeuRecurrent: true, // SEUL site qui pose le drapeau : ce qui suit est une RE-pose (`LDB 16 l.117`)
     }).forEach((l) => log.push(l));
   }

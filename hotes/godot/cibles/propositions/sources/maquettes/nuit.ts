@@ -57,7 +57,7 @@ export default {
     partie: {
       jeu: { id: 'al-zahr', nom: 'L’Al-zahr', sous: 'Jeu de dés · chacun met au pot', regle: 'Deux dés pour toucher le nombre cible. Le premier qui l’atteint emporte le pot.' },
       jeux: [{ id: 'al-zahr', nom: 'L’Al-zahr' }, { id: 'flechettes', nom: 'Les fléchettes' }, { id: 'bras-de-fer', nom: 'Le bras de fer' }],
-      table: [{ qui: 'bjorn', nom: 'Bjorn', role: 'Votre joueur' }, { qui: 'brasseur', nom: 'Le brasseur', role: 'La maison' }, { qui: 'batelier', nom: 'Un batelier', role: 'Habitué' }, { qui: 'cocher', nom: 'Un cocher', role: 'De passage' }],
+      table: [{ qui: 'bjorn', nom: 'Bjorn', role: 'Votre héros' }, { qui: 'brasseur', nom: 'Le brasseur', role: 'La maison' }, { qui: 'batelier', nom: 'Un batelier', role: 'Habitué' }, { qui: 'cocher', nom: 'Un cocher', role: 'De passage' }],
       mise: { heros: 'bjorn', mise: 6, pot: 24, joueurs: 4, avoir: BOURSES.bjorn },
       action: 'S’asseoir et lancer les dés',
     },

@@ -250,6 +250,19 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
     expect(wallBetween(s, 9, 2, 9, 1, 2)).toBe(true);
   });
 
+  it('la projection d’une coque se calcule aussi quand son inventaire désigne un objet de campagne', () => {
+    const id = 'arme-de-campagne';
+    const avecInventaire = {
+      ...s,
+      entities: s.entities.map((e) => e.id !== 'c1' ? e : {
+        ...e,
+        inventaire: { [id]: false },
+        appearance: { ...e.appearance, apparencesObjets: { [id]: { id: 'hache_naine' } } },
+      }),
+    };
+    expect(naviresDeLaScene(avecInventaire)).toEqual(naviresDeLaScene(s));
+  });
+
   it('le navire se montre par son modèle : le véhicule de sa fiche à sa taille réelle, au centre de ses ponts', () => {
     expect(naviresDeLaScene(s)).toEqual([{ id: 'c1', vehicule: expect.objectContaining({ definition: 'caraque', taille: 'reelle', cap: 'O', ameliorations: expect.arrayContaining(['embarcation-de-bord']) }), centre: { x: 11.5, y: 4 } }]);
     expect(naviresDeLaScene(bassinDeLaCaraque('N'))).toMatchObject([{ centre: { x: 5, y: 10.5 }, vehicule: { cap: 'N' } }]);

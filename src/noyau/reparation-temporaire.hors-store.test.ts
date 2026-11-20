@@ -38,7 +38,7 @@ const etapeJouee = (kind: GenreDeCascade, extra: Partial<Pick<CascadeStep, 'acto
   ({ id: String(kind), kind, label: fixtureText(String(kind)), result: { roll: 50, target: 40, sl: 1, success: true }, ...extra });
 
 /** Le Reik de Grünburg à Altdorf, route fluviale des descentes. */
-const routeDuReik: MapRoute = { id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 };
+const routeDuReik: MapRoute = { id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge-fluviale', 'pied'], river: true, inns: true, perilDie: 0 };
 const carteDuReik: WorldMap = { id: 'm', label: 'Le Reik', places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } }, { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } }], routes: [routeDuReik] };
 
 const appliquer = (st: CascadeStep, hero?: Combatant) => applierDe(st.kind)!(get, set, st, hero, { steps: [], index: 0 });
@@ -202,7 +202,7 @@ describe('combat naval — la Manœuvre du navire réparé est suivie du Test d�
       vessel: { uid: 'navire-1', vehicleId: 'bateau-de-patrouille', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 30, max: 40 }, ...(reparationTemporaire ? { reparationTemporaire: true } : {}) },
     } as never);
     lierLaCoqueDeCampagne(coqueDuCombat(), get().vessel!);
-    if (fluvial) set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', routeDuReik)! });
+    if (fluvial) set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', routeDuReik, 'barge-fluviale')! });
   }
   /** La Manœuvre jouée par la modale du joueur. */
   function manoeuvrer(reparationTemporaire: boolean, fluvial = false): void {
@@ -266,7 +266,7 @@ describe('fleuve — réparation temporaire d’une coque percée (MSRC 7 l.115-
       worldMap: carteDuReik,
       vessel: null,
     } as never);
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', route)!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', route, 'barge-fluviale')!;
     plan.vehicle!.wounds.current = 30;
     set({ travelPlan: { ...plan, river: { ...plan.river!, holed: true } } });
   });
@@ -347,14 +347,14 @@ describe('fleuve — réparation temporaire d’une coque percée (MSRC 7 l.115-
   });
 
   it('sur le navire de campagne, le marqueur vit au navire : une nouvelle descente joue encore le Test', () => {
-    set({ vessel: { uid: 'navire-1', vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 10, max: 30 } } } as never);
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', route)!;
+    set({ vessel: { uid: 'navire-1', vehicleId: 'barge-fluviale', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 10, max: 30 } } } as never);
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', route, 'barge-fluviale')!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, holed: true } } });
     colmater();
     expect(get().vessel!.reparationTemporaire).toBe(true);
     expect(get().travelPlan!.river!.reparationTemporaire).toBeUndefined();
     set({ travelPlan: null });
-    set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', route)! });
+    set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', route, 'barge-fluviale')! });
     expect(testsDeReparation(journee())).toHaveLength(1);
   });
 });
@@ -377,7 +377,7 @@ describe('fleuve — le Test de réparation temporaire du gréement (MSRC 7 l.11
       party: [charpentier()], battle: null, lieu: 'A', travelRecap: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], journal: [],
       worldMap: carteDuReik, vessel: null,
     } as never);
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', routeDuReik)!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', routeDuReik, 'barge-fluviale')!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, broken: true } } });
   });
   afterEach(() => resetRule('fleuve-reparation-temporaire-reparation-difficulte'));

@@ -18,7 +18,7 @@
  * `positionValue`).
  *
  * Lot 4 — CONTEXTE D'ESCOUADE (`squad` en entrée, OPTIONNEL : absent → comportement Lot 3 inchangé) :
- * FEU CONCENTRÉ via le Surnombre (`outnumberEnvMelee` : `outnumberMod` et `effectifAuContactParmi`, LDB 14 l.110),
+ * FEU CONCENTRÉ via le Surnombre (LDB 14 l.110),
  * ÉVITEMENT du DANGER (`dangerAt` : danger-map des héros, l'ennemi fuit les cases exposées) et COHÉSION
  * légère (ne pas s'isoler de l'escouade). Aucun nouveau MODIFICATEUR de combat n'est inventé.
  */
@@ -29,10 +29,10 @@ import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase,
 import { chebyshev } from '../../engine/grid';
 import { corpsDe, footprintChebyshev, footprintN, distanceDeContact } from './footprint';
 import { combatGeomOfList, meleeWeaponInRangeList } from '../mount';
-import { bouclierDuBinome, effectifAuContactParmi } from '../combat/surnombre';
+import { bouclierDuBinome, surnombreDeLAttaque } from '../combat/surnombre';
 import { couvertDuTir, makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
-import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../../engine/combat';
+import { rangeBandModifier, canFireWhileEngaged } from '../../engine/combat';
 import { porteeDeTir } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../../engine/structures';
@@ -143,12 +143,10 @@ export interface EnemyTurnInput {
    *  `ai.ts` est pur, sans store). Sert au bonus de FLANC/DOS du positionnement (`isFlankOrRear`, LDB 14
    *  l.91). ABSENT = aucun bonus de flanc (graceful : tests purs / scène sans orientation). */
   facing?: Record<string, Dir8>;
-  /** ESCOUADE (Lot 4) : les ALLIÉS de l'ennemi encore en action et posés (l'ennemi lui-même EXCLU),
-   *  résolus par l'appelant (couche impure qui a le `battle`). Sert au FEU CONCENTRÉ (`effectifAuContactParmi`,
-   *  LDB 14 l.110) et
-   *  à la COHÉSION légère (ne pas s'isoler / ne pas bloquer l'allié). ABSENT = comportement Lot 3 STRICTEMENT
-   *  inchangé (le golden et les fixtures sans escouade restent identiques). */
+  /** Les alliés posés et en action, hors attaquant, pour la cohésion d'escouade. */
   squad?: Combatant[];
+  /** Les combattants de la bataille, y compris ceux hors de la perception de l'IA. LDB 14 l.110 */
+  combatants?: readonly Combatant[];
   /** Postes de siège NON servis à portée de SERVICE (emplacement/coque adjacent), surfacés par l'appelant
    *  impur (`servablePostes`, qui a la liste COMPLÈTE des combattants). Donnent un candidat `manPoste`
    *  KIND-AGNOSTIQUE. ABSENT/vide (toute fixture sans emplacement) → aucun candidat (parité golden). */
@@ -575,12 +573,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // adjacent (`inMelee`/`withinMelee`, testés sur `pos` SANS passer par `reach`) reste attaquable normalement.
   const movement = input.holdsFormation ? 0 : input.movement;
   const spells = input.spells ?? []; // absent (tests purs / fixtures sans sort) → aucun candidat de sort
-  // Escouade (Lot 4) : alliés posés encore en action (l'ennemi exclu par l'appelant). Absent → [] →
-  // surnombre/cohésion/danger-map neutres = comportement Lot 3 strictement inchangé.
+  // Les alliés posés et en action servent à la cohésion d'escouade.
   const squad = input.squad ?? [];
   // Vision réciproque : l'ennemi ne cible/poursuit que les héros qu'il PERÇOIT (LoS + lumière, comme le
   // groupe). `perceived` absent = aucun gate (comportement historique / tests purs).
   const adversaires = adversairesDe(input);
+  const combattants = input.combatants ?? [...squad, ...adversaires.filter((c) => c.kind !== enemy.kind)];
   const heroes = input.perceived
     ? adversaires.filter((h) => h.pos && input.perceived!.has(`${h.pos.x},${h.pos.y},0`))
     : adversaires;
@@ -871,13 +869,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   };
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
-  /** FEU CONCENTRÉ : le Surnombre (LDB 14 l.110) de la résolution de mêlée, `outnumberMod` sur
-   *  `effectifAuContactParmi` de l'escouade, plus l'attaquant, qui sera au contact en frappant. Injecté dans
-   *  l'`env` de mêlée d'`expectedDamage`. Escouade vide → aucun `env`. */
-  const outnumberEnvMelee = (target: Combatant): ModLine[] | undefined => {
-    if (squad.length === 0) return undefined;
-    const onm = outnumberMod(effectifAuContactParmi(scene, squad, target, enemy.kind) + 1);
-    return onm ? [onm] : undefined;
+  const outnumberEnvMelee = (target: Combatant) => {
+    const mod = surnombreDeLAttaque(combattants, enemy, target);
+    return mod ? [mod] : undefined;
   };
 
   /** Utilité tactique d'une ATTAQUE (mêlée/tir/sort) sur `target` : valeur de l'effet + menace de la cible
