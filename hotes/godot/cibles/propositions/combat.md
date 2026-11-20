@@ -23,13 +23,16 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - À valider : chaque réserve, un jeton dans une case de largeur fixe, son pictogramme à gauche du disque, sans nom
   écrit ; le nom et la valeur (« Chance : 3 ») dans la bulle du jeton survolé (`reserves`, `sources/combat/jet.js`).
   Pictogrammes (`PICTO_DE_LA_RESERVE`, `sources/rendu.js`) : Chance `etoile`, Résilience `coeur`, Détermination
-  `poing`, Destin `sablier` (le temps compté, distinct du `fin` de la fin du tour), Expérience `livre` (ce qui s'est
+  `poing`, Destin `sablier` (le temps compté ; le `fin` de la fin du tour est le même sablier, qui n'en diffère que par
+  le trait de sable du bas : les deux se confondent à 20 px), Expérience `livre` (ce qui s'est
   appris ; aucun pictogramme de progression au kit). La Chance au pied d'un billet de jet : l'étoile une fois, puis un
   jeton par lanceur, identifié par son portrait `menu`.
-- À valider : l'issue du camp est le seul DR, sur une ligne, sous le portrait, à 10 px de la rangée des réserves ; le
-  verdict ne s'écrit plus, le sceau du total le porte par son état (vert la réussite, cerclé d'or le critique, rouge
-  l'échec), son mot dans la bulle du sceau survolé. Le cercle d'or du critique est neuf (`.sceau.critique`,
-  `sources/gestes.css`).
+- À valider : l'issue du camp est le verdict écrit suivi du DR, sur une ligne, de la couleur du verdict (« Réussite
+  DR +2 » vert, « Échec DR −3 » rouge sang, « Critique DR +5 » vert, le mot sur une marque d'or), du pied du portrait sur
+  la largeur du camp (place `issue`, 272 de large), à 10 px de la rangée des réserves (`camp`, `sources/combat/jet.js`).
+  Le sceau du total garde son état (vert la réussite, cerclé d'or le critique, rouge l'échec), mais la couleur seule ne
+  dit pas le verdict : le mot s'écrit, aucune bulle au survol du sceau. Le cercle d'or du critique est neuf et épais de
+  3 px pour se voir à la taille de jeu (`.sceau.critique`, `sources/gestes.css`).
 
 ## tour-adverse (A1, A2, T3)
 - Le meuble garde sa place et montre l'adversaire : portrait de fer, nom, arme (« Hache »), Blessures.
@@ -71,7 +74,8 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 
 ## debut-du-round (R1)
 - Le choix dans le bandeau, carte puis plaque : « Agir en premier », une carte par héros offert, la choisie en
-  laiton plein ; la plaque « Commencer le round » commet.
+  laiton plein ; la plaque « Commencer le round » commet. « Agir en premier » est la rubrique de la première carte,
+  avec ou sans la préemption du Tir rapide ; l'annonce dit « Round 2 · le round débute » dans les deux états.
 - Berta seule est offerte : Ilyanwe est déjà en tête de l'ordre (`src/noyau/turnEconomy.ts:43`).
 - La carte porte son coût, « 1 Chance » (LDB 17 l.25 ; une arme Rapide le rendrait gratuit, LDB 62 l.298-300,
   `turnEconomy.ts:61`) ; la Chance de Berta en médaillon à gauche de la plaque.
@@ -184,6 +188,11 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
 - Les réglages manquants de `jet-avant-le-de`, en rangées à droite de la silhouette : « Arme » (Épée, « Bouclier
   (2nde −20) »), « Localisation » (« Au hasard » choisie, une zone de la silhouette sinon), bascules « Des deux
   armes » et « Retenir ses coups » ; à mains nues, « Empoigner » et sa note du jeu.
+- Chaque réglage a sa place fixe au centre, vide quand il manque (`PLACES_DU_REGLAGE`, `sources/rendu.js`) : la
+  silhouette ; la ligne propre à la porte (« Arme », ou la note de ce que la porte change) ; « Localisation » (son
+  libellé, la zone tenue et son malus, « Au hasard ») ; les bascules. Inventaire : `jet-avant-le-de`, ses trois
+  variantes et `localisation-du-critique` ; les autres centres avant le dé (défense, marchandage, équipage, Test
+  simple) n'ont pas de réglage qui varie d'un état à l'autre.
 - Verbes : `jetRegler('attaque', 'arme' | 'localisation' | 'deuxArmes' | 'retenirSesCoups' | 'empoigner', valeur)`,
   `jetLancer('attaque')`, `jetForcerLaReussite('attaque')`, `jetAnnuler('attaque')`.
 - Réfs : LDB 10 l.767-773, LDB 14 l.78 (main secondaire, −20), LDB 14 l.159, AA 07 l.59-61 ; conditions de chaque

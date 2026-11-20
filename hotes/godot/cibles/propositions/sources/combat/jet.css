@@ -17,11 +17,20 @@
 /* le seuil dans une case de largeur fixe : les dés et le sceau ne glissent pas d'un seuil à l'autre */
 .camp>.place>.des .seuil{flex:none;width:52px;text-align:right}
 .camp.droite>.place>.des .seuil{text-align:left}
-.camp>.place>.issue{text-align:center;white-space:nowrap;font-size:14px;line-height:16px;color:#2a1d12;font-weight:600}
-.camp :is(.seuil,.sceau)>.bulle-refus{font-weight:400}
+/* l'issue d'un camp, de la couleur du verdict : le verdict en petites capitales, le DR à sa suite, du pied du portrait ;
+   le critique, vert, son verdict sur une marque d'or */
+.camp>.place>.issue{white-space:nowrap;font-size:14px;line-height:16px;color:#2a1d12;font-weight:600}
+.camp.droite>.place>.issue{text-align:right}
+.camp>.place>.issue b{font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;margin-right:4px}
+.camp>.place>.issue.reussite{color:#3d5a26}
+.camp>.place>.issue.echec{color:var(--sang)}
+.camp>.place>.issue.critique{color:#3d5a26}
+.camp>.place>.issue.critique b{padding:0 5px;border-radius:2px;color:var(--encre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:inset 0 0 0 1px var(--or-sombre)}
+.camp .seuil>.bulle-refus{font-weight:400}
+/* l'issue posée dans la rangée des dés (le tirage d'une table, les Blessures perdues) : deux lignes, le mot en rouge sang */
+.camp .des .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:var(--sang)}
+.camp .des .issue span{font-size:14px;color:#2a1d12;font-weight:600}
 .camp>.place>.c{max-height:28px;overflow:hidden}
-.camp .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:#7c1f14}
-.camp .issue span{font-size:14px;color:#2a1d12;font-weight:600}
 .modif{display:inline-block;margin-top:5px;padding:0 9px 1px;font-size:12.5px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35)}
 #verdict{text-align:center;padding:2px 8px 0;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:104px}
 #verdict .sous{font-size:12.5px;color:#4a3420}

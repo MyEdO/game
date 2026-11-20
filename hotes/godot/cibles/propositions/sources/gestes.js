@@ -221,9 +221,9 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le d10 du d100, vu de face : la silhouette et la face du dé de `navigation/des` (src/data/icons/defs/navigation.ts:11-13), à 36×40 */
   const d10 = (texte) => `<svg width="36" height="40" viewBox="0.5 -0.5 23 25"><path d="M12 1L21.5 9.9V14.1L12 23L2.5 14.1V9.9Z" fill="#b8a67e"/><path d="M12 23V18.4L4.8 13.6L2.5 14.1ZM12 23V18.4L19.2 13.6L21.5 14.1Z" fill="#2a1d12" fill-opacity=".16"/><path d="M12 1L19.2 13.6L12 18.4L4.8 13.6Z" fill="#f1e6cc"/><path d="M12 1L19.2 13.6L12 18.4L4.8 13.6ZM4.8 13.6L2.5 14.1M19.2 13.6L21.5 14.1M12 18.4V23" fill="none" stroke="#2a1d12" stroke-width=".55" stroke-linejoin="round"/><path d="M12 1L21.5 9.9V14.1L12 23L2.5 14.1V9.9Z" fill="none" stroke="#2a1d12" stroke-width=".8" stroke-linejoin="round"/><text x="12" y="${texte.length > 1 ? 14.2 : 14.8}" text-anchor="middle" font-family="Grenze Gotisch" font-weight="600" font-size="${texte.length > 1 ? 6.6 : 8.4}" fill="#2a1d12">${texte}</text></svg>`;
   /* le sceau de cire : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; `etat` reussite, reussite critique ou
-     vide ; `de` : le dé dont le chiffre est le jet, écrit dessous ; `bulle` : le sceau survolé, ce qu'il dit */
+     vide ; `de` : le dé dont le chiffre est le jet, écrit dessous */
   const SCEAU = { menu: 12, petit: 15, moyen: 20, grand: 26, maitre: 32 };
-  const sceau = (contenu, taille = 'petit', { etat = '', classe = '', de = '', bulle = '' } = {}) => `<div class="sceau ${taille} ${etat}${de ? ' de' : ''} ${classe}">${PICTOS[contenu] ? picto(contenu, SCEAU[taille], undefined, 1.9) : `<b>${contenu}</b>`}${de ? `<i>${de}</i>` : ''}${bulle ? raison(bulle) : ''}</div>`;
+  const sceau = (contenu, taille = 'petit', { etat = '', classe = '', de = '' } = {}) => `<div class="sceau ${taille} ${etat}${de ? ' de' : ''} ${classe}">${PICTOS[contenu] ? picto(contenu, SCEAU[taille], undefined, 1.9) : `<b>${contenu}</b>`}${de ? `<i>${de}</i>` : ''}</div>`;
   /* le ruban : centré sur son `left` ; `gothique` : le titre d'un panneau */
   const ruban = (texte, { gothique = false, style = '' } = {}) => `<div class="ruban ${gothique ? 'gothique' : 'rubrique'}" style="${style}">${texte}</div>`;
   /* le cadre de chêne ferré : géométrie en px (une cote `null` reste à la feuille), `matiere` du fond, `ruban` gothique,
@@ -246,9 +246,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   });
   /* la bulle reste dans son cadre (dans la vue hors cadre, sous ce qui la rogne) et ne couvre aucun texte libre, pas
      même le libellé de l'élément qu'elle qualifie, ni d'abord un autre contrôle : au-dessus de lui, centrée, puis alignée
-     sur son bord droit ou gauche, décalée pour rester dans le cadre ; sinon dessous ; sinon la raison prend la place de
+     sur son bord droit ou gauche, décalée pour rester dans le cadre ; sinon dessous, de même, puis sous les lignes de texte qui le bordent ; sinon à sa droite, puis à sa
+     gauche, centrée sur sa hauteur ; sinon la raison prend la place de
      la ligne secondaire de l'élément refusé (`data-secondaire`) ; sans elle, la bulle peut couvrir un autre contrôle,
-     son libellé compris */
+     son libellé compris, jamais un texte libre : sans aucune pose, elle porte `data-sans-pose`, que le relevé refuse */
   const poserLesBulles = () => {
     const lignesDe = (e) => [...e.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).flatMap((n) => { const g = document.createRange(); g.selectNodeContents(n); return [...g.getClientRects()].filter((l) => l.width && l.height); });
     const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill, .facettes b, .niche';
@@ -269,9 +270,15 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
       /* le décalage de côté qui garde la bulle `q`, déplacée de `x`, dans le cadre */
       const dans = (q, x = 0) => x + Math.max(bord.left + 6 - q.left - x, Math.min(0, bord.right - 6 - q.right - x));
       const cotes = [() => 0, (q) => r.right - q.right, (q) => r.left - q.left];
+      const sousLesLignes = (q, x) => Math.max(r.bottom, ...textes.flatMap((t) => t.lignes).filter((l) => l.right > q.left + x && l.left < q.right + x && l.top >= r.bottom - 1 && l.top < r.bottom + 11 + q.height).map((l) => l.bottom));
+      const milieu = (q) => (r.top + r.bottom) / 2 - (q.top + q.bottom) / 2;
       const places = [
         ...cotes.map((cote) => ['dessus', (q) => [dans(q, cote(q)), 0]]),
         ...cotes.map((cote) => ['dessous', (q) => [dans(q, cote(q)), r.bottom + 11 - q.top]]),
+        /* dessous, passé sous les lignes de texte qui le bordent (l'issue sous le camp) */
+        ...cotes.map((cote) => ['dessous', (q) => { const x = dans(q, cote(q)); return [x, sousLesLignes(q, x) + 11 - q.top]; }]),
+        ['cote-droit', (q) => [r.right + 11 - q.left, milieu(q)]],
+        ['cote-gauche', (q) => [r.left - 11 - q.right, milieu(q)]],
       ];
       const poser = (obstacles) => places.find(([, ou]) => { const q = b.getBoundingClientRect(); return libre(obstacles)(q, ou(q)); });
       const secondaire = refuse.querySelector('[data-secondaire]');
@@ -283,10 +290,13 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
         refuse.scrollIntoView({ block: 'nearest' });
         return;
       }
-      const [x, y] = (pose ?? places[0])[1](b.getBoundingClientRect());
+      /* aucune pose ne laisse libre tout texte libre : la bulle reste au-dessus, marquée, et le relevé refuse l'état */
+      if (!pose) b.dataset.sansPose = '';
+      const [nom, ou] = pose ?? places[0];
+      const [x, y] = ou(b.getBoundingClientRect());
       b.style.translate = `${x}px ${y}px`;
-      b.style.setProperty('--pointe', `${-x}px`);
-      b.classList.add((pose ?? places[0])[0]);
+      if (!nom.startsWith('cote-')) b.style.setProperty('--pointe', `${-x}px`);
+      b.classList.add(nom);
     });
   };
   /* les clous d'un meuble (barre, jet, arrêt), ou d'un bandeau de `cases` héros : aux bords et entre deux cases */

@@ -10,7 +10,8 @@
 // sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
 // (`retrecit`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
 // badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un autre contrôle, son libellé compris,
-// jamais un texte libre, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ; ce
+// jamais un texte libre, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ;
+// la bulle qui n'a aucune pose libre (`data-sans-pose`, `gestes.js`) est `recouvert` ; ce
 // dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
 // `rogne` que le haut et le bas :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
@@ -115,7 +116,7 @@ const releve = ([largeur, hauteur]) => {
     if (y < 0 || y > hauteur || x < 0 || x > largeur || rognePoint(e, x, y)) return false
     const v = document.elementFromPoint(x, y), m = v?.closest('[data-dessus]')
     return v && (!e.contains(v) || (m && !e.closest('[data-dessus]'))) && cache(v, e) && !(m && couvrable(e, texte, m))
-  }))).map((f) => nomme(f.e)))]
+  }))).map((f) => nomme(f.e))), ...[...document.querySelectorAll('[data-sans-pose]')].map((b) => `bulle sans pose libre : ${b.textContent}`)]
   /* une feuille qui sort d'un ancêtre qui la rogne ou la fait défiler (`overflow` non visible ; un texte : lui-même
      compris), sauf par le haut ou le bas de celui qui porte `data-defile`, dont le contenu défile en hauteur, ou dont la
      ligne finit par une ellipse */

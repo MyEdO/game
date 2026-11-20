@@ -98,7 +98,7 @@ export interface Testeur {
   jet?: JetTombe;
   des?: Des;
   parmi?: string[];
-  survol?: 'seuil' | 'sceau';
+  survol?: 'seuil';
 }
 
 /** Le héros d'une fenêtre sans dé : ce qui le met en jeu (une réserve, sa compétence et son seuil, le Critique qu'il

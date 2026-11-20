@@ -70,10 +70,16 @@
      remplacent par la place large, et dont le troisième cède sa colonne à ce que le choix vise ; la réserve et six
      places de plaque dans la rangée des gestes, la principale dans la première ; les testeurs à désigner au bout de la
      rangée, à la place des deux dernières plaques ; le camp d'un testeur dans la place `gauche` ou `droite` : le
-     portrait, l'identité, la rangée des dés à un y fixe, l'issue (le DR, une ligne) sous le portrait, à 10 px au-dessus de la rangée des gestes,
+     portrait, l'identité, la rangée des dés à un y fixe, l'issue (le verdict et le DR, une ligne) du pied du portrait sur la largeur du camp, à 10 px au-dessus de la rangée des gestes,
      en miroir à droite (`camp`, `combat/jet.js`) */
-  const PLACES_DU_CAMP = { portrait: [0, 0, 74, 92], identite: [86, 0, 186, 50], des: [86, 54, 186, 50], issue: [0, 98, 74, 18] };
+  const PLACES_DU_CAMP = { portrait: [0, 0, 74, 92], identite: [86, 0, 186, 50], des: [86, 54, 186, 50], issue: [0, 98, 272, 18] };
+  /* les réglages de l'attaque avant le dé, au centre (`localisationDe`) : la silhouette ; la ligne propre à la porte (le
+     choix d'arme, ou la note de ce que la porte change) ; la localisation (son libellé, la zone tenue et son malus,
+     « Au hasard ») ; les bascules ; une place sans réglage reste vide (inventaire : `jet-avant-le-de`, ses variantes et
+     `localisation-du-critique`) */
+  const PLACES_DU_REGLAGE = { silhouette: [300, 32, 54, 92], propre: [362, 32, 280, 32], localisation: [362, 66, 280, 28], bascules: [362, 96, 280, 30] };
   const PLACES = {
+    ...Object.fromEntries(Object.entries(PLACES_DU_REGLAGE).map(([nom, rect]) => [`fenetre/reglage-${nom}`, rect])),
     'fenetre/gauche': [16, 14, 272, 124], 'fenetre/centre': [300, 14, 342, 112], 'fenetre/droite': [654, 14, 272, 124],
     ...Object.fromEntries(Object.entries(PLACES_DU_CAMP).flatMap(([nom, [x, y, l, h]]) => [[`fenetre/gauche-${nom}`, [16 + x, 14 + y, l, h]], [`fenetre/droite-${nom}`, [654 + 272 - x - l, 14 + y, l, h]]])),
     'fenetre/large': [300, 14, 626, 124],
@@ -224,14 +230,13 @@
       ${defile(`<p data-texte="texte de la table">${echapper(c.texte)}</p>`)}</div>`);
   const localisationDe = (c) => {
     const l = c.localisation;
-    const bascules = c.bascules.map((b) => bascule(echapper(b.libelle), b.allumee)).join('');
-    if (l.zone) return reglages(porte(c.porte), `<div class="rangee">${silhouette(92, { [l.zone.id]: 'choisie' })}
-      <div class="choix"><div class="l rubrique">${echapper(l.libelle)}</div>
-      <div class="v"><span class="gothique">${echapper(l.zone.nom)}</span>${l.malus === null ? '' : modif(`${signe(l.malus)} au Test`)}</div>
-      ${l.hasard ? `<div class="bas">${options([['Au hasard']])}${bascules}</div>` : ''}</div></div>`);
-    return reglages(porte(c.porte), `<div class="rangee">${silhouette(92)}<div class="choix">
-      ${c.reglages.map((r) => regle(r.libelle, optionsDu(r))).join('')}${regle(l.libelle, options([['Au hasard', { armee: true }]]))}
-      <div class="bascules">${bascules}</div>${c.note ? `<p data-texte="note">${echapper(c.note)}</p>` : ''}</div></div>`, 'haut');
+    const zone = l.zone ? `<span class="gothique">${echapper(l.zone.nom)}</span>${l.malus === null ? '' : modif(`${signe(l.malus)} au Test`)}` : '';
+    return reglages(porte(c.porte), places('fenetre', {
+      'reglage-silhouette': silhouette(88, l.zone ? { [l.zone.id]: 'choisie' } : {}),
+      'reglage-propre': `${c.reglages.map((r) => regle(r.libelle, optionsDu(r))).join('')}${c.note ? `<p data-texte="note">${echapper(c.note)}</p>` : ''}`,
+      'reglage-localisation': `<div class="regle localisation"><span class="l rubrique">${echapper(l.libelle)}</span>${zone}${l.hasard || !l.zone ? options([['Au hasard', { armee: !l.zone }]]) : ''}</div>`,
+      'reglage-bascules': c.bascules.length ? `<div class="bascules">${c.bascules.map((b) => bascule(echapper(b.libelle), b.allumee)).join('')}</div>` : '',
+    }), 'haut');
   };
   /* le lot qu'un Marchandage traite, et le sens du marché */
   const lotMarchande = (l) => `${echapper(l.nom)} · ${l.enc} Enc`;

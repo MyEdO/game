@@ -15,7 +15,7 @@ export default {
   etats: [
     {
       nom: 'debut-du-round', gabarit: 'fenetre-du-bas', cour: { etat: 'debut-du-round' }, combattants: COMBATTANTS, combat: ROUND_2,
-      fenetre: { titre: 'Début du round', centre: { role: 'choix', annonce: { round: 2, sous: 'Agir en premier' }, groupes: [{ cartes: [{ ...BERTA_EN_PREMIER, choisie: true }] }] }, ...SUITES },
+      fenetre: { titre: 'Début du round', centre: { role: 'choix', annonce: { round: 2, sous: 'le round débute' }, groupes: [{ libelle: 'Agir en premier', cartes: [{ ...BERTA_EN_PREMIER, choisie: true }] }] }, ...SUITES },
     },
     {
       nom: 'debut-du-round-tir-rapide', gabarit: 'fenetre-du-bas', cour: { etat: 'debut-du-round-tir-rapide' }, combattants: COMBATTANTS, combat: ROUND_2,

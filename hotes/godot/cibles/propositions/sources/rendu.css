@@ -28,11 +28,8 @@
 /* les réactions d'une défense tiennent dans le centre : deux colonnes égales, la troisième à la ligne */
 #jet .reactions{display:grid;grid-template-columns:1fr 1fr;gap:6px 9px}
 #jet .reactions .plaque.carte.courte{min-width:0}
-/* le centre d'un jet avant le dé tient entre les deux camps : ses choix rétrécissent, une bascule ou une note passe à la ligne */
-#verdict .rangee .choix{min-width:0}
-#verdict .choix .bascule{white-space:normal;line-height:15px}
-#verdict .choix .bas{flex-wrap:wrap;row-gap:4px;margin-top:4px}
-#jet #verdict .choix p{white-space:normal}
+/* le centre d'un jet avant le dé tient entre les deux camps : une bascule passe à la ligne */
+#verdict .bascules .bascule{white-space:normal}
 /* une règle du centre tient sur sa ligne : son libellé passe à la ligne, ses options et son motif gardent leur largeur */
 #verdict .regle{gap:6px}
 #verdict .regle .l{white-space:normal;line-height:13px;letter-spacing:.4px;min-width:0}

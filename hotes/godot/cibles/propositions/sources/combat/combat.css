@@ -96,13 +96,7 @@
 .zone.touchee{fill:#9c2a1a;stroke:#4a0f08;stroke-width:1.5}
 
 /* le bandeau avant le dé : les réglages au centre, les sceaux encore vides */
-.reglages .rangee{display:flex;justify-content:center;align-items:center;gap:20px;text-align:left}
 #round .n,#round .t{white-space:nowrap}
-.choix .l{font-size:12px;color:#4a3420;margin-top:3px}
-.choix .v{display:flex;align-items:center;gap:10px}
-.choix .v .gothique{font-size:25px;line-height:27px;color:#3a1a10}
-.choix .v .modif{margin-top:0}
-.choix .bas{display:flex;align-items:center;gap:16px;margin-top:8px}
 
 /* l'incantation : un seul camp, le sort au centre, sa cible à droite */
 #verdict.sort .dr{font-size:32px}
@@ -205,10 +199,16 @@
 #jet .regle .options{gap:6px}
 #jet .regle .options .plaque{min-width:0}
 #jet .regle .options .plaque>div{padding:0 9px;font-size:12.5px;letter-spacing:.6px}
-#verdict .rangee{gap:16px;align-items:flex-start;margin-top:3px}
-#verdict .rangee .choix{flex:1}
-.bascules{display:flex;gap:16px;margin-top:7px}
-#verdict .rangee .choix p{margin:5px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;white-space:nowrap}
+/* les réglages de l'attaque, chacun à sa place (`PLACES_DU_REGLAGE`, `../rendu.js`) */
+#verdict .place>.regle{margin:0;height:100%}
+#verdict .place>.regle.localisation{justify-content:flex-start;gap:8px}
+#verdict .place>.regle.localisation>:not(.options){flex:none}
+#verdict .place>.regle.localisation .gothique{margin-left:2px;font-size:22px;line-height:24px;color:#3a1a10}
+#verdict .place>.regle.localisation .modif{margin-top:0}
+#verdict .place>.regle.localisation .options{margin-left:auto}
+#verdict .place>p{margin:0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;text-align:left}
+.bascules{display:flex;gap:16px;align-items:center;height:100%}
+.bascules .bascule span{line-height:14px}
 
 /* la marque d'une carte de choix */
 #jet .place>.carte .modif{margin:0 0 0 6px}

@@ -5,14 +5,14 @@
 /* le camp d'un testeur dans sa place de la fenêtre, `gauche` ou `droite` : quatre places (`PLACES`, `../rendu.js`), le
    portrait, l'identité (le nom, le Test sur deux lignes au plus), la rangée du seuil, des deux dés et du sceau du total,
    dont l'état porte le verdict (vert la réussite, cerclé d'or le critique, rouge l'échec), l'issue sous le portrait (le
-   DR) ; un dé qui se règle porte son − et son + dessous ; `survol` : le seuil survolé porte la bulle des influences du
-   jet, une ligne chacune, le sceau survolé celle du verdict */
+   verdict écrit et le DR, une ligne, de la couleur du verdict) ; un dé qui se règle porte son − et son + dessous ;
+   `survol` : le seuil survolé porte la bulle des influences du jet, une ligne chacune */
 const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, influences = [], survol = null, reussite = false, critique = false }) => `
   <div class="camp ${cote}">${places('fenetre', {
     [`${cote || 'gauche'}-portrait`]: portrait,
     [`${cote || 'gauche'}-identite`]: `<div class="n gothique">${nom}</div><div class="c rubrique" data-texte="Test">${carac}</div>`,
-    [`${cote || 'gauche'}-des`]: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${survol === 'seuil' ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : critique ? 'reussite critique' : reussite ? 'reussite' : '', bulle: survol === 'sceau' ? (critique ? 'Critique' : reussite ? 'Réussite' : 'Échec') : '' })}</div>`,
-    [`${cote || 'gauche'}-issue`]: total == null ? '' : `<div class="issue">DR ${dr}</div>`,
+    [`${cote || 'gauche'}-des`]: `<div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}${survol === 'seuil' ? raison(influences.join('<br>')) : ''}</span>${des.map((d) => (regles ? `<div class="de-regle">${d10(d)}${moinsPlus()}</div>` : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : critique ? 'reussite critique' : reussite ? 'reussite' : '' })}</div>`,
+    [`${cote || 'gauche'}-issue`]: total == null ? '' : `<div class="issue ${critique ? 'critique' : reussite ? 'reussite' : 'echec'}"><b>${critique ? 'Critique' : reussite ? 'Réussite' : 'Échec'}</b> DR ${dr}</div>`,
   })}</div>`;
 const verdict = (sous, dr, phrase, classe = '') => `<div id="verdict" class="${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="dr gothique">${dr}</div><p data-texte="phrase d'issue">${phrase}</p></div>`;
 /* le bandeau, à la place de la barre de l'actif ou du bandeau des héros : ses places (`PLACES`, `../rendu.js`), la rangée

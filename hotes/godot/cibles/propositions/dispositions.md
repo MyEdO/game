@@ -157,10 +157,9 @@ tête reste et les lignes défilent ; au pied, `gestes`, la rangée, avec `reser
 dernières plaques). Le camp d'un testeur, dans `gauche` ou `droite` (hautes de 124), a ses places, en miroir à droite
 (`gauche-*`, `droite-*`) : `portrait` (`grand`), `identite` (le nom seul sur sa ligne, le Test borné à deux
 lignes, `data-texte` au relevé `coupe`), `des` (le seuil dans une case de 52, deux dés et le sceau `grand`, à un y fixe
-quelle que soit la longueur du Test et à un x fixe quel que soit le seuil ; l'état du sceau porte le verdict) et `issue` (le DR seul, sur une ligne, sous le portrait, à 10 px
+quelle que soit la longueur du Test et à un x fixe quel que soit le seuil ; l'état du sceau double le verdict) et `issue` (le verdict écrit et le DR, sur une ligne de sa couleur, du pied du portrait sur la largeur du camp, à 10 px
 au-dessus de la rangée des gestes) ; un dé qui se règle porte son − et son + dessous. Les influences du jet
-(modificateurs) ne s'écrivent pas : le seuil survolé les montre dans la bulle à pointe, une ligne chacune ; le sceau
-survolé montre le mot du verdict. Les réserves de `reserve` : un jeton par réserve, son pictogramme et son disque, son
+(modificateurs) ne s'écrivent pas : le seuil survolé les montre dans la bulle à pointe, une ligne chacune. Les réserves de `reserve` : un jeton par réserve, son pictogramme et son disque, son
 nom et sa valeur au survol. La fenêtre remplace le socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois,
 défilement).
 
