@@ -5,7 +5,8 @@
  * porte pas, sans rien écrire. LDB 59 l.41, LDB 10 l.336, ZI 13.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resetRule, setRule } from '../engine/policy';
+import { resetRule } from '../engine/policy';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
@@ -16,6 +17,9 @@ import { initialNet, type BattleState } from './etat';
 import { appraiseRefus, gameDay } from './merchantFlow';
 import { reglageDuChoixDeFenetre } from './choixDeFenetre';
 import { fenetreDuButin } from './fenetreDuButin';
+import { gestesDeLObjet } from './gestesDeLObjet';
+import type { LootGear } from './pendings';
+import { surchargerUneRegleMaison } from './reglesMaison';
 import { intentAllowedFor } from './netOwnership';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { t } from '../i18n';
@@ -81,36 +85,79 @@ describe('evaluerLObjet : chaque refus est dit, aucune évaluation ne s’ouvre'
   });
 });
 
-describe('après un échec d’Évaluation : nouvel essai à DR 0 (LDB 12 l.94), délai maison à DR négatif', () => {
-  /** Évalue la ligne `L0` du butin, et valide le jet à `sl`, raté. */
-  function manquer(sl: number) {
-    banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } } as never);
-    g().evaluerLObjet('L0');
-    banc.setState({ pendingAppraise: { ...g().pendingAppraise!, roll: 95, success: false, sl } });
-    g().jetValider('evaluation');
+describe.each(['inventaire', 'butin', 'victoire'] as const)('relance d’une Évaluation dans %s', (porteur) => {
+  const uid = 'objet';
+  const label = 'Bague';
+  const regle = 'marche-evaluation-delai-jours';
+
+  function ouvrirEvaluation(refus: string | null) {
+    if (porteur === 'inventaire') {
+      expect(gestesDeLObjet(g(), 'a', uid)?.evaluer).toEqual({
+        geste: { verbe: 'evaluerLObjet', args: [uid] }, refus,
+      });
+    } else {
+      expect(fenetreDuButin(g())?.evaluer).toMatchObject({
+        geste: { verbe: 'evaluerLObjet' },
+        options: [{ valeur: uid, libelle: label, refus }],
+      });
+    }
+
+    g().evaluerLObjet(uid);
+    if (refus !== null) {
+      expect([dernier(), g().pendingAppraise]).toEqual([refus, null]);
+    } else {
+      const cible = porteur === 'inventaire' ? { itemUid: uid } : { gear: { scope: porteur, uid } };
+      expect(g().pendingAppraise).toMatchObject(cible);
+    }
   }
-  const retenter = () => { g().evaluerLObjet('L0'); const ouverte = !!g().pendingAppraise; banc.setState({ pendingAppraise: null }); return ouverte; };
-  afterEach(() => resetRule('marche-evaluation-delai-jours'));
 
-  it('DR négatif : refusé jusqu’au lendemain, puis ouvert', () => {
-    manquer(-2);
-    expect([retenter(), dernier()]).toEqual([false, t('mf.evaluationARetenter', { label: 'Épée', jours: 1 })]);
-    g().avancerLeTemps(24 * 60);
-    expect(retenter()).toBe(true);
+  function manquer(graine: number, roll: number, dr: number, delai?: number) {
+    const objet: ItemInstance = { uid, label, kind: 'misc', qualities: [], enc: 0, equipped: false, identified: false };
+    const butin: LootGear = { uid, label, magic: false, effect: { type: 'giveTrapping', custom: label, identified: false } };
+    banc.setState({
+      gameTime: 3 * MINUTES_PER_DAY - 1,
+      party: [heros('a', { items: porteur === 'inventaire' ? [objet] : [] })],
+      pendingLoot: porteur === 'butin' ? { title: 'Coffre', gear: [butin] } : null,
+      pendingVictory: porteur === 'victoire' ? { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [], gear: [butin] } : null,
+    });
+    if (delai !== undefined) expect(surchargerUneRegleMaison(g(), regle, delai)).toBe(true);
+    g().ensemencerLeTirage(graine);
+    ouvrirEvaluation(null);
+    g().jetLancer('evaluation');
+    expect(g().pendingAppraise).toMatchObject({ target: 40, roll, success: false, sl: dr });
+    g().jetValider('evaluation');
+    expect(g().pendingAppraise).toBeNull();
+  }
+
+  const attendre = (jours: number) => ouvrirEvaluation(t('mf.evaluationARetenter', { label, jours }));
+  afterEach(() => resetRule(regle));
+
+  it('rouvre immédiatement après un échec à DR 0 (LDB 12 l.94)', () => {
+    manquer(14, 45, 0, 3);
+    ouvrirEvaluation(null);
   });
 
-  it('DR 0 : un nouvel essai, aussitôt', () => {
-    manquer(0);
-    expect(retenter()).toBe(true);
+  it('rouvre immédiatement après un DR négatif si le délai est à 0', () => {
+    manquer(1, 63, -2, 0);
+    ouvrirEvaluation(null);
   });
 
-  it('le délai se règle : 3 jours', () => {
-    setRule('marche-evaluation-delai-jours', 3);
-    manquer(-1);
-    g().avancerLeTemps(24 * 60);
-    expect([retenter(), dernier()]).toEqual([false, t('mf.evaluationARetenter', { label: 'Épée', jours: 2 })]);
-    g().avancerLeTemps(2 * 24 * 60);
-    expect(retenter()).toBe(true);
+  it('rouvre au passage du lendemain avec le délai par défaut', () => {
+    manquer(1, 63, -2);
+    attendre(1);
+    g().avancerLeTemps(1);
+    ouvrirEvaluation(null);
+  });
+
+  it('décompte le délai configuré et rouvre au troisième changement de jour', () => {
+    manquer(1, 63, -2, 3);
+    attendre(3);
+    g().avancerLeTemps(1);
+    attendre(2);
+    g().avancerLeTemps(2 * MINUTES_PER_DAY - 1);
+    attendre(1);
+    g().avancerLeTemps(1);
+    ouvrirEvaluation(null);
   });
 });
 

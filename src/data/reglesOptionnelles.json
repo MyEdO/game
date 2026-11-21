@@ -774,7 +774,7 @@
     "type": "reglesOptionnelles",
     "label": "Délai avant de retenter une Évaluation (jours)",
     "ref": "LDB 59 l.41",
-    "maison": "LDB 59 l.41 ne fixe aucun délai avant une nouvelle tentative d’Évaluation, et LDB 12 l.94 ne prévoit de nouvel essai que sur un échec à 0 DR. Ce réglage permet de retenter l’Évaluation d’un objet après un échec à DR négatif, une fois le délai écoulé. À 0 jour, la nouvelle tentative est possible immédiatement.",
+    "maison": "LDB 12 l.94 envisage un nouvel essai sur un résultat marginal et peu concluant. LDB 59 l.41 décrit l’Évaluation sans fixer de délai. Ce réglage fixe le nombre de jours avant de retenter l’Évaluation d’un objet après un échec à DR négatif. À 0 jour, la nouvelle tentative est possible immédiatement.",
     "group": "Marché",
     "kind": "param",
     "default": 1,
