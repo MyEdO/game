@@ -8,9 +8,9 @@ import { projForPiece, type TestScenario } from './_shared';
 /**
  * SIÈGE COMPLET — défendre l'enceinte, entièrement DÉCLARÉ en UN `MapSpec` (plus aucune plomberie bespoke :
  * `buildScene` rejoue les primitives de l'éditeur). Carte PROFONDE (30×46, 2 couches) à l'échelle d'un vrai siège :
- *  - au NORD, le CAMP assaillant (tentes, braséros, bannières) et sa BATTERIE braquée sur la PORTE : une
+ *  - au NORD, le CAMP assaillant (tentes, braséros, bannières) et sa BATTERIE braquée sur la HERSE : une
  *    CATAPULTE pilonne de TRÈS LOIN en tir indirect (~71 m), un CANON de siège AVANCÉ tire en direct (~46 m) —
- *    l'IA cible la structure (Atout Siège) et PILONNE la porte ; la brèche n'est pas promise ici (un servant par
+ *    l'IA cible la structure (Atout Siège) et PILONNE la herse ; la brèche n'est pas promise ici (un servant par
  *    pièce, de très loin) : elle est exercée par le scénario `breche-au-canon` ;
  *  - des FANTASSINS qui traversent le glacis, FRANCHISSENT la RIVIÈRE par le PONT (seul passage) et s'amassent
  *    à la porte tant qu'elle tient ;
@@ -19,7 +19,7 @@ import { projForPiece, type TestScenario } from './_shared';
  *    (cols 14-15). Chaque `#`/`D` AUTO-POSE une ZONE REMPART sur la couche z1 (bloc solide à 4 m + chemin de
  *    ronde marchable + crénelure) → le z0 sous la bande devient IMPASSABLE (on ne traverse PLUS la « jupe » :
  *    le mur EST des cases pleines, le chemin de ronde est SON TOIT). La PORTE laisse le z0 en TUNNEL passable
- *    et pose sa HERSE `porte-de-ville` sur la BOUCHE extérieure (arête N, côté champ) ; intacte elle bloque le
+ *    et pose sa HERSE sur la BOUCHE extérieure (arête N, côté champ) ; intacte elle bloque le
  *    passage, abattue → BRÈCHE. Le chemin de ronde passe au-dessus du tunnel (gatehouse continu).
  *  - le CHEMIN DE RONDE (couche z1, 4 m) est garni de PIÈCES servies (baliste au rang intérieur, canon au rang
  *    extérieur, son empreinte 2×2 tenant sur la bande) et d'ARCHERS PNJ alliés-IA ;
@@ -63,8 +63,8 @@ export function spec(): MapSpec {
     label: 'Siège — défendre la muraille',
     desc:
       "Un siège à grande échelle : au nord, le camp assaillant et sa batterie (canon + catapulte) qui pilonne la " +
-      "porte de loin ; des fantassins franchissent la rivière par le pont et s'amassent à la porte ; au sud, " +
-      "l'enceinte de maçonnerie pleine à porte brèchable, son chemin de ronde (le TOIT du mur, à 4 m) garni de " +
+      "herse de loin ; des fantassins franchissent la rivière par le pont et s'amassent à la porte ; au sud, " +
+      "l'enceinte de maçonnerie pleine à herse destructible, son chemin de ronde (le TOIT du mur, à 4 m) garni de " +
       "pièces et d'archers, rejoint par une rampe au flanc gauche, et une cour pavée.",
     size: [30, 46],
     metresPerTile: 2, // person-scale (LDB) : 1 case = 2 m → bandes de portée (canon 50 m / catapulte 75 m)
@@ -72,7 +72,7 @@ export function spec(): MapSpec {
     ambientLight: 'jour', // plein jour : on voit l'assaut approcher sur tout le glacis
     startMessage:
       { texte: "Défendez l'enceinte. Gagnez le CHEMIN DE RONDE (le dessus du mur) par la RAMPE du flanc gauche, SERVEZ le " +
-      "canon du rang extérieur et pilonnez l'assaut en contrebas. La batterie ennemie pilonne la porte de loin ; les assaillants " +
+      "canon du rang extérieur et pilonnez l'assaut en contrebas. La batterie ennemie pilonne la herse de loin ; les assaillants " +
       "ne peuvent forcer le passage — le tunnel de la porte — qu'une fois la herse abattue." },
 
     // ── Légende partagée (base z0='herbe', z1='vide'). '~'=rivière, '='=pont, 'P'=pavé de cour, '4/3/2/1'=paliers
@@ -86,11 +86,11 @@ export function spec(): MapSpec {
     elevate: { '4': 4, '3': 3, '2': 2, '1': 1 },
     // ── RECETTE `cells` : une LETTRE = la case COMPLÈTE. '#' = ENCEINTE PLEINE (fondation 'pierre' + zone rempart
     //   auto sur z1 : bloc solide 4 m + chemin de ronde marchable + crénelure ; le z0 devient impassable). 'D' =
-    //   PORTE : idem mais le z0 reste un TUNNEL passable et une HERSE `porte-de-ville` est posée sur la BOUCHE
+    //   PORTE : idem mais le z0 reste un TUNNEL passable et une HERSE est posée sur la BOUCHE
     //   extérieure (arête N, facing:'N' car le champ est AU NORD/en haut) ; intacte elle bloque, abattue → brèche. ─
     cells: {
       '#': { terrain: 'pierre', wall: { structure: 'mur-en-pierre', facing: 'N' } },
-      D: { terrain: 'pierre', gate: { structure: 'porte-de-ville', facing: 'N' } },
+      D: { terrain: 'pierre', gate: { structure: 'herse', facing: 'N' } },
     },
 
     // ── Grilles ASCII des 2 étages (RECOPIÉES telles quelles, marqueurs inclus). La RAMPE n'est PAS un marqueur :
@@ -249,7 +249,7 @@ export function spec(): MapSpec {
       {
         id: 'assaut',
         // Rencontre de SIÈGE déclarée (`EncounterDef.siege`) : sans elle, la batterie assaillante ne verrait
-        // AUCUNE structure et ne pilonnerait jamais la porte.
+        // AUCUNE structure et ne pilonnerait jamais la herse.
         siege: true,
         members: [
           { entityId: 'crew-baliste', side: 'allie', ai: true },
@@ -271,9 +271,9 @@ export const scenario: TestScenario = {
   title: 'Siège — défendre la muraille',
   tests:
     'Siège à grande échelle (30×46, 2 couches) : champ d\'approche profond (~76 m) + camp & BATTERIE assaillante ' +
-    '(canon direct + catapulte indirecte) qui PILONNE la porte de loin (IA cible la structure, Atout Siège ; la brèche ' +
+    '(canon direct + catapulte indirecte) qui pilonne la herse de loin (IA cible la structure, Atout Siège ; la brèche ' +
     'est exercée par `breche-au-canon`) ; rivière ' +
-    '+ pont qui canalise l\'assaut ; enceinte à porte brèchable (WallSpec sans hauteur) ; chemin de ronde = couche 1 ' +
+    '+ pont qui canalise l\'assaut ; enceinte à herse destructible ; chemin de ronde = couche 1 ' +
     'à 4 m, rejoint par UNE RAMPE au FLANC GAUCHE (déportée de la porte), parapet z1 sur l\'arête extérieure ; ' +
     'pièces servies (un servant par pièce ; le canon du rempart tire en contrebas) + ARCHERS PNJ alliés-IA ; combat ' +
     'VERTICAL (LdV plongeante, mêlée refusée à travers le vide).',

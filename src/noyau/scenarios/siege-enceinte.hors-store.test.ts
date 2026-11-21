@@ -1,13 +1,21 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { ouvrirLeDuel } from '../combatDeTest.testkit';
+import { armeDeTest, objetDeTest } from '../../engine/objetsDeTest.testkit';
+import { weaponFromItem } from '../../engine/items';
+import { ligneDe } from '../../engine/modLine.testkit';
+import { RULE_REF } from '../../engine/ruleRefs';
+import { lancerLeScenario } from '../lancementDeScenario';
+import { cliquerSurLeCombattant } from '../combatOrParty';
+import { lancementDuScenario } from '../../scenes/test-scenarios/_shared';
 import { scenario } from '../../scenes/test-scenarios/siege-enceinte';
 import { distanceDeContact } from '../../noyau/monde/footprint';
 import { lineOfSightCover } from '../../noyau/monde/lineOfSight';
-import { isWalkable, wallBetween, setStructureDown, heightAt } from '../../noyau/monde/scene';
+import { isWalkable, wallBetween, structureAt, structureIsDown, heightAt } from '../../noyau/monde/scene';
 import { placeCombatant } from '../../noyau/monde/spawn';
 import { reachable, pathTo } from '../../noyau/monde/path';
-import { buildAiInput, etatDeTourNeuf, runEnemyAI } from '../../noyau/combatFlow';
+import { attackEnv, attackPlan, buildAiInput, collapseStructure, etatDeTourNeuf, runEnemyAI } from '../../noyau/combatFlow';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { servingCrewPresent } from '../../noyau/monde/shipPostes';
 import { adversairesDe, chooseEnemyAction } from '../../noyau/monde/ai';
@@ -18,8 +26,6 @@ import type { Weapon } from '../../engine/types';
 import { encounterDefSchema } from '../../data/schemas/defs-scenes/scene';
 import { findSiegeEngineById } from '../../data';
 
-let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); });
 const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
@@ -39,7 +45,36 @@ const GATE_COLS = [14, 15];
 const emplWithCrew = (crewId: string): SceneEntity =>
   scenarioConstruit.scene.entities.find((e) => e.postes?.[0]?.crewIds?.includes(crewId))!;
 
+it.each(GATE_COLS)('Siège, colonne %i : le joueur tire une flèche de la cour sur un assaillant à travers la herse', (x) => {
+  const banc = ouvrirLeBanc({ desFixes: true });
+  const get = banc.getState;
+  const { H, E, poser } = ouvrirLeDuel(banc, scenario.construire(idsDeTest), 'assaut');
+  const arc = objetDeTest('arc');
+  const fleches = objetDeTest('fleche');
+  const stock = fleches.qty!;
+  H.items = [arc, fleches];
+  H.weapons = [weaponFromItem(arc)];
+  poser(H, { x, y: INNER_ROW + 1, z: 0 });
+  poser(E, { x, y: MOUTH_ROW - 1, z: 0 });
+
+  cliquerSurLeCombattant(get, E.id, { confirm: true });
+  banc.reprendreLesEnAttente();
+  expect(get().pendingAttack).toMatchObject({ attackerId: H.id, targetId: E.id });
+  get().jetLancer('attaque');
+  expect(get().pendingAttack?.weapon).toMatchObject({ type: 'distance', uid: arc.uid });
+  get().jetImposerLeResultat('attaque', 98);
+  expect(get().pendingAttack?.result).toMatchObject({ attackerRoll: 98, hit: false });
+  get().jetValider('attaque');
+  banc.reprendreLesEnAttente();
+
+  expect(get().battle!.log).toContainEqual(expect.objectContaining({ kind: 'tir', actorId: H.id, targetId: E.id }));
+  const tireur = get().battle!.combatants.find((c) => c.id === H.id)!;
+  expect(tireur.items?.find((i) => i.uid === fleches.uid)?.qty).toBe(stock - 1);
+});
+
 describe('Siège — défendre la muraille (siege-enceinte)', () => {
+  let banc: Banc;
+  beforeEach(() => { banc = ouvrirLeBanc(); });
 
   it('carte PROFONDE 30×46, 2 niveaux ; champ d\'approche ≫ cour modeste', () => {
     const s = scenarioConstruit.scene;
@@ -51,10 +86,10 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
 
   it('enceinte : BLOC PLEIN `mur` (z0) + chemin de ronde `pierre` (z1, 4 m) ; HERSE sur la BOUCHE extérieure ; porte = tunnel passable', () => {
     const s = scenarioConstruit.scene;
-    const gate = s.walls!.filter((w) => w.structure === 'porte-de-ville');
-    expect(gate.length).toBe(2);
-    expect(gate.map((w) => w.x).sort((a, b) => a - b)).toEqual([14, 15]); // porte aux cols 14-15
-    expect(gate.every((w) => w.y === MOUTH_ROW && w.side === 'N')).toBe(true); // bouche = arête N extérieure (côté champ)
+    const herses = s.walls!.filter((w) => w.structure === 'herse')
+      .map(({ x, y, side, z = 0 }) => ({ x, y, side, z }))
+      .sort((a, b) => a.x - b.x);
+    expect(herses).toEqual(GATE_COLS.map((x) => ({ x, y: MOUTH_ROW, side: 'N', z: 0 })));
     // MODÈLE GÉNÉRAL (comme un bâtiment) : la MASSE est un BLOC PLEIN `mur` (terrain z0) — le moteur en dérive
     // toutes les faces —, le chemin de ronde une COUCHE DE SOL `pierre` marchable posée par-dessus (z1, 4 m).
     // AUCUNE « zone rempart » gameplay : la seule donnée sur z1 est la CRÉNELURE (décoration de rendu).
@@ -118,39 +153,61 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(path!.some((p) => (p.x === 3 || p.x === 4) && (p.z ?? 0) === 0 && (h0[idx(p.x, p.y)] ?? 0) > 0)).toBe(true);
   });
 
-  it('PORTE = STRUCTURE brèchable, PAS une porte ouvrable : intacte elle bloque passage+BFS cour↔champ ; abattue, la BRÈCHE rouvre', () => {
-    const s = scenarioConstruit.scene;
-    const gate = s.walls!.filter((w) => w.structure === 'porte-de-ville');
-    expect(gate.every((w) => !w.door)).toBe(true); // PAS de door:true → wallIsOpen = structureIsDown SEUL
-    const g = gate[0]; // arête N de (g.x, MOUTH_ROW) : sépare la bande (y=MOUTH_ROW) du champ (y=MOUTH_ROW-1)
-    expect(wallBetween(s, g.x, MOUTH_ROW, g.x, MOUTH_ROW - 1)).toBe(true);
-    expect(reachable(s, { x: g.x, y: MOUTH_ROW, z: 0 }, 1, { blocked: new Set() }).has(`${g.x},${MOUTH_ROW - 1}`)).toBe(false);
-    // Abattue (brèche) : passage ET BFS rouverts.
-    const breached = setStructureDown(s, g.x, MOUTH_ROW, 'N', 0, true);
-    expect(wallBetween(breached, g.x, MOUTH_ROW, g.x, MOUTH_ROW - 1)).toBe(false);
-    expect(reachable(breached, { x: g.x, y: MOUTH_ROW, z: 0 }, 1, { blocked: new Set() }).has(`${g.x},${MOUTH_ROW - 1}`)).toBe(true);
+  it('annonce au lancement que les assaillants doivent abattre la herse pour forcer le passage', () => {
+    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scenario, idsDeTest));
+    expect(banc.getState().journal).toContainEqual(expect.stringContaining(
+      "les assaillants ne peuvent forcer le passage — le tunnel de la porte — qu'une fois la herse abattue.",
+    ));
   });
 
-  it('TUNNEL franchissable : un chemin z0 CHAMP→COUR par la porte est BLOQUÉ intact, OUVERT à la brèche', () => {
-    const s = scenarioConstruit.scene;
-    const gate = s.walls!.filter((w) => w.structure === 'porte-de-ville');
-    const gx = gate[0].x; // colonne de porte (x14)
-    const field = { x: gx, y: MOUTH_ROW - 2, z: 0 }; // (14,35) côté CHAMP
-    const cour = { x: gx, y: INNER_ROW + 1, z: 0 };  // (14,39) côté COUR
-    // Champ, DEUX bouches du tunnel (rangées de bande 37-38) et cour sont TOUS marchables (la masse est percée).
-    for (const t of [field, { x: gx, y: MOUTH_ROW - 1, z: 0 }, { x: gx, y: MOUTH_ROW, z: 0 }, { x: gx, y: INNER_ROW, z: 0 }, cour])
-      expect(isWalkable(s, t.x, t.y, 0)).toBe(true);
-    // INTACTE : aucun chemin champ→cour (la masse est murée partout, la herse coupe le tunnel).
-    expect(pathTo(s, field, cour, { blocked: new Set() })).toBeNull();
-    // ABATTUE : le chemin existe et TRAVERSE bien les deux cases du tunnel (y37 puis y38).
-    const breached = setStructureDown(s, gx, MOUTH_ROW, 'N', 0, true);
-    const path = pathTo(breached, field, cour, { blocked: new Set() });
-    expect(path).not.toBeNull();
-    const onPath = (x: number, y: number) => path!.some((p) => p.x === x && (p.z ?? 0) === 0 && p.y === y);
-    expect(onPath(gx, MOUTH_ROW)).toBe(true); // bouche CHAMP (y37) franchie
-    expect(onPath(gx, INNER_ROW)).toBe(true); // bouche COUR (y38) franchie
-    // On ne traverse PAS la masse ailleurs : une colonne de courtine reste impassable au sol, intacte ou non.
-    expect(isWalkable(breached, 0, MOUTH_ROW, 0)).toBe(false);
+  // AA 10 l.42 ; AA 10 l.70 ; #4105, commentaire 6861489526.
+  it.each(GATE_COLS)('colonne %i : la herse baissée laisse voir et tirer sans couvert et barre le pas et la mêlée', (x) => {
+    const { H, E, poser } = ouvrirLeDuel(banc, scenario.construire(idsDeTest), 'assaut');
+    const champ = { x, y: MOUTH_ROW - 1, z: 0 };
+    const bouche = { x, y: MOUTH_ROW, z: 0 };
+    poser(H, bouche);
+    poser(E, champ);
+
+    const s = banc.getState().scene!;
+    const arete = structureAt(s, x, MOUTH_ROW, 'N')!;
+    expect(arete.door).toBeFalsy();
+    expect(structureIsDown(s, arete)).toBe(false);
+    expect(wallBetween(s, x, champ.y, x, bouche.y, 0)).toBe(true);
+    const deplacement = { blocked: new Set<string>() };
+    expect(reachable(s, bouche, 1, deplacement).has(`${x},${champ.y}`)).toBe(false);
+
+    const arc = armeDeTest('arc');
+    for (const [tireur, cible] of [[H, E], [E, H]] as const) {
+      expect(lineOfSightCover(s, tireur.pos!, cible.pos!, [])).toMatchObject({ blocked: false, cover: 'none' });
+      expect(distanceDeContact(s, tireur, cible)).toBe(Infinity);
+      expect(attackPlan(banc.getState, tireur, cible).kind, 'aucune attaque de mêlée sur place').not.toBe('attaque');
+
+      const armes = tireur.weapons;
+      tireur.weapons = [arc];
+      expect(attackPlan(banc.getState, tireur, cible, { weaponUid: arc.uid }).kind).toBe('attaque');
+      const tir = attackEnv(banc.getState, tireur, cible, arc);
+      expect(tir.blocked).toBe(false);
+      expect(ligneDe(tir.env, RULE_REF['cible-sous-couverture'])).toBeUndefined();
+      tireur.weapons = armes;
+    }
+
+    const cour = { x, y: INNER_ROW + 1, z: 0 };
+    expect(pathTo(s, champ, cour, deplacement)).toBeNull();
+    const herse = banc.getState().battle!.combatants.find((c) =>
+      c.structureEdge?.x === x && c.structureEdge.y === MOUTH_ROW && c.structureEdge.side === 'N',
+    )!;
+    collapseStructure(banc.getState, banc.setState, herse);
+
+    const breche = banc.getState().scene!;
+    expect(wallBetween(breche, x, champ.y, x, bouche.y, 0)).toBe(false);
+    expect(reachable(breche, bouche, 1, deplacement).has(`${x},${champ.y}`)).toBe(true);
+    expect(distanceDeContact(breche, H, E)).toBe(1);
+    expect(attackPlan(banc.getState, H, E).kind).toBe('attaque');
+    const chemin = pathTo(breche, champ, cour, deplacement);
+    expect(chemin?.map((p) => ({ ...p, z: p.z ?? 0 }))).toEqual([
+      champ, bouche, { x, y: INNER_ROW, z: 0 }, cour,
+    ]);
+    expect(isWalkable(breche, 0, MOUTH_ROW, 0)).toBe(false);
   });
 
   it('rivière (eau infranchissable) traversée par un PONT (planches) qui canalise l\'assaut', () => {
@@ -207,7 +264,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(() => encounterDefSchema.parse({ id: 'e', members: [], sieges: true } as never)).toThrow();
   });
 
-  it('BATTERIE assaillante : le canonnier tire sa PIÈCE SERVIE sur la porte (décision, télégraphe, coup) (#4187)', () => {
+  it('BATTERIE assaillante : le canonnier tire sa PIÈCE SERVIE sur la herse (décision, télégraphe, coup) (#4187)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
@@ -226,12 +283,13 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(affutEnt.engin?.id).toBe('canon-petit');
     expect(affutEnt.appearance).toBeUndefined();
     const input = buildAiInput(canonnier, banc.getState);
-    expect(input.structures?.some((st) => st.creatureId === 'porte-de-ville')).toBe(true); // la porte est une cible
+    expect(input.structures?.some((st) => st.creatureId === 'herse')).toBe(true);
     const action = chooseEnemyAction(input);
     expect(action.kind).toBe('tir');
     const { targetId, weaponUid } = action as Extract<typeof action, { kind: 'tir' }>;
     const tgt = b.combatants.find((c) => c.id === targetId);
-    expect(tgt && isStructure(tgt)).toBe(true); // … et c'est bien la STRUCTURE (porte) qui est visée
+    expect(tgt && isStructure(tgt)).toBe(true);
+    expect(tgt?.creatureId).toBe('herse');
     expect(weaponUid, 'la décision désigne la pièce évaluée').toBe(piece.uid);
     expect(weaponLoaded(canonnier, piece)).toBe(true);
     // Le tour du canonnier, joué par le flux du jeu.
@@ -240,7 +298,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(banc.getState().actorAim, 'télégraphe du tir').toEqual({ fromId: canonnier.id, toId: targetId, kind: 'tir' });
     banc.jusquA((s) => (s.battle?.log ?? []).some((e) => e.kind === 'tir' && e.actorId === canonnier.id), 20);
     const apres = banc.getState().battle!;
-    expect(apres.log.some((e) => e.kind === 'tir' && e.actorId === canonnier.id && e.targetId === targetId), 'le tir part sur la porte').toBe(true);
+    expect(apres.log.some((e) => e.kind === 'tir' && e.actorId === canonnier.id && e.targetId === targetId), 'le tir part sur la herse').toBe(true);
     const tireur = apres.combatants.find((c) => c.id === canonnier.id)!;
     expect(weaponLoaded(tireur, piece), 'la pièce est déchargée par le tir').toBe(false);
   });
