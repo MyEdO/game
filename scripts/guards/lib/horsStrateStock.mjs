@@ -1,4 +1,4 @@
-// STOCK DES STRUCTURES LOCALES (#1463, #3012 N1) : la dette de STRUCTURE des documents authorés, mesurée sur le
+// STOCK DES STRUCTURES LOCALES (#1463) : la dette de STRUCTURE des documents authorés, mesurée sur le
 // SCHÉMA par `noeudsDeStructure` (`scripts/guards/lib/structuresLocales.mts`) et régénérée par
 // `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/structuresLocales.mts` (politique `DECROISSANT`).
 // Volet `STRUCTURES_LOCALES` sous la porte des comptes (`occurrencesStock.mjs`) : aucun `CLIQUET:` n'y admet une entrée.

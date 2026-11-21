@@ -1,11 +1,11 @@
 /**
- * STRUCTURES LOCALES (#1463, #3012 N1) : la dette de STRUCTURE mesurée sur le SCHÉMA. Un site est un
+ * STRUCTURES LOCALES (#1463) : la dette de STRUCTURE mesurée sur le SCHÉMA. Un site est un
  * nœud de schéma d'un document authoré, énuméré sans la donnée : ajouter une donnée conforme n'en crée
  * aucun (#2995). Seuls les defs (`SCHEMA_DEFS`, `SCHEMA_DEFS_SCENES`), la grammaire et `OP_DEFS` sont lus.
  *
  * Énumération : chaque schéma DISTINCT, sous le nom de son DOCUMENT (`nomDuDocument`), chaque nœud à son plus court
  * chemin de schéma (`cheminsDeSchema`). Sont des sites les nœuds
- * objets et les nœuds non validants (`unknown`, `any`, `custom`) ; ne le sont pas la racine, l'entrée d'un
+ * objets, les records et les nœuds non validants (`unknown`, `any`, `custom`) ; ne le sont pas la racine, l'entrée d'un
  * document `entite`, la rangée d'un document `config` à rangées (mono-table : la ligne d'un tableau racine sous une
  * autre enveloppe, #3012) et les objets d'enveloppe (`CLES_ENVELOPPE`) qu'y pose `document()`. Les sous-objets
  * d'une rangée restent des sites.
@@ -15,21 +15,23 @@
  *   G   nœud DE LA GRAMMAIRE (atteint par identité depuis un export de `grammaire/*` ou `OP_DEFS`, ou
  *       produit de fabrique) PARTAGÉ : composé par au moins deux schémas de def ou par une déclaration
  *       d'op ; un produit se juge sur sa CLASSE (fabrique, rôle, clés d'extra et leur empreinte) ;
+ *   C   record ;
  *   G1  nœud de la grammaire composé par un seul def ;
  *   L   tout autre nœud objet.
- * Le STOCK (`STRUCTURES_LOCALES`, `horsStrateStock.mjs`) porte D5, G1 et L ; G en sort. La valeur d'un
- * `record` se classe comme tout nœud, le record lui-même n'est pas un objet.
+ * Le STOCK (`STRUCTURES_LOCALES`, `horsStrateStock.mjs`) porte D5, G1 et L. G et C sont hors stock.
+ * La valeur d'un record se classe à son propre chemin (`{}`).
  *
  * CLÉ d'un site : `(nom du document, chemin de schéma normalisé)`. Une branche d'union se nomme par
- * les valeurs de son discriminant, sinon par ses clés déclarées triées et leurs valeurs littérales, sinon
- * par son type ; une union imbriquée se replie dans sa mère, sauf sous une option `z.lazy`, nommée
+ * les valeurs de son discriminant, les clés déclarées et les littéraux d'un objet, l'empreinte d'un record
+ * ou le type des autres options. Une union imbriquée se replie dans sa mère, sauf sous une option `z.lazy`, nommée
  * `|<lazy>`. Deux nœuds d'un même type à la même clé LÈVENT (injectivité).
  *
  * POINT CONJOINT (`pointsConjoints`) : les nœuds qui jugent ensemble la MÊME valeur, comme la co-descente les
  * ferme (`ouverts`) — côtés d'une intersection (`&0`/`&1` ne sont pas des positions de la donnée, `segmentDeCle`),
  * enveloppes, côtés d'un pipe —, puis, de proche en proche, les enfants de même segment de nœuds conjoints
  * (intersection implicite). Un point est UN site, de la classe la plus lourde de ses nœuds objets ou non validants
- * (`D5` > `L` > `G1` > `G`), d'empreinte les champs fusionnés de ses objets. Le reste (`.*`) d'un objet conjoint
+ * (`D5` > `L` > `G1` > `G`), d'empreinte les champs fusionnés de ses objets. Quand le point ne porte que des
+ * records, il prend leur classe la plus lourde (`G` > `C`). Le reste (`.*`) d'un objet conjoint
  * n'est pas un site quand son point est déjà `D5`, qu'un autre objet y ferme le reste (`catchall` `never`), ou que son
  * point est `G` : le reste d'un nœud PARTAGÉ de la grammaire est la dette de la grammaire, pas du document qui le
  * compose (`gameOp`, porte `DETTE_OPS`, #1468).
@@ -39,7 +41,8 @@
  * disparu et un site né d'un même document (`nomDuDocument`).
  *
  * CHEMINS DE DOCUMENT (`cheminsDeDocument`, plancher `FEUILLES_D_ID` de `occurrencesStock.mjs`) : chaque chemin de
- * schéma d'un document, sous le même nom de document et les mêmes noms de branche, avec son ÉTAT (`admisDe`) : `idDe`
+ * schéma d'un document avec son ÉTAT (`admisDe`). Une branche de record y garde le nom stable `|<record>`, ce qui
+ * permet de constater un relâchement à ce chemin quand son schéma change. Le chemin est `idDe`
  * quand il porte une référence (`estFeuilleDId`, `grammaire/ref.ts`) et qu'aucune alternative n'y admet une valeur
  * libre, `ferme` quand il n'admet que des valeurs closes (enum, littéral, nombre…), `libre` sinon. Le plancher cède sur
  * tout chemin `idDe` qui ne l'est plus à la tête, `ferme` compris.
@@ -52,7 +55,7 @@ import type { SchemaDef } from '../../../src/data/schemas/types';
 import { declarationDEnfants, defDe, descendre, enfantsDe, ouverts, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document';
 import { famillesConstruites, OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
-import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
+import { classeDeProduit, empreinteDeNoeud } from '../../../src/data/schemas/grammaire/produits';
 import { estDocumentARangees } from './documentARangees.mts';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
@@ -64,7 +67,7 @@ import type { Site } from './stock.mjs';
 import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Les classes d'un nœud de site ; `D5`, `G1` et `L` sont au stock. */
-export type ClasseDeStructure = 'D5' | 'G' | 'G1' | 'L';
+export type ClasseDeStructure = 'D5' | 'G' | 'C' | 'G1' | 'L';
 
 /** Un nœud de site, classé : le nom de son document (`nomDuDocument`), sa clé de schéma, sa classe et son empreinte. */
 export interface NoeudDeStructure extends Readonly<Site>, ChampsDeStructure {
@@ -79,7 +82,7 @@ export type SiteDeStructure = Site & ChampsDeStructure;
 /** Les types de nœud non validants (D5). */
 const NON_VALIDANTS: ReadonlySet<string> = new Set(['unknown', 'any', 'custom']);
 /** Le POIDS d'une classe dans un point conjoint : la plus lourde fait la classe du site. */
-const POIDS: Readonly<Record<ClasseDeStructure, number>> = { G: 0, G1: 1, L: 2, D5: 3 };
+const POIDS: Readonly<Record<ClasseDeStructure, number>> = { C: 0, G: 1, G1: 2, L: 3, D5: 4 };
 /** Les classes portées au stock. */
 const AU_STOCK: ReadonlySet<ClasseDeStructure> = new Set(['D5', 'G1', 'L']);
 
@@ -109,9 +112,14 @@ function ouvert(noeud: unknown): unknown {
   }
 }
 
+type NomDuRecord = (noeud: unknown) => string;
+const nomDuRecordDeStructure: NomDuRecord = (n) => `|<${encodeURIComponent(JSON.stringify(empreinteDeNoeud(n)))}>`;
+const nomDuRecordDeDocument: NomDuRecord = () => '|<record>';
+
 /** Le SEGMENT d'une option d'union dans une clé : `''` pour une union imbriquée (repliée), `|<lazy>` pour
- *  une option `z.lazy`, `|disc=v1,v2` sous un discriminant, `|{a,b=v}` pour un objet, `|<type>` sinon. */
-export function nomDeBranche(union: unknown, option: unknown): string {
+ *  une option `z.lazy`, `|disc=v1,v2` sous un discriminant, `|{a,b=v}` pour un objet, le nom du record
+ *  pour un record et `|<type>` pour les autres options. */
+export function nomDeBranche(union: unknown, option: unknown, nomDuRecord: NomDuRecord = nomDuRecordDeStructure): string {
   if (defDe(option)?.type === 'lazy') return '|<lazy>';
   const o = ouvert(option);
   const def = defDe(o);
@@ -126,20 +134,21 @@ export function nomDeBranche(union: unknown, option: unknown): string {
     const cles = enfantsDe(o).flatMap((e) => (e.cle === undefined ? [] : [e.cle])).sort();
     return `|{${cles.map((k) => (pv[k] ? `${k}=${[...pv[k]].map(String).sort().join('/')}` : k)).join(',')}}`;
   }
+  if (def?.type === 'record') return nomDuRecord(o);
   return `|<${def?.type ?? '?'}>`;
 }
 
 /** Le segment de CLÉ d'un enfant de `parent` : le nom de branche d'une option d'union (`nomDeBranche`), `''` pour un
  *  côté d'intersection, nommé au chemin de l'intersection ; le segment de descente sinon. */
-const segmentDeCle = (parent: unknown, e: { readonly noeud: unknown; readonly segment: string }): string =>
-  e.segment.startsWith('|') ? nomDeBranche(parent, e.noeud) : e.segment.startsWith('&') ? '' : e.segment;
+const segmentDeCle = (parent: unknown, e: { readonly noeud: unknown; readonly segment: string }, nomDuRecord: NomDuRecord): string =>
+  e.segment.startsWith('|') ? nomDeBranche(parent, e.noeud, nomDuRecord) : e.segment.startsWith('&') ? '' : e.segment;
 
 type Chemin = { readonly path: string; readonly cout: number };
 const avant = (a: Chemin, b: Chemin): boolean => a.cout < b.cout || (a.cout === b.cout && a.path < b.path);
 
 /** Le plus court chemin de chaque nœud de `schema` : segments NON vides comptés, puis ordre lexical. Un
  *  nœud déjà nommé ne se renomme pas, ce qui replie la récursion au premier `z.lazy`. */
-export function cheminsDeSchema(schema: unknown): Map<object, Chemin> {
+export function cheminsDeSchema(schema: unknown, nomDuRecord: NomDuRecord = nomDuRecordDeStructure): Map<object, Chemin> {
   const meilleurs = new Map<object, Chemin>();
   const tas: (Chemin & { readonly n: unknown })[] = [];
   const echanger = (i: number, j: number): void => { [tas[i], tas[j]] = [tas[j], tas[i]]; };
@@ -176,7 +185,7 @@ export function cheminsDeSchema(schema: unknown): Map<object, Chemin> {
     meilleurs.set(p.n, { path: p.path, cout: p.cout });
     for (const e of enfantsDe(p.n)) {
       if (meilleurs.has(e.noeud as object)) continue;
-      const s = segmentDeCle(p.n, e);
+      const s = segmentDeCle(p.n, e, nomDuRecord);
       pousser({ n: e.noeud, path: p.path + s, cout: p.cout + (s === '' ? 0 : 1) });
     }
   }
@@ -185,11 +194,11 @@ export function cheminsDeSchema(schema: unknown): Map<object, Chemin> {
 
 /**
  * Les POINTS CONJOINTS des nœuds de `chemins` : le représentant du point de chaque nœud. Un point part de la
- * fermeture d'une intersection par la co-descente (`ouverts`), restreinte à son chemin (une branche d'union est
- * une alternative, à son propre chemin) ; puis les enfants de même segment de nœuds d'un même point y forment un
- * point, fermé de même. Sans intersection, chaque nœud est seul en son point. PURE.
+ * fermeture d'une intersection ou d'un pipe par la co-descente (`ouverts`), restreinte à son chemin (une branche d'union
+ * est une alternative, à son propre chemin) ; puis les enfants de même segment de nœuds d'un même point y forment un
+ * point, fermé de même. Les autres nœuds restent seuls à leur point. PURE.
  */
-export function pointsConjoints(chemins: ReadonlyMap<object, Chemin>): (n: object) => object {
+export function pointsConjoints(chemins: ReadonlyMap<object, Chemin>, nomDuRecord: NomDuRecord = nomDuRecordDeStructure): (n: object) => object {
   const parent = new Map<object, object>();
   const rep = (n: object): object => {
     let r = n;
@@ -206,7 +215,10 @@ export function pointsConjoints(chemins: ReadonlyMap<object, Chemin>): (n: objec
       .filter((m): m is object => estNoeud(m) && chemins.get(m)?.path === path)
       .concat(racines.slice(1))
       .reduce((change, m) => unir(racines[0], m) || change, false);
-  for (const [n, { path }] of chemins) if (defDe(n)!.type === 'intersection') fermer([n], path);
+  for (const [n, { path }] of chemins) {
+    const type = defDe(n)!.type;
+    if (type === 'intersection' || type === 'pipe') fermer([n], path);
+  }
   for (let change = true; change; ) {
     change = false;
     const membres = new Map<object, object[]>();
@@ -217,7 +229,7 @@ export function pointsConjoints(chemins: ReadonlyMap<object, Chemin>): (n: objec
       const parSegment = new Map<string, object[]>();
       for (const m of point)
         for (const e of enfantsDe(m)) {
-          const s = segmentDeCle(m, e);
+          const s = segmentDeCle(m, e, nomDuRecord);
           if (s === '' || s.startsWith('|') || !estNoeud(e.noeud) || chemins.get(e.noeud)?.path !== path + s) continue;
           parSegment.set(s, [...(parSegment.get(s) ?? []), e.noeud]);
         }
@@ -296,12 +308,12 @@ type SchemaNomme = { readonly fichier: string; readonly schema: unknown; readonl
 
 /** Les schémas DISTINCTS des `defs`, chacun sous le nom de son document. PURE sur les defs. Lève sur deux schémas d'un
  *  même nom. */
-function schemasNommes(defs: readonly SchemaDef[]): SchemaNomme[] {
+function schemasNommes(defs: readonly SchemaDef[], nomDuRecord: NomDuRecord = nomDuRecordDeStructure): SchemaNomme[] {
   const types = new Map<unknown, SchemaDef[]>();
   for (const d of defs) types.set(d.schema, [...(types.get(d.schema) ?? []), d]);
   const noms = new Map<string, readonly SchemaDef[]>();
   return [...types].map(([schema, documents]) => {
-    const chemins = cheminsDeSchema(schema);
+    const chemins = cheminsDeSchema(schema, nomDuRecord);
     const fichier = nomDuDocument(documents, chemins);
     const homonyme = noms.get(fichier);
     if (homonyme) throw new Error(`structures locales : ${fichier} nomme deux schémas (${[...homonyme, ...documents].map((x) => x.file).join(', ')})`);
@@ -330,15 +342,22 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
     const type = defDe(n)!.type;
     if (NON_VALIDANTS.has(type)) return 'D5';
     const fabrique = classeDeFabrique(n);
-    if (fabrique === undefined && !grammaire.has(n)) return 'L';
-    const partage = fabrique !== undefined
-      ? (parClasse.get(fabrique)?.size ?? 0) >= 2 || classesDOp.has(fabrique)
-      : (composeurs.get(n)?.size ?? 0) >= 2 || payloads.has(n);
-    return partage ? 'G' : 'G1';
+    const deGrammaire = fabrique !== undefined || grammaire.has(n);
+    if (deGrammaire) {
+      const partage = fabrique !== undefined
+        ? (parClasse.get(fabrique)?.size ?? 0) >= 2 || classesDOp.has(fabrique)
+        : (composeurs.get(n)?.size ?? 0) >= 2 || payloads.has(n);
+      if (partage) return 'G';
+    }
+    if (type === 'record') return 'C';
+    return deGrammaire ? 'G1' : 'L';
   };
   /** La classe d'un point : la plus lourde de ses nœuds (`POIDS`). */
   const classeDuPoint = (noeuds: readonly object[]): ClasseDeStructure => noeuds.map(classe).reduce((a, b) => (POIDS[b] > POIDS[a] ? b : a));
-  const estDeSite = (n: object): boolean => defDe(n)!.type === 'object' || NON_VALIDANTS.has(defDe(n)!.type);
+  const estDeSite = (n: object): boolean => {
+    const type = defDe(n)!.type;
+    return type === 'object' || type === 'record' || NON_VALIDANTS.has(type);
+  };
   const out: NoeudDeStructure[] = [];
   for (const { fichier, famille, rangees, chemins } of nommes) {
     const point = pointsConjoints(chemins);
@@ -353,7 +372,9 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
     const resteJuge = (p: readonly object[]): boolean =>
       ['D5', 'G'].includes(classeDuPoint(p)) || p.some((m) => defDe(enfantsDe(m).find((e) => e.segment === '.*')?.noeud)?.type === 'never');
     const parCle = new Map<string, object>();
-    for (const [r, noeuds] of membres) {
+    for (const [r, membresDuPoint] of membres) {
+      const objetsOuNonValidants = membresDuPoint.filter((n) => defDe(n)!.type !== 'record');
+      const noeuds = objetsOuNonValidants.length > 0 ? objetsOuNonValidants : membresDuPoint;
       const { path } = chemins.get(noeuds[0])!;
       if (horsSite(path, famille, rangees)) continue;
       const porteur = noeuds.flatMap((n) => parentsDuReste.get(n) ?? []).find((p) => `${chemins.get(p)?.path}.*` === path);
@@ -467,17 +488,17 @@ const etatDuChemin = (parPoint: Iterable<readonly unknown[]>): EtatDeChemin =>
 
 /**
  * Les CHEMINS de schéma de document des `defs` (#3021) : chaque chemin qu'une arête d'un nœud nommé (`cheminsDeSchema`)
- * ouvre, sous le nom de son document et les noms de branche des structures locales, avec son état (`etatDuChemin`).
- * PURE sur les defs, triés par document puis chemin.
+ * ouvre, sous le nom de son document, avec son état (`etatDuChemin`). La branche d'un record conserve le nom stable
+ * `|<record>`. PURE sur les defs, triés par document puis chemin.
  */
 export function cheminsDeDocument(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES]): CheminDeDocument[] {
   const out: CheminDeDocument[] = [];
-  for (const { fichier, chemins } of schemasNommes(defs)) {
-    const point = pointsConjoints(chemins);
+  for (const { fichier, chemins } of schemasNommes(defs, nomDuRecordDeDocument)) {
+    const point = pointsConjoints(chemins, nomDuRecordDeDocument);
     const parChemin = new Map<string, Map<object, unknown[]>>();
     for (const [n, { path }] of chemins)
       for (const e of enfantsDe(n)) {
-        const s = segmentDeCle(n, e);
+        const s = segmentDeCle(n, e, nomDuRecordDeDocument);
         if (s === '') continue;
         const ref = path + s;
         const parPoint = parChemin.get(ref) ?? new Map<object, unknown[]>();
