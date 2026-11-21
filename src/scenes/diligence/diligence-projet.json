@@ -3802,6 +3802,7 @@
     "h": 50
    },
    "ambiance": "exterieur",
+   "northDeg": 180,
    "reliefDefaults": {
     "cliff": {
      "id": "terre"
