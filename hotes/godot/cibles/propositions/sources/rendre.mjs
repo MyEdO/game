@@ -15,13 +15,17 @@
 // jamais un texte libre, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ;
 // la bulle qui n'a aucune pose libre (`data-sans-pose`, `gestes.js`) est `recouvert` ; ce
 // dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
-// `rogne` que le haut et le bas, et cache à ses ancêtres ce qui défile hors de lui :
+// `rogne` que le haut et le bas, et cache à ses ancêtres ce qui défile hors de lui. Le relevé `contenu` (#4585) est en
+// mode RAPPORT, il ne fait échouer aucun rendu : sous `RELEVE_CONTENUS=<dossier>`, chaque état y écrit
+// `<écran>--<état>.json`, le rect de chaque enfant d'une place (`data-place`), ou du fond d'une pièce sans place, et de
+// ce qui y défile, sous la clé porteur + rôle (jamais le rang dans le DOM) ; `contenus.mjs <dossier>` les compare d'un
+// état à l'autre du même gabarit :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
 //     `rendu.html` dans le format physique `<format>` (`FORMATS`). L'état, une donnée écrite (`maquettes/maquette.ts`),
 //     est posé sur `globalThis.MAQUETTE` avant la page.
-import { readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { listerEntrees } from '../../../../../scripts/guards/lib/lister.mjs'
@@ -222,7 +226,26 @@ const releve = ([largeur, hauteur]) => {
      qu'il désigne */
   const croixVues = [...document.querySelectorAll('#ui .croix')].filter((e) => !e.closest('[data-mobile]') && e.checkVisibility())
   const croix = croixVues.length > 1 ? [`${croixVues.length} croix : ${croixVues.map((e) => e.closest('[data-piece]')?.dataset.piece ?? '-').join(', ')}`] : []
-  return { pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  /* le contenu des places (`contenu`, mode rapport) : le rect de chaque enfant visible d'une place (`data-place`), ou du
+     fond d'une pièce qui n'en a aucune, et de ce qui y défile (`data-defile`), depuis le coin de ce qui le porte, sous la clé porteur + rôle
+     (sa pièce, sa place, sa première classe et son `data-texte`, le rang parmi ceux du même rôle) */
+  const role = (d) => d.dataset.piece ?? d.dataset.place ?? `${d.tagName.toLowerCase()}${d.classList[0] ? '.' + d.classList[0] : ''}${d.dataset.texte ? `[${d.dataset.texte}]` : ''}`
+  const contenus = {}
+  const poser = (cle, valeur) => { let k = 1; while (contenus[`${cle}${k > 1 ? ' #' + k : ''}`]) k++; contenus[`${cle}${k > 1 ? ' #' + k : ''}`] = valeur }
+  for (const e of document.querySelectorAll('#ui [data-piece]')) {
+    const propres = [...e.querySelectorAll('[data-place]')].filter((p) => p.closest('[data-piece]') === e)
+    for (const [nom, porteur] of propres.length ? propres.map((p) => [`${e.dataset.piece} > ${p.dataset.place}`, p]) : [[e.dataset.piece, e.querySelector(':scope > .fond') ?? e]]) {
+      const o = porteur.getBoundingClientRect()
+      const relever = (parent, chemin) => { for (const d of parent.children) {
+        if (!d.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue
+        const q = d.getBoundingClientRect()
+        poser(`${nom} | ${chemin}${role(d)}`, { rect: [q.left - o.left, q.top - o.top, q.width, q.height].map(Math.round), porteur: [o.left, o.top, o.width, o.height].map(Math.round) })
+      } }
+      relever(porteur, '')
+      porteur.querySelectorAll('[data-defile]').forEach((d) => { if (d.closest('[data-place], [data-piece]') === porteur.closest('[data-place], [data-piece]')) relever(d, `${role(d)} > `) })
+    }
+  }
+  return { pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, contenus, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv
@@ -233,6 +256,9 @@ if (!format) throw new Error(`rendre.mjs <écran> <sortie.png> --format ${Object
 const etat = option('--etat')
 const etats = page ? null : await chargerLEcran(cible, etat)
 const b = await chromium.launch({ args: ['--allow-file-access-from-files'] })
+/** Le dossier du relevé `contenu` (`RELEVE_CONTENUS`), un fichier par état, que `contenus.mjs` agrège. */
+const CONTENUS = process.env.RELEVE_CONTENUS
+if (CONTENUS) mkdirSync(CONTENUS, { recursive: true })
 /** La signature d'habillage de chaque rôle, au premier état rendu qui le porte, que `habille` compare aux suivants. */
 const HABILLAGES = new Map()
 /** La page `cible`, ou l'état `maquette` de l'écran, capturée en `sortie` avec son relevé. */
@@ -247,7 +273,8 @@ async function capturer(maquette, sortie) {
   const rendu = page ? null : await p.waitForFunction(() => globalThis.RAPPORT_DU_RENDU, null, { timeout: 30000 }).then((h) => h.jsonValue())
   await p.evaluate(() => document.fonts.ready)
   await p.waitForTimeout(400)
-  const { habillage, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur])
+  const { habillage, contenus, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur])
+  if (CONTENUS && maquette) writeFileSync(join(CONTENUS, `${cible}--${maquette.nom}.json`), JSON.stringify({ ecran: cible, etat: maquette.nom, gabarit: maquette.gabarit, contenus }))
   rapport.habille = Object.entries(habillage).flatMap(([piece, { decale, signature }]) => {
     if (!HABILLAGES.has(piece)) HABILLAGES.set(piece, { signature, etat: maquette?.nom ?? cible })
     const ref = HABILLAGES.get(piece)

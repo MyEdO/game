@@ -32,7 +32,9 @@ l'identité qui progresse ; le pied du rail des services, sous le dernier servic
 soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
 (portrait, identité, rangée des dés, issue). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
 `habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
-premier état du même rôle.
+premier état du même rôle. Le relevé `contenu`, en mode rapport (`RELEVE_CONTENUS=<dossier>`, agrégé par
+`sources/contenus.mjs`), compare d'un état à l'autre du même gabarit le rect de ce que chaque place porte (ses enfants,
+et ce qui y défile) : l'inventaire de ce qui bouge dans une place fixe, qui ne fait échouer aucun rendu.
 
 **Le contenu s'adapte au cadre, jamais l'inverse.** Aucun panneau ne prend la hauteur de son contenu, aucune fenêtre
 ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile ou passe en onglets ; seules la prose d'un
