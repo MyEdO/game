@@ -659,8 +659,8 @@ Possessions : arme simple, haillons, respect des autres Frères Loups.
 ## Noms ogres — nom traditionnel ou reiklander
 
 - **Nom reiklander** — « N'hésitez pas à suivre les directives pour un nom humain (Reiklander) » (`ADE II 02 l.327`). En création, ce choix tire dans la banque humaine au sexe du personnage.
-- **Nom traditionnel** — « Pour générer un nom d'ogre, utilisez les deux tableaux de la page suivante et combinez les deux composantes. » (`ADE II 02 l.331`) Deux tirages indépendants, une racine et une terminaison accolées. Les deux listes de `names.json` suivent les faces 01 à 99 puis 00. Les cellules manquantes dans l'extraction VF sont attestées par la transcription VO d’*Archives of the Empire — Vol II*, « Grabbing a Bite — Ogre Player Characters », ch. 04 l.276–325.
-- **Exemple** — « Tergarthash Gutrend » (`ADE II 02 l.323`). La racine 65 et la terminaison 19 donnent « Tergarthash ». Les titres et noms de clan relèvent de leur usage propre (`ADE II 02 l.337-343`).
+- **Nom traditionnel** — « Pour générer un nom d'ogre, utilisez les deux tableaux de la page suivante et combinez les deux composantes. » (`ADE II 02 l.331`) Deux tirages indépendants, une racine et une terminaison accolées. Les deux listes de `names.json` suivent les faces 01 à 99 puis 00. Les cellules manquantes dans l'extraction VF sont attestées par la transcription VO d’*Archives of the Empire — Vol II*, « Grabbing a Bite — Ogre Player Characters », ch. 04 l.276-325.
+- **Exemple** — Tergarthash Gutrend (`ADE II 02 l.323`). La racine 65 et la terminaison 19 donnent Tergarthash. Les titres et noms de clan relèvent de leur usage propre (`ADE II 02 l.337-343`).
 
 **Implémente :** [État calculé](../implemente.generated.md#4ecreationnoms-ogres-nom-traditionnel-ou-reiklander)
 
