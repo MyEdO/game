@@ -40,6 +40,7 @@ import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, fichiersDuGrep, listerImage } from './gitPorte.mjs'
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { analyserCorpus, typescript } from './dialecte.mjs'
+import { estModule } from './importGraph.mjs'
 import { creerProvenanceFs } from './provenanceFs.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
@@ -51,7 +52,6 @@ export const DOSSIERS_DES_PORTES = Object.freeze(['scripts/guards', 'scripts/hoo
 /** L'hôte : le seul module qui lance git et découpe ses sorties. */
 export const HOTE = 'scripts/guards/lib/gitPorte.mjs'
 
-const MODULE = /\.(?:mjs|cjs|mts|cts|ts|js)$/
 const LANCEUR = /[\w$]\s*\(\s*(['"`])git\1|\bexec(?:Sync)?\(\s*(['"`])git\s/g
 const CANDIDAT_DECOUPE = /\bsplit\s*\(\s*(['"`])(?:\\0|\\x00|\\u0000)\1/
 const FORME = /(['"`])(--name-only|--name-status|--numstat|ls-files|ls-tree|-z)\1/g
@@ -63,7 +63,7 @@ export const IMPORT_DE_L_HOTE = "from[[:space:]]+['\"][^'\"]*gitPorte\\.mjs['\"]
 export function sourcesDesPortes(racine = RACINE) {
   const depot = depotDe(racine)
   const sources = [...listerImage(depot, INDEX, ...DOSSIERS_DES_PORTES), ...fichiersDuGrep(depot, [], IMPORT_DE_L_HOTE, [])]
-  return [...new Set(sources)].filter((f) => MODULE.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && f !== HOTE).sort()
+  return [...new Set(sources)].filter((f) => estModule(f) && !estFichierVitest(f) && !estKitDeTest(f) && f !== HOTE).sort()
 }
 
 /** Le texte sans ses commentaires, longueurs conservées (les index restent ceux de la source). */
@@ -162,7 +162,7 @@ export const BANC = 'scripts/test/gitDeBanc.mjs'
 
 /** Les tests suivis de `scripts/`, chemins POSIX relatifs, triés. */
 export function testsDeScripts(racine = RACINE) {
-  return listerImage(depotDe(racine), INDEX, 'scripts').filter((f) => MODULE.test(f) && estFichierVitest(f)).sort()
+  return listerImage(depotDe(racine), INDEX, 'scripts').filter((f) => estModule(f) && estFichierVitest(f)).sort()
 }
 
 /** Les sites du périmètre, lus sur le disque de `racine` (ou par `lire`) : toutes les formes dans les

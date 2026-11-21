@@ -12,10 +12,7 @@ const vu = (text: string) => scanConstructionsReservees({ rel: 'src/sonde.ts', t
 
 describe('DEFAUT_DE_DIFFICULTE — le défaut d’une Difficulté s’écrit `DIFFICULTE_PAR_DEFAUT`', () => {
   it('aucun défaut littéral dans le corpus', () => {
-    const corpus = [
-      ...readCorpus(['src', 'hotes'], { tests: true }),
-      ...readCorpus(['scripts'], { exts: ['.ts', '.mts', '.mjs'], tests: true }),
-    ];
+    const corpus = readCorpus(['src', 'hotes', 'scripts'], { tests: true });
     expect(constructionsReserveesDuCorpus(corpus, [DEFAUT_DE_DIFFICULTE])).toEqual([]);
   }, 120_000);
 

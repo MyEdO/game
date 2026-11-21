@@ -11,7 +11,6 @@ export interface Finding {
 export const SCAN_DIRS: string[];
 /** Mots RÉSERVÉS du vocabulaire `GameOp` — un littéral de cette liste ne désigne aucune entrée. */
 export const OP_VOCABULARY: ReadonlySet<string>;
-export const SCAN_EXTS: string[];
 export function isRegistryIdBranchExcluded(rel: string): boolean;
 /** Arbre syntaxique de `contenu`, bâti à chaque appel. */
 export function arbreDe(relPath: string, contenu: string): SourceFile;

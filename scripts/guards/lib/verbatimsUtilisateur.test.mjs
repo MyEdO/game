@@ -94,9 +94,17 @@ test('scan disque : fichier neuf et dérivé présent, archives écartées', (t)
   poser('AGENTS.md', parole)
   poser('.claude/sous-agents.md', parole)
   poser('docs/raw/implemente.generated.md', parole)
+  poser('.claude/skills/contrat/neuf.mts', '// ' + parole)
   poser('.claude/memory/user-x.md', parole)
   poser(plan('2026-10-31-design.md'), parole)
-  assert.deepEqual(verbatimsDuCorpus({ racine }).map(({ chemin, ligne }) => ({ chemin, ligne })), [{ chemin: '.claude/sous-agents.md', ligne: 1 }, { chemin: 'AGENTS.md', ligne: 1 }, { chemin: 'docs/raw/implemente.generated.md', ligne: 1 }])
+  poser(plan('lot/2026-10-31/contrat.mts'), '// ' + parole)
+  assert.deepEqual(verbatimsDuCorpus({ racine }).map(({ chemin, ligne }) => ({ chemin, ligne })), [
+    { chemin: '.claude/skills/contrat/neuf.mts', ligne: 1 },
+    { chemin: '.claude/sous-agents.md', ligne: 1 },
+    { chemin: 'AGENTS.md', ligne: 1 },
+    { chemin: 'docs/raw/implemente.generated.md', ligne: 1 },
+  ])
+  poser('.claude/skills/contrat/neuf.mts', '// Consigne — #3175')
   poser('AGENTS.md', 'Consigne — #3175')
   poser('.claude/sous-agents.md', 'Consigne — #3175')
   poser('docs/raw/implemente.generated.md', 'Référence — user-x')

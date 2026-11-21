@@ -10,6 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
+import { estModule } from '../../../../scripts/guards/lib/importGraph.mjs';
 import { estFichierVitest, estKitDeTest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -24,12 +25,12 @@ const GARDE = {
     'ou champ porteur>` — le `dir` est un PARAMÈTRE : la garde est jouable sur un répertoire-jouet, donc ' +
     'sa propre mutation est testable.',
   perimetre:
-    'les `*.ts` de PRODUCTION du seul répertoire `src/data/schemas/defs-scenes/` (`listerDossier(__dirname)`, ' +
+    'les scripts de PRODUCTION du seul répertoire `src/data/schemas/defs-scenes/` (`listerDossier(__dirname)`, ' +
     'non récursif).',
   angleMort: [
     'un `z.custom` ALIASÉ (`const c = z.custom; c<T>()`) ou ré-exporté depuis un autre module échappe au ' +
       'scan textuel : le motif, pas le symbole résolu.',
-    'les INSTRUMENTS Vitest (`*.test.ts`, `*.bench.ts`) et les kits de test sont exclus — le trou qu’on tient est celui des SCHÉMAS servis à la porte, ' +
+    'les INSTRUMENTS Vitest (suites et bancs) et les kits de test sont exclus — le trou qu’on tient est celui des SCHÉMAS servis à la porte, ' +
       'pas des fixtures.',
     'le PÉRIMÈTRE est le RÉPERTOIRE : les autres répertoires de schémas (`grammaire/**`, `defs/**`) sont ' +
       'HORS garde — 0 site `z.custom` y est mesuré aujourd’hui (relevé du juge, 2026-08-24), un trou qui ' +
@@ -43,7 +44,7 @@ const GARDE = {
  *  l'ordre du scan. `dir` est paramétré : la garde se joue aussi sur un répertoire-jouet (câblage). */
 function sitesZCustom(dir: string): string[] {
   const out: string[] = [];
-  for (const f of listerDossier(dir).filter((n) => n.endsWith('.ts') && !estFichierVitest(n) && !estKitDeTest(n))) {
+  for (const f of listerDossier(dir).filter((n) => estModule(n) && !estFichierVitest(n) && !estKitDeTest(n))) {
     readFileSync(join(dir, f), 'utf8')
       .split(/\r?\n/)
       .forEach((ligne) => {
@@ -81,9 +82,9 @@ describe('`z.custom` de defs-scenes', () => {
   it('la garde elle-même, jouée sur un répertoire-jouet : un `z.custom` de production est vu et nommé, un instrument Vitest non', () => {
     const jouet = mkdtempSync(join(tmpdir(), 'z-custom-jouet-'));
     try {
-      writeFileSync(join(jouet, 'zzz-neuf.ts'), "import { z } from 'zod';\nexport const zzzSchema = z.custom<unknown>();\n");
+      writeFileSync(join(jouet, 'zzz-neuf.mts'), "import { z } from 'zod';\nexport const zzzSchema = z.custom<unknown>();\n");
       writeFileSync(join(jouet, 'zzz-fixture.test.ts'), "export const ignore = 'z.custom';\n");
-      expect(sitesZCustom(jouet)).toEqual(['zzz-neuf.ts:zzzSchema']);
+      expect(sitesZCustom(jouet)).toEqual(['zzz-neuf.mts:zzzSchema']);
     } finally {
       rmSync(jouet, { recursive: true, force: true });
     }

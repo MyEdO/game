@@ -1,9 +1,9 @@
 import * as ts from 'typescript/unstable/ast'
-import { readFileSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync'
-import { repoProgram } from './tsProgram.mjs'
+import { programmeDesChamps } from './fieldConsumers.mjs'
+import { estModule } from './importGraph.mjs'
 import { listerArbre } from './lister.mjs'
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { enfantsDe } from '../../../src/data/schemas/grammaire/descente.ts'
@@ -315,9 +315,11 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
 }
 
 export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, programme = null, fichiers = null } = {}) {
-  const files = fichiers ?? ['src', 'scripts', 'hotes'].flatMap(dir => listerArbre(join(root, dir), { filtre: rel => /\.(?:[cm]?ts|tsx|[cm]?js)$/.test(rel) && (!estFichierVitest(rel) || /-guard\./.test(rel)) && !estKitDeTest(rel) && !/(?:\/migrations\/|\/schemas\/|\/ops\/sondes\/|schemaFieldConsumers\.)/.test('/' + rel) }).map(rel => join(root, dir, rel)))
-  const config = programme ? null : JSON.parse(readFileSync(join(root, 'tsconfig.json'), 'utf8'))
-  const session = programme ?? repoProgram(root, () => files, { 'tsconfig.json': JSON.stringify({ ...config, compilerOptions: { ...config.compilerOptions, allowJs: true, checkJs: false } }) })
+  const files = fichiers ?? ['src', 'scripts', 'hotes'].flatMap(dir => listerArbre(join(root, dir), {
+    filtre: rel => estModule(rel) && (!estFichierVitest(rel) || /-guard\./.test(rel)) &&
+      !estKitDeTest(rel) && !/(?:\/migrations\/|\/schemas\/|\/ops\/sondes\/|schemaFieldConsumers\.)/.test('/' + rel),
+  }).map(rel => join(root, dir, rel)))
+  const session = programme ?? programmeDesChamps(root, files)
   const { program, checker } = session
   try {
     const { claims, reads, unresolved } = relierChargements(root, session, { files, definitions })

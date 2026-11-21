@@ -41,6 +41,7 @@ import {
   grapheInverse,
   liaisonsDe,
   LOT_D_ANALYSE,
+  pathspecsDeModules,
   resolveImport,
   sitesDeModule,
   specificateursDe,
@@ -410,6 +411,18 @@ test('L3 projections : compatibilité stricte des spécificateurs/arcs et arbre 
   assert.equal(resolveImport(entree, './x.mjs', (abs) => abs === source, []), source)
   const aucun = arcsDe(join(RACINE, 'src', 'noyau', 'music.ts'), "import './types';", { existe: () => false, alias: [] })
   assert.deepEqual(aucun, [])
+})
+
+test('un JSX est un module à parcourir et à chercher ; la résolution implicite conserve son ordre', () => {
+  const entree = resolve(RACINE, 'virtuel', 'a.ts').replaceAll('\\', '/')
+  const radical = resolve(RACINE, 'virtuel', 'vue').replaceAll('\\', '/')
+  const jsx = radical + '.jsx'
+  assert.equal(estModule(jsx), true)
+  assert.ok(pathspecsDeModules('src').includes('src/*.jsx'))
+  assert.equal(resolveImport(entree, './vue.jsx', (abs) => abs === jsx, []), jsx)
+  assert.equal(resolveImport(entree, './vue', (abs) => abs === jsx, []), null)
+  assert.equal(resolveImport(entree, './vue', (abs) => abs === radical + '/index.jsx', []), null)
+  assert.equal(resolveImport(entree, './vue', (abs) => [jsx, radical + '.tsx', radical + '.ts'].includes(abs), []), radical + '.ts')
 })
 
 test('L3 cohérence .cts : une source substituée de .cjs reste un module à parcourir', () => {

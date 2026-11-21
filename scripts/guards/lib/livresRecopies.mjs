@@ -37,9 +37,6 @@ const ts = tsModule;
  *  où — le périmètre n'a aucune raison d'être plus étroit que « le code ». */
 export const SCAN_DIRS = ['src', 'scripts'];
 
-/** Extensions scannées : TypeScript du jeu ET JavaScript d'outillage. */
-export const SCAN_EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.js'];
-
 /** Nombre de LIVRES distincts d'une même énumération à partir duquel elle LISTE au lieu de CITER. */
 export const SEUIL = 2;
 

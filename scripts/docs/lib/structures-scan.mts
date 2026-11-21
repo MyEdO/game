@@ -1,4 +1,6 @@
 import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
+import { estModule } from '../../guards/lib/importGraph.mjs';
+import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs';
 // SONDE des structures OBSERVÉES dans la donnée — moteur de mesure partagé par le générateur
 // `scripts/docs/build-structures.mts` et la garde `src/data/structures-contrat.test.ts`.
 // Aucun rendu ici : uniquement des mesures (l'affichage vit dans le générateur, le stock dans
@@ -1532,7 +1534,7 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
 /** Les fichiers de la GRAMMAIRE partagée (`src/data/schemas/grammaire/`) — un schéma commun y vit,
  *  jamais dans un def. LUS AU DOSSIER : un module de grammaire ajouté est couvert sans liste à tenir. */
 const fichiersGrammaire = (root: string) =>
-  listerDossier(join(root, 'src/data/schemas/grammaire')).filter((f) => f.endsWith('.ts') && !f.includes('.test.'));
+  listerDossier(join(root, 'src/data/schemas/grammaire')).filter((f) => estModule(f) && !f.includes('.test.'));
 const sourcesGrammaire = (root: string) =>
   [...analyserCorpus(fichiersGrammaire(root).map((nom) => {
     const fichier = join(root, 'src/data/schemas/grammaire', nom);
@@ -1759,7 +1761,7 @@ function litterauxDefs(root: string, resoudre: Resolveur = resolveurDe(sourcesGr
   const dossierDu = new Map<string, string>();
   for (const dossier of DOSSIERS_DE_DEFS) {
     const dir = join(root, dossier);
-    const modules = listerDossier(dir, { absent: 'vide' }).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+    const modules = listerDossier(dir, { absent: 'vide' }).filter((f) => estModule(f) && !estSuiteVitest(f));
     for (const { fichier, sourceFile: sf } of analyserCorpus(modules.map((f) => ({ rel: join(dir, f), text: readFileSync(join(dir, f), 'utf8') })))) {
       const f = basename(fichier.rel);
       const deja = dossierDu.get(f);

@@ -34,10 +34,10 @@ export const MONTEURS_SANS_JET = ['choiceStep', 'quantityStep', 'displayStep'] a
 export const MONTEURS_DE_RANGEE = ['rollStep', 'figurantRow', 'equipierRow', 'tavernRow'] as const;
 const TOUS = [...MONTEURS_LANCANTS, ...MONTEURS_SANS_JET, ...MONTEURS_DE_RANGEE] as string[];
 
-/** Les FAMILLES de séquence : les `.ts` de `src/noyau` (hors tests, corpus rendu par la primitive de
+/** Les FAMILLES de séquence : les scripts de `src/noyau` (hors tests, corpus rendu par la primitive de
  *  marche `readCorpus`) dont les `TABLES` déclarent une définition (`sequences`). */
 export function fichiersDeSequence(): CorpusFile[] {
-  return readCorpus([NOYAU], { exts: ['.ts'] }).filter((f) => /^ {2}sequences: \{$/m.test(f.text));
+  return readCorpus([NOYAU]).filter((f) => /^ {2}sequences: \{$/m.test(f.text));
 }
 
 const keyOf = (f: string) => f.slice(SRC.length + 1).split(sep).join('/');

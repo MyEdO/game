@@ -63,13 +63,13 @@
  *     ex. `difficultySchema`, `charKeySchema`) : aucun champ objet à consommer, hors du périmètre
  *     de la question « qui lit CE CHAMP ? ».
  */
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
-import { listProdFiles, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
+import { listProdFiles, programmeDesChamps, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
 import { CIBLES_DE_GRAMMAIRE, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
 import { ciblesDeCatalogue } from '../guards/lib/schemaFieldConsumers.mjs'
-import { repoProgram, libererSessions, type SessionProgramme } from '../guards/lib/tsProgram.mjs'
+import { libererSessions, type SessionProgramme } from '../guards/lib/tsProgram.mjs'
 import { SCHEMA_DEFS } from '../../src/data/schemas/_registry.generated'
 import { CLES_ENVELOPPE } from '../../src/data/schemas/grammaire/document'
 
@@ -130,7 +130,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR), 
   // Clés hétérogènes : le contexte de scan est clé par son Program (`fieldConsumers.mjs`).
   const cache = new Map<unknown, unknown>()
   const erreurs: unknown[] = []
-  const session = programme ?? repoProgram(racine, () => files.map((f) => resolve(f)))
+  const session = programme ?? programmeDesChamps(racine, files)
   let cibles: Cible[] = []
   let sorties: Sortie[] = []
 

@@ -49,17 +49,23 @@
 import * as ts from 'typescript/unstable/ast'
 import { SymbolFlags } from 'typescript/unstable/sync'
 import { join, relative, resolve, sep } from 'node:path'
+import { estModule } from './importGraph.mjs'
 import { listerArbre, parUnitesDeCode } from './lister.mjs'
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { repoProgram, libererSessions } from './tsProgram.mjs'
 
-/** Fichiers de PRODUCTION `.ts(x)` sous `dir`, hors instruments et kits de test (`fichierVitest.mjs`), en ORDRE TOTAL (`listerArbre`).
+/** Scripts de PRODUCTION sous `dir`, hors instruments et kits de test (`fichierVitest.mjs`), en ORDRE TOTAL (`listerArbre`).
  *  L'ordre des RACINES décide de celui de `program.getSourceFileNames().map((file) => program.getSourceFile(file))`, donc de l'index des accès,
  *  donc du site cité en exemple par le rapport : sans ordre total, le même dépôt rend deux `.md`
  *  différents selon la machine. */
 export function listProdFiles(dir) {
-  return listerArbre(dir, { filtre: (rel) => /\.tsx?$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
+  return listerArbre(dir, { filtre: (rel) => estModule(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
     .map((rel) => join(dir, rel))
+}
+
+/** Ouvre le vérificateur sur les scripts listés, y compris les lecteurs JavaScript typés par JSDoc ou import. */
+export function programmeDesChamps(root, fichiers) {
+  return repoProgram(root, () => fichiers.map((f) => resolve(f)), {}, { allowJs: true, checkJs: false })
 }
 
 /** Chemin en séparateurs `/`. La CASSE n'est pas repliée : les deux côtés de toute comparaison
@@ -202,7 +208,7 @@ function contexteDe(cache, files, rootDir, programme = null) {
   let ctx = cache.get(cle)
   if (ctx) return ctx
   const racines = files.map((f) => resolve(f))
-  const session = programme ?? repoProgram(rootDir, () => racines)
+  const session = programme ?? programmeDesChamps(rootDir, racines)
   try {
     const { program, checker } = session
     const retenus = new Set(racines.map(norm))
