@@ -85,7 +85,9 @@ export function mesurerAncresVides() {
 }
 
 /** Les RÉGÉNÉRATIONS des deux stocks (`RegenerationDeStock`, `stockDeSites.mjs`), sur une mesure (par
- *  défaut, celle de tous les livres) et un seuil. */
+ *  défaut, celle de tous les livres) et un seuil.
+ * @returns {import('../../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export function regenerations(ancres = mesurerAncresVides(), seuil = SEUIL_UTILE) {
   const { perdues, benignes } = trier(ancres.mesures, seuil)
   return [

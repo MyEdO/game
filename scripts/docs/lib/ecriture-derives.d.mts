@@ -22,14 +22,22 @@ export function existeFichier(chemin: string): boolean;
 
 export function estUnDocMarkdown(cible: string): boolean;
 
-export function ecrireDoc(chemin: string, contenu: string): void;
+export function ecrireSourcesLues(cwd: string, contenu: string): void;
+export const LECTURES_DU_BUILD: string;
+export function ciblesRenduesDans(dossier: string): string;
 
-export function ecrireOuVerifier(args: {
+export type CibleRendue = {
   out: string;
   path: string;
-  check: boolean;
-  staleMsg: string;
-  rerunMsg: string;
+  staleMsg?: string;
+  rerunMsg?: string;
   okMsg?: string;
   writeMsg?: string;
-}): boolean;
+  amorce?: true;
+};
+
+export type Production = (options: { check: boolean }) =>
+  Generator<CibleRendue, void, boolean> | AsyncGenerator<CibleRendue, void, boolean>;
+
+export function lancerDepuisCLI(meta: ImportMeta, produire: Production): Promise<void>;
+export function lancerDepuisManifeste(meta: ImportMeta, charger: (script: string) => Promise<Production>): Promise<void>;

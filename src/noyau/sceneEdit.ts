@@ -20,7 +20,6 @@ import {
   type Dialogue,
   type DialogueChoice,
   type DialogueNode,
-  type Trigger,
   type EncounterDef,
   CellSide,
   canonEdge,
@@ -1069,11 +1068,6 @@ export function addTrigger(scene: Scene, rect: RectDeCases, z = 0): { scene: Sce
   return { scene: { ...scene, triggers: [...scene.triggers, { id, rect: { ...rect, ...(z ? { z } : {}) }, once: true, flow: EMPTY_FLOW }] }, id };
 }
 
-/** Patche le trigger `id` (`champs` : une clé portée à `undefined` en retire le champ). */
-export function patchTrigger(scene: Scene, id: string, patch: Partial<Trigger>): Scene {
-  return { ...scene, triggers: scene.triggers.map((t) => (t.id === id ? champs(t, patch) : t)) };
-}
-
 /** Renomme le trigger `from`. Refusé (scène inchangée) pour un id vide ou déjà porté par un autre trigger. */
 export function renameTrigger(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
@@ -1196,25 +1190,10 @@ export function removeEncounter(scene: Scene, id: string): Scene {
   return { ...scene, encounters: scene.encounters.filter((e) => e.id !== id) };
 }
 
-/** Pose les blocs avancés lus (`lireBlocsAvances`) : chaque bloc présent REMPLACE celui de la scène. */
-export function poseBlocsAvances(scene: Scene, blocs: { dialogues?: Dialogue[]; triggers?: Trigger[]; encounters?: EncounterDef[] }): Scene {
-  return {
-    ...scene,
-    ...(blocs.dialogues !== undefined ? { dialogues: blocs.dialogues } : {}),
-    ...(blocs.triggers !== undefined ? { triggers: blocs.triggers } : {}),
-    ...(blocs.encounters !== undefined ? { encounters: blocs.encounters } : {}),
-  };
-}
-
 /** Crée une zone de repos sur `rect`, à l'étage `z` (camp par défaut — lieux/qualité éditables dans l'inspecteur). */
 export function addRestZone(scene: Scene, rect: RectDeCases, z = 0): { scene: Scene; idx: number } {
   const zones = [...(scene.restZones ?? []), { rect: { ...rect, ...(z ? { z } : {}) }, places: reposDeScene({}) }];
   return { scene: { ...scene, restZones: zones }, idx: zones.length - 1 };
-}
-
-/** Patche la zone de repos d'indice `idx`. */
-export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNullable<Scene['restZones']>[number]>): Scene {
-  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? (patch.quality ? champ({ ...z, ...patch }, 'quality', qualiteEcrite(patch.quality)) : { ...z, ...patch }) : z)) };
 }
 
 /** `q` telle que le document l'écrit : « normale » est l'absence du champ. */
@@ -1985,16 +1964,6 @@ export function setSceneMusic(scene: Scene, piste: keyof NonNullable<Scene['musi
   const pistes = { ...scene.music, [piste]: v };
   const music = champs<NonNullable<Scene['music']>>({}, { ambient: pistes.ambient, combat: pistes.combat });
   return champ(scene, 'music', Object.keys(music).length ? music : undefined);
-}
-
-/** Pose le texte du message d'introduction ; un texte vide retire le message (provenance comprise). */
-export function setStartMessageTexte(scene: Scene, texte: string): Scene {
-  return champ(scene, 'startMessage', texte ? { ...scene.startMessage, texte } : undefined);
-}
-
-/** Patche la provenance du message d'introduction. No-op sans message. */
-export function patchStartMessage(scene: Scene, patch: Partial<NonNullable<Scene['startMessage']>>): Scene {
-  return scene.startMessage ? { ...scene, startMessage: { ...scene.startMessage, ...patch } } : scene;
 }
 
 /** Pose la matière de la partie de relief `part`. */

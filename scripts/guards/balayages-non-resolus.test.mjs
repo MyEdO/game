@@ -18,7 +18,7 @@ test('classifieur : valeur nulle et module qui balaie la racine exemptés par r�
     { fichier: 'c.mjs', helper: 'readFile', raison: 'ancetre réaffectée en récurrence' },
   ])
   assert.deepEqual(exemptes, { 'valeur nulle': 1, 'module qui balaie la racine du dépôt': 1 })
-  assert.deepEqual(classes.map((s) => [s.famille, s.file, s.ref]), [
+  assert.deepEqual(classes.map((s) => [s.famille, s.fichier, s.ref]), [
     ['sortie de processus', 'a.mjs', 'lire : appel String(vu.valeur.stdout).trim'],
     ['appel non suivi', 'a.mjs', 'lire : appel relative'],
     ['paramètre non lié', 'b.mjs', 'existsSync : paramètre dir'],

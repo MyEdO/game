@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
 import { join, posix } from 'node:path'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
@@ -731,23 +731,21 @@ export function rendre(ctx = buildContext()) {
   return new Map([[RAPPORT, lignes.join('\n')]])
 }
 
-function main() {
+export function* produire() {
+  exigerRacineAtlas()
   const ctx = buildContext()
   const all = etatsDesTopics(ctx)
   const orphans = orphelinsDeDette(ctx, all)
   const sansObjet = dettesDeFicheSansObjet(ctx, all)
-  if (!process.argv.includes('--dry')) for (const [path, out] of rendre(ctx)) ecrireOuVerifier({
-    path, out, check: process.argv.includes('--check'),
+  if (!process.argv.includes('--dry')) for (const [path, out] of rendre(ctx)) yield {
+    path, out,
     staleMsg: `raw:implemente — ${path} PÉRIMÉ`,
     rerunMsg: '→ npm run raw:implemente',
-  })
+  }
   printStats(ctx, all, 0)
   if (orphans.length) printOrphans(orphans)
   if (sansObjet.length) printSansObjet(sansObjet)
   if (orphans.length || sansObjet.length) process.exitCode = 1
 }
 
-if (import.meta.main) {
-  exigerRacineAtlas()
-  main()
-}
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

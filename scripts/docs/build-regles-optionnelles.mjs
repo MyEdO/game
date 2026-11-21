@@ -14,14 +14,14 @@
  *  - la clé du stockage de l’hôte, lue dans src/hote/reglesMaison.ts.
  * La part ÉDITORIALE (comment activer, quoi faire avant de rapporter une absence) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-regles-optionnelles.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-regles-optionnelles'
   const DATA = 'src/data/reglesOptionnelles.json'
@@ -221,4 +221,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

@@ -32,7 +32,7 @@
  *    `CascadeStep.rollLabel`, `options[].detail` ;
  *  - `dataLabel(repli)` typé `string` et non `PlayerText` : un ID de dégradation doit y passer — c'est
  *    le cliquet 3 qui ferme ce trou, pas le type ;
- *  - les résolveurs de donnée encore `string` : `conditionLabel`, `damageTypeLabel`,
+ *  - les résolveurs de donnée encore `string` : `conditionLabel`,
  *    `SPEC_SOURCES[].label` (`data/index.ts`) ;
  *  - le nom `rawText` employé pour AUTRE CHOSE qu'un minteur (`noyau/codex/relations.ts` le prend comme
  *    nom de PARAMÈTRE) : le cliquet 1 compte des APPELS `rawText(`, donc un paramètre homonyme APPELÉ y

@@ -10,13 +10,13 @@
  * aucun manifeste d'iconographie n'existe, et la charte de dessin est DÉJÀ écrite en tête de
  * `src/data/icons/defs/action.ts` : elle se cite depuis là, elle ne se recopie pas.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-icones.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { ALLOWED_CHARS } from '../guards/lib/emojiAffordance.mjs'
 import { RACINES_DES_ZONES } from '../guards/lib/couches.mjs'
 import { REGISTRIES } from './lib/cibles-registres.mjs'
@@ -36,7 +36,7 @@ function lire(p) {
 /** L'entrée `ICON_FAMILIES` de `REGISTRIES`, lue par défaut. */
 const ENTREE_ICONES = REGISTRIES.find(r => r.arrayName === 'ICON_FAMILIES')
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire, depuis l'entrée de registre `entree`. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire, depuis l'entrée de registre `entree`. */
 function rendu(entree) {
 
   /** Première capture d'un motif, fail-fast (une constante déplacée casse ici, pas dans le .md). */
@@ -377,4 +377,8 @@ export function rendre(entree = ENTREE_ICONES) {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(ENTREE_ICONES), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu(ENTREE_ICONES)
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

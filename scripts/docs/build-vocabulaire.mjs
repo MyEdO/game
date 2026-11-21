@@ -4,7 +4,7 @@
 //   `EffectTrigger` / `EffectTargeting`, sortie de leurs schémas → src/data/schemas/grammaire/mecanique.ts
 // Sortie : docs/vocabulaire-mecanique.md. Re-run : node scripts/docs/build-vocabulaire.mjs
 // (npm run docs:vocabulaire).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 // Même socle AST/JSDoc que build-effects.mjs : scripts/docs/lib/jsdocUnion.mjs.
 //
 // Trois colonnes MESURÉES (jamais recopiées à la main) :
@@ -24,11 +24,11 @@ import { parLibelle, listerArbre } from '../guards/lib/lister.mjs'
 import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 import { basename } from 'node:path'
 import { loadSource, findAlias, aliasDoc, readUnionMembers, readSchemaUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { mesurerCanaux } from './lib/canauxMecaniques.mjs'
 import { estObjet } from '../../src/lib/objet.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OPS_SRC = 'src/engine/ops.ts'
   const FLOW_SRC = 'src/engine/flowCore.ts'
@@ -424,4 +424,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

@@ -12,9 +12,10 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
+import { entreeDe } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { AMORCAGE_EN_DEUX_TEMPS, indexChargeable, moduleChargeable, TABLE_VIDE } from '../../../scripts/gen-espaces.mjs';
 import { z } from 'zod';
 import { IDS_PAR_ESPACE } from './_ids.generated';
@@ -193,7 +194,7 @@ describe('INDEX DES IDS — chaque cible a son espace', () => {
   });
 
   it('les racines s’écrivent `\'fichier.json\': [` — la graphie que lisent les migrations datées (`scripts/migrations/2026-09-01-1463-*.mjs`)', () => {
-    const texte = readFileSync(new URL('./_ids.generated.ts', import.meta.url), 'utf8');
+    const texte = entreeDe(resolve(__dirname, '_ids.generated.ts')).text;
     expect(texte).toMatch(/'careers\.json':\s*\[/);
   });
 });
@@ -217,15 +218,15 @@ describe('AMORÇAGE — la co-descente relève les collections sans lire l’ind
 
 describe('AMORÇAGE — `npm run gen` répare un index illisible', () => {
   it('un index en conflit, vide ou sans `IDS_PAR_ESPACE` n’est pas chargeable ; la table vide et l’index courant le sont', () => {
-    const courant = readFileSync(new URL('./_ids.generated.ts', import.meta.url), 'utf8');
+    const courant = entreeDe(resolve(__dirname, '_ids.generated.ts')).text;
     const conflit = `<<<<<<< HEAD\n${courant}=======\n${courant}>>>>>>> autre\n`;
     expect([conflit, '', 'export const IDS_PAR_DATASET = {};\n', TABLE_VIDE, courant].map(indexChargeable)).toEqual([false, false, false, true, true]);
   });
 
   it('un module de la phase 2 qui importe un document supprimé, ou sans un export de son amorce, n’est pas chargeable ; son amorce et le module courant le sont (#4161)', () => {
-    const courant = readFileSync(new URL('./_racines-vivantes.generated.ts', import.meta.url), 'utf8');
+    const courant = entreeDe(resolve(__dirname, '_racines-vivantes.generated.ts')).text;
     const amorce = 'export const RACINES_VIVANTES = {};\n';
-    const surDisque = (relatif: string) => existsSync(fileURLToPath(new URL(relatif, import.meta.url)));
+    const surDisque = (relatif: string) => existsSync(resolve(__dirname, relatif));
     const importMort = courant.replace("from '../stakes.json';", "from '../dataset-supprime.json';");
     const sansExport = courant.replace('export const RACINES_VIVANTES', 'export const AUTRE');
     expect([importMort, sansExport].map((texte) => texte === courant)).toEqual([false, false]);

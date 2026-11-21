@@ -6,7 +6,7 @@
  * RÉSOLUTION du dossier de données, chacun n'ouvrant le disque qu'une fois.
  *
  * La MÉCANIQUE de mesure vit dans `folioLineAlign.mjs` (module ESM pur, `auditDataDir` /
- * `auditAlignment`) : ce module-ci n'en TRADUIT que la sortie en `{ file, ref }`, la forme que
+ * `auditAlignment`) : ce module-ci produit les sites de stock que
  * `sitesEnEntrees` (`stock.mjs`) ordinalise en entrées `{ fichier, ref, occurrence }`.
  *
  * Le `file` d'un site est le dataset à OUVRIR (`src/data/<dataset>.json`) — c'est lui que la porte
@@ -35,14 +35,14 @@ export const DOSSIER_DATA = 'src/data';
 export const auditFolioLineAlign = (dataDir: string = DOSSIER_DATA): AlignReport =>
   auditDataDir(resolve(RACINE, dataDir));
 
-/** Un SITE par entrée DÉSALIGNÉE : `{ file: 'src/data/<dataset>.json', ref: '<id>' }`. PUR. */
+/** Un SITE par entrée DÉSALIGNÉE : `{ fichier: 'src/data/<dataset>.json', ref: '<id>' }`. PUR. */
 export const sitesDesViolations = (violations: readonly AlignViolation[]): Site[] =>
-  violations.map((v) => ({ file: `${DOSSIER_DATA}/${v.file}`, ref: v.id }));
+  violations.map((v) => ({ fichier: `${DOSSIER_DATA}/${v.file}`, ref: v.id }));
 
 /** Un SITE par entrée que le détecteur REFUSE de juger (tout motif sauf `hors-forme` : la citation
  *  est bien formée, mais l'extraction ne porte pas d'ancre exploitable). PUR. */
 export const sitesDesNonJugeables = (ignored: readonly IgnoredEntry[]): Site[] =>
-  ignored.filter((i) => i.reason !== 'hors-forme').map((i) => ({ file: `${DOSSIER_DATA}/${i.file}`, ref: i.id }));
+  ignored.filter((i) => i.reason !== 'hors-forme').map((i) => ({ fichier: `${DOSSIER_DATA}/${i.file}`, ref: i.id }));
 
 /** La citation et les DEUX folios d'un désalignement — ce que le stock ne grave pas et que le rouge
  *  doit dire. La clé est le fragment `<fichier> :: <ref>` de `cleDeSite` (`stock.mjs`), pour qu'une

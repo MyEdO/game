@@ -11,14 +11,14 @@
  * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, jamais commité, #2203) :
  * `AGENTS.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-doctrines.mjs [--check]
  */
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
 const OUTIL = 'build-doctrines'
@@ -281,20 +281,18 @@ export function rendre(cwd = racineGit()) {
   return new Map([[CIBLE, rendu(cwd).out]])
 }
 
-function main() {
-  const check = process.argv.includes('--check')
+export function* produire() {
   const cwd = racineGit()
   const { out, n } = rendu(cwd)
   const poids = Buffer.byteLength(out, 'utf8')
-  ecrireOuVerifier({
+  yield {
     out,
     path: resolve(cwd, CIBLE),
-    check,
     staleMsg: `${OUTIL} — ${CIBLE} PÉRIMÉ (fiche ajoutée/éditée, ou doc édité à la main).`,
     rerunMsg: `${OUTIL} — relancer \`npm run docs:doctrines\` (${CIBLE} jamais commité, #2203).`,
     okMsg: `${OUTIL} — OK (${n} doctrines, ${poids} octets)`,
     writeMsg: `${OUTIL} — ${CIBLE} écrit (${n} doctrines, ${poids} octets)`,
-  })
+  }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

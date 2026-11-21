@@ -64,6 +64,7 @@ const replier = (texte) => texte.replace(/\s+/g, ' ').trim()
  * @returns {{ sites: (import('./stock.mjs').Site & { famille: string })[], exemptes: Record<string, number> }}
  */
 export function classer(nonResolus) {
+  /** @type {(import('./stock.mjs').Site & { famille: string })[]} */
   const sites = []
   const exemptes = Object.fromEntries(EXEMPTIONS.map((e) => [e.classe, 0]))
   for (const valeur of nonResolus) {
@@ -71,7 +72,7 @@ export function classer(nonResolus) {
     const texte = replier(raison)
     const exemption = EXEMPTIONS.find((e) => e.exempte(valeur, texte))
     if (exemption) { exemptes[exemption.classe] += 1; continue }
-    sites.push({ famille: CLASSES.find((c) => c.motif.test(texte)).classe, file: fichier, ref: `${helper} : ${texte}` })
+    sites.push({ famille: CLASSES.find((c) => c.motif.test(texte)).classe, fichier, ref: `${helper} : ${texte}` })
   }
   return { sites, exemptes }
 }

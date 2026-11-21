@@ -41,23 +41,23 @@
 //     ici servirait l'écart d'un AUTRE appel. Ce qui se mémoïse, c'est la LECTURE du disque, et elle
 //     vit dans `sourceCorpus.mjs` (`readCorpus`, clé de contenu).
 
+/** Les champs du SITE OBSERVÉ d'un balayage. */
+export const CHAMPS_DE_SITE_OBSERVE = Object.freeze(['fichier', 'ref']);
 /** Les champs du GROUPE d'une entrée de site : ses homonymes ne se distinguent que par l'occurrence. */
-export const CHAMPS_DE_GROUPE = Object.freeze(['famille', 'fichier', 'ref']);
+export const CHAMPS_DE_GROUPE = Object.freeze(['famille', ...CHAMPS_DE_SITE_OBSERVE]);
 /** Le champ de l'OCCURRENCE d'une entrée de site : l'ordinal du site dans son groupe. */
 export const CHAMP_D_OCCURRENCE = 'occurrence';
 /** Les champs de la CLÉ d'une entrée de site, dans l'ordre où la clé les joint. */
 export const CHAMPS_DE_CLE = Object.freeze([...CHAMPS_DE_GROUPE, CHAMP_D_OCCURRENCE]);
 /** Les champs qu'une entrée de site porte toujours : `famille` n'est portée que par les gardes qui
  *  distinguent des familles. */
-export const CHAMPS_REQUIS = Object.freeze(CHAMPS_DE_CLE.filter((c) => c !== 'famille'));
+export const CHAMPS_REQUIS = Object.freeze([...CHAMPS_DE_SITE_OBSERVE, CHAMP_D_OCCURRENCE]);
 /** Le séparateur des champs d'une clé de site. */
 export const SEPARATEUR_DE_CLE = ' :: ';
 /** Le séparateur qui suit une clé de site dans un message d'écart, avant son remède. */
 export const SEPARATEUR_DE_REMEDE = ' — ';
 /** L'ÉCHÉANCE d'une entrée : le chantier qui l'éteint, la date de la mesure d'origine. */
 export const CHAMPS_D_ECHEANCE = Object.freeze(['lot', 'date']);
-/** Les champs du SITE OBSERVÉ d'un balayage, avant `sitesEnEntrees` (#2022). */
-export const CHAMPS_DE_SITE_OBSERVE = Object.freeze(['file', 'ref']);
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -186,8 +186,7 @@ export function estEntreeDeSite(e) {
 }
 
 /**
- * Sites OBSERVÉS → entrées de SITE : la SEULE traduction du site observé (`file`) en entrée
- * (`fichier`) du dépôt (#2022). L'occurrence est l'ordinal du site parmi ceux qui partagent son groupe
+ * Sites OBSERVÉS → entrées de SITE : l'occurrence est l'ordinal du site parmi ceux qui partagent son groupe
  * (`groupeDeSite`), dans l'ordre du balayage. La famille d'une entrée est celle que porte son SITE,
  * présente ou absente. Les champs de clé vont en tête, dans l'ordre de `CHAMPS_DE_CLE` (`famille`
  * seulement quand elle est définie), puis la MESURE du site — tout le reste de ses champs, dans son
@@ -205,8 +204,8 @@ export function estEntreeDeSite(e) {
  */
 export function sitesEnEntrees(sites) {
   const vus = new Map();
-  return sites.map(({ file, ref, famille, ...mesure }) => {
-    const cle = { ...(famille === undefined ? {} : { famille }), fichier: file, ref };
+  return sites.map(({ fichier, ref, famille, ...mesure }) => {
+    const cle = { ...(famille === undefined ? {} : { famille }), fichier, ref };
     const groupe = groupeDeSite(cle);
     const occurrence = (vus.get(groupe) ?? 0) + 1;
     vus.set(groupe, occurrence);

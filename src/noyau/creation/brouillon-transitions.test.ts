@@ -137,7 +137,7 @@ describe('état civil', () => {
 
   it('le physique tiré (graine 7, Reiklander) ; sans espèce, inchangé', () => {
     expect(rollDraftDetails(pret())).toMatchObject({
-      age: 25, height: 172, eyes: { id: 'gris', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' },
+      age: 25, height: 172, eyes: [{ id: 'gris', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' },
     });
     const vide = page();
     expect(rollDraftDetails(vide)).toBe(vide);
