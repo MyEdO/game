@@ -93,10 +93,10 @@ test('scan() : citation introuvable dans le chapitre cité → LOW, alimente low
     const r = scan(dir, { catalogues: AUCUN_CATALOGUE })
     assert.equal(r.tally.LOW, 1)
     assert.equal(r.lowRows.length, 1)
-    assert.equal(basename(r.lowRows[0].doc), 'fixture.md', 'le site NOMME la fiche où la réf est lue')
-    assert.equal(r.lowRows[0].doc, `${dir.split('\\').join('/')}/${relatif}`, 'chemin de la fiche depuis la racine du balayage, CŒUR COMPRIS, en séparateurs /')
+    assert.equal(basename(r.lowRows[0].fichier), 'fixture.md', 'le site NOMME la fiche où la réf est lue')
+    assert.equal(r.lowRows[0].fichier, `${dir.split('\\').join('/')}/${relatif}`, 'chemin de la fiche depuis la racine du balayage, CŒUR COMPRIS, en séparateurs /')
     assert.equal(r.lowRows[0].full, 'LDB 6 l.5', 'et la RÉF CITÉE telle qu’écrite')
-    assert.deepEqual(sitesLow(r.lowRows), [{ file: r.lowRows[0].doc, ref: 'LDB 6 l.5' }])
+    assert.deepEqual(sitesLow(r.lowRows), [{ fichier: r.lowRows[0].fichier, ref: 'LDB 6 l.5' }])
   })
 })
 
@@ -113,7 +113,7 @@ test('scan() : citation présente mais à une autre ligne du chapitre RÉEL → 
 
 test('écart : un site ❌ LOW hors du stock est NEUF, une entrée sans site est SOLDÉE, les deux nommés', () => {
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesLow([{ doc: 'docs/raw/4e/bestiaire.md', full: 'ZI 13 l.954' }]),
+    sites: sitesLow([{ fichier: 'docs/raw/4e/bestiaire.md', full: 'ZI 13 l.954' }]),
     stock: [{ fichier: 'docs/raw/4e/magie.md', ref: 'LDB 6 l.5', occurrence: 1 }],
     ou: 'reanchor-low-stock.json',
   })
@@ -127,8 +127,8 @@ test('écart : un site ❌ LOW hors du stock est NEUF, une entrée sans site est
 
 test('écart : deux sites de la MÊME réf dans la MÊME fiche se distinguent par leur OCCURRENCE', () => {
   const sites = sitesLow([
-    { doc: 'docs/raw/4e/bestiaire.md', full: 'ZI 13 l.954' },
-    { doc: 'docs/raw/4e/bestiaire.md', full: 'ZI 13 l.954' },
+    { fichier: 'docs/raw/4e/bestiaire.md', full: 'ZI 13 l.954' },
+    { fichier: 'docs/raw/4e/bestiaire.md', full: 'ZI 13 l.954' },
   ])
   const stock = [
     { fichier: 'docs/raw/4e/bestiaire.md', ref: 'ZI 13 l.954', occurrence: 1 },
@@ -144,7 +144,7 @@ test('écart : deux sites de la MÊME réf dans la MÊME fiche se distinguent pa
 
 test('régime ZÉRO-TOLÉRANCE (#1898) : le VRAI Atlas n’a aucun site ❌ LOW, et reanchor-low-stock.json reste ABSENT', () => {
   const r = scan(RAWDIR, {})
-  assert.deepEqual(sitesLow(r.lowRows).map((x) => `${x.file} :: ${x.ref}`), [], 'réf(s) ❌ LOW : la citation est introuvable à la ligne annoncée')
+  assert.deepEqual(sitesLow(r.lowRows).map((x) => `${x.fichier} :: ${x.ref}`), [], 'réf(s) ❌ LOW : la citation est introuvable à la ligne annoncée')
   for (const x of regenerations(r.lowRows)) assert.equal(ecartDeRegeneration(x, texteEnPlace(x.chemin)), null)
   // #2199 : la citation à réf EN TÊTE se lit aussi — aucune dérive, aucune ambiguïté, aucune réf nue sans chapitre.
   assert.deepEqual({ DRIFT: r.tally.DRIFT, MEDIUM: r.tally.MEDIUM, 'NO-SOURCE': r.tally['NO-SOURCE'] }, { DRIFT: 0, MEDIUM: 0, 'NO-SOURCE': 0 },

@@ -250,8 +250,8 @@ export function sitesGrandTitre(fichiers: readonly Fichier[]): Site[] {
         if (brut === null) continue; // raccourci sans longueur : il ne déclare aucune taille
         const px = borneHauteEnPx(brut, tokens);
         const sel = cleDeRegle(selecteurs);
-        if (px === null) sites.push({ file: f.rel, ref: `${sel} :: ${prop} :: INDÉCIDABLE (${brut})` });
-        else if (px >= SEUIL_GRAND_TITRE_PX) sites.push({ file: f.rel, ref: `${sel} :: ${prop} :: ${px}px` });
+        if (px === null) sites.push({ fichier: f.rel, ref: `${sel} :: ${prop} :: INDÉCIDABLE (${brut})` });
+        else if (px >= SEUIL_GRAND_TITRE_PX) sites.push({ fichier: f.rel, ref: `${sel} :: ${prop} :: ${px}px` });
       }
     }
   }
@@ -326,7 +326,7 @@ export function sitesStyleInline(fichiers: readonly Fichier[]): Site[] {
       if (ferme < 0) continue;
       const expr = src.slice(ouvre + 1, ferme).trim();
       const ref = refDeStyleInline(expr, src, ouvre, ferme);
-      if (ref) sites.push({ file: f.rel, ref: `${porteur(src, m.index)} :: ${ref}` });
+      if (ref) sites.push({ fichier: f.rel, ref: `${porteur(src, m.index)} :: ${ref}` });
     }
   }
   return sites;

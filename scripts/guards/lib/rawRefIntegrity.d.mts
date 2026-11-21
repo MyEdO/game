@@ -54,8 +54,6 @@ export function sitesAveugles(blind: BlindRef[]): Site[];
 export function ecartDesRefsAveugles(
   blind: BlindRef[], stock: (EntreeDeSite & Partial<Echeance>)[],
 ): { neuves: string[]; perimees: string[] };
-export function ecartDuVolet(p: {
-  sites: Site[]; stock: (EntreeDeSite & Partial<Echeance>)[]; ou?: string;
-}): { neuves: string[]; perimees: string[] };
+export { ecartDuVolet } from './stock.mjs';
 export function lireEntreesDeSite(path: URL | string): (EntreeDeSite & Partial<Echeance>)[];
 export function regenerations(blind?: BlindRef[]): RegenerationDeStock[];

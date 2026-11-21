@@ -35,20 +35,20 @@ export function ecartsDeStock<O, S>(p: {
   remede?: RemedesDeCle<O, S> & { baisse?: (cle: string, entree: O) => string };
 }): EcartsDeStock;
 
-export const CHAMPS_DE_GROUPE: readonly ['famille', 'fichier', 'ref'];
+export const CHAMPS_DE_SITE_OBSERVE: readonly ['fichier', 'ref'];
+export const CHAMPS_DE_GROUPE: readonly ['famille', ...typeof CHAMPS_DE_SITE_OBSERVE];
 export const CHAMP_D_OCCURRENCE: 'occurrence';
 export const CHAMPS_DE_CLE: readonly [...typeof CHAMPS_DE_GROUPE, typeof CHAMP_D_OCCURRENCE];
-export const CHAMPS_REQUIS: readonly ['fichier', 'ref', 'occurrence'];
+export const CHAMPS_REQUIS: readonly [...typeof CHAMPS_DE_SITE_OBSERVE, typeof CHAMP_D_OCCURRENCE];
 export const SEPARATEUR_DE_CLE: ' :: ';
 export const SEPARATEUR_DE_REMEDE: ' — ';
 export const CHAMPS_D_ECHEANCE: readonly ['lot', 'date'];
-export const CHAMPS_DE_SITE_OBSERVE: readonly ['file', 'ref'];
 
 type ChampRequis = (typeof CHAMPS_REQUIS)[number];
 type ChampFacultatif = Exclude<(typeof CHAMPS_DE_CLE)[number], ChampRequis>;
 
 /** Une ENTRÉE DE SITE : ce qu'un stock de sites GRAVE (la clé, elle, se calcule). */
-export type EntreeDeSite = { [C in Exclude<ChampRequis, typeof CHAMP_D_OCCURRENCE>]: string } & {
+export type EntreeDeSite = Site & {
   [C in typeof CHAMP_D_OCCURRENCE]: number;
 } & { [C in ChampFacultatif]?: string };
 
@@ -71,7 +71,7 @@ export function estEntreeDeSite(e: unknown): e is EntreeDeSite;
 
 export function sitesEnEntrees<S extends Site & { famille?: string }>(
   sites: readonly S[],
-): (EntreeDeSite & Omit<S, 'file' | 'ref' | 'famille'>)[];
+): (EntreeDeSite & Omit<S, keyof Site | ChampFacultatif>)[];
 
 export function estNeuveOuAccrue<E>(mesuree: E, tenue: E | undefined, nombre?: (entree: E) => number | undefined): boolean;
 

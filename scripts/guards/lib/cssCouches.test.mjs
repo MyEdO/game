@@ -194,10 +194,10 @@ test('partition : écran et layout au stock (identité ET espacement), primitive
     }, PRIMITIVE),
     partagees: FEUILLES_PARTAGEES,
   })
-  assert.deepEqual(p.stock.identite.map((s) => s.file), [ECRAN, FEUILLE_LAYOUT])
-  assert.deepEqual(p.stock.espacement.map((s) => s.file), [ECRAN, FEUILLE_LAYOUT])
-  assert.deepEqual(p.exempte.identite.map((s) => s.file), [PRIMITIVE, 'src/ui/styles/base.css'])
-  assert.deepEqual(p.exempte.espacement.map((s) => s.file), [PRIMITIVE])
+  assert.deepEqual(p.stock.identite.map((s) => s.fichier), [ECRAN, FEUILLE_LAYOUT])
+  assert.deepEqual(p.stock.espacement.map((s) => s.fichier), [ECRAN, FEUILLE_LAYOUT])
+  assert.deepEqual(p.exempte.identite.map((s) => s.fichier), [PRIMITIVE, 'src/ui/styles/base.css'])
+  assert.deepEqual(p.exempte.espacement.map((s) => s.fichier), [PRIMITIVE])
 })
 
 test('L1 : réutilisée = ≥ 2 importeurs de `src/` hors suites et galerie, ou le `fichier` d’une autre primitive', () => {
@@ -359,7 +359,7 @@ test('C (#1806) : la régénération du stock CSS admet le RETOURNÉ, refuse un 
   const neuf = regenere(image({ [P]: CSS2, [X]: CSS }))
   assert.ok(neuf.refus?.includes(`${P} :: .f :: color`), String(neuf.refus))
   assert.ok(!neuf.refus.includes(`${P} :: .e :: color`), neuf.refus)
-  const inline = regenere(tete, [{ file: 'src/ui/A.tsx', ref: 'div :: expr' }])
+  const inline = regenere(tete, [{ fichier: 'src/ui/A.tsx', ref: 'div :: expr' }])
   assert.ok(inline.refus?.includes('STYLE_INLINE_RATCHET'), String(inline.refus))
   assert.equal(inline.lectures, 0, 'le volet inline n’admet aucun retour')
 })

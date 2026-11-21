@@ -124,7 +124,7 @@ test('docs/raw (a) : plage à tiret cadratin (l.417–422 / l.417—422) → dé
     }, (raw) => {
       const v = scanDocsRawViolations(raw).filter((x) => x.kind === 'emdash-range')
       assert.equal(v.length, 2, `livre de cœur ${sigle}`)
-      assert.deepEqual(v.map((x) => x.file.split('/').pop()).sort(), ['em.md', 'en.md'])
+      assert.deepEqual(v.map((x) => x.fichier.split('/').pop()).sort(), ['em.md', 'en.md'])
     })
   }
 })
@@ -137,7 +137,7 @@ test('docs/raw (b) : réf de livre SANS chapitre (AA l.4395, ADE II l.653) → d
   }, (raw) => {
     const v = scanDocsRawViolations(raw).filter((x) => x.kind === 'book-no-chapter')
     assert.equal(v.length, 2)
-    assert.deepEqual(v.map((x) => x.file.split('/').pop()).sort(), ['a.md', 'b.md'])
+    assert.deepEqual(v.map((x) => x.fichier.split('/').pop()).sort(), ['a.md', 'b.md'])
   })
 })
 
@@ -160,7 +160,7 @@ test('docs/raw (c) : nom de fichier de chapitre en backticks (`08 - Titre.md` l.
   }, (raw) => {
     const v = scanDocsRawViolations(raw).filter((x) => x.kind === 'backtick-file')
     assert.equal(v.length, 2)
-    assert.deepEqual(v.map((x) => x.file.split('/').pop()).sort(), ['a.md', 'b.md'])
+    assert.deepEqual(v.map((x) => x.fichier.split('/').pop()).sort(), ['a.md', 'b.md'])
   })
 })
 
@@ -186,7 +186,7 @@ test('docs/raw (b) : identité stricte (#585 lot B) — MDG canonique détecté,
     'midd.md': 'Loup Blanc (Midd l.3)\n',
   }, (raw) => {
     const v = scanDocsRawViolations(raw).filter((x) => x.kind === 'book-no-chapter')
-    assert.deepEqual(v.map((x) => x.file.split('/').pop()).sort(), ['mdg.md'])
+    assert.deepEqual(v.map((x) => x.fichier.split('/').pop()).sort(), ['mdg.md'])
   })
 })
 
@@ -200,7 +200,7 @@ test('docs/raw : rapports (coverage/reconciliation/reanchor) et épreuves exclus
   }, (raw) => {
     const v = scanDocsRawViolations(raw)
     assert.equal(v.length, 1)
-    assert.equal(v[0].file.split('/').pop(), 'combat.md')
+    assert.equal(v[0].fichier.split('/').pop(), 'combat.md')
   })
 })
 
@@ -212,7 +212,7 @@ test('docs/raw (d) singulier : « n\'est pas implémenté » / « non implément
   }, (raw) => {
     const v = scanImplProseViolations(raw)
     assert.equal(v.length, 2)
-    assert.deepEqual(v.map((x) => x.file.split('/').pop()).sort(), ['a.md', 'b.md'])
+    assert.deepEqual(v.map((x) => x.fichier.split('/').pop()).sort(), ['a.md', 'b.md'])
   })
 })
 
@@ -256,7 +256,7 @@ test('docs/raw (d) : 00-index.md exclu (sa ligne de garde décrit le marqueur)',
   }, (raw) => {
     const v = scanImplProseViolations(raw)
     assert.equal(v.length, 1)
-    assert.equal(v[0].file.split('/').pop(), 'combat.md')
+    assert.equal(v[0].fichier.split('/').pop(), 'combat.md')
   })
 })
 
@@ -270,34 +270,34 @@ test('docs/raw (d) : rapports (coverage/reconciliation/reanchor) et épreuves ex
   }, (raw) => {
     const v = scanImplProseViolations(raw)
     assert.equal(v.length, 1)
-    assert.equal(v[0].file.split('/').pop(), 'combat.md')
+    assert.equal(v[0].fichier.split('/').pop(), 'combat.md')
   })
 })
 
 test('non-régression : le VRAI docs/raw/ du repo est à ZÉRO prose d\'état d\'implémentation (#487 suite, lot 1)', () => {
   const v = scanImplProseViolations()
   assert.deepEqual(
-    v.map((x) => `${x.file}:${x.row}`),
+    v.map((x) => `${x.fichier}:${x.row}`),
     [],
-    `prose(s) d'état d'implémentation survivante(s) :\n${v.map((x) => `  ${x.file}:${x.row}  ${x.text}`).join('\n')}`,
+    `prose(s) d'état d'implémentation survivante(s) :\n${v.map((x) => `  ${x.fichier}:${x.row}  ${x.text}`).join('\n')}`,
   )
 })
 
 test('non-régression : le VRAI docs/raw/ du repo est à ZÉRO graphie de fiche (#434 défaut 10)', () => {
   const v = scanDocsRawViolations()
   assert.deepEqual(
-    v.map((x) => `${x.file}:${x.row}`),
+    v.map((x) => `${x.fichier}:${x.row}`),
     [],
-    `graphie(s) de fiche survivante(s) :\n${v.map((x) => `  ${x.file}:${x.row}  [${x.kind}]  ${x.text}`).join('\n')}`,
+    `graphie(s) de fiche survivante(s) :\n${v.map((x) => `  ${x.fichier}:${x.row}  [${x.kind}]  ${x.text}`).join('\n')}`,
   )
 })
 
 test('non-régression : le VRAI src/ du repo est à ZÉRO graphie chapitre-relative (#487 lot 1+2)', () => {
   const v = scanGraphyViolations()
   assert.deepEqual(
-    v.map((x) => `${x.file}:${x.row}`),
+    v.map((x) => `${x.fichier}:${x.row}`),
     [],
-    `graphie(s) chapitre-relative(s) survivante(s) :\n${v.map((x) => `  ${x.file}:${x.row}  ${x.text}`).join('\n')}`,
+    `graphie(s) chapitre-relative(s) survivante(s) :\n${v.map((x) => `  ${x.fichier}:${x.row}  ${x.text}`).join('\n')}`,
   )
 })
 
@@ -309,9 +309,9 @@ test('non-régression : le VRAI src/ du repo est à ZÉRO graphie chapitre-relat
 test('non-régression : le VRAI src/ du repo est à ZÉRO abréviation INCONNUE (#585 lot A, câblé #1279 Sf)', () => {
   const v = scanUnknownAbbrViolations()
   assert.deepEqual(
-    v.map((x) => `${x.file}:${x.row} [${x.abbr}]`),
+    v.map((x) => `${x.fichier}:${x.row} [${x.abbr}]`),
     [],
-    `abréviation(s) hors books.json :\n${v.map((x) => `  ${x.file}:${x.row}  [${x.abbr}]  ${x.text}`).join('\n')}`,
+    `abréviation(s) hors books.json :\n${v.map((x) => `  ${x.fichier}:${x.row}  [${x.abbr}]  ${x.text}`).join('\n')}`,
   )
 })
 
@@ -380,7 +380,7 @@ test('(#454) (f) folio nu : détecté dans docs/raw (toute ligne, pas seulement 
     (srcDir, rawDir) => {
       const v = scanBareFolioViolations(rawDir)
       assert.equal(v.length, 1)
-      assert.equal(v[0].file.endsWith('combat.md'), true)
+      assert.equal(v[0].fichier.endsWith('combat.md'), true)
     },
   )
 })
@@ -398,7 +398,7 @@ test('(#454) (b) étendu à docs/raw : réf de livre SANS chapitre détectée, f
     (srcDir, rawDir) => {
       const v = scanBookNoChapterSrcViolations(srcDir, ['.ts', '.tsx', '.json'], rawDir)
       assert.equal(v.length, 1)
-      assert.equal(v[0].file.endsWith('combat.md'), true)
+      assert.equal(v[0].fichier.endsWith('combat.md'), true)
     },
   )
 })
@@ -434,7 +434,7 @@ test('(h) multi-folio en fiche : LDB 64 p.301/303 (folios hors du chapitre 64) �
     const v = scanMultiFolioSplitViolations(rawDir, registre)
     assert.equal(v.length, 1)
     assert.equal(v[0].row, 1)
-    assert.equal(v[0].file.endsWith('combat.md'), true)
+    assert.equal(v[0].fichier.endsWith('combat.md'), true)
     // 301 et 303 résolvent au ch.65 du banc, pas au chapitre ÉCRIT (64) : tous deux fautifs.
     assert.deepEqual(v[0].folios, [{ folio: 301, ch: 65 }, { folio: 303, ch: 65 }])
   }))
@@ -455,9 +455,9 @@ test('(h) multi-folio : rapports générés (coverage/reconciliation/reanchor) e
 test('non-régression : le VRAI docs/raw/ du repo est à ZÉRO multi-folio à cheval sur un autre chapitre (#522)', () => {
   const v = scanMultiFolioSplitViolations()
   assert.deepEqual(
-    v.map((x) => `${x.file}:${x.row}`),
+    v.map((x) => `${x.fichier}:${x.row}`),
     [],
-    `multi-folio(s) fautif(s) survivant(s) :\n${v.map((x) => `  ${x.file}:${x.row}  ${JSON.stringify(x.folios)}  ${x.text}`).join('\n')}`,
+    `multi-folio(s) fautif(s) survivant(s) :\n${v.map((x) => `  ${x.fichier}:${x.row}  ${JSON.stringify(x.folios)}  ${x.text}`).join('\n')}`,
   )
 })
 
@@ -519,7 +519,7 @@ test('(i) scan : chaque fiche scannée est jugée à part (fautive détectée, c
     (srcDir, rawDir) => avecFolios((registre) => {
       const v = scanChapterBoundaryFolioViolations(rawDir, registre)
       assert.equal(v.length, 1)
-      assert.equal(v[0].file.endsWith('combat.md'), true)
+      assert.equal(v[0].fichier.endsWith('combat.md'), true)
     }),
   )
 })
@@ -557,7 +557,7 @@ test('stock ABSENT → tolérance ZÉRO : la régénération est au point fixe, 
 })
 
 test('un site neuf sans `lot` est refusé ; différé par `--lot`, il écrit le stock sous le quoi de la garde', () => {
-  const [r] = regenerations({ ...scanTout(), folioSrc: [{ file: 'src/neuf.ts', ref: 'LDB p.1' }] })
+  const [r] = regenerations({ ...scanTout(), folioSrc: [{ fichier: 'src/neuf.ts', ref: 'LDB p.1' }] })
   const { refus } = texteRegenere(r, { enPlace: null, lot: null, date: null })
   assert.match(refus ?? '', /src\/neuf\.ts/)
   const { texte } = texteRegenere(r, { enPlace: null, lot: '#1', date: '2026-01-01' })
@@ -589,7 +589,7 @@ test('(j) réf au folio : commentaire de tête, de fin de ligne, titre de test, 
   withTempSrcAndRawDir(FOLIO_SRC, {}, (srcDir) => {
     const v = scanFolioSrcViolations(srcDir)
     assert.deepEqual(
-      v.map((x) => `${x.file.split('/').pop()}:${x.row} ${x.ref}`).sort(),
+      v.map((x) => `${x.fichier.split('/').pop()}:${x.row} ${x.ref}`).sort(),
       [
         'chaine.tsx:1 LDB 47 p.244',
         'champ.json:1 LDB 47 p.244',
@@ -615,7 +615,7 @@ const entreeFolio = (fichier, ref) => ({ famille: 'folioSrc', fichier, ref, occu
 test('(j) cliquet : un site DU stock ne fait pas échouer, un site NEUF et une entrée SOLDÉE font échouer', () => {
   withTempSrcAndRawDir({ 'fin.ts': 'const x = 1 // LDB 47 p.244\n' }, {}, (srcDir, rawDir) => {
     const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir)
-    const fichier = passe.folioSrc[0].file
+    const fichier = passe.folioSrc[0].fichier
 
     const couvert = cliquets(passe, [entreeFolio(fichier, 'LDB 47 p.244')])
     assert.deepEqual([couvert.neuves, couvert.perimees], [[], []])
@@ -656,7 +656,7 @@ test('(#925) passe UNIQUE : une ligne fautive par classe, un seul scanTout, chaq
   for (const sigle of SIGLES_COEUR) {
     withTempSrcAndRawDir({ 'x.ts': JOUET_SRC }, { 'combat.md': jouetFiche(sigle) }, (srcDir, rawDir) => avecFolios((registre) => {
     const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir, registre)
-    const sites = (famille) => passe[famille].map((v) => `${v.file.split('/').pop()}:${v.row}`)
+    const sites = (famille) => passe[famille].map((v) => `${v.fichier.split('/').pop()}:${v.row}`)
     const attendu = {
       graphy: ['x.ts:1'],
       chDot: ['x.ts:2'],
@@ -690,7 +690,7 @@ test('(#925) ce que rend une passe est GELÉ : un appelant ne peut pas écrire d
       const exts = ['.ts', '.tsx', '.json']
       const premier = scanGraphyViolations(srcDir, exts)
       assert.equal(Object.isFrozen(premier), true)
-      assert.throws(() => premier.push({ file: 'x.ts', row: 99, text: 'intrus' }), TypeError)
+      assert.throws(() => premier.push({ fichier: 'x.ts', row: 99, text: 'intrus' }), TypeError)
       const second = scanGraphyViolations(srcDir, exts)
       assert.deepEqual(second.map((v) => `${v.row}`), premier.map((v) => `${v.row}`))
       assert.equal(Object.isFrozen(scanTout(srcDir, exts, rawDir).chDot), true)

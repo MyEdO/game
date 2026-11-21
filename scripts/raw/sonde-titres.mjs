@@ -989,10 +989,12 @@ const QUOI =
   'l’IDENTITÉ du site, jamais une ligne du `.md`. Mesuré au PDF, qu’aucun dépôt ne suit : le test ne le ' +
   'confronte que là où le PDF est présent. Ce fichier ne décroît que quand un site disparaît.'
 
-/** Les sites d'une sonde en sites NOMINAUX `{ file, ref }`, dans l'ordre d'émission (`colonne` exclue). */
+/** Les sites d'une sonde en sites NOMINAUX `{ fichier, ref }`, dans l'ordre d'émission (`colonne` exclue).
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
+ */
 export const sitesNominaux = ({ dir, fichiers, sites }) =>
   sites.filter((s) => s.forme !== 'colonne').map((s) => ({
-    file: `${dir}/${fichiers.find((f) => f.page <= s.page && s.page <= f.pageFin)?.nom ?? '---'}`,
+    fichier: `${dir}/${fichiers.find((f) => f.page <= s.page && s.page <= f.pageFin)?.nom ?? '---'}`,
     ref: `${s.forme} :: p.${s.page} :: « ${s.titre} »`,
   }))
 
@@ -1014,7 +1016,9 @@ export function mesurerTitres() {
 }
 
 /** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur une mesure (par défaut,
- *  celle de tous les livres à gabarit de titre). */
+ *  celle de tous les livres à gabarit de titre).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (titres = mesurerTitres()) => [{
   chemin: STOCK_PATH,
   politique: SOUS_LOT,

@@ -241,7 +241,7 @@ test('scanBookDir : le `fichier` d’un site est le chapitre extrait, en POSIX d
   let sites = []
   for (const [, dir] of BOOKS) { sites = scanBookDir(dir); if (sites.length) break }
   assert.ok(sites.length > 0, 'le corpus `Source/` porte au moins un site de table mesuré')
-  for (const s of sites.slice(0, 20)) assert.match(s.file, /^Source\/[^\\]+\/[^\\]+\.md$/)
+  for (const s of sites.slice(0, 20)) assert.match(s.fichier, /^Source\/[^\\]+\/[^\\]+\.md$/)
 })
 
 test('stock COMMITTÉ : chaque site mesuré y a son entrée, et aucune entrée n’est soldée', () => {
@@ -263,7 +263,7 @@ test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des sites mesurés sur l’ar
 test('un solde laisse le quoi à l’octet', () => {
   const sites = scanAllBooks()
   const [s0] = sites
-  const reste = sites.filter((s) => s.famille !== s0.famille || s.file !== s0.file || s.ref !== s0.ref)
+  const reste = sites.filter((s) => s.famille !== s0.famille || s.fichier !== s0.fichier || s.ref !== s0.ref)
   assert.ok(reste.length < sites.length)
   const enPlace = texteEnPlace(STOCK_PATH)
   const [r] = regenerations(reste)

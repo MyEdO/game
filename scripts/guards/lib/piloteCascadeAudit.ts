@@ -360,9 +360,9 @@ export function bouclesPilotes(fichiers: Iterable<FichierSource> = corpusMesure(
   return boucles;
 }
 
-/** Les itérations-sites NON exemptées en SITES `{ file, ref }` — le fichier est la suite à migrer vers le kit. */
+/** Les itérations-sites NON exemptées en sites de stock — le fichier est la suite à migrer vers le kit. */
 export const sitesDeBoucles = (boucles: readonly BouclePilote[]): Site[] =>
-  boucles.filter((b) => !b.exemption).map((b) => ({ file: b.rel, ref: b.ref }));
+  boucles.filter((b) => !b.exemption).map((b) => ({ fichier: b.rel, ref: b.ref }));
 
 export const sitesPiloteCascade = (fichiers?: Iterable<FichierSource>, exemptions?: readonly ExemptionPilote[]): Site[] =>
   sitesDeBoucles(bouclesPilotes(fichiers, exemptions));
