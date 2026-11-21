@@ -47,7 +47,8 @@ function construireNarratif(): NarratifBlock {
       qualities: [],
       availability: null,
       price: null,
-      source: { book: 'livre-de-base', page: 303, note: 'LDB 67 l.28' },
+      // LDB 67 l.28 donne un Encombrement de 0 à la Clef.
+      source: { book: 'livre-de-base', page: 303 },
       maison: 'Exemplaire propre à la herse du Caveau piégé, non proposé à l’achat.',
     }],
   };
