@@ -19,6 +19,7 @@ import { footprintN, footprintTiles } from './monde/footprint';
 import { discTiles } from './monde/zones';
 import { dansLaZoneJouable, wallOnSight, type Scene, type SceneEntity } from './monde/scene';
 import { memoByRefDeps } from './monde/sceneMemo';
+import { caseDansGrille } from './monde/opacite';
 import { spaceCellKey } from './monde/volume/architectureVisibility';
 import { resolveNappes } from './monde/volume/toits';
 import { visibilityOf } from './visibility';
@@ -48,7 +49,7 @@ export function connaissanceDuGroupe(etat: EntreesDeLaConnaissance): Connaissanc
       const v = visibilityOf(cle, vu, memoire);
       if (v !== 'unknown') return v;
       const [x, y] = cle.split(',').map(Number);
-      return x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h && !dansLaZoneJouable(scene, x, y) ? 'explored' : v;
+      return caseDansGrille(scene.dimensions, x, y) && !dansLaZoneJouable(scene, x, y) ? 'explored' : v;
     };
   });
 }
@@ -165,7 +166,7 @@ function masqueDe(etat: AvecScene): { masque: string; cle: string } {
       const octet = OCTET[etatDuPied(mass.z, cells, connue)];
       for (const key of cells) {
         const [x, y] = key.split(',').map(Number);
-        if (x < 0 || y < 0 || x >= w || y >= h) continue;
+        if (!caseDansGrille(scene.dimensions, x, y)) continue;
         const rang = ((n + i) * h + y) * w + x;
         toits.set(rang, Math.max(toits.get(rang) ?? 0, octet));
       }
