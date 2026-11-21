@@ -1837,7 +1837,7 @@ export interface Chapitre {
   gabarit: 'ouverture';
   decor: 'relais' | 'altdorf';
   sur: string;
-  campagne?: { nom: string; tome: string };
+  campagne: { nom: string; tome: string };
   chapitre: string;
   texte?: string[];
   groupe?: HerosDuGroupe[];

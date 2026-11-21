@@ -10,6 +10,10 @@ Altdorf au matin, le jeu assombri) et les feuilles de la famille vivent dans `so
 Premières maquettes : chaque « À valider » attend l'utilisateur.
 - À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
   haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
+- À valider (#4585) : le grand titre libre a une taille (80) et une grille pour l'accueil, le menu de la partie et le
+  chapitre (sur-titre, nom, filet, suite ; au chapitre la toile et le corps), monté de 20 ; la fin de chapitre porte le
+  nom de la campagne et son tome comme l'ouverture ; la colonne des entrées pose sous la principale l'instant qu'elle
+  reprend (la dernière sauvegarde à l'accueil, l'instant de la partie au menu, qui le portait sous son titre).
 
 Pièces neuves : registre relié et ses signets ; contrôles de réglage (oui/non, réglette, segments, pas-à-pas) ;
 affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé laiton ; case à cocher et son octroi

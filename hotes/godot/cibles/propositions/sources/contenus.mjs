@@ -6,8 +6,7 @@
 //      un A pour ce voisin) ;
 //   C  contenu de liste : seul le nombre des entrées d'une liste qui défile change (une liste d'une seule entrée n'a
 //      pas d'écart : ses écarts ne se comparent pas).
-// Un A d'un gabarit de `PILOTES` fait échouer le rendu (`rendre.mjs`) et cet agrégat (code 1) ; les autres gabarits
-// restent en rapport. L'agrégat lit les fichiers que chaque état rendu sous `RELEVE_CONTENUS=<dossier>` y a écrits, et
+// Un A fait échouer le rendu (`rendre.mjs`) et cet agrégat (code 1), quel que soit le gabarit. L'agrégat lit les fichiers que chaque état rendu sous `RELEVE_CONTENUS=<dossier>` y a écrits, et
 // rend, par gabarit (le champ `gabarit` des états), la synthèse (états, places, pièces sans place, contenus dont ceux
 // vus dans un seul état, contenus qui bougent par classe) puis, pour chaque contenu qui bouge, sa classe, ce qui en
 // diffère, ses relevés distincts et les états qui portent chacun :
@@ -16,8 +15,6 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** Les gabarits dont un écart A fait échouer le rendu. */
-export const PILOTES = new Set(['fenetre-du-bas', 'combat', 'gestion', 'fiche', 'lieu-et-voyage', 'consultation'])
 const loin = (m, n) => Math.abs(m - n) > 1
 const autres = (u, v) => u.length !== v.length || u.some((m, k) => loin(m, v[k]))
 /** Ce qui diffère de deux relevés du même contenu : `x`, `y`, `l`, `h` d'un rect ; `depart`, `x`, `ecarts`, `n` d'une liste,
@@ -61,8 +58,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const places = porteurs.filter((p) => p.includes(' > ')).length
     const seuls = [...contenus.values()].filter((r) => r.length === 1 && r[0].etats.length === 1).length
     const parClasse = ordre.map((c) => `${c} ${bougent.filter((b) => b.classe === c).length}`).join(', ')
-    const synthese = `${gabarit}${PILOTES.has(gabarit) ? ' (bloquant)' : ''} : ${etats} états, ${places} places, ${porteurs.length - places} pièces sans place, ${contenus.size} contenus (${seuls} vus dans un seul état), ${bougent.length} qui bougent (${parClasse})`
-    if (PILOTES.has(gabarit)) bloquants += bougent.filter((b) => b.classe === 'A').length
+    const synthese = `${gabarit} : ${etats} états, ${places} places, ${porteurs.length - places} pièces sans place, ${contenus.size} contenus (${seuls} vus dans un seul état), ${bougent.length} qui bougent (${parClasse})`
+    bloquants += bougent.filter((b) => b.classe === 'A').length
     console.log(synthese)
     lignes.push('', `== ${synthese}`)
     for (const { cle, releves, classe: c, differe: d } of bougent) {

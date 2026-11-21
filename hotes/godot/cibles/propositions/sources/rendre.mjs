@@ -23,9 +23,9 @@
 // ce qu'il désigne, puis le rang parmi ceux du même rôle), et
 // les entrées de ce qui y défile en une liste (départ, x, écarts, jamais leur rang) ; il classe l'écart d'un état à
 // l'autre du même gabarit (`classe`, `contenus.mjs` : A boîte déplacée, B longueur de texte, C contenu de liste). Un A
-// d'un gabarit de `PILOTES` (`fenetre-du-bas`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`, `consultation`) est BLOQUANT, contre les états déjà rendus de la passe et, sous
+// est BLOQUANT, quel que soit le gabarit, contre les états déjà rendus de la passe et, sous
 // `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
-// `<écran>--<état>.json` ; les autres gabarits restent en RAPPORT, que `contenus.mjs <dossier>` agrège :
+// `<écran>--<état>.json`, que `contenus.mjs <dossier>` agrège :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
@@ -36,7 +36,7 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { listerEntrees } from '../../../../../scripts/guards/lib/lister.mjs'
 import { chromium } from 'playwright'
-import { classe, PILOTES } from './contenus.mjs'
+import { classe } from './contenus.mjs'
 
 /** La vue `bureau` des vues de la recette, la vue de référence de la recette et des étalons. */
 const BUREAU = JSON.parse(readFileSync(new URL('../../../../../scripts/recette/vues-recette.json', import.meta.url), 'utf8')).find((v) => v.nom === 'bureau')
@@ -279,13 +279,13 @@ const b = await chromium.launch({ args: ['--allow-file-access-from-files'] })
 /** Le dossier du relevé `contenu` (`RELEVE_CONTENUS`), un fichier par état, que `contenus.mjs` agrège. */
 const CONTENUS = process.env.RELEVE_CONTENUS
 if (CONTENUS) mkdirSync(CONTENUS, { recursive: true })
-/** Le premier relevé de chaque contenu d'un gabarit de `PILOTES` (gabarit | porteur | rôle), et son état, que `contenu`
+/** Le premier relevé de chaque contenu d'un gabarit (gabarit | porteur | rôle), et son état, que `contenu`
  * compare aux suivants : ceux des autres écrans déjà écrits sous `RELEVE_CONTENUS`, puis ceux de cette passe. */
 const REFERENCES = new Map()
 const referencer = (gabarit, contenus, etat) => { for (const [cle, valeur] of Object.entries(contenus)) if (!REFERENCES.has(`${gabarit} | ${cle}`)) REFERENCES.set(`${gabarit} | ${cle}`, { valeur, etat }) }
 if (CONTENUS) for (const f of readdirSync(CONTENUS).filter((f) => f.endsWith('.json') && !f.startsWith(`${cible}--`)).sort()) {
   const { ecran, etat: e, gabarit, contenus } = JSON.parse(readFileSync(join(CONTENUS, f), 'utf8'))
-  if (PILOTES.has(gabarit)) referencer(gabarit, contenus, `${ecran}/${e}`)
+  referencer(gabarit, contenus, `${ecran}/${e}`)
 }
 /** La signature d'habillage de chaque rôle, au premier état rendu qui le porte, que `habille` compare aux suivants. */
 const HABILLAGES = new Map()
@@ -303,11 +303,11 @@ async function capturer(maquette, sortie) {
   await p.waitForTimeout(400)
   const { habillage, contenus, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur])
   if (CONTENUS && maquette) writeFileSync(join(CONTENUS, `${cible}--${maquette.nom}.json`), JSON.stringify({ ecran: cible, etat: maquette.nom, gabarit: maquette.gabarit, contenus }))
-  rapport.contenu = maquette && PILOTES.has(maquette.gabarit) ? Object.entries(contenus).flatMap(([cle, valeur]) => {
+  rapport.contenu = maquette ? Object.entries(contenus).flatMap(([cle, valeur]) => {
     const ref = REFERENCES.get(`${maquette.gabarit} | ${cle}`)
     return ref && classe(ref.valeur, valeur) === 'A' ? [`${cle} : autre qu'à ${ref.etat}`] : []
   }) : []
-  if (maquette && PILOTES.has(maquette.gabarit)) referencer(maquette.gabarit, contenus, `${cible}/${maquette.nom}`)
+  if (maquette) referencer(maquette.gabarit, contenus, `${cible}/${maquette.nom}`)
   rapport.habille = Object.entries(habillage).flatMap(([piece, { decale, signature }]) => {
     if (!HABILLAGES.has(piece)) HABILLAGES.set(piece, { signature, etat: maquette?.nom ?? cible })
     const ref = HABILLAGES.get(piece)

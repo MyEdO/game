@@ -39,7 +39,7 @@
     affaire: [420, 76, 836, 620], emplacements: [24, 196, 1232, 286], avis: [28, 520, 371, 28],
     'feuillets-de-seance': [24, 136, 1232, 348], 'groupe-de-seance': [24, 604, 1072, 92], campagnes: [956, 76, 300, 468],
     tablee: [412, 136, 428, 560], 'volet-droit': [856, 76, 400, 620],
-    'titre-libre': [84, 52], entrees: [88, 236, 330, 433], outils: [772, 623, 484, 75], 'seance-du-chapitre': [24, 515, 1072, 197],
+    'titre-libre': [84, 32, 980, 182], entrees: [88, 236, 330, 460], outils: [772, 623, 484, 75], 'seance-du-chapitre': [24, 515, 1072, 197],
     /* l'outil d'édition */
     /* la consultation : la barre, la liste, la fiche ; l'Index posé par-dessus la liste et la fiche */
     'barre-du-compendium': [16, 8, 1248, 44], 'liste-du-compendium': [16, 60, 300, 644], 'fiche-du-compendium': [328, 60, 936, 644], 'index-du-compendium': [16, 60, 1248, 644],
@@ -141,6 +141,19 @@
     'colonne-gestion/plein': [15, 20, 324, 228], 'colonne-gestion/note': [15, 254, 324, 17], 'colonne-gestion/documents': [12, 278, 330, 252],
     /* le geste qui commet un feuillet de la gestion, au pied fixe de son cadre */
     'colonne-gestion/geste': [12, 490, 330, 40],
+    /* sous la bannière d'issue d'un combat : ce que l'issue laisse, sur sa largeur ; la sortie, de la largeur de la plus
+       longue */
+    /* le grand titre libre de l'ouverture : le sur-titre, le nom, le filet, ce qui le suit ; sous le cadre, le chapitre sur
+       sa toile et le corps */
+    'titre-libre/sur': [4, 0, 976, 20], 'titre-libre/nom': [0, 20, 980, 92], 'titre-libre/filet': [4, 118, 560, 7], 'titre-libre/suite': [4, 130, 760, 42],
+    'titre-libre/toile': [-6, 176, 612, 58], 'titre-libre/corps': [4, 242, 976, 240],
+    /* la colonne des entrées : la principale, l'instant qu'elle reprend, les autres */
+    'entrees/principale': [0, 0, 330, 52], 'entrees/reprise': [4, 58, 326, 18], 'entrees/autres': [0, 88, 330, 372],
+    'issue/suite': [0, 168, 560, 26], 'issue/geste': [153, 214, 254, 52],
+    /* l'outil d'édition, sur la grille des colonnes : aux volets le contenu de l'ouvert, ses gestes au pied ; à
+       l'inspecteur ce qui est choisi, ses propriétés, la validation au pied */
+    'volets/plein': [10, 34, 202, 446], 'volets/geste': [10, 492, 202, 96],
+    'inspecteur/tete': [14, 26, 254, 58], 'inspecteur/corps': [14, 90, 254, 410], 'inspecteur/geste': [14, 503, 254, 100],
     /* le carton d'un arrêt : la vignette, le titre, le texte jusqu'au geste, les cartes du choix (ou les paies et les
        parts qui les règlent) posées sur le bas du texte quand l'arrêt en ouvre un, le geste qui commet */
     'carton/vignette': [20, 24, 140, 140], 'carton/tete': [184, 22, 734, 34], 'carton/texte': [184, 60, 654, 154],
@@ -606,19 +619,27 @@
   /* ───────── l'ouverture ───────── */
   /* un instant de la partie, son lieu en petites capitales */
   const lieuEtInstant = (i) => `<span class="rubrique">${echapper(i.lieu)}</span> · ${dateDe(i)} · ${i.heure}`;
-  /* le grand titre libre : son sur-titre, son nom en gothique dorée s'il en a un, ce qui le suit */
-  const titreLibre = (id, sur, nom, suite) => `<div id="${id}" class="titre-libre" data-piece="titre-libre"><div class="sur rubrique ombre">${echapper(sur)}</div>${nom ? `<div class="nom gothique" data-texte="titre">${echapper(nom)}</div>` : ''}${suite}</div>`;
+  /* le grand titre libre, chaque part à sa place (`titre-libre/*`) : son sur-titre, son nom en gothique dorée, le filet,
+     ce qui le suit ; au chapitre, le chapitre sur sa toile et le corps (le texte ou la clôture), sous le cadre */
+  const titreLibre = (id, sur, nom, { filet: trait = false, suite = '', toile = '', corps = '' }) => `<div id="${id}" class="titre-libre" data-piece="titre-libre">${places('titre-libre', {
+    sur: `<div class="sur rubrique ombre">${echapper(sur)}</div>`, nom: `<div class="nom gothique" data-texte="titre">${echapper(nom)}</div>`,
+    filet: trait && filet({ losange: true, or: true }), suite, toile, corps })}</div>`;
   const plaqueDEntree = (e) => plaque(echapper(e.libelle), { armee: !!e.principale, icone: e.id, taille: 'appel' });
+  /* la colonne des entrées, chacune à sa place (`entrees/*`) : la principale, sous elle l'instant qu'elle reprend, les
+     autres ; `fin` : ce qui suit les autres */
+  const entreesDe = (entrees, instant, fin = '') => `<div id="entrees" data-piece="entrees">${places('entrees', {
+    principale: plaqueDEntree(entrees[0]), reprise: `<div class="reprise ombre">${lieuEtInstant(instant)}</div>`, autres: `${entrees.slice(1).map(plaqueDEntree).join('')}${fin}` })}</div>`;
   /* l'écran titre : le titre, les entrées de jeu (la dernière sauvegarde sous la principale, qu'elle charge), les outils */
   const accueil = (a) => [
-    titreLibre('blason', a.titre.sur, a.titre.nom, `${filet({ losange: true, or: true })}<div class="campagne gothique ombre">${echapper(a.titre.campagne)}</div>`),
-    `<div id="entrees" data-piece="entrees">${a.entrees.map((e) => `${plaqueDEntree(e)}${e.principale ? `<div class="dernier ombre">${lieuEtInstant(a.derniere)}</div>` : ''}`).join('')}</div>`,
+    titreLibre('blason', a.titre.sur, a.titre.nom, { filet: true, suite: `<div class="campagne gothique ombre">${echapper(a.titre.campagne)}</div>` }),
+    entreesDe(a.entrees, a.derniere),
     `<div id="outils" data-piece="outils">${a.outils.map((o) => outil(o.id, echapper(o.libelle), { taille: 'grand' })).join('')}</div>`,
   ];
-  /* le menu de la partie : le titre et l'instant, les entrées, la sortie sous un trait, la pastille du système */
+  /* le menu de la partie : le titre, les entrées (l'instant de la partie sous « Reprendre »), la sortie sous un trait, la
+     pastille du système */
   const menuDeLaPartie = (m) => [
-    titreLibre('pause', m.titre.sur, m.titre.nom, `${filet({ losange: true, or: true })}<div class="ou ombre">${lieuEtInstant(m.instant)}</div>`),
-    `<div id="entrees" data-piece="entrees">${m.entrees.map(plaqueDEntree).join('')}<div class="trait"></div>${plaqueDEntree(m.quitter)}<div class="dernier ombre">Dernière sauvegarde automatique à ${m.derniereAuto}.</div></div>`,
+    titreLibre('pause', m.titre.sur, m.titre.nom, { filet: true }),
+    entreesDe(m.entrees, m.instant, `<div class="trait"></div>${plaqueDEntree(m.quitter)}<div class="dernier ombre">Dernière sauvegarde automatique à ${m.derniereAuto}.</div>`),
     `<div id="coins" data-piece="coins">${rond('systeme', 'grand', { arme: true })}</div>`,
   ];
   /* la clôture d'un chapitre : son sous-titre, ce que la route retiendra (les objectifs soldés, les PX), les lieux révélés,
@@ -638,9 +659,9 @@
   /* le chapitre qui s'ouvre (la campagne, le texte du chapitre, la compagnie au bandeau) ou se clôt (sa clôture, la fin de
      séance) ; ses gestes en action de coin */
   const chapitre = (c) => [
-    titreLibre('carton', c.sur, c.campagne?.nom, `${c.campagne ? `<div class="tome gothique ombre">${echapper(c.campagne.tome)}</div>` : ''}
-      <div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="chapitre">${echapper(c.chapitre)}</span></div></div>
-      ${(c.texte ?? []).map((p, k) => `<p class="ombre" data-texte="texte ${k + 1}">${echapper(p)}</p>`).join('')}${c.cloture ? clotureDe(c.cloture) : ''}`),
+    titreLibre('carton', c.sur, c.campagne.nom, { suite: `<div class="tome gothique ombre">${echapper(c.campagne.tome)}</div>`,
+      toile: `<div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="chapitre">${echapper(c.chapitre)}</span></div></div>`,
+      corps: `${(c.texte ?? []).map((p, k) => `<p class="ombre" data-texte="texte ${k + 1}">${echapper(p)}</p>`).join('')}${c.cloture ? clotureDe(c.cloture) : ''}` }),
     ...(c.groupe ? [bandeauDu(c.groupe, undefined, 'La compagnie')] : []),
     ...(c.cloture ? [seanceDuChapitre(c.cloture.seance)] : []),
     `<div class="action-de-coin" data-piece="action-de-coin">${c.gestes.map((g) => plaque(echapper(g.libelle), { armee: !!g.principal })).join('')}</div>`,
@@ -778,8 +799,9 @@
     <div><div class="nom gothique" data-texte="titre">${echapper(e.projet.nom)}</div><div class="s rubrique">${echapper(e.projet.sous)}</div></div><div class="sep"></div>
     ${segments(e.documents.map(echapper), echapper(e.document))}<div class="espace"></div>
     ${e.gestes.map((g) => g.map(gesteDeLaBarre).join('')).join('<div class="sep"></div>')}${croix({ dansLePanneau: true })}</div>${ferrures}</div>`;
-  /* les volets de gauche, une seule colonne en onglets : l'ouvert et son contenu */
-  const voletsDe = (e, contenu) => cadre('volets', null, null, null, null, 'bois', contenu, { tete: onglets(e.volets.map(echapper), echapper(e.volet)) });
+  /* les volets de gauche, une seule colonne en onglets : l'ouvert, son contenu au plein de la grille des colonnes, ses
+     gestes au pied (`colonne`) */
+  const voletsDe = (e, contenu) => cadre('volets', null, null, null, null, 'bois', colonne('volets', contenu), { tete: onglets(e.volets.map(echapper), echapper(e.volet)) });
   const outilDePalette = (e) => (o) => `<div class="o${o.id === e.outil ? ' la' : ''}">${picto(o.id, 20, o.id === e.outil ? '#2a1a08' : '#e2c06a', 1.5)}<span>${echapper(o.libelle)}</span></div>`;
   const paletteDe = (e) => `<div class="outils">${e.outils.map(outilDePalette(e)).join('')}</div>`;
   const validationDe = (v) => `<div class="r rubrique">Validation</div><div class="valide">${picto('coche', 15, '#3d5a1c', 2.2)}<span>${echapper(v)}</span></div>`;
@@ -792,47 +814,50 @@
     nombre: (p) => moinsPlus({ entre: `<b class="copies">${p.nombre}</b>` }),
   };
   const proprieteDe = (p) => `<div class="prop${p.grise ? ' gris' : ''}"><span>${echapper(p.libelle)}</span>${VALEURS_DE_PROPRIETE[Object.keys(VALEURS_DE_PROPRIETE).find((k) => k in p)](p)}</div>`;
-  /* l'inspecteur : ce qui est choisi, ou les options de l'outil armé ; la validation au pied */
-  const inspecteurDe = (i, validation) => `<h3 class="gothique" data-texte="choisi">${echapper(i.genre)}</h3><div class="sous rubrique">${echapper(i.ou ?? i.options)}</div><div class="trait"></div>
-    ${'terrains' in i ? `<div class="r rubrique">Pinceau</div><div class="pinceau">${segments(i.pinceaux.valeurs.map(echapper), echapper(i.pinceaux.valeurs[i.pinceaux.tenue]))}</div>
+  /* un geste dans le corps de l'inspecteur, une entrée parmi les autres */
+  const gesteDeLInspecteur = (libelle, icone) => `<div class="geste">${plaque(libelle, { icone, taille: 'petite' })}</div>`;
+  /* l'inspecteur, sur la grille des colonnes (`colonne`) : en tête ce qui est choisi, ou l'outil armé ; au corps ses
+     propriétés, ou les options de l'outil (`liste` : celles d'un outil qui choisit parmi tous les genres du système, le
+     terrain) ; au pied la validation, ou ce qui retire ce qui est choisi (`supprimer`) */
+  const inspecteur = ({ genre, sous, corps, liste = false, validation, supprimer = '' }) => cadre('inspecteur', null, null, null, null, 'parchemin', colonne('inspecteur', {
+    tete: `<h3 class="gothique" data-texte="choisi">${genre}</h3><div class="sous rubrique">${sous}</div><div class="trait"></div>`, corps, liste,
+    geste: validation ? validationDe(validation) : supprimer && plaque(supprimer, { icone: 'croix', taille: 'petite' }),
+  }), { ruban: 'Inspecteur' });
+  const inspecteurDe = (i, validation) => inspecteur({ genre: echapper(i.genre), sous: echapper(i.ou ?? i.options), validation, supprimer: echapper(i.supprimer ?? ''), liste: 'terrains' in i, corps: 'terrains' in i
+    ? `<div class="r rubrique">Pinceau</div><div class="pinceau">${segments(i.pinceaux.valeurs.map(echapper), echapper(i.pinceaux.valeurs[i.pinceaux.tenue]))}</div>
       <div class="r rubrique">Terrains</div><div class="terrains">${i.terrains.map((n) => `<b class="${n === i.terrain ? 'la' : ''}">${echapper(n)}</b>`).join('')}</div>`
     : `${i.nom ? champ('Nom', echapper(i.nom)) : ''}${i.proprietes.map(proprieteDe).join('')}
-      ${i.inventaire ? `<div class="r rubrique">Inventaire</div><div class="prop gris"><span>${echapper(i.inventaire.vide)}</span></div>${plaque(echapper(i.inventaire.ajouter), { icone: 'plus', taille: 'petite' })}` : ''}
+      ${i.inventaire ? `<div class="r rubrique">Inventaire</div><div class="prop gris"><span>${echapper(i.inventaire.vide)}</span></div>${gesteDeLInspecteur(echapper(i.inventaire.ajouter), 'plus')}` : ''}
       ${i.troupe ? `<div class="r rubrique">Poser une troupe</div>${i.troupe.map(proprieteDe).join('')}` : ''}
-      ${i.renvois.rubrique ? `<div class="r rubrique">${echapper(i.renvois.rubrique)}</div>` : ''}${i.renvois.noms.map(renvoiDeLaLogique).join('')}
-      ${i.supprimer ? `<div class="au-pied">${plaque(echapper(i.supprimer), { icone: 'croix', taille: 'petite' })}</div>` : ''}`}
-    ${validation ? validationDe(validation) : ''}`;
-  const inspecteur = (corps) => cadre('inspecteur', null, null, null, null, 'parchemin', corps, { ruban: 'Inspecteur' });
+      ${i.renvois.rubrique ? `<div class="r rubrique">${echapper(i.renvois.rubrique)}</div>` : ''}${i.renvois.noms.map(renvoiDeLaLogique).join('')}` });
   const PICTO_DU_POINTE = { selection: 'selection', terrain: 'terrain' };
   /* l'éditeur de scène : le volet des scènes ou la palette, le plan quadrillé et ses couches, le pied, l'inspecteur */
   const editeurDeScene = (e) => [fondDeTable(), barreDe(e),
-    voletsDe(e, e.volet === e.volets[0] ? `${e.scenes.noms.map((n) => ligneDeListe(echapper(n), '', { la: n === e.scenes.ouverte })).join('')}
-      <div class="gestes">${e.scenes.gestes.map((g, k) => plaque(echapper(g), { icone: k ? null : 'plus', taille: 'petite' })).join('')}</div>` : paletteDe(e)),
+    voletsDe(e, e.volet === e.volets[0] ? { corps: e.scenes.noms.map((n) => ligneDeListe(echapper(n), '', { la: n === e.scenes.ouverte })).join(''), liste: true,
+      geste: `<div class="gestes">${e.scenes.gestes.map((g, k) => plaque(echapper(g), { icone: k ? null : 'plus', taille: 'petite' })).join('')}</div>` } : { corps: paletteDe(e) }),
     `<div id="plan" class="cadre bois" data-piece="plan"><div class="fond">${planDeScene(e.plan)}</div>
       <div id="couches">${e.couches.noms.map((n, k) => plaque(echapper(n), { armee: k === e.couches.tenue, icone: k === e.couches.tenue ? 'couches' : null, taille: 'petite' })).join('')}${plaque(echapper(e.couches.ajouter), { icone: 'plus', taille: 'petite' })}${e.couches.retirer ? plaque(`${echapper(e.couches.retirer.libelle)}${raison(echapper(e.couches.retirer.refus))}`, { fermee: true, taille: 'petite' }) : ''}</div>
       <div id="nord" class="rubrique ombre">${picto('route', 18)}Nord : ${e.nord}° dans le sens horaire</div>${ferrures}</div>`,
     `<div id="pied" class="bois" data-piece="pied">${picto(PICTO_DU_POINTE[e.outil], 16)}<span data-texte="pointé">${e.pointe.map(echapper).join(' · ')}</span><span class="v">${e.taille.cases[0]} × ${e.taille.cases[1]} cases · ${pluriel(e.taille.entites, 'entité')}</span></div>`,
-    inspecteur(inspecteurDe(e.inspecteur, e.validation))];
+    inspecteurDe(e.inspecteur, e.validation)];
   /* l'éditeur de la carte du monde : les lieux, les routes ou la palette ; la carte ; l'inspecteur du lieu choisi */
   const editeurDeLaCarte = (e) => {
     const lieu = (id) => e.lieux.find((l) => l.id === id), choisi = lieu(e.choisi), sesRoutes = e.routes.filter((r) => r.de === e.choisi || r.vers === e.choisi);
     const depuis = `Depuis ${echapper(choisi.nom)}`;
     const VOLETS = [
-      () => e.lieux.map((l) => ligneDeListe(echapper(l.nom), '', { la: l.id === e.choisi, icone: 'epingle' })).join(''),
-      () => `<div id="routes">${e.routes.map((r) => ligneDeListe(`${echapper(lieu(r.de).nom)} – ${echapper(lieu(r.vers).nom)}<small>${r.km} km · ${r.modes.map(echapper).join(', ')}</small>`)).join('')}</div>`,
-      () => paletteDe(e),
+      () => ({ corps: e.lieux.map((l) => ligneDeListe(echapper(l.nom), '', { la: l.id === e.choisi, icone: 'epingle' })).join(''), liste: true }),
+      () => ({ corps: `<div id="routes">${e.routes.map((r) => ligneDeListe(`${echapper(lieu(r.de).nom)} – ${echapper(lieu(r.vers).nom)}<small>${r.km} km · ${r.modes.map(echapper).join(', ')}</small>`)).join('')}</div>`, liste: true }),
+      () => ({ corps: paletteDe(e) }),
     ];
     return [fondDeTable(), barreDe(e),
       voletsDe(e, VOLETS[e.volets.indexOf(e.volet)]()),
       `<div id="plan" class="cadre bois" data-piece="plan"><div class="fond parchemin">${carteDeLEditeur({ titre: echapper(e.carte), lieux: e.lieux.map((l) => ({ nom: echapper(l.nom), genre: l.genre, place: l.place, choisi: l.id === e.choisi })), routes: e.routes.map((r) => ({ de: e.lieux.indexOf(lieu(r.de)), vers: e.lieux.indexOf(lieu(r.vers)), km: r.km })) })}</div>${ferrures}</div>`,
       `<div id="pied" class="bois" data-piece="pied">${picto('epingle', 16)}<span>${pluriel(e.lieux.length, 'lieu')} · ${pluriel(e.routes.length, 'route')} · Modes : ${[...new Set(e.routes.flatMap((r) => r.modes))].map(echapper).join(', ')}</span></div>`,
-      inspecteur(`<h3 class="gothique" data-texte="choisi">Lieu</h3><div class="sous rubrique">${echapper(e.document)} · ${e.lieu.coordonnees.join(', ')}</div><div class="trait"></div>
-        ${champ('Nom', echapper(choisi.nom))}<div class="prop"><span>Scène</span>${VALEURS_DE_PROPRIETE.defile({ defile: e.lieu.scene })}</div>
+      inspecteur({ genre: 'Lieu', sous: `${echapper(e.document)} · ${e.lieu.coordonnees.join(', ')}`, validation: e.validation, corps: `${champ('Nom', echapper(choisi.nom))}<div class="prop"><span>Scène</span>${VALEURS_DE_PROPRIETE.defile({ defile: e.lieu.scene })}</div>
         <div class="r rubrique">Plan du lieu</div><div class="plan-du-lieu">${echapper(e.lieu.plan)}</div>
-        <div class="r rubrique">Établissements (${e.lieu.etablissements})</div>${plaque('Ajouter un établissement', { icone: 'plus', taille: 'petite' })}
+        <div class="r rubrique">Établissements (${e.lieu.etablissements})</div>${gesteDeLInspecteur('Ajouter un établissement', 'plus')}
         <div class="r rubrique">Routes (${sesRoutes.length})</div>${sesRoutes.map((r) => `<div class="prop"><span>${echapper(lieu(r.de === e.choisi ? r.vers : r.de).nom)}</span><span class="v chiffres">${r.km} km</span></div>
-          <div class="prop sens"><span>Sens</span>${segments(['Les deux sens', depuis], r.deuxSens ? 'Les deux sens' : depuis)}</div>`).join('')}
-        ${e.validation ? validationDe(e.validation) : ''}`)];
+          <div class="prop sens"><span>Sens</span>${segments(['Les deux sens', depuis], r.deuxSens ? 'Les deux sens' : depuis)}</div>`).join('')}` })];
   };
 
   /* ───────── les lieux et la route ───────── */
