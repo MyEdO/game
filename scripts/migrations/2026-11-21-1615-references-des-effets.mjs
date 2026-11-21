@@ -1,4 +1,10 @@
-/** #1615 — références emboîtées des dons, de l’apprentissage d’un sort et de la mise à disposition d’un navire. */
+/**
+ * #1615 — références emboîtées des dons, de l’apprentissage d’un sort et de la mise à disposition d’un navire.
+ *
+ * Entrées : src/data/trappings.json et src/data/vehicles.json (catalogues lus),
+ * src/data/spells.json, src/scenes/arene/arene-projet.json, src/scenes/barge-du-sel/barge-du-sel-projet.json
+ * et src/scenes/loup-et-saumure/loup-et-saumure-projet.json (lus et écrits).
+ */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';

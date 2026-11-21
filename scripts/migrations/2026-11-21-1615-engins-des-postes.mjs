@@ -1,4 +1,9 @@
-/** #1615 — les pièces des postes de scène désignent le catalogue des engins par `engin: { id }`. MDG 12 l.369-379. */
+/**
+ * #1615 — les pièces des postes de scène désignent le catalogue des engins par `engin: { id }`. MDG 12 l.369-379.
+ *
+ * Entrées : src/scenes/barge-du-sel/barge-du-sel-projet.json et
+ * src/scenes/loup-et-saumure/loup-et-saumure-projet.json (lus et écrits).
+ */
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const projets = ['barge-du-sel', 'loup-et-saumure'];
