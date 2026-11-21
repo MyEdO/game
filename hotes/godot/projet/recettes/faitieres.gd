@@ -7,9 +7,10 @@ extends SceneTree
 ## test (`_modele_de_test` : une `faitiere` longue de 2 m le long de X, Y à 0 sur l'arête du faîte, un V en travers dont
 ## chaque bras descend d'une pente de 1), puis de chaque modèle de toit servi au figé (`toits` de la réponse de
 ## `modeles`). Chaque faîtière a son instance ; son arête court d'un bout du faîte à l'autre, à sa cote, et deux faîtières
-## voisines se rejoignent au bout qu'elles partagent ; au modèle de test, sur l'échantillon (La Diligence a des pans plus
-## étroits que les bras, aux marches de son champ de croupe), le bout de chaque bras repose sur le pan de son côté, lu au
-## maillage de la nappe posée ; cachée avec sa nappe (`VolumeDeScene.cacher`), elle quitte les instances
+## voisines se rejoignent au bout qu'elles partagent ; au modèle de test, sur l'échantillon (La Diligence a des faîtes
+## que le bras déborde : au joint rentrant d'une aile d'une case, où il passe la noue, et au faîte propre d'une
+## enveloppe qui affleure la croupe commune), le bout de chaque bras repose sur le pan de son côté, lu
+## au maillage de la nappe posée ; cachée avec sa nappe (`VolumeDeScene.cacher`), elle quitte les instances
 ## vues, et y revient quand la nappe revient. L'instance se lit par `VolumeDeScene.transform_d_instance`, sans rendu.
 
 const RECETTE_AUTONOME := true

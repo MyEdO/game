@@ -28,8 +28,8 @@ import { ornementsDuBati } from './ornements';
  * Builder de TOITS du pivot : on teste la FUSION EN PANS CONTINUS (le fix de la cause racine « toit
  * mosaïque/zigzag ») — un polygone par pan, cellules-selles scindées en triangles PLANS le long de
  * l'arêtier, faîte et arêtiers en arêtes COMMUNES de deux pans —, les hauteurs en MÈTRES, les vérités
- * de scène (visible, roofOccupied), et la dérivation par MASSE (#823) : `hip` par BFS (noues/croupes
- * automatiques sur un corps en L, jamais une boîte englobante) et `roomZoneIds` DÉRIVÉS des zones
+ * de scène (visible, roofOccupied), et la dérivation par MASSE (#823) : `hip` par distance de Tchebychev au bord
+ * (noues/croupes automatiques sur un corps en L, jamais une boîte englobante) et `roomZoneIds` DÉRIVÉS des zones
  * intérieures que l'emprise recouvre (jamais un champ authoré).
  */
 
@@ -53,7 +53,7 @@ function coter(scene: Scene, z: number, metres: number, cells?: readonly { x: nu
 }
 
 /** Forme HIP par défaut des tests de pavage bruts — reproduit le pavage « sans shape »
- *  (profondeur BFS × `S`, la même formule pour toute forme y compris un L). */
+ *  (distance de Tchebychev au bord × `S`, la même formule pour toute forme y compris un L). */
 const hip = (eaveHeightM = 0, pitch = S): RoofShapeSpec => ({ profile: 'hip', ridge: 'x', pitch, eaveHeightM });
 
 /** Sommets d'un polygone, triés (x,y,h) — compare des boucles sans dépendre du point de départ. */
@@ -89,7 +89,7 @@ function isPlanar(f: Face): boolean {
   return f.poly.every((p) => Math.abs(p0.h + gx * (p.x - p0.x) + gy * (p.y - p0.y) - p.h) < 1e-9);
 }
 
-describe('roofPans — rectangle 4×2 : 4 pans EXACTS + faîte (hip, distance BFS = pyramide)', () => {
+describe('roofPans — rectangle 4×2 : 4 pans EXACTS + faîte (hip)', () => {
   const { faces } = roofPans(rect(0, 0, 4, 2), 'tuile', undefined, hip());
 
   it('4 pans, un par orientation, tous PLANS', () => {
@@ -153,7 +153,7 @@ describe('roofPans — pyramide 4×4 : selles du centre TRIANGULÉES, apex parta
   });
 });
 
-describe('roofPans — forme en L : arêtiers/noue triangulés SANS selle (hip BFS, croupes ET noues automatiques)', () => {
+describe('roofPans — forme en L : arêtiers/noue triangulés SANS selle (hip, croupes ET noues automatiques)', () => {
   const L = new Set([...rect(0, 0, 4, 2), ...rect(0, 2, 2, 2)]);
   const { faces } = roofPans(L, 'tuile', undefined, hip());
 
@@ -174,6 +174,55 @@ describe('roofPans — forme en L : arêtiers/noue triangulés SANS selle (hip B
 
   it('2 faîtes (bras long + bras court)', () => {
     expect(sharedEdges(faces).filter(([a, b]) => a.h === b.h)).toHaveLength(2);
+  });
+});
+
+/**
+ * #4471 — la croupe d'une emprise rectiligne est son SQUELETTE DROIT : la montée d'un point est sa distance de
+ * Tchebychev au bord, soit le plus grand demi-côté d'un carré centré sur lui qui tienne dans l'emprise. Un pan PLAN par
+ * côté d'emprise, chacun montant à `S` perpendiculairement à son égout ; arêtiers et noues à 45°.
+ */
+describe('roofPans — croupe d’une emprise en L, T ou U : un pan par côté, sur la distance de Tchebychev au bord (#4471)', () => {
+  const sans = (cells: Set<string>, trou: Set<string>) => new Set([...cells].filter((k) => !trou.has(k)));
+  const FORMES: { nom: string; cells: Set<string>; cotes: number }[] = [
+    { nom: 'L 8×6 entaillé de 4×3', cells: sans(rect(0, 0, 8, 6), rect(4, 0, 4, 3)), cotes: 6 },
+    { nom: 'L 7×5 entaillé de 3×2 (portées impaires)', cells: sans(rect(0, 0, 7, 5), rect(4, 0, 3, 2)), cotes: 6 },
+    { nom: 'T, barre 9×3 et pied 3×5', cells: new Set([...rect(0, 0, 9, 3), ...rect(3, 3, 3, 5)]), cotes: 8 },
+    { nom: 'U 9×6 entaillé de 3×4', cells: sans(rect(0, 0, 9, 6), rect(3, 0, 3, 4)), cotes: 8 },
+  ];
+  /** La montée attendue en `(x, y)` (repère des coins de case) : `S` fois la distance de Tchebychev à la plus proche
+   *  case HORS de l'emprise. */
+  const montee = (cells: Set<string>, x: number, y: number): number => {
+    let d = Infinity;
+    for (let cx = -1; cx <= 10; cx++)
+      for (let cy = -1; cy <= 9; cy++)
+        if (!cells.has(`${cx},${cy}`)) d = Math.min(d, Math.max(0, cx - x, x - cx - 1, cy - y, y - cy - 1));
+    return S * d;
+  };
+
+  it.each(FORMES)('$nom : autant de pans que de côtés, chacun PLAN et montant à S droit depuis son égout', ({ cells, cotes }) => {
+    const { faces, pans } = roofPans(cells, 'tuile', undefined, hip());
+    expect(pans).toHaveLength(cotes);
+    for (const f of faces) expect(isPlanar(f)).toBe(true);
+    for (const { gx, gy } of pans) {
+      expect(Math.min(Math.abs(gx), Math.abs(gy))).toBeCloseTo(0, 9);
+      expect(Math.max(Math.abs(gx), Math.abs(gy))).toBeCloseTo(S, 9);
+    }
+  });
+
+  it.each(FORMES)('$nom : chaque sommet de pan est à la montée de Tchebychev', ({ cells }) => {
+    for (const f of roofPans(cells, 'tuile', undefined, hip()).faces)
+      for (const p of f.poly) expect(p.h, `(${p.x}, ${p.y})`).toBeCloseTo(montee(cells, p.x + 0.5, p.y + 0.5), 9);
+  });
+
+  it.each(FORMES)('$nom : la montée de tout point, entier ou non, est sa distance de Tchebychev au bord', ({ cells }) => {
+    const shape = hip();
+    for (const key of cells) {
+      const [x, y] = key.split(',').map(Number);
+      for (const dx of [0, 0.25, 0.5, 0.75, 1])
+        for (const dy of [0, 0.25, 0.5, 0.75, 1])
+          expect(riseAt({ x: x + dx, y: y + dy }, cells, shape), `(${x + dx}, ${y + dy})`).toBeCloseTo(montee(cells, x + dx, y + dy), 9);
+    }
   });
 });
 
@@ -923,19 +972,6 @@ describe('roofPans — le faîtage d’une portée IMPAIRE ne s’aplatit pas en
       for (const f of faces) expect(isPlanar(f)).toBe(true);
     }
   });
-
-  it('la lecture CONTINUE de la profondeur de croupe est celle du BFS aux sommets ENTIERS', () => {
-    // Une seule vérité de croupe : le pavage insère les sommets qu'il veut, il lit le MÊME toit. Un index
-    // BFS vide force la lecture continue (distance à l'égout) sur chaque sommet entier.
-    const shape = forme('hip');
-    for (const key of enL) {
-      const [x, y] = key.split(',').map(Number);
-      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) {
-        const v = { x: x + dx, y: y + dy };
-        expect(riseAt(v, enL, shape, { dep: new Map() })).toBeCloseTo(riseAt(v, enL, shape), 9);
-      }
-    }
-  });
 });
 
 /**
@@ -1034,7 +1070,7 @@ describe('buildRoofs — le PLAN est la source des masses dérivées (#841)', ()
  * cellules sont 4-adjacentes et qui peuvent partager une pente (`mayShareNappe` : ici trois croupes
  * de MÊME pente authorée) lisent UN champ de hauteur sur l'UNION de leurs emprises : chacune pave SES
  * cellules (identité, cutaway, exclusions intactes) mais la hauteur y est celle du champ commun — au
- * joint le versant CONTINUE et le BFS ouvre la noue, au lieu de deux nappes qui retombent chacune à
+ * joint le versant CONTINUE et la noue s'ouvre à l'angle rentrant, au lieu de deux nappes qui retombent chacune à
  * l'égout. Les traitements d'EXTRÉMITÉ restent par masse : les pignons d'un corps central à versants
  * droits se mesurent sur La Diligence RÉELLE (describe suivant), dont les masses sont dérivées.
  */
