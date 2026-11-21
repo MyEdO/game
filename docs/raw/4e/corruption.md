@@ -562,7 +562,7 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 | Points de Corruption sur `Combatant.corruption` | `Combatant.corruption` (engine/types.ts) | **OK** |
 | `corruptionGain(level, success, dr)` → points selon niveau/DR | `corruptionGain` | **OK** |
 | Seuil `corruption > BFM + BE` → Test Résistance Intermédiaire | `corruptionThresholdExceeded` | **OK** |
-| Talent Âme Pure → seuil + niveau | `talentCorruptionThreshold(c)` (dispatch) | **OK** |
+| Talent Âme Pure → seuil + niveau | `talentCorruptionThreshold(c)` (`src/engine/combatFeatures/talents.ts`) | **OK** |
 | Dissolution : -BFM Points, d100 corps/esprit par espèce | `applyMutation` → `mutationKindFor` | **OK** |
 | Table corps/esprit par race (Elfe/Halfling/Humain/Nain, Ogre, Gnome) | `natureDeMutationDe` → `mutationKindFor` | **OK** |
 | Tirage sur table physique/mentale | `rollMutation(kind, rng)` (data/mutations) | **OK** |

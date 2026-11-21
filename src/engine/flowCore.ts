@@ -36,10 +36,9 @@ import {
   estOpDuMarche,
   estOpDuNavire,
   opDemandeUnDe,
-  valeurNonLiee,
-  type Formula,
-  type GameOp,
-} from './ops';
+} from './faitsDOp';
+import { valeurNonLiee } from './formule';
+import type { Formula, GameOp } from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type Id } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -50,6 +49,8 @@ import { actorStatus, statusMeets, type PorteurDeStatut } from './social';
 import type { Status } from './money';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { estObjet } from '../lib/objet.mjs';
+
+export { poserEnjeu } from './enjeuDuTest';
 
 /** Fenêtre horaire d'un trigger/Condition (heure-du-jour, `before` EXCLUSIF). Champs absents = borne
  *  ouverte ; objet vide = toujours vrai. Aucune dépendance — type structurel pur. */
@@ -757,7 +758,7 @@ const estOpImpureErrante = (o: GameOp): boolean => o.op !== 'grantFreeAttack' &&
  *  `inTestBranch` (interne, propagé par la récursion) reste vrai tant qu'on n'est pas ressorti d'un nœud
  *  `test` — vérité utilisée par la garde de bien-formation des données (`effects` déclenchés). */
 /**
- * Le Flow porte-t-il une op qui DEMANDE UN DÉ À LA PORTE (#1508, `ops.opDemandeUnDe`) ? Calque exact de
+ * Le Flow porte-t-il une op qui DEMANDE UN DÉ À LA PORTE (#1508, `opDemandeUnDe`) ? Calque exact de
  * `flowHasImpureOp` : la même question, posée d'un autre canal.
  *
  * Ce que ça décide : une branche de Test qui en porte une NE PEUT PAS se jouer par le chemin PUR
@@ -805,28 +806,6 @@ export function flowHasFreeAttack<E = EffectOp>(flow: Flow<E>): boolean {
  *  saut…) : un jet se POSE en nœud de Flow, jamais poussé dans une liste d'effets. */
 export function testFlow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate>(test: T, success: Flow<E, T, C>, fail: Flow<E, T, C>): Flow<E, T, C> {
   return { kind: 'test', test, reussite: success, echec: fail };
-}
-
-/**
- * Pose l'ENJEU (#1117) d'un `FlowTest` — RÈGLE UNIQUE des deux étages d'enjeu : un enjeu DÉJÀ
- * déclaré (dataset nommé par le producteur, `AuthoredStake` écrit par un document) PRIME toujours ;
- * à défaut, `stake` s'applique. Aucun enjeu à poser, ou enjeu déjà là : le `FlowTest` ressort
- * IDENTIQUE.
- *
- * Deux provenances de `stake` composent cette règle, et elles seules :
- *  - le PRODUCTEUR moteur nomme son dataset au moment où il fabrique le nœud — un nœud venu d'un
- *    `.json` porte ses branches mais ignore la rangée à laquelle il appartient (`miscast.ts` `mkTest`) ;
- *  - la couche `state` le DÉRIVE du porteur qui exige le jet (`withDerivedStake`,
- *    `src/noyau/combat/triggeredTest.ts`).
- * PUR. Les six porteurs de nœud `test` du moteur passent par ici pour nommer ce qui se joue :
- * rangée d'Imparfaite (`miscast.json`), rangée de Critique (`criticals.json`), coup à l'équipage
- * (`river-criticals.json`, `ship-criticals.json`), cycle de maladie (`symptoms.json`,
- * `maladies.json`) et escalade de séquelle (`Trauma.critTrigger`, nœud de RUNTIME — porté par
- * l'instance de Trauma, hors cardinal authoré).
- */
-export function poserEnjeu<T extends FlowTest>(test: T, stake: StakeRef | undefined): T {
-  if (test.stake || !stake) return test;
-  return { ...test, stake };
 }
 
 /** Champ COMPAGNON obligatoire de chaque forme de nœud (`Flow`) — le second critère de reconnaissance :

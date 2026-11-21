@@ -27,7 +27,7 @@ import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
 import { bonus, effectiveChar, effectPool, retenirParPool, blessuresReconciliees } from './characteristics';
 import { d100, RNG } from './dice';
-import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
+import { annulateurDeSequelles, passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
 import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
 import type { CodexTarget } from './ruleRefs';
@@ -40,6 +40,7 @@ import { dropExpiredGrantedMutations } from './corruption';
 import { recomputeLoadout, type TrappingResolver } from './items';
 import { isFrenzied, isFrenzyCapable, restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
+import { applyActiveEffect } from './effetsActifs';
 import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
@@ -934,6 +935,12 @@ export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boo
   log?.push(...portes);
   c.wounds = blessuresReconciliees(c);
   return removed;
+}
+
+/** LDB 17 l.60 */
+export function poseDeterminationCanceller(c: Combatant, duration: Duration, label: string): void {
+  removeActiveEffects(c, annulateurDeSequelles.designe);
+  applyActiveEffect(c, { label, effectId: annulateurDeSequelles.id, bonus: 0, duration, ignoreCritMods: true });
 }
 
 /** Le SORT source d'un effet actif porte-t-il le marqueur « + » de fin de Durée (LDB 47 l.311) ? Lookup

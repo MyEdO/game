@@ -17,12 +17,12 @@
 import { Combatant, HitLocation, type EffectSource } from './types';
 import { RNG } from './dice';
 import { bonus, effectiveChar } from './characteristics';
-import { talentCorruptionThreshold } from './combatFeatures/dispatch';
+import { talentCorruptionThreshold } from './combatFeatures/talents';
 import { findTableEntry } from './tables';
 import { findRegleById, natureDeMutationDe, type MutationData } from '../data';
 import { followsCharacterRules } from './relations';
 import type { EntreeVivante } from '../data/datasets';
-import { acquerirTalent, retirerTalent } from './careerSlots';
+import { acquerirTalent, retirerTalent } from './acquisitionTalents';
 import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
 import { traitOctroye } from './psych/opsPsy';
@@ -156,7 +156,7 @@ function resoudrePlancher(c: Combatant, op: OpPassive): OpPassive {
  *  Un `charMod` à plancher (`min`) est FIGÉ sur l'instance en son delta (`resoudrePlancher`).
  *  `grantTrait` (résolution PARTAGÉE `traitsOctroyes`, le mutant pour lanceur) et `grantPsychTrait` (noyau
  *  PARTAGÉ `grantedTraits.ts`) : MÊME chemin que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect`
- *  porteur — une mutation n'expire jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les
+ *  porteur — une mutation n'expire jamais). `grantTalent` : `acquerirTalent` (engine/acquisitionTalents.ts), les
  *  passifs d'une mutation ne passant pas par `applyOps`. Rend l'instance attachée. */
 export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutation {
   const m = structuredClone(tiree); // #2097

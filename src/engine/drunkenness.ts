@@ -22,11 +22,10 @@
  * `c`, renvoie journaux ; le RNG est injecté ; la valeur du Test de Résistance à l'alcool et le Bonus
  * d'Endurance sont passés par l'appelant (comme `provisions.ts`).
  */
-import type { Combatant, CharKey } from './types';
+import type { Combatant } from './types';
 import { RNG, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import type { GameOp } from './ops';
-// cycle runtime (conditions→characteristics→trauma→drunkenness) : appelés au dessoûlage, jamais à l'init
 import {
   addClockCondition,
   removeActiveEffects,
@@ -36,12 +35,11 @@ import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
 import type * as ivresse from '../data/schemas/defs/drunkenness';
 import { t } from '../i18n';
 
+export { DRUNK_CARACS, alcoholFailures, drunkPenalty, drunkCharPenalties } from './passifsDIvresse';
+
 // La MÉCANIQUE d'un résultat d'Ivresse (Bravoure/meilleur ami/belligérant) est RENDUE en `GameOp[]`
 // (`DrunkEntry.ops`, données de `drunkenness.json`) et appliquée par l'APPELANT, sous le ctx imbriqué de
 // son op (`case 'intoxicate'` d'`applyOps`, le seul).
-
-/** Caractéristiques pénalisées par l'Ivresse (LDB 09 l.475). */
-export const DRUNK_CARACS: CharKey[] = ['capacite-de-combat', 'capacite-de-tir', 'agilite', 'dexterite', 'intelligence'];
 
 /** État d'ivresse d'un personnage (absent = sobre). */
 export interface DrunkState {
@@ -58,27 +56,9 @@ type DrunkEntry = RangeeDe<typeof ivresse>;
 /** Le Tableau d'Ivresse VIVANT — la collection que le Codex édite (`drunkenness`, `data/overrides.ts`). */
 export const DRUNK_TABLE = rangeesDe<typeof ivresse>(drunkennessJson);
 
-/** Nombre d'échecs de Résistance à l'alcool accumulés. */
-export function alcoholFailures(c: Combatant): number {
-  return c.drunk?.failedTests ?? 0;
-}
-
 /** Ivre (seuil BE d'échecs franchi) ? */
 export function isDrunk(c: Combatant): boolean {
   return c.drunk?.drunk === true;
-}
-
-/** Pénalité d'Ivresse aux DRUNK_CARACS : −10 par échec, plafond −30 (LDB 09 l.475). 0 sinon. */
-export function drunkPenalty(c: Combatant): number {
-  const f = alcoholFailures(c);
-  return f > 0 ? -10 * Math.min(3, f) : 0;
-}
-
-/** Pénalités de Caractéristique dues à l'Ivresse (injectées dans `effectiveChar` via `passiveMods`).
- *  Seules CC/CT/Ag/Dex/Int sont touchées (l.475). Retourne [] pour les autres. */
-export function drunkCharPenalties(c: Combatant, key: CharKey): number[] {
-  const p = drunkPenalty(c);
-  return p < 0 && DRUNK_CARACS.includes(key) ? [p] : [];
 }
 
 /**
