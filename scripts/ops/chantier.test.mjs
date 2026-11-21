@@ -5,6 +5,7 @@
 // Lancé par `npm run test:ops`.
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -12,7 +13,7 @@ import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import {
   ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, EQUIPEMENTS_DU_CONTENEUR, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, creerChantier, equipementsDesPrerequis,
-  nomValide, ouvrirChantier, refusDeCreation, relancerChantier, resumeDeChantier,
+  main, nomValide, ouvrirChantier, refusDeCreation, relancerChantier, resumeDeChantier,
 } from './chantier.mjs'
 import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
 import { synchroniserPrincipal } from './synchroniser.mjs'
@@ -37,12 +38,60 @@ test('un nom de chantier est un numéro de ticket, avec un slug optionnel en min
   }
 })
 
-test('argumentsDe : le nom est le premier argument NON drapeau, --sans-ci se lit où qu’il soit', () => {
+test('argumentsDe : un nom, avec --sans-ci avant ou après', () => {
   assert.deepEqual(argumentsDe(['1736']), { nom: '1736', sansCi: false })
   assert.deepEqual(argumentsDe(['1736', '--sans-ci']), { nom: '1736', sansCi: true })
   assert.deepEqual(argumentsDe(['--sans-ci', '1736']), { nom: '1736', sansCi: true })
   assert.equal(argumentsDe([]), null, 'sans nom, il n’y a rien à ouvrir')
   assert.equal(argumentsDe(['--sans-ci']), null)
+})
+
+test('CLI #4637 : aides et refus avant tout lancement de Git ou npm', () => {
+  const chantier = join(import.meta.dirname, 'chantier.mjs')
+  const sentinelle = `
+    import enfant from 'node:child_process'
+    import { writeSync } from 'node:fs'
+    import { syncBuiltinESMExports } from 'node:module'
+    for (const nom of ['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync', 'fork']) {
+      enfant[nom] = (commande) => {
+        writeSync(2, 'sous-processus inattendu : ' + commande + '\\n')
+        process.exit(99)
+      }
+    }
+    syncBuiltinESMExports()
+  `
+  const preload = 'data:text/javascript,' + encodeURIComponent(sentinelle)
+  const usage = /^\[chantier\] usage : npm run ops:chantier -- <nom> \[--sans-ci\]$/m
+
+  for (const argv of [['--help'], ['4629', '--help'], ['--help', '4629-aide-chantier', '--sans-ci']]) {
+    const vu = spawnSync(process.execPath, ['--import', preload, chantier, ...argv], { encoding: 'utf8', timeout: 10_000 })
+    assert.ifError(vu.error)
+    assert.equal(vu.status, 0, `${argv.join(' ')} : ${vu.stderr}`)
+    assert.equal(vu.stderr, '')
+    assert.match(vu.stdout, usage)
+  }
+
+  for (const { argv, diagnostic } of [
+    { argv: [], diagnostic: '' },
+    { argv: ['--sans-ci'], diagnostic: '' },
+    { argv: ['4629', '--argument-inconnu'], diagnostic: 'option inconnue : « --argument-inconnu »' },
+    { argv: ['--help', '4629', '--argument-inconnu'], diagnostic: 'option inconnue : « --argument-inconnu »' },
+    { argv: ['4629', 'second', '--help'], diagnostic: 'argument surnuméraire : « second »' },
+    { argv: ['4629', 'second'], diagnostic: 'argument surnuméraire : « second »' },
+    { argv: ['--sans-ci', '4629', '--sans-ci'], diagnostic: 'option surnuméraire : « --sans-ci »' },
+    { argv: ['--help', '--help'], diagnostic: 'option surnuméraire : « --help »' },
+    { argv: ['--help=false', '4629'], diagnostic: 'option inconnue : « --help=false »' },
+    { argv: ['4629', '--'], diagnostic: 'option inconnue : « -- »' },
+    { argv: ['-x', '4629'], diagnostic: 'option inconnue : « -x »' },
+    { argv: ['4629-Aide'], diagnostic: 'nom de chantier invalide : « 4629-Aide »' },
+  ]) {
+    const vu = spawnSync(process.execPath, ['--import', preload, chantier, ...argv], { encoding: 'utf8', timeout: 10_000 })
+    assert.ifError(vu.error)
+    assert.equal(vu.status, 1, `${argv.join(' ')} : ${vu.stderr}`)
+    assert.equal(vu.stdout, '')
+    assert.ok(vu.stderr.includes(diagnostic), vu.stderr)
+    assert.match(vu.stderr, usage)
+  }
 })
 
 test('refusDeCreation dit DISTINCTEMENT la cible et la branche : ce ne sont pas les mêmes sorties', () => {
@@ -208,7 +257,7 @@ test('progression avant fetch, création et chaque équipement ; durée après l
   } finally { jeter() }
 })
 
-test('création RÉELLE : worktree .wt-42 sur chantier/42 issue d’ORIGIN/main, puis refus du second appel', () => {
+test('création RÉELLE par la CLI depuis ORIGIN/main, avec et sans équipement, puis refus du second appel', async () => {
   const { racine, git, jeter } = depotAvecOrigin()
   try {
     // HEAD local DIVERGE d'origin/main (un commit non poussé) : un chantier parti de HEAD
@@ -218,22 +267,36 @@ test('création RÉELLE : worktree .wt-42 sur chantier/42 issue d’ORIGIN/main,
     const teteLocale = git('rev-parse', 'HEAD')
     assert.notEqual(teteLocale, git('rev-parse', 'origin/main'))
 
-    let npmVu = null
-    const vu = creerChantier({ env: POSTE, racine, nom: '42', sansCi: true, npm: (...a) => { npmVu = a; return { status: 0 } } })
-
-    assert.equal(vu.ok, true, vu.refus)
-    assert.equal(npmVu, null, '--sans-ci : npm n’est jamais appelé')
-    const cible = cibleDe(racine, '42')
-    assert.equal(existsSync(cible), true, 'le worktree est posé sur le disque')
-    assert.equal(vu.branche, 'chantier/42')
     const gitLa = (cwd, ...args) => lancerGit(args, { cwd }).trim()
-    assert.equal(gitLa(cible, 'rev-parse', '--abbrev-ref', 'HEAD'), 'chantier/42')
-    assert.equal(gitLa(cible, 'rev-parse', 'HEAD'),
-      git('rev-parse', 'origin/main'), 'le chantier part d’origin/main')
-    assert.notEqual(gitLa(cible, 'rev-parse', 'HEAD'), teteLocale,
-      'et surtout PAS de HEAD local')
-    assert.match(vu.resume, new RegExp(`branche=${brancheDe('42')}`))
-    assert.match(vu.resume, /^port=\d+ \(http:\/\/localhost:\d+\/\)$/m)
+    for (const { nom, argv, sansCi } of [
+      { nom: '42', argv: ['42', '--sans-ci'], sansCi: true },
+      { nom: '43-aide', argv: ['--sans-ci', '43-aide'], sansCi: true },
+      { nom: '44', argv: ['44'], sansCi: false },
+    ]) {
+      const appelsNpm = []
+      const sorties = []
+      const erreurs = []
+      const code = await main(argv, {
+        synchroniser: async () => ({ etat: 'a-jour' }),
+        creer: (args) => creerChantier({
+          ...args, env: POSTE, racine, annoncer: () => {},
+          npm: (_cmd, argsNpm) => { appelsNpm.push(argsNpm); return { status: 0 } },
+        }),
+        dire: (texte) => erreurs.push(texte),
+        imprimer: (texte) => sorties.push(texte),
+      })
+      assert.equal(code, 0, erreurs.join(''))
+      if (sansCi) assert.deepEqual(appelsNpm, [])
+      else assert.deepEqual(appelsNpm[0], ['ci', '--no-audit', '--no-fund'])
+      const cible = cibleDe(racine, nom)
+      const branche = brancheDe(nom)
+      assert.equal(existsSync(cible), true, 'le worktree est posé sur le disque')
+      assert.equal(gitLa(cible, 'rev-parse', '--abbrev-ref', 'HEAD'), branche)
+      assert.equal(gitLa(cible, 'rev-parse', 'HEAD'), git('rev-parse', 'origin/main'))
+      assert.notEqual(gitLa(cible, 'rev-parse', 'HEAD'), teteLocale)
+      assert.match(sorties.join(''), new RegExp(`branche=${branche}`))
+      assert.match(sorties.join(''), /^port=\d+ \(http:\/\/localhost:\d+\/\)$/m)
+    }
 
     const second = creerChantier({ env: POSTE, racine, nom: '42', sansCi: true })
     assert.equal(second.ok, false)
