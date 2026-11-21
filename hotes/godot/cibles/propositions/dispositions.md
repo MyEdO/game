@@ -346,3 +346,121 @@ ou le coin d'ancrage de chaque pièce.
 
 Conformes, sans écart : accueil, création (croix dans la frise, héros à droite, « Suivant » au-dessus de
 « Précédent »), lieu, auberge (l'offre de l'aubergiste reste à gauche), échoppe.
+
+## Grammaire de table (étape 2 de #4585, à valider)
+
+Règle 3 du plan `docs/plans/2026-11-21-maquettes-en-donnees.md`. Elle est écrite ici, et non dans `kit.md`, parce qu'elle dit comment un champ d'état arrive à une place : `kit.md` nomme les natures, ce document nomme les cadres et les places où elles se posent. Sa preuve sur papier est `docs/plans/2026-11-21-tables-d-essai.md`. `R` = `sources/rendu.js`, `M` = `sources/maquettes/maquette.ts`.
+
+### Ce qu'est une table
+
+Une table de gabarit est une donnée : un objet littéral, sans corps de fonction. Elle associe à chaque place d'un cadre (`CADRES`, `PLACES`, `R:19-48`, `R:96-161`) une déclaration. Le moteur de `rendu.js` l'interprète : il lit l'état, résout les références et les libellés, appelle les primitives du catalogue. Une table ne nomme que des natures du catalogue (`kit.md`), des variantes nommées, des champs de l'état, des ids de libellé et des tables déclarées.
+
+### Les cinq formes de la règle 3
+
+| Forme | Écriture | Sens |
+|---|---|---|
+| 1. Champ vers nature | `place  nature(param ← chemin)` | le champ nourrit un paramètre sémantique d'une primitive. Un paramètre reçoit une valeur typée, un texte de la donnée, un id de libellé (`#id`), une variante nommée (`'x'`) ou, pour un emplacement, d'autres déclarations |
+| 2. Optionnel | `? déclaration` | rien ne s'émet quand le champ manque. Un drapeau `true` ou absent compte pour un discriminant à deux valeurs |
+| 3. Liste | `chaque chemin : déclaration` | une émission par élément, dans l'ordre de la donnée |
+| 4. Alternative | `selon chemin { 'a' : … ; 'b' : … }` | le champ est un littéral ; toutes ses valeurs sont couvertes, le typage le vérifie |
+| 5. Référence | `chemin → TABLE` | le champ est un id ; la table déclarée en tête rend l'élément. Une table est une liste de l'état (héros, combattants, profil) ou une table du kit (pictogramme d'un id, ordre d'un domaine) |
+
+Un chemin se lit depuis l'élément courant ; `état.` repart de la racine.
+
+### Les huit déclarations que les tables d'essai réclament
+
+Aucune n'est une fonction. Chacune ferme des cas relevés dans `voyage` et `fiche` (numéros V, F, C du document d'essai).
+
+| # | Déclaration | Écriture | Cas fermés |
+|---|---|---|---|
+| D1 | Repli | `chemin sinon #id`, ou `? A sinon B` | V1, V8, F5, C13 |
+| D2 | Conteneur vide absent | implicite : un cadre ou une colonne dont tous les emplacements sont vides ne s'émet pas | V2 |
+| D3 | Liste sur table déclarée | `chaque TABLE : …` | V3, F2, C6 |
+| D4 | Désigné par id | `armée ← id = chemin`, `présent ← id ∈ chemin` | V4, F2, C2 |
+| D5 | Liste sur places numérotées | `place-{rang}`, `place-{3+rang}`, `complétée à n par …` | V5, F2, C1, C5 |
+| D6 | Ancre par référence | `ancre ← chemin → TABLE` : le mobile se pose sur l'élément émis pour cet id | V6 |
+| D7 | Suite de fragments | `suite[ a, ? b, c ]` : des valeurs séparées par le séparateur du catalogue ; un libellé à trous quand l'ordre des mots compte | V7, F7, C8 |
+| D8 | Renvoi à une table | `table nom(chemin)` : une table partagée (bandeau, fenêtre, carte, option, jeton de réserve) | 65 états partagent la fenêtre (`R:406`) |
+
+Le moteur marque en plus chaque cadre du littéral de l'alternative qui l'a émis (C11) : une feuille de placement cible cette marque, la table ne passe aucune classe.
+
+### Ce que la grammaire refuse
+
+- Un calcul : somme, comparaison, arithmétique, découpe de chaîne. La valeur vient de l'état (21 champs relevés dans le document d'essai).
+- Un test de forme (`'x' in e`, `typeof`). Le champ reçoit un littéral.
+- Un style ou une classe libre. La table nomme une variante du catalogue.
+- Un format écrit sur place. Les formats de valeur sont une liste fermée du kit : signé, compte (« n / sur »), part, prix, pourcentage, milliers, ordinal, quantité (nombre et mot accordé), ×n, DR, PX, NI, d100.
+
+### Discriminant de chaque type d'état
+
+Choix d'ingénierie, révisable : un champ `role` au premier niveau, du même nom que dans les unions internes (`Centre` `M:281`, `HerosSansDe` `M:108`). `gabarit` continue de nommer la table des cadres, `decor` le peintre de `#scene`. Aujourd'hui `gabarit` et `decor` ne suffisent pas pour douze types, que le rendu reconnaît à leur forme.
+
+| Type (`M`) | `role` proposé | Reconnu aujourd'hui par |
+|---|---|---|
+| `EtatDeCombat` :386 | `'fenetre'` | `gabarit` |
+| `TourDeCombat` :483 | `'tour'` | `gabarit` |
+| `IssueDuCombat` :505 | `'issue'` | `gabarit` |
+| `Poursuite` :601 | `'poursuite'` | `decor` `mer`, `foret` |
+| `Voyage` :669 | `'voyage'` | `decor` `route`, `fleuve`, `traversee` |
+| `Bord` :716 | `'bord'` | `decor` `bord` |
+| `BatailleDeMasse` :780 | `'bataille'` | `decor` `champ` |
+| `Interlude` :825 | `'interlude'` | `decor` `ville` |
+| `Nuit` :997 | `'nuit'` | `decor` `auberge`, `taverne`, `bivouac` |
+| `Soins` :1017 | `'soins'` | **forme** : `'actes' in e` (`R:1765`), `decor` `salle` partagé |
+| `Commerce` :1155 | `'commerce'` | `decor` `halle`, `quai`, `relais` |
+| `Exploration` :1288 | `'exploration'` | **forme** : pas d'`actes` (`R:1765`) |
+| `CarteDuMonde` :1333 | `'carte-du-monde'` | `decor` `reikland` |
+| `Dossier` :1223 | `'dossier'` | **forme** : `'possession' in etat` (`R:1738`) |
+| `Creation` :1589 | `'creation'` | **forme** : `'etapes' in e` (`R:1721`) |
+| `FicheDuHeros` :1656 | `'fiche-du-heros'` | **forme** : `'sets' in e` (`R:1721`) |
+| `DepenseDExperience` :1725 | `'depense'` | **forme** : `'competences' in e` (`R:1721`) |
+| `ChangementDeCarriere` :1756 | `'changement'` | **forme** : aucun des trois (`R:1721`) |
+| `Options` :861 | `'options'` | **forme** : `'domaines' in etat` (`R:1785`) |
+| `Coop` :1974 | `'coop'` | **forme** : `'sieges' in etat` (`R:1786`) |
+| `Sauvegardes` :1870 | `'sauvegardes'` | **forme** : ni l'un ni l'autre (`R:1785-1787`) |
+| `Carnet` :1355 | `'carnet'` | `decor` `salle` de `gestion` |
+| `NouvellePartie` :1894 | `'nouvelle-partie'` | `decor` `compagnie` |
+| `FinDeSeance` :1849 | `'fin-de-seance'` | `decor` `jeu` de `gestion` |
+| `Accueil` :1786 | `'accueil'` | `decor` `couchant` |
+| `MenuDeLaPartie` :1798 | `'menu'` | `decor` `jeu` d'`ouverture` |
+| `Chapitre` :1835 | `'chapitre'` | `decor` `relais`, `altdorf` |
+| `Compendium` :1953 | `'compendium'` | `gabarit` |
+| `EditeurDeScene` :2032 | `'editeur-de-scene'` | **forme** : pas de `lieux` (`R:1800`) |
+| `EditeurDeLaCarte` :2055 | `'editeur-de-la-carte'` | **forme** : `'lieux' in etat` (`R:1800`) |
+
+Les unions internes sans littéral reçoivent le leur dans le lot de leur gabarit. `rendu.js` les teste par leur forme à 23 endroits : `R:191`, `R:227`, `R:252-257`, `R:302`, `R:337`, `R:351`, `R:352`, `R:388`, `R:543-545`, `R:826`, `R:872`, `R:881`, `R:896`, `R:978`, `R:1008`, `R:1051`, `R:1055`, `R:1121`, `R:1225`, `R:1226`, `R:1420`, `R:1563`, `R:1725`.
+
+## Dictionnaire des libellés (étape 2 de #4585, à valider)
+
+Règle 4 du même plan.
+
+### Trois sortes de mots
+
+| Sorte | Exemple | Où il vit |
+|---|---|---|
+| Mot fixe d'interface : il ne change pas d'une partie à l'autre | « Fin du tour », « Journal », « Total » | le dictionnaire, par id |
+| Nom d'une chose du jeu : héros, lieu, talent, compétence | « Ilyanwë », « Altdorf » | la donnée, comme valeur ; dans le jeu, la base de données le rend par id (fiche `user-doctrine-ids-stables-labels-affichage`), pas ce dictionnaire |
+| Prose du livre ou du scénario | le texte d'un arrêt, une réplique | la donnée, verbatim |
+
+### Où et sous quelle forme
+
+- **Un seul fichier**, à créer avec le pilote : `sources/maquettes/libelles.ts`, à côté de `maquette.ts`. `rendre.mjs` le pose sur la page avec l'état, comme il pose `globalThis.MAQUETTE` (`sources/rendre.mjs:342`).
+- **Forme** : id vers texte. L'id est en minuscules, par domaine puis par chose : `combat.fin-du-tour`. Le texte est un mot fixe, ou une phrase à trous nommés avec ses formes de nombre : `voyage.reste.km` vaut « {n} km avant {lieu} ». Le type de l'id est l'ensemble des clés du fichier : un id inconnu échoue au typage.
+- **Dans une donnée** : un champ de libellé porte l'id, plus un texte. `ouvrir: [{ id: 'dossier' }]` suffit, le mot vient de `ouvrir.dossier` (aujourd'hui l'état répète le mot : `libelle`, `M:678`).
+- **Dans une table** : `#id`, avec ses trous nourris par des champs : `#voyage.reste.{unite}(n ← frise.reste, lieu ← frise.vers)`.
+- **Dans une primitive** : un paramètre `libelle` reçoit le texte déjà résolu par le moteur. La primitive le place et n'écrit aucun mot. Au moins sept en écrivent aujourd'hui : `bourse` et `rangeeDeBourses` (`sources/gestes.js:407`, `:412`), `paginer` (`sources/gestes.js:378`), `ouiNon` (`sources/gestes.js:351`), `camp` (`sources/combat/jet.js:12-13`), `testeurs` (`sources/combat/jet.js:50`), `bandeau` (`sources/lieux-et-nuit/commun.js:60`). Le relevé n'est pas exhaustif.
+
+### Dix mots en dur aujourd'hui
+
+| Mot | Écrit dans | Id proposé |
+|---|---|---|
+| « Fin du tour » | `R:427` | `combat.fin-du-tour` |
+| « Journal » | `R:516`, `R:1338` | `mot.journal` |
+| « Libre » | `R:447` | `mot.libre` |
+| « Bourses du groupe » | `sources/gestes.js:407` | `bourse.groupe` |
+| « Total » | `sources/gestes.js:407`, `:412` | `mot.total` |
+| « Page 1 sur N » | `sources/gestes.js:378` | `page.rang` : « Page {n} sur {sur} » |
+| « Testeur » | `sources/combat/jet.js:50` | `jet.testeur` |
+| « Réussite », « Échec », « Critique » | `sources/combat/jet.js:13`, `R:954` | `verdict.reussite`, `verdict.echec`, `verdict.critique` |
+| « Cadence du voyage », « Jour par jour », « Sous vos ordres » | `R:943-944` | `voyage.cadence`, `cadence.jourParJour`, `cadence.commande` |
+| « Nouveau héros », « Précédent » | `R:1499`, `R:1501` | `creation.nouveau-heros`, `creation.precedent` |
