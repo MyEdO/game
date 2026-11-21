@@ -233,6 +233,15 @@ test('une photo finale impossible refuse en nommant sa cause', () => avecDepot((
   assert.match(resultat.messages.join('\n'), /\[tests\] REFUS photo impossible : git refusé/)
 }))
 
+test('la photographie désigne les extrémités d’un chemin trop long pour le diagnostic', () => avecDepot((racine) => {
+  const chemin = `debut-${'x'.repeat(175)}-fin.txt`
+  const resultat = joue(racine, `import { writeFileSync } from 'node:fs'; writeFileSync(${JSON.stringify(chemin)}, 'ajout');`, { intercepter: false })
+  assert.equal(resultat.code, 1, resultat.brut)
+  const message = resultat.messages.join('\n')
+  assert.match(message, /ajoutés \(1\) : début "debut-xxxxxx", fin "xxxx-fin\.txt"/)
+  assert.ok(message.length < 120, message)
+}))
+
 test('append sur un ignoré préexistant est refusé même si le test attrape le refus', () => avecDepot((racine, lire) => {
   writeFileSync(join(racine, 'ignore.log'), 'initial\n')
   const avant = photoArbre(racine)

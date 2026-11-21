@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync 
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { depotDe, dossierGitCommun } from './gitPorte.mjs'
 import { photoArbre } from './photoArbre.mjs'
 import { listerDossier } from './lister.mjs'
@@ -136,7 +137,7 @@ export function ouvrirControleEcritures(racine, env = process.env) {
       try {
         const apres = photoArbre(racine)
         const refus = listerDossier(dossier).flatMap((f) => readFileSync(join(dossier, f), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)))
-        if (apres.erreur) refus.push(`[tests] REFUS photo impossible : ${borner(apres.erreur.trim(), 240)}`)
+        if (apres.erreur) refus.push(`[tests] REFUS photo impossible : ${decrireCause(apres.erreur.trim())}`)
         else if (apres.texte !== avant.texte) refus.push(`[tests] REFUS arbre modifié : ${decrireEcarts(avant.texte, apres.texte)}`)
         return refus
       } finally { rmSync(dossier, { recursive: true, force: true }) }
@@ -145,7 +146,17 @@ export function ouvrirControleEcritures(racine, env = process.env) {
 }
 
 const MAX_CHEMINS = 8
-const borner = (texte, max) => texte.length <= max ? texte : `${texte.slice(0, max / 2)}…${texte.slice(1 - max / 2)}`
+const extremites = (texte) => `début ${JSON.stringify(texte.slice(0, 12))}, fin ${JSON.stringify(texte.slice(-12))}`
+
+function decrireCause(texte) {
+  const rendu = coupeAuMot(texte, 240)
+  return rendu.length <= 240 ? rendu : `${texte.length} caractères, ${extremites(texte)}`
+}
+
+function decrireChemin(chemin) {
+  const nom = JSON.stringify(chemin)
+  return nom.length <= 160 ? nom : extremites(chemin)
+}
 
 function vueParChemin(texte) {
   const { etat, empreintes } = JSON.parse(texte)
@@ -179,7 +190,7 @@ function decrireEcarts(avant, apres) {
     else groupes.modifiés.push(chemin)
   }
   const descriptions = Object.entries(groupes).filter(([, chemins]) => chemins.length).map(([libelle, chemins]) => {
-    const exemples = chemins.slice(0, MAX_CHEMINS).map((chemin) => borner(JSON.stringify(chemin), 160)).join(', ')
+    const exemples = chemins.slice(0, MAX_CHEMINS).map(decrireChemin).join(', ')
     return `${libelle} (${chemins.length}) : ${exemples}${chemins.length > MAX_CHEMINS ? ', …' : ''}`
   })
   return descriptions.join(' ; ') || 'ordre des entrées différent'
