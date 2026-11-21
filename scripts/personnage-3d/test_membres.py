@@ -14,7 +14,9 @@ n'a rien à corriger et l'autre ferme se garde, un clip dont la correction d'un 
 non corrigé, revient à sa source, un clip dont la correction étire une arête hors de `ETIREMENT_EN_CLIP` sous un seul jeu
 revient à sa source au bit près, un clip que rien ne sort sous la carrure maximale se garde sans elle, sauf si la
 correction l'y enfonce plus qu'à la source ; sur un clip long, l'image voisine non écrite d'une image corrigée se
-re-mesure, et chaque clé écrite garde l'hémisphère du quaternion source."""
+re-mesure, et chaque clé écrite garde l'hémisphère du quaternion source ; la passe du pack corrige sous les cinq jeux de
+la visée initiale, puis sans la carrure maximale ; sur un rig, le tronc d'un état du gabarit est posé de ses clés à leurs
+poids et ses os déplacés de ses facteurs (#3810)."""
 import contextlib
 import io
 import math
@@ -40,8 +42,8 @@ from membres import (ETIREMENT_AGGRAVE, JEUX_REQUIS, bras_de_l_image, corriger, 
 from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, SOL_TOLERANCE_M  # noqa: E402
 from test_sol import DEPLACEMENTS, PARENT, SOMMET, autour_de_l_avant, peaux  # noqa: E402
 from test_tronc import boite  # noqa: E402
-from tronc import (BRAS, TRONC as JEUX, PeauDuMembre, PeauDuTronc, champs_du_tronc, peau_du_tronc, profondeurs,  # noqa: E402
-                   tronc_pose)
+from tronc import (BRAS, TRONC as JEUX, PeauDuMembre, PeauDuTronc, champs_du_tronc, jeu_de_l_etat, peau_du_tronc,  # noqa: E402
+                   profondeurs, tronc_pose)
 
 REPOS = Matrix(((-1, 0, 0), (0, -1, 0), (0, 0, 1)))
 """Les axes de repos des trois os du bras : leur +Y vers l'avant (−Y du rig)."""
@@ -215,8 +217,8 @@ class Verdict(unittest.TestCase):
     CARRURE_PLUS = next(j for j in JEUX_REQUIS[0] if j not in JEUX_REQUIS[1])
 
     def peaux(self, carrure_plus_source, carrure_plus_apres):
-        sources = numpy.full((3, len(JEUX['silhouettes'])), 0.012)
-        apres = numpy.full((3, len(JEUX['silhouettes'])), 0.002)
+        sources = numpy.full((3, len(JEUX['jeux'])), 0.012)
+        apres = numpy.full((3, len(JEUX['jeux'])), 0.002)
         sources[:, self.CARRURE_PLUS], apres[:, self.CARRURE_PLUS] = carrure_plus_source, carrure_plus_apres
         return sources, apres
 
@@ -240,17 +242,17 @@ class Verdict(unittest.TestCase):
 
 class EtirementNeuf(unittest.TestCase):
     """Deux images, trois arêtes au rapport 1 sous chaque jeu, sauf la dernière sous le dernier jeu."""
-    JEU = len(JEUX['silhouettes']) - 1
+    JEU = len(JEUX['jeux']) - 1
 
     def rapports(self, source, apres):
-        sources, apres_ = numpy.ones((2, len(JEUX['silhouettes']), 3)), numpy.ones((2, len(JEUX['silhouettes']), 3))
+        sources, apres_ = numpy.ones((2, len(JEUX['jeux']), 3)), numpy.ones((2, len(JEUX['jeux']), 3))
         sources[1, self.JEU, 2], apres_[1, self.JEU, 2] = source, apres
         return sources, apres_
 
     def test_une_correction_qui_etire_hors_des_bornes_une_arete_que_la_source_y_tenait_se_refuse(self):
         haut = ETIREMENT_EN_CLIP[1]
         self.assertEqual(etirement_neuf(*self.rapports(haut - 0.005, haut + 0.005), [0.0, 8.0]),
-                         f'étirement sous {"+".join(JEUX["silhouettes"][self.JEU])} image 8.00 {haut + 0.005:.5f}')
+                         f'étirement sous {JEUX["jeux"][self.JEU].nom} image 8.00 {haut + 0.005:.5f}')
 
     def test_la_meme_correction_se_garde_si_la_source_depassait_deja_autant(self):
         haut = ETIREMENT_EN_CLIP[1]
@@ -266,15 +268,16 @@ class EtirementSousLesJeux(unittest.TestCase):
     def test_sous_un_jeu_dont_la_cle_double_une_arete_l_etirement_lu_est_le_double_de_celui_du_neutre(self):
         rig = rig_minimal()
         objet = bpy.data.objects['Rig-bras-l']
-        double = next(j for j, jeu in enumerate(JEUX['silhouettes']) if len(jeu) == 1)
+        double = next(j for j, jeu in enumerate(JEUX['jeux']) if len(jeu.poids) == 1)
         sommets = [numpy.array(objet.data.vertices[i].co) for i in (0, 4)]
-        objet.data.shape_keys.key_blocks[JEUX['silhouettes'][double][0]].data[4].co = tuple(2 * sommets[1] - sommets[0])
+        objet.data.shape_keys.key_blocks[next(iter(JEUX['jeux'][double].poids))].data[4].co = tuple(2 * sommets[1] - sommets[0])
         poser(rig, 'l', *flanc('l'))
         noms = [b.name for b in rig.data.bones]
         peaux_ = meshes_for(bpy, rig)
-        tronc = peau_du_tronc(rig, peaux_)
+        tronc = peau_du_tronc(rig, peaux_, JEUX['jeux'])
         epaule = rig.data.bones['upperarm_l']
-        peau_ = peau_du_bras(peaux_, noms, [o.name for o in (epaule, *epaule.children_recursive)], rig.matrix_world.inverted())
+        peau_ = peau_du_bras(peaux_, noms, [o.name for o in (epaule, *epaule.children_recursive)], rig.matrix_world.inverted(),
+                             JEUX['jeux'])
         courantes = numpy.array([numpy.array(rig.pose.bones[n].matrix @ rig.data.bones[n].matrix_local.inverted()) for n in noms])
         rapports = etirements(tronc, peau_, tronc_pose(tronc, courantes, champs=False), courantes)
         a, b = (int(numpy.linalg.norm(peau_.x[0, :, :3] - s, axis=1).argmin()) for s in sommets)
@@ -355,7 +358,7 @@ def maillage(rig, nom, sommets, faces, groupes, aretes=()):
         (objet.vertex_groups.get(os_) or objet.vertex_groups.new(name=os_)).add([i], 1.0, 'REPLACE')
     objet.modifiers.new('Rig', 'ARMATURE').object = rig
     objet.shape_key_add(name='Basis')
-    for silhouette in sorted({s for jeu in JEUX['silhouettes'] for s in jeu}):
+    for silhouette in sorted({s for jeu in JEUX['jeux'] for s in jeu.poids}):
         objet.shape_key_add(name=silhouette)
 
 
@@ -491,16 +494,16 @@ class ClipEntier(unittest.TestCase):
 
     def test_un_clip_dont_la_correction_etire_une_arete_hors_des_bornes_sous_un_seul_jeu_revient_a_sa_source_au_bit_pres(self):
         action = clip(self.rig, 'Fil', {'l': flanc('l')})
-        jeu = next(j for j, s in enumerate(JEUX['silhouettes']) if len(s) == 1 and s != (CARRURE_PLUS,))
+        jeu = next(j for j, s in enumerate(JEUX['jeux']) if len(s.poids) == 1 and s.nom != CARRURE_PLUS)
         coude, main = miroir(EPAULE, 'l') + Vector((0, -0.27, 0)), miroir(EPAULE, 'l') + Vector((0, -0.52, 0))
         maillage(self.rig, 'Rig-fil-l', [tuple(coude), tuple(main)], [], ['lowerarm_l', 'hand_l'], [(0, 1)])
         tendue = self.peau_de('lowerarm_l') @ coude - Vector((1, 0, 0)) * (ETIREMENT_EN_CLIP[1] - 0.01) * (main - coude).length
-        bpy.data.objects['Rig-fil-l'].data.shape_keys.key_blocks[JEUX['silhouettes'][jeu][0]].data[1].co = \
+        bpy.data.objects['Rig-fil-l'].data.shape_keys.key_blocks[JEUX['jeux'][jeu].nom].data[1].co = \
             self.peau_de('hand_l').inverted() @ tendue
         source = courbes(action, self.OS)
         ligne = self.passe(action)
         self.assertIn('rendu à la source', ligne)
-        nom = JEUX['silhouettes'][jeu][0]
+        nom = JEUX['jeux'][jeu].nom
         refus = re.search(f'refus : tous les jeux : l étirement sous {nom} image 0\\.00 (\\d\\.\\d{{5}}) ; '
                           f'sans carrure_plus : l étirement sous {nom} image 0\\.00 (\\d\\.\\d{{5}}) \\|', ligne)
         self.assertIsNotNone(refus, ligne)
@@ -533,6 +536,36 @@ class ClipEntier(unittest.TestCase):
         self.assertIn('rendu à la source', ligne)
         self.assertRegex(ligne, r'sans carrure_plus : l carrure_plus plus enfoncée image 0\.00 \d+\.\d{4} cm pour \d+\.\d{4} cm')
         self.assertEqual(courbes(action, self.OS), source)
+
+
+class JeuxDuPack(unittest.TestCase):
+    def test_la_passe_du_pack_corrige_sous_les_cinq_jeux_de_la_visee_initiale_puis_sans_la_carrure_maximale(self):
+        self.assertEqual([(j.nom, j.poids, j.facteurs) for j in JEUX['jeux']],
+                         [('', {}, {}), ('corpulence', {'corpulence': 1.0}, {}),
+                          ('feminin+corpulence', {'feminin': 1.0, 'corpulence': 1.0}, {}),
+                          ('carrure_plus', {'carrure_plus': 1.0}, {}), ('carrure_moins', {'carrure_moins': 1.0}, {})])
+        self.assertEqual(JEUX_REQUIS, ((0, 1, 2, 3, 4), (0, 1, 2, 4)))
+
+
+class JeuDUnEtat(unittest.TestCase):
+    def test_le_tronc_d_un_etat_du_gabarit_est_pose_de_ses_cles_a_leurs_poids_et_ses_os_deplaces_de_ses_facteurs(self):
+        rig = rig_minimal()
+        torse = bpy.data.objects['Rig-torse']
+        cle = torse.shape_key_add(name='gabarit_arms_plus')
+        for sommet in torse.data.vertices:
+            cle.data[sommet.index].co = sommet.co + Vector((0.0, 0.0, 0.02))
+        table = {'legs': [], 'arms': [BRAS[c][i] for c in BRAS for i in (0, 1)], 'head': []}
+        etat = {'nom': 'arms_plus', 'facteurs': {'sl': 1, 'legs': 1, 'arms': 1.3, 'head': 1, 'st': 1},
+                'poidsSilhouettes': {CARRURE_PLUS: 0}, 'poidsGabarit': {'gabarit_arms_plus': 0.5}}
+        tronc = peau_du_tronc(rig, meshes_for(bpy, rig), (JEUX['jeux'][0], jeu_de_l_etat(table, etat)))
+        numpy.testing.assert_allclose(tronc.x[1, :, :3] - tronc.x[0, :, :3], numpy.tile((0.0, 0.0, 0.01), (len(tronc.x[0]), 1)),
+                                      atol=1e-6)
+        noms = [b.name for b in rig.data.bones]
+        for cote in BRAS:
+            bras, avant_bras, main = (noms.index(n) for n in BRAS[cote])
+            numpy.testing.assert_allclose(tronc.deplacements[1, [bras, avant_bras, main]],
+                                          [(0, 0, 0), (0, -0.3 * 0.25, 0), (0, -0.3 * 0.49, 0)], atol=1e-6)
+        numpy.testing.assert_allclose(tronc.deplacements[0], 0.0)
 
 
 class ClipLong(unittest.TestCase):

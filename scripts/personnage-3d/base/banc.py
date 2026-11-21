@@ -5,7 +5,8 @@ de la base à son empreinte ; la mesure reste celle de l'évaluateur, dont l'out
 
 - `--pack <clip,…|tous>` : `membres.ecarter_les_membres` sur ces clips du pack (`tous` : les clips de la base hors
   `deux_mains.CLIPS`) ;
-- `--deux-mains <clip,…>` : ces clips de `deux_mains.CLIPS`, retirés de la scène puis dérivés (`deux_mains.deriver`).
+- `--deux-mains <clip,…>` : ces clips de `deux_mains.CLIPS`, retirés de la scène puis dérivés et jugés sur les états
+  du gabarit du manifeste comme dans la construction (`deux_mains.deriver_sur_les_etats`).
 Les deux options ensemble jouent la passe du pack d'abord, comme la construction (`humanoide.py`).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/banc.py <base.glb> <base.manifeste.json> \\
@@ -26,6 +27,7 @@ import deux_mains  # noqa: E402
 import membres  # noqa: E402
 from anatomie import reperes_des_prises  # noqa: E402
 from animation import assign_action  # noqa: E402
+from cuisson_gabarit import clips_plantes  # noqa: E402
 from glb import ecrire_glb, lire_accesseur, lire_glb  # noqa: E402
 from pistes import aller_a  # noqa: E402
 from poids import cadence  # noqa: E402
@@ -36,6 +38,8 @@ from tronc import BRAS  # noqa: E402
 
 OS_REECRITS = (*(n for os in BRAS.values() for n in os), *deux_mains.CLAVICULES, *deux_mains.DOS)
 """Les os dont les rotations se réécrivent : ceux que posent `deux_mains.deriver` et `membres.ecarter_les_membres`."""
+DECLARATION = Path(__file__).with_name('humanoide.json')
+"""La déclaration du corps, dont les clips plantés (`cuisson_gabarit.clips_plantes`) se jugent jambes plantées."""
 SAMPLER_LINEAIRE = 'LINEAR'
 FLOTTANT = 5126
 
@@ -69,9 +73,10 @@ def rejouer_le_pack(rig, clips):
     return noms
 
 
-def deriver_a_deux_mains(rig, clips):
-    """Les clips `clips` de `deux_mains.CLIPS` retirés des actions puis dérivés sur `rig` par `deux_mains.deriver`, les
-    autres clips à deux mains laissés tels qu'importés. Rend les noms dérivés."""
+def deriver_a_deux_mains(rig, clips, manifeste):
+    """Les clips `clips` de `deux_mains.CLIPS` retirés des actions puis dérivés sur `rig` et jugés sur les états du
+    gabarit et les silhouettes de `manifeste` (`deux_mains.deriver_sur_les_etats`), les autres clips à deux mains
+    laissés tels qu'importés. Rend les noms dérivés."""
     inconnus = [n for n in clips if n not in deux_mains.CLIPS]
     if inconnus:
         raise ValueError(f'{", ".join(inconnus)} : hors de deux_mains.CLIPS')
@@ -80,7 +85,9 @@ def deriver_a_deux_mains(rig, clips):
     tous = deux_mains.CLIPS
     deux_mains.CLIPS = {n: tous[n] for n in clips}
     try:
-        derivees = [a.name for a in deux_mains.deriver(bpy, rig, reperes_des_prises(rig))]
+        plantes = clips_plantes(json.loads(DECLARATION.read_text(encoding='utf-8')))
+        derivees = [a.name for a in deux_mains.deriver_sur_les_etats(bpy, rig, reperes_des_prises(rig), manifeste['gabarit'],
+                                                                     manifeste['silhouettes'], plantes)]
     finally:
         deux_mains.CLIPS = tous
     if derivees != clips:
@@ -167,7 +174,8 @@ def principal():
     sortie = dossier_de_sortie(args.sortie)
     manifeste = json.loads(args.manifeste.read_text(encoding='utf-8'))
     rig = charger(args.glb, manifeste)
-    clips = (rejouer_le_pack(rig, args.pack) if args.pack else []) + (deriver_a_deux_mains(rig, args.deux_mains) if args.deux_mains else [])
+    clips = (rejouer_le_pack(rig, args.pack) if args.pack else []) + (
+        deriver_a_deux_mains(rig, args.deux_mains, manifeste) if args.deux_mains else [])
     glb = sortie / f'{manifeste["base"]}.glb'
     for clip, par_os in ecrire(args.glb, glb, rig, clips, OS_REECRITS).items():
         print('PISTES', clip, ' '.join(f'{n}={e:.2e}' for n, e in par_os.items()), flush=True)

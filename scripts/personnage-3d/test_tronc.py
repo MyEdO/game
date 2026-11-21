@@ -6,7 +6,8 @@ dehors ; la profondeur exacte d'un point dans une boîte ou un tube ouvert est s
 point dehors ou au-dessus de l'ouverture est à `-inf` ; un point dans une boîte ou à portée d'elle est atteint, un point au-delà non ; sous une silhouette à os, le
 tronc posé et la peau du membre posée sous une autre pose de la chaîne sont ceux du squelette déplacé explicite (#4002) ; le coude
 d'un bras à deux os atteint la cible à portée en gardant ses segments et plie du côté du pôle, ramène une cible hors de
-portée sur la sphère de portée."""
+portée sur la sphère de portée ; sous un facteur d'os, chaque enfant direct de l'os s'éloigne le long du Y de l'os, ses
+descendants avec lui ; un état du gabarit est le jeu de ses poids non nuls et du facteur de chaque os de ses clés (#3810)."""
 import math
 import sys
 import unittest
@@ -20,9 +21,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from sol import tetes_deplacees  # noqa: E402
 from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, autour_de_l_avant, peaux  # noqa: E402
-from tronc import (CHAMP, MembrePose, PeauDuMembre, PeauDuTronc, atteints, avant, champ, coude,  # noqa: E402
-                   lire_le_champ, membre_pose, poids_des_os, posture_du_tronc, poser_le_membre, profondeurs,
-                   profondeurs_exactes, tronc_pose)
+from tronc import (CHAMP, Jeu, MembrePose, PeauDuMembre, PeauDuTronc, atteints, avant, champ, coude,  # noqa: E402
+                   deplacements_des_facteurs, jeu_de_l_etat, lire_le_champ, membre_pose, poids_des_os, posture_du_tronc,
+                   poser_le_membre, profondeurs, profondeurs_exactes, tronc_pose)
 
 BAS, HAUT = numpy.array([-0.2, -0.15, 0.8]), numpy.array([0.2, 0.15, 1.4])
 
@@ -274,6 +275,42 @@ class Coude(unittest.TestCase):
         poignet, _ = coude(epaule, cible, L1, L2, Vector((0, 0, -1)))
         self.assertAlmostEqual((poignet - epaule).length, L1 + L2, places=3)
         self.assertGreater((poignet - epaule).normalized().dot((cible - epaule).normalized()), 0.9999)
+
+
+class Facteurs(unittest.TestCase):
+    """Une chaîne `racine` → `bras`, dressé de 0,4 m le long du Z monde, → `avant_bras`, décalé de 0,1 m en X de la queue
+    du bras, → `main`."""
+
+    def chaine(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        rig = bpy.data.objects.new('Rig', bpy.data.armatures.new('Rig'))
+        bpy.context.scene.collection.objects.link(rig)
+        bpy.context.view_layer.objects.active = rig
+        bpy.ops.object.mode_set(mode='EDIT')
+        parent = None
+        for nom, tete, queue in (('racine', (0, 0, 0), (0, 0, 1)), ('bras', (0, 0, 1), (0, 0, 1.4)),
+                                 ('avant_bras', (0.1, 0, 1.4), (0.1, 0, 1.7)), ('main', (0.1, 0, 1.7), (0.1, 0, 1.8))):
+            os_ = rig.data.edit_bones.new(nom)
+            os_.head, os_.tail, os_.parent = tete, queue, parent
+            parent = os_
+        bpy.ops.object.mode_set(mode='OBJECT')
+        return rig
+
+    def test_sous_un_facteur_l_enfant_direct_s_eloigne_le_long_du_y_de_l_os_ses_descendants_avec_lui(self):
+        d = deplacements_des_facteurs(self.chaine(), {'bras': 1.5})
+        for nom, attendu in (('racine', 0.0), ('bras', 0.0), ('avant_bras', 0.2), ('main', 0.2)):
+            numpy.testing.assert_allclose(d[nom], (0.0, 0.0, attendu), atol=1e-6)
+
+    def test_un_etat_du_gabarit_est_le_jeu_de_ses_poids_non_nuls_et_du_facteur_des_os_de_ses_cles(self):
+        table = {'legs': ['cuisse'], 'arms': ['bras', 'avant_bras'], 'head': ['tete']}
+        etat = {'nom': 'arms_plus__milieu__corpulence', 'facteurs': {'sl': 1, 'legs': 1, 'arms': 1.3, 'head': 1, 'st': 1},
+                'poidsSilhouettes': {'feminin': 0, 'corpulence': 1},
+                'poidsGabarit': {'gabarit_arms_plus': 0.5, 'gabarit_arms_plus_corpulence': 0.5, 'gabarit_legs_plus': 0}}
+        self.assertEqual(jeu_de_l_etat(table, etat), Jeu('arms_plus__milieu__corpulence',
+                                                         {'corpulence': 1, 'gabarit_arms_plus': 0.5, 'gabarit_arms_plus_corpulence': 0.5},
+                                                         {'bras': 1.3, 'avant_bras': 1.3}))
+        with self.assertRaisesRegex(ValueError, 'st'):
+            jeu_de_l_etat(table, {**etat, 'facteurs': {**etat['facteurs'], 'st': 1.2}})
 
 
 if __name__ == '__main__':

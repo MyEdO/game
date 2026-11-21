@@ -16,12 +16,16 @@ tronc se rend avec son jeu et la zone de son os dominant, à sa profondeur exact
 elle refuse le clip ; un bras posé manque le contrôle d'une main qui tourne trop vite sur son avant-bras ou d'une peau
 trop étirée (#3810) ;
 le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
-l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
+l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878) ; un clip dont le
+verdict sur les états du gabarit ressort se redérive seul, sous sa visée accrue des jeux de ses états fautifs qu'elle ne
+pose pas déjà, sa redérivation remplaçant son action, et un clip encore fautif à la dernière dérivation refuse la
+construction en nommant son état, son image et sa profondeur (#3810)."""
 import json
 import math
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import bpy
 import numpy
@@ -29,6 +33,7 @@ from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
+import deux_mains  # noqa: E402
 from deux_mains import (BORNES, CLIPS, CONTINUITE, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS, PeauDuBras, bras,  # noqa: E402
                         chemin, cle, defaut_du_bras, ecarter, etirement_du_bras, hors_des_bornes, interpoler, peau_du_bras,
                         peau_fixe, poser_les_bras, prix_du_tronc, rapports_du_bras, refus_du_tronc, repere_de_l_arme,
@@ -37,7 +42,8 @@ from ecart import ECART_DU_TRONC, POUSSEE  # noqa: E402
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
 from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
 from test_tronc import tronc_en_boite  # noqa: E402
-from tronc import TRONC, ChaineDuBras, PeauDuMembre, membre_pose  # noqa: E402
+from tronc import TRONC, ChaineDuBras, PeauDuMembre, jeu_de_l_etat, membre_pose  # noqa: E402
+from verdict_du_tronc import Cellule  # noqa: E402
 
 L1, L2 = 0.25, 0.24
 LIBRE = {a: [-180, 180] for a in 'xyz'}
@@ -146,13 +152,13 @@ class Peau(unittest.TestCase):
         bpy.context.scene.collection.objects.link(objet)
         objet.vertex_groups.new(name='epaule').add(range(len(self.X)), 1.0, 'REPLACE')
         objet.shape_key_add(name='Basis')
-        silhouettes = sorted({s for jeu in TRONC['silhouettes'] for s in jeu})
+        silhouettes = sorted({s for jeu in TRONC['jeux'] for s in jeu.poids})
         for silhouette in silhouettes:
             objet.shape_key_add(name=silhouette)
-        double = next(j for j, jeu in enumerate(TRONC['silhouettes']) if jeu == (silhouettes[0],))
+        double = next(j for j, jeu in enumerate(TRONC['jeux']) if jeu.nom == silhouettes[0])
         objet.data.shape_keys.key_blocks[silhouettes[0]].data[1].co = tuple(2 * self.X[1, :3] - self.X[0, :3])
-        peau = peau_du_bras([objet], ['racine', 'epaule'], ['epaule'], Matrix.Identity(4))
-        self.assertEqual(peau.x.shape, (len(TRONC['silhouettes']), len(self.X), 4))
+        peau = peau_du_bras([objet], ['racine', 'epaule'], ['epaule'], Matrix.Identity(4), TRONC['jeux'])
+        self.assertEqual(peau.x.shape, (len(TRONC['jeux']), len(self.X), 4))
         rapports = rapports_du_bras(peau, peau.x[:, :, :3])
         arete = next(k for k, (a, b) in enumerate(peau.aretes) if {int(a), int(b)} == {0, 1})
         self.assertAlmostEqual(rapports[0, arete], 1.0, places=6)
@@ -274,8 +280,8 @@ class PoserLesBras(unittest.TestCase):
     def test_une_peau_a_3_mm_dans_le_tronc_passe_a_7_mm_refuse_le_clip(self):
         images = [self.Image([(0.0, -0.3, 1.1)], [(0.0, -0.15 + p, 1.1)], ['main_d']) for p in (0.003, 0.007)]
         _, restes = poser_les_bras(images, [0.0, 1e3], [0.0, 0.0])
-        self.assertIsNone(refus_du_tronc('Clip', 0.0, restes[0]))
-        self.assertIn('main_d enfoncée de 0.70 cm', refus_du_tronc('Clip', 1.0, restes[1]))
+        self.assertIsNone(refus_du_tronc('Clip', 0.0, restes[0], TRONC['jeux']))
+        self.assertIn('main_d enfoncée de 0.70 cm', refus_du_tronc('Clip', 1.0, restes[1], TRONC['jeux']))
 
 
 class Interpolation(unittest.TestCase):
@@ -377,6 +383,51 @@ class SecondesPrises(unittest.TestCase):
                     self.assertAlmostEqual(lu, voulu, places=5)
                 self.assertEqual(math.copysign(1, seconde['position'][1]), math.copysign(1, SECONDES[maniement][0]))
         self.assertGreater(vues, 0)
+
+
+def etat(nom, facteur_des_bras, **poids):
+    """Un état de `gabarit.mjs` aux `poids` de silhouettes, le facteur des bras `facteur_des_bras`."""
+    return {'nom': nom, 'facteurs': {'sl': 1, 'legs': 1, 'arms': facteur_des_bras, 'head': 1, 'st': 1},
+            'poidsSilhouettes': poids, 'poidsGabarit': {}}
+
+
+class ViseeSurLesEtats(unittest.TestCase):
+    """Deux clips, A et B, sous une doublure de la dérivation, qui crée l'action et note la visée, et une doublure du
+    verdict, qui rend les cellules de son tour."""
+    TABLE = {'legs': [], 'arms': ['upperarm_l'], 'head': []}
+    ETATS = [etat('neutre', 1), etat('corpulence', 1, corpulence=1), etat('arms_plus__corpulence', 1.3, corpulence=1)]
+
+    def deriver(self, verdicts):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        visees, juges = [], []
+
+        def deriver_(bpy_, rig, reperes, visees_):
+            visees.append(dict(visees_))
+            return [bpy.data.actions.new(nom) for nom in visees_]
+
+        def cellules(rig, peaux, actions, table, etats, plantes):
+            juges.append([a.name for a in actions])
+            return verdicts[len(juges) - 1]
+
+        with mock.patch.object(deux_mains, 'CLIPS', {'A': None, 'B': None}), \
+                mock.patch.object(deux_mains, 'deriver', deriver_), mock.patch.object(deux_mains, 'cellules_du_tronc', cellules), \
+                mock.patch.object(deux_mains, 'etats_du_gabarit', lambda table, silhouettes: {'etats': self.ETATS}), \
+                mock.patch.object(deux_mains, 'meshes_for', lambda bpy_, rig: []):
+            return deux_mains.deriver_sur_les_etats(bpy, None, None, self.TABLE, [], []), visees, juges
+
+    def test_un_clip_fautif_se_rederive_seul_sous_sa_visee_accrue_et_passe_au_second_tour(self):
+        fautives = [Cellule('arms_plus__corpulence', 'A', 12.0, 'l', 0.0056), Cellule('corpulence', 'A', 3.0, 'r', 0.006)]
+        actions, visees, juges = self.deriver([fautives, []])
+        self.assertEqual([a.name for a in actions], ['A', 'B'])
+        self.assertEqual(sorted(a.name for a in bpy.data.actions), ['A', 'B'])
+        self.assertEqual(juges, [['A', 'B'], ['A']])
+        self.assertEqual(visees[0], {'A': TRONC['jeux'], 'B': TRONC['jeux']})
+        self.assertEqual(visees[1], {'A': (*TRONC['jeux'], jeu_de_l_etat(self.TABLE, self.ETATS[2]))})
+
+    def test_un_clip_encore_fautif_a_la_derniere_derivation_refuse_la_construction(self):
+        fautive = [Cellule('arms_plus__corpulence', 'B', 12.0, 'l', 0.0056)]
+        with self.assertRaisesRegex(ValueError, r'^B sous arms_plus__corpulence image 12.0 l : peau enfoncée de 0.56 cm'):
+            self.deriver([fautive] * deux_mains.TOURS_DE_VISEE + [[]])
 
 
 if __name__ == '__main__':

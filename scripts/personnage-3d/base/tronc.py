@@ -4,10 +4,12 @@
 bras qui porte cette peau (`BRAS`, `coude`, `matrices_de_la_chaine`, `poser_le_membre`).
 
 La surface du tronc est faite des faces des zones `TRONC['zones']`, la zone d'une face étant celle de l'os dominant de
-ses sommets (`anatomie.os_de_la_face`) ; les sujets, des faces des zones de l'avant-bras et de la main d'un côté. Sous un
-jeu de silhouettes, leurs sommets prennent les clés de forme du jeu à 1 et, sous une silhouette à os
-(`portage.lire_os_des_silhouettes`), se posent sur les os déplacés comme l'hôte les joue : chaque sommet se déplace de
-plus de w · e, e_b = ΔJ_b − R_b D_b (docstring de `sol`).
+ses sommets (`anatomie.os_de_la_face`) ; les sujets, des faces des zones de l'avant-bras et de la main d'un côté. Un jeu
+(`Jeu`) est un état du corps comme l'hôte le joue : ses sommets prennent les clés de forme du jeu à leurs poids et se
+posent sur les os déplacés de D, la somme des têtes des silhouettes à os (`portage.lire_os_des_silhouettes`) à leurs
+poids et des déplacements de ses facteurs (`deplacements_des_facteurs`) : chaque sommet se déplace de plus de w · e,
+e_b = ΔJ_b − R_b D_b (docstring de `sol`). Un état du gabarit (`cuisson_gabarit.etats_du_gabarit`) est un jeu
+(`jeu_de_l_etat`, #3810).
 
 La posture du tronc est la rotation moyenne de ses os depuis leur repos, pondérée par le poids de peau total de chacun
 sur les sommets distincts du tronc (`poids_des_os`), alignée en signe sur l'os le plus lourd (`posture_du_tronc`). Le champ du tronc posé
@@ -35,9 +37,56 @@ from poids import peau_lineaire
 from portage import deplacements_du_manifeste, lire_os_des_silhouettes
 from sol import rotations_de_peau, tetes_deplacees
 
+
+class Jeu(NamedTuple):
+    """Un jeu du corps : son `nom` affiché, le poids non nul de chaque clé de forme posée (silhouettes et `gabarit_*`)
+    et, par os, le facteur différent de 1 qui allonge le long de son Y la position de repos de ses enfants directs
+    (`deplacements_des_facteurs`)."""
+    nom: str
+    poids: dict
+    facteurs: dict
+
+
+def jeu_des_silhouettes(silhouettes):
+    """Le `Jeu` des `silhouettes` posées à 1, aux facteurs neutres, nommé de leurs noms joints par `+`."""
+    return Jeu('+'.join(silhouettes), {s: 1.0 for s in silhouettes}, {})
+
+
+CLES_A_FACTEUR = ('legs', 'arms', 'head')
+"""Les clés de la table du gabarit dont le facteur allonge les enfants directs de leurs os (`jeu_de_l_etat`)."""
+
+
+def jeu_de_l_etat(table, etat):
+    """Le `Jeu` de l'`etat` de `gabarit.mjs` (`cuisson_gabarit.etats_du_gabarit`) sous la `table` du gabarit : ses
+    poids de silhouettes et de clés `gabarit_*` non nuls et, pour chaque os d'une clé de `CLES_A_FACTEUR`, le facteur de
+    la clé. Un autre facteur que ceux de `CLES_A_FACTEUR` différent de 1 n'est pas un jeu."""
+    autres = {cle: f for cle, f in etat['facteurs'].items() if cle not in CLES_A_FACTEUR and f != 1}
+    if autres:
+        raise ValueError(f'état {etat["nom"]} : facteurs {autres} hors de {CLES_A_FACTEUR}')
+    return Jeu(etat['nom'], {n: p for n, p in {**etat['poidsSilhouettes'], **etat['poidsGabarit']}.items() if p},
+               {os_: etat['facteurs'][cle] for cle in CLES_A_FACTEUR if etat['facteurs'][cle] != 1 for os_ in table[cle]})
+
+
+def meme_jeu(a, b):
+    """Si les `Jeu` `a` et `b` posent le même corps, quels que soient leurs noms."""
+    return (a.poids, a.facteurs) == (b.poids, b.facteurs)
+
+
+def deplacements_des_facteurs(rig, facteurs):
+    """Par nom d'os de `rig`, le déplacement de sa tête au repos, repère monde, sous les `facteurs` d'un `Jeu` : chaque
+    enfant direct c d'un os b de `facteurs` voit sa position de repos dans le repère de b, y_c le long de son Y, devenir
+    f_b · y_c, cumulé le long de la hiérarchie (`portage.deplacements_du_manifeste`)."""
+    return deplacements_du_manifeste(rig, {
+        b.name: [0.0, (facteurs[b.parent.name] - 1.0) * (b.parent.matrix_local.inverted() @ b.head_local).y, 0.0]
+        for b in rig.data.bones if b.parent is not None and b.parent.name in facteurs})
+
+
 TRONC = {'zones': ('torse', 'hanches'),
-         'silhouettes': ((), (CORPULENCE,), (FEMININ, CORPULENCE), (CARRURE_PLUS,), (CARRURE_MOINS,))}
-"""Le tronc (`peau_du_tronc`) : les faces des `zones`, sous chaque jeu de `silhouettes` posées à 1."""
+         'jeux': tuple(jeu_des_silhouettes(s) for s in
+                       ((), (CORPULENCE,), (FEMININ, CORPULENCE), (CARRURE_PLUS,), (CARRURE_MOINS,)))}
+"""Le tronc (`peau_du_tronc`) : les faces des `zones` ; les `jeux` de la visée initiale, silhouettes posées à 1, le
+corps neutre d'abord : un jeu ajouté se place après eux, et le premier jeu d'une suite est le corps neutre (`poids_des_os`,
+`peau_du_membre`)."""
 CHAMP = {'pas': 0.015, 'portee': 0.02, 'echantillon': 0.015, 'grossier': 0.04}
 """En mètres : le pas de la grille du champ du tronc posé ; la portée de sa distance exacte aux triangles, qui élargit
 sa boîte et borne son enfoncement dehors ;
@@ -55,33 +104,38 @@ BRAS = {cote: (f'upperarm_{cote}', f'lowerarm_{cote}', f'hand_{cote}') for cote 
 
 
 class Peau(NamedTuple):
-    """Les sommets des faces de zones données (`peau_des_zones`) : par jeu de `TRONC['silhouettes']`, leurs positions au
-    repos, homogènes, dans le repère du rig (jeux, sommets, 4), leurs poids sur chaque os, et les faces en triangles
-    d'indices de ces sommets."""
+    """Les sommets des faces de zones données (`peau_des_zones`) : par `Jeu`, leurs positions au repos, homogènes, dans
+    le repère du rig (jeux, sommets, 4), leurs poids sur chaque os, et les faces en triangles d'indices de ces sommets."""
     x: numpy.ndarray
     w: numpy.ndarray
     triangles: numpy.ndarray
 
 
-def repos_des_jeux(peau, x, sommets, vers_rig):
-    """Par jeu de `TRONC['silhouettes']`, les `sommets` (indices) du mesh `peau` au repos sous les clés de forme du jeu à 1,
-    homogènes, dans le repère du rig (jeux, sommets, 4) : `x`, ses sommets au repos, homogènes, dans le repère monde
-    (`poids.peau_lineaire`) ; `vers_rig`, du repère monde à celui du rig (4, 4)."""
+def repos_des_jeux(peau, x, sommets, vers_rig, jeux):
+    """Par `Jeu` de `jeux`, les `sommets` (indices) du mesh `peau` au repos sous les clés de forme du jeu à leurs poids,
+    une clé absente du mesh ne le déplaçant pas, homogènes, dans le repère du rig (jeux, sommets, 4) : `x`, ses sommets
+    au repos, homogènes, dans le repère monde (`poids.peau_lineaire`) ; `vers_rig`, du repère monde à celui du rig
+    (4, 4)."""
     tour = vers_rig[:3, :3] @ numpy.array(peau.matrix_world.to_3x3())
     cles = peau.data.shape_keys.key_blocks if peau.data.shape_keys else {}
     base = numpy.array([v.co for v in peau.data.vertices], dtype=numpy.float64)[sommets]
     neutre = x[sommets].astype(numpy.float64) @ vers_rig.T
-    return numpy.stack([neutre + numpy.c_[sum((numpy.array([c.co for c in cles[n].data], dtype=numpy.float64)[sommets] - base
-                                               for n in silhouettes), numpy.zeros_like(base)) @ tour.T, numpy.zeros(len(base))]
-                        for silhouettes in TRONC['silhouettes']])
+    lues = {}
+    for n in {n for jeu in jeux for n in jeu.poids if n in cles}:
+        co = numpy.empty(3 * len(cles[n].data), dtype=numpy.float32)
+        cles[n].data.foreach_get('co', co)
+        lues[n] = co.reshape(-1, 3).astype(numpy.float64)[sommets] - base
+    return numpy.stack([neutre + numpy.c_[sum((p * lues[n] for n, p in jeu.poids.items() if n in lues),
+                                              numpy.zeros_like(base)) @ tour.T, numpy.zeros(len(base))]
+                        for jeu in jeux])
 
 
-def peau_des_zones(rig, peaux, zones):
-    """La `Peau` des faces de `peaux` (`poids.peau_lineaire`, os de `rig`) dont la zone (`anatomie.os_de_la_face`) est
-    dans `zones`."""
+def peau_des_zones(rig, peaux, zones, jeux):
+    """La `Peau`, sous chaque `Jeu` de `jeux`, des faces de `peaux` (`poids.peau_lineaire`, os de `rig`) dont la zone
+    (`anatomie.os_de_la_face`) est dans `zones`."""
     noms = [b.name for b in rig.data.bones]
     vers_rig = numpy.array(rig.matrix_world.inverted())
-    jeux, poids, triangles, compte = [[] for _ in TRONC['silhouettes']], [], [], 0
+    positions, poids, triangles, compte = [[] for _ in jeux], [], [], 0
     for peau in peaux:
         x, w = peau_lineaire(peau, noms)
         dominants = [noms[i] for i in w.argmax(axis=1)]
@@ -91,16 +145,16 @@ def peau_des_zones(rig, peaux, zones):
         if not len(faces):
             continue
         sommets, locales = numpy.unique(faces, return_inverse=True)
-        for jeu, positions in zip(jeux, repos_des_jeux(peau, x, sommets, vers_rig)):
-            jeu.append(positions)
+        for jeu, repos in zip(positions, repos_des_jeux(peau, x, sommets, vers_rig, jeux)):
+            jeu.append(repos)
         poids.append(w[sommets].astype(numpy.float64))
         triangles.append(locales.reshape(-1, 3) + compte)
         compte += len(sommets)
-    return Peau(numpy.stack([numpy.concatenate(j) for j in jeux]), numpy.concatenate(poids), numpy.concatenate(triangles))
+    return Peau(numpy.stack([numpy.concatenate(j) for j in positions]), numpy.concatenate(poids), numpy.concatenate(triangles))
 
 
 class PeauDuTronc(NamedTuple):
-    """Le tronc (`TRONC`) : sa `Peau` (`x`, `w`, `triangles`), l'indice du parent de chaque os (-1 pour une racine) et,
+    """Le tronc (`TRONC['zones']`) : sa `Peau` (`x`, `w`, `triangles`), l'indice du parent de chaque os (-1 pour une racine) et,
     par jeu, le déplacement D de la tête de chaque os (jeux, os, 3), dans le repère du rig."""
     x: numpy.ndarray
     w: numpy.ndarray
@@ -109,16 +163,24 @@ class PeauDuTronc(NamedTuple):
     deplacements: numpy.ndarray
 
 
-def peau_du_tronc(rig, peaux):
-    """La `PeauDuTronc` de `peaux` sur les os de `rig`, dans le repère du rig : les têtes d'os d'un jeu sont la somme de
-    celles de ses silhouettes à os (`portage.deplacements_du_manifeste`), nulles sans elles."""
+def peau_du_tronc(rig, peaux, jeux):
+    """La `PeauDuTronc` de `peaux` sur les os de `rig` sous chaque `Jeu` de `jeux`, dans le repère du rig : les têtes
+    d'os d'un jeu sont la somme de celles de ses silhouettes à os (`portage.deplacements_du_manifeste`) à leurs poids et
+    des déplacements de ses facteurs (`deplacements_des_facteurs`), nulles sans eux."""
     noms = [b.name for b in rig.data.bones]
     vers_rig = numpy.array(rig.matrix_world.inverted())
     tetes = {nom: deplacements_du_manifeste(rig, table) for nom, table in lire_os_des_silhouettes(rig).items()}
-    deplacements = numpy.array([sum((numpy.array([tetes[s][n] for n in noms]) for s in silhouettes if s in tetes),
-                                    numpy.zeros((len(noms), 3))) @ vers_rig[:3, :3].T for silhouettes in TRONC['silhouettes']])
+
+    def deplacement(jeu):
+        silhouettes = sum((p * numpy.array([tetes[s][n] for n in noms]) for s, p in jeu.poids.items() if s in tetes),
+                          numpy.zeros((len(noms), 3)))
+        if jeu.facteurs:
+            facteurs = deplacements_des_facteurs(rig, jeu.facteurs)
+            silhouettes = silhouettes + numpy.array([facteurs[n] for n in noms])
+        return silhouettes @ vers_rig[:3, :3].T
+
     parent = numpy.array([noms.index(b.parent.name) if b.parent else -1 for b in rig.data.bones])
-    return PeauDuTronc(*peau_des_zones(rig, peaux, TRONC['zones']), parent, deplacements)
+    return PeauDuTronc(*peau_des_zones(rig, peaux, TRONC['zones'], jeux), parent, numpy.array([deplacement(j) for j in jeux]))
 
 
 def melanger(w, matrices, x):
@@ -469,9 +531,9 @@ def un_par_cellule(x, cellule):
     return numpy.sort(numpy.unique(numpy.floor(x / cellule).astype(int), axis=0, return_index=True)[1])
 
 
-def peau_du_membre(rig, peaux, zones):
-    """La `PeauDuMembre` des faces des `zones` de `peaux` sur les os de `rig`."""
-    peau = peau_des_zones(rig, peaux, zones)
+def peau_du_membre(rig, peaux, zones, jeux):
+    """La `PeauDuMembre` des faces des `zones` de `peaux` sur les os de `rig`, sous chaque `Jeu` de `jeux`."""
+    peau = peau_des_zones(rig, peaux, zones, jeux)
     x = peau.x[0, :, :3]
     grossier = un_par_cellule(x, CHAMP['grossier'])
     rayon = float(numpy.sqrt(((x[:, None] - x[grossier][None]) ** 2).sum(axis=-1)).min(axis=1).max())

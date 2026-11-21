@@ -67,11 +67,15 @@ reprise (`reprises.py`) dans `<git-common-dir>/reprises-3d/<empreinte>`, l'empre
 suivis et des arguments ; relancer la même commande repart de la dernière, et `reprises-3d` s'efface une fois la sortie écrite.
 La passe des membres (`membres.py`) imprime une ligne `MEMBRES` par clip du pack et ne refuse jamais : lire ces lignes
 pour savoir quel clip est gardé ou rendu à sa source ; un clip dérivé (`deux_mains.py`) refusé arrête la construction.
+La construction juge les clips dérivés comme la garde `membres` sur chaque état du gabarit (`verdict_du_tronc.py`) et
+redérive un clip fautif sous sa visée accrue des états où sa peau entre dans le tronc, trois dérivations au plus
+(`deux_mains.deriver_sur_les_etats`) : lire les lignes `VERDICT <clip> tour <k> cellules <n>` ; un clip encore fautif
+arrête la construction en nommant son état, son image et sa profondeur.
 
 Une retouche de la pose des bras d'un clip (clés de geste de `deux_mains.py`, passe de `membres.py`) s'itère au banc
 avant de cuire la base. Le banc importe la base publiée, `~/.cache/wfrp-modeles-3d/<glb.sha256 du manifeste>.glb` que
 `npm run godot:sonde` y tire, rejoue les clips nommés avec le code de l'arbre (`--deux-mains` : dérivés de
-`deux_mains.CLIPS` ; `--pack` : passe de `membres.py`, `tous` pour le pack entier), réécrit les rotations des bras, des
+`deux_mains.CLIPS` et jugés sur les états du gabarit comme dans la construction ; `--pack` : passe de `membres.py`, `tous` pour le pack entier), réécrit les rotations des bras, des
 clavicules et du dos de ces clips dans une copie du GLB, écrit à côté le manifeste à son empreinte et imprime la
 commande `npm run godot:evaluer` à lancer sur cette copie :
 

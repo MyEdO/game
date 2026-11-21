@@ -12,7 +12,7 @@ DECLARATION = ICI / 'humanoide.json'
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from anatomie import PIEDS, gabarit, poser, reperes_des_prises  # noqa: E402
-from deux_mains import deriver as deriver_a_deux_mains  # noqa: E402
+from deux_mains import deriver_sur_les_etats  # noqa: E402
 from membres import ecarter_les_membres  # noqa: E402
 from animation import assign_action, clear_animation, meshes_for  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
@@ -435,8 +435,9 @@ def construire(args):
     print('SOL tenu en', passes, 'passe(s)', flush=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
+    exporter_gabarit(peaux, references)
     ecarter_les_membres(bpy, squelette, clips)
-    for action in deriver_a_deux_mains(bpy, squelette, reperes_des_prises(squelette)):
+    for action in deriver_sur_les_etats(bpy, squelette, reperes_des_prises(squelette), table, silhouettes(peaux), plantes):
         preparer(action)
         clips.append(action)
     variantes = recoucher_les_variantes(bpy, squelette, peaux, squelette_f, objets_f, declaration.get('surfaces', []))
@@ -449,7 +450,6 @@ def construire(args):
     cuire_chaines(bpy, squelette, clips, chaines)
     print('GABARIT_ANATOMIE_OK table disjointe ; head sans enfants', flush=True)
     print('GABARIT_BORNES', json.dumps(table['bornes']), flush=True)
-    exporter_gabarit(peaux, references)
     formes = silhouettes(peaux)
     candidats = selectionner_appuis(squelette, peaux, clips, plantes, table, etats_des_appuis(table, formes))
     manifeste = poser(squelette, peaux)

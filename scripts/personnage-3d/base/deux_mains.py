@@ -12,13 +12,15 @@ Le repère de l'arme porte son +Y vers le fer (la seconde prise est sur cet axe,
 `hotes/godot/asset/element.ts`) et son +X au plus près du flanc gauche du personnage : le tranchant, sur le +Z de la prise
 (du poignet vers les jointures), mène un coup qui tombe devant lui.
 
-Un clip dérivé tient la peau de ses avant-bras et de ses mains hors du tronc sous chaque jeu de silhouettes de
-`tronc.TRONC`, carrures comprises, les os déplacés comme l'hôte les joue, mesurée comme la mesure la garde `membres`
+Un clip dérivé tient la peau de ses avant-bras et de ses mains hors du tronc sous chaque jeu de sa visée
+(`tronc.Jeu`), les os déplacés comme l'hôte les joue, mesurée comme la mesure la garde `membres`
 (`tronc`) : avant l'IK, l'arme sort la peau des deux mains, qui avancent avec elle le long de l'avant du tronc posé
 (`tronc.avant`), d'une grandeur positive continue dans le temps (`ecarter`, `ecart`) ; l'IK choisit le tour
 du coude qui écarte la peau entière ; une peau que l'IK laisse dans le tronc au-delà de la tolérance de la garde
 `membres`, à sa profondeur exacte (`ecart.enfoncement`), refuse le clip, et sa clé de geste est à reprendre (#4002,
-#3810).
+#3810). La visée d'un clip part des jeux de `tronc.TRONC` ; la construction juge les clips dérivés sur chaque état du
+gabarit que juge la garde (`verdict_du_tronc`) et redérive un clip sous sa visée accrue des états où sa peau entre dans
+le tronc (`deriver_sur_les_etats`, #3810).
 
 Le roulis de l'arme et le tour de chaque coude se choisissent sur le clip entier : le chemin retenu
 est celui qui paie le moins, poses et vitesses comprises (`chemin`, `poser_les_bras`, #3878).
@@ -35,12 +37,15 @@ from mathutils import Matrix, Quaternion, Vector
 
 from anatomie import zone_de_l_os
 from animation import assign_action, meshes_for
+from cuisson_gabarit import etats_du_gabarit
 from pistes import aller_a, sacs
 from poids import cadence, deformer, instants, peau_lineaire
 from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE, SOL_TOLERANCE_M, VITESSE_DU_POIGNET
 from ecart import ECART_DU_TRONC, enfoncement, envelopper, poussee_requise
-from tronc import (BRAS, TRONC, avant, chaine_du_bras, coude, matrices_de_la_chaine, membre_pose, peau_du_membre,
-                   peau_du_tronc, poser_le_membre, profondeurs, repos_de_la_chaine, repos_des_jeux, tetes_du_bras, tronc_pose)
+from tronc import (BRAS, TRONC, avant, chaine_du_bras, coude, jeu_de_l_etat, matrices_de_la_chaine, meme_jeu, membre_pose,
+                   peau_du_membre, peau_du_tronc, poser_le_membre, profondeurs, repos_de_la_chaine, repos_des_jeux,
+                   tetes_du_bras, tronc_pose)
+from verdict_du_tronc import cellules_du_tronc
 
 SECONDES = {'lourde2m': (-0.35, 0.0), 'hampe': (0.5, -90.0)}
 """Par maniement, la seconde prise de ses clips dérivés dans le repère de la prise `main` : sa cote en mètres sur le +Y,
@@ -81,8 +86,8 @@ sur le corps neutre, se paie au-delà de la borne haute de `ETIREMENT_EN_CLIP` m
 écrasement en deçà de `plancher`, par pas d'`echelle_plancher` : la marge et le plancher couvrent les silhouettes et les
 états du gabarit, que cette mesure ne parcourt pas, sous lesquels une arête du poignet écrasée à 0,07 sur le corps neutre
 passe sous la borne basse, et l'aisselle et le haut de l'épaule, tenus à 0,12 sur le corps neutre, passent sous elle sous
-les silhouettes combinées (#3319). La passe des clips du pack mesure la même peau sous chaque jeu de `tronc.TRONC`
-(`rapports_du_bras`, `membres.etirement_neuf`, #3810)."""
+les silhouettes combinées (#3319). La passe des clips du pack mesure la même peau sous chaque jeu de
+`tronc.TRONC['jeux']` (`rapports_du_bras`, `membres.etirement_neuf`, #3810)."""
 ROULIS = tuple(range(-180, 180, 15))
 """En degrés, les roulis de l'arme autour de son manche parmi lesquels le chemin d'un clip se cherche d'abord
 (`poser_les_bras`)."""
@@ -92,6 +97,8 @@ AFFINAGES = (((-9, -6, -3, 0, 3, 6, 9), (-4, -2, 0, 2, 4)), ((-2, -1, 0, 1, 2), 
 """Par affinage du chemin, en degrés, les écarts de roulis puis de tour du coude essayés autour de l'état retenu à chaque
 image : chaque affinage couvre le pas de la recherche qui le précède, le dernier au degré de roulis et au demi-degré de
 tour."""
+TOURS_DE_VISEE = 3
+"""Le nombre de dérivations d'un clip au plus, chacune sous une visée accrue (`deriver_sur_les_etats`)."""
 CONTINUITE = {'vitesse': 3.0, 'passes': 4}
 """`vitesse` : en degrés par image de `seuils.IMAGES_PAR_SECONDE`, la vitesse du roulis de l'arme et du tour d'un coude qui paie,
 sur une image, une unité de prix (`chemin`, #3878). `passes` : le nombre de fois où chaque affinage se rejoue autour du
@@ -204,7 +211,7 @@ def interpoler(cles, u, ecart):
 
 
 class PeauDuBras(NamedTuple):
-    """Les arêtes de la peau que meut un bras (`peau_du_bras`) : par jeu de `tronc.TRONC`, leurs sommets au repos sous les
+    """Les arêtes de la peau que meut un bras (`peau_du_bras`) : par `tronc.Jeu`, leurs sommets au repos sous les
     clés de forme du jeu (`tronc.repos_des_jeux`), homogènes, dans le repère du rig (jeux, sommets, 4), les poids de chacun
     sur chaque os, les arêtes en indices de ces sommets, et leur longueur au repos du corps neutre, celle à laquelle la
     garde `etirement` les rapporte (`hotes/godot/asset/evaluateur/gardes/etirement.ts`)."""
@@ -214,9 +221,10 @@ class PeauDuBras(NamedTuple):
     longueurs: numpy.ndarray
 
 
-def peau_du_bras(peaux, noms, mobiles, monde_vers_rig):
-    """La `PeauDuBras` de `peaux` (`poids.peau_lineaire`, os `noms`) : les arêtes dont un sommet suit l'un des os
-    `mobiles`, le bras, l'avant-bras et leurs descendants ; `monde_vers_rig` passe du repère monde à celui du rig."""
+def peau_du_bras(peaux, noms, mobiles, monde_vers_rig, jeux):
+    """La `PeauDuBras` de `peaux` (`poids.peau_lineaire`, os `noms`) sous chaque `tronc.Jeu` de `jeux` : les arêtes dont
+    un sommet suit l'un des os `mobiles`, le bras, l'avant-bras et leurs descendants ; `monde_vers_rig` passe du repère
+    monde à celui du rig."""
     colonnes = [noms.index(n) for n in mobiles]
     vers_rig = numpy.array(monde_vers_rig)
     positions, poids, aretes, compte = [], [], [], 0
@@ -227,7 +235,7 @@ def peau_du_bras(peaux, noms, mobiles, monde_vers_rig):
         if not len(paires):
             continue
         sommets, locales = numpy.unique(paires, return_inverse=True)
-        positions.append(repos_des_jeux(peau, x, sommets, vers_rig))
+        positions.append(repos_des_jeux(peau, x, sommets, vers_rig, jeux))
         poids.append(w[sommets].astype(numpy.float64))
         aretes.append(locales.reshape(-1, 2) + compte)
         compte += len(sommets)
@@ -565,22 +573,24 @@ def poser_les_bras(images, durees, tours_de_l_arme):
     return [(roule, bras_, t) for (roule, bras_), t in zip(poses, translations)], restes
 
 
-def refus_du_tronc(nom, image, reste):
-    """Le refus du clip `nom` à l'`image` dont la peau posée la plus enfoncée est `reste` (`poser_les_bras`), ou `None` :
-    une peau plus enfoncée que `SOL_TOLERANCE_M`, à sa profondeur exacte, est dans le tronc pour la garde `membres`."""
+def refus_du_tronc(nom, image, reste, jeux):
+    """Le refus du clip `nom` à l'`image` dont la peau posée la plus enfoncée est `reste` (`poser_les_bras`), sous
+    les `jeux` de sa visée, ou `None` : une peau plus enfoncée que `SOL_TOLERANCE_M`, à sa profondeur exacte, est dans le
+    tronc pour la garde `membres`."""
     enfonce, jeu, zone = reste
     if enfonce <= SOL_TOLERANCE_M:
         return None
     return (f'{nom} image {image} : peau {zone} enfoncée de {enfonce * 100:.2f} cm dans le tronc sous '
-            f'{"+".join(TRONC["silhouettes"][jeu]) or "le corps neutre"}')
+            f'{jeux[jeu].nom or "le corps neutre"}')
 
 
-def deriver(bpy, rig, reperes):
-    """Les actions de `CLIPS`, ajoutées au rig `rig` d'après ses clips sources, aux instants de chacun (`poids.instants`),
-    sur la peau aux poids corrigés et les clips sources posés au sol (après le point fixe de `humanoide.construire`) ;
-    `reperes` : par prise `main` et `secondaire`, son os et son repère dans celui de cet os (`anatomie.reperes_des_prises`).
-    Les avant-bras, les mains et l'arme se tiennent à l'écart du tronc sous chaque jeu de `tronc.TRONC`, os des
-    silhouettes compris (`poser_les_bras`, #4002, #3810) ; une peau que l'IK laisse dans le tronc plus enfoncée que
+def deriver(bpy, rig, reperes, visees):
+    """Les actions des clips de `CLIPS` nommés par `visees`, dans l'ordre de `visees`, ajoutées au rig `rig` d'après
+    leurs clips sources, aux instants de chacun (`poids.instants`), sur la peau aux poids corrigés et les clips sources
+    posés au sol (après le point fixe de `humanoide.construire`) ; `reperes` : par prise `main` et `secondaire`, son os
+    et son repère dans celui de cet os (`anatomie.reperes_des_prises`). Les avant-bras, les mains et l'arme d'un clip se
+    tiennent à l'écart du tronc sous chaque `tronc.Jeu` de sa visée `visees[nom]`, os déplacés compris
+    (`poser_les_bras`, #4002, #3810) ; une peau que l'IK laisse dans le tronc plus enfoncée que
     `SOL_TOLERANCE_M`, à sa profondeur exacte, refuse le clip, comme un poignet trop tordu ou un bras qui manque un
     contrôle de `defaut_du_bras` (#3878)."""
     repos = {b.name: b.matrix_local.copy() for b in rig.data.bones}
@@ -589,17 +599,30 @@ def deriver(bpy, rig, reperes):
     prise_main, prise_off = reperes['main'][1], reperes['secondaire'][1]
     scene, pose = bpy.context.scene, rig.pose.bones
     noms = [b.name for b in rig.data.bones]
-    peaux = {cote: peau_du_bras(meshes_for(bpy, rig), noms, [o.name for o in (rig.data.bones[b], *rig.data.bones[b].children_recursive)],
-                                rig.matrix_world.inverted())
-             for cote, (b, _, _) in BRAS.items()}
-    tronc = peau_du_tronc(rig, meshes_for(bpy, rig))
     zones = {'r': 'd', 'l': 'g'}
-    membres = {cote: peau_du_membre(rig, meshes_for(bpy, rig), (f'avant_bras_{zones[cote]}', f'main_{zones[cote]}')) for cote in BRAS}
-    paumes = {cote: peau_du_membre(rig, meshes_for(bpy, rig), (f'main_{zones[cote]}',)) for cote in BRAS}
+    vues = []
+
+    def peaux_de_la_visee(jeux):
+        """Les peaux que meut chaque bras, le tronc, et les peaux de l'avant-bras et de la main et de la main de chaque
+        bras sous les `jeux`, lues une fois par visée."""
+        for vus, peaux_ in vues:
+            if len(vus) == len(jeux) and all(meme_jeu(a, b) for a, b in zip(vus, jeux)):
+                return peaux_
+        corps = meshes_for(bpy, rig)
+        peaux_ = ({cote: peau_du_bras(corps, noms, [o.name for o in (rig.data.bones[b], *rig.data.bones[b].children_recursive)],
+                                      rig.matrix_world.inverted(), jeux) for cote, (b, _, _) in BRAS.items()},
+                  peau_du_tronc(rig, corps, jeux),
+                  {cote: peau_du_membre(rig, corps, (f'avant_bras_{zones[cote]}', f'main_{zones[cote]}'), jeux) for cote in BRAS},
+                  {cote: peau_du_membre(rig, corps, (f'main_{zones[cote]}',), jeux) for cote in BRAS})
+        vues.append((jeux, peaux_))
+        return peaux_
+
     bras_animes = [n for os in BRAS.values() for n in os]
     animes = bras_animes + list(CLAVICULES) + list(DOS)
     derivees = []
-    for nom, (source_nom, os_du_cadre, maniement, cles) in CLIPS.items():
+    for nom, jeux in visees.items():
+        source_nom, os_du_cadre, maniement, cles = CLIPS[nom]
+        peaux, tronc, membres, paumes = peaux_de_la_visee(jeux)
         source = bpy.data.actions[source_nom]
         assign_action(rig, source)
         images = instants(source)
@@ -643,7 +666,7 @@ def deriver(bpy, rig, reperes):
         ecart, poussee, poignets = 0.0, 0.0, {'torsion': 0, 'flexion': 0, 'coude': 1.0, 'bornes': 0.0}
         lectures, etirements = {c: [] for c in BRAS}, {c: [] for c in BRAS}
         for image, bras_de_l_image_, (roule, bras_, translation), (enfonce, jeu, zone) in zip(images, bras_des_images, poses, restes):
-            refus = refus_du_tronc(nom, image, (enfonce, jeu, zone))
+            refus = refus_du_tronc(nom, image, (enfonce, jeu, zone), jeux)
             if refus:
                 raise ValueError(refus)
             aller_a(scene, image)
@@ -675,8 +698,46 @@ def deriver(bpy, rig, reperes):
             if defaut is not None:
                 raise ValueError(f'{nom} bras {cote_} : {defaut[0]} à l\'image {defaut[1]} : {defaut[2]}')
             vitesse = max(vitesse, vitesse_)
-        print('DEUX_MAINS', nom, 'de', source_nom, 'images', len(images), 'écart de main', round(ecart, 4), 'poignet',
+        print('DEUX_MAINS', nom, 'de', source_nom, 'jeux', len(jeux), 'images', len(images), 'écart de main', round(ecart, 4), 'poignet',
               poignets, 'vitesse du poignet', round(vitesse), 'arme poussée', round(poussee, 4),
               'peau la plus enfoncée', round(max(d for d, _, _ in restes), 4), flush=True)
         derivees.append(action)
     return derivees
+
+
+def deriver_sur_les_etats(bpy, rig, reperes, table, silhouettes, plantes):
+    """Les actions de `CLIPS`, dans son ordre, dérivées sur `rig` (`deriver`, `reperes`) puis jugées, comme la garde
+    `membres`, sur chaque état du gabarit de la `table` et des `silhouettes` (`cuisson_gabarit.etats_du_gabarit`), les
+    clips de `plantes` jambes plantées (`verdict_du_tronc.cellules_du_tronc`). Chaque clip part des jeux de
+    `tronc.TRONC` ; un clip dont une cellule ressort se redérive, sous sa visée accrue des jeux de ses états fautifs
+    (`tronc.jeu_de_l_etat`) qu'elle ne pose pas déjà (`tronc.meme_jeu`), sa redérivation remplaçant son action, à
+    `TOURS_DE_VISEE` dérivations au plus. Imprime à chaque tour une ligne `VERDICT` par clip jugé ; un clip encore fautif
+    à la dernière refuse la construction (`ValueError`), ses cellules nommées (#3810)."""
+    etats = etats_du_gabarit(table, silhouettes)['etats']
+    par_nom = {etat['nom']: etat for etat in etats}
+    visees = {nom: TRONC['jeux'] for nom in CLIPS}
+    actions, a_deriver = {}, list(CLIPS)
+    for tour in range(1, TOURS_DE_VISEE + 1):
+        for nom in a_deriver:
+            if nom in actions:
+                bpy.data.actions.remove(actions.pop(nom))
+        actions.update(zip(a_deriver, deriver(bpy, rig, reperes, {nom: visees[nom] for nom in a_deriver})))
+        cellules = cellules_du_tronc(rig, meshes_for(bpy, rig), [actions[nom] for nom in a_deriver], table, etats, plantes)
+        fautives = {}
+        for nom in a_deriver:
+            siennes = [c for c in cellules if c.clip == nom]
+            print('VERDICT', nom, 'tour', tour, 'cellules', len(siennes), flush=True)
+            if siennes:
+                fautives[nom] = siennes
+        if not fautives:
+            break
+        if tour == TOURS_DE_VISEE:
+            raise ValueError(' ; '.join(f'{c.clip} sous {c.etat} image {c.image} {c.cote} : peau enfoncée de '
+                                        f'{c.profondeur * 100:.2f} cm dans le tronc' for s in fautives.values() for c in s))
+        for nom, siennes in fautives.items():
+            for cellule in siennes:
+                jeu = jeu_de_l_etat(table, par_nom[cellule.etat])
+                if not any(meme_jeu(jeu, vu) for vu in visees[nom]):
+                    visees[nom] += (jeu,)
+        a_deriver = list(fautives)
+    return [actions[nom] for nom in CLIPS]

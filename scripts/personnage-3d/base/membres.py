@@ -19,7 +19,7 @@ liste est perdue ; sinon les deux bras s'écrivent et le clip reposé se garde s
 bras, corrigé ou non (le tronc suit aussi les os des bras), reste sous la tolérance à chaque image sous chaque jeu requis
 et n'est, sous un jeu retiré du requis, à aucune image plus enfoncée qu'à la source (`verdict`), si chaque bras corrigé
 passe, aux images corrigées, les contrôles d'un bras posé (`deux_mains.defaut_du_bras`), et si, aux images corrigées et
-à leurs voisines, la peau que meut chaque bras corrigé ne sort de `ETIREMENT_EN_CLIP` sous aucun jeu de `tronc.TRONC`
+à leurs voisines, la peau que meut chaque bras corrigé ne sort de `ETIREMENT_EN_CLIP` sous aucun jeu de `tronc.TRONC['jeux']`
 là où la source y était, mesurée comme la garde `etirement` (`etirements`, `etirement_neuf`). Sinon les courbes sources
 des deux bras reviennent à l'identique et la liste suivante s'essaie ; après la dernière, le clip reste sa source. La
 ligne `MEMBRES` du clip le dit.
@@ -52,9 +52,9 @@ from tronc import (BRAS, TRONC, avant, chaine_du_bras, champs_du_tronc, coude, m
 ECART_DU_COUDE = {'pas': 1.0, 'borne': 45.0}
 """En degrés, l'écart du coude autour de l'axe épaule-poignet (`requis`) : cherché par pas de `pas`, jusqu'à `borne`
 (#3810)."""
-JEUX_REQUIS = (tuple(range(len(TRONC['silhouettes']))),
-               tuple(j for j, s in enumerate(TRONC['silhouettes']) if s != (CARRURE_PLUS,)))
-"""Les jeux de `tronc.TRONC` (indices) sous lesquels la correction d'un bras doit tenir sa peau, essayés dans l'ordre :
+JEUX_REQUIS = (tuple(range(len(TRONC['jeux']))),
+               tuple(j for j, jeu in enumerate(TRONC['jeux']) if jeu.nom != CARRURE_PLUS))
+"""Les jeux de `tronc.TRONC['jeux']` (indices) sous lesquels la correction d'un bras doit tenir sa peau, essayés dans l'ordre :
 tous, puis tous sauf la carrure maximale, sous laquelle la peau reste alors, au pire, aussi enfoncée qu'à la source
 (`verdict`) : le corps normal d'abord (#3810)."""
 ETIREMENT_AGGRAVE = 0.01
@@ -196,7 +196,7 @@ def corriger(tronc, poses, bras, instants_, sources, jeux):
 
 
 def nom_du_jeu(jeu):
-    return '+'.join(TRONC['silhouettes'][jeu]) or 'neutre'
+    return TRONC['jeux'][jeu].nom or 'neutre'
 
 
 def en_cm(profondeur):
@@ -206,7 +206,7 @@ def en_cm(profondeur):
 
 def verdict(sources, apres, jeux, images):
     """Ce que dit le tronc de la correction d'un bras dont la peau exacte (`exactes`) est `sources` à la source et
-    `apres` le clip reposé (images, jeux de `tronc.TRONC`), aux `images` (instants), sous les `jeux` requis : le défaut,
+    `apres` le clip reposé (images, jeux de `tronc.TRONC['jeux']`), aux `images` (instants), sous les `jeux` requis : le défaut,
     `None` si la peau reste sous `SOL_TOLERANCE_M` à chaque image sous chaque jeu requis et, sous chaque jeu retiré, à
     aucune image plus enfoncée qu'à la source ; et le reste sous les jeux retirés au-delà de la tolérance (« sauf <jeu> :
     reste … »)."""
@@ -227,7 +227,7 @@ def verdict(sources, apres, jeux, images):
 
 
 def etirements(tronc, peau, pose, courantes):
-    """Par jeu de `tronc.TRONC`, le rapport de chaque arête de la `deux_mains.PeauDuBras` `peau` à sa longueur au repos du
+    """Par jeu de `tronc.TRONC['jeux']`, le rapport de chaque arête de la `deux_mains.PeauDuBras` `peau` à sa longueur au repos du
     corps neutre (`deux_mains.rapports_du_bras`), posée sous les matrices de peau `courantes` (os, 4, 4) et les clés de
     forme du jeu, sur les os déplacés du `tronc.TroncPose` `pose` de `tronc` (`tronc.poser_sous_les_jeux`), comme la garde
     `etirement` la mesure (`hotes/godot/asset/evaluateur/gardes/etirement.ts`) : (jeux, arêtes)."""
@@ -286,17 +286,18 @@ def ecarter_les_membres(bpy, rig, clips):
     le bras, le contrôle manqué (`verdict`, `deux_mains.defaut_du_bras`, `etirement_neuf`), l'instant et la valeur ; le
     compte des images que rien ne sort, par bras ; et la durée."""
     peaux = meshes_for(bpy, rig)
-    tronc = peau_du_tronc(rig, peaux)
+    tronc = peau_du_tronc(rig, peaux, TRONC['jeux'])
     noms = [b.name for b in rig.data.bones]
     inverses = numpy.array([numpy.array(b.matrix_local.inverted()) for b in rig.data.bones])
     cotes, aretes = {}, {}
     for cote, zone in (('r', 'd'), ('l', 'g')):
-        membre = peau_du_membre(rig, peaux, (f'avant_bras_{zone}', f'main_{zone}'))
+        membre = peau_du_membre(rig, peaux, (f'avant_bras_{zone}', f'main_{zone}'), TRONC['jeux'])
         cotes[cote] = ([noms.index(n) for n in BRAS[cote]], repos_de_la_chaine(rig, cote), membre,
-                       peau_du_membre(rig, peaux, (f'main_{zone}',)),
+                       peau_du_membre(rig, peaux, (f'main_{zone}',), TRONC['jeux']),
                        [zone_de_l_os(noms[i]) for i in membre.w.argmax(axis=1)])
         epaule = rig.data.bones[BRAS[cote][0]]
-        aretes[cote] = peau_du_bras(peaux, noms, [o.name for o in (epaule, *epaule.children_recursive)], rig.matrix_world.inverted())
+        aretes[cote] = peau_du_bras(peaux, noms, [o.name for o in (epaule, *epaule.children_recursive)], rig.matrix_world.inverted(),
+                                    TRONC['jeux'])
     scene, pose = bpy.context.scene, rig.pose.bones
 
     def lire(image):
@@ -350,7 +351,7 @@ def ecarter_les_membres(bpy, rig, clips):
         originales = courbes(action, os_des_bras)
         refus, garde = [], None
         for jeux in JEUX_REQUIS:
-            retires = [nom_du_jeu(j) for j in range(len(TRONC['silhouettes'])) if j not in jeux]
+            retires = [nom_du_jeu(j) for j in range(len(TRONC['jeux'])) if j not in jeux]
             niveau = 'sans ' + '+'.join(retires) if retires else 'tous les jeux'
             corrections, riens = {}, {}
             for cote in cotes:
