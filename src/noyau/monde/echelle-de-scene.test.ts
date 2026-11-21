@@ -59,6 +59,7 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
 
   // ── L'ARCHITECTURE et le RENDU
   { fichier: 'noyau/sceneEdit.ts', texte: 'return Math.max(1, Math.floor(ROOF_GABLE_SPAN_MAX_M / sceneMetresPerTile(scene)));', role: 'PORTÉE maximale d’un pignon (m) → cases' },
+  { fichier: 'noyau/monde/volume/toits.ts', texte: 'const eave = { overhang: (def.eaveOverhangM ?? 0) / sceneMetresPerTile(scene), fasciaDrop: def.fasciaDropM ?? 0 };', role: 'DÉBORD du soffite (m, `materials.json`) → cases' },
 ];
 
 describe('échelle de la scène — les sites de traduction mètres ⇄ cases sont NOMMÉS', () => {
