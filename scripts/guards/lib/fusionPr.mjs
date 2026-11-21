@@ -77,6 +77,7 @@ export function etatFileDePr({ depot, numero, sha, appel, maintenant = Date.now 
   if (relue.statut !== 'enqueued' || ['id', 'state', 'enqueuedAt'].some((cle) => relue.entree[cle] !== entree[cle])
     || relue.entree.headCommit?.oid !== entree.headCommit.oid || relue.entree.enqueuer.login !== entree.enqueuer.login)
     return indetermine('entrée changée pendant lecture des courses')
+  if (entree.enqueuer.login !== 'github-actions') return identite
   return { ok: true, statut: 'anomalie', compte, entree,
     raison: `PR #${numero}, entrée ${entree.id} AWAITING_CHECKS, compte « ${entree.enqueuer.login} », entrée le ${entree.enqueuedAt} : aucun run CI merge_group pour le groupe ${entree.headCommit.oid} ; geste humain : retirer cette entrée de la file GitHub, puis npm run ops:publier -- --detache` }
 }
