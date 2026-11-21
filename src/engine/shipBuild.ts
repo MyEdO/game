@@ -26,22 +26,22 @@
  * échec inflige 1d10−4 Dégâts. Lissage : réparation +50 % sinon perte du bénéfice (ch.12 l.295).
  */
 import { shipConstruction, STEAM_BREAKDOWNS, steamBreakdownDie, type SteamBreakdownEntry } from '../data';
-import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
-import { memoParVersion } from '../data/versionDataset';
+import { findTableEntry } from './tables';
 import { rollDice, tirer, type RNG } from './dice';
 import { REPARATION } from './seaNavigation';
 import { rollTest } from './tests';
 import { DIFFICULTE_PAR_DEFAUT, type Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
-import { profilNavalDe } from './coque';
 import type { ShipSize, NavalInstall, InstallBand, InstallBareme } from '../data';
 import type { ProfilDePropulsion } from '../data/schemas/grammaire/valeurs';
-import type { Combatant, NavalTraitRef, VehicleData } from './types';
+import type { NavalTraitRef, VehicleData } from './types';
 import type { ShipRig } from './combat';
 import { navalTraitsDe, shipHasNavalTrait } from './navalTraits';
 import { COMPETENCE_DU_MODE, type PropulsionKind } from './propulsion';
 import { dureeEnJours } from './clock';
+
+export { hullShipSize, shipSizeOfLength } from './coque';
 
 /** Milieu du FLUX qui meut le navire (voyage maritime ou fluvial) — MDG 12 l.311 ; MSRC 12 l.255. */
 export type MilieuDeNavigation = 'maritime' | 'fluvial';
@@ -93,46 +93,6 @@ export function propulsionDuNavire(vehicleId: string | undefined, upgrades: Nava
   if (shipHasNavalTrait(navalTraitsDe(vehicleId, upgrades), 'propulsion-a-vapeur'))
     return { mode: 'vapeur', m: milieu === 'maritime' ? 4 : m, competence: STEAM_SKILL, rig };
   return { ...conception, m, rig };
-}
-
-/** La colonne « Taille » (ch.12 l.122-129) telle que `findTableEntry` la lit — `tableOuverte`
- *  (`./tables`) est le tronc commun des tables dont la bande FINALE est ouverte (ici « 81+ », l.129).
- *  Triée par borne basse : les DEUX bornes étant authorées, l'ordre des rangées au Codex ne décide
- *  plus du résultat. La contiguïté, elle, est tenue en donnée (`ecartsDeCouverture`,
- *  `src/data/schemas/defs/ship-construction.ts`). */
-const standardLookup = memoParVersion('shipHullSizes', () =>
-  tableOuverte(shipConstruction.standard.map((row) => ({ ...row.lengthM, size: row.size }))).sort((a, b) => a.min - b.min),
-);
-
-/**
- * Taille MDG d'un navire d'après sa LONGUEUR (tableau standard, ch.12 l.120-129 : 1-10 m Minuscule …
- * 81 m+ Monstrueuse) — SOURCE UNIQUE de la dérivation Taille ← longueur pour tout le moteur.
- *
- * Le livre imprime des bandes d'ENTIERS contiguës depuis 1 m, la dernière ouverte : le domaine de
- * cette fonction est donc l'entier ≥ 1, ce que le schéma exige du porteur
- * (`ship.lengthM: z.number().int().min(1)`, `src/data/schemas/defs/vehicles.ts`). Une longueur hors
- * de la table — 0, négative, ou fractionnaire entre deux bandes — est nommée dans le refus.
- * PUR.
- */
-export function shipSizeOfLength(lengthM: number): ShipSize {
-  const lookup = standardLookup();
-  const i = findTableEntryIndex(lookup, lengthM);
-  if (i < 0) {
-    throw new Error(
-      `shipSizeOfLength : la longueur ${lengthM} m ne tombe dans aucune bande de la colonne « Taille » (MDG 12 l.122-129) — le tableau couvre les longueurs ENTIÈRES à partir de 1 m, sans plafond.`,
-    );
-  }
-  return lookup[i].size;
-}
-
-/**
- * Taille d'une COQUE EN JEU (`Combatant`), MDG 12 l.120-129 — sa longueur vit sur son profil naval
- * (`profilNavalDe`), jamais recopiée sur l'instance. `undefined` quand la coque n'a pas de profil naval
- * (véhicule non navire, ou type introuvable) — l'appelant NOMME ce cas. PUR.
- */
-export function hullShipSize(hull: Pick<Combatant, 'bodyShape' | 'creatureId'>): ShipSize | undefined {
-  const lengthM = profilNavalDe(hull)?.lengthM;
-  return lengthM === undefined ? undefined : shipSizeOfLength(lengthM);
 }
 
 export interface ShipBuildSpec {

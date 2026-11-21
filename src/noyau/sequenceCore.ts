@@ -505,12 +505,13 @@ export function sequenceAbandonEtatOf(get: Get<Jeu>): SequenceAbandon | null {
   const seq = activeSequence(get);
   const pc = get().pendingCascade;
   if (!seq || pc?.purpose !== SEQUENCE_PURPOSE) return null;
-  const abandon = sequenceDefOf(seq)?.abandon?.(seq);
+  const entamee = mancheEntamee(pc);
+  const abandon = sequenceDefOf(seq)?.abandon?.(seq, { participants: pc.participants, entamee });
   if (!abandon) return null;
   if (seq.abandon !== undefined) return { ...abandon, refus: t('seq.abandonDemande') };
   if (abandon.refus !== undefined) return abandon;
   const due = pc.participants.find((s) => !stepReady(s, get()));
-  if (!due || !mancheEntamee(pc)) return abandon;
+  if (!due || !entamee) return abandon;
   const interaction = stepInteraction(due);
   const refus = interaction === 'choix' || interaction === 'quantite' ? t('seq.abandonChoixEnCours') : t('seq.abandonEntreDeuxTests');
   return { ...abandon, refus };

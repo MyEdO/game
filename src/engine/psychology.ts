@@ -7,7 +7,6 @@
 import type { IconId } from '../data/icons';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, type EffectSource, type TerreurSubie } from './types';
 import { idsDeLaSousListe, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
-import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { CIBLE_D_APPARTENANCE } from '../data/schemas/grammaire/sousListes';
 import { t } from '../i18n';
 import { RNG } from './dice';
@@ -30,16 +29,11 @@ import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
 import { featuresOf } from './combatFeatures/dispatch';
 import { diseasePsychTraits } from './disease';
 import { traitsConferes } from './talentEffects';
-import { parsePsychTraits } from './psych/registry';
+import { parsePsychTraits, PSY } from './psych/registry';
 import { applyActiveEffect, type GameOp } from './ops';
 import type { Flow } from './flowCore';
 
-/** Les Traits psy que le moteur NOMME, par `id` STABLE de `psychology.json` (LDB 21) : chaque valeur est typée
- *  par l'espace `psychology.json` d'`IdsParEspace`, un id hors catalogue ne compile pas. Le type d'un Trait
- *  porté reste OUVERT (`string`, #1692) : le Codex en crée d'autres. */
-export const PSY = {
-  frenesie: 'frenesie', peur: 'peur', terreur: 'terreur', animosite: 'animosite', haine: 'haine', prejuge: 'prejuge', phobie: 'phobie',
-} as const satisfies Record<string, IdsParEspace['psychology.json']>;
+export { PSY } from './psych/registry';
 
 /** Trait psychologique POSSÉDÉ (Animosité(Elfes), Phobie(Serpents), capacité de Frénésie…). */
 export interface PsychTrait {

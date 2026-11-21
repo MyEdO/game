@@ -583,6 +583,7 @@ NADJ utilise également les **Points de Chance pour relancer** dans les jeux de 
 - **Lire le dé des unités ou des dizaines au choix** : aux Fléchettes, sur un test *réussi*, le joueur choisit de marquer des points égaux au chiffre des unités, au chiffre des dizaines, à 10× le chiffre des unités, ou à 10× le chiffre des dizaines (`NADJ 16 l.97`). C'est une lecture alternative du dé (distincte de l'inversion), uniquement disponible sur réussite.
 - **DR plafonné à 6 (ou objectif) dans un test étendu** : aux Boules, le DR maximal par lancer est 6 (contact avec la cible). Un échec signifie que la boule est hors-jeu (`NADJ 16 l.57`).
 - **Spécial lié à un Talent** : à l'Arène, « si vous avez le Talent Tireur d'élite, vous pouvez compter tous ces Tests comme étant un cran plus faciles » (`NADJ 16 l.82`). Le cran ne vaut que pour le joueur qui a le Talent, jamais pour son adversaire.
+- **Cérévis** : « Pour chaque 3 Tests d'Initiative auxquels vous échouez et pour chaque 2 chouettes que vous effacez, faites un Test de **Résistance à l'alcool Intermédiaire (+0)**. » (`NADJ 16 l.90`). Le [Test de Résistance à l’alcool](competences.md#résistance-à-lalcool-e--base) applique les conséquences de l’échec (`LDB 09 l.475`).
 - **Départage propre au jeu** : aux Dominos, « chaque joueur effectue un Test opposé de **Pari Accessible (+20)**. En cas d'égalité, les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui a le nombre le plus bas gagne » (`NADJ 16 l.105`). La clause remplace le départage par la Compétence (LDB 12 l.160) : arbitrage #1921 : DR puis dé d’unités.
 
 Ces mécaniques constituent des extensions légitimes du système de DR dans des contextes hors combat, autorisées par les livres de la liste VF.
@@ -595,6 +596,7 @@ Ces mécaniques constituent des extensions légitimes du système de DR dans des
 - `NADJ 16 l.34` — Bras de Fer : test étendu Force + Bonus de Force au DR par tour
 - `NADJ 16 l.57` — Boules : DR plafonné à 6 par lancer (test étendu)
 - `NADJ 16 l.82` — Arène : Tireur d'élite, tous les Tests un cran plus faciles pour son porteur
+- `NADJ 16 l.88-90` — Cérévis : Test combiné, chouettes et échéances de Résistance à l’alcool
 - `NADJ 16 l.97` — Fléchettes : choisir unités/dizaines/×10 sur réussite
 - `NADJ 16 l.105` — Dominos : Pari Accessible (+20) ; égalité de DR départagée par le dé d'unités le plus bas
 - `LDB 12 l.124-127` (rappel) — règle optionnelle Critiques/Maladresses sur tous tests
