@@ -203,7 +203,8 @@ test('la photographie nomme les fichiers retirés, y compris un suivi auparavant
 
 test('la photographie nomme un changement du statut Git à octets identiques', () => avecDepot((racine) => {
   writeFileSync(join(racine, 'suivi'), 'déjà sale\n')
-  const resultat = joue(racine, `import { execFileSync } from 'node:child_process'; execFileSync('git', ['add', 'suivi']);`, { intercepter: false })
+  const git = new URL('../test/gitDeBanc.mjs', import.meta.url).href
+  const resultat = joue(racine, `import { gitDe } from ${JSON.stringify(git)}; gitDe(process.cwd())('add', 'suivi');`, { intercepter: false })
   assert.equal(resultat.code, 1, resultat.brut)
   assert.match(resultat.messages.join('\n'), /modifiés \(1\).*"suivi"/)
 }))
