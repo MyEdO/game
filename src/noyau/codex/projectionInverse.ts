@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { auChemin } from '../../lib/objet.mjs';
+import { tableTotale } from '../../lib/tableTotale';
 import { descendre, enfantsDe, ouverts } from '../../data/schemas/grammaire/descente';
 import { metaDesChamps, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { versDisque } from '../../data/schemas/grammaire/prose';
@@ -62,9 +63,9 @@ export function projeterInversesCodex(schema: z.ZodType, entrees: readonly unkno
   if (!projection) return entrees.map(() => []);
   const { champs } = projection;
   const cles = [...champs.keys()];
-  const donnees = versDisque(entrees.map((entree) => Object.fromEntries(
-    cles.map((champ) => [champ, auChemin(entree, [champ])]),
-  )));
+  const donnees = versDisque(entrees.map((entree) =>
+    tableTotale(cles, (champ) => auChemin(entree, [champ])),
+  ));
   const ciblesParEntree = donnees.map(() => new Map<string, Cible[]>());
   for (const { path, type, parCle } of reperesDuParse(projection.schema, donnees)) {
     if (type.startsWith('local:')) continue;

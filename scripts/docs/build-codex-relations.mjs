@@ -221,15 +221,18 @@ function rendu() {
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-codex-relations.mjs\` (\`npm run docs:codex-relations\`) — NE PAS ÉDITER À LA MAIN.
 
-Le relevé parcourt les fiches du registre vivant \`CODEX\` de \`${REGISTRY}\` et lit les renvois
+**Périmètre mesuré / angles morts** — le relevé parcourt les fiches du registre vivant \`CODEX\` de \`${REGISTRY}\` et lit les renvois
 que \`reverseGroups\` produit avec les données livrées et les règles optionnelles par défaut.
 La passerelle \`scripts/docs/lib/dump-codex.mts\` rapporte aussi les ${SPECS.length} catégories,
 familles et sous-groupes. L'API publique vient de l'AST et du JSDoc. Les ${NB_DEFS} defs de
 \`src/data/schemas/defs/\` fournissent leur exposition déclarée par
 \`scripts/docs/lib/dump-exposition.mts\`. Les cas de contrat viennent de ${CONTRATS_CITES}
 et la liste des fonctions d'affichage des exports de \`${DESCRIBE}\` et \`${HUMANIZE}\`.
-L'index d'auto-liage de prose dépend de la locale à l'exécution. La documentation en rapporte
-l'API. Les principes et le mode d'emploi « Étendre » sont écrits dans le générateur.
+Le tableau couvre les couples qui produisent au moins un renvoi vers une fiche présente.
+Les correspondances sans occurrence et celles qui nécessitent une règle optionnelle inactive
+restent hors du relevé. Ce document rapporte l'API de l'auto-liage de prose, dont l'index
+dépend de la locale à l'exécution. Les principes et le mode d'emploi « Étendre » sont écrits
+dans le générateur.
 
 Le Compendium Godot lit la projection de \`src/hote/compendium.ts\`. Les fiches du Codex dérivent de \`src/data\`.
 Au-delà des faits-clés et des références AVANT (déjà projetées par \`${REGISTRY}\`), la richesse
@@ -302,9 +305,7 @@ des données et se reconstruit à la première lecture qui suit une édition ou 
 règle optionnelle.
 
 Le tableau compte, pour chaque couple de catégories observé, les renvois retournés par
-\`reverseGroups\`, une fois par fiche cible et identifiant de référant. Un couple apparaît quand
-les données produisent au moins un renvoi vers une fiche. Le catalogue de correspondances défini
-par les champs et les calculs peut donc couvrir d'autres couples.
+\`reverseGroups\`, une fois par fiche cible et identifiant de référant.
 
 | Catégorie du référant | Catégorie de la fiche cible | Titre de section | Renvois |
 |---|---|---|---:|
