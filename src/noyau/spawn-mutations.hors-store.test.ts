@@ -193,8 +193,11 @@ describe('mutations au spawn — garde de propriété sur les statblocs livrés 
   it('Mikael, Tête bestiale (Chien) : Morsure, arme Morsure, Sens aiguisé, Int 20 (EDO 02 ; EDO 11)', () => {
     const mikael = porteurs.find((p) => p.ou.includes('preset edo-mutant-mikael'))!;
     const c = mikael.spawn();
-    expect(c.traits).toContainEqual({ id: 'morsure', value: 5, src: { kind: 'mutation', id: 'tete-bestiale-chien' } });
-    expect(c.weapons.map((w) => w.label)).toContain(weaponFromTrait({ id: 'morsure', value: 5 })!.label);
+    const morsure = c.traits?.find((t) => t.id === 'morsure' && t.src?.id === 'tete-bestiale-chien');
+    expect(morsure).toMatchObject({ id: 'morsure', uid: expect.any(String), value: 5, src: { kind: 'mutation', id: 'tete-bestiale-chien' } });
+    expect(c.weapons).toContainEqual(expect.objectContaining({
+      uid: morsure?.uid, label: weaponFromTrait({ id: 'morsure', value: 5 })!.label,
+    }));
     expect(c.talents).toContainEqual({ talentId: 'sens-aiguise', spec: 'odorat', times: 1 });
     expect(effectiveChar(c, 'intelligence')).toBe(20);
   });
