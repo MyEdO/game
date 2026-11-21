@@ -6,75 +6,129 @@ Ticket: #4585, #4411
 
 ## Qualification
 
-- **But réel** : chaque écran des maquettes (`hotes/godot/cibles/propositions/`) se construit à partir de données sémantiques, et un rendu générique les dessine avec les primitives du kit. Une même nature d'information a donc le même dessin partout, et un défaut corrigé une fois l'est sur tous les écrans. Doctrine `user-doctrine-le-jeu-envoie-des-donnees-pas-leur-affichage` : « leur JSON porte les données dans la forme visée, et le rendu dessine le kit ».
-- **Livrable** : le code des maquettes migré (`sources/`), le kit à jour (`kit.md`), une garde et des relevés qui empêchent la rechute, et la page de jugement republiée.
-- **Fini** : les 9 gabarits ont 0 contenu hors primitive (relevé `primitive`, défini plus bas). Il ne reste plus aucune fonction de rendu propre à un écran ni aucune feuille de famille qui style une primitive, hors décors. La passe complète est verte depuis le dépôt.
+- **But réel** : chaque écran des maquettes (`hotes/godot/cibles/propositions/`) se construit à partir de données sémantiques. Un gabarit déclaratif les range dans ses places, et des primitives du kit les dessinent. Une nature d'information a le même dessin partout ; changer l'interface revient à toucher une primitive, pas à « partir à la chasse de tous les écrans ».
+- **Livrable** :
+  - le code des maquettes migré (`sources/`) ;
+  - le catalogue des primitives (`kit.md`) ;
+  - des gardes et des relevés qui rendent la rechute impossible ;
+  - la page de jugement régénérée depuis le dépôt.
+- **Fini** :
+  - les 170 états sont dessinés exclusivement par des primitives du catalogue, par des gabarits sans corps de fonction et par des décors limités à `#scene` ;
+  - les feuilles hors kit ne déclarent que du placement ;
+  - la passe complète est verte depuis le dépôt, avec la comparaison au pixel à 0 sur les lots de migration.
+- **Doctrines** :
+  - `user-doctrine-le-jeu-envoie-des-donnees-pas-leur-affichage` : « leur JSON porte les données dans la forme visée, et le rendu dessine le kit » ; mots keyés par id, aucun mot en dur ;
+  - `user-doctrine-ui-coherente-par-primitives-comme-les-donnees` : un concept, une primitive ; pas de classe mono-écran. A1 : un module CSS d'écran ne déclare que du placement. A2 : `style=` ne porte que des variables CSS ;
+  - `user-doctrine-boites-fixes-d-un-ecran-a-l-autre` ;
+  - `user-doctrine-icone-identifie-survol-detaille` ;
+  - `user-doctrine-maquettes-en-16-9`.
 - **Déjà tranché** :
-  - les doctrines `boites-fixes-d-un-ecran-a-l-autre`, `icone-identifie-survol-detaille` et `le-jeu-envoie-des-donnees-pas-leur-affichage` ;
-  - les données d'un état restent **sémantiques**. C'est le gabarit qui associe chaque nature à sa primitive et à sa place. On n'écrit ni place ni primitive dans les données d'un état ;
-  - les relevés existants (cadres, places, contenu, masque, etc.) restent bloquants.
+  - les données d'un état restent **sémantiques** : aucune place ni primitive n'est écrite dans un état ;
+  - les relevés existants restent bloquants.
 - **Irréversible** : rien. Tout passe par branche, PR et file de fusion.
 
-## État mesuré (HEAD 3d2a59adcf, carte du 2026-11-21)
+## État mesuré (HEAD 4c4f190253, carte et jugement du 2026-11-21)
 
-- **Données déjà sémantiques** : aucun HTML dans les 170 états. Les valeurs sont typées (`tour:{rang,sur}`, `cumul:{dr,vise}`…). Il reste environ 135 textes composés (valeur et mot mêlés), surtout dans `fenetre-du-bas` (68) et `lieu-et-voyage` (34).
-- **Le rendu n'est pas générique** :
-  - 228 fonctions de `rendu.js` dessinent, dont environ 150 propres à un seul écran ;
+- **Données** :
+  - aucun HTML dans les 170 états ; les valeurs sont typées ;
+  - 30 types de premier niveau, un par écran (`maquette.ts:14-15`) ;
+  - environ 135 textes composés, surtout dans `fenetre-du-bas` (68) et `lieu-et-voyage` (34).
+- **Rendu** :
+  - 228 fonctions qui dessinent, dont environ 150 propres à un écran ;
   - environ 1 230 balises écrites sur place, contre environ 600 appels de primitive ;
-  - `rendu.js` compose lui-même des textes (« ≤ N », « tour r sur s », « Round n »).
-- **Le style des primitives est dispersé** : 179 règles hors `gestes.css` stylent une primitive elle-même, et 156 de plus la stylent en contexte. On trouve des doublons contradictoires (`.apercu`, `.pas.petit`, `.dr`) et 58 identifiants comme sélecteurs.
+  - les gabarits choisissent leur dessin par écran (`DECORS[etat.decor]`, `'actes' in e`, `rendu.js:1748-1786`) ;
+  - le rendu compose des textes (« ≤ N », « tour r sur s ») et des primitives écrivent des mots en dur (`bourse`, `gestes.js:398-400`).
+- **Primitives** :
+  - plusieurs sont des enveloppes à HTML libre (`cadre`, `places`, `colonne`, `defile`, `apercu`, `plaque`, `carte`) ;
+  - des primitives vivent dans des fichiers de famille (`combat/jet.js`, `lieux-et-nuit/commun.js`, `outils/outils.js`) ;
+  - `classe` et `style` sont ouverts en paramètre ;
+  - il n'existe aucune primitive pour six natures : ligne libellé-valeur, rubrique, sous-titre, note, étiquette, puce (carte § 9).
+- **Style** :
+  - 179 règles hors `gestes.css` stylent une primitive, et 156 la stylent en contexte ;
+  - des surcharges d'identité ont un sélecteur dont le dernier terme n'est pas la racine (`#lieu .plaque.envoyer>div`, `#verdict .dr`) ;
+  - 58 identifiants servent de sélecteurs.
+- **Interface hors `#ui`** : l'éditeur et la frise dessinent des libellés en SVG dans `#ui` (`outils/editeur.js:46-72`, `rendu.js:905-914`).
 - **Outillage** :
   - `rendre.mjs` sort en 1 sur tout relevé non vide ;
   - `contenus.mjs` agrège ;
-  - `npm run godot:maquettes` (`passe.mjs`) arrive avec l'atterrissage de #4585 ;
-  - playwright n'est pas déclaré dans `package.json` ;
-  - aucun outil du dépôt ne compare les maquettes au pixel.
+  - `npm run godot:maquettes` arrive avec l'atterrissage, en 16:9 seulement ;
+  - `hotes/godot/etalons.mjs:35-49` compare des PNG (`ecart`, `decodePng`) ;
+  - le navigateur est épinglé dans `planches.mjs:33` ;
+  - playwright s'installe hors dépendances (`npm i --no-save playwright`, `images.md:250-252`).
+- **Preuve que le premier relevé envisagé ne mesurait rien** : en marquant seulement `cadre` et `places`, 21 états de `fiche` sur 25 et toute la fenêtre du pilote passent déjà à 0 « hors primitive », sans aucune migration (sonde du juge). Le relevé doit donc porter sur l'émission, pas sur l'enveloppe.
 
-## Règles de la migration
+## Règles
 
-1. **Pixel constant.** Un état migré se compare au pixel à son rendu d'avant la migration, avec la même tolérance d'anticrénelage que celle mesurée sur deux rendus identiques. Un écart, c'est une erreur de migration, jamais un choix.
-2. **Une nature, une primitive.** Toute information visible passe par la primitive de sa nature. Une primitive porte sa classe racine, son style (dans `gestes.css` ou dans le fichier de la primitive) et sa marque `data-primitive`. Il n'y a pas de variante par écran : un deuxième cas réel se traite par un paramètre, jamais par une surcharge de famille.
-3. **Le gabarit assemble.** Un gabarit déclare ses places (`PLACES`) et la nature qui remplit chacune. Le rendu d'un état se réduit à : gabarit, puis places, puis primitives nourries des données de l'état. Les décors SVG (peintres) restent à part, ce ne sont pas des éléments d'interface.
-4. **Les mots à part.** Un texte composé quitte les données et le rendu : la donnée porte la valeur, la primitive pose le mot. Cette règle se traite dans la migration de chaque gabarit, sans changement visible.
-5. **Rien d'autre dans un lot de migration.** Toute amélioration visible va dans un lot d'harmonisation à part (étape 5).
+1. **Catalogue fermé.** `kit.md` liste chaque nature, sa primitive, sa signature et ses variantes nommées. Les primitives vivent seulement dans le kit (`gestes.js`, `gestes.css`, ou un dossier `kit/`).
+   - Une variante hors catalogue lève une erreur.
+   - `classe` et `style` disparaissent des signatures, ou ne prennent que des valeurs du catalogue.
+   - `style=` ne porte que des variables CSS (A2).
+2. **L'émission, pas l'enveloppe.**
+   - Une primitive échappe elle-même ses paramètres de texte.
+   - Ses paramètres d'emplacement n'acceptent que des sorties de primitive (valeur marquée) ; tout autre contenu lève une erreur.
+   - Chaque nœud émis porte la marque de sa primitive.
+   - Le HTML brut devient impossible par construction.
+3. **Le gabarit est une table.** Un gabarit déclare `{ place : [champ de l'état, nature] }`, sans corps de fonction. Un écran qui demande une disposition propre a sa table propre, déclarée, sans code.
+4. **Les mots à part.** La donnée porte la valeur et l'id du libellé. La primitive place les deux et n'écrit aucun mot.
+5. **Décor = `#scene`.** Tout ce qui est sous `#ui`, SVG compris, est de l'interface et passe par une primitive.
+6. **Feuilles hors kit = placement seul** (A1), quel que soit le sélecteur : grille, gap, largeur, position. Aucune couleur, bordure, police, taille de police, rayon ni ombre.
+7. **Pixel constant dans un lot de migration.**
+   - Les 170 états sont comparés dans les 4 formats (`rendre.mjs:42-47`), sous le navigateur épinglé, par `ecart`, avec la tolérance mesurée sur deux passes de la même tête.
+   - Un écart est une erreur de migration.
+   - Pour garder le pixel, une variante existante devient une variante nommée du catalogue, jamais une surcharge de famille.
+8. **Harmonisation à part.** Réduire des variantes est un changement visible : il se fait dans un lot d'harmonisation, montré d'abord sur un écran, avec ses « À valider ».
 
 ## Étapes
 
-0. **Atterrir #4585** (en cours) :
-   - commande de passe complète dans le dépôt, avec un code de sortie fiable ;
-   - passe complète, gardes de texte de la file de fusion, `test:perimetre` ;
-   - PR en auto-fusion et page de jugement republiée.
-
-   *Preuve* : CI verte, PR fusionnée.
-1. **Outillage de migration**, dans le dépôt :
-   - **comparaison au pixel** : rendu de référence de tous les états à une tête donnée, puis comparaison état par état, avec un code de sortie non nul au-delà de la tolérance. La tolérance se mesure sur deux rendus successifs de la même tête ;
-   - **relevé `primitive`** : chaque primitive marque sa racine (`data-primitive`). Le relevé compte, par gabarit, le contenu visible (texte, image, contrôle) qui n'est sous aucune racine de primitive ni dans un décor. En mode rapport d'abord : son compte par gabarit sur HEAD fixe le périmètre ;
-   - **déclarer playwright** selon la voie canonique du dépôt, ou consigner l'écart si elle n'existe pas.
-
-   *Preuve* : chaque outil est prouvé par mutation, et le rapport initial est produit.
-2. **Pilote : `fenetre-du-bas`** (49 états, et 16 de plus via `lieu-et-voyage`) :
-   - migrer jusqu'à un relevé `primitive` à 0 et une comparaison au pixel à 0, en sortant les textes composés du rendu et des données ;
-   - montrer à l'utilisateur le fichier de données d'un état à côté de son écran ;
-   - mesurer le coût réel : temps, fonctions supprimées, règles de famille retirées.
-
-   *Preuve* : relevé et comparaison verts, `jet.css`, `rendu.css` et `combat.css` sans règle sur une primitive pour ce gabarit. **Point d'arrêt** : on ne passe à l'étape 3 qu'avec l'accord de l'utilisateur sur la forme des données.
-3. **Gabarits suivants**, dans l'ordre de la carte, du plus petit au plus gros : `recit`, `ouverture`, `consultation`, `edition`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`. Un gabarit fait un lot, avec la même preuve que le pilote. Le relevé `primitive` devient bloquant gabarit par gabarit, comme le relevé `contenu`.
-4. **Garde finale.** Le relevé `primitive` devient bloquant partout. Une garde de dépôt refuse toute règle d'une feuille de famille dont le sélecteur le plus à droite est la classe racine d'une primitive, ainsi que tout HTML écrit sur place dans le rendu d'un gabarit.
-5. **Harmonisation**, en lots visibles, après la migration de chaque nature :
-   - pour chaque nature d'élément aux variantes dispersées (titres de cadre, rubriques, puces, filets, plaques, étiquettes, jauges, lignes libellé-valeur, notes), une seule forme ;
-   - la forme est montrée d'abord sur un écran, puis appliquée par sa primitive à tous ;
-   - « À valider » dans `kit.md` et dans les familles touchées.
-
-   L'ordre suit le relevé des variantes, de la plus dispersée à la moins dispersée.
-6. **Propagation des primitives nées pour un écran** : bourses, réserves, colonne, issue, aperçu, profil, registre (carte de propagation du 2026-11-21). Elle est absorbée par les étapes 3 et 5 : chaque site migre vers sa primitive dans le lot de son gabarit.
+0. **Atterrir #4585** (en cours).
+   - Commande de passe dans le dépôt, avec un code de sortie fiable.
+   - Passe complète, gardes de texte de la file de fusion, `test:perimetre`.
+   - PR en auto-fusion.
+   - *Preuve* : CI verte, PR fusionnée.
+1. **Outillage.**
+   - **Comparaison au pixel** :
+     - rendu de référence des 170 états × 4 formats, à une tête donnée, sous le navigateur épinglé ;
+     - comparaison par `ecart` (`etalons.mjs`), avec code non nul au-delà de la tolérance ;
+     - tolérance mesurée sur deux passes successives.
+   - **Passe complète** : elle rend aussi les planches du kit (`kit/planche-*.html`).
+   - **Page de jugement** : elle se génère depuis un script du dépôt. Sa source vivait dans la session (`docs/plans/2026-11-18-kit-maquettes-reprise-4411.md:34`).
+   - **Relevé `brut`** :
+     - il compte, par gabarit, les nœuds sous `#ui` qui ne portent aucune marque d'émission de primitive (règle 2) ;
+     - il reste hors du rapport bloquant de `rendre.mjs` tant qu'il n'est pas promu ; son compte sur HEAD fixe le périmètre.
+   - *Preuve* : une mutation par outil, le rapport initial et la tolérance mesurée.
+2. **Catalogue.**
+   - `kit.md` devient le catalogue fermé (règle 1), construit depuis l'inventaire des variantes (carte § 9) et la carte de propagation : chaque nature, sa primitive, sa signature, ses variantes nommées, dont les six natures sans primitive.
+   - Chaque variante cite les écrans qui la portent aujourd'hui.
+   - **Point d'arrêt utilisateur** sur le catalogue (« primitives d'abord »).
+3. **Pilote : `fenetre-du-bas` (65 états) et `ouverture` (3 types, 4 états).**
+   - Primitives du catalogue utilisées par ces gabarits : émission marquée et paramètres d'emplacement contrôlés (règle 2).
+   - Gabarits en tables (règle 3), mots keyés (règle 4).
+   - Relevé `brut` à 0 sur ces gabarits ; comparaison au pixel à 0 sur les 170 états × 4 formats.
+   - Feuilles touchées ramenées au placement.
+   - Coût mesuré : temps, fonctions supprimées, règles retirées.
+   - **Point d'arrêt utilisateur** sur trois choses : le catalogue appliqué, la table d'un gabarit, et le fichier de données d'un état à côté de son écran.
+4. **Gabarits suivants**, du plus petit au plus gros : `recit`, `consultation`, `edition`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`. Un lot par gabarit, avec la preuve du pilote.
+   - Le relevé `brut` devient bloquant pour un gabarit dès qu'il est à 0.
+   - Chaque lot met à jour les références vivantes qui citent ce qu'il déplace : `hotes/godot/projet/art/ferme.gdshader:2`, `scripts/bulle.gd`, `cibles/ecrites/*.md`, `src/data/paysages/defs/accueil.ts:6`.
+5. **Gardes finales.**
+   - Relevé `brut` bloquant partout.
+   - Garde de dépôt :
+     - aucun corps de fonction dans un module de gabarit ;
+     - aucune propriété d'identité dans une feuille hors kit (A1) ;
+     - aucun `style=` hors variables CSS (A2) ;
+     - aucune primitive hors du kit.
+6. **Harmonisation** (règle 8), nature par nature, de la plus dispersée à la moins dispersée (carte § 9) :
+   - lignes libellé-valeur, titres, sous-titres et rubriques, notes, étiquettes, puces et listes, filets, bulles, plaques, jauges ;
+   - la forme est montrée sur un écran, puis le catalogue est réduit et appliqué partout ;
+   - « À valider » dans `kit.md`.
 
 ## Hypothèses
 
-- Le pixel constant est atteignable malgré les textures à graine et les polices locales. L'étape 1 mesure la tolérance ; si elle ne suffit pas, la règle 1 se réécrit avant le pilote.
-- Les identifiants `data-texte` et les clés du relevé `contenu` peuvent changer pendant la migration. Le relevé `contenu` se rejoue à chaque lot ; une clé renommée n'est pas un écart si le rect reste le même.
+- **Le pixel constant est atteignable** malgré les textures à graine, les polices locales et les mesures après montage. L'étape 1 le mesure. Si deux passes du même arbre diffèrent au-delà d'un bruit d'anticrénelage, la règle 7 se réécrit avant le catalogue.
+- **Renommer les clés du relevé `contenu` est sans danger** : `data-texte` et les classes peuvent changer, et c'est la comparaison au pixel qui prouve qu'un rect n'a pas bougé.
 
 ## Hors périmètre
 
-- Le noyau et Godot : #4574 (projeter des données) et #4575 (Compendium). Les maquettes reprennent la forme visée, et le noyau s'adapte après validation.
-- Les décors SVG et leurs peintres.
-- Les choix ouverts des « À valider » existants : ils restent à l'utilisateur.
+- Le noyau et Godot : #4574 (projeter des données) et #4575 (Compendium). Le noyau s'adapte après la validation des maquettes.
+- Les décors de `#scene` et leurs peintres.
+- Les choix ouverts des « À valider » existants.
