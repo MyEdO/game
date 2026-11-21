@@ -1,5 +1,5 @@
 /* La planche du kit (#4411) : chaque pièce de `../gestes.js`, à chaque taille et dans chaque état (repos, survol, armé,
-   fermé), étiquetée de l'appel qui la pose. Une feuille par `data-etat` : boutons, plaques, portraits, marques, annonces.
+   fermé), étiquetée de l'appel qui la pose. Une feuille par `data-etat` : boutons, plaques, portraits, marques, annonces, titres.
    Maquette hors du jeu. */
 el(S, 'rect', { width: W, height: H, fill: '#120c08' });
 const nom = (appel) => `<code style="display:block;margin-top:6px;font:10px/13px monospace;color:inherit;opacity:.85;white-space:nowrap">${appel}</code>`;
@@ -85,4 +85,34 @@ const FEUILLES = {
     `<div class="action-de-coin" data-piece="action de coin">${plaque('Continuer', { armee: true })}${plaque('Plus tard')}</div>`, repere(1120, 576, 'action de coin ↓'),
   ],
 };
+/* Le lot de nature « titres » (#4585) : les variantes rendues aujourd'hui, à leurs valeurs calculées, l'écran qui porte
+   chacune sous elle, et la forme cible proposée (`planche-titres.html`). */
+const G = "font-family:'Grenze Gotisch',serif;font-weight:600;letter-spacing:.3px;white-space:nowrap";
+const R = "font-family:'Fell SC',serif;letter-spacing:1.1px;white-space:nowrap";
+const vu = (ou, texte, taille, interligne, couleur, extra = '') => piece(`${taille} px · ${ou}`, `<div style="${G};font-size:${taille}px;line-height:${interligne}px;color:${couleur};${extra}">${texte}</div>`);
+const SEPIA = 'var(--sepia)', IVOIRE = 'var(--ivoire)', OMBRE = 'text-shadow:0 1px 2px var(--noir)';
+const rubanPose = (texte, o) => `<div style="height:30px;display:flex;align-items:center">${ruban(texte, { ...o, style: 'position:static;transform:none' })}</div>`;
+const cibles = (matiere) => [
+  ...(matiere === 'bois' ? [ligne(piece('titre d’écran · cartouche titre 31 / 44', `<div class="cible-ecran gothique">Carnet d’enquête</div>`), piece('titre de cadre · ruban 18', rubanPose('Affaires', { gothique: true })))] : []),
+  ligne(piece('titre de panneau · 28 / 40', `<div class="cible-panneau gothique">Un héritage à Bögenhafen</div>`)),
+  ligne(piece('intertitre · 13 / 16', `<div class="cible-inter rubrique">Compétences de carrière</div>`),
+    piece('nom grand 22 / 30', `<div class="cible-nom grand gothique">Odelina Landau</div>`), piece('moyen 18 / 24', `<div class="cible-nom moyen gothique">Greta Hartmann</div>`), piece('petit 16 / 19', `<div class="cible-nom petit gothique">Bjorn</div>`)),
+];
+FEUILLES.titres = () => [
+  page('panneau-parchemin', 16, 14, 842, 270, 'parchemin', 'Titre de panneau · aujourd’hui, parchemin : 20 rendus, 24 à 36 px',
+    ligne(vu('compendium', 'Négociateur', 36, 40, SEPIA), vu('événement de route', 'Relâche à terre', 34, 40, SEPIA), vu('document', 'On recherche !', 34, 40, SEPIA, 'letter-spacing:.5px')),
+    ligne(vu('coup critique', 'Rupture', 31, 36, SEPIA), vu('carnet, éditeur, nuit', 'L’Al-zahr', 30, 36, SEPIA), vu('création, options', 'Le bagage', 28, 36, SEPIA)),
+    ligne(vu('halle, port', 'Céréales', 27, 32, SEPIA), vu('incantation', 'Fléchette', 26, 32, SEPIA), vu('soins, sauvegardes, butin', 'Greta Hartmann', 24, 32, SEPIA))),
+  page('panneau-bois', 16, 298, 842, 190, 'bois', 'Titre d’écran et de panneau · aujourd’hui, bois : 6 et 6 rendus',
+    ligne(vu('cartouche', 'Options', 31, 36, IVOIRE, OMBRE), vu('voyage', 'Wellentag', 29, 36, IVOIRE, OMBRE), vu('réduit par script', 'Auberge des Sept Rayons', 27, 36, IVOIRE, OMBRE), vu('index', 'Index', 30, 36, '#f4e8ca')),
+    ligne(vu('carte du monde', 'Altdorf', 28, 32, IVOIRE, OMBRE), vu('barre', 'Compendium', 24, 32, '#f4e8ca'), vu('interlude', 'Le camp', 23, 32, '#f4e8ca', OMBRE), vu('éditeur, liste', 'Éditeur', 22, 32, '#f4e8ca'))),
+  page('inter', 16, 502, 842, 204, 'parchemin', 'Ruban, intertitre et nom · aujourd’hui',
+    ligne(piece('ruban rubrique 14,5', rubanPose('Affaires')), piece('ruban gothique 18', rubanPose('Attaque', { gothique: true })),
+      piece('.rub 13 / 16 · fiche', `<div style="${R};font-size:13px;line-height:30px;color:var(--rouille)">Talents</div>`),
+      piece('h4 13 + trait · journal', `<div style="${R};font-size:13px;line-height:30px;color:var(--rouille);display:flex;align-items:center;gap:10px;width:136px">Round 2<i style="flex:1;height:1px;background:var(--filet-encre)"></i></div>`),
+      piece('.bloc-t 12,5 + trait', `<div style="${R};font-size:12.5px;line-height:24px;color:#4a3420;border-top:1px solid var(--filet-encre);margin-top:5px;width:120px">Lots en cale</div>`)),
+    ligne(vu('cartouche', 'La cale', 22, 26, SEPIA), vu('jet', 'Aldric', 21, 26, SEPIA), vu('coop', 'Mira', 19, 26, SEPIA), vu('port', 'Capitaine', 17.5, 26, 'var(--encre)'), vu('test', 'Test simple', 16, 26, SEPIA), vu('naval', 'Bjorn', 15, 26, SEPIA))),
+  page('cible-bois', 872, 14, 392, 372, 'bois', 'Forme cible · bois', ...cibles('bois')),
+  page('cible-parchemin', 872, 400, 392, 306, 'parchemin', 'Forme cible · parchemin', ...cibles('parchemin')),
+];
 monter(FEUILLES[document.getElementById('ecran').dataset.etat]());
