@@ -9,7 +9,9 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { draineCascadeDifferee } from './cascade.testkit';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
-import { WINE_QUALITY } from '../engine/landCargo';
+import { datasetObject, setObjectDataset } from '../data/overrides';
+import { marcheEnVue } from './marcheEnVue';
+import { chargerLaSave, exporterLaSauvegarde, lireSave, snapshotSave } from './persistance/save';
 import { carrierById, persistCarriersCargo } from './carriers';
 import { marcheDuLieu, type WorldMap } from './worldMap';
 import type { CargoLot } from '../engine/cargo';
@@ -226,16 +228,35 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     expect(partyMoneyTotal(get).gold).toBe(before);
   });
 
-  it('evaluerLeVin révèle la qualité secrète d’un lot de Vin (Test d’Évaluation, l.95)', () => {
+  it('un vin Bon reste Bon après sauvegarde et changement d’unité du prix (MSRC 13 l.95, l.166)', () => {
+    const fiche = structuredClone(datasetObject('landCargo'));
+    const id = 'vin-eau-de-vie';
     seedBattleRng(3);
-    get().ouvrirLeMarche();
-    const wine = get().landMarket!.offers.find((o) => o.wine)!;
-    expect(wine.wineTier).toBeUndefined();
-    get().evaluerLeVin(wine.cargoId);
-    drainCascade();
-    const after = get().landMarket!.offers.find((o) => o.cargoId === wine.cargoId)!;
-    expect(WINE_QUALITY.map((w) => w.label)).toContain(after.wineTier);
-    expect(typeof after.wineEvalOk).toBe('boolean');
+    const rng = battleRng();
+    const tirer = rng.int;
+    rng.int = (_min, max) => max === 10 ? 6 : 5;
+    try {
+      get().ouvrirLeMarche();
+      get().jetValider('etalLot');
+      draineCascadeDifferee(get, () => banc.reprendreLesEnAttente());
+      expect(get().landMarket?.offers.find((o) => o.cargoId === id)?.basePrice).toBe(0.3);
+      expect(marcheEnVue(get())?.offres.find((o) => o.id === id)?.qualite).toBeNull();
+      const save = exporterLaSauvegarde(snapshotSave(get(), '2026-11-21T00:00:00.000Z'));
+
+      setObjectDataset('landCargo', { ...fiche, prixDuLivre: { ...fiche.prixDuLivre, encParPrix: 5 } });
+      const relue = lireSave(save);
+      if (typeof relue === 'string') throw new Error(relue);
+      set(chargerLaSave(relue).etat);
+      get().evaluerLeVin(id);
+      drainCascade();
+
+      expect(marcheEnVue(get())?.offres.find((o) => o.id === id)?.qualite).toEqual({ texte: 'Bon', fiable: true });
+      expect(acheterAuMarche(get, 'marcheDeTerre', CARRIER_ID, id, 10)).toBeNull();
+      expect(carrierCargo()).toMatchObject([{ cargoId: id, enc: 10, basePriceGold: 0.3 }]);
+    } finally {
+      rng.int = tirer;
+      setObjectDataset('landCargo', fiche);
+    }
   });
 
   it('personne qui puisse tenter l’Évaluation (LDB 09 l.30) : evaluerLeVin journalise le refus NOMMÉ, aucun Test ouvert', () => {
