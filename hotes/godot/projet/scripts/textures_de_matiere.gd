@@ -24,7 +24,7 @@ static func retenue(chemin: String) -> Texture2D:
 	return ResourceLoader.get_cached_ref(chemin) as Texture2D
 
 
-## Les chemins d'une matière, y compris sa variante neutre si une palette peut la teinter.
+## Les chemins d'une matière, y compris sa variante neutre si une palette ou la couleur d'une nappe la teint.
 static func chemins_de(matiere: String, neutre: bool) -> PackedStringArray:
 	var chemins := PackedStringArray([VolumeDeScene.texture_de(matiere), VolumeDeScene.relief_de(matiere)])
 	if neutre:
@@ -47,8 +47,6 @@ func _preparer(matieres: Dictionary, grouper_sur_web: bool) -> Dictionary:
 	var attendues: Dictionary[String, Lecture] = {}
 	for matiere: String in matieres:
 		var chemins := chemins_de(matiere, matieres[matiere])
-		if not ResourceLoader.exists(chemins[0], "Texture2D"):
-			continue
 		for chemin: String in chemins:
 			if not ResourceLoader.exists(chemin, "Texture2D"):
 				continue
