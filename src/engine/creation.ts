@@ -16,7 +16,7 @@
  */
 import { RNG, roll, rollDice } from './dice';
 import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
-import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
+import { CharKey, CHAR_KEYS, Characteristics, Combatant, type ReferenceDeCouleur } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
 import {
   SpeciesData,
@@ -138,27 +138,27 @@ export function rollHeight(race: RaceKey, rng: RNG): number {
 }
 
 /** Couleur des yeux, colonne de la race `race`. LDB 05 l.742-754 */
-export function rollEyes(race: RaceKey, rng: RNG): string {
+export function rollEyes(race: RaceKey, rng: RNG): ReferenceDeCouleur {
   return rollDetail(eyesTable, rollDice(eyesDie(), rng), race);
 }
 
 /** Couleur des cheveux, colonne de la race `race`. LDB 05 l.756-768 */
-export function rollHair(race: RaceKey, rng: RNG): string {
+export function rollHair(race: RaceKey, rng: RNG): ReferenceDeCouleur {
   return rollDetail(hairsTable, rollDice(hairsDie(), rng), race);
 }
 
 /** Âge, taille, yeux et cheveux de la race `race`, tirés dans cet ordre sur `rng`. LDB 05 l.701-768 */
-export function tirerLesDetails(race: RaceKey, rng: RNG): { age: number; height: number; eyes: string; hair: string } {
+export function tirerLesDetails(race: RaceKey, rng: RNG) {
   return { age: rollAge(race, rng), height: rollHeight(race, rng), eyes: rollEyes(race, rng), hair: rollHair(race, rng) };
 }
 
 /** La couleur de la colonne `race` atteinte par le jet `r` : première rangée dont la borne haute cumulée
  *  (`randByRace` de la colonne, sinon `rand`) couvre `r`. */
-function rollDetail(table: DetailColorData[], r: number, race: RaceKey): string {
+function rollDetail(table: DetailColorData[], r: number, race: RaceKey): ReferenceDeCouleur {
   const randFor = (e: DetailColorData) => e.randByRace?.[race] ?? e.rand;
   const sorted = [...table].sort((a, b) => randFor(a) - randFor(b));
   const entry = sorted.find((e) => r <= randFor(e)) ?? sorted[sorted.length - 1];
-  return entry.color[race] ?? entry.color.humain ?? '';
+  return { id: entry.id, colonne: race };
 }
 
 /** Signe astral (Tableau des Signes astrologiques, ADE II 3 l.40) → `id` STABLE du signe (≠ libellé —

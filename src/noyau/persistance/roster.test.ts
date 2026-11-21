@@ -9,6 +9,9 @@ import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
 import { nommerLesRetraits } from './elagage';
 import { t } from '../../i18n';
 import { ciblePsy } from '../../engine/psych/ciblage';
+import { libelleDeCouleur } from '../../data';
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
+import { buildHero, newDraft, rollDraftDetails, withCareer, withSpecies } from '../creation/brouillon';
 
 /** Un État du registre courant, et un id qu'aucun registre ne porte. */
 const ETAT_CONNU = 'a-terre';
@@ -29,6 +32,57 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
     const brut = ecrireLeRoster(heros);
     expect(JSON.parse(brut)).toEqual({ version: FORMAT_ROSTER, heros });
     expect(lireLeRoster(brut)).toEqual({ heros, retraits: null });
+  });
+
+  it('l’ancienne entrée relue et importée porte les références du héros et de son brouillon', () => {
+    const original = entry('reiklander');
+    const ancien = {
+      ...original,
+      hero: {
+        ...original.hero, species: 'humains-reiklander',
+        details: { eyes: 'Bleu', hair: 'Brun clair' },
+      },
+      draft: {
+        ...original.draft, speciesId: 'humains-reiklander', eyes: 'Bleu', hair: 'Couleur inconnue',
+        speciesTalentChoices: { choix: { pick: 1, of: [{ pick: 1, of: [{ random: 2 }, { id: 'doue-en-calcul' }] }] } },
+      },
+    };
+    const lu = lireLeRoster(JSON.stringify({ version: '5207758a6bf0bfd7', heros: [ancien] }));
+    const importe = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', version: 'cd40631dc865d107', ...ancien }));
+    const attendu = {
+      ...ancien,
+      hero: {
+        ...ancien.hero,
+        details: { eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' } },
+      },
+      draft: {
+        ...ancien.draft, eyes: { label: 'Bleu' }, hair: { label: 'Couleur inconnue' },
+        speciesTalentChoices: {
+          choix: { pick: 1, of: [{ pick: 1, of: [{ pick: 2, table: { id: 'talents-aleatoires' } }, { id: 'doue-en-calcul' }] }] },
+        },
+      },
+    };
+    expect(lu?.heros).toEqual([attendu]);
+    expect(importe.entry).toEqual(attendu);
+    expect(lireLeRoster(ecrireLeRoster(lu!.heros))).toEqual(lu);
+  });
+
+  it('préserve le physique tiré avant un changement d’espèce sans lui attribuer sa nouvelle colonne', () => {
+    const tire = rollDraftDetails(withSpecies(newDraft(149), 'humains-reiklander'));
+    const draft = withCareer(withSpecies(tire, 'nains'), 'soldat');
+    const personnage = buildHero(draft, idsDeTest, 'ancien-physique');
+    const libelles = { eyes: libelleDeCouleur('eyes', draft.eyes), hair: libelleDeCouleur('hairs', draft.hair) };
+    expect(libelles).toEqual({ eyes: 'Bleu', hair: 'Brun foncé' });
+    expect(personnage.species).toBe('nains');
+    const ancien = {
+      ...entry(personnage.id),
+      draft: { ...draft, ...libelles },
+      hero: { ...personnage, details: { ...personnage.details, ...libelles } },
+    };
+    const lu = lireLeRoster(JSON.stringify({ version: '5207758a6bf0bfd7', heros: [ancien] }));
+    const couleurs = { eyes: { label: 'Bleu' }, hair: { label: 'Brun foncé' } };
+    expect(lu?.heros[0].hero.details).toMatchObject(couleurs);
+    expect(lu?.heros[0].draft).toMatchObject(couleurs);
   });
 
   it('d’un autre format, sans tableau de héros, ou illisible : `null`', () => {

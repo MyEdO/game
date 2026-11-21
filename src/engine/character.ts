@@ -35,8 +35,7 @@ import {
   tailleDuTalent,
   specPoolOf,
   findTalentById,
-  rangeesDesTalentsAleatoires,
-  talentsAleatoiresDie,
+  tableDeTalents,
   especeDApparence,
   findSpellById,
   type AdvancementRef,
@@ -98,12 +97,20 @@ export function fluxDeCreation(seed: number, etape: EtapeDeFlux, ...suite: reado
   return fluxDerive(seed, etape, ...suite);
 }
 
-/** Clé de COMPARAISON d'une option d'une entrée « A ou B » : `refKey(id, spec)` d'un Talent, `tirage:<n>`
- *  d'une entrée `{random: n}`. */
+/** Clé de comparaison d'une option de Talent d'espèce. */
 export function cleDOption(option: AdvancementRef): string {
   if ('id' in option) return refKey(option.id, option.spec);
-  if ('random' in option) return `tirage:${option.random}`;
+  if ('table' in option) return `tirage:${option.table.id}:${option.pick}`;
   return option.of.map(cleDOption).join(' ou ');
+}
+
+/** L'option effective de chaque emplacement des Talents d'espèce, à son rang dans l'espèce. */
+export function optionsDesTalentsDEspece(sp: SpeciesData, choix: ChoixDeCreation['speciesTalentChoices']): AdvancementRef[] {
+  return sp.talents.map((ref, i) => {
+    if (!('of' in ref)) return ref;
+    const choisie = choix?.[adresseDeCreation.especeTalent(i)];
+    return ref.of.find((option) => choisie != null && cleDOption(option) === cleDOption(choisie)) ?? ref.of[0];
+  });
 }
 
 /**
@@ -236,8 +243,8 @@ export function speciesSkillDefaults(sp: SpeciesData): { plus5: RefDesignee[]; p
 /** Tire un Talent sur le Tableau des Talents aléatoires (LDB 05 l.484, l.514-531). `doublon` : Talent déjà dans
  *  `possedes`, toutes utilisations confondues (LDB 10 l.17). Utilisation : `specChoisie` (`randomSpecPicks`,
  *  écrit par `withRandomTalentSpec`) si `specPoolOf` la propose, sinon la 1re non possédée, sinon la 1re. */
-function rollRandomTalent(rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } {
-  const { id } = findTableEntry(rangeesDesTalentsAleatoires(), rollDice(talentsAleatoiresDie(), rng));
+function rollRandomTalent(table: ReturnType<typeof tableDeTalents>, rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } {
+  const { id } = findTableEntry(table.entries, rollDice(table.die, rng));
   const entry = garanti(findTalentById(id), id, 'Talent');
   const doublon = possedes.some((p) => p.id === entry.id);
   const specs = specPoolOf(entry); // tirage JOUEUR : ce que le Talent PROPOSE
@@ -248,8 +255,8 @@ function rollRandomTalent(rng: RNG, possedes: readonly RefDesignee[], specChoisi
 
 /**
  * Résout les Talents d'espèce (LDB 05 l.484) : une entrée « A ou B » (`pick`) → l'option retenue
- * (`speciesTalentChoices`, par adresse ; défaut : la 1re) ; un Talent fixe tel quel ; `{random: n}` → n
- * tirages sur le Tableau des Talents aléatoires, y compris comme option d'un choix. Un joker prend la
+ * (`speciesTalentChoices`, par adresse ; défaut : la 1re) ; un Talent fixe tel quel ; `{pick, table}` →
+ * tirages sur la table désignée, y compris comme option d'un choix. Un joker prend la
  * spécialisation choisie (`specChoices`, par adresse), sinon la 1re non possédée.
  */
 export function resolveSpeciesTalents(sp: SpeciesData, opts: OptionsDeResolution): RefDesignee[] {
@@ -272,20 +279,22 @@ export interface TalentDEspece {
 export function resolveSpeciesTalentsDetail(sp: SpeciesData, opts: OptionsDeResolution): TalentDEspece[] {
   const result: TalentDEspece[] = [];
   const possedes = () => result.map((t) => t.ref);
-  const tirer = (adresse: AdresseDeCreation) => {
-    const aRang = (rang: number) => rollRandomTalent(fluxDeCreation(opts.seed, 'talents', adresse, rang), possedes(), opts.randomSpecPicks?.[adresse]);
+  const tirer = (table: ReturnType<typeof tableDeTalents>, adresse: AdresseDeCreation) => {
+    const aRang = (rang: number) => rollRandomTalent(table, fluxDeCreation(opts.seed, 'talents', adresse, rang), possedes(), opts.randomSpecPicks?.[adresse]);
     const relances = opts.talentRerolls?.[adresse] ?? 0;
     let rang = 0;
     let t = aRang(rang);
     while (t.doublon && rang < relances) t = aRang(++rang);
     result.push({ ref: t.ref, tirage: { adresse, rang, doublon: t.doublon } });
   };
-  sp.talents.forEach((ref, i) => {
-    const adresse = adresseDeCreation.especeTalent(i);
-    const choisie = opts.speciesTalentChoices?.[adresse];
-    const option = 'pick' in ref ? ref.of.find((o) => choisie != null && cleDOption(o) === cleDOption(choisie)) ?? ref.of[0] : ref;
-    if ('random' in option) for (let j = 0; j < option.random; j++) tirer(adresseDeCreation.especeTirage(i, j));
-    else if ('id' in option) result.push({ ref: designer('talent', option, opts.specChoices?.[adresse], (s) => !possedes().some((p) => p.id === option.id && p.spec === s)) });
+  optionsDesTalentsDEspece(sp, opts.speciesTalentChoices).forEach((option, i) => {
+    if ('table' in option) {
+      const table = tableDeTalents(option.table);
+      for (let j = 0; j < option.pick; j++) tirer(table, adresseDeCreation.especeTirage(i, j));
+    } else if ('id' in option) {
+      const adresse = adresseDeCreation.especeTalent(i);
+      result.push({ ref: designer('talent', option, opts.specChoices?.[adresse], (s) => !possedes().some((p) => p.id === option.id && p.spec === s)) });
+    }
   });
   return opts.talentsRolled ?? true ? result : result.filter((t) => !t.tirage);
 }

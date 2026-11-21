@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import type { ChoixDeCreation } from '../../../engine/character';
 import { idDe, refOuSpec } from './ref';
-import { avancement } from './avancement';
+import { talentDEspece } from './avancement';
 import { marquerCollection, marqueDeRecord } from './collection-cle';
 import { adresseLue } from '../../../engine/adresseDeCreation';
 
@@ -26,8 +26,8 @@ export const champsDeChoix = {
   /** Talent de carrière CHOISI (`refOuSpec('talent')`) — sans lui, `createHero` prend la 1ʳᵉ entrée du Niveau. */
   careerTalent: refOuSpec('talent').optional(),
   specChoices: parAdresse(z.string()),
-  /** Option retenue d'une entrée « A ou B » : une option de `of`, même forme que les Talents d'espèce (`avancement`). */
-  speciesTalentChoices: parAdresse(avancement('talent')),
+  /** Option retenue d'une entrée « A ou B » : une option de `of`, même forme que les Talents d'espèce. */
+  speciesTalentChoices: parAdresse(talentDEspece),
   randomSpecPicks: parAdresse(z.string()),
   talentRerolls: parAdresse(z.number().int().nonnegative()),
   talentsRolled: z.boolean().optional(),

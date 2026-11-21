@@ -117,7 +117,7 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
   });
 
   it('un emplacement « A ou B » de race devient une rangée de choix qui porte SA structure, jamais un texte re-parsé (#1988)', () => {
-    const picks = species.flatMap((s) => s.talents.filter((a) => 'pick' in a).map((a) => ({ s, a })));
+    const picks = species.flatMap((s) => s.talents.filter((a) => 'of' in a).map((a) => ({ s, a })));
     expect(picks.length, 'la donnée ne porte plus aucun `{pick}` de race : choisir un autre gisement').toBeGreaterThan(0);
     for (const { s, a } of picks) {
       const choix = raceTalentSection(s)!.rows.filter((r) => r.t === 'choice');
