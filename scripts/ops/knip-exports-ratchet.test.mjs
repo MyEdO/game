@@ -22,7 +22,7 @@ test('bibliothèques de banc : toutes project/non-entry, CLI banc-pre-commit ent
   assert.ok(existsSync(join(REPO, cli)), cli)
   assert.equal(retenu(cli, CONFIG.entry), true)
 })
-test('bibliothèque hors entry : export consommé vert, export mort rouge au cliquet deps:exports', async () => {
+test('bibliothèque hors entry : export consommé vert, export mort rouge au cliquet deps:exports', () => {
   const racine = mkdtempSync(join(tmpdir(), 'knip-banc-'))
   try {
     mkdirSync(join(racine, 'scripts/test/lib'), { recursive: true })
@@ -30,18 +30,19 @@ test('bibliothèque hors entry : export consommé vert, export mort rouge au cli
     writeFileSync(join(racine, 'knip.json'), JSON.stringify({ entry: CONFIG.entry, project: CONFIG.project, ignoreExportsUsedInFile: true }))
     writeFileSync(join(racine, 'scripts/consommateur.mjs'), "import { vivant } from './test/lib/banc.mjs'; console.log(vivant)")
     const source = join(racine, 'scripts/test/lib/banc.mjs')
-    const mesurer = async () => compare((await mesurerExports(racine)).counts, {})
+    const mesurer = () => compare(mesurerExports(racine).counts, {})
     writeFileSync(source, 'export const vivant = 1')
-    assert.deepEqual((await mesurer()).nouveaux, [])
+    assert.deepEqual(mesurer().nouveaux, [])
     writeFileSync(source, 'export const vivant = 1; export const mort = 2')
-    assert.deepEqual((await mesurer()).nouveaux, ['scripts/test/lib/banc.mjs : mort'])
+    assert.deepEqual(mesurer().nouveaux, ['scripts/test/lib/banc.mjs : mort'])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('le graphe signale la lecture qui fait d’un module une entrée et accepte la commande déclarée', async () => {
+test('le graphe signale la lecture qui fait d’un module une entrée et accepte la commande déclarée', () => {
   const racine = mkdtempSync(join(tmpdir(), 'knip-lecture-'))
   try {
     mkdirSync(join(racine, 'src'))
+    mkdirSync(join(racine, 'node_modules'))
     writeFileSync(join(racine, 'package.json'), JSON.stringify({ type: 'module' }))
     writeFileSync(join(racine, 'knip.json'), JSON.stringify({ entry: [...CONFIG.entry, 'src/commande.ts'], project: CONFIG.project }))
     writeFileSync(join(racine, 'src/module.ts'), 'export const vivant = 1; export const mort = 2; export type TypeMort = string')
@@ -57,16 +58,17 @@ test('le graphe signale la lecture qui fait d’un module une entrée et accepte
     ].join('\n')
 
     writeFileSync(lecteur, lire("resolve(import.meta.dirname, 'module.ts')"))
-    assert.deepEqual(await mesurerExports(racine), {
+    assert.deepEqual(mesurerExports(racine), {
       counts: { 'src/module.ts': ['TypeMort', 'mort'] },
       entreesImplicites: [],
     })
 
     writeFileSync(lecteur, lire("new URL('./module.ts', import.meta.url)"))
-    assert.deepEqual(await mesurerExports(racine), {
+    assert.deepEqual(mesurerExports(racine), {
       counts: {},
       entreesImplicites: ['src/lecture.test.ts → src/module.ts'],
     })
+    assert.equal(existsSync(join(racine, 'node_modules', '.cache', 'jiti')), false)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 

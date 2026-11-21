@@ -4,14 +4,16 @@
 // doit être RETIRÉE de la baseline (`--sync` ne sait que retirer, jamais ajouter).
 //
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
-import { createOptions } from 'knip/session'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, extname, join, relative } from 'node:path'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 
-export const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const SCRIPT = fileURLToPath(import.meta.url)
+export const REPO = join(dirname(SCRIPT), '..', '..')
 export const BASELINE = join(REPO, 'knip-exports-baseline.json')
 
+const MESURER = '--mesurer'
 const TYPES_D_EXPORT = ['exports', 'types', 'nsExports', 'nsTypes']
 const MODULES_TYPESCRIPT = new Set(['.ts', '.tsx', '.mts', '.cts'])
 
@@ -37,11 +39,21 @@ const retenu = (fichier, motifs) =>
   !motifs.some(m => m.startsWith('!') && correspondGlob(fichier, m.slice(1)))
 
 /** Une seule analyse pour le rapport d'exports et ses modules TypeScript promus par une arête d'entrée. */
-export async function mesurerExports(racine = REPO) {
+export function mesurerExports(racine = REPO) {
+  const { error, status, signal, stdout, stderr } = spawnSync(process.execPath, [SCRIPT, MESURER], {
+    cwd: racine, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+  })
+  if (error) throw error
+  if (status !== 0) throw new Error(`Knip : ${stderr.trim() || signal || status}`)
+  return JSON.parse(stdout.trimEnd().split('\n').at(-1))
+}
+
+async function lireGrapheKnip() {
+  const { createOptions } = await import('knip/session')
   // La façade knip/session ne livre ni les arêtes d'entrée ni leur ensemble résolu.
   const { run } = await import(new URL('./run.js', import.meta.resolve('knip')).href)
   const options = await createOptions({
-    cwd: realpathSync(racine),
+    cwd: realpathSync(process.cwd()),
     includedIssueTypes: TYPES_D_EXPORT,
     isSession: true,
     isShowProgress: false,
@@ -87,8 +99,8 @@ export function syncBaseline(counts, baseline) {
   return out
 }
 
-async function main() {
-  const { counts, entreesImplicites } = await mesurerExports()
+function main() {
+  const { counts, entreesImplicites } = mesurerExports()
   if (entreesImplicites.length) {
     console.error('MODULES TYPESCRIPT SOUSTRAITS À LA MESURE DES EXPORTS :\n  ' + entreesImplicites.join('\n  '))
     process.exitCode = 1
@@ -123,4 +135,9 @@ async function main() {
   console.log(`exports morts : ${total} (gelés, ${Object.keys(counts).length} fichiers) — aucun nouveau`)
 }
 
-if (import.meta.main) await main()
+if (import.meta.main) {
+  if (process.argv[2] === MESURER) {
+    process.env.JITI_FS_CACHE = 'false'
+    console.log(JSON.stringify(await lireGrapheKnip()))
+  } else main()
+}
