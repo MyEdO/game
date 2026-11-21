@@ -1574,7 +1574,7 @@ export interface PageDeLaPresentation {
   classe: string;
   physique: Fait[];
   blessures: Compte;
-  reserves: { nom: string; valeur: number }[];
+  reserves: Reserve[];
   signe: string;
   statut: string;
   bourse: Sous;
@@ -1645,7 +1645,7 @@ export interface IdentiteDuHeros {
   espece: string;
   carriere: string;
   blessures: Compte;
-  reserves: { nom: string; valeur: number }[];
+  reserves: Reserve[];
 }
 
 /** Une section de la fiche du héros ; ses onglets suivent cet ordre, un héros sans Sorts laisse leur place vide. */

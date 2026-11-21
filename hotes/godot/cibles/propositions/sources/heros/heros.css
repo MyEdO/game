@@ -100,6 +100,17 @@
 .pill b{font-size:10.5px}
 .filigrane{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);opacity:.5}
 
+/* ───────── création : la colonne du choix, ses places (`choix/*`, `../rendu.js`) ───────── */
+#choix .place{display:flex;flex-direction:column}
+#choix .place>.filet:first-child{margin:4px 26px 5px}
+#choix .tete-l{flex:none;height:28px;margin:0 0 4px}
+#choix .tete-l>.plaques{margin-top:0}
+#choix .place>.defile{flex:1}
+#choix .defile>*{flex:none}
+#choix .tirage{flex:none;height:72px}
+#choix .comptes:first-child{margin-top:0}
+#choix .ligne-ecrite{margin-top:0}
+
 /* ───────── création : les Caractéristiques ───────── */
 .methodes .jeton{margin-left:auto}
 .tirage-c{display:flex;align-items:center;gap:10px;height:44px;margin-top:4px}
@@ -219,7 +230,7 @@
 .presentation .competences .ligne{height:24px;padding:0 2px;font-size:13.5px}
 .presentation .competences .ligne small{font-size:12px}
 .presentation .page-c>.rub{margin:8px 0 3px}
-.presentation .reserves{row-gap:6px}
+.ident .en-reserve{justify-content:space-between}
 .presentation .filet{margin:6px 26px}
 .bourse-px{display:flex;align-items:center;gap:13px;margin-top:12px}
 .bourse-px .px{flex:none;min-width:84px;height:48px;padding:3px;border-radius:26px;box-shadow:0 3px 7px var(--brou),0 0 0 1px var(--contour)}

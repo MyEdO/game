@@ -119,6 +119,11 @@
        sa tête, ses mesures, ses réserves sous le filet */
     'identite/pied': [19, 389, 284, 126],
     'identite/tete': [19, 15, 284, 168], 'identite/mesures': [19, 183, 284, 100], 'identite/reserves': [19, 283, 284, 221],
+    /* la colonne du choix de la création : quatre rangées, chacune sa rubrique (ou sa tête) et sa liste, les deux dernières
+       sous un filet ; la rangée haute des deuxième et troisième, la liste et son pied ; une place en couvre d'autres
+       seulement quand aucune étape ne les porte ensemble (`../heros.md`, « Grille du choix ») */
+    'choix/rangee-1': [19, 15, 428, 104], 'choix/rangee-2': [19, 119, 428, 48], 'choix/rangee-3': [19, 167, 428, 149], 'choix/rangee-4': [19, 316, 428, 112],
+    'choix/rangees-2-3': [19, 119, 428, 197], 'choix/corps': [19, 15, 428, 352], 'choix/pied': [19, 375, 428, 53],
     /* les onglets des sections de la fiche, des dossiers et de la progression : cinq places, une section absente laisse
        la sienne vide */
     ...Object.fromEntries(['sections', 'progression-droite'].flatMap((c) => Array.from({ length: 5 }, (_, k) => [`${c}/onglet-${k + 1}`, [8 + 128 * k, -18, 124, 32]]))),
@@ -1264,7 +1269,7 @@
     const lignes = [echapper(p.modele), `${echapper(p.nature)}${p.de ? ` ${de(prenomDe(p.de))}` : ''}`, [p.longueur && `${p.longueur} mètres`, prix(p.prix)].filter(Boolean).join(' · '),
       `<div class="renommer${p.saisie ? ' en-saisie' : ''}">${rond('plume', 'menu', { arme: !!p.saisie })}<span class="rubrique">Renommer</span></div>`];
     return [
-      identiteDe(p.genre, p.saisie ? champ('', echapper(p.nom)) : echapper(p.nom), lignes, d.mesures, d.compteurs),
+      identiteDe(p.genre, p.saisie ? champ('', echapper(p.nom)) : echapper(p.nom), lignes, d.mesures, `<div class="reserves">${d.compteurs.map(compteurNomme).join('')}</div>`),
       bandeDu(d.profil.caracs, (c) => caseDuProfil(c.ab, c.valeur === null ? '–' : c.signe ? signe(c.valeur) : c.valeur, `${echapper(c.nom)}${c.unite ? ` : ${pluriel(c.valeur, echapper(c.unite))}` : ''}`), echapper(d.profil.titre)),
       figureDe(SILHOUETTES[p.genre]),
       `<div id="f-sections" class="cadre bois dossier" data-piece="sections"><div class="fond parchemin">${defile(d.blocs.map((b) => BLOCS_DU_DOSSIER[b.bloc](b, d)).join(''))}</div>${onglets(d.sections.map(echapper), echapper(d.ouverte), 'sections')}${ferrures}</div>`,
@@ -1426,7 +1431,8 @@
   const pills = (noms, prise = null) => `<div class="pills">${noms.map((n) => `<span class="pill${n === prise ? ' prise' : ''}">${echapper(n)}</span>`).join('')}</div>`;
   /* des clous d'Augmentation : `n` posés sur `sur` */
   const clous = (n, sur) => `<div class="clous">${Array.from({ length: sur }, (_, k) => `<i class="${k < n ? 'p' : ''}"></i>`).join('')}</div>`;
-  const RESERVE = (r) => `<div class="reserve">${disque(r.valeur, { taille: 'grand' })}<span class="rub">${echapper(r.nom)}</span></div>`;
+  /* un compteur nommé d'une possession, au pied de son identité */
+  const compteurNomme = (r) => `<div class="reserve">${disque(r.valeur, { taille: 'grand' })}<span class="rub">${echapper(r.nom)}</span></div>`;
 
   /* la frise des étapes : cochées, le ruban de celle qui s'ouvre, les clous de celles à venir, la croix au bout ; le rail
      se trace une fois posée (`tracerLaFrise`) */
@@ -1461,11 +1467,11 @@
       const caseDe = (x) => `<div class="c${x.carac === p.pressee ? ' carr' : ''}"><span class="ab">${x.carac}</span>${porte(x)}<span class="v">${x.valeur}</span>${points && !x.origine ? moinsPlus({ moins: x.points > p.points.min, plus: x.points < p.points.max && p.points.reste.n > 0 }) : ''}</div>`;
       const ligne = (r, l) => `<div class="ligne repartie">${l.carac ? car(l.carac) : ''}<span class="n" data-texte="${echapper(l.nom)}">${echapper(l.nom)}</span>${clous(l.augmentations.n, l.augmentations.sur)}${moinsPlus({ moins: l.augmentations.n > 0, plus: r.reste.n > 0 && l.augmentations.n < l.augmentations.sur })}<span class="val">${l.valeur}</span></div>`;
       const methode = (m) => optionDe({ nom: m.nom, ...(m.id === p.methode ? { choisie: true } : {}) }, m.px ? jeton(`+${px(m.px)}`, m.id === p.methode ? 'or' : '') : '');
-      return [`${rub('Méthode')}<div class="lignes methodes">${p.methodes.map(methode).join('')}</div>
-        <div class="tirage-c">${points
+      return [places('choix', { 'rangee-1': `${rub('Méthode')}<div class="lignes methodes">${p.methodes.map(methode).join('')}</div>`,
+        'rangee-2': `<div class="tirage-c">${points
     ? `${jeton(`À répartir · ${p.points.reste.n} / ${p.points.reste.sur}`, p.points.reste.n ? 'cire' : 'or')}<span class="rub"><span class="note">De ${p.points.min} à ${p.points.max} points par Caractéristique.</span></span>`
-    : `${sceau('des', 'moyen')}<div class="l">${rub('Les dix 2d10', 'tirés')}</div>${plaque('Relancer les dix 2d10', { prix: 'sans PX', taille: 'petite', classe: 'relancer' })}`}</div>
-        ${p.repartitions.map((r) => `${filet({ fondu: true, losange: true })}${teteDeListe(rub(echapper(r.rubrique), echapper(r.note)), reste(r.reste))}<div class="lignes">${r.lignes.map((l) => ligne(r, l)).join('')}</div>`).join('')}`,
+    : `${sceau('des', 'moyen')}<div class="l">${rub('Les dix 2d10', 'tirés')}</div>${plaque('Relancer les dix 2d10', { prix: 'sans PX', taille: 'petite', classe: 'relancer' })}`}</div>`,
+        ...Object.fromEntries(p.repartitions.map((r, k) => [`rangee-${k + 3}`, `${filet({ fondu: true, losange: true })}${teteDeListe(rub(echapper(r.rubrique), echapper(r.note)), reste(r.reste))}<div class="lignes">${r.lignes.map((l) => ligne(r, l)).join('')}</div>`])) }),
       'Profil',
       `<div class="profil-c"><div class="fond">${p.profil.map(caseDe).join('')}</div></div>
         ${nomDuDetail(visee.nom, `${points ? `${visee.points} points` : `${visee.de} aux dés`} + ${p.espece.valeur} des ${echapper(p.espece.nom)} + ${pluriel(visee.augmentations ?? 0, 'Augmentation')}`)}
@@ -1473,11 +1479,10 @@
     : `${filet({ fondu: true, losange: true })}<p class="prose" data-texte="texte de la caractéristique">${echapper(p.texte)}</p>`}
         <div class="faits pied">${p.faits.map(faitDu).join('')}</div>`];
     },
-    signe: (p) => [`<div class="tirage">${sceau(p.tirage.de, 'maitre')}<div class="col">${rub('Signe au d100', 'tiré')}
-        ${optionDe({ nom: p.tenu, choisie: true }, jeton(`+${px(p.tirage.px)}`, 'or'))}<span class="rub"><span class="note">Le signe gardé tel que le dé l’a tiré vaut ses PX.</span></span></div></div>
-      ${filet({ fondu: true, losange: true })}${rub('Signe astral')}
-      <div class="deux signes">${p.signes.map((s) => optionDe({ nom: s, ...(s === p.tenu ? { choisie: true } : {}) })).join('')}</div>
-      <div class="variante">${sceau('', 'petit', { etat: 'vide' })}${rub('Variante au d10', 'l’Étoile du Sorcier seule')}<div class="pills">${p.variantes.map((v) => `<span class="pill"><b class="chiffres">${v.d10}</b>${echapper(v.nom)}</span>`).join('')}</div></div>`,
+    signe: (p) => [places('choix', { 'rangee-1': `<div class="tirage">${sceau(p.tirage.de, 'maitre')}<div class="col">${rub('Signe au d100', 'tiré')}
+        ${optionDe({ nom: p.tenu, choisie: true }, jeton(`+${px(p.tirage.px)}`, 'or'))}<span class="rub"><span class="note">Le signe gardé tel que le dé l’a tiré vaut ses PX.</span></span></div></div>`,
+      'rangees-2-3': `${rub('Signe astral')}${defile(p.signes.map((s) => optionDe({ nom: s, ...(s === p.tenu ? { choisie: true } : {}) })).join(''), 'deux signes')}`,
+      'rangee-4': `${filet({ fondu: true, losange: true })}<div class="variante">${sceau('', 'petit', { etat: 'vide' })}${rub('Variante au d10', 'l’Étoile du Sorcier seule')}<div class="pills">${p.variantes.map((v) => `<span class="pill"><b class="chiffres">${v.d10}</b>${echapper(v.nom)}</span>`).join('')}</div></div>` }),
     echapper(p.page.constellation),
     `<div class="vignette laiton">${ciel()}</div>${nomDuDetail(p.tenu, '')}${filet({ fondu: true, losange: true })}
       <div class="faits">${faitDu({ rubrique: 'Nom classique', valeur: p.page.classique })}${faitDu({ rubrique: 'Dates', valeur: p.page.dates })}${faitDu({ rubrique: 'Dans le ciel', valeur: p.page.ciel })}
@@ -1489,19 +1494,19 @@
       const carte = (c, palier) => `<div class="competence">${car(c.carac)}${disque(c.base + palier)}<div class="n" data-texte="carte ${echapper(c.nom)}">${nomDe(c.nom, c.precision)}</div><span class="calc chiffres">${c.carac} ${c.base} +${palier}</span></div>`;
       const groupe = ({ palier, pris: { sur } }) => { const cartes = p.competences.filter((c) => c.palier === palier);
         return `${rub(`Augmentations à +${palier}`)}<div class="rangee">${cartes.map((c) => carte(c, palier)).join('')}${'<div class="competence vide"><span>À choisir</span></div>'.repeat(sur - cartes.length)}</div>`; };
-      return [`${teteDeListe(rub('Compétences de race'), plaque('Répartition par défaut', { taille: 'petite', classe: 'regler' }))}
-        <div class="lignes">${p.competences.map((c) => `<div class="ligne">${car(c.carac)}<span class="n" data-texte="${echapper(c.nom)} ${echapper(c.precision ?? '')}">${nomDe(c.nom, c.precision)}</span><div class="paliers">${[0, 3, 5].map((k) => pastille(c, k)).join('')}</div></div>`).join('')}</div>
-        <div class="comptes">${p.paliers.map((x) => jeton(`À +${x.palier} · ${x.pris.n} / ${x.pris.sur}`, x.pris.n === x.pris.sur ? 'fer' : 'or')).join('')}</div>`,
+      return [places('choix', { corps: `${teteDeListe(rub('Compétences de race'), plaque('Répartition par défaut', { taille: 'petite', classe: 'regler' }))}
+        ${defile(p.competences.map((c) => `<div class="ligne">${car(c.carac)}<span class="n" data-texte="${echapper(c.nom)} ${echapper(c.precision ?? '')}">${nomDe(c.nom, c.precision)}</span><div class="paliers">${[0, 3, 5].map((k) => pastille(c, k)).join('')}</div></div>`).join(''), 'lignes')}`,
+        pied: `<div class="comptes">${p.paliers.map((x) => jeton(`À +${x.palier} · ${x.pris.n} / ${x.pris.sur}`, x.pris.n === x.pris.sur ? 'fer' : 'or')).join('')}</div>` }),
       echapper(p.espece),
       `${nomDuDetail('Compétences de race', p.paliers.map((x) => `${x.pris.sur} à +${x.palier}`).join(' · '))}${filet({ fondu: true, losange: true })}${p.paliers.map(groupe).join('')}${FILIGRANE}`];
     },
     competencesDeCarriere: (p) => {
       const c = p.competences.find((x) => x.pressee);
       const race = (n) => `<span class="palier race${n ? '' : ' sans'}">+${n}</span>`;
-      return [`${teteDeListe(rub('Compétences de carrière'), plaque('Répartition simple', { taille: 'petite', classe: 'regler' }))}
-        <div class="lignes">${p.competences.map((x) => `<div class="ligne carriere${x.pressee ? ' choisie' : ''}">${car(x.carac)}<span class="n" data-texte="${echapper(x.nom)}">${nomDe(x.nom, x.precision)}</span>${race(x.race)}${clous(x.augmentations.n, x.augmentations.sur)}${moinsPlus({ moins: x.augmentations.n > 0, plus: p.reste.n > 0 && x.augmentations.n < x.augmentations.sur })}<span class="val">${x.test}</span></div>`).join('')}</div>
-        <div class="comptes">${reste(p.reste)}<span class="rub"><span class="note">${c.augmentations.sur} Augmentations au plus par Compétence.</span></span></div>
-        <div class="comptes">${race(5)}<span class="rub"><span class="note">Augmentations de race : acquises, hors des ${p.reste.sur} et des ${c.augmentations.sur}.</span></span></div>`,
+      return [places('choix', { corps: `${teteDeListe(rub('Compétences de carrière'), plaque('Répartition simple', { taille: 'petite', classe: 'regler' }))}
+        ${defile(p.competences.map((x) => `<div class="ligne carriere${x.pressee ? ' choisie' : ''}">${car(x.carac)}<span class="n" data-texte="${echapper(x.nom)}">${nomDe(x.nom, x.precision)}</span>${race(x.race)}${clous(x.augmentations.n, x.augmentations.sur)}${moinsPlus({ moins: x.augmentations.n > 0, plus: p.reste.n > 0 && x.augmentations.n < x.augmentations.sur })}<span class="val">${x.test}</span></div>`).join(''), 'lignes')}`,
+        pied: `<div class="comptes">${reste(p.reste)}<span class="rub"><span class="note">${c.augmentations.sur} Augmentations au plus par Compétence.</span></span></div>
+        <div class="comptes">${race(5)}<span class="rub"><span class="note">Augmentations de race : acquises, hors des ${p.reste.sur} et des ${c.augmentations.sur}.</span></span></div>` }),
       echapper(p.niveau),
       `${nomDuDetail(c.nom, `${c.precision ? `${echapper(c.precision)} · ` : ''}${echapper(p.page.carac.nom)}`)}${filet({ fondu: true, losange: true })}
         <div class="test">${disque(c.test, { taille: 'grand' })}<div>${rub('Test')}<b>${echapper(p.page.carac.nom)} ${p.page.carac.valeur}, ${pluriel(c.augmentations.n, 'Augmentation')}</b></div></div>
@@ -1518,43 +1523,41 @@
         : `${medaillon(p.page.icone)}${nomDuDetail(p.page.talent, echapper(p.page.niveau))}${filet({ fondu: true, losange: true })}
           <div class="faits">${faitDu({ rubrique: 'Maxi', valeur: p.page.maxi })}${faitDu({ rubrique: 'Tests', valeur: p.page.tests })}</div>
           <p class="prose" data-texte="texte du talent">${echapper(p.page.texte)}</p>${FILIGRANE}`;
-      return [`${rub('Talents de race')}<div class="deux">${p.race.acquis.map((t) => `<div class="ligne">${rond('coche', 'menu', { arme: true })}<span class="n" data-texte="${echapper(t)}">${echapper(t)}</span><span class="raison">Acquis</span></div>`).join('')}</div>
-        ${rub('Au choix')}<div class="deux">${p.race.auChoix.map((o) => optionDe(o)).join('')}</div>
-        ${rub(`${pluriel(p.tirages.length, 'Talent')} au d100`)}${p.tirages.map(tirage).join('')}
-        ${filet({ fondu: true, losange: true })}${rub('Talent de carrière', 'un seul')}<div class="deux">${p.carriere.map((o) => optionDe(o)).join('')}</div>`,
+      return [places('choix', { 'rangee-1': `${rub('Talents de race')}<div class="deux">${p.race.acquis.map((t) => `<div class="ligne">${rond('coche', 'menu', { arme: true })}<span class="n" data-texte="${echapper(t)}">${echapper(t)}</span><span class="raison">Acquis</span></div>`).join('')}</div>`,
+        'rangee-2': `${rub('Au choix')}<div class="deux">${p.race.auChoix.map((o) => optionDe(o)).join('')}</div>`,
+        'rangee-3': `${filet({ fondu: true, losange: true })}${rub(`${pluriel(p.tirages.length, 'Talent')} au d100`)}${p.tirages.map(tirage).join('')}`,
+        'rangee-4': `${filet({ fondu: true, losange: true })}${rub('Talent de carrière', 'un seul')}<div class="deux">${p.carriere.map((o) => optionDe(o)).join('')}</div>` }),
       'Talent de carrière', page];
     },
     possessions: (p) => {
       const note = (o) => [o.note && echapper(o.note), o.nombre && `× ${o.nombre}`, o.somme !== undefined && prix(o.somme)].filter(Boolean).join(' · ');
       const objet = (o) => `<div class="objet${o.choisi ? ' choisi' : ''}"><div class="img laiton"><div>${dessinDObjet(o.id)}</div></div><b>${echapper(o.nom)}</b>${note(o) ? `<i>${note(o)}</i>` : ''}</div>`;
       const dot = (o) => `<div class="dot"><span data-texte="dotation ${echapper(o.nom)}">${nomDe(o.nom, o.precision)}</span>${note(o) ? `<small>${note(o)}</small>` : ''}</div>`;
-      return [`<div class="tirage">${sceau(p.bourse.de, 'maitre')}<div class="col">${rub('Bourse')}<span class="somme chiffres">${prix(p.bourse.somme)}</span>${rub(`Statut · ${echapper(p.bourse.statut)}`, echapper(p.bourse.formule))}</div></div>
-        ${filet({ fondu: true, losange: true })}${rub(`Au choix · ${echapper(p.auChoix.niveau)}`, 'un seul')}<div class="trois">${p.auChoix.options.map((o) => optionDe(o)).join('')}</div>
-        ${p.dotations.map((d) => `${rub(echapper(d.rubrique))}<div class="lignes dots">${d.objets.map(dot).join('')}</div>`).join('')}`,
+      return [places('choix', { 'rangee-1': `<div class="tirage">${sceau(p.bourse.de, 'maitre')}<div class="col">${rub('Bourse')}<span class="somme chiffres">${prix(p.bourse.somme)}</span>${rub(`Statut · ${echapper(p.bourse.statut)}`, echapper(p.bourse.formule))}</div></div>`,
+        'rangee-2': `${rub(`Au choix · ${echapper(p.auChoix.niveau)}`, 'un seul')}<div class="trois">${p.auChoix.options.map((o) => optionDe(o)).join('')}</div>`,
+        ...Object.fromEntries(p.dotations.map((d, k) => [`rangee-${k + 3}`, `${filet({ fondu: true, losange: true })}${rub(echapper(d.rubrique))}${defile(d.objets.map(dot).join(''), 'lignes dots')}`])) }),
       'Possessions',
       `${nomDuDetail('Le bagage', `${pluriel(p.bagage.length, 'possession')} · bourse ${prix(p.bourse.somme)}`)}${filet({ fondu: true, losange: true })}
         <div class="objets">${p.bagage.map(objet).join('')}</div>
         <div class="objet-pris">${cartouche({ icone: p.pris.icone, nom: echapper(p.pris.nom), sous: echapper(p.pris.sous) })}<span class="chiffres">${prix(p.pris.prix)}</span></div>`];
     },
     identite: (p) => {
-      const ecrit = (e) => `<div class="ligne-ecrite${e.saisi ? ' saisi' : ''}">${rub(echapper(e.nom))}<div class="ecrit" data-texte="${echapper(e.nom)}">${echapper(e.texte)}${e.saisi ? '<u></u>' : ''}${picto('plume', 16, undefined, 1.5)}</div></div>`;
-      return [`<div class="deux">
-          <div>${rub('Sexe')}<div class="plaques">${p.sexe.valeurs.map((v, k) => plaque(echapper(v), { armee: k === p.sexe.tenue, taille: 'petite' })).join('')}</div></div>
-          <div>${rub('Nom', 'tiré ou écrit')}<div class="plaques">${plaque('Nom aux dés', { icone: 'de20', taille: 'petite' })}</div></div></div>
-        ${ecrit({ nom: 'Nom', texte: p.nom })}${filet({ fondu: true, losange: true })}
-        ${teteDeListe(rub('Physique', 'un seul tirage'), plaque('Physique aux dés', { icone: 'de20', taille: 'petite', classe: 'regler' }))}
-        <div class="physique">${p.physique.map((x) => `<div class="mesure">${sceau(x.de, 'moyen')}<div>${rub(echapper(x.nom), echapper(x.formule))}<b>${echapper(x.valeur)}</b></div></div>`).join('')}</div>`,
+      const ecrit = (e, tete = rub(echapper(e.nom))) => `<div class="ligne-ecrite${e.saisi ? ' saisi' : ''}">${tete}<div class="ecrit" data-texte="${echapper(e.nom)}">${echapper(e.texte)}${e.saisi ? '<u></u>' : ''}${picto('plume', 16, undefined, 1.5)}</div></div>`;
+      return [places('choix', { 'rangee-1': `${teteDeListe(rub('Sexe'), `<div class="plaques">${p.sexe.valeurs.map((v, k) => plaque(echapper(v), { armee: k === p.sexe.tenue, taille: 'petite' })).join('')}</div>`)}
+          ${teteDeListe(rub('Nom', 'tiré ou écrit'), plaque('Nom aux dés', { icone: 'de20', taille: 'petite', classe: 'regler' }))}${ecrit({ nom: 'Nom', texte: p.nom }, '')}`,
+        'rangee-3': `${filet({ fondu: true, losange: true })}${teteDeListe(rub('Physique', 'un seul tirage'), plaque('Physique aux dés', { icone: 'de20', taille: 'petite', classe: 'regler' }))}
+        <div class="physique">${p.physique.map((x) => `<div class="mesure">${sceau(x.de, 'moyen')}<div>${rub(echapper(x.nom), echapper(x.formule))}<b>${echapper(x.valeur)}</b></div></div>`).join('')}</div>` }),
       'Identité',
       `${nomDuDetail(p.nom, `${echapper(p.espece)} · ${echapper(p.carriere)}`)}${filet({ fondu: true, losange: true })}
         <div class="faits quatre">${p.physique.map((x) => faitDu({ rubrique: x.nom, valeur: x.valeur })).join('')}</div>
         ${p.ecrits.map(ecrit).join('')}<div class="signature">${SIGNATURE}${sceau(p.marque, 'moyen')}</div>`];
     },
-    presentation: (p) => [`<div class="tete">${portrait(p.buste, { taille: 'affiche' })}<div class="q"><div class="nom" data-texte="nom">${echapper(p.nom)}</div><div class="l">${echapper(p.espece)}</div><div class="l">${echapper(p.carriere)} · ${echapper(p.classe)}</div>
+    presentation: (p) => [places('choix', { corps: `<div class="tete">${portrait(p.buste, { taille: 'affiche' })}<div class="q"><div class="nom" data-texte="nom">${echapper(p.nom)}</div><div class="l">${echapper(p.espece)}</div><div class="l">${echapper(p.carriere)} · ${echapper(p.classe)}</div>
         <div class="faits">${p.physique.map(faitDu).join('')}</div></div></div>
       <div class="bl">${rub('Blessures')}<span class="chiffres">${p.blessures.n} / ${p.blessures.sur}</span></div>${jauge(p.blessures.n / p.blessures.sur, { taille: 'forte' })}
-      ${filet({ fondu: true, losange: true })}<div class="reserves">${p.reserves.map(RESERVE).join('')}</div>${filet({ fondu: true, losange: true })}
-      <div class="faits trois">${faitDu({ rubrique: 'Signe astral', valeur: p.signe })}${faitDu({ rubrique: 'Statut', valeur: p.statut })}${faitDu({ rubrique: 'Bourse', valeur: prix(p.bourse) })}</div>
-      ${rub('Motivation')}<div class="motivation" data-texte="motivation">${echapper(p.motivation)}</div>`,
+      ${filet({ fondu: true, losange: true })}${reserves(p.reserves.map(jetonDe), 'grand')}${filet({ fondu: true, losange: true })}
+      <div class="faits trois">${faitDu({ rubrique: 'Signe astral', valeur: p.signe })}${faitDu({ rubrique: 'Statut', valeur: p.statut })}${faitDu({ rubrique: 'Bourse', valeur: prix(p.bourse) })}</div>`,
+      pied: `${rub('Motivation')}<div class="motivation" data-texte="motivation">${echapper(p.motivation)}</div>` }),
     echapper(p.carriere),
     `<div class="profil-c"><div class="fond">${p.profil.map((x) => `<div class="c"><span class="ab">${x.carac}</span><span class="v">${x.valeur}</span></div>`).join('')}</div></div>
       ${rub('Compétences')}<div class="deux competences">${p.competences.map((x) => `<div class="ligne"><span class="n" data-texte="${echapper(x.nom)}">${nomDe(x.nom, x.precision)}</span><span class="val">${x.valeur}</span></div>`).join('')}</div>
@@ -1573,12 +1576,12 @@
 
   /* la tête d'une identité : le portrait, le nom, ce qu'il est */
   const teteDe = (id, nom, lignes) => `<div class="tete">${portrait(id, { taille: 'affiche' })}<div class="q"><div class="nom" data-texte="nom">${nom}</div>${lignes.map((l) => `<div class="l">${l}</div>`).join('')}</div></div>`;
-  /* l'identité d'un héros ou d'une possession, chaque bloc à sa place : la tête, ses mesures (une jauge chacune), ses
-     réserves sous le filet */
+  /* l'identité d'un héros ou d'une possession, chaque bloc à sa place : la tête, ses mesures (une jauge chacune), sous le filet
+     les réserves d'un héros (`reserves`, nom au survol) ou les compteurs nommés d'une possession */
   const mesureDeLIdentite = (m) => `<div class="bl">${rub(echapper(m.nom))}<span class="chiffres">${m.sur === undefined ? m.valeur : `${m.valeur} / ${m.sur}`}</span></div>${jauge(m.valeur / (m.sur ?? 100), { teinte: m.teinte, taille: 'forte' })}`;
-  const identiteDe = (id, nom, lignes, mesures, reserves) => cadre('identite', null, null, null, null, 'parchemin', places('identite', {
+  const identiteDe = (id, nom, lignes, mesures, enReserve) => cadre('identite', null, null, null, null, 'parchemin', places('identite', {
     tete: teteDe(id, nom, lignes), mesures: mesures.map(mesureDeLIdentite).join(''),
-    reserves: `${filet({ fondu: true, losange: true })}<div class="reserves">${reserves.map(RESERVE).join('')}</div>`,
+    reserves: `${filet({ fondu: true, losange: true })}${enReserve}`,
   }), { classe: 'pan ident' });
   /* la figure dans sa niche : celle du héros, ou la silhouette d'une possession */
   const figureDe = (dessin) => cadre('figure', null, null, null, null, 'bois', `<div class="niche laiton"><div>${dessin}</div></div>`, { classe: 'pan figure' });
@@ -1607,7 +1610,7 @@
     const h = f.identite;
     return [
       '<div id="mur" class="bois"></div>',
-      identiteDe(h.id, echapper(h.nom), [echapper(h.espece), echapper(h.carriere)], [{ nom: 'Blessures', valeur: h.blessures.n, sur: h.blessures.sur, teinte: 'cire' }], h.reserves),
+      identiteDe(h.id, echapper(h.nom), [echapper(h.espece), echapper(h.carriere)], [{ nom: 'Blessures', valeur: h.blessures.n, sur: h.blessures.sur, teinte: 'cire' }], reserves(h.reserves.map(jetonDe), 'grand')),
       bandeDu(f.profil, (x) => caseDuProfil(x.carac, x.valeur)),
       figureDe(figure(1)),
       cadre('sections', null, null, null, null, 'parchemin', `${rub('Panoplies', 'celle que le héros tient est cernée de laiton')}
@@ -1690,7 +1693,7 @@
   /* 3. Fiche : le dossier d'une possession sur la mer, ou le héros sur le mur */
   GABARITS.fiche = 'possession' in etat
     ? { feuilles: ['lieux-et-nuit/commun.css', 'combat/combat.css', 'voyage/navale.css', 'heros/heros.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'combat/jet.js', 'combat/socle.js', 'voyage/voyage.js', 'voyage/navale.js'], poser: dossier, tracer: peindreLeDossier }
-    : { feuilles: ['lieux-et-nuit/commun.css', 'heros/heros.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'heros/heros.js'], poser: (e) => HEROS_EN_FICHE(e)[0](e), tracer: (e) => HEROS_EN_FICHE(e)[1]?.() };
+    : { feuilles: ['lieux-et-nuit/commun.css', 'combat/jet.css', 'heros/heros.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'combat/jet.js', 'heros/heros.js'], poser: (e) => HEROS_EN_FICHE(e)[0](e), tracer: (e) => HEROS_EN_FICHE(e)[1]?.() };
   /* 4. Lieu et voyage : un décor par lieu, ses feuilles et ses scripts */
   const LIEU = { feuilles: ['lieux-et-nuit/commun.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js'] };
   const ROUTE = { feuilles: [...LIEU.feuilles, 'voyage/voyage.css', 'combat/jet.css', 'combat-suite/suite.css'], scripts: [...LIEU.scripts, 'voyage/voyage.js', 'combat/jet.js', 'combat-suite/decors.js'] };

@@ -27,7 +27,8 @@ glisse ; le fond ne range rien d'autre, aucune règle de feuille propre à un é
 y ait quatre héros ou moins ; à la barre de l'actif une place d'onglet par famille dans l'ordre Action, Situation,
 Gestes, Rapides, de même largeur active ou non, trois places de plaque et cinq de geste) ; l'actif au pied de l'ordre
 du tour (`ordre/actif`) ; les onglets des sections de la fiche, des dossiers et de la progression (cinq places, la
-fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; le pied de
+fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; la colonne du choix de la création (quatre rangées, la haute des deuxième
+et troisième, la liste et son pied : `heros.md`, « Grille du choix ») ; le pied de
 l'identité qui progresse ; le pied du rail des services, sous le dernier service que la colonne peut porter, quel qu'en
 soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
 (portrait, identité, rangée des dés, issue). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
@@ -36,7 +37,7 @@ premier état du même rôle. Le relevé `contenu` (`sources/contenus.mjs`) comp
 le rect de ce que chaque place porte, et classe chaque écart : **A** une boîte déplacée (son coin bouge, ou la taille
 d'un contenu qui n'est pas un texte en ligne, ou le départ, les x ou les écarts des entrées d'une liste qui défile),
 **B** la seule longueur d'un texte dont le coin reste fixe, **C** le seul nombre des entrées d'une liste qui défile.
-Un A d'un gabarit pilote (`PILOTES` : `fenetre-du-bas`, `combat`, `gestion`) fait échouer le rendu, contre les autres écrans du gabarit
+Un A d'un gabarit pilote (`PILOTES` : `fenetre-du-bas`, `combat`, `gestion`, `fiche`) fait échouer le rendu, contre les autres écrans du gabarit
 déjà rendus sous `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe) et les autres états de la même passe ; les
 autres gabarits restent en rapport (`node sources/contenus.mjs <dossier>`, code 1 sur un A d'un pilote).
 

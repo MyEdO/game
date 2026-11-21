@@ -25,6 +25,28 @@ Pièces neuves : rangée de dix clous d'Augmentation, pastilles de palier 0 / +3
 vignette d'objet, champ manuscrit, jeton de PX en grand, ligne d'exigence, station du chemin de carrière, jeton de
 prix en fer, figure dont la sanguine descend d'étape en étape.
 
+## Grille du choix
+La colonne du choix (`choix`) porte sept places fixes (`choix/*`, `PLACES` de `sources/rendu.js`), le même rect
+dans les douze états : quatre rangées, chacune sa rubrique (ou sa tête de liste de 28 px) et sa liste, les rangées 3 et
+4 sous un filet (`rangee-1` 104 px, `rangee-2` 48, `rangee-3` 149, `rangee-4` 112) ; `rangees-2-3`, la haute des
+rangées 2 et 3 ; `corps` (352) et `pied` (53), la liste et son compte. Une place n'en couvre d'autres que si aucune
+étape ne les porte ensemble ; une liste plus longue que sa place défile (`defile`), sans pousser ses voisines.
+- Caractéristiques : la méthode, le tirage, les deux répartitions (rangées 1 à 4). Talents : race, au choix, les
+  tirages, la carrière (rangées 1 à 4, un groupe par rangée : les quatre tiennent, ni regroupement ni onglet).
+  Signe : le tirage, les signes qui défilent (`rangees-2-3`), la variante. Possessions : la bourse, l'option au choix,
+  une dotation par rangée 3 et 4, chacune défile. Identité : sexe, nom tiré et ligne écrite (rangée 1), le physique
+  (rangée 3). Compétences de race et de carrière : la liste qui défile (`corps`) et ses comptes (`pied`).
+  Présentation : la carte du héros (`corps`) et sa Motivation (`pied`).
+- À valider : la rangée haute garde la hauteur de la méthode (trois lignes) ; aux Talents, la race acquise y laisse
+  un vide sous sa ligne, et la rangée 2 des Talents est vide à l'Identité. La rangée 1 de l'Identité passe le sexe et
+  le nom en têtes de liste (rubrique à gauche, plaques à droite) au lieu de deux colonnes.
+- À valider : à la présentation comme à la fiche, les réserves sont la primitive `reserves` de la fenêtre du bas
+  (pictogramme et disque dans une case fixe, nom et valeur au survol, fiche
+  `user-doctrine-icone-identifie-survol-detaille`). Le nom écrit ne reste pas au premier contact : « Détermination »
+  écrit (≈ 98 px en Fell SC 13) et son disque (44 px) ne tiennent pas dans le quart de colonne (107 px) : il rendrait deux rangs de deux et
+  repousserait la Motivation ; Destin et Résilience sont déjà nommés en toutes lettres à l'étape des Caractéristiques,
+  qui les répartit, et le pictogramme est le même partout ensuite.
+
 ## creation-caracteristiques (3/10)
 - `creation-caracteristiques` : la méthode en trois plaques avec leur gain (`geste('methode', m)` : « Garder les
   jets +50 PX », « Réassigner les jets +25 PX », « Répartir 100 points » ; LDB 05 l.337-341), « Relancer les dix
@@ -133,7 +155,8 @@ cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObje
 - À valider (#4585) : le profil en douze colonnes fixes, chacune l'abréviation de LDB (M, CC, CT, F, E, I, Ag, Dex,
   Int, FM, Soc, B ; `docs/raw/4e/combat.md:2707`), le nom entier au survol, le même pour les dossiers des possessions
   (`voyage.md`) ; l'identité pose sa tête, ses mesures (Blessures) et ses réserves aux mêmes places que celle d'un
-  dossier, les réserves sous un filet à hauteur fixe.
+  dossier, les réserves sous un filet à hauteur fixe : celles du héros en jetons de la primitive `reserves` (pictogramme et
+  disque, nom au survol, comme la fenêtre du bas), les compteurs d'un dossier nommés en toutes lettres.
 - `fiche-possessions` (état `arme`) : la rangée des sets d'armes, celui en main cerné ; « + » crée un set
   (`creerLaPanoplie(heroId)`), une main pressée se garnit (`garnirLaPanoplie(heroId, loadoutId, slot, uid)`), la croix
   le supprime (`supprimerLaPanoplie(heroId, loadoutId)`), presser un set le prend (`prendreLaPanoplie`). Refus au

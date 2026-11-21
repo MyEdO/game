@@ -19,7 +19,7 @@
 // le rect de chaque enfant d'une place (`data-place`), ou du fond d'une pièce sans place, sous la clé porteur + rôle, et
 // les entrées de ce qui y défile en une liste (départ, x, écarts, jamais leur rang) ; il classe l'écart d'un état à
 // l'autre du même gabarit (`classe`, `contenus.mjs` : A boîte déplacée, B longueur de texte, C contenu de liste). Un A
-// d'un gabarit de `PILOTES` (`fenetre-du-bas`, `combat`, `gestion`) est BLOQUANT, contre les états déjà rendus de la passe et, sous
+// d'un gabarit de `PILOTES` (`fenetre-du-bas`, `combat`, `gestion`, `fiche`) est BLOQUANT, contre les états déjà rendus de la passe et, sous
 // `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
 // `<écran>--<état>.json` ; les autres gabarits restent en RAPPORT, que `contenus.mjs <dossier>` agrège :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
