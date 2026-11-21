@@ -278,6 +278,33 @@ describe('le pont rejoint un salon', () => {
     expect(textesDuJournal(suiteDe(appel('nouvelles')).journal), 'le même instantané redit le journal').toEqual([]);
   });
 
+  it('nouvelles dit deux refus identiques dans l’ordre, même avec un instantané avant chaque relève', async () => {
+    const { instantanes, vues } = await tramesDeLHote();
+    const { appel } = invite();
+    const ws = await assis(appel);
+    suiteDe(appel('nouvelles'));
+    const texte = t('cs.refusCourseNonArmee');
+    const autre = t('coop.intentRefused');
+    const verdicts = [texte, autre, texte];
+    for (const verdict of verdicts) {
+      await recevoir(ws, serializeMessage({ kind: 'intent-refused', texte: verdict }));
+    }
+    await recevoir(ws, instantanes[0]);
+    const suites = [suiteDe(appel('nouvelles'))];
+    for (const [i, message] of verdicts.entries()) {
+      const instantane = instantanes[i + 1];
+      await recevoir(ws, instantane);
+      expect(erreurDe(appel('nouvelles'))).toEqual({ categorie: 'regle', message });
+      await recevoir(ws, instantane);
+      suites.push(suiteDe(appel('nouvelles')));
+    }
+    expect(suites.map(({ vue: { projection } }) => [projection.scene?.id, projection.exploration?.groupe])).toEqual(vues);
+    const journaux = suites.map(({ journal }) => textesDuJournal(journal));
+    expect(journaux.map((lignes) => lignes.length)).toEqual([0, 0, 0, 1]);
+    for (const verdict of verdicts) expect(journaux.flat()).not.toContain(verdict);
+    expect(appel('nouvelles')).toEqual(RIEN);
+  });
+
   it('M3 (a, b, c) — en combat, au tour du héros de son siège : l’attaque armée chez lui puis le clic du champ partent, un verbe `local` ne part pas, un verbe de l’hôte en `regle`', async () => {
     const instantane = await combatDeLHote();
     const { battle, net } = JSON.parse(instantane).data as { battle: { combatants: { id: string; pos: { x: number; y: number } }[] }; net: { ownership: Record<string, number> } };

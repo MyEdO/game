@@ -302,7 +302,7 @@ import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
-import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
+import { aiDriven, controlsCombatant, influencesLocally, decidingSeat, refuserAuSiegeAgissant } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type OptionsDuClic } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
@@ -363,8 +363,8 @@ function refusDuTourDe(s: Jeu, acteurId: string, horsDuTour: string): string | n
 }
 
 /** Le verdict de l'ENTRÉE du registre (`actionGate`) que ce commit exécute, lu au commit comme à l'offre.
- *  Refusé, il se dit par `refuserGesteDuSiege` quand l'acteur est piloté (`controlsCombatant`) : au siège
- *  local seulement, jamais chez l'hôte pour un invité. Un acteur de l'IA est refusé sans bandeau. `true` = refusé. */
+ *  Quand l'acteur est piloté (`controlsCombatant`), `refuserGesteDuSiege` dit le refus au siège qui a agi.
+ *  `true` = refusé. */
 function refuseParSonEntree(get: Get, set: Set, entree: string, active: Combatant, battle: BattleState, args?: ContexteDOffre): boolean {
   const verdict = actionGate(entree, { active, battle, scene: get().scene, netMode: get().net.mode, gameTime: get().gameTime, args });
   if (verdict.ok) return false;
@@ -1583,7 +1583,12 @@ export function createCombatSlice(get: Get, set: Set) {
       const aim = battle.combatants
         .filter((c) => c.kind !== gunner.kind && !isOutOfAction(c) && c.pos && chebyshev(pt, c.pos) <= sa.radius)
         .sort((a, b) => chebyshev(pt, a.pos!) - chebyshev(pt, b.pos!))[0];
-      if (!aim) { get().ecrireAuJournal(t('cf.siegeSansCible', { name: gunner.label })); return; }
+      if (!aim) {
+        const etat = get();
+        const refus = t('cf.siegeSansCible', { name: gunner.label });
+        if (!refuserAuSiegeAgissant(etat, refus)) etat.ecrireAuJournal(refus);
+        return;
+      }
       // Pilonnage : la pièce est SERVIE (hors loadout main/secondaire) → `openAttackCascade` ne gate jamais un
       // canon monté (`attackHandGate` = null), mais passe par le MÊME point partagé que les autres attaques.
       openAttackCascade(get, set, { attackerId: gunner.id, targetId: aim.id, location: null, result: null, weaponUid: sa.weaponUid, center: { ...pt }, siege: true }, 'Pilonnage', 'feu/explosif');
@@ -1909,10 +1914,7 @@ export function createCombatSlice(get: Get, set: Set) {
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
-      if (isMagicMissile(spell)) {
-        get().ecrireAuJournal(t('cs.magicMissileNeedsTarget', { spell: spell.label }));
-        return;
-      }
+      if (isMagicMissile(spell)) return void refuserGeste(get, set, t('cs.magicMissileNeedsTarget', { spell: spell.label }));
       const cible = s.party.find((c) => c.id === cibleId) ?? lanceur;
       castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false, focused selon caster.focus)
     },
@@ -1978,15 +1980,9 @@ export function createCombatSlice(get: Get, set: Set) {
         // Action, sort focalisable, Compétence, contrecoup (LDB 46/40) : le verdict de l'entrée `focalisation`.
         if (refuseParSonEntree(get, set, 'focalisation', lanceur, battle, { spellId })) return;
       } else {
-        if (!isArcaneSpell(spell)) {
-          get().ecrireAuJournal(t('cs.cannotFocus'));
-          return;
-        }
+        if (!isArcaneSpell(spell)) return void refuserGeste(get, set, t('cs.cannotFocus'));
         const fblocked = castBlockedBy(lanceur, 'focalisation');
-        if (fblocked) {
-          get().ecrireAuJournal(t('cs.focusBlocked', { name: lanceur.label, reason: fblocked }));
-          return;
-        }
+        if (fblocked) return void refuserGeste(get, set, t('cs.focusBlocked', { name: lanceur.label, reason: fblocked }));
       }
       set({ pendingFocus: { casterId: lanceur.id, spellId: spell.id, result: null } });
     },

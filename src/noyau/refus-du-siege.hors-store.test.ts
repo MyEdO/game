@@ -1,9 +1,9 @@
 /**
  * LE REFUS SE DIT AU SIÈGE QUI A AGI (`refusVisible.ts`, `refuserGesteDuSiege`) : l'hôte qui applique l'intention
- * d'un invité ne pose pas le bandeau chez lui ; l'invité lit la raison au gate de sa propre console (`actionGate`).
+ * d'un invité rend la raison à la couture coop. Le gate (`actionGate`) décrit la même règle.
  * Deux sièges, l'intention passant par la couture coop (`appliquerLIntentionDUnSiege`).
  */
-import { describe, it, beforeEach, expect } from 'vitest';
+import { describe, it, beforeEach, expect, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { actionGate } from './actionRegistry';
@@ -11,6 +11,7 @@ import { seedBattleRng } from './battleRng';
 import { initialNet } from './etat';
 import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
+import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
@@ -54,12 +55,14 @@ const gestes: [string, string, unknown[], 'pendingHeal'][] = [
 
 describe('Refus d’un geste en coop : dit au siège qui a agi, jamais chez l’hôte', () => {
   for (const [entree, verbe, args, pending] of gestes) {
-    it(`${entree} (${verbe}) d’un invité, Action dépensée : refusé sans bandeau chez l’hôte ; l’invité lit la raison à son gate`, () => {
+    it(`${entree} (${verbe}) d’un invité, Action dépensée : le verdict est rendu au siège qui a agi`, () => {
       poser('hote');
-      appliquerLIntentionDUnSiege(banc.getState, 1, verbe, args);
+      const refus = vi.fn();
+      appliquerLIntentionDUnSiege(banc.getState, 1, verbe, args, refus);
       const s = banc.getState();
       expect(s[pending], 'le geste refusé est parti').toBeFalsy();
       expect(s.refus, 'le refus de l’invité s’affiche chez l’hôte').toBeNull();
+      expect(refus.mock.calls).toEqual([[t('agate.actionSpent')]]);
       const doc = s.battle!.combatants.find((c) => c.id === 'doc')!;
       expect(actionGate(entree, { scene: banc.getState().scene, active: doc, battle: s.battle!, netMode: 'invite', gameTime: s.gameTime })).toEqual({ ok: false, reason: t('agate.actionSpent') });
     });
@@ -72,4 +75,28 @@ describe('Refus d’un geste en coop : dit au siège qui a agi, jamais chez l’
       expect(s.refus?.texte).toBe(t('agate.actionSpent'));
     });
   }
+
+  it('l’invité reçoit les refus d’incantation et de focalisation hors combat', () => {
+    poser('hote');
+    const [doc] = banc.getState().party;
+    doc.castPenalties = [
+      { label: 'Vue assombrie', skill: 'focalisation', blocked: true, roundsLeft: 3 },
+      { label: 'Propos ésotériques', skill: 'langue', blocked: true, roundsLeft: 3 },
+    ];
+    banc.setState({ mode: 'exploration', battle: null, journal: [] });
+    const refus = vi.fn();
+    appliquerLIntentionDUnSiege(banc.getState, 1, 'incanterLeSort', [doc.id, 'flechette'], refus);
+    appliquerLIntentionDUnSiege(banc.getState, 1, 'focaliserLeSort', [doc.id, 'flechette'], refus);
+    appliquerLIntentionDUnSiege(banc.getState, 1, 'focaliserLeSort', [doc.id, 'arme-aethyrique'], refus);
+    appliquerLIntentionDUnSiege(banc.getState, 1, 'incanterLeSort', [doc.id, 'arme-aethyrique'], refus);
+    expect(refus.mock.calls).toEqual([
+      [t('cs.magicMissileNeedsTarget', { spell: findSpellById('flechette')!.label })],
+      [t('cs.cannotFocus')],
+      [t('cs.focusBlocked', { name: doc.label, reason: 'Vue assombrie' })],
+      [t('cf.incantationImpossible', { name: doc.label, reason: 'Propos ésotériques' })],
+    ]);
+    expect(banc.getState().journal).toEqual([]);
+    expect(banc.getState().pendingCast).toBeNull();
+    expect(banc.getState().pendingFocus).toBeNull();
+  });
 });
