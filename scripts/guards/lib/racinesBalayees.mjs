@@ -35,9 +35,12 @@ export const APPEL_D_ACQUISITION = /\brendreCible\b/
 
 /** Les primitives de LECTURE et de LISTAGE du système de fichiers : l'argument 0 est la racine. Une
  *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict.
- *  Le contrat `identite` remplace les sondes qui remontent depuis le paramètre indiqué par une dépendance à son chemin. */
+ *  Le contrat `identite` remplace les sondes qui remontent depuis le paramètre indiqué par une dépendance à son chemin.
+ *  `dossierPropre` couvre le listage direct et la lecture sur descripteur d'un enfant prouvé du même dossier.
+ *  La primitive qui déclare ce contrat vérifie l'identité du dossier et la propriété du fichier avant la lecture. */
 const PRIMITIVES = Object.freeze(['readFileSync', 'readFile', 'readdirSync', 'readdir', 'opendirSync', 'existsSync', 'statSync', 'globSync', 'glob'])
 const GLOBS = new Set(['globSync', 'glob'])
+const MODULE_LISTER = 'scripts/guards/lib/lister.mjs'
 
 /** Les portes de `gitPorte.mjs` qui passent leurs pathspecs à git, seul listeur d'image : le processus
  *  enfant est opaque à l'arbre syntaxique, la porte DÉCLARE donc ce qu'elle lit (`depot` : index du
@@ -503,7 +506,7 @@ export function lecteurDExpressions(rel, arbre) {
     if (ts.isPropertyAccessExpression(n)) {
       if (estImportMeta(n.expression) && n.name.text === 'dirname') return { k: 'chemin', v: dossier }
       if (estImportMeta(n.expression) && (n.name.text === 'url' || n.name.text === 'filename')) return { k: 'chemin', v: rel }
-      if (n.name.text === 'pathname') return expr(n.expression, p)
+      if (n.name.text === 'pathname') return sansProvenanceTemporaire(expr(n.expression, p))
       return { k: 'champ', de: expr(n.expression, p), nom: n.name.text, texte: texteDe(n) }
     }
     if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'URL') {
@@ -516,32 +519,40 @@ export function lecteurDExpressions(rel, arbre) {
       const nom = nomAppele(n)
       const args = [...n.arguments]
       const receveur = ts.isPropertyAccessExpression(n.expression) ? n.expression.expression : null
+      if (nom === 'join' && args.length === 2 && appelleUnePrimitive(n.expression, nom, ['node:path', 'path'], { importDirect: true }))
+        return { k: nom, v: args.map((a) => expr(a, p)), jointureNative: true }
       if (CHEMINS.has(nom) && (!receveur || (ts.isIdentifier(receveur) && MODULES_DE_CHEMIN.has(receveur.text)) ||
         (ts.isPropertyAccessExpression(receveur) && MODULES_DE_CHEMIN.has(receveur.name.text))))
         return { k: nom, v: args.map((a) => expr(a, p)) }
       if (nom === 'join' && receveur && ts.isCallExpression(receveur) && nomAppele(receveur) === 'split' && ts.isPropertyAccessExpression(receveur.expression))
-        return expr(receveur.expression.expression, p)
+        return sansProvenanceTemporaire(expr(receveur.expression.expression, p))
       if (nom === 'dirname' && args[0]) return { k: 'dir', v: expr(args[0], p) }
       if (nom === 'cwd' && ts.isPropertyAccessExpression(n.expression) && texteDe(n.expression.expression) === 'process') return { k: 'chemin', v: '' }
       const receveurLie = receveur && ts.isIdentifier(receveur) ? lier(receveur, p) : null
       const lie = ts.isIdentifier(n.expression) ? lier(n.expression, p)
         : receveurLie?.k === 'importe' && ['*', 'default'].includes(receveurLie.nom) ? { ...receveurLie, nom } : null
       if (lie?.k === 'native' && args[0]) return { k: 'chaine', de: expr(args[0], p) }
-      if (lie?.k === 'importe' && ['node:os', 'os'].includes(lie.spec) && lie.nom === 'tmpdir') return { k: 'couverture', origine: 'node:os#tmpdir', raison: 'répertoire temporaire dépendant de l’environnement' }
-      if (lie?.k === 'importe' && ['node:fs', 'fs'].includes(lie.spec) && lie.nom === 'mkdtempSync' && args[0]) return { k: 'temporaire', prefixe: expr(args[0], p) }
+      if (lie?.k === 'importe' && ['node:os', 'os'].includes(lie.spec) && lie.nom === 'tmpdir') return { k: 'tmpdir' }
+      if (lie?.k === 'importe' && ['node:fs', 'fs'].includes(lie.spec) && lie.nom === 'mkdtempSync' && args[0])
+        return { k: 'temporaire', prefixe: expr(args[0], p), ...(args.length === 1 ? { chaine: true } : {}) }
       if (lie?.k === 'importe' && ['node:fs', 'fs'].includes(lie.spec) && lie.nom === 'readdirSync' && args[0]) return { k: 'repertoire', de: expr(args[0], p), options: args[1] ? expr(args[1], p) : null }
       if (methodeDeLObjet(n.expression, 'values') && args.length === 1)
         return { k: 'valeursObjetAcquisition', de: expr(args[0], p), raison: `appel ${texteDe(n.expression)}` }
-      if (['fileURLToPath', 'freeze'].includes(nom) && args[0]) {
+      if (nom === 'fileURLToPath' && args[0] && appelleUnePrimitive(n.expression, nom, ['node:url', 'url'], { importDirect: true }))
+        return sansProvenanceTemporaire(expr(args[0], p))
+      if (nom === 'freeze' && args[0] && methodeDeLObjet(n.expression, nom)) {
         const [argument] = args
-        const tableau = args.length === 1 && methodeDeLObjet(n.expression, 'freeze') &&
-          tableauGeleDe(ts, argument, (rappel) => methodeDeLObjet(rappel, 'freeze'))
+        const tableau = args.length === 1 && tableauGeleDe(ts, argument, (rappel) => methodeDeLObjet(rappel, 'freeze'))
         const de = expr(argument, p)
         return tableau ? { ...de, registreGele: expr(tableau, p) } : de
       }
       if (nom === 'flat' && receveur) return { k: 'aplatir', de: expr(receveur, p), profondeur: args[0] ? expr(args[0], p) : { k: 'scalaire', v: '1' } }
-      if ((nom === 'replace' || nom === 'replaceAll') && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
-      if (SOUS_ENSEMBLES.has(nom) && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
+      if ((nom === 'replace' || nom === 'replaceAll') && ts.isPropertyAccessExpression(n.expression))
+        return sansProvenanceTemporaire(expr(receveur, p))
+      if (SOUS_ENSEMBLES.has(nom) && receveur) {
+        const de = expr(receveur, p)
+        return nom === 'slice' ? sansProvenanceTemporaire(de) : de
+      }
       const rendus = PROJECTIONS.has(nom) && args[0] && (ts.isArrowFunction(args[0]) || ts.isFunctionExpression(args[0])) ? retoursLus(args[0], p) : []
       if (rendus.length && ts.isPropertyAccessExpression(n.expression)) return { k: 'projection', de: expr(n.expression.expression, p), aplatie: nom === 'flatMap', v: rendus }
       if (PROJECTIONS.has(nom) && args[0] && receveur) return { k: 'projectionRappel', de: expr(receveur, p), cible: expr(args[0], p), texte: texteDe(args[0]), aplatie: nom === 'flatMap' }
@@ -639,14 +650,16 @@ export function lecteurDExpressions(rel, arbre) {
     if (!ts.isPropertyAccessExpression(n.expression) || !objetDeclare(n.expression.expression)) return null
     return expr(n.expression)
   }
-  const appelleUnePrimitive = (cible, operation, modules) => {
+  function appelleUnePrimitive(cible, operation, modules, { importDirect = false } = {}) {
     const membre = ts.isPropertyAccessExpression(cible)
     const ident = membre ? cible.expression : cible
     if (!ts.isIdentifier(ident) || (membre && cible.name.text !== operation)) return false
-    const lu = lier(ident, 0)
     const liaison = liaisonDe(ident)
+    const decl = liaison?.decl
+    if (importDirect && !decl?.importe && !decl?.module) return false
+    const lu = lier(ident, 0)
     const fiche = liaison && affectationsDe().get(liaison.n)?.get(ident.text)
-    const importe = lu.k === 'importe' ? lu : !fiche ? liaison?.decl?.module : null
+    const importe = lu.k === 'importe' ? lu : !fiche ? decl?.module : null
     return importe && modules.includes(importe.spec) &&
       (membre ? ['default', '*'].includes(importe.nom) : importe.nom === operation)
   }
@@ -703,7 +716,68 @@ export function lecteurDExpressions(rel, arbre) {
     const bloc = parents.get(parent)
     return ts.isBlock(bloc) && rendLeChemin(bloc.statements[bloc.statements.indexOf(parent) + 1], chemin) && depuisLeParametre()
   }
-  return { expr, lambdas: lexique, lier, nomAppele, fonctions, dansDe, defautDe, ligneDe, cibleAppele, sondeIdentite, appelleFs, appelDynamique, transmetRappel, rappelItere }
+  const initialiseurConstant = (n) => {
+    if (!n || !ts.isIdentifier(n)) return n
+    const liaison = liaisonDe(n)
+    const variable = liaison?.decl?.variable
+    if (!variable || (parents.get(variable).flags & ts.NodeFlags.Const) === 0 || affectationsDe().get(liaison.n)?.has(n.text)) return n
+    return variable.initializer
+  }
+
+  const parametreDeDossier = (n, fonction, index) => {
+    if (!ts.isIdentifier(n)) return null
+    const liaison = liaisonDe(n)
+    if (!liaison?.parametre || idDe.get(liaison.n) !== fonction ||
+      liaison.n.parameters[index].name.text !== n.text) return null
+    const fiche = affectationsDe().get(liaison.n)?.get(n.text)
+    return fiche?.opaque || fiche?.droits.length || fiche?.champs.size ? null : expr(n)
+  }
+
+  const listeurDirect = (appel) => {
+    if (!ts.isCallExpression(appel) || appel.arguments.length !== 1) return false
+    if (appelleFs(appel.expression, 'readdirSync')) return true
+    if (!ts.isIdentifier(appel.expression) || nomAppele(appel) !== 'listerDossier') return false
+    const cible = lier(appel.expression, 0)
+    return cible.k === 'importe' && cible.nom === 'listerDossier' &&
+      cible.spec.startsWith('.') && posix.join(dossier, cible.spec) === MODULE_LISTER
+  }
+
+  const entreeDuDossier = (n, fonction, index) => {
+    if (!ts.isIdentifier(n)) return false
+    const liaison = liaisonDe(n)
+    if (!liaison?.boucle || !ts.isForOfStatement(liaison.n) || affectationsDe().get(liaison.n)?.has(n.text)) return false
+    const decl = liaison.n.initializer.declarations
+    if (decl.length !== 1 || !ts.isIdentifier(decl[0].name)) return false
+    let liste = liaison.n.expression
+    if (ts.isCallExpression(liste) && !liste.arguments.length && ts.isPropertyAccessExpression(liste.expression) &&
+      liste.expression.name.text === 'sort') liste = liste.expression.expression
+    return listeurDirect(liste) && parametreDeDossier(liste.arguments[0], fonction, index)
+  }
+
+  const cheminDuSitePropre = (appel, fonction, index) => {
+    const [argument] = appel.arguments
+    if (!argument) return null
+    if (listeurDirect(appel)) {
+      const dossier = parametreDeDossier(argument, fonction, index)
+      return dossier ? { dossier } : null
+    }
+    if (!appelleFs(appel.expression, 'readFileSync')) return null
+    const ouverture = initialiseurConstant(argument)
+    if (!ouverture || !ts.isCallExpression(ouverture) || !appelleFs(ouverture.expression, 'openSync')) return null
+    const chemin = initialiseurConstant(ouverture.arguments[0])
+    if (!chemin) return null
+    if (ts.isCallExpression(chemin) && chemin.arguments.length === 2 &&
+      appelleUnePrimitive(chemin.expression, 'join', ['node:path', 'path']) && entreeDuDossier(chemin.arguments[1], fonction, index)) {
+      const dossier = parametreDeDossier(chemin.arguments[0], fonction, index)
+      if (dossier) return { dossier }
+    }
+    return { chemin: expr(chemin) }
+  }
+
+  return {
+    expr, lambdas: lexique, lier, nomAppele, fonctions, dansDe, defautDe, ligneDe, cibleAppele,
+    sondeIdentite, appelleFs, cheminDuSitePropre, appelDynamique, transmetRappel, rappelItere,
+  }
 }
 
 /**
@@ -716,10 +790,12 @@ export function lecteurDExpressions(rel, arbre) {
  */
 export function lectureDeModule(rel, arbre) {
   const ts = typescript()
-  const { expr, lambdas, lier, nomAppele, fonctions, dansDe, defautDe, ligneDe, cibleAppele, sondeIdentite, appelleFs, appelDynamique, transmetRappel, rappelItere } = lecteurDExpressions(rel, arbre)
+  const { expr, lambdas, lier, nomAppele, fonctions, dansDe, defautDe, ligneDe, cibleAppele,
+    sondeIdentite, appelleFs, cheminDuSitePropre, appelDynamique, transmetRappel, rappelItere } = lecteurDExpressions(rel, arbre)
   const sites = []
   const argumentsDIdentite = new Map()
   const argumentsDeLecture = new Map()
+  const argumentsDeDossierPropre = new Map()
   const identitesLues = new Set()
   const estMembreCallable = (cible) => {
     if (cible?.k !== 'champ') return false
@@ -760,10 +836,14 @@ export function lectureDeModule(rel, arbre) {
           if (lecture || (cible && (cible.k === 'fn' || cible.k === 'param' || estMembreCallable(cible) || (cible.k === 'importe' && !cible.spec.startsWith('node:'))))) {
             const args = [...n.arguments].map((a) => expr(a))
             const chemin = args[0]
+            const indexDossier = argumentsDeDossierPropre.get(dans)
+            const propre = indexDossier !== undefined && cheminDuSitePropre(n, dans, indexDossier)
             const lectureExacte = argumentsDeLecture.has(dans) && nom === 'readFileSync' && appelleFs(n.expression, nom) &&
               chemin?.k === 'param' && chemin.fn === dans && chemin.index === argumentsDeLecture.get(dans)
             const defaut = defautDe(n)
             const site = { appel: nom, ligne: ligneDe(n), dans, args, ...(lecture ? { lecture: lectureExacte ? 'fichier' : nom } : { cible }) }
+            if (propre?.dossier) site.lecture = 'dossierPropre'
+            if (propre) site.args = [propre.dossier ?? propre.chemin]
             if (defaut !== undefined) site.defaut = defaut
             if (captures.length) site.captures = captures
             if (dans && !lecture && transmetRappel(n)) site.transmetRappel = true
@@ -849,6 +929,8 @@ export function lectureDeModule(rel, arbre) {
     }
     const chemin = indiceDe(lectures?.v?.chemin)
     if (chemin >= 0) argumentsDeLecture.set(fonction.id, chemin)
+    const dossierPropre = indiceDe(lectures?.v?.dossierPropre)
+    if (dossierPropre >= 0) argumentsDeDossierPropre.set(fonction.id, dossierPropre)
     if (portee?.k === 'objet' && portee.v.nom?.k === 'lit') {
       const valeur = indiceDe(portee.v.valeur)
       const rappel = indiceDe(portee.v.rappel)
@@ -1263,6 +1345,7 @@ const EVALUATIONS_SANS_CONTEXTE = Object.freeze({
   chemin: (e) => [borne(posix.normalize(e.v || '.'))],
   espace: (e) => [{ espace: e.racine, cheminExterne: e.chemin }],
   couverture: (e) => [couverture(e.origine, e.raison)],
+  tmpdir: () => [{ ...couverture('node:os#tmpdir', 'répertoire temporaire dépendant de l’environnement'), sousTmpdir: 'base' }],
   non: (e) => [{ non: e.raison }],
   transforme: (e) => [{ non: e.raison }],
 })
@@ -1273,7 +1356,12 @@ const EVALUATIONS_SANS_CONTEXTE = Object.freeze({
 const CONTEXTE_HORS_CLE = new Proxy({}, new Proxy({}, { get: () => () => { throw new Error('CONTEXTE_HORS_CLE') } }))
 /** L'évaluation paresseuse `evaluer(e, ctx, ...)`, contexte retiré quand `e` s'évalue sans contexte : même source que
  *  la clé d'argument et `valeurs`. */
-const paresseuse = (evaluer) => (e, ctx, ...reste) => evaluer(e, Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, e.k) ? CONTEXTE_HORS_CLE : ctx, ...reste)
+const paresseuse = (evaluer, retirer = sansProvenanceTemporaireDe) => {
+  const parcourir = (e, ctx, ...reste) => e.k === 'sansProvenanceTemporaire'
+    ? parcourir(e.de, ctx, ...reste).map(retirer)
+    : evaluer(e, Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, e.k) ? CONTEXTE_HORS_CLE : ctx, ...reste)
+  return parcourir
+}
 
 /** Les clés canoniques de l'évaluateur du régime `ferme` (`clesCanoniques`) : la forme d'un argument porte son contexte
  *  sauf si son expression a une évaluation sans contexte (`EVALUATIONS_SANS_CONTEXTE`). */
@@ -1432,7 +1520,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     : de.k === 'union' ? de.v.flatMap((x) => collectionsOpaquesDe(x, ctx))
     : de.k === 'projection' ? collectionsOpaquesDe(de.de, ctx)
     : [de]
-  })
+  }, sansProvenanceTemporaire)
   const elementsDe = paresseuse((de, ctx) => {
     const forme = formeLiee(de, ctx)
     return forme ? expressionsLiees(elementsDe, forme.e, forme.ctx)
@@ -1447,7 +1535,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     : de.k === 'union' ? de.v.flatMap((x) => elementsDe(x, ctx))
     : de.k === 'projection' ? (elementsDe(de.de, ctx).length ? [...(de.aplatie ? de.v.flatMap((x) => elementsDe(x, ctx)) : de.v), ...collectionsOpaquesDe(de.de, ctx)] : [])
     : [de]
-  })
+  }, sansProvenanceTemporaire)
   const aplatirDe = (e, ctx) => {
     const profondeur = valeurs(e.profondeur, ctx)
     if (profondeur.length !== 1 || profondeur[0].scalaire !== '1') return [{ k: 'non', raison: 'profondeur flat non prouvée' }]
@@ -1459,7 +1547,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       if (de.k === 'appel') return collectionsDAppel(de, c, (x, contexte) => descendre(x, contexte))
       if (de.k === 'liste' || de.k === 'collection') return elementsDe(de, c).flatMap((x) => niveau(x, c))
       return [{ k: 'non', raison: 'receveur flat non prouvé' }]
-    })
+    }, sansProvenanceTemporaire)
     const niveau = paresseuse((de, c) => {
       const forme = formeLiee(de, c)
       if (forme) return expressionsLiees(niveau, forme.e, forme.ctx)
@@ -1467,7 +1555,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       if (de.k === 'union') return de.v.flatMap((x) => niveau(x, c))
       if (de.k === 'appel') return collectionsDAppel(de, c, niveau)
       return de.k === 'liste' || de.k === 'collection' ? elementsDe(de, c) : [de]
-    })
+    }, sansProvenanceTemporaire)
     return descendre(e.de, ctx)
   }
   const repertoireDe = (e, ctx) => {
@@ -1565,7 +1653,10 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       }
       case 'garde': return gardePossible(e, ctx) ? valeurs(e.de, ctx) : []
       case 'chaine': return chaineDe(e.de, ctx)
+      case 'sansProvenanceTemporaire': return valeurs(e.de, ctx).map(sansProvenanceTemporaireDe)
       case 'temporaire': return valeurs(e.prefixe, ctx).map((v) => {
+        if (v.sousTmpdir === 'prefixe' && e.chaine) return { ...v, sousTmpdir: 'dossier' }
+        if ('sousTmpdir' in v) return sansProvenanceTemporaireDe(v)
         if ('espace' in v) return { ...v, cheminExterne: posix.dirname(v.cheminExterne || '.') }
         const prefixe = 'texte' in v ? ancrer(v.texte) : v
         return 'chemin' in prefixe ? couverture(`corpus:${prefixe.chemin || '.'}`, 'suffixe aléatoire mkdtempSync') : prefixe
@@ -1663,19 +1754,30 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
           : 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte, args)
           : 'relais' in c ? [c] : [{ non: `appel ${e.texte}` }])
       }
-      case 'dir': return valeurs(e.v, ctx).map((v) => 'espace' in v ? parentExterne(v) : 'chemin' in v ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : v)
+      case 'dir': return valeurs(e.v, ctx).map((v) => 'espace' in v ? parentExterne(v) : 'chemin' in v
+        ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : sansProvenanceTemporaireDe(v))
       case 'join': case 'resolve': case 'concat': {
         const lier = e.k === 'concat' ? concatener : (a, s) => joindre(a, s, e.k === 'resolve')
         let acc = [{ texte: '' }]
-        for (const partie of e.v) {
+        for (const [index, partie] of e.v.entries()) {
           const suite = valeurs(partie, ctx)
           const absente = suite.find((x) => 'absent' in x)
           const presente = suite.some((x) => !('absent' in x))
           const vus = new Map()
+          const baseTemporaire = e.jointureNative && index === 0 && suite.every((x) => x.sousTmpdir === 'base')
           for (const a of acc) {
             if ('couvertureCorpusEntier' in a || suite.some((x) => 'couvertureCorpusEntier' in x)) {
-              for (const x of suite) for (const v of [a, x])
-                if (['couvertureCorpusEntier', 'non', 'relais', 'absent'].some((k) => k in v)) vus.set(cleDe(v), v)
+              for (const x of suite) {
+                if (baseTemporaire) vus.set(cleDe(x), x)
+                else if (e.jointureNative && index === 1 && a.sousTmpdir === 'base' && estSegmentTemporaire(x.texte)) {
+                  const v = { ...a, sousTmpdir: 'prefixe' }
+                  vus.set(cleDe(v), v)
+                } else for (const origine of [a, x]) {
+                  if (!['couvertureCorpusEntier', 'non', 'relais', 'absent'].some((k) => k in origine)) continue
+                  const v = sansProvenanceTemporaireDe(origine)
+                  vus.set(cleDe(v), v)
+                }
+              }
               continue
             }
             if (['relais', 'non', 'absent'].some((k) => k in a)) {
@@ -1839,7 +1941,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
           if (mode === 'parametre' && site.cible?.k === 'param') { sommet.oui = true; continue }
           if (modeRappel && !site.transmetRappel) continue
           if (site.lecture) {
-            if (mode !== 'fichier' || site.lecture === 'fichier') sommet.oui = true
+            if (mode !== 'fichier' || site.lecture === 'fichier' || site.lecture === 'dossierPropre') sommet.oui = true
             continue
           }
           const cibles = valeurs(site.cible, { f: sommet.fn.f, env: null })
@@ -1953,6 +2055,12 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     })) return []
     const arg = (i) => site.args[i] ? valeurs(site.args[i], ctx) : [{ chemin: '' }]
     if (site.lecture) {
+      if (site.lecture === 'dossierPropre') return arg(0).map((v) => {
+        if (v.sousTmpdir === 'dossier') return { hors: true }
+        const racine = racineFinale(v)
+        return 'chemin' in racine || 'relais' in racine ? racine
+          : couverture(`${f}#${env?.fn ?? site.appel}`, racine.non ?? 'dossier propre indéterminé')
+      })
       // L’identité suit le chemin lexical initial. Une valeur physique opaque reste couverte si une lecture la consomme.
       if (site.lecture === 'identite' || site.lecture === 'fichier') return arg(0).flatMap((v) => {
         if ('relais' in v || (site.lecture === 'fichier' && 'couvertureCorpusEntier' in v)) return [v]
@@ -2132,6 +2240,10 @@ const parentExterne = (v) => v.cheminExterne && v.cheminExterne !== '.'
 
 const couverture = (origine, raison) => ({ couvertureCorpusEntier: { origine, raison } })
 
+const estSegmentTemporaire = (texte) => typeof texte === 'string' && /^[A-Za-z0-9_-]+$/.test(texte)
+const sansProvenanceTemporaire = (de) => de.k === 'sansProvenanceTemporaire' ? de : { k: 'sansProvenanceTemporaire', de }
+const sansProvenanceTemporaireDe = (v) => 'sousTmpdir' in v ? { couvertureCorpusEntier: v.couvertureCorpusEntier } : v
+
 const racineFinale = (v) => 'poignee' in v ? { non: 'poignée de dépôt non chemin' } : 'couvertureCorpusEntier' in v
   ? { chemin: '', sous: `couverture corpus entier : ${v.couvertureCorpusEntier.origine} — ${v.couvertureCorpusEntier.raison}` }
   : 'non' in v && v.non === VALEUR_INDEFINIE ? { non: VALEUR_NULLE }
@@ -2167,7 +2279,7 @@ const JOINDRE = 'path#join'
 const RESOUDRE = 'path#resolve'
 const CHEMIN_D_URL = 'url#fileURLToPath'
 const URL_DE_CHEMIN = 'url#pathToFileURL'
-const LISTER = 'scripts/guards/lib/lister.mjs#listerEntrees'
+const LISTER = `${MODULE_LISTER}#listerEntrees`
 /** Les modules de Node que lit ce régime, sous leurs deux spécificateurs. */
 const MODULES_DE_NODE = Object.freeze({ 'node:path': 'path', path: 'path', 'node:url': 'url', url: 'url' })
 

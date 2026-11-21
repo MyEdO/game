@@ -2606,6 +2606,135 @@ test('tmpdir et mkdtemp : identité builtin aliasée, homonymes locaux et étran
   assert.deepEqual(racinesDe(modules, 'banc.mjs'), [[{ chemin: 'src' }], [{ chemin: 'Source' }]])
 })
 
+const lecteurDeDossierPropre = (extra = '') => `
+  import { openSync, readdirSync, readFileSync } from 'node:fs'
+  import { join } from 'node:path'
+  export function lire(dossier) {
+    for (const nom of readdirSync(dossier).sort()) {
+      const chemin = join(dossier, nom)
+      const fd = openSync(chemin, 'r')
+      readFileSync(fd)
+    }
+    ${extra}
+  }
+  export const CONTRATS_DE_DERIVATION = [{ fonction: lire, lectures: { dossierPropre: 0 } }]
+`
+
+const ENTETE_DOSSIER_PROPRE = `
+  import { lire } from './propre.mjs'
+  import { tmpdir as repertoire } from 'node:os'
+  import { join as joindre, dirname } from 'node:path'
+  import { mkdtempSync as creer, readdirSync, readFileSync } from 'node:fs'
+  function allocation(prefixe) { return creer(joindre(repertoire(), prefixe)) }
+  const dossier = allocation('essai-')
+`
+
+test('dossier propre : allocation indirecte, racine de contenu, et transformations qui perdent la provenance', () => {
+  const modules = { 'propre.mjs': lecteurDeDossierPropre(), 'banc.mjs': ENTETE_DOSSIER_PROPRE + `
+    lire(dossier)
+    lire('src/contenu')
+    lire(dirname(dossier))
+    lire(dossier.slice(0, 12))
+    function frais() { return dossier }
+    lire(String(frais().slice(1)))
+    function freeze(x) { return 'src/gel' }
+    function fileURLToPath(x) { return 'src/url' }
+    lire(freeze(dossier))
+    lire(fileURLToPath(dossier))
+    lire(joindre(dossier, '..'))
+    lire(allocation('../inconnu'))
+    lire(creer(joindre(choix ? repertoire() : 'src', 'essai-')))
+    lire(calculer())
+    readdirSync(dossier)
+    readFileSync(joindre(dossier, 'lien.jsonl'))
+  ` }
+  const attendus = [[{ hors: true }], [{ chemin: 'src/contenu' }],
+    [couvertureTemporaire], [couvertureTemporaire], [couvertureTemporaire], [{ chemin: 'src/gel' }], [{ chemin: 'src/url' }],
+    [couvertureTemporaire], [couvertureTemporaire], [couvertureTemporaire],
+    [couvert('propre.mjs#lire', 'appel calculer')], [couvertureTemporaire], [couvertureTemporaire]]
+  assert.deepEqual(racinesDe(modules, 'banc.mjs'), attendus)
+  assert.deepEqual(sitesDesDeuxRegimes(modules, 'banc.mjs').map(([, valeurs]) => valeurs), attendus)
+})
+
+test('dossier propre : le listeur canonique tient par sa liaison d’import et demeure un relais', () => {
+  const dossier = 'scripts/guards/lib/'
+  const lecteur = lecteurDeDossierPropre("ordonner('src/contenu')")
+    .replace('  export function lire(', "  import { listerDossier as ordonner } from './lister.mjs'\n  export function lire(")
+    .replace('readdirSync(dossier).sort()', 'ordonner(dossier)')
+  const listeur = "import { readdirSync } from 'node:fs'; export function listerDossier(dir) { return readdirSync(dir).sort() }"
+  const modules = {
+    [dossier + 'lister.mjs']: listeur,
+    [dossier + 'propre.mjs']: lecteur,
+    [dossier + 'banc.mjs']: ENTETE_DOSSIER_PROPRE + 'lire(dossier)',
+  }
+  assert.deepEqual(sitesDesDeuxRegimes(modules, dossier + 'banc.mjs'), [['lire', [{ hors: true }, { chemin: 'src/contenu' }]]])
+  const homonyme = {
+    ...modules,
+    [dossier + 'propre.mjs']: lecteur.replace('./lister.mjs', './homonyme.mjs'),
+    [dossier + 'homonyme.mjs']: listeur,
+  }
+  const [[, racines]] = sitesDesDeuxRegimes(homonyme, dossier + 'banc.mjs')
+  assert.ok(racines.some((r) => r.sous === couvertureTemporaire.sous), JSON.stringify(racines))
+  assert.ok(racines.every((r) => !r.hors), JSON.stringify(racines))
+})
+
+test('sonde d’identité : un alias constant du builtin conserve la dépendance au chemin', () => {
+  const modules = { 'banc.mjs': `
+    import { statSync } from 'node:fs'
+    const inspecter = statSync
+    function ancetre(dossier) {
+      inspecter(dossier)
+      return dossier
+    }
+    export const CONTRATS_DE_DERIVATION = [{ fonction: ancetre, identite: 0 }]
+    ancetre('src/contenu')
+  ` }
+  assert.deepEqual(sitesDesDeuxRegimes(modules, 'banc.mjs'), [['ancetre', [{ identite: 'src/contenu' }]]])
+})
+
+test('dossier propre : chaque autre lecture garde sa racine, même via un descripteur distinct', () => {
+  const modules = { 'propre.mjs': lecteurDeDossierPropre(`
+    readFileSync('src/temoin.json')
+    const autre = openSync('src/temoin-fd.json', 'r')
+    readFileSync(autre)
+    readdirSync(dossier, { recursive: true })
+  `), 'banc.mjs': ENTETE_DOSSIER_PROPRE + 'lire(dossier)' }
+  assert.deepEqual(racinesDe(modules, 'banc.mjs'), [
+    [{ hors: true }, { chemin: 'src/temoin.json' }, { chemin: 'src/temoin-fd.json' }, couvertureTemporaire],
+  ])
+  const remplace = { ...modules, 'propre.mjs': modules['propre.mjs'].replace('for (const nom', "dossier = 'src/contenu'; for (const nom") }
+  const [racines] = racinesDe(remplace, 'banc.mjs')
+  assert.ok(racines.some(({ chemin }) => chemin === 'src/contenu'), JSON.stringify(racines))
+  assert.ok(racines.every((v) => !v.hors), JSON.stringify(racines))
+})
+
+test('dossier propre : un contenu versionné et le module installé par le setup retiennent leur banc', async (t) => {
+  const fichiers = {
+    'scripts/propre.mjs': lecteurDeDossierPropre(),
+    'scripts/contenu.test.mjs': "import { lire } from './propre.mjs'; lire('src/contenu')",
+    'scripts/temporaire.test.mjs': ENTETE_DOSSIER_PROPRE + 'lire(dossier)',
+    'scripts/setup.ts': ENTETE_DOSSIER_PROPRE + 'lire(dossier)',
+    'vitest.config.ts': "export default { test: { setupFiles: ['scripts/setup.ts'] } }",
+    'src/setup.test.ts': "import { test } from 'vitest'; test('setup', () => {})",
+    'src/contenu/temoin.json': 'initial',
+    '.gitignore': 'node_modules/',
+  }
+  const { racine, sha } = instanceDeDepot({ fichiers })
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  writeFileSync(join(racine, 'src/contenu/temoin.json'), 'modifié')
+  const derive = () => perimetreDuDepot(racine, { base: sha })
+  const contenu = (await derive()).retenus
+  assert.ok(contenu.has('scripts/contenu.test.mjs'))
+  assert.ok(!contenu.has('scripts/temporaire.test.mjs'))
+  assert.ok(!contenu.has('src/setup.test.ts'))
+  writeFileSync(join(racine, 'src/contenu/temoin.json'), fichiers['src/contenu/temoin.json'])
+  writeFileSync(join(racine, 'scripts/propre.mjs'), lecteurDeDossierPropre("readFileSync('src/contenu/temoin.json')"))
+  const script = await derive()
+  assert.deepEqual(script.touches, ['scripts/propre.mjs'])
+  assert.equal(script.retenus.get('scripts/temporaire.test.mjs')?.nature, 'import')
+  assert.equal(script.retenus.get('src/setup.test.ts')?.nature, 'setup')
+})
+
 test('mkdtemp : le consommateur réel retient une lecture sous suffixe aléatoire', async () => {
   const { racine, sha } = instanceDeDepot({ fichiers: {
     'scripts/banc.test.mjs': "import {join} from 'node:path';import {mkdtempSync,readFileSync} from 'node:fs';const dir=mkdtempSync(join(process.cwd(),'fixture-'));readFileSync(join(dir,'x.md'))",
