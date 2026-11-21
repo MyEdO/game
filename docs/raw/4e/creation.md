@@ -367,6 +367,10 @@ Voir le **Chapitre 3 : Classes et Carrières** pour les possessions spécifiques
 
 ## Étape 6 — Détails supplémentaires
 
+`LDB 05 l.703`
+
+> « En ce qui concerne les détails physiques cosmétiques (ces aspects de votre apparence qui n'ont pas d'influence directe sur la partie), vous pouvez soit effectuer des lancers pour les obtenir aléatoirement, soit les choisir parmi ceux proposés pour votre Race. »
+
 ### Âge
 
 `LDB 05 l.705-711`
@@ -395,9 +399,11 @@ Voir le **Chapitre 3 : Classes et Carrières** pour les possessions spécifiques
 
 ### Couleur des Yeux (verbatim)
 
-`LDB 05 l.742-754`
+`LDB 05 l.716`
 
-> Note : les elfes lancent **deux fois** (yeux bigarrés par leur nature magique).
+> « Bien que la plupart des races effectuent un seul lancer sur le tableau ci-dessous, les elfes en effectuent deux : leur nature intrinsèquement magique signifie qu'ils ont souvent des yeux de couleurs bigarrées, comme le bleu saphir moucheté d'or, ou un subtil marbré vert mousse et châtaigne. »
+
+`LDB 05 l.742-754`
 
 | 2d10 | Humain Reiklander | Nain | Halfling | Haut Elfe | Elfe Sylvain |
 |------|------------------|------|----------|-----------|--------------|
@@ -777,7 +783,7 @@ Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493
 | Richesse initiale (Bronze/Argent/Or × Standing) | `src/engine/creation.ts l.11, 102` — `LDB 05 l.578-583` |
 | Âge par espèce (15+d10 / 15+10d10 / …) | `src/engine/creation.ts l.109` — `LDB 05 l.705-711` |
 | Taille par espèce (145+5d10 cm / …) | `src/engine/creation.ts l.114` — `LDB 05 l.728` |
-| Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.119` — `LDB 05 l.742-754` |
+| Couleur des yeux (choix ou 2d10, deux lancers chez les elfes) | `src/engine/creation.ts` · `src/noyau/creation/brouillon.ts` — `LDB 05 l.703, l.716, l.742-754` |
 | Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.124` — `LDB 05 l.756-768` |
 | 5 Augmentations gratuites sur 3 Caractéristiques de carrière | `src/engine/character.ts l.256, 263` — `LDB 05 l.459, 463` |
 | 40 Augmentations de Compétences de carrière (max 10 / Comp.) | `src/engine/character.ts` (`CAREER_SKILL_ADVANCES`) · `src/noyau/creation/brouillon.ts` |

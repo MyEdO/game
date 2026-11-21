@@ -1470,12 +1470,14 @@ export const rangeeDeCouleurSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   plageParRace: z.partialRecord(raceKeySchema, plageEntiereSchema).optional(),
+  choixLibrePour: z.array(raceKeySchema).optional(),
   color: z.record(raceKeySchema, z.string().min(1)),
 }), {
   ...metaDesChamps(plageEntiereSchema, { exigees: true }),
   id: { label: 'identifiant' },
   label: { label: 'libellé' },
   plageParRace: { label: 'Fourchette par race', hint: 'Fourchette propre à une colonne du tableau' },
+  choixLibrePour: { label: 'Couleur au choix', hint: 'Colonnes où la rangée laisse choisir la couleur' },
   color: { label: 'Couleur par race', hint: 'Couleur affichée, par race (colonne du tableau)' },
 });
 

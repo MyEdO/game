@@ -4655,6 +4655,9 @@ export const fr = {
   'crea.vue.taille': 'Taille',
   'crea.vue.centimetres': '{n} cm',
   'crea.vue.yeux': 'Yeux',
+  'crea.vue.choisirYeux': 'Choisir la couleur des yeux',
+  'crea.vue.secondeCouleurDesYeux': 'Seconde couleur des yeux',
+  'crea.vue.uneSeuleCouleurDesYeux': 'Une seule couleur',
   'crea.vue.cheveux': 'Cheveux',
   'liste.et': '{debut} et {fin}',
   // Rapport d'une composition (`porteeDeComposition`, `noyau/apparence/composition.ts`) : un objet ni tenu ni rangé.
