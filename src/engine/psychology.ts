@@ -517,9 +517,14 @@ export function isFrenzied(c: Combatant): boolean {
   return (c.psychState ?? []).some((p) => p.type === PSY.frenesie);
 }
 
-/** Test de Force Mentale pour entrer en Frénésie (LDB 21 l.31). Succès → on entre. */
+/** LDB 21 l.31 */
+export function difficulteDEntreeEnFrenesie(): Difficulty {
+  return rule('frenesie-difficulte');
+}
+
+/** LDB 21 l.31 */
 export function resolveFrenzyEntry(fm: number, rng: RNG): JetPose {
-  return jetPose(rollTest(fm, 'intermediaire', rng));
+  return jetPose(rollTest(fm, difficulteDEntreeEnFrenesie(), rng));
 }
 
 /** Valeur de Test de Calme (`testValue`, États compris, LDB 16 l.125). */
