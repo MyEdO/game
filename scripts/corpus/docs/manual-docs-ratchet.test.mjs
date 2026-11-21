@@ -45,13 +45,10 @@ import { spawnBorne } from '../../guards/lib/processusBorne.mjs'
 import { ecartsDeStock } from '../../guards/lib/stock.mjs'
 import { GENERATORS, generateurDe } from '../../docs/build-all.mjs'
 import { estUnDocMarkdown } from '../../docs/lib/ecriture-derives.mjs'
-import { ecartsDeRendu, fautesDeCitations } from '../../test/lib/bancGenerateurs.mjs'
+import { ecartsDeRendu, fautesDeCitations, HOTE_WIN32, IMPORT_WIN32 } from '../../test/lib/bancGenerateurs.mjs'
 import { coeurs } from '../../test/partition.mjs'
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
-
-/** Le module qui rend sous win32, en `--import` ; il se pose AVANT `tsx/esm`. */
-const SOUS_WIN32 = ['--import', new URL('../../docs/lib/plateforme-win32.mjs', import.meta.url).href]
 
 const RENDRE_SEUL = fileURLToPath(new URL('../../docs/lib/rendre-seul.mjs', import.meta.url))
 
@@ -99,7 +96,7 @@ let rendus
  *  (`coeurs`), lancés par `spawnBorne` (#2586). */
 function rendusParCote() {
   rendus ??= (async () => {
-    const cotes = process.platform === 'win32' ? [[]] : [[], SOUS_WIN32]
+    const cotes = HOTE_WIN32 ? [[]] : [[], IMPORT_WIN32]
     const dossier = mkdtempSync(join(tmpdir(), 'rendus-des-generateurs-'))
     try {
       const parTache = await enFileBornee(
@@ -345,7 +342,7 @@ test('chaque doc RENDU par `GENERATORS` cite des sites qui portent leur symbole 
 })
 
 test('chaque générateur de `GENERATORS` rend le MÊME corps sur l’hôte et sous win32', {
-  skip: process.platform === 'win32' && 'hôte win32 : sans la simulation, les deux côtés sont le même rendu natif ; avec elle, un lancement à `cwd` échoue (ENOENT) — la garde mord en CI Linux',
+  skip: HOTE_WIN32 && 'hôte win32 : sans la simulation, les deux côtés sont le même rendu natif ; avec elle, un lancement à `cwd` échoue (ENOENT) — la garde mord en CI Linux',
 }, async () => {
   const { hote, win32 } = await rendusParCote()
   assert.deepEqual(GENERATORS.flatMap((g) => ecartsDeRendu(g.script, hote.get(g.script), win32.get(g.script))), [])

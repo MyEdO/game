@@ -47,7 +47,7 @@ import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { GATES_D_AUDIT, estTestNode, gateDe } from '../gates/testsParGate.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
+import { CONCURRENCE_SANS_PROFIL, PLAFOND_PAQUET_NODE_MS, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { CACHE, lireDuDisque, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
@@ -224,7 +224,7 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   const specificite = (t) => retenus.get(t).specificite ?? 0
   const deLaCi = (t) => estimations.get(t)?.source === 'ci'
   const paquets = (famille, tests) => paquetsDeLancement(tests, famille === 'node'
-    ? { estimations, budgetMs: Math.min(30 * 60_000, Math.max(0, budget * 1000)) } : {})
+    ? { estimations, budgetMs: Math.min(PLAFOND_PAQUET_NODE_MS, Math.max(0, budget * 1000)) } : {})
   const optionsDuMur = { workers, surcouts, paquets, workersNode, environnementDe }
   const mur = (fichiers) => murDesFichiers(fichiers, optionsDuMur)
   const partCi = (fichiers, tests) => Math.round(mur(fichiers) - mur(tableTotale(FAMILLES, (f) => fichiers[f].map(([t, ms]) => [t, tests.has(t) ? 0 : ms]))))

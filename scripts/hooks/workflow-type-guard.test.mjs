@@ -60,7 +60,7 @@ test('#2537 — `Workflow` : script, scriptPath, name (résolu contre `CLAUDE_PR
   }
 })
 
-// #2712, `.claude/skills/orchestrer-des-agents/SKILL.md`.
+// #2712, `.claude/skills/orchestrer-des-agents/calibrage.md`.
 test('#2712 — `Agent` : un `model` passé à un type qui épingle le sien est refusé ; sans `model`, ou type sans épingle, l’appel passe', () => {
   const agent = (tool_input) => garde.evaluer({ hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_input }, {})
   const refus = agent({ subagent_type: 'verif-mecanique', model: 'haiku', prompt: 'p' })

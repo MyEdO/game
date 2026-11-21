@@ -15,7 +15,8 @@
 // Windows et celui mesuré sous Linux divergent d'un chemin par générateur (CI ubuntu 33791873905).
 //
 // Chaque chemin retenu est APPENDU (le thread des hooks n'a pas d'événement de sortie fiable) dans
-// `<sortie>.<pid>.hooks.jsonl` ; `fusionnerLectures` réunit ce fichier et ceux du thread principal.
+// `<sortie>.<pid>.hooks.jsonl`. Une mesure illisible rejoint `incomplet` par le journal des mesures du crochet.
+// `fusionnerLectures` les réunit avec le relevé du thread principal.
 import fs from 'node:fs'
 import path from 'node:path'
 import { syncBuiltinESMExports } from 'node:module'
@@ -26,6 +27,7 @@ import { cheminAbsent, correspondGlob } from '../../guards/lib/lister.mjs'
 
 let racine = null
 let sortie = null
+let mesurer
 let ignores = new Set()
 let cibles = new Set()
 let ciblesDerivees = new Set()
@@ -50,12 +52,13 @@ export function initialize(donnees) {
   ciblesDerivees = new Set(donnees.ciblesDerivees ?? [])
   motifsPropres = donnees.motifsPropres ?? []
   motifsDeclares = donnees.motifsDeclares ?? []
-  installer({ racine: donnees.racine, ignores, cibles: [...cibles], motifsPropres, motifsDeclares, ciblesDerivees: [...ciblesDerivees],
+  const collecteur = installer({ racine: donnees.racine, ignores, cibles: [...cibles], motifsPropres, motifsDeclares, ciblesDerivees: [...ciblesDerivees],
     observer: (mesure) => {
       const cheminMesures = `${sortie}.${process.pid}.hooks-mesures.jsonl`
       try { brut.appendFileSync(cheminMesures, `${JSON.stringify(mesure)}\n`) }
       catch (e) { throw new Error(`collecte : ${cheminMesures} : ${e.message}`, { cause: e }) }
     } })
+  mesurer = collecteur.mesurer
   const lire = fs.readFileSync
   const ouvrir = fs.openSync
   const lireAsync = fs.promises.readFile
@@ -81,18 +84,27 @@ export async function load(url, contexte, suivant) {
 /** Chemin (ou URL `file:`) lu par ce thread — appendu une fois, s'il est sous la racine mesurée. */
 function noterChemin(cible) {
   if (!racine || !sortie) return
-  const chemin =
-    typeof cible === 'string' ? cible
-    : Buffer.isBuffer(cible) ? cible.toString('utf8')
-    : cible instanceof URL && cible.protocol === 'file:' ? fileURLToPath(cible)
-    : null
-  if (!chemin) return
-  const rel = relatifSousRacine(racine, chemin)
-  if (!rel || !dansLaMesure(rel, ignores, ciblesDerivees, motifsDeclares) || vus.has(rel)) return
-  if (cibles.has(rel) || motifsPropres.some((motif) => correspondGlob(rel, motif))) {
-    try { if (brut.lstatSync(path.join(racine, rel)).isFile()) return }
-    catch (e) { if (cheminAbsent(e)) return; throw e }
-  }
+  let rel
+  mesurer(() => {
+    try {
+      const chemin =
+        typeof cible === 'string' ? cible
+        : Buffer.isBuffer(cible) ? cible.toString('utf8')
+        : cible instanceof URL && cible.protocol === 'file:' ? fileURLToPath(cible)
+        : null
+      if (!chemin) return
+      const candidat = relatifSousRacine(racine, chemin)
+      if (!candidat || !dansLaMesure(candidat, ignores, ciblesDerivees, motifsDeclares) || vus.has(candidat)) return
+      if (cibles.has(candidat) || motifsPropres.some((motif) => correspondGlob(candidat, motif))) {
+        try { if (brut.lstatSync(path.join(racine, candidat)).isFile()) return }
+        catch (e) { if (cheminAbsent(e)) return; throw e }
+      }
+      rel = candidat
+    } catch (e) {
+      throw new Error(`mesure du chemin ${cible} dans le crochet : ${e.message}`, { cause: e })
+    }
+  })
+  if (!rel) return
   const cheminHooks = `${sortie}.${process.pid}.hooks.jsonl`
   try { brut.appendFileSync(cheminHooks, `${rel}\n`) }
   catch (e) { throw new Error(`collecte : ${cheminHooks} : ${e.message}`, { cause: e }) }

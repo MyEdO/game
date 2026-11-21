@@ -73,6 +73,11 @@ export function options(argv) {
   return { ...lu, prefixe: lu.prefixe || lu.titre }
 }
 
+// `--corps` vient d’argv et peut désigner tout chemin du corpus.
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: options, retour: { type: 'objetPartiel', champs: { corps: { type: 'chaine' } } } },
+]
+
 /** Un appel `gh`, stdin FERMÉ. Lève si `gh` échoue — un signalement muet ne sert à rien. */
 function gh(args, spawn) {
   const vu = spawn('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 })

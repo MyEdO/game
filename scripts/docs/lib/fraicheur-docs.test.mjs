@@ -112,35 +112,18 @@ test('préparation : sa vue garde le périmètre initial, le rang suivant recapt
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('certification : la politique tardive des parents admet un fichier ignoré pendant la dernière capture', () => {
-  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1' } })
-  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
-  const opts = { ...options, generateurs: [g] }
-  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: [], cibles: [doc('a')], git: [], sondes: [], incomplet: [] }
-  try {
-    poser(racine, 'docs/admis.txt', 'secret')
-    poser(racine, '.git/info/exclude', 'docs/admis.txt\n')
-    const preparation = preparerPreuves(racine, opts)
-    const avant = avantGenerateur(racine, g, opts, preparation)
-    poser(racine, doc('a'), 'sortie')
-    let captures = 0
-    const vu = certifierGenerateur(racine, g, entree, { ...opts, ciblesSurDisque: (motifs, cwd) => {
-      captures++
-      if (captures === 3) poser(racine, '.git/info/exclude', '')
-      return ciblesSurDisque(motifs, cwd)
-    } }, avant)
-    assert.ok(captures >= 3)
-    assert.equal(vu.ok, false, JSON.stringify(vu))
-    assert.equal(vu.raison, 'parent de sortie modifié ou non capturé : docs')
-  } finally { rmSync(racine, { recursive: true, force: true }) }
-})
-
-for (const parentModifie of [true, false]) test(`certification : plusieurs sélections, politique mutée au dernier callback final, ${parentModifie ? 'parent nouvellement admis' : 'parents inchangés'}`, () => {
+for (const [nom, nombreDeGenerateurs, parentModifie, premiere, raison] of [
+  ['cible unique, parent nouvellement admis', 1, true, false, 'parent de sortie modifié ou non capturé : docs'],
+  ['plusieurs sélections, parent nouvellement admis', 2, true, false, 'parent de sortie modifié ou non capturé : docs'],
+  ['plusieurs sélections, parents inchangés', 2, false, false, 'source modifiée pendant certification'],
+  ['politique modifiée à la première expansion', 2, false, true, 'outillage modifié pendant génération'],
+]) test(`certification : ${nom}`, () => {
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1', 'g/b.mjs': 'export const b = 1' } })
-  const generateurs = options.generateurs.slice(0, 2)
+  const generateurs = options.generateurs.slice(0, nombreDeGenerateurs)
   const g = generateurs[0]
   const opts = { ...options, generateurs }
   const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: [], cibles: [doc('a')], git: [], sondes: [], incomplet: [] }
+  const lire = fs.readFileSync
   try {
     if (parentModifie) poser(racine, 'docs/admis.txt', 'secret')
     poser(racine, '.git/info/exclude', 'docs/admis.txt\n')
@@ -148,23 +131,37 @@ for (const parentModifie of [true, false]) test(`certification : plusieurs séle
     const initial = { fichiers: new Map(preparation.fichiers), dossiers: structuredClone(preparation.dossiers), vue: preparation.vue, cache: structuredClone(preparation.cache) }
     const avant = avantGenerateur(racine, g, opts, preparation)
     poser(racine, doc('a'), 'sortie')
-    let capturesPropres = 0
+
+    const cible = path.join(racine, doc('a'))
+    let sortieLue = false
+    let politiqueChangee = false
+    fs.readFileSync = function (fichier, ...args) {
+      const contenu = lire.call(this, fichier, ...args)
+      if (fichier === cible) sortieLue = true
+      return contenu
+    }
+    syncBuiltinESMExports()
     const vu = certifierGenerateur(racine, g, entree, { ...opts, ciblesSurDisque: (motifs, cwd) => {
-      if (JSON.stringify(motifs) === JSON.stringify(g.targets)) {
-        capturesPropres++
-        if (capturesPropres === 2) poser(racine, '.git/info/exclude', '')
+      const selectionPropre = motifs.length === 1 && motifs[0] === doc('a')
+      if (!politiqueChangee && selectionPropre && (premiere || sortieLue)) {
+        politiqueChangee = true
+        poser(racine, '.git/info/exclude', '')
       }
       return ciblesSurDisque(motifs, cwd)
     } }, avant)
-    assert.equal(capturesPropres, 2)
+    assert.equal(politiqueChangee, true)
     assert.equal(vu.ok, false)
-    assert.equal(vu.raison, parentModifie ? 'parent de sortie modifié ou non capturé : docs' : 'source modifiée pendant certification')
+    assert.equal(vu.raison, raison)
     assert.equal(vu.sourceModifiee, !parentModifie)
     assert.deepEqual(preparation.fichiers, initial.fichiers)
     assert.deepEqual(preparation.dossiers, initial.dossiers)
     assert.equal(preparation.vue, initial.vue)
     assert.deepEqual(preparation.cache, initial.cache)
-  } finally { rmSync(racine, { recursive: true, force: true }) }
+  } finally {
+    fs.readFileSync = lire
+    syncBuiltinESMExports()
+    rmSync(racine, { recursive: true, force: true })
+  }
 })
 
 test('inventaire Git : lien inutilisé capturé par son parent ; lien effectivement lu reste refusé', () => {

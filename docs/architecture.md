@@ -18,8 +18,10 @@ et chaque `label` de `src/data/primitives.manifest.json` doit être un EXPORT r�
 liste `fichier:ligne` sinon. Un renvoi à une DOC, lui, se juge partout : tout chemin `docs/….md`
 écrit sous `src/`, sous `scripts/` ou dans la prose d'une doc — les pages de l'Atlas comprises, à
 toute profondeur — doit désigner un fichier existant (exclusions structurelles : `docs/plans/`, qui a
-sa garde dédiée, et les épreuves DATÉES, qui disent l'arbre de leur jour). Une référence vivante qui
-ment ne se tague pas, elle se corrige.
+sa garde dédiée, et les épreuves DATÉES, qui disent l'arbre de leur jour). La garde vérifie aussi les
+liens relatifs de ces pages, les chemins cités par les hooks et le contexte permanent, ainsi que les
+suites nommées dans les commentaires du code et dans les raisons des gates qui déclarent leurs lectures
+et écritures. Une référence vivante qui ment ne se tague pas, elle se corrige.
 
 **Dérivés PURS, jamais commités** (#2203) : une cible que son générateur écrit EN ENTIER (`targets`
 de `GENERATORS`, `scripts/docs/build-all.mjs` — docs générés, catalogues de l'Atlas, `*.generated.ts`,
@@ -281,7 +283,7 @@ scripts/source/             Le côté NODE de la chaîne d'adressage de prose �
                             `wfrp:prose-source` (matérialisation au build, service des chapitres en dev)
 scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, datée) : rejouées sur l'arbre
                             courant elles ne réécrivent RIEN. `npm run migrations:replay` (replay.mjs)
-                            les rejoue dans l'ordre lexical, EN PLACE, et mesure l'arbre par git diff
+                            les rejoue dans l’ordre par unités de code, EN PLACE, et mesure l'arbre par git diff
                             (suivi) ET git status (non suivi) — toute donnée réécrite ou tout fichier
                             neuf est ROUGE et NOMMÉ. Sur un arbre en WIP ce rejeu est destructif :
                             `npm run migrations:replay:head` (replay-head.mjs) le joue sur un EXPORT

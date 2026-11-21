@@ -297,7 +297,8 @@ export function avantGenerateur(racine, g, options, preparation) {
 export function certifierGenerateur(racine, g, entree, options, avant) {
   try {
     const preuve = { version: 2, generateurs: { [g.script]: { mesure: entree, sources: { contexte: avant.contexte } } } }
-    const vue = photographier(racine, options, preuve, {}, undefined, perimetreDeMesure(racine), undefined, g)
+    const capturer = () => photographier(racine, options, preuve, {}, undefined, undefined, undefined, g)
+    const vue = capturer()
     const sources = mesurerSources(racine, g, entree, options, vue)
     if (!egaux(sources.contexte, avant.contexte)) throw new SourceModifiee('outillage modifié pendant génération')
     const anciensFichiers = avant.baseline.fichiers
@@ -312,11 +313,10 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
       if (!anciensDossiers.has(rel)) throw new Error(`listing non capturé : ${rel}`)
       if (!egaux(projeterListingMesure(rel, anciensDossiers.get(rel), avant.baseline.ignores, avant.baseline.derivees, propres, motifsDeclares), noms)) throw new SourceModifiee(`listing modifié : ${rel}`)
     }
-    const deriveesMesurees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
-    const sondesMesurees = (entree.sondes ?? []).filter((q) => dansLaMesure(q.chemin, vue.ignores, deriveesMesurees, motifsDeclares))
+    const sondesMesurees = (entree.sondes ?? []).filter((q) => vue.admis(q.chemin))
     if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, sondesMesurees)) throw new SourceModifiee('requête ou sonde modifiée pendant génération')
     const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options, vue) }
-    const finale = photographier(racine, options, preuve, {}, undefined, undefined, undefined, g)
+    const finale = capturer()
     const ignores = finale.ignores
     const derivees = new Set(finale.cibles.get(JSON.stringify(options.generateurs.flatMap((g) => g.targets))))
     const parents = new Set()

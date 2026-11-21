@@ -236,6 +236,8 @@ describe('#2187 matrice 18 : le principal synchronisé d’abord, relance sur `a
     assert.equal(relancerChantier(ARGS, { cwd: '/r', npm: (...a) => { vus.push(a); return { status: 3 } } }), 3)
     assert.deepEqual(vus[0][1], ['run', 'ops:chantier', '--', '18', '--sans-ci'])
     assert.equal(vus[0][2].cwd, '/r')
+    assert.equal(relancerChantier(ARGS, { npm: () => ({ status: 0, signal: 'SIGTERM' }) }), 1)
+    assert.equal(relancerChantier(ARGS, { npm: () => ({ status: null, signal: null }) }), 1)
   })
 })
 

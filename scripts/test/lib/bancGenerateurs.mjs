@@ -1,3 +1,8 @@
+export const HOTE_WIN32 = process.platform === 'win32'
+export const PLATEFORME_WIN32 = new URL('../../docs/lib/plateforme-win32.mjs', import.meta.url).href
+/** Le préchargement précède tsx/esm et s'efface sur l'hôte win32 natif. */
+export const IMPORT_WIN32 = HOTE_WIN32 ? [] : ['--import', PLATEFORME_WIN32]
+
 const REF = /`((?:src|scripts|server|docs)\/[\w./@-]+):(\d+)`/g
 const JETON = /`([^`]+)`/g
 const IDENT = /^[A-Za-z_$][\w$]*$/

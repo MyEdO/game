@@ -10,8 +10,8 @@ import { spawnSync } from 'node:child_process'
 import { appendFileSync, closeSync, mkdirSync, openSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, DIAGNOSTIC_RECONSTRUCTION, GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { ciblesSurDisque, DIAGNOSTIC_RECONSTRUCTION, GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 import { cheminsDeLEcrivain, envDeLaPasse, epoqueDe, operationEnCours } from '../docs/lib/ecrivain-derives.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { gitDirDe } from '../hooks/barriere-outil.mjs'
@@ -118,14 +118,14 @@ export function demanderLaReconstruction(racine, { script = SCRIPT, detacher = l
   })
 }
 
-/** `build-all --perimes` sous `env` : sorties humaines au journal, raison du code 79 sur le canal dédié. */
+/** `build-all --perimes` sous `env` : sorties humaines au journal, raison de `CODE_SOURCE_MODIFIEE` sur le canal dédié. */
 function construireLesPerimes(racine, log, env, signalerSourceModifiee) {
   const fd = openSync(log, 'a')
   try {
     const vu = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), '--perimes', DIAGNOSTIC_RECONSTRUCTION], {
       cwd: racine, env: { ...process.env, ...env }, stdio: ['ignore', fd, fd, 'pipe'], encoding: 'utf8',
     })
-    const code = vu.status ?? 1
+    const code = codeEnfant(vu.status, vu.signal)
     if (code === CODE_SOURCE_MODIFIEE && vu.output?.[3]) {
       let diagnostic
       try { diagnostic = JSON.parse(vu.output[3]) } catch { /* Le journal garde le diagnostic humain. */ }

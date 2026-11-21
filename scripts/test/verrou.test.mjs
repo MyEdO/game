@@ -438,8 +438,9 @@ test('#2493 #2603 — `borneMs` et `orphelins` : le juge `consignant`, sous l’
   ]
   for (const [texte, attendu, preuve] of cas) {
     const orphelins = new Map()
-    const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(texte), estVivant: () => true, identite, horloge, borneMs: 60_000, orphelins })
-    assert.equal(vu.etat, attendu, texte)
+    const prendre = (carte) => prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(texte), estVivant: () => true, identite, horloge, borneMs: 60_000, orphelins: carte })
+    assert.equal(prendre(orphelins).etat, attendu, texte)
+    assert.equal(prendre(undefined).etat, attendu, `sans consignation : ${texte}`)
     assert.deepEqual([...orphelins.values()].map((o) => [o.verrou, o.pid, o.preuve]), preuve ? [[VERROU, 1234, preuve]] : [], texte)
   }
   const sansBorne = new Map()
