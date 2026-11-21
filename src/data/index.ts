@@ -850,7 +850,7 @@ export interface ItemCapabilities {
    *  adjacente hors de l'eau — NON gaté sur le port (on le sort du sac, comme `isRations`). */
   waterContainer?: boolean;
 }
-export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'variants' | 'qualitesAuChoix'> {
+export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'variants' | 'qualitesAuChoix' | 'groups'> {
   /** id STABLE (slug du libellé) — cible des `TrappingRef`, robuste au renommage. */
   id: string;
   label: string;
@@ -1621,7 +1621,7 @@ export function seasonLabel(id: string): PlayerText {
 
 /** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant
  *  sorti du combat, lieu effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
-export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere' | 'classe';
+export type NatureAbsente = 'heros' | 'combattant' | 'objet' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere' | 'classe';
 /** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
  *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
 export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): PlayerText {

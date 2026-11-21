@@ -4669,7 +4669,10 @@
     "source": {
       "book": "livre-de-base",
       "page": 302
-    }
+    },
+    "groups": [
+      "figures-symboles-religieux"
+    ]
   },
   {
     "id": "tatouage",
@@ -4840,7 +4843,10 @@
       "book": "livre-de-base",
       "page": 59,
       "note": "LDB 08 l.541"
-    }
+    },
+    "groups": [
+      "figures-symboles-d-autorite"
+    ]
   },
   {
     "id": "symbole-de-grade",

@@ -4,6 +4,15 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { approachFearTrigger, openRoundStartPsych } from './combatFlow';
+import { itemFromTrappingById } from '../engine/items';
+import { parsePsychTraits } from '../engine/psych/registry';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
+import { emptyNarratif } from './monde/campaignNarratif';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
+import { idDEtiquetteDObjet } from '../lib/entityId';
+import { draineCascade } from './cascade.testkit';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -38,6 +47,57 @@ describe('Approche sous Peur (store)', () => {
     });
     return { H, E };
   }
+
+  function setupObjetDePeur() {
+    const { H, E } = setup();
+    const groupe = 'figures-symboles-religieux';
+    const sceau = objetDeCampagne({
+      id: 'sceau-de-cendre', label: 'Sceau de cendre', categorie: 'trapping',
+      subType: { id: 'vetements-et-accessoires' }, groups: [groupe],
+    });
+    const narratif = { ...emptyNarratif(), objets: [sceau] };
+    const item = { ...itemFromTrappingById(sceau.id, idsDeTest, objetDuNarratif(narratif))!, equipped: true };
+    E.items = [item];
+    H.psychState = [];
+    H.psychTraits = parsePsychTraits([{ id: 'effraye', arg: groupe }]).psychTraits;
+    banc.setState({ campaignNarratif: narratif, pendingCascade: null });
+    openRoundStartPsych(banc.getState, banc.setState);
+    const sourceId = idDEtiquetteDObjet(E.id, item.uid);
+    expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)?.psychState)
+      .toContainEqual(expect.objectContaining({ type: 'peur', sourceId }));
+    return { H, E, sceau, item, sourceId };
+  }
+
+  it('le clic vers l’objet porté ouvre le Test et le verdict nomme la possession', () => {
+    const { H, sceau, sourceId } = setupObjetDePeur();
+    banc.getState().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
+    const pendingApproach = banc.getState().pendingApproach;
+    expect(pendingApproach).toMatchObject({ combatantId: H.id, sourceId });
+    banc.setState({ pendingApproach: { ...pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
+    banc.getState().jetValider('approche');
+    const battle = banc.getState().battle!;
+    expect(battle.combatants.find((c) => c.id === H.id)?.pos).toEqual({ x: 11, y: 10 });
+    expect(battle.fearGate).toBe('passed');
+    expect(battle.log.some((ligne) => ligne.kind === 'peur' && ligne.text?.includes(sceau.label) && !ligne.targetId)).toBe(true);
+  });
+
+  it('le déplacement du porteur ouvre une seule bande et cesse d’en ouvrir le symbole rangé', () => {
+    const { H, E, item } = setupObjetDePeur();
+    const pdv = () => banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    pdv().characteristics['force-mentale'] = 1;
+    pdv().skills = [];
+    banc.getState().ensemencerLeTirage(2);
+    approachFearTrigger(banc.getState, banc.setState, E, { x: 15, y: 10 }, { x: 12, y: 10 });
+    expect(banc.getState().pendingCascade?.participants.map((s) => [s.label, s.participants?.map((p) => p.id)]))
+      .toEqual([[testDeRegle('calme-d-approche', 'source-se-rapproche').label, [H.id]]]);
+    draineCascade(banc.getState);
+    expect(pdv().conditions.some((etat) => etat.id === 'brise')).toBe(true);
+
+    const porteur = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
+    porteur.items = [{ ...item, equipped: false }];
+    approachFearTrigger(banc.getState, banc.setState, porteur, { x: 15, y: 10 }, { x: 12, y: 10 });
+    expect(banc.getState().pendingCascade).toBeNull();
+  });
 
   it('avancer VERS la source ouvre le Test de Calme (sans bouger) ; s’en éloigner reste libre', () => {
     const { H, E } = setup();

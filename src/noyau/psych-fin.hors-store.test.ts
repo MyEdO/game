@@ -23,6 +23,7 @@ import { applyOps } from '../engine/ops';
 import { findTrappingById, psychologies } from '../data';
 import { applyAttackResult } from './combatFlow';
 import { sourcesPsyEnVue } from './monde/porteurs';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { AttackResult } from '../engine/combat';
 import { seedBattleRng, battleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
@@ -215,7 +216,7 @@ describe('Famille défense, telle qu’avant #1463 : fin à la chute (LDB 21 l.7
     A.engagedWith = [menace.id];
     H.psychTraits = [{ type: 'camaraderie', cible: ciblePsy.groupe('criminel') }];
     const b = banc.getState().battle!;
-    const declenche = targetedTrigger(live(H.id), sourcesPsyEnVue(b, banc.getState().scene!, live(H.id), (v) => !isOutOfAction(v)));
+    const declenche = targetedTrigger(live(H.id), sourcesPsyEnVue(b, banc.getState().scene!, live(H.id), (v) => !isOutOfAction(v), objetDuNarratif(banc.getState().campaignNarratif)));
     expect(declenche).toMatchObject({ type: 'camaraderie', sourceId: A.id });
     applyOps(live(H.id), psychBranchOps({ kind: declenche!.type, cible: declenche!.cible, sourceId: declenche!.sourceId, indice: 0 }, { success: false }), { idNeuf: idsDeTest, rng: battleRng() });
     expect(isAfflictionActive(etat(H, 'camaraderie')!)).toBe(true);

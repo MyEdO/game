@@ -6,7 +6,12 @@ import { openRoundStartPsych, openRoundEndCascade } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { psychDRAdjust } from '../engine/combat';
-import { cibleEnVue, psychBranchOps, sousPeur } from '../engine/psychology';
+import { cibleEnVue, ciblesDePulsion, psychBranchOps, sousPeur } from '../engine/psychology';
+import { groupesDe } from '../engine/groups';
+import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../engine/items';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
+import { emptyNarratif } from './monde/campaignNarratif';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { parsePsychTraits } from '../engine/psych/registry';
 import { applyOps } from '../engine/ops';
@@ -261,7 +266,7 @@ describe('Étiquette de scène : le lieu porte le Groupe, source en vue partout 
     jouer();
     expect(psy(h, 'haine').map((p) => [p.active, p.lastTestRound])).toEqual([[true, 1]]);
     const haine = psy(h, 'haine')[0];
-    expect(cibleEnVue(lu(h), haine, sourcesPsyEnVue(g().battle!, g().scene!, lu(h), (s) => !s.dead))).toEqual({ present: true, hostile: false });
+    expect(cibleEnVue(lu(h), haine, sourcesPsyEnVue(g().battle!, g().scene!, lu(h), (s) => !s.dead, objetDuNarratif(g().campaignNarratif)))).toEqual({ present: true, hostile: false });
     fireTriggers(g, lu(h), 'onRoundEnd', { rng: battleRng(), set: banc.setState });
     expect(psy(h, 'haine').map((p) => p.active), 'la Cible reste en vue : la Haine continue').toEqual([true]);
     fin(1);
@@ -312,3 +317,92 @@ describe('Source déjà affrontée : seule une Peur ou une Terreur l’éteint (
   });
 });
 
+
+
+describe('Objet porté en combat : présence et re-test de la Haine (#3045)', () => {
+  const groupe = 'figures-symboles-d-autorite';
+  const cible = ciblePsy.groupe(groupe);
+
+  it('le Round reconnaît l’arme tenue, ignore le set inactif et maintient la Haine tant que l’arme reste visible', () => {
+    const { H: [h], E: [e] } = setup();
+    const sceau = objetDeCampagne({ id: 'lame-assermentee', label: 'Lame assermentée', groups: [groupe] });
+    const narratif = { ...emptyNarratif(), objets: [sceau] };
+    const porteur = lu(e);
+    const arme = itemFromTrappingById(sceau.id, idsDeTest, objetDuNarratif(narratif))!;
+    porteur.items = [{ ...arme, equipped: true }];
+    porteur.loadouts = [];
+    const expose = loadoutCreate(porteur);
+    loadoutSetSlot(porteur, expose, 'main', arme.uid);
+    const range = loadoutCreate(porteur);
+    porteur.activeLoadoutId = range;
+    recomputeLoadout(porteur);
+
+    const heros = lu(h);
+    heros.characteristics['force-mentale'] = 1;
+    heros.psychTraits = [{ type: 'haine', cible }];
+    banc.setState({ campaignNarratif: narratif });
+
+    debut(1);
+    expect(bandes()).toEqual([]);
+
+    porteur.activeLoadoutId = expose;
+    recomputeLoadout(porteur);
+    debut(2);
+    expect(bandes().map((s) => s.psychologieDeCombat)).toEqual([
+      expect.objectContaining({ kind: 'haine', cible, sourceName: sceau.label }),
+    ]);
+    expect(bandes()[0].psychologieDeCombat?.sourceId).not.toBe(porteur.id);
+    jouer();
+    expect(psy(h, 'haine')).toContainEqual(expect.objectContaining({ active: true }));
+    expect(groupesDe(porteur)).not.toContain(groupe);
+    expect(ciblesDePulsion(lu(h), g().battle!.combatants)).toEqual([]);
+
+    fireTriggers(g, lu(h), 'onRoundEnd', { rng: battleRng(), set: banc.setState });
+    expect(psy(h, 'haine').map((p) => p.active)).toEqual([true]);
+    fin(3);
+    expect(bandes().map((s) => s.psychologieDeCombat?.kind)).toEqual(['haine']);
+    jouer();
+
+    const actuel = lu(e);
+    actuel.activeLoadoutId = range;
+    recomputeLoadout(actuel);
+    fireTriggers(g, lu(h), 'onRoundEnd', { rng: battleRng(), set: banc.setState });
+    expect(psy(h, 'haine').map((p) => p.active)).toEqual([false]);
+    fin(4);
+    expect(bandes()).toEqual([]);
+  });
+});
+
+
+describe('Effrayé par un objet : nom conservé au Test de fin du Round (#3045)', () => {
+  it.each([[false, 'Sceau de la vigie'], [true, 'un objet qui a disparu']] as const)(
+    'le Test de Peur nomme sa source après retrait (disparu = %s)',
+    (disparu, sourceName) => {
+      const { H: [h], E: [e] } = setup();
+      const groupe = 'figures-symboles-d-autorite';
+      const sceau = objetDeCampagne({
+        id: 'sceau-de-la-vigie',
+        label: 'Sceau de la vigie',
+        categorie: 'trapping',
+        subType: { id: 'vetements-et-accessoires' },
+        groups: [groupe],
+      });
+      const narratif = { ...emptyNarratif(), objets: [sceau] };
+      const objet = { ...itemFromTrappingById(sceau.id, idsDeTest, objetDuNarratif(narratif))!, equipped: true };
+      lu(e).items = [objet];
+      lu(h).psychTraits = effraye(groupe);
+      banc.setState({ campaignNarratif: narratif });
+      debut(1);
+      const [peur] = psy(h, 'peur');
+      expect(peur?.sourceId).toBeTruthy();
+      expect(peur?.sourceId).not.toBe(e);
+
+      lu(e).items = disparu ? [] : [{ ...objet, equipped: false }];
+      fin(1);
+      expect(bandes().map((s) => s.psychologieDeCombat)).toEqual([
+        expect.objectContaining({ kind: 'peur', sourceId: peur.sourceId, sourceName }),
+      ]);
+      jouer();
+    },
+  );
+});
