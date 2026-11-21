@@ -948,14 +948,10 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
   ambientLight: ouReserve(idDe('lightLevel', undefined, { nue: true }), 'auto').optional(),
   /** NORD de la carte — rotation horaire en degrés `[0,360[` du nord réel (posé par `setNorthDeg`). */
   northDeg: z.number().optional(),
-  rest: nommerChamps(z
-    .strictObject({
-      auberge: z.boolean().optional(),
-      maison: z.boolean().optional(),
-      camp: z.boolean().optional(),
-      quality: qualiteDeReposSchema.optional(),
-    }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" }, quality: { label: "qualité"  } })
-    .optional(),
+  rest: nommerChamps(
+    z.strictObject({ ...restPlacesSchema.shape, quality: qualiteDeReposSchema.optional() }),
+    { ...metaDesChamps(restPlacesSchema, { exigees: true }), quality: { label: "qualité" } },
+  ).optional(),
   /** Offre de repos PAR ZONE — prioritaire sur `rest` là où le groupe se tient. */
   restZones: z
     .array(
