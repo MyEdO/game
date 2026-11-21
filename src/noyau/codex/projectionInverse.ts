@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { auChemin } from '../../lib/objet.mjs';
 import { tableTotale } from '../../lib/tableTotale';
-import { descendre, enfantsDe, ouverts } from '../../data/schemas/grammaire/descente';
+import { defDe, descendre, enfantsDe, ouverts } from '../../data/schemas/grammaire/descente';
 import { metaDesChamps, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { versDisque } from '../../data/schemas/grammaire/prose';
 import { declarationDeFeuilleDId, espaceDe, reperesDuParse, type TypeEntite } from '../../data/schemas/grammaire/ref';
@@ -12,6 +12,7 @@ type Cible = { type: TypeEntite; id: string; detail?: string };
 interface Projection {
   readonly schema: z.ZodType;
   readonly champs: ReadonlyMap<string, ChampInverse>;
+  readonly listes: readonly string[];
 }
 
 const projections = new WeakMap<z.ZodType, Projection | undefined>();
@@ -24,14 +25,17 @@ function compilerProjection(schema: z.ZodType): Projection | undefined {
   const metas = metaDesChamps(source)!;
   const champs = new Map<string, ChampInverse>();
   const forme: Record<string, z.ZodType> = {};
+  const listes: string[] = [];
   for (const { cle, noeud } of enfantsDe(source)) {
     if (cle === undefined) continue;
     const publication = metas[cle]?.inverseCodex;
     if (!publication) continue;
     champs.set(cle, publication);
     forme[cle] = noeud as z.ZodType;
+    const def = defDe(noeud);
+    if (def?.type === 'array' && !def.checks?.length && (publication === true || !('cle' in publication))) listes.push(cle);
   }
-  return { schema: z.array(z.object(forme)), champs };
+  return { schema: z.array(z.object(forme)), champs, listes };
 }
 
 function projectionDe(schema: z.ZodType): Projection | undefined {
@@ -57,6 +61,52 @@ function estDirecte(path: readonly PropertyKey[]): boolean {
   return path.length === profondeur || (path.length === profondeur + 1 && path[profondeur] === 'id');
 }
 
+// Sur la forme disque, la clé garde l'ordre des propriétés et distingue les valeurs lues par le parse.
+function estFideleAuJson(valeur: unknown): boolean {
+  if (valeur === null) return true;
+  if (Array.isArray(valeur)) {
+    for (const element of valeur) if (!estFideleAuJson(element)) return false;
+    return true;
+  }
+  switch (typeof valeur) {
+    case 'string':
+    case 'boolean': return true;
+    case 'number': return Number.isFinite(valeur) && !Object.is(valeur, -0);
+    case 'object': return Object.getPrototypeOf(valeur) === Object.prototype && Object.values(valeur).every(estFideleAuJson);
+    default: return false;
+  }
+}
+
+interface ListeCompactee {
+  readonly rangs: readonly (readonly number[])[];
+  readonly cibles: Cible[][];
+}
+
+/** Mutualise les éléments de tableaux sans contrôle propre avant le parse, en gardant leur rang par entrée. */
+function compacterListes(donnees: Record<string, unknown>[], listes: readonly string[]): ReadonlyMap<string, ListeCompactee> {
+  const compactees = new Map<string, ListeCompactee>();
+  if (!donnees.length) return compactees;
+  for (const champ of listes) {
+    const valeurs = donnees.map((entree) => entree[champ]);
+    if (!valeurs.every(Array.isArray)) continue;
+    const uniques: unknown[] = [];
+    const rangParCle = new Map<string, number>();
+    const rangs = valeurs.map((liste: readonly unknown[]) => Array.from(liste, (valeur) => {
+      const cle = estFideleAuJson(valeur) ? JSON.stringify(valeur) : undefined;
+      const connu = cle === undefined ? undefined : rangParCle.get(cle);
+      if (connu !== undefined) return connu;
+      const rang = uniques.length;
+      uniques.push(valeur);
+      if (cle !== undefined) rangParCle.set(cle, rang);
+      return rang;
+    }));
+    for (const entree of donnees) entree[champ] = [];
+    donnees[0][champ] = uniques;
+    compactees.set(champ, { rangs, cibles: uniques.map(() => []) });
+  }
+  return compactees;
+}
+
 /** Slots globaux publiés par la méta de l'entrée, dans l'ordre des champs du schéma. */
 export function projeterInversesCodex(schema: z.ZodType, entrees: readonly unknown[]): Cible[][] {
   const projection = projectionDe(schema);
@@ -66,6 +116,7 @@ export function projeterInversesCodex(schema: z.ZodType, entrees: readonly unkno
   const donnees = versDisque(entrees.map((entree) =>
     tableTotale(cles, (champ) => auChemin(entree, [champ])),
   ));
+  const listes = compacterListes(donnees, projection.listes);
   const ciblesParEntree = donnees.map(() => new Map<string, Cible[]>());
   for (const { path, type, parCle } of reperesDuParse(projection.schema, donnees)) {
     if (type.startsWith('local:')) continue;
@@ -87,12 +138,19 @@ export function projeterInversesCodex(schema: z.ZodType, entrees: readonly unkno
         if (publication.detail) cible.detail = publication.detail;
       }
     }
+    const compacte = listes.get(champ);
+    if (compacte && typeof element === 'number') {
+      compacte.cibles[element].push(cible);
+      continue;
+    }
     const cibles = ciblesParEntree[rang];
     const liste = cibles.get(champ) ?? [];
     liste.push(cible);
     cibles.set(champ, liste);
   }
   return donnees.map((entree, rang) => [...champs].flatMap(([champ, publication]) => {
+    const compacte = listes.get(champ);
+    if (compacte) return compacte.rangs[rang].flatMap((element) => compacte.cibles[element]);
     if (publication === true || !('cle' in publication)) return ciblesParEntree[rang].get(champ) ?? [];
     const valeur = entree[champ];
     const ids = Array.isArray(valeur) ? valeur : [valeur];
