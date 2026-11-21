@@ -29,7 +29,9 @@ const LISSAGE := 8
 const MEME_TON := 0.5
 ## La distance, en cases, de l'œil au milieu d'un pan, le long de sa normale.
 const RECUL := 2.5
-## Un soleil blanc de biais et une ambiante blanche (`Lumiere.eclairer`), sans brume ni hors-carte.
+## Un soleil blanc de biais et une ambiante blanche (`Lumiere.eclairer`), sans brume ni hors-carte ; le brouillard
+## volumétrique qu'`eclairer` allume sous Forward+ s'éteint ensuite, comme dans `voile-du-decor.gd` : son reprojeté
+## temporel change l'image d'une image rendue à l'autre, et le terrain se compare à l'octet.
 const LUMIERE := {
 	soleil = {vers = {x = 0.3, y = 1.0, z = 0.6}, couleur = "#ffffff", energie = 1.0},
 	ambiante = {couleur = "#ffffff", energie = 0.6}, blanc = 1.0,
@@ -49,9 +51,11 @@ func _recetter() -> void:
 	print("[nappe-texturee] version=", Engine.get_version_info().string, " rendu=", RenderingServer.get_current_rendering_method())
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
-	(monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	monde.volume.set_process(false)
 	(monde.get_node("Lumiere") as Lumiere).eclairer(LUMIERE, {w = LARGEUR, h = HAUTEUR, metresParCase = METRES_PAR_CASE})
+	var environnement := (monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment
+	environnement.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	environnement.volumetric_fog_enabled = false
 	await _poser(monde, ARDOISE, 0.5)
 	var nappes := _nappes(monde)
 	for nom in ["pan", "pan-x"]:
