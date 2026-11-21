@@ -28,7 +28,7 @@ import { conditionIds, eyes, findVehicleById, species, type TrappingData } from 
 import { vehicleCombatant } from '../../engine/vehicle';
 import { FORMAT_SAVE } from './formats.generated';
 import * as referencesDeCreation from './referencesDeCreation';
-import { enregistrerEntree, supprimerEntree } from '../../data/atelierDuCodex';
+import { enregistrerEntree } from '../../data/atelierDuCodex';
 import { ciblePsy } from '../../engine/psych/ciblage';
 import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-conditions-etendues';
 
@@ -156,12 +156,20 @@ describe('lireSave — format courant et références de création historiques',
     }
   });
 
-  it('préserve la couleur ancienne dont la rangée a été supprimée au Codex', () => {
+  it('préserve la couleur ancienne dont la rangée a été remplacée au Codex', () => {
     const save = snapshotSave(etatInitialDuJeu(), '2026-11-21T06:30:00.000Z');
     const index = eyes.findIndex((e) => e.id === 'gris');
-    const transaction = supprimerEntree('eyes', index, []);
+    const rangee = eyes[index];
+    expect(rangee.color.humain).toBe('Gris');
+    const transaction = enregistrerEntree('eyes', {
+      ...rangee,
+      id: 'gris-ardoise',
+      label: 'Gris ardoise',
+      color: { ...rangee.color, humain: 'Gris ardoise' },
+    }, index);
     if (!transaction.ok) throw new Error(transaction.erreurs.join(', '));
     try {
+      expect(eyes.some((e) => e.color.humain === 'Gris')).toBe(false);
       const lue = lireSave(JSON.stringify({
         ...save, version: 'a903b626aab8d8eb',
         data: { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Gris', hair: 'Brun clair' } }] },
@@ -171,6 +179,7 @@ describe('lireSave — format courant et références de création historiques',
     } finally {
       transaction.reprendre();
     }
+    expect(eyes[index]).toEqual(rangee);
   });
 
   it('une save écrite par `snapshotSave` se relit telle quelle ; d’un autre format, refusée', () => {

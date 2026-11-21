@@ -15,7 +15,7 @@
  *    Elfe 180+2d10 ; yeux/cheveux : au dé de leur table (eyes.json / hairs.json).
  */
 import { RNG, roll, rollDice } from './dice';
-import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
+import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, type DeDeTable } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, type ReferenceDeCouleur } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
 import {
@@ -37,7 +37,7 @@ import {
   starSubDie,
 } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
-import type { RaceKey } from '../data/schemas/grammaire/valeurs';
+import { plageDeCouleur, type RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
 import { garanti } from '../lib/garanti';
 import { bonus } from './characteristics';
@@ -139,12 +139,12 @@ export function rollHeight(race: RaceKey, rng: RNG): number {
 
 /** Couleur des yeux, colonne de la race `race`. LDB 05 l.742-754 */
 export function rollEyes(race: RaceKey, rng: RNG): ReferenceDeCouleur {
-  return rollDetail(eyesTable, rollDice(eyesDie(), rng), race);
+  return rollDetail(eyesTable, rollDice(eyesDie(), rng), race, 'tableau de couleur des yeux');
 }
 
 /** Couleur des cheveux, colonne de la race `race`. LDB 05 l.756-768 */
 export function rollHair(race: RaceKey, rng: RNG): ReferenceDeCouleur {
-  return rollDetail(hairsTable, rollDice(hairsDie(), rng), race);
+  return rollDetail(hairsTable, rollDice(hairsDie(), rng), race, 'tableau de couleur des cheveux');
 }
 
 /** Âge, taille, yeux et cheveux de la race `race`, tirés dans cet ordre sur `rng`. LDB 05 l.701-768 */
@@ -152,27 +152,23 @@ export function tirerLesDetails(race: RaceKey, rng: RNG) {
   return { age: rollAge(race, rng), height: rollHeight(race, rng), eyes: rollEyes(race, rng), hair: rollHair(race, rng) };
 }
 
-/** La couleur de la colonne `race` atteinte par le jet `r` : première rangée dont la borne haute cumulée
- *  (`randByRace` de la colonne, sinon `rand`) couvre `r`. */
-function rollDetail(table: DetailColorData[], r: number, race: RaceKey): ReferenceDeCouleur {
-  const randFor = (e: DetailColorData) => e.randByRace?.[race] ?? e.rand;
-  const sorted = [...table].sort((a, b) => randFor(a) - randFor(b));
-  const entry = sorted.find((e) => r <= randFor(e)) ?? sorted[sorted.length - 1];
+function rollDetail(table: DetailColorData[], r: number, race: RaceKey, nom: string): ReferenceDeCouleur {
+  const index = findTableEntryIndex(table.map((e) => plageDeCouleur(e, race)), r);
+  const entry = garanti(table[index], r, `${nom}, colonne ${race}`);
   return { id: entry.id, colonne: race };
 }
 
-/** Signe astral (Tableau des Signes astrologiques, ADE II 3 l.40) → `id` STABLE du signe (≠ libellé —
- *  multilangue-safe ; `Combatant.star` stocke l'id). `rand` = borne haute cumulée du dé de la table
- *  (`starDie`). L'Étoile du Sorcier (l.62) regroupe plusieurs variantes sur la même borne, départagées
- *  par le dé du sous-tirage (`starSubDie` ; `sub` = la fourchette de la variante) → table partagée, lue
- *  telle quelle par `findTableEntry`. */
+/** ADE II 03 l.36-63. */
 export function rollStar(rng: RNG): { roll: number; id: string } {
-  const sorted = [...starsTable].sort((a, b) => a.rand - b.rand);
   const r = rollDice(starDie(), rng);
-  const hit = sorted.find((e) => r <= e.rand) ?? sorted[0];
-  const variants = sorted.flatMap((e) => (e.rand === hit.rand && e.sub ? [{ ...e.sub, id: e.id }] : []));
-  if (variants.length > 1) return { roll: r, id: findTableEntry(variants, rollDice(starSubDie(), rng)).id };
-  return { roll: r, id: hit.id };
+  const hit = garanti(starsTable[findTableEntryIndex(starsTable, r)], r, 'tableau des signes astrologiques');
+  if (!hit.sub) return { roll: r, id: hit.id };
+
+  const variantes = starsTable.flatMap(({ id, min, max, sub }) =>
+    min === hit.min && max === hit.max && sub ? [{ ...sub, id }] : []);
+  const sousJet = rollDice(starSubDie(), rng);
+  const variante = garanti(variantes[findTableEntryIndex(variantes, sousJet)], sousJet, 'sous-tirage des signes astrologiques');
+  return { roll: r, id: variante.id };
 }
 
 /** Applique les `ops` ADE II d'un signe astral AUX ATTRIBUTS DE DÉPART (ch.03 l.38) : `charMod` ajuste
