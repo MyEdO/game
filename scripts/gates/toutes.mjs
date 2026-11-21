@@ -449,7 +449,7 @@ export const ECRIT_LU = {
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
         'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
         '`godot` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
-        'qu’après l’écriture ; la suite Vitest partage le dépôt atomique des GLB épinglés',
+        'qu’après l’écriture',
       'src/scenes/':
         'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
         'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
@@ -605,13 +605,9 @@ export const ECRIT_LU = {
   },
   test: {
     ecrit: [],
-    ecritFerme: {
-      'hotes/godot/projet/modeles/':
-        'la suite des assets et les bancs du pont lisent les GLB épinglés ; `recupererModeles` les dépose ' +
-        'par somme de provenance et renommage atomique, sous le répertoire ignoré des modèles',
-    },
     lit: [...DOSSIERS_DES_ZONES, 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vitest.config.ts'],
     raison:
+      'La suite des assets et les bancs du pont récupèrent les GLB épinglés dans des dossiers temporaires hors de l’arbre. ' +
       'LIT scripts/ EN ENTIER, pas les seules racines `scripts/` de son `include` (racinesDeLaSuite.mjs) : ' +
       'les tests de `src/` IMPORTENT les porteurs de garde (`git grep "from \'../../scripts/"` : guards/lib, source, ' +
       'docs/lib, data/lib, qc/lib, raw, migrations, campagne, arene, gen-registry.mjs) ; ' +

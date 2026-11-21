@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync 
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { depotDe, dossierGitCommun } from './gitPorte.mjs'
 import { photoArbre } from './photoArbre.mjs'
 import { listerDossier } from './lister.mjs'
@@ -136,9 +137,61 @@ export function ouvrirControleEcritures(racine, env = process.env) {
       try {
         const apres = photoArbre(racine)
         const refus = listerDossier(dossier).flatMap((f) => readFileSync(join(dossier, f), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)))
-        if (apres.erreur || apres.texte !== avant.texte) refus.push(`[tests] REFUS arbre modifié ou photo impossible : ${apres.erreur ?? apres.texte}`)
+        if (apres.erreur) refus.push(`[tests] REFUS photo impossible : ${decrireCause(apres.erreur.trim())}`)
+        else if (apres.texte !== avant.texte) refus.push(`[tests] REFUS arbre modifié : ${decrireEcarts(avant.texte, apres.texte)}`)
         return refus
       } finally { rmSync(dossier, { recursive: true, force: true }) }
     },
   }
+}
+
+const MAX_CHEMINS = 8
+const extremites = (texte) => `début ${JSON.stringify(texte.slice(0, 12))}, fin ${JSON.stringify(texte.slice(-12))}`
+
+function decrireCause(texte) {
+  const rendu = coupeAuMot(texte, 240)
+  return rendu.length <= 240 ? rendu : `${texte.length} caractères, ${extremites(texte)}`
+}
+
+function decrireChemin(chemin) {
+  const nom = JSON.stringify(chemin)
+  return nom.length <= 160 ? nom : extremites(chemin)
+}
+
+function vueParChemin(texte) {
+  const { etat, empreintes } = JSON.parse(texte)
+  const vue = new Map(Object.entries(empreintes).map(([chemin, empreinte]) => [chemin, { empreinte, etats: [] }]))
+  for (const entree of etat) for (const chemin of entree.chemins) {
+    if (!vue.has(chemin)) vue.set(chemin, { etats: [] })
+    vue.get(chemin).etats.push(entree.etat)
+  }
+  return vue
+}
+
+function present(entree, autre) {
+  if (entree?.empreinte !== undefined) return true
+  if (entree) return entree.etats.some((etat) => etat[1] !== 'D' && etat !== 'D ')
+  // Une photo omet les fichiers suivis propres, même si l'autre les voit modifiés ou supprimés.
+  return autre.etats.some((etat) => etat !== '??' && etat !== '!!' && !etat.includes('A'))
+}
+
+function decrireEcarts(avant, apres) {
+  const anciens = vueParChemin(avant)
+  const nouveaux = vueParChemin(apres)
+  const groupes = { ajoutés: [], modifiés: [], retirés: [] }
+  for (const chemin of [...new Set([...anciens.keys(), ...nouveaux.keys()])].sort()) {
+    const ancien = anciens.get(chemin)
+    const nouveau = nouveaux.get(chemin)
+    if (ancien?.empreinte === nouveau?.empreinte && ancien?.etats.join() === nouveau?.etats.join()) continue
+    const existait = present(ancien, nouveau)
+    const existe = present(nouveau, ancien)
+    if (!existait && existe) groupes.ajoutés.push(chemin)
+    else if (existait && !existe) groupes.retirés.push(chemin)
+    else groupes.modifiés.push(chemin)
+  }
+  const descriptions = Object.entries(groupes).filter(([, chemins]) => chemins.length).map(([libelle, chemins]) => {
+    const exemples = chemins.slice(0, MAX_CHEMINS).map(decrireChemin).join(', ')
+    return `${libelle} (${chemins.length}) : ${exemples}${chemins.length > MAX_CHEMINS ? ', …' : ''}`
+  })
+  return descriptions.join(' ; ') || 'ordre des entrées différent'
 }
