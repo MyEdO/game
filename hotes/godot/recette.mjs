@@ -4418,7 +4418,7 @@ try {
   echec = e
   console.error('ÉCHEC', e.message)
   try {
-    noter(`état à l’échec : ${await lire("JSON.stringify(globalThis.wfrpEcran?.atelier?.composition ?? null)")}`)
+    noter(`état à l’échec : ${await lire(`JSON.stringify(globalThis.wfrpEcran?.[${JSON.stringify(o.parcours)}] ?? globalThis.wfrpEcran?.atelier?.composition ?? null)`)}`)
   } catch (diagnostic) {
     console.error('ÉCHEC DE LA LECTURE DE DIAGNOSTIC', diagnostic.message)
   }
