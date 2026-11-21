@@ -811,6 +811,40 @@
     "hint": "Marché dans une ville à Guilde : les Défauts d’un objet réduisent sa Disponibilité (plus rare) et le premier Atout ne l’augmente pas."
   },
   {
+    "id": "marche-membres-de-guildes",
+    "type": "reglesOptionnelles",
+    "label": "Membres de Guildes",
+    "ref": "LDB 68 l.48",
+    "source": {
+      "book": "livre-de-base",
+      "page": 305
+    },
+    "group": "Marché",
+    "kind": "flag",
+    "default": false,
+    "hint": "Après un échec de Disponibilité à l’achat, une licence de Guilde appropriée permet de consulter ses contacts. Un Test de Ragot réussi permet de relancer la Disponibilité de cet article."
+  },
+  {
+    "id": "marche-ragot-de-guilde-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Membres de Guildes : Difficulté du Test de Ragot",
+    "ref": "LDB 12 l.135-151",
+    "maison": "LDB 68 l.48 demande un Test de Ragot sans fixer sa Difficulté. Le défaut Intermédiaire (+0) reprend la pratique du Ragot marchand. LDB 12 l.135-151 confie au MJ la Difficulté et donne son échelle.",
+    "group": "Marché",
+    "kind": "mode",
+    "default": "intermediaire",
+    "options": [
+      "tresFacile",
+      "facile",
+      "accessible",
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "Difficulté du Test de Ragot pour consulter ses contacts de Guilde. Le réglage par défaut est Intermédiaire (+0)."
+  },
+  {
     "id": "marche-cite-stock",
     "type": "reglesOptionnelles",
     "label": "Cité : quantité d’un objet en stock",

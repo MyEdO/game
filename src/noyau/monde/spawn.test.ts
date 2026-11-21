@@ -624,7 +624,7 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
   it('l’humain de base porté Doktor (Médecin 3) : Statut Argent 5 et les possessions de l’exemple (EDO 11 l.27, l.33-35)', () => {
     const c = ficheDEntite(langstrasse, sansPreset);
     expect(actorStatus(c)).toEqual({ tier: 'argent', standing: 5 });
-    expect(c.items?.map((i) => i.trappingId)).toEqual(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-de-guilde', 'outils-professionnels-medecin', 'atelier', 'bourse']);
+    expect(c.items?.map((i) => i.trappingId)).toEqual(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-guilde-des-medecins', 'outils-professionnels-medecin', 'atelier', 'bourse']);
     expect(c.wounds.max).toBe(13);
     expect(c.porteurDeFiche).toEqual({ ref: 'humain', parcours: { carrieres: { medecin: 3 } } });
   });

@@ -5,7 +5,7 @@
  *    Exotique = jamais (sauf curaté/commande).
  *  - Quantité de base si en stock : Village 1 / Ville 1d10 / Cité illimité ; ×2 Commune, ÷2 Rare (ceil).
  */
-import { d100, d10, type RNG } from './dice';
+import { d100, tirer, type QuantiteTiree, type RNG } from './dice';
 import { AVAILABILITIES, type Availability, type TestedAvailability } from './types';
 import { disponibilite as dispoJson } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
@@ -15,7 +15,12 @@ import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
 
 export interface CatalogItem { id: string; label: string; availability: Availability | null; }
-export interface StockLine { id: string; label: string; qty: number; test?: { roll: number; target: number } }
+interface JetDeDisponibilite { roll: number; target: number }
+export interface StockLine { id: string; label: string; qty: number; test?: JetDeDisponibilite }
+/** Résultat négatif conservé avec l’article et sa Disponibilité effective au moment du jet. */
+export interface EchecDeDisponibilite extends JetDeDisponibilite { id: string; availability: TestedAvailability }
+
+interface TirageDuStock { stock: StockLine[]; echecs: EchecDeDisponibilite[] }
 
 /** % de Disponibilité (réussite si d100 ≤ %). Donnée : `src/data/disponibilite.json` (LDB 59 l.25-30). */
 export const dispoPct = memoParVersion('disponibilite', () => Object.fromEntries(
@@ -34,10 +39,10 @@ function citeQty(): number {
   return typeof v === 'number' ? v : 99;
 }
 
-/** Quantité de base par agglo si en stock (Village 1 / Ville 1d10 / Cité illimité). */
-function baseQty(settlement: Settlement, rng: RNG): number {
+/** La base du stock pour la colonne du marché, que le flux peut lancer en étape si elle est aléatoire. LDB 59 l.34 */
+export function baseDuStock(settlement: Settlement): QuantiteTiree {
   if (settlement === 'village') return 1;
-  if (settlement === 'ville') return d10(rng);
+  if (settlement === 'ville') return { dice: { n: 1, sides: 10 } };
   return citeQty();
 }
 /** Modulation par classe : ×2 Commune, ÷2 Rare (arrondi sup.), Limitée = base. Une absence de
@@ -47,6 +52,15 @@ function classQty(av: Availability | null, base: number): number {
   if (av === 'commune') return base * 2;
   if (av === 'rare') return Math.ceil(base / 2);
   return base;
+}
+
+/** Résout la quantité de l’article à partir de la base déjà déterminée et de sa Disponibilité effective. */
+export function quantiteEnStock(av: Availability | null, base: number): number {
+  return Math.max(1, classQty(av, base));
+}
+
+function tirerLaQuantiteEnStock(av: Availability | null, settlement: Settlement, rng: RNG): number {
+  return quantiteEnStock(av, tirer(baseDuStock(settlement), rng));
 }
 
 /** LDB 59 l.15 : « Toutes les Possessions possèdent une Disponibilité : Commune, Limitée, Rare ou
@@ -67,15 +81,15 @@ export function outOfTradeReason(label: string): string {
   return t('trade.outOfTrade', { label });
 }
 
-export function rollAvailability(av: Availability, settlement: Settlement, rng: RNG, pctBonus = 0): { inStock: boolean; qty: number; test?: { roll: number; target: number } } {
-  if (av === 'commune') return { inStock: true, qty: classQty('commune', baseQty(settlement, rng)) };
+export function rollAvailability(av: Availability, settlement: Settlement, rng: RNG, pctBonus = 0): { inStock: boolean; qty: number; test?: JetDeDisponibilite } {
+  if (av === 'commune') return { inStock: true, qty: tirerLaQuantiteEnStock(av, settlement, rng) };
   if (av === 'exotique') return { inStock: false, qty: 0 };
   // « Les pourcentages de Disponibilité peuvent être augmentés de +10 % ou +20 % » (LDB 59 l.50) —
   // recherche active (personnage assidu / Carrière cohérente / journée entière + Ragot).
   const target = Math.min(99, dispoPct()[av][settlement] + Math.max(0, pctBonus));
   const roll = d100(rng);
   if (roll > target) return { inStock: false, qty: 0, test: { roll, target } };
-  return { inStock: true, qty: Math.max(1, classQty(av, baseQty(settlement, rng))), test: { roll, target } };
+  return { inStock: true, qty: tirerLaQuantiteEnStock(av, settlement, rng), test: { roll, target } };
 }
 
 // ── Recherche active de Disponibilité (LDB 59 l.50) ─────────────────────────────────────────────
@@ -136,11 +150,11 @@ export function fullStock(catalog: CatalogItem[], settlement: Settlement, rng: R
   for (const it of catalog) {
     const av = it.availability;
     if (curated.includes(it.id)) {
-      out.push({ id: it.id, label: it.label, qty: Math.max(1, classQty(av, baseQty(settlement, rng))) });
+      out.push({ id: it.id, label: it.label, qty: tirerLaQuantiteEnStock(av, settlement, rng) });
       continue;
     }
     if (!isTradable(av) || av === 'exotique') continue;
-    out.push({ id: it.id, label: it.label, qty: Math.max(1, classQty(av, baseQty(settlement, rng))) });
+    out.push({ id: it.id, label: it.label, qty: tirerLaQuantiteEnStock(av, settlement, rng) });
   }
   return out;
 }
@@ -148,17 +162,19 @@ export function fullStock(catalog: CatalogItem[], settlement: Settlement, rng: R
 /** Instantané de stock : pour chaque article du catalogue, Test de Disponibilité (sauf Commune/curaté).
  *  Exotique exclu sauf curaté ; un objet HORS COMMERCE (sans Disponibilité, `isTradable`) n'a pas de
  *  Test à passer — il n'entre en stock que nommément `curated`. Déterministe pour un seed donné. */
-export function rollStock(catalog: CatalogItem[], settlement: Settlement, rng: RNG, curated: string[] = [], pctBonus = 0): StockLine[] {
-  const out: StockLine[] = [];
+export function rollStock(catalog: CatalogItem[], settlement: Settlement, rng: RNG, curated: string[] = [], pctBonus = 0): TirageDuStock {
+  const stock: StockLine[] = [];
+  const echecs: EchecDeDisponibilite[] = [];
   for (const it of catalog) {
     const av = it.availability;
     if (curated.includes(it.id)) {
-      out.push({ id: it.id, label: it.label, qty: Math.max(1, classQty(av, baseQty(settlement, rng))) });
+      stock.push({ id: it.id, label: it.label, qty: tirerLaQuantiteEnStock(av, settlement, rng) });
       continue;
     }
     if (!isTradable(av)) continue;
     const r = rollAvailability(av, settlement, rng, pctBonus); // recherche active (+10/+20 %, LDB 59 l.50)
-    if (r.inStock) out.push({ id: it.id, label: it.label, qty: r.qty, test: r.test });
+    if (r.inStock) stock.push({ id: it.id, label: it.label, qty: r.qty, test: r.test });
+    else if (r.test && (av === 'limitee' || av === 'rare')) echecs.push({ id: it.id, availability: av, ...r.test });
   }
-  return out;
+  return { stock, echecs };
 }
