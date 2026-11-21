@@ -213,6 +213,7 @@ import {
 } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
+import { difficulteDEntreeEnFrenesie } from '../engine/psychology';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
@@ -868,9 +869,9 @@ export function ligneDuTestNomme(actor: Combatant, test: TestNomme): RollLinePar
   return rollLine({ actor, test, difficulty: test.difficulty });
 }
 
-/** Ligne du Test de Force Mentale d'entrée en Frénésie, lue par le résolveur `frenzy` et par `FrenzyModal`. LDB 21 l.31 */
+/** LDB 21 l.31 */
 export function ligneDeFrenesie(actor: Combatant): RollLineParts {
-  return rollLine({ actor, test: { characteristic: 'force-mentale' }, difficulty: 'intermediaire' });
+  return rollLine({ actor, test: { characteristic: 'force-mentale' }, difficulty: difficulteDEntreeEnFrenesie() });
 }
 
 /** Le d100 du battle RNG contre la cible d'une ligne (`rollLine`) : la cible que la fenêtre annonce est celle du jet. */

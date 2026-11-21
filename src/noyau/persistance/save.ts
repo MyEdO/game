@@ -27,6 +27,7 @@ import { rencontreEngagee } from '../monde/combatants';
 import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
+import { formatAvantLesReglesDeChirurgieEtFrenesie } from './formatsDesRegles';
 import { formatAvantLesReferences, formatDeLaCouleurUnique, migrerLaSaveAvantLesDeuxCouleurs, migrerLaSaveAvantLesReferences } from './referencesDeCreation';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
@@ -126,8 +127,9 @@ const TRANSITION_DES_ECHEANCES_DE_TAVERNE = {
   avant: 'efb77d9c287718df',
   apres: 'f642d26deb938799',
 };
-const FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE = FORMAT_SAVE === TRANSITION_DES_ECHEANCES_DE_TAVERNE.apres
-  ? TRANSITION_DES_ECHEANCES_DE_TAVERNE.avant : FORMAT_SAVE;
+const FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE = formatAvantLesReglesDeChirurgieEtFrenesie('save', FORMAT_SAVE);
+const FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE = FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE === TRANSITION_DES_ECHEANCES_DE_TAVERNE.apres
+  ? TRANSITION_DES_ECHEANCES_DE_TAVERNE.avant : FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE;
 const FORMAT_A_UNE_COULEUR = formatDeLaCouleurUnique('save', FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE);
 const FORMAT_AVANT_LE_DR_PROPRE = FORMAT_A_UNE_COULEUR === TRANSITION_DU_DR_PROPRE.apres
   ? TRANSITION_DU_DR_PROPRE.avant : FORMAT_A_UNE_COULEUR;
@@ -138,8 +140,9 @@ const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE
-      || version === FORMAT_A_UNE_COULEUR || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
+  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
+      || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE || version === FORMAT_A_UNE_COULEUR
+      || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
       || formatAvantLesReferences('save', version, FORMAT_DE_REFERENCE))
     && typeof savedAt === 'string'
     && !!data && typeof data === 'object';
@@ -169,7 +172,8 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   if (parsed.version !== FORMAT_SAVE) {
     if (formatAvantLesReferences('save', parsed.version, FORMAT_DE_REFERENCE)) {
       migrerLaSaveAvantLesReferences(parsed.data);
-    } else if (parsed.version !== FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE) {
+    } else if (parsed.version !== FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
+        && parsed.version !== FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE) {
       migrerLaSaveAvantLesDeuxCouleurs(parsed.data);
     }
     parsed.version = FORMAT_SAVE;
