@@ -44,9 +44,7 @@ export function casterTalents(c: Combatant): CasterTalent[] {
   for (const t of effectiveTalents(c)) {
     const kind = castingKindOf(t.talentId);
     if (!kind) continue;
-    // « (Au choix) » (libellé générique des carrières) = non encore spécialisé → joker.
-    const spec = t.spec;
-    out.push({ kind, spec: spec && !/^au choix$/i.test(spec) ? spec : undefined, talentId: t.talentId, niveau: t.times ?? 1 });
+    out.push({ kind, spec: t.spec || undefined, talentId: t.talentId, niveau: t.times ?? 1 });
   }
   return out;
 }
@@ -94,8 +92,7 @@ function estArcaneDuChaos(spell: SpellData): boolean {
   return spell.family === 'chaos' && !gods.some((g) => g.chaosSpells?.some((id) => id === spell.id));
 }
 
-/** Le sort `spell` est-il d'une liste qu'ouvre le Talent de lanceur `t` ? Spec absente (« Au choix » non assigné) :
- *  joker, toute la famille. LDB 10 ; LDB 46 l.12-14 ; EDOC 13 l.262 */
+/** LDB 10 ; LDB 46 l.12-14 ; EDOC 13 l.262 */
 export function talentOuvre(t: Pick<CasterTalent, 'kind' | 'spec'>, spell: SpellData): boolean {
   const fam = familyOf(spell);
   if (t.kind === 'chaos') {

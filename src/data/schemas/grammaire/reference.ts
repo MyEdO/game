@@ -312,8 +312,8 @@ export const traitPoseDeSceneSchema = poseDeTrait('scene');
 
 /** `TalentRef` (`src/data/index.ts`) — référence au catalogue (`idDe`) + niveau facultatif (« Maîtrise du combat 2 »).
  *  Porte UNIQUE de la forme `{id, spec?, times?}` : `creatures`, le statbloc de scène et le profil de
- *  PNJ embarqué en dépendent. Sa spécialisation est jugée par `refusDeSpec` ; la sentinelle y passe
- *  (pas de régime `choix`, #1463 L3), et un Talent sans catalogue porte un texte d'instance (#1621).
+ *  PNJ embarqué en dépendent. `refusDeSpec` juge sa spécialisation. Un Talent sans catalogue peut
+ *  porter un texte d'instance (#1621).
  *  Les trois clés sont ÉCRITES, jamais épandues d'un autre schéma : le mesureur de redéclarations lit
  *  les littéraux par AST et ne résout pas un spread — la forme épandue lui présenterait la signature
  *  `times` seule, qu'il attribuerait à ce schéma sur tout littéral à clé `times` unique. */
@@ -322,7 +322,7 @@ export const talentRefSchema = nommerChamps(affinerAvecCatalogues(z.strictObject
   return (r, ctx) => {
     if (r.spec === undefined) return;
     const refus = specialisations.refus(r.id, r.spec);
-    if (refus === null || refus === 'sentinelle' || refus === 'nonSpecialisable') return;
+    if (refus === null || refus === 'nonSpecialisable') return;
     ctx.addIssue({ code: 'custom', path: ['spec'], message: specialisations.message(r.id, r.spec, refus, false) });
   };
 }), { id: { label: "identifiant" }, spec: { label: "spécialisation" }, times: { label: "multiplicateur" } });

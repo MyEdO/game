@@ -74,11 +74,8 @@ export function talentCharBonusById(talentId: string): CharKey | null {
  * sont recalculées par l'appelant (fortuneMax / resolveMax).
  */
 export function applyTalentAcquisition(hero: Combatant, talentId: string, spec?: string): void {
-  // Béni (Culte) — LDB 10/41 : « reçoit les SIX Bénédictions de son culte » → octroi AUTOMATIQUE
-  // à l'acquisition (création + achat PX), pas un achat à 0 PX par clic. Un « Béni » au culte non
-  // résolu (« Au choix ») n'octroie rien. Le signal = `specsSource:'cultBlessings'` (MÊME source que son
-  // pool de cultes), jamais un drapeau `grantsCultBlessings` ni un name-match.
-  if (findTalentById(talentId)?.specsSource === 'cultBlessings' && spec && !/au choix/i.test(spec)) {
+  // LDB 10 l.105-109 ; LDB 41 l.5
+  if (findTalentById(talentId)?.specsSource === 'cultBlessings' && spec) {
     const six = blessingsOf(spec).filter((b) => !(hero.spells ?? []).includes(b));
     if (six.length) hero.spells = [...(hero.spells ?? []), ...six];
   }
