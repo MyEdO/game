@@ -1,6 +1,7 @@
 // #2626
 import { appendFileSync, openSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { estObjet } from '../../src/lib/objet.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
@@ -357,7 +358,7 @@ export const cheminsDeJournal = (racine, branche) => {
 export function lireJournal(chemin, branche, { strict = false } = {}) {
   try {
     const lu = JSON.parse(readFileSync(chemin, 'utf8'))
-    if (strict && (!lu || typeof lu !== 'object' || Array.isArray(lu)))
+    if (strict && !estObjet(lu))
       throw new TypeError('un objet JSON est attendu')
     return { ...journalVide(branche), ...lu, etapes: lu.etapes ?? {} }
   } catch (e) {

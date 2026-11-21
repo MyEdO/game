@@ -2411,6 +2411,9 @@ test('#4630 CLI : --etapes lit le train en cache lecture seule', async (t) => {
   for (const { nom, journal, options, cause } of [
     { nom: 'lecture du journal refusée', journal: JSON.stringify(vivant), options: { lectureRefusee: true }, cause: 'EACCES' },
     { nom: 'JSON illisible', journal: '{', cause: 'journal illisible' },
+    { nom: 'JSON tableau', journal: '[]', cause: 'un objet JSON est attendu' },
+    { nom: 'JSON null', journal: 'null', cause: 'un objet JSON est attendu' },
+    { nom: 'JSON scalaire', journal: '42', cause: 'un objet JSON est attendu' },
     { nom: 'refus de Git à la lecture de HEAD', journal: JSON.stringify(vivant), options: { git: envGitFeint([
       { si: ['HEAD^{commit}'], status: 128, stderr: 'fatal: tête Git illisible\n' },
     ]) }, cause: 'fatal: tête Git illisible' },
