@@ -3,15 +3,16 @@ extends SceneTree
 ## Les poses des objets rangés d'une tenue (#4351, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D ») : l'évaluateur
 ## (`hotes/godot/asset/evaluer.mjs`) et le rendu de contrôle (`scripts/personnage-3d/rendu.py`) les demandent par
 ## `posesDesRanges` (`hotes/godot/asset/posesDesRanges.mjs`), que `poserLesRanges` de `hotes/godot/construire.mjs` lance
-## par l'éditeur épinglé. Le montage du jeu (`MontageDeComposition`) pose la base, monte chaque élément et range chaque
-## objet (`_ranger`), puis, à chaque instant demandé, pose le gabarit et les morphes, engage le clip à son instant et
-## laisse le squelette se mettre à jour (`_suivre_les_poids`) : la transformation de chaque mesh rangé et montré se lit
-## dans la scène, sans autre calcul.
+## par l'éditeur épinglé. Le montage du jeu (`MontageDeComposition`) pose la base, y pose le gabarit et les morphes du
+## premier instant, puis monte chaque élément et range chaque objet (`_ranger`), comme le personnage du jeu
+## (`Combattant._composer`) ; à chaque instant demandé, il pose le gabarit et les morphes s'ils changent, engage le clip
+## à son instant et laisse le squelette se mettre à jour (`_suivre_les_poids`) : la transformation de chaque mesh rangé
+## et montré se lit dans la scène, sans autre calcul.
 ##
 ## La commande, en JSON : `modeles`, la réponse de `modeles` sur les manifestes de la tenue ; `base`, l'id de sa base ;
 ## `fichiers`, par fichier de `modeles.fichiers`, le chemin du GLB à lire ; `montes`, les `montes` de `composer` ;
-## `instants`, chacun `{ gabarit?, morphes, clip, t }` (`gabarit` et `morphes` de `composer`, `clip` vide au repos, qui
-## se demande avant tout clip).
+## `instants`, un au moins, chacun `{ gabarit?, morphes, clip, t }` (`gabarit` et `morphes` de `composer`, `clip` vide
+## au repos, qui se demande avant tout clip), le premier portant le corps sur lequel les objets se rangent.
 ## La sortie, en JSON : `pieces`, chaque mesh rangé `{ ligne, mesh, offrant, os }` (la ligne de `montes` qui le monte, le
 ## nom de son nœud, l'élément monté qui offre son emplacement, vide si la base l'offre, et l'os de cet emplacement) ; `poses`, par instant, par pièce,
 ## sa transformation dans le repère de la base en 16 nombres, colonne par colonne, `null` si elle n'est pas montrée
@@ -47,10 +48,10 @@ func _poser() -> void:
 	root.add_child(montage)
 	montage.poser_le_modele(_base(commande.base), await montage.scene_du_modele(commande.base, erreurs))
 	erreurs.append_array(montage.erreurs)
-	montage.composee = {montes = commande.montes}
-	var cibles := montage.cibles()
 	var releve := {pieces = [], poses = []}
 	if montage.squelette != null:
+		_poser_le_corps(montage, commande.montes, commande.instants[0], erreurs)
+		var cibles := montage.cibles()
 		for ligne: String in cibles:
 			await montage.monter(ligne, cibles[ligne].element, erreurs)
 		releve = await relever(self, montage, commande.montes, commande.instants, erreurs)
@@ -70,8 +71,9 @@ func _poser() -> void:
 ## Le relevé des objets rangés de `montage`, monté dans `arbre`, sous les `montes` de sa composition : `pieces`, chaque
 ## mesh rangé (`ligne`, `mesh`, `offrant`, `os`), et `poses`, par instant d'`instants`, la transformation de chacun (`_matrice`),
 ## `null` s'il n'est pas montré rangé. À chaque instant, le clip s'engage en pause à son instant, le gabarit et les
-## morphes se posent s'ils ne sont pas ceux de l'instant précédent (les poser refond les pièces), et le squelette joue `IMAGES_DE_MISE_A_JOUR` images ; un repos demandé après un clip et un clip que la
-## base n'a pas vont à `erreurs`.
+## morphes se posent s'ils ne sont pas ceux que `montage` a retenus (`_poser_le_corps`, les poser refond les pièces), et
+## le squelette joue `IMAGES_DE_MISE_A_JOUR` images ; un repos demandé après un clip et un clip que la base n'a pas vont
+## à `erreurs`.
 static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Array, instants: Array, erreurs: Array[String]) -> Dictionary:
 	var lignes := {}
 	for prise: String in montage._tenus_ranges:
@@ -85,7 +87,6 @@ static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Arr
 				os = montage._attache_du_point(point).get("os", "")})
 			meshes.append(rangee.piece)
 	var poses := []
-	var corps := {}
 	for instant: Dictionary in instants:
 		if instant.clip != "" and (montage.lecteur == null or not montage.lecteur.has_animation(instant.clip)):
 			erreurs.append("clip-absent : %s" % instant.clip)
@@ -95,16 +96,25 @@ static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Arr
 			montage.lecteur.seek(instant.t, true)
 		elif montage.lecteur != null and montage.lecteur.assigned_animation != "":
 			erreurs.append("repos-apres-un-clip : le repos se demande avant tout clip, un lecteur ne se désengage pas")
-		var compose := {montes = montes, gabarit = instant.get("gabarit", {}), morphes = instant.morphes}
-		if compose != corps:
-			corps = compose
-			montage.composee = compose
-			erreurs.append_array(montage.poser_le_gabarit().map(func(os: String) -> String: return "os-absent : %s" % os))
-			montage.poser_les_morphes()
+		if _corps_de(montes, instant) != montage.composee:
+			_poser_le_corps(montage, montes, instant, erreurs)
 		for _image in IMAGES_DE_MISE_A_JOUR:
 			await arbre.process_frame
 		poses.append(meshes.map(func(mesh: MeshInstance3D) -> Variant: return _matrice(mesh.global_transform) if mesh.is_visible_in_tree() else null))
 	return {pieces = pieces, poses = poses}
+
+
+## La composition des `montes` au corps de l'instant `instant` : son gabarit (aucun s'il n'en a pas) et ses morphes.
+static func _corps_de(montes: Array, instant: Dictionary) -> Dictionary:
+	return {montes = montes, gabarit = instant.get("gabarit", {}), morphes = instant.morphes}
+
+
+## La composition `_corps_de(montes, instant)` retenue par `montage`, son gabarit et ses morphes posés ; chaque os du
+## gabarit que la base n'a pas va à `erreurs`.
+static func _poser_le_corps(montage: MontageDeComposition, montes: Array, instant: Dictionary, erreurs: Array[String]) -> void:
+	montage.composee = _corps_de(montes, instant)
+	erreurs.append_array(montage.poser_le_gabarit().map(func(os: String) -> String: return "os-absent : %s" % os))
+	montage.poser_les_morphes()
 
 
 ## La base `id` de la réponse de `modeles` retenue, `{}` si elle ne la sert pas.
