@@ -23,12 +23,14 @@ extends SceneTree
 ## moins) prend la part de son état (`PIXELS.borne_du_pilote`) ; à mi-fondu de la vue vers l'inconnu, la part qu'elle prend
 ## explorée ; coupé sous son avant-dernière couche de pont, ce que la coupe découvre (ses pixels intérieurs) est, voilé,
 ## ce qu'il est sans voile ; sous l'œil de l'immersion, sur une case de pont couverte, elle et ce qui est dessous vus,
-## le reste inconnu, le plafond à la part 1. Les appels de dessin, voilé et sans voile, imprimés.
+## le reste inconnu, le plafond à la part 1. Les appels de dessin, voilé et sans voile, imprimés. La recette joue
+## ensuite le geste Quitter et vérifie le retour à l'accueil après libération de Combat, avant `erreurs=<n>` (#4215).
 ##
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")
 const COMBAT := "res://scenes/Combat.tscn"
+const ACCUEIL := "res://scenes/Accueil.tscn"
 ## La taille de la fenêtre rendue : chaque image coûte sous le rendu logiciel de la CI.
 const FENETRE := Vector2i(640, 360)
 ## L'attente la plus longue d'un état : le lancement du processus et le démarrage de la partie compris.
@@ -113,7 +115,8 @@ func _recetter() -> void:
 		if argument.begins_with("--sortie="):
 			_sortie = argument.trim_prefix("--sortie=")
 	var debut := Time.get_ticks_msec()
-	if await _demarrer(_scenario()) != null:
+	var combat := await _demarrer(_scenario())
+	if combat != null:
 		_chrono("démarrage", debut)
 		_cadrer("tactique")
 		await _tactique()
@@ -127,6 +130,7 @@ func _recetter() -> void:
 		if Lumiere.rendu_complet():
 			for etat: int in _meilleurs:
 				_verifier(_meilleurs[etat] >= PURS_LISIBLES, "%s : (a) au mieux %d pixels purs à l'état %d, au moins %d attendus" % [_nom, _meilleurs[etat], etat, PURS_LISIBLES])
+		await _quitter_la_partie(combat)
 	_fautes.append_array(_signales)
 	for faute in _fautes:
 		push_error("[voile-du-navire] " + faute)
@@ -145,6 +149,7 @@ func _demarrer(scenario: String) -> Node:
 	pont.refus.connect(func(message: String) -> void: _signales.append("refus : " + message))
 	var combat: Node = (load(COMBAT) as PackedScene).instantiate()
 	root.add_child(combat)
+	current_scene = combat
 	var plateau: Plateau = combat.get_node("Plateau")
 	_monde = plateau.get_node("Monde")
 	_navires = plateau.get_node("Modeles")
@@ -154,6 +159,7 @@ func _demarrer(scenario: String) -> Node:
 	if plateau.navires().is_empty() or _monde.volume.get("_vision") == null:
 		_fautes.append("%s : navire ou vision non posés (%s)" % [_nom, _signales])
 		combat.queue_free()
+		await process_frame
 		return null
 	for couche: CanvasLayer in root.find_children("*", "CanvasLayer", true, false):
 		couche.visible = false
@@ -190,6 +196,18 @@ func _demarrer(scenario: String) -> Node:
 	_meilleurs = {VUE: 0, INCONNUE: 0}
 	print("[voile-du-navire] %s : navire %s, %d cases de pont servies, couches %s" % [_nom, _id, _ponts.size(), _couches])
 	return combat
+
+
+## La partie quittée par le geste du jeu, Combat libéré, l'accueil posé et les sons des foyers relâchés (#4215).
+func _quitter_la_partie(combat: Node) -> void:
+	combat._jouer({quitter = true})
+	if not _verifier(current_scene != combat, "%s : le geste Quitter a laissé Combat en place" % _nom):
+		return
+	await scene_changed
+	await create_timer(Foyer.SON_LIBERE_S).timeout
+	await RenderingServer.frame_post_draw
+	if _verifier(not is_instance_valid(combat) and current_scene.scene_file_path == ACCUEIL, "%s : Combat libéré et accueil attendu" % _nom):
+		print("[voile-du-navire] %s : Combat libéré, accueil posé" % _nom)
 
 
 func _montage() -> MontageDeVehicule:
