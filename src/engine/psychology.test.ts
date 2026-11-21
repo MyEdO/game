@@ -71,11 +71,14 @@ describe('Psychologie (pur)', () => {
     expect(isFrenzyCapable({ traits: [], talents: [{ talentId: 'frenesie', times: 1 }] } as unknown as Combatant)).toBe(true);
     expect(isFrenzyCapable({ traits: [{ id: 'arme', value: 7 }], talents: [] } as unknown as Combatant)).toBe(false);
   });
-  it('resolveFrenzyEntry : Test de FM, succès = entre', () => {
-    const r = resolveFrenzyEntry(80, makeRNG(2));
-    expect(typeof r.success).toBe('boolean');
-    expect(typeof r.roll).toBe('number');
-    expect(r.target).toBe(80); // cible exposée pour la RollLine : FM, Intermédiaire +0
+  it('resolveFrenzyEntry : le même jet réussit au réglage par défaut et échoue en Difficile', () => {
+    expect(resolveFrenzyEntry(60, deFixe(50))).toMatchObject({ roll: 50, target: 60, success: true });
+    setRule('frenesie-difficulte', 'difficile');
+    try {
+      expect(resolveFrenzyEntry(60, deFixe(50))).toMatchObject({ roll: 50, target: 40, success: false });
+    } finally {
+      resetRule('frenesie-difficulte');
+    }
   });
   it('targetedTrigger : Animosité (elfe) se déclenche sur un ENNEMI du groupe elfe visible', () => {
     const self = { id: 's', kind: 'ennemi', psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }], psychState: [] } as unknown as Combatant;

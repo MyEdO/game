@@ -206,7 +206,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
   // UN SEUL message par situation : la place visée est partie (course perdue) ou toutes sont
   // prises → « occupé » ; il en reste une, mais pas sous les pieds → « rejoindre la place ».
   const apres = get().scene;
-  get().ecrireAuJournal(t(apres && placesLibres(apres, entityId).length ? 'seating.mustReachApproach' : 'seating.occupied'));
+  refuserGeste(get, set, t(apres && placesLibres(apres, entityId).length ? 'seating.mustReachApproach' : 'seating.occupied'));
 }
 
 /** La fouille de la pièce : la scène et la pièce où le groupe se tient, ou le refus nommé. Le verbe `fouillerLaPiece`,

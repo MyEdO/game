@@ -13,6 +13,10 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
 import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
 import { etatInitialDuJeu, type BattleState, type NetState, type TourEnCours } from '../../noyau/etat';
+import { creerActionsDuReseau } from '../../noyau/reseau';
+import type { Set } from '../../noyau/flowTypes';
+import { PSY } from '../../engine/psychology';
+import { t } from '../../i18n';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -111,5 +115,108 @@ describe('#3059 — coop : seul l’hôte rejoue la frappe pilotée d’un invit
     banc.getState().reprendreLaCadence();
     banc.reprendreTout();
     expect([banc.getState().net.mode, banc.getState().pendingAttack], 'l’invité n’ouvre aucune frappe de lui-même').toEqual(['invite', null]);
+  });
+});
+
+describe('#3235 — le verdict de l’hôte revient au siège qui a joué', () => {
+  it('dit une fois chaque refus à son auteur, même si son miroir diffère de l’état qui juge', () => {
+    const h = mk('h2', 'heros', { x: 10, y: 10 });
+    const proche = mk('proche', 'ennemi', { x: 11, y: 10 });
+    const loin = mk('loin', 'ennemi', { x: 13, y: 10 });
+    const ids = [h.id, proche.id, loin.id];
+    const battle = {
+      combatants: [h, proche, loin], order: ids, baseOrder: ids, turn: 0, round: 1,
+      action: null, selectedSpellId: null, reachable: new Map(),
+      movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+    } as BattleState;
+    const banc = ouvrirLeBanc({
+      cadence: 'manuel',
+      etat: { battle, mode: 'battle', scene: testScene(), party: [h], net: NET('hote', 0) },
+    });
+    const get = banc.getState;
+    const sieges: number[] = [];
+    const host = new HostSession({
+      build: 'test',
+      applyIntent: (action, args, siege) => {
+        sieges.push(siege);
+        let refus: string | undefined;
+        appliquerLIntentionDUnSiege(get, siege, action, args, (texte) => { refus = texte; });
+        return refus;
+      },
+      getSnapshot: () => instantaneDeLaCoop(get()),
+    });
+
+    const inviter = (siege: number) => {
+      const recus: string[] = [];
+      const [a, b] = FakeTransport.pair();
+      let miroir: ReturnType<typeof get> = {
+        ...get(), ...etatInitialDuJeu(), net: NET('invite', siege),
+        cliquerLaCase: () => {
+          throw new Error('Le clic a été joué chez l’invité');
+        },
+      };
+      const set: Set = (partiel) => { miroir = { ...miroir, ...(typeof partiel === 'function' ? partiel(miroir) : partiel) }; };
+      const guest = new GuestSession({
+        build: 'test', label: `Siège ${siege}`,
+        applySnapshot: (data) => { miroir = { ...miroir, ...appliquerLInstantane(data, miroir).etat }; },
+        onIntentRefused: (texte) => { recus.push(texte); },
+      });
+      creerActionsDuReseau(() => miroir, set).transmettreLesIntentions((action, args) => guest.sendIntent(action, args));
+      host.addGuest(a, siege);
+      guest.connect(b);
+      return {
+        cliquer: (...args: Parameters<ReturnType<typeof get>['cliquerLaCase']>) => { miroir.cliquerLaCase(...args); },
+        recus,
+        etat: () => miroir,
+      };
+    };
+    const auteur = inviter(1);
+    const tiers = inviter(2);
+    const journal = [...get().journal];
+    const verifier = (refusAuteur: string[], refusTiers: string[]) => {
+      host.broadcastSnapshot();
+      expect(get().refus).toBeNull();
+      expect([auteur.recus, tiers.recus]).toEqual([refusAuteur, refusTiers]);
+      expect([get().journal, auteur.etat().journal, tiers.etat().journal]).toEqual([journal, journal, journal]);
+    };
+
+    const course = { x: 4, y: 10 };
+    const refusCourse = t('cs.refusCourseNonArmee');
+    auteur.cliquer(course, undefined, { confirm: true });
+    verifier([refusCourse], []);
+    auteur.cliquer(course, undefined, { confirm: true });
+    verifier([refusCourse, refusCourse], []);
+    expect(h.pos).toEqual({ x: 10, y: 10 });
+
+    const marche = { x: 9, y: 10 };
+    auteur.cliquer(marche, undefined, { confirm: true });
+    verifier([refusCourse, refusCourse], []);
+    expect(auteur.etat().battle?.combatants[0].pos).toEqual(marche);
+    expect(get().battle?.combatants[0].pos).toEqual(marche);
+
+    expect(auteur.etat().battle?.combatants[0].psychState).toBeUndefined();
+    h.psychState = [{ type: PSY.frenesie }];
+    auteur.cliquer(loin.pos!, loin.id, { confirm: true });
+    const refusAttaque = t('cs.frenzyMustAttack', { name: h.label, foe: proche.label });
+    const pourLAuteur = [refusCourse, refusCourse, refusAttaque];
+    verifier(pourLAuteur, []);
+    expect(get().pendingAttack).toBeNull();
+
+    banc.setState({ net: { ...get().net, ownership: { [h.id]: 2 } } });
+    host.broadcastSnapshot();
+    banc.setState({ net: { ...get().net, ownership: { [h.id]: 1 } } });
+    expect(tiers.etat().net.ownership[h.id]).toBe(2);
+    tiers.cliquer(loin.pos!, loin.id, { confirm: true });
+    const refusPossession = t('coop.intentRefused');
+    verifier(pourLAuteur, [refusPossession]);
+    expect(get().pendingAttack).toBeNull();
+
+    banc.setState({ net: { ...get().net, ownership: { [h.id]: 0 } } });
+    get().cliquerLaCase(loin.pos!, loin.id, { confirm: true });
+    expect(get().refus?.texte).toBe(refusAttaque);
+    host.broadcastSnapshot();
+    expect([auteur.recus, tiers.recus]).toEqual([pourLAuteur, [refusPossession]]);
+    expect([auteur.etat().refus, tiers.etat().refus]).toEqual([null, null]);
+    expect(sieges).toEqual([1, 1, 1, 1, 2]);
   });
 });

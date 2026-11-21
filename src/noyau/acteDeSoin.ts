@@ -13,6 +13,7 @@ import { dataLabel, type FlowStakeId, type StakeRef, type SkillRef } from '../da
 import { nomDe } from '../engine/nom';
 import type { PlayerText } from '../i18n/playerText';
 import { cibleMesuree } from '../engine/tests';
+import { rule } from '../engine/policy';
 import { partyAssisted, type SupportDetail } from '../engine/skills';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { hasSurgerySkill, raisonDeModeDeSoin, estActeImmediat, healDifficulty, HEAL_MODES, HEAL_SKILL, type HealMode } from '../engine/healing';
@@ -202,10 +203,9 @@ export function passeDeLOperation(s: Pick<Jeu, 'medic' | 'party'>): PendingSurge
   };
 }
 
-/** La cible de DR cumulé de l'opération que le brouillon `p` arme : Chirurgie, 7 (LDB 10) ; récupération d'usage,
- *  celle de la séquelle visée (LDB 18 l.120/179). Lue par l'armement. */
+/** LDB 10 l.184 ; LDB 18 l.120/179 */
 export function cibleDeLOperation(s: Pick<Jeu, 'party'>, p: Pick<PendingHeal, 'targetId' | 'plaie'>, kind: ActeOperatoire): number {
-  if (kind === 'chirurgie') return 7;
+  if (kind === 'chirurgie') return rule('chirurgie-dr-cible');
   const patient = garanti(s.party.find((h) => h.id === p.targetId), p.targetId, 'patient de l’opération');
   const aReeduquer = recoverableTraumas(patient);
   return garanti(aReeduquer.find((x) => x.uid === p.plaie) ?? aReeduquer[0], patient.id, 'membre à rééduquer').drCible;

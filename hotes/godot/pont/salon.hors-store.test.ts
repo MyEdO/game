@@ -8,7 +8,7 @@ import { erreurDe, suiteDe, table, type Reponse } from './pont.testkit';
 import type { ReseauDuPont } from './pont';
 import { FakeSocket, compressionFactice, instantanesAuSiege1, minuterieDuTest, roomOuverte, stockageEnMap } from '../../../src/hote/coop/relay.testkit';
 import { BUFFER_MAX, type ReponseDuRelais } from '../../../src/hote/coop/salon';
-import { PROTOCOL_VERSION, serializeMessage } from '../../../src/hote/coop/protocol';
+import { PROTOCOL_VERSION, parseMessage, serializeMessage } from '../../../src/hote/coop/protocol';
 import { buildDeLaCoop, type LigneDuJournal } from '../../../src/noyau/index';
 import type { ZonesDuSalon } from '../../../src/hote/salon';
 import type { Bouton } from '../../../src/hote/elements';
@@ -84,6 +84,13 @@ async function asseoirAnna(ws: FakeSocket) {
 /** L'intention `action(...args)` du siège 1, telle que la socket hôte la reçoit. */
 const intentionDuSiege1 = (action: string, args: unknown[]) => JSON.stringify({ from: 1, data: serializeMessage({ kind: 'intent', action, args, seat: 0 }) });
 
+const refusEnvoyes = (ws: FakeSocket) => ws.sent.flatMap((raw) => {
+  if (raw === 'ping') return [];
+  const { to, data, z } = JSON.parse(raw) as { to?: number; data?: string; z?: string };
+  const m = parseMessage(data ?? z?.slice(2) ?? '');
+  return m?.kind === 'intent-refused' ? [[to, m.texte]] : [];
+});
+
 describe('le pont héberge un salon', () => {
   it('S1 — héberger de bout en bout : ouverture, session, invité, choix de siège, diffusion sous contre-pression', async () => {
     const appel = ouvert();
@@ -116,14 +123,16 @@ describe('le pont héberge un salon', () => {
     expect(instantanesAuSiege1(ws).length - n).toBe(1);
   });
 
-  it('S2 — l’intention d’un invité sort chez l’hôte par la `Suite` de `nouvelles`, une fois', async () => {
+  it('S2 — le refus d’un invité revient par la socket au siège auteur, une fois', async () => {
     const { appel, ws } = await enSession();
     await asseoirAnna(ws);
     suiteDe(appel('nouvelles'));
     ws.receive(intentionDuSiege1('terminerLeTour', []));
     await vi.advanceTimersByTimeAsync(0);
-    expect(textesDuJournal(suiteDe(appel('nouvelles')).journal)).toEqual([t('coop.intentRefused')]);
+    expect(refusEnvoyes(ws)).toEqual([[1, t('coop.intentRefused')]]);
     expect(appel('nouvelles')).toEqual(RIEN);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(instantanesAuSiege1(ws).join('')).not.toContain(t('coop.intentRefused'));
   });
 });
 
@@ -178,7 +187,8 @@ describe('S3 — aucune levée du réseau hors appel ne se perd', () => {
     await vi.advanceTimersByTimeAsync(0);
     const { erreurs } = appel('erreursGlobales') as unknown as { erreurs: { source: string }[] };
     expect(erreurs.map((e) => e.source)).toEqual(['reseau']);
-    expect(textesDuJournal(suiteDe(appel('nouvelles')).journal)).toEqual([t('coop.intentRefused')]);
+    expect(refusEnvoyes(ws)).toEqual([[1, t('coop.intentRefused')]]);
+    expect(appel('nouvelles')).toEqual(RIEN);
   });
 });
 
@@ -207,9 +217,19 @@ describe('S4 — `nouvelles`', () => {
     const { appel, ws } = await enSession();
     await asseoirAnna(ws);
     suiteDe(appel('nouvelles'));
-    ws.receive(intentionDuSiege1('terminerLeTour', []));
+    expect(appel('salon', { type: 'affecterLEmplacementAuSiege', args: [1, 1] })).toMatchObject({ ok: true });
+    const recrutement = [{ pretire: 'harbull-piedvelu' }];
+    ws.receive(intentionDuSiege1('recruterLeHeros', recrutement));
     await vi.advanceTimersByTimeAsync(0);
-    expect(textesDuJournal(suiteDe(appel('regarder', { regard: 'tactique' })).journal)).toEqual([t('coop.intentRefused')]);
+    const vue = suiteDe(appel('regarder', { regard: 'tactique' }));
+    expect(textesDuJournal(vue.journal)).toEqual([expect.stringContaining('Harbull')]);
+    expect(refusEnvoyes(ws)).toEqual([]);
+    expect(appel('nouvelles')).toEqual(RIEN);
+
+    const [heros] = vue.vue.zones['groupe.heros'];
+    expect(erreurDe(appel('jouer', { type: 'recruterLeHeros', args: recrutement, siege: 1 }))).toEqual({
+      categorie: 'regle', message: t('pf.partyDuplicate', { name: heros.nom }),
+    });
     expect(appel('nouvelles')).toEqual(RIEN);
   });
 });

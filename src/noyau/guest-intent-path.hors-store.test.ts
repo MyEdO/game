@@ -12,7 +12,7 @@
  * `disengage`, d'une autre famille — la même garde les sert, ce qui prouve que la CLASSE est fermée, pas un cas).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
@@ -30,6 +30,7 @@ import { intentAllowedFor } from './netOwnership';
 import { refusDAjoutAuGroupe } from './partyFlow';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { engage } from './creation/engagement.testkit';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -115,11 +116,13 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     expect(banc.getState().journal).toEqual([]);
   });
 
-  it('hors possession : le refus va au journal, en libellé joueur', () => {
+  it('hors possession : le libellé du refus compte une fois pour le siège demandeur', () => {
     setup();
     banc.setState({ journal: [] });
-    expect(applyIntent(2, 'faireUnBattement', [])).toBe('refusee');
-    expect(banc.getState().journal).toEqual(['Action refusée : elle ne revient pas au joueur qui l’a demandée.']);
+    const refus = vi.fn();
+    expect(appliquerLIntentionDUnSiege(banc.getState, 2, 'faireUnBattement', [], refus)).toBe('refusee');
+    expect(refus.mock.calls).toEqual([[t('coop.intentRefused')]]);
+    expect(banc.getState().journal).toEqual([]);
   });
 
   const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(tousLesHerosDeScenario(idsDeTest)[0])), id, label: id });
@@ -228,12 +231,14 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     const avant = banc.getState();
     expect(avant.pendingDisengage?.phase).toBe(phase);
     const avantageDuFoe = avant.battle!.combatants.find((c) => c.id === enemy.id)!.advantage;
-    expect(applyIntent(1, 'jetAnnuler', ['desengagement'])).toBe('appliquee');
+    const refus = vi.fn();
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'jetAnnuler', ['desengagement'], refus)).toBe('appliquee');
     const apres = banc.getState();
     expect(apres.pendingDisengage, 'le Désengagement engagé reste ouvert').toBe(avant.pendingDisengage);
     expect(apres.pendingCascade, 'sa cascade-hôte aussi').toBe(avant.pendingCascade);
     expect(apres.battle!.combatants.find((c) => c.id === enemy.id)!.advantage).toBe(avantageDuFoe);
-    expect(apres.refus?.texte).toBe('Renoncement refusé : h2 a déjà engagé son action, elle se joue jusqu’au bout.');
+    expect(refus.mock.calls).toEqual([[t('jet.refus.renoncerEngage', { name: 'h2' })]]);
+    expect(apres.refus).toBeNull();
   });
 
   it('Désengagement en phase fuir, fenêtre PARTAGÉE (`groupOwner`) : un siège tiers est refusé par la possession', () => {

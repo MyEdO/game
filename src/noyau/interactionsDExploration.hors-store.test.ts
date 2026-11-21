@@ -4,12 +4,16 @@
  *
  * Scènes FABRIQUÉES (doctrine : jamais une scène de campagne utilisée comme fixture).
  */
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { emptyScene, type Scene, type SceneEntity } from './monde/scene';
 import { offresDExploration, porteDOffre } from './interactionsDExploration';
 import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { initialNet } from './etat';
 
 const TABLE = 'table-ronde-4-tabourets';
 
@@ -86,5 +90,24 @@ describe('offresDExploration — les offres de toute entité À PORTÉE, sans su
     banc.setState({ scene: { ...sc, seatAssignments } });
     const prises = offresDExploration(banc.getState())[0].offres;
     expect(prises.map((o) => [o.id, o.gate])).toEqual([['sasseoir', { ok: false, reason: t('seating.occupied') }]]);
+  });
+
+  it('l’invité qui conduit le monde reçoit le refus d’une place qu’il ne peut pas rejoindre', () => {
+    const table = { id: 'table', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true }, label: 'Table' } as SceneEntity;
+    const scene = poser([table], { x: 4, y: 4 });
+    const heros = herosDeScenario(idsDeTest, 'soldat');
+    const [sol, ...autres] = scene.layers;
+    const tiles: ('herbe' | 'mur')[] = sol.tiles.map(() => 'herbe');
+    for (const [x, y] of [[3, 3], [4, 3], [5, 3], [3, 4], [5, 4], [3, 5], [4, 5]]) {
+      tiles[y * scene.dimensions.w + x] = 'mur';
+    }
+    banc.setState({
+      scene: { ...scene, layers: [{ ...sol, tiles }, ...autres] },
+      party: [heros], net: { ...initialNet(), mode: 'hote', gmSeat: 1, ownership: { [heros.id]: 0 } }, journal: [],
+    });
+    const refus = vi.fn();
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'cliquerLaCase', [table.pos, table.id], refus)).toBe('appliquee');
+    expect(refus.mock.calls).toEqual([[t('seating.mustReachApproach')]]);
+    expect(banc.getState().journal).toEqual([]);
   });
 });

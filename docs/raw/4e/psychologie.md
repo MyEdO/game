@@ -186,7 +186,7 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 
 ### Frénésie
 
-**Déclencheur** : le personnage choisit d'entrer en Frénésie ; un **Test de Force Mentale** (non précisé comme Intermédiaire dans le texte, mais implémenté comme tel — cf. ci-dessous) est requis.
+**Déclencheur** : le personnage choisit d'entrer en Frénésie par un **Test de Force Mentale**. La difficulté d’entrée est une [règle maison](../../regles-optionnelles.md) (`frenesie-difficulte`).
 
 > « Vous pouvez, par le biais d'un Test de Force Mentale, vous mettre dans un état psychologique dans lequel vous allez vous surmotiver, mordre votre bouclier, etc. Sur un succès, vous entrez en *Frénésie*. » — `LDB 21 l.31`
 
@@ -653,7 +653,7 @@ Cette immunité ne supprime pas les afflictions déjà actives de façon permane
 | **Animosité** | Calme | MJ | -20 Sociabilité seul. | Doit s'en prendre au groupe (+1 DR offensif) | Re-test fin de Round ou groupe absent/Sonné/Inconscient |
 | **Peur (Indice)** | Calme (étendu) | Intermédiaire (+0) | DR cumulé ≥ Indice → vaincue | -1 DR vs source ; ne peut approcher (Test +0) ; source approche → Brisé (Test +0) | Vaincue quand DR cumulé ≥ Indice |
 | **Terreur (Indice)** | Calme (unique) | Intermédiaire (+0) | Aucun effet supp. ; puis Peur d'Indice équiv. | Brisé × (Indice + |DR négatifs|) ; puis Peur d'Indice équiv. | Test unique à la 1ʳᵉ rencontre |
-| **Frénésie** | Force Mentale | Intermédiaire (+0) | Entre en Frénésie (+1BF, attaque gratuite, immunité psy) | Pas de Frénésie | Ennemis LoV neutralisés ou Sonné/Inconscient → Exténué |
+| **Frénésie** | Force Mentale | Règle maison | Entre en Frénésie (+1BF, attaque gratuite, immunité psy) | Pas de Frénésie | Ennemis LoV neutralisés ou Sonné/Inconscient → Exténué |
 | **Haine** | Calme | MJ | Interaction limitée ; -0 (comportement libre) | Doit détruire (+1 DR Combat, immunité Peur/Intimidation sauf Terreur) | Re-test fin de Round ou groupe mort/disparu/Inconscient |
 | **Préjugé** | Calme | MJ | -10 Sociabilité seul. | Doit insulter la cible à voix haute | Re-test au Round suivant ou groupe disparu/Sonné/Inconscient |
 | **Phobie** | Calme (étendu) | Intermédiaire (+0) | — | Comme Peur 1 (ou Indice supérieur) | Même que Peur |

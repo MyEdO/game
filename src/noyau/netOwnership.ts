@@ -4,6 +4,7 @@
  * source unique partagée avec le gating d'affichage UI) — ajouter une modale n'exige RIEN ici.
  */
 import type { Jeu } from './etat';
+import type { Get } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import {
   fenetreDuRegistre,
@@ -134,26 +135,40 @@ export function quorumAtteint(s: Pick<Jeu, 'party' | 'net'>, readyBySeat: Record
  * l'action refusait EN SILENCE, sans journal ni erreur (mesuré : `pendingBattement` jamais posé).
  * Le contexte est posé UNIQUEMENT autour de l'appel synchrone de l'action, jamais pendant un rendu.
  */
-let actingSeat: number | null = null;
+interface RetourDuSiege {
+  get: Get;
+  refuser: (texte: string) => void;
+}
+
+let actionDuSiege: { siege: number; retour?: RetourDuSiege } | null = null;
 
 /**
  * Exécute `fn` AU NOM de `seat` (application d'un intent reçu). CONTRAT : le contexte couvre l'appel
  * SYNCHRONE — un travail différé par l'action (timer de cadence, animation) le relira retombé, donc
  * il retrouve le siège local, comme avant. Réentrant (restaure la valeur précédente, pas `null`).
  */
-export function withActingSeat<T>(seat: number, fn: () => T): T {
-  const prev = actingSeat;
-  actingSeat = seat;
+export function withActingSeat<T>(seat: number, fn: () => T, retour?: RetourDuSiege): T {
+  const precedent = actionDuSiege;
+  actionDuSiege = { siege: seat, retour };
   try {
     return fn();
   } finally {
-    actingSeat = prev;
+    actionDuSiege = precedent;
   }
+}
+
+/** Confie le refus de ce jeu au contexte du siège distant qui y agit. */
+export function refuserAuSiegeAgissant(etat: Jeu, texte: string): boolean {
+  if (!actionDuSiege || actionDuSiege.siege === etat.net.mySeat) return false;
+  const { retour } = actionDuSiege;
+  if (retour && retour.get() !== etat) return false;
+  retour?.refuser(texte);
+  return true;
 }
 
 /** Un siège agit-il MAINTENANT (application d'un intent reçu, `withActingSeat`) ? */
 export function unSiegeAgit(): boolean {
-  return actingSeat != null;
+  return actionDuSiege !== null;
 }
 
 /** Le siège au nom duquel on décide MAINTENANT : celui qui agit s'il y en a un, sinon le siège local.
@@ -161,7 +176,7 @@ export function unSiegeAgit(): boolean {
  *  le siège vient du TRANSPORT (`withActingSeat`, posé par `appliquerLIntentionDUnSiege`), jamais des arguments
  *  de l'émetteur — un siège ne peut donc marquer ni démarquer que lui-même. */
 export function decidingSeat(s: Pick<Jeu, 'net'>): number {
-  return actingSeat ?? s.net.mySeat;
+  return actionDuSiege?.siege ?? s.net.mySeat;
 }
 
 /**
@@ -176,7 +191,7 @@ export function decidingSeat(s: Pick<Jeu, 'net'>): number {
 export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean {
   const { mode, mySeat } = state.net;
   if (mode === 'local') return true;
-  if (actingSeat != null) return seatOwns(state, actingSeat, combatantId); // `seatOwns` traite l'absence d'acteur
+  if (actionDuSiege) return seatOwns(state, actionDuSiege.siege, combatantId); // `seatOwns` traite l'absence d'acteur
   if (!combatantId) return mode === 'hote';
   return seatOwns(state, mySeat, combatantId);
 }
@@ -377,7 +392,7 @@ export function seatInfluences(s: Jeu, seat: number, ownerId: string | undefined
  * dépenser la Résilience d'un ENNEMI) et de `rolledLocally` (calendrier de MASQUAGE, #990).
  * « Local » = le siège qui DÉCIDE maintenant (`decidingSeat`, patron `ownsLocal`) : pendant
  * l'application d'un intent, c'est le siège AGISSANT : le jet sans rangée d'un flux multi (`lancerSansRangee`) roule,
- * chez l'hôte, les rangées de l'invité émetteur. Hors application d'intent (rendu), `actingSeat` est nul.
+ * chez l'hôte, les rangées de l'invité émetteur. Hors application d'intent (rendu), `actionDuSiege` est nul.
  */
 export function influencesLocally(s: Jeu, ownerId: string | undefined): boolean {
   return seatInfluences(s, decidingSeat(s), ownerId);

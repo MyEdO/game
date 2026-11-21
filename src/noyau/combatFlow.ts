@@ -594,7 +594,7 @@ import {
 } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
-import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
+import { aiDriven, controlsCombatant, defenseSurfaced, refuserAuSiegeAgissant } from './netOwnership';
 import { jetSurfaced, tenuParUnHumain } from './sieges';
 import { resolveRecoverTest } from './combat/recover';
 // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
@@ -5441,6 +5441,8 @@ export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, t
 }
 
 export function castRefused(get: Get, set: SetFn, actor: Combatant, msg: string): void {
+  const etat = get();
+  if (controlsCombatant(etat, actor) && refuserAuSiegeAgissant(etat, msg)) return;
   journaliser(get, set, [msg], 'sort', { actorId: actor.id });
 }
 
@@ -5473,7 +5475,9 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   applyIncomingMeleeAdvantage(get, attacker, target, weapon); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
   const r = resolveAttack(get, attacker, target, weapon, pa.location ?? undefined, pa.fromCharge, pa.dansLeTas, pa.tirImmobile, pa.withhold, pa.siege); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
   if (!r) {
-    get().ecrireAuJournal(weapon.type === 'distance' ? tr('cf.ligneDeVueMasquee') : tr('cs.meleeOutOfRange'));
+    const etat = get();
+    const refus = weapon.type === 'distance' ? tr('cf.ligneDeVueMasquee') : tr('cs.meleeOutOfRange');
+    if (!controlsCombatant(etat, attacker) || !refuserAuSiegeAgissant(etat, refus)) etat.ecrireAuJournal(refus);
     set({ pendingAttack: null });
     advanceCombatJet(get); // défense en profondeur : ne JAMAIS laisser la cascade d'attaque orpheline (sinon soft-lock de fin de tour)
     return;
@@ -6062,12 +6066,14 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   if (ancrage === 'target' || !castAfterCrit(res, pc.critChoice)) return;
   const centre = ancrage === 'caster' ? caster.pos : pt;
   const range = spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene));
-  if (range != null && chebyshev(caster.pos, centre) > range) {
-    get().ecrireAuJournal(tr('cf.zoneHorsDePortee', { spell: spell.label, range }));
-    return;
-  }
-  if (ancrage !== 'caster' && castSightBlocked(get, caster.pos, centre)) {
-    get().ecrireAuJournal(tr('cf.sansLigneDeVue', { spell: spell.label }));
+  const refus = range != null && chebyshev(caster.pos, centre) > range
+    ? tr('cf.zoneHorsDePortee', { spell: spell.label, range })
+    : ancrage !== 'caster' && castSightBlocked(get, caster.pos, centre)
+      ? tr('cf.sansLigneDeVue', { spell: spell.label })
+      : null;
+  if (refus) {
+    const etat = get();
+    if (!controlsCombatant(etat, caster) || !refuserAuSiegeAgissant(etat, refus)) etat.ecrireAuJournal(refus);
     return;
   }
   const radius = pc.zone.radius;

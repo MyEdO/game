@@ -167,6 +167,8 @@ Vous êtes à l'aise dans les ruelles sombres. Quand vous utilisez Discrétion (
 
 Vous êtes un chirurgien, capable d'ouvrir et de refermer les chairs pour soigner. Vous pouvez traiter n'importe quelle Blessure Critique nécessitant de la Chirurgie. Vous pouvez aussi pratiquer une Chirurgie pour résoudre des problèmes internes avec un Test étendu de Guérison Intermédiaire (+0) dont le DR cible est déterminé par le MJ (en général 5-10) en fonction de la difficulté de la procédure en cours. Cela cause 1d10 Blessures et 1 État Hémorragique par Test, ce qui signifie que la Chirurgie a de fortes chances de tuer le patient si le praticien n'est pas rigoureux. Après la Chirurgie, le patient doit réussir un Test de Résistance Accessible (+20) ou gagner une Infection Mineure (voir page 187).
 
+À l’Infirmerie, l’acte Opérer fige le DR cible de la [règle maison](../../regles-optionnelles.md) (`chirurgie-dr-cible`) au lancement de l’opération. La rééducation prend le DR cible de la séquelle.
+
 ### Claquer le fouet
 **Source :** LDB 10 p.134  
 **Maxi :** Bonus de Dextérité  
