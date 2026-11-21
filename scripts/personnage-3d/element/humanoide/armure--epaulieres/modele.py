@@ -9,13 +9,9 @@ point du pourpoint le plus proche, pour bouger comme la manche sous lui ; clés 
 import math
 
 import numpy as np
-from tissu import Maillage, emprunter, joindre, porteur_de, sur_le_porteur
+from tissu import Maillage, emprunter, joindre, porteur_de, sur_le_porteur, unitaire
 
 HAUT = np.array([0.0, 0.0, 1.0])
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
 
 
 def lames(D, b, porteur, cote, mat):

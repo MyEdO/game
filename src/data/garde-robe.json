@@ -461,6 +461,24 @@
     }
   },
   {
+    "id": "ceinture-a-boucle",
+    "type": "garde-robe",
+    "label": "Ceinture à boucle",
+    "kind": "variante",
+    "piece": {
+      "id": "ceinture"
+    }
+  },
+  {
+    "id": "cape-en-lambeaux",
+    "type": "garde-robe",
+    "label": "Cape en lambeaux",
+    "kind": "variante",
+    "piece": {
+      "id": "cape"
+    }
+  },
+  {
     "id": "pourpoint-matelasse",
     "type": "garde-robe",
     "label": "Pourpoint matelassé",

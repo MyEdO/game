@@ -17,14 +17,9 @@ sous son centre. Silhouettes et clés `gabarit_*` transférées de la bure publi
 import math
 
 import numpy as np
-from tissu import JUMEAU, Maillage, direction, emprunter, joindre, maillage_skinne, poids_normalises, porteur_de, \
-    sur_le_porteur
+from tissu import Maillage, direction, emprunter, joindre, porteur_de, sur_le_porteur, unitaire
 
 HAUT = np.array([0.0, 0.0, 1.0])
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
 
 
 def quads(colonnes):
@@ -201,11 +196,8 @@ def construire(D, materiaux, b):
             a, b_, c, d = indices[2 * k], indices[2 * k + 2], indices[2 * k + 3], indices[2 * k + 1]
             M.quad(a, b_, c, d, centre + HAUT * points[2 * k][1])
     X, orientes, _ = M.orienter()
-    encre = maillage_skinne('encre', [tuple(p) for p in X], [tuple(t) for t in orientes], materiaux['encre'], b.rig,
-                            poids_normalises([emprunter(p, bure)[0] for p in X], b.os))
-    for poly in encre.data.polygons:
-        poly.use_smooth = True
-    encre.data.attributes.new(JUMEAU, 'INT', 'POINT')   # nappe simple : chaque sommet est son propre jumeau
+    encre = b.nappe_simple('encre', [tuple(p) for p in X], [tuple(t) for t in orientes],
+                           [emprunter(p, bure)[0] for p in X], materiaux['encre'])
 
     objets = []
     for nom, uv, rho, colonnes, epaisseur in (('feuille', uv_f, rho_f, colonnes_f, F['epaisseur']),
@@ -240,12 +232,8 @@ def construire(D, materiaux, b):
     faces += [[a_l_anneau(rang, a), a_l_anneau(rang, a + 1), a_l_anneau(rang + 1, a + 1), a_l_anneau(rang + 1, a)]
               for rang in range(len(profil) - 1) for a in range(q)]
     faces += [[1, a_l_anneau(len(profil) - 1, a), a_l_anneau(len(profil) - 1, a + 1)] for a in range(q)]
-    sceau = maillage_skinne('sceau', [tuple(p) for p in sommets], faces, materiaux['cire'], b.rig,
-                            poids_normalises([emprunter(o, bure)[0]] * len(sommets), b.os))
-    for poly in sceau.data.polygons:
-        poly.use_smooth = True
-    sceau.data.set_sharp_from_angle(angle=math.radians(D['ANGLE_LISSE']))
-    sceau.data.attributes.new(JUMEAU, 'INT', 'POINT')   # nappe simple : chaque sommet est son propre jumeau
+    sceau = b.nappe_simple('sceau', [tuple(p) for p in sommets], faces, [emprunter(o, bure)[0]] * len(sommets),
+                           materiaux['cire'], angle_vif=D['ANGLE_LISSE'])
     objets += [sceau, encre]
 
     dehors = pres[np.argmax(np.linalg.norm(pres[:, :2] - centre[:2], axis=1))]

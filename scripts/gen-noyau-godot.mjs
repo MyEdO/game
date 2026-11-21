@@ -4,7 +4,8 @@
 // famille de `FAMILLES`, une `const` String par valeur de l'union ; un script Godot y lit l'id en accès statique
 // (`Noyau.Effet.COUP`), et un id renommé côté TypeScript casse au parse du script qui le lit (`godot:sonde`). Elle porte
 // aussi les listes qu'une scène vérifie à son instanciation (`Zone`, `Liaison`, #3328) : `SOURCES`, `CHAMPS`, `TYPES`,
-// `TONS`, et `TypeDElement` pour les comparaisons de code.
+// `TONS`, et `TypeDElement` pour les comparaisons de code ; et `ZONES_DES_MEMBRES`, les zones des avant-bras et des
+// mains, sur lesquelles un objet rangé ne s'appuie pas (`MontageDeComposition._appuyer`, #4351).
 //
 //   node scripts/gen-noyau-godot.mjs            écrit la cible
 //   node scripts/gen-noyau-godot.mjs --check    compare sans écrire
@@ -33,9 +34,11 @@ export const FAMILLES = [
   { classe: 'TypeDeSaisie', module: 'src/hote/elements.ts', type: 'Saisie', champ: 'type' },
 ]
 
-/** Le module des méthodes du pont, dont les retours portent les zones de la vue, et celui des éléments. */
+/** Le module des méthodes du pont, dont les retours portent les zones de la vue, celui des éléments, et celui des zones
+ *  des membres de l'évaluateur. */
 const PONT = 'hotes/godot/pont/pont.ts'
 const ELEMENTS = 'src/hote/elements.ts'
+const MEMBRES = 'hotes/godot/asset/evaluateur/gardes/membres.ts'
 
 const absolu = (racine, module) => path.resolve(racine, module).replaceAll('\\', '/')
 const membres = (t) => (t.isUnionType() || t.isIntersectionType?.() ? t.getTypes() : [t])
@@ -48,6 +51,13 @@ const declaration = ({ program }, racine, module, nom) => {
   const decl = fichier({ program }, racine, module).statements.find((st) => st.name?.text === nom)
   if (!decl) throw new Error(`gen-noyau-godot : \`${nom}\` introuvable dans ${module}`)
   return decl
+}
+/** Les chaînes du tuple littéral (`as const`) de la constante `nom` déclarée dans `module`. */
+const tupleDe = ({ checker, program }, racine, module, nom) => {
+  const decl = fichier({ program }, racine, module).statements.flatMap((st) => (ts.isVariableStatement(st) ? st.declarationList.declarations : [])).find((d) => d.name.text === nom)
+  const t = decl && checker.getTypeAtLocation(decl.name)
+  if (!t || !checker.isTupleType(t)) throw new Error(`gen-noyau-godot : \`${nom}\`, tuple littéral, introuvable dans ${module}`)
+  return checker.getTypeArguments(t).flatMap(chaines)
 }
 const objet = (checker, t) => Boolean(t.flags & TypeFlags.Object) && !checker.isArrayType(t) && !checker.isTupleType(t)
 const trie = (valeurs) => [...new Set(valeurs)].sort(parUnitesDeCode)
@@ -106,7 +116,7 @@ function dessinablesDe({ checker, program }, racine) {
 
 /** Les valeurs de chaque famille, par classe, et les listes de l'instanciation des scènes. */
 export function noyauLu(racine = RACINE_DU_DEPOT) {
-  const session = repoProgram(racine, () => [...new Set([...FAMILLES.map((f) => f.module), PONT, ELEMENTS].map((m) => absolu(racine, m)))])
+  const session = repoProgram(racine, () => [...new Set([...FAMILLES.map((f) => f.module), PONT, ELEMENTS, MEMBRES].map((m) => absolu(racine, m)))])
   try {
     const { types, champs } = dessinablesDe(session, racine)
     return {
@@ -119,6 +129,7 @@ export function noyauLu(racine = RACINE_DU_DEPOT) {
         { nom: 'CHAMPS', dit: `Les champs de ce qu'une zone dessine (\`${ELEMENTS}\`)`, valeurs: champs },
         { nom: 'TYPES', dit: `Les types de ce qu'une zone dessine (\`${ELEMENTS}\`)`, valeurs: types },
         { nom: 'TONS', dit: `\`Ton\` (\`${ELEMENTS}\`)`, valeurs: trie(chaines(session.checker.getTypeAtLocation(declaration(session, racine, ELEMENTS, 'Ton').name))) },
+        { nom: 'ZONES_DES_MEMBRES', dit: `\`ZONES_DES_MEMBRES\` (\`${MEMBRES}\`)`, valeurs: trie(tupleDe(session, racine, MEMBRES, 'ZONES_DES_MEMBRES')) },
       ],
     }
   } finally {

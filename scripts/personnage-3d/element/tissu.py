@@ -6,10 +6,9 @@ de liaison `squelette` que bâtit `element/construire.py`.
 silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface), découpe de la
 pièce par zone. Le reste se compose dans le
 modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux orienté vers l'extérieur (`Maillage`),
-des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`).
+des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`) ou une nappe simple (`nappe_simple`).
 """
 import math
-import random
 
 import bmesh
 import bpy
@@ -17,9 +16,10 @@ import numpy as np
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
-from anatomie import attache
-from filets import filets_au_repos
+from anatomie import AXES_DU_PERSONNAGE, attache
+from filets import filets_au_repos, unitaire  # noqa: F401
 from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
+from maille import tirage
 
 BORNES_DES_CLES = (0.4, 2.5)
 """Rapport de longueur d'arête sous une clé transférée (clé / repos) hors duquel `Base.transferer` lisse la clé : marge
@@ -248,10 +248,29 @@ class Base:
         self.emplacements[nom] = {'os': os_, **attache(self.rig.data.bones[os_].matrix_local, repere),
                                   **({'poids': poids} if len(poids) > 1 else {})}
 
-    def nappe(self, nom, X, normales, W, orientes, mat, epaisseur):
+    def offrir_sur(self, nom, point, porteur_):
+        """Offre l'emplacement `nom` au `point` de la surface porteuse `porteur_`, à ses poids sous lui, dans les axes du
+        personnage."""
+        self.offrir(nom, emprunter(point, porteur_)[0], point, np.array(AXES_DU_PERSONNAGE).T)
+
+    def nappe_simple(self, nom, sommets, faces, W, mat, teintes=(), angle_vif=None):
+        """La nappe simple skinnée `nom` : ses `faces` au matériau `mat`, la face k à celui de `teintes[k]` s'il n'est pas
+        `None` (`teindre`), ses poids `W` par os de la base, lisse, hors des arêtes de plus d'`angle_vif` degrés s'il est
+        donné ; chaque sommet est son propre jumeau."""
+        piece = maillage_skinne(nom, sommets, faces, mat, self.rig, poids_normalises(W, self.os))
+        for polygone in piece.data.polygons:
+            polygone.use_smooth = True
+        teindre(piece, teintes)
+        if angle_vif is not None:
+            piece.data.set_sharp_from_angle(angle=math.radians(angle_vif))
+        piece.data.attributes.new(JUMEAU, 'INT', 'POINT')
+        return piece
+
+    def nappe(self, nom, X, normales, W, orientes, mat, epaisseur, matieres=None):
         """La double nappe skinnée `nom` sur la nappe extérieure (positions `X`, `normales`, poids `W` par os de la base,
-        triangles `orientes`), l'intérieure à `epaisseur` en retrait le long des normales."""
-        return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur)
+        triangles `orientes`), l'intérieure à `epaisseur` en retrait le long des normales ; `matieres` : par triangle, le
+        matériau de son endroit et celui de son envers, `None` pour `mat`."""
+        return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur, matieres)
 
     def transferer(self, piece, zones, bornes=BORNES_DES_CLES, masques=()):
         """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` depuis la copie
@@ -375,26 +394,51 @@ def decouper(piece, parties):
 def lambeaux(L, n):
     """La profondeur de chacune des `n` colonnes d'un bord en lambeaux `L` : une pointe sur deux, de 50 à 100 % de
     `profondeur`, l'autre un creux d'au plus `creux` fois la profondeur ; tirage déterministe, graine des codes de
-    caractères de `graine` (procédure, section 6)."""
-    tirage = random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(L['graine'])))
-    return [L['profondeur'] * (tirage.uniform(0.5, 1.0) if j % 2 == 0 else tirage.uniform(0.0, L['creux']))
+    caractères de `graine` (`maille.tirage`)."""
+    hasard = tirage(L['graine'])
+    return [L['profondeur'] * (hasard.uniform(0.5, 1.0) if j % 2 == 0 else hasard.uniform(0.0, L['creux']))
             for j in range(n)]
+
+
+def arbre_de(P, T):
+    """L'arbre de recherche des triangles `T` aux positions `P`."""
+    return BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
+
+
+def sans_les_bras(P, T, x_bras, z_bras):
+    """Les triangles `T` hors des bras et des manches : au-dessus de `z_bras`, ceux dont le centre est à |x| <= `x_bras`."""
+    centres = P[T].mean(axis=1)
+    return T[(centres[:, 2] <= z_bras) | (np.abs(centres[:, 0]) <= x_bras)]
 
 
 def porteur_de(P, T, W):
     """Une surface porteuse : positions `P`, triangles `T`, poids `W` par os de la base et arbre de recherche."""
-    return {'P': P, 'T': T, 'W': W, 'arbre': BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)}
+    return {'P': P, 'T': T, 'W': W, 'arbre': arbre_de(P, T)}
+
+
+def viser(porteur_, origine, direction, portee):
+    """La visée de `origine` + `portee` · `direction` vers `origine` : le point, la normale, la face et la distance de la
+    surface porteuse touchée (`BVHTree.ray_cast`), le point `None` sans surface le long d'elle."""
+    return porteur_['arbre'].ray_cast(Vector((origine + portee * direction).tolist()), Vector((-direction).tolist()),
+                                      portee)
+
+
+def toucher(porteur_, origine, direction, portee):
+    """Le point et la normale sortante de la surface porteuse touchés par la visée (`viser`), `None` sans surface."""
+    touche = viser(porteur_, origine, direction, portee)
+    if touche[0] is None:
+        return None
+    normale = np.array(touche[1])
+    return np.array(touche[0]), normale if normale @ direction > 0 else -normale
 
 
 def sur_le_porteur(porteur_, origine, direction, portee):
-    """Le point et la normale sortante de la surface porteuse touchés par la visée de `origine` + `portee` · `direction`
-    vers `origine`."""
-    touche = porteur_['arbre'].ray_cast(Vector((origine + portee * direction).tolist()), Vector((-direction).tolist()),
-                                        portee)
-    if touche[0] is None:
+    """Le point et la normale sortante de la surface porteuse touchés par la visée (`toucher`) ; sans surface, une
+    erreur."""
+    touche = toucher(porteur_, origine, direction, portee)
+    if touche is None:
         raise ValueError(f'{origine} : aucune surface porteuse le long de {direction}')
-    normale = np.array(touche[1])
-    return np.array(touche[0]), normale if normale @ direction > 0 else -normale
+    return touche
 
 
 def repere_de_plan(normale, haut, signe):
@@ -565,10 +609,24 @@ def maillage_skinne(nom, sommets, faces, mat, rig, poids):
     return obj
 
 
-def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
+def teindre(obj, teintes):
+    """Chaque polygone de `obj` prend le matériau de même rang de `teintes` (`None` : il garde le sien), ajouté à ceux de
+    l'objet à sa première rencontre."""
+    rangs = {}
+    for polygone, teinte in zip(obj.data.polygons, teintes):
+        if teinte is not None:
+            if teinte.name not in rangs:
+                obj.data.materials.append(teinte)
+                rangs[teinte.name] = len(obj.data.materials) - 1
+            polygone.material_index = rangs[teinte.name]
+
+
+def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matieres=None):
     """Deux nappes et leurs bords : chaque sommet porté par plusieurs éventails de triangles est dédoublé par éventail,
     la nappe intérieure est la copie retournée à `epaisseur` le long des normales, chaque arête de bord est fermée ;
-    normales recalculées vers l'extérieur. Nappes et bords sont lisses chacun de son côté d'une arête vive : les coins d'un
+    normales recalculées vers l'extérieur. `matieres` : par triangle, le matériau de sa face d'endroit et celui de sa face
+    d'envers (`None` : `mat`), ajoutés à ceux de l'objet dans l'ordre où les triangles les nomment (`teindre`).
+    Nappes et bords sont lisses chacun de son côté d'une arête vive : les coins d'un
     sommet sur une même face d'un côté portent la même normale au bit près, que l'export glTF fusionne quel que soit
     l'arrondi de la machine ; à plat, les faces presque coplanaires d'un bord donnaient des normales à quelques 1e-5,
     fusionnées ou non selon leur arrondi à 4 décimales (#3865)."""
@@ -597,10 +655,11 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
             for i in eventail:
                 triangles[i] = tuple(double if s == sommet else s for s in triangles[i])
     moitie = len(points)
-    faces, sortes, aretes = [], [], {}
-    for t in triangles:
+    faces, sortes, teintes, aretes = [], [], [], {}
+    for k, t in enumerate(triangles):
         faces.extend((t, tuple(moitie + i for i in reversed(t))))
         sortes.extend((0, 1))
+        teintes.extend(matieres[k] if matieres else (None, None))
         for a, b in zip(t, t[1:] + t[:1]):
             arete = tuple(sorted((a, b)))
             aretes[arete] = aretes.get(arete, 0) + 1
@@ -618,6 +677,7 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
     for polygone, sorte in zip(obj.data.polygons, sortes):
         polygone.material_index = sorte
         polygone.use_smooth = True
+    teindre(obj, teintes)
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     for arete in bm.edges:
@@ -639,7 +699,7 @@ def deplacer_au_plus_pres(source, cible, noms):
     source.data.calc_loop_triangles()
     T = np.array([t.vertices[:] for t in source.data.loop_triangles])
     Xs = np.array([v.co[:] for v in source.data.vertices]) @ Ms[:3, :3].T + Ms[:3, 3]
-    arbre = BVHTree.FromPolygons([tuple(p) for p in Xs], T.tolist(), all_triangles=True)
+    arbre = arbre_de(Xs, T)
     Xc = np.array([v.co[:] for v in cible.data.vertices]) @ Mc[:3, :3].T + Mc[:3, 3]
     idx, bary = [], []
     for p in Xc:

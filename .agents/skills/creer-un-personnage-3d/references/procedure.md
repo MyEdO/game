@@ -261,11 +261,21 @@ revient à l'orchestrateur, qui l'ajoute au kit. Les preuves (rendus, mesures, c
 
 Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, surfaces porteuses, coupes des zones,
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
-`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `Base.nappe`, `lambeaux` pour
-un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
-sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
+`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `unitaire`, `lambeaux` pour
+un ourlet effiloché ; `Base.nappe` pour une double nappe, `Base.nappe_simple` pour une nappe simple, à plusieurs
+matériaux par `teintes` ; `porteur_de` et son `arbre_de` pour une surface porteuse, visée par `viser` (résultat brut),
+`toucher` (point et normale sortante, `None` sans surface) ou `sur_le_porteur` (erreur sans surface) ;
+`Base.offrir_sur` pour offrir un emplacement sur une surface), `maille.py` pour un solide rigide (cylindre, tour à
+sections rondes ou elliptiques, boîte, tube, tore…) et pour l'aléa semé d'un id (`tirage`), `element/lame.py` pour une
+arme à lame et son fourreau (épée,
 dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
-robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
+robe longue fermée sur le filet `jupe` (bure, jupe, pourpoint matelassé) ; un vêtement d'une autre coupe (robe du
+Sorcier, chemise, pourpoint) compose ses pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
+`anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de` ; `element/taille.py` pour
+ce qui ceint la taille sur une robe publiée (cordelière, ceinture à boucle : `axe_du_corps`, `ceindre`),
+`element/tete.py` pour une tête de race sur la couture du cou (un dossier ne porte que son `donnees.py` et
+`from tete import construire`) et
+`element/sangle.py` pour une sangle en bandoulière posée sur la pièce
 qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
@@ -328,7 +338,12 @@ l'os, dans l'ordre des `objets` du preset, sauf sur les cases qu'une pièce offr
 section « Atelier 3D » du contrat du pont). Un objet glissé en travers d'une sangle se centre sur son origine ; une
 arme pend par le haut de son fourreau, poignée au-dessus. Un fourreau est un objet du même GLB qui porte la propriété
 `fourreau` : l'hôte ne le montre que l'arme rangée. Un écart cuit dans l'élément le ferait flotter sur un autre porteur
-(#3743, #3844).
+(#3743, #3844). Cette pose ne vit que dans Godot : `rendu.py --preset <id>` et `npm run godot:evaluer -- … --preset <id>`
+la lui demandent (`hotes/godot/asset/posesDesRanges.mjs`, un lancement de l'éditeur épinglé par appel, sous le verrou
+de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posent chaque rigide rangé où le jeu le pose ;
+la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
+pièce qui offre sa case. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
+chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
@@ -544,7 +559,7 @@ puis restaurer le réglage de revue. Changer la lumière ne corrige pas la forme
 Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, poses et clips utiles,
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
 lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
-(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset`, la pose au `--clip`, et sa `planche.png` porte
+(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset` et y range ses rigides comme le jeu, la pose au `--clip`, et sa `planche.png` porte
 `--illustration` à gauche ; `--cadre x,y,z,étendue` (mètres, repère de `bounds` de `render-report.json`) en fait des gros
 plans. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
@@ -987,7 +1002,7 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 |---|---|---|
 | base hachée et porte complète, chaînes/silhouettes et matrice | constructeur humanoïde, manifeste livré, rapports et revue | L1 |
 | garde-robe (têtes, coiffures, pièces, ensembles) résolvant la clé | données du jeu et identité publiée par le noyau | T |
-| constructeur de l'élément (rigide, skinné ; tête à venir) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`) | #3743, migration des éléments publiés |
+| constructeur de l'élément (rigide, skinné, tête) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`, `tete.py`) | #3743, migration des éléments publiés |
 | couverture, liaison et autres gardes complètes | appels de gardes de l'évaluateur Node | L1 |
 | import contrôlé schéma 3, unicité, rapport de couverture | importeur d'assets et ses tests | L3 |
 | montage par ids, couches et emplacements, contrôles de retrait | pont et hôte Godot | L4 |
