@@ -3,9 +3,9 @@
 couverture `--couverture` de `src/data/materials.json`, dont il est le kit, si elle en a une, les autres de la texture de leur matière,
 rendue seule sur le toit d'école dans le studio de `rendu.py`, de face, de trois-quarts et de dessus
 (`rendu.vues_de_revue`). `planche.png` range la ligne `faitiere`, puis une ligne par faîte de `FAITES` : trois cases
-bout à bout sur deux pans de pentes inégales, la pièce étirée en hauteur de la demi-somme des pentes et cisaillée selon
-le travers de leur demi-écart, comme l'hôte la pose, sur les deux pans qu'elle coiffe, pour voir son raccord et son
-assise. Le GLB et son manifeste se cherchent par id dans chaque dossier de `--modeles` (`rendu.trouver`).
+bout à bout sur deux pans de même pente, la pièce étirée en hauteur à cette pente, sans cisaillement, comme l'hôte la
+pose, sur les deux pans qu'elle coiffe, pour voir son raccord et son assise. Le GLB et son manifeste se cherchent par
+id dans chaque dossier de `--modeles` (`rendu.trouver`).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py <kit> --couverture <id> \\
         --modeles <dossier> --sortie <dossier neuf>
@@ -27,10 +27,9 @@ import rendu  # noqa: E402
 
 CORPS = "corps"
 CASES = 3
-FAITES = {"raide": (1.5, 0.9), "plat": (0.3, 0.7)}
-"""Par ligne de la planche, les pentes (m de hauteur par m de travers) des deux pans d'un faîte, celui du travers
-négatif puis celui du travers positif : un toit raide puis un toit plat, chacun aux pans inégaux, qui éprouvent
-l'étirement et le cisaillement."""
+FAITES = {"raide": 1.5, "plat": 0.3}
+"""Par ligne de la planche, la pente (m de hauteur par m de travers) des deux pans d'un faîte : un toit raide puis un
+toit plat, qui éprouvent l'étirement."""
 DEBORD_DES_PANS = 1.6
 """La largeur des pans montrés sous la pièce, en parts de sa demi-largeur."""
 
@@ -45,13 +44,11 @@ def couleur_de_faitiere(couverture, kit):
     return {CORPS: habillage.couleur_lineaire(matiere["ridgeCap"])} if "ridgeCap" in matiere else {}
 
 
-def pose(pentes, rang, longueur):
-    """La pose de la case de `rang` d'un faîte aux `pentes` (`FAITES`), dans le repère de Blender (z la hauteur, y
-    l'opposé du travers)."""
-    negatif, positif = pentes
+def pose(pente, rang, longueur):
+    """La pose de la case de `rang` d'un faîte à la `pente` (`FAITES`), dans le repère de Blender (z la hauteur) :
+    sa hauteur étirée à la pente."""
     m = Matrix.Translation(((rang - (CASES - 1) / 2) * longueur, 0.0, 0.0))
-    m[2][2] = (negatif + positif) / 2
-    m[2][1] = (positif - negatif) / 2
+    m[2][2] = pente
     return m
 
 
@@ -104,8 +101,8 @@ def main():
     lignes = [rendu.vues_de_revue(rendre, sortie, pieces[0].name, (bas + hautes) / 2, hautes - bas, max(hautes - bas))]
     for o in modele:
         o.hide_render = True
-    for nom, pentes in FAITES.items():
-        faite = [posee(o, pose(pentes, rang, longueur)) for rang in range(CASES) for o in modele]
+    for nom, pente in FAITES.items():
+        faite = [posee(o, pose(pente, rang, longueur)) for rang in range(CASES) for o in modele]
         for o in faite:
             o.hide_render = False
         coin, tete = rendu.bornes(bpy, faite)

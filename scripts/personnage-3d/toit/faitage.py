@@ -5,7 +5,7 @@ l'élément d'un kit (`elements`), par les communs des escaliers (`escalier/vole
 (`arete/geometrie.py`), que ce module met au chemin des modèles.
 
 Repère. La faîtière se bâtit sur un toit d'école, dont chaque pan descend du faîte d'une pente de 1 : l'hôte étire sa
-hauteur et la cisaille selon le travers, aux pentes des deux pans qu'elle coiffe. Dans Blender, x le long du faîte,
+hauteur, sans la cisailler, à la pente des deux pans qu'elle coiffe. Dans Blender, x le long du faîte,
 centré, d'un bout à l'autre de la case ; z la hauteur, 0 sur l'arête du faîte ; y le travers. L'export glTF le place en
 (X, Y, Z) = (x, z, -y) : X de -L/2 à +L/2, Y depuis l'arête du faîte, Z en travers. Un point y est `(a, h, c)` : `a`
 le long du faîte, `h` en hauteur, `c` en travers ; le pan passe en `h = -|c|`. Rien ne descend sous les pans, et le

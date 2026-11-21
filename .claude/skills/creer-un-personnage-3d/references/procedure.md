@@ -942,7 +942,7 @@ bourrelet, scellées d'un solin de mortier de chaque côté) et `chaume` (selle 
 
 **Repère, sur le toit d'école.** X le long du faîte, de -L/2 à +L/2 (une case, 2 m) ; Y la hauteur, 0 sur l'arête du
 faîte ; Z en travers. La pièce se modèle sur deux pans qui descendent du faîte d'une pente de 1 (`faitage.pan`) : l'hôte
-étire Y et la cisaille, Y selon Z, aux pentes des deux pans qu'elle coiffe. Rien n'y suppose donc une pente : le dessous
+étire Y, sans la cisailler, à la pente des deux pans qu'elle coiffe. Rien n'y suppose donc une pente : le dessous
 de la pièce suit les pans, rien ne descend sous eux, et une épaisseur se porte en hauteur (`faitage.plaque`, par sa
 levée au-dessus du pan), jamais d'équerre au pan.
 
@@ -971,7 +971,7 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py
 
 `toit/revue.py` rend la faîtière seule sur le toit d'école, teinte du `ridgeCap` de la couverture `--couverture` dont
 elle est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus, puis une ligne par faîte de `revue.FAITES` :
-trois cases bout à bout sur deux pans inégaux, un toit raide puis un toit plat, la pièce étirée et cisaillée
+trois cases bout à bout sur deux pans de même pente, un toit raide puis un toit plat, la pièce étirée en hauteur
 comme l'hôte la pose, pour voir son raccord et son assise. `npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque
 kit deux fois aux mêmes octets, mesure sa pièce (nœud, repère, budget, coques closes, assise sur les pans, raccord) et
 compare chaque manifeste au publié ; chaque kit qu'une couverture nomme y a son modèle. Une couverture neuve entre

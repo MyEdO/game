@@ -106,21 +106,36 @@ function segmentsDuGroupe(pans: readonly PanDuGroupe[]) {
   return [...atomes.entries()];
 }
 
-/** Les tronçons du faîte axial `a`→`b` (repère des cases centrées) : coupé à chaque bord de case (coordonnée
- *  demi-entière le long de son axe), chaque tronçon long d'une case, sauf à ses bouts ; un tronçon de bout plus court
- *  rejoint son voisin si la pièce qu'ils forment tient dans `TRONCON_MAX`, sinon il garde sa longueur. */
-export function tronconsDuFaite(a: GP, b: GP): [GP, GP][] {
+/** Les tronçons du faîte axial `a`→`b` (repère des cases centrées) dont les cases couvrent, le long de son axe,
+ *  l'étendue `couverte` : coupé à chaque bord de case intérieur à cette étendue (coordonnée demi-entière), chaque
+ *  tronçon long d'une case, sauf à ses bouts, si bien que le débord d'une rive va au tronçon de bout et que chaque
+ *  tronçon traverse une case ; un tronçon de bout plus court qu'une case rejoint son voisin si la pièce qu'ils forment
+ *  tient dans `TRONCON_MAX`, sinon il garde sa longueur. */
+export function tronconsDuFaite(a: GP, b: GP, couverte: readonly [number, number]): [GP, GP][] {
   const selonX = Math.abs(b.x - a.x) > EPS;
   const le = (p: GP) => (selonX ? p.x : p.y);
   const [lo, hi] = [Math.min(le(a), le(b)), Math.max(le(a), le(b))];
   const coupes = [lo];
-  for (let t = Math.floor(lo + 0.5 + EPS) + 0.5; t < hi - EPS; t++) coupes.push(t);
+  for (let t = Math.floor(Math.max(lo, couverte[0]) + 0.5 + EPS) + 0.5; t < Math.min(hi, couverte[1]) - EPS; t++) coupes.push(t);
   coupes.push(hi);
   if (coupes.length > 2 && coupes[1] - coupes[0] < 1 - EPS && coupes[2] - coupes[0] <= TRONCON_MAX + EPS) coupes.splice(1, 1);
   const n = coupes.length;
   if (n > 2 && coupes[n - 1] - coupes[n - 2] < 1 - EPS && coupes[n - 1] - coupes[n - 3] <= TRONCON_MAX + EPS) coupes.splice(n - 2, 1);
   const point = (t: number): GP => (selonX ? { x: t, y: a.y, h: a.h } : { x: a.x, y: t, h: a.h });
   return coupes.slice(1).map((t, i) => [point(coupes[i]), point(t)]);
+}
+
+/** L'étendue, le long de l'axe du faîte `a`→`b`, des cases de `cells` que touche sa droite (repère des cases centrées). */
+function etendueCouverte(a: GP, b: GP, cells: ReadonlySet<string>): [number, number] {
+  const selonX = Math.abs(b.x - a.x) > EPS;
+  const le = [Infinity, -Infinity] as [number, number];
+  for (const cle of cells) {
+    const [x, y] = cle.split(',').map(Number);
+    if (Math.abs((selonX ? y - a.y : x - a.x)) > 0.5 + EPS) continue;
+    le[0] = Math.min(le[0], (selonX ? x : y) - 0.5);
+    le[1] = Math.max(le[1], (selonX ? x : y) + 0.5);
+  }
+  return le;
 }
 
 /** Les cases de `cells` (couche `z`) que traverse le segment `a`→`b` (repère des cases centrées), ses bouts exclus. */
@@ -172,7 +187,7 @@ export function faitesDuGroupe(groupId: string, pans: readonly PanDuGroupe[]): F
     const def = roofMaterial(pan.couverture);
     if (!def.kit || !def.ridgeCap) return [];
     const { kit, ridgeCap } = def;
-    return tronconsDuFaite(a, b).map(([ta, tb]): Faitiere => {
+    return tronconsDuFaite(a, b, etendueCouverte(a, b, pan.cells)).map(([ta, tb]): Faitiere => {
       const cases = casesDuSegment(ta, tb, pan.cells, pan.z);
       return {
         cle: `faite|${groupId}|${cle3(ta)}|${cle3(tb)}`,

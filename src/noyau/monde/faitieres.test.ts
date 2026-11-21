@@ -66,6 +66,16 @@ describe('faitieresDeLaScene — le faîte d’un pignon (#4471)', () => {
     expect(bouts(faitieresDeLaScene(sceneDe(masse({ profile: 'hip' }))))).toEqual([[3, 4.5], [4.5, 6]]);
   });
 
+  it('le débord d’une rive, si long soit-il, va au tronçon de bout : chaque faîtière traverse une case', () => {
+    const chaume = { ...sceneDe(masse({ material: { id: 'chaume' } })), metresPerTile: 1 };
+    const e = roofMaterial('chaume').eaveOverhangM! / 1;
+    const faitieres = faitieresDeLaScene(chaume);
+    for (const f of faitieres) expect(f.cases.length, f.cle).toBeGreaterThan(0);
+    const b = bouts(faitieres);
+    expect(b[0][0]).toBeCloseTo(1.5 - e, 9);
+    expect(b[b.length - 1][1]).toBeCloseTo(7.5 + e, 9);
+  });
+
   it('un appentis et une terrasse n’ont aucun faîte', () => {
     expect(faitieresDeLaScene(sceneDe(masse({ profile: 'shed', eaveSide: 'N' })))).toEqual([]);
     expect(faitieresDeLaScene(sceneDe(masse({ profile: 'flat' })))).toEqual([]);
@@ -77,16 +87,16 @@ describe('tronconsDuFaite — une pièce par case (#4471)', () => {
   const longueurs = (t: [{ x: number }, { x: number }][]) => t.map(([a, b]) => b.x - a.x);
 
   it('un faîte de 3 cases donne 3 tronçons d’une case, contigus, sans recouvrement', () => {
-    const t = tronconsDuFaite(p(4.5), p(1.5));
+    const t = tronconsDuFaite(p(4.5), p(1.5), [1.5, 4.5]);
     expect(longueurs(t)).toEqual([1, 1, 1]);
     t.forEach(([a], i) => expect(a.x).toBe(i === 0 ? 1.5 : t[i - 1][1].x));
     expect(t.every(([a, b]) => a.h === 7 && b.h === 7)).toBe(true);
   });
 
   it('un bout plus court qu’une case rejoint son voisin dans la borne d’étirement, sinon garde sa longueur', () => {
-    expect(longueurs(tronconsDuFaite(p(1.5), p(4)))).toEqual([1, 1.5]);
-    expect(longueurs(tronconsDuFaite(p(1.5), p(3.37)))).toEqual([1, 0.87].map((l) => expect.closeTo(l, 9)));
-    expect(longueurs(tronconsDuFaite(p(2), p(2.5)))).toEqual([0.5]);
+    expect(longueurs(tronconsDuFaite(p(1.5), p(4), [1.5, 4.5]))).toEqual([1, 1.5]);
+    expect(longueurs(tronconsDuFaite(p(1.5), p(3.37), [1.5, 3.5]))).toEqual([1, 0.87].map((l) => expect.closeTo(l, 9)));
+    expect(longueurs(tronconsDuFaite(p(2), p(2.5), [1.5, 2.5]))).toEqual([0.5]);
   });
 });
 
