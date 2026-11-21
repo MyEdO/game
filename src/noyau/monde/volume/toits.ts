@@ -275,10 +275,14 @@ function ecartDEnveloppe(field: RoofField, v: VXY): number | undefined {
   return field.propre ? heightOfBase(field, v) - fieldHeightAt(field.propre, v) : undefined;
 }
 
+/** Un pan servi : sa face de pente (`face`), ses faces (la sienne, puis les soffites et fascias de ses rives et
+ *  égouts) et le GRADIENT de son plan (`gx`, `gy` : montée en mètres par case vers +x et +y). */
 export interface RoofPanGeometry {
   id: string;
   face: Face;
   faces: Face[];
+  gx: number;
+  gy: number;
 }
 
 /** Pièce PLANE du pavage (quad de cellule coplanaire, ou triangle issu d'une selle), sommets en ordre
@@ -551,6 +555,7 @@ export function roofPans(
   //    partagée dans le groupe apparaît dans les deux sens), chaînage en boucle(s), simplification.
   const toGP = (v: VXY) => ({ x: v.x - 0.5, y: v.y - 0.5, h: hV(v) });
   const faces: Face[] = [];
+  const gradients = new Map<Face, { gx: number; gy: number }>();
   for (const members of groups.values()) {
     const dirSet = new Map<string, [VXY, VXY]>();
     for (const i of members)
@@ -582,8 +587,11 @@ export function roofPans(
         loops.push(simplifyLoop(loop));
       }
     }
-    for (const loop of loops)
-      faces.push({ poly: loop.map(toGP), material: { domain: 'roof', id: matId, part }, oriented: false }); // nappe OUVERTE
+    for (const loop of loops) {
+      const face: Face = { poly: loop.map(toGP), material: { domain: 'roof', id: matId, part }, oriented: false }; // nappe OUVERTE
+      faces.push(face);
+      gradients.set(face, { gx, gy });
+    }
   }
 
   // ── ÉGOUTS : arêtes de bord du toit (une seule pièce), fusionnées par droite. Une arête de bord qui
@@ -613,14 +621,21 @@ export function roofPans(
   //    posé APRÈS le pavage et la fusion, il ne perturbe pas les pans. Un égout est
   //    axis-aligné (empreinte = union de cellules) et sa normale SORTANTE (⊥ à l'égout, opposée au
   //    centroïde de l'empreinte) coïncide avec la ligne de plus grande pente du pan → soffite COPLANAIRE.
-  //    Les bouts sont prolongés d'`overhang` LE LONG de l'égout : aux angles convexes, deux soffites/
-  //    fascias voisins se RECOUVRENT (même ton) au lieu de laisser un trou — coin fermé, net à toute vue.
+  //    Les bouts sont prolongés d'`overhang` LE LONG de l'égout, à sa pente (nulle sur un égout, celle du
+  //    rampant sur une rive de pignon, dont le débord reste ainsi dans le plan de son pan) : aux angles
+  //    convexes, deux soffites/fascias voisins se RECOUVRENT (même ton) au lieu de laisser un trou — coin
+  //    fermé, net à toute vue. Un bout que continue un autre égout de la même droite (le sommet d'un
+  //    pignon, où ses deux rampants se rejoignent en chevron) ne se prolonge pas.
   if (eave && eave.overhang > EPS) {
     const e = eave.overhang;
     let cX = 0, cY = 0;
     for (const k of cells) { const [x, y] = k.split(',').map(Number); cX += x; cY += y; }
     cX /= cells.size; cY /= cells.size; // centroïde d'empreinte (repère GP : centre de cellule = (cx,cy))
-    for (const { a, b } of egouts) {
+    const continue_ = (s: { a: GP; b: GP }, p: GP): boolean => egouts.some((o) => o !== s
+      && ((o.a.x === p.x && o.a.y === p.y) || (o.b.x === p.x && o.b.y === p.y))
+      && Math.abs((o.b.x - o.a.x) * (s.b.y - s.a.y) - (o.b.y - o.a.y) * (s.b.x - s.a.x)) < EPS);
+    for (const s of egouts) {
+      const { a, b } = s;
       const dx = b.x - a.x, dy = b.y - a.y;
       const len = Math.hypot(dx, dy);
       if (len < EPS) continue;
@@ -635,8 +650,10 @@ export function roofPans(
         return onPlane(a) && onPlane(b);
       });
       const lift = e * ((plane?.gx ?? 0) * nx + (plane?.gy ?? 0) * ny);
-      const a2: GP = { x: a.x - ux * e, y: a.y - uy * e, h: a.h }; // bord intérieur, prolongé aux angles
-      const b2: GP = { x: b.x + ux * e, y: b.y + uy * e, h: b.h };
+      const pente = (b.h - a.h) / len;
+      const ea = continue_(s, a) ? 0 : e, eb = continue_(s, b) ? 0 : e;
+      const a2: GP = { x: a.x - ux * ea, y: a.y - uy * ea, h: a.h - pente * ea }; // bord intérieur, prolongé aux angles
+      const b2: GP = { x: b.x + ux * eb, y: b.y + uy * eb, h: b.h + pente * eb };
       const aO: GP = { x: a2.x + nx * e, y: a2.y + ny * e, h: a2.h + lift };
       const bO: GP = { x: b2.x + nx * e, y: b2.y + ny * e, h: b2.h + lift };
       faces.push({ poly: [a2, b2, bO, aO], material: { domain: 'roof', id: matId, part: 'soffite' }, oriented: false });
@@ -670,6 +687,7 @@ export function roofPans(
     return {
       id: `${part.toLowerCase()}-${n}`,
       face,
+      ...gradients.get(face)!,
       faces: [
         face,
         ...faces.filter((candidate) => candidate !== face
@@ -1266,6 +1284,19 @@ export const resolveNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<strin
   return out;
 });
 
+/** Les pans de chaque nappe de `scene`, par `nappeKey` : `roofPans` de ses cellules sur le champ de son groupe, à
+ *  l'avant-toit de sa couverture (`eaveOverhangM` en cases, `fasciaDropM`). SOURCE UNIQUE des pans que servent
+ *  `buildRoofs` et des faîtes qu'en tire `../faitieres.ts`. Mémoïsés par scène et version des datasets (`memoByRef`). */
+export const pansDesNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<string, RoofPanGeometry[]> => {
+  const out = new Map<string, RoofPanGeometry[]>();
+  for (const [cle, { cells, mass, field }] of resolveNappes(scene)) {
+    const def = roofMaterial(mass.material.id);
+    const eave = { overhang: (def.eaveOverhangM ?? 0) / sceneMetresPerTile(scene), fasciaDrop: def.fasciaDropM ?? 0 };
+    out.set(cle, roofPans(cells, mass.material.id, eave, field.shape, field).pans);
+  }
+  return out;
+});
+
 /** Éléments `roof` de la scène, DÉRIVÉS des masses de bâtiment. Les corps se lisent par
  *  `effectiveArchitecture` (`noyau/sceneEdit.ts`) : les masses `derived` se RECALCULENT du plan à
  *  chaque construction — toute mutation de plan (pièce, case, étage, exclusion) fait suivre la
@@ -1305,14 +1336,11 @@ function roofGeometry(scene: SceneDesToits): Viewed<RoofEl, ClearedSpace>[] {
       // case de brouillard : une nappe ne porte pas de voile, elle est peinte ou elle ne l'est pas.
       const space = { sectionId: mass.id, roomZoneIds, cells: massSpaceCells(mass, cells) };
       const rule: ViewRule<ClearedSpace> = { kind: 'contexte', truth: (cleared) => cutawayForSection(space, cleared) === 'hidden' };
-      const def = roofMaterial(mass.material.id);
-      const eave = { overhang: (def.eaveOverhangM ?? 0) / sceneMetresPerTile(scene), fasciaDrop: def.fasciaDropM ?? 0 };
       const sectionCells = [...cells].map((key) => {
         const [x, y] = key.split(',').map(Number);
         return { x, y };
       });
-      const geometry = roofPans(cells, mass.material.id, eave, field.shape, field);
-      for (const pan of geometry.pans) {
+      for (const pan of pansDesNappes(scene).get(nappeKey(body.id, mass.id))!) {
         const panCellsList = panCells(pan.face, sectionCells);
         const minX = Math.min(...panCellsList.map((cell) => cell.x));
         const minY = Math.min(...panCellsList.map((cell) => cell.y));

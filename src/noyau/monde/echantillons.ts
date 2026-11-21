@@ -25,12 +25,13 @@ import {
   setEdgeWall,
   setReliefDefault,
 } from '../sceneEdit';
-import { emptyScene, setStructureDown, type Scene, type WallSeg, type WallSide } from './scene';
+import { canonEdge, emptyScene, setStructureDown, type CellSide, type Scene, type WallSeg, type WallSide } from './scene';
 import { memoByDeps } from './sceneMemo';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainKitDEscalier, terrainSolidHeightM } from './terrain';
 import { aretesDeLaScene, plateauDeLaScene, type AreteDessinee } from './aretes';
 import { cotesDeMarchesDeLaScene, type CoteDeMarches } from './cotesDeMarches';
+import { faitieresDeLaScene, type Faitiere } from './faitieres';
 import { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type NappeDuMonde, type VolumeDuMonde } from './volume/volume';
 
 /** Une famille d'échantillons : les décors (`props.json`), les sols (`terrains.json`, hors de l'absence de sol,
@@ -47,11 +48,12 @@ export interface FamilleDEchantillons {
 }
 
 /** Un échantillon dessiné : ce que le jeu sert à son hôte pour une scène, son volume, ses arêtes, ses côtés de
- *  marches, ses nappes de toit, ses couronnes crénelées et celles qui tombent avec leur mur. */
+ *  marches, ses faîtières, ses nappes de toit, ses couronnes crénelées et celles qui tombent avec leur mur. */
 export interface EchantillonDessine {
   monde: VolumeDuMonde;
   aretes: AreteDessinee[];
   cotesDeMarches: CoteDeMarches[];
+  faitieres: Faitiere[];
   toits: NappeDuMonde[];
   couronnes: NappeDuMonde[];
   couronnesAbattues: string[];
@@ -102,15 +104,28 @@ function sceneDuRelief(id: string): Scene {
   return paintHeight(tablier, { x: 5, y: 1 }, METRES_PER_LEVEL, 1, 1);
 }
 
-/** Les quatre profils de toit (`roofProfileSchema`) côte à côte, chacun la masse non carrée d'un corps, couverte de la
- *  matière `id` ; l'appentis égoutte du premier côté que le schéma nomme (`eaveSideSchema`). */
+/** Les murs du pourtour de l'emprise `foot` sur la couche 0, de la façade d'un pan posé à l'éditeur
+ *  (`semencesDeScene.facade`) : ceux que prolongent les pignons d'un toit. */
+function murerLEmprise(scene: Scene, foot: { x: number; y: number; w: number; h: number }): Scene {
+  const cotes: { x: number; y: number; side: CellSide }[] = [];
+  for (let x = foot.x; x < foot.x + foot.w; x++) cotes.push({ x, y: foot.y, side: 'N' }, { x, y: foot.y + foot.h - 1, side: 'S' });
+  for (let y = foot.y; y < foot.y + foot.h; y++) cotes.push({ x: foot.x, y, side: 'O' }, { x: foot.x + foot.w - 1, y, side: 'E' });
+  return cotes.reduce((s, { x, y, side }) => {
+    const arete = canonEdge(x, y, side);
+    return patchWall(setEdgeWall(s, x, y, side, 0, 'wall'), arete.x, arete.y, arete.side, 0, { appearance: semencesDeScene.facade.id });
+  }, scene);
+}
+
+/** Les quatre profils de toit (`roofProfileSchema`) côte à côte, chacun la masse non carrée d'un corps muré
+ *  (`murerLEmprise`), couverte de la matière `id` ; l'appentis égoutte du premier côté que le schéma nomme
+ *  (`eaveSideSchema`). Le pignon y montre ses rives et sa faîtière son faîte. */
 function sceneDuToit(id: string): Scene {
   const profils = roofProfileSchema.options;
   const pied = { w: 2, h: 3 };
   const scene = sceneVide(BORD + profils.length * (pied.w + BORD), pied.h + 2 * BORD);
   return profils.reduce((s, profile, rang) => {
     const foot = { x: BORD + rang * (pied.w + BORD), y: BORD, ...pied };
-    const corps = addArchitectureBody(s, undefined, foot);
+    const corps = addArchitectureBody(murerLEmprise(s, foot), undefined, foot);
     const masse = addBuildingMass(corps.scene, corps.id, foot, 0)!;
     return patchBuildingMass(masse.scene, corps.id, masse.id, { profile, material: { id }, ...(profile === 'shed' ? { eaveSide: eaveSideSchema.options[0] } : {}) });
   }, scene);
@@ -196,5 +211,5 @@ export function echantillonDessine(familleOuScene: FamilleDEchantillon | Scene, 
   const scene = typeof familleOuScene === 'string' ? sceneDEchantillon(familleOuScene, idOuDecors as string) : familleOuScene;
   const decorsServis = typeof idOuDecors === 'string' ? undefined : idOuDecors;
   const { couronnesAbattues } = plateauDeLaScene(scene, [], 'immersion');
-  return { monde: volumeDuMonde(scene, decorsServis), aretes: aretesDeLaScene(scene), cotesDeMarches: cotesDeMarchesDeLaScene(scene), toits: toitsDuMonde(scene, decorsServis), couronnes: couronnesDuMonde(scene), couronnesAbattues };
+  return { monde: volumeDuMonde(scene, decorsServis), aretes: aretesDeLaScene(scene), cotesDeMarches: cotesDeMarchesDeLaScene(scene), faitieres: faitieresDeLaScene(scene), toits: toitsDuMonde(scene, decorsServis), couronnes: couronnesDuMonde(scene), couronnesAbattues };
 }

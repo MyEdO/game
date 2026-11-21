@@ -53,7 +53,7 @@ func _recetter() -> void:
 	print("[cotes-de-marches] %d côtés de la famille %s, modèles d'escalier servis au figé : %s" % [cotes.size(), famille, servis])
 	for metres_par_case: float in PLATEAUX:
 		var volume := _volume_de_test(metres_par_case, famille, echelles[0].famille)
-		volume.poser_les_aretes([], cotes)
+		volume.poser_les_aretes([], cotes, [])
 		_des_cotes(volume, cotes, "test, %.0f m par case" % metres_par_case)
 		_aux_noeuds_de_leur_place(volume, cotes, "test, %.0f m par case" % metres_par_case)
 		_sans_modele(volume, cotes)
@@ -64,7 +64,7 @@ func _recetter() -> void:
 	MontageDeComposition.retenir_les_modeles(decor.modeles, decor.listage)
 	for servie: String in servis:
 		var volume := ARETE.volume_neuf(_scene(), PLATEAUX[0])
-		volume.poser_les_aretes([], cotes.map(func(c: Dictionary) -> Dictionary: return c.merged({famille = servie}, true)))
+		volume.poser_les_aretes([], cotes.map(func(c: Dictionary) -> Dictionary: return c.merged({famille = servie}, true)), [])
 		await volume.attendre_les_aretes()
 		_des_cotes(volume, cotes, "servi %s" % servis[servie])
 	for faute in _fautes:
@@ -196,7 +196,7 @@ func _aux_noeuds_de_leur_place(volume: VolumeDeScene, cotes: Array, moment: Stri
 ## Les côtés `cotes` d'une famille qu'aucun modèle ne sert, posés sur `volume` avec les autres : aucun groupe de plus.
 func _sans_modele(volume: VolumeDeScene, cotes: Array) -> void:
 	var avant := volume.get_node("Aretes").get_child_count()
-	volume.poser_les_aretes([], cotes + cotes.map(func(c: Dictionary) -> Dictionary: return c.merged({famille = FAMILLE_SANS_MODELE, cle = c.cle + "|sans"}, true)))
+	volume.poser_les_aretes([], cotes + cotes.map(func(c: Dictionary) -> Dictionary: return c.merged({famille = FAMILLE_SANS_MODELE, cle = c.cle + "|sans"}, true)), [])
 	var apres := volume.get_node("Aretes").get_child_count()
 	if apres != avant:
 		_fautes.append("côtés sans modèle servi : %d groupes, attendu les %d des côtés servis, aucune boîte" % [apres, avant])
@@ -206,7 +206,7 @@ func _sans_modele(volume: VolumeDeScene, cotes: Array) -> void:
 ## cases qu'elle sépare.
 func _de_l_echelle(volume: VolumeDeScene, echelle: Dictionary) -> void:
 	volume._modeles_d_arete[MODELE_D_ARETE] = _modele_de_test([Noyau.Piece.ECHELLE])
-	volume.poser_les_aretes([echelle], [])
+	volume.poser_les_aretes([echelle], [], [])
 	var groupes := volume.get_node("Aretes").get_children()
 	if groupes.size() != 1:
 		_fautes.append("échelle : %d groupes posés, attendu 1" % groupes.size())

@@ -389,7 +389,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
   MaterialEntry: [
-    'E', 'O', 'S', 'built', 'foot', 'metalness', 'palette', 'ridgeCap', 'roughness', 'shadeDark', 'vueDeDessus',
+    'E', 'O', 'S', 'built', 'foot', 'metalness', 'palette', 'roughness', 'shadeDark', 'vueDeDessus',
   ],
   PlanDEspece: ['corps', 'echelle', 'famille', 'omis'],
   PsychologyData: ['stakeForm'],

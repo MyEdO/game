@@ -580,5 +580,29 @@
     "source": "https://ambientcg.com/view?id=ThatchedRoof001A (ThatchedRoof001A_1K-JPG.zip : ThatchedRoof001A_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "structure--mur-en-bois.neutre.jpg": {
+    "sha256": "d2ac025155d0df17b6528f08421c9af587ba931c19921d29f963d58f860f9242",
+    "source": "https://ambientcg.com/view?id=WoodSiding001 (WoodSiding001_1K-JPG.zip : WoodSiding001_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "structure--mur-en-bois.normale.jpg": {
+    "sha256": "04d890241995f33713f666c3012324ed61990502fe3c8f59dfa006450280cd52",
+    "source": "https://ambientcg.com/view?id=WoodSiding001 (WoodSiding001_1K-JPG.zip : WoodSiding001_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "structure--mur-a-ossature-en-bois.neutre.jpg": {
+    "sha256": "d2ac025155d0df17b6528f08421c9af587ba931c19921d29f963d58f860f9242",
+    "source": "https://ambientcg.com/view?id=WoodSiding001 (WoodSiding001_1K-JPG.zip : WoodSiding001_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "structure--mur-a-ossature-en-bois.normale.jpg": {
+    "sha256": "04d890241995f33713f666c3012324ed61990502fe3c8f59dfa006450280cd52",
+    "source": "https://ambientcg.com/view?id=WoodSiding001 (WoodSiding001_1K-JPG.zip : WoodSiding001_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   }
 }

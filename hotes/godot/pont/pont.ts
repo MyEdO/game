@@ -70,6 +70,8 @@ import {
   aretesDeLaScene,
   cotesDeMarchesDeLaCouche,
   cotesDeMarchesDeLaScene,
+  faitieresDeLaScene,
+  type Faitiere,
   type AreteDessinee,
   type CoteDeMarches,
   type Combatant,
@@ -1535,12 +1537,25 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * rampe ; l'hôte pose chaque pièce au nœud `<pièce>--<position>` de son kit s'il en est un, sinon `<pièce>` ;
      * comme une arête, les cases qu'il
      * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
-     * son pied, la cote de son milieu, et le bloc de sa case
+     * son pied, la cote de son milieu, et le bloc de sa case.
+     * `{ faitieres }` : les faîtes des nappes de toit de la scène (`faitieresDeLaScene`, `src/noyau/monde/faitieres.ts`),
+     * vides sans scène, sous la même clé de relecture. Chacun : `{ cle, nappe, cases, couverture, famille, piece,
+     * position, palette, milieu, sens, pied, entree, sortie, bloc, gradient, ecart }`, la nappe dont il tombe
+     * (`nappeKey`, levée par `toitsLeves`), les cases qu'il couvre, la couverture de sa nappe et la famille de son kit
+     * de toit (`kit` de `materials.json`), sa pièce (`faitiere`, `Noyau.PieceDeToit`) à la place `seule`, sa palette
+     * (`corps`, le `ridgeCap` de la couverture) ; comme une arête, son milieu et son sens, sa cote en mètres à ses deux
+     * bouts et au milieu, le bloc de sa première case ; le gradient moyen de ses deux pans `{ x, y }` et la
+     * demi-différence de leurs pentes (`ecart`), en mètres par case : l'hôte cisaille la pièce du gradient et ouvre son
+     * V de l'écart, chaque bras épousant un pan
      */
-    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[] } {
+    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; faitieres: Faitiere[] } {
       entreeDe('aretes', json, []);
       const scene = demarree().partie.etat().scene;
-      return { aretes: scene ? aretesDeLaScene(scene) : [], cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [] };
+      return {
+        aretes: scene ? aretesDeLaScene(scene) : [],
+        cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [],
+        faitieres: scene ? faitieresDeLaScene(scene) : [],
+      };
     },
     /**
      * un geste : `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue ; une offre se
@@ -1956,10 +1971,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
      * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, cotesDeMarches, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
+     * @returns `{ monde, aretes, cotesDeMarches, faitieres, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
      * d'échantillon que le noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie
      * (`echantillonDessine`, surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son
-     * plateau au regard `immersion` et ses côtés de marches (`aretes`, section « Vue »), ses nappes de toit, ses
+     * plateau au regard `immersion`, ses côtés de marches et ses faîtières (`aretes`, section « Vue »), ses nappes de toit, ses
      * couronnes, les clés des couronnes que sa brèche abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
      * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
      * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme

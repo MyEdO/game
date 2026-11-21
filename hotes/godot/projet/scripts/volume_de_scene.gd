@@ -51,10 +51,12 @@ const SANS_CASE := INF
 ## Les sortes de ce que le volume pose sur les arêtes, par catalogue des modèles servis (`MontageDeComposition.modeles`) :
 ## les arêtes (`aretes`, méthode `aretes`), étirées à la hauteur de leur mur, en boîte sans modèle lu qui ait leur pièce ;
 ## les côtés de marches (`escaliers`, `cotesDeMarches` de la méthode `aretes`), à la hauteur de leur modèle, rien sans
-## modèle lu qui ait leur pièce.
+## modèle lu qui ait leur pièce ; les faîtières (`toits`, `faitieres` de la méthode `aretes`), leur V ouvert à l'écart des
+## pentes de leurs deux pans, rien sans modèle lu qui ait leur pièce.
 const SORTES := {
-	aretes = {etiree = true, repli = true},
-	escaliers = {etiree = false, repli = false},
+	aretes = {echelle = "mur", repli = true},
+	escaliers = {echelle = "modele", repli = false},
+	toits = {echelle = "pente", repli = false},
 }
 
 ## Ce qui se pose sur une arête sans modèle d'arête lu qui ait sa pièce : un mur, une porte fermée, le seuil d'une
@@ -742,28 +744,32 @@ func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 	(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
 
 
-## Les arêtes `aretes` et les côtés de marches `cotes` (`CONTRAT.md`, méthode `aretes`), chacun sur le côté de sa
-## case, debout à son pied (`_poses_de`), en groupes d'instances : les poses de même catalogue, `bloc`, `famille`,
-## `piece`, `position`, `sens`, `hauteurM` et `palette`, dans l'ordre reçu, une instance chacune de chaque maillage de
+## Les arêtes `aretes`, les côtés de marches `cotes` et les faîtières `faitieres` (`CONTRAT.md`, méthode `aretes`),
+## chacun sur le côté de sa case ou sur son faîte, debout à son pied (`_poses_de`), en groupes d'instances : les poses
+## de même catalogue, `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM`, `ecart` et `palette`, dans l'ordre reçu, une instance chacune de chaque maillage de
 ## leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les groupes sont réconciliés par clé (`reconcilier`) : un
 ## groupe dont les poses n'ont pas changé à la même échelle reste, un groupe changé (une porte ouverte quitte un groupe
 ## et en rejoint un autre) est refait, un groupe parti quitte l'arbre. Une pose dont la famille a un modèle servi
 ## (`modele_servi`) ne se pose qu'une fois ce modèle lu : il se lit une fois les autres posées
 ## (`_lire_le_modele_d_arete`), et les poses reçues se reposent à sa lecture ; celle d'un modèle illisible se pose en
 ## boîte, sans relire le modèle, si sa sorte se replie (`SORTES`), sinon pas du tout.
-func poser_les_aretes(aretes: Array, cotes: Array) -> void:
-	_poser(_poses_de(aretes, cotes))
+func poser_les_aretes(aretes: Array, cotes: Array, faitieres: Array) -> void:
+	_poser(_poses_de(aretes, cotes, faitieres))
 
 
 ## Les poses des arêtes `aretes`, chacune elle-même, de son catalogue `aretes`, à plat (de `entree` à `sortie`, toutes
-## deux à son pied), et celles des côtés de marches `cotes`, une par pièce de chacun (`pieces`), de son catalogue
+## deux à son pied), celles des côtés de marches `cotes`, une par pièce de chacun (`pieces`), de son catalogue
 ## `escaliers`, à la place de sa rampe dans sa suite de rampes (`position`), sans palette, montant de son `entree` à
-## sa `sortie` le long de son `sens`.
-static func _poses_de(aretes: Array, cotes: Array) -> Array:
-	var poses := aretes.map(func(a: Dictionary) -> Dictionary: return a.merged({catalogue = "aretes", entree = a.pied, sortie = a.pied}))
+## sa `sortie` le long de son `sens`, toutes deux sans gradient ni écart ; et celles des faîtières `faitieres`, chacune
+## elle-même, de son catalogue `toits`, cisaillée de son `gradient`, son V ouvert de son `ecart`.
+static func _poses_de(aretes: Array, cotes: Array, faitieres: Array) -> Array:
+	var a_plat := {gradient = {x = 0.0, y = 0.0}, ecart = 0.0}
+	var poses := aretes.map(func(a: Dictionary) -> Dictionary: return a.merged(a_plat.merged({catalogue = "aretes", entree = a.pied, sortie = a.pied})))
 	for c: Dictionary in cotes:
 		for piece: String in c.pieces:
-			poses.append(c.merged({catalogue = "escaliers", piece = piece, palette = {}, hauteurM = 0.0}))
+			poses.append(c.merged(a_plat.merged({catalogue = "escaliers", piece = piece, palette = {}, hauteurM = 0.0})))
+	for f: Dictionary in faitieres:
+		poses.append(f.merged({catalogue = "toits", hauteurM = 0.0}))
 	return poses
 
 
@@ -783,8 +789,8 @@ func _poser(poses: Array) -> void:
 				continue
 		elif not SORTES[a.catalogue].repli:
 			continue
-		var cle := "%s|%s|%s|%s|%s|%s|%s|%s|%s" % [a.catalogue, a.bloc, a.famille, a.piece, a.position, a.sens.x, a.sens.y,
-			a.hauteurM, a.palette]
+		var cle := "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s" % [a.catalogue, a.bloc, a.famille, a.piece, a.position, a.sens.x, a.sens.y,
+			a.hauteurM, a.ecart, a.palette]
 		groupes.get_or_add(cle, []).append(a)
 	reconcilier(_aretes, groupes.keys().map(func(cle: String) -> Dictionary: return {cle = cle, empreinte = [groupes[cle], metres_par_case]}), groupes, _groupe)
 	_montrer_le_pose()
@@ -818,7 +824,7 @@ func _ecarter_les_modeles_d_arete(demandes: Dictionary) -> bool:
 	return lectures_ecartees
 
 
-## L'id de l'élément servi au catalogue `catalogue` (`SORTES` : `aretes` ou `escaliers` de la réponse de `modeles`
+## L'id de l'élément servi au catalogue `catalogue` (`SORTES` : `aretes`, `escaliers` ou `toits` de la réponse de `modeles`
 ## retenue, `MontageDeComposition.modeles`) pour la famille de kit `famille`, vide sans lui.
 static func modele_servi(catalogue: String, famille: Variant) -> String:
 	return MontageDeComposition.modeles.get(catalogue, {}).get(famille, "")
@@ -926,13 +932,13 @@ func _montrer_le_pose() -> void:
 
 
 ## Ce qui est posé : le nombre de triangles peints des morceaux posés, masqués compris, d'arêtes posées et de pièces
-## de côtés de marches posées (les poses de chaque groupe, par catalogue, `SORTES`), de nappes de toit posées, et de
+## de côtés de marches et de faîtières posées (les poses de chaque groupe, par catalogue, `SORTES`), de nappes de toit posées, et de
 ## couronnes montrées.
 func ce_qui_est_pose() -> Dictionary:
 	var triangles := 0
 	for morceau: Node3D in _morceaux.get_children():
 		triangles = int(MiseEnPage.triangles_de_plus(triangles, (morceau.get_node("Vu") as MeshInstance3D).mesh.get_faces().size()))
-	var poses := {aretes = [], escaliers = []}
+	var poses := {aretes = [], escaliers = [], toits = []}
 	for groupe: Node3D in _aretes.get_children():
 		var de_groupe: Array = groupe.get_meta("aretes")
 		poses[de_groupe[0].catalogue].append_array(de_groupe)
@@ -940,6 +946,7 @@ func ce_qui_est_pose() -> Dictionary:
 		triangles = triangles,
 		aretes = poses.aretes.size(),
 		cotesDeMarches = poses.escaliers.size(),
+		faitieres = poses.toits.size(),
 		toits = _toits.get_child_count(),
 		couronnes = _couronnes.get_children().filter(func(couronne: Node3D) -> bool: return couronne.visible).size(),
 	}
@@ -1114,8 +1121,8 @@ static func texturer(materiau: Material, nom: String, albedo: Texture2D, projete
 ## et `palette`, `_poser`), à l'origine de `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur
 ## pièce : celle du modèle lu de leur famille à leur catalogue (`modele_servi`) à leur position, s'il l'a
 ## (`noeud_de_la_piece`), peinte de leur palette (`piece_peinte`), le +Z de son repère vers le dehors de l'arête,
-## étirée sur leur longueur et mise à la hauteur de leur mur, ou à celle du modèle pour une sorte qui ne s'étire pas
-## (`SORTES`, `MiseEnPage.echelle_d_arete_servie`) ; sinon leur boîte (`_boite`) si leur sorte se replie, aucun nœud
+## étirée sur leur longueur et mise à la hauteur de leur mur, à celle du modèle, ou à l'écart des pentes d'un faîte selon
+## leur sorte (`SORTES`, `MiseEnPage.echelle_d_arete_servie`, `MiseEnPage.echelle_de_faitiere`) ; sinon leur boîte (`_boite`) si leur sorte se replie, aucun nœud
 ## sinon. Chaque maillage devient deux instances groupées de même place (`_instances`), une par pose : `Vu_<maillage>`,
 ## que la caméra voit sans qu'il porte d'ombre, de son maillage teint (`_maillage_teint`), et `Ombre_<maillage>`, en
 ## ombre seule (`SHADOWS_ONLY`, #3758), de son maillage. Les poses vont en méta (`aretes`), et la couleur de chaque
@@ -1134,7 +1141,8 @@ func _groupe(aretes: Array) -> Node3D:
 	var socle := 0.0
 	if not noeud.is_empty():
 		var taille := taille_du_modele_d_arete(modele)
-		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM if sorte.etiree else taille.y, taille.x, taille.y, metres_par_case)
+		var etirement := MiseEnPage.echelle_de_faitiere(sens, a.ecart, taille.x, metres_par_case) if sorte.echelle == "pente" \
+			else MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM if sorte.echelle == "mur" else taille.y, taille.x, taille.y, metres_par_case)
 		groupe.scale = etirement
 		groupe.add_child(piece_peinte(modele, noeud, a.palette, etirement).duplicate())
 	else:
@@ -1218,11 +1226,11 @@ func _instances(maillage: MeshInstance3D, mesh: Mesh, nom: String, ombre: Geomet
 ## `cachees`, absente d'un groupe neuf).
 func _ecrire_les_instances(groupe: Node3D) -> void:
 	var aretes: Array = groupe.get_meta("aretes")
-	var cachees := aretes.filter(func(a: Dictionary) -> bool: return _cachees.aretes.has(a.cle))
+	var cachees := aretes.filter(_cachee)
 	var cles := cachees.map(func(a: Dictionary) -> String: return a.cle)
 	if groupe.has_meta("cachees") and groupe.get_meta("cachees") == cles:
 		return
-	var ordre := aretes.filter(func(a: Dictionary) -> bool: return not _cachees.aretes.has(a.cle))
+	var ordre := aretes.filter(func(a: Dictionary) -> bool: return not _cachee(a))
 	var montrees := ordre.size()
 	ordre.append_array(cachees)
 	for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
@@ -1237,6 +1245,11 @@ func _ecrire_les_instances(groupe: Node3D) -> void:
 	_a_teindre[groupe] = true
 	if _part_du_fondu != 1.0 and _change_d_etat(groupe):
 		_du_fondu[groupe] = true
+
+
+## Si la pose `a` est cachée à la caméra (`cacher`) : une faîtière avec sa nappe (`nappe`), toute autre par sa clé.
+func _cachee(a: Dictionary) -> bool:
+	return _cachees.toits.has(a.nappe) if a.has("nappe") else _cachees.aretes.has(a.cle)
 
 
 ## Chaque instance vue du groupe `groupe` (`Vu_<maillage>`) de la teinte de l'arête de son rang (méta `ordre`,
@@ -1290,12 +1303,12 @@ func _maillage_teint(mesh: Mesh) -> Mesh:
 
 ## Le repère, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de
 ## l'instance de la pose `a` : sa pièce posée au centre de l'arête (`MiseEnPage.centre_d_arete`, à son socle),
-## cisaillée autour de lui de sa pente le long de son sens (`MiseEnPage.pente_d_arete`), ses montants restant
-## verticaux. Lu par des témoins sans calcul : `place`, à la place des instances sous `Aretes` ; `cisaillee`, ce
+## cisaillée autour de lui de sa pente le long de son sens et en travers de son gradient (`MiseEnPage.pente_de_pose`),
+## ses montants restant verticaux. Lu par des témoins sans calcul : `place`, à la place des instances sous `Aretes` ; `cisaillee`, ce
 ## cisaillement au centre de l'arête sous `Aretes`, portant `posee` à cette place ; `lue`, sous les instances, à la place
 ## de `posee`.
 func transform_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Transform3D:
-	var pente := MiseEnPage.pente_d_arete(Vector2(a.sens.x, a.sens.y), a.entree, a.sortie, metres_par_case)
+	var pente := MiseEnPage.pente_de_pose(Vector2(a.sens.x, a.sens.y), a.entree, a.sortie, Vector2(a.gradient.x, a.gradient.y), metres_par_case)
 	var place := Node3D.new()
 	var cisaillee := Node3D.new()
 	var posee := Node3D.new()

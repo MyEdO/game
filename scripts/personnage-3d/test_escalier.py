@@ -16,7 +16,7 @@ import unittest
 import numpy as np
 
 import reconstruction
-from banc_des_kits import ICI, SEPARATEUR, TOLERANCE, DesKits, triangles_du_noeud
+from banc_des_kits import ICI, SEPARATEUR, TOLERANCE, DesKits, section, triangles_du_noeud
 from script_node import lancer
 
 FAMILLE = 'escalier'
@@ -54,11 +54,6 @@ def vides(piece, milieu, bouts, demi):
     if milieu and 1 not in bouts:
         joints.append(float(demi - piece[-1][1] + milieu[0][0] + demi))
     return entre + [joint for joint in joints if joint > TOLERANCE]
-
-
-def section(sommets, bout):
-    """La section (Y, Z au millimètre) des `sommets` à l'abscisse `bout`."""
-    return {(round(float(y), 3), round(float(z), 3)) for x, y, z in sommets if abs(x - bout) < TOLERANCE}
 
 
 def bouts_de(nom):

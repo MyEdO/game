@@ -26,22 +26,25 @@ describe('apparence de toit (JSON pur iso/plan)', () => {
     for (const id of ['tuile', 'chaume', 'toit-ardoise']) expect(roofMaterial(id).line, id).toBeTruthy();
   });
 
-  it('avant-toit (VOLUME) : débord + soffite sur les 3 couvertures ; fascia dure sauf chaume ; couronnement tuile/ardoise', () => {
+  it('avant-toit (VOLUME) : débord + soffite et faîtière sur les 3 couvertures ; fascia dure sauf chaume', () => {
     for (const id of ['tuile', 'chaume', 'toit-ardoise']) {
       const m = roofMaterial(id);
       expect(m.eaveOverhangM ?? 0, id).toBeGreaterThan(0); // le toit déborde des murs
       expect(m.soffite, id).toBeTruthy(); // ton du dessous ombré
     }
-    // Chaume = bord arrondi : PAS de fascia dure ni de couronnement de faîte (crête molle).
+    // Chaume = bord arrondi : PAS de fascia dure.
     expect(roofMaterial('chaume').fasciaDropM).toBeUndefined();
     expect(roofMaterial('chaume').fascia).toBeUndefined();
-    expect(roofMaterial('chaume').ridgeCap).toBeUndefined();
-    // Tuile & ardoise : fascia dure (planche de rive) + couronnement de faîte.
+    // Tuile & ardoise : fascia dure (planche de rive).
     for (const id of ['tuile', 'toit-ardoise']) {
       expect(roofMaterial(id).fasciaDropM ?? 0, id).toBeGreaterThan(0);
       expect(roofMaterial(id).fascia, id).toBeTruthy();
-      expect(roofMaterial(id).ridgeCap, id).toBeTruthy();
     }
+  });
+
+  it('chaque couverture nomme la famille du kit de sa faîtière et sa teinte (#4471)', () => {
+    expect(Object.fromEntries(matieresDe('roof').filter((m) => m.couverture).map((m) => [m.id, m.kit]))).toEqual({ chaume: 'chaume', 'toit-ardoise': 'ardoise', tuile: 'tuile' });
+    for (const m of matieresDe('roof').filter((x) => x.couverture)) expect(m.ridgeCap, m.id).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   it('id absent du registre → entrée de REPLI VISIBLE au ton d’alarme (#877)', () => {
