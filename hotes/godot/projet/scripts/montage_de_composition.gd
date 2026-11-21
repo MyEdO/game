@@ -1130,7 +1130,7 @@ static func _la_plus_lourde(parts: Dictionary) -> Variant:
 static func _porte_range(rangee: Dictionary, pose: Transform3D, os: Transform3D) -> Dictionary:
 	var piece: MeshInstance3D = rangee.piece
 	var noeud: Node3D = rangee.noeud
-	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(), element = "", piece = piece, membres = PackedInt32Array(),
+	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(), element = "", membres = PackedInt32Array(),
 		vers_le_mesh = [os.affine_inverse(), pose.affine_inverse(), noeud.global_transform, piece.global_transform.affine_inverse()],
 		vers_le_squelette = [piece.global_transform, noeud.global_transform.affine_inverse(), pose, os]}
 

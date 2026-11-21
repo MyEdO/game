@@ -50,10 +50,7 @@ func _poser() -> void:
 	erreurs.append_array(montage.erreurs)
 	var releve := {pieces = [], poses = []}
 	if montage.squelette != null:
-		_poser_le_corps(montage, commande.montes, commande.instants[0], erreurs)
-		var cibles := montage.cibles()
-		for ligne: String in cibles:
-			await montage.monter(ligne, cibles[ligne].element, erreurs)
+		await monter_sur_le_corps(montage, commande.montes, commande.instants[0], erreurs)
 		releve = await relever(self, montage, commande.montes, commande.instants, erreurs)
 	var sortie := FileAccess.open(arguments[1], FileAccess.WRITE)
 	if sortie == null:
@@ -102,6 +99,15 @@ static func relever(arbre: SceneTree, montage: MontageDeComposition, montes: Arr
 			await arbre.process_frame
 		poses.append(meshes.map(func(mesh: MeshInstance3D) -> Variant: return _matrice(mesh.global_transform) if mesh.is_visible_in_tree() else null))
 	return {pieces = pieces, poses = poses}
+
+
+## Sur `montage`, le corps de l'instant `instant` posé (`_poser_le_corps`), puis chaque cible des `montes` montée, qui
+## range ses objets sur ce corps, comme le personnage du jeu (`Combattant._composer`) ; les erreurs vont à `erreurs`.
+static func monter_sur_le_corps(montage: MontageDeComposition, montes: Array, instant: Dictionary, erreurs: Array[String]) -> void:
+	_poser_le_corps(montage, montes, instant, erreurs)
+	var cibles := montage.cibles()
+	for ligne: String in cibles:
+		await montage.monter(ligne, cibles[ligne].element, erreurs)
 
 
 ## La composition des `montes` au corps de l'instant `instant` : son gabarit (aucun s'il n'en a pas) et ses morphes.
