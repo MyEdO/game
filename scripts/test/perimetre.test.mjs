@@ -1428,12 +1428,14 @@ test('part CI NÉGATIVE (anomalie d’ordonnancement) : « non séparable », ja
 })
 
 test('#4621 --liste produit le même plan avec une prise propre ou empruntée en lecture seule', async (t) => {
+  const testDuBalayage = 'scripts/a.test.mjs'
+  const testNonSuivi = 'scripts/neuf.test.mjs'
   const racine = forger(t, {
-    'scripts/a.test.mjs': "import {readFileSync} from 'node:fs';readFileSync('donnees/a.json')",
+    [testDuBalayage]: "import {readFileSync} from 'node:fs';readFileSync('donnees/a.json')",
     'donnees/a.json': '{}',
   }, {
     'donnees/a.json': '{"a":1}',
-    'scripts/neuf.test.mjs': "throw new Error('la liste ne joue pas ce témoin')\n",
+    [testNonSuivi]: "throw new Error('la liste ne joue pas ce témoin')\n",
   }, { commiter: false })
   const empreintes = () => new Map(readdirSync(racine, { recursive: true }).filter((r) => statSync(join(racine, r)).isFile())
     .sort().map((r) => [r, createHash('sha256').update(readFileSync(join(racine, r))).digest('hex')]))
@@ -1448,10 +1450,11 @@ test('#4621 --liste produit le même plan avec une prise propre ou empruntée en
   const avant = empreintes()
   assert.equal(await principal(args, racine, { env, verrou }), 0, erreurs.join('\n'))
   const planPropre = plan()
-  assert.match(planPropre.join('\n'), /sélection : 2 fichier\(s\) retenu\(s\) sur 3/)
-  assert.match(planPropre.join('\n'), /scripts\/a\.test\.mjs ← racine balayée/)
-  assert.match(planPropre.join('\n'), /scripts\/neuf\.test\.mjs ← touché.*→ lancé/)
-  assert.match(planPropre.join('\n'), /budget 45 s de mur/)
+  const journalDuPlan = planPropre.join('\n')
+  assert.match(journalDuPlan, /sélection : 2 fichier\(s\) retenu\(s\) sur 3/)
+  assert.ok(planPropre.some((ligne) => ligne.startsWith('  ' + testDuBalayage + ' ← racine balayée')), journalDuPlan)
+  assert.ok(planPropre.some((ligne) => ligne.startsWith('  ' + testNonSuivi + ' ← touché') && ligne.endsWith('→ lancé')), journalDuPlan)
+  assert.match(journalDuPlan, /budget 45 s de mur/)
   assert.deepEqual(empreintes(), avant)
 
   const prise = prendreVerrou({ ...verrou, attente: undefined, env })
