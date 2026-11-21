@@ -384,10 +384,13 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
   const FERMES_AU_GESTE: Readonly<Record<string, RegExp | null>> = {
     'src/data/advancementCosts.json': /ne couvrent pas/,
     'src/data/ambiance.json': /doivent croître STRICTEMENT/,
+    'src/data/astrology.json': /ne couvrent pas/,
     'src/data/calendarPhases.json': /portent le même seuil/,
     'src/data/cargaisons-aleatoires.json': /est déjà tirée par|ne couvrent pas/,
     'src/data/especes-aleatoires.json': /un seul document par jeu de races/,
     'src/data/dispersion.json': /ne couvrent pas/,
+    'src/data/eyes.json': /ne couvrent pas/,
+    'src/data/hairs.json': /ne couvrent pas/,
     'src/data/reaction-au-statut.json': /ne couvrent pas/,
     'src/data/tableau-capricieux.json': /ne couvrent pas/,
     'src/data/merchantFamilies.json': /est classée par/,
