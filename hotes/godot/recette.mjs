@@ -355,6 +355,9 @@ const sansRendu = o.natif && !o.rendu
 const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] }, preparation: preparation && resolve(preparation) })
 const noter = (t) => console.log('·', t)
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
+/** Le texte du nord de l'inspecteur de la scène après « +15° » depuis `texte` : 15° depuis le haut du plan, sinon le
+ *  nord tourné de 15°, borné à 345° (`PAS_DU_NORD`, `src/hote/editeur.ts`). */
+const nordTourne = (texte) => `Nord : ${texte === 'Nord : vers le haut du plan' ? 15 : Math.min(Number(/\d+/.exec(texte)[0]) + 15, 345)}° dans le sens horaire`
 const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
 /** L'attente la plus longue d'une publication : une vue se publie à l'image qui suit sa mise en page, après que le pont
  *  l'a rendue. */
@@ -2729,15 +2732,16 @@ async function parcoursEditeur() {
   noter(`éditeur ouvert : ${e.zones['editeur.titre'][0].texte}, couches ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
   await capturer('3508-l1-1-ouverte')
   const nord = () => e.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte
-  assert.equal(nord(), 'Nord : vers le haut du plan', 'sans sélection, l’inspecteur est celui de la scène')
+  const nordInitial = nord()
+  assert.match(nordInitial ?? '', /^Nord : /, 'sans sélection, l’inspecteur est celui de la scène')
   await cliquerAuPanneau({ element: 'bouton/scene/nord/plus' })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : 15° dans le sens horaire'`)
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === ${JSON.stringify(nordTourne(nordInitial))}`)
   e = await editeur()
-  noter(`inspecteur de la scène, « +15° » : ${nord()}`)
+  noter(`inspecteur de la scène, « +15° » : ${nordInitial} → ${nord()}`)
   await capturer('3508-l6-1-scene')
   await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : vers le haut du plan'`)
-  noter('« Annuler » : le nord rendu au haut du plan')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === ${JSON.stringify(nordInitial)}`)
+  noter(`« Annuler » : le nord rendu à ${nordInitial}`)
   const message = 'Au relais\nEn route'
   const formulaireDuMessage = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'valeur/startMessage/texte')`
   assert.equal(boutonDeLEditeur(await editeur(), 'valeur/startMessage/ajouter')?.libelle, 'Ajouter : message de départ', 'la Diligence n’a pas de message de départ')
@@ -3355,13 +3359,14 @@ async function parcoursEditeur() {
   noter(`« Retirer la scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée`)
   const ecrite = e.zones['editeur.titre'][0].texte
   const nordDe = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte`
+  const nordEcrit = await lire(nordDe)
   await cliquerAuPanneau({ element: 'bouton/scene/nord/plus' })
-  await waitFor(session, `${nordDe} === 'Nord : 15° dans le sens horaire'`)
+  await waitFor(session, `${nordDe} === ${JSON.stringify(nordTourne(nordEcrit))}`)
   const ailleurs = avantLAjout.find((b) => b.libelle !== ecrite)
   await choisirALaListe('scenes', ailleurs.id, 'editeur.scenes', `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === ${JSON.stringify(ailleurs.libelle)}`)
   await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === ${JSON.stringify(ecrite)} && ${nordDe} === 'Nord : vers le haut du plan'`)
-  noter(`« +15° » sur ${ecrite}, ${ailleurs.libelle} choisie à la liste des scènes, « Annuler » : ${ecrite} éditée, le nord rendu au haut du plan`)
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === ${JSON.stringify(ecrite)} && ${nordDe} === ${JSON.stringify(nordEcrit)}`)
+  noter(`« +15° » sur ${ecrite}, ${ailleurs.libelle} choisie à la liste des scènes, « Annuler » : ${ecrite} éditée, le nord rendu à ${nordEcrit}`)
   await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
   const ecranNeuf = await ecran()
