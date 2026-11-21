@@ -68,7 +68,10 @@ import {
   meteoDuRegard,
   aretesDeLaCouche,
   aretesDeLaScene,
+  cotesDeMarchesDeLaCouche,
+  cotesDeMarchesDeLaScene,
   type AreteDessinee,
+  type CoteDeMarches,
   type Combatant,
   naviresDeLaScene,
   stationsDuNavire,
@@ -1503,7 +1506,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * pied, piece, position, famille, palette, hauteurM, bloc }`, sa clé `edgeKey`, les cases `{ x, y, z }` qu'elle
      * sépare, dans la carte, à sa couche (`casesDeFace`, une ou deux : celle dont elle borde un côté, puis sa voisine),
      * son milieu et le sens où elle court, en coins de grille (`wallEnds`), celui de son ouverture, son dehors
-     * (`outwardSide`, `src/noyau/monde/volume/ornements.ts`), s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en
+     * (`outwardSide`, `src/noyau/monde/volume/ornements.ts` ; pour une échelle, la plus basse des cases qu'elle sépare),
+     * s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en
      * mètres d'où elle se dresse, celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`,
      * `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou ouverte, la brèche d'une structure abattue,
      * une fenêtre aux volets ouverts ou clos, sinon un mur ; sa place dans son ouverture, la suite d'arêtes alignées
@@ -1514,13 +1518,29 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * son ouverture pour une porte en jeu, `null` pour une apparence hors du catalogue ; par emplacement de palette, la
      * couleur `#rrggbb` de sa partie de mur dans cette apparence, celles du mur (`corps`, `bois`, `joint`, `gravats`)
      * dans celle du mur qui la porte (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la
-     * hauteur de son mur en mètres, `wallHeightM` sinon un étage ; son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`,
-     * `src/noyau/monde/volume/volume.ts`)
+     * hauteur de son mur en mètres, `wallHeightM` sinon un étage, le dénivelé des cases qu'elle sépare pour une échelle ;
+     * son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`, `src/noyau/monde/volume/volume.ts`).
+     * `{ cotesDeMarches }` : les côtés des cases de marches de la scène (`cotesDeMarchesDeLaScene`,
+     * `src/noyau/monde/cotesDeMarches.ts`), vides sans scène, sous la même clé de relecture. Chacun : `{ cle, case,
+     * cote, classe, pieces, entree, sortie, famille, position, cases, milieu, sens, pied, bloc }`, sa clé
+     * `marches|x,y,z|côté`, sa case `{ x, y, z }`, son côté (`N`, `E`, `S`, `O`), de travers à l'axe où monte la case ;
+     * sa classe, `rejointe` (une voisine rejointe à pied, plus basse ou égale, à au plus `STEP_MAX_M` sous chaque bout
+     * du bord) ou `vide` (une falaise, une case absente, une voisine plus basse), et ses pièces (`limon`, puis `rampe`
+     * pour le vide, `Noyau.PieceDEscalier`) ; les cotes en mètres du bord du dessus de la case à son premier bout
+     * (`entree`) et à son second (`sortie`) dans son sens, que partage la case voisine sur l'axe ; la famille du kit
+     * d'escalier de son terrain (`kitDEscalier` de `terrains.json`) ; la place de sa rampe dans la suite des côtés à
+     * rampe bout à bout de même côté de case, de même couche et de même famille (`Noyau.Position`), rangée dans leur
+     * sens : `gauche` au premier, dont le bout -X de la pièce, X le long du sens, est l'`entree`, `droite` au dernier,
+     * dont le bout +X est la `sortie`, `milieu` entre eux, `seule` pour une rampe sans voisine et pour un côté sans
+     * rampe ; l'hôte pose chaque pièce au nœud `<pièce>--<position>` de son kit s'il en est un, sinon `<pièce>` ;
+     * comme une arête, les cases qu'il
+     * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
+     * son pied, la cote de son milieu, et le bloc de sa case
      */
-    aretes(json): { aretes: AreteDessinee[] } {
+    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[] } {
       entreeDe('aretes', json, []);
       const scene = demarree().partie.etat().scene;
-      return { aretes: scene ? aretesDeLaScene(scene) : [] };
+      return { aretes: scene ? aretesDeLaScene(scene) : [], cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [] };
     },
     /**
      * un geste : `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue ; une offre se
@@ -1698,7 +1718,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * listage (`GET modeles/listage.json`, section « Atelier 3D »)
      *
      * @returns `{ bases, fichiers, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
-     * ameliorations, decors, aretes }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
+     * ameliorations, decors, aretes, escaliers }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
      * état du pont, que lisent `composer`, le corps de chaque combattant et la sélection des décors. Chaque appel
      * rétablit la disponibilité des modèles écartés par `retablirDecors`. Avant ou après `demarrer`.
      */
@@ -1936,11 +1956,11 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
      * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène d'échantillon que le
-     * noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie (`echantillonDessine`,
-     * surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard
-     * `immersion` (`aretes`, section « Vue »), ses nappes de toit, ses couronnes, les clés des couronnes que sa brèche
-     * abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
+     * @returns `{ monde, aretes, cotesDeMarches, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
+     * d'échantillon que le noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie
+     * (`echantillonDessine`, surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son
+     * plateau au regard `immersion` et ses côtés de marches (`aretes`, section « Vue »), ses nappes de toit, ses
+     * couronnes, les clés des couronnes que sa brèche abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
      * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
      * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme
      * la famille) et sur une saison inconnue (le message les nomme) ; avant ou après `demarrer`
@@ -1992,9 +2012,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ, ou, d'un retrait déclaré de son porteur, l'objet ou l'élément entier (section « Éditeur »)
      *
-     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, decors?, depot?, essai?,
-     * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
-     * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, cotesDeMarches?, navires?,
+     * decors?, depot?, essai?, planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du
+     * chapitre que la session se met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
      * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
      * embuscade de route de la carte du monde), comme un formulaire refusé et un enregistrement que la porte refuse ;
      * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade ; ouvrir la carte du
@@ -2073,6 +2093,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
           monde: manifesteDe(volumeDuMonde(vue, decorsDePrise(selection)), publierLeMonde('edition', vue, selection)),
           retrait: retraitDuMonde(vue, session.z),
           aretes: aretesDeLaCouche(vue, session.z),
+          cotesDeMarches: cotesDeMarchesDeLaCouche(vue, session.z),
           navires: naviresServis(vue),
           decors: decorsServis(vue, selection, null),
         } : {}),

@@ -36,6 +36,10 @@ export const kitSchema = enumNomme({
   porterie: 'Porterie', cloture: 'Clôture', herse: 'Herse', terrassement: 'Terrassement',
 });
 
+/** La famille du kit 3D d'escalier d'un terrain bâti : le modèle `escalier--<famille>` dont l'hôte habille les côtés de
+ *  ses cases de marches (#4471, `terrains.json`). */
+export const kitDEscalierSchema = enumNomme({ bois: 'Bois', pierre: 'Pierre' });
+
 const doc = document(
   'structureAppearance',
   famille,

@@ -27,6 +27,7 @@ export const FAMILLES = [
   { classe: 'IssueDuCoup', module: 'src/noyau/effetsDeLAppel.ts', type: 'IssueDuCoup' },
   { classe: 'Variante', module: 'src/noyau/effetsDeLAppel.ts', type: 'VarianteDeVitrine' },
   { classe: 'Piece', module: 'src/noyau/monde/aretes.ts', type: 'PieceDArete' },
+  { classe: 'PieceDEscalier', module: 'src/noyau/monde/cotesDeMarches.ts', type: 'PieceDEscalier' },
   { classe: 'Position', module: 'src/noyau/monde/aretes.ts', type: 'PositionDansLOuverture' },
   { classe: 'TypeDeSaisie', module: 'src/hote/elements.ts', type: 'Saisie', champ: 'type' },
 ]

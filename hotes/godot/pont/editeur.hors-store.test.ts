@@ -14,8 +14,15 @@
 import { describe, expect, it } from 'vitest';
 import { avecLeSaisonnier, avecLesSeulsDecors, enSaison, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
 import type { DecorServi, MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
-import { UNITES_DU_PLAN_DE_CARTE, type AreteDessinee, type RetraitDuMonde, type Scene } from '../../../src/noyau/index';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
+import {
+  UNITES_DU_PLAN_DE_CARTE,
+  cotesDeMarchesDeLaCouche,
+  type AreteDessinee,
+  type CoteDeMarches,
+  type RetraitDuMonde,
+  type Scene,
+} from '../../../src/noyau/index';
+import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -41,6 +48,7 @@ interface Edition {
   monde?: NonNullable<MondeDuPont['monde']>;
   retrait?: RetraitDuMonde;
   aretes?: AreteDessinee[];
+  cotesDeMarches?: CoteDeMarches[];
   navires?: Record<string, NavireServi>;
   decors?: Record<string, DecorServi>;
   depot?: { id: string; texte: string };
@@ -179,6 +187,15 @@ describe('l’éditeur de carte par le pont', () => {
     const retiree = presser(boutonDe(presser(boutonDe(auRez, `couche/${z}`)), 'couche/retirer'));
     expect([boutonDe(retiree, 'couche/0').presse, retiree.vue.couche]).toEqual([true, 0]);
     expect(() => boutonDe(retiree, `couche/${z}`)).toThrow();
+  });
+});
+
+describe('l’éditeur de carte par le pont, les côtés de marches (#4471)', () => {
+  it('l’ouverture rend avec le monde les côtés des cases de marches de la couche éditée', () => {
+    const { appel } = table();
+    const ouverte = editionDe(appel('editer', { ouvrir: 'la-diligence' }));
+    expect(ouverte.cotesDeMarches!.length, 'les volées de la cour du relais').toBeGreaterThan(0);
+    expect(ouverte.cotesDeMarches).toEqual(cotesDeMarchesDeLaCouche(paquetDuJeu(diligenceCampaign).scenes[0], ouverte.vue.couche));
   });
 });
 

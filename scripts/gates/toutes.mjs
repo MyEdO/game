@@ -564,13 +564,13 @@ export const ECRIT_LU = {
       'scripts/personnage-3d/__pycache__/':
         'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
         'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé » ; ' +
-        'les constructions que `test_vehicule.py`, `test_decor.py`, `test_arete.py` et `test_element.py` lancent ' +
+        'les constructions que `test_vehicule.py`, `test_decor.py`, `test_arete.py`, `test_escalier.py` et `test_element.py` lancent ' +
         'en sous-processus n’en écrivent pas ' +
         '(`PYTHONDONTWRITEBYTECODE`)',
     },
     lit: ['scripts/personnage-3d/', 'hotes/godot/asset/charger.mjs', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
       'src/data/materials.json', 'src/data/props.json', 'src/data/props.types.ts', 'src/data/structureAppearance.json',
-      'src/data/vehicles.json', 'src/geometry/dir8.ts', 'src/noyau/monde/piecesDArete.ts', 'src/noyau/monde/relief.ts'],
+      'src/data/terrains.json', 'src/data/vehicles.json', 'src/geometry/dir8.ts', 'src/noyau/monde/piecesDArete.ts', 'src/noyau/monde/relief.ts'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
@@ -585,7 +585,11 @@ export const ECRIT_LU = {
       '`decor/polygones.mjs`), `test_arete.py` les arêtes d’`arete/`, d’après la forme des apparences de ' +
       '`src/data/structureAppearance.json` et la hauteur d’un niveau (`METRES_PER_LEVEL` de ' +
       '`src/noyau/monde/relief.ts`, que lance `arete/niveau.mjs`) et les pièces d’une arête (`PIECES_D_ARETE` de ' +
-      '`src/noyau/monde/piecesDArete.ts`, que lance `arete/pieces.mjs`), et `test_element.py` les éléments ' +
+      '`src/noyau/monde/piecesDArete.ts`, que lance `arete/pieces.mjs`) et leurs places dans une suite ' +
+      '(`POSITIONS_DANS_L_OUVERTURE` du même module, que lance `arete/positions.mjs`), `test_escalier.py` les escaliers d’`escalier/` ' +
+      'et les pièces d’un côté de marches (`PIECES_D_ESCALIER` du même module, que lance `escalier/pieces.mjs`), ' +
+      'chaque famille de kit d’escalier qu’un terrain nomme (`kitDEscalier` de `src/data/terrains.json`) ayant son modèle, ' +
+      'tous deux sous les gardes communes aux kits de pièces de `banc_des_kits.py`, et `test_element.py` les éléments ' +
       'sur base d’`element/`, sur les GLB ' +
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
       'dans la lane) ; tous comparent ' +

@@ -99,6 +99,8 @@ const NOMMES = [
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
   'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement',
+  // `kitDEscalierSchema` (#4471) : la famille du kit 3D d'escalier d'un terrain bâti (`terrains.json`).
+  'bois|pierre',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',

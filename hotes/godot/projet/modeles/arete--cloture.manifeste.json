@@ -34,13 +34,18 @@
       "matiere": "prop--fer-noirci"
     },
     {
+      "nom": "echelle",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
       "nom": "gravats",
       "palette": "gravats",
       "matiere": "prop--bois-mort"
     }
   ],
   "glb": {
-    "sha256": "fd644e1b5a72321b68e0fc96ef673dd24b4898138b2d5fceec81d6c5f9719d0d",
-    "octets": 301332
+    "sha256": "bdb932d4676f79acf5af8556978387dee6e329f37f517413e5fe8392e0f6cdf0",
+    "octets": 308732
   }
 }

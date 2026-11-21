@@ -2115,8 +2115,9 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * z, nom, choisi }` (plusieurs peuvent tenir dans une case : deux décors calés, un objet posé sur une table ; l'hôte y
  * montre la plaque de la sélection et joint leurs noms) (`prop`, `personnage`, `heroStart` ou `entree`, son nom comme à
  * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée hors des ponts des
- * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), rendues avec `monde`, comme `navires`, les navires de la
- * scène sous la forme de `corps.navires`, et `decors`, ses décors servis sous celle de `corps.decors` (section « Corps
+ * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), `cotesDeMarches` les côtés des cases de
+ * marches de la couche éditée (`cotesDeMarchesDeLaCouche`, chacun comme la méthode `aretes` le sert), rendues avec
+ * `monde`, comme `navires`, les navires de la scène sous la forme de `corps.navires`, et `decors`, ses décors servis sous celle de `corps.decors` (section « Corps
  * d'un combattant »). `monde` porte le manifeste du volume du monde de
  * la vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), comme `monde.monde` (section « Monde ») ;
  * `morceaux`, source `edition`, en sert la géométrie. `retrait` porte le masque des couches au-dessus de la couche

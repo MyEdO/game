@@ -691,6 +691,18 @@ export function climbEdgeBetween(
   return climbAt(scene, e.x, e.y, e.side, Math.min(a.z ?? 0, b.z ?? 0));
 }
 
+/** Les mètres que franchit l'escalade de `from` à `to` à travers leur arête (`climbEdgeBetween`) : l'écart de leurs sols
+ *  (`heightAt`), dans les deux sens. PUR. */
+export function metresDEscalade(scene: Pick<Scene, 'dimensions' | 'layers'>, from: { x: number; y: number; z?: number }, to: { x: number; y: number; z?: number }): number {
+  return Math.abs(heightAt(scene, to.x, to.y, to.z ?? 0) - heightAt(scene, from.x, from.y, from.z ?? 0));
+}
+
+/** Le pied de l'escalade de `from` à `to` à travers leur arête (`climbEdgeBetween`) : celle des deux cases dont le sol
+ *  (`heightAt`) est le plus bas, `from` à égalité. PUR. */
+export function piedDEscalade<P extends { x: number; y: number; z?: number }>(scene: Pick<Scene, 'dimensions' | 'layers'>, from: P, to: P): P {
+  return heightAt(scene, to.x, to.y, to.z ?? 0) < heightAt(scene, from.x, from.y, from.z ?? 0) ? to : from;
+}
+
 /** Clé de flag d'état d'une porte (`scene.flags`) — `true` = OUVERTE, `false` = FERMÉE (override runtime
  *  de l'état authored `closed`). Absent du flag = défaut authored (`!closed`). */
 export function doorKey(x: number, y: number, side: WallSide, z = 0): string {

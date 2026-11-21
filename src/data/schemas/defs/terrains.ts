@@ -22,6 +22,7 @@ import { document } from '../grammaire/document';
 import { GLYPHES_RESERVES, glyphesReservesEnClair } from '../grammaire/carte-ascii';
 import { couleurHexSchema, detailRecipeSchema } from '../grammaire/valeurs';
 import { ref, refs } from '../grammaire/ref';
+import { kitDEscalierSchema } from './structureAppearance';
 
 export const file = 'terrains.json';
 export const famille = 'entite';
@@ -60,6 +61,7 @@ const doc = document(
     overlayProps: refs('prop', { min: 1 }).optional(),
     solidHeightM: z.number().positive().optional(),
     matiere: ref('material', undefined, 'relief').optional(),
+    kitDEscalier: kitDEscalierSchema.optional(),
   },
   {
     walkable: { label: 'Franchissable', hint: 'Le terrain se traverse à pied' },
@@ -101,6 +103,10 @@ const doc = document(
     matiere: {
       label: 'Matière des flancs du bloc',
       hint: 'Matière de relief (`materials.json`) peinte sur les faces verticales du bloc plein — à renseigner si et seulement si le terrain porte une hauteur de bloc plein',
+    },
+    kitDEscalier: {
+      label: 'Famille du kit d’escalier',
+      hint: 'Les pièces 3D (limon, rampe) que l’hôte Godot pose sur les côtés d’une volée de ce terrain — à renseigner si et seulement si le terrain est bâti sans bloc plein',
     },
   },
   {
@@ -159,7 +165,7 @@ const doc = document(
     // (`terrainStopsOrdonnes`, `src/noyau/monde/terrain/index.ts`).
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id?: unknown; stops?: unknown; solidHeightM?: unknown; matiere?: unknown };
+        const e = v as { id?: unknown; stops?: unknown; solidHeightM?: unknown; matiere?: unknown; built?: unknown; kitDEscalier?: unknown };
         // La MATIÈRE des flancs (#1691) n'existe que là où il y a des flancs : `solidHeightM` ⇔
         // `matiere`. Sans cette équivalence, un bloc muet reviendrait à laisser le builder choisir.
         const nom = typeof e.id === 'string' ? e.id : '?';
@@ -174,6 +180,17 @@ const doc = document(
             code: 'custom',
             path: ['matiere'],
             message: `terrain « ${nom} » : \`matiere\` peint les flancs d'un BLOC PLEIN — sans \`solidHeightM\`, ce terrain n'en a aucun`,
+          });
+        // Les MARCHES ne se dessinent que sur un sol bâti qu'on rejoint à pied (`dessusDe`, `rejointAPied`,
+        // `src/noyau/monde/volume/pente.ts`) : la famille du kit d'escalier ⇔ `built` sans `solidHeightM`.
+        const porteDesMarches = e.built === true && e.solidHeightM === undefined;
+        if (porteDesMarches !== (e.kitDEscalier !== undefined))
+          ctx.addIssue({
+            code: 'custom',
+            path: ['kitDEscalier'],
+            message: porteDesMarches
+              ? `terrain « ${nom} » : un terrain BÂTI sans bloc plein porte des marches — il EXIGE la famille de son kit d'escalier (\`kitDEscalier\`)`
+              : `terrain « ${nom} » : \`kitDEscalier\` habille les marches d'un terrain BÂTI sans bloc plein — ce terrain n'en porte aucune`,
           });
         const offsets = Object.keys((e.stops ?? {}) as object);
         const paliers = offsets.map((o) => Number.parseInt(o, 10));

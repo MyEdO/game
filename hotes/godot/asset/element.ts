@@ -2,7 +2,8 @@
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine, et sa validation contre le
  * manifeste de la base pour laquelle il se construit (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme
  * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements`, `silhouettes` et `postes`, et si
- * l'élément a une base (`REGLES_DES_CATEGORIES`). Sans base (décor, véhicule, Amélioration, #2987 ; arête, #4471), il
+ * l'élément a une base (`REGLES_DES_CATEGORIES`). Sans base (décor, véhicule, Amélioration, #2987 ; arête, escalier,
+ * #4471), il
  * ne nomme aucune base et ses meshes restent à la racine de sa scène ou sous ses propres nœuds. Une clé bien formée se
  * résout contre la donnée du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le
  * blason.
@@ -19,8 +20,9 @@
  * décor dit de même, `selon` la saison du jeu (`SAISONS`), ses nœuds `avec-<saison>` et `sans-<saison>`, et la couleur que
  * prend en cette saison l'emplacement de palette d'une de ses surfaces (#4335). Une arête (`arete`) porte, en un nœud
  * racine par pièce (`PieceDArete`, surface du noyau), les pièces que l'hôte pose sur les arêtes des apparences de sa
- * famille de kit (#4471). Un véhicule s'anime de ses `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme
- * une base ; il dit l'emprise libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
+ * famille de kit (#4471) ; un escalier (`escalier`), en un nœud racine par pièce (`PieceDEscalier`), celles qu'il pose
+ * sur les côtés des cases de marches des terrains de sa famille de kit d'escalier. Un véhicule s'anime de ses
+ * `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme une base ; il dit l'emprise libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { parseHex } from '../../../src/lib/couleurHex.ts';
@@ -104,6 +106,7 @@ export const REGLES_DES_CATEGORIES = {
   vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, selon: 'ameliorations', base: false, clips: true, cases: true },
   amelioration: { ...RIGIDE, cle: ['amelioration'], montage: true, selon: 'ameliorations', base: false },
   arete: { ...RIGIDE, cle: ['kit'], base: false },
+  escalier: { ...RIGIDE, cle: ['kit'], base: false },
 } as const satisfies Record<string, RegleDeCategorie>;
 
 type Regles = typeof REGLES_DES_CATEGORIES;

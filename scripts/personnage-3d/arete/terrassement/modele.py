@@ -9,7 +9,7 @@ from mathutils import Vector
 import geometrie
 from geometrie import DEHORS, HAUT, X, Repere
 from maille import cylindre, lineaire, poutre
-from menuiserie import vantail
+from menuiserie import echelle, vantail
 
 TERRE, CLAYONNAGE, BOISAGE = "terre", "clayonnage", "boisage"
 
@@ -183,7 +183,8 @@ def breche(D, m, alea):
 
 
 BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True), "fenetre": mur, "fenetre-close": mur,
-         "breche": breche}
+         "breche": breche,
+         "echelle": echelle}
 
 
 def elements(D):

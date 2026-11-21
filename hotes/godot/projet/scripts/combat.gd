@@ -414,7 +414,7 @@ func _poser_la_suite(plan: Dictionary) -> void:
 		_monde.volume.retirer(plan.retrait)
 	_poser_la_vision_de(plan.vision)
 	if not plan.aretes.is_empty():
-		_monde.volume.poser_les_aretes(plan.aretes.aretes)
+		_monde.volume.poser_les_aretes(plan.aretes.aretes, plan.aretes.cotesDeMarches)
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:

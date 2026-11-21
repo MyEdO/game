@@ -146,7 +146,7 @@ func _sortir_les_aretes_en_lecture(pont: PontFige, lu: Dictionary) -> void:
 		rendue[0] = true
 	volume.poser_les_aretes([{cle = "mur", famille = "colombage", palette = {}, piece = Noyau.Piece.MUR,
 		position = Noyau.Position.SEULE, bloc = "0/0/0",
-		pied = 0.0, hauteurM = 4.0, milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, cases = []}])
+		pied = 0.0, hauteurM = 4.0, milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, cases = []}], [])
 	if not volume.aretes_en_lecture() or volume.ce_qui_est_pose().aretes != 0:
 		_fautes.append("arêtes : modèle en lecture %s, %d arêtes posées, attendu en lecture et aucune posée"
 			% [volume.aretes_en_lecture(), volume.ce_qui_est_pose().aretes])

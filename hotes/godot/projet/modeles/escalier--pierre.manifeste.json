@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "escalier",
+  "cle": {
+    "kit": "pierre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "moellons",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "joint",
+      "palette": "joint",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "chaperon",
+      "palette": "accent",
+      "matiere": "prop--pierre-atre"
+    }
+  ],
+  "glb": {
+    "sha256": "de1710966caa558b95e95ca7b96109078b1e08c27da809308fb9c6a1fa2d326a",
+    "octets": 149092
+  }
+}
