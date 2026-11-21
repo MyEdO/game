@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { DELAI_FILE_MS } from '../guards/lib/fusionPr.mjs'
-import { PLAFOND_PAQUET_NODE_MS } from '../test/memoire.mjs'
+import { PLAFOND_PAQUET_NODE_MS } from '../test/partition.mjs'
 import { rendre } from './build-reprise.mjs'
 
 const source = readFileSync(new URL('./build-reprise.mjs', import.meta.url), 'utf8')

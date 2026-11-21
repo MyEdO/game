@@ -29,6 +29,7 @@ import { selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/selection
 import {
   DRAPEAU_REGIME,
   EMPREINTES_WORKER_MO,
+  PLAFOND_PAQUET_NODE_MS,
   PORTEE_LOT_S,
   capaciteDuLanceur,
   environnementDe,
@@ -47,7 +48,7 @@ import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { GATES_D_AUDIT, estTestNode, gateDe } from '../gates/testsParGate.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { CONCURRENCE_SANS_PROFIL, PLAFOND_PAQUET_NODE_MS, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
+import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { CACHE, lireDuDisque, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'

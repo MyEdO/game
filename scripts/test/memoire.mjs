@@ -9,7 +9,7 @@ import { spawnBorne, diagnosticDuLancement, diagnosticArret, tuerArbre } from '.
 import { lancerProcessusSupervise } from '../guards/lib/superviserProcessus.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
-import { admissionNode, coeurs, memoireDisponibleMo } from './partition.mjs'
+import { PLAFOND_PAQUET_NODE_MS, admissionNode, coeurs, memoireDisponibleMo } from './partition.mjs'
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 
 const PROFILS = 'memoire-node.json'
@@ -18,9 +18,6 @@ const CONTRAT = 'domaine-natif-v1-gate-cjs-challenge-ack-transactionnel-v2'
 /** La concurrence d'un lancement node SANS profil mémoire utilisable (#2586) : celle de l'acquisition, et celle, fixe,
  *  d'une plateforme sans mesure native (`lancerNodeMesure`). */
 export const CONCURRENCE_SANS_PROFIL = 1
-
-/** Borne de durée d’un paquet Node, commune au plan estimé et au lancement réel. */
-export const PLAFOND_PAQUET_NODE_MS = 30 * 60_000
 
 const empreinte = (texte) => createHash('sha256').update(texte).digest('hex')
 const erreur = (message) => Object.assign(new Error(message), { code: 'MESURE_MEMOIRE_INCOMPLETE' })
