@@ -12,6 +12,10 @@ chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dess
 `meuble-piece-de-bord`), `dossier` (`dossier-du-navire`, `dossier-du-navire-cargaison`, `dossier-de-la-bete`,
 `dossier-du-vehicule`) et `arrivee` (`arrivee-aucune`, `arrivee-palissade`, `arrivee-rempart`). La compagnie est celle de `sources/maquettes/compagnie.ts`.
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : la table d'un aperçu garde la hauteur commune de 125 ; un aperçu plus court laisse 14 px de
+  blanc sous elle, le prix de la boîte fixe.
+- À valider (#4585) : l'état du navire (coque, Moral, eau douce, vivres) sur deux colonnes, toutes ses valeurs visibles
+  dans le panneau bas sans défiler ; « Vivres » au lieu de « Vivres de l'équipage ».
 - À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
   haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 

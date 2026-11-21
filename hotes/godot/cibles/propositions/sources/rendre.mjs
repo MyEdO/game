@@ -7,7 +7,8 @@
 // premier état du même rôle de la même passe), des feuilles (texte, contrôle) recouvertes, rognées par un
 // ancêtre (`overflow`, ellipse) ou qui se chevauchent (`chevauche` : deux textes sur la même bande par la zone de
 // contenu de la police de leurs lignes, à moins de 3 px côte à côte ; un texte et un contrôle par le cœur des lignes), des actions principales (plaque armée, étape en cours) cachées
-// sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
+// sous le bord ou le fondu de ce qui défile (`cache`), ce qui défile et déborde sans être une liste longue par nature
+// (`masque` : un `data-defile` plus haut que sa boîte, sauf `data-defile="liste"`, la marque de `defile` de `gestes.js`), des pièces du kit plus petites que leur taille fixée
 // (`retrecit`), plus d'une croix dans l'écran (`croix`), et du défilement de la page. Ce qui se pose au survol
 // (`data-ancre="survol"`) ou par-dessus d'autres cadres (`data-surcouche`, l'Index du Compendium) n'est pas compté par
 // `croise` ; ce qu'une surcouche cache n'est ni `recouvert` ni `chevauche`. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
@@ -228,6 +229,10 @@ const releve = ([largeur, hauteur]) => {
     const fondu = parseFloat(getComputedStyle(d).getPropertyValue('--fondu')) || 0
     return q.top < r.top + (d.classList.contains('avant') ? fondu : 0) - 1 || q.bottom > r.bottom - (d.classList.contains('suite') ? fondu : 0) + 1
   }).map(nomme)
+  /* ce qui défile et déborde (`masque`) : un `data-defile` visible dont le contenu dépasse sa boîte, sauf la liste
+     longue par nature (`data-defile="liste"`) ; ce qu'il cache, au survol ou au défilement, ne décide de rien */
+  const masque = [...document.querySelectorAll('#ui [data-defile]:not([data-defile="liste"])')].filter((d) => d.checkVisibility() && d.scrollHeight > d.clientHeight + 1)
+    .map((d) => `${d.closest('[data-piece]')?.dataset.piece ?? '-'}${d.closest('[data-place]') ? ' > ' + d.closest('[data-place]').dataset.place : ''} : ${d.scrollHeight} > ${d.clientHeight}`)
   /* une seule croix par écran (`../dispositions.md`, arbitrage 2) : plus d'une croix visible, hors de ce qui suit ce
      qu'il désigne */
   const croixVues = [...document.querySelectorAll('#ui .croix')].filter((e) => !e.closest('[data-mobile]') && e.checkVisibility())
@@ -260,7 +265,7 @@ const releve = ([largeur, hauteur]) => {
       })
     }
   }
-  return { pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, contenus, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  return { pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, masque, retrecit, contenus, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv

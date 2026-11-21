@@ -93,7 +93,9 @@ Les rects sont ceux de `CADRES` ; cette table dit qui occupe chaque rôle.
 ## Débordement
 
 Rien ne se tronque ; le relevé de `rendre.mjs` refuse le texte coupé (`coupe`, `rogne`), ce qui sort du fond d'un
-cadre (`deborde`), une action principale cachée (`cache`) et une pièce du kit écrasée sous sa taille (`retrecit`).
+cadre (`deborde`), une action principale cachée (`cache`), ce qui défile et déborde sans être une liste longue par
+nature (`masque` : seule la liste que `defile(contenu, classe, { liste: true })` marque `data-defile="liste"` déborde)
+et une pièce du kit écrasée sous sa taille (`retrecit`).
 
 - **Défilement** (`defile()`, `kit.md`) : une colonne, une page ou une liste trop longue défile dans son cadre, sans
   barre. La suite cachée s'annonce par un fondu au pied, ce qui a défilé par un fondu en tête. `au-pied` : le journal

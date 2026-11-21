@@ -320,8 +320,9 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const places = (cadre, contenus) => Object.entries(contenus).filter(([, html]) => html).map(([nom, html]) => `<div class="place" data-place="${cadre}/${nom}">${html}</div>`).join('');
   /* la grille d'une colonne (`cadre` : son rôle) : sa tête, son corps qui défile, ses entrées à écarts uniformes, son
      geste au pied fixe et la note sous lui, chacun à sa place (`cadre/tete`, `cadre/corps`, `cadre/geste`, `cadre/note`) ;
-     sans tête, le corps prend aussi sa bande (`cadre/plein`, qu'aucun état ne porte avec la tête) */
-  const colonne = (cadre, { tete = '', corps = '', geste = '', note = '' }) => `<div class="colonne">${places(cadre, { tete, [tete ? 'corps' : 'plein']: corps && defile(corps, 'corps'), geste, note })}</div>`;
+     sans tête, le corps prend aussi sa bande (`cadre/plein`, qu'aucun état ne porte avec la tête) ; `liste` : le corps est
+     une liste longue par nature (`defile`) */
+  const colonne = (cadre, { tete = '', corps = '', geste = '', note = '', liste = false }) => `<div class="colonne">${places(cadre, { tete, [tete ? 'corps' : 'plein']: corps && defile(corps, 'corps', { liste }), geste, note })}</div>`;
   /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques ; `cadre` :
      chaque onglet à sa place `cadre/onglet-k`, de même largeur, une section absente (`null`) laisse la sienne vide */
   const onglets = (noms, active, cadre = '') => {
@@ -355,8 +356,9 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const rangDePas = (pleins, total, classe = '') => `<div class="pas ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
   /* ce qui défile dans son cadre, qui garde sa taille : `data-defile` au relevé du rendu ; la suite cachée s'annonce
      par un fondu au pied, ce qui a défilé par un fondu en tête (`suites`), hors ce qui se pagine ; `au-pied` : il montre
-     sa fin ; sinon, sa dernière action principale (plaque armée, étape en cours) vient au-dessus du fondu du pied */
-  const defile = (contenu, classe = '') => `<div class="defile ${classe}" data-defile>${contenu}</div>`;
+     sa fin ; sinon, sa dernière action principale (plaque armée, étape en cours) vient au-dessus du fondu du pied ;
+     `liste` : une liste longue par nature (`data-defile="liste"`), la seule que le relevé `masque` laisse déborder */
+  const defile = (contenu, classe = '', { liste = false } = {}) => `<div class="defile ${classe}" data-defile${liste ? '="liste"' : ''}>${contenu}</div>`;
   const suites = () => document.querySelectorAll('.defile:not(.pages)').forEach((d) => {
     const action = [...d.querySelectorAll('.plaque.armee, .en-cours')].at(-1);
     if (d.classList.contains('au-pied')) d.scrollTop = d.scrollHeight;
