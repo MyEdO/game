@@ -135,7 +135,8 @@
 //   l'outil Sélection, un clic sur une case libre puis « Coller » y pose la copie, nommée de même ; à l'inspecteur de la
 //   copie, « Source de lumière » l'allume à 6 m, « Rayon +1 m » la porte à 7 m. L'outil Emplacement de siège propose
 //   les deux balistes avec leur livre. Un clic pose la baliste ADE II ; « Droite (tribord) » fixe son créneau. L'outil Sélection,
-//   un clic sur une case libre vide la sélection. L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
+//   un clic sur une case libre vide la sélection et désigne la case, une case qu'une plus haute devant elle couvre écartée.
+//   L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
 //   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit ; à son inspecteur (#3606), « Ajouter : Test de
 //   traversée », la difficulté choisie en liste et « sans assistance » au clic ; « Supprimer » la retire. L'outil
 //   Personnage, sa première fiche (un profil standard), un clic au même endroit la pose (#3606 M1a) : à l'onglet Combat de son
@@ -2911,13 +2912,27 @@ async function parcoursEditeur() {
   assert.equal(e.surcouche.reperes.find((r) => r.choisi)?.nom, 'Baliste', 'l’emplacement porte le nom joueur de son engin')
   noter(`outil Emplacement de siège, un clic sur la case ${ex}, ${ey}, puis « Droite (tribord) » : ${engin.libelle}, créneau tribord`)
   await capturer('3508-l3b-2-emplacement')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  const loin = ([x, y]) => cases[`${x},${y}`] && auMonde(carte, cases[`${x},${y}`]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
+  const auCentre = ([x, y]) => Math.hypot(cases[`${x},${y}`][0] - 800, cases[`${x},${y}`][1] - 380)
+  /** Si un clic de l'outil Sélection au point publié de la case `x`, `y` la désigne : aucune case plus haute devant
+   *  elle n'en couvre le point. */
+  const designee = async (x, y) => {
+    await cliquerPoint(...cases[`${x},${y}`])
+    return (await editeur()).zones['editeur.pointee'][0]?.texte.startsWith(`Case ${x}, ${y} ·`) === true
+  }
+  let zx, zy
+  for (const [x, y] of Object.keys(cases).map((k) => k.split(',').map(Number)).filter(([x, y]) => [0, 1, 2, 3].every((d) => loin([x + d, y]) && loin([x + d, y + 1])))
+    .sort((a, b) => auCentre(a) - auCentre(b))) {
+    if (await designee(x, y) && await designee(x + 1, y + 1) && await designee(x + 3, y + 1)) {
+      [zx, zy] = [x, y]
+      break
+    }
+  }
+  assert.ok(zx !== undefined, 'deux rangées de quatre cases libres, chacune que son clic désigne')
   await cliquerAuPanneau({ element: 'bouton/outil/zone' })
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'zone/room')?.presse, true, 'l’outil Zone trace d’abord une pièce')
-  const loin = ([x, y]) => cases[`${x},${y}`] && auMonde(carte, cases[`${x},${y}`]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
-  const auCentre = ([x, y]) => Math.hypot(cases[`${x},${y}`][0] - 800, cases[`${x},${y}`][1] - 380)
-  const [zx, zy] = Object.keys(cases).map((k) => k.split(',').map(Number)).filter(([x, y]) => [0, 1, 2, 3].every((d) => loin([x + d, y]) && loin([x + d, y + 1])))
-    .sort((a, b) => auCentre(a) - auCentre(b))[0]
   /** Glisse le pointeur de la case `de` à la case `a`, bouton tenu. */
   const glisserDe = async (de, a, qui) => geste(session, { surface: 'canvas', x: cases[de][0], y: cases[de][1] }, { qui }, async ({ x, y }, emettre) => {
     await emettre('souris', { type: 'mouseMoved', x, y })
