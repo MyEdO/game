@@ -74,7 +74,6 @@ import {
   refOuSpec,
   specFermeeDe,
   tirageSurTable,
-  unionDeFormes,
   type RegimeDePorteur,
   type TypeEntite,
 } from './ref';
@@ -1149,15 +1148,6 @@ export const domaineDuChaosSchema = enumNomme({
   indivisible: 'Indivisible',
 });
 
-const objetPossedeSchema = unionDeFormes([
-  variante('Objet du catalogue ou de la campagne', nommerChamps(z.strictObject({
-    reference: objetDonneSchema,
-  }), { reference: { label: 'Objet' } })),
-  variante('Objet hors catalogue', nommerChamps(z.strictObject({
-    nomHorsCatalogue: z.string().min(1),
-  }), { nomHorsCatalogue: { label: 'Nom de l’objet', texte: { regime: 'designation' } } })),
-]);
-
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
 
@@ -1185,7 +1175,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
           beforeMinute: z.number().optional(),
         }), { afterHour: { label: "après cette heure" }, afterMinute: { label: "après cette minute" }, beforeHour: { label: "avant cette heure" }, beforeMinute: { label: "avant cette minute" } }), 'conditionDe', 'condition.time.window'),
       }), { kind: { label: "type"  }, window: { label: "créneau horaire" } }), 'conditionDe', 'condition.time')),
-      variante('Possède un objet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('hasItem'), objet: objetPossedeSchema, count: z.number().optional() }), { kind: { label: "type"  }, objet: { label: "objet" }, count: { label: "nombre" } }), 'conditionDe', 'condition.hasItem')),
+      variante('Possède un objet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('hasItem'), objet: objetDonneSchema, count: z.number().optional() }), { kind: { label: "type"  }, objet: { label: "objet" }, count: { label: "nombre" } }), 'conditionDe', 'condition.hasItem')),
       variante('Bourse ≥', marquerProduit(nommerChamps(z.strictObject({
         kind: z.literal('money'),
         atLeast: z.union([

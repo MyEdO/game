@@ -1,5 +1,7 @@
 import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { flowFromEffects, testFlow } from '../../noyau/monde/flow';
 import { type Condition } from '../../engine/flowCore';
 import type { TestScenario } from './_shared';
@@ -8,9 +10,9 @@ import type { Scene } from '../../noyau/monde/scene';
 /**
  * « Le Caveau piégé » — VITRINE du système Flow + Condition en DONNÉES pures (zéro code applicatif).
  * Démontre l'authoring complet d'un piège dans l'éditeur :
- *  - INTERACTIONS : un levier et une clé (props `interact`) posent des flags ;
+ *  - INTERACTIONS : actionner le levier pose un drapeau, ramasser la clé la donne au groupe ;
  *  - CONDITION composée (ET / OU / NON) : la herse du trésor s'ouvre si l'on a la CLÉ **ou** tiré le
- *    LEVIER, **et** seulement si l'ALARME n'a pas retenti — impossible à exprimer avant `ConditionEditor` ;
+ *    LEVIER, **et** seulement si l'ALARME n'a pas retenti ;
  *  - TEST à branches : une dalle piégée déclenche un Test d'Athlétisme (réussite = esquive ; échec =
  *    piques [dégâts + À Terre] ET déclenchement de l'alarme, qui referme la herse).
  * Tout est un document `Scene` : reproductible et éditable dans l'éditeur (triggers/interact/conditions).
@@ -30,11 +32,32 @@ const CAVEAU_Z0 = [
   '##############',
 ].join('\n');
 
+const ID_CLE_DU_CAVEAU = 'cle-en-fer-du-caveau';
+
+function construireNarratif(): NarratifBlock {
+  return {
+    ...emptyNarratif(),
+    objets: [{
+      id: ID_CLE_DU_CAVEAU,
+      type: 'trappings',
+      label: 'Clé en fer',
+      categorie: 'trapping',
+      subType: { id: 'outils-et-necessaires' },
+      enc: 0,
+      qualities: [],
+      availability: null,
+      price: null,
+      source: { book: 'livre-de-base', page: 303, note: 'LDB 67 l.28' },
+      maison: 'Exemplaire propre à la herse du Caveau piégé, non proposé à l’achat.',
+    }],
+  };
+}
+
 function construireScene(): Scene {
   const HERSE_WHEN: Condition = {
     kind: 'all',
     of: [
-      { kind: 'any', of: [{ kind: 'hasItem', objet: { nomHorsCatalogue: 'Clé en fer' } }, { kind: 'flag', expr: 'levier_tire' }] },
+      { kind: 'any', of: [{ kind: 'hasItem', objet: { id: ID_CLE_DU_CAVEAU } }, { kind: 'flag', expr: 'levier_tire' }] },
       { kind: 'not', of: { kind: 'flag', expr: 'alarme' } },
     ],
   };
@@ -59,7 +82,7 @@ function construireScene(): Scene {
         ]) }] } },
       { id: 'cle', kind: 'prop', decor: { id: 'cle' }, pos: { x: 2, y: 8 }, label: 'Clé en fer, posée là',
         usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([
-          { type: 'giveTrapping', custom: 'Clé en fer' },
+          { type: 'giveTrapping', objet: { id: ID_CLE_DU_CAVEAU } },
           { type: 'journal', desc: 'Vous empochez la lourde clé en fer.' },
         ]) }] } },
       { id: 'herse-grille', kind: 'prop', decor: { id: 'grille' }, pos: { x: 10, y: 5 }, label: 'Herse du trésor' },
@@ -111,7 +134,7 @@ export const scenario: TestScenario = {
   category: 'scenarios',
   icon: 'scenario/piege',
   title: 'Le Caveau piégé',
-  tests: 'Vitrine Flow+Condition : interactions (levier/clé → flags), condition composée (clé OU levier) ET NON alarme pour la herse, dalle piégée = Test d’Athlétisme à branches (esquive / piques + À Terre + alarme).',
+  tests: 'Vitrine Flow+Condition : interactions (levier → drapeau, clé → inventaire), condition composée (clé OU levier) ET NON alarme pour la herse, dalle piégée = Test d’Athlétisme à branches (esquive / piques + À Terre + alarme).',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene(), narratif: construireNarratif() }),
 };

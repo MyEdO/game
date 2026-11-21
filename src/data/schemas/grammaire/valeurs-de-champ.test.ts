@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { DEFS_DE_DOCUMENT } from '../validate';
-import { OP_DEFS } from './mecanique';
+import { capaciteDeCombatSchema, domaineDuChaosSchema, OP_DEFS } from './mecanique';
 import { descendre, noeudsAuChemin } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
@@ -280,6 +280,9 @@ const NOMMES = [
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
   // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
   Object.keys(itemCapabilitiesSchema.shape).join('|'),
+  // Conditions de combat (#3067) : capacités admises par CombatFeature et Domaines du Chaos du lanceur.
+  capaciteDeCombatSchema.unwrap().options.join('|'),
+  domaineDuChaosSchema.options.join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
   'personne|bete|vehicule|immeuble|titre|intangible',
   // `topUpAdvantage.amount` (`grammaire/mecanique.ts`, `ouReserve`) : le gabarit d'instance `INDICE_TEMPLATE`

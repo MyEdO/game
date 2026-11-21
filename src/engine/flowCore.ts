@@ -172,7 +172,7 @@ export type Condition =
   | { kind: 'flag'; expr: string }
   /** Fenêtre horaire (heure-du-jour, `before` exclusif) — sémantique `temporalConditionMet`. */
   | { kind: 'time'; window: TemporalCondition }
-  | { kind: 'hasItem'; objet: { reference: { id: string } } | { nomHorsCatalogue: string }; count?: number }
+  | { kind: 'hasItem'; objet: { id: string }; count?: number }
   /** La bourse du groupe vaut AU MOINS le seuil `atLeast` (comparaison en sous de cuivre) : un montant, ou une
    *  valeur LIÉE du Flow en sous de cuivre (`{brass: {tire}}`, substituée par `lierLesTirages`) — « la bourse
    *  couvre la rançon tirée » (MDG 15 l.245-247). */
@@ -289,7 +289,7 @@ export type Condition =
 export interface ConditionCtx {
   flags: Record<string, boolean>;
   gameTime: number;
-  party?: { id?: string; dead?: boolean; items?: { label: string; trappingId?: string }[];
+  party?: { id?: string; dead?: boolean; items?: { trappingId?: string }[];
     /** Compétences possédées (#711 `skill`) — instances brutes, comme `Combatant.skills`. */
     skills?: { id: string; spec?: string; advances?: number }[];
     /** Talents possédés (`talent`) — instances brutes, comme `Combatant.talents`. */
@@ -387,10 +387,8 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     }
     case 'hasItem': {
       const need = Math.max(1, cond.count ?? 1);
-      const { objet } = cond;
-      const have = (ctx.party ?? []).reduce((n, h) => n + (h.items ?? []).filter((it) =>
-        'reference' in objet ? it.trappingId === objet.reference.id : it.trappingId === undefined && it.label === objet.nomHorsCatalogue,
-      ).length, 0);
+      const id = cond.objet.id;
+      const have = (ctx.party ?? []).reduce((n, h) => n + (h.items ?? []).filter((it) => it.trappingId === id).length, 0);
       return have >= need;
     }
     case 'money': {

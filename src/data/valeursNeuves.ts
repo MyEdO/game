@@ -26,7 +26,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'always': return CONDITION_TOUJOURS;
     case 'flag': return { kind: 'flag', expr: cond.kind === 'flag' ? cond.expr : '' };
     case 'time': return { kind: 'time', window: cond.kind === 'time' ? cond.window : {} };
-    case 'hasItem': return cond.kind === 'hasItem' ? cond : { kind: 'hasItem', objet: { reference: { id: 'corde' } } };
+    case 'hasItem': return cond.kind === 'hasItem' ? cond : { kind: 'hasItem', objet: { id: 'corde' } };
     case 'money': return { kind: 'money', atLeast: cond.kind === 'money' ? cond.atLeast : { gold: 1 } };
     case 'partyDead': return { kind: 'partyDead', who: cond.kind === 'partyDead' ? cond.who : HEROS };
     case 'etat': return cond.kind === 'etat' ? cond : { kind: 'etat', etat: '' };

@@ -284,7 +284,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     case 'flag': return t(neg ? 'codex.c.flag.non' : 'codex.c.flag', { expr: c.expr });
     case 'time': return neg ? t('codex.c.time.non', { creneau: timePhrase(c.window) }) : timePhrase(c.window);
     case 'hasItem': {
-      const label = 'reference' in c.objet ? refLabel('trappings', c.objet.reference) : c.objet.nomHorsCatalogue;
+      const label = refLabel('trappings', c.objet);
       return `${t(neg ? 'codex.c.hasItem.non' : 'codex.c.hasItem', { objet: label })}${c.count && c.count > 1 ? ` (×${c.count})` : ''}`;
     }
     case 'money': {

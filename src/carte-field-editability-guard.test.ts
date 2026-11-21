@@ -7,7 +7,7 @@ import { ecrituresDeLaCarte, garderLaRacine } from './ecrituresJouees.testkit';
  * `scripts/guards/lib/editabiliteDesChamps.mjs` ; ses preuves virtuelles : `src/scene-field-editability-guard.test.ts`.
  */
 describe('#4234 — chaque champ de la carte du monde a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR', () => {
-  // 500 = mesure du 2026-11-15 (#4234 : `CustomStatblock.type` sort par son type ; `PetitePriere.type` et
-  // `RoutePeril.effects.type`, discriminants d'une union, y entrent).
-  garderLaRacine('carte', ecrituresDeLaCarte, { plancher: 500, delai: 80_000 });
+  // #1615, mesure sur 2ab2f58ce et son correctif : 535 → 484. Le registre des Scènes de Round retire
+  // les 51 clés de MassBattleSpec.sceneEncounters qui désignaient d’autres Activités.
+  garderLaRacine('carte', ecrituresDeLaCarte, { plancher: 484, delai: 80_000 });
 });

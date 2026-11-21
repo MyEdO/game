@@ -18,7 +18,6 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene } from '../monde/scene';
 import { addTrigger, avecLaValeurDuPorteur } from '../sceneEdit';
 import { choixDuChamp } from '../sceneEditLecture';
-import { variantesAChoisir } from '../valeursNeuves';
 import { avecLaValeur } from '../edition/formulaire';
 import { champsOfferts, choixDuNoeud, bornesDuNoeud, formeAuPoint } from './editFields';
 
@@ -101,7 +100,7 @@ describe('les Conditions et le Test de Talent offrent les choix de leur schéma'
 });
 
 describe('Condition de possession d’un objet', () => {
-  const condition = (id: string) => ({ kind: 'hasItem', objet: { reference: { id } } } as const);
+  const condition = (id: string) => ({ kind: 'hasItem', objet: { id } } as const);
 
   it('dans le Compendium, une référence désigne un objet instanciable du catalogue', () => {
     const linguistique = talents.find((talent) => talent.id === 'linguistique')!;
@@ -115,7 +114,7 @@ describe('Condition de possession d’un objet', () => {
     expect(conditionSchema.safeParse(recast({ kind: 'always' }, 'hasItem')).success).toBe(true);
   });
 
-  it('le projet valide les deux porteurs, et l’éditeur permet de passer de la référence au nom puis de revenir', () => {
+  it('le projet valide les deux porteurs, et l’éditeur offre le catalogue et les objets de la campagne', () => {
     const objet = objetDeCampagne();
     const scene = addTrigger({ ...emptyScene('sonde', 4, 4), desc: 'Scène de sonde.' }, { x: 0, y: 0, w: 1, h: 1 }).scene;
     const when = condition(objet.id);
@@ -126,34 +125,24 @@ describe('Condition de possession d’un objet', () => {
 
     expect(projetSchema.safeParse(projet).success).toBe(true);
     expect(mesureDuParse(projetSchema, projet).reperes.filter((r) => r.type === 'local:narratif.objets').map((r) => r.path)).toEqual([
-      ['scenes', 0, 'triggers', 0, 'when', 'objet', 'reference', 'id'],
-      ['narratif', 'cloture', 'when', 'objet', 'reference', 'id'],
+      ['scenes', 0, 'triggers', 0, 'when', 'objet', 'id'],
+      ['narratif', 'cloture', 'when', 'objet', 'id'],
     ]);
     expect(projetSchema.safeParse({ ...projet, narratif: { ...narratif, objets: [] } }).error?.issues).toEqual([
-      expect.objectContaining({ path: ['scenes', 0, 'triggers', 0, 'when', 'objet', 'reference', 'id'] }),
-      expect.objectContaining({ path: ['narratif', 'cloture', 'when', 'objet', 'reference', 'id'] }),
+      expect.objectContaining({ path: ['scenes', 0, 'triggers', 0, 'when', 'objet', 'id'] }),
+      expect.objectContaining({ path: ['narratif', 'cloture', 'when', 'objet', 'id'] }),
     ]);
 
-    const chemin = ['when', 'objet'];
-    const reference = [...chemin, 'reference'];
-    expect(choixDuChamp('declencheur', declencheur, chemin, cadre)).toBeUndefined();
-    const choix = choixDuChamp('declencheur', declencheur, reference, cadre)!;
-    expect(choix).toContainEqual({ valeur: { id: objet.id }, libelle: objet.label, refus: null });
-    expect(choix).toContainEqual({ valeur: { id: 'corde' }, libelle: 'Corde', refus: null });
-    expect(avecLaValeurDuPorteur('declencheur', declencheur, reference, { id: 'objet-inconnu' }, cadre).ok).toBe(false);
+    const chemin = ['when', 'objet', 'id'];
+    const choix = choixDuChamp('declencheur', declencheur, chemin, cadre)!;
+    expect(choix).toContainEqual({ valeur: objet.id, libelle: objet.label, refus: null });
+    expect(choix).toContainEqual({ valeur: 'corde', libelle: 'Corde', refus: null });
+    expect(avecLaValeurDuPorteur('declencheur', declencheur, chemin, 'objet-inconnu', cadre).ok).toBe(false);
 
-    const forme = formeAuPoint(conditionSchema, when)!;
-    const noeud = champsOfferts(forme.noeud, when).find((champ) => champ.key === 'objet')!.noeud;
-    const variantes = variantesAChoisir(noeud, when.objet)!;
-    expect(variantes.map(({ libelle }) => libelle)).toEqual(['Objet du catalogue ou de la campagne', 'Objet hors catalogue']);
-    const libre = avecLaValeurDuPorteur('declencheur', declencheur, chemin, variantes[1].valeur, cadre);
-    if (!libre.ok) throw new Error('Le formulaire doit permettre de passer à l’objet hors catalogue.');
-    expect(avecLaValeurDuPorteur('declencheur', libre.valeur, [...chemin, 'nomHorsCatalogue'], 'Clé en fer', cadre))
-      .toMatchObject({ ok: true, valeur: { when: { objet: { nomHorsCatalogue: 'Clé en fer' } } } });
-
-    const retour = avecLaValeurDuPorteur('declencheur', libre.valeur, chemin, variantes[0].valeur, cadre);
-    if (!retour.ok) throw new Error('Le formulaire doit permettre de revenir à la référence d’objet.');
-    expect(avecLaValeurDuPorteur('declencheur', retour.valeur, reference, { id: objet.id }, cadre))
+    const catalogue = avecLaValeurDuPorteur('declencheur', declencheur, chemin, 'corde', cadre);
+    expect(catalogue).toMatchObject({ ok: true, valeur: { when: condition('corde') } });
+    if (!catalogue.ok) throw new Error('Le formulaire doit permettre de choisir un objet du catalogue.');
+    expect(avecLaValeurDuPorteur('declencheur', catalogue.valeur, chemin, objet.id, cadre))
       .toMatchObject({ ok: true, valeur: { when } });
   });
 });
