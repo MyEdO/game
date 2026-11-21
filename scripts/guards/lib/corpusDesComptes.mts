@@ -35,6 +35,7 @@
 // l’inventaire sous les deux détecteurs, hors porte. Une composition ajoutée dans un second def, sans donnée, fait
 // sortir un nœud G1 sous les deux détecteurs ; c’est une forme partagée réelle, pas un re-classement (#3012).
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -148,10 +149,21 @@ class ImageDansUnDepot extends Error {}
 
 /** Les fichiers texte de `dossiers` dans l'image `arbre` que `retenir` garde (chemin, texte), écrits sous `dossier`. */
 function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[], retenir = (_rel: string, _texte: string): boolean => true): void {
-  for (const [rel, texte] of lireEnLot(depot, arbre, listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c)))) {
-    if (texte === null || !retenir(rel, texte)) continue;
-    mkdirSync(dirname(join(dossier, rel)), { recursive: true });
-    writeFileSync(join(dossier, rel), texte);
+  ecrireLesFichiers(dossier, fichiersDeLImage(depot, arbre, dossiers, retenir));
+}
+
+/** Les chemins et textes effectivement posés, dans l'ordre de l'image git. */
+function fichiersDeLImage(depot: Depot, arbre: string, dossiers: readonly string[], retenir: (rel: string, texte: string) => boolean): [string, string][] {
+  const chemins = listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c));
+  return [...lireEnLot(depot, arbre, chemins)].flatMap(([rel, texte]) =>
+    texte !== null && retenir(rel, texte) ? [[rel, texte]] : []);
+}
+
+function ecrireLesFichiers(dossier: string, fichiers: readonly [string, string][]): void {
+  for (const [rel, texte] of fichiers) {
+    const cible = join(dossier, rel);
+    mkdirSync(dirname(cible), { recursive: true });
+    writeFileSync(cible, texte);
   }
 }
 
@@ -162,19 +174,37 @@ function poserLesDeclarations(depot: Depot, sha: string, dossier: string): void 
 }
 
 /** Un DÉTECTEUR : son nom, sa clé de mémo, et la pose de son code (`DU_DETECTEUR`, son classement) dans une image. */
-type Detecteur = { readonly nom: string; readonly cle: string; readonly poser: (dossier: string) => void };
+type Detecteur = {
+  readonly nom: string;
+  readonly cle: string;
+  readonly empreinte: () => string;
+  readonly poser: (dossier: string) => void;
+};
 
 /** Le détecteur du commit `sha` : son `scripts/`, son `package.json`, son `tsconfig.json`, ses modules de classement
  *  (`MARQUE_DE_CLASSEMENT`) et ses modules partagés (`LIB_DU_DETECTEUR`), lus par git. */
-export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
-  nom: `détecteur de la base (${sha.slice(0, 9)})`,
-  cle: sha,
-  poser: (dossier) => {
-    ecrireDeLImage(depot, sha, dossier, DU_DETECTEUR);
-    ecrireDeLImage(depot, sha, dossier, [RACINE_DU_CLASSEMENT], estDuClassement);
-    ecrireDeLImage(depot, sha, dossier, [LIB_DU_DETECTEUR], estModulePartage);
-  },
-});
+export function detecteurDuCommit(depot: Depot, sha: string): Detecteur {
+  let fichiers: [string, string][] | undefined;
+  let empreinte: string | undefined;
+  const lireFichiers = () => fichiers ??= [
+    ...fichiersDeLImage(depot, sha, DU_DETECTEUR, () => true),
+    ...fichiersDeLImage(depot, sha, [RACINE_DU_CLASSEMENT], estDuClassement),
+    ...fichiersDeLImage(depot, sha, [LIB_DU_DETECTEUR], estModulePartage),
+  ];
+  return {
+    nom: `détecteur de la base (${sha.slice(0, 9)})`,
+    cle: sha,
+    empreinte: () => {
+      if (empreinte === undefined) {
+        const hachage = createHash('sha256');
+        for (const fichier of lireFichiers()) hachage.update(JSON.stringify(fichier));
+        empreinte = hachage.digest('hex');
+      }
+      return empreinte;
+    },
+    poser: (dossier) => ecrireLesFichiers(dossier, lireFichiers()),
+  };
+}
 
 /** La première ligne d'erreur d'un processus enfant : la première `…Error`, sinon la dernière ligne de son stderr. */
 const premiereErreur = (vu: SpawnSyncReturns<string>): string =>
@@ -219,22 +249,23 @@ function mesurerImage(dossier: string, configuration: string): Comptes {
 
 /** L'image de chaque commit, générée par son propre code, une fois par processus : son dossier, ou la raison de son
  *  échec. Les dossiers s'effacent à la sortie du processus. */
-const IMAGES_GENEREES = new Map<string, string | MesureImpossible>();
+type ImageGeneree = { dossier: string; derniereMesure?: { empreinte: string; comptes: Comptes } };
+const IMAGES_GENEREES = new Map<string, ImageGeneree | MesureImpossible>();
 let sortieObservee = false;
 const effacerLesImages = (): void => {
-  for (const image of IMAGES_GENEREES.values()) if (typeof image === 'string') rmSync(image, { recursive: true, force: true });
+  for (const image of IMAGES_GENEREES.values()) if (!(image instanceof MesureImpossible)) rmSync(image.dossier, { recursive: true, force: true });
 };
 
 /** Le dossier de l'image de `sha` : `DE_L_IMAGE` et `DU_DETECTEUR` de `sha`, ses cibles de code produites par SON
  *  `genererCode` (`genererLesCibles`). */
-function imageGeneree(depot: Depot, sha: string, configuration: string): string {
+function imageGeneree(depot: Depot, sha: string, configuration: string): ImageGeneree {
   if (!IMAGES_GENEREES.has(sha)) {
     if (!sortieObservee) { process.once('exit', effacerLesImages); sortieObservee = true; }
     const dossier = dossierDImage();
     try {
       ecrireDeLImage(depot, sha, dossier, [...DE_L_IMAGE, ...DU_DETECTEUR]);
       genererLesCibles(dossier, configuration);
-      IMAGES_GENEREES.set(sha, dossier);
+      IMAGES_GENEREES.set(sha, { dossier });
     } catch (e) {
       rmSync(dossier, { recursive: true, force: true });
       if (!(e instanceof MesureImpossible)) throw e;
@@ -251,11 +282,18 @@ function imageGeneree(depot: Depot, sha: string, configuration: string): string 
 function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
   const configuration = `${sha.slice(0, 9)} sous les cibles de l’image`;
   const image = imageGeneree(depot, sha, configuration);
-  rmSync(join(image, 'scripts'), { recursive: true, force: true });
-  ecrireDeLImage(depot, sha, image, [RACINE_DU_CLASSEMENT]);
-  detecteur.poser(image);
-  poserLesDeclarations(depot, sha, image);
-  return mesurerImage(image, configuration);
+  const empreinte = detecteur.empreinte();
+  // Seule la dernière pose réussie est réutilisable : une pose intermédiaire peut laisser d’autres fichiers dans l’image.
+  if (image.derniereMesure?.empreinte === empreinte) return image.derniereMesure.comptes;
+  delete image.derniereMesure;
+  const { dossier } = image;
+  rmSync(join(dossier, 'scripts'), { recursive: true, force: true });
+  ecrireDeLImage(depot, sha, dossier, [RACINE_DU_CLASSEMENT]);
+  detecteur.poser(dossier);
+  poserLesDeclarations(depot, sha, dossier);
+  const comptes = mesurerImage(dossier, configuration);
+  image.derniereMesure = { empreinte, comptes };
+  return comptes;
 }
 
 /** Les comptes de `sha` sous les cibles des générateurs du `detecteur` : `DE_L_IMAGE` de `sha`, le code du `detecteur`. */
