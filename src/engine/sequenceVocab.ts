@@ -9,7 +9,7 @@ import type { CharKey, Difficulty } from './types';
 import type { GameOp } from './ops';
 import type { DiceSpec } from './dice';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
-import type { FlowTestNode, JetFixe } from './flowCore';
+import type { JetFixe } from './flowCore';
 
 /** Les clés de CODE des tables de séquence (`src/noyau/sequenceCore.ts`, part TOTALE sur chaque liste) :
  *  la donnée n'en nomme pas d'autre. Ce qui indexe est le nom d'un EFFET, jamais l'identité d'une
@@ -257,7 +257,9 @@ export interface SequenceCombinedRules {
    *  vous effacez »). */
   effacementsParEcheance?: number;
   /** NADJ 16 l.90 */
-  echeance?: FlowTestNode & { test: JetFixe<'difficulty'> };
+  test?: JetFixe;
+  /** LDB 09 l.475 */
+  ops?: readonly GameOp[];
   /** Le camp qui obtient le MOINS de DR à la première lecture prend une MARQUE (`l.90`). */
   markLoser?: boolean;
   /** État dont l'apparition ARRÊTE la partie avant terme — id d'`etats.json`, DÉCLARÉ (le code ne

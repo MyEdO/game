@@ -166,12 +166,8 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
     expect(CEREVIS.combined?.echecsParEcheance, '« Pour chaque 3 Tests d’Initiative auxquels vous échouez »').toBe(3);
     expect(CEREVIS.combined?.effacementsParEcheance, '« pour chaque 2 chouettes que vous effacez »').toBe(2);
     expect(CEREVIS.combined?.markLoser, '« Le joueur qui a obtenu le moins de DR […] doit marquer une chouette »').toBe(true);
-    expect(CEREVIS.combined?.echeance).toEqual({
-      kind: 'test',
-      test: { skill: RESISTANCE_A_L_ALCOOL, difficulty: 'intermediaire' },
-      reussite: { kind: 'sequence', etapes: [] },
-      echec: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'intoxicate' }] } },
-    });
+    expect(CEREVIS.combined?.test).toEqual({ skill: RESISTANCE_A_L_ALCOOL, difficulty: 'intermediaire' });
+    expect(CEREVIS.combined?.ops).toEqual([{ op: 'intoxicate' }]);
     // `NADJ 16 l.90` s'achève sur le Tableau Ivre : aucune fin de partie n'y est écrite. Le nombre
     // de tours vit donc en DONNÉE éditable, et ce test mesure qu'il y vit.
     expect(CEREVIS.combined?.tours, 'nombre de tours = donnée maison, jamais du RAW').toBe(6);
@@ -339,8 +335,7 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
     const [a, b] = ouvrirLeDuel({ echecs: { joueur: 2, adversaire: 0 } });
     const save = snapshotSave(get(), '2026-11-21T12:00:00Z');
     const regles = save.data.sequence!.parametres.combined!;
-    delete regles.echeance;
-    Object.assign(regles, { ops: [{ op: 'intoxicate' }] });
+    delete regles.test;
     chargerSurLeBanc(banc, JSON.stringify({ ...save, version: '6567d83e466bf816' }));
 
     jouerLeTour(a, b, [99, 1]);

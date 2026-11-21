@@ -3,7 +3,7 @@ import { nommerChamps, nommerNoeud, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, deDeTirageSchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
-import { executeesDe, flowSchema, jetSchema, noeudTestFixe, porteurDeTestFixe, sujetDuJetSchema, testFixeSchema } from '../grammaire/mecanique';
+import { executeesDe, testFixeSchema, porteurDeTestFixe, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
 import { specialSchema } from '../grammaire/jeu-de-taverne';
 import { idDe } from '../grammaire/ref';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
@@ -134,16 +134,21 @@ const doc = document(
       second: sujetDuJetSchema,
       echecsParEcheance: z.number().optional(),
       effacementsParEcheance: z.number().optional(),
-      echeance: noeudTestFixe(flowSchema, { echecSeulServi: true }).optional(),
+      test: testFixeSchema.optional(),
+      ops: executeesDe().optional(),
       markLoser: z.boolean().optional(),
       /** NADJ 16 l.88 */
       stopCondition: idDe('etat').optional(),
       tours: z.number().optional(),
+    }).superRefine(({ test, ops }, ctx) => {
+      if (ops === undefined || test !== undefined) return;
+      ctx.addIssue({ code: 'custom', path: ['ops'], message: 'Les opérations d’échec exigent un Test à échéance.' });
     }), {
       second: { label: 'Second Test' },
       echecsParEcheance: { label: 'Fréquence d’échec' },
       effacementsParEcheance: { label: 'Fréquence d’effacement' },
-      echeance: { label: 'Test à échéance' },
+      test: { label: 'Test à échéance' },
+      ops: { label: 'Opérations en cas d’échec' },
       markLoser: { label: 'Marquer le perdant' },
       stopCondition: { label: 'Condition d’arrêt' },
       tours: { label: 'Tours' },

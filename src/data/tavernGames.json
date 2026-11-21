@@ -257,30 +257,17 @@
       "markLoser": true,
       "stopCondition": "inconscient",
       "tours": 6,
-      "echeance": {
-        "kind": "test",
-        "test": {
-          "skill": {
-            "id": "resistance-a-l-alcool"
-          },
-          "difficulty": "intermediaire"
+      "test": {
+        "skill": {
+          "id": "resistance-a-l-alcool"
         },
-        "reussite": {
-          "kind": "sequence",
-          "etapes": []
-        },
-        "echec": {
-          "kind": "effet",
-          "effet": {
-            "type": "ops",
-            "ops": [
-              {
-                "op": "intoxicate"
-              }
-            ]
-          }
+        "difficulty": "intermediaire"
+      },
+      "ops": [
+        {
+          "op": "intoxicate"
         }
-      }
+      ]
     },
     "scoreUnit": "chouettes",
     "scoreUnitSingular": "chouette",

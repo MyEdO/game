@@ -25,7 +25,7 @@
  */
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { nomDe } from '../engine/nom';
-import { spellOps, type FlowTest } from '../engine/flowCore';
+import type { FlowTest, JetFixe } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import {
   findTavernGameById, resolveTavernRound, rollTavernTest, roundSL,
@@ -815,7 +815,7 @@ function sanctionDeTaverneStep(
   seq: SequenceState<TavernPayload>,
   game: TavernGame,
   acteur: Combatant,
-  regles: Pick<SequenceThrowerPenalty, 'test' | 'label'>,
+  regles: { test: JetFixe; label?: string },
   meta?: PinteDuLanceur,
 ): BuiltCascadeStep | undefined {
   const p = seq.chargeUtile;
@@ -826,7 +826,7 @@ function sanctionDeTaverneStep(
     icon: 'navigation/des',
     label: composeRollLabel(acteur, regles.label ?? game.label, test),
     actor: acteur,
-    difficulty: regles.test.difficulty,
+    difficulty: regles.test.difficulty ?? TAVERN_TEST_DIFFICULTY,
     ligne: { test },
     stake: combatStakeRef('taverne-partie', {
       values: {
@@ -2426,9 +2426,11 @@ function combinedActor(get: Get, p: TavernPayload, camp: CampDeTaverne): Combata
     : p.ficheAdverseDeLaPartie ?? tavernActor(get, p.opponentId);
 }
 
-function regleDEcheance(seq: SequenceState<TavernPayload>, game: TavernGame): SequenceCombinedRules['echeance'] {
+function regleDEcheance(seq: SequenceState<TavernPayload>, game: TavernGame) {
   const regles = seq.parametres.combined;
-  return regles?.echeance ?? (regles && 'ops' in regles ? game.combined?.echeance : undefined);
+  if (!regles) return undefined;
+  const test = regles.test ?? (regles.ops?.length ? game.combined?.test : undefined);
+  return test ? { test, ops: regles.ops } : undefined;
 }
 
 /** NADJ 16 l.90 */
@@ -2449,9 +2451,9 @@ function combinedBoit(get: Get, set: Set, seq: SequenceState<TavernPayload>, ste
   const camp = p.combined?.echeances?.[0];
   const game = findTavernGameById(p.gameId);
   if (!camp || !game || step.result?.success !== false) return [];
-  const ops = spellOps(regleDEcheance(seq, game)?.echec, 'target');
+  const ops = regleDEcheance(seq, game)?.ops;
   const acteur = combinedActor(get, p, camp);
-  if (!ops.length || !acteur || acteur.id !== step.actorId) return [];
+  if (!ops?.length || !acteur || acteur.id !== step.actorId) return [];
 
   const acteurDuBanc = actorIn(get(), acteur.id);
   const buveur = acteurDuBanc ?? structuredClone(acteur);
