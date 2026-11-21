@@ -8,7 +8,16 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import path, { join } from 'node:path'
-import { ancetreExistant, canoniser, canoniseurParDossier, dansLaMesure, estPipeNomme, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import {
+  ancetreExistant,
+  canoniser,
+  canoniserParDossier,
+  dansLaMesure,
+  estPipeNomme,
+  memoireDeCanonisation,
+  projeterListingMesure,
+  relatifSousRacine,
+} from './chemin-mesure.mjs'
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { envDeDepotForge, instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { depotDe, politiqueExclusionsDe } from '../../guards/lib/gitPorte.mjs'
@@ -180,7 +189,7 @@ test('canoniser : un chemin absent SOUS une jonction rend la cible réelle + le 
 })
 
 // #2603
-test('canoniseurParDossier rend canoniser : feuille exacte, casse, jonction, absente, sous jonction, dossier absent, racine', () => {
+test('canoniserParDossier rend canoniser : feuille exacte, casse, jonction, absente, sous jonction, dossier absent, racine', () => {
   const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-memo-'))
   try {
     const cible = join(base, 'cible')
@@ -192,7 +201,8 @@ test('canoniseurParDossier rend canoniser : feuille exacte, casse, jonction, abs
       join(base, 'lien', 'Casse.md'), join(base, 'lien', 'absent', 'x.md'), join(base, 'absent', 'x.md'), base, cible,
       join(tmpdir(), '..'), join(base, '..', '..'), base.split(/[\\/]/)[0] + '/',
     ]
-    const canon = canoniseurParDossier()
+    const memoire = memoireDeCanonisation()
+    const canon = (chemin, lien) => canoniserParDossier(chemin, memoire, lien)
     for (const passe of [1, 2]) for (const chemin of chemins) assert.equal(canon(chemin), canoniser(chemin), `${passe} : ${chemin}`)
     assert.equal(canon(join(base, 'lien', 'Casse.md')), join(realpathSync.native(cible), 'Casse.md'))
   } finally {
@@ -227,7 +237,7 @@ test('estPipeNomme : table de vérité sous win32 forcé, faux sous POSIX, plate
 })
 
 // #2603
-test('pipe nommé : canoniser, canoniseurParDossier et relatifSousRacine ne l’ouvrent jamais', { skip: process.platform !== 'win32' }, async (t) => {
+test('pipe nommé : canoniser, canoniserParDossier et relatifSousRacine ne l’ouvrent jamais', { skip: process.platform !== 'win32' }, async (t) => {
   const { pipe, nom, connexionsHorsTemoin } = await servirPipe(t, 'wfrp-2603-canon')
   const formes = [pipe, ...[
     'localhost/pipe', '?/UNC/localhost/pipe', './GLOBALROOT/Device/NamedPipe', '?/GLOBALROOT/Device/NamedPipe', './GLOBALROOT/GLOBAL??/PIPE', './Global/pipe',
@@ -235,7 +245,7 @@ test('pipe nommé : canoniser, canoniseurParDossier et relatifSousRacine ne l’
   const racine = canoniser(tmpdir())
   for (const forme of formes) {
     assert.equal(canoniser(forme), forme)
-    assert.equal(canoniseurParDossier()(forme), forme)
+    assert.equal(canoniserParDossier(forme, memoireDeCanonisation()), forme)
     assert.equal(relatifSousRacine(racine, forme), null, forme)
   }
   assert.equal(await connexionsHorsTemoin(), 0, 'connexions ouvertes par la canonisation')

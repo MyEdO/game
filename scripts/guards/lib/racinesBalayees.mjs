@@ -34,7 +34,8 @@ import { correspondGlob } from './lister.mjs'
 export const APPEL_D_ACQUISITION = /\brendreCible\b/
 
 /** Les primitives de LECTURE et de LISTAGE du système de fichiers : l'argument 0 est la racine. Une
- *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict. */
+ *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict.
+ *  Le contrat `identite` remplace les sondes qui remontent depuis le paramètre indiqué par une dépendance à son chemin. */
 const PRIMITIVES = Object.freeze(['readFileSync', 'readFile', 'readdirSync', 'readdir', 'opendirSync', 'existsSync', 'statSync', 'globSync', 'glob'])
 const GLOBS = new Set(['globSync', 'glob'])
 
@@ -248,9 +249,11 @@ export function lecteurDExpressions(rel, arbre) {
         const liaisons = s.importClause.namedBindings
         if (liaisons && ts.isNamedImports(liaisons))
           for (const e of liaisons.elements) poser(e.name.text, { importe: s.moduleSpecifier.text, nom: (e.propertyName ?? e.name).text })
-        const builtin = ['node:os', 'os', 'node:fs', 'fs'].includes(s.moduleSpecifier.text)
-        if (s.importClause.name) poser(s.importClause.name.text, builtin ? { importe: s.moduleSpecifier.text, nom: 'default' } : { horsNom: true })
-        if (liaisons && ts.isNamespaceImport(liaisons)) poser(liaisons.name.text, builtin ? { importe: s.moduleSpecifier.text, nom: '*' } : { horsNom: true })
+        const spec = s.moduleSpecifier.text
+        const builtin = ['node:os', 'os', 'node:fs', 'fs'].includes(spec)
+        const importDuModule = (nom) => builtin ? { importe: spec, nom } : { horsNom: true, module: { spec, nom } }
+        if (s.importClause.name) poser(s.importClause.name.text, importDuModule('default'))
+        if (liaisons && ts.isNamespaceImport(liaisons)) poser(liaisons.name.text, importDuModule('*'))
       }
     }
     blocs.set(instructions, index)
@@ -565,7 +568,71 @@ export function lecteurDExpressions(rel, arbre) {
     if (!ts.isPropertyAccessExpression(n.expression) || !objetDeclare(n.expression.expression)) return null
     return expr(n.expression)
   }
-  return { expr, lambdas: lexique, lier, nomAppele, fonctions, dansDe, ligneDe, cibleAppele }
+  const appelleUnePrimitive = (cible, operation, modules) => {
+    const membre = ts.isPropertyAccessExpression(cible)
+    const ident = membre ? cible.expression : cible
+    if (!ts.isIdentifier(ident) || (membre && cible.name.text !== operation)) return false
+    const lu = lier(ident, 0)
+    const liaison = liaisonDe(ident)
+    const fiche = liaison && affectationsDe().get(liaison.n)?.get(ident.text)
+    const importe = lu.k === 'importe' ? lu : !fiche ? liaison?.decl?.module : null
+    return importe && modules.includes(importe.spec) &&
+      (membre ? ['default', '*'].includes(importe.nom) : importe.nom === operation)
+  }
+  const appelleFs = (cible, operation) => appelleUnePrimitive(cible, operation, ['node:fs', 'fs'])
+  /** La sonde ne résume que le paramètre déclaré, sa résolution et sa remontée par dirname. */
+  const partDuParametre = (chemin, portee, index) => {
+    const parametre = portee.parameters[index].name
+    if (!ts.isIdentifier(parametre)) return false
+    const enCours = new Set()
+    let partiDuParametre = false
+    const suivre = (valeur) => {
+      if (ts.isCallExpression(valeur) && valeur.arguments.length === 1)
+        return ['resolve', 'dirname'].some((nom) => appelleUnePrimitive(valeur.expression, nom, ['node:path', 'path'])) &&
+          suivre(valeur.arguments[0])
+      if (!ts.isIdentifier(valeur)) return false
+      const liaison = liaisonDe(valeur)
+      if (!liaison) return false
+      const fiche = affectationsDe().get(liaison.n)?.get(valeur.text)
+      if (fiche?.opaque || fiche?.champs.size) return false
+      if (liaison.n === portee && liaison.parametre && valeur.text === parametre.text && !fiche?.droits.length) {
+        partiDuParametre = true
+        return true
+      }
+      const variable = liaison.decl?.variable
+      if (!variable?.initializer) return false
+      if (enCours.has(variable)) return true
+      enCours.add(variable)
+      const valide = suivre(variable.initializer) && (!fiche || fiche.droits.every(suivre))
+      enCours.delete(variable)
+      return valide
+    }
+    return suivre(chemin) && partiDuParametre
+  }
+  const rendLeChemin = (instruction, chemin) => {
+    if (!instruction) return false
+    const retour = ts.isBlock(instruction) && instruction.statements.length === 1 ? instruction.statements[0] : instruction
+    return ts.isReturnStatement(retour) && retour.expression && ts.isIdentifier(retour.expression) &&
+      retour.expression.text === chemin.text && liaisonDe(retour.expression)?.n === liaisonDe(chemin)?.n
+  }
+  const sondeIdentite = (appel, fonction, index) => {
+    let portee = parents.get(appel)
+    while (portee && !aUnePorteeDeFonction(ts, portee)) portee = parents.get(portee)
+    if (idDe.get(portee) !== fonction || appel.arguments.length !== 1) return false
+    const cible = appel.expression
+    const [chemin] = appel.arguments
+    const depuisLeParametre = () => partDuParametre(chemin, portee, index)
+    if (ts.isPropertyAccessExpression(cible) && cible.name.text === 'native' && appelleFs(cible.expression, 'realpathSync'))
+      return depuisLeParametre()
+    if (!ts.isIdentifier(chemin)) return false
+    const parent = parents.get(appel)
+    if (ts.isIfStatement(parent) && parent.expression === appel && appelleFs(cible, 'existsSync'))
+      return rendLeChemin(parent.thenStatement, chemin) && depuisLeParametre()
+    if (!ts.isExpressionStatement(parent) || !appelleFs(cible, 'statSync')) return false
+    const bloc = parents.get(parent)
+    return ts.isBlock(bloc) && rendLeChemin(bloc.statements[bloc.statements.indexOf(parent) + 1], chemin) && depuisLeParametre()
+  }
+  return { expr, lambdas: lexique, lier, nomAppele, fonctions, dansDe, ligneDe, cibleAppele, sondeIdentite }
 }
 
 /**
@@ -578,8 +645,10 @@ export function lecteurDExpressions(rel, arbre) {
  */
 export function lectureDeModule(rel, arbre) {
   const ts = typescript()
-  const { expr, lambdas, lier, nomAppele, fonctions, dansDe, ligneDe, cibleAppele } = lecteurDExpressions(rel, arbre)
+  const { expr, lambdas, lier, nomAppele, fonctions, dansDe, ligneDe, cibleAppele, sondeIdentite } = lecteurDExpressions(rel, arbre)
   const sites = []
+  const argumentsDIdentite = new Map()
+  const identitesLues = new Set()
   const estMembreCallable = (cible) => {
     if (cible?.k !== 'champ') return false
     const de = cible.de.k === 'param' ? (Object.hasOwn(fonctions, cible.de.fn) ? fonctions[cible.de.fn]?.params[cible.de.index]?.defaut : null) : cible.de
@@ -598,16 +667,23 @@ export function lectureDeModule(rel, arbre) {
   }
   const visiter = (n) => {
     if (ts.isCallExpression(n) && !dansUnRappel(n)) {
-      const nom = nomAppele(n)
-      const lecture = PRIMITIVES.includes(nom) || Object.hasOwn(PORTES_GIT, nom)
-      const cible = !lecture ? cibleAppele(n) : null
-      if (lecture || (cible && (cible.k === 'fn' || cible.k === 'param' || estMembreCallable(cible) || (cible.k === 'importe' && !cible.spec.startsWith('node:')))))
-        sites.push({ appel: nom, ligne: ligneDe(n), dans: dansDe(n), args: [...n.arguments].map((a) => expr(a)), ...(lecture ? { lecture: nom } : { cible }) })
+      const dans = argumentsDIdentite.size ? dansDe(n) : null
+      const argument = argumentsDIdentite.get(dans)
+      if (argument !== undefined && sondeIdentite(n, dans, argument.index)) {
+        if (!identitesLues.has(dans)) {
+          identitesLues.add(dans)
+          sites.push({ appel: 'sonde d’identité', ligne: ligneDe(n), dans, lecture: 'identite', args: [argument] })
+        }
+      } else {
+        const nom = nomAppele(n)
+        const lecture = PRIMITIVES.includes(nom) || Object.hasOwn(PORTES_GIT, nom)
+        const cible = !lecture ? cibleAppele(n) : null
+        if (lecture || (cible && (cible.k === 'fn' || cible.k === 'param' || estMembreCallable(cible) || (cible.k === 'importe' && !cible.spec.startsWith('node:')))))
+          sites.push({ appel: nom, ligne: ligneDe(n), dans: dans ?? dansDe(n), args: [...n.arguments].map((a) => expr(a)), ...(lecture ? { lecture: nom } : { cible }) })
+      }
     }
     n.forEachChild(visiter)
   }
-  visiter(arbre)
-
   const exportsLus = new Map()
   const etoiles = []
   for (const s of arbre.statements) {
@@ -664,11 +740,16 @@ export function lectureDeModule(rel, arbre) {
   }
   if (declaration?.k === 'liste') for (const descriptor of declaration.v) {
     if (descriptor.k !== 'objet') continue
-    const { fonction, namespace, champ, lectures, retour, acquisition } = descriptor.v
+    const { fonction, namespace, champ, lectures, retour, acquisition, identite } = descriptor.v
     if (fonction?.k !== 'fn' || !Object.hasOwn(fonctions, fonction.id)) continue
     if (namespace?.k === 'lit' && typeof namespace.v === 'string' && namespace.v && !namespace.v.split('/').includes('..'))
       fonctions[fonction.id].contrat = { namespace: namespace.v, ...(champ?.k === 'lit' ? { champ: champ.v } : {}) }
     if (lectures?.k === 'lit' && lectures.v === 'corpus') fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, lectures: 'corpus' }
+    if (identite?.k === 'scalaire') {
+      const index = Number(identite.v)
+      if (Number.isSafeInteger(index) && index >= 0 && index < fonctions[fonction.id].params.length)
+        argumentsDIdentite.set(fonction.id, { k: 'param', fn: fonction.id, index, nom: 'identite' })
+    }
     if (acquisition?.k === 'objet' && acquisition.v.argument?.k === 'scalaire' && acquisition.v.registre) {
       const argument = Number(acquisition.v.argument.v)
       if (Number.isSafeInteger(argument) && argument >= 0 && argument < fonctions[fonction.id].params.length)
@@ -677,6 +758,8 @@ export function lectureDeModule(rel, arbre) {
     const resume = resumeDeRetour(retour, `${rel}#${fonction.id}:retour`, fonction.id)
     if (resume) fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, retour: resume }
   }
+  visiter(arbre)
+
   const retenues = {}
   const vus = new Set()
   const retenir = (x) => {
@@ -839,7 +922,7 @@ export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
 }
 
 /** @typedef {Record<string, unknown> & { k: string }} Expr */
-/** @typedef {{ chemin: string, sous?: string } | { hors: true } | { non: string }} Valeur */
+/** @typedef {{ chemin: string, sous?: string } | { identite: string } | { hors: true } | { non: string }} Valeur */
 /** @typedef {ReturnType<typeof lectureDeModule>} Lecture */
 
 /** @typedef {Readonly<Record<string, never>>} LectureIllisible */
@@ -1640,6 +1723,12 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     const ctx = { f, env }
     const arg = (i) => site.args[i] ? valeurs(site.args[i], ctx) : [{ chemin: '' }]
     if (site.lecture) {
+      // L’identité suit le chemin lexical initial. Une valeur physique opaque reste couverte si une lecture la consomme.
+      if (site.lecture === 'identite') return arg(0).flatMap((v) => {
+        if ('relais' in v) return [v]
+        const chemin = 'texte' in v ? ancrer(v.texte) : v
+        return 'chemin' in chemin && chemin.chemin ? [{ identite: chemin.chemin }] : []
+      })
       const porte = PORTES_GIT[site.lecture]
       if (porte) {
         const chemins = porte.chemins === 'reste'
