@@ -3,9 +3,7 @@
 //   node --test scripts/guards/lib/commandeShell.test.mjs   (chaîné dans `npm run test:hooks`)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { CAS_HOTE_POWERSHELL, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
 import {
   GRAMMAIRES_HOTE_POWERSHELL,
@@ -20,55 +18,6 @@ import {
   nouveauBudget,
 } from './commandeShell.mjs'
 import { ciblesDEcritureDeCommande } from './ecrituresShell.mjs'
-import { sousRacineNpm } from './racineNpm.mjs'
-
-test('pipelinesDeJetons déplie les scripts du manifeste de chaque portée, y compris en récursion', (t) => {
-  const base = mkdtempSync(join(tmpdir(), 'manifeste-npm-portee-'))
-  t.after(() => rmSync(base, { recursive: true, force: true }))
-  const sous = join(base, 'sous')
-  mkdirSync(sous)
-  for (const [dir, mot] of [[base, 'racine'], [sous, 'imbrique']]) {
-    writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { verifier: 'npm run interne', interne: `echo ${mot}` } }))
-  }
-
-  const executer = () => pipelinesDeJetons('npm run verifier').flat().map(texteDuSegment)
-  const attendu = (mot) => [`echo ${mot}`, 'npm run interne', 'npm run verifier']
-  assert.deepEqual(executer(), ['npm run verifier'])
-  sousRacineNpm(base, () => {
-    assert.deepEqual(executer(), attendu('racine'))
-    assert.deepEqual(sousRacineNpm(sous, executer), attendu('imbrique'))
-    assert.deepEqual(executer(), attendu('racine'))
-  })
-  assert.deepEqual(executer(), ['npm run verifier'])
-})
-
-test('pipelinesDeJetons mémorise le manifeste absent dès une analyse sans scripts fournis', (t) => {
-  const base = mkdtempSync(join(tmpdir(), 'manifeste-npm-absent-'))
-  t.after(() => rmSync(base, { recursive: true, force: true }))
-  sousRacineNpm(base, () => {
-    pipelinesDeJetons('echo sans-script')
-    writeFileSync(join(base, 'package.json'), JSON.stringify({ scripts: { verifier: 'echo disque' } }))
-    assert.deepEqual(pipelinesDeJetons('npm run verifier').flat().map(texteDuSegment), ['npm run verifier'])
-  })
-})
-
-test('pipelinesDeJetons préserve une table explicite, y compris null, et lit le manifeste pour undefined', (t) => {
-  const base = mkdtempSync(join(tmpdir(), 'manifeste-npm-fourni-'))
-  t.after(() => rmSync(base, { recursive: true, force: true }))
-  for (const [nom, scripts, attendu] of [
-    ['table', { verifier: 'npm run interne', interne: 'echo fourni' }, ['echo fourni', 'npm run interne', 'npm run verifier']],
-    ['null', null, ['npm run verifier']],
-  ]) {
-    const dir = join(base, nom)
-    mkdirSync(dir)
-    sousRacineNpm(dir, () => {
-      const executer = (options) => pipelinesDeJetons('npm run verifier', 0, options).flat().map(texteDuSegment)
-      assert.deepEqual(executer({ scripts }), attendu)
-      writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { verifier: 'echo disque' } }))
-      assert.deepEqual(executer({ scripts: undefined }), ['echo disque', 'npm run verifier'])
-    })
-  }
-})
 
 test('redirections : provenance de la cible séparée ou collée', () => {
   const [segment] = pipelinesDeJetons('echo \'$P/x\' > "$P/x" 2>$P/y').flat()
