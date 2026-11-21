@@ -9,6 +9,7 @@ import {
   massSpaceCells,
   nappeKey,
   resolveMass,
+  pansDesNappes,
   resolveNappes,
   riseAt,
   type RoofShapeSpec,
@@ -23,6 +24,7 @@ import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer,
 import { encloseRect, perimeterWallSegs } from '../../sceneEdit.testkit';
 import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
 import { ornementsDuBati } from './ornements';
+import { faitieresDeLaScene } from '../faitieres';
 
 /**
  * Builder de TOITS du pivot : on teste la FUSION EN PANS CONTINUS (le fix de la cause racine « toit
@@ -1366,20 +1368,20 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
   const OUEST = { x: 1, y: 1, w: 7, h: 14 };
   const PASSAGE = { x: 8, y: 1, w: 3, h: 14 };
   const EST = { x: 11, y: 1, w: 8, h: 14 };
-  const ETAGE = { x: OUEST.x, y: OUEST.y, w: OUEST.w + PASSAGE.w + EST.w, h: OUEST.h };
 
   const dans = (r: { x: number; y: number; w: number; h: number }, x: number, y: number) =>
     x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 
-  const plan = (): Scene => {
+  /** Le plan, son corps EST posé en `est` : décalé vers le sud, il ouvre un coin RENTRANT à l'étage contre le passage. */
+  const plan = (est = EST): Scene => {
     let sc = emptyScene('scene-test', SIZE, SIZE);
-    for (const [z, rects] of [[0, [OUEST, EST]], [1, [ETAGE]]] as const) {
+    for (const [z, rects] of [[0, [OUEST, est]], [1, [OUEST, PASSAGE, est]]] as const) {
       const tiles = new Array(SIZE * SIZE).fill(z === 0 ? 'herbe' : 'vide');
       for (let y = 0; y < SIZE; y++)
         for (let x = 0; x < SIZE; x++) if (rects.some((r) => dans(r, x, y))) tiles[y * SIZE + x] = 'pierre';
       sc = putLayer(sc, z, tiles);
     }
-    sc.walls = perimeterWallSegs([OUEST, EST]); // le PASSAGE n'est clos de rien : un seul niveau
+    sc.walls = perimeterWallSegs([OUEST, est]); // le PASSAGE n'est clos de rien : un seul niveau
     sc.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }];
     return sc;
   };
@@ -1438,6 +1440,54 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
       const [bas, haut] = [...noue].sort((p, q) => p.h - q.h);
       expect(bas.h).toBeCloseTo(shape.eaveHeightM, 9);
       expect(haut.h).toBeCloseTo(faite, 9);
+    }
+  });
+
+  /** L'enveloppe de la masse à deux rampants de `sc` : ses cases, son champ, ses pans servis et ses faîtières. */
+  const enveloppeDe = (sc: Scene) => {
+    const m = effectiveArchitecture(sc).find((b) => b.id === 'corps')!.masses.find((x) => x.z === 1 && x.profile === 'gable')!;
+    const cle = nappeKey('corps', m.id);
+    const { cells, field } = resolveNappes(sc).get(cle)!;
+    return { cells, field, pans: pansDesNappes(sc).get(cle)!, faitieres: faitieresDeLaScene(sc).filter((f) => f.nappe === cle) };
+  };
+  const ENVELOPPES = [
+    { nom: 'corps alignés', sc: () => scene },
+    { nom: 'corps est décalé, noue au coin rentrant', sc: () => plan({ ...EST, y: 4, h: 11 }) },
+  ];
+
+  it.each(ENVELOPPES)('$nom : chaque pan de l’enveloppe suit le champ en tout point, jusque dans les cases de la noue', ({ sc }) => {
+    const { cells, field, pans } = enveloppeDe(sc());
+    expect(field.propre).toBeDefined();
+    const dedans = (poly: GP[], x: number, y: number) => {
+      let c = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const a = poly[i], b = poly[j];
+        if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) c = !c;
+      }
+      return c;
+    };
+    for (const key of cells) {
+      const [x, y] = key.split(',').map(Number);
+      for (let i = 0; i < 6; i++)
+        for (let j = 0; j < 6; j++) {
+          const v = { x: x + (i + 0.37) / 6, y: y + (j + 0.61) / 6 };
+          const pan = pans.find((p) => dedans(p.face.poly, v.x - 0.5, v.y - 0.5))!;
+          const [o] = pan.face.poly;
+          expect(o.h + pan.gx * (v.x - 0.5 - o.x) + pan.gy * (v.y - 0.5 - o.y), `(${v.x}, ${v.y})`).toBeCloseTo(fieldHeightAt(field, v), 9);
+        }
+    }
+  });
+
+  it.each(ENVELOPPES)('$nom : aucun faîte ne naît sur la noue, chaque faîtière domine ses deux versants de la pente du champ commun', ({ sc }) => {
+    const { field, faitieres } = enveloppeDe(sc());
+    const d = 0.25;
+    for (const f of faitieres) {
+      const l = Math.hypot(f.sens.x, f.sens.y);
+      const [nx, ny] = [-f.sens.y / l, f.sens.x / l];
+      for (const cote of [-1, 1]) {
+        const v = { x: f.milieu.x + 0.5 + cote * d * nx, y: f.milieu.y + 0.5 + cote * d * ny };
+        expect(f.pied - fieldHeightAt(field, v), f.cle).toBeGreaterThanOrEqual(d * field.shape.pitch - 1e-9);
+      }
     }
   });
 

@@ -95,37 +95,6 @@ export function resolveMassRidge(mass: Pick<BuildingMass, 'ridge'>, cells: Reado
 // ── Dérivation de HAUTEUR : une seule formule, trois lectures de « distance au bord » ────────────────
 type Dir = readonly [number, number];
 const ALL4: Dir[] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-const ALL8: Dir[] = [...ALL4, [1, 1], [1, -1], [-1, 1], [-1, -1]];
-
-function vertsOfCells(cells: ReadonlySet<string>) {
-  const has = (x: number, y: number) => cells.has(vk(x, y));
-  const verts = new Map<string, VXY>();
-  for (const k of cells) {
-    const [x, y] = k.split(',').map(Number);
-    for (const v of [{ x, y }, { x: x + 1, y }, { x, y: y + 1 }, { x: x + 1, y: y + 1 }]) verts.set(vk(v.x, v.y), v);
-  }
-  const inner = (v: VXY) => has(v.x - 1, v.y - 1) && has(v.x, v.y - 1) && has(v.x - 1, v.y) && has(v.x, v.y);
-  return { verts, inner };
-}
-
-/** `hip` — profondeur des sommets ENTIERS de `cells` : BFS 8-connexe depuis le BORD, soit la distance
- *  de Tchebychev au bord, exacte aux sommets de grille (les sommets du bord sont à 0, coin rentrant
- *  compris). Ne suppose AUCUNE forme rectangulaire. */
-function bfsDepth(cells: ReadonlySet<string>): Map<string, number> {
-  const { verts, inner } = vertsOfCells(cells);
-  const dep = new Map<string, number>();
-  const queue: VXY[] = [];
-  for (const v of verts.values()) if (!inner(v)) { dep.set(vk(v.x, v.y), 0); queue.push(v); }
-  for (let i = 0; i < queue.length; i++) {
-    const v = queue[i];
-    const d = dep.get(vk(v.x, v.y))!;
-    for (const [dx, dy] of ALL8) {
-      const nx = v.x + dx, ny = v.y + dy, nk = vk(nx, ny);
-      if (verts.has(nk) && !dep.has(nk)) { dep.set(nk, d + 1); queue.push({ x: nx, y: ny }); }
-    }
-  }
-  return dep;
-}
 
 /** Arête de BORD de l'emprise : le côté d'une case dont la voisine est DEHORS. C'est la ligne
  *  d'égout, celle d'où la nappe monte. */
@@ -145,8 +114,7 @@ function boundarySegs(cells: ReadonlySet<string>): BoundarySeg[] {
 }
 
 /** Profondeur (en cases) d'un point QUELCONQUE sous une croupe : sa distance de Tchebychev à la ligne
- *  d'égout la plus proche. Aux sommets ENTIERS elle vaut `bfsDepth` ; elle étend la même lecture aux
- *  points intermédiaires que le pavage insère quand le faîtage tombe entre deux sommets de grille. */
+ *  d'égout la plus proche, la seule lecture de profondeur du module. */
 function depthToEave(v: VXY, segs: readonly BoundarySeg[]): number {
   let best = Infinity;
   for (const s of segs) {
@@ -172,16 +140,9 @@ function crossSpanAt(v: VXY, rows: Map<number, { lo: number; hi: number }>, axis
  *  profil : `hip` = distance de Tchebychev au bord ; `gable` = portée locale ⊥ `ridge`, DEUX côtés ; `shed` =
  *  portée locale ⊥ à l'axe d'égout déclaré, UN SEUL côté (0 à l'égout, montée vers l'intérieur) ; `flat`
  *  = 0 partout. SOURCE UNIQUE — toute hauteur de toit y passe, par le champ d'une nappe (`fieldHeightAt`). */
-export function riseAt(v: VXY, cells: ReadonlySet<string>, shape: RoofShapeSpec, cache?: { dep?: Map<string, number>; rows?: Map<number, { lo: number; hi: number }>; segs?: readonly BoundarySeg[] }): number {
+export function riseAt(v: VXY, cells: ReadonlySet<string>, shape: RoofShapeSpec, cache?: RoofField['cache']): number {
   if (shape.profile === 'flat') return 0;
-  if (shape.profile === 'hip') {
-    const dep = cache?.dep ?? bfsDepth(cells);
-    const key = vk(v.x, v.y);
-    if (dep.has(key)) return dep.get(key)! * shape.pitch;
-    // Point INTERMÉDIAIRE (coordonnée fractionnaire — sommet inséré par le pavage : arêtier RW/RE du
-    // cas rectangulaire, demi-pas d'une portée impaire) : la MÊME profondeur, lue en continu.
-    return depthToEave(v, cache?.segs ?? boundarySegs(cells)) * shape.pitch;
-  }
+  if (shape.profile === 'hip') return depthToEave(v, cache?.segs ?? boundarySegs(cells)) * shape.pitch;
   if (shape.profile === 'gable') {
     const rows = cache?.rows ?? localCrossSpans(cells, shape.ridge);
     const { lo, hi } = crossSpanAt(v, rows, shape.ridge);
@@ -209,7 +170,7 @@ export function riseAt(v: VXY, cells: ReadonlySet<string>, shape: RoofShapeSpec,
 export interface RoofField {
   domain: ReadonlySet<string>;
   shape: RoofShapeSpec;
-  cache: { dep?: Map<string, number>; rows?: Map<number, { lo: number; hi: number }>; segs?: readonly BoundarySeg[] };
+  cache: { rows?: Map<number, { lo: number; hi: number }>; segs?: readonly BoundarySeg[] };
   propre?: RoofField;
   /** Le pavage RAFFINE-t-il au demi-pas (cf. `roofPans`) ? Décidé UNE fois pour tout le domaine : toutes les
    *  masses d'un groupe coupent leurs cases aux mêmes demi-sommets, sans quoi une arête commune ne serait
@@ -236,7 +197,7 @@ function demiPasDu(profile: RoofShapeSpec['profile'], cells: Iterable<string>, h
 
 /** Champ d'un domaine + d'une forme. */
 function roofField(domain: ReadonlySet<string>, shape: RoofShapeSpec): RoofField {
-  const cache: RoofField['cache'] = shape.profile === 'hip' ? { dep: bfsDepth(domain), segs: boundarySegs(domain) }
+  const cache: RoofField['cache'] = shape.profile === 'hip' ? { segs: boundarySegs(domain) }
     : shape.profile === 'gable' ? { rows: localCrossSpans(domain, shape.ridge) }
     : shape.profile === 'shed' ? { rows: localCrossSpans(domain, shape.eaveSide === 'N' || shape.eaveSide === 'S' ? 'x' : 'y') }
     : {};
@@ -509,10 +470,19 @@ export function roofPans(
           const BL = withH({ x: xs[xi], y: ys[yi + 1] });
           const quad = [TL, TR, BR, BL];
           // Sous une ENVELOPPE, la pièce que traverse la noue se coupe le long de l'intersection des deux
-          // nappes : chaque part suit SA nappe, et la noue reste droite d'une case à l'autre.
+          // nappes. La case se scinde d'abord en pièces où le champ commun est PLAN (le long de sa diagonale de
+          // crête, comme une selle) : l'écart y est linéaire, la coupe tombe sur la noue exacte, et chaque part
+          // suit SA nappe.
           const ecarts = quad.map((p) => ecartDEnveloppe(fld, p));
           if (ecarts.some((d) => d !== undefined && d > EPS) && ecarts.some((d) => d !== undefined && d < -EPS)) {
-            for (const part of coupeALaNoue(quad, ecarts as number[])) addPlanes(part.map(withH));
+            const [b0, b1, b2, b3] = quad.map((p) => heightOfBase(fld, p));
+            const plans = Math.abs(b0 + b2 - b1 - b3) < EPS ? [quad]
+              : Math.abs(b0 - b2) >= Math.abs(b1 - b3) ? [[TL, TR, BR], [TL, BR, BL]] : [[TL, TR, BL], [TR, BR, BL]];
+            for (const plan of plans) {
+              const d = plan.map((p) => ecartDEnveloppe(fld, p)!);
+              const parts = d.some((e) => e > EPS) && d.some((e) => e < -EPS) ? coupeALaNoue(plan, d) : [plan];
+              for (const part of parts) addPlanes(part.map(withH));
+            }
           } else if (Math.abs(TL.h + BR.h - TR.h - BL.h) < EPS) {
             pieces.push({ pts: [TL, TR, BR, BL], gx: (TR.h - TL.h) / (TR.x - TL.x), gy: (BL.h - TL.h) / (BL.y - TL.y) });
           } else {
@@ -1194,7 +1164,13 @@ function groupField(scene: Pick<Scene, 'metresPerTile' | 'roofDefaults'>, body: 
   const gable = group.every((r) => r.mass.profile === 'gable' && r.shape.ridge === ridge);
   let portee = 0;
   if (gable) for (const { lo, hi } of localCrossSpans(domain, ridge).values()) portee = Math.max(portee, hi - lo);
-  else for (const d of bfsDepth(domain).values()) portee = Math.max(portee, 2 * d);
+  else {
+    const segs = boundarySegs(domain);
+    for (const key of domain) {
+      const [x, y] = key.split(',').map(Number);
+      for (const v of [{ x, y }, { x: x + 1, y }, { x, y: y + 1 }, { x: x + 1, y: y + 1 }]) portee = Math.max(portee, 2 * depthToEave(v, segs));
+    }
+  }
   const metresPerTile = sceneMetresPerTile(scene);
   const pitchDeg = fittedPitchDeg(
     portee,

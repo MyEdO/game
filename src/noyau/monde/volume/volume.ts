@@ -46,7 +46,7 @@ import { crownFaces, cretesDePerimetre } from './creneaux';
 import { edgeAppearance } from './structures';
 import { edgeKey, facadeEdges } from '../facades';
 import { WALL_H_M } from '../iso';
-import { biasPoly, centreDeLaCarte, coplanarRanks, faceGeometry, faceQuadsOriented, fanTriangles, trianglesOrientes, type Tri } from './worldTris';
+import { biasPoly, centreDeLaCarte, coplanarRanks, faceGeometry, faceQuadsOriented, trianglesDuPolygone, trianglesOrientes, type Tri } from './worldTris';
 import { buildRoofs, nappeKey } from './toits';
 import { ornementsDuBati } from './ornements';
 import { spaceCellKey } from './architectureVisibility';
@@ -291,10 +291,10 @@ function emballer(scene: Pick<Scene, 'dimensions' | 'metresPerTile'>, faces: rea
     for (const i of indices) {
       const { face, cell, surLaCarte, quads, rangs } = faces[i];
       if (surface.priseSeulement) {
-        // Les faces de `buildPropVolumes` portent déjà leur orientation. `faceGeometry` suit le même éventail.
+        // Les faces de `buildPropVolumes` portent déjà leur orientation. `faceGeometry` suit la même triangulation.
         quads.quads.forEach((q, j) => {
           const biaise = rangs[j] === 0 ? q : biasPoly(q, rangs[j]);
-          for (const tri of fanTriangles(biaise)) ajouterTriangle(tri, surLaCarte);
+          for (const tri of trianglesDuPolygone(biaise)) ajouterTriangle(tri, surLaCarte);
         });
         continue;
       }
