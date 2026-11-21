@@ -13,7 +13,6 @@
 //   node contenus.mjs <dossier>
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 const loin = (m, n) => Math.abs(m - n) > 1
 const autres = (u, v) => u.length !== v.length || u.some((m, k) => loin(m, v[k]))
@@ -30,7 +29,7 @@ export const classe = (u, v) => {
   return d.includes('x') || d.includes('y') || !(u.texte && v.texte) ? 'A' : 'B'
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   const [, , dossier] = process.argv
   if (!dossier) throw new Error('node contenus.mjs <dossier>')
   /** Les gabarits : pour chacun, ses états et, par contenu (porteur | rôle), ses relevés distincts et leurs états. */
