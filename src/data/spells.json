@@ -11742,7 +11742,7 @@
                   "lance_cavalerie",
                   "demi_lance",
                   "pique",
-                  "pique_armes",
+                  "pertuisane_lance",
                   "javelot"
                 ],
                 "addQualities": [
@@ -11759,7 +11759,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "maison": "La recommandation révisable sur les formes admises pour cet enchantement est consignée au ticket #3077.",
+    "maison": "La recommandation révisable sur les formes admises pour cet enchantement est consignée au ticket #3077. Sa révision au ticket #4649 retient la forme Pertuisane explicitement choisie.",
     "family": "invocation"
   },
   {
