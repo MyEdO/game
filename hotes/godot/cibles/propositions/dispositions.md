@@ -51,6 +51,9 @@ d'un contenu qui n'est pas un texte en ligne, ou le départ, les x ou les écart
 Un A fait échouer le rendu, quel que soit le gabarit, contre les autres écrans du gabarit déjà rendus sous
 `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe) et les autres états de la même passe ; `node
 sources/contenus.mjs <dossier>` agrège la passe (code 1 sur un A).
+`npm run godot:maquettes` (`sources/passe.mjs`) joue la passe entière : tous les états de tous les écrans sous un
+`RELEVE_CONTENUS` neuf (`dist/maquettes-passe` par défaut), puis l'agrégat ; code 1 sur une erreur de page, un relevé
+non vide, un défilement de la page ou un A. Playwright se résout comme pour `rendre.mjs` (`../images.md`).
 
 - À valider (#4585) : le cartouche de titre (`#titre`, tout écran qui en porte un) range ses deux primitives (le
   cartouche du lieu, l'objet du temps du voyage) sur une même grille : la figure dans une case de 56 de large, le

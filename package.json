@@ -40,6 +40,7 @@
     "godot:textures": "node hotes/godot/textures.mjs",
     "godot:evaluer": "node hotes/godot/asset/evaluer.mjs",
     "godot:valider": "node hotes/godot/asset/valider.mjs",
+    "godot:maquettes": "node hotes/godot/cibles/propositions/sources/passe.mjs",
     "bench": "node scripts/lancer-local.mjs vitest -- vitest bench --run",
     "agents:sync": "node scripts/agents/compat-cli.mjs sync",
     "agents:check": "node scripts/agents/compat-cli.mjs check",

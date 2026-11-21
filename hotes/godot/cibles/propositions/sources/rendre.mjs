@@ -25,7 +25,8 @@
 // l'autre du même gabarit (`classe`, `contenus.mjs` : A boîte déplacée, B longueur de texte, C contenu de liste). Un A
 // est BLOQUANT, quel que soit le gabarit, contre les états déjà rendus de la passe et, sous
 // `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
-// `<écran>--<état>.json`, que `contenus.mjs <dossier>` agrège :
+// `<écran>--<état>.json`, que `contenus.mjs <dossier>` agrège. Le rendu sort en code 1 si une page a une erreur, un
+// relevé non vide ou du défilement de la page ; `passe.mjs` rend tous les écrans et agrège :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
@@ -315,7 +316,9 @@ async function capturer(maquette, sortie) {
   })
   await p.screenshot({ path: sortie, clip: { x: 0, y: 0, width: format.largeur, height: format.hauteur } })
   console.log(`${maquette?.nom ?? cible} erreurs`, erreurs.length, erreurs.slice(0, 5).join(' | '))
-  console.log(JSON.stringify(rendu ? { ...rapport, ...rendu } : rapport))
+  const vu = rendu ? { ...rapport, ...rendu } : rapport
+  console.log(JSON.stringify(vu))
+  if (erreurs.length || vu.erreur || vu.defile || Object.values(vu).some((v) => Array.isArray(v) && v.length)) process.exitCode = 1
   await p.close()
 }
 if (page) await capturer(null, png)
