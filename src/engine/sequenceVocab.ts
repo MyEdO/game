@@ -250,13 +250,15 @@ export interface SequenceSide {
 export interface SequenceCombinedRules {
   /** La SECONDE valeur confrontée au même dé (Compétence ou Caractéristique). */
   second: { skill?: RefASpecialisation; characteristic?: CharKey };
-  /** Tous les combien d'échecs de la SECONDE lecture les `ops` se paient (`NADJ 16 l.90` : « Pour
+  /** Tous les combien d'échecs de la SECONDE lecture le Test échoit (`NADJ 16 l.90` : « Pour
    *  chaque 3 Tests d'Initiative auxquels vous échouez »). 0/absent : à chaque échec. */
   echecsParEcheance?: number;
-  /** Tous les combien de MARQUES effacées les `ops` se paient (`l.90` : « pour chaque 2 chouettes que
+  /** Tous les combien de MARQUES effacées le Test échoit (`l.90` : « pour chaque 2 chouettes que
    *  vous effacez »). */
   effacementsParEcheance?: number;
-  /** Ce que coûte l'échéance (échecs cumulés, ou marques effacées) — appliqué au porteur. */
+  /** NADJ 16 l.90 */
+  test?: JetFixe;
+  /** LDB 09 l.475 */
   ops?: readonly GameOp[];
   /** Le camp qui obtient le MOINS de DR à la première lecture prend une MARQUE (`l.90`). */
   markLoser?: boolean;
