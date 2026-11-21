@@ -48,7 +48,9 @@
 
 /* l'hôte : son cartouche, son boniment, sa pointe */
 .hote{position:absolute}
-.hote>.fond{padding:11px 16px 12px 13px}
+.hote>.fond{display:flex;flex-direction:column;height:100%;box-sizing:border-box;padding:11px 16px 12px 13px}
+.hote>.fond>.defile{flex:1 1 auto}
+.hote>.fond>:not(.defile){flex:none}
 .hote p{margin:8px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
 .pointe{position:absolute;width:18px;height:18px;transform:rotate(45deg);background:#1f130b;box-shadow:2px 2px 0 #0c0705,inset -1px -1px 0 rgba(226,192,106,.3)}
 

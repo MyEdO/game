@@ -89,6 +89,10 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
   de places d'une tente ; le sac de couchage et l'abri de fortune, que le noyau n'applique pas ; la ligne « Le
   froid » sous la tente dépend de la sévérité du temps (`exposureTestCount`, `src/noyau/restFlow.ts:486-512`), non
   relue pour le gel ; une halte de voyage qui se quitte (`src/noyau/modalArbiter.ts:192` ne la quitte pas).
+- À valider (#4585) : l'offre de l'hôte, qui dort où et la partie sur la grille commune des colonnes (`colonne`,
+  `sources/gestes.js`) : la tête (le cartouche de l'hôte, le jeu), le corps qui défile, ses entrées à 6 px l'une de
+  l'autre, le geste au pied fixe ; les autres jeux de la maison en plaques à 12 px, pour tenir à trois sur la largeur
+  de la page.
 
 ## soins
 
@@ -103,6 +107,8 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
   visite, « 4-6 pistoles »).
 - À valider : visite à 5/– dans la fourchette du livre, à tracer en valeur maison elle aussi ; le noyau débite le
   groupe, pas le patient ; docteur anonyme ; rail du quartier ou du bâtiment.
+- À valider (#4585) : la page des soins sur la grille de la page d'un service : le patient en tête ; son mal, les
+  voies et ce que l'acte coûte (le compte, la bourse) dans le corps qui défile ; le geste et la note au pied fixe.
 
 ## interlude
 
@@ -116,3 +122,6 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
 - Le même écran porte la préparation d'une bataille de masse (`bataille-de-masse-preparation`, `combat-suite.md`).
 - À valider : rattacher chaque Activité à un lieu et à un PNJ est une adaptation de scénario ; restriction par
   Classe (LDB 23 l.195) ; plusieurs Activités absentes du plan ; l'effet de l'Événement n'est pas montré.
+- À valider (#4585) : les Activités restantes et le lieu choisi sur la grille commune des colonnes, « Envoyer » au
+  pied fixe ; sur la carte, la place du héros tenue vide à chaque étiquette où personne ne va : une étiquette garde sa
+  largeur quel que soit son occupant.

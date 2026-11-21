@@ -94,16 +94,15 @@
    le cartouche et la page ; la page du service en grande page de 480 au
    coin haut-droit, jusqu'à la ligne basse puis elle défile ; la carte du port et ses départs en colonne de 360 */
 /* en coop, qui tient la main prend la place de la rumeur, sous le rail */
-#scene-du-commerce{position:absolute;display:flex;flex-direction:column;align-items:flex-start;gap:16px}
-#scene-du-commerce.en-deux{flex-wrap:wrap;align-content:flex-start;column-gap:16px}
+#scene-du-commerce{position:absolute}
+#scene-du-commerce>.defile{height:100%;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+#scene-du-commerce.en-deux>.defile{flex-direction:row;flex-wrap:wrap;align-content:flex-start;column-gap:16px}
 #scene-du-commerce .hote{position:relative;left:auto !important;top:auto !important}
-#page>.fond{padding-top:16px}
-#page .filet{margin:6px 0}
-#page .r{margin-bottom:3px}
+/* en colonne, chaque hôte à sa case, trois en vue et la suite qui défile : sa largeur et sa hauteur, le corps qui défile,
+   les gestes au pied */
+#scene-du-commerce:not(.en-deux) .hote{flex:none;height:152px}
 #page .porteur{padding-top:5px;padding-bottom:6px}
 #page .porteur span{margin-bottom:4px}
-#page .plaque.conclure{margin-top:8px}
-#page .note{margin-top:5px}
 /* une ligne à régler : son complément sous son nom, le prix et la quantité à droite des deux */
 #page .lignes .ligne{grid-template-columns:minmax(0,1fr) 84px 96px;height:auto;min-height:27px;padding-top:2px;padding-bottom:2px}
 #page .lignes .ligne .c{grid-column:1;line-height:13px;margin-top:-3px}
@@ -115,9 +114,6 @@
 /* 4. Lieu, la route : la carte du trajet au coin haut-droit, le panneau ou le navire dessous ; la frise au-dessus du
    bandeau, l'aperçu du Test au-dessus du navire ; la fenêtre du bas prend la place du bandeau ; le carton d'un arrêt
    au rect `carton` (`rendu.js`) */
-#panneau .fond{padding:20px 14px 10px}
-#panneau .jauge{margin:1px 0 7px}
-#panneau .plaque{margin-top:2px}
 #apercu-test .apercu{left:576px;top:270px;--pointe:124px}
 .apercu td:first-child{white-space:nowrap;padding-right:10px}
 .apercu table{border-collapse:collapse;width:100%}
@@ -136,8 +132,7 @@
 /* 4. Lieu, la bataille : le panneau de la Puissance au coin haut-droit, les Scènes sur leurs emplacements du champ, le
    carton du Test de Puissance ou de l'issue au-dessus du bandeau (gabarit 7) */
 #panneau.armees .ligne b{font-family:"Grenze Gotisch";font-weight:600;font-size:17px;letter-spacing:.3px;color:#f4e8ca}
-#panneau.armees .plaque{margin-top:8px}
-#panneau .t{margin:2px 0 6px;font-size:12px;color:var(--creme-2)}
+#panneau .t{font-size:12px;color:var(--creme-2)}
 .jouera.joue span{color:#eadfc4}
 .poste.scene{width:230px}
 .scene .postes-de-scene{align-self:stretch;min-height:58px;display:flex;justify-content:center;align-items:center;gap:6px;z-index:1}
@@ -167,19 +162,15 @@
 .lieu.gauche::after{left:26px}
 .lieu.droite{transform:translate(calc(-100% + 26px),-100%)}
 .lieu.droite::after{left:auto;right:21px}
-#lieu .fond{padding:20px 14px 12px}
 #lieu h3{font-size:23px;line-height:32px}
 #lieu .forces{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
-#lieu .activite{position:relative;gap:9px;margin-top:6px;padding:5px 10px}
+#lieu .activite{position:relative;gap:9px;padding:5px 10px}
 #lieu .activite b{font-size:16.5px;line-height:21px}
 #lieu .activite .c{font-size:10.5px;line-height:13px}
 #lieu .activite i{font-size:11.5px;line-height:15px}
 #lieu .fermees{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 #lieu .activite.fermee b{color:#8d8474}
 /* les activités défilent entre la tête du lieu et l'envoi, au pied */
-#lieu .fond{display:flex;flex-direction:column}
-#lieu .plaque.envoyer{flex:none;margin-top:auto}
-#lieu .defile{margin-bottom:8px}
 
 /* 5. Combat : la borne du round 22 / 16, l'ordre du tour au bord gauche dans la marge de 160 sous la borne, l'actif en
    bas et le haut replié ; la fin du tour 49 / 48 */
@@ -217,7 +208,7 @@
 #liste{left:calc(50% - 480px + 460px);bottom:160px;width:300px}
 #apercu-sort.rapide .apercu{left:calc(50% - 480px + 460px);bottom:166px;--pointe:41px}
 #apercu-sort.liste .apercu{left:calc(50% - 480px + 148px);bottom:212px;--pointe:150px}
-#apercu-sort td:first-child,#apercu-sort td:last-child{white-space:normal}
+#apercu-sort td:first-child,#apercu-sort td:last-child,#billet-du-bord td:last-child,#apercu-scene td:last-child{white-space:normal}
 #apercu-cible .apercu{left:62.5%;top:190px;--pointe:136px}
 #journal-entier .fond{position:relative;display:flex;flex-direction:column;padding:28px 20px 12px}
 #journal-entier p{white-space:normal}

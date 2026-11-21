@@ -4,7 +4,8 @@
 //      n'est autre qu'en ligne), ou d'une liste qui défile le départ, les x ou les écarts de ses entrées ;
 //   B  longueur de texte : seule la largeur ou la hauteur d'un texte change, son coin fixe (un voisin qu'il pousse est
 //      un A pour ce voisin) ;
-//   C  contenu de liste : seul le nombre des entrées d'une liste qui défile change.
+//   C  contenu de liste : seul le nombre des entrées d'une liste qui défile change (une liste d'une seule entrée n'a
+//      pas d'écart : ses écarts ne se comparent pas).
 // Un A d'un gabarit de `PILOTES` fait échouer le rendu (`rendre.mjs`) et cet agrégat (code 1) ; les autres gabarits
 // restent en rapport. L'agrégat lit les fichiers que chaque état rendu sous `RELEVE_CONTENUS=<dossier>` y a écrits, et
 // rend, par gabarit (le champ `gabarit` des états), la synthèse (états, places, pièces sans place, contenus dont ceux
@@ -16,12 +17,13 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** Les gabarits dont un écart A fait échouer le rendu. */
-export const PILOTES = new Set(['fenetre-du-bas', 'combat', 'gestion', 'fiche'])
+export const PILOTES = new Set(['fenetre-du-bas', 'combat', 'gestion', 'fiche', 'lieu-et-voyage'])
 const loin = (m, n) => Math.abs(m - n) > 1
 const autres = (u, v) => u.length !== v.length || u.some((m, k) => loin(m, v[k]))
-/** Ce qui diffère de deux relevés du même contenu : `x`, `y`, `l`, `h` d'un rect ; `depart`, `x`, `ecarts`, `n` d'une liste. */
+/** Ce qui diffère de deux relevés du même contenu : `x`, `y`, `l`, `h` d'un rect ; `depart`, `x`, `ecarts`, `n` d'une liste,
+ * dont les écarts ne se comparent qu'entre deux listes qui en ont (une seule entrée n'a pas d'écart). */
 const differe = (u, v) => (u.liste
-  ? ['depart', 'x', 'ecarts', 'n'].filter((k) => autres([u.liste[k]].flat(), [v.liste[k]].flat()))
+  ? ['depart', 'x', 'ecarts', 'n'].filter((k) => (k !== 'ecarts' || (u.liste.n > 1 && v.liste.n > 1)) && autres([u.liste[k]].flat(), [v.liste[k]].flat()))
   : ['x', 'y', 'l', 'h'].filter((_, k) => loin(u.rect[k], v.rect[k])))
 /** La classe de l'écart entre deux relevés du même contenu : `A`, `B`, `C`, ou null s'ils sont les mêmes. */
 export const classe = (u, v) => {

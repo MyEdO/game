@@ -19,7 +19,7 @@
 // le rect de chaque enfant d'une place (`data-place`), ou du fond d'une pièce sans place, sous la clé porteur + rôle, et
 // les entrées de ce qui y défile en une liste (départ, x, écarts, jamais leur rang) ; il classe l'écart d'un état à
 // l'autre du même gabarit (`classe`, `contenus.mjs` : A boîte déplacée, B longueur de texte, C contenu de liste). Un A
-// d'un gabarit de `PILOTES` (`fenetre-du-bas`, `combat`, `gestion`, `fiche`) est BLOQUANT, contre les états déjà rendus de la passe et, sous
+// d'un gabarit de `PILOTES` (`fenetre-du-bas`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`) est BLOQUANT, contre les états déjà rendus de la passe et, sous
 // `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
 // `<écran>--<état>.json` ; les autres gabarits restent en RAPPORT, que `contenus.mjs <dossier>` agrège :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
@@ -231,11 +231,11 @@ const releve = ([largeur, hauteur]) => {
   const croix = croixVues.length > 1 ? [`${croixVues.length} croix : ${croixVues.map((e) => e.closest('[data-piece]')?.dataset.piece ?? '-').join(', ')}`] : []
   /* le contenu des places (`contenu`, `contenus.mjs`) : le rect de chaque enfant visible d'une place (`data-place`), ou
      du fond d'une pièce qui n'en a aucune, depuis le coin de ce qui le porte, sous la clé porteur + rôle (sa pièce, sa
-     place, sa première classe et son `data-texte`, le rang parmi ceux du même rôle), marqué `texte` quand il porte du texte et que rien
+     place, sa première classe, son `data-texte` et son `data-cle`, l'id stable de ce qu'il désigne quand le markup en porte un, le rang parmi ceux du même rôle), marqué `texte` quand il porte du texte et que rien
      en lui n'est autre qu'en ligne (`inline`, `inline-block`, `inline-flex`) ; les entrées de ce qui y défile (`data-defile`) en une seule liste sous la clé porteur +
      rôle du défilant + `*` : le départ de la première depuis le haut du contenu défilé, leurs x et l'écart de chacune à
      la précédente, jamais leur rang */
-  const role = (d) => d.dataset.piece ?? d.dataset.place ?? `${d.tagName.toLowerCase()}${d.classList[0] ? '.' + d.classList[0] : ''}${d.dataset.texte ? `[${d.dataset.texte}]` : ''}`
+  const role = (d) => d.dataset.piece ?? d.dataset.place ?? `${d.tagName.toLowerCase()}${d.classList[0] ? '.' + d.classList[0] : ''}${d.dataset.texte ? `[${d.dataset.texte}]` : ''}${d.dataset.cle ? `@${d.dataset.cle}` : ''}`
   const contenus = {}
   const poser = (cle, valeur) => { let k = 1; while (contenus[`${cle}${k > 1 ? ' #' + k : ''}`]) k++; contenus[`${cle}${k > 1 ? ' #' + k : ''}`] = valeur }
   for (const e of document.querySelectorAll('#ui [data-piece]')) {

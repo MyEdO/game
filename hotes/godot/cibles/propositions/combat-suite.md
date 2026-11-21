@@ -283,6 +283,9 @@ exemple.
   tout le groupe s'y engageant ; le billet de la Scène visée ; « Libre · à poster » sur la carte du héros sans poste ;
   où chaque Scène se pose sur le champ (donnée absente du jeu) ; le facteur environnemental tiré (ADE II 08 l.307-322)
   n'a pas d'image à lui ; la pose d'un héros est `bataille-de-masse-poster`, la sortie `bataille-de-masse-issue`.
+- À valider (#4585) : la Puissance sur la grille commune des colonnes, sans tête : le premier geste au pied fixe, le
+  second au bas du corps qui défile ; la table de l'aperçu d'une Scène à hauteur fixe, ses valeurs sur deux lignes au
+  besoin.
 
 ## bataille-de-masse-poster
 - Poster et retirer un héros, nouvel état de la page `bataille-de-masse` : la Scène « Motivation » visée, son billet
@@ -394,6 +397,8 @@ exemple.
 - À valider : la frise de la mer reprise à l'échelle 0-10 ; « Tout lancer » à droite des gestes de la rangée ;
   « Abandonner la fuite » dans le panneau et non au pied ; les coureurs en silhouettes sur la route ; Distance 4 et
   seuils d'exemple.
+- À valider (#4585) : la poursuite et la sommation sur la grille commune des colonnes, sans tête ; « Abandonner la
+  fuite » en plaque pleine au pied fixe.
 
 ## poursuite-terrestre-rattrapes
 - La Distance tombée à 0 (LDB 15 l.102-108) : le bandeau « Rattrapés — que fait le groupe ? », celui qui décide, deux

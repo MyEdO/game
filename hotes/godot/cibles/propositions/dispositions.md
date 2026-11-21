@@ -36,8 +36,9 @@ soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrê
 premier état du même rôle. Le relevé `contenu` (`sources/contenus.mjs`) compare d'un état à l'autre du même gabarit
 le rect de ce que chaque place porte, et classe chaque écart : **A** une boîte déplacée (son coin bouge, ou la taille
 d'un contenu qui n'est pas un texte en ligne, ou le départ, les x ou les écarts des entrées d'une liste qui défile),
-**B** la seule longueur d'un texte dont le coin reste fixe, **C** le seul nombre des entrées d'une liste qui défile.
-Un A d'un gabarit pilote (`PILOTES` : `fenetre-du-bas`, `combat`, `gestion`, `fiche`) fait échouer le rendu, contre les autres écrans du gabarit
+**B** la seule longueur d'un texte dont le coin reste fixe, **C** le seul nombre des entrées d'une liste qui défile
+(une liste d'une seule entrée n'a pas d'écart à comparer).
+Un A d'un gabarit pilote (`PILOTES` : `fenetre-du-bas`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`) fait échouer le rendu, contre les autres écrans du gabarit
 déjà rendus sous `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe) et les autres états de la même passe ; les
 autres gabarits restent en rapport (`node sources/contenus.mjs <dossier>`, code 1 sur un A d'un pilote).
 

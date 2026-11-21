@@ -106,6 +106,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   La Diligence », EDO 02 l.184), c'est une valeur d'adaptation ; aucun champ d'enceinte au schéma du lieu
   (`src/noyau/monde/scene.ts`) ; services et départs identiques d'un état à l'autre, quand l'image varie aussi ceux
   du lieu (hameau à pied, bourg et son forgeron).
+- À valider (#4585) : les départs dans le corps du panneau bas, qui défile ; le service d'accueil dans une case d'hôte
+  de 340 × 152, sa réplique qui défile, ses gestes au pied (`commerce.md`).
 
 ## voyage-fluvial
 - Cible écrite, « Ce que le joueur voit pendant le trajet » : décor en plans (ciel, lointain, berge, fleuve et
@@ -155,6 +157,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   `src/noyau/voyageEnVue.ts:56`, libellés `ecran.cadence.*`). À valider : la cadence dans l'objet du temps, et la
   même pièce sur la route (`evenement-de-route-issue`) et le fleuve (`voyage-fluvial`). Un arrêt (péripétie, péril,
   relâche, conseil, panne) ne la montre pas : rien n'avance.
+- À valider (#4585) : sous la carte, l'état du navire dans le corps qui défile et la cadence au pied fixe du panneau,
+  à la même place avec ou sans navire ; l'objet du temps sur la grille du cartouche du lieu : l'arche du ciel réduite
+  à la case de 56 px du médaillon, le texte à la place du nom du lieu, ses lignes depuis le haut.
 
 ## postes-de-bord
 - Doctrine : l'affectation suit la lignée des postes de la halte, aucun choix en liste ; chaque rôle est un poste
@@ -177,6 +182,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider (#4585) : chaque poste a 148 px de large au moins et une tête de la hauteur d'un portrait, que le poste
   soit tenu ou vide : l'étiquette ne monte ni ne s'élargit quand un héros le prend, les tenants centrés sur la largeur
   du poste (même gabarit aux postes de la nuit, `lieux-et-nuit.md`).
+- À valider (#4585) : le bord, la station et la semaine sur la grille commune des colonnes, sans tête : le corps sur
+  toute la hauteur, le geste au pied fixe ; le billet d'un poste à 300 de large, celui d'un Test étendu compris, ses
+  valeurs sur deux lignes au besoin ; la table de tout billet à hauteur fixe (125), qui défile si elle déborde.
 
 ## postes-de-bord-station
 - Même écran que `postes-de-bord`. Bjorn est au poste « Repos » (aucun rôle, `affecterAuRoleABord(crewId, null)`),

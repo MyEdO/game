@@ -62,8 +62,11 @@ html,body{margin:0;background:var(--noir)}
 
 /* le cartouche à la taille `titre` : celui de l'écran, au coin haut-gauche */
 #titre{left:24px;top:20px;height:96px}
-#titre .fond{display:flex;align-items:center;gap:14px;padding:0 22px 0 14px}
-#titre .fond>div:last-child{flex:1;min-width:0}
+/* ses deux primitives (le cartouche du lieu, l'objet du temps du voyage) sur la même grille : la figure dans sa case de
+   56, le texte à sa place fixe, ses lignes depuis son haut */
+#titre .fond{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;column-gap:10px;padding:0 12px 0 14px}
+#titre .fond>:first-child{justify-self:center}
+#titre .fond>div:last-child{height:70px}
 #titre .n{font-size:31px;line-height:44px;margin:-6px 0 -5px;color:var(--ivoire);text-shadow:0 2px 3px var(--noir);white-space:nowrap}
 #titre .s{font-size:12.5px;color:var(--creme-2);white-space:nowrap;margin-top:1px;display:flex;align-items:center;gap:6px}
 
@@ -139,7 +142,9 @@ html,body{margin:0;background:var(--noir)}
 .apercu.vers-droite::before{right:-8px;top:var(--pointe,60px);box-shadow:2px -2px 0 var(--contour)}
 .apercu.vers-haut::before{left:var(--pointe,40px);top:-8px;box-shadow:-2px -2px 0 var(--contour)}
 .apercu.vers-bas::before{left:var(--pointe,40px);bottom:-8px;box-shadow:2px 2px 0 var(--contour)}
-.apercu .tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.apercu .tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px;height:26px}
+/* la table d'un aperçu, à hauteur fixe, qui défile si elle déborde (`tableDApercu`) */
+.apercu .defile.table{height:125px}
 .apercu .tete .n{font-size:22px;line-height:24px;color:var(--sepia);white-space:nowrap}
 .apercu .tete .c{font-size:12px;color:var(--rouille);white-space:nowrap}
 /* la bannière d'issue d'un combat : centrée, haut à 190, sa plaque d'appel 28 dessous */
@@ -279,6 +284,13 @@ html,body{margin:0;background:var(--noir)}
 /* ce qui défile dans son cadre : sans barre ; la suite cachée s'annonce par un fondu au pied, ce qui a défilé par un
    fondu en tête, de `--fondu` de haut (lu par `suites`, `gestes.js`, et le relevé `cache` de `rendre.mjs`) */
 .defile{--fondu:34px;min-height:0;overflow-y:auto;scrollbar-width:none}
+/* la grille d'une colonne (`colonne`, `gestes.js`) : chaque part au haut de sa place, les entrées du corps à 6 px l'une
+   de l'autre, le geste sur toute la largeur */
+.colonne>.place>*{margin:0}
+.colonne>.place>.defile.corps{height:100%;display:flex;flex-direction:column;gap:6px}
+.colonne>.place>.defile.corps>*{margin:0;flex:none}
+.colonne>.place>.plaque{width:100%}
+.colonne>.place>.note{height:20px}
 .defile.suite{mask-image:linear-gradient(#000 calc(100% - var(--fondu)),transparent)}
 .defile.avant{mask-image:linear-gradient(transparent,#000 var(--fondu))}
 .defile.avant.suite{mask-image:linear-gradient(transparent,#000 var(--fondu),#000 calc(100% - var(--fondu)),transparent)}

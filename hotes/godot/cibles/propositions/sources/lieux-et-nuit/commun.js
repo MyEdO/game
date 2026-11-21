@@ -63,9 +63,10 @@ const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = ''
     </div>
   </div>`]; }))), { piece: 'socle', tete: (titre ? ruban(titre) : '') + clouer(4) });
 /* l'hôte posé dans la scène : (x, y) son coin, `l` sa largeur, `pointe` l'abscisse de sa pointe depuis son bord gauche ;
-   `piece` : son nom au relevé du rendu, celui d'un hôte qui suit la personne du décor qu'il désigne */
-const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', pointe = 60, piece = '' }) => `<div class="hote ${classe} cadre bois"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
-  ${cartouche({ icone, nom, sous, marque, texte: id })}${corps}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
+   `piece` : son nom au relevé du rendu, celui d'un hôte qui suit la personne du décor qu'il désigne ; son corps défile
+   sous le cartouche, ses gestes (`pied`) au pied */
+const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', pied = '', pointe = 60, piece = '' }) => `<div class="hote ${classe} cadre bois"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
+  ${cartouche({ icone, nom, sous, marque, texte: id })}${corps ? defile(corps) : ''}${pied}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
 /* le rail des services d'un lieu : services = [icône, nom, armé, compte à droite] ; `piece` : la colonne qu'il tient,
    dont le pied a sa place (`PLACES`, `../rendu.js`) quel que soit le nombre de services ; `suite` : ce qui suit son
    pied dans le même panneau, à sa place */

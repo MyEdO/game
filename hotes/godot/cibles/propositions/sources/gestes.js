@@ -318,6 +318,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le contenu de chaque place d'un cadre (`cadre/place`), que `rendu.js` pose au rect de sa ligne (`PLACES`) ; une
      place sans contenu n'est pas posée */
   const places = (cadre, contenus) => Object.entries(contenus).filter(([, html]) => html).map(([nom, html]) => `<div class="place" data-place="${cadre}/${nom}">${html}</div>`).join('');
+  /* la grille d'une colonne (`cadre` : son rôle) : sa tête, son corps qui défile, ses entrées à écarts uniformes, son
+     geste au pied fixe et la note sous lui, chacun à sa place (`cadre/tete`, `cadre/corps`, `cadre/geste`, `cadre/note`) ;
+     sans tête, le corps prend aussi sa bande (`cadre/plein`, qu'aucun état ne porte avec la tête) */
+  const colonne = (cadre, { tete = '', corps = '', geste = '', note = '' }) => `<div class="colonne">${places(cadre, { tete, [tete ? 'corps' : 'plein']: corps && defile(corps, 'corps'), geste, note })}</div>`;
   /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques ; `cadre` :
      chaque onglet à sa place `cadre/onglet-k`, de même largeur, une section absente (`null`) laisse la sienne vide */
   const onglets = (noms, active, cadre = '') => {
@@ -332,6 +336,8 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const mobile = (ancre) => ` data-mobile data-ancre="${ancre}"`;
   /* l'aperçu au survol : son nom, à droite ce qu'il est, son corps ; `vers` : le bord dont la pointe montre l'élément
      survolé (gauche, droite, haut, bas) ; `style` le place */
+  /* la table d'un aperçu, à hauteur fixe, qui défile si elle déborde */
+  const tableDApercu = (lignes) => defile(`<table>${lignes}</table>`, 'table');
   const apercu = ({ nom, sous = '', corps = '', vers = 'gauche', style = '' }) => `<div class="apercu parchemin vers-${vers}" data-piece="apercu"${mobile('survol')} style="${style}"><div class="tete"><span class="n gothique">${nom}</span>${sous ? `<span class="c rubrique">${sous}</span>` : ''}</div>${corps}</div>`;
   /* la bannière d'issue d'un combat, et sous elle sa sortie, une plaque d'appel ; `suite` : ce que l'issue laisse */
   const issue = (texte, { action = '', suite = '' } = {}) => `<div class="issue-du-combat" data-piece="issue"><div class="banniere"><span class="gothique" data-texte="issue">${texte}</span></div>${suite ? `<p class="ombre" data-texte="suite de l'issue">${suite}</p>` : ''}${action ? plaque(action, { armee: true, taille: 'appel' }) : ''}</div>`;
@@ -404,7 +410,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, places, onglets, signets, apercu, issue,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
     filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ, mobile, defile, de,
   });
 }

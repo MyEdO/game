@@ -43,6 +43,10 @@ bandeau de jet opposé est celui du combat.
   « une ligne par denrée ») ; le rail des services du lieu gardé ouvert à gauche pendant le commerce ; les porteurs
   dessinés dans la scène et choisis sur la page ; la page de droite pour composer l'achat ; le billet de rumeur cloué
   sous le rail ; « mènera le Marchandage » dit sous le héros qui marchande.
+- À valider (#4585) : chaque hôte de la scène dans une case de 340 × 152 ; la colonne en montre trois et fait défiler
+  la suite (la mule de la vente sous la charrette) ; le corps d'une offre dépliée défile sous son cartouche, ses
+  gestes au pied de la case ; la page du service sur la grille commune des colonnes : la tête, le corps qui défile
+  (entrées à 6 px), le geste au pied, la note sous lui.
 
 ## halle-vente
 - La même halle, charrette chargée. Les lots sont sur leurs porteurs : cartouche « Charrette » déplié sur son lot
