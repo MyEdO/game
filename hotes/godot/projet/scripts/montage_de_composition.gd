@@ -34,9 +34,6 @@ const MAILLAGES := &"maillages_de_pile"
 const RANG_DE_LA_PEAU := 0
 ## La métadonnée d'une pièce skinnée dont le skin est une copie aux liaisons compensées (`refondre`) : le skin du GLB.
 const SKIN := &"skin_de_l_auteur"
-## Les zones (`extras.zone`) des avant-bras et des mains (`ZONES_DES_MEMBRES`, `asset/evaluateur/gardes/membres.ts`) :
-## ce qu'ils portent ne porte pas un objet rangé ailleurs (`_appuyer`, #4351).
-const ZONES_DES_MEMBRES := ["avant_bras_g", "avant_bras_d", "main_g", "main_d"]
 ## La métadonnée d'une pièce skinnée : par face de son mesh, sa liaison dominante (`_liaisons_dominantes`).
 const LIAISONS_DOMINANTES := &"liaisons_dominantes"
 ## Le calque des corps, la troisième couche de rendu (`VisualInstance3D.layers`) : celui d'une pièce dessinée seule et
@@ -790,7 +787,7 @@ func _offrant_du_point(point: Dictionary) -> String:
 ## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
 ## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
 ## rien dessous, sa face arrière à 5 mm de l'emplacement. Une face que porte un avant-bras ou une main (l'os qui porte
-## le plus de son poids de peau a sa zone, ou celle d'un ancêtre, dans `ZONES_DES_MEMBRES`) ne porte pas l'objet, sauf
+## le plus de son poids de peau a sa zone, ou celle d'un ancêtre, dans `Noyau.ZONES_DES_MEMBRES`) ne porte pas l'objet, sauf
 ## à un emplacement de ce même membre : la visée passe au-delà (#4351). À un emplacement qu'offre une pièce, qui le
 ## pose elle-même (une case dans une hotte), l'objet ne descend pas plus bas, et de cette pièce ne compte que ce qu'elle
 ## porte sous l'emplacement, jamais une paroi au-dessus
@@ -1051,8 +1048,8 @@ func _portes_au_repos() -> Array[Dictionary]:
 
 
 ## Par os du squelette de la base, le membre qui le porte, gardé dans `_membres_des_os` : le plus haut de ses
-## ancêtres, lui compris, de zone (`zoneDeLOs`, `asset/evaluateur/corps.ts`) l'une de `ZONES_DES_MEMBRES`, -1 sans lui.
-## La zone d'un os est celle dont les pièces de zone (`extras.zone`) de la base portent ensemble le plus de poids de peau
+## ancêtres, lui compris, de zone (`zoneDeLOs`, `asset/evaluateur/corps.ts`) l'une de `Noyau.ZONES_DES_MEMBRES`
+## (`asset/evaluateur/gardes/membres.ts`), -1 sans lui. La zone d'un os est celle dont les pièces de zone (`extras.zone`) de la base portent ensemble le plus de poids de peau
 ## sur lui.
 func _membres_des_os_de_la_base() -> PackedInt32Array:
 	if not _membres_des_os.is_empty():
@@ -1078,7 +1075,7 @@ func _membres_des_os_de_la_base() -> PackedInt32Array:
 		var membre := -1
 		var ancetre := os
 		while ancetre != -1:
-			if parts.has(ancetre) and _la_plus_lourde(parts[ancetre]) in ZONES_DES_MEMBRES:
+			if parts.has(ancetre) and _la_plus_lourde(parts[ancetre]) in Noyau.ZONES_DES_MEMBRES:
 				membre = ancetre
 			ancetre = squelette.get_bone_parent(ancetre)
 		_membres_des_os.append(membre)
