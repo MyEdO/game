@@ -1,5 +1,5 @@
 import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs';
-import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
+import { entreeDe, readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 /**
  * VERROU D'UNION d'`Effect` (#1466 L1a T3bis-a) — jumeau de `condition-discriminants.test.ts`.
  *
@@ -34,16 +34,15 @@ import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
  *   2026-11-05 — 54 dans `effets.ts`, 2 dans `mecanique.ts`, 4 dans `campagne.ts`).
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import * as ts from 'typescript/unstable/ast';
 import { effectSchema } from './effets';
 import { defDe, enfantsDe, ouverts } from '../grammaire/descente';
 
-const EFFETS = fileURLToPath(new URL('./effets.ts', import.meta.url));
-const FLOW_CORE = fileURLToPath(new URL('../../../engine/flowCore.ts', import.meta.url));
+const EFFETS = resolve(__dirname, 'effets.ts');
+const FLOW_CORE = resolve(__dirname, '../../../engine/flowCore.ts');
 
-const source = (f: string): ts.SourceFile => ast({ rel: f, text: readFileSync(f, 'utf8') })!;
+const source = (f: string): ts.SourceFile => ast({ rel: f, text: entreeDe(f).text })!;
 
 /** Les membres de l'union manuscrite `Effect` d'un fichier source. */
 function membresDEffect(sf: ts.SourceFile): readonly ts.TypeNode[] {
@@ -93,7 +92,7 @@ function modulesDesSchemas(): string[] {
     if (!ts.isImportDeclaration(n) || !ts.isStringLiteral(n.moduleSpecifier) || !n.moduleSpecifier.text.startsWith('.')) return;
     const liens = n.importClause?.namedBindings;
     if (liens && ts.isNamedImports(liens) && liens.elements.some((e) => membres.has(e.name.text)))
-      modules.add(fileURLToPath(new URL(`${n.moduleSpecifier.text}.ts`, pathToFileURL(EFFETS))));
+      modules.add(resolve(dirname(EFFETS), `${n.moduleSpecifier.text}.ts`));
   });
   return [EFFETS, ...modules];
 }
@@ -261,7 +260,7 @@ describe('`effectSchema` — verrou d\'union : les discriminants du SCHÉMA == c
   });
 
   it('un membre dont le SCHÉMA n’est plus résolu sort NOMMÉ, jamais en silence (preuve de câblage)', () => {
-    const brut = readFileSync(EFFETS, 'utf8');
+    const brut = entreeDe(EFFETS).text;
     // La sonde vise un membre de l'UNION `Effect` : la mutation porte sur le SEUL bloc de l'union, jamais
     // sur une autre occurrence du même `z.infer` dans le module.
     const bloc = /export type Effect =[\s\S]*?;\n/.exec(brut);

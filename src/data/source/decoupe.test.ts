@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import { REGISTRE_LIVRES, estLivreExtrait } from '../../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { cheminDuDepot } from '../../../scripts/source/adresses.mjs';
 // @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vitest.config.ts`
@@ -459,10 +460,10 @@ describe('chargement SOUS NODE NU', () => {
   // lancés par `node` sans transpilation : Node 22 efface les types, à condition que les imports
   // internes portent leur extension (`./normalize.ts`, `../hash.ts`).
   it('`node` importe `decoupe.ts` et expose `parseChapitre`', () => {
-    const url = new URL('./decoupe.ts', import.meta.url).href;
+    const url = pathToFileURL(cheminDuDepot('src/data/source/decoupe.ts')).href;
     const r = spawnSync(
       process.execPath,
-      ['--input-type=module', '-e', `import('${url}').then((m) => console.log(typeof m.parseChapitre))`],
+      ['--input-type=module', '-e', `import(${JSON.stringify(url)}).then((m) => console.log(typeof m.parseChapitre))`],
       { encoding: 'utf8' },
     );
     expect(r.stderr).toBe('');

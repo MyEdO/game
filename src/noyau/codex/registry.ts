@@ -15,7 +15,7 @@ import { CLES_DE_DATASET, type CleCodex } from '../../data/schemas/_cles-de-data
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappingsEffectifs, siegeEngines, groupeDeSiege, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
   allAxes,
@@ -120,8 +120,7 @@ import {
   type HitLocation,
   type Difficulty,
 } from '../../engine/types';
-import type { ResolveurDePreset } from '../monde/resolveursDuNarratif';
-import type { Porteur, PorteurDeRangee } from './porteur';
+import type { PorteurDeRangee } from './porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
@@ -2874,11 +2873,6 @@ export const clustersIn = (group: CodexGroup): { flat: CodexCategory[]; clusters
 /** Catégorie par clé. */
 export const categoryByKey = (key: string): CodexCategory | undefined => CODEX.find((c) => c.key === key);
 
-/** Identité STABLE d'une entrée de Codex = sérialisation canonique du couple `{category, id}` —
- *  `CodexItem.id` est unique par catégorie, la clé de navigation qualifie donc la catégorie. C'est
- *  la clé de sélection du navigateur (jamais un `.label ===` nu). */
-export const codexItemKey = (category: string, id: string): string => `${category}␞${id}`;
-
 // ── Index de lookup PARESSEUX (par catégorie) ────────────────────────────────────────────────────
 // `codexLookupById` est appelé par CHAQUE `CodexRef` à CHAQUE rendu → un `items.find` linéaire ne scale
 // pas (des centaines de refs × des centaines d'items). L'index (id → item) se construit à la 1re
@@ -2956,44 +2950,4 @@ export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): Co
     chips(tr('codex.fiche.talents'), (c.talents ?? []).map((t) => idRefRow('talents', t.talentId, t.spec))),
     chips(tr('codex.fiche.sorts'), (c.spells ?? []).map((id) => idRefRow('spells', id))),
   );
-}
-
-/** Catégorie Codex des créatures (`CODEX`, clé `creatures`) : le `type` du porteur de leur `desc`. */
-const CATEGORIE_DES_CREATURES = 'creatures';
-
-const sectionDescription = (text: string, porteur: PorteurDeRangee | undefined): CodexSection =>
-  ({ title: '', layout: 'list', rows: [{ t: 'text', text, porteur }] });
-
-/**
- * La prose d'un combattant à fiche (#2206) : une section sans titre et l'entrée qui PORTE son texte
- * (`CodexSections`, `entree`), ou `null` sans prose. Lit le porteur de fiche, jamais `creatureId`
- * (celui d'un preset sans base est l'id du preset) ; lit `desc`, jamais `maison`.
- * - réf : la `desc` de la créature du catalogue ;
- * - preset : la `desc` de la fiche fusionnée. Quand elle EST la `desc` du profil du preset
- *   (`presetDe`, résolveur injecté), son porteur est le champ du document de projet
- *   (`porteurDuNarratif`, injecté : `undefined` hors projet) ; quand elle est la `desc` de sa base,
- *   la base la porte ; sinon (fiche figée, `sceneNpc.ts`) elle est nue ;
- * - statbloc (`defs-scenes/communs.ts`, aucun champ de prose), héros : `null`.
- */
-export function proseDeFiche(
-  c: Combatant,
-  presetDe: ResolveurDePreset,
-  porteurDuNarratif: (cle: 'presetsPnj', id: string, suite: string) => Porteur | undefined,
-): { section: CodexSection; entree?: { type: string; id: string } } | null {
-  const p = c.porteurDeFiche;
-  if (p?.presetCreature) {
-    const text = p.presetCreature.desc;
-    if (!text) return null;
-    const preset = presetDe(p.presetId);
-    if (preset?.profil?.desc === text) return { section: sectionDescription(text, porteurDuNarratif('presetsPnj', p.presetId, 'profil.desc')) };
-    const base = preset?.base?.id;
-    return base && findCreatureById(base)?.desc === text
-      ? { section: sectionDescription(text, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: base } }
-      : { section: sectionDescription(text, undefined) };
-  }
-  if (p?.ref !== undefined) {
-    const desc = findCreatureById(p.ref)?.desc;
-    return desc ? { section: sectionDescription(desc, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: p.ref } } : null;
-  }
-  return null;
 }

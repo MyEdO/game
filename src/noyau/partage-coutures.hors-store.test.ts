@@ -1,8 +1,9 @@
 // #2097
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
-import * as donnees from '../data';
 import { species } from '../data';
+import { setDataset } from '../data/overrides';
+import { RACINES_VIVANTES } from '../data/schemas/_racines-vivantes.generated';
 import { HEROS_DE_SCENARIO, herosDeScenario, type RoleDeScenario } from '../scenes/test-scenarios/_heros';
 import { applyOps, type GameOp } from '../engine/ops';
 import { makeRNG, type RNG } from '../engine/dice';
@@ -17,7 +18,7 @@ import { emptyScene, type Scene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { etatInitialDuJeu } from './etat';
 import { scenesDuRegistre } from './monde/registreDesScenes';
-import { atteignables, partagesDeLEtat } from '../scenes/partage.testkit';
+import { atteignables, objetsDuCatalogue, partagesDeLEtat } from '../scenes/partage.testkit';
 import { gelerProfond } from '../lib/gelerProfond';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { desDuTest, desEnSuite } from '../engine/dice.testkit';
@@ -59,7 +60,7 @@ describe('coutures donnée → état (#2097)', () => {
   it('B — chaque op du catalogue, dé par dé pour `rollTable` et `rollThreshold`, n’attache rien du catalogue', () => {
     const vues = new Set<string>();
     const ops: GameOp[] = [];
-    for (const [o] of atteignables(Object.values(donnees), 'données')) {
+    for (const [o] of atteignables(RACINES_VIVANTES, 'données')) {
       if (Array.isArray(o) || typeof (o as { op?: unknown }).op !== 'string') continue;
       const cle = JSON.stringify(o);
       if (vues.has(cle)) continue;
@@ -87,6 +88,21 @@ describe('coutures donnée → état (#2097)', () => {
     expect(ops.length).toBeGreaterThan(1000);
     expect(appliquees).toBeGreaterThan(ops.length);
     expect([...fautes].slice(0, 10)).toEqual([]);
+  });
+
+  it('une édition de dataset remplace les identités du catalogue de partage', () => {
+    const origine = [...species];
+    const editee = { ...origine[0] };
+    expect(objetsDuCatalogue().has(editee)).toBe(false);
+    setDataset('species', [editee, ...origine.slice(1)]);
+    try {
+      expect(objetsDuCatalogue().has(editee)).toBe(true);
+      expect(objetsDuCatalogue().has(origine[0])).toBe(false);
+    } finally {
+      setDataset('species', origine);
+    }
+    expect(objetsDuCatalogue().has(origine[0])).toBe(true);
+    expect(objetsDuCatalogue().has(editee)).toBe(false);
   });
 
   it('C — un héros créé (chaque espèce) et chaque pré-tiré n’atteignent pas le catalogue', () => {

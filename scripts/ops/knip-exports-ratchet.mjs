@@ -3,24 +3,62 @@
 // `knip-exports-baseline.json` (fichier → noms), toute APPARITION échoue, toute entrée assainie
 // doit être RETIRÉE de la baseline (`--sync` ne sait que retirer, jamais ajouter).
 //
-import { readFileSync, writeFileSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { createOptions } from 'knip/session'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, extname, join, relative } from 'node:path'
+import { correspondGlob } from '../guards/lib/lister.mjs'
 
 export const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const BASELINE = join(REPO, 'knip-exports-baseline.json')
 
-/** Aplatit le rapport JSON de knip en `{ fichier: [noms triés] }`. */
-export function flatten(issues) {
-  const per = {}
-  for (const f of issues ?? []) {
-    const names = [...(f.exports ?? []), ...(f.types ?? []), ...(f.nsExports ?? []), ...(f.nsTypes ?? [])].map(
-      (x) => x.name,
-    )
-    if (names.length) per[f.file] = [...names].sort()
+const TYPES_D_EXPORT = ['exports', 'types', 'nsExports', 'nsTypes']
+const MODULES_TYPESCRIPT = new Set(['.ts', '.tsx', '.mts', '.cts'])
+
+/** Aplatit les types d'alerte export de Knip par fichier relatif. */
+function flatten(issues, racine) {
+  const parFichier = {}
+  for (const type of TYPES_D_EXPORT) {
+    for (const issuesDuFichier of Object.values(issues[type])) {
+      for (const { filePath, symbol } of Object.values(issuesDuFichier)) {
+        const fichier = cheminRelatif(racine, filePath)
+        const noms = parFichier[fichier] ??= []
+        noms.push(symbol)
+      }
+    }
   }
-  return per
+  for (const noms of Object.values(parFichier)) noms.sort()
+  return parFichier
+}
+
+const cheminRelatif = (racine, fichier) => relative(racine, fichier).replaceAll('\\', '/')
+const retenu = (fichier, motifs) =>
+  motifs.some(m => !m.startsWith('!') && correspondGlob(fichier, m)) &&
+  !motifs.some(m => m.startsWith('!') && correspondGlob(fichier, m.slice(1)))
+
+/** Une seule analyse pour le rapport d'exports et ses modules TypeScript promus par une arête d'entrée. */
+export async function mesurerExports(racine = REPO) {
+  // La façade knip/session ne livre ni les arêtes d'entrée ni leur ensemble résolu.
+  const { run } = await import(new URL('./run.js', import.meta.resolve('knip')).href)
+  const options = await createOptions({
+    cwd: realpathSync(racine),
+    includedIssueTypes: TYPES_D_EXPORT,
+    isSession: true,
+    isShowProgress: false,
+  })
+  const { results, session } = await run(options)
+  if (results.hasConfigLoadErrors) throw new Error('Knip : chargement de configuration en échec')
+  const { entry = [], project = [] } = options.parsedConfig
+  const entrees = session.getEntryPaths()
+  const aretes = []
+  for (const [fichier, { imports }] of session.getGraph()) {
+    for (const cible of imports.entryFiles) {
+      if (!entrees.has(cible) || !MODULES_TYPESCRIPT.has(extname(cible))) continue
+      const rel = cheminRelatif(options.cwd, cible)
+      if (retenu(rel, project) && !retenu(rel, entry)) aretes.push(`${cheminRelatif(options.cwd, fichier)} → ${rel}`)
+    }
+  }
+  return { counts: flatten(results.issues, options.cwd), entreesImplicites: aretes.sort() }
 }
 
 /** Compare mesure et baseline. `nouveaux` = régression (échec), `assainis` = baseline à abaisser. */
@@ -49,28 +87,13 @@ export function syncBaseline(counts, baseline) {
   return out
 }
 
-function main() {
-  // Binaire knip lancé par `node` directement (pas `npx`) : sur Windows un `spawnSync('npx.cmd')`
-  // sans `shell` rend un statut nul et une sortie VIDE — un faux vert silencieux.
-  const r = spawnSync(
-    process.execPath,
-    [
-      join(REPO, 'node_modules', 'knip', 'bin', 'knip.js'),
-      '--include',
-      'exports,types,nsExports,nsTypes',
-      '--no-progress',
-      '--reporter',
-      'json',
-    ],
-    { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
-  )
-  const stdout = (r.stdout ?? '').trim()
-  const start = stdout.indexOf('{')
-  if (start === -1) {
-    console.error('knip n’a produit aucun rapport JSON :\n' + (r.stderr ?? '').trim())
-    process.exit(1)
+async function main() {
+  const { counts, entreesImplicites } = await mesurerExports()
+  if (entreesImplicites.length) {
+    console.error('MODULES TYPESCRIPT SOUSTRAITS À LA MESURE DES EXPORTS :\n  ' + entreesImplicites.join('\n  '))
+    process.exitCode = 1
+    return
   }
-  const counts = flatten(JSON.parse(stdout.slice(start)).issues)
   const baseline = JSON.parse(readFileSync(BASELINE, 'utf8'))
 
   if (process.argv.includes('--sync')) {
@@ -100,4 +123,4 @@ function main() {
   console.log(`exports morts : ${total} (gelés, ${Object.keys(counts).length} fichiers) — aucun nouveau`)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) await main()

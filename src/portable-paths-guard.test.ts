@@ -10,8 +10,8 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
  * `jsdom`, `new URL(rel, base)`
  * est détourné vers la base du document, la résolution y passe donc par
  * `join(dirname(fileURLToPath(import.meta.url)), '..', 'styles', 'x.css')`, ou `resolve(__dirname, …)` dans un test
- * Vitest. Un `index` de `src/` ou son dossier ne se désigne pas par `new URL` : knip en ferait une entrée (garde
- * `src/index-mesures-par-knip.test.ts`).
+ * Vitest. Une lecture du texte d'un module passe son chemin résolu à `entreeDe`. Les entrées TypeScript
+ * résolues par Knip sont vérifiées dans `scripts/ops/knip-exports-ratchet.mjs` (#2931).
  *
  * PÉRIMÈTRE : `src/**` (`.ts`/`.tsx`) ET `scripts/**` (`.mjs`/`.mts`/`.py`) — l'outillage tourne sur la
  * CI et dans les worktrees d'agents, un chemin de machine y meurt exactement pareil.

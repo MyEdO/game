@@ -6,7 +6,8 @@
  * `src/data/ambiance.types.ts`, #2884 : c'est ce qui lui permet d'être partagé par les trois sans les coupler).
  */
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { entreeDe } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { visibilityOf } from './visibility';
 
 describe('visibilityOf — LA politique, sans caméra ni renderer', () => {
@@ -40,8 +41,8 @@ describe('visibilityOf — LA politique, sans caméra ni renderer', () => {
 });
 
 describe('FEUILLE — la loi partagée ne dépend de personne', () => {
-  const SRC = readFileSync(new URL('./visibility.ts', import.meta.url), 'utf8');
-  const TYPES = readFileSync(new URL('../data/ambiance.types.ts', import.meta.url), 'utf8');
+  const SRC = entreeDe(resolve(__dirname, 'visibility.ts')).text;
+  const TYPES = entreeDe(resolve(__dirname, '../data/ambiance.types.ts')).text;
 
   it('`visibility.ts` n’importe que le TYPE `Visibility`, d’une feuille de types qui n’importe rien', () => {
     // Angle mort ASSUMÉ : lecture TEXTUELLE des deux sources, pas du graphe de modules — la garde vaut pour

@@ -44,7 +44,6 @@
  */
 import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../geometry/dir8';
 import type { z } from 'zod';
-import type { PropMaterialData } from './materials.types';
 import type { EntreeDe } from './datasets';
 import type * as propsDef from './schemas/defs/props';
 
@@ -133,8 +132,6 @@ export const PROP_CYLINDER_AXES = Object.keys(REPERE_D_AXE) as readonly PropCyli
 /** Volume élémentaire d'une recette : caisse droite, cylindre à N faces, ou prisme en pente ; `emet` en fait le FOYER
  *  d'un décor qui éclaire (une primitive au plus par recette, `validatePropCatalog`). */
 export type PropPrimitive = z.output<typeof propsDef.propPrimitiveSchema>;
-/** Id d'une matière de décor — une entrée de `materials.json` de domaine `prop`. */
-export type PropMaterialId = PropPrimitive['material'];
 
 /** Recette volumique d'un prop : ses primitives dans le repère local, et le cap (`CAP_IDENTITE_PROP`) auquel elle sort
  *  telle qu'écrite. */
@@ -333,9 +330,6 @@ export function aretesNonAppariees(polys: readonly (readonly Sommet3[])[]): { ar
  *  puis la divise par le `metresPerTile` de la scène). `approach`, lui, est un offset de CASE voisine —
  *  un pas de grille, pas une longueur : il ne se divise par rien. */
 export type PropSeatSlot = NonNullable<PropData['seatSlots']>[number];
-
-/** Matière de rendu d'une primitive : une entrée de `materials.json` de domaine `prop`. */
-export type { PropMaterialData };
 
 /**
  * Type de PROP/décor app-owned : couche SÉMANTIQUE (physique `solid`, opacité `opaque`, classe de
