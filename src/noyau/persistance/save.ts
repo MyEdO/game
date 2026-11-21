@@ -115,14 +115,21 @@ const TRANSITION_DES_FORMES_D_APPARENCE: Readonly<{ avant: string; apres: string
   avant: 'e5b0e479130fc5d7',
   apres: '173a6a2589cee962',
 };
-const FORMAT_DE_REFERENCE = FORMAT_SAVE === TRANSITION_DES_FORMES_D_APPARENCE.apres
-  ? TRANSITION_DES_FORMES_D_APPARENCE.avant : FORMAT_SAVE;
+/** #4574 : la présence facultative du DR propre de l'incantation laisse les anciennes données valides. */
+const TRANSITION_DU_DR_PROPRE = {
+  avant: TRANSITION_DES_FORMES_D_APPARENCE.apres,
+  apres: '6567d83e466bf816',
+};
+const FORMAT_AVANT_LE_DR_PROPRE = FORMAT_SAVE === TRANSITION_DU_DR_PROPRE.apres
+  ? TRANSITION_DU_DR_PROPRE.avant : FORMAT_SAVE;
+const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_D_APPARENCE.apres
+  ? TRANSITION_DES_FORMES_D_APPARENCE.avant : FORMAT_AVANT_LE_DR_PROPRE;
 
 /** Validation de l'enveloppe de sauvegarde à la lecture. */
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || version === FORMAT_DE_REFERENCE
+  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
       || formatAvantLesReferences('save', version, FORMAT_DE_REFERENCE))
     && typeof savedAt === 'string'
     && !!data && typeof data === 'object';

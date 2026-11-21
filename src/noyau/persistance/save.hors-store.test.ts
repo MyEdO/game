@@ -84,6 +84,7 @@ describe('lireSave — format courant et références de création historiques',
 
     const relire = (version: string) => lireSave(exporterLaSauvegarde({ ...courante, version }));
     expect(relire(FORMAT_SAVE)).toEqual(courante);
+    expect(relire('173a6a2589cee962')).toEqual(courante);
     expect(relire('e5b0e479130fc5d7')).toEqual(courante);
     expect(relire('autre-format')).toBe('autreFormat');
     expect(migrerLesReferences).not.toHaveBeenCalled();
