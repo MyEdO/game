@@ -6,7 +6,7 @@ pièce est semé de son nom : deux constructions rendent les mêmes octets."""
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, X, Repere, biais, noeud
 from maconnerie import PIERRE, Appareil
-from menuiserie import MENUISERIE, VOLET, vantail
+from menuiserie import MENUISERIE, VOLET, echelle, vantail
 
 BARREAU, TRAVERSE = "barreau", "traverse"
 
@@ -111,7 +111,8 @@ BATIR = {**{noeud(piece, position): batir(etat, position)
             for piece, batir, etat in (("mur", porte, False), ("porte-fermee", poterne, False),
                                        ("porte-ouverte", poterne, True), ("breche", porte, True))
             for position in (None, GAUCHE, DROITE)},
-         "fenetre": archere(False), "fenetre-close": archere(True)}
+         "fenetre": archere(False), "fenetre-close": archere(True),
+         "echelle": echelle}
 
 
 def elements(D):

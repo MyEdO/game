@@ -14,6 +14,7 @@ le lit qui reste, le clayonnage rompu.
 
 Matières : la terre et les gravats prennent `terre-battue`, le clayonnage `bois-mort`, les joues, le linteau, le plancher et la barrière
 `bois-chene`, les ferrures `fer-noirci`.
+L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import apparence, hauteur
@@ -37,11 +38,12 @@ MATERIAUX = {
     "menuiserie": ("accent", "bois-chene"),
     "barres": ("planche", "bois-chene"),
     "ferrure": ("metal", "fer-noirci"),
+    "echelle": ("accent", "bois-chene"),
     "gravats": ("gravats", "terre-battue"),
 }
 
 BUDGET_TRIANGLES = {"mur": 2400, "porte-fermee": 2400, "porte-ouverte": 2400,
-                    "fenetre": 2400, "fenetre-close": 2400, "breche": 2400}
+                    "fenetre": 2400, "fenetre-close": 2400, "breche": 2400, "echelle": 400}
 
 ANGLE_LISSE = 40
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : la terre s'y fond, le bois garde ses

@@ -12,7 +12,8 @@
 ## (`_batir_les_sols`) ; les nappes de toit et les couronnes crénelées des
 ## murs, de même forme qu'un morceau, voilées comme lui mais jamais masquées, réconciliées de même par clé et
 ## empreinte ; les arêtes de la scène, en unités de plateau, chacune la pièce que l'arête nomme du modèle d'arête servi
-## de sa famille (`modele_d_arete`, #4471), sinon sa boîte, en groupes d'instances
+## de sa famille (`modele_servi`, #4471), sinon sa boîte, et les côtés de ses cases de marches, chacun les pièces qu'il
+## nomme du modèle d'escalier servi de sa famille, cisaillées à sa pente, en groupes d'instances
 ## (`poser_les_aretes`), chaque instance vue teinte par l'état de la meilleure des cases qu'elle sépare ; et ce que qui
 ## l'instancie en cache à la caméra (`cacher`) ou en retire
 ## (`retirer_les_couronnes`).
@@ -46,6 +47,15 @@ const DUREE_DU_FONDU_S := 0.3
 ## colonne qui n'y a pas de case.
 const VOILE := preload("res://art/voile.gdshader")
 const SANS_CASE := INF
+
+## Les sortes de ce que le volume pose sur les arêtes, par catalogue des modèles servis (`MontageDeComposition.modeles`) :
+## les arêtes (`aretes`, méthode `aretes`), étirées à la hauteur de leur mur, en boîte sans modèle lu qui ait leur pièce ;
+## les côtés de marches (`escaliers`, `cotesDeMarches` de la méthode `aretes`), à la hauteur de leur modèle, rien sans
+## modèle lu qui ait leur pièce.
+const SORTES := {
+	aretes = {etiree = true, repli = true},
+	escaliers = {etiree = false, repli = false},
+}
 
 ## Ce qui se pose sur une arête sans modèle d'arête lu qui ait sa pièce : un mur, une porte fermée, le seuil d'une
 ## porte ouverte ou d'une brèche.
@@ -111,16 +121,17 @@ var _liees: Array[ShaderMaterial] = []
 ## (`_change_d_etat`), tous quand la vision se pose sans fondu (`_mesurer_le_fondu`).
 var _a_teindre := {}
 var _du_fondu := {}
-## Le chargeur des modèles servis, celui des décors (`MontageDesModeles`) : d'où se lit le modèle d'arête de chaque
-## famille servie (`modele_d_arete`, `MontageDeComposition.scene_du_modele`).
+## Le chargeur des modèles servis, celui des décors (`MontageDesModeles`) : d'où se lit le modèle d'arête ou d'escalier
+## de chaque famille servie (`modele_servi`, `MontageDeComposition.scene_du_modele`).
 var chargeur: MontageDeComposition
 ## Par id d'élément `arete` lu, sa scène hors de l'arbre et la taille de sa boîte en mètres (`_taille_du_modele`) ;
 ## ceux en lecture, chacun à son jeton (`_lire_le_modele_d_arete`, jetés à la sortie de l'arbre) ; ceux dont la
-## lecture a échoué, dite une fois ; et les arêtes reçues au dernier `poser_les_aretes`, reposées à chaque modèle lu.
+## lecture a échoué, dite une fois ; et les poses reçues au dernier `poser_les_aretes` (`_poses_de`), reposées à chaque
+## modèle lu.
 var _modeles_d_arete := {}
 var _en_lecture := {}
 var _illisibles := {}
-var _aretes_recues: Array = []
+var _poses_recues: Array = []
 ## Par pièce d'un modèle d'arête, palette et étirement, `<id>|<pièce>|<palette>|<étirement>`, la pièce peinte hors
 ## de l'arbre (`piece_peinte`).
 var _pieces_peintes := {}
@@ -441,7 +452,7 @@ func vider() -> void:
 func oublier_les_aretes() -> void:
 	var lectures_en_cours := aretes_en_lecture()
 	_en_lecture.clear()
-	_aretes_recues = []
+	_poses_recues = []
 	reconcilier(_aretes, [], {}, Callable())
 	_a_teindre.clear()
 	_du_fondu.clear()
@@ -730,28 +741,49 @@ func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 	(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
 
 
-## Les arêtes `aretes` (`CONTRAT.md`, méthode `aretes`), chacune sur le côté de sa case, debout à son pied, en groupes
-## d'instances : les arêtes de même `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM` et `palette`, dans
-## l'ordre reçu, une instance chacune de chaque maillage de leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les
-## groupes sont réconciliés par clé (`reconcilier`) : un groupe dont les arêtes n'ont pas changé à la même échelle
-## reste, un groupe changé (une porte ouverte quitte un groupe et en rejoint un autre) est refait, un groupe parti
-## quitte l'arbre. Une arête dont la famille a un modèle servi (`modele_d_arete`) ne se pose qu'une fois ce modèle lu :
-## il se lit une fois les autres posées (`_lire_le_modele_d_arete`), et les arêtes reçues se reposent à sa lecture ;
-## celle d'un modèle illisible se pose en boîte, sans relire le modèle.
-func poser_les_aretes(aretes: Array) -> void:
-	_aretes_recues = aretes
+## Les arêtes `aretes` et les côtés de marches `cotes` (`CONTRAT.md`, méthode `aretes`), chacun sur le côté de sa
+## case, debout à son pied (`_poses_de`), en groupes d'instances : les poses de même catalogue, `bloc`, `famille`,
+## `piece`, `position`, `sens`, `hauteurM` et `palette`, dans l'ordre reçu, une instance chacune de chaque maillage de
+## leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les groupes sont réconciliés par clé (`reconcilier`) : un
+## groupe dont les poses n'ont pas changé à la même échelle reste, un groupe changé (une porte ouverte quitte un groupe
+## et en rejoint un autre) est refait, un groupe parti quitte l'arbre. Une pose dont la famille a un modèle servi
+## (`modele_servi`) ne se pose qu'une fois ce modèle lu : il se lit une fois les autres posées
+## (`_lire_le_modele_d_arete`), et les poses reçues se reposent à sa lecture ; celle d'un modèle illisible se pose en
+## boîte, sans relire le modèle, si sa sorte se replie (`SORTES`), sinon pas du tout.
+func poser_les_aretes(aretes: Array, cotes: Array = []) -> void:
+	_poser(_poses_de(aretes, cotes))
+
+
+## Les poses des arêtes `aretes`, chacune elle-même, de son catalogue `aretes`, à plat (de `entree` à `sortie`, toutes
+## deux à son pied), et celles des côtés de marches `cotes`, une par pièce de chacun (`pieces`), de son catalogue
+## `escaliers`, seule dans son ouverture, sans palette, montant de son `entree` à sa `sortie` le long de son `sens`.
+static func _poses_de(aretes: Array, cotes: Array) -> Array:
+	var poses := aretes.map(func(a: Dictionary) -> Dictionary: return a.merged({catalogue = "aretes", entree = a.pied, sortie = a.pied}))
+	for c: Dictionary in cotes:
+		for piece: String in c.pieces:
+			poses.append(c.merged({catalogue = "escaliers", piece = piece, position = Noyau.Position.SEULE, palette = {},
+				hauteurM = 0.0}))
+	return poses
+
+
+## Les poses `poses` (`_poses_de`) posées en groupes d'instances (`poser_les_aretes`), retenues pour être reposées à la
+## lecture d'un modèle.
+func _poser(poses: Array) -> void:
+	_poses_recues = poses
 	var groupes := {}
 	var a_lire := {}
 	var demandes := {}
-	for a: Dictionary in aretes:
-		var modele := modele_d_arete(a.famille)
+	for a: Dictionary in poses:
+		var modele := modele_servi(a.catalogue, a.famille)
 		if not modele.is_empty():
 			demandes[modele] = true
 			if not _modeles_d_arete.has(modele) and not _illisibles.has(modele):
 				a_lire[modele] = true
 				continue
-		var cle := "%s|%s|%s|%s|%s|%s|%s|%s" % [a.bloc, a.famille, a.piece, a.position, a.sens.x, a.sens.y, a.hauteurM,
-			a.palette]
+		elif not SORTES[a.catalogue].repli:
+			continue
+		var cle := "%s|%s|%s|%s|%s|%s|%s|%s|%s" % [a.catalogue, a.bloc, a.famille, a.piece, a.position, a.sens.x, a.sens.y,
+			a.hauteurM, a.palette]
 		groupes.get_or_add(cle, []).append(a)
 	reconcilier(_aretes, groupes.keys().map(func(cle: String) -> Dictionary: return {cle = cle, empreinte = [groupes[cle], metres_par_case]}), groupes, _groupe)
 	_montrer_le_pose()
@@ -785,16 +817,16 @@ func _ecarter_les_modeles_d_arete(demandes: Dictionary) -> bool:
 	return lectures_ecartees
 
 
-## L'id de l'élément `arete` servi pour la famille de kit `famille` (`aretes` de la réponse de `modeles` retenue,
-## `MontageDeComposition.modeles`), vide sans lui.
-static func modele_d_arete(famille: Variant) -> String:
-	return MontageDeComposition.modeles.get("aretes", {}).get(famille, "")
+## L'id de l'élément servi au catalogue `catalogue` (`SORTES` : `aretes` ou `escaliers` de la réponse de `modeles`
+## retenue, `MontageDeComposition.modeles`) pour la famille de kit `famille`, vide sans lui.
+static func modele_servi(catalogue: String, famille: Variant) -> String:
+	return MontageDeComposition.modeles.get(catalogue, {}).get(famille, "")
 
 
-## Le modèle d'arête `modele` lu une fois par le chargeur (`MontageDeComposition.scene_du_modele`) sous un jeton, ses
-## erreurs dites à la console ; repris au jeton périmé (le volume sorti de l'arbre, #4195), la scène reçue est libérée
+## Le modèle d'arête ou d'escalier `modele` lu une fois par le chargeur (`MontageDeComposition.scene_du_modele`) sous
+## un jeton, ses erreurs dites à la console ; repris au jeton périmé (le volume sorti de l'arbre, #4195), la scène reçue est libérée
 ## et rien d'autre ne bouge ; lu, il est retenu avec sa taille (`_taille_du_modele`), illisible, il est retenu
-## illisible, et les arêtes reçues se reposent (`poser_les_aretes`), le retrait et la teinte courants repris
+## illisible, et les poses reçues se reposent (`_poser`), le retrait et la teinte courants repris
 ## (`_montrer_le_pose`) ; `_lectures_closes` puis `aretes_posees` sont émis quand plus aucun modèle n'est en lecture.
 func _lire_le_modele_d_arete(modele: String) -> void:
 	if _en_lecture.has(modele):
@@ -814,7 +846,7 @@ func _lire_le_modele_d_arete(modele: String) -> void:
 		_illisibles[modele] = true
 	else:
 		_modeles_d_arete[modele] = {scene = scene, taille = _taille_du_modele(scene)}
-	poser_les_aretes(_aretes_recues)
+	_poser(_poses_recues)
 	if _en_lecture.is_empty():
 		_lectures_closes.emit()
 		aretes_posees.emit()
@@ -832,7 +864,8 @@ func attendre_les_aretes() -> void:
 		await _lectures_closes
 
 
-## La taille, en mètres, du modèle d'arête lu `modele` (`_taille_du_modele`), celle à laquelle ses pièces s'étirent.
+## La taille, en mètres, du modèle d'arête ou d'escalier lu `modele` (`_taille_du_modele`), celle à laquelle ses pièces
+## s'étirent.
 func taille_du_modele_d_arete(modele: String) -> Vector3:
 	return _modeles_d_arete[modele].taille
 
@@ -891,18 +924,21 @@ func _montrer_le_pose() -> void:
 		couronne.visible = not _retirees.has(couronne.get_meta("cle"))
 
 
-## Ce qui est posé : le nombre de triangles peints des morceaux posés, masqués compris, d'arêtes posées (celles de
-## chaque groupe), de nappes de toit posées, et de couronnes montrées.
+## Ce qui est posé : le nombre de triangles peints des morceaux posés, masqués compris, d'arêtes posées et de pièces
+## de côtés de marches posées (les poses de chaque groupe, par catalogue, `SORTES`), de nappes de toit posées, et de
+## couronnes montrées.
 func ce_qui_est_pose() -> Dictionary:
 	var triangles := 0
 	for morceau: Node3D in _morceaux.get_children():
 		triangles = int(MiseEnPage.triangles_de_plus(triangles, (morceau.get_node("Vu") as MeshInstance3D).mesh.get_faces().size()))
-	var aretes := []
+	var poses := {aretes = [], escaliers = []}
 	for groupe: Node3D in _aretes.get_children():
-		aretes.append_array(groupe.get_meta("aretes"))
+		var de_groupe: Array = groupe.get_meta("aretes")
+		poses[de_groupe[0].catalogue].append_array(de_groupe)
 	return {
 		triangles = triangles,
-		aretes = aretes.size(),
+		aretes = poses.aretes.size(),
+		cotesDeMarches = poses.escaliers.size(),
 		toits = _toits.get_child_count(),
 		couronnes = _couronnes.get_children().filter(func(couronne: Node3D) -> bool: return couronne.visible).size(),
 	}
@@ -1063,27 +1099,31 @@ static func texturer(materiau: Material, nom: String, albedo: Texture2D, projete
 		materiau.set(propriete + "normal_texture", relief)
 
 
-## Le nœud du groupe des arêtes `aretes` (même `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM` et
-## `palette`), à l'origine de `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur pièce : celle du
-## modèle d'arête lu de leur famille (`modele_d_arete`) à leur position, s'il l'a (`noeud_de_la_piece`), peinte de leur
-## palette (`piece_peinte`), le +Z de son repère vers le dehors
-## de l'arête, étirée sur leur longueur et mise à la hauteur de leur mur (`MiseEnPage.echelle_d_arete_servie`) ;
-## sinon leur boîte (`_boite`). Chaque maillage devient deux instances groupées de même place (`_instances`), une par
-## arête : `Vu_<maillage>`, que la caméra voit sans qu'il porte d'ombre, de son maillage teint (`_maillage_teint`), et
-## `Ombre_<maillage>`, en ombre seule (`SHADOWS_ONLY`, #3758), de son maillage. Les arêtes vont en méta (`aretes`), et
-## la couleur de chaque instance vue, aucune encore (`couleurs`) ; les instances s'écrivent une fois le groupe dans
-## l'arbre (`_ecrire_les_instances`).
+## Le nœud du groupe des poses `aretes` (même catalogue, `bloc`, `famille`, `piece`, `position`, `sens`, `hauteurM`
+## et `palette`, `_poser`), à l'origine de `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur
+## pièce : celle du modèle lu de leur famille à leur catalogue (`modele_servi`) à leur position, s'il l'a
+## (`noeud_de_la_piece`), peinte de leur palette (`piece_peinte`), le +Z de son repère vers le dehors de l'arête,
+## étirée sur leur longueur et mise à la hauteur de leur mur, ou à celle du modèle pour une sorte qui ne s'étire pas
+## (`SORTES`, `MiseEnPage.echelle_d_arete_servie`) ; sinon leur boîte (`_boite`) si leur sorte se replie, aucun nœud
+## sinon. Chaque maillage devient deux instances groupées de même place (`_instances`), une par pose : `Vu_<maillage>`,
+## que la caméra voit sans qu'il porte d'ombre, de son maillage teint (`_maillage_teint`), et `Ombre_<maillage>`, en
+## ombre seule (`SHADOWS_ONLY`, #3758), de son maillage. Les poses vont en méta (`aretes`), et la couleur de chaque
+## instance vue, aucune encore (`couleurs`) ; les instances s'écrivent une fois le groupe dans l'arbre
+## (`_ecrire_les_instances`).
 func _groupe(aretes: Array) -> Node3D:
 	var a: Dictionary = aretes[0]
+	var sorte: Dictionary = SORTES[a.catalogue]
 	var sens := Vector2(a.sens.x, a.sens.y)
+	var modele := modele_servi(a.catalogue, a.famille)
+	var noeud := "" if not _modeles_d_arete.has(modele) else noeud_de_la_piece(_modeles_d_arete[modele].scene, a.piece, a.position)
+	if noeud.is_empty() and not sorte.repli:
+		return null
 	var groupe := Node3D.new()
 	_etirer_sur(groupe, sens)
 	var socle := 0.0
-	var modele := modele_d_arete(a.famille)
-	var noeud := "" if not _modeles_d_arete.has(modele) else noeud_de_la_piece(_modeles_d_arete[modele].scene, a.piece, a.position)
 	if not noeud.is_empty():
 		var taille := taille_du_modele_d_arete(modele)
-		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, metres_par_case)
+		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM if sorte.etiree else taille.y, taille.x, taille.y, metres_par_case)
 		groupe.scale = etirement
 		groupe.add_child(piece_peinte(modele, noeud, a.palette, etirement).duplicate())
 	else:
@@ -1143,7 +1183,7 @@ func piece_peinte(modele: String, piece: String, palette: Dictionary, etirement:
 
 ## Les instances groupées `nom` du maillage `mesh`, à la place de `maillage`, `nombre` instances chacune de sa couleur
 ## (`use_colors`, posé avant leur nombre), projetant l'ombre `ombre`, pour une pièce dont le centre est à `socle`
-## au-dessus de son pied (`translation_d_instance`).
+## au-dessus de son pied (`transform_d_instance`).
 func _instances(maillage: MeshInstance3D, mesh: Mesh, nom: String, ombre: GeometryInstance3D.ShadowCastingSetting, nombre: int, socle: float) -> MultiMeshInstance3D:
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
@@ -1177,7 +1217,7 @@ func _ecrire_les_instances(groupe: Node3D) -> void:
 	for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
 		var ombre: MultiMeshInstance3D = vu.get_meta("ombre")
 		for rang in ordre.size():
-			var instance := Transform3D(Basis.IDENTITY, translation_d_instance(vu, ordre[rang]))
+			var instance := transform_d_instance(vu, ordre[rang])
 			vu.multimesh.set_instance_transform(rang, instance)
 			ombre.multimesh.set_instance_transform(rang, instance)
 		vu.multimesh.visible_instance_count = montrees
@@ -1237,17 +1277,32 @@ func _maillage_teint(mesh: Mesh) -> Mesh:
 	return _maillages_teints[mesh]
 
 
-## La translation, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de
-## l'instance de l'arête `a` : là où ce maillage était quand sa pièce se posait au centre de l'arête
-## (`MiseEnPage.centre_d_arete`, à son socle), lu par un témoin sans rotation ni échelle posé à ce centre sous `Aretes`.
-func translation_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Vector3:
-	var temoin := Node3D.new()
-	_aretes.add_child(temoin)
-	temoin.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, metres_par_case, instances.get_meta("socle"))
-	var translation := instances.to_local(temoin.to_global(_aretes.to_local(instances.global_position)))
-	_aretes.remove_child(temoin)
-	temoin.free()
-	return translation
+## Le repère, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de
+## l'instance de la pose `a` : sa pièce posée au centre de l'arête (`MiseEnPage.centre_d_arete`, à son socle),
+## cisaillée autour de lui de sa pente le long de son sens (`MiseEnPage.pente_d_arete`), ses montants restant
+## verticaux. Lu par des témoins sans calcul : `place`, à la place des instances sous `Aretes` ; `cisaillee`, ce
+## cisaillement au centre de l'arête sous `Aretes`, portant `posee` à cette place ; `lue`, sous les instances, à la place
+## de `posee`.
+func transform_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Transform3D:
+	var pente := MiseEnPage.pente_d_arete(Vector2(a.sens.x, a.sens.y), a.entree, a.sortie, metres_par_case)
+	var place := Node3D.new()
+	var cisaillee := Node3D.new()
+	var posee := Node3D.new()
+	var lue := Node3D.new()
+	_aretes.add_child(place)
+	place.global_transform = instances.global_transform
+	_aretes.add_child(cisaillee)
+	cisaillee.transform = Transform3D(Basis(Vector3(1.0, pente.x, 0.0), Vector3.UP, Vector3(0.0, pente.y, 1.0)),
+		MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, metres_par_case, instances.get_meta("socle")))
+	cisaillee.add_child(posee)
+	posee.transform = place.transform
+	instances.add_child(lue)
+	lue.global_transform = posee.global_transform
+	var transformation := lue.transform
+	for temoin: Node3D in [place, cisaillee, lue]:
+		temoin.get_parent().remove_child(temoin)
+		temoin.free()
+	return transformation
 
 
 ## La boîte de la pièce `piece` d'une arête : le seuil d'une porte ouverte ou d'une brèche, une porte fermée, sinon un

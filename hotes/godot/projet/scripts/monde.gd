@@ -581,10 +581,14 @@ func _zoomer(sens: float) -> void:
 ## @contrat Vue
 ## Le volume de la scène (`VolumeDeScene.poser_les_aretes`) dessine les arêtes du plateau (méthode `aretes`), chacune
 ## debout à son pied : la pièce que l'arête nomme du modèle `arete--<kit>` servi pour sa famille
-## (`VolumeDeScene.modele_d_arete`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans modèle servi, d'un
+## (`VolumeDeScene.modele_servi`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans modèle servi, d'un
 ## modèle illisible ou sans cette pièce au modèle, une boîte : un mur, une porte fermée, le seuil d'une porte ouverte ou
-## d'une brèche. Les
-## arêtes de même bloc (`bloc`), même pièce, même sens et même hauteur sont dessinées en un groupe d'instances.
+## d'une brèche. Il habille de même chaque côté de marches (`cotesDeMarches`) de chacune de ses pièces, celle du modèle
+## `escalier--<kit>` servi pour sa famille (`escaliers` de `modeles`), étirée à la longueur du côté, à la hauteur du
+## modèle, son milieu à la cote du milieu du côté, cisaillée de `entree` à `sortie` le long de son sens, ses montants
+## verticaux (`MiseEnPage.pente_d_arete`) ; sans modèle servi, illisible ou sans cette pièce, rien. Les arêtes
+## et les pièces des côtés de même bloc (`bloc`), même pièce, même sens et même hauteur sont dessinées en un groupe
+## d'instances, retirées par leur clé (`plateau.aretesDegagees`).
 
 ## @contrat Vue
 ## Les nappes retirées (`plateau.toitsLeves`), les arêtes retirées (`plateau.aretesDegagees`) et les couronnes crénelées

@@ -24,13 +24,18 @@
       "matiere": "prop--acier-battu"
     },
     {
+      "nom": "echelle",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
       "nom": "gravats",
       "palette": "gravats",
       "matiere": "prop--fer-noirci"
     }
   ],
   "glb": {
-    "sha256": "5df33593166058e78d5c7b30dd09a1fd1a8160d4ad1dec84096368d5ff99be35",
-    "octets": 679556
+    "sha256": "c807e54ce0fc86e5c984a23e4639b2038d0854781245d10618b91487439e8dbe",
+    "octets": 696452
   }
 }

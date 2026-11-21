@@ -16,6 +16,7 @@ import { structureAppearances, terrains } from '../../data';
 import { datasetArray, setDataset } from '../../data/overrides';
 import { garanti } from '../../lib/garanti';
 import { terrainAbsent } from './terrain';
+import { paintHeight } from '../sceneEdit';
 
 /** Une scène dont `walls` sont les murs, et dont un corps de bâtiment porte une façade d'auberge sur l'arête nord de (1, 1). */
 function scene(walls: WallSeg[]): Scene {
@@ -48,6 +49,29 @@ describe('areteDessinee — la pièce', () => {
   it('une structure abattue est une brèche', () => {
     const mur: WallSeg = { x: 0, y: 0, side: 'N', structure: 'mur-en-pierre' };
     expect(piece(setStructureDown(scene([mur]), 0, 0, 'N', 0, true), mur)).toBe('breche');
+  });
+  it('une échelle (LDB 15 l.55), haute du dénivelé des deux cases qu’elle sépare, dressée de la plus basse', () => {
+    const echelle: WallSeg = { x: 1, y: 2, side: 'N', climb: { kind: 'ladder' } };
+    const s = paintHeight(scene([echelle]), { x: 1, y: 1 }, 3, 1);
+    expect(areteDessinee(s, echelle)).toMatchObject({ piece: 'echelle', hauteurM: 3, pied: 0 });
+    expect(piece(s, { ...echelle, climb: { kind: 'surface' } }), 'une paroi à escalader reste un mur').toBe('mur');
+  });
+  it('une échelle qui monte à l’étage, de cases plates au rez, haute de la cote de la case de l’étage où elle mène moins son pied', () => {
+    const echelle: WallSeg = { x: 1, y: 2, side: 'N', climb: { kind: 'ladder' } };
+    const base = scene([echelle]);
+    const etage = 3.5;
+    const s: Scene = { ...base, layers: [...base.layers, {
+      z: 1, tiles: base.layers[0].tiles.map((t, i) => (i === 4 + 1 ? t : terrainAbsent())), height: base.layers[0].tiles.map(() => etage),
+    }] };
+    const { sens, ...dessinee } = areteDessinee(s, echelle);
+    expect(dessinee).toMatchObject({ piece: 'echelle', pied: 0, hauteurM: etage });
+    expect({ x: -sens.y + 0, y: sens.x + 0 }, 'dehors vers le pied, au sud').toEqual({ x: 0, y: 1 });
+  });
+  it('le dehors d’une échelle, à (-sens.y, sens.x), va vers la plus basse des deux cases, d’où on la monte', () => {
+    const echelle: WallSeg = { x: 1, y: 2, side: 'N', climb: { kind: 'ladder' } };
+    const dehors = (haussee: Pt) => { const { sens } = areteDessinee(paintHeight(scene([echelle]), haussee, 3, 1), echelle); return { x: -sens.y + 0, y: sens.x + 0 }; };
+    expect(dehors({ x: 1, y: 1 }), 'la case du nord haussée : vers le sud').toEqual({ x: 0, y: 1 });
+    expect(dehors({ x: 1, y: 2 }), 'la case du sud haussée : vers le nord').toEqual({ x: 0, y: -1 });
   });
 });
 

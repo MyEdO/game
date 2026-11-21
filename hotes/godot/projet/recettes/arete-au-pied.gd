@@ -3,7 +3,7 @@ extends SceneTree
 ## Une arête se pose debout à son pied (#3476, `hotes/godot/pont/CONTRAT.md`, méthode `aretes`) :
 ## `pied` et `hauteurM` sont en mètres, le volume de la scène (`scripts/volume_de_scene.gd`, `poser_les_aretes`) les
 ## porte à l'échelle de son plateau, en groupes d'instances (#3948), chacune lue à l'instance de son arête
-## (`VolumeDeScene.translation_d_instance`, l'instance d'un groupe ne se lit pas sans rendu).
+## (`VolumeDeScene.transform_d_instance`, l'instance d'un groupe ne se lit pas sans rendu).
 ## Sur un plateau de 2 m par case, la boîte d'une arête sans modèle servi, de famille nulle ou d'une famille qu'aucun
 ## modèle ne sert, pied à 4 m, part de 2 unités, centrée sur le côté de sa case. Posées à nouveau (#3947), le groupe
 ## inchangé reste, le groupe dont une arête change est refait, celui de l'arête changée naît, le groupe parti quitte
@@ -12,8 +12,8 @@ extends SceneTree
 ## avec les échantillons de l'atelier, `hotes/godot/recettes/decor.ts`, servie par un `PontFige`, lue par le chargeur
 ## des décors, `MontageDesModeles`) se pose une fois son modèle lu (`VolumeDeScene.attendre_les_aretes` ; rien avant,
 ## recette `sortie-de-l-arbre.gd`) : pour chaque famille servie, le nœud de chacune de ses pièces (mur, portes,
-## fenêtres, brèche) va de son pied à son pied plus sa hauteur, centré sur le côté de sa case, le mur couvrant l'arête
-## de bout en bout quelle que soit sa hauteur, muret d'un mètre et diagonale compris, sur un plateau de 2 m comme de 3 m
+## fenêtres, brèche, échelle haute du dénivelé de ses cases) va de son pied à son pied plus sa hauteur, centré sur le
+## côté de sa case, le mur couvrant l'arête de bout en bout quelle que soit sa hauteur, muret d'un mètre et diagonale compris, sur un plateau de 2 m comme de 3 m
 ## par case, à l'échelle métrique en épaisseur, son +Z vers son dehors (`(-sens.y, sens.x)`) ; chaque surface de chacun
 ## de ses maillages, vue et en ombre, dans une matière de la couleur de la palette de l'arête (figée avec le décor,
 ## `paletteDesAretes`) à l'emplacement de cette surface, qu'elle porte, la croisée d'une fenêtre comprise ; chaque
@@ -194,6 +194,7 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 		servie.merged({cle = "fenetre", milieu = {x = 15.0, y = -0.5}, piece = Noyau.Piece.FENETRE}, true),
 		servie.merged({cle = "close", milieu = {x = 21.0, y = -0.5}, piece = Noyau.Piece.FENETRE_CLOSE}, true),
 		servie.merged({cle = "breche", milieu = {x = 23.0, y = -0.5}, piece = Noyau.Piece.BRECHE}, true),
+		servie.merged({cle = "echelle", milieu = {x = 25.0, y = -0.5}, piece = Noyau.Piece.ECHELLE, hauteurM = 3.0}, true),
 		servie.merged({cle = "boite", famille = null, palette = {}, milieu = {x = 11.0, y = -0.5}}, true),
 	]
 	volume.poser_les_aretes(aretes)
@@ -204,7 +205,7 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 	if groupes.keys() != attendus:
 		_fautes.append("modèle lu, les groupes sont %s, attendu la boîte, puis un par arête servie" % [groupes.keys()])
 		return
-	var lu: Node = volume._modeles_d_arete[VolumeDeScene.modele_d_arete(famille)].scene
+	var lu: Node = volume._modeles_d_arete[VolumeDeScene.modele_servi("aretes", famille)].scene
 	for a: Dictionary in aretes.filter(func(a: Dictionary) -> bool: return a.famille != null and lu.has_node(a.piece)):
 		var groupe: Node3D = groupes[[a.cle]]
 		var piece := _boite_de(volume, groupe, a)
@@ -301,7 +302,7 @@ func _ouverture_de_deux(volume: VolumeDeScene, famille: String) -> void:
 	if groupes.keys() != [["gauche"], ["droite"]]:
 		_fautes.append("ouverture de deux portes, les groupes sont %s, attendu un par porte" % [groupes.keys()])
 		return
-	var modele: Node = volume._modeles_d_arete[VolumeDeScene.modele_d_arete(famille)].scene
+	var modele: Node = volume._modeles_d_arete[VolumeDeScene.modele_servi("aretes", famille)].scene
 	for a: Dictionary in aretes:
 		var place := "%s--%s" % [a.piece, a.position]
 		var attendu := place if modele.has_node(place) else String(a.piece)
@@ -344,7 +345,7 @@ func _couverture(volume: VolumeDeScene, groupe: Node3D, a: Dictionary) -> void:
 	var debut := INF
 	var fin := -INF
 	for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
-		var repere := vu.global_transform * Transform3D(Basis.IDENTITY, volume.translation_d_instance(vu, a))
+		var repere := vu.global_transform * volume.transform_d_instance(vu, _posee(groupe, a))
 		var boite := vu.multimesh.mesh.get_aabb()
 		for coin in range(8):
 			var abscisse := axe.dot(repere * boite.get_endpoint(coin) - milieu)
@@ -379,7 +380,7 @@ func _pose_de_l_instance(volume: VolumeDeScene, groupe: Node3D, a: Dictionary) -
 	var dehors := Vector3(-a.sens.y, 0.0, a.sens.x).normalized()
 	var metrique := MiseEnPage.echelle_metrique(METRES_PAR_CASE)
 	for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
-		var base := (vu.global_transform * Transform3D(Basis.IDENTITY, volume.translation_d_instance(vu, a))).basis
+		var base := (vu.global_transform * volume.transform_d_instance(vu, _posee(groupe, a))).basis
 		var echelles := base.get_scale()
 		if absf(echelles.z - metrique) > EPSILON:
 			_fautes.append("%s, %s : échelle %s, attendue %.4f en épaisseur" % [a.cle, vu.name, echelles, metrique])
@@ -473,7 +474,7 @@ func _boite_de(volume: VolumeDeScene, groupe: Node3D, a: Dictionary) -> AABB:
 	var boite := AABB()
 	var premiere := true
 	for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
-		var instance := Transform3D(Basis.IDENTITY, volume.translation_d_instance(vu, a))
+		var instance := volume.transform_d_instance(vu, _posee(groupe, a))
 		var b := vu.global_transform * instance * vu.multimesh.mesh.get_aabb()
 		boite = b if premiere else boite.merge(b)
 		premiere = false
@@ -496,3 +497,8 @@ func _verifier(nom: String, boite: AABB, bas: float, haut: float) -> void:
 		_fautes.append("%s : bas à %.3f, attendu %.3f" % [nom, boite.position.y, bas])
 	if not is_nan(haut) and absf(boite.end.y - haut) > EPSILON:
 		_fautes.append("%s : haut à %.3f, attendu %.3f" % [nom, boite.end.y, haut])
+
+
+## La pose de l'arête `a` que porte le groupe `groupe` (méta `aretes`, `VolumeDeScene._poser`), de même clé.
+static func _posee(groupe: Node3D, a: Dictionary) -> Dictionary:
+	return groupe.get_meta("aretes").filter(func(p: Dictionary) -> bool: return p.cle == a.cle)[0]

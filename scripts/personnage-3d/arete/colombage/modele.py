@@ -8,7 +8,7 @@ import math
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, MILIEU, X, Repere, noeud
 from maille import lineaire
-from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, vitre, volets
+from menuiserie import PORTE_DE_PLANCHES, croisee, echelle, vantail, vitre, volets
 
 BOIS, TORCHIS = "ossature", "torchis"
 
@@ -236,7 +236,8 @@ BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True),
          "fenetre-close": fenetre(True), "breche": breche,
          **{noeud(piece, position): porte(ouverte, position)
             for piece, ouverte in (("porte-fermee", False), ("porte-ouverte", True))
-            for position in (GAUCHE, MILIEU, DROITE)}}
+            for position in (GAUCHE, MILIEU, DROITE)},
+         "echelle": echelle}
 
 
 def elements(D):

@@ -17,7 +17,10 @@ import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
 import {
   casesDeFace,
+  climbEdgeBetween,
+  edgeOf,
   heightAt,
+  metresDEscalade,
   solPraticable,
   piedDeLArete,
   porteAuteur,
@@ -39,7 +42,9 @@ import { hash32, hash32AuMillieme } from '../../lib/hash';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { spaceCellKey } from './volume/architectureVisibility';
 import type { Rot } from '../../geometry/iso';
-import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
+import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace, type FacadePanel } from './volume/architectureVisibility';
+import { cotesDeMarchesDeLaScene } from './cotesDeMarches';
+import { NEIGHBOURS } from './volume/floors';
 import { clearedSpace } from './volume/toits';
 import { blocDeLaCase, empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
 import { meteoDuRegard } from './meteo';
@@ -63,7 +68,8 @@ export type PositionDansLOuverture = 'seule' | 'gauche' | 'milieu' | 'droite';
  *  `sensDeLArete`, celui de son ouverture), la hauteur (m) d'où elle se dresse (`piedDeLArete`), sa pièce, sa place
  *  dans son ouverture, la famille du kit de son apparence, celle du mur qui porte son ouverture pour une porte
  *  (`null` pour une apparence hors du catalogue), sa palette (`paletteDeLApparence`), sa hauteur en mètres
- *  (`wallHeightM`, sinon un étage), et le bloc de la case du segment à sa couche (`blocDeLaCase`). */
+ *  (`wallHeightM`, sinon un étage ; le dénivelé de ses cases pour une échelle), et le bloc de la case du segment à sa
+ *  couche (`blocDeLaCase`). */
 export interface AreteDessinee {
   cle: string;
   cases: Required<Pt>[];
@@ -88,23 +94,56 @@ const CRANS: readonly Rot[] = [0, 1, 2, 3];
 const APPARENCES: ReadonlyMap<string, EntreeVivante<StructureAppearanceDef>> = new Map(structureAppearances.map((a) => [a.id, a]));
 
 /** La pièce de l'arête du segment `seg` de `scene` : une porte en jeu (`porteEnJeu`) ouverte si elle laisse passer
- *  (`wallIsOpen`), une brèche pour tout autre segment qui laisse passer, une fenêtre (`window`, `shuttered`), sinon un
- *  mur. */
+ *  (`wallIsOpen`), une brèche pour tout autre segment qui laisse passer, une fenêtre (`window`, `shuttered`), une échelle
+ *  (`climb`, LDB 15 l.55), sinon un mur. */
 function pieceDArete(scene: Scene, seg: WallSeg): PieceDArete {
   const ouverte = wallIsOpen(scene, seg);
   if (porteEnJeu(scene, seg)) return ouverte ? 'porte-ouverte' : 'porte-fermee';
   if (ouverte) return 'breche';
   if (seg.window) return seg.shuttered ? 'fenetre-close' : 'fenetre';
+  if (estUneEchelle(seg)) return 'echelle';
   return 'mur';
 }
 
-/** Les deux bouts du segment `seg` de `scene` (`wallEnds`), dans l'ordre où son dehors (`outwardSide`) est à
+/** Le segment `seg` porte-t-il une échelle (`climb`, LDB 15 l.55) ? */
+const estUneEchelle = (seg: WallSeg): boolean => seg.climb?.kind === 'ladder';
+
+/** L'escalade la plus haute que porte l'échelle `seg` de `scene` : parmi les pas que la mécanique franchit par elle
+ *  (`climbEdgeBetween`), d'une case qu'elle sépare à sa couche, où l'on se tient (`solPraticable`), à la case de l'autre
+ *  côté à sa couche ou à une couche au-dessus, celui de plus de mètres (`metresDEscalade`), son pied la plus basse de
+ *  ses deux cases ; aucune hors d'une échelle ou sans pas qui monte. */
+function escaladeDeLEchelle(scene: Scene, seg: WallSeg): { pied: Pt; arrivee: Pt; metres: number } | null {
+  if (!estUneEchelle(seg)) return null;
+  const z = seg.z ?? 0;
+  const [a, b] = casesDeFace(seg, 'les-deux');
+  const pas = [[a, b], [b, a]].flatMap(([pied, arrivee]) => scene.layers.filter((l) => l.z >= z).flatMap((l) => {
+    const [de, vers] = [{ ...pied, z }, { ...arrivee, z: l.z }];
+    if (![de, vers].every((c) => inMapBounds(scene.dimensions, c) && solPraticable(scene, c.x, c.y, c.z))) return [];
+    const portee = climbEdgeBetween(scene, de, vers);
+    if (!portee || edgeKey(portee) !== edgeKey(seg)) return [];
+    const [bas, haut] = heightAt(scene, vers.x, vers.y, vers.z) < heightAt(scene, de.x, de.y, de.z) ? [vers, de] : [de, vers];
+    return [{ pied: bas, arrivee: haut, metres: metresDEscalade(scene, de, vers) }];
+  }));
+  const plusHaute = pas.reduce<(typeof pas)[number] | null>((m, p) => (!m || p.metres > m.metres ? p : m), null);
+  return plusHaute && plusHaute.metres > 0 ? plusHaute : null;
+}
+
+/** Le dehors du segment `seg` de `scene`, en pas de grille : pour une échelle, vers le pied de son escalade la plus
+ *  haute (`escaladeDeLEchelle`), d'où on la monte ; sinon son dehors (`outwardSide`), s'il en a un. */
+function dehorsDuSegment(scene: Scene, seg: WallSeg): { gx: number; gy: number } | null {
+  const escalade = escaladeDeLEchelle(scene, seg);
+  if (escalade) return { gx: escalade.pied.x - escalade.arrivee.x, gy: escalade.pied.y - escalade.arrivee.y };
+  const dehors = outwardSide(scene, seg);
+  return dehors ? DIR8_DELTA[dehors] : null;
+}
+
+/** Les deux bouts du segment `seg` de `scene` (`wallEnds`), dans l'ordre où son dehors (`dehorsDuSegment`) est à
  *  `(-sens.y, sens.x)` du sens qui va du premier au second ; dans l'ordre de `wallEnds` sans dehors. */
 function sensDeLArete(scene: Scene, seg: WallSeg): [Pt, Pt] {
   const [a, b] = wallEnds(seg);
-  const dehors = outwardSide(scene, seg);
+  const dehors = dehorsDuSegment(scene, seg);
   if (!dehors) return [a, b];
-  const { gx, gy } = DIR8_DELTA[dehors];
+  const { gx, gy } = dehors;
   return gy * (b.x - a.x) - gx * (b.y - a.y) < 0 ? [b, a] : [a, b];
 }
 
@@ -207,17 +246,18 @@ export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
   const [a, b] = ouverture?.bouts ?? sensDeLArete(scene, seg);
   const apparence = APPARENCES.get(apparenceDArete(scene, seg));
   const z = seg.z ?? 0;
+  const piece = pieceDArete(scene, seg);
   return {
     cle: edgeKey(seg),
     cases: casesDeFace(seg, 'les-deux').filter((c) => inMapBounds(scene.dimensions, c)).map((c) => ({ ...c, z })),
     milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
     sens: { x: b.x - a.x, y: b.y - a.y },
     pied: piedDeLArete(scene, seg),
-    piece: pieceDArete(scene, seg),
+    piece,
     position: ouverture?.position ?? 'seule',
     famille: (ouverture?.porteur ?? apparence)?.kit ?? null,
     palette: paletteDeLApparence(apparence, ouverture?.porteur),
-    hauteurM: (ouverture?.porteur ?? apparence)?.wallHeightM ?? METRES_PER_LEVEL,
+    hauteurM: piece === 'echelle' ? escaladeDeLEchelle(scene, seg)?.metres ?? 0 : (ouverture?.porteur ?? apparence)?.wallHeightM ?? METRES_PER_LEVEL,
     bloc: blocDeLaCase({ x: seg.x, y: seg.y, z }),
   };
 }
@@ -237,15 +277,28 @@ function couronnesAbattues(scene: Scene, dessinees: readonly WallSeg[]): string[
   }).map(edgeKey);
 }
 
-/** Les arêtes de `scene` que l'espace dégagé `cleared` (`clearedSpace`, la loi de `architectureVisibility`) abat :
- *  celles au-dessus de la tête d'un allié, et celles qui bordent l'espace où il se tient. */
-function aretesDegagees(scene: Scene, dessinees: readonly WallSeg[], cleared: ClearedSpace): AreteDegagee[] {
+/** Ce qui se dresse sur une arête de `scene` (une arête dessinée, un côté de marches) : sa clé et le panneau de son
+ *  arête (`FacadePanel`, celui de sa façade authorée pour une arête dessinée). */
+interface SurUneArete { cle: string; panneau: FacadePanel }
+
+/** Les arêtes dessinées `dessinees` et les côtés de marches de `scene` (`cotesDeMarchesDeLaScene`), sur leur arête. */
+function surLesAretes(scene: Scene, dessinees: readonly WallSeg[]): SurUneArete[] {
   const facades = facadeEdges(scene);
+  return [
+    ...dessinees.map((seg) => { const cle = edgeKey(seg); return { cle, panneau: { ...seg, roomZoneIds: facades.get(cle)?.roomZoneIds } }; }),
+    ...cotesDeMarchesDeLaScene(scene).map(({ cle, case: c, cote }) => {
+      const [dx, dy] = NEIGHBOURS[cote];
+      return { cle, panneau: { ...edgeOf(c.x, c.y, c.x + dx, c.y + dy)!, z: c.z } };
+    }),
+  ];
+}
+
+/** Ce qui se dresse sur les arêtes de `scene` (`surLesAretes`) que l'espace dégagé `cleared` (`clearedSpace`, la loi
+ *  de `architectureVisibility`) abat : au-dessus de la tête d'un allié, et sur le bord de l'espace où il se tient. */
+function aretesDegagees(scene: Scene, dessinees: readonly WallSeg[], cleared: ClearedSpace): AreteDegagee[] {
   const { w, h } = scene.dimensions;
-  return dessinees.flatMap((seg): AreteDegagee[] => {
-    const cle = edgeKey(seg);
-    const panneau = { ...seg, roomZoneIds: facades.get(cle)?.roomZoneIds };
-    const abattueSous = casesDeFace(seg, 'les-deux').some((c) => cutawayOverhead({ ...c, z: seg.z }, cleared))
+  return surLesAretes(scene, dessinees).flatMap(({ cle, panneau }): AreteDegagee[] => {
+    const abattueSous = casesDeFace(panneau, 'les-deux').some((c) => cutawayOverhead({ ...c, z: panneau.z }, cleared))
       ? [...CRANS]
       : CRANS.filter((rot) => frontFacadeCutaway(panneau, cleared, { w, h, rot }));
     return abattueSous.length ? [{ cle, abattueSous }] : [];
@@ -421,13 +474,14 @@ export interface PlateauDeLaScene {
    */
   cleDuRetrait: string;
   /**
-   * L'empreinte des arêtes de la scène (`aretesDeLaScene`) change quand l'une d'elles change (une porte ouverte, une
-   * structure abattue) : le jeu rappelle alors `aretes`.
+   * L'empreinte des arêtes de la scène (`aretesDeLaScene`) et de ses côtés de marches (`cotesDeMarchesDeLaScene`,
+   * `src/noyau/monde/cotesDeMarches.ts`) change quand l'un d'eux change (une porte ouverte, une structure abattue) : le
+   * jeu rappelle alors `aretes`.
    */
   cleDesAretes: string;
   /**
-   * les arêtes retirées (`{ cle, abattueSous }`, les crans de caméra (`Rot`, `src/geometry/iso.ts` : 0 au sud-est, puis
-   * sud-ouest, nord-ouest, nord-est) sous lesquels chacune tombe : tous pour celles d'une couche retirée et celles dont
+   * les arêtes et les côtés de marches retirés (`{ cle, abattueSous }`, les crans de caméra (`Rot`,
+   * `src/geometry/iso.ts` : 0 au sud-est, puis sud-ouest, nord-ouest, nord-est) sous lesquels chacune tombe : tous pour celles d'une couche retirée et celles dont
    * une case qu'elles séparent est au couvercle, `cutawayOverhead`, et, pour celles qui bordent l'espace où il se
    * tient, ceux où elles se dressent entre la caméra et cet espace, `frontFacadeCutaway`,
    * `src/noyau/monde/volume/architectureVisibility.ts`).
@@ -453,12 +507,12 @@ export interface PlateauDeLaScene {
 /**
  * Les arêtes de toutes les couches de `scene` hors des ponts de ses navires, que la marche garde et que le modèle du
  * navire montre (`aretesHorsDesNavires`, `src/noyau/planDeNavire.ts`), chacune dessinée (`areteDessinee`), et leur
- * empreinte (`cle`, `hash32`). Retenues par scène et par la version des datasets (`versionDesDatasets` : les ponts d'un
- * navire se lisent à la fiche de son véhicule, le pied d'une arête au catalogue des terrains).
+ * empreinte avec celle des côtés de marches de la scène (`cle`, `hash32`, `cotesDeMarchesDeLaScene`). Retenues par
+ * scène et par la version des datasets (`versionDesDatasets` : les ponts d'un navire se lisent à la fiche de son véhicule, le pied d'une arête au catalogue des terrains).
  */
 const aretesEtEmpreinte = memoByRef((scene: Scene): { aretes: AreteDessinee[]; cle: string } => {
   const aretes = aretesHorsDesNavires(scene).map((seg) => areteDessinee(scene, seg));
-  return { aretes, cle: hash32(...aretes.map(jsonCanonique)).toString(36) };
+  return { aretes, cle: hash32(...aretes.map(jsonCanonique), ...cotesDeMarchesDeLaScene(scene).map(jsonCanonique)).toString(36) };
 });
 
 /** Les arêtes dessinées de toutes les couches de `scene` hors des ponts de ses navires (`aretesEtEmpreinte`). */
@@ -490,7 +544,7 @@ function plateauDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): P
   const aretesRetirees = (): AreteDegagee[] => {
     if (regard === 'tactique') return aretesDegagees(scene, dessinees, clearedSpace(scene, allies));
     if (regard === 'immersion') return [];
-    return dessinees.filter((seg) => (seg.z ?? 0) > coucheDuGroupe(scene, allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
+    return surLesAretes(scene, dessinees).filter(({ panneau }) => (panneau.z ?? 0) > coucheDuGroupe(scene, allies)).map(({ cle }) => ({ cle, abattueSous: [...CRANS] }));
   };
   return {
     w, h, zoneJouable: rectJouable(scene), metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, oeilsSousPlafond: oeilsSousPlafond(scene), regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],

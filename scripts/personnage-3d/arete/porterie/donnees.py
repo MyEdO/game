@@ -22,6 +22,7 @@ dedans et chanfreinés vers le dehors, sur un appui et sous le tympan d'un arc d
 
 Matières : la pierre prend `pierre-atre`, le mortier `terre-battue`, le bois et les gravats de la porte
 `bois-chene`, le fer `fer-noirci`.
+L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import MOELLONS_MACONNES, apparence, assises, hauteur
@@ -46,11 +47,12 @@ MATERIAUX = {
     "barreau": ("barreau", "fer-noirci"),
     "traverse": ("traverse", "fer-noirci"),
     "ferrure": ("metal", "fer-noirci"),
+    "echelle": ("accent", "bois-chene"),
     "gravats": ("gravats", "bois-chene"),
 }
 
 BUDGET_TRIANGLES = {"mur": 2400, "porte-fermee": 2400, "porte-ouverte": 2400, "fenetre": 2400, "fenetre-close": 2400,
-                    "breche": 2400}
+                    "breche": 2400, "echelle": 400}
 
 ANGLE_LISSE = 30
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le chanfrein d'une pierre s'y fond,

@@ -71,8 +71,8 @@ def eboulis(m, R, alea, G, demi):
                      pz + (k % 2) * alea.uniform(-ecart, ecart)) for k, (px, py, pz) in enumerate(m.v[-8:])]
 
 
-def elements(D, kit, batir):
-    """L'élément du kit `kit` (`construire.py`) : sa clé `arete`, ses matériaux `D["MATERIAUX"]`, un nœud par pièce de
+def elements(D, kit, batir, categorie="arete"):
+    """L'élément du kit `kit` (`construire.py`) : sa clé `categorie`, ses matériaux `D["MATERIAUX"]`, un nœud par pièce de
     `batir` {pièce : `batir(D, maille, aléa)`}, à l'origine de l'arête, lissé sous `D["ANGLE_LISSE"]`, ses triangles
     dans `D["BUDGET_TRIANGLES"][pièce]`, celui de `<pièce>` pour un nœud `<pièce>--<position>`. L'aléa d'un nœud est
     semé de `<kit>/<nœud>`."""
@@ -86,5 +86,5 @@ def elements(D, kit, batir):
             if triangles > budget:
                 raise ValueError(f"{kit}/{piece} : {triangles} triangles, budget {budget}")
         return {}
-    yield {"glb": kit, "cles": [("arete", {"kit": kit})], "materiaux": D["MATERIAUX"], "blasons": (),
+    yield {"glb": kit, "cles": [(categorie, {"kit": kit})], "materiaux": D["MATERIAUX"], "blasons": (),
            "construire": construire}

@@ -1312,6 +1312,8 @@ export const materials = datasetDe<typeof materialsDef>(materialsJson);
 export const terrains = datasetDe<typeof terrainsDef>(terrainsJson);
 /** Un terrain, au type de son schéma (`schemas/defs/terrains.ts`). */
 export type TerrainDef = EntreeDe<typeof terrainsDef>;
+/** Les familles de kit 3D d'escalier, une par modèle `escalier--<famille>` (`kitDEscalierSchema`). */
+export type KitDEscalier = NonNullable<TerrainDef['kitDEscalier']>;
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade

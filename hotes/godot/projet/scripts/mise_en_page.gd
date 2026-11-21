@@ -177,6 +177,13 @@ static func longueur_d_arete(sens: Vector2) -> float:
 	return sens.length()
 
 
+## La pente, dans le plan du plateau, d'une pièce posée sur une arête qui court selon `sens`, de la cote `entree`
+## (mètres) à son premier bout à la cote `sortie` à son second, sur un plateau de `par_case` mètres par case (#4471) :
+## en X et en Z du plateau, ce dont monte un point de la pièce par unité de plateau, ses montants gardés verticaux.
+static func pente_d_arete(sens: Vector2, entree: float, sortie: float, par_case: float) -> Vector2:
+	return sens.normalized() * hauteur_au_plateau(sortie - entree, par_case) / longueur_d_arete(sens)
+
+
 ## L'échelle d'une pièce d'un modèle d'arête long de `long` mètres et haut de `haut` mètres posée sur une arête qui
 ## court selon `sens`, haute de `hauteur` mètres, sur un plateau de `par_case` mètres par case (#4471) : en longueur
 ## celle qui le porte à la longueur de l'arête (`longueur_d_arete`), en hauteur celle qui porte son sommet à celle de
