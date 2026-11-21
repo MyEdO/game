@@ -42,7 +42,7 @@ import {
 } from '../scene';
 import { memoByRef, memoByRefDeps } from '../sceneMemo';
 import { aretesA } from '../wallIndex';
-import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../sceneEdit';
+import { effectiveArchitecture, localCrossSpans, penteDeComble, toitureEffective } from '../../sceneEdit';
 import { roofMaterial } from './matieres';
 import { massFootprintCells } from '../buildings';
 import { apparenceDArete, edgeKey, facadeEdges, facadeWallFeatureAppearance } from '../facades';
@@ -1153,8 +1153,8 @@ type ResolvedMass = { mass: BuildingMass; cells: Set<string>; shape: RoofShapeSp
 
 /** Champ COMMUN d'un groupe de plusieurs masses : domaine = union des emprises, sous le profil COMMUN —
  *  `gable` de leur faîtage quand toutes sont des `gable` de même faîtage, `hip` (distance de Tchebychev au bord)
- *  sinon — et UNE pente refittée sur la portée du domaine (`fittedPitchDeg`, `noyau/sceneEdit.ts` —
- *  la borne de comble #947 est celle du corps, jamais une seconde copie). La portée que cette borne lit
+ *  sinon — et UNE pente refittée sur la portée du domaine (`penteDeComble`, `noyau/sceneEdit.ts` —
+ *  la borne de comble #947 est celle du corps, jamais une seconde copie ; sans arrondi, puisque rien ne l'écrit). La portée que cette borne lit
  *  est celle que la montée franchit à `portée/2` : la plus large tranche ⊥ au faîtage (`localCrossSpans`)
  *  pour un `gable`, `2 × profondeur` pour une croupe. */
 function groupField(scene: Pick<Scene, 'metresPerTile' | 'roofDefaults'>, body: ArchitectureBody, group: readonly ResolvedMass[]): RoofField {
@@ -1172,7 +1172,7 @@ function groupField(scene: Pick<Scene, 'metresPerTile' | 'roofDefaults'>, body: 
     }
   }
   const metresPerTile = sceneMetresPerTile(scene);
-  const pitchDeg = fittedPitchDeg(
+  const pitchDeg = penteDeComble(
     portee,
     metresPerTile,
     Math.max(...group.map((r) => r.mass.pitchDeg)),

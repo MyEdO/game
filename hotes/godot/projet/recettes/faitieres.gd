@@ -7,10 +7,10 @@ extends SceneTree
 ## test (`_modele_de_test` : une `faitiere` longue de 2 m le long de X, Y à 0 sur l'arête du faîte, un V en travers dont
 ## chaque bras descend d'une pente de 1), puis de chaque modèle de toit servi au figé (`toits` de la réponse de
 ## `modeles`). Chaque faîtière a son instance ; son arête court d'un bout du faîte à l'autre, à sa cote, et deux faîtières
-## voisines se rejoignent au bout qu'elles partagent ; au modèle de test, le bout de chaque bras repose sur le pan de son
-## côté, lu au maillage de la nappe posée, là où ce pan porte le faîte : le plus haut sous le bras, de la nappe de la
-## faîtière, et dont le plan passe par l'arête du faîte (un bras qui déborde son pan, au joint rentrant d'une aile étroite
-## ou au faîte d'une enveloppe qui affleure la croupe commune, se compte sans se sonder) ; cachée avec sa nappe (`VolumeDeScene.cacher`), elle quitte les instances
+## voisines se rejoignent au bout qu'elles partagent ; au modèle de test, le bout de chaque bras repose sur le plus haut
+## des triangles des nappes posées à son aplomb, quelle que soit sa nappe, sauf au bout LIBRE d'un faîte (aucune faîtière
+## voisine), où le faîte finit sur ses arêtiers ou ses noues : ces bras se comptent sans se sonder ; cachée avec sa nappe
+## (`VolumeDeScene.cacher`), elle quitte les instances
 ## vues, et y revient quand la nappe revient. L'instance se lit par `VolumeDeScene.transform_d_instance`, sans rendu.
 
 const RECETTE_AUTONOME := true
@@ -122,13 +122,20 @@ static func _groupes(volume: VolumeDeScene) -> Array:
 
 
 ## Les faîtières `faitieres` posées sur `volume`, au moment `moment` : une instance chacune, son arête d'un bout du faîte
-## à l'autre à sa cote, les voisines jointes ; et, si `sur_les_pans`, le bout de chaque bras sur le pan qui le porte.
+## à l'autre à sa cote, les voisines jointes ; et, si `sur_les_pans`, le bout de chaque bras sur le toit à son aplomb, hors
+## des bouts libres.
 func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur_les_pans: bool) -> void:
 	var triangles := _triangles_des_nappes(volume)
+	var extremites := {}
+	for f: Dictionary in faitieres:
+		for cote: float in [-0.5, 0.5]:
+			var coin := Vector2(f.milieu.x + f.sens.x * cote, f.milieu.y + f.sens.y * cote)
+			var cle := Vector2(snappedf(coin.x, EPSILON), snappedf(coin.y, EPSILON))
+			extremites[cle] = extremites.get(cle, 0) + 1
 	var bouts := {}
 	var poses := 0
 	var sondes := 0
-	var debordes := 0
+	var libres := 0
 	var tolerance := EPSILON + RANGS_M / volume.metres_par_case
 	for groupe: Node3D in _groupes(volume):
 		var de_groupe: Array = groupe.get_meta("aretes")
@@ -150,13 +157,14 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 				bouts.get_or_add(Vector2(snappedf(coin.x, EPSILON), snappedf(coin.y, EPSILON)), []).append(lu)
 			if sur_les_pans:
 				for le_long: float in [-SONDE, 0.0, SONDE]:
+					var bout_du_cote: Vector2 = milieu + sens * signf(le_long) / 2.0
+					var libre: bool = le_long != 0.0 and extremites.get(Vector2(snappedf(bout_du_cote.x, EPSILON), snappedf(bout_du_cote.y, EPSILON)), 0) == 1
 					for cote: float in [-1.0, 1.0]:
-						var bras: Vector3 = monde * Vector3(le_long * LONG / 2.0, -BRAS, cote * BRAS)
-						var arete: Vector3 = monde * Vector3(le_long * LONG / 2.0, 0.0, 0.0)
-						var pan := _pan_sous(triangles, bras)
-						if not pan.is_empty() and (pan[3] != pose.nappe or absf(_cote_du_plan(pan, arete) - arete.y) > tolerance):
-							debordes += 1
+						if libre:
+							libres += 1
 							continue
+						var bras: Vector3 = monde * Vector3(le_long * LONG / 2.0, -BRAS, cote * BRAS)
+						var pan := _pan_sous(triangles, bras)
 						sondes += 1
 						var sous := NAN if pan.is_empty() else _cote_du_plan(pan, bras)
 						if is_nan(sous) or absf(bras.y - sous) > tolerance:
@@ -174,10 +182,10 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 		_fautes.append("%s : aucune faîtière voisine d'une autre, la continuité ne se recette pas" % moment)
 	if sur_les_pans and sondes == 0:
 		_fautes.append("%s : aucun bras sondé sur son pan" % moment)
-	print("[faitieres] %s : %d faîtières, %d bouts joints, %d bras sondés, %d débordant leur pan" % [moment, poses, jointes, sondes, debordes])
+	print("[faitieres] %s : %d faîtières, %d bouts joints, %d bras sondés, %d au bout libre d'un faîte" % [moment, poses, jointes, sondes, libres])
 
 
-## Les triangles des nappes posées sur `volume`, au monde, ceux qui ne sont pas verticaux : `[a, b, c, clé de la nappe]`.
+## Les triangles des nappes posées sur `volume`, au monde, ceux qui ne sont pas verticaux.
 static func _triangles_des_nappes(volume: VolumeDeScene) -> Array:
 	var triangles := []
 	for nappe: Node3D in volume.get_node("Volume/Toits").get_children():
@@ -186,7 +194,7 @@ static func _triangles_des_nappes(volume: VolumeDeScene) -> Array:
 		for i in range(0, faces.size(), 3):
 			var t := [vu.global_transform * faces[i], vu.global_transform * faces[i + 1], vu.global_transform * faces[i + 2]]
 			if absf((t[1] - t[0]).cross(t[2] - t[0]).normalized().y) > EPSILON:
-				triangles.append(t + [nappe.get_meta("cle")])
+				triangles.append(t)
 	return triangles
 
 

@@ -20,7 +20,8 @@ import { WALL_H_M } from '../iso';
 import { roofMaterial } from './matieres';
 import { MISSING_ID, MISSING_TONE } from './missing';
 import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../scene';
-import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../sceneEdit';
+import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses, toitureEffective } from '../../sceneEdit';
+import { METRES_PER_LEVEL } from '../relief';
 import { encloseRect, perimeterWallSegs } from '../../sceneEdit.testkit';
 import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
 import { ornementsDuBati } from './ornements';
@@ -1489,6 +1490,16 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
         expect(f.pied - fieldHeightAt(field, v), f.cle).toBeGreaterThanOrEqual(d * field.shape.pitch - 1e-9);
       }
     }
+  });
+
+  it('le champ commun, que rien n’écrit, prend la pente exacte de sa borne : sa crête tombe sur la borne de comble', () => {
+    const { field } = nappeOf(masses()[0].id);
+    let crete = 0;
+    for (const key of field.domain) {
+      const [x, y] = key.split(',').map(Number);
+      for (const v of [{ x, y }, { x: x + 1, y }, { x, y: y + 1 }, { x: x + 1, y: y + 1 }]) crete = Math.max(crete, riseAt(v, field.domain, field.shape, field.cache));
+    }
+    expect(crete).toBeCloseTo(toitureEffective(scene, effectiveArchitecture(scene)[0]).riseMaxStoreys * METRES_PER_LEVEL, 9);
   });
 
   it('la masse en `gable` ferme DEUX pignons, les croupes n’en ferment aucun', () => {

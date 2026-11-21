@@ -118,6 +118,19 @@ describe('faitesDuGroupe — saillance et facettes (#4471)', () => {
     expect(faitesDuGroupe('g', deuxPans(-1, -1))).toEqual([]);
   });
 
+  it('un versant plus étroit que la pose (une demi-case) ne porte pas de faîtière : la noue qui le borde passe au-dessus', () => {
+    const [nord] = deuxPans(1, 1);
+    const pan = (ys: [number, number], h: (y: number) => number, gy: number): PanDuGroupe => ({
+      ...nord, gy, poly: [[-0.5, ys[0]], [1.5, ys[0]], [1.5, ys[1]], [-0.5, ys[1]]].map(([x, y]) => ({ x, y, h: h(y) })),
+    });
+    const etroit = pan([0.5, 0.8], (y) => 5 - (y - 0.5), -1);
+    const remonte = pan([0.8, 1.5], (y) => 4.7 + 0.5 * (y - 0.8), 0.5);
+    expect(faitesDuGroupe('g', [nord, etroit, remonte])).toEqual([]);
+    const large = pan([0.5, 1.2], (y) => 5 - (y - 0.5), -1);
+    const auDela = pan([1.2, 1.5], (y) => 4.3 + 0.5 * (y - 1.2), 0.5);
+    expect(faitesDuGroupe('g', [nord, large, auDela])).toHaveLength(2);
+  });
+
   it('un faîte qui borde une facette (pan au gradient diagonal) n’a pas de faîtière', () => {
     const [nord, sud] = deuxPans(1, 1);
     expect(faitesDuGroupe('g', [nord, { ...sud, gx: 0.5 }])).toEqual([]);

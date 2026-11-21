@@ -4,7 +4,7 @@
  * pans d'un groupe se coupent aux sommets du groupe (jonctions en T) ; un segment que portent deux pans de gradients
  * G1 et G2, n1 la normale en plan qui entre dans le premier, est SAILLANT si (G1 − G2)·n1 < 0, et un segment saillant
  * horizontal est un faîte. Un faîte qui borde une facette (un pan au gradient diagonal, champ de croupe) n'en reçoit
- * aucune. Le soffite d'une rive prolonge le plan de son pan au-delà du pignon, et son faîte avec lui. Chaque faîte est
+ * aucune, ni un tronçon dont un versant est plus étroit que sa pose (`posable`). Le soffite d'une rive prolonge le plan de son pan au-delà du pignon, et son faîte avec lui. Chaque faîte est
  * servi une fois, en TRONÇONS d'une case coupés aux bords des cases (`tronconsDuFaite`) : une pièce de kit couvre une
  * case et se raccorde bout à bout. Chaque tronçon se pose comme une arête (`AreteDessinee`,
  * `./aretes.ts`) : son milieu et son sens, sa cote, et la demi-différence des pentes de ses deux pans (l'ouverture du V
@@ -159,7 +159,7 @@ export interface PanDuGroupe { poly: readonly GP[]; gx: number; gy: number; napp
  *  d'une même droite, d'une même cote, d'une même nappe et d'un même écart qui se touchent ne font qu'un faîte : le
  *  débord d'une rive prolonge celui de son pan. PUR. */
 export function faitesDuGroupe(groupId: string, pans: readonly PanDuGroupe[]): Faitiere[] {
-  const faites = new Map<string, { pan: PanDuGroupe; ecart: number; selonX: boolean; lo: number; hi: number; a: GP }[]>();
+  const faites = new Map<string, { pan: PanDuGroupe; versants: [PanDuGroupe, PanDuGroupe]; ecart: number; selonX: boolean; lo: number; hi: number; a: GP }[]>();
   for (const [, { a, b, porteurs }] of segmentsDuGroupe(pans)) {
     if (porteurs.length !== 2 || Math.abs(b.h - a.h) > EPS) continue;
     const [o1, o2] = porteurs;
@@ -169,25 +169,25 @@ export function faitesDuGroupe(groupId: string, pans: readonly PanDuGroupe[]): F
     const selonX = Math.abs(b.x - a.x) > EPS;
     const [u, v] = selonX ? [a.x, b.x] : [a.y, b.y];
     const droite = `${p1.nappe}|${ecart.toFixed(6)}|${selonX ? `y${a.y.toFixed(5)}` : `x${a.x.toFixed(5)}`}|${a.h.toFixed(4)}`;
-    (faites.get(droite) ?? faites.set(droite, []).get(droite)!).push({ pan: p1, ecart, selonX, lo: Math.min(u, v), hi: Math.max(u, v), a });
+    (faites.get(droite) ?? faites.set(droite, []).get(droite)!).push({ pan: p1, versants: [p1, p2], ecart, selonX, lo: Math.min(u, v), hi: Math.max(u, v), a });
   }
-  const bouts: { pan: PanDuGroupe; ecart: number; a: GP; b: GP }[] = [];
+  const bouts: { pan: PanDuGroupe; versants: [PanDuGroupe, PanDuGroupe]; ecart: number; a: GP; b: GP }[] = [];
   for (const segments of faites.values()) {
     segments.sort((p, q) => p.lo - q.lo);
-    const { pan, ecart, selonX, a } = segments[0];
+    const { pan, versants, ecart, selonX, a } = segments[0];
     const point = (t: number): GP => (selonX ? { x: t, y: a.y, h: a.h } : { x: a.x, y: t, h: a.h });
     let [lo, hi] = [segments[0].lo, segments[0].hi];
     for (const s of segments.slice(1)) {
       if (s.lo <= hi + EPS) hi = Math.max(hi, s.hi);
-      else { bouts.push({ pan, ecart, a: point(lo), b: point(hi) }); [lo, hi] = [s.lo, s.hi]; }
+      else { bouts.push({ pan, versants, ecart, a: point(lo), b: point(hi) }); [lo, hi] = [s.lo, s.hi]; }
     }
-    bouts.push({ pan, ecart, a: point(lo), b: point(hi) });
+    bouts.push({ pan, versants, ecart, a: point(lo), b: point(hi) });
   }
-  return bouts.flatMap(({ pan, ecart, a, b }) => {
+  return bouts.flatMap(({ pan, versants, ecart, a, b }) => {
     const def = roofMaterial(pan.couverture);
     if (!def.kit || !def.ridgeCap) return [];
     const { kit, ridgeCap } = def;
-    return tronconsDuFaite(a, b, etendueCouverte(a, b, pan.cells)).map(([ta, tb]): Faitiere => {
+    return tronconsDuFaite(a, b, etendueCouverte(a, b, pan.cells)).filter(([ta, tb]) => posable(pans, versants, ta, tb)).map(([ta, tb]): Faitiere => {
       const cases = casesDuSegment(ta, tb, pan.cells, pan.z);
       return {
         cle: `faite|${groupId}|${cle3(ta)}|${cle3(tb)}`,
@@ -208,6 +208,38 @@ export function faitesDuGroupe(groupId: string, pans: readonly PanDuGroupe[]): F
       };
     });
   });
+}
+
+/** La pièce d'un tronçon `ta`→`tb` couvre une case : à son milieu, une demi-case de part et d'autre du faîte, l'un des
+ *  pans les plus hauts des pans `pans` du groupe doit être l'un des `versants` du faîte (même plan). Sinon un autre pan
+ *  passe au-dessus de la pose, là où les versants se resserrent (le faîte d'une enveloppe qui rejoint la croupe commune). */
+function posable(pans: readonly PanDuGroupe[], versants: readonly [PanDuGroupe, PanDuGroupe], ta: GP, tb: GP): boolean {
+  const m = { x: (ta.x + tb.x) / 2, y: (ta.y + tb.y) / 2 };
+  const l = Math.hypot(tb.x - ta.x, tb.y - ta.y);
+  const n = { x: -(tb.y - ta.y) / l, y: (tb.x - ta.x) / l };
+  const plan = (p: PanDuGroupe, q: Pt) => p.poly[0].h + p.gx * (q.x - p.poly[0].x) + p.gy * (q.y - p.poly[0].y);
+  const memePlan = (p: PanDuGroupe, v: PanDuGroupe) => Math.abs(p.gx - v.gx) < EPS && Math.abs(p.gy - v.gy) < EPS && Math.abs(plan(p, m) - plan(v, m)) < EPS;
+  return [-1, 1].every((cote) => {
+    const q = { x: m.x + cote * DEMI_POSE * n.x, y: m.y + cote * DEMI_POSE * n.y };
+    const sous = pans.filter((p) => dansLePan(p.poly, q));
+    const haut = Math.max(...sous.map((p) => plan(p, q)));
+    return sous.some((p) => plan(p, q) > haut - EPS && versants.some((v) => memePlan(p, v)));
+  });
+}
+
+/** La demi-largeur (cases) que couvre la pièce d'un tronçon de part et d'autre de son faîte. */
+const DEMI_POSE = 0.5;
+
+/** Le point `q` est-il dans le polygone `poly` (repère des cases centrées), bord compris ? */
+function dansLePan(poly: readonly GP[], q: Pt): boolean {
+  let dedans = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i], b = poly[j];
+    if (Math.abs((b.x - a.x) * (q.y - a.y) - (b.y - a.y) * (q.x - a.x)) < EPS
+      && q.x >= Math.min(a.x, b.x) - EPS && q.x <= Math.max(a.x, b.x) + EPS && q.y >= Math.min(a.y, b.y) - EPS && q.y <= Math.max(a.y, b.y) + EPS) return true;
+    if ((a.y > q.y) !== (b.y > q.y) && q.x < ((b.x - a.x) * (q.y - a.y)) / (b.y - a.y) + a.x) dedans = !dedans;
+  }
+  return dedans;
 }
 
 /** Une face d'un pan servi est un soffite de RIVE : un soffite dont le bord intérieur suit la pente du rampant. */
