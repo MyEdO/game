@@ -20,22 +20,18 @@ import { estRetenu, readCorpus, sAppliqueA } from './sourceCorpus.mjs';
 import { RACINES_PRESENTES } from './racinesPresentes.mjs';
 import { lexemesGdscript } from './gdscript.mjs';
 
-/** Les commentaires d'un fichier, par l'extracteur de son dialecte, chacun sous la forme `Comment` : le
- *  TypeScript et le JavaScript (`extractComments`), le GDScript de l'hôte Godot (`lexemesGdscript`). */
-const EXTRACTEURS = Object.freeze({
-  ...Object.fromEntries(EXTENSIONS_DE_SCRIPT.map((ext) => [ext, extractComments])),
-  '.gd': (src) => lexemesGdscript(src).commentaires,
-});
+const EXTENSION_GDSCRIPT = '.gd';
+const estGdscript = (rel) => String(rel).endsWith(EXTENSION_GDSCRIPT);
 
 /** PÉRIMÈTRE DES GARDES — SOURCE UNIQUE des trois portes anti-poison (suite Vitest, pre-commit, hook
  *  au stylo) et du corpus des gardes qui balaient l'arbre (`corpusDesGardes`). Un fichier hors de ce
  *  périmètre n'est lu par aucune ; un fichier dedans l'est par toutes, tests compris (le poison écrit
  *  dans un test est du poison). Ses racines : `scripts`, et chaque racine des zones que l'arbre porte
- *  (`RACINES_PRESENTES`), un corpus vide levant (`readCorpus`) ; ses extensions, celles d'un dialecte
- *  dont les commentaires s'extraient (`EXTRACTEURS`). */
+ *  (`RACINES_PRESENTES`), un corpus vide levant (`readCorpus`) ; ses extensions sont celles des scripts
+ *  JS et TS et celle du GDScript. */
 export const PERIMETRE_DES_GARDES = Object.freeze({
   racines: Object.freeze([...RACINES_PRESENTES, 'scripts']),
-  extensions: Object.freeze(Object.keys(EXTRACTEURS)),
+  extensions: Object.freeze([...EXTENSIONS_DE_SCRIPT, EXTENSION_GDSCRIPT]),
   tests: true,
 });
 
@@ -43,17 +39,15 @@ export const PERIMETRE_DES_GARDES = Object.freeze({
 export const corpusDesGardes = () =>
   readCorpus(PERIMETRE_DES_GARDES.racines, { exts: PERIMETRE_DES_GARDES.extensions, tests: PERIMETRE_DES_GARDES.tests });
 
-const extensionDe = (rel) => String(rel).slice(String(rel).lastIndexOf('.'));
-const estTypeScript = (rel) => EXTRACTEURS[extensionDe(rel)] === extractComments;
 /** Le corpus des gardes en dialecte TypeScript ou JavaScript, celui que lisent les gardes qui l'analysent
  *  (`analyserCorpus`). */
-export const corpusTypeScriptDesGardes = () => corpusDesGardes().filter((f) => estTypeScript(f.rel));
+export const corpusTypeScriptDesGardes = () => corpusDesGardes().filter((f) => !estGdscript(f.rel));
 
-/** Les commentaires du fichier `rel`, de contenu `contenu`, par l'extracteur de son dialecte (`EXTRACTEURS`,
- *  `extractComments` hors du périmètre).
+/** Les commentaires du fichier `rel`, de contenu `contenu`, via `lexemesGdscript` pour le GDScript
+ *  et `extractComments` pour les autres chemins.
  * @param {string} rel @param {string} contenu @returns {Comment[]} */
 export function commentairesDe(rel, contenu) {
-  return (EXTRACTEURS[extensionDe(rel)] ?? extractComments)(contenu);
+  return estGdscript(rel) ? lexemesGdscript(contenu).commentaires : extractComments(contenu);
 }
 
 /** Le fichier est-il dans le périmètre des gardes ? Sous l'une des racines, et retenu par le corpus
