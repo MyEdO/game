@@ -25,8 +25,8 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 - **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable
   (`src/scenes/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
   à l'octet) qui fait du script le propriétaire exclusif de son paquet ; leur `scene()` compile un `MapSpec` par
-  `buildScene()` (`src/noyau/mapSpec.ts`), comme les scénarios de test, et une option que `scene()` ne lit pas
-  LÈVE en se nommant. Régime réservé au contenu CALCULÉ
+  `buildScene()` (`src/noyau/mapSpec.ts`), comme les scénarios de test décrits dans `docs/test-scenarios.md`.
+  Une option que `scene()` ne lit pas LÈVE en se nommant. Régime réservé au contenu CALCULÉ
   non authorable à la main, jamais à un projet de campagne : `barge-du-sel` et `loup-et-saumure` sont la
   dette #1601 (« Campagnes possédées par un GÉNÉRATEUR … statuer la migration vers MANUSCRIT »), `arene`
   vit sous le même régime (#1601). Les validateurs id-only de la lib (`creatureId`/`skillId`/`spellId`/`speciesId`/

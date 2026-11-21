@@ -9,10 +9,10 @@
  *  - TRIANGULATION en ÉVENTAIL (les faces du pivot sont planes, convexes, ≤ 4 points) ;
  *  - VOLUME d'une face VERTICALE : une face du pivot est un plan d'épaisseur NULLE (l'affine peint des
  *    quads d'écran) — sans surface à 90° de plongée, sans chant à éclairer. Toute face verticale à qui
- *    l'appelant résout une profondeur (`FaceDepth`, catalogues d'apparence : `./profondeur`) devient
+ *    l'appelant résout une profondeur (`faceDepthM`, dans `./profondeur`) devient
  *    une BOÎTE MINCE centrée sur son plan (`wallBoxPolys`) ;
  *  - MONTANTS à 2 points (`walls.ts:119`, `floors.ts:163`) : deux quads verticaux CROISÉS, dont la
- *    largeur arrive PAR LE MÊME CANAL que les épaisseurs (`FaceDepth` → `uprightCrossM`, authorée en
+ *    largeur arrive par le même paramètre que les épaisseurs (`depthM`, authorée en
  *    mètres au catalogue) ; ces quads entrent dans le calcul coplanaire au même titre que les faces
  *    pleines (un bras de la croix est DANS le plan du panneau qu'il décore) ;
  *  - BIAIS COPLANAIRE : l'affine départage les faces empilées d'un même plan par l'ORDRE d'émission ;
@@ -32,8 +32,8 @@ export type WorldPoly = Vec3[];
 export type Tri = [Vec3, Vec3, Vec3];
 
 /** Épaisseur (m) d'un volume dont l'appelant n'a rien résolu : AUCUNE. Ce module ne connaît pas les
- *  matériaux — les épaisseurs sont authorées en mètres au catalogue et arrivent par `FaceDepth`
- *  (`./profondeur`). Un appelant sans résolveur obtient donc des PLANS, jamais une épaisseur devinée. */
+ *  matériaux. L’appelant transmet les épaisseurs calculées par `faceDepthM` (`./profondeur`). Sans épaisseur
+ *  résolue, la face reste un plan. */
 const SANS_VOLUME = 0;
 
 /** Séparation métrique d'un cran de rang coplanaire. */
@@ -146,12 +146,6 @@ export function crossQuadPolys(a: Vec3, b: Vec3, wM: number): WorldPoly[] {
     { x: b.x - e.x, y: b.y - e.y, z: b.z - e.z },
   ]);
 }
-
-/** PROFONDEUR MONDE (m) du volume d'une face, résolue par l'appelant depuis les catalogues d'apparence
- *  (`./profondeur`) — ce module ne connaît aucun matériau. Pour un MONTANT (face à 2 points), c'est la
- *  LARGEUR de sa croix. `undefined` = rien de résolu : la face reste un PLAN (et un montant, un trait
- *  sans épaisseur). Une profondeur NULLE laisse elle aussi un plan unique, au plan médian. */
-export type FaceDepth = (face: Face) => number | undefined;
 
 /** Polygone DÉPLACÉ de `d` le long de `n`. */
 function offsetPoly(poly: WorldPoly, n: Vec3, d: number): WorldPoly {
@@ -492,17 +486,6 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 export function faceUv1(p: Vec3, f: FaceUvFrame): UV {
   const uv = planarUV(p, f);
   return { u: clamp01((uv.u - f.u0) / f.du), v: clamp01((uv.v - f.v0) / f.dv) };
-}
-
-/** Faces → triangles monde, biais coplanaire appliqué, montants développés en croix et faces verticales
- *  développées en boîtes minces à la profondeur que `depthOf` leur résout. Le RANG se calcule
- *  sur la liste FOURNIE (cf. `coplanarRanks` : la porter à l'échelle de la scène), quads de montants
- *  compris. Composé de `faceQuadsOriented`, `coplanarRanks` et `faceGeometry`. */
-export function facesGeometry(faces: readonly Face[], mpt: number, depthOf?: FaceDepth): FaceGeom[] {
-  const parts = faces.map((f) => faceQuadsOriented(f, mpt, depthOf?.(f)));
-  const ranks = coplanarRanks(parts.flatMap((p) => p.quads));
-  let k = 0;
-  return faces.map((face, i) => faceGeometry(face, mpt, parts[i], ranks.slice(k, (k += parts[i].quads.length))));
 }
 
 /** La géométrie d'UNE face depuis ses quads orientés (`faceQuadsOriented`) et le rang de chacun de ses

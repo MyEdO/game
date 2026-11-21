@@ -2,6 +2,10 @@
  * #3556 — retire les clés de case et les panneaux de la console React, les colonnes et répliques
  * de son étal, l'infobulle de l'ancien éditeur de lieux et les réglages de rendu exclusifs au web
  * dans `structureAppearance.json` et `ambiance.json`.
+ *
+ * Entrées : `src/data/actions.json`, `src/data/merchantFamilies.json`, `src/data/merchants.json`,
+ * `src/data/lieux-services.json`, `src/data/structureAppearance.json` et `src/data/ambiance.json`
+ * (lus et réécrits lorsqu’un de ces champs historiques est présent).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { serializeDataset } from '../../src/data/serialize.ts';

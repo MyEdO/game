@@ -1,6 +1,6 @@
 import { analyserCorpus } from '../guards/lib/dialecte.mjs';
 /**
- * Génère `docs/test-scenarios.md` — catalogue des scénarios de test navigateur.
+ * Génère `docs/test-scenarios.md` — catalogue des scénarios de test Godot.
  * Re-run : `node scripts/docs/build-test-scenarios.mjs` (`npm run docs:test-scenarios`).
  * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
@@ -171,11 +171,10 @@ function rendu() {
     "filtre que `scripts/gen-registry.mjs`), lu par AST (`id`/`order`/`category`/`title`/`tests`/`partyNote`",
     "de la FICHE, le littéral `export const scenario`), groupé par section dans l’ordre de `src/hote/scenarios.ts`",
     "(`SCENARIO_SECTIONS` filtré aux catégories présentes, tri `order` croissant dans chaque section) —",
-    "un miroir du menu en jeu. Angle mort : aucun `import` runtime n'est fait (voir en-tête du générateur,",
-    "cycle `store.ts` ⇄ `triggeredEffects.ts` sous Node ESM natif) — un scénario dont le champ `id`/`order`/",
+    "un miroir du menu en jeu. La lecture se fait par AST, sans charger le jeu. Un scénario dont le champ `id`/`order`/",
     "`category`/`title`/`tests`/`partyNote` n'est PAS un littéral statique fait échouer le générateur : la",
     "fiche ne lit aucun dataset, ce qui se construit vit dans la fabrique `construire`. Les sections",
-    "« Vérifier une feature », « Ajouter un scénario » et « Conventions »",
+    "« Vérifier une fonctionnalité dans Godot », « Ajouter un scénario » et « Conventions »",
     "ci-dessous sont de l'INTENTION ÉDITORIALE (comment écrire un scénario, pourquoi la densité) non",
     "dérivable d'aucune donnée — maintenue à la main DANS CE GÉNÉRATEUR, jamais dans le .md.",
     '',
