@@ -37,8 +37,7 @@ import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { attendreLibre, naissanceDuTenant, sousEcheanceAsync } from '../test/verrou.mjs'
 import { NAISSANCE_ABSENTE, estPidDeProcessus, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
-import { CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
 import { cheminsDeLaReconstruction, demanderLaReconstruction, REJEUX_SUR_SOURCE_MODIFIEE, servirLesDemandes } from '../git-hooks/reconstruction.mjs'
 
 const ENV = envDeDepotForge()

@@ -681,45 +681,195 @@ export const LECTURE_AU_CHEMIN = Object.freeze({
   },
 });
 
-/** La sonde d'existence d'un pid, par son module. */
-const SONDE_DE_VIE = Object.freeze({ 'scripts/guards/lib/pid.mjs': Object.freeze(['estPidVivant']) });
+const MODULE_DE_LA_SONDE = 'scripts/guards/lib/pid.mjs';
+const NOM_DE_LA_SONDE = 'estPidVivant';
 
-/** `id` est-il l'import de la sonde `SONDE_DE_VIE` ?
- *  @param {ts.Identifier} id @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
-function sondeDeVieImportee(id, sf, contexte) {
-  const l = liaisonImportee(id, sf, contexte);
-  const module = l && contexte.module(l.spec);
-  return Boolean(module && (SONDE_DE_VIE[module] ?? []).includes(l.nom));
+/** @typedef {{ nom: string | null, injectee: boolean }} OrigineDeSonde */
+const VALEUR_SANS_SONDE = Object.freeze({ nom: null, injectee: false });
+
+/** La racine et le chemin d'un accès statiquement nommé. @param {ts.Expression} valeur */
+function accesNomme(valeur) {
+  let racine = sansEnveloppe(valeur);
+  const membres = [];
+  while (ts.isPropertyAccessExpression(racine) || ts.isElementAccessExpression(racine)) {
+    const nom = ts.isPropertyAccessExpression(racine) ? racine.name.text
+      : ts.isStringLiteralLikeNode(racine.argumentExpression) ? racine.argumentExpression.text : null;
+    if (nom === null) return null;
+    membres.unshift(nom);
+    racine = sansEnveloppe(racine.expression);
+  }
+  return { racine, membres };
 }
 
-/** `id` lie-t-il la sonde `SONDE_DE_VIE` : son import, ou un paramètre, une liaison déstructurée ou une
- *  variable dont elle est l'initialiseur (`{ estVivant = estPidVivant }`) ?
- *  @param {ts.Identifier} id @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
-function lieLaSondeDeVie(id, sf, contexte) {
-  if (sondeDeVieImportee(id, sf, contexte)) return true;
-  const declarations = contexte.checker().getSymbolAtLocation(id)?.declarations ?? [];
-  return declarations.map((d) => d.resolve()).some((d) => {
-    if (!(ts.isParameterDeclaration(d) || ts.isBindingElement(d) || ts.isVariableDeclaration(d)) || !d.initializer) return false;
-    const initialiseur = sansEnveloppe(d.initializer);
-    return ts.isIdentifier(initialiseur) && sondeDeVieImportee(initialiseur, sf, contexte);
-  });
+const estPorteeDExecution = (n) => ts.isSourceFile(n) || ts.isFunctionLikeDeclaration(n)
+  || ts.isClassDeclaration(n) || ts.isClassExpression(n);
+
+/** @typedef {{ noeud: ts.BinaryExpression, portee: ts.Node, membres: string[] }} AffectationDeSonde */
+/** @type {WeakMap<import('./canonUnique.mjs').ContexteImports, Map<object, AffectationDeSonde[]>>} */
+const AFFECTATIONS_DE_SONDE = new WeakMap();
+
+/** Indexe une fois les `=` locaux et les écritures dans un membre nommé, par symbole de leur racine. */
+function affectationsDeSonde(sf, contexte, checker) {
+  const indexe = AFFECTATIONS_DE_SONDE.get(contexte);
+  if (indexe) return indexe;
+  const parSymbole = new Map();
+  const marcher = (n, portee) => {
+    const ici = estPorteeDExecution(n) ? n : portee;
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+      const acces = accesNomme(n.left);
+      const symbole = acces && ts.isIdentifier(acces.racine) ? checker.getSymbolAtLocation(acces.racine) : null;
+      if (symbole) {
+        if (!parSymbole.has(symbole)) parSymbole.set(symbole, []);
+        parSymbole.get(symbole).push({ noeud: n, portee: ici, membres: acces.membres });
+      }
+    }
+    n.forEachChild((m) => marcher(m, ici));
+  };
+  marcher(sf, sf);
+  for (const sites of parSymbole.values()) sites.sort((a, b) => b.noeud.end - a.noeud.end);
+  AFFECTATIONS_DE_SONDE.set(contexte, parSymbole);
+  return parSymbole;
 }
 
-/** La VIE JUGÉE SUR UN PID LU, sans sa naissance : un appel à `estPidVivant` — importé, ou lié par un
- *  paramètre, une liaison déstructurée ou une variable qu'il initialise — et `estPidVivant` passé en argument
- *  (`pids.filter(estPidVivant)`). La sonde injectée à `estPidVivantDepuis` (`{ estVivant }`) n'en est pas une
- *  (#2603 #2586). Angle mort : la sonde lue d'un objet (`g.estVivant(pid)`), réaffectée, ou réexportée. */
+/** Un bloc de suite ne rend pas l'écriture éventuelle. Une écriture sous un autre contrôle ou dans
+ *  une portée d'exécution englobante laisse aussi la valeur précédente possible.
+ *  @param {AffectationDeSonde} ecriture @param {ts.Node} portee @param {number} position */
+function ecritureCertaine(ecriture, portee, position) {
+  if (ecriture.portee !== portee) return false;
+  for (let n = ecriture.noeud.parent; n; n = n.parent) {
+    if (ts.isBlock(n) || ts.isSourceFile(n)) {
+      if (n.pos <= position && position <= n.end) return true;
+    } else if (!ts.isExpressionStatement(n) && !ts.isParenthesizedExpression(n)) return false;
+  }
+  return false;
+}
+
+/** Un chemin possible suffit à conserver la provenance. Sans sonde, la valeur doit être connue sur
+ *  tous les chemins pour exclure le défaut d'une déstructuration.
+ *  @param {OrigineDeSonde | null} a @param {OrigineDeSonde | null} b */
+function reunirOrigines(a, b) {
+  if (a?.nom === NOM_DE_LA_SONDE && !a.injectee) return a;
+  if (b?.nom === NOM_DE_LA_SONDE && !b.injectee) return b;
+  if (a?.nom === NOM_DE_LA_SONDE || a?.nom === '*') return a;
+  if (b?.nom === NOM_DE_LA_SONDE || b?.nom === '*') return b;
+  return a && b ? VALEUR_SANS_SONDE : null;
+}
+
+/** Remonte une valeur jusqu'à la sonde importée ou à son espace de noms. Une valeur présente et
+ *  sûre diffère d'une valeur absente ou inconnue, pour laquelle un défaut déstructuré est possible.
+ *  @param {ts.Expression} expression @param {ts.SourceFile} sf
+ *  @param {import('./canonUnique.mjs').ContexteImports} contexte @param {number} [position] */
+function origineDeSonde(expression, sf, contexte, position) {
+  const checker = contexte.checker();
+  const vus = new Set();
+  /** @param {ts.Expression} valeur @param {string[]} membres @param {boolean} injectee
+   *  @param {number} [avant] @returns {OrigineDeSonde | null} */
+  function suivre(valeur, membres, injectee, avant) {
+    if (vus.has(valeur)) return null;
+    vus.add(valeur);
+    try { return lire(valeur, membres, injectee, avant ?? valeur.getStart(sf)); }
+    finally { vus.delete(valeur); }
+  }
+
+  /** @param {ts.Expression} valeur @param {string[]} chemin @param {boolean} injectee
+   *  @param {number} avant @returns {OrigineDeSonde | null} */
+  function lire(valeur, chemin, injectee, avant) {
+    const acces = accesNomme(valeur);
+    if (!acces) return null;
+    const { racine: e } = acces;
+    const membres = [...acces.membres, ...chemin];
+    if (ts.isObjectLiteralExpression(e) && membres.length) {
+      const [champ, ...suivants] = membres;
+      const p = e.properties.findLast((p) => keyName(p.name) === champ);
+      if (p && ts.isPropertyAssignment(p)) return suivre(p.initializer, suivants, injectee);
+      if (p && ts.isShorthandPropertyAssignment(p)) return suivre(p.name, suivants, injectee);
+      return p && ts.isMethodDeclaration(p) && !suivants.length ? VALEUR_SANS_SONDE : null;
+    }
+    if (!ts.isIdentifier(e)) return !membres.length && (ts.isArrowFunction(e) || ts.isFunctionExpression(e)
+      || ts.isObjectLiteralExpression(e) || ts.isArrayLiteralExpression(e) || ts.isLiteralExpression(e)
+      || [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.NullKeyword].includes(e.kind))
+      ? VALEUR_SANS_SONDE : null;
+    const symbole = ts.isExportSpecifier(e.parent) ? checker.getExportSpecifierLocalTargetSymbol(e.parent)
+      : ts.isShorthandPropertyAssignment(e.parent) ? checker.getShorthandAssignmentValueSymbol(e.parent)
+      : checker.getSymbolAtLocation(e);
+    if (!symbole) return null;
+    const liaison = liaisonDuSymbole(contexte.liaisonsDuNom(e.text), checker, symbole, true);
+    if (liaison) {
+      if (contexte.module(liaison.spec) !== MODULE_DE_LA_SONDE) return null;
+      const nom = membres.length === 0 ? liaison.nom
+        : membres.length === 1 && liaison.nom === '*' ? membres[0] : null;
+      if (nom === NOM_DE_LA_SONDE || nom === '*') return { nom, injectee };
+      return nom === 'estPidVivantDepuis' ? VALEUR_SANS_SONDE : null;
+    }
+    const d = symbole.declarations?.map((d) => d.resolve()).find((d) =>
+      ts.isVariableDeclaration(d) || ts.isParameterDeclaration(d) || ts.isBindingElement(d));
+    if (!d) return null;
+    const portees = [];
+    for (let p = e.parent; p; p = p.parent) if (estPorteeDExecution(p)) portees.push(p);
+    let possible;
+    const reunir = (origine) => possible === undefined ? origine : reunirOrigines(possible, origine);
+    for (const ecriture of affectationsDeSonde(sf, contexte, checker).get(symbole) ?? []) {
+      if (ecriture.noeud.end > avant || !portees.includes(ecriture.portee)
+        || !ecriture.membres.every((membre, i) => membre === membres[i])) continue;
+      const origine = suivre(ecriture.noeud.right, membres.slice(ecriture.membres.length), injectee);
+      if (ecritureCertaine(ecriture, portees[0], avant)) return reunir(origine);
+      possible = reunir(origine);
+    }
+    const liee = ts.isBindingElement(d) ? d.parent.parent : d;
+    const parInjection = injectee || ts.isParameterDeclaration(liee);
+    if (ts.isBindingElement(d) && ts.isObjectBindingPattern(d.parent)
+      && (ts.isVariableDeclaration(liee) || ts.isParameterDeclaration(liee)) && liee.initializer) {
+      const nom = keyName(d.propertyName ?? (ts.isIdentifier(d.name) ? d.name : undefined));
+      const champ = nom !== null && !d.dotDotDotToken
+        ? suivre(liee.initializer, [nom, ...membres], parInjection, d.getStart(sf)) : null;
+      if (champ !== null) return reunir(champ);
+    }
+    return reunir(d.initializer ? suivre(d.initializer, membres, parInjection) : null);
+  }
+  return suivre(expression, [], false, position);
+}
+
+/** Nom réexporté de la sonde ou de l'espace qui la contient.
+ *  @param {ts.Node} n @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
+function reexportDeSonde(n, sf, contexte) {
+  /** @param {ts.Expression} expression @param {number} [position] */
+  const contientLaSonde = (expression, position) => {
+    const origine = origineDeSonde(expression, sf, contexte, position);
+    return origine?.nom === NOM_DE_LA_SONDE || origine?.nom === '*';
+  };
+  if (ts.isExportDeclaration(n)) {
+    for (const l of contexte.liaisons()) {
+      if (l.noeud !== n || l.typeSeul) continue;
+      if (l.spec !== null && contexte.module(l.spec) === MODULE_DE_LA_SONDE
+        && (l.importe?.nom === NOM_DE_LA_SONDE || l.importe?.nom === '*')) return l.exporte?.nom;
+      const local = l.local?.position?.noeud;
+      if (local && ts.isIdentifier(local) && contientLaSonde(local, sf.end)) return l.exporte?.nom;
+    }
+  } else if (ts.isExportAssignment(n) && !n.isExportEquals && contientLaSonde(n.expression)) {
+    return 'default';
+  } else if (ts.isVariableStatement(n) && n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
+    for (const d of n.declarationList.declarations)
+      if (ts.isIdentifier(d.name) && d.initializer && contientLaSonde(d.initializer)) return d.name.text;
+  }
+  return null;
+}
+
+/** La sonde d'existence seule est réservée à `pid.mjs`. La garde suit sa liaison dans les appels, les
+ *  rappels et les exports. Un paramètre injecté peut transiter vers le jugement avec naissance (#2603 #2586). */
 export const VIE_SUR_PID_LU = Object.freeze({
   nom: 'VIE_SUR_PID_LU',
-  indice: (texte) => texte.includes('estPidVivant'),
+  indice: (texte) => texte.includes(NOM_DE_LA_SONDE) || /\bpid(?:\.mjs)?['"?#]/.test(texte),
   /** @param {ts.Node} n @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {string | null} */
   reconnait: (n, sf, contexte) => {
+    const reexport = reexportDeSonde(n, sf, contexte);
+    if (reexport) return `sonde d’existence du pid réexportée sous \`${reexport}\` (\`estPidVivantDepuis\`)`;
     if (!ts.isCallExpression(n)) return null;
-    const appele = sansEnveloppe(n.expression);
-    const juge = estAppelDeclare(n, sf, SONDE_DE_VIE, contexte) ?? (ts.isIdentifier(appele) && lieLaSondeDeVie(appele, sf, contexte) ? appele.text : null);
-    const passee = n.arguments.map(sansEnveloppe).find((a) => ts.isIdentifier(a) && sondeDeVieImportee(a, sf, contexte));
-    if (!juge && !passee) return null;
-    return `vie jugée sur un pid sans sa naissance : \`${juge ?? /** @type {ts.Identifier} */ (passee).text}\` dans \`${englobanteDe(n)}\` (\`estPidVivantDepuis\`)`;
+    const juge = origineDeSonde(n.expression, sf, contexte);
+    const coupee = juge?.nom === NOM_DE_LA_SONDE ? n.expression : n.arguments.find((a) => {
+      const origine = origineDeSonde(a, sf, contexte);
+      return origine?.nom === NOM_DE_LA_SONDE && !origine.injectee;
+    });
+    return coupee ? `vie jugée sur un pid sans sa naissance : \`${coupee.getText(sf)}\` dans \`${englobanteDe(n)}\` (\`estPidVivantDepuis\`)` : null;
   },
 });
 
@@ -841,7 +991,15 @@ export function liaisonImportee(occurrence, sf, contexte) {
   const checker = contexte.checker();
   const symbole = checker.getSymbolAtLocation(occurrence);
   if (!symbole) return null;
-  const l = candidats.find((l) => checker.getSymbolAtLocation(l.local.position.noeud) === symbole);
+  return liaisonDuSymbole(candidats, checker, symbole);
+}
+
+/** @param {ReturnType<typeof liaisonsDe>} candidats
+ *  @param {ReturnType<import('./canonUnique.mjs').ContexteImports['checker']>} checker
+ *  @param {NonNullable<ReturnType<typeof checker.getSymbolAtLocation>>} symbole */
+function liaisonDuSymbole(candidats, checker, symbole, typesEffaces = false) {
+  const l = candidats.find((l) => (!typesEffaces || !l.typeSeul)
+    && checker.getSymbolAtLocation(l.local.position.noeud) === symbole);
   return l ? { spec: l.spec, nom: l.importe.nom } : null;
 }
 

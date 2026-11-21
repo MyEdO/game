@@ -29,6 +29,7 @@ import { selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/selection
 import {
   DRAPEAU_REGIME,
   EMPREINTES_WORKER_MO,
+  PLAFOND_PAQUET_NODE_MS,
   PORTEE_LOT_S,
   capaciteDuLanceur,
   environnementDe,
@@ -224,7 +225,7 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   const specificite = (t) => retenus.get(t).specificite ?? 0
   const deLaCi = (t) => estimations.get(t)?.source === 'ci'
   const paquets = (famille, tests) => paquetsDeLancement(tests, famille === 'node'
-    ? { estimations, budgetMs: Math.min(30 * 60_000, Math.max(0, budget * 1000)) } : {})
+    ? { estimations, budgetMs: Math.min(PLAFOND_PAQUET_NODE_MS, Math.max(0, budget * 1000)) } : {})
   const optionsDuMur = { workers, surcouts, paquets, workersNode, environnementDe }
   const mur = (fichiers) => murDesFichiers(fichiers, optionsDuMur)
   const partCi = (fichiers, tests) => Math.round(mur(fichiers) - mur(tableTotale(FAMILLES, (f) => fichiers[f].map(([t, ms]) => [t, tests.has(t) ? 0 : ms]))))

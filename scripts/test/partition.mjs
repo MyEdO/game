@@ -146,6 +146,9 @@ export const TAS_WORKER_MO = 3072
  *  BANC calé sur le test le plus lourd mesuré en CI (#1619) ; le contrat des tests ne change pas. */
 export const DELAI_DE_TEST_MS = 15_000
 
+/** Borne de durée d’un paquet Node, commune au plan estimé et au lancement réel. */
+export const PLAFOND_PAQUET_NODE_MS = 30 * 60_000
+
 /** Empreinte d'un worker Vitest par RÉGIME de lancement, en Mo : `suite` (la suite entière), `lot` (un lot de
  *  fichiers, `test:perimetre`). Paramètres de BANC du 2026-10-08, Vitest 5.0.3, Windows 16 cœurs, mémoire de
  *  travail des processus échantillonnée (#2497) ; empreinte = somme au pic / workers. `suite` : run s4, 2 workers,

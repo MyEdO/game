@@ -40,8 +40,7 @@ import { segmentsDeFusion, tailleDeMarqueur } from '../guards/lib/blocsDeFusion.
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
-import { CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import {
   ageDe,

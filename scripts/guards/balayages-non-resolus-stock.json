@@ -26,12 +26,6 @@
       "occurrence": 1
     },
     {
-      "famille": "autre",
-      "fichier": "scripts/ops/signaler-rouge.mjs",
-      "ref": "signaler : lu réaffectée",
-      "occurrence": 1
-    },
-    {
       "famille": "identifiant introuvable",
       "fichier": "scripts/guards/lib/racineNpm.mjs",
       "ref": "existsSync : courant introuvable",

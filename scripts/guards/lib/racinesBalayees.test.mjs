@@ -2552,6 +2552,24 @@ for (const { nom, toucher, touches } of touchesDeLaPlage()) test(`plage réelle 
   })
 })
 
+test('banc fs win32 : son contrat de namespace conserve les lectures dérivées', () => {
+  const rel = 'scripts/docs/lib/plateforme-win32-fs.test.mjs'
+  const texte = readFileSync(new URL('../../docs/lib/plateforme-win32-fs.test.mjs', import.meta.url), 'utf8')
+  const modules = { [rel]: texte }
+  const lecture = depotDe(modules).lecture(rel)
+  assert.deepEqual(lecture.fonctions.racineDuBanc.contrat, { namespace: '/depot' })
+  const sites = sitesDesDeuxRegimes(modules, rel).filter(([appel]) => appel === 'readFile')
+  const couvert = (raison) => ({ chemin: '', sous: `couverture corpus entier : ${rel}#racineDuBanc:/depot — ${raison}` })
+  const valeurs = sites.at(-1)?.[1]
+  const attendues = [
+    couvert('namespace externe recomposé'),
+    couvert('descente dans namespace susceptible de lien'),
+    { chemin: 'src/é.ts' },
+  ]
+  assert.equal(valeurs.length, attendues.length)
+  assert.deepEqual(new Set(valeurs.map((v) => JSON.stringify(v))), new Set(attendues.map((v) => JSON.stringify(v))))
+})
+
 test('namespace borné : fragments recomposés, parent et sortie couvrent le corpus, cible readlink opaque', () => {
   const texte = "import {readdirSync} from 'node:fs';import {join,dirname} from 'node:path'\nexport function base() {return opaque()}\nexport const CONTRATS_DE_DERIVATION=[{fonction:base,namespace:'/proc'}]\nconst b=base()\nfor(const nom of readdirSync(b)) {readFileSync(join(b,nom,'stat'));readFileSync(nom)}\nreadFileSync(dirname(b))\nreadFileSync(join(b,'..','src'))\nreadFileSync(readlinkSync(join(b,'1/cwd')))"
   const rendu = racinesDe({ 'banc.mjs': texte }, 'banc.mjs')

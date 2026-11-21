@@ -1100,9 +1100,9 @@
   {
     "id": "codesDeSortie",
     "type": "primitives.manifest",
-    "label": "CODE_DIFFERE/codeEnfant",
+    "label": "CODE_DIFFERE/CODE_SOURCE_MODIFIEE/codeEnfant",
     "fichier": "scripts/guards/lib/codesDeSortie.mjs",
-    "concept": "module feuille des codes de sortie partagés : `CODE_DIFFERE` (refusé ou différé, rien n’a tourné) et verdict d’un processus enfant (signal ou code absent = échec)",
+    "concept": "module feuille des codes de sortie partagés : `CODE_DIFFERE` (refusé ou différé, rien n’a tourné), `CODE_SOURCE_MODIFIEE` (génération préemptée par une source modifiée) et verdict d’un processus enfant (signal ou code absent = échec)",
     "perimetre": "lanceurs de tests, docs:build, hooks git de reconstruction, synchronisation, lanceur local",
     "verrou": "codesDeSortie.test.mjs, perimetre.test.mjs, run-isolation.test.mjs"
   },

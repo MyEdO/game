@@ -6,15 +6,9 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import { cwdDonne, estModuleDuDepot, hooksSdkSousWin32, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
-import { ecartsDeRendu } from '../../test/lib/bancGenerateurs.mjs'
+import { ecartsDeRendu, HOTE_WIN32, IMPORT_WIN32, PLATEFORME_WIN32 } from '../../test/lib/bancGenerateurs.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
-
-const HOTE = process.platform
-
-const PLATEFORME_WIN32 = new URL('./plateforme-win32.mjs', import.meta.url).href
-
-const IMPORT_WIN32 = HOTE === 'win32' ? [] : ['--import', PLATEFORME_WIN32]
 
 test('le hook SDK cible le spécificateur exact depuis le dépôt, hors SDK et adaptateur', () => {
   const depot = urlDuDepot(RACINE)
@@ -141,7 +135,7 @@ test('ecartsDeRendu : corps différent, cible d’un seul côté, rendu identiqu
  *  Sur un hôte win32, la simulation n'est pas chargée : l'attendu s'éprouve contre le win32 RÉEL, la
  *  simulation se vérifie sur l'hôte POSIX de la CI — le diagnostic le NOMME. */
 function sousWin32(t, racine, args) {
-  if (HOTE === 'win32') t.diagnostic('hôte win32 : simulation NON chargée — attendu éprouvé contre le win32 réel ; la simulation se vérifie en CI Linux')
+  if (HOTE_WIN32) t.diagnostic('hôte win32 : simulation NON chargée — attendu éprouvé contre le win32 réel ; la simulation se vérifie en CI Linux')
   const r = spawnSync(process.execPath, [...IMPORT_WIN32, ...args], {
     cwd: racine,
     encoding: 'utf8',
@@ -366,7 +360,7 @@ test('SDK natif sous win32 : identité ESM/CJS, tiers hôte, configuration disqu
     const vu = JSON.parse(sousWin32(t, racine, [path.join(racine, 'src', 'entree.mjs')]))
     const nom = versWindows(path.join(racine, 'src', 'fixture.ts')).replaceAll('\\', '/')
     assert.equal(vu.memeAPI, true)
-    assert.equal(vu.apiTiersIdentique, HOTE === 'win32')
+    assert.equal(vu.apiTiersIdentique, HOTE_WIN32)
     assert.equal(vu.autresExports, true)
     for (const [branche, contenu, decalage] of [[vu.disque, texte.slice(1), 1], [vu.callback, texte, 0]]) {
       assert.ok(branche.files.some((f) => f.replaceAll('\\', '/') === nom))

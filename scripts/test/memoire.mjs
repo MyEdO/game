@@ -9,7 +9,7 @@ import { spawnBorne, diagnosticDuLancement, diagnosticArret, tuerArbre } from '.
 import { lancerProcessusSupervise } from '../guards/lib/superviserProcessus.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
-import { admissionNode, coeurs, memoireDisponibleMo } from './partition.mjs'
+import { PLAFOND_PAQUET_NODE_MS, admissionNode, coeurs, memoireDisponibleMo } from './partition.mjs'
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 
 const PROFILS = 'memoire-node.json'
@@ -18,6 +18,7 @@ const CONTRAT = 'domaine-natif-v1-gate-cjs-challenge-ack-transactionnel-v2'
 /** La concurrence d'un lancement node SANS profil mémoire utilisable (#2586) : celle de l'acquisition, et celle, fixe,
  *  d'une plateforme sans mesure native (`lancerNodeMesure`). */
 export const CONCURRENCE_SANS_PROFIL = 1
+
 const empreinte = (texte) => createHash('sha256').update(texte).digest('hex')
 const erreur = (message) => Object.assign(new Error(message), { code: 'MESURE_MEMOIRE_INCOMPLETE' })
 const lire = (p) => {
@@ -340,7 +341,6 @@ const aConcurrenceSansProfil = (argv, fichiers) => {
  *  (#2586 c.6245552712). */
 export async function lancerNodeMesure({ racine, fichiers, argv = [], env = process.env, signal, mesures, forcer = false,
   journal = console.log, platform = process.platform }, { collecter = collecterMemoire } = {}) {
-  const limiteMs = 30 * 60_000
   const diffuser = async (...argumentsSupervision) => {
     const lancement = await lancerProcessusSupervise(...argumentsSupervision)
     lancement.hote.stdout?.on('data', (d) => process.stdout.write(d))
@@ -357,7 +357,7 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     const dossier = mkdtempSync(join(env.WFRP_MEMOIRE_DOSSIER ?? tmpdir(), 'wfrp-node-'))
     let resultat
     try {
-      resultat = await spawnBorne({ argv: aConcurrenceSansProfil(argv, fichiers), cwd: racine, env, signal, limiteMs,
+      resultat = await spawnBorne({ argv: aConcurrenceSansProfil(argv, fichiers), cwd: racine, env, signal, limiteMs: PLAFOND_PAQUET_NODE_MS,
         fichier: join(dossier, 'lancement.log'), maxBuffer: 16 * 2 ** 20, superviser: diffuser })
       return { ...resultat, concurrence: CONCURRENCE_SANS_PROFIL }
     } finally {
@@ -415,7 +415,7 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
   try {
     resultat = await spawnBorne({ argv: args, cwd: racine,
       env: { ...environnementDeLaMesure(env, args, racine), WFRP_MEMOIRE_DOSSIER: dossier, WFRP_MEMOIRE_GENERATION: generation },
-      signal: signalCompose, limiteMs, fichier: join(dossier, 'lancement.log'), maxBuffer: 16 * 2 ** 20,
+      signal: signalCompose, limiteMs: PLAFOND_PAQUET_NODE_MS, fichier: join(dossier, 'lancement.log'), maxBuffer: 16 * 2 ** 20,
       superviser: diffuser,
       surControle: (vu) => { controle = vu },
       surPid: (pidCible) => {
