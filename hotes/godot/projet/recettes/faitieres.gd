@@ -7,9 +7,12 @@ extends SceneTree
 ## test (`_modele_de_test` : une `faitiere` longue de 2 m le long de X, Y à 0 sur l'arête du faîte, un V en travers dont
 ## chaque bras descend d'une pente de 1), puis de chaque modèle de toit servi au figé (`toits` de la réponse de
 ## `modeles`). Chaque faîtière a son instance ; son arête court d'un bout du faîte à l'autre, à sa cote, et deux faîtières
-## voisines se rejoignent au bout qu'elles partagent ; au modèle de test, sur l'échantillon (La Diligence a des pans plus
-## étroits que les bras, aux marches de son champ de croupe), le bout de chaque bras repose sur le pan de son côté, lu au
-## maillage de la nappe posée ; cachée avec sa nappe (`VolumeDeScene.cacher`), elle quitte les instances
+## voisines se rejoignent au bout qu'elles partagent ; au modèle de test, le bout de chaque bras repose sur le plus haut
+## des triangles des nappes posées à son aplomb, quelle que soit sa nappe, sauf au bout libre INTÉRIEUR d'un faîte (aucune
+## faîtière voisine, et le toit continue une demi-case au-delà sur son axe, `_bout_interieur`), où le faîte finit sur
+## ses arêtiers ou ses noues : ces bras se comptent sans se sonder ; un bout de rive, que seul le débord prolonge, se sonde ;
+## cachée avec sa nappe
+## (`VolumeDeScene.cacher`), elle quitte les instances
 ## vues, et y revient quand la nappe revient. L'instance se lit par `VolumeDeScene.transform_d_instance`, sans rendu.
 
 const RECETTE_AUTONOME := true
@@ -49,7 +52,7 @@ func _recetter() -> void:
 		var moment := "test, %s (%s m par case)" % [cle, echantillon.monde.metresParCase]
 		var volume := _volume_de_test(echantillon)
 		volume.poser_les_aretes([], [], echantillon.faitieres)
-		_des_faitieres(volume, echantillon.faitieres, moment, cle != "diligence")
+		_des_faitieres(volume, echantillon.faitieres, moment, true)
 		_avec_leur_nappe(volume, echantillon.faitieres, moment)
 	PontFige.poser(self, decor)
 	MontageDeComposition.retenir_les_modeles(decor.modeles, decor.listage)
@@ -121,11 +124,21 @@ static func _groupes(volume: VolumeDeScene) -> Array:
 
 
 ## Les faîtières `faitieres` posées sur `volume`, au moment `moment` : une instance chacune, son arête d'un bout du faîte
-## à l'autre à sa cote, les voisines jointes ; et, si `sur_les_pans`, le bout de chaque bras sur le pan de son côté.
+## à l'autre à sa cote, les voisines jointes ; et, si `sur_les_pans`, le bout de chaque bras sur le toit à son aplomb, hors
+## des bouts libres intérieurs.
 func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur_les_pans: bool) -> void:
 	var triangles := _triangles_des_nappes(volume)
+	var extremites := {}
+	for f: Dictionary in faitieres:
+		for cote: float in [-0.5, 0.5]:
+			var coin := Vector2(f.milieu.x + f.sens.x * cote, f.milieu.y + f.sens.y * cote)
+			var cle := Vector2(snappedf(coin.x, EPSILON), snappedf(coin.y, EPSILON))
+			extremites[cle] = extremites.get(cle, 0) + 1
 	var bouts := {}
 	var poses := 0
+	var sondes := 0
+	var libres := 0
+	var tolerance := EPSILON + RANGS_M / volume.metres_par_case
 	for groupe: Node3D in _groupes(volume):
 		var de_groupe: Array = groupe.get_meta("aretes")
 		for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
@@ -146,11 +159,19 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 				bouts.get_or_add(Vector2(snappedf(coin.x, EPSILON), snappedf(coin.y, EPSILON)), []).append(lu)
 			if sur_les_pans:
 				for le_long: float in [-SONDE, 0.0, SONDE]:
+					var bout_du_cote: Vector2 = milieu + sens * signf(le_long) / 2.0
+					var libre: bool = le_long != 0.0 and extremites.get(Vector2(snappedf(bout_du_cote.x, EPSILON), snappedf(bout_du_cote.y, EPSILON)), 0) == 1 \
+							and _bout_interieur(triangles, bout_du_cote, sens.normalized() * signf(le_long))
 					for cote: float in [-1.0, 1.0]:
+						if libre:
+							libres += 1
+							continue
 						var bras: Vector3 = monde * Vector3(le_long * LONG / 2.0, -BRAS, cote * BRAS)
-						var pan := _cote_du_pan(triangles, bras)
-						if is_nan(pan) or absf(bras.y - pan) > EPSILON + RANGS_M / volume.metres_par_case:
-							_fautes.append("%s, %s : bras %s à %.4f, pan à %.4f" % [moment, pose.cle, cote, bras.y, pan])
+						var pan := _pan_sous(triangles, bras)
+						sondes += 1
+						var sous := NAN if pan.is_empty() else _cote_du_plan(pan, bras)
+						if is_nan(sous) or absf(bras.y - sous) > tolerance:
+							_fautes.append("%s, %s : bras %s à %.4f, pan à %.4f" % [moment, pose.cle, cote, bras.y, sous])
 	if poses != faitieres.size():
 		_fautes.append("%s : %d faîtières posées, attendu %d" % [moment, poses, faitieres.size()])
 	var jointes := 0
@@ -162,7 +183,17 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 				_fautes.append("%s : au bout %s, les faîtières voisines s'arrêtent à %s" % [moment, coin, points])
 	if jointes == 0 and faitieres.size() > 1:
 		_fautes.append("%s : aucune faîtière voisine d'une autre, la continuité ne se recette pas" % moment)
-	print("[faitieres] %s : %d faîtières, %d bouts joints" % [moment, poses, jointes])
+	if sur_les_pans and sondes == 0:
+		_fautes.append("%s : aucun bras sondé sur son pan" % moment)
+	print("[faitieres] %s : %d faîtières, %d bouts joints, %d bras sondés, %d au bout libre intérieur d'un faîte" % [moment, poses, jointes, sondes, libres])
+
+
+## Le bout `coin` d'un faîte (repère des cases centrées), qui court vers `sens` à la cote `cote` (unités du plateau),
+## est-il INTÉRIEUR ? Une demi-case au-delà, sur son axe, le toit continue : la croupe passé les arêtiers, ou le pan que
+## les noues rejoignent. Au bout d'une rive, le débord s'arrête en deçà (tant qu'il reste plus court qu'une demi-case).
+static func _bout_interieur(triangles: Array, coin: Vector2, sens: Vector2) -> bool:
+	var au_dela := coin + sens * MiseEnPage.DEMI_CASE
+	return not _pan_sous(triangles, Vector3(au_dela.x + MiseEnPage.DEMI_CASE, 0.0, au_dela.y + MiseEnPage.DEMI_CASE)).is_empty()
 
 
 ## Les triangles des nappes posées sur `volume`, au monde, ceux qui ne sont pas verticaux.
@@ -178,23 +209,34 @@ static func _triangles_des_nappes(volume: VolumeDeScene) -> Array:
 	return triangles
 
 
-## La cote la plus haute des triangles `triangles` à l'aplomb du point `p` (en X et Z), `NAN` si aucun ne le couvre.
-static func _cote_du_pan(triangles: Array, p: Vector3) -> float:
-	var cote := NAN
+## Les coordonnées barycentriques, en X et Z, du point `p` dans le triangle `t`.
+static func _barycentre(t: Array, p: Vector3) -> Vector3:
+	var a := Vector2(t[0].x, t[0].z)
+	var b := Vector2(t[1].x, t[1].z)
+	var c := Vector2(t[2].x, t[2].z)
+	var q := Vector2(p.x, p.z)
+	var aire := (b - a).cross(c - a)
+	var u := (b - q).cross(c - q) / aire
+	var v := (c - q).cross(a - q) / aire
+	return Vector3(u, v, 1.0 - u - v)
+
+
+## La cote du plan du triangle `t` à l'aplomb du point `p`, dedans ou dehors.
+static func _cote_du_plan(t: Array, p: Vector3) -> float:
+	var k := _barycentre(t, p)
+	return k.x * t[0].y + k.y * t[1].y + k.z * t[2].y
+
+
+## Le plus haut des triangles `triangles` qui couvrent le point `p` (en X et Z), `[]` si aucun ne le couvre.
+static func _pan_sous(triangles: Array, p: Vector3) -> Array:
+	var dessus := []
 	for t: Array in triangles:
-		var a := Vector2(t[0].x, t[0].z)
-		var b := Vector2(t[1].x, t[1].z)
-		var c := Vector2(t[2].x, t[2].z)
-		var q := Vector2(p.x, p.z)
-		var aire := (b - a).cross(c - a)
-		var u := (b - q).cross(c - q) / aire
-		var v := (c - q).cross(a - q) / aire
-		var w := 1.0 - u - v
-		if u < -EPSILON or v < -EPSILON or w < -EPSILON:
+		var k := _barycentre(t, p)
+		if k.x < -EPSILON or k.y < -EPSILON or k.z < -EPSILON:
 			continue
-		var y: float = u * t[0].y + v * t[1].y + w * t[2].y
-		cote = y if is_nan(cote) else maxf(cote, y)
-	return cote
+		if dessus.is_empty() or _cote_du_plan(t, p) > _cote_du_plan(dessus, p):
+			dessus = t
+	return dessus
 
 
 ## Chaque faîtière de `faitieres` posée sur `volume` cachée avec sa nappe (`cacher`), hors des instances vues de son

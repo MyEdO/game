@@ -66,6 +66,26 @@ describe('faitieresDeLaScene — le faîte d’un pignon (#4471)', () => {
     expect(bouts(faitieresDeLaScene(sceneDe(masse({ profile: 'hip' }))))).toEqual([[3, 4.5], [4.5, 6]]);
   });
 
+  it.each([
+    { nom: 'T', footprint: [{ x: 2, y: 2, w: 9, h: 3 }, { x: 5, y: 5, w: 3, h: 4 }], faites: { 'y=3': [3, 9], 'x=6': [3, 7] } },
+    { nom: 'croix', footprint: [{ x: 5, y: 2, w: 3, h: 9 }, { x: 2, y: 5, w: 9, h: 3 }], faites: { 'x=6': [3, 9], 'y=6': [3, 9] } },
+  ])('une croupe en $nom : chaque faîte reste continu à travers le croisement des faîtes', ({ footprint, faites }) => {
+    const parFaite = new Map<string, [number, number][]>();
+    for (const f of faitieresDeLaScene(sceneDe(masse({ footprint, profile: 'hip' })))) {
+      const selonX = Math.abs(f.sens.x) > 1e-9;
+      const [c, l] = selonX ? [f.milieu.x, Math.abs(f.sens.x)] : [f.milieu.y, Math.abs(f.sens.y)];
+      const k = selonX ? `y=${f.milieu.y}` : `x=${f.milieu.x}`;
+      (parFaite.get(k) ?? parFaite.set(k, []).get(k)!).push([c - l / 2, c + l / 2]);
+    }
+    expect([...parFaite.keys()].sort()).toEqual(Object.keys(faites).sort());
+    for (const [k, [lo, hi]] of Object.entries(faites)) {
+      const t = parFaite.get(k)!.sort((p, q) => p[0] - q[0]);
+      expect(t[0][0], k).toBeCloseTo(lo, 9);
+      expect(t[t.length - 1][1], k).toBeCloseTo(hi, 9);
+      t.slice(1).forEach(([debut], i) => expect(debut, k).toBeCloseTo(t[i][1], 9));
+    }
+  });
+
   it('le débord d’une rive, si long soit-il, va au tronçon de bout : chaque faîtière traverse une case', () => {
     const chaume = { ...sceneDe(masse({ material: { id: 'chaume' } })), metresPerTile: 1 };
     const e = roofMaterial('chaume').eaveOverhangM! / 1;
@@ -116,6 +136,19 @@ describe('faitesDuGroupe — saillance et facettes (#4471)', () => {
   it('une arête RENTRANTE (noue horizontale) n’est pas un faîte', () => {
     expect(faitesDuGroupe('g', deuxPans(1, 1))).toHaveLength(2);
     expect(faitesDuGroupe('g', deuxPans(-1, -1))).toEqual([]);
+  });
+
+  it('un versant plus étroit que la pose (une demi-case) ne porte pas de faîtière : la noue qui le borde passe au-dessus', () => {
+    const [nord] = deuxPans(1, 1);
+    const pan = (ys: [number, number], h: (y: number) => number, gy: number): PanDuGroupe => ({
+      ...nord, gy, poly: [[-0.5, ys[0]], [1.5, ys[0]], [1.5, ys[1]], [-0.5, ys[1]]].map(([x, y]) => ({ x, y, h: h(y) })),
+    });
+    const etroit = pan([0.5, 0.8], (y) => 5 - (y - 0.5), -1);
+    const remonte = pan([0.8, 1.5], (y) => 4.7 + 0.5 * (y - 0.8), 0.5);
+    expect(faitesDuGroupe('g', [nord, etroit, remonte])).toEqual([]);
+    const large = pan([0.5, 1.2], (y) => 5 - (y - 0.5), -1);
+    const auDela = pan([1.2, 1.5], (y) => 4.3 + 0.5 * (y - 1.2), 0.5);
+    expect(faitesDuGroupe('g', [nord, large, auDela])).toHaveLength(2);
   });
 
   it('un faîte qui borde une facette (pan au gradient diagonal) n’a pas de faîtière', () => {

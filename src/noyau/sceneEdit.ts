@@ -2317,8 +2317,15 @@ export function poseToitureDeCorps(
  *  portée qui en exigerait une hors plage sensée sort en masse SIGNALÉE (`validateScene`), jamais
  *  repliée en silence sur une valeur arbitraire. */
 export function fittedPitchDeg(spanTiles: number, metresPerTile: number, referencePitchDeg: number, riseMaxStoreys: number): number {
+  return Math.floor(penteDeComble(spanTiles, metresPerTile, referencePitchDeg, riseMaxStoreys) * 10) / 10;
+}
+
+/** La pente (°) EXACTE que `fittedPitchDeg` arrondit : la référence, rabattue à la borne de comble. Une pente que rien
+ *  n'écrit dans une masse (le champ commun d'un groupe de nappes, `noyau/monde/volume/toits.ts`) la prend sans arrondi,
+ *  si bien que son faîte tombe sur la borne, à la cote du faîte d'une masse que la même borne rabat. */
+export function penteDeComble(spanTiles: number, metresPerTile: number, referencePitchDeg: number, riseMaxStoreys: number): number {
   const capDeg = (Math.atan((2 * riseMaxStoreys * METRES_PER_LEVEL) / (spanTiles * metresPerTile)) * 180) / Math.PI;
-  return Math.floor(Math.min(referencePitchDeg, capDeg) * 10) / 10;
+  return Math.min(referencePitchDeg, capDeg);
 }
 
 /** Portée (m) au-delà de laquelle un corps ne se coiffe plus d'un simple PIGNON — la distance
