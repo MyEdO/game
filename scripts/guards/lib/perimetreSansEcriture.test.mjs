@@ -1,13 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { instanceDeDepot } from './depotGabarit.mjs'
 import { envelopperSpawnSync } from './perimetreSansEcriture.mjs'
-import { environnementDuControle, lancementControle, lancementsControles } from './controleEcritures.mjs'
+import { environnementDuControle, lancementControle, lancementsControles, ouvrirControleEcritures } from './controleEcritures.mjs'
 import { listerDossier } from './lister.mjs'
 import { profilsDuLancement } from '../../test/memoire.mjs'
 import { basenameExecutable, pipelinesDeJetons } from './commandeShell.mjs'
@@ -18,6 +18,65 @@ const PERIMETRE = new URL('../../test/perimetre.mjs', import.meta.url).href
 /** La paire du contrôle sur tout lancement `node --test`, hors précharge (`lancementControle`, #2586). */
 const LANCEMENTS_NODE_TEST = lancementsControles(lancementControle)
 const POLLUEUR = "import test from 'node:test'; import { writeFileSync } from 'node:fs'; test('pollution attrapée', () => { try { writeFileSync('interdit', 'x') } catch {} })\n"
+
+test('le journal de refus lit ses fichiers propres sous un TMPDIR redéfini, dans l’ordre des noms', () => avecDepot((racine) => {
+  const temporaire = mkdtempSync(join(tmpdir(), 'journal-refus-'))
+  const module = new URL('./controleEcritures.mjs', import.meta.url).href
+  const code = `
+    import { writeFileSync } from 'node:fs'
+    import { dirname } from 'node:path'
+    import { ouvrirControleEcritures } from ${JSON.stringify(module)}
+    const controle = ouvrirControleEcritures(process.cwd())
+    const refus = controle.env.WFRP_TESTS_REFUS
+    writeFileSync(refus + '.2', '"second"\\n')
+    writeFileSync(refus + '.1', '"premier"\\n')
+    console.log(JSON.stringify({ temporaire: dirname(dirname(refus)), refus: controle.fermer() }))
+  `
+  try {
+    const env = { ...process.env, TMPDIR: temporaire, TMP: temporaire, TEMP: temporaire }
+    const vu = spawnSync(process.execPath, ['--input-type=module', '--eval', code], { cwd: racine, env, encoding: 'utf8' })
+    assert.equal(vu.status, 0, vu.stderr)
+    assert.deepEqual(JSON.parse(vu.stdout), { temporaire, refus: ['premier', 'second'] })
+    assert.deepEqual(listerDossier(temporaire), [])
+  } finally { rmSync(temporaire, { recursive: true, force: true }) }
+}))
+
+test('le journal de refus rejette une entrée liée et préserve sa cible', () => avecDepot((racine) => {
+  const temoin = join(racine, 'propre.test.mjs')
+  const avant = readFileSync(temoin, 'utf8')
+  for (const [lier, nature] of [[linkSync, 'lien dur'], [symlinkSync, 'lien symbolique']]) {
+    const controle = ouvrirControleEcritures(racine)
+    const entree = controle.env.WFRP_TESTS_REFUS + '.1'
+    try {
+      try { lier(temoin, entree) }
+      catch (e) {
+        if ((lier === linkSync && e.code === 'EXDEV') || (lier === symlinkSync && process.platform === 'win32' && e.code === 'EPERM')) continue
+        throw e
+      }
+      assert.throws(() => controle.fermer(), /fichier de refus étranger/, nature)
+      assert.equal(readFileSync(temoin, 'utf8'), avant, nature)
+    } finally { rmSync(dirname(entree), { recursive: true, force: true }) }
+  }
+}))
+
+test('une autre allocation ne remplace jamais le dossier du journal à la clôture', () => avecDepot((racine) => {
+  const controle = ouvrirControleEcritures(racine)
+  const autre = ouvrirControleEcritures(racine)
+  const dossier = dirname(controle.env.WFRP_TESTS_REFUS)
+  const carre = dossier + '-identite-initiale'
+  const second = dirname(autre.env.WFRP_TESTS_REFUS)
+  try {
+    renameSync(dossier, carre)
+    renameSync(second, dossier)
+    writeFileSync(controle.env.WFRP_TESTS_REFUS + '.1', '"autre allocation"\n')
+    assert.throws(() => controle.fermer(), /dossier de refus remplacé/)
+    assert.ok(existsSync(dossier))
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+    rmSync(carre, { recursive: true, force: true })
+    rmSync(second, { recursive: true, force: true })
+  }
+}))
 
 test('transaction autonome : références hors sélection et projection pure sans mutation globale à l’import', () => {
   const args = ['--eval', '0'], options = { env: { TEMOIN: 'original' } }
