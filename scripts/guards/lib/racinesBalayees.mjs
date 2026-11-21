@@ -34,7 +34,8 @@ import { correspondGlob } from './lister.mjs'
 export const APPEL_D_ACQUISITION = /\brendreCible\b/
 
 /** Les primitives de LECTURE et de LISTAGE du système de fichiers : l'argument 0 est la racine. Une
- *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict. */
+ *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict.
+ *  Le contrat `identite` remplace les sondes qui remontent depuis le paramètre indiqué par une dépendance à son chemin. */
 const PRIMITIVES = Object.freeze(['readFileSync', 'readFile', 'readdirSync', 'readdir', 'opendirSync', 'existsSync', 'statSync', 'globSync', 'glob'])
 const GLOBS = new Set(['globSync', 'glob'])
 
@@ -61,6 +62,7 @@ const ITERATEURS = new Set(['map', 'flatMap', 'forEach', 'filter', 'some', 'ever
 /** Ce qui rend une PARTIE de son receveur : la valeur du receveur la couvre. */
 /** La raison d'une VALEUR NULLE (`null`, l'identifiant global `undefined`) : elle ne désigne aucun chemin. */
 export const VALEUR_NULLE = 'valeur nulle'
+const VALEUR_INDEFINIE = 'valeur indéfinie'
 const SOUS_ENSEMBLES = new Set(['filter', 'sort', 'toSorted', 'slice', 'find'])
 /** Ce qui rend les valeurs rendues par son rappel, élément du receveur lié à son premier paramètre. */
 const PROJECTIONS = new Set(['map', 'flatMap'])
@@ -248,9 +250,11 @@ export function lecteurDExpressions(rel, arbre) {
         const liaisons = s.importClause.namedBindings
         if (liaisons && ts.isNamedImports(liaisons))
           for (const e of liaisons.elements) poser(e.name.text, { importe: s.moduleSpecifier.text, nom: (e.propertyName ?? e.name).text })
-        const builtin = ['node:os', 'os', 'node:fs', 'fs'].includes(s.moduleSpecifier.text)
-        if (s.importClause.name) poser(s.importClause.name.text, builtin ? { importe: s.moduleSpecifier.text, nom: 'default' } : { horsNom: true })
-        if (liaisons && ts.isNamespaceImport(liaisons)) poser(liaisons.name.text, builtin ? { importe: s.moduleSpecifier.text, nom: '*' } : { horsNom: true })
+        const spec = s.moduleSpecifier.text
+        const builtin = ['node:os', 'os', 'node:fs', 'fs'].includes(spec)
+        const importDuModule = (nom) => builtin ? { importe: spec, nom } : { horsNom: true, module: { spec, nom } }
+        if (s.importClause.name) poser(s.importClause.name.text, importDuModule('default'))
+        if (liaisons && ts.isNamespaceImport(liaisons)) poser(liaisons.name.text, importDuModule('*'))
       }
     }
     blocs.set(instructions, index)
@@ -396,7 +400,10 @@ export function lecteurDExpressions(rel, arbre) {
   const lier = (id, profondeur) => {
     if (id.text === '__dirname') return { k: 'chemin', v: dossier }
     const liaison = liaisonDe(id)
-    if (!liaison) return id.text === 'String' ? { k: 'native', nom: 'String' } : non(id.text === 'undefined' ? VALEUR_NULLE : `${id.text} introuvable`)
+    if (!liaison) {
+      if (id.text === 'undefined') return non(VALEUR_INDEFINIE)
+      return id.text === 'String' ? { k: 'native', nom: 'String' } : non(`${id.text} introuvable`)
+    }
     const fiche = affectationsDe().get(liaison.n)?.get(id.text)
     const opaque = !!fiche && souillee(fiche, id)
     if (!fiche || (!opaque && !fiche.droits.length)) return valeurDeLiaison(id, liaison, profondeur)
@@ -435,17 +442,25 @@ export function lecteurDExpressions(rel, arbre) {
       if (lambdas.has(n)) return lambdas.get(n) ?? non('fonction anonyme récursive')
       lambdas.set(n, null)
       const lue = { k: 'lambda', id: `lambda:${n.pos}`, params: n.parameters.map((prm) => ({ reste: !!prm.dotDotDotToken, ...(prm.initializer ? { defaut: expr(prm.initializer, p) } : {}) })), retours: retoursLus(n, p), sites: [] }
+      const sitesDePortee = []
       const visiter = (x) => {
         if (estFonction(x) && x !== n) return
         if (ts.isCallExpression(x)) {
           const nom = nomAppele(x)
           const lecture = PRIMITIVES.includes(nom) || Object.hasOwn(PORTES_GIT, nom)
-          const cible = !lecture && ts.isIdentifier(x.expression) ? lier(x.expression, p) : null
-          if (lecture || cible) lue.sites.push({ appel: nom, args: [...x.arguments].map((a) => expr(a, p)), ...(lecture ? { lecture: nom } : { cible }) })
+          const cible = !lecture ? cibleAppele(x) : null
+          const rappel = !lecture && rappelItere(x)
+          if (rappel) sitesDePortee.push({ rappel: expr(rappel, p) })
+          else if (lecture || cible) {
+            const site = { appel: nom, args: [...x.arguments].map((a) => expr(a, p)), ...(lecture ? { lecture: nom } : { cible }) }
+            sitesDePortee.push(site)
+            if (n.parameters.length && (lecture || ts.isIdentifier(x.expression))) lue.sites.push(site)
+          } else if (appelDynamique(x)) sitesDePortee.push({ appel: nom, args: [], cible: expr(x.expression, p) })
         }
         x.forEachChild(visiter)
       }
-      if (n.body && n.parameters.length) visiter(n.body)
+      if (n.body) visiter(n.body)
+      if (sitesDePortee.length !== lue.sites.length) lue.sitesDePortee = sitesDePortee
       Object.defineProperty(lexique, lue.id, { value: lue, enumerable: true, configurable: true, writable: true })
       const reference = { k: 'lambda', id: lue.id }
       lambdas.set(n, reference)
@@ -466,19 +481,24 @@ export function lecteurDExpressions(rel, arbre) {
     if (ts.isObjectLiteralExpression(n)) {
       const v = {}
       const etales = []
+      const debutDesEtales = {}
+      const poser = (nom, valeur) => {
+        Object.defineProperty(v, nom, { value: valeur, enumerable: true, configurable: true, writable: true })
+        if (etales.length) Object.defineProperty(debutDesEtales, nom, { value: etales.length, enumerable: true, configurable: true })
+      }
       for (const prop of n.properties) {
         if (ts.isPropertyAssignment(prop) && (ts.isIdentifier(prop.name) || ts.isStringLiteralLikeNode(prop.name))) {
           if (prop.name.text === '__proto__') etales.push(non(`prototype explicite ${texteDe(prop)}`))
-          else Object.defineProperty(v, prop.name.text, { value: expr(prop.initializer, p), enumerable: true, configurable: true, writable: true })
+          else poser(prop.name.text, expr(prop.initializer, p))
         }
-        else if (ts.isShorthandPropertyAssignment(prop)) Object.defineProperty(v, prop.name.text, { value: lier(prop.name, p), enumerable: true, configurable: true, writable: true })
-        else if ((ts.isGetAccessorDeclaration(prop) || ts.isSetAccessorDeclaration(prop) || ts.isMethodDeclaration(prop)) && (ts.isIdentifier(prop.name) || ts.isStringLiteralLikeNode(prop.name))) Object.defineProperty(v, prop.name.text, { value: non(`membre opaque ${prop.name.text}`), enumerable: true, configurable: true, writable: true })
+        else if (ts.isShorthandPropertyAssignment(prop)) poser(prop.name.text, lier(prop.name, p))
+        else if ((ts.isGetAccessorDeclaration(prop) || ts.isSetAccessorDeclaration(prop) || ts.isMethodDeclaration(prop)) && (ts.isIdentifier(prop.name) || ts.isStringLiteralLikeNode(prop.name))) poser(prop.name.text, non(`membre opaque ${prop.name.text}`))
         else if (ts.isSpreadAssignment(prop)) etales.push(expr(prop.expression, p))
         else etales.push(non(`membre opaque ${texteDe(prop)}`))
       }
       const parent = parents.get(n)
       const objetDirect = (ts.isCallExpression(parent) && parent.arguments.includes(n)) || (parent?.kind === ts.SyntaxKind.Parameter && parent.initializer === n)
-      return { k: 'objet', v, objetDirect, ...(etales.length ? { etales } : {}) }
+      return { k: 'objet', v, objetDirect, ...(etales.length ? { etales, debutDesEtales } : {}) }
     }
     if (ts.isPropertyAccessExpression(n)) {
       if (estImportMeta(n.expression) && n.name.text === 'dirname') return { k: 'chemin', v: dossier }
@@ -533,6 +553,31 @@ export function lecteurDExpressions(rel, arbre) {
     return non(`forme ${ts.SyntaxKind[n.kind]}`)
   }
 
+  /** L'itérateur intrinsèque d'un tableau connu exécute son rappel synchrone sous la même portée. */
+  function rappelItere(n) {
+    const membre = n.expression
+    if (!ts.isPropertyAccessExpression(membre) || !ITERATEURS.has(membre.name.text) || !n.arguments.length) return null
+    const base = membre.expression
+    return ts.isArrayLiteralExpression(base) || (ts.isIdentifier(base) && lier(base, 0).k === 'liste') ? n.arguments[0] : null
+  }
+
+  /** Un appel indirect dont la cible n'est pas liée à une fonction connue. */
+  function appelDynamique(n) {
+    const cible = n.expression
+    if (ts.isIdentifier(cible)) return lier(cible, 0).k === 'non'
+    if (!ts.isPropertyAccessExpression(cible) && !ts.isElementAccessExpression(cible)) return false
+    let receveur = cible.expression
+    while (ts.isPropertyAccessExpression(receveur) || ts.isElementAccessExpression(receveur)) receveur = receveur.expression
+    if (!ts.isIdentifier(receveur)) {
+      if (ts.isCallExpression(receveur)) return true
+      return !ts.isArrayLiteralExpression(receveur) && !ts.isStringLiteralLikeNode(receveur) && !ts.isObjectLiteralExpression(receveur)
+    }
+    const lie = lier(receveur, 0)
+    return ['param', 'paramLambda', 'elementItere', 'appel', 'champ'].includes(lie.k) ||
+      (lie.k === 'non' && lie.raison === `${receveur.text} introuvable` &&
+        !['Array', 'Boolean', 'JSON', 'Math', 'Number', 'Object', 'Reflect', 'String'].includes(receveur.text))
+  }
+
   /** Paramètres (reste, défaut) et expressions rendues de chaque fonction de premier niveau. */
   const fonctions = Object.fromEntries([...idDe].map(([n, id]) => [id, {
     params: n.parameters.map((prm) => ({ reste: !!prm.dotDotDotToken, ...(prm.initializer ? { defaut: expr(prm.initializer) } : {}) })),
@@ -545,7 +590,36 @@ export function lecteurDExpressions(rel, arbre) {
     return null
   }
 
-  const objetDeclare = (n, vus = new Set()) => {
+  /** La fonction qui transmet entièrement l'exécution à cet appel. */
+  const transmetRappel = (n) => {
+    let expression = n
+    let parent = parents.get(expression)
+    while (parent && (ts.isAwaitExpression(parent) || ts.isParenthesizedExpression(parent))) {
+      expression = parent
+      parent = parents.get(parent)
+    }
+    if (!parent) return false
+    if (idDe.has(parent) && parent.body === expression) return true
+    if (!ts.isReturnStatement(parent) && !ts.isExpressionStatement(parent)) return false
+    const bloc = parents.get(parent)
+    const fonction = bloc && parents.get(bloc)
+    return !!fonction && idDe.has(fonction) && fonction.body === bloc && bloc.statements.length === 1
+  }
+
+  /** L'initialiseur d'un paramètre ordinaire n'est exécuté que si l'argument vaut undefined. */
+  const defautDe = (n) => {
+    for (let enfant = n, x = parents.get(n); x; enfant = x, x = parents.get(x)) {
+      if (x.kind === ts.SyntaxKind.Parameter) {
+        const fonction = parents.get(x)
+        if (idDe.has(fonction) && x.initializer === enfant && ts.isIdentifier(x.name)) return fonction.parameters.indexOf(x)
+        return undefined
+      }
+      if (aUnePorteeDeFonction(ts, x)) return undefined
+    }
+    return undefined
+  }
+
+  function objetDeclare(n, vus = new Set()) {
     if (!n || vus.has(n)) return null
     vus.add(n)
     if (ts.isObjectLiteralExpression(n)) return n
@@ -560,12 +634,76 @@ export function lecteurDExpressions(rel, arbre) {
     }
     return null
   }
-  const cibleAppele = (n) => {
+  function cibleAppele(n) {
     if (ts.isIdentifier(n.expression)) return lier(n.expression, 0)
     if (!ts.isPropertyAccessExpression(n.expression) || !objetDeclare(n.expression.expression)) return null
     return expr(n.expression)
   }
-  return { expr, lambdas: lexique, lier, nomAppele, fonctions, dansDe, ligneDe, cibleAppele }
+  const appelleUnePrimitive = (cible, operation, modules) => {
+    const membre = ts.isPropertyAccessExpression(cible)
+    const ident = membre ? cible.expression : cible
+    if (!ts.isIdentifier(ident) || (membre && cible.name.text !== operation)) return false
+    const lu = lier(ident, 0)
+    const liaison = liaisonDe(ident)
+    const fiche = liaison && affectationsDe().get(liaison.n)?.get(ident.text)
+    const importe = lu.k === 'importe' ? lu : !fiche ? liaison?.decl?.module : null
+    return importe && modules.includes(importe.spec) &&
+      (membre ? ['default', '*'].includes(importe.nom) : importe.nom === operation)
+  }
+  const appelleFs = (cible, operation) => appelleUnePrimitive(cible, operation, ['node:fs', 'fs'])
+  /** La sonde ne résume que le paramètre déclaré, sa résolution et sa remontée par dirname. */
+  const partDuParametre = (chemin, portee, index) => {
+    const parametre = portee.parameters[index].name
+    if (!ts.isIdentifier(parametre)) return false
+    const enCours = new Set()
+    let partiDuParametre = false
+    const suivre = (valeur) => {
+      if (ts.isCallExpression(valeur) && valeur.arguments.length === 1)
+        return ['resolve', 'dirname'].some((nom) => appelleUnePrimitive(valeur.expression, nom, ['node:path', 'path'])) &&
+          suivre(valeur.arguments[0])
+      if (!ts.isIdentifier(valeur)) return false
+      const liaison = liaisonDe(valeur)
+      if (!liaison) return false
+      const fiche = affectationsDe().get(liaison.n)?.get(valeur.text)
+      if (fiche?.opaque || fiche?.champs.size) return false
+      if (liaison.n === portee && liaison.parametre && valeur.text === parametre.text && !fiche?.droits.length) {
+        partiDuParametre = true
+        return true
+      }
+      const variable = liaison.decl?.variable
+      if (!variable?.initializer) return false
+      if (enCours.has(variable)) return true
+      enCours.add(variable)
+      const valide = suivre(variable.initializer) && (!fiche || fiche.droits.every(suivre))
+      enCours.delete(variable)
+      return valide
+    }
+    return suivre(chemin) && partiDuParametre
+  }
+  const rendLeChemin = (instruction, chemin) => {
+    if (!instruction) return false
+    const retour = ts.isBlock(instruction) && instruction.statements.length === 1 ? instruction.statements[0] : instruction
+    return ts.isReturnStatement(retour) && retour.expression && ts.isIdentifier(retour.expression) &&
+      retour.expression.text === chemin.text && liaisonDe(retour.expression)?.n === liaisonDe(chemin)?.n
+  }
+  const sondeIdentite = (appel, fonction, index) => {
+    let portee = parents.get(appel)
+    while (portee && !aUnePorteeDeFonction(ts, portee)) portee = parents.get(portee)
+    if (idDe.get(portee) !== fonction || appel.arguments.length !== 1) return false
+    const cible = appel.expression
+    const [chemin] = appel.arguments
+    const depuisLeParametre = () => partDuParametre(chemin, portee, index)
+    if (ts.isPropertyAccessExpression(cible) && cible.name.text === 'native' && appelleFs(cible.expression, 'realpathSync'))
+      return depuisLeParametre()
+    if (!ts.isIdentifier(chemin)) return false
+    const parent = parents.get(appel)
+    if (ts.isIfStatement(parent) && parent.expression === appel && appelleFs(cible, 'existsSync'))
+      return rendLeChemin(parent.thenStatement, chemin) && depuisLeParametre()
+    if (!ts.isExpressionStatement(parent) || !appelleFs(cible, 'statSync')) return false
+    const bloc = parents.get(parent)
+    return ts.isBlock(bloc) && rendLeChemin(bloc.statements[bloc.statements.indexOf(parent) + 1], chemin) && depuisLeParametre()
+  }
+  return { expr, lambdas: lexique, lier, nomAppele, fonctions, dansDe, defautDe, ligneDe, cibleAppele, sondeIdentite, appelleFs, appelDynamique, transmetRappel, rappelItere }
 }
 
 /**
@@ -578,36 +716,66 @@ export function lecteurDExpressions(rel, arbre) {
  */
 export function lectureDeModule(rel, arbre) {
   const ts = typescript()
-  const { expr, lambdas, lier, nomAppele, fonctions, dansDe, ligneDe, cibleAppele } = lecteurDExpressions(rel, arbre)
+  const { expr, lambdas, lier, nomAppele, fonctions, dansDe, defautDe, ligneDe, cibleAppele, sondeIdentite, appelleFs, appelDynamique, transmetRappel, rappelItere } = lecteurDExpressions(rel, arbre)
   const sites = []
+  const argumentsDIdentite = new Map()
+  const argumentsDeLecture = new Map()
+  const identitesLues = new Set()
   const estMembreCallable = (cible) => {
     if (cible?.k !== 'champ') return false
     const de = cible.de.k === 'param' ? (Object.hasOwn(fonctions, cible.de.fn) ? fonctions[cible.de.fn]?.params[cible.de.index]?.defaut : null) : cible.de
     return de?.k === 'objet' && Object.hasOwn(de.v, cible.nom) && ['fn', 'lambda'].includes(de.v[cible.nom]?.k)
   }
-  const dansUnRappel = (n) => {
+  const rappelsDuSite = (n) => {
+    const captures = []
     for (let a = n.parent; a; a = a.parent) {
       if (!ts.isArrowFunction(a) && !ts.isFunctionExpression(a)) continue
-      if (!a.parameters.length) return false
       const appel = a.parent
-      if (!ts.isCallExpression(appel) || !appel.arguments.includes(a) || !ts.isIdentifier(appel.expression)) return false
+      if (!ts.isCallExpression(appel) || !appel.arguments.includes(a)) break
+      if (rappelItere(appel) === a) continue
+      if (!ts.isIdentifier(appel.expression)) break
       const cible = lier(appel.expression, 0)
-      return cible.k === 'fn' || (cible.k === 'importe' && cible.spec.startsWith('.'))
+      if (cible.k !== 'fn' && (cible.k !== 'importe' || !cible.spec.startsWith('.'))) break
+      if (a.parameters.length) return captures.length ? { captures } : { dansRappel: true }
+      captures.push({ cible, index: appel.arguments.indexOf(a) })
     }
-    return false
+    return { captures }
   }
+
   const visiter = (n) => {
-    if (ts.isCallExpression(n) && !dansUnRappel(n)) {
-      const nom = nomAppele(n)
-      const lecture = PRIMITIVES.includes(nom) || Object.hasOwn(PORTES_GIT, nom)
-      const cible = !lecture ? cibleAppele(n) : null
-      if (lecture || (cible && (cible.k === 'fn' || cible.k === 'param' || estMembreCallable(cible) || (cible.k === 'importe' && !cible.spec.startsWith('node:')))))
-        sites.push({ appel: nom, ligne: ligneDe(n), dans: dansDe(n), args: [...n.arguments].map((a) => expr(a)), ...(lecture ? { lecture: nom } : { cible }) })
+    if (ts.isCallExpression(n)) {
+      const { dansRappel, captures } = rappelsDuSite(n)
+      if (!dansRappel) {
+        const dans = dansDe(n)
+        const argument = argumentsDIdentite.get(dans)
+        if (argument !== undefined && sondeIdentite(n, dans, argument.index)) {
+          if (!identitesLues.has(dans)) {
+            identitesLues.add(dans)
+            sites.push({ appel: 'sonde d’identité', ligne: ligneDe(n), dans, lecture: 'identite', args: [argument] })
+          }
+        } else {
+          const nom = nomAppele(n)
+          const lecture = PRIMITIVES.includes(nom) || Object.hasOwn(PORTES_GIT, nom)
+          const cible = !lecture ? cibleAppele(n) : null
+          if (lecture || (cible && (cible.k === 'fn' || cible.k === 'param' || estMembreCallable(cible) || (cible.k === 'importe' && !cible.spec.startsWith('node:'))))) {
+            const args = [...n.arguments].map((a) => expr(a))
+            const chemin = args[0]
+            const lectureExacte = argumentsDeLecture.has(dans) && nom === 'readFileSync' && appelleFs(n.expression, nom) &&
+              chemin?.k === 'param' && chemin.fn === dans && chemin.index === argumentsDeLecture.get(dans)
+            const defaut = defautDe(n)
+            const site = { appel: nom, ligne: ligneDe(n), dans, args, ...(lecture ? { lecture: lectureExacte ? 'fichier' : nom } : { cible }) }
+            if (defaut !== undefined) site.defaut = defaut
+            if (captures.length) site.captures = captures
+            if (dans && !lecture && transmetRappel(n)) site.transmetRappel = true
+            sites.push(site)
+          } else if (dans && !captures.length && !fonctions[dans].rappelOpaque && appelDynamique(n)) {
+            fonctions[dans].rappelOpaque = true
+          }
+        }
+      }
     }
     n.forEachChild(visiter)
   }
-  visiter(arbre)
-
   const exportsLus = new Map()
   const etoiles = []
   for (const s of arbre.statements) {
@@ -634,6 +802,11 @@ export function lectureDeModule(rel, arbre) {
     const type = e.v.type?.v
     const argument = e.v.argument?.k === 'scalaire' ? Number(e.v.argument.v) : null
     const param = argument === null ? null : { k: 'param', fn, index: argument, nom: 'provenance' }
+    if (type === 'portee' && e.v.nom?.k === 'lit' && e.v.repli?.k === 'scalaire') {
+      const index = Number(e.v.repli.v)
+      if (Number.isSafeInteger(index) && index >= 0 && index < fonctions[fn].params.length)
+        return { k: 'portee', nom: e.v.nom.v, repli: { k: 'param', fn, index, nom: 'repli' } }
+    }
     if (type === 'argument' && param) {
       const champs = e.v.champs?.k === 'liste' ? e.v.champs.v : []
       if (champs.some((x) => x.k !== 'lit')) return null
@@ -664,11 +837,29 @@ export function lectureDeModule(rel, arbre) {
   }
   if (declaration?.k === 'liste') for (const descriptor of declaration.v) {
     if (descriptor.k !== 'objet') continue
-    const { fonction, namespace, champ, lectures, retour, acquisition } = descriptor.v
+    const { fonction, namespace, champ, lectures, retour, acquisition, identite, portee } = descriptor.v
     if (fonction?.k !== 'fn' || !Object.hasOwn(fonctions, fonction.id)) continue
     if (namespace?.k === 'lit' && typeof namespace.v === 'string' && namespace.v && !namespace.v.split('/').includes('..'))
       fonctions[fonction.id].contrat = { namespace: namespace.v, ...(champ?.k === 'lit' ? { champ: champ.v } : {}) }
     if (lectures?.k === 'lit' && lectures.v === 'corpus') fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, lectures: 'corpus' }
+    const arite = fonctions[fonction.id].params.length
+    const indiceDe = (e) => {
+      const i = e?.k === 'scalaire' ? Number(e.v) : -1
+      return Number.isSafeInteger(i) && i >= 0 && i < arite ? i : -1
+    }
+    const chemin = indiceDe(lectures?.v?.chemin)
+    if (chemin >= 0) argumentsDeLecture.set(fonction.id, chemin)
+    if (portee?.k === 'objet' && portee.v.nom?.k === 'lit') {
+      const valeur = indiceDe(portee.v.valeur)
+      const rappel = indiceDe(portee.v.rappel)
+      if (valeur >= 0 && rappel >= 0 && valeur !== rappel)
+        fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, portee: { nom: portee.v.nom.v, valeur, rappel } }
+    }
+    if (identite?.k === 'scalaire') {
+      const index = Number(identite.v)
+      if (Number.isSafeInteger(index) && index >= 0 && index < fonctions[fonction.id].params.length)
+        argumentsDIdentite.set(fonction.id, { k: 'param', fn: fonction.id, index, nom: 'identite' })
+    }
     if (acquisition?.k === 'objet' && acquisition.v.argument?.k === 'scalaire' && acquisition.v.registre) {
       const argument = Number(acquisition.v.argument.v)
       if (Number.isSafeInteger(argument) && argument >= 0 && argument < fonctions[fonction.id].params.length)
@@ -677,6 +868,8 @@ export function lectureDeModule(rel, arbre) {
     const resume = resumeDeRetour(retour, `${rel}#${fonction.id}:retour`, fonction.id)
     if (resume) fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, retour: resume }
   }
+  visiter(arbre)
+
   const retenues = {}
   const vus = new Set()
   const retenir = (x) => {
@@ -839,7 +1032,7 @@ export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
 }
 
 /** @typedef {Record<string, unknown> & { k: string }} Expr */
-/** @typedef {{ chemin: string, sous?: string } | { hors: true } | { non: string }} Valeur */
+/** @typedef {{ chemin: string, sous?: string } | { identite: string } | { hors: true } | { non: string }} Valeur */
 /** @typedef {ReturnType<typeof lectureDeModule>} Lecture */
 
 /** @typedef {Readonly<Record<string, never>>} LectureIllisible */
@@ -1125,8 +1318,10 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   const cible = (f, spec) => { noter(requeteDe('cible', f, spec)); return observerReponse('cible', [f, spec], cibleDe(f, spec)) }
   const peutLire = (f) => { noter(requeteDe('peutLire', f)); return observerReponse('peutLire', [f], peutLireDe(f)) }
   const pile = []
+  const porteesDAppel = []
   const libres = new Map()
   const lies = new Map()
+  const libresDePortee = new Map()
   /** Les relais en cours d'évaluation (`estRelais`). */
   const enCours = new Set()
   /** Les PORTÉES de mémoïsation ouvertes (`memoisable`) : `hauteur` = la pile à l'ouverture ; `dependante` =
@@ -1168,7 +1363,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       const vs = valeurs(e, { ...ctx, preuveBooleenne: true })
       return vs.length && vs.every((v) => 'booleen' in v && v.booleen === vs[0].booleen) ? vs[0].booleen : null
     }
-    if (ferme) return calculer()
+    if (ferme || porteesDAppel.length) return calculer()
     const entree = { e, ctx, pile: [...pile] }
     const cle = cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, 'cellules')
     if (cle === null) return calculer()
@@ -1323,9 +1518,37 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     : e.k === 'elementItere' ? uniques(elementsDe(e.de, ctx).flatMap((x) => chaineDe(x, ctx)))
     : valeurs(e, ctx).map((v) => 'texte' in v || 'chemin' in v || 'espace' in v || 'fragment' in v || 'couvertureCorpusEntier' in v ? v
       : 'booleen' in v ? { texte: String(v.booleen) } : 'scalaire' in v ? { texte: v.scalaire }
-        : 'non' in v ? v.non === VALEUR_NULLE ? { non: 'conversion String de valeur nulle' } : v
+        : 'non' in v ? [VALEUR_NULLE, VALEUR_INDEFINIE].includes(v.non) ? { non: 'conversion String de valeur nulle' } : v
           : 'relais' in v ? v : { non: 'conversion String non scalaire' })
   })
+
+  const estIndefini = (v) => 'absent' in v || ('non' in v && v.non === VALEUR_INDEFINIE)
+  const estNul = (v) => 'non' in v && (v.non === VALEUR_NULLE || v.non === VALEUR_INDEFINIE)
+
+  /** Le dernier étalement qui porte le champ l'emporte. */
+  const valeursDuChamp = (o, e, ctx) => {
+    if (ctx.preuveBooleenne && 'objet' in o && !o.preuveDirecte) return [{ non: `option ${e.texte} indécidable` }]
+    const defaut = () => e.defaut ? valeurs(e.defaut, ctx) : [{ absent: true }]
+    if ('absent' in o) return defaut()
+    if (!('objet' in o)) return 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }]
+
+    const propre = Object.hasOwn(o.objet, e.nom)
+    const debut = propre && o.debutDesEtales && Object.hasOwn(o.debutDesEtales, e.nom) ? o.debutDesEtales[e.nom] : 0
+    const nombre = o.etales?.length ?? 0
+    const champInitial = () => propre ? valeurs(o.objet[e.nom], o.ctx)
+      : o.ferme || o.partiel ? [{ non: `propriété ${e.texte}` }] : defaut()
+    if (debut === nombre) return champInitial()
+
+    const resultats = []
+    const champ = { k: 'champ', nom: e.nom, texte: e.texte }
+    for (let i = nombre - 1; i >= debut; i--) {
+      const etale = valeurs(o.etales[i], o.ctx).flatMap((v) => estNul(v) ? [{ absent: true }] : valeursDuChamp(v, champ, o.ctx))
+      resultats.push(...etale.filter((v) => !('absent' in v)))
+      if (etale.length && !etale.some((v) => 'absent' in v || ('non' in v && !estNul(v)) || 'relais' in v || 'hors' in v))
+        return uniques(resultats)
+    }
+    return uniques([...resultats, ...champInitial()])
+  }
 
   /** Évalue `e` dans le module `ctx.f`, paramètres de `ctx.env.fn` liés à `ctx.env.args` (null : relais). */
   function valeurs(e, ctx) {
@@ -1352,6 +1575,16 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       case 'reste': return ctx.env?.args?.slice(e.index).flat() ?? [{ non: 'arguments restants inconnus' }]
       case 'repertoire': return valeurs(repertoireDe(e, ctx), ctx)
       case 'aplatir': return uniques(aplatirDe(e, ctx).flatMap((de) => valeurs(de, ctx)))
+      case 'portee': {
+        const courant = porteesDAppel.findLast((p) => p.libre || p.nom === e.nom)
+        if (courant?.libre) return [{ relais: `portée ${e.nom}` }]
+        const repli = () => valeurs(e.repli, ctx)
+        return courant ? courant.valeurs.flatMap((v) => {
+          if ('absent' in v || ('non' in v && [VALEUR_NULLE, VALEUR_INDEFINIE].includes(v.non)) || ('texte' in v && !v.texte) ||
+            ('booleen' in v && !v.booleen) || ('scalaire' in v && Number(v.scalaire) === 0)) return repli()
+          return [v]
+        }) : repli()
+      }
       case 'poignee': return [{ poignee: argumentDe(e.de, ctx), options: ctx.env?.args?.slice(1) ?? [], origine: e.origine }]
       case 'racineGit': return valeurs(e.de, ctx).map((v) => couverture(e.origine, `racine contenant le dépôt : ${texteDeCle(cleDe(v))}`))
       case 'imageGit': {
@@ -1388,7 +1621,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
         const definition = lexique && Object.hasOwn(lexique, e.id) ? lexique[e.id] : null
         return definition ? [{ lambda: definition, ctx }] : [{ non: `fonction anonyme ${e.id} absente` }]
       }
-      case 'objet': return [{ objet: e.v, ctx, preuveDirecte: e.objetDirect === true && !e.etales?.length, ...(e.etales ? { etales: e.etales } : {}), ...(e.ferme ? { ferme: true } : {}), ...(e.partiel ? { partiel: true } : {}) }]
+      case 'objet': return [{ objet: e.v, ctx, preuveDirecte: e.objetDirect === true && !e.etales?.length, ...(e.etales ? { etales: e.etales, debutDesEtales: e.debutDesEtales } : {}), ...(e.ferme ? { ferme: true } : {}), ...(e.partiel ? { partiel: true } : {}) }]
       case 'paramLambda': {
         let env = ctx.env
         while (env && env.fn !== e.fn) env = env.parent
@@ -1409,7 +1642,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
         if (decl?.reste) return ctx.env.args.slice(e.index).flat()
         const defaut = () => decl?.defaut ? valeurs(decl.defaut, ctx) : [{ absent: true }]
         const arg = ctx.env.args[e.index]
-        return uniques((arg ? arg.flatMap((v) => 'absent' in v ? defaut() : [v]) : defaut()).map((v) => e.mute && 'objet' in v ? { ...v, preuveDirecte: false } : v))
+        return uniques((arg ? arg.flatMap((v) => estIndefini(v) && decl?.defaut ? defaut() : [v]) : defaut()).map((v) => e.mute && 'objet' in v ? { ...v, preuveDirecte: false } : v))
       }
       case 'indice': {
         const selectionner = paresseuse((de, contexte) => formeLiee(de, contexte) ? selectionner(formeLiee(de, contexte).e, formeLiee(de, contexte).ctx)
@@ -1422,13 +1655,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
           : [{ non: `déstructuration de tableau ${e.texte}` }])
         return selectionner(e.de, ctx)
       }
-      case 'champ': return valeurs(e.de, ctx).flatMap((o) => ctx.preuveBooleenne && 'objet' in o && !o.preuveDirecte ? [{ non: `option ${e.texte} indécidable` }]
-        : 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
-        : 'objet' in o && o.etales ? uniques(o.etales.flatMap((x) => valeurs({ k: 'champ', de: x, nom: e.nom, texte: e.texte }, o.ctx))
-          .flatMap((v) => 'absent' in v && e.defaut ? valeurs(e.defaut, ctx) : [v]))
-        : 'objet' in o && (o.ferme || o.partiel) ? [{ non: `propriété ${e.texte}` }]
-        : 'objet' in o || 'absent' in o ? (e.defaut ? valeurs(e.defaut, ctx) : [{ absent: true }])
-        : 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }])
+      case 'champ': return valeurs(e.de, ctx).flatMap((o) => valeursDuChamp(o, e, ctx))
       case 'appel': {
         const args = e.args.map((a) => argumentDe(a, ctx))
         return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c && `${c.fn.f}#${c.fn.id}` === DOSSIER_GIT
@@ -1476,13 +1703,17 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     ? uniques(c.lambda.retours.flatMap((x) => transformer(x, contexteDeLambda(c, args)))) : [{ non: `appel ${texte} sans retour` }])
   const lecturesDeLambda = (c, args) => sousPile(`lambda ${c.ctx.f}#${c.lambda.id}`, args, c.lambda.id, () => uniques(c.lambda.sites.flatMap((site) => lecturesDuSite(c.ctx.f, site, contexteDeLambda(c, args).env))))
 
+  const coupeNommee = (non) => [{ non }]
+
   /** Borne la pile d'appels de la fonction `fonction` (`<nature> <module>#<nom>`) aux arguments `args`. Un appel
    *  déjà en cours AUX MÊMES arguments, une `REENTREES`+1-ième ré-entrée à d'autres arguments et la profondeur
    *  rendent un `non` nommé. Chacun dépend de la pile qui l'a vu (`dependre`). Un cycle se nomme par ses fonctions, triées : il porte le même nom quel
    *  que soit l'appel par lequel on y entre. */
-  const sousPile = (fonction, args, nom, faire) => {
+  const sousPile = (fonction, args, nom, faire, surCoupe = coupeNommee) => {
     let cle = ferme ? undefined : composerCle(fonction, '(', cleDesArgs(args), ')')
+    const portee = porteesDAppel.at(-1)
     const enCoursAuxMemes = pile.findIndex((p) => {
+      if (p.portee !== portee) return false
       if (!ferme) return p.cle === cle
       if (p.fonction !== fonction) return false
       cle ??= composerCle(fonction, '(', cleDesArgs(args), ')')
@@ -1491,22 +1722,22 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     })
     const cycle = (depuis) => {
       dependre(depuis)
-      return [{ non: `cycle d'appels ${[...new Set(pile.slice(depuis).map((p) => p.nom))].sort().join(', ')}` }]
+      return surCoupe(`cycle d'appels ${[...new Set(pile.slice(depuis).map((p) => p.nom))].sort().join(', ')}`)
     }
     if (enCoursAuxMemes >= 0) return cycle(enCoursAuxMemes)
     if (pile.filter((p) => p.fonction === fonction).length > REENTREES) return cycle(pile.findIndex((p) => p.fonction === fonction))
     if (pile.length >= PROFONDEUR_D_APPELS) {
       dependre(0)
-      return [{ non: `profondeur d'appels > ${PROFONDEUR_D_APPELS} (${nom})` }]
+      return surCoupe(`profondeur d'appels > ${PROFONDEUR_D_APPELS} (${nom})`)
     }
-    pile.push(ferme ? { fonction, cle, nom, args } : { fonction, cle, nom })
+    pile.push(ferme ? { fonction, cle, nom, args, portee } : { fonction, cle, nom, portee })
     try { return faire() } finally { pile.pop() }
   }
 
   const retoursRacines = new Map()
   const retoursSousCadre = new WeakMap()
   const retour = (fn, args, transformer = valeurs) => sousPile(`retour ${fn.f}#${fn.id}`, args, fn.id, () => {
-    if (!ferme) return calculerRetour(fn, args, transformer)
+    if (!ferme || porteesDAppel.length) return calculerRetour(fn, args, transformer)
     const parent = pile.at(-2)
     let magasin = retoursRacines
     if (parent) {
@@ -1544,9 +1775,10 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
 
   /** Les racines lues par la fonction `fn`, paramètres liés à `args` ; `args` null : marqueurs `relais`. */
   const lecturesDe = (fn, args) => {
-    const memo = args ? lies : libres
-    const cle = composerCle(`${fn.f}#${fn.id}`, cleDesArgs(args))
-    const deja = memo.get(cle)
+    const portee = porteesDAppel.at(-1)
+    const memo = !portee ? (args ? lies : libres) : portee.libre ? libresDePortee : null
+    const cle = memo && composerCle(`${fn.f}#${fn.id}`, cleDesArgs(args))
+    const deja = memo?.get(cle)
     if (deja) {
       fusionner(deja.requetes)
       return deja.rendu
@@ -1554,16 +1786,21 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     const { resultat: { resultat: rendu, stable }, requetes } = tracer(() => memoisable(() => sousPile(`lectures ${fn.f}#${fn.id}`, args, fn.id, () => {
       const lu = lecture(fn.f)
       if (!lu) return [{ non: `module ${fn.f} illisible` }]
-      if (Object.hasOwn(lu.fonctions, fn.id) && lu.fonctions[fn.id]?.contrat?.lectures === 'corpus') return [couverture(`${fn.f}#${fn.id}`, 'résumé de lecture déclaré à la source')]
-      return uniques(lu.sites.filter((s) => s.dans === fn.id).flatMap((s) => lecturesDuSite(fn.f, s, { fn: fn.id, args })))
-    })))
-    if (stable) memo.set(cle, { rendu, requetes })
+      const contrat = Object.hasOwn(lu.fonctions, fn.id) ? lu.fonctions[fn.id]?.contrat : null
+      if (contrat?.lectures === 'corpus') return [couverture(`${fn.f}#${fn.id}`, 'résumé de lecture déclaré à la source')]
+      const sites = lu.sites.filter((s) => s.dans === fn.id).flatMap((s) => lecturesDuSite(fn.f, s, { fn: fn.id, args }))
+      return uniques(contrat?.portee ? [...sites, ...lecturesSousPortee(fn, args, contrat.portee)] : sites)
+    }, (raison) => args && !portee && atteintLecture(fn, 'fichier')
+      ? [couverture(`${fn.f}#${fn.id}`, raison)] : coupeNommee(raison))))
+    if (stable && memo) memo.set(cle, { rendu, requetes })
     return rendu
   }
 
   // #2001
-  const atteintLecture = (fn) => {
-    const cle = `${fn.f}#${fn.id}`
+  const atteintLecture = (fn, mode = 'lecture') => {
+    const modeRappel = mode === 'opaque' || mode === 'parametre'
+    const prefixe = mode === 'lecture' ? '' : `${mode}:`
+    const cle = prefixe + `${fn.f}#${fn.id}`
     const deja = atteintes.get(cle)
     if (deja) {
       fusionner(deja.requetes)
@@ -1573,7 +1810,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       const sommets = new Map()
       const aLire = []
       const sommetDe = (cible) => {
-        const identite = `${cible.f}#${cible.id}`
+        const identite = prefixe + `${cible.f}#${cible.id}`
         if (!sommets.has(identite)) {
           sommets.set(identite, { fn: cible, parents: new Set(), oui: false })
           aLire.push(identite)
@@ -1586,12 +1823,28 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
         const sommet = sommets.get(identite)
         if (!peutLire(sommet.fn.f)) continue
         const lu = lecture(sommet.fn.f)
-        if (!lu || !Object.hasOwn(lu.fonctions, sommet.fn.id) || !lu.fonctions[sommet.fn.id]) { sommet.oui = true; continue }
-        if (lu.fonctions[sommet.fn.id].contrat?.lectures === 'corpus') { sommet.oui = true; continue }
+        if (!lu || !Object.hasOwn(lu.fonctions, sommet.fn.id) || !lu.fonctions[sommet.fn.id]) {
+          sommet.oui = mode !== 'fichier'
+          continue
+        }
+        const declaration = lu.fonctions[sommet.fn.id]
+        const contrat = declaration.contrat
+        const terminal = mode === 'opaque' ? declaration.rappelOpaque && !contrat?.portee
+          : mode === 'lecture' && (contrat?.lectures === 'corpus' || contrat?.portee)
+        if (terminal) {
+          sommet.oui = true
+          continue
+        }
         for (const site of lu.sites.filter((s) => s.dans === sommet.fn.id)) {
-          if (site.lecture) { sommet.oui = true; continue }
+          if (mode === 'parametre' && site.cible?.k === 'param') { sommet.oui = true; continue }
+          if (modeRappel && !site.transmetRappel) continue
+          if (site.lecture) {
+            if (mode !== 'fichier' || site.lecture === 'fichier') sommet.oui = true
+            continue
+          }
           const cibles = valeurs(site.cible, { f: sommet.fn.f, env: null })
-          if (site.cible.k !== 'param' && (!cibles.length || cibles.some((c) => !('fn' in c)))) sommet.oui = true
+          if ((mode === 'lecture' || mode === 'opaque') && site.cible.k !== 'param' && (!cibles.length || cibles.some((c) => !('fn' in c))))
+            sommet.oui = true
           for (const cible of cibles.filter((c) => 'fn' in c)) sommets.get(sommetDe(cible.fn)).parents.add(identite)
         }
       }
@@ -1617,7 +1870,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   const estRelais = (fn) => {
     const cle = `${fn.f}#${fn.id}`
     const fonctions = lecture(fn.f)?.fonctions
-    if (fonctions && Object.hasOwn(fonctions, fn.id) && fonctions[fn.id]?.contrat?.lectures === 'corpus') return true
+    if (fonctions && Object.hasOwn(fonctions, fn.id) && (fonctions[fn.id]?.contrat?.lectures === 'corpus' || fonctions[fn.id]?.contrat?.portee)) return true
     if (!atteintLecture(fn)) return false
     const deja = relais.get(cle)
     if (deja) {
@@ -1626,20 +1879,87 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     }
     if (enCours.has(cle)) return true
     enCours.add(cle)
+    porteesDAppel.push({ libre: true })
     try {
       const { resultat: oui, requetes } = tracer(() => lecturesDe(fn, null).some((v) => 'relais' in v || ('non' in v && COUPE.test(v.non))))
       relais.set(cle, { oui, requetes })
       return oui
-    } finally { enCours.delete(cle) }
+    } finally {
+      porteesDAppel.pop()
+      enCours.delete(cle)
+    }
   }
+
+  const declarationDe = (fn) => {
+    const fonctions = lecture(fn.f)?.fonctions
+    return fonctions && Object.hasOwn(fonctions, fn.id) ? fonctions[fn.id] : null
+  }
+
+  const rappelNommeOpaque = (fn) => atteintLecture(fn, 'opaque')
+
+  const appelOpaque = (f, site, env) => {
+    if (site.lecture) return false
+    const cibles = valeurs(site.cible, { f, env })
+    return !cibles.length || cibles.some((c) => 'fn' in c ? rappelNommeOpaque(c.fn) : !('lambda' in c || 'native' in c))
+  }
+
+  const lecturesDuRappel = (callbacks, opaque) => {
+    if (!callbacks.length) return [opaque]
+    return callbacks.flatMap((c) => {
+      if ('relais' in c) return [c]
+      if ('fn' in c) {
+        const sites = lecturesDe(c.fn, [])
+        return rappelNommeOpaque(c.fn) ? [...sites, opaque] : sites
+      }
+      if (!('lambda' in c)) return [opaque]
+      const env = contexteDeLambda(c, []).env
+      const f = c.ctx.f
+      return sousPile(`rappel ${f}#${c.lambda.id}`, [], c.lambda.id, () =>
+        (c.lambda.sitesDePortee ?? c.lambda.sites).flatMap((site) => {
+          if (site.rappel) return lecturesDuRappel(valeurs(site.rappel, { f, env }), opaque)
+          const sites = lecturesDuSite(f, site, env)
+          return appelOpaque(f, site, env) ? [...sites, opaque] : sites
+        }))
+    })
+  }
+
+  /** Les lectures du rappel portent la valeur dynamique fournie par le poseur. */
+  const lecturesSousPortee = (fn, args, { nom, valeur, rappel }) => {
+    const origine = `${fn.f}#${fn.id}`
+    if (!args) return [{ relais: origine }]
+    const opaque = couverture(origine, 'rappel de portée indéterminé')
+    const callbacks = args[rappel] ?? []
+    porteesDAppel.push({ nom, valeurs: args[valeur] ?? [{ absent: true }], opaque })
+    try {
+      const lues = lecturesDuRappel(callbacks, opaque)
+      return uniques(lues.map((v) => 'non' in v && COUPE.test(v.non) ? couverture(origine, v.non) : v))
+    } finally {
+      porteesDAppel.pop()
+    }
+  }
+
+  const defautPossible = (arg) => !arg || arg.some((v) => 'absent' in v || 'relais' in v ||
+    ('non' in v && v.non !== VALEUR_NULLE))
 
   /** Les racines d'un site : la lecture elle-même, ou celles du relais appelé avec ses arguments. */
   function lecturesDuSite(f, site, env) {
     const fonctions = env && lecture(f)?.fonctions
     if (fonctions && Object.hasOwn(fonctions, env.fn) && fonctions[env.fn]?.contrat?.lectures === 'corpus') return [couverture(`${f}#${env.fn}`, 'résumé de lecture déclaré à la source')]
     const ctx = { f, env }
+    if (site.defaut !== undefined && !defautPossible(env?.args?.[site.defaut])) return []
+    if (site.captures?.some(({ cible, index }) => {
+      const cibles = valeurs(cible, ctx)
+      return cibles.length && cibles.every((c) => 'fn' in c && declarationDe(c.fn)?.contrat?.portee?.rappel === index)
+    })) return []
     const arg = (i) => site.args[i] ? valeurs(site.args[i], ctx) : [{ chemin: '' }]
     if (site.lecture) {
+      // L’identité suit le chemin lexical initial. Une valeur physique opaque reste couverte si une lecture la consomme.
+      if (site.lecture === 'identite' || site.lecture === 'fichier') return arg(0).flatMap((v) => {
+        if ('relais' in v || (site.lecture === 'fichier' && 'couvertureCorpusEntier' in v)) return [v]
+        const chemin = 'texte' in v ? ancrer(v.texte) : v
+        if ('chemin' in chemin && chemin.chemin) return [{ identite: chemin.chemin }]
+        return site.lecture === 'fichier' ? [couverture(`${f}#${env?.fn ?? site.appel}`, chemin.non ?? 'fichier indéterminé')] : []
+      })
       const porte = PORTES_GIT[site.lecture]
       if (porte) {
         const chemins = porte.chemins === 'reste'
@@ -1656,13 +1976,21 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       return finir(cwd.flatMap((c) => arg(0).map((m) => 'texte' in m ? joindre(c, { texte: prefixeDeMotif(m.texte) }) : m)))
     }
     const cibles = valeurs(site.cible, ctx)
-    if (site.cible.k === 'param' && !cibles.some((c) => 'lambda' in c)) return []
-    const relaisNomme = cibles.some((c) => 'fn' in c && estRelais(c.fn))
-    if (!relaisNomme && !cibles.some((c) => 'lambda' in c || 'relais' in c) && !site.args.some((a) => ['lambda', 'param', 'paramLambda'].includes(a.k))) return []
+    const portee = porteesDAppel.findLast((p) => !p.libre)
+    const appelDeParametre = site.cible.k === 'param'
+    const opaques = portee && appelDeParametre && (!cibles.length || cibles.some((c) => 'non' in c && !estNul(c)))
+      ? [portee.opaque] : []
+    if (appelDeParametre && !cibles.some((c) => 'lambda' in c || (portee && 'fn' in c))) return opaques
+    const relaisNomme = (fn) => estRelais(fn) || (portee && atteintLecture(fn, 'parametre'))
+    if (!cibles.some((c) => 'lambda' in c || 'relais' in c || ('fn' in c && relaisNomme(c.fn))) &&
+      !site.args.some((a) => ['lambda', 'param', 'paramLambda'].includes(a.k) || (portee && ['fn', 'importe'].includes(a.k)))) return opaques
     const args = site.args.map((a) => argumentDe(a, ctx))
-    const callbackLecteur = args.flat().some((c) => 'lambda' in c && c.lambda.sites.some((s) => s.lecture || valeurs(s.cible, c.ctx).some((v) => 'fn' in v && atteintLecture(v.fn))))
-    return cibles.flatMap((c) => 'fn' in c ? (estRelais(c.fn) || callbackLecteur ? finir(lecturesDe(c.fn, args)) : [])
+    const callbackLecteur = args.flat().some((c) => 'lambda' in c
+      ? c.lambda.sites.some((s) => s.lecture || valeurs(s.cible, c.ctx).some((v) => 'fn' in v && atteintLecture(v.fn)))
+      : portee && 'fn' in c && atteintLecture(c.fn))
+    const lectures = cibles.flatMap((c) => 'fn' in c ? (relaisNomme(c.fn) || callbackLecteur ? finir(lecturesDe(c.fn, args)) : [])
       : 'lambda' in c ? finir(lecturesDeLambda(c, args)) : 'relais' in c ? [c] : [])
+    return opaques.length ? [...opaques, ...lectures] : lectures
   }
 
   const finir = (vals) => uniques(vals).filter((v) => !('absent' in v))
@@ -1806,7 +2134,8 @@ const couverture = (origine, raison) => ({ couvertureCorpusEntier: { origine, ra
 
 const racineFinale = (v) => 'poignee' in v ? { non: 'poignée de dépôt non chemin' } : 'couvertureCorpusEntier' in v
   ? { chemin: '', sous: `couverture corpus entier : ${v.couvertureCorpusEntier.origine} — ${v.couvertureCorpusEntier.raison}` }
-  : 'espace' in v ? v.cheminExterne && v.cheminExterne !== '.' ? racineFinale(couverture(v.espace, 'descente dans namespace susceptible de lien')) : { hors: true }
+  : 'non' in v && v.non === VALEUR_INDEFINIE ? { non: VALEUR_NULLE }
+    : 'espace' in v ? v.cheminExterne && v.cheminExterne !== '.' ? racineFinale(couverture(v.espace, 'descente dans namespace susceptible de lien')) : { hors: true }
     : 'fragment' in v ? { non: 'fragment de répertoire sans sa base' }
       : 'texte' in v ? ancrer(v.texte)
         : ['fn', 'objet', 'lambda', 'booleen', 'scalaire', 'native'].some((k) => k in v) ? { non: 'racine non chemin' } : v

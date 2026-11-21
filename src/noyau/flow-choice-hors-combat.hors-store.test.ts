@@ -27,6 +27,7 @@ describe('choix d’un Sort lancé hors combat', () => {
   for (const sort of sortsAChoixDirect) {
     it(`${sort.id} : le lanceur tranche, chaque étape une seule fois`, () => {
       const [w, s] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat');
+      w.spells = [sort.id];
       const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
       banc.getState().incanterLeSort(w.id, sort.id, s.id);
       banc.getState().jetLancer('incantation');

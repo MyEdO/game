@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
-import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
+import { weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
 import { buildWeapon, laisserTomber, piecesPorteesA, recomputeLoadout, weaponFromItem } from '../../engine/items';
 import { harnacher } from '../mount';
 import { blessingsOf, careerLabelFor, findCareerById, findCreatureById, findSpellById, miraclesOf, names, talentConcrete, type CreatureData } from '../../data';
 import { porteeDuCombattant } from '../apparence/combattant';
 import { pettySpellQuotaFor } from '../../engine/creation';
-import { CHAR_KEYS, LOCALISATIONS_DE_COUP } from '../../engine/types';
+import { CHAR_KEYS, LOCALISATIONS_DE_COUP, type Combatant } from '../../engine/types';
 import { armourCastDRPenalty, knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
-import { sourcesDArmureA } from '../../engine/armourBypass';
+import { armourPhysiqueAt, sourcesDArmureA } from '../../engine/armourBypass';
 import { effectiveArmourAt } from '../../engine/characteristics';
 import { domainMissileMods } from '../../engine/domainAttributes';
 import { resetRule, setRule } from '../../engine/policy';
@@ -22,6 +22,9 @@ import { emptyScene, type SceneEntity } from './scene';
 import { poserUneTroupe } from '../sceneEdit';
 import { bourseOf } from '../../engine/bourse';
 import { toBrass } from '../../engine/money';
+import { tableTotale } from '../../lib/tableTotale';
+
+const paDuCombattant = (c: Combatant) => tableTotale(LOCALISATIONS_DE_COUP, (loc) => armourPhysiqueAt(c, loc));
 
 
 /** Traits d'arme FR vérifiés dans L'ennemi dans l'Ombre ch.2 (Knud Cratinx & co). */
@@ -71,13 +74,13 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
 
   it('une cotte de mailles portée donne ses PA, et le Trait Armure cède', () => {
     const c = spawnEnemy({ ref: 'gobelin' }, 'g-maille', { x: 0, y: 0 }, { inventaire: { 'cotte-de-mailles': true } });
-    expect(c.armour).toEqual({ tete: 0, brasG: 2, brasD: 2, corps: 2, jambeG: 0, jambeD: 0 });
+    expect(paDuCombattant(c)).toEqual({ tete: 0, brasG: 2, brasD: 2, corps: 2, jambeG: 0, jambeD: 0 });
     expect(c.traits?.some((t) => t.id === 'armure')).toBe(false);
   });
 
   it('une cotte de mailles NON portée ne fait pas céder le Trait Armure', () => {
     const c = spawnEnemy({ ref: 'gobelin' }, 'g-sac', { x: 0, y: 0 }, { inventaire: { 'cotte-de-mailles': false } });
-    expect(c.armour).toEqual(spawnEnemy({ ref: 'gobelin' }, 'g-nu', { x: 0, y: 0 }).armour);
+    expect(paDuCombattant(c)).toEqual(paDuCombattant(spawnEnemy({ ref: 'gobelin' }, 'g-nu', { x: 0, y: 0 })));
   });
 
   it('une arme simple tenue remplace l’arme du Trait Arme', () => {
@@ -90,7 +93,7 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
     const sb: CustomStatblock = { type: 'statblock', label: 'Homme-bête', char: { B: 12, force: 40 }, traits: [{ id: 'arme', value: 7 }, { id: 'morsure', value: 6 }, { id: 'mutation', arg: 'cornes-asymetriques' }] };
     const c = spawnEnemy({ statblock: sb }, 'hb', { x: 0, y: 0 }, { inventaire: { 'arme-simple': false } });
     expect(c.weapons.map((w) => w.label)).toEqual(['Arme simple', 'Morsure', 'Cornes']);
-    expect(c.armour.tete).toBe(1);
+    expect(armourPhysiqueAt(c, 'tete')).toBe(1);
   });
 
   it('un Trait Arme naturel (Crocs) reste devant une arme tenue', () => {
@@ -102,17 +105,18 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
 
   it('recomposé (`recomputeLoadout`), un PNJ sans inventaire garde les armes et l’armure de ses Traits', () => {
     const c = spawnEnemy({ ref: 'gobelin' }, 'g-recompose', { x: 0, y: 0 });
-    const { weapons, armour } = structuredClone(c);
+    const { weapons } = structuredClone(c);
+    const armour = paDuCombattant(c);
     recomputeLoadout(c);
     expect(c.weapons).toEqual(weapons);
-    expect(c.armour).toEqual(armour);
+    expect(paDuCombattant(c)).toEqual(armour);
   });
 
   it('un PNJ sans inventaire garde les armes et l’armure de ses Traits, sans objet', () => {
     const c = spawnEnemy({ statblock: tireur }, 'e-nu', { x: 0, y: 0 });
     expect(c.items).toBeUndefined();
     expect(c.weapons).toEqual(weaponsFromTraits(c.traits ?? []).map((w) => expect.objectContaining({ uid: w.uid, label: w.label })));
-    expect(c.armour).toEqual(armourFromTraits(c.traits ?? []));
+    expect(paDuCombattant(c)).toEqual({ tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 });
   });
 
   it('une arbalète d’inventaire fait céder le Trait À distance : UNE arme à distance, l’objet, avec Recharge', () => {
@@ -125,14 +129,14 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
 
   it('une barde portée s’ajoute au Trait Armure du demigriffon : l’armure du demigriffon monté (AA 09 l.184 ; #4135)', () => {
     const c = spawnEnemy({ ref: 'demigriffon' }, 'dg-barde', { x: 0, y: 0 }, { inventaire: { barde: true } });
-    expect(c.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
-    expect(c.armour).toEqual(spawnEnemy({ ref: 'demigriffon-adulte' }, 'dg-adulte', { x: 0, y: 0 }).armour);
+    expect(paDuCombattant(c)).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(paDuCombattant(c)).toEqual(paDuCombattant(spawnEnemy({ ref: 'demigriffon-adulte' }, 'dg-adulte', { x: 0, y: 0 })));
     expect(c.traits?.some((t) => t.id === 'armure')).toBe(true);
   });
 
   it('un caparaçon porté s’ajoute au Trait Armure du blaireau, sur la tête et le torse (ADE I 07 l.66 ; #4135)', () => {
     const c = spawnEnemy({ ref: 'blaireau' }, 'bl-caparacon', { x: 0, y: 0 }, { inventaire: { 'caparacon-pour-blaireau': true } });
-    expect(c.armour).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(paDuCombattant(c)).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 3, jambeG: 1, jambeD: 1 });
   });
 });
 
@@ -223,7 +227,7 @@ describe('possessions de fiche à l’apparition (#4348)', () => {
     const massue = c.items?.find((it) => it.trappingId === 'massue');
     expect(c.items).toHaveLength(2);
     expect(veste?.equipped).toBe(true);
-    expect(c.armour).toEqual({ tete: 0, brasG: 1, brasD: 1, corps: 1, jambeG: 0, jambeD: 0 });
+    expect(paDuCombattant(c)).toEqual({ tete: 0, brasG: 1, brasD: 1, corps: 1, jambeG: 0, jambeD: 0 });
     const armes = c.weapons.filter((w) => w.trappingId === 'massue');
     expect(armes).toHaveLength(1);
     expect(armes[0]).toMatchObject({ uid: massue?.uid, damage: { flat: 7 } });
@@ -236,7 +240,7 @@ describe('possessions de fiche à l’apparition (#4348)', () => {
     expect(c.items?.filter((it) => it.equipped).map((it) => it.trappingId)).toEqual(
       heaume ? expect.arrayContaining(['plastron', 'heaume']) : expect.arrayContaining(['plastron']),
     );
-    expect(c.armour).toEqual({ tete: 2, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 });
+    expect(paDuCombattant(c)).toEqual({ tete: 2, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 });
   });
 
   it('ZI 13 l.193 : le Technomage tient son jezaïl à l’apparition et garde la Malelame dans une autre panoplie', () => {
@@ -282,7 +286,7 @@ describe('possessions de fiche à l’apparition (#4348)', () => {
     expect(c.items?.filter((it) => it.trappingId === 'veste-de-cuir')).toEqual([
       expect.objectContaining({ uid: 'marta-objet-veste-de-cuir', equipped: false }),
     ]);
-    expect(c.armour.corps).toBe(0);
+    expect(armourPhysiqueAt(c, 'corps')).toBe(0);
   });
 
   it('seules les possessions de catalogue d’une fiche préréglée deviennent des objets', () => {
@@ -306,11 +310,11 @@ describe('possessions de fiche à l’apparition (#4348)', () => {
     expect(c.items).toEqual([expect.objectContaining({ trappingId: 'barde', equipped: true })]);
     harnacher(rider, c);
     expect(c.items?.filter((i) => i.trappingId === 'barde').map((i) => i.equipped)).toEqual([true, false]);
-    expect(c.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(paDuCombattant(c)).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
 
     const avecHeaume = spawnEnemy({ ref: 'demigriffon-adulte' }, 'monture', undefined, { inventaire: { heaume: true } });
     expect(avecHeaume.items?.find((i) => i.trappingId === 'barde')?.equipped).toBe(false);
-    expect(avecHeaume.armour).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 });
+    expect(paDuCombattant(avecHeaume)).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 });
   });
 });
 
@@ -475,7 +479,7 @@ describe('spawn — Taille d’un profil : Trait Taille, sinon Talent de Taille,
 describe('statbloc d’éditeur — l’Armure du Trait fait les PA du combattant, comme une créature', () => {
   it('Trait Armure 5 → 5 PA à chaque localisation', () => {
     const c = statblockToCombatant({ type: 'statblock', label: 'Dragon des ténèbres', char: {}, traits: [{ id: 'armure', value: 5 }] }, 'e1', { x: 0, y: 0 });
-    expect(Object.values(c.armour)).toEqual([5, 5, 5, 5, 5, 5]);
+    expect(Object.values(paDuCombattant(c))).toEqual([5, 5, 5, 5, 5, 5]);
   });
 });
 
@@ -634,7 +638,7 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
     const c = ficheDEntite(soldat, sansPreset);
     expect(c.weapons.map((w) => w.label)).toContain('Hallebarde');
     expect(c.traits?.some((t) => t.id === 'arme')).toBe(false);
-    expect(c.armour.corps).toBeGreaterThan(0);
+    expect(armourPhysiqueAt(c, 'corps')).toBeGreaterThan(0);
   });
 
   it('un objet d’inventaire porté par l’auteur ôte la dotation qu’il chevauche', () => {
@@ -689,6 +693,13 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
     const nain = nomDEntite(humain('client', { creature: { id: 'nain' }, appearance: { species: 'nains' } }), sansPreset)!;
     expect(pool('nain').maleFirstNames).toContain(nain.split(' ')[0]);
     expect(pool('nain').lastNameSuffixes!.M.some((x) => nain.endsWith(x)), 'patronyme nain, LDB 05 l.627-633').toBe(true);
+  });
+
+  it('la fiche de l’Ogre anonyme porte le nom traditionnel tiré par id et respecte le nom d’auteur', () => {
+    const ogre = humain('ogre-anonyme', { creature: { id: 'ogre' } });
+    expect(nomDEntite(ogre, sansPreset)).toBe('Gegtag');
+    expect(ficheDEntite(ogre, sansPreset).label).toBe('Gegtag');
+    expect(ficheDEntite({ ...ogre, label: 'Gustav Bauer' }, sansPreset).label).toBe('Gustav Bauer');
   });
 
   it('le sexe que pose l’auteur fait le nom, le corps et le libellé de Carrière (#3724)', () => {

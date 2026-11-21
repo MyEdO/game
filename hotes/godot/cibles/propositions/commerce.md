@@ -9,6 +9,15 @@ Sources au dépôt : trois écrans de `sources/maquettes/`, chacun la liste de s
 `port-avitaillement`). Les décors de la halle et du quai et la carte du port vivent dans `sources/commerce/commerce.js` ;
 le Marchandage prend le jet opposé de `sources/combat/` (`jet.css`, `jet.js`).
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : la page d'un service garde au pied de son corps une place fixe (`page/pied`, 50 de haut),
+  vide quand rien n'y va ; les bourses du groupe y tiennent en une rangée de cinq cases : chaque héros par son
+  portrait et sa part, ce que sa bourse contient au survol, le −/+ autour du portrait de la part réglée, puis le
+  total des parts ; le corps raccourci d'autant dans tous les états.
+- À valider (#4585) : pour tenir dans ce corps, une voie de la page (vente, travail du chantier, soin) montre son
+  nom, son Test et son prix, ce qu'elle fait au survol ; le seuil de la recherche d’acheteur passe dans son Test (« Acheteur ≤ 60, puis Marchandage ») ;
+  la phrase qui explique une quantité ou une ligne passe au survol de son libellé (la part minimale du négociant,
+  la contenance d'un tonneau, sa contenance en litres restant écrite) ; les porteurs de la page sans rubrique
+  « Porteur » ; les salariés du bord deux par rang.
 
 Cible écrite suivie : `../ecrites/lieu.md` (halle : ligne par denrée, chargement, lots, billet de rumeur ; port : un
 lieu ; Marchandage : le bandeau de jet du combat à sa place). Règles du 2026-11-16 appliquées par-dessus : un choix
@@ -33,8 +42,8 @@ bandeau de jet opposé est celui du combat.
   `src/data/lieux-services.json`). Les offres sont les négociants de la halle : un cartouche par denrée (Laine 350 Enc à 2/– / Enc ; Vin 280 Enc à 6/– / Enc, « Évaluer le vin »).
 - Les porteurs du groupe (charrette 25 Enc, `src/data/vehicles.json` ; mule 14 Enc).
 - Page « Le chargement » : porteur et sa jauge, Enc à acheter (de 10 à 25), prix de base, lot partagé +10 %,
-  estimation, « Bourses du groupe » par `bourse(…)` (entreprise commune, #3004 : la part de chaque héros réglable et
-  le total), « Conclure l'achat » (`src/noyau/marcheEnVue.ts:50-88`, `src/hote/ecran.ts:837-871`).
+  estimation, les bourses du groupe au pied de la page par `rangeeDeBourses(…)` (entreprise commune, #3004 : la part
+  de chaque héros réglable et le total), « Conclure l'achat » (`src/noyau/marcheEnVue.ts:50-88`, `src/hote/ecran.ts:837-871`).
 - Billet de rumeur cloué : « Vivres, Bois se vendraient le double à Eilhart. »
 - RAW : disponibilité (Taille + Richesse) × 10 MSRC 13 l.26 ; taille de cargaison l.38 ; prix de base l.86-91 (laine,
   printemps) ; vin et Évaluation l.95-104 ; lot partagé +10 %, pas moins de 10 Enc l.131 ; rumeur l.180 ; Kemperbad
@@ -43,6 +52,11 @@ bandeau de jet opposé est celui du combat.
   « une ligne par denrée ») ; le rail des services du lieu gardé ouvert à gauche pendant le commerce ; les porteurs
   dessinés dans la scène et choisis sur la page ; la page de droite pour composer l'achat ; le billet de rumeur cloué
   sous le rail ; « mènera le Marchandage » dit sous le héros qui marchande.
+- À valider (#4585) : chaque hôte de la scène dans la case de son genre, 340 de large (226 devant la carte du port) :
+  l'enseigne (son nom seul) haute de 76, le porteur ou le navire et ce qu'il porte de 152, l'offre dépliée, l'accueil
+  ou le constructeur de 196, 8 px entre deux ; la colonne montre les quatre hôtes de la vente (deux enseignes, la
+  charrette et la mule) ; le corps d'une offre dépliée défile sous son cartouche, ses gestes au pied de la case ; la page du service sur la grille commune des colonnes : la tête, le corps qui défile
+  (entrées à 6 px), le geste au pied, la note sous lui.
 
 ## halle-vente
 - La même halle, charrette chargée. Les lots sont sur leurs porteurs : cartouche « Charrette » déplié sur son lot
@@ -92,6 +106,8 @@ bandeau de jet opposé est celui du combat.
   (devis de chantier, réparation, carénage).
 - À valider : le port dessiné comme un lieu, ses services en cartouches plutôt qu'en liste ; l'état du navire lu sur le
   navire ; les départs en mer sur la carte du lieu ; un seul cartouche déplié à la fois.
+- À valider (#4585) : le récit garde la ligne de sa rubrique, vide hors d'une arrivée : son texte part du même y qu'à
+  l'arrivée (`voyage.md`).
 
 ## port-negoce
 - Page « Services du port » ouverte sur « Négoce de cargaison » (rail : Négoce de cargaison, Chantier naval,
@@ -109,8 +125,8 @@ bandeau de jet opposé est celui du combat.
 ## port-achat (2026-11-17, #4411)
 - Écran 11. La page des services du port sur « Négoce de cargaison », côté achat : l'offre « Bois » dépliée sur le
   quai, la page « Le lot » avec l'Encombrement à acheter (60 sur 320), le prix de base, le lot partiel (vendeur
-  +1 DR), 90 CO, les parts des quatre bourses (22 CO 10/– chacun) par `bourse({parts,total})` et « Conclure
-  l'achat ». Le bandeau ne porte plus les bourses : elles se lisent au bloc des parts.
+  +1 DR), 90 CO, les parts des quatre bourses (22 CO 10/– chacun) par `rangeeDeBourses({parts,total})` et « Conclure
+  l'achat ». Le bandeau ne porte plus les bourses : elles se lisent au pied de la page.
 - Verbes : `fenetreChoisir('port','offre', id)`, `fenetreChoisir('port','encombrement', n)`,
   `fenetreChoisir('port','acheter')` ; paiement `payFromGroup` (entreprise commune, #3004).
 - RAW : MDG 15 l.331-341. Code : `src/noyau/portFlow.ts:188-201`, `:315`.
@@ -147,6 +163,7 @@ bandeau de jet opposé est celui du combat.
 - RAW : MDG 14 l.236-252. Code : `src/noyau/portFlow.ts:553-601`.
 - À valider : les jours de vivres que l'achat donne à l'équipage ne sont pas montrés (aucun lecteur ne les sert) ;
   l'Encombrement des vivres dans la cale non montré.
+- À valider (#4585) : la cale du port dit ses vivres et son eau douce sur une ligne.
 
 ## Non dessiné
 - L'achat à l'échoppe (acte individuel, payé par l'acheteur, #3004) n'a pas d'image dans cette famille.

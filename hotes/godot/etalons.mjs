@@ -18,10 +18,9 @@ import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
-import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { VUE_REFERENCE, consoleGuard, launchSession, sleep, waitFor } from '../../scripts/recette/lib.mjs'
-import { DOSSIER_DES_ETALONS, MAQUETTES, VALIDES, coteACote, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
+import { DOSSIER_DES_ETALONS, MAQUETTES, VALIDES, coteACote, ecart, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
 import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
 
 const { values: o } = parseArgs({
@@ -31,23 +30,6 @@ if (!o.web) throw new Error('usage : node hotes/godot/etalons.mjs --web <dossier
 
 /** Le temps laissé à l'écran, la planche dite montrée, avant sa capture. */
 const POSE_MS = 400
-
-/** Les pixels qui diffèrent entre les PNG `a` et `b`, et la boîte qui les contient ; tous, d'une taille à l'autre. */
-function ecart(a, b) {
-  const A = decodePng(a)
-  const B = decodePng(b)
-  if (A.w !== B.w || A.h !== B.h) return { pixels: A.w * A.h, boite: `étalon ${B.w}×${B.h}, rendu ${A.w}×${A.h}` }
-  let pixels = 0
-  let [x0, y0, x1, y1] = [A.w, A.h, -1, -1]
-  for (let i = 0; i < A.data.length; i += 4) {
-    if (A.data[i] === B.data[i] && A.data[i + 1] === B.data[i + 1] && A.data[i + 2] === B.data[i + 2]) continue
-    pixels++
-    const x = (i / 4) % A.w
-    const y = Math.floor(i / 4 / A.w)
-    x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y)
-  }
-  return { pixels, boite: pixels ? `de (${x0}, ${y0}) à (${x1}, ${y1})` : '' }
-}
 
 const empreinte = (png) => createHash('sha256').update(png).digest('hex')
 

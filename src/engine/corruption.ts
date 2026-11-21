@@ -258,12 +258,11 @@ export function nonDeviatableMutationAP(c: Combatant, loc: HitLocation): number 
 }
 
 /** 1 PA de mutation de moins à `loc` : l'`usure` à `loc` de la mutation qui porte encore un PA y croît de 1, une
- *  mutation à PA déviable d'abord. Rend false si aucune mutation n'a de PA à `loc`. L'appelant re-dérive l'armure.
- *  LDB 63 l.19 ; EDO App.2 l.196 */
-export function userLePADeMutation(c: Combatant, loc: HitLocation): boolean {
+ *  mutation à PA déviable d'abord. L'appelant re-dérive l'armure. LDB 63 l.19 ; EDO App.2 l.196 */
+export function userLePADeMutation(c: Combatant, loc: HitLocation, protection: 'deviable' | 'toute' = 'toute'): boolean {
   const mutations = c.mutations ?? [];
-  const source = mutations.find((m) => paDeLaMutation(m, loc).deviables > 0)
-    ?? mutations.find((m) => paDeLaMutation(m, loc).horsDeviation > 0);
+  const deviable = mutations.find((m) => paDeLaMutation(m, loc).deviables > 0);
+  const source = deviable ?? (protection === 'toute' ? mutations.find((m) => paDeLaMutation(m, loc).horsDeviation > 0) : undefined);
   if (!source) return false;
   source.usure = { ...source.usure, [loc]: (source.usure?.[loc] ?? 0) + 1 };
   return true;

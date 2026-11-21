@@ -12,6 +12,10 @@ chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dess
 `meuble-piece-de-bord`), `dossier` (`dossier-du-navire`, `dossier-du-navire-cargaison`, `dossier-de-la-bete`,
 `dossier-du-vehicule`) et `arrivee` (`arrivee-aucune`, `arrivee-palissade`, `arrivee-rempart`). La compagnie est celle de `sources/maquettes/compagnie.ts`.
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : la table d'un aperçu garde la hauteur commune de 125 ; un aperçu plus court laisse 14 px de
+  blanc sous elle, le prix de la boîte fixe.
+- À valider (#4585) : l'état du navire (coque, Moral, eau douce, vivres) sur deux colonnes, toutes ses valeurs visibles
+  dans le panneau bas sans défiler ; « Vivres » au lieu de « Vivres de l'équipage ».
 
 La carte du monde n'est pas redessinée : elle existe (`exploration-et-recit/carte-du-monde.jpg`) et sert de modèle ;
 les états d'ici gardent ses lieux et ses distances (La Diligence, 75 km, Sept Rayons, 115 km, Altdorf).
@@ -106,6 +110,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   La Diligence », EDO 02 l.184), c'est une valeur d'adaptation ; aucun champ d'enceinte au schéma du lieu
   (`src/noyau/monde/scene.ts`) ; services et départs identiques d'un état à l'autre, quand l'image varie aussi ceux
   du lieu (hameau à pied, bourg et son forgeron).
+- À valider (#4585) : les départs dans le corps du panneau bas, qui défile ; le service d'accueil dans une case d'hôte
+  de 340 × 152, sa réplique qui défile, ses gestes au pied (`commerce.md`).
 
 ## voyage-fluvial
 - Cible écrite, « Ce que le joueur voit pendant le trajet » : décor en plans (ciel, lointain, berge, fleuve et
@@ -155,6 +161,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   `src/noyau/voyageEnVue.ts:56`, libellés `ecran.cadence.*`). À valider : la cadence dans l'objet du temps, et la
   même pièce sur la route (`evenement-de-route-issue`) et le fleuve (`voyage-fluvial`). Un arrêt (péripétie, péril,
   relâche, conseil, panne) ne la montre pas : rien n'avance.
+- À valider (#4585) : sous la carte, l'état du navire dans le corps qui défile et la cadence au pied fixe du panneau,
+  à la même place avec ou sans navire ; l'objet du temps sur la grille du cartouche du lieu : l'arche du ciel réduite
+  à la case de 56 px du médaillon, le texte à la place du nom du lieu, ses lignes depuis le haut.
 
 ## postes-de-bord
 - Doctrine : l'affectation suit la lignée des postes de la halte, aucun choix en liste ; chaque rôle est un poste
@@ -174,6 +183,12 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   rôle essentiel du Test de Progression, compte double (MDG 14 l.17-32, l.61-65) ; `src/noyau/shipCrew.ts:87`.
 - À valider : la place de chaque poste sur la silhouette ; les rôles tenus par les marins montrés en médaillon sans
   portrait ; le billet du rôle visé ; le rôle de chaque héros rappelé sur sa carte.
+- À valider (#4585) : chaque poste a 148 px de large au moins et une tête de la hauteur d'un portrait, que le poste
+  soit tenu ou vide : l'étiquette ne monte ni ne s'élargit quand un héros le prend, les tenants centrés sur la largeur
+  du poste (même gabarit aux postes de la nuit, `lieux-et-nuit.md`).
+- À valider (#4585) : le bord, la station et la semaine sur la grille commune des colonnes, sans tête : le corps sur
+  toute la hauteur, le geste au pied fixe ; le billet d'un poste à 300 de large, celui d'un Test étendu compris, ses
+  valeurs sur deux lignes au besoin ; la table de tout billet à hauteur fixe (125), qui défile si elle déborde.
 
 ## postes-de-bord-station
 - Même écran que `postes-de-bord`. Bjorn est au poste « Repos » (aucun rôle, `affecterAuRoleABord(crewId, null)`),
@@ -203,8 +218,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   (MDG 15 l.294-300) : écart à trancher, hors de ce lot.
 
 ## dossier-du-navire
-- Modèle : la fiche lue en combat (`combat/fiche-au-clic`), mêmes quatre panneaux : identité, profil, figure,
-  sections à onglets ; fermé par la croix. Atteignable depuis la traversée et les postes de bord (pastille
+- Modèle : la fiche du héros (`heros.md`, `fiche-possessions`), mêmes quatre panneaux aux mêmes places (#4585) :
+  identité (tête, mesures, réserves sous le filet), profil en douze colonnes fixes, figure, sections à onglets ;
+  fermé par la croix. Atteignable depuis la traversée et les postes de bord (pastille
   « Dossier du navire »), et, par la charte « Voir une fiche », d'un clic sur le pion ou le cartouche du navire
   en combat naval et au port (`commerce/port.jpg`, « Votre cogue »).
 - Le navire porte son nom : nom de l'instance en titre (`Possession.label`), modèle en sous-titre, « Renommer »
@@ -216,6 +232,11 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : onglets « État », « Équipage », « Cargaison », « Améliorations » ; Moral en barre d'or sous la Coque ;
   trois médaillons (Équipage, Aux voiles, Héros à un poste) ; les traits sur le gabarit des armes de la fiche ;
   « Salissures » et « Avaries » écrits « aucune » quand rien n'est à dire.
+- À valider (#4585) : le profil d'une possession prend les douze colonnes fixes de la fiche, chacune l'abréviation, le
+  nom entier au survol. Abréviations du livre : M, E, B, Man (Mer de Griffe 06 l.226), Enc (EDOC 07 l.233), la bête
+  celles de LDB (`docs/raw/4e/combat.md:2707`). Sans abréviation au livre, libellés courts à valider : « Éq »
+  (Équipage), « Cap » (Capacité ; le livre dit « Contenance »), « Ch » (Chargement), « Att » (Attelage, « 1 bête »
+  au survol).
 
 ## dossier-du-navire-cargaison
 - Même écran que `dossier-du-navire`, onglet « Cargaison » : la cale (130 / 300), ses lots

@@ -490,21 +490,21 @@ function rendu() {
     const classes: readonly ClasseDeStructure[] = ['D5', 'G1', 'L'];
     const parFichier = new Map<string, Record<ClasseDeStructure, number>>();
     for (const n of noeuds) {
-      const c = parFichier.get(n.fichier) ?? { D5: 0, G: 0, G1: 0, L: 0 };
+      const c = parFichier.get(n.fichier) ?? { D5: 0, G: 0, C: 0, G1: 0, L: 0 };
       c[n.classe] += 1;
       parFichier.set(n.fichier, c);
     }
     const auStock = noeuds.filter((n) => classes.includes(n.classe)).length;
     out += `### ${SECTION.locales} Structures LOCALES — la dette de structure, mesurée sur le schéma\n\n`;
-    out += `Un site est un NŒUD de schéma d’un document authoré (objet, ou nœud non validant), au nom de son schéma de document\n`;
+    out += `Un site est un NŒUD de schéma d’un document authoré (objet, record ou nœud non validant), au nom de son schéma de document\n`;
     out += `(\`‹racine›#‹type›\`, \`nomDuDocument\`) et à son chemin de schéma : ajouter une donnée conforme, ou un document de plus\n`;
     out += `d’un type existant, n’en crée aucun. Mesure : \`noeudsDeStructure\`\n`;
     out += `(\`scripts/guards/lib/structuresLocales.mts\`) ; stock : \`${PORTEURS.STRUCTURES_LOCALES}\`, volet \`STRUCTURES_LOCALES\` sous la porte\n`;
     out += 'des comptes. Classes : **D5** nœud non validant (`unknown`, `any`, `custom`) · **G** nœud de la grammaire PARTAGÉ\n';
-    out += '(au moins deux defs, ou une déclaration d’op), hors stock · **G1** nœud de la grammaire composé par un seul def ·\n';
+    out += '(au moins deux defs, ou une déclaration d’op), hors stock · **C** record, hors stock · **G1** nœud de la grammaire composé par un seul def ·\n';
     out += '**L** structure locale au def. Un site se solde en composant un nœud partagé de la grammaire.\n\n';
     out += `Nœuds de site : **${noeuds.length}**, dont **${auStock}** au stock (`;
-    out += (['D5', 'G1', 'L', 'G'] as const).map((c) => `${c} ${noeuds.filter((n) => n.classe === c).length}`).join(' · ') + ').\n\n';
+    out += (['D5', 'G', 'C', 'G1', 'L'] as const).map((c) => `${c} ${noeuds.filter((n) => n.classe === c).length}`).join(' · ') + ').\n\n';
     const lignes = [...parFichier]
       .map(([fichier, c]) => ({ fichier, c, total: classes.reduce((a, k) => a + c[k], 0) }))
       .filter((l) => l.total > 0)

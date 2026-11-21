@@ -133,7 +133,9 @@ describe('effets de mutation lus à la volée', () => {
     attachMutation(c, { type: 'mutations', id: 'colere-impie', label: 'Colère impie', desc: '', kind: 'mentale', roll: 93, passive: [opPsy.octroi('frenesie')] }, desDuTest);
     // L'instance accordée porte SA provenance (`TraitInstance.src`) : c'est ce registre que le
     // `removeTrait` d'une mutation interroge pour ne retirer que le sien.
-    expect(c.traits).toContainEqual({ id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } });
+    expect(c.traits?.filter((t) => t.id === 'tentacules')).toEqual([
+      expect.objectContaining({ uid: expect.any(String), src: { kind: 'mutation', id: 'tentacule-epais' } }),
+    ]);
     expect(c.psychTraits?.some((t) => t.type === 'frenesie')).toBe(true);
   });
 });
@@ -213,9 +215,13 @@ describe('détachement PAR PROVENANCE (#1853)', () => {
     const tentacule = mutationById('tentacule-epais')!;
     const c = hero({ traits: [] });
     attachMutation(c, { ...tentacule, roll: 1 }, desDuTest);
+    const uid = c.traits?.find((t) => t.id === 'tentacules')?.uid;
+    expect(uid).toEqual(expect.any(String));
     attachMutation(c, { ...tentacule, roll: 2 }, desDuTest);
     detachMutation(c, { ...tentacule, roll: 2 });
-    expect(c.traits?.filter((t) => t.id === 'tentacules')).toEqual([{ id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } }]);
+    expect(c.traits?.filter((t) => t.id === 'tentacules')).toEqual([
+      expect.objectContaining({ uid, src: { kind: 'mutation', id: 'tentacule-epais' } }),
+    ]);
   });
 });
 

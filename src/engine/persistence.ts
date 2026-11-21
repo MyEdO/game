@@ -4,6 +4,8 @@
  */
 import type { Combatant, ConditionInstance } from './types';
 import { findConditionById } from '../data';
+import { synchroniserArmesDuProfil } from './creatureEquip';
+import { recomputeLoadout } from './items';
 
 /** Cet État suit-il le porteur hors du combat ? Drapeau DÉCLARÉ sur l'entrée d'`etats.json`
  *  (`EtatData.persistsAfterCombat`) : le moteur lit le champ, il n'énumère aucun id. Un État absent du
@@ -125,7 +127,10 @@ export function carryOverState(c: Combatant): Partial<Combatant> {
 /** Le héros du groupe `h` au sortir de la rencontre où il a vécu en `c` (`carryOverState`) : la sortie d'une bataille
  *  (`finalizeBattle`) et celle d'une série d'attaques subies. */
 export function sortieDeRencontre(h: Combatant, c: Combatant): Combatant {
-  return { ...h, ...carryOverState(c) };
+  const sorti = { ...h, ...carryOverState(c) };
+  if (sorti.loadouts?.length || sorti.items?.length || h.loadouts?.length || h.items?.length) recomputeLoadout(sorti);
+  else synchroniserArmesDuProfil(sorti, h.traits);
+  return sorti;
 }
 
 /** Couture d'ENTRÉE (`lancerLeCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.

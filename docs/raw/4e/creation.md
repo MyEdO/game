@@ -19,6 +19,8 @@ Ce fichier couvre le **processus complet de création de Personnage** (étapes 1
 - [Étape 7 — Groupe](#étape-7--groupe)
 - [Étape 8 — Insuffler la Vie](#étape-8--insuffler-la-vie)
 - [Étape 9 — Progression (dépense des PX bonus)](#étape-9--progression)
+- [Noms gnomes — prénoms, clans et pseudonymes](#noms-gnomes--prénoms-clans-et-pseudonymes)
+- [Noms ogres — nom traditionnel ou reiklander](#noms-ogres--nom-traditionnel-ou-reiklander)
 - [Supplément Middenheim — 3 origines humaines](#supplément-middenheim--3-origines-humaines)
 - [Supplément ADE I — Nouvelles Carrières de départ](#supplément-ade-i--nouvelles-carrières-de-départ)
 - [Suppléments AA et VDM — Seconds jets de Carrière](#suppléments-aa-et-vdm--seconds-jets-de-carrière)
@@ -645,6 +647,25 @@ Possessions : arme simple, haillons, respect des autres Frères Loups.
 
 ---
 
+## Noms gnomes — prénoms, clans et pseudonymes
+
+- **Forme** — prénom et nom de clan, ou usage local pour un gnome intégré à une autre culture. Le nom de clan peut être remplacé par un pseudonyme. `NADJ 15 l.55-72`
+- **Banque de tirage** — les exemples de prénoms matrilinéaires et patronymiques, les clans de Glimdwarrow et les exemples de pseudonymes. [`names.json`](../../../src/data/names.json) · `NADJ 15 l.63`, `NADJ 15 l.66`, `NADJ 15 l.70-72`
+
+**Implémente :** [État calculé](../implemente.generated.md#4ecreationnoms-gnomes-prenoms-clans-et-pseudonymes)
+
+---
+
+## Noms ogres — nom traditionnel ou reiklander
+
+- **Nom reiklander** — « N'hésitez pas à suivre les directives pour un nom humain (Reiklander) » (`ADE II 02 l.327`). En création, ce choix tire dans la banque humaine au sexe du personnage.
+- **Nom traditionnel** — « Pour générer un nom d'ogre, utilisez les deux tableaux de la page suivante et combinez les deux composantes. » (`ADE II 02 l.331`) Deux tirages indépendants, une racine et une terminaison accolées. Les deux listes de `names.json` suivent les faces 01 à 99 puis 00. Les cellules manquantes dans l'extraction VF sont attestées par la transcription VO d’*Archives of the Empire — Vol II*, « Grabbing a Bite — Ogre Player Characters », ch. 04 l.276-325.
+- **Exemple** — Tergarthash Gutrend (`ADE II 02 l.323`). La racine 65 et la terminaison 19 donnent Tergarthash. Les titres et noms de clan relèvent de leur usage propre (`ADE II 02 l.337-343`).
+
+**Implémente :** [État calculé](../implemente.generated.md#4ecreationnoms-ogres-nom-traditionnel-ou-reiklander)
+
+---
+
 ## Supplément ADE I — Nouvelles Carrières de départ
 
 Source : **Les Archives de l'Empire vol. 1**, Annexe I, pages PDF 88–92 (`ADE I ANNEXE I l.1-80`).
@@ -750,6 +771,8 @@ Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493
 | `LDB 10 l.714` | Livre de Base VF corrigé, chapitre 10 — Magie mineure à la création |
 | `Middenheim ANNEXE II l.XX` | Middenheim la Cité du Loup Blanc, Annexe II |
 | `ADE I ANNEXE I l.XX` | Archives de l'Empire vol. 1, Annexe I |
+| `ADE II 02 l.XX` | Les Archives de l’Empire vol. 2, chapitre 02 — Les ogres |
+| `NADJ 15 l.XX` | Nuits agitées et dures journées, chapitre 15 — Gnomes |
 | `AA 02 l.XX` | Aux Armes, chapitre 02 — Introduction |
 | `AA 05 l.XX` | Aux Armes, chapitre 05 — La Tilée et les personnages tiléens |
 | `VDM 03 l.XX` | Les Vents de Magie, chapitre 03 — Travaux arcaniques |

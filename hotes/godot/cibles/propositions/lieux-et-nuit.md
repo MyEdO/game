@@ -69,12 +69,18 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
   du livre ; le barbier n'est qu'à la Fin du Voyage ; tenancier et maître d'hôtel anonymes, leurs répliques sont des
   exemples ; un avis par risque, sans pictogramme propre ; le ruban de l'hôte, « La nuit et le repas », libellé neuf
   repris du service `nuit` du rail de la même maison.
+- À valider (#4585) : chaque poste de la scène a 148 px de large au moins et une tête de la hauteur d'un portrait,
+  tenu ou vide : l'étiquette ne bouge plus quand un héros prend le poste, les tenants centrés sur la largeur du poste.
+- À valider (#4585) : à l'auberge, les avis de l'aubergiste au pied du corps de sa colonne, toujours en vue : la
+  grille des offres se resserre (3 px entre deux lignes) et le corps prend la hauteur de la colonne sous sa tête.
 
 ### jeux-de-taverne
 - La même maison, service « Les jeux » : la table sous sa lanterne, trois joueurs PNJ, la place libre ; l'Al-zahr,
   les fléchettes, le bras de fer (NADJ 16) ; sièges, mise, pot, « S'asseoir et lancer les dés ».
 - À valider : jeux proposés par maison ; mise libre (le livre ne chiffre pas) ; nombre cible et variante rapide non
   montrés.
+- À valider (#4585) : la partie d'un jeu de taverne pose la mise au pied du corps de sa page (`page/pied`), sans la
+  rubrique « La mise de … » que la ligne « Bourse de … » dit déjà.
 
 ### bivouac
 - Clairière de nuit (lune, lisière, feu, tente, diligence dételée). La nourriture se choisit par héros, sur sa carte
@@ -87,6 +93,12 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
   de places d'une tente ; le sac de couchage et l'abri de fortune, que le noyau n'applique pas ; la ligne « Le
   froid » sous la tente dépend de la sévérité du temps (`exposureTestCount`, `src/noyau/restFlow.ts:486-512`), non
   relue pour le gel ; une halte de voyage qui se quitte (`src/noyau/modalArbiter.ts:192` ne la quitte pas).
+- À valider (#4585) : l'offre de l'hôte, qui dort où et la partie sur la grille commune des colonnes (`colonne`,
+  `sources/gestes.js`) : la tête (le cartouche de l'hôte, le jeu), le corps qui défile, ses entrées à 6 px l'une de
+  l'autre, le geste au pied fixe ; les autres jeux de la maison en plaques à 12 px, pour tenir à trois sur la largeur
+  de la page.
+- À valider (#4585) : au bivouac, ce que la nuit jouera tient en une rangée (« La nuit jouera », le rond et le jet de
+  chacun, son nom au survol), et le Test d'un abri passe au survol de la rangée des abris.
 
 ## soins
 
@@ -101,6 +113,10 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
   visite, « 4-6 pistoles »).
 - À valider : visite à 5/– dans la fourchette du livre, à tracer en valeur maison elle aussi ; le noyau débite le
   groupe, pas le patient ; docteur anonyme ; rail du quartier ou du bâtiment.
+- À valider (#4585) : la page des soins sur la grille de la page d'un service : le patient en tête ; son mal, les
+  voies et ce que l'acte coûte (le compte, la bourse) dans le corps qui défile ; le geste et la note au pied fixe.
+- À valider (#4585) : la page des soins pose ce que le patient paie et sa bourse en une ligne au pied de son corps
+  (`page/pied`) ; un soin y montre son nom, son Test et son prix, ce qu'il fait (ou la raison qui le ferme) au survol.
 
 ## interlude
 
@@ -114,3 +130,9 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
 - Le même écran porte la préparation d'une bataille de masse (`bataille-de-masse-preparation`, `combat-suite.md`).
 - À valider : rattacher chaque Activité à un lieu et à un PNJ est une adaptation de scénario ; restriction par
   Classe (LDB 23 l.195) ; plusieurs Activités absentes du plan ; l'effet de l'Événement n'est pas montré.
+- À valider (#4585) : les Activités restantes et le lieu choisi sur la grille commune des colonnes, « Envoyer » au
+  pied fixe ; sur la carte, la place du héros tenue vide à chaque étiquette où personne ne va : une étiquette garde sa
+  largeur quel que soit son occupant.
+- À valider (#4585) : au lieu choisi de l'interlude, les forces de la bataille sous son nom ; l'Activité prise en
+  entier, les autres en une rangée de médaillons, leur nom, leur Test et leur enjeu au survol, la raison qui ferme une
+  Activité dans sa bulle de refus.

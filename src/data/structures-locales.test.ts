@@ -1,5 +1,5 @@
 /**
- * STRUCTURES LOCALES (#1463, #3012 N1) : la dette de structure mesurée sur le SCHÉMA
+ * STRUCTURES LOCALES (#1463) : la dette de structure mesurée sur le SCHÉMA
  * (`scripts/guards/lib/structuresLocales.mts`) et son stock (`horsStrateStock.mjs`, `STRUCTURES_LOCALES`). Le contrat
  * #2995 (une donnée saine ajoutée ou retirée ne fait naître aucun site) se prouve sur toute la porte : `src/comptes-plage.test.ts`.
  */
@@ -10,10 +10,10 @@ import { document } from './schemas/grammaire/document';
 import { executeesDe, refDEtatSchema } from './schemas/grammaire/mecanique';
 import { nommerChamps, nommerNoeud } from './schemas/grammaire/meta';
 import { idDe, ref } from './schemas/grammaire/ref';
-import { formulaSinSchema } from './schemas/grammaire/valeurs';
+import { couleursSchema, formulaSinSchema } from './schemas/grammaire/valeurs';
 import type { SchemaDef } from './schemas/types';
 import { STRUCTURES_LOCALES } from '../../scripts/guards/lib/horsStrateStock.mjs';
-import { STRUCTURES_LOCALES as VOLET } from '../../scripts/guards/lib/occurrencesStock.mjs';
+import { FEUILLES_D_ID, STRUCTURES_LOCALES as VOLET } from '../../scripts/guards/lib/occurrencesStock.mjs';
 import { PORTEURS } from '../../scripts/guards/lib/porteursDesComptes.mjs';
 import { ecartDuVolet, remedeDeNaissance } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
@@ -73,6 +73,35 @@ describe('classes d’un nœud de site', () => {
       'L src/data#a :: [].variants[].sous',
       'G src/data#b :: [].commun',
     ]);
+  });
+
+  it('un record C reste hors stock ; les nœuds de sa valeur gardent leur propre classe', () => {
+    const schema = z.array(z.strictObject({
+      type: z.literal('sonde'),
+      ferme: z.record(z.string(), z.number()),
+      libre: z.record(z.string(), z.unknown()),
+      local: z.record(z.string(), z.strictObject({ valeur: z.number() })),
+    }));
+    const noeuds = noeudsDeStructure([def('sonde.json', schema)]);
+    const classeEtChemin = (n: { classe: string; ref: string }) => `${n.classe} ${n.ref}`;
+    expect(noeuds.map(classeEtChemin)).toEqual([
+      'C [].ferme',
+      'C [].libre',
+      'D5 [].libre{}',
+      'C [].local',
+      'L [].local{}',
+    ]);
+    expect(sitesDeStructure(noeuds).map(classeEtChemin)).toEqual(['D5 [].libre{}', 'L [].local{}']);
+  });
+
+  it('un record de la grammaire est G quand plusieurs defs le composent, C quand un seul le compose', () => {
+    const avecCouleurs = (type: string) => def(`${type}.json`, z.array(z.strictObject({ type: z.literal(type), couleurs: couleursSchema })));
+    const x = avecCouleurs('x');
+    expect(classes([x])).toContain('C src/data#x :: [].couleurs');
+    expect(classes([x, avecCouleurs('y')])).toEqual(expect.arrayContaining([
+      'G src/data#x :: [].couleurs',
+      'G src/data#y :: [].couleurs',
+    ]));
   });
 
   it('la rangée d’un document mono-table est son ENTRÉE, comme la ligne d’un tableau racine ; son sous-objet local reste un site (#3012)', () => {
@@ -149,12 +178,35 @@ describe('clé d’un site', () => {
     expect(nomDeBranche(libre, options(libre)[1])).toBe('|<string>');
   });
 
+  it('les branches record se distinguent par leur clé et leur valeur de schéma', () => {
+    const nombres = z.record(z.string(), z.number());
+    const textes = z.record(z.string(), z.string());
+    const cleSpeciale = z.record(z.literal('mot |0 :: é'), z.number());
+    const cles = (v: z.ZodType) => noeudsDeStructure([{
+      file: 'x.json', root: 'src/data', famille: 'config', schema: z.strictObject({ type: z.literal('x'), v }),
+    }]).map((n) => n.ref);
+    const union = z.union([nombres, textes]);
+
+    expect(union.safeParse({ entree: 5 }).success).toBe(true);
+    expect(union.safeParse({ entree: 'texte' }).success).toBe(true);
+    const deux = cles(union);
+    expect(deux).toHaveLength(2);
+    expect(cles(z.union([textes, nombres]))).toEqual(deux);
+    const trois = cles(z.union([z.union([textes, nombres]), cleSpeciale]));
+    expect(trois).toHaveLength(3);
+    expect(trois).toEqual(expect.arrayContaining(deux));
+    for (const cle of trois) expect(cle).toMatch(/^\.v\|<[^|\s<>]+>$/);
+
+    const autreRecordDeNombres = z.record(z.string(), z.number().positive());
+    expect(() => cles(z.union([nombres, autreRecordDeNombres]))).toThrow(/deux nœuds à la même clé/);
+  });
+
   it('deux nœuds d’un même type à la même clé LÈVENT (injectivité)', () => {
     const double = z.strictObject({ type: z.literal('x'), v: z.union([z.strictObject({ a: z.string() }), z.strictObject({ a: z.number() })]) });
     expect(() => noeudsDeStructure([{ file: 'x.json', root: 'src/data', famille: 'config', schema: double }])).toThrow(/deux nœuds à la même clé src\/data#x :: \.v\|\{a\}/);
   });
 
-  describe('point conjoint : une intersection et les enfants de même clé de ses côtés sont UN site', () => {
+  describe('point conjoint : une intersection ou un pipe et les enfants de même clé de ses côtés sont UN site', () => {
     /** Les sites d'un champ `v` de document, `‹classe› ‹clé›`. */
     const sitesDe = (champ: z.ZodType) =>
       noeudsDeStructure([{ file: 'x.json', root: 'src/data', famille: 'config', schema: z.strictObject({ type: z.literal('x'), v: champ }) }])
@@ -187,6 +239,15 @@ describe('clé d’un site', () => {
       expect(sitesDe(z.string().and(z.string().min(1))), 'aucun objet ni nœud non validant : pas de site').toEqual([]);
     });
 
+    it('un pipe autonome ouvre un point conjoint pour ses côtés et leurs enfants', () => {
+      const entree = z.strictObject({ f: z.strictObject({ id: z.string() }) });
+      const sortie = z.strictObject({ f: z.strictObject({ id: idDe('skill') }) });
+      const schema = z.strictObject({ type: z.literal('x'), v: entree.pipe(sortie) });
+      const defs: SchemaDef[] = [{ file: 'x.json', root: 'src/data', famille: 'config', schema }];
+      expect(noeudsDeStructure(defs).map((n) => n.ref)).toEqual(['.v', '.v.f']);
+      expect(cheminsDeDocument(defs).find((c) => c.ref === '.v.f.id')?.etat).toBe('idDe');
+    });
+
     it('l’empreinte d’un point est celle de ses champs fusionnés (`empreinteDeChamps`) ; ses chemins conjoints se jugent ensemble', () => {
       const schema = z.strictObject({ type: z.literal('x'), v: z.strictObject({ id: idDe('skill') }).and(z.looseObject({ id: z.string(), b: z.number() })) });
       const defs: SchemaDef[] = [{ file: 'x.json', root: 'src/data', famille: 'config', schema }];
@@ -197,6 +258,18 @@ describe('clé d’un site', () => {
 });
 
 describe('état d’un chemin de document', () => {
+  it('le plancher refuse une référence relâchée dans un record d’une union', () => {
+    const mesurer = (valeur: z.ZodType) => cheminsDeDocument([{
+      file: 'x.json', root: 'src/data', famille: 'config',
+      schema: z.strictObject({ type: z.literal('x'), v: z.union([z.string(), z.record(z.string(), valeur)]) }),
+    }]).map((c) => ({ ...c, occurrences: 1 }));
+    const avant = mesurer(ref('skill'));
+    const apres = mesurer(z.literal('a'));
+    expect(FEUILLES_D_ID.plancher.cede(avant, apres)).toEqual([
+      expect.stringMatching(/src\/data#x :: \.v\|<record>\{\} .*RELÂCHÉE/),
+    ]);
+  });
+
   it('un objet dont l’`id` est une référence emboîtée la PORTE, il n’en est pas une', () => {
     const porteurs = z.strictObject({
       type: z.literal('x'),

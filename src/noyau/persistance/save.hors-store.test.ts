@@ -4,8 +4,12 @@
  * refus d'écrire se décide ici.
  */
 import { combattantDeTest } from '../../engine/combattantDeTest.testkit';
+import { effectiveArmourAt } from '../../engine/characteristics';
+import { tickDurations } from '../../engine/conditions';
+import { makeRNG } from '../../engine/dice';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
-import { itemFromTrappingById } from '../../engine/items';
+import { damageArmour, emptyArmour, estUneVraieArme, itemFromTrappingById, lacherLArme, recomputeLoadout } from '../../engine/items';
+import { applyOps } from '../../engine/ops';
 import { describe, it, expect, onTestFinished, vi } from 'vitest';
 import {
   chargerLaSave,
@@ -22,6 +26,8 @@ import {
   type SaveGame,
 } from '../index';
 import { initialNet, type BattleState } from '../etat';
+import { ouvrirLeBanc } from '../banc.testkit';
+import { buildEncounter } from '../monde/encounterAuthoring';
 import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
 import { conditionIds, eyes, findVehicleById, species, type TrappingData } from '../../data/index';
@@ -30,6 +36,8 @@ import { FORMAT_SAVE } from './formats.generated';
 import * as referencesDeCreation from './referencesDeCreation';
 import { enregistrerEntree } from '../../data/atelierDuCodex';
 import { ciblePsy } from '../../engine/psych/ciblage';
+import { garanti } from '../../lib/garanti';
+import { testScene } from '../../scenes/test-fixture';
 import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-conditions-etendues';
 
 /** L'état d'un hôte web : l'état du jeu, plus des clés de son interface. */
@@ -58,6 +66,57 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
 });
 
 describe('lireSave — format courant', () => {
+  it('relit l’usure d’un Trait Armure temporisé et la perte d’une arme de Trait dans une rencontre', () => {
+    const fiche = combattantDeTest({ id: 'heros-usure', kind: 'heros' });
+    const banc = ouvrirLeBanc({ etat: { party: [fiche] } });
+    const scene = testScene();
+    const { entities, encounter } = buildEncounter({
+      id: 'enc-ours',
+      enemies: [{ creature: { id: 'ours' }, pos: { x: 12, y: 10 } }],
+    });
+    banc.getState().lancerLaScene({
+      ...scene, entities: [...scene.entities, ...entities], encounters: [...scene.encounters, encounter],
+    });
+    banc.getState().lancerLeCombat(encounter.id);
+    const etat = banc.getState();
+    const bataille = garanti(etat.battle, encounter.id, 'rencontre ouverte');
+    const oursId = entities[0].id;
+    const porteur = garanti(bataille.combatants.find((c) => c.id === fiche.id), fiche.id, 'combattant');
+    const ours = garanti(bataille.combatants.find((c) => c.id === oursId), oursId, 'adversaire');
+    const arme = garanti(ours.weapons.find(estUneVraieArme), oursId, 'arme de Trait');
+    expect(ours.items ?? []).toEqual([]);
+
+    applyOps(porteur, [{ op: 'grantTrait', trait: { id: 'armure', value: 2, matiere: 'peau' }, durationRounds: 1 }], {
+      idNeuf: idsDeTest, rng: makeRNG(1), source: { kind: 'trait', id: 'metamorphose' },
+    });
+    expect(damageArmour(porteur, 'corps')).toBe(true);
+    lacherLArme(ours, arme);
+
+    const save = snapshotSave(etat, '2026-11-21T06:30:00.000Z');
+    const lue = lireSave(exporterLaSauvegarde(save));
+    if (typeof lue === 'string') throw new Error(lue);
+    const relue = garanti(chargerLaSave(lue).etat.battle, encounter.id, 'rencontre relue');
+    const protege = garanti(relue.combatants.find((c) => c.id === fiche.id), fiche.id, 'combattant relu');
+    const desarme = garanti(relue.combatants.find((c) => c.id === oursId), oursId, 'adversaire relu');
+    expect([effectiveArmourAt(protege, 'corps'), effectiveArmourAt(protege, 'tete')]).toEqual([1, 2]);
+    recomputeLoadout(protege);
+    recomputeLoadout(desarme);
+    expect([effectiveArmourAt(protege, 'corps'), effectiveArmourAt(protege, 'tete')]).toEqual([1, 2]);
+    expect(desarme.weapons.filter(estUneVraieArme)).toEqual([]);
+    expect(desarme.weapons.filter((w) => w.natural).map((w) => w.attackKind)).toEqual(['morsure']);
+
+    tickDurations(protege);
+    expect([effectiveArmourAt(protege, 'corps'), effectiveArmourAt(protege, 'tete')]).toEqual([0, 0]);
+  });
+
+  it('refuse le format qui incluait les PA du Trait dans l’instantané d’armure', () => {
+    const save = snapshotSave(etatInitialDuJeu(), '2026-11-21T06:30:00.000Z');
+    const fiche = combattantDeTest({ kind: 'heros', traits: [{ id: 'armure', value: 2, matiere: 'peau' }] });
+    const ancienPorteur = { ...fiche, armour: emptyArmour(2) };
+    const ancienne = { ...save, version: '53cdffa19bea1f90', data: { ...save.data, party: [ancienPorteur] } };
+    expect(lireSave(exporterLaSauvegarde(ancienne))).toBe('autreFormat');
+  });
+
   it('relit la sauvegarde du profil Pertuisane/Fauchard avec ses données intactes', () => {
     const profil: TrappingData = {
       id: 'pertuisane-fauchard',

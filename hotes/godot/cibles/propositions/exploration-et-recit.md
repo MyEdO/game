@@ -66,6 +66,8 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - RAW : LDB 12 l.200 ; LDB 15 l.55 ; LDB 18 l.296-298.
 - À valider : les gestes du groupe en pastilles empilées, absentes quand la situation les ferme ; le ramassage par
   le héros qui mène ; l'arête franchissable dite sur la scène, pas dans une liste.
+- À valider (#4585) : le poste d'une chose signalée a 148 px de large au moins et une tête de la hauteur d'un
+  portrait, comme les postes de la nuit et du bord (`lieux-et-nuit.md`, `voyage.md`).
 
 ## exploration-dessus (2026-11-17, #4411)
 - La salle de `exploration-gestes`, vue du dessus. Seule la caméra change : mêmes pions (anneau des héros, halo de
@@ -157,3 +159,5 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
   pied) et « Prendre la route » ; bandeau des héros et leur bourse ; « Revenir à l'auberge ».
 - À valider : distances, durées et tarifs d'exemple, non relus au livre ; seuls les lieux connus du groupe montrés ;
   la carte ouverte depuis le lieu, pas depuis la route ; « Reprendre le voyage » (`carteEnVue.reprendre`) non dessiné.
+- À valider (#4585) : la destination sur la grille commune des colonnes : son nom et sa route en tête ; la prose, les
+  étapes et les moyens dans le corps qui défile ; « Partir » au pied fixe.

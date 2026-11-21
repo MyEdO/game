@@ -49,6 +49,7 @@ import { canAidTeam } from './monde/commandTeam';
 import { controlsCombatant, decidingSeat, unSiegeAgit } from './netOwnership';
 import { surfaceTientLaMain } from './modalArbiter';
 import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
+import { sortsDisponibles } from '../engine/sortsDuPnj';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
 import { canMove, mountablesNear } from './mount';
@@ -425,7 +426,7 @@ export const ACTION_CANDIDATES: Record<SelecteurDAction, (ctx: ActionSelectorCtx
    *  d'ARME est le geste du conduit (`attaque`), jamais une case de la grille. */
   'attaques-de-trait': ({ active, battle, scene }) => availableAttacks(scene, active, battle).filter((a) => a.kind !== 'arme' && !attaqueImmediate(a)),
   'attaques-de-zone': ({ active, battle, scene }) => availableAttacks(scene, active, battle).filter((a) => a.kind !== 'arme' && attaqueImmediate(a)),
-  'sorts-du-heros': ({ active }) => active.spells ?? [],
+  'sorts-du-heros': ({ active }) => sortsDisponibles(active),
   /** Les États PORTÉS : la réserve de Détermination est le verdict d'offre (`determination-en-reserve`), qui dit son refus. */
   'etats-retirables': ({ active }) => active.conditions,
   consommables: ({ active, state }) => {
@@ -512,7 +513,7 @@ export const ACTION_PORTEURS: Partial<Record<SelecteurDAction, PorteurDeclare>> 
     const o = c as { entityId: string; key: string; label: string };
     return { porteurId: o.entityId, args: { entityId: o.entityId, pickKey: o.key }, label: o.label };
   }),
-  /** Un SORT du héros — le candidat EST son id (`Combatant.spells: string[]`) : c'est lui que porte
+  /** Un SORT du héros — le candidat EST son id (`sortsDisponibles`) : c'est lui que porte
    *  l'alvéole du sort, et lui que le geste secondaire de Focalisation paramètre. */
   'sorts-du-heros': declarerPorteur(['spellId'], (c) => {
     const id = c as string;

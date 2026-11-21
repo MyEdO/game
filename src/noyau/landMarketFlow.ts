@@ -34,7 +34,7 @@ import {
   type LandMarketProfile, rollFindMerchant, rollCargoQuantity, rollRandomLandCargo, landCargoBasePrice,
   sellDemandTarget, sellOfferPct, landDumpingPct, rollMerchantSkill, partialSurchargePct, minCargoEnc,
   wineEvalDifficulty, wineEvalReveal, rollTradeRumour, gossipRule,
-  type TradeRumour, tradeRumourMult,
+  type TradeRumour, tradeRumourMult, type QualiteSecreteDuVin,
 } from '../engine/landCargo';
 import { type CargoLot, type CargoCarrier, findCargoById, loadCargo, carrierCanLoad, carrierFreeEnc, transferCargo } from '../engine/cargo';
 import { findLieuServiceById, combatStakeRef } from '../data/index';
@@ -60,6 +60,7 @@ export interface LandOffer {
   enc: number;
   basePrice: number;
   wine: boolean;
+  qualiteSecreteDuVin?: QualiteSecreteDuVin;
   /** Vin ÉVALUÉ (Test d'Évaluation joué, l.95) : la qualité affichée (vraie sur un succès, FAUSSE sur un
    *  échec). Absent tant que le lot n'a pas été évalué (« qualité incertaine »). */
   wineTier?: string;
@@ -123,8 +124,8 @@ function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => vo
     const { enc } = rollCargoQuantity(market, rng);
     if (enc <= 0) return;
     phase(`Prix de base — ${cargo.label}`);
-    const basePrice = landCargoBasePrice(cargo, season, market, rng);
-    offers.push({ cargoId, label: cargo.label, enc, basePrice, wine: !!cargo.wine });
+    const prix = landCargoBasePrice(cargo, season, market, rng);
+    offers.push({ cargoId, label: cargo.label, enc, ...prix, wine: !!prix.qualiteSecreteDuVin });
   };
   // Marchandises LOCALES (colonne Produits) : un marqueur de l'Index (`echangeable: false`) n'est pas
   // résolu par `findCargoById`, donc il n'ouvre aucune offre.
@@ -460,7 +461,8 @@ export const TABLES = {
       const offer = st?.offers.find((o) => o.cargoId === cargoId);
       if (!st || !offer) return {};
       const { success, sl, roll } = step.result;
-      const rev = wineEvalReveal(offer.basePrice, success, sl);
+      const qualite = garanti(offer.qualiteSecreteDuVin, cargoId, 'qualité secrète du vin');
+      const rev = wineEvalReveal(qualite, success, sl);
       set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, wineTier: rev.shownLabel, wineEvalOk: success } : o) } });
       const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
       return { consequences: freeCons([`${garanti(actor, step.actorId, 'évaluation du vin').label} — Évaluation du ${offer.label} (${roll}) : qualité jugée « ${rev.shownLabel} »${success ? '.' : ' — jugement peu sûr…'}`]) };

@@ -79,7 +79,7 @@ const GESTES_DU_BROUILLON = {
   tirerLaBourse: (d: CreatorDraft) => rollDraftWealth(d),
   dotation: (d: CreatorDraft, adresse: AdresseDeCreation, v: number | string) => withTrappingChoice(d, adresse, v),
   sexe: (d: CreatorDraft, sexe: Sexe) => withSexe(d, sexe),
-  tirerUnNom: (d: CreatorDraft, graine: number) => rollDraftName(d, graine),
+  tirerUnNom: rollDraftName,
   tirerLePhysique: (d: CreatorDraft) => rollDraftDetails(d),
   couleurDesYeux: (d: CreatorDraft, rang: 0 | 1, id: string | null) => withCouleurDesYeux(d, rang, id),
 } satisfies Record<string, (d: CreatorDraft, ...args: never[]) => CreatorDraft>;
@@ -399,10 +399,13 @@ function choixDeCouleurDesYeux(d: CreatorDraft): RubriqueDeCreation[] {
 
 /** 6) L'identité. LDB 05 l.701-768 */
 function pageDeLIdentite(d: CreatorDraft): RubriqueDeCreation[] {
+  const ogre = draftSpecies(d)?.refChar === 'ogre';
+  const graineDuNom = hashSeed(`nom/${d.seed}/${d.label}`);
   const couleurs = d.eyes?.flatMap((c) => libelleDeCouleur('eyes', c) ?? []) ?? [];
   return [
     choix('sexe', t('crea.vue.sexe'), sexeSchema.options.map((s) => option(libelleDeValeur(sexeSchema, s), geste('sexe', s), s === d.apparence.sex))),
-    gesteDe('nom', t('crea.vue.tirerNom'), geste('tirerUnNom', hashSeed(`nom/${d.seed}/${d.label}`))),
+    gesteDe('nom', t(ogre ? 'crea.vue.tirerNomOgre' : 'crea.vue.tirerNom'), geste('tirerUnNom', graineDuNom)),
+    ...(ogre ? [gesteDe('nom-humain', t('crea.vue.tirerNomHumain'), geste('tirerUnNom', graineDuNom, 'humain'))] : []),
     ...(d.label ? [valeur('nomTire', t('crea.vue.nom'), d.label)] : []),
     ...(d.age === undefined
       ? [gesteDe('physique', t('crea.vue.tirerPhysique'), geste('tirerLePhysique'))]

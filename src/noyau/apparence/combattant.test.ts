@@ -9,6 +9,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { porteeDuCombattant, vehiculeDuCombattant } from './combattant';
 import { facteursDeComposition, porteesDeLaTenue } from './composition';
 import { piecesDEnsemble } from './gardeRobe';
+import { LOCALISATIONS_DE_COUP } from '../../engine/types';
+import { sourceDuTraitA } from '../../engine/armourBypass';
 import { createHero } from '../../engine/character';
 import { hydratePoste, itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import {
@@ -146,9 +148,9 @@ describe('porteeDuCombattant', () => {
   it('une armure de statbloc déclarée portée revêt les pièces des localisations à PA, à la teinte du Groupe de leur palier', () => {
     const c = creature('helmut-beckenbauer');
     expect(c.items?.some((i) => i.equipped && i.kind === 'armor')).toBeFalsy();
-    const locs = (Object.keys(c.armour) as (keyof typeof c.armour)[]).filter((l) => c.armour[l] > 0);
+    const locs = LOCALISATIONS_DE_COUP.filter((loc) => (sourceDuTraitA(c, loc)?.pa ?? 0) > 0);
     expect(locs.length).toBeGreaterThan(0);
-    const palier = findTierEntry(weaponGroups.filter((g): g is GroupeDArmure & { seuil: number } => g.kind === 'armour' && g.seuil !== undefined), c.armour.corps)!;
+    const palier = findTierEntry(weaponGroups.filter((g): g is GroupeDArmure & { seuil: number } => g.kind === 'armour' && g.seuil !== undefined), sourceDuTraitA(c, 'corps')!.pa)!;
     teindreLesGroupes({ [palier.id]: 'ardente-de-rhuin' });
     expect(pieces(c)).toEqual(piecesCouvrant(locs).map((piece) => ({ piece, par: undefined, teinte: 'ardente-de-rhuin' })));
   });

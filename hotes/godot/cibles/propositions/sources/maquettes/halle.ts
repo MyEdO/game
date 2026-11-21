@@ -18,18 +18,17 @@ const RUMEUR = { titre: 'Rumeur au marché', texte: 'Vivres, Bois se vendraient 
 export const laine = (o: Partial<OffreDeNegoce> = {}): OffreDeNegoce => ({ role: 'offre', denree: 'laine', nom: 'Laine', negociant: 'Un négociant en laine', disponible: 350, prixDeBase: 24, ...o });
 const VIN: OffreDeNegoce = { role: 'offre', denree: 'vin', nom: 'Vin', negociant: 'Un vigneron · qualité incertaine', disponible: 280, prixDeBase: 72 };
 
-/** Les parts du groupe sur le lot de laine, la part d'Aldric `aldric`. */
+/** Les parts du groupe sur le lot de laine, la part d'Aldric `aldric`, celle que le joueur règle. */
 const parts = (aldric: Sous): Part[] => [
   { heros: 'bjorn', part: 120, avoir: BOURSES.bjorn }, { heros: 'mira', part: 60, avoir: BOURSES.mira },
-  { heros: 'aldric', part: aldric, avoir: BOURSES.aldric }, { heros: 'greta', part: 120, avoir: BOURSES.greta }];
+  { heros: 'aldric', part: aldric, avoir: BOURSES.aldric, reglee: true }, { heros: 'greta', part: 120, avoir: BOURSES.greta }];
 /** La page du chargement de 25 Enc de laine sur la charrette ; `marchande`, la ligne du Marchandage gagné et le prix
  *  marchandé ; sans `conclure`, le Marchandage se joue. */
 export const chargement = ({ marchande, conclure = true }: { marchande?: LigneDeCompte; conclure?: boolean } = {}): PageDeService => ({
   titre: 'Le chargement', nom: 'Laine', sous: 'Achat en composition',
   blocs: [
-    { bloc: 'texte', texte: 'Le négociant cède son lot entier, ou une part d’au moins 10 Enc.' },
     { bloc: 'porteurs', porteurs: [{ id: 'charrette', nom: 'Charrette', porte: 0, charge: 25, ajout: 25, pris: true }, { id: 'mule', nom: 'Mule', porte: 0, charge: 14 }] },
-    { bloc: 'quantite', libelle: 'Enc à acheter', valeur: 25, min: 10, max: 25 },
+    { bloc: 'quantite', libelle: 'Enc à acheter', valeur: 25, min: 10, max: 25, aide: 'Le négociant cède son lot entier, ou une part d’au moins 10 Enc.' },
     { bloc: 'compte', lignes: [
       { libelle: 'Prix de base', detail: { enc: 25, a: 24 }, valeur: { prix: 600 } },
       { libelle: 'Lot partagé', detail: { pourcent: 10 }, valeur: { prix: 60 } },
@@ -65,7 +64,7 @@ export default {
           { libelle: 'Prix de base', detail: { enc: 25, a: 24 }, valeur: { prix: 600 } },
           { libelle: 'Mise à prix à Kemperbad', detail: { pourcent: 5 }, valeur: { prix: 630 } }] },
         { bloc: 'voies', voies: [
-          { id: 'balance', nom: 'Vendre', test: 'Recherche d’acheteur, puis Marchandage', texte: 'Un acheteur se trouve sur 60 ou moins au d100 ; sinon la moitié du lot se propose.', prix: 630, prise: true },
+          { id: 'balance', nom: 'Vendre', test: 'Acheteur ≤ 60, puis Marchandage', texte: 'Un acheteur se trouve sur 60 ou moins au d100 ; sinon la moitié du lot se propose.', prix: 630, prise: true },
           { id: 'moitie', nom: 'Brader', test: 'Sans Test', texte: 'Une place de commerce reprend tout lot à la moitié de son prix de base.', prix: 300 },
           { id: 'deplacer', nom: 'Déplacer', test: 'Vers la mule · 14 Enc libres', texte: 'Le lot change de porteur, en tout ou en partie.' }] }],
       gestes: [{ libelle: 'Vendre', principal: true }],

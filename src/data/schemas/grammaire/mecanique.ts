@@ -14,7 +14,7 @@ import { declarerEnfants, defDe } from './descente';
 import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './collection-cle';
 import { listeSansCle } from './liste-sans-cle';
 import { marquerProduit } from './interne/produits';
-import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
+import { categorieDEntreeAPool, findTraitById, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import {
@@ -63,7 +63,7 @@ import {
   tirageSchema,
   type FormuleAuPeche,
 } from './valeurs';
-import { lireLesCiblesPsy, traitInstanceSchema } from './reference';
+import { lireLesCiblesPsy, traitInstanceSchema, type TraitPose } from './reference';
 import {
   affinerAvecCatalogues,
   idDe,
@@ -632,29 +632,35 @@ const DECLARATIONS_D_OPS = {
    *  (LDB 47 l.441). Sa Cible est
    *  posée (`trait.arg`) ou TIRÉE (`cible`, `pick` tirages sur une table de Cibles) : EDOC 12 l.217, l.241.
    *  `indicePerSL` s'ajoute à l'Indice au DR du jet : LDB 47 l.420. */
-  grantTrait: nommerChamps(affinerAvecCatalogues(z.strictObject({
+  grantTrait: declarerPayload({
     op: z.literal('grantTrait'),
     trait: traitInstanceSchema,
+    choix: reserve(z.literal(true).optional()),
     cible: tirageDeCibleSchema.optional(),
     indicePerSL: perSLSchema.optional(),
     onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
-  }), (lire) => {
+  }, { op: { label: "opération" }, trait: { label: "Trait" }, choix: { label: "Choisir la spécialisation" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }, raffinementDeCatalogue((lire) => {
     const { specAuCatalogue } = lire.specialisations('trait');
+    const lireLeTrait = lire.racine('trait', (id: string) => findTraitById(id));
     return (o, ctx) => {
-      if (!o.cible) return;
-      const { id, arg } = o.trait;
+      const { id, arg } = o.trait as Pick<TraitPose, 'id' | 'arg'>;
+      const cible = o.cible as TirageDeCible | undefined;
+      if (o.choix && (!lireLeTrait(id)?.capabilities?.spellcaster || arg !== undefined || cible)) {
+        ctx.addIssue({ code: 'custom', path: ['choix'], message: `Trait « ${id} » : le choix exige un Trait de lanceur de sorts, sans argument déjà posé ni Cible tirée.` });
+      }
+      if (!cible) return;
       if (arg !== undefined) {
         ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
       }
-      const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !specAuCatalogue(id, g));
+      const absents = GROUPES_TIRABLES[cible.table.id]().filter((g) => !specAuCatalogue(id, g));
       if (absents.length) {
-        ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
+        ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
       }
     };
-  }), { op: { label: "opération" }, trait: { label: "Trait" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  })),
   /** Pose d'AUTEUR d'un état psychologique : jamais une entrée qui en devient une autre (`becomes`). LDB 21 l.56 */
   beginPsych: nommerChamps(affinerAvecCatalogues(z.strictObject({
     op: z.literal('beginPsych'),

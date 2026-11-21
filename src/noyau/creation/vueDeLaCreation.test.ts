@@ -26,6 +26,7 @@ import {
   eyes,
   fabricationAtouts,
   findQualityById,
+  names,
   offreDuJet,
   species,
   talentsAleatoires,
@@ -36,6 +37,7 @@ import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { setDataset, type DatasetKey } from '../../data/overrides';
 import { enregistrerEntree } from '../../data/atelierDuCodex';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
+import { codexLookupById } from '../codex/registry';
 import { rollCareer } from '../../engine/creation';
 import { deFixe, deMin } from '../../engine/dice.testkit';
 
@@ -122,6 +124,97 @@ describe('la création en pages', () => {
     expect(page(passeHumain).some((r) => r.id === 'choixSecondeCouleur')).toBe(false);
     expect(options(rubrique(page(passeHumain), 'choixYeux')).map((o) => o.libelle)).not.toContain('Au choix');
     expect(prendre(passeHumain, 'choixYeux', 0, 'vert').eyes).toEqual([{ id: 'vert', colonne: 'humain' }]);
+  });
+});
+
+describe('les deux noms offerts aux ogres (ADE II 02 l.325-334)', () => {
+  const ogre = withSpecies(newDraft(7), 'ogres');
+  const reiklander = withSpecies(newDraft(7), 'humains-reiklander');
+  const page = (d: CreatorDraft) => rubriquesDeLaPage(d, 'details');
+  const tirer = (d: CreatorDraft, id: string) => {
+    const r = rubrique(page(d), id);
+    if (r.genre !== 'geste') throw new Error('Le nom doit s’offrir aux dés');
+    return apresLeGeste(d, r.geste);
+  };
+
+  it('propose un nom traditionnel et un nom humain à l’Ogre', () => {
+    expect(rubrique(page(ogre), 'nom')).toMatchObject({ libelle: 'Nom ogre aux dés' });
+    expect(rubrique(page(ogre), 'nom-humain')).toMatchObject({ libelle: 'Nom humain aux dés' });
+    expect(rubrique(page(reiklander), 'nom')).toMatchObject({ libelle: 'Nom aux dés' });
+    expect(page(reiklander).map((r) => r.id).filter((id) => id.startsWith('nom'))).toEqual(['nom']);
+    const traditionnel = tirer(ogre, 'nom');
+    expect(traditionnel.label).toBe('Marenn');
+    expect(rubrique(page(traditionnel), 'nomTire')).toMatchObject({ valeur: 'Marenn' });
+    expect(tirer(ogre, 'nom-humain').label).toBe(tirer(reiklander, 'nom').label);
+  });
+
+  it('relit la banque humaine éditée au Codex quand le joueur choisit le nom humain', () => {
+    const index = names.findIndex((pool) => pool.id === 'humain');
+    const humain = names[index];
+    const avant = tirer(ogre, 'nom-humain').label;
+    const transaction = enregistrerEntree('names', {
+      ...humain, maleFirstNames: ['Aubrin'], femaleFirstNames: ['Aubrine'], lastNames: ['Des Saules'],
+    }, index);
+    if (!transaction.ok) throw new Error(transaction.erreurs.join(', '));
+    try {
+      expect(transaction.texte).toContain('Des Saules');
+      expect(tirer(ogre, 'nom-humain').label).toBe('Aubrin Des Saules');
+      expect(tirer(reiklander, 'nom').label).toBe('Aubrin Des Saules');
+      expect(tirer(ogre, 'nom').label).toBe('Marenn');
+    } finally {
+      transaction.reprendre();
+    }
+    expect(tirer(ogre, 'nom-humain').label).toBe(avant);
+  });
+
+  it.each([
+    ['une racine sans terminaison', { firstNameSuffixes: undefined }, 'vont de pair'],
+    ['une banque vide', { firstNamePrefixes: undefined, firstNameSuffixes: undefined }, 'former un nom'],
+    ['des composantes avec des noms de famille', { lastNames: ['Des Saules'] }, 'remplacent les listes de noms'],
+    ['des composantes avec des suffixes patronymiques', { lastNameSuffixes: { M: ['sson'], F: ['sdottir'] } }, 'remplacent les listes de noms'],
+    ['une terminaison blanche', { firstNameSuffixes: [' '] }, 'former un seul mot'],
+    ['une racine à plusieurs mots', { firstNamePrefixes: ['Grum tar'] }, 'former un seul mot'],
+  ] as const)('refuse %s au Codex', (_, champs, erreur) => {
+    const index = names.findIndex((pool) => pool.id === 'ogre');
+    const transaction = enregistrerEntree('names', { ...names[index], ...champs }, index);
+    if (transaction.ok) {
+      transaction.reprendre();
+      throw new Error('La banque aurait dû être refusée : ' + erreur);
+    }
+    expect(transaction.erreurs.join(' ')).toContain(erreur);
+  });
+
+  it('relit une ancienne banque complète de prénoms et de noms de famille', () => {
+    const index = names.findIndex((pool) => pool.id === 'ogre');
+    const banque = names[index];
+    const ancienne = enregistrerEntree('names', {
+      ...banque, firstNamePrefixes: undefined, firstNameSuffixes: undefined,
+      maleFirstNames: ['Athel'], femaleFirstNames: ['Athèle'], lastNames: ['Bauer'],
+    }, index);
+    if (!ancienne.ok) throw new Error(ancienne.erreurs.join(', '));
+    try {
+      expect(tirer(ogre, 'nom').label).toBe('Athel Bauer');
+    } finally {
+      ancienne.reprendre();
+    }
+  });
+
+  it('édite les deux composantes ogres au Codex et les relit dans le tirage traditionnel', () => {
+    const index = names.findIndex((pool) => pool.id === 'ogre');
+    const banque = names[index];
+    const transaction = enregistrerEntree('names', { ...banque, firstNamePrefixes: ['Grum'], firstNameSuffixes: ['attha'] }, index);
+    if (!transaction.ok) throw new Error(transaction.erreurs.join(', '));
+    try {
+      expect(transaction.texte).toContain('attha');
+      expect(codexLookupById('names', 'ogre')?.sections).toEqual([
+        { title: 'Racines de prénoms', layout: 'chips', rows: [{ t: 'text', text: 'Grum' }] },
+        { title: 'Terminaisons de prénoms', layout: 'chips', rows: [{ t: 'text', text: 'attha' }] },
+      ]);
+      expect(tirer(ogre, 'nom').label).toBe('Grumattha');
+    } finally {
+      transaction.reprendre();
+    }
+    expect(tirer(ogre, 'nom').label).toBe('Marenn');
   });
 });
 

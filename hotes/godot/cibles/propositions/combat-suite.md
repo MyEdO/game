@@ -283,6 +283,9 @@ exemple.
   tout le groupe s'y engageant ; le billet de la Scène visée ; « Libre · à poster » sur la carte du héros sans poste ;
   où chaque Scène se pose sur le champ (donnée absente du jeu) ; le facteur environnemental tiré (ADE II 08 l.307-322)
   n'a pas d'image à lui ; la pose d'un héros est `bataille-de-masse-poster`, la sortie `bataille-de-masse-issue`.
+- À valider (#4585) : la Puissance sur la grille commune des colonnes, sans tête : le premier geste au pied fixe, le
+  second au bas du corps qui défile ; la table de l'aperçu d'une Scène à hauteur fixe, ses valeurs sur deux lignes au
+  besoin.
 
 ## bataille-de-masse-poster
 - Poster et retirer un héros, nouvel état de la page `bataille-de-masse` : la Scène « Motivation » visée, son billet
@@ -328,6 +331,8 @@ exemple.
   défense ; ni Chance ni Résilience, le jet étant celui de l'armée ; les Scènes quittent le champ une fois le Round
   joué ; chiffres d'exemple (50 et 55 au départ, bonus de +10 au premier Round, 48 après les Scènes, dés 31 et 67) ;
   la Menace (`batailleEnVue.menace`) n'est pas montrée, l'exemple n'en ayant pas.
+- À valider (#4585) : le milieu du contenant a la largeur de celui de l'issue (360 px), les deux armées la même place
+  d'un état à l'autre.
 
 ## course-poursuite-en-mer
 - La traversée continue, sur l'écran du voyage en mer : la Cogue pirate dans le sillage, la Distance en frise de 0
@@ -339,6 +344,9 @@ exemple.
   le billet montre le Test tombé, son lancer est `course-poursuite-en-mer-test` ; la décision qui ouvre la poursuite est
   `course-poursuite-en-mer-sommation` ; l'abordage à Distance 0 (MDG 13 l.420) renvoie au combat naval
   (`voyage/combat-naval.jpg`) ; la pastille « Postes de bord » suit celle de `voyage/voyage-en-mer`.
+- À valider (#4585) : le panneau de la poursuite ne répète pas la Distance quand la frise la montre ; sinon, la Distance
+  et sa jauge sur une ligne ; les issues en une rangée (« semés à 100 · collision et abordage à 0 »), la condition de
+  chacune au survol. La sommation dit le navire hostile et ses forbans sur une ligne.
 
 ## course-poursuite-en-mer-test
 - Le Test d'équipage de Poursuite à lancer (MDG 14 l.67-71), rôle après rôle : le billet du Test donne une rangée par
@@ -352,6 +360,9 @@ exemple.
 - À valider : les gestes au pied du billet plutôt que dans un bandeau du jet, les héros gardant leur bandeau ;
   l'ordre des rangées ; seuils d'exemple ; l'état après le dé d'une rangée est
   `course-poursuite-en-mer-test-tombe` ; le Chansonnier (MDG 14 l.71) n'est pas tenu.
+- À valider (#4585) : le Test d'équipage et le Test de Mouvement de la fenêtre rangent chaque lanceur dans une case
+  fixe (cinq par rang) : son portrait, son seuil, son DR ou ce qu'il attend ; qui, son poste, son Test et le détail de
+  l'issue au survol ; la règle et la somme sous la rangée.
 
 ## course-poursuite-en-mer-test-tombe
 - Le Test d'équipage après le dé d'une rangée, nouvel état de la page du Test : la rangée de Mira tombée en échec,
@@ -392,6 +403,8 @@ exemple.
 - À valider : la frise de la mer reprise à l'échelle 0-10 ; « Tout lancer » à droite des gestes de la rangée ;
   « Abandonner la fuite » dans le panneau et non au pied ; les coureurs en silhouettes sur la route ; Distance 4 et
   seuils d'exemple.
+- À valider (#4585) : la poursuite et la sommation sur la grille commune des colonnes, sans tête ; « Abandonner la
+  fuite » en plaque pleine au pied fixe.
 
 ## poursuite-terrestre-rattrapes
 - La Distance tombée à 0 (LDB 15 l.102-108) : le bandeau « Rattrapés — que fait le groupe ? », celui qui décide, deux

@@ -22,7 +22,7 @@ import { ficheDEntite, nomDIndividu } from './monde/sceneNpc';
 import type { TrappingResolver } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { enEmbuscade } from './visionDuGroupe';
-import { etiquetteDeScene } from './monde/porteurs';
+import { etiquetteDeScene, etiquettesDesObjetsPortes } from './monde/porteurs';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import {
@@ -143,8 +143,14 @@ export function openEncounterPsych(get: Get, set: Set): void {
   const s = get();
   if (s.pendingCascade || !s.scene) return;
   const npcs = sourcesDeLaScene(s);
-  const sources: SourceEnVue[] = [...npcs.map(sourceCombattant), ...etiquetteDeScene(s.scene)];
-  if (!sources.length) return;
+  const resolveTrapping = objetDuNarratif(s.campaignNarratif);
+  const sourcesDeRencontre: SourceEnVue[] = [
+    ...npcs.map(sourceCombattant),
+    ...etiquetteDeScene(s.scene),
+    ...npcs.flatMap((pnj) => etiquettesDesObjetsPortes(pnj, resolveTrapping)),
+  ];
+  const objetsDesHeros = s.party.map((h) => ({ porteur: h.id, sources: etiquettesDesObjetsPortes(h, resolveTrapping) }));
+  if (!sourcesDeRencontre.length && !objetsDesHeros.some(({ sources }) => sources.length > 0)) return;
   // …PUIS le verdict « tant que vous défendez les êtres aimés » (l.75) sur ce qui a SURVÉCU à la borne
   // (pose authorée d'un Amour, Peur héritée) : le roster de la rencontre est le groupe + les PNJ présents.
   // Ordre imposé : après la borne, sinon le refresh ne verrait que ce qu'elle vient d'effacer.
@@ -153,6 +159,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
   const dues: PsychDue[] = [];
   for (const hero of get().party) {
     if (hero.dead) continue;
+    const sources = [...sourcesDeRencontre, ...objetsDesHeros.flatMap((h) => h.porteur === hero.id ? [] : h.sources)];
     const trig = encounterPsych(hero, sources);
     if (!trig) continue;
     const src = sources.find((n) => idDeSource(n) === trig.sourceId);

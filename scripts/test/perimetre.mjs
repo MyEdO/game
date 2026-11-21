@@ -356,8 +356,9 @@ export const texteDuMur = (murMs, { sansDuree = 0, murCiMs = 0, nCi = 0 } = {}) 
 /** Le texte d'un lien, pour le rapport « test ← lien ». */
 function texteDuLien(lien) {
   if (lien.nature === 'import') return `import, distance ${lien.distance} : ${lien.chaine.join(' → ')}`
-  if (lien.nature === 'racine balayée') return `racine balayée ${lien.racine} (spécificité ${lien.specificite}, site ${lien.site}), ${lien.touche}`
-  if (lien.nature === 'setup') return `setup : ${lien.racine ? `racine balayée ${lien.racine} (site ${lien.site}), ` : ''}${lien.touche}`
+  const nature = lien.identite ? 'identité de chemin' : 'racine balayée'
+  if (lien.nature === 'racine balayée') return `${nature} ${lien.racine} (spécificité ${lien.specificite}, site ${lien.site}), ${lien.touche}`
+  if (lien.nature === 'setup') return `setup : ${lien.racine ? `${nature} ${lien.racine} (site ${lien.site}), ` : ''}${lien.touche}`
   return `${lien.nature} : ${lien.touche}`
 }
 

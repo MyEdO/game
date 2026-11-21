@@ -977,7 +977,7 @@ function openAppraise(
   } });
 }
 
-/** Jour de jeu courant (verrou « pas de re-tentative d'Évaluation le même jour »). */
+/** Indice du jour depuis l'origine de l'horloge de jeu. */
 export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
   return Math.floor(s.gameTime / MINUTES_PER_DAY);
 }
@@ -1095,8 +1095,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     return;
   }
   if (!pa.success) {
-    // Un échec à DR 0 offre un nouvel essai (LDB 12 l.94) ; à DR négatif, le délai de la règle maison
-    // `marche-evaluation-delai-jours` court.
+    // LDB 12 l.94
     if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
     get().ecrireAuJournal(t('mf.evaluationRatee', { item: pa.itemName }));
     return;

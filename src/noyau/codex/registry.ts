@@ -123,6 +123,7 @@ import {
 import type { PorteurDeRangee } from './porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
+import { armourPhysiqueAt } from '../../engine/armourBypass';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
 import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
@@ -2034,7 +2035,9 @@ const CODEX_SPECS = {
     // libellé — l'affichage se lit sur le document, sans lookup transverse.
     build: () => names.map((pool) => ({
       id: pool.id, label: pool.label,
-      sub: tr('codex.fiche.noms2', { length: pool.maleFirstNames.length, length2: pool.femaleFirstNames.length, length3: pool.lastNames.length }),
+      sub: pool.firstNamePrefixes && pool.firstNameSuffixes
+        ? tr('codex.fiche.composantesDePrenoms', { racines: pool.firstNamePrefixes.length, terminaisons: pool.firstNameSuffixes.length })
+        : tr('codex.fiche.noms2', { length: pool.maleFirstNames.length, length2: pool.femaleFirstNames.length, length3: pool.lastNames.length }),
       sections: sections(
         // RESTE ASSUMÉ : une rangée porte la LISTE entière (`join(', ')`), pas un nom — en pastille
         // elle ferait une pastille géante. Éclater la donnée en une pastille par nom est un chantier
@@ -2042,6 +2045,8 @@ const CODEX_SPECS = {
         pool.maleFirstNames.length ? { title: tr('codex.fiche.prenomsMasculins'), layout: 'chips', rows: [{ t: 'text', text: pool.maleFirstNames.join(', ') }] } : null,
         pool.femaleFirstNames.length ? { title: tr('codex.fiche.prenomsFeminins'), layout: 'chips', rows: [{ t: 'text', text: pool.femaleFirstNames.join(', ') }] } : null,
         pool.lastNames.length ? { title: tr('codex.fiche.nomsDeFamille'), layout: 'chips', rows: [{ t: 'text', text: pool.lastNames.join(', ') }] } : null,
+        pool.firstNamePrefixes ? { title: tr('codex.fiche.racinesDePrenoms'), layout: 'chips', rows: [{ t: 'text', text: pool.firstNamePrefixes.join(', ') }] } : null,
+        pool.firstNameSuffixes ? { title: tr('codex.fiche.terminaisonsDePrenoms'), layout: 'chips', rows: [{ t: 'text', text: pool.firstNameSuffixes.join(', ') }] } : null,
       ),
     })),
   },
@@ -2929,11 +2934,14 @@ export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): Co
     const category = groupeDeSiege(w.subType) ? 'siegeEngines' : 'trappings';
     return id ? { ...idRefRow(category, id, undefined, w.label), badge } : { t: 'chip', label: w.label, badge };
   });
-  const worn = ARMOUR_LOCS.filter((l) => (c.armour?.[l] ?? 0) > 0);
+  const worn = ARMOUR_LOCS.flatMap((loc) => {
+    const pa = armourPhysiqueAt(c, loc);
+    return pa > 0 ? [`${HIT_LOCATION_LABELS[loc]} ${pa}`] : [];
+  });
   return sections(
     { title: tr('codex.fiche.caracteristiques'), layout: 'grid', rows: charRows },
     weaponRows.length ? { title: tr('codex.fiche.armes'), layout: 'chips', rows: weaponRows } : null,
-    worn.length ? { title: tr('codex.fiche.armure'), layout: 'list', rows: [{ t: 'text', text: worn.map((l) => `${HIT_LOCATION_LABELS[l]} ${c.armour![l]}`).join(' · ') }] } : null,
+    worn.length ? { title: tr('codex.fiche.armure'), layout: 'list', rows: [{ t: 'text', text: worn.join(' · ') }] } : null,
     chips(tr('codex.fiche.traits'), traitRefRows(c.traits, nomDIndividu)),
     skillRows.length ? { title: tr('codex.fiche.competences'), layout: 'chips', rows: skillRows } : null,
     chips(tr('codex.fiche.talents'), (c.talents ?? []).map((t) => idRefRow('talents', t.talentId, t.spec))),

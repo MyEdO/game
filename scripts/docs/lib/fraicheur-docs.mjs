@@ -4,7 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
 import { cheminAbsent, correspondGlob, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
-import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { canoniser, canoniserParDossier, dansLaMesure, memoireDeCanonisation, projeterListingMesure, relatifEntreCheminsCanoniques } from './chemin-mesure.mjs'
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
@@ -35,9 +35,9 @@ function mesurerOutillage(ancien, memoire) {
   return [...fichiersDOutillage()].sort().map((rel) => [rel, hashFichier(RACINE_OUTILLAGE, rel, undefined, memoire)])
 }
 
-/** #2603 — la mémoire d'UNE vue : `canoniseurParDossier` et chemins sous la racine. */
+/** #2603 — la mémoire d'UNE vue : `canoniserParDossier` et chemins sous la racine. */
 function memoireDeVue() {
-  return { canon: canoniseurParDossier(), chemins: new Map() }
+  return { canon: memoireDeCanonisation(), chemins: new Map() }
 }
 
 export function nouvelleVue(racine, options, preuve = chargerPreuve(racine), mesures = lireMesure(racine, options, true), outillagePrecedent, perimetre = perimetreDeMesure(racine)) {
@@ -111,8 +111,9 @@ function cheminSous(racine, relatif, memoire, lien) {
   const connu = memoire?.chemins.get(cle)
   if (connu !== undefined) return connu
   const absolu = cheminLexical(racine, relatif)
-  const canonRacine = memoire ? memoire.canon(racine) : canoniser(racine)
-  if (relatifSousRacine(canonRacine, absolu, memoire && ((chemin) => memoire.canon(chemin, lien))) !== relatif) throw new Error('chemin de preuve hors racine')
+  const canonRacine = memoire ? canoniserParDossier(racine, memoire.canon) : canoniser(racine)
+  const canonAbsolu = memoire ? canoniserParDossier(absolu, memoire.canon, lien) : canoniser(absolu)
+  if (relatifEntreCheminsCanoniques(canonRacine, canonAbsolu) !== relatif) throw new Error('chemin de preuve hors racine')
   memoire?.chemins.set(cle, absolu)
   return absolu
 }
