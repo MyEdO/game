@@ -38,7 +38,7 @@ function heros(id: string, p: Partial<Combatant> = {}): Combatant {
 
 const DETECTEUR = { talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>;
 /** Une ligne de butin non identifiée, et ce que ses tentatives ont déjà posé. */
-const ligne = (uid: string, effet: Record<string, unknown> = {}) => ({ uid, label: 'Épée', magic: true, effect: { type: 'giveTrapping', trappingId: 'epee', identified: false, ...effet } });
+const ligne = (uid: string, effet: Record<string, unknown> = {}) => ({ uid, label: 'Épée', magic: true, effect: { type: 'giveTrapping', objet: { id: 'epee' }, identified: false, ...effet } });
 const victoire = (over: Record<string, unknown> = {}) => ({ xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [], harvested: [], ...over });
 
 describe('evaluerLObjet : un verbe pour l’objet porté et la ligne de butin en fenêtre', () => {

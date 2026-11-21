@@ -2598,9 +2598,10 @@
       "matches": [
         {
           "skill": {
-            "id": "langue"
+            "id": "langue",
+            "spec": "magick"
           },
-          "exceptSpec": "magick"
+          "sauf": true
         }
       ]
     },

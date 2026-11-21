@@ -29,6 +29,8 @@ import {
   rederiveRoofMasses,
   addEffectZone,
   renameEffectZone,
+  deleteSel,
+  patchZone,
 } from './sceneEdit';
 import { sceneEntitySchema, PENTE_TOIT_DEG, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { buildingRoofMaterial } from './monde/buildings';
@@ -109,22 +111,30 @@ describe('édition de scène — zone d’effet : presentation/id (#841 FU-B, le
     expect(zone.presentation).toBeUndefined();
   });
 
-  it('renameEffectZone renomme l’id ET repropage la référence dans FacadeSection.roomZoneIds', () => {
-    const { scene } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 });
-    const oldId = scene.effectZones![0].id;
-    const withFacade: Scene = {
-      ...scene,
-      architecture: [{
-        id: 'corps-0',
-        style: { id: 'maison' },
-        storeys: [],
-        facades: [{ id: 'facade-0', z: 0, edges: [], appearance: 'crepi', roomZoneIds: [oldId] }],
-        masses: [],
-      }],
+  it('renommer, déplacer ou retirer une pièce maintient les références de l’étage et de la façade', () => {
+    const { scene, id } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, { presentation: 'interior' });
+    const corps = { id: 'corps-0', masses: [],
+      storeys: [{ id: 'rez', z: 0, parts: [], roomZoneIds: [id] }],
+      facades: [{ id: 'facade-0', z: 0, edges: [], appearance: 'crepi', roomZoneIds: [id] }],
     };
-    const renamed = renameEffectZone(withFacade, oldId, 'salle-du-tresor');
-    expect(renamed.effectZones![0].id).toBe('salle-du-tresor');
-    expect(renamed.architecture![0].facades[0].roomZoneIds).toEqual(['salle-du-tresor']);
+    const avecPiece = { ...scene, architecture: [corps] };
+    const nom = 'salle-du-tresor';
+    const renommee = renameEffectZone(avecPiece, id, nom);
+    expect(renommee.effectZones?.[0].id).toBe(nom);
+    const liens = (s: Scene) => {
+      const body = s.architecture![0];
+      return [body.storeys[0].roomZoneIds, body.facades[0].roomZoneIds];
+    };
+    expect(liens(renommee)).toEqual([[nom], [nom]]);
+    expect(liens(avecPiece)).toEqual([[id], [id]]);
+    const selection = { type: 'effectZone', id: nom } as const;
+    const deplacee = patchZone(renommee, selection, { z: 1 });
+    expect(deplacee.effectZones?.[0].z).toBe(1);
+    expect(liens(deplacee)).toEqual([[], []]);
+    expect(liens(patchZone(renommee, selection, { presentation: 'exterior' }))).toEqual([[], []]);
+    const sansPiece = deleteSel(renommee, selection);
+    expect(sansPiece.effectZones).toEqual([]);
+    expect(liens(sansPiece)).toEqual([[], []]);
   });
 
   it('renameEffectZone est un no-op si id absent, vide, identique ou en collision', () => {

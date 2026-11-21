@@ -44,7 +44,7 @@ const mkGate = (): Combatant => {
  *  = 72 m, dans la bande Longue de la portée 50 m. Un héros est tapi DERRIÈRE le mur (cour) → hors LdV. */
 const mkGunner = (): Combatant => {
   const g = mkActor('gunner', 'ennemi', { x: 14, y: 2 });
-  g.postes = [hydratePoste({ trappingId: 'canon-petit', crewIds: ['gunner'] }, idsDeTest('it'))];
+  g.postes = [hydratePoste({ engin: { id: 'canon-petit' }, crewIds: ['gunner'] }, idsDeTest('it'))];
   applyShipPostes([g]); // sert le canon au chef → g.weapons porte la pièce dérivée (ranged, Atout Siège)
   return g;
 };

@@ -76,7 +76,7 @@ function mountBattle(combatants: Combatant[]) {
 
 /** L'arme RÉELLE du catalogue, construite par le chemin de production (engin → poste → arme servie). */
 const flameCannon = (): Weapon => {
-  const poste = hydratePoste({ trappingId: 'canon-a-flammes-nain-ade2', side: 'proue', crewIds: ['crew'] }, 'flammes');
+  const poste = hydratePoste({ engin: { id: 'canon-a-flammes-nain-ade2' }, side: 'proue', crewIds: ['crew'] }, 'flammes');
   const carrier = { id: 'crew', name: 'Servant', kind: 'heros', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } } as unknown as Combatant;
   const w = mannedPosteWeapon(carrier, poste);
   expect(w).toBeDefined();

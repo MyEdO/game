@@ -116,6 +116,7 @@ const doc = document(
     edit: { dataset: 'vehicles' },
   },
   {
+    espace: { marqueurs: ['ship'] },
     /** MDG 12 l.131, l.195-199, l.311 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {

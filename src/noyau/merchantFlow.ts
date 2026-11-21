@@ -992,7 +992,7 @@ function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openApp
   for (const scope of ['butin', 'victoire'] as const) {
     const ligne = ligneDuButin(s, scope, uid);
     if (ligne) {
-      const id = ligne.effect.trappingId;
+      const id = ligne.effect.objet?.id;
       return { target: { gear: { scope, uid } }, cible: { ...ligne.effect, label: ligne.label }, fiche: id ? resolveTrapping(id) : undefined };
     }
   }

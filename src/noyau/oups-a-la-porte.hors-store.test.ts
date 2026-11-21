@@ -761,7 +761,7 @@ describe('pièce SERVIE abîmée d’un Dégât : le chef de statbloc tient la p
   it('l’arme de la pièce porte le Dégât, et l’épée du statbloc est toujours là', () => {
     const epee = ({ uid: 'epee-s', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }) as unknown as Weapon;
     const chef = mk('ennemi', 'canonnier', { weapons: [epee] });
-    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never, 'poste-de-test');
+    const poste = hydratePoste({ engin: { id: 'canon-a-repetition' } } as never, 'poste-de-test');
     poste.crewIds = ['canonnier'];
     serveChef(chef, poste);
     setBattle([chef, mk('heros', 'cible')]);

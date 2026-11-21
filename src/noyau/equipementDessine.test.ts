@@ -190,7 +190,7 @@ describe('armes dessinées — mains et candidats (#2948)', () => {
 });
 
 describe('armes dessinées — armes rangées (#2948)', () => {
-  const baliste = () => ({ ...hydratePoste({ trappingId: 'baliste' }, 'baliste').item, equipped: true });
+  const baliste = () => ({ ...hydratePoste({ engin: { id: 'baliste' } }, 'baliste').item, equipped: true });
   const heros = (...ids: string[]): Combatant => {
     const c = porteur({ kind: 'heros', items: ids.map((id) => ({ ...porte(id), uid: id })) });
     recomputeLoadout(c);

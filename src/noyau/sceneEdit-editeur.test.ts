@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, Scene } from './monde/scene';
 import { propFootTiles } from './monde/footprint';
 import {
+  apparencesCrenelables,
   entityAt,
   etageSuivant,
   hitAt,
@@ -56,6 +57,7 @@ import { validateScene } from './validateScene';
 import { findCreatureById, creatureLabel, siegeEngines } from '../data';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
+import { sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { sceneZoneTiles } from './monde/zones';
 import { nomDEntite } from './monde/sceneNpc';
 
@@ -238,12 +240,14 @@ describe('édition de scène — #841 FU-C : corps/étage sélectionnables et su
     expect(roundTripped.walls).toEqual([{ x: 2, y: 2, side: 'N', window: true }]);
   });
 
-  it('paintCrenellated marque `Layer.crenellated` et survit à un aller-retour JSON', () => {
+  it.each(['mur-en-pierre', 'porte-de-ville'])('le pinceau offre l’apparence %s et son choix survit au parse', (id) => {
+    const choix = apparencesCrenelables().find((apparence) => apparence.id === id);
+    expect(choix?.label).not.toBe(id);
+    expect(choix).toBeDefined();
     const scene = emptyScene('scene-test', 6, 6);
-    const painted = paintCrenellated(scene, { x: 2, y: 3 }, 'mur-en-pierre', 1, 0);
-    expect(painted.layers[0].crenellated?.[3 * 6 + 2]).toBe('mur-en-pierre');
-    const roundTripped = JSON.parse(JSON.stringify(painted)) as Scene;
-    expect(roundTripped.layers[0].crenellated?.[3 * 6 + 2]).toBe('mur-en-pierre');
+    const peinte = paintCrenellated(scene, { x: 2, y: 3 }, choix!.id, 1, 0);
+    const relue = sceneSchema.parse(JSON.parse(JSON.stringify(peinte)));
+    expect(relue.layers?.[0].crenellated?.[3 * 6 + 2]).toBe(id);
   });
 });
 
@@ -512,7 +516,7 @@ describe('édition de scène — emplacement de siège (postes authorés à l’
     expect(ent.engin?.id).toBe('baliste'); // SOURCE de l'engin → spawn construit l'affût inerte
     expect(ent.appearance).toBeUndefined();
     expect(ent.postes).toHaveLength(1);
-    expect(ent.postes![0].trappingId).toBe('baliste'); // #222 — réf catalogue authorée (base hydratée au spawn), plus d'`item` matérialisé
+    expect(ent.postes![0].engin.id).toBe('baliste'); // #222 — réf catalogue authorée (base hydratée au spawn), plus d'`item` matérialisé
     expect(ent.postes![0].crewIds).toEqual([]); // pas d'équipage tant que non assigné
     expect(ent.postes![0].side).toBeUndefined(); // par défaut tir omni
     expect(ent.statblock).toBeUndefined(); // affût INERTE : pas de profil à PV (RAW-pur), spawn s'en charge
@@ -554,7 +558,7 @@ describe('édition de scène — emplacement de siège (postes authorés à l’
     s = setPosteCrew(s, id, ['g1']);
     s = setPosteEngine(s, id, 'mortier');
     const mortier = siegeEngines().find((t) => t.id === 'mortier')!;
-    expect(s.entities[0].postes![0].trappingId).toBe('mortier'); // #222 — la réf change, jamais une base copiée
+    expect(s.entities[0].postes![0].engin.id).toBe('mortier'); // #222 — la réf change, jamais une base copiée
     expect('item' in s.entities[0].postes![0]).toBe(false); // base HYDRATÉE au spawn, pas matérialisée à l'authoring
     expect(s.entities[0].label).toBe(mortier.label);
     expect(s.entities[0].engin?.id).toBe('mortier'); // ref restampée → spawn construit le BON affût

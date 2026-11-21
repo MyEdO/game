@@ -111,7 +111,7 @@ const outcomeBandSchema = nommerChamps(z.strictObject({
   note: z.string().optional(),
   battle: z.array(battleOutcomeSchema).optional(),
   when: battleCondSchema.optional(),
-  chains: z.array(z.string()).optional(),
+  chains: refs('sceneDeBataille').optional(),
 }), { on: { label: "issue du Test" }, minSL: { label: "DR minimum" }, maxSL: { label: "DR maximum" }, ops: { label: "opérations" }, resolver: { label: "résolveur" }, payoutPct: { label: "pourcentage de paiement" }, note: { label: "note" }, battle: { label: "bataille" }, when: { label: "condition" }, chains: { label: "enchaînements" } });
 
 const doc = document(
@@ -281,9 +281,13 @@ const doc = document(
   },
   {
     exiges: ['source', 'icon'],
+    espace: { marqueurs: ['sceneKind'] },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const a = v as { id: string; resolver?: string; contexts: string[]; tests?: { skill?: unknown; characteristic?: unknown }[]; difficulty?: string; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string };
+        const a = v as { id: string; resolver?: string; contexts: string[]; sceneKind?: string; tests?: { skill?: unknown; characteristic?: unknown }[]; difficulty?: string; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string };
+        if (a.contexts.includes('bataille-round') !== (a.sceneKind !== undefined)) {
+          ctx.addIssue({ code: 'custom', path: ['sceneKind'], message: `${a.id} : une nature de scène est requise pour le contexte bataille-round et lui est réservée.` });
+        }
         if (a.resolver === 'shipMaintenance') {
           if (!a.tests?.length) ctx.addIssue({ code: 'custom', path: ['tests'], message: `${a.id} : l’Entretien du navire exige un Test` });
           if (a.contexts.length !== 1 || !a.contexts.includes('mer')) {

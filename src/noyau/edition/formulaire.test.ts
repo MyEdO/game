@@ -869,7 +869,7 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     };
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
     // La rencontre d'une activité est une référence locale à la scène : même saisie que celle d'un `startCombat`.
-    expect(saisies.get(`${rencontres}/${choixDeLaFeuilleDId({ type: 'activity' })[0].id}/id`)).toBe(saisies.get('declencheur/flow<kind=effet>/effet<type=startCombat>/encounter/id'));
+    expect(saisies.get(`${rencontres}/${choixDeLaFeuilleDId({ type: 'sceneDeBataille' })[0].id}/id`)).toBe(saisies.get('declencheur/flow<kind=effet>/effet<type=startCombat>/encounter/id'));
     expect(choixDuNoeud(idDe('son'))).toEqual(Object.entries(VOCABULAIRES.sons).map(([valeur, libelle]) => ({ valeur, libelle })));
   });
 

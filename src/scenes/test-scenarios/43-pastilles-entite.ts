@@ -58,7 +58,7 @@ function construireScene(): Scene {
       {
         id: 'coffre-de-cour', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 5, y: 7 }, label: 'Coffre entrouvert',
         usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([
-            { type: 'giveTrapping', trappingId: 'dague' },
+            { type: 'giveTrapping', objet: { id: 'dague' } },
             { type: 'giveTrapping', custom: 'Fiole d’huile' },
           ]) }] },
       },
@@ -74,7 +74,7 @@ function construireScene(): Scene {
         // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
         {
           engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
-          postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
+          postes: [{ engin: { id: 'belier-ade2' }, crewIds: [...RAM_CREW] }],
         },
         { creature: { id: 'cheval' }, pos: { x: 5, y: 5 }, mount: true, side: 'allie', label: 'Cheval de manœuvre' },
         { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },

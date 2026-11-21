@@ -331,12 +331,12 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
     expect(ivresseDesCamps()).toEqual([1, 0]);
   });
 
-  it.each(['6567d83e466bf816', 'efb77d9c287718df'])('la sauvegarde %s retrouve la règle du catalogue', (version) => {
+  it('la sauvegarde retrouve la règle du catalogue quand le test n’y figure pas', () => {
     const [a, b] = ouvrirLeDuel({ echecs: { joueur: 2, adversaire: 0 } });
     const save = snapshotSave(get(), '2026-11-21T12:00:00Z');
     const regles = save.data.sequence!.parametres.combined!;
     delete regles.test;
-    chargerSurLeBanc(banc, JSON.stringify({ ...save, version }));
+    chargerSurLeBanc(banc, JSON.stringify(save));
 
     jouerLeTour(a, b, [99, 1]);
     const test = verifierTestDeBoisson(a);

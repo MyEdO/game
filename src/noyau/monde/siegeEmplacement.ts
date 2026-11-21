@@ -26,7 +26,7 @@ export function siegeEmplacementEntity(
   const t = findSiegeEngineById(trappingId);
   if (!t) return null;
   // #222 — réf catalogue AUTHORÉE (base hydratée au spawn), jamais une `ItemInstance` de base matérialisée.
-  const poste: AuthoredShipPoste = { trappingId, crewIds: opts.crewIds ?? [], ...(opts.side ? { side: opts.side } : {}) };
+  const poste: AuthoredShipPoste = { engin: { id: trappingId }, crewIds: opts.crewIds ?? [], ...(opts.side ? { side: opts.side } : {}) };
   const ent: SceneEntity = {
     id,
     kind: 'personnage', // seul kind enrôlable en rencontre → spawn en Combattant (affût servi)

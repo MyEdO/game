@@ -153,7 +153,7 @@ describe('Arme de campagne qui nomme son projectile (#2967 ; #4360)', () => {
     banc.setState({ party: [hero] });
     banc.actions.chargerLeProjet({ scenes: projet.scenes, entryId: scene.id, narratif: projet.narratif, projet });
     const donner = (...ids: string[]) => applyEffects(banc.getState, banc.setState, ids.map((trappingId) => ({
-      type: 'giveTrapping' as const, trappingId, heroId: hero.id,
+      type: 'giveTrapping' as const, objet: { id: trappingId }, heroId: hero.id,
     })));
     donner(arbalete.id, 'carreau');
     const inst = banc.getState().party[0].items!.find((objet) => objet.trappingId === arbalete.id)!;

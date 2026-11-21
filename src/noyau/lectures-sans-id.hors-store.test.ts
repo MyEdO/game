@@ -28,7 +28,7 @@ const idsConsommesPar = (lecture: () => void): number => {
 
 describe('une lecture ne forge aucun id (#2907)', () => {
   it('les qualités d’un butin (`giveTrappingQualities`)', () => {
-    expect(idsConsommesPar(() => giveTrappingQualities({ trappingId: 'dague', qualities: ['magique'] }))).toBe(0);
+    expect(idsConsommesPar(() => giveTrappingQualities({ objet: { id: 'dague' }, qualities: ['magique'] }))).toBe(0);
   });
 
   it('l’aperçu de création (`apercuDuHeros`, page de présentation)', () => {

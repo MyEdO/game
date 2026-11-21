@@ -205,7 +205,7 @@ describe('porteeDuCombattant', () => {
 describe('vehiculeDuCombattant (#2987)', () => {
   const coque = (id: string): Combatant => spawnEnemy({ vehicule: id }, `${id}-1`, { x: 0, y: 0 });
   const engin = (id: string): Combatant => spawnEnemy({ engin: id }, `${id}-1`, { x: 0, y: 0 });
-  const poste = (trappingId: string, side?: FireArc) => hydratePoste({ trappingId, ...(side ? { side } : {}) }, 'poste-de-test');
+  const poste = (trappingId: string, side?: FireArc) => hydratePoste({ engin: { id: trappingId }, ...(side ? { side } : {}) }, 'poste-de-test');
   it.each([['caraque', coque, 4, 'empreinte'], ['barque-fluviale', coque, 1, 'empreinte'], ['canon-petit', engin, 2, 'reelle'], ['belier-ade2', engin, 2, 'reelle']] as const)('%s, coque ou engin de siège : sa fiche, le côté de son empreinte et sa taille, sans portée', (ref, fiche, empreinte, taille) => {
     const c = fiche(ref);
     expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, taille, cap: 'N', postes: [], ameliorations: [] }, null]);

@@ -1800,7 +1800,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const definition = e.definition as string;
       const fiche = ficheDEntite({
         id: 'atelier', kind: 'personnage', ...(pieces.includes(definition) ? { engin: { id: definition } } : { vehicule: { id: definition } }), pos: { x: 0, y: 0 }, appearance,
-        postes: (postes as { definition: string; bord: FireArc }[]).map(({ definition, bord }) => ({ trappingId: definition, side: bord })),
+        postes: (postes as { definition: string; bord: FireArc }[]).map(({ definition, bord }) => ({ engin: { id: definition }, side: bord })),
         upgrades: (ameliorations as string[]).map((id) => ({ id })),
       }, () => undefined);
       const vehicule = vehiculeDuCombattant(fiche, undefined)!;
