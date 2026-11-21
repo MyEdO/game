@@ -25,7 +25,6 @@ import {
   type Redeclaration,
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { champsSansSlot, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
-import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe } from '../../scripts/guards/lib/occurrencesStock.mjs';
 import {
   CLES_POSEES_INCONDITIONNELLEMENT,
   clesDeclareesJamaisPortees,
@@ -41,7 +40,6 @@ import {
   DATASETS_DES_PROJETS,
   LOTS_CONNUS,
   LOTS_DE_PEUPLEMENT,
-  lotDeForme,
   CLES_IDENTITE,
   RX_CLE_REFERENCE,
   signature,
@@ -54,8 +52,7 @@ import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
 import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
-import { CHAMPS_D_ECHEANCE, type Echeance } from '../../scripts/guards/lib/stock.mjs';
-import { STRUCTURES_CIBLES, STRUCTURES_REDECLARATIONS } from '../../scripts/guards/lib/structuresStock.mjs';
+import { STRUCTURES_CIBLES } from '../../scripts/guards/lib/structuresStock.mjs';
 import { sujetDuJetSchema } from './schemas/grammaire/mecanique';
 import { estObjet } from '../lib/objet.mjs';
 
@@ -83,8 +80,7 @@ const GARDE = {
     fichier: 'scripts/guards/lib/structuresStock.mjs',
     decroissant: true,
     raison:
-      'Le stock porte les signatures CIBLES et les REDÉCLARATIONS des defs, mesurées sur le code : une redéclaration se ' +
-      'solde par la composition du nœud commun, et sa ligne part dans le MÊME commit.',
+      'Le stock porte les signatures CIBLES du lexique. Les defs composent les nœuds communs de la grammaire.',
   },
   ticket: '#1465',
 } as const;
@@ -117,23 +113,6 @@ const INVENTAIRE = inventaireDe({ scan, defs: DEFS, declares: DECLARES });
 
 /** Un ensemble de lignes en texte, trié — les diffs de vitest restent lisibles. */
 const lignes = (xs: string[]): string[] => [...xs].sort();
-
-/** DATE par DÉFAUT d'une ligne de stock : elle entre dans la clé comparée. */
-const DATE_STOCK = '2026-08-23';
-/** `lot` et `date` ENTRENT dans la clé comparée (#1465 F1) ; le LOT attendu se DÉDUIT du concept quand la ligne n'en
- *  déclare pas. */
-type Trace = Partial<Echeance>;
-const trace = (x: Trace, lot: string) => ` | ${x.lot ?? lot} | ${x.date ?? DATE_STOCK}`;
-/** Identité d'une redéclaration (`def | champ | concept | signature | statut | commun`), sans son compte. */
-const siteRedeclaration = (r: { def: string; champ: string; concept: string; signature: string; statut: string; commun: string }) =>
-  `${r.def} | ${r.champ} | ${r.concept} | ${r.signature} | ${r.statut} | ${r.commun}`;
-const cleRedeclaration = (r: Parameters<typeof siteRedeclaration>[0] & Trace) =>
-  siteRedeclaration(r) + trace(r, lotDeForme(r.concept, r.signature));
-/** Toute ligne de collection à compte qui MONTE ou qui BAISSE est nommée avec son remède (`ecartsDeCollection`). */
-const sansEcartDeCompte = (ecarts: { accrues: string[]; baisses: string[] }, nom: string) => {
-  expect(lignes(ecarts.accrues), `compte(s) en HAUSSE dans ${nom} : appliquer la cible de chaque site nommé.`).toEqual([]);
-  expect(lignes(ecarts.baisses), `compte(s) en BAISSE dans ${nom} : écrire la mesure.`).toEqual([]);
-};
 
 describe('structures de la donnée — stock nominatif décroissant (#1463 L0)', () => {
   it('fixture Référence scalaire et référence emboîtée : seul l’objet de référence porte la forme cible', () => {
@@ -172,24 +151,11 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual(lignes(STRUCTURES_CIBLES.map((c) => `${c.concept} | ${c.signature} | ${c.pose ?? ''}`)));
   });
 
-  it('redéclarations locales dans les defs : observé == stock (keyé par def | champ | concept | signature)', () => {
-    // PILOTAGE (`lot`, `date`) repris du stock par SITE : la sonde ne mesure ni le lot ni la date. Sans cette
-    // reprise, toute ligne était sommée de porter la date GLOBALE du stock, et une ligne née plus tard ne pouvait
-    // être verte qu'en MENTANT sur sa date de naissance. Les deux champs restent gardés : une ligne du stock que
-    // l'AST n'observe plus reste rouge, et le test de MUTATION par champ (ci-dessous) prouve qu'ils entrent
-    // toujours dans la clé comparée.
-    const pilotage = new Map(STRUCTURES_REDECLARATIONS.map((r) => [siteRedeclaration(r), { lot: r.lot, date: r.date }]));
-    const ecarts = ecartsDeCollection({
-      nom: 'STRUCTURES_REDECLARATIONS',
-      observe: COLLECTIONS_A_COMPTE_PAR_NOM.STRUCTURES_REDECLARATIONS.mesure({ redeclarations }),
-      stock: STRUCTURES_REDECLARATIONS,
-      cle: (r) => cleRedeclaration({ ...r, ...pilotage.get(siteRedeclaration(r)) }),
-    });
+  it('les defs composent les formes de la grammaire', () => {
     expect(
-      lignes([...ecarts.neuves, ...ecarts.perimees]),
-      'écart entre les redéclarations OBSERVÉES (AST des modules de `DOSSIERS_DE_DEFS`) et `STRUCTURES_REDECLARATIONS` — une forme partagée se déclare UNE fois dans la grammaire (`src/data/schemas/grammaire/`). Le CHAMP entre dans la clé : sans lui, des littéraux de champs différents s’agrègent en une ligne.',
+      redeclarations,
+      'Une forme partagée se déclare dans la grammaire (src/data/schemas/grammaire) et se compose dans les defs.',
     ).toEqual([]);
-    sansEcartDeCompte(ecarts, 'STRUCTURES_REDECLARATIONS');
   });
 
   /**
@@ -219,7 +185,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     }
   });
 
-  it('redéclarations : un littéral réduit à ses étiquettes s’apparie par leurs VALEURS, un littéral à forme par sa signature', () => {
+  it('redéclarations : le commun possède la même forme et un kind compatible', () => {
     const dossier = mkdtempSync(join(tmpdir(), 'structures-etiquette-'));
     try {
       mkdirSync(join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
@@ -232,6 +198,8 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
           "  z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }),",
           ']));',
           'export const crewTargetSchema = z.union([z.strictObject({ poste: z.literal(true) }), z.strictObject({ role: z.string() })]);',
+          "export const scoreSchema = z.strictObject({ kind: z.literal('score'), op: compareOpSchema, value: z.number() });",
+          "export const niveauSchema = z.strictObject({ kind: NIVEAU, limit: z.number() });",
         ].join('\n'),
       );
       writeFileSync(
@@ -242,12 +210,30 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
           "const seuil = z.strictObject({ kind: z.literal('woundsDealt'), op: z.string(), value: z.number() });",
           'const equipage = z.strictObject({ poste: z.literal(true) });',
           'const toujours = z.strictObject({ kind: z.literal(`always`) });',
+          'const score = z.strictObject({ kind: z.literal(`score`), op: z.string(), value: z.number() });',
+          "const autreMesure = z.strictObject({ kind: z.literal('temperature'), op: z.string(), value: z.number() });",
+          'const mesureInconnue = z.strictObject({ kind: z.literal(MESURE), op: z.string(), value: z.number() });',
+          'const mesureOuverte = z.strictObject({ kind: z.string(), op: z.string(), value: z.number() });',
+          "const niveau = z.strictObject({ kind: z.literal('niveau'), limit: z.number() });",
+          "const masque = z.strictObject({ kind: z.literal('temperature'), op: z.string(), value: z.number(), ...charge });",
+          "const explicite = z.strictObject({ ...charge, kind: z.literal('temperature'), op: z.string(), value: z.number() });",
+          "const calcule = z.strictObject({ kind: z.literal('temperature'), op: z.string(), value: z.number(), [CLE]: z.string() });",
         ].join('\n'),
       );
       expect(
         scannerRedeclarations(dossier).redeclarations.map((r) => `${r.def}:${r.ligne} | ${r.signature} | ${r.commun}`),
-        '`{ kind: self }` n’est pas `{ kind: always }` ; `kind,op,value`, `{ poste: true }` et `{ kind: always }` retapés redéclarent leur schéma commun.',
-      ).toEqual(['fixture.ts:3 | kind,op,value | conditionSchema', 'fixture.ts:4 | poste | crewTargetSchema', 'fixture.ts:5 | kind | conditionSchema']);
+        'Un kind inconnu ou susceptible d’être écrasé conserve la correspondance de forme. Deux kinds littéraux distincts définissent deux variantes.',
+      ).toEqual([
+        'fixture.ts:3 | kind,op,value | conditionSchema',
+        'fixture.ts:4 | poste | crewTargetSchema',
+        'fixture.ts:5 | kind | conditionSchema',
+        'fixture.ts:6 | kind,op,value | scoreSchema',
+        'fixture.ts:8 | kind,op,value | conditionSchema',
+        'fixture.ts:9 | kind,op,value | conditionSchema',
+        'fixture.ts:10 | kind,limit | niveauSchema',
+        'fixture.ts:11 | kind,op,value | conditionSchema',
+        'fixture.ts:13 | kind,op,value | conditionSchema',
+      ]);
     } finally {
       rmSync(dossier, { recursive: true, force: true });
     }
@@ -292,28 +278,6 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       'fixture.ts:8 | narratif | affaires,documents,etats,indices,objets,presetsPnj | ',
     ]);
     expect(mesurer([`const narratif = ${NARRATIF};`]), 'le littéral UNIQUE d’un concept sans pose est sa définition, pas une redéclaration.').toEqual([]);
-  });
-
-  /**
-   * Le concept `reference` est SOLDÉ au stock des redéclarations (#1463 L-gram-2) : plus AUCUN def
-   * ne re-tape `{id, spec?}`/`{id, value?}` — les six sites qui le faisaient composent les fabriques
-   * de `grammaire/ref.ts` ou importent `qualityRefSchema`. Affirmation POSITIVE et bidirectionnelle :
-   * elle rougit à la première réintroduction d'un littéral de référence dans un def, avant même que
-   * la ligne de stock ne renaisse.
-   */
-  it('le concept `reference` ne pèse plus AUCUNE ligne, ni à l’OBSERVÉ ni au stock (#1463 L-gram-2)', () => {
-    // L'OBSERVÉ d'abord (AST des defs) : c'est lui qui rougit à la réintroduction d'un littéral,
-    // sans attendre qu'une ligne de stock renaisse.
-    expect(
-      redeclarations.filter((r) => r.concept === 'reference').map((r) => `${r.def} | ${r.champ} | ${r.signature}`),
-      'un def re-déclare une RÉFÉRENCE : la désignation d’une entité par son id a UNE fabrique (`ref`/`specRef`/`refOuSpec`, `grammaire/ref.ts`), et la vue commune des Atouts est `qualityRefSchema`.',
-    ).toEqual([]);
-    expect(
-      STRUCTURES_REDECLARATIONS.filter((r) => r.concept === 'reference').map((r) => `${r.def} | ${r.champ} | ${r.signature}`),
-      'une ligne `reference` PÉRIMÉE traîne au stock : le concept est soldé côté defs.',
-    ).toEqual([]);
-    // Sans concept encore peuplé, les deux assertions seraient vacueuses : la mesure porte toujours.
-    expect(redeclarations.length, 'l’AST n’observe plus AUCUNE redéclaration : le volet ne mesure rien.').toBeGreaterThan(0);
   });
 
   /**
@@ -443,22 +407,15 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(Object.keys(LOTS_DE_PEUPLEMENT).length, 'aucun lot de peuplement déclaré : la table B du doc serait vide de sens.').toBeGreaterThan(0);
   });
 
-  it('chaque ligne du stock porte sa DATE et son LOT d’extinction', () => {
-    const dateOk = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
-    const sansDate = [
-      ...STRUCTURES_CIBLES.filter((c) => !dateOk(c.date)).map((c) => `cible ${c.concept} ${c.signature}`),
-      ...STRUCTURES_REDECLARATIONS.filter((r) => !dateOk(r.date)).map((r) => r.def),
-    ];
-    expect(sansDate, 'ligne(s) de stock sans date au format AAAA-MM-JJ').toEqual([]);
-    const sansLot = STRUCTURES_REDECLARATIONS.filter((r) => !r.lot?.trim()).map((r) => `${r.def} | ${r.signature}`);
-    expect(
-      sansLot,
-      'ligne(s) de stock sans LOT d’extinction — un dénominateur sans propriétaire ne se solde jamais (#1465 F3).',
-    ).toEqual([]);
+  it('chaque signature cible porte sa date', () => {
+    const sansDate = STRUCTURES_CIBLES
+      .filter((c) => !/^\d{4}-\d{2}-\d{2}$/.test(c.date))
+      .map((c) => `cible ${c.concept} ${c.signature}`);
+    expect(sansDate, 'signature(s) cible(s) sans date au format AAAA-MM-JJ').toEqual([]);
   });
 
-  it('chaque ligne du stock et chaque site d’inventaire lotis portent un LOT CONNU', () => {
-    const lots = [...STRUCTURES_REDECLARATIONS.map((l) => l.lot), ...INVENTAIRE.map((l) => l.lot).filter((l) => l !== SANS_LOT)];
+  it('chaque site d’inventaire loti porte un lot connu', () => {
+    const lots = INVENTAIRE.map((l) => l.lot).filter((l) => l !== SANS_LOT);
     expect(
       [...new Set(lots)].filter((l) => !(LOTS_CONNUS as readonly string[]).includes(l)).sort(),
       `lot(s) inconnu(s) : un dénominateur ne se range que dans l’un des ${LOTS_CONNUS.length} lots d’extinction (\`LOTS_CONNUS\`).`,
@@ -486,32 +443,14 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual(lignes([...ANGLES_MORTS]));
   });
 
-  it('MUTATION par champ : chaque champ de chaque stock entre dans la comparaison (clé, et compte hors clé)', () => {
-    const mute = (v: unknown) => (typeof v === 'number' ? v + 999 : Array.isArray(v) ? [...v, 'ZZZ'] : `${v}~MUTE`);
-    // Une collection à compte se compare par sa clé ET son compte (`ecartsDeCollection`) : l'empreinte
-    // mutée est la même paire.
-    const avecCompte = <E,>(cle: (e: E) => string) => (e: E & { occurrences: number }) => `${cle(e)} | ${occurrencesDe(e)}`;
-    const stocks: Array<[string, readonly Record<string, unknown>[], (x: never) => string, string[]]> = [
-      ['STRUCTURES_CIBLES', STRUCTURES_CIBLES, ((c: { concept: string; signature: string; pose?: string; date: string }) => `${c.concept} | ${c.signature} | ${c.pose ?? ''} | ${c.date}`) as never, ['concept', 'signature', 'pose', 'date']],
-      ['STRUCTURES_REDECLARATIONS', STRUCTURES_REDECLARATIONS, avecCompte(cleRedeclaration) as never, ['def', 'champ', 'concept', 'signature', 'statut', 'commun', 'occurrences', ...CHAMPS_D_ECHEANCE]],
-    ];
-    const aveugles: string[] = [];
-    for (const [nom, arr, cle, champs] of stocks) {
-      const base = lignes(arr.map(cle as (x: unknown) => string)).join('\n');
-      for (const champ of champs) {
-        const i = arr.findIndex((x) => x[champ] !== undefined && x[champ] !== '' && x[champ] !== null);
-        // Champ qu'AUCUNE ligne ne porte encore : il doit entrer dans la clé LE JOUR où une ligne le portera — on
-        // l'INJECTE sur la première ligne, la cécité de la clé restant mesurée pareil.
-        const cible = i < 0 ? 0 : i;
-        const valeur = i < 0 ? 'PORTE' : mute(arr[cible][champ]);
-        const copie = arr.map((x, j) => (j === cible ? { ...x, [champ]: valeur } : x));
-        if (lignes(copie.map(cle as (x: unknown) => string)).join('\n') === base) aveugles.push(`${nom}.${champ}`);
-      }
+  it('MUTATION par champ : chaque champ identifie la signature cible', () => {
+    const cle = (c: (typeof STRUCTURES_CIBLES)[number]) => `${c.concept} | ${c.signature} | ${c.pose ?? ''} | ${c.date}`;
+    const base = lignes(STRUCTURES_CIBLES.map(cle));
+    for (const champ of ['concept', 'signature', 'pose', 'date'] as const) {
+      const cible = Math.max(0, STRUCTURES_CIBLES.findIndex((c) => c[champ]));
+      const copie = STRUCTURES_CIBLES.map((c, i) => i === cible ? { ...c, [champ]: `${c[champ] ?? ''}~MUTE` } : c);
+      expect(lignes(copie.map(cle)), `le champ ${champ} n’entre pas dans la clé d’une signature cible.`).not.toEqual(base);
     }
-    expect(
-      aveugles,
-      'champ(s) de stock HORS de la clé comparée : les muter laisse la garde verte — le pilotage du chantier reposerait sur un champ non gardé (#1465 F1).',
-    ).toEqual([]);
   });
 
   it('les deux racines de documents sont scannées', () => {
@@ -1598,10 +1537,8 @@ const verdictRedecl = (nom: string): VerdictRedecl => verdictsRedecl()[nom]!;
 /**
  * CONTRÔLE POSITIF du scan AST des redéclarations (#1654) — le détecteur MORD.
  *
- * Le stock `STRUCTURES_REDECLARATIONS` est un dénominateur DÉCROISSANT : à zéro, plus rien ne
- * distinguerait « aucune redéclaration » de « le scanner ne voit plus rien ». Cette sonde INJECTE une
- * redéclaration dans une COPIE de `src/data/schemas/` et exige que le compte passe N → N+1 avec une
- * ligne NOMINATIVE.
+ * La sonde injecte une redéclaration dans une copie de `src/data/schemas/` et vérifie que le scan
+ * la relève avec l’identité du site.
  */
 describe('scannerRedeclarations — contrôle POSITIF du détecteur (#1654)', () => {
   it.each(DOSSIERS_DE_DEFS)('une redéclaration INJECTÉE dans `%s` d’une copie est VUE — N → N+1, ligne nominative', { timeout: 120_000 }, (dossier) => {

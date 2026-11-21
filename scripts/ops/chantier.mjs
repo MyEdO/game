@@ -25,6 +25,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { ECRIT_LU } from '../gates/toutes.mjs'
+import { codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 import { GitIndisponible, TIMEOUT_DU_HOOK_MS, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { natureDuChemin } from '../guards/lib/natureDuChemin.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
@@ -314,7 +315,7 @@ export const argvDe = ({ nom, sansCi }) => [nom, ...(sansCi ? ['--sans-ci'] : []
  */
 export function relancerChantier(args, { npm = spawnSync, cwd = RACINE } = {}) {
   const vu = npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'ops:chantier', '--', ...argvDe(args)], { cwd, stdio: 'inherit', shell: true })
-  return vu?.error ? 1 : vu?.status ?? 1
+  return vu?.error ? 1 : codeEnfant(vu?.status ?? null, vu?.signal ?? null)
 }
 
 /** La borne (ms) de l'attente du consommateur du post-merge (`attendreLeConsommateur`). */

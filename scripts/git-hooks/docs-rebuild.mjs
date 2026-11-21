@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { ciblesSurDisque, GENERATORS, generateursDeCode, SOURCES_LUES } from '../docs/build-all.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { CODE_DIFFERE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 import { cheminsDeLEcrivain, preempterLesDerives } from '../docs/lib/ecrivain-derives.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import {
@@ -69,7 +69,7 @@ export function lotDuPostMerge(cwd, { squash = false } = {}) {
 /** #2475 */
 export const codeDeLArbre = (cwd, lancer = spawnSync) => {
   const vu = lancer(process.execPath, [join(cwd, 'scripts/docs/build-all.mjs'), '--code', '--perimes'], { cwd, stdio: ['ignore', 'inherit', 'inherit'] })
-  return vu.error ? 1 : vu.status ?? 1
+  return vu.error ? 1 : codeEnfant(vu.status, vu.signal)
 }
 
 /**

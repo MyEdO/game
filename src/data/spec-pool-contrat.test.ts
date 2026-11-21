@@ -7,8 +7,11 @@ import { fileURLToPath } from 'node:url';
 import { skills, talents, careerLevels, species, stars, specPoolOf, specEntryId } from './index';
 import tablesJson from './tables.json';
 import activitiesJson from './activities.json';
+import talentsJson from './talents.json';
 import tavernGamesJson from './tavernGames.json';
 import crewRolesJson from './crew-roles.json';
+import { schema as activitiesSchema } from './schemas/defs/activities';
+import { schema as talentsSchema } from './schemas/defs/talents';
 import { estSpecialisable, refOuSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { nommerNoeud } from './schemas/grammaire/meta';
 
@@ -43,14 +46,6 @@ const PORTES_JOUEUR: [string, unknown][] = [
   ['activities', activitiesJson], ['tavernGames', tavernGamesJson], ['crewRoles', crewRolesJson],
 ];
 
-/**
- * DETTE NOMINATIVE DATÉE (2026-08-23) — refs de porte joueur dont la `spec` est encore un LIBELLÉ FR
- * (ou une spéc absente du catalogue) : elles ne résolvent pas, donc ne peuvent pas être confrontées
- * au pool. Extinction : #1342 (3ᵉ vie de #1341). Liste FERMÉE : une clé de plus = rouge (nouvelle
- * dette), une clé PÉRIMÉE = rouge aussi (le stock a décru, la liste doit décroître avec lui).
- */
-const REFS_EN_LIBELLE: string[] = [];
-
 const DEF_BY_ID = new Map<string, (typeof DEFS)[number]>(DEFS.map((d) => [d.id, d]));
 /** Ids de COMPÉTENCE — le concept dont la sentinelle est ÉTEINTE (L2 #1548). */
 const EST_COMPETENCE = new Set<string>(skills.map((s) => s.id));
@@ -58,8 +53,6 @@ const EST_COMPETENCE = new Set<string>(skills.map((s) => s.id));
  *  l'IDENTITÉ de la def : un id peut nommer une Compétence ET un Talent. */
 const auCatalogue = (def: (typeof DEFS)[number], spec: string): boolean =>
   specAuCatalogue((skills as readonly object[]).includes(def) ? 'skill' : 'talent', def.id, spec);
-/** « au choix » / « Environnement au choix » : un EMPLACEMENT à désigner, pas une spécialisation. */
-const SENTINELLE_CHOIX = /au choix/i;
 
 /** Toutes les refs `(defId, spec)` d'une porte joueur. La clé de def se lit d'ABORD sur les champs
  *  QUALIFIÉS (`skillId`/`talentId`/`skill`), PUIS sur l'`id` du nœud lui-même : depuis la référence
@@ -88,29 +81,19 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
     expect(nues, `entrée(s) hors pool sans attestation :\n${nues.join('\n')}`).toEqual([]);
   });
 
-  it('toute spec demandée par une PORTE JOUEUR résout et est DANS le pool (hors dette nominative)', () => {
-    const horsPool: string[] = [];
-    const detteVue = new Set<string>();
-    const detteNeuve: string[] = [];
+  it('toute spec demandée par une PORTE JOUEUR résout et est DANS le pool', () => {
+    const fautes: string[] = [];
     for (const { where, defId, spec } of refsDePorte()) {
-      // La sentinelle n'est pas une spéc : sur une Compétence le parse la refuse (`ref.ts#SENTINELLE_DE_SPEC`) ;
-      // sur un Talent elle survit, `talentRefSchema` (`schemas/grammaire/reference.ts`) n'ayant pas de
-      // régime `choix` — concept loté L3 (#1463).
-      if (SENTINELLE_CHOIX.test(spec)) continue;
       const def = DEF_BY_ID.get(defId);
       if (!def) continue; // le defId n'est pas une Compétence/Talent (son existence se juge au parse)
       const cle = `${where}|${defId}|${spec}`;
       if (!auCatalogue(def, spec)) {
-        if (REFS_EN_LIBELLE.includes(cle)) detteVue.add(cle);
-        else detteNeuve.push(`${cle} (ne résout pas — dette de migration NEUVE, cf. #1342)`);
-        continue;
+        fautes.push(`${cle} : absente du catalogue`);
+      } else if (!specPoolOf(def).includes(spec)) {
+        fautes.push(`${cle} : hors pool (l'écran ne peut pas l'offrir)`);
       }
-      if (!specPoolOf(def).includes(spec)) horsPool.push(`${cle} : hors pool (l'écran ne peut pas l'offrir)`);
     }
-    expect(detteNeuve, detteNeuve.join('\n')).toEqual([]);
-    expect(horsPool, horsPool.join('\n')).toEqual([]);
-    const perimees = REFS_EN_LIBELLE.filter((k) => !detteVue.has(k));
-    expect(perimees, `clé(s) de dette PÉRIMÉE(s) — la ref a été migrée, retirer la ligne :\n${perimees.join('\n')}`).toEqual([]);
+    expect(fautes, fautes.join('\n')).toEqual([]);
   });
 
   it('CATALOGUE ⊇ POOL', () => {
@@ -121,6 +104,42 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
       if (inline.length) expect(specPoolOf(def).length, def.id).toBeLessThanOrEqual(inline.length);
     }
     expect(fuites, `spec(s) proposées mais hors catalogue :\n${fuites.join('\n')}`).toEqual([]);
+  });
+});
+
+describe('#1600 — spécialisations de Compétence au parse des Talents et des Activités', () => {
+  it('Concocter désigne Savoir (Apothicaire) dans le LDB et Métier (Apothicaire ou Alchimiste) dans VDM', () => {
+    const [concocter] = talentsSchema.parse([talentsJson.find((t) => t.id === 'concocter')]);
+    expect(concocter.test?.matches.map((m) => m.skill)).toEqual([{ id: 'savoir', spec: 'apothicaire' }]);
+    const vdm = concocter.variants?.find((v) => v.source?.book === 'vents-de-la-magie');
+    expect(vdm?.test?.matches.map((m) => m.skill)).toEqual([
+      { id: 'metier', spec: 'apothicaire' },
+      { id: 'metier', spec: 'alchimiste' },
+    ]);
+
+    const talent = structuredClone(concocter);
+    talent.test!.matches[0].skill!.spec = 'Apothicaire';
+    expect(talentsSchema.safeParse([talent]).error?.issues).toEqual([
+      expect.objectContaining({
+        path: [0, 'test', 'matches', 0, 'skill', 'spec'],
+        message: expect.stringMatching(/LIBELLÉ d'une spécialisation de « savoir »/),
+      }),
+    ]);
+  });
+
+  it('Établir des cartes désigne Art (Dessin) par son id de catalogue', () => {
+    const [cartes] = activitiesSchema.parse([activitiesJson.find((a) => a.id === 'etablir-cartes')]);
+    const index = cartes.tests!.findIndex((t) => t.skill?.id === 'art');
+    expect(cartes.tests![index]?.skill).toEqual({ id: 'art', spec: 'dessin' });
+
+    const activite = structuredClone(cartes);
+    activite.tests![index].skill!.spec = 'Dessin';
+    expect(activitiesSchema.safeParse([activite]).error?.issues).toEqual([
+      expect.objectContaining({
+        path: [0, 'tests', index, 'skill', 'spec'],
+        message: expect.stringMatching(/absente des spécialisations de « art » au catalogue/),
+      }),
+    ]);
   });
 });
 
@@ -287,13 +306,11 @@ describe('#1457 B2 — une spec ATTESTÉE dont le seul consommateur est un statb
 });
 
 /**
- * #1897 — un EMPLACEMENT se désigne dans le pool JOUEUR de son entrée (`LDB 09 l.40` ; `specPoolOf` :
- * `wildcardSpecs` au créateur et à l'avancement, `designateSpec` au spawn). EMPLACEMENT = `choix: true`
- * (avancement, ops à `choix`, statblocs) ou joker `spec` « au choix » (`SENTINELLE_CHOIX`, réfs de
- * Talent de statbloc) ; `choix: [ids]` propose ses ids et n'est pas mesuré. Une entrée dont le
- * catalogue n'est fait que de specs `pool: false` rendrait l'emplacement indésignable : refusé ici, à
- * l'authoring, sur les DEUX racines authorées. La clé de def se lit sur l'`id` du nœud porteur ; un id
- * commun à une Compétence et à un Talent (`resistance`) n'est fautif que si AUCUNE des deux n'a de pool.
+ * #1897 — un emplacement libre (`choix: true`) se désigne dans le pool joueur de son entrée
+ * (`LDB 09 l.40` ; `wildcardSpecs` au créateur et à l'avancement, `designateSpec` au spawn).
+ * Un choix borné (`choix: [ids]`) propose ses propres ids. Le contrôle du pool joueur porte
+ * sur les deux racines authorées. Pour un id commun à une Compétence et à un Talent
+ * (`resistance`), l'emplacement est fautif si les deux pools sont vides.
  */
 type DefASpecs = Parameters<typeof specPoolOf>[0];
 function choixSansPoolJoueur(documents: [string, unknown][], defsDe: (id: string) => DefASpecs[]): { vus: number; fautes: string[] } {
@@ -303,12 +320,11 @@ function choixSansPoolJoueur(documents: [string, unknown][], defsDe: (id: string
     if (Array.isArray(node)) { node.forEach((x) => walk(x, ou)); return; }
     if (!node || typeof node !== 'object') return;
     const n = node as Record<string, unknown>;
-    const emplacement = n.choix === true ? 'choix' : typeof n.spec === 'string' && SENTINELLE_CHOIX.test(n.spec) ? n.spec : null;
-    if (typeof n.id === 'string' && emplacement) {
+    if (typeof n.id === 'string' && n.choix === true) {
       const defs = defsDe(n.id);
       if (defs.length) {
         vus++;
-        if (defs.every((d) => specPoolOf(d).length === 0)) fautes.push(`${ou} : « ${n.id} » en « ${emplacement} » — pool joueur VIDE`);
+        if (defs.every((d) => specPoolOf(d).length === 0)) fautes.push(`${ou} : « ${n.id} » en « choix » — pool joueur VIDE`);
       }
     }
     for (const v of Object.values(n)) walk(v, ou);
@@ -325,17 +341,17 @@ describe('#1897 — un emplacement ne vise jamais une entrée à pool JOUEUR vid
 
   it('les deux racines authorées : aucun emplacement sur une entrée sans pool joueur', () => {
     const { vus, fautes } = choixSansPoolJoueur(documents, defsDe);
-    expect(vus, 'aucun `choix` vu : le walk ne mesurerait rien').toBeGreaterThan(0);
+    expect(vus, 'aucun emplacement libre `choix: true` mesuré').toBeGreaterThan(0);
     expect(fautes, fautes.join('\n')).toEqual([]);
   });
 
-  it('la garde MORD : un catalogue fait de specs `pool: false` seules rend le `choix` fautif, nommément', () => {
+  it('un catalogue composé de specs `pool: false` rend l’emplacement libre fautif', () => {
     const fixture: DefASpecs[] = [{ specs: [{ id: 'statbloc-seul', label: 'Statbloc seul', pool: false }] } as DefASpecs];
     const { fautes } = choixSansPoolJoueur(
-      [['fixture.json', [{ id: 'x', choix: true }, { id: 'x', spec: 'au choix' }, { id: 'x', choix: ['statbloc-seul'] }, { id: 'x', spec: 'statbloc-seul' }]]],
+      [['fixture.json', [{ id: 'x', choix: true }, { id: 'x', choix: ['statbloc-seul'] }, { id: 'x', spec: 'statbloc-seul' }]]],
       (id) => (id === 'x' ? fixture : []),
     );
-    expect(fautes).toEqual(['fixture.json : « x » en « choix » — pool joueur VIDE', 'fixture.json : « x » en « au choix » — pool joueur VIDE']);
+    expect(fautes).toEqual(['fixture.json : « x » en « choix » — pool joueur VIDE']);
   });
 
   it('une entrée à `specs` inline toutes `pool: false` et SANS emplacement qui la vise n’est pas fautive (`attirant`, `LDB 10 l.17`)', () => {

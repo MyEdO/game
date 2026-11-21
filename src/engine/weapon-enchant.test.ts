@@ -2,8 +2,8 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { effectiveWeaponDamage } from './weaponDamage';
 import { recomputeLoadout, parseDamage, itemFromGive } from './items';
-import { findSpellById } from '../data';
-import { spellOps } from './flowCore';
+import type { TrappingData } from '../data';
+import { t } from '../i18n';
 import { isMagicWeapon } from './qualities/dispatch';
 import { applyOps } from './ops';
 import { endOfRound } from './conditions';
@@ -48,25 +48,40 @@ const wielder = (item: ItemInstance, p: Partial<Combatant> = {}): Combatant => {
 const heldEnchants = (c: Combatant) => (c.items ?? []).find((i) => i.uid === 'w')?.enchants;
 
 describe('augmentWeapon — enchantement porté par l’arme, replié dans c.weapons', () => {
-  /** LDB 43 l.252,281 */
+  /** LDB 42 l.139-147 ; LDB 43 l.246-252,281 ; AA 08 l.145,153,304,329-335 */
   it.each([
-    ['arme-simple', 'hache', 'morsure-de-l-hiver', true],
-    ['brise-epee', undefined, 'epee-de-justice', false],
-    ['rapiere', undefined, 'epee-de-justice', true],
-  ] as const)('forme résolue : %s (%s) sous %s → Magique %s', (trappingId, apparence, spellId, magique) => {
-    const item = itemFromGive({ trappingId, ...(apparence ? { apparence: { id: apparence } } : {}) }, idsDeTest);
+    ['hache', 'morsure-de-l-hiver', true],
+    ['brise_epee', 'epee-de-justice', false],
+    ['rapiere', 'epee-de-justice', true],
+    ['pique', 'lance-de-myrmidia', true],
+    ['pique_armes', 'lance-de-myrmidia', false],
+    ['pertuisane', 'lance-de-myrmidia', false],
+    ['hallebarde', 'lance-de-myrmidia', false],
+    ['hallebarde', 'morsure-de-l-hiver', false],
+  ] as const)('forme %s sous %s → enchantement %s', (forme, miracle, admis) => {
+    const arme: TrappingData = {
+      id: 'arme-a-enchanter', label: 'Pertuisane', categorie: 'melee', subType: { id: 'armes-d-hast' },
+      shape: { id: forme }, damage: { plusBF: true, flat: 4 }, availability: null, qualities: [],
+      price: null, source: { book: 'aux-armes', page: 97 },
+    };
+    const item = structuredClone(itemFromGive({ trappingId: arme.id, qualities: ['empaleuse', 'taillade'] }, idsDeTest, undefined,
+      (id) => id === arme.id ? arme : undefined));
     const c = wielder(item);
-    const sp = findSpellById(spellId)!;
-    const lignes = applyOps(c, spellOps(sp.effects, 'target'), { idNeuf: idsDeTest,
-      rng: desDuTest, caster: c, label: sp.label, sourceSpellId: spellId,
-      source: { kind: 'sort', id: spellId }, defaultDurationRounds: 4,
+    const enchantements = {
+      'lance-de-myrmidia': { requiresWeapon: ['pique', 'pertuisane_lance'], addQualities: ['percutante', 'magique'] },
+      'morsure-de-l-hiver': { requiresWeapon: ['hache'], addQualities: ['magique'] },
+      'epee-de-justice': { requiresWeapon: ['rapiere'], addQualities: ['magique'] },
+    };
+    const enchantement = enchantements[miracle];
+    expect(c.weapons[0]?.uid).toBe(item.uid);
+    const lignes = applyOps(c, [{ op: 'augmentWeapon', ...enchantement }], {
+      idNeuf: idsDeTest, rng: desDuTest, label: miracle, defaultDurationRounds: 4,
     });
-    expect(isMagicWeapon(c.weapons[0])).toBe(magique);
-    if (magique) expect(item.enchants).toHaveLength(1);
-    else {
-      expect(item.enchants).toBeUndefined();
-      expect(lignes).toContain(`X : aucune arme en main à enchanter (${sp.label}).`);
-    }
+    expect(item.enchants?.map((e) => e.addQualities) ?? []).toEqual(admis ? [enchantement.addQualities] : []);
+    if (!admis) expect(lignes).toContain(t('op.sansArmeAEnchanter', { name: c.label, src: miracle }));
+    expect(c.weapons[0]?.qualities.map((q) => q.id)).toEqual([
+      'empaleuse', 'taillade', ...(admis ? enchantement.addQualities : []),
+    ]);
   });
 
   it('B. de Droiture : l’arme tenue devient Magique (isMagicWeapon → touche l’Éthéré), objet non muté', () => {

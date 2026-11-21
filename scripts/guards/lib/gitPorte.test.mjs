@@ -15,7 +15,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, rangDuTronc,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refsDistantes, objetsNommes, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, tetesDistantes, urlOrigineAcceptee, worktreesDe,
+  fusionner, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refsDistantes, objetsNommes, refusDeGit, shaDe, shaPrecedentDeHead, shasDistants, supprimerBranche, tenter, tetesDistantes, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { estRepertoire, natureDuChemin } from './natureDuChemin.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
@@ -1626,7 +1626,6 @@ function toutCeQueLisentLesLecteurs(racine, cwd, env, shas) {
     eols: eolsDe(d, ['f.txt', 'Écran é.txt']),
     vide: arbreVide(d),
     emporte: change(ceQuEmporteLIndex(d)),
-    shas: [shasDe(d, [`${shas.propre}..HEAD`])],
     comptes: [combienDe(d, [`${shas.propre}..HEAD`]), divergenceDe(d, shas.propre, 'HEAD'), baseCommune(d, shas.propre, 'HEAD')],
     refs: [shaDe(d, 'HEAD'), shaDe(d, 'HEAD', { court: true }), brancheDe(d), branchesDe(d)?.map((b) => b.nom)],
     lieux: [racineDe(d), cheminGit(d, 'rebase-merge'), origineDe(d), dossierDesHooks(d), estSuperficiel(d)],
@@ -1891,7 +1890,6 @@ test('parentsDe : les parents de fusion sont ordonnés et un commit racine n’a
 /** Chaque question et chaque écrivain de l'hôte à qui l'on passe `b` pour révision, ref, nom ou
  *  chemin positionnel. */
 const gestesALaBorne = (d, b) => ({
-  shasDe: () => shasDe(d, [b]),
   journalDe: () => journalDe(d, [b]),
   combienDe: () => combienDe(d, [b]),
   divergenceDe: () => divergenceDe(d, b, 'HEAD'),
@@ -1991,7 +1989,6 @@ test('un NOM dont l’objet MANQUE (dépôt corrompu, refs intactes) : `GitIndis
           baseCommune: () => baseCommune(d, premier, 'main'),
           divergenceDe: () => divergenceDe(d, premier, 'main'),
           combienDe: () => combienDe(d, [`${premier}..main`]),
-          shasDe: () => shasDe(d, [`${premier}..main`]),
           journalDe: () => journalDe(d, [`${premier}..main`]),
           'histoireDeHead commits': () => histoireDeHead(d).commits([premier]),
         } : {}),
@@ -2055,11 +2052,11 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const d = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
     const F = 'f'.repeat(40)
     const attendus = {
-      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, parentsDe: null,
+      journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, parentsDe: null,
       estAncetre: { disponible: true, absent: true }, 'histoireDeHead commits': null,
     }
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|fusionner|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
-    assert.equal(questions.length, 17)
+    assert.equal(questions.length, 16)
     for (const [nom, question] of questions) {
       if (nom === 'estAncetre') {
         const absent = question()

@@ -517,8 +517,8 @@ function rendu() {
   // ---------------------------------------------------------------------------
   out += `## 4. Redéclarations locales dans ${DOSSIERS_DE_DEFS.map((d) => `\`${d}/*.ts\``).join(', ')}\n\n`;
   out += `Littéraux d’objet zod lus : **${totalLitteraux}** ; **${redeclarations.length}** recoupent le lexique\n`;
-  out += 'ou un littéral de `src/data/schemas/grammaire/`. « Schéma commun candidat » = même signature EXACTE\n';
-  out += 'qu’un littéral de la grammaire (candidat à examiner, cf. angles morts).\n\n';
+  out += 'ou un littéral de `src/data/schemas/grammaire/`. Un schéma commun candidat a la même forme\n';
+  out += 'et un `kind` compatible (cf. angles morts).\n\n';
   out += `Spreads (cf. angles morts) : **${angleMortDesSpreads.defsASpread}** littéraux de def à spread, vus sur leurs seules clés propres ;\n`;
   out += `**${angleMortDesSpreads.grammairePartiels}** littéraux de la grammaire partiels, exclus des schémas communs.\n\n`;
   out += '### 4.1 Empreinte par concept, critère SUPERSET (indépendant du classement ordonné)\n\n';

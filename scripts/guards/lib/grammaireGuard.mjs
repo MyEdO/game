@@ -139,7 +139,7 @@ export function scan(rel, contenu, regles, sourceFile, checker) {
       const jeu = new Set(cles);
       // ÉGALITÉ de jeux de clés, jamais inclusion : un document qui PORTE `id` et `type` n'est pas
       // une réf re-tapée — seule la forme reproduite À L'IDENTIQUE est une seconde graphie. La
-      // recopie PARTIELLE ou CHARGÉE est mesurée côté donnée (`STRUCTURES_REDECLARATIONS`, `+…`).
+      // recopie PARTIELLE ou CHARGÉE est mesurée par `scannerRedeclarations` (`+…`).
       // Une VARIANTE discriminée (`type: z.literal('clearObjective')`) est hors volet : son `type`
       // nomme la variante, il ne désigne pas le type d'une entité.
       const memes = spread || discriminee ? [] : signatures.filter((s) => s.cles.size === jeu.size && [...s.cles].every((c) => jeu.has(c)));

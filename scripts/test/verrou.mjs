@@ -429,12 +429,24 @@ const sousBorne = (tenant, borneMs, horloge) => {
 }
 
 /**
- * Le juge de vie `(tenant, brut) => boolean` d'un tenant (`vivantSelon` de `juge`) qui n'a pas dépassé `borneMs` d'âge.
+ * La raison pour laquelle un tenant ne tient plus le verrou, ou `null` s’il le tient.
+ * @param {number | null} borneMs @param {Juge} juge
+ */
+const raisonDuRejet = (borneMs, juge) => {
+  const vivant = vivantSelon(juge)
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => {
+    if (!vivant(tenant, brut)) return 'PID mort'
+    return sousBorne(tenant, borneMs, juge.horloge ?? Date.now) ? null : 'âge > borne'
+  }
+}
+
+/**
+ * Le juge de vie `(tenant, brut) => boolean` d'un tenant qui n'a pas dépassé `borneMs` d'âge.
  * @param {number | null} borneMs @param {Juge} [juge]
  */
 export const vivantSousBorne = (borneMs, juge = {}) => {
-  const vivant = vivantSelon(juge)
-  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => vivant(tenant, brut) && sousBorne(tenant, borneMs, juge.horloge ?? Date.now)
+  const raison = raisonDuRejet(borneMs, juge)
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => raison(tenant, brut) === null
 }
 
 /** La date de modification ISO du fichier `chemin`, `null` s'il manque. @param {string} chemin */
@@ -455,12 +467,12 @@ export function mtimeDe(chemin) {
  * @param {string} chemin @param {number | null} borneMs @param {Juge} [juge] @param {Map<string, Orphelin>} [orphelins]
  */
 export const consignant = (chemin, borneMs, juge = {}, orphelins) => {
-  const vivant = vivantSelon(juge)
+  if (!orphelins) return vivantSousBorne(borneMs, juge)
+  const raison = raisonDuRejet(borneMs, juge)
   return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => {
-    const enVie = vivant(tenant, brut)
-    const retenu = enVie && sousBorne(tenant, borneMs, juge.horloge ?? Date.now)
-    if (!retenu) orphelins?.set(chemin, { verrou: chemin, pid: tenant.pid, depuis: tenant.date ?? mtimeDe(chemin), preuve: enVie ? 'âge > borne' : 'PID mort' })
-    return retenu
+    const preuve = raison(tenant, brut)
+    if (preuve !== null) orphelins.set(chemin, { verrou: chemin, pid: tenant.pid, depuis: tenant.date ?? mtimeDe(chemin), preuve })
+    return preuve === null
   }
 }
 

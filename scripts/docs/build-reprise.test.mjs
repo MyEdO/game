@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { DELAI_FILE_MS } from '../guards/lib/fusionPr.mjs'
+import { PLAFOND_PAQUET_NODE_MS } from '../test/partition.mjs'
 import { rendre } from './build-reprise.mjs'
 
 const source = readFileSync(new URL('./build-reprise.mjs', import.meta.url), 'utf8')
@@ -10,6 +11,11 @@ test('build-reprise lit les déclencheurs par `declencheursDe`, et ne porte aucu
   assert.ok(/import \{[^}]*\bdeclencheursDe\b[^}]*\} from '\.\.\/gates\/workflowsDuDepot\.mjs'/.test(source), 'import de `declencheursDe`')
   assert.ok(/const declencheurs = declencheursDe\(texte, /.test(source), 'déclencheurs lus par `declencheursDe`')
   assert.deepEqual(source.match(/\bbloc\(|['"`]on['"`]|\^on:|\$\{cle\}:/g), null)
+})
+
+test('le runbook rend le plafond de durée des paquets Node', () => {
+  const texte = rendre().get('docs/reprise-apres-pause.md')
+  assert.match(texte, new RegExp(`local plafonné à ${PLAFOND_PAQUET_NODE_MS / 60_000} minutes, puis limite d'argv`))
 })
 
 test('#2499 runbook rendu : geste local, lecteur de groupe et relance conservée', () => {

@@ -18,7 +18,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
-import { maxWorkersMono } from '../test/partition.mjs'
+import { PLAFOND_PAQUET_NODE_MS, maxWorkersMono } from '../test/partition.mjs'
 import { ECRIT_LU, lanesDeCi } from '../gates/toutes.mjs'
 import { gatesDeCi } from '../gates/gatesDeCi.mjs'
 import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun, declencheursDe } from '../gates/workflowsDuDepot.mjs'
@@ -480,7 +480,7 @@ la mémoire en porte, à l'empreinte d'un worker de son régime (\`EMPREINTES_WO
 d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures pour éprouver les limites d’admission.
 
 Le périmètre Node utilise \`paquetsDeLancement\` : chemins triés, durées séquentielles estimées sous le budget
-local plafonné à trente minutes, puis limite d'argv. Une durée inconnue, nulle ou trop longue reste seule.
+local plafonné à ${PLAFOND_PAQUET_NODE_MS / 60_000} minutes, puis limite d'argv. Une durée inconnue, nulle ou trop longue reste seule.
 Plan et exécution partagent ces paquets ; leurs parents s'enchaînent, chacun avec son surcoût. Les profils
 de \`profilsDuLancement\` identifient les acquisitions estimées sur un worker ; l'admission mémoire fraîche
 reste souveraine. \`lancerNodeMesure\` rend la concurrence réellement servie pour apprendre le surcoût.

@@ -42,9 +42,10 @@
  * nul rend le rejeu ROUGE.
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { listerDossier } from '../guards/lib/lister.mjs';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -131,12 +132,12 @@ export function neufsDe(cwd, perimetre) {
 export function rejouer({ racine, dossier = join(racine, 'scripts', 'migrations'), ecrire = console.log }) {
   let entrees;
   try {
-    entrees = readdirSync(dossier).filter((f) => f.endsWith('.mjs'));
+    entrees = listerDossier(dossier).filter((f) => f.endsWith('.mjs'));
   } catch (e) {
     return { rouges: [`dossier de migrations illisible : ${dossier} (${e.code ?? e.message})`], joues: 0 };
   }
-  const scripts = entrees.filter(estUneMigration).sort((a, b) => a.localeCompare(b, 'en'));
-  const horsRejeu = entrees.filter((f) => !estUneMigration(f)).sort((a, b) => a.localeCompare(b, 'en'));
+  const scripts = entrees.filter(estUneMigration);
+  const horsRejeu = entrees.filter((f) => !estUneMigration(f));
   const outils = horsRejeu.filter((f) => MODULES_DE_LA_PORTE.includes(f));
   const inclassables = horsRejeu.filter((f) => !MODULES_DE_LA_PORTE.includes(f));
 

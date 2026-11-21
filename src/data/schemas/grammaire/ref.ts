@@ -988,8 +988,8 @@ export type RefusDeSpec = 'nonSpecialisable' | 'sentinelle' | 'marqueur' | 'hors
  * au LIBELLÉ d'une spécialisation de son catalogue, qui se désigne par son id), ou `null` (admise).
  */
 export function refusDeSpec(type: TypeEntite, id: string, spec: string): RefusDeSpec | null {
-  if (!estSpecialisable(type, id)) return 'nonSpecialisable';
   if (SENTINELLE_DE_SPEC.test(spec)) return 'sentinelle';
+  if (!estSpecialisable(type, id)) return 'nonSpecialisable';
   if (marqueurDeLaForme(type, id, spec)) return 'marqueur';
   if (specAuCatalogue(type, id, spec)) return null;
   if (!entreeOuverte(type, id)) return 'horsCatalogue';

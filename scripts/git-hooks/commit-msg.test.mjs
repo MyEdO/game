@@ -1,4 +1,3 @@
-import { spawnBorne } from '../guards/lib/processusBorne.mjs'
 // Porte au MESSAGE (#1728 train B) et porte du COMMIT (#2071) — la règle PURE
 // (`scripts/guards/lib/sujetDeCommit.mjs`), le driver appelé comme git l'appelle (fichier du message en
 // `$1`), et des `git commit` RÉELS dans des dépôts jetables, `core.hooksPath` pointé sur un dossier de
@@ -21,6 +20,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { MARQUE_FEINTE, commitDe, depotDe, fusionner, reussi } from '../guards/lib/gitPorte.mjs'
+import { spawnBorne } from '../guards/lib/processusBorne.mjs'
 import { SUJET_MAX, lectureDuMessage, refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { dateLocale } from '../guards/lib/dateLocale.mjs'
 import { MOTIF_REPRISE, MOTIF_MIROIRS, messageDuTrain } from '../ops/etapesDuTrain.mjs'
@@ -307,15 +307,15 @@ test('#2071 porte au commit-msg — porcelaine `git pull` : fusion propre passe,
   }
 })
 
-  const MSYS = process.platform === 'win32'
-  const formes = [
-    { forme: 'chemin littéral', script: (mf) => `git commit -a -F "${mf}"` },
-    { forme: 'chemin MSYS /c/…', script: (mf) => `git commit -a -F "${mf.replace(/^([A-Za-z]):/, (_, d) => `/${d.toLowerCase()}`)}"`, saut: !MSYS },
-    { forme: 'heredoc dans la même commande', script: (_mf, texte) => `cat > "$TEMP/h.txt" <<'MSG'\n${texte}\nMSG\ngit commit -a -F "$TEMP/h.txt"` },
-    { forme: '"$F"', script: (mf) => `F="${mf}"; git commit -a -F "$F"` },
-    { forme: '"$TEMP/…"', script: () => 'git commit -a -F "$TEMP/m.txt"' },
-    { forme: 'heredoc + add + commit', script: (_mf, texte) => `cat > "$TEMP/h.txt" <<'MSG'\n${texte}\nMSG\ngit add src/a.ts && git commit -F "$TEMP/h.txt"` },
-  ]
+const MSYS = process.platform === 'win32'
+const formes = [
+  { forme: 'chemin littéral', script: (mf) => `git commit -a -F "${mf}"` },
+  { forme: 'chemin MSYS /c/…', script: (mf) => `git commit -a -F "${mf.replace(/^([A-Za-z]):/, (_, d) => `/${d.toLowerCase()}`)}"`, saut: !MSYS },
+  { forme: 'heredoc dans la même commande', script: (_mf, texte) => `cat > "$TEMP/h.txt" <<'MSG'\n${texte}\nMSG\ngit commit -a -F "$TEMP/h.txt"` },
+  { forme: '"$F"', script: (mf) => `F="${mf}"; git commit -a -F "$F"` },
+  { forme: '"$TEMP/…"', script: () => 'git commit -a -F "$TEMP/m.txt"' },
+  { forme: 'heredoc + add + commit', script: (_mf, texte) => `cat > "$TEMP/h.txt" <<'MSG'\n${texte}\nMSG\ngit add src/a.ts && git commit -F "$TEMP/h.txt"` },
+]
 test('#2071 porte au commit-msg — `-F` sous six formes (#2282) : jugé UNE fois, même verdict qu’un chemin littéral', { concurrency: formes.length }, async (t) => {
   await Promise.all(formes.map(({ forme, script, saut }) => t.test(forme, { skip: saut }, async () => {
     for (const [texte, attendu] of [[TEMOIN, 'franchi'], ['fix(a): corrige #5 — sans solde', 'refusé']]) {
