@@ -2619,6 +2619,37 @@ test('mkdtemp : le consommateur réel retient une lecture sous suffixe aléatoir
 })
 
 // #2586
+test('coupe de relais : une lecture de fichier exacte atteignable se replie au site coupé', () => {
+  const modules = {
+    'lectures.mjs': `
+      import { readFileSync } from 'node:fs'
+      function fichier(chemin) { readFileSync(chemin) }
+      export function imbrique(chemin) {
+        fichier(chemin)
+        imbrique('sous/' + chemin)
+      }
+      export function autre(chemin) {
+        readFileSync(chemin)
+        autre('sous/' + chemin)
+      }
+      export function calcul(texte) { return calcul('sous/' + texte) }
+      export const CONTRATS_DE_DERIVATION = [{ fonction: fichier, lectures: { chemin: 0 } }]
+    `,
+    'banc.mjs': `
+      import { imbrique, autre, calcul } from './lectures.mjs'
+      imbrique('package.json')
+      autre('document.md')
+      calcul('donnée')
+    `,
+  }
+  assert.deepEqual(sitesDesDeuxRegimes(modules, 'banc.mjs'), [
+    ['imbrique', [{ identite: 'package.json' }, { identite: 'sous/package.json' },
+      couvert('lectures.mjs#imbrique', "cycle d'appels imbrique")]],
+    ['autre', [{ chemin: 'document.md' }, { chemin: 'sous/document.md' }, { non: "cycle d'appels autre" }]],
+  ])
+})
+
+// #2586
 test('manifeste npm : la portée choisit le fichier lu, même absent, et respecte la table fournie', () => {
   const modules = {
     'portee.mjs': `

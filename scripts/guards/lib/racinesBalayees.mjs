@@ -1703,11 +1703,13 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     ? uniques(c.lambda.retours.flatMap((x) => transformer(x, contexteDeLambda(c, args)))) : [{ non: `appel ${texte} sans retour` }])
   const lecturesDeLambda = (c, args) => sousPile(`lambda ${c.ctx.f}#${c.lambda.id}`, args, c.lambda.id, () => uniques(c.lambda.sites.flatMap((site) => lecturesDuSite(c.ctx.f, site, contexteDeLambda(c, args).env))))
 
+  const coupeNommee = (non) => [{ non }]
+
   /** Borne la pile d'appels de la fonction `fonction` (`<nature> <module>#<nom>`) aux arguments `args`. Un appel
    *  déjà en cours AUX MÊMES arguments, une `REENTREES`+1-ième ré-entrée à d'autres arguments et la profondeur
    *  rendent un `non` nommé. Chacun dépend de la pile qui l'a vu (`dependre`). Un cycle se nomme par ses fonctions, triées : il porte le même nom quel
    *  que soit l'appel par lequel on y entre. */
-  const sousPile = (fonction, args, nom, faire) => {
+  const sousPile = (fonction, args, nom, faire, surCoupe = coupeNommee) => {
     let cle = ferme ? undefined : composerCle(fonction, '(', cleDesArgs(args), ')')
     const portee = porteesDAppel.at(-1)
     const enCoursAuxMemes = pile.findIndex((p) => {
@@ -1720,13 +1722,13 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     })
     const cycle = (depuis) => {
       dependre(depuis)
-      return [{ non: `cycle d'appels ${[...new Set(pile.slice(depuis).map((p) => p.nom))].sort().join(', ')}` }]
+      return surCoupe(`cycle d'appels ${[...new Set(pile.slice(depuis).map((p) => p.nom))].sort().join(', ')}`)
     }
     if (enCoursAuxMemes >= 0) return cycle(enCoursAuxMemes)
     if (pile.filter((p) => p.fonction === fonction).length > REENTREES) return cycle(pile.findIndex((p) => p.fonction === fonction))
     if (pile.length >= PROFONDEUR_D_APPELS) {
       dependre(0)
-      return [{ non: `profondeur d'appels > ${PROFONDEUR_D_APPELS} (${nom})` }]
+      return surCoupe(`profondeur d'appels > ${PROFONDEUR_D_APPELS} (${nom})`)
     }
     pile.push(ferme ? { fonction, cle, nom, args, portee } : { fonction, cle, nom, portee })
     try { return faire() } finally { pile.pop() }
@@ -1788,15 +1790,16 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       if (contrat?.lectures === 'corpus') return [couverture(`${fn.f}#${fn.id}`, 'résumé de lecture déclaré à la source')]
       const sites = lu.sites.filter((s) => s.dans === fn.id).flatMap((s) => lecturesDuSite(fn.f, s, { fn: fn.id, args }))
       return uniques(contrat?.portee ? [...sites, ...lecturesSousPortee(fn, args, contrat.portee)] : sites)
-    })))
+    }, (raison) => args && !portee && atteintLecture(fn, 'fichier')
+      ? [couverture(`${fn.f}#${fn.id}`, raison)] : coupeNommee(raison))))
     if (stable && memo) memo.set(cle, { rendu, requetes })
     return rendu
   }
 
   // #2001
   const atteintLecture = (fn, mode = 'lecture') => {
-    const modeRappel = mode !== 'lecture'
-    const prefixe = modeRappel ? `${mode}:` : ''
+    const modeRappel = mode === 'opaque' || mode === 'parametre'
+    const prefixe = mode === 'lecture' ? '' : `${mode}:`
     const cle = prefixe + `${fn.f}#${fn.id}`
     const deja = atteintes.get(cle)
     if (deja) {
@@ -1820,11 +1823,14 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
         const sommet = sommets.get(identite)
         if (!peutLire(sommet.fn.f)) continue
         const lu = lecture(sommet.fn.f)
-        if (!lu || !Object.hasOwn(lu.fonctions, sommet.fn.id) || !lu.fonctions[sommet.fn.id]) { sommet.oui = true; continue }
+        if (!lu || !Object.hasOwn(lu.fonctions, sommet.fn.id) || !lu.fonctions[sommet.fn.id]) {
+          sommet.oui = mode !== 'fichier'
+          continue
+        }
         const declaration = lu.fonctions[sommet.fn.id]
         const contrat = declaration.contrat
         const terminal = mode === 'opaque' ? declaration.rappelOpaque && !contrat?.portee
-          : !modeRappel && (contrat?.lectures === 'corpus' || contrat?.portee)
+          : mode === 'lecture' && (contrat?.lectures === 'corpus' || contrat?.portee)
         if (terminal) {
           sommet.oui = true
           continue
@@ -1832,9 +1838,12 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
         for (const site of lu.sites.filter((s) => s.dans === sommet.fn.id)) {
           if (mode === 'parametre' && site.cible?.k === 'param') { sommet.oui = true; continue }
           if (modeRappel && !site.transmetRappel) continue
-          if (site.lecture) { sommet.oui = true; continue }
+          if (site.lecture) {
+            if (mode !== 'fichier' || site.lecture === 'fichier') sommet.oui = true
+            continue
+          }
           const cibles = valeurs(site.cible, { f: sommet.fn.f, env: null })
-          if (mode !== 'parametre' && site.cible.k !== 'param' && (!cibles.length || cibles.some((c) => !('fn' in c))))
+          if ((mode === 'lecture' || mode === 'opaque') && site.cible.k !== 'param' && (!cibles.length || cibles.some((c) => !('fn' in c))))
             sommet.oui = true
           for (const cible of cibles.filter((c) => 'fn' in c)) sommets.get(sommetDe(cible.fn)).parents.add(identite)
         }
