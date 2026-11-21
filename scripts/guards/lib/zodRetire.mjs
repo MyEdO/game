@@ -22,7 +22,7 @@ const sansCommentaires = (source) => source.replace(/\/\*[\s\S]*?\*\//g, (c) => 
 
 /**
  * Sites d'une API retirée : accès `z.Nom`, ou import nommé `Nom` depuis `zod`.
- * @param {readonly { rel: string, text: string }[]} fichiers
+ * @param {readonly Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers
  * @param {readonly string[]} noms
  * @returns {string[]} `chemin:ligne Nom`
  */

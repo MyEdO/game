@@ -515,7 +515,7 @@ const termesDe = (exportees) => [
 /**
  * Fabriques et sources de corpus EXPORTÉES du corpus scanné, par point fixe à travers les imports.
  * Les AST vivent le temps de l'appel.
- * @param {readonly { rel: string, text: string }[]} fichiers
+ * @param {readonly Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers
  * @returns {{ fabriques: Set<string>, corpus: Set<string> }}
  */
 export function fabriquesDuCorpus(fichiers) {

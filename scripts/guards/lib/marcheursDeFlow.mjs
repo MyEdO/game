@@ -41,7 +41,7 @@ function declarationDeModule(node, sf) {
 /**
  * Les MARCHEURS de Flow d'un corpus : un site par déclaration de module qui porte au moins un
  * `switch (<x>.kind)` à clause `sequence` descendante. Rendu TRIÉ (fichier, nom).
- * @param {{ rel: string, text: string }[]} files corpus de production (hors tests)
+ * @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} files corpus de production (hors tests)
  * @returns {{ file: string, line: number, fn: string }[]}
  */
 export function scanMarcheursDeFlow(files) {

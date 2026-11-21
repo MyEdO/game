@@ -1,3 +1,5 @@
+import type { CorpusFile } from './sourceCorpus.mjs';
+
 /** Règle ayant produit un finding : `label-logic` = les formes `.label` historiques (#142, tolérance
  *  ZÉRO) ; `collection-key` = `.label`/`.name` en clé de collection (#602) ; `display-key` = un champ
  *  d'AFFICHAGE interpolé dans une CLÉ (#598) ; `label-as-id-arg` = `.label` passé en ARGUMENT à un
@@ -82,20 +84,20 @@ export interface FaceFinding {
   rule: 'face-affichage-identite' | 'face-donnee-string' | 'liant-litteral-de-face';
   face: string;
 }
-export function collectFacesDAffichage(fichiers: readonly { rel: string; text: string }[]): Map<string, string>;
+export function collectFacesDAffichage(fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[]): Map<string, string>;
 export function scanFaceDAffichageIdentite(relPath: string, contenu: string, faces: ReadonlyMap<string, string>): FaceFinding[];
 export function scanFaceDeDonneeString(relPath: string, contenu: string): FaceFinding[];
 export function scanLiantsLitterauxDesFaces(relPath: string, contenu: string): FaceFinding[];
 
 /** Le corpus de la garde lu sur le disque (`readCorpus` de `src/`). */
-export function corpusDeLaGarde(): readonly { rel: string; text: string }[];
+export function corpusDeLaGarde(): readonly Pick<CorpusFile, 'rel' | 'text'>[];
 /** Contexte inter-fichiers de la garde, sur le corpus ; les rangs du paramètre `id` à la demande. */
 export interface GardeContexte {
   idParamFns: RangsDuParametreId;
   faces: Map<string, string>;
   resolveurs: Set<string>;
 }
-export function contexteDeLaGarde(fichiers: readonly { rel: string; text: string }[]): GardeContexte;
+export function contexteDeLaGarde(fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[]): GardeContexte;
 /** Un site de la garde, tous volets : `couture` (RATCHET_EXCEPTIONS), `dette` (clé `fichier#règle` au stock), `nu`. */
 export interface SiteDeLaGarde {
   rel: string;
@@ -108,5 +110,5 @@ export interface SiteDeLaGarde {
   statut: 'couture' | 'dette' | 'nu';
 }
 export function scanLabelLogicFichier(rel: string, text: string, ctx: GardeContexte): SiteDeLaGarde[];
-export function scanLabelLogicCorpus(fichiers: readonly { rel: string; text: string }[]): { fichiers: string[]; sites: SiteDeLaGarde[] };
+export function scanLabelLogicCorpus(fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[]): { fichiers: string[]; sites: SiteDeLaGarde[] };
 export function dettesParVolet(balayage: { fichiers: readonly string[]; sites: readonly { rel: string; rule: string; statut: string }[] }): Map<string, number>;

@@ -28,7 +28,7 @@ function racineDeHandler(n) {
 /**
  * Sites `{ ligne, texte }` d'un fichier source où un verbe de `verbes` est appelé directement sur un
  * handler de flux.
- * @param {{ rel: string, text: string }} f
+ * @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} f
  * @param {Iterable<string>} verbes
  * @returns {{ ligne: number, texte: string }[]}
  */

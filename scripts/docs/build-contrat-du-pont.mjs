@@ -205,7 +205,7 @@ function lireGdscript(rel, texte, blocs) {
 
 /**
  * Le contrat rendu depuis `fichiers` (`{ rel, text }`, chemins relatifs POSIX), sans rien lire ni écrire.
- * @param {{ rel: string, text: string }[]} fichiers @returns {string}
+ * @param {Pick<import('../guards/lib/sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers @returns {string}
  */
 export function contratDe(fichiers) {
   const blocs = new Map([...SECTIONS.keys()].map((titre) => [titre, []]))
