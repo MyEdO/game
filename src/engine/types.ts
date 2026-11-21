@@ -1495,8 +1495,9 @@ export interface Combatant {
   wounds: { current: number; readonly max: MaximumDesBlessures; ecart: number; perduesSousZero?: number };
   advantage: number;
   conditions: ConditionInstance[];
-  /** Armes/armure ACTIVES (dérivées de l'équipement) — utilisées en combat. */
+  /** Armes actives du porteur. */
   weapons: Weapon[];
+  /** PA des pièces, mutations et du blindage. Les PA du Trait se lisent sur son instance via `armourPhysiqueAt`. */
   armour: ArmourPoints;
   /** Inventaire complet à stats (porté, équipé ou non) — héros. */
   items?: ItemInstance[];

@@ -1,8 +1,11 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { ajusterTraitsDuProfil, weaponFromTrait, renderWeaponsFromTraits, weaponsFromTraits, armourFromTraits } from './creatureEquip';
+import { ajusterTraitsDuProfil, weaponFromTrait, renderWeaponsFromTraits, weaponsFromTraits } from './creatureEquip';
 import { emptyArmour, hydratePoste, itemFromTrappingById, mannedPosteWeapon, recomputeLoadout, formeResolue } from './items';
 import type { Combatant, ItemInstance, Weapon } from './types';
+import { armourPhysiqueAt } from './armourBypass';
+import { LOCALISATIONS_DE_COUP } from './types';
+import { tableTotale } from '../lib/tableTotale';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
 import { traitsDuPorteur, type TraitInstance } from './statEntry';
@@ -83,28 +86,31 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
   });
 });
 
-describe('creatureEquip — armourFromTraits (lookup par id stable)', () => {
+describe('PA du Trait Armure identifié par id stable', () => {
+  const paDuProfil = (traits: TraitInstance[]) =>
+    tableTotale(LOCALISATIONS_DE_COUP, (loc) => armourPhysiqueAt({ armour: emptyArmour(), traits }, loc));
+
   it('trait « armure » (id stable) value 2 → PA 2 sur toutes les localisations', () => {
-    const ap = armourFromTraits([t({ id: 'armure', value: 2 })]);
+    const ap = paDuProfil([t({ id: 'armure', value: 2 })]);
     expect(ap).toEqual({ tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 });
   });
 
   it('Moritz (MCLB 02 l.698) : le Heaume à la Tête, le groupe PLATE ailleurs (LDB 63 l.53-58)', () => {
     const moritz = findCreatureById('moritz-valgeir')!;
-    expect(armourFromTraits(traitsDuPorteur(moritz.traits, porteurDuProfil(moritz.id, moritz.char)))).toEqual({ tete: 2, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 });
+    expect(paDuProfil(traitsDuPorteur(moritz.traits, porteurDuProfil(moritz.id, moritz.char)))).toEqual({ tete: 2, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 });
   });
 
   it('Indice par Localisation → chaque Localisation porte le sien', () => {
     const parLocalisation = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 };
-    expect(armourFromTraits([t({ id: 'armure', parLocalisation })])).toEqual(parLocalisation);
+    expect(paDuProfil([t({ id: 'armure', parLocalisation })])).toEqual(parLocalisation);
   });
 
   it('un Aspect n’est pas un Indice : « Armure (Peau) » sans Indice → PA 0', () => {
-    expect(armourFromTraits([t({ id: 'armure', arg: 'Peau' })])).toEqual({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 });
+    expect(paDuProfil([t({ id: 'armure', arg: 'Peau' })])).toEqual({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 });
   });
 
   it('aucun trait armure → PA 0 partout', () => {
-    const ap = armourFromTraits([t({ id: 'vol', value: 6 })]);
+    const ap = paDuProfil([t({ id: 'vol', value: 6 })]);
     expect(ap).toEqual({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 });
   });
 });

@@ -90,6 +90,7 @@ import {
   laisserTomber,
   armeNaturelleAccordee,
   estUneVraieArme,
+  ficheDObjetPorte,
   objetDeSlot,
   isWeaponActive,
   uidDArme,
@@ -2361,12 +2362,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (o.choix && ctx.onChoixDeTrait?.(target, o, choixDuTrait(o.trait.id, target), ctx)) break;
         const duree = durationFromOp(o, ctx, ref);
         for (const inst of traitsOctroyes(o, { lanceur: ref, porteur: target, rng, sl: ctx.sl, src: source })) {
-          grantTrait(target, inst);
+          const accorde = grantTrait(target, inst, ctx.idNeuf);
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({
             label: nomDeSource(ctx), bonus: 0,
             duration: { ...duree },
-            grantedTrait: inst,
+            grantedTrait: structuredClone(accorde),
           });
           lines.push(t('op.traitAccorde', { name: target.label, trait: traitLisible(inst), src: nomDeSource(ctx) }));
         }
@@ -3144,9 +3145,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const hand: Main = ctx.location === 'brasG' ? 'secondaire' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'secondaire';
         const tenue = (target.weapons ?? []).find((w) => estUneVraieArme(w) && w.derivedFromItem == null
           && (w.hands === 2 || (w.hand === 'secondaire') === (hand === 'secondaire')));
-        const objet = tenue ? objetSourceDeLArme(target, tenue) : undefined;
+        const objet = tenue && (objetSourceDeLArme(target, tenue)
+          ?? ficheDObjetPorte(tenue, ctx.resolveTrapping ?? findTrappingById));
         if (objet && itemCapability(objet, 'disarmImmune')) {
-          // Poing de fer ogre (ADE II 02 l.694-698) : « solidement fixé... il ne pourra pas en être désarmé ».
+          // ADE II 02 l.694–698
           lines.push(t('op.desarmementImmunise', { name: target.label, item: objet.label }));
         } else if (tenue) {
           if (!ctx.onLacher) lacherLArme(target, tenue);
