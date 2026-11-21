@@ -107,6 +107,9 @@ prix en fer, figure dont la sanguine descend d'étape en étape.
   mineure 50 PX par tranche de Bonus de FM, Arcanes 100 PX par tranche de Bonus d'Int, LDB 10 l.680-696, l.714-722 ;
   `src/engine/grimoire.ts:176-193`) ; un Sort connu offre son composant (`acheterLaComposante(heroId, spellId)`, payé de
   la bourse du héros, NI en pistoles d'argent, LDB 46 l.107-113).
+- À valider (#4585) : la rangée des valeurs d'arrivée de « Autre carrière » garde sa hauteur, vide sans elles ; les
+  Compétences à augmenter défilent sous leur tête ; le pied de l'identité qui progresse prend toute sa place ; les
+  mesures du dossier d'une possession tiennent un bloc de deux mesures, vide en partie pour une seule.
 - À valider : onglet de la fiche ou écran à part ; Compétences hors carrière repliées ; achat immédiat sans panier ;
   « Désigner » séparé de l'achat ; nombres d'exemple (PX, niveaux, bourse).
 

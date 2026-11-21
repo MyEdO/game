@@ -16,7 +16,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** Les gabarits dont un écart A fait échouer le rendu. */
-export const PILOTES = new Set(['fenetre-du-bas'])
+export const PILOTES = new Set(['fenetre-du-bas', 'combat'])
 const loin = (m, n) => Math.abs(m - n) > 1
 const autres = (u, v) => u.length !== v.length || u.some((m, k) => loin(m, v[k]))
 /** Ce qui diffère de deux relevés du même contenu : `x`, `y`, `l`, `h` d'un rect ; `depart`, `x`, `ecarts`, `n` d'une liste. */

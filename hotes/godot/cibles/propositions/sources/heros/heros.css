@@ -226,7 +226,7 @@
 .exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"Fell";font-size:14px;line-height:17px;color:var(--encre)}
 .exige>span:not(.cpt){flex:1;min-width:0}
 .exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
-.ident .pied{display:flex;flex-direction:column;gap:7px}
+.ident .pied{display:flex;flex-direction:column;gap:7px;height:100%}
 .ident .pied .rub{white-space:normal}
 .acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
@@ -317,6 +317,8 @@
 .achat.hors{border-bottom:0;color:var(--encre-2)}
 .achat.hors>.n{color:var(--encre-2)}
 .achat svg{flex:none}
+#competences>.fond{display:flex;flex-direction:column}
+#competences>.fond>.defile{flex:1}
 .depli{display:flex;align-items:flex-end;gap:10px;padding:6px 4px 7px 26px;border-bottom:1px solid var(--filet-encre);background:rgba(255,246,208,.35)}
 .depli .pills{flex:1;gap:4px}
 .depli .pill{height:19px;padding:0 7px;font-size:10px}
@@ -364,6 +366,6 @@
 .plaque.devenir{flex:none;align-self:stretch;margin-top:auto}
 #autre .lignes .ligne{height:30px;font-size:14px}
 #autre .deux{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
-#autre .plaques{margin:0 0 8px}
+#autre .plaques{height:28px;margin:0 0 8px}
 #autre .plaques .plaque>div{font-size:12px;padding:0 6px}
 #autre>.fond>.rub{margin-top:9px;white-space:normal}

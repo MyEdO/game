@@ -64,6 +64,8 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   `src/noyau/preferences.ts:36-83`) ; règles maison dans un registre relié, quinze signets (un domaine chacun, avec
   son compte), douze règles par feuillet ; l'aide se déplie sur la règle pointée ; une règle modifiée passe au rouge
   avec « Défaut » (`src/hote/reglages.ts:59-92`, `docs/regles-optionnelles.md`).
+- À valider (#4585) : chaque signet a la boîte de l'ouvert (176) ; un signet fermé ne montre que ses 160 premiers.
+- À valider (#4585) : l'étiquette d'un voyageur de la salle a une largeur fixe de 148.
 - À valider : un signet par domaine ; douze règles par feuillet ; libellés lisibles des options de liste (le jeu
   montre les ids) ; volumes en pourcentage ; « hors du livre » marque une valeur que le livre laisse au MJ et que le jeu
   fixe (le tag `maison` de la donnée).

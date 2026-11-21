@@ -187,6 +187,8 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 ## cible-survolee (T14, T15, T16)
 - Case cernée de cire rouge, infobulle de parchemin, zone atteignable à liseré, trajet en pointillé, socles de camp,
   barre de vie fine ; « Attaque » armée ; barre des six emplacements rapides validée.
+- À valider (#4585) : l'aperçu d'une cible et celui d'un sort partagent une grille fixe (`corpsDuTour`) : la ligne
+  de jauge reste vide dans l'aperçu d'un sort, la table tient 125 de haut et défile au-delà.
 
 # Écrans neufs (2026-11-17, #4411)
 

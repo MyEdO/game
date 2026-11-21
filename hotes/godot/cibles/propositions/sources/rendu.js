@@ -434,10 +434,12 @@
       `<div id="actif-nom"><div class="n gothique" data-texte="nom de l'actif">${echapper(c.nom)}</div><div class="a rubrique">${echapper(b.arme)}</div></div>`,
     ];
   };
-  const ficheDuSort = (s, sous, vers) => apercu({ nom: echapper(s.nom), sous, vers, corps: `
-    <div class="titre rubrique">Sort · coûte ${echapper(s.cout)}</div>
-    <table><tr><td>Niveau d’incantation</td><td>${s.ni}</td></tr><tr><td>Portée</td><td>${s.portee.metres} mètres (${echapper(s.portee.selon)})</td></tr><tr><td>Cible</td><td>${s.cibles}</td></tr><tr><td>Durée</td><td>${echapper(s.duree)}</td></tr></table>
-    <div class="pied">${echapper(s.note)}</div>` });
+  /* le corps d'un aperçu du tour (une cible, un sort), chaque part à sa place fixe : la ligne de jauge, vide sans elle,
+     le titre, la table à hauteur fixe qui défile si elle déborde, le pied */
+  const corpsDuTour = ({ pv = '', titre, lignes, pied }) => `<div class="pv">${pv}</div><div class="titre rubrique">${titre}</div>${defile(`<table>${lignes}</table>`, 'table')}<div class="pied">${pied}</div>`;
+  const ficheDuSort = (s, sous, vers) => apercu({ nom: echapper(s.nom), sous, vers, corps: corpsDuTour({ titre: `Sort · coûte ${echapper(s.cout)}`,
+    lignes: `<tr><td>Niveau d’incantation</td><td>${s.ni}</td></tr><tr><td>Portée</td><td>${s.portee.metres} mètres (${echapper(s.portee.selon)})</td></tr><tr><td>Cible</td><td>${s.cibles}</td></tr><tr><td>Durée</td><td>${echapper(s.duree)}</td></tr>`,
+    pied: echapper(s.note) }) });
   const DESSINS_D_ARME = {
     epee: '<path d="M18 62L58 22l6-8-8 6L16 60z" fill="#d9d3c2" stroke="#1a1005" stroke-width="1.500"/><path d="M14 52l14 14M12 68l6-6" stroke="#e2c06a" stroke-width="3.500"/>',
     bouclier: '<path d="M40 12l24 8v18c0 15-10 25-24 30-14-5-24-15-24-30V20z" fill="#6f4d30" stroke="#1a1005" stroke-width="1.500"/><path d="M40 12v56M16 34h48" stroke="#e2c06a" stroke-width="2.500"/><circle cx="40" cy="34" r="6" fill="#b9b3a4" stroke="#1a1005" stroke-width="1.500"/>',
@@ -470,11 +472,10 @@
     },
     cible: (p) => {
       const c = qui(p.qui);
-      return [`<div id="apercu-cible">${apercu({ nom: echapper(c.nom), sous: 'Cible', vers: 'gauche', corps: `
-        <div class="pv">${jauge(c.blessures / c.max, { taille: 'forte' })}<b>${c.blessures} / ${c.max}</b></div>
-        <div class="titre rubrique">Attaque · ${echapper(p.arme)}</div>
-        <table><tr class="seuil"><td>${echapper(p.test)}</td><td>≤ ${p.seuil}</td></tr><tr><td>dont Avantage</td><td>${signe(p.avantage)}</td></tr><tr><td>Dégâts</td><td>${signe(p.degats)}</td></tr><tr><td>${echapper(c.nom)} oppose</td><td>${echapper(p.oppose)}</td></tr></table>
-        <div class="pied">${echapper(p.note)}</div>` })}</div>`];
+      return [`<div id="apercu-cible">${apercu({ nom: echapper(c.nom), sous: 'Cible', vers: 'gauche', corps: corpsDuTour({
+        pv: `${jauge(c.blessures / c.max, { taille: 'forte' })}<b>${c.blessures} / ${c.max}</b>`, titre: `Attaque · ${echapper(p.arme)}`,
+        lignes: `<tr class="seuil"><td>${echapper(p.test)}</td><td>≤ ${p.seuil}</td></tr><tr><td>dont Avantage</td><td>${signe(p.avantage)}</td></tr><tr><td>Dégâts</td><td>${signe(p.degats)}</td></tr><tr><td>${echapper(c.nom)} oppose</td><td>${echapper(p.oppose)}</td></tr>`,
+        pied: echapper(p.note) }) })}</div>`];
     },
     /* le journal entier défile, la ligne neuve en vue au pied */
     journal: (p) => [`<div id="journal-entier" class="cadre bois" data-piece="journal-entier"><div class="fond parchemin">
@@ -1262,7 +1263,7 @@
       `<div id="f-identite" class="cadre bois dossier" data-piece="identite"><div class="fond parchemin">
         <div class="tete">${portrait(p.genre, { taille: 'affiche' })}<div>${p.saisie ? champ('', echapper(p.nom)) : `<div class="n gothique">${echapper(p.nom)}</div>`}${lignes.map((l) => `<div class="c rubrique">${l}</div>`).join('')}
           <div class="renommer${p.saisie ? ' en-saisie' : ''}">${rond('plume', 'menu', { arme: !!p.saisie })}<span class="rubrique">Renommer</span></div></div></div>
-        ${d.mesures.map(mesureDu).join('')}${filet({ losange: true })}<div class="reserves">${d.compteurs.map((c) => compteur(c.valeur, echapper(c.nom))).join('')}</div>
+        <div class="mesures">${d.mesures.map(mesureDu).join('')}</div>${filet({ losange: true })}<div class="reserves">${d.compteurs.map((c) => compteur(c.valeur, echapper(c.nom))).join('')}</div>
       </div>${ferrures}</div>`,
       `<div id="f-profil" class="cadre bois dossier" data-piece="profil"><div class="fond parchemin" style="grid-template-columns:repeat(${d.profil.caracs.length},1fr)">${d.profil.caracs.map((c) => `<div class="carac"><span class="rubrique">${echapper(c.nom)}</span><b class="chiffres">${valeurDuProfil(c)}</b></div>`).join('')}</div>${ruban(echapper(d.profil.titre), { gothique: true })}${ferrures}</div>`,
       `<div id="f-figure" class="cadre bois dossier" data-piece="figure"><div class="fond bois"><div class="niche laiton"><div>${SILHOUETTES[p.genre]}</div></div></div>${ferrures}</div>`,
@@ -1629,8 +1630,8 @@
   const depense = (d) => [
     '<div id="mur" class="bois"></div>', identiteQuiProgresse(d.identite), bandeDu(d.profil, caseDeProgression),
     cadre('competences', null, null, null, null, 'parchemin', `${teteDeListe(rub('De la carrière', 'une Augmentation à la fois'), '<span class="rub colonnes"><span>Test</span><span>Coût</span></span>')}
-      ${d.competences.map(competenceAAugmenter).join('')}
-      <div class="achat hors"><span class="fait">${picto('cadenas', 15, undefined, 1.6)}</span><span class="n">Hors carrière <small>(${pluriel(d.horsCarriere, 'Compétence')})</small></span><span class="rub designer">Coût doublé</span>${picto('chevron_d', 15, undefined, 2)}</div>`, { ruban: 'Compétences', classe: 'pan', piece: 'progression-gauche' }),
+      ${defile(`${d.competences.map(competenceAAugmenter).join('')}
+      <div class="achat hors"><span class="fait">${picto('cadenas', 15, undefined, 1.6)}</span><span class="n">Hors carrière <small>(${pluriel(d.horsCarriere, 'Compétence')})</small></span><span class="rub designer">Coût doublé</span>${picto('chevron_d', 15, undefined, 2)}</div>`)}`, { ruban: 'Compétences', classe: 'pan', piece: 'progression-gauche' }),
     cadre('talents', null, null, null, null, 'parchemin', d.talents
       ? `${rub(echapper(d.talents.rubrique), echapper(d.talents.note))}${d.talents.talents.map(talentAPrendre).join('')}`
       : `${d.sorts.listes.map((l) => `${rub(echapper(l.rubrique), echapper(l.note))}${l.sorts.map(sortAApprendre).join('')}`).join('')}<div class="pied-de-bourse">${bourse({ heros: echapper(d.sorts.bourse.heros), avoir: prix(d.sorts.bourse.avoir) })}</div>`,
@@ -1646,7 +1647,7 @@
     cadre('vise', null, null, null, null, 'parchemin', `<div class="page-c">${nomDuDetail(c.vise.nom, `${echapper(c.vise.carriere)} · niveau ${c.vise.niveau} · Statut ${echapper(c.vise.statut)}`)}${filet({ fondu: true, losange: true })}
       <div class="ouvre">${c.vise.ouvre.map((o) => `${rub(echapper(o.rubrique))}${pills(o.noms)}`).join('')}</div>
       <p class="prose note" data-texte="note du niveau">${echapper(c.vise.note)}</p>${plaque(echapper(c.vise.geste), { armee: true, prix: px(c.vise.px), classe: 'devenir' })}</div>`, { ruban: echapper(c.vise.ruban), classe: 'pan', piece: 'progression-gauche' }),
-    cadre('autre', null, null, null, null, 'parchemin', `${c.autre.arrivee ? `<div class="plaques">${c.autre.arrivee.valeurs.map((v, k) => plaque(echapper(v), { armee: k === c.autre.arrivee.tenue, taille: 'petite' })).join('')}</div>` : ''}<div class="deux">
+    cadre('autre', null, null, null, null, 'parchemin', `<div class="plaques">${c.autre.arrivee ? c.autre.arrivee.valeurs.map((v, k) => plaque(echapper(v), { armee: k === c.autre.arrivee.tenue, taille: 'petite' })).join('') : ''}</div><div class="deux">
       <div>${rub('Classe')}<div class="lignes">${c.autre.classes.map((x) => `<div class="ligne${x.choisie ? ' choisie' : x.fermee ? ' refusee' : ''}">${picto(x.id, 17, undefined, 1.5)}<span class="n" data-texte="${echapper(x.nom)}">${echapper(x.nom)}</span><span class="cout">${px(x.px)}</span></div>`).join('')}</div></div>
       <div>${rub('Carrière', c.autre.arrivee ? '' : 'au premier niveau')}<div class="lignes">${c.autre.carrieres.map((o) => optionDe(o)).join('')}</div></div></div>
       ${rub('', echapper(c.autre.note))}`, { ruban: 'Autre carrière', classe: 'pan', piece: 'progression-droite' }),

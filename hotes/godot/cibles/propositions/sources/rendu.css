@@ -292,6 +292,7 @@
 /* 2. Gestion, la nouvelle partie : recruter sous le cartouche, les campagnes au bord droit sous la croix jusqu'au-dessus
    du bandeau, les voyageurs entre les deux */
 #salle{position:absolute;left:0;top:0}
+#salle .poste .et{width:148px}
 #campagnes .fond{height:100%;box-sizing:border-box;padding:22px 12px 0}
 
 /* 2. Gestion, la coop : la tablée tendue entre le panneau de gauche (rejoindre, l'invitation) et celui de droite
