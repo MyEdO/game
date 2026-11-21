@@ -1,0 +1,57 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "ceinture-a-boucle"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "emplacements": {
+    "ceinture_avant": {
+      "os": "spine_01",
+      "position": [
+        -0.079343,
+        0.020057,
+        0.112884
+      ],
+      "rotation": [
+        -0.101727,
+        0,
+        0
+      ],
+      "poids": {
+        "pelvis": 0.3069,
+        "spine_01": 0.3881,
+        "spine_02": 0.1867,
+        "spine_03": 0.0255,
+        "jupe_avant_d_01": 0.0557,
+        "jupe_avant_avant_d_01": 0.0371
+      }
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "ab00efedd49b9c9120b5094dab87f5f13646a1b675b38ce86b6e71b4c7d082a6",
+    "octets": 319132
+  }
+}

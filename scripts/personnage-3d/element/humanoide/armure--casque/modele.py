@@ -13,10 +13,8 @@ Silhouettes et clés `gabarit_*` transférées des zones de la tête. Toute cote
 import math
 
 import numpy as np
-from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, direction, joindre, maillage_skinne, selon
+from tissu import Maillage, direction, joindre, porteur_de, selon, viser
 
 HAUT = np.array([0.0, 0.0, 1.0])
 
@@ -51,7 +49,7 @@ class Coque:
         d = p - origine
         portee = float(np.linalg.norm(d))
         d /= portee
-        touche = self.peau.ray_cast(Vector((origine + 0.3 * d).tolist()), Vector((-d).tolist()), 0.3)[0]
+        touche = viser(self.peau, origine, d, 0.3)[0]
         if touche is not None:
             portee = max(portee, float(np.linalg.norm(np.array(touche) - origine)) + self.jeu)
         return origine + portee * d
@@ -70,6 +68,13 @@ class Coque:
         haut = self.D['DEMI_AXES']['haut']
         psi = math.atan(math.tan(math.radians(e)) * self.equateur(phi) / haut)
         return self.point(phi, haut * math.sin(psi))
+
+
+def rigide(D, b, n):
+    """Les poids de `n` sommets liés rigides à l'os du casque."""
+    W = np.zeros((n, len(b.os)))
+    W[:, b.indice_os[D['OS']]] = 1.0
+    return W
 
 
 def coque(D, b, forme, mat):
@@ -92,18 +97,14 @@ def coque(D, b, forme, mat):
     for k in range(n):
         M.triangle(anneaux[-1][k], anneaux[-1][(k + 1) % n], pole, forme.C)
     X, orientes, normales = M.orienter()
-    W = np.zeros((len(X), len(b.os)))
-    W[:, b.indice_os[D['OS']]] = 1.0
-    return b.nappe('casque', X, normales, W, orientes, mat, D['EPAISSEUR'])
+    return b.nappe('casque', X, normales, rigide(D, b, len(X)), orientes, mat, D['EPAISSEUR'])
 
 
-def solide(D, b, nom, M, mat):
-    """Le maillage `M`, fermé, lié rigide à l'os du casque."""
+def solide(D, b, nom, M, mat, teintes=()):
+    """Le maillage `M`, fermé, lié rigide à l'os du casque, au matériau `mat`, chaque triangle à celui de `teintes` qui
+    n'est pas `None`."""
     X, faces, _ = M.orienter()
-    objet = maillage_skinne(nom, [tuple(p) for p in X], [tuple(f) for f in faces], mat, b.rig, [{D['OS']: 1.0}] * len(X))
-    for polygone in objet.data.polygons:
-        polygone.use_smooth = True
-    return objet
+    return b.nappe_simple(nom, [tuple(p) for p in X], [tuple(f) for f in faces], rigide(D, b, len(X)), mat, teintes)
 
 
 def bandeau(D, b, forme, mat, cordon):
@@ -125,13 +126,9 @@ def bandeau(D, b, forme, mat, cordon):
     for k in range(t['segments']):
         suivant = (k + 1) % t['segments']
         M.bande(anneaux[k], anneaux[suivant], 0.5 * (centres[k] + centres[suivant]))
-    objet = solide(D, b, 'bandeau', M, mat)
-    objet.data.materials.append(cordon)
     # `Maillage.bande` : le côté i de la section k porte les triangles 2 (k cotes + i) et 2 (k cotes + i) + 1.
-    for polygone in objet.data.polygons:
-        if (polygone.index // 2) % t['cotes'] < t['cotes'] // 2:
-            polygone.material_index = 1
-    return objet
+    return solide(D, b, 'bandeau', M, mat, [cordon if (k // 2) % t['cotes'] < t['cotes'] // 2 else None
+                                            for k in range(len(M.triangles))])
 
 
 def fleuron(D, b, forme, metal, medaillon):
@@ -169,8 +166,7 @@ def fleuron(D, b, forme, metal, medaillon):
 
 def construire(D, materiaux, b):
     b.exiger(D['ZONES_DES_CLES'])
-    P, T, _ = b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES_DE_LA_TETE'])
-    peau = BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
+    peau = porteur_de(*b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES_DE_LA_TETE']))
     forme = Coque(D, np.array(b.tete(D['OS'])) + np.asarray(D['CENTRE'], float), peau)
     piece = joindre([coque(D, b, forme, materiaux['metal']), bandeau(D, b, forme, materiaux['metal'], materiaux['cordon']),
                      *fleuron(D, b, forme, materiaux['metal'], materiaux['fleuron'])])

@@ -3,9 +3,8 @@ tour sous le genou, un nœud sur son dehors et deux bouts qui pendent le long du
 bas, visé depuis le dehors vers l'axe de la jambe. Doubles nappes ; poids empruntés au bas sous chaque sommet, puis
 lissés ; silhouettes et clés `gabarit_*` reprises du corps."""
 import numpy as np
-from mathutils import Vector
 
-from tissu import Maillage, direction, emprunter, joindre, lisser, porteur_de, voisinage
+from tissu import Maillage, direction, emprunter, joindre, lisser, porteur_de, viser, voisinage
 
 
 def construire(D, materiaux, b):
@@ -21,7 +20,7 @@ def construire(D, materiaux, b):
         """Le point du bas à `z`, azimut `theta`, au jeu, plus `devant`."""
         d = np.append(direction(theta), 0.0)
         o = axe(z)
-        touche = bas['arbre'].ray_cast(Vector((o + D['PORTEE'] * d).tolist()), Vector((-d).tolist()), D['PORTEE'])
+        touche = viser(bas, o, d, D['PORTEE'])
         if touche[0] is None:
             raise ValueError(f'ruban : aucun bas à z = {z:.3f}, azimut {theta:.0f}')
         return np.array(touche[0]) + (D['JEU'] + D['EPAISSEUR'] + devant) * d

@@ -14,12 +14,8 @@ Silhouettes et clés `gabarit_*` : du corps pour le panier, du pourpoint publié
 import math
 
 import numpy as np
-from mathutils import Vector
-from tissu import Maillage, centre_de, emprunter, joindre, joindre_les_surfaces, lisser, porteur_de, voisinage
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
+from tissu import (Maillage, centre_de, emprunter, joindre, joindre_les_surfaces, lisser, porteur_de, unitaire, viser,
+                   voisinage)
 
 
 def selon_t(table, t):
@@ -99,8 +95,7 @@ def bretelle(D, b, support, forme, w, signe, mat):
         distances = []
         for k in (-1, 0, 1):
             depart = milieu + k * demi * n
-            touche = support['arbre'].ray_cast(Vector((depart + B['portee'] * d).tolist()), Vector((-d).tolist()),
-                                               B['portee'])
+            touche = viser(support, depart, d, B['portee'])
             if touche[0] is not None:
                 distances.append(B['portee'] - touche[3])
         if not distances:

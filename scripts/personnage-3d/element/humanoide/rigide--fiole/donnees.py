@@ -1,9 +1,11 @@
-"""Données de `humanoide--rigide--fiole` (le Sorcier, #3844) : la fiole bouchée (`src/data/apparences.json`), forme des
+"""Données de `humanoide--rigide--fiole` (le Sorcier, #3844, #4351) : la fiole bouchée (`src/data/apparences.json`), forme des
 potions (`potion-*`, trappings `herbes-et-potions`).
 
 Illustration directrice : ligne de `INDEX.md` du recueil `illustrations-wfrp` « Sorcier | sorcier | `carrieres/sorcier.png` |
-Livre de Base | 94 | certaine » (hors dépôt). Ce qu'elle montre : trois fioles bouchées sous les rouleaux de la
-bandoulière, ~10 px de diamètre (2 cm), ~40 px de long bouchon compris (7,5 cm). Échelle relevée : environ 530 px/m.
+Livre de Base | 94 | certaine » (hors dépôt). Ce qu'elle montre : trois fioles sous les rouleaux de la bandoulière, des
+tubes de verre droits (deux verts, un sombre) fermés à chaque bout d'une pièce sombre, bouchon d'un côté et culot de
+l'autre, une bague sous le bouchon ; la plus lisible fait ~73 px de long (12,8 cm) et ~16 px de diamètre (2,8 cm), vue de
+biais. Échelle relevée : environ 570 px/m (1,75 m de la semelle au sommet du crâne, HYPOTHÈSE du contrat).
 
 Repère de la prise `main` de la base, qui est aussi celui du rangement (section « Atelier 3D » du contrat du pont) :
 rangé, +Y suit le bas de l'emplacement, +Z sort sur sa normale, l'origine sur l'emplacement ; la face arrière se pose sur
@@ -19,19 +21,24 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'fiole': ('accent', ((0.5, 0.5, 0.5), 0.0, 0.3)),
-    'bouchon': ('cuir', ((0.45, 0.45, 0.45), 0.0, 0.9)),
+    'fiole': ('accent', ((0.5, 0.5, 0.5), 0.0, 0.15)),
+    'bouchon': ('cuir', 'cuir-tanne'),
 }
-"""Illustration : verre teinté (`accent`, le vert de la fiole verte), bouchon sombre (`cuir`). Gris de construction."""
+"""Illustration : verre teinté (`accent`), sans matière de verre au catalogue : gris de construction, lisse. Bouchon,
+bague et culot sombres (`cuir`)."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire
 
-RAYON = 0.0095
-LONGUEUR = 0.07
-BOUCHON = 0.018
-"""Illustration : 2 cm de diamètre, 7 cm de long dont 1,8 cm de bouchon."""
-COL = 0.6
-"""HYPOTHÈSE : le col et le bouchon, en fraction du rayon de la panse."""
+RAYON = 0.012
+LONGUEUR = 0.11
+"""Contrat : tube de verre d'environ 10 cm ; illustration : 12,8 cm bouchon compris, 2,8 cm de diamètre, lus de biais.
+HYPOTHÈSE : 11 cm bouchon et culot compris, 2,4 cm de diamètre."""
 
-SEGMENTS = 8
+BOUCHON = {'longueur': 0.014, 'rayon': 0.75}
+"""Illustration : un bouchon plus étroit que le tube dépasse de ~8 px (1,4 cm) ; `rayon` en fraction de celui du tube."""
+BAGUE = {'longueur': 0.012, 'rayon': 1.15}
+"""Illustration : une bague sombre de ~7 px (1,2 cm) sous le bouchon, et un culot de même au fond, qui débordent le
+verre ; `rayon` en fraction de celui du tube (HYPOTHÈSE pour le débord)."""
+
+SEGMENTS = 10
 ANGLE_LISSE = 50                 # degrés : arêtes plus vives que cet angle gardées vives

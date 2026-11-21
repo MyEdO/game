@@ -9,9 +9,9 @@ import math
 
 import geometrie
 import habillage
-from geometrie import alea, coque
+from geometrie import coque
 from gabarit import Gabarit, boite
-from maille import Maille, lineaire, objet
+from maille import Maille, lineaire, objet, tirage
 
 DECORS = ("rocher", "menhir", "stalagmite", "gravats")
 MAT = "pierre"
@@ -248,7 +248,7 @@ def tas(m, G, T, D, a):
 
 
 def construire(D, id_):
-    G, a = Gabarit(id_), alea(id_)
+    G, a = Gabarit(id_), tirage(id_)
     mats = habillage.materiaux(D["MATERIAUX"][id_])
     m = Maille([mats[MAT]])
     for B in D["BLOCS"].get(id_, ()):
