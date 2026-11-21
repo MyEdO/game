@@ -9,7 +9,7 @@
  * Ce module verrouille les deux — même patron que `zoneAreaTiles` (`z` propagé, #782/#799).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castCommitZone, applyCast } from './combatFlow';
 import { zoneCovers } from './monde/zones';
@@ -19,6 +19,10 @@ import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+import { initialNet } from './etat';
+import { t } from '../i18n';
+import { testScene } from '../scenes/test-fixture';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -65,6 +69,26 @@ describe('Placement de zone — z-blindness (#798)', () => {
     const get = (id: string) => banc.getState().battle!.combatants.find((cc) => cc.id === id)!;
     expect(get('e-same').wounds.current).toBeLessThan(40); // même étage que le point cliqué → touché
     expect(get('e-ghost').wounds.current).toBe(40); // autre étage, même (x,y) -> hors de l'aire (non touché)
+  });
+
+  it('le refus d’une zone hors de portée revient au siège du lanceur', () => {
+    const c = caster(1, 1, 0);
+    c.characteristics['force-mentale'] = 10;
+    const e = foe('e', 7, 4, 0);
+    const order = [c.id, e.id];
+    banc.setState({
+      mode: 'battle', scene: testScene(), party: [c], journal: [],
+      battle: { combatants: [c, e], order, baseOrder: order, turn: 0, round: 1, action: 'incantation', selectedSpellId: 'explosion',
+        reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
+      pendingCast: { casterId: c.id, targetId: c.id, spellId: 'explosion', missile: true, focused: false, result: okCast(),
+        zone: { center: null, radius: 2, r0m: 2, placing: true } },
+      net: { ...initialNet(), mode: 'hote', ownership: { [c.id]: 1 }, slots: [1, 0, 0, 0] },
+    });
+    const refus = vi.fn();
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'cliquerLaCase', [{ x: 21, y: 15 }], refus)).toBe('appliquee');
+    expect(refus.mock.calls).toEqual([[t('cf.zoneHorsDePortee', { spell: findSpellById('explosion')!.label, range: 5 })]]);
+    expect(banc.getState().journal).toEqual([]);
+    expect(banc.getState().pendingCast?.zone?.placing).toBe(true);
   });
 
   it("placeZoneFromOp : la zone persistante posée à l'étage de la cible ne couvre pas le même (x,y) à un autre étage", () => {

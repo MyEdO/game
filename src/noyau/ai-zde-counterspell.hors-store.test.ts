@@ -13,13 +13,16 @@
  * RESTE en pose (attend le clic réel) — `jetValider('incantation')` n'auto-pose QUE pour un lanceur `aiDriven`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { spawnEnemy } from './monde/spawn';
 import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { initialNet } from './etat';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+import { openCastCascade } from './combatFlow';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -83,6 +86,22 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     expect(hp('h1').current).toBeLessThan(hp('h1').max); // dans le rayon → touché par la zone
     expect(hp('h2').current).toBeLessThan(hp('h2').max);
     void h2;
+  });
+
+  it('le refus de la pose automatique de l’ennemi reste au journal après le Contre-sort d’un invité', () => {
+    const { e, h1 } = setupZoneAwaitingCounter();
+    e.characteristics['force-mentale'] = 2;
+    banc.setState({
+      journal: [],
+      net: { ...initialNet(), mode: 'hote', ownership: { [h1.id]: 1 }, slots: [1, 0, 0, 0] },
+      pendingCounterspell: { participants: [{ id: h1.id, interactive: true, declared: 'solo', result: null }] } as never,
+    });
+    openCastCascade(banc.getState, banc.setState, e);
+    const refus = vi.fn();
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'jetAnnuler', ['contreSort'], refus)).toBe('appliquee');
+    expect(banc.getState().pendingCounterspell).toBeNull();
+    expect(banc.getState().journal).toContainEqual(expect.stringMatching(/^Explosion : zone hors de portée/));
+    expect(refus).not.toHaveBeenCalled();
   });
 
   it('DISSIPATION (Contre-sort gagnant) → jetValider@incantation NE POSE RIEN, pending fermé proprement (pas de soft-lock)', () => {

@@ -3,13 +3,13 @@
  * `transport.testkit.ts` en test). L'hôte seul applique les intents des sièges et diffuse l'état : les
  * invités envoient des intents, l'hôte les rejoue puis diffuse un snapshot d'état complet
  * (mêmes données JSON-sûres que la sauvegarde — cf. spec coop §3). Les sièges sont attribués
- * par la room (Durable Object) et injectés via `addGuest`.
+ * par la room (Durable Object) et injectés via `addGuest`. Le refus d'un intent revient par ce même transport.
  *
  * Cette couche ignore TOUT du store : `applyIntent`/`getSnapshot`/`applySnapshot` sont
  * injectés — testable sans réseau ni navigateur.
  */
 import type { Transport } from './transport';
-import { PROTOCOL_VERSION, parseMessage, serializeMessage, type NetMessage } from './protocol';
+import { PROTOCOL_VERSION, parseMessage, serializeMessage } from './protocol';
 
 export interface Seat {
   label: string;
@@ -23,7 +23,7 @@ export class HostSession {
   constructor(
     private readonly opts: {
       build: string;
-      applyIntent: (action: string, args: unknown[], seat: number) => void;
+      applyIntent: (action: string, args: unknown[], seat: number) => string | void;
       getSnapshot: () => Record<string, unknown>;
       onSeatClosed?: (seat: number) => void;
     },
@@ -56,7 +56,8 @@ export class HostSession {
       }
       if (!joined) return; // tout sauf hello avant le handshake : ignoré
       if (m.kind === 'intent') {
-        this.opts.applyIntent(m.action, m.args, seat);
+        const texte = this.opts.applyIntent(m.action, m.args, seat);
+        if (texte !== undefined) transport.send(serializeMessage({ kind: 'intent-refused', texte }));
         return;
       }
       if (m.kind === 'bye') transport.close();
@@ -69,15 +70,10 @@ export class HostSession {
     });
   }
 
-  /** Diffuse un message à tous les sièges connectés. */
-  private broadcast(m: NetMessage): void {
-    const msg = serializeMessage(m);
-    for (const s of Object.values(this.seats)) s.transport.send(msg);
-  }
-
   /** Diffuse l'état autoritaire à tous les sièges connectés. */
   broadcastSnapshot(): void {
-    this.broadcast({ kind: 'snapshot', data: this.opts.getSnapshot() });
+    const msg = serializeMessage({ kind: 'snapshot', data: this.opts.getSnapshot() });
+    for (const s of Object.values(this.seats)) s.transport.send(msg);
   }
 
   close(): void {
@@ -94,6 +90,7 @@ export class GuestSession {
       build: string;
       label: string;
       applySnapshot: (data: Record<string, unknown>) => void;
+      onIntentRefused?: (texte: string) => void;
       /** Fermeture VOLONTAIRE de l'hôte pour incompatibilité de protocole (message `error` reçu
        *  AVANT le `onClose` du transport) — distinct d'une coupure réseau banale. */
       onProtocolMismatch?: (expected: number, got: number) => void;
@@ -116,6 +113,7 @@ export class GuestSession {
         this.opts.applySnapshot(m.data);
         return;
       }
+      if (m.kind === 'intent-refused' && this.joined) this.opts.onIntentRefused?.(m.texte);
       if (m.kind === 'error' && m.reason === 'protocol-mismatch') this.opts.onProtocolMismatch?.(m.expected, m.got);
       if (m.kind === 'error' && m.reason === 'format-mismatch') this.opts.onFormatMismatch?.();
     });

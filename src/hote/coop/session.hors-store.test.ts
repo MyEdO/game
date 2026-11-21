@@ -49,6 +49,27 @@ describe('session coop (hote/coop/session)', () => {
     expect(applyIntent).toHaveBeenCalledWith('terminerLeTour', [], seat);
   });
 
+  it('le refus est reçu après le hello et une trame de refus venant d’un invité est ignorée', () => {
+    const { host, applyIntent } = mkHost();
+    const [presence, invite] = FakeTransport.pair();
+    const onIntentRefused = vi.fn();
+    const guest = new GuestSession({ build: 'test', label: 'Invité', applySnapshot: vi.fn(), onIntentRefused });
+    guest.connect(invite);
+    const message = serializeMessage({ kind: 'intent-refused', texte: 'Geste refusé' });
+    presence.send(message);
+    expect(onIntentRefused).not.toHaveBeenCalled();
+
+    host.addGuest(presence, 1);
+    guest.rejoin();
+    invite.send(message);
+    expect(applyIntent).not.toHaveBeenCalled();
+    expect(onIntentRefused).not.toHaveBeenCalled();
+
+    applyIntent.mockReturnValueOnce('Geste refusé');
+    guest.sendIntent('terminerLeTour', []);
+    expect(onIntentRefused.mock.calls).toEqual([['Geste refusé']]);
+  });
+
   it('broadcastSnapshot atteint TOUS les invités', () => {
     let gameTime = 7;
     const host = new HostSession({ build: 'test', applyIntent: vi.fn(), getSnapshot: () => ({ gameTime }) });
