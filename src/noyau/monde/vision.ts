@@ -11,7 +11,8 @@
  * sont canon ; la DONNÉE les porte en mètres et `rayonEnCases` les convertit à l'échelle de la scène
  * (`Scene.metresPerTile`, défaut `LDB 15 l.12`).
  */
-import { Scene, type SceneDuVolume, type SceneEntity, heightAt, hauteurDe, edgeOf, sceneMetresPerTile, areteOcculte, wallOnSight } from './scene';
+import { Scene, type SceneDuVolume, type SceneEntity, heightAt, hauteurDe, edgeOf, sceneMetresPerTile, areteOcculte, tileAt, wallOnSight } from './scene';
+import { estAbsent } from './terrain';
 import { caseDansGrille, grilleDesMasses, masseOcculte, rayonTraverse, type GrilleDesMasses } from './opacite';
 import { METRES_PER_LEVEL } from './relief';
 import { sceneIsDark } from './sceneRules';
@@ -312,7 +313,8 @@ export function computeLightField(scene: Scene, ambient: number, sources: readon
 /**
  * Ensemble des cases (`"x,y,z"`) visibles par AU MOINS UN viewer. Une case est visible si la Ligne
  * de Vue est dégagée ET (dans la portée de vision nocturne du viewer, OU dans son rayon de vue ET
- * éclairée ≥ `LIT_THRESHOLD`). PUR.
+ * éclairée ≥ `LIT_THRESHOLD`). L'AIR au-dessus d'une case vue l'est aussi, par sa colonne, jusqu'au
+ * premier sol (`airDeLaColonne`). PUR.
  */
 export function computeVisible(scene: Scene, viewers: Viewer[], light: LightField, smoke: Pt[] = [], occ: Occ = buildOpaque(scene)): Set<string> {
   const { w, h } = scene.dimensions;
@@ -366,5 +368,19 @@ export function computeVisible(scene: Scene, viewers: Viewer[], light: LightFiel
         }
       }
     }
+  for (const k of [...vis]) for (const air of airDeLaColonne(scene, k)) vis.add(air);
   return vis;
+}
+
+/** Les cases d'AIR (`estAbsent`) au-dessus de la case `cle` (`"x,y,z"`), couche après couche, jusqu'au premier sol
+ *  exclu : ce qu'on voit d'une case vue en levant les yeux à ciel ouvert. Une case non vide arrête la colonne, si
+ *  bien qu'aucun plancher ni rien de ce qu'il porte ne se voit d'en dessous. */
+function airDeLaColonne(scene: Scene, cle: string): string[] {
+  const [x, y, z] = cle.split(',').map(Number);
+  const air: string[] = [];
+  for (const zc of scene.layers.map((l) => l.z).filter((zc) => zc > z).sort((a, b) => a - b)) {
+    if (!estAbsent(tileAt(scene, x, y, zc))) break;
+    air.push(`${x},${y},${zc}`);
+  }
+  return air;
 }

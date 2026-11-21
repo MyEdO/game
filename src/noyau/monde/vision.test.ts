@@ -400,17 +400,18 @@ describe('computeVisible — vue INCHANGÉE sur un plan complet (carte-fixture)'
   };
 
   /** Les postes : un dans chaque aile, sur le SEUIL de la porte, contre la FENÊTRE, aux quatre coins,
-   *  et deux à l'ÉTAGE. Empreintes MESURÉES sur la fixture (croisée transparente : #1712). */
+   *  et deux à l'ÉTAGE. Empreintes MESURÉES sur la fixture (croisée transparente : #1712), l'air vu par sa colonne
+   *  compris (#4471). */
   const POSTES: [number, number, number, string][] = [
-    [0, 0, 0, '48:5186005a'],
-    [2, 3, 0, '60:88116a2'],
-    [5, 3, 0, '54:bf797db4'],
-    [6, 5, 0, '41:4288d460'],
-    [4, 5, 0, '64:eebb8a15'],
-    [9, 7, 0, '39:f8f6b6c1'],
-    [0, 7, 0, '64:1ef3e600'],
-    [6, 1, 1, '114:3fde5310'],
-    [8, 2, 1, '111:5240e8ea'],
+    [0, 0, 0, '94:342098e6'],
+    [2, 3, 0, '111:94fbcc4c'],
+    [5, 3, 0, '88:692014f7'],
+    [6, 5, 0, '82:59c34b28'],
+    [4, 5, 0, '124:53a9cd51'],
+    [9, 7, 0, '78:5f4d77e'],
+    [0, 7, 0, '118:abcb0fbd'],
+    [6, 1, 1, '160:dfced8f5'],
+    [8, 2, 1, '160:dfced8f5'],
   ];
 
   const vueAu = (carte: Scene, x: number, y: number, z: number) =>

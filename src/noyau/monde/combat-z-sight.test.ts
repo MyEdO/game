@@ -173,9 +173,25 @@ describe('computeVisible — vision inter-couche (vers le bas seulement)', () =>
     expect(v.has('3,0,0')).toBe(true); // contrebas révélé
     expect(v.has('3,0,1')).toBe(true); // sa propre couche révélée
   });
-  it('un viewer z=0 ne révèle PAS la couche z=1 (pas de vision vers le haut)', () => {
-    const v = computeVisible(scene(6, 1), [{ pos: { x: 0, y: 0 }, radiusTiles: 5, darkTiles: 0 }], BRIGHT);
+  // Trois couches sur une rangée : un plancher z1 en (3,0), de l'air partout ailleurs au-dessus du sol.
+  const etages = (): Scene => {
+    const z1 = new Array(6).fill('vide'); z1[3] = 'pierre';
+    return { ...scene(6, 1), layers: [{ z: 0, tiles: new Array(6).fill('herbe') }, { z: 1, tiles: z1 }, { z: 2, tiles: new Array(6).fill('vide') }] };
+  };
+  it('un viewer z=0 voit l’AIR au-dessus des cases qu’il voit, couche après couche, à ciel ouvert', () => {
+    const v = computeVisible(etages(), [{ pos: { x: 0, y: 0 }, radiusTiles: 5, darkTiles: 0 }], BRIGHT);
+    for (const k of ['2,0,1', '2,0,2', '4,0,1', '4,0,2']) expect(v.has(k), k).toBe(true);
+  });
+  it('un viewer z=0 ne voit ni un plancher z=1 ni rien au-dessus (pas de vision à travers un sol)', () => {
+    const v = computeVisible(etages(), [{ pos: { x: 0, y: 0 }, radiusTiles: 5, darkTiles: 0 }], BRIGHT);
+    expect(v.has('3,0,0')).toBe(true);
     expect(v.has('3,0,1')).toBe(false);
+    expect(v.has('3,0,2')).toBe(false);
+  });
+  it('l’air d’une case hors de vue reste hors de vue', () => {
+    const v = computeVisible(etages(), [{ pos: { x: 0, y: 0 }, radiusTiles: 2, darkTiles: 0 }], BRIGHT);
+    expect(v.has('4,0,0')).toBe(false);
+    expect(v.has('4,0,1')).toBe(false);
   });
   it('mono-couche : viewer z=0 révèle z=0 dans son rayon, pas au-delà (inchangé)', () => {
     const v = computeVisible(scene(8, 1), [{ pos: { x: 0, y: 0 }, radiusTiles: 3, darkTiles: 0 }], BRIGHT);
