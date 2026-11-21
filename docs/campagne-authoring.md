@@ -42,7 +42,7 @@ Câblé par des **Effects** (`src/data/schemas/defs-scenes/effets.ts`), jamais e
 - `adjustVessel` — patch INCRÉMENTAL (`name`/`morale`/`hullCurrent`/`saboteurDR`…) sans réinitialiser le
   reste (ex. `saboteurDR` remis à 0 quand un sabotage est levé, sans toucher la coque).
 - `ops` sur `on: 'navire'` — les ops de NAVIRE (`manann`, `shipMorale`, `shipCritical`, `OPS_DU_NAVIRE`,
-  `src/engine/ops.ts`) et les ops de coque (`wounds`) sur le navire de campagne (`src/noyau/navireOps.ts`).
+  `src/engine/faitsDOp.ts`) et les ops de coque (`wounds`) sur le navire de campagne (`src/noyau/navireOps.ts`).
   L'Humeur de Manann d'une campagne se décale par `{ op: 'manann', factorId }`, `factorId` RÉEL de
   `src/data/sea-events.json` (réf. de registre `seaManannFactors`), jamais un delta brut anonyme.
 - `saboteurDR` (dans `[-5,0]`) — malus discret aux Tests d'équipage de COMBAT ; s'authore SUR le

@@ -66,3 +66,8 @@ export function chambrePleine(c: Combatant, weapon: Weapon): boolean {
 export function reloadProgressOf(c: Combatant, weapon: Weapon): number {
   return loadRegister(c, weapon).reloadProgress ?? 0;
 }
+
+/** Objet équipé ou affecté à une arme du loadout actif. */
+export function isHeld(c: Combatant, it: ItemInstance): boolean {
+  return !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
+}

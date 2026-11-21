@@ -29,13 +29,10 @@
  * CHOIX documenté (canon muet sur la résorption) : manger à nouveau remet les compteurs ET les
  * malus de faim à zéro.
  *
- * Cycle d'import évité comme `disease.ts`/`trauma.ts` : `characteristics.ts` importe
- * `hungerCharPenalties` d'ici → ce module n'importe NI characteristics NI conditions ; la valeur
- * de Résistance (`resVal`) et le Bonus d'Endurance (`be`) sont passés par l'appelant, qui applique
- * lui-même les dégâts (via `loseWounds`).
+ * Le collecteur `passiveMods` lit les pénalités dans `passifsDePrivation`.
  */
 import { nomDe } from './nom';
-import { Combatant, CharKey, ItemInstance, UpkeepDeferTest, type TestIds } from './types';
+import { Combatant, ItemInstance, UpkeepDeferTest, type TestIds } from './types';
 import { RNG, d10 } from './dice';
 import { rollTest } from './tests';
 import { hasActiveFlag } from './activeFlags';
@@ -53,6 +50,8 @@ import type { ModFamille } from './types';
 import type { PorteurDeMaladies } from './disease';
 import { t } from '../i18n';
 import { effectiveTalents } from './talentEffects';
+
+export { hungerCharPenalties, thirstCharPenalties } from './passifsDePrivation';
 
 /** La pénalité CUMULATIVE des Tests de Faim/Soif, NOMMÉE et liée à sa règle (LDB 18 l.338) — c'est
  *  le producteur qui la nomme, la couture d'entretien différé ne fait que la porter. */
@@ -127,28 +126,10 @@ export function isDeprived(c: Combatant): boolean {
   return isStarving(c) || isThirsty(c);
 }
 
-/** Pénalités de Caractéristique dues à la SOIF, injectées dans `effectiveChar` (kind `faim`) : LDB 18 l.340. */
-export function thirstCharPenalties(c: Combatant, key: CharKey): number[] {
-  const f = c.thirst?.failures ?? 0;
-  const first = key === 'intelligence' || key === 'force-mentale' || key === 'sociabilite';
-  if (f >= 1 && first) return [-10];
-  if (f >= 2 && !first) return [-10];
-  return [];
-}
-
 /** Repas pris (auberge, hôte — effet `mealParty`) : nourri pour la journée SANS ration, et les
  *  compteurs/malus de faim se dissipent (choix documenté : manger efface la faim). Mute `c`. */
 export function feedFromMeal(c: Combatant): void {
   c.hunger = { days: 0, tests: 0, failures: 0, coveredDay: true };
-}
-
-/** Pénalités de Caractéristique dues à la faim (LDB 18 l.342), injectées dans
- *  `effectiveChar` : 1ᵉʳ échec → −10 Force et Endurance ; dès le 2ᵉ → −10 toutes les autres. */
-export function hungerCharPenalties(c: Combatant, key: CharKey): number[] {
-  const f = c.hunger?.failures ?? 0;
-  if (f >= 1 && (key === 'force' || key === 'endurance')) return [-10];
-  if (f >= 2 && key !== 'force' && key !== 'endurance') return [-10];
-  return [];
 }
 
 export interface FoodUpkeepResult {
