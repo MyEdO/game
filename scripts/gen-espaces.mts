@@ -52,7 +52,7 @@ import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/gramma
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
 import type { CibleRendue } from './docs/lib/ecriture-derives.mjs';
-import { SORTIES_DES_ESPACES } from './docs/lib/cibles-registres.mjs';
+import { RACINE_DES_CATALOGUES, SORTIES_DES_ESPACES } from './docs/lib/cibles-registres.mjs';
 import { estObjet } from '../src/lib/objet.mjs';
 
 const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES, atelier: SORTIE_ATELIER } = SORTIES_DES_ESPACES;
@@ -203,7 +203,7 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
   const { lectureDuVocabulaire } = await import('../src/data/schemas/grammaire/vocabulaires');
   const { TYPES } = await import('../src/data/schemas/grammaire/ref');
   const { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } = await import('../src/data/schemas/exposition-derivee');
-  const brutParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, JSON.parse(readFileSync(join(d.root, d.file), 'utf8')) as unknown]));
+  const brutParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, JSON.parse(readFileSync(join(RACINE_DES_CATALOGUES, d.file), 'utf8')) as unknown]));
   const schemaParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, d.schema]));
   const acces: AccesAuxDocuments = (fichier) => (brutParNom.has(fichier) ? { schema: schemaParNom.get(fichier), racine: brutParNom.get(fichier) } : undefined);
   const lire = (c: string) => lectureDuVocabulaire(c) ?? lectureDeLEspace(c, acces);
@@ -414,10 +414,10 @@ export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TA
 /** Les deux autres modules de la phase 2, importés par `src/data/overrides.ts`,
  *  `src/data/versionDataset.ts` et `src/data/index.ts` que la phase 2 charge : posés VIDES quand ils
  *  manquent (clone neuf, #2203 A2) ou ne se chargent pas (`moduleChargeable`, #4161), puis rendus. */
-const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
-  [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const CLES_CODEX = [] as const;\nexport type CleCodex = (typeof CLES_CODEX)[number];\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_L_ESPACE: Readonly<Record<string, DatasetDeCategorie>> = {};\n'],
-  [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
-]);
+const AMORCES_DES_MODULES = [
+  { chemin: SORTIE_CLES, amorce: TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const CLES_CODEX = [] as const;\nexport type CleCodex = (typeof CLES_CODEX)[number];\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_L_ESPACE: Readonly<Record<string, DatasetDeCategorie>> = {};\n' },
+  { chemin: SORTIE_RACINES, amorce: 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n' },
+];
 
 /** Les noms exportés d'un module en texte (`export const|type <nom>`). */
 const exportsDe = (texte: string): Set<string> => new Set([...texte.matchAll(/^export (?:const|type) (\w+)/gm)].map((m) => m[1]));
@@ -434,7 +434,7 @@ export function moduleChargeable(texte: string, amorce: string, existe: (relatif
 function amorcesNecessaires(): [string, string][] {
   const amorces: [string, string][] = [];
   if (!indexChargeable(indexSurDisque())) amorces.push([SORTIE, TABLE_VIDE]);
-  for (const [chemin, amorce] of AMORCES_DES_MODULES) {
+  for (const { chemin, amorce } of AMORCES_DES_MODULES) {
     const present = existsSync(chemin) && moduleChargeable(readFileSync(chemin, 'utf8'), amorce, (relatif) => existsSync(join(dirname(chemin), relatif)));
     if (!present) amorces.push([chemin, amorce]);
   }

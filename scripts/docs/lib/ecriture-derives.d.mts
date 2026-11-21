@@ -40,4 +40,4 @@ export type Production = (options: { check: boolean }) =>
   Generator<CibleRendue, void, boolean> | AsyncGenerator<CibleRendue, void, boolean>;
 
 export function lancerDepuisCLI(meta: ImportMeta, produire: Production): Promise<void>;
-export function lancerDepuisManifeste(meta: ImportMeta): Promise<void>;
+export function lancerDepuisManifeste(meta: ImportMeta, charger: (script: string) => Promise<Production>): Promise<void>;

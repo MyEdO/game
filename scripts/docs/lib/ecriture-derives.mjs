@@ -8,7 +8,7 @@ import { ecrireTexteAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { sousLEpoque } from './ecrivain-derives.mjs'
 import { correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
 import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { GENERATORS, SOURCES_LUES } from './cibles-generees.mjs'
 import { canoniser, relatifSousRacine } from './chemin-mesure.mjs'
@@ -113,7 +113,7 @@ export async function lancerDepuisCLI(meta, produire) {
 }
 
 /** Processus lancé par build-all pour un rang de sa sélection. */
-export async function lancerDepuisManifeste(meta) {
+export async function lancerDepuisManifeste(meta, charger) {
   const worker = new URL('./jouer-generateur.mjs', import.meta.url).href
   if (!meta.main || meta.url !== worker) throw new Error('Le manifeste se joue par le lanceur des dérivés.')
   const { lectures, ...g } = JSON.parse(process.argv[2])
@@ -124,7 +124,7 @@ export async function lancerDepuisManifeste(meta) {
   }
   const script = path.resolve(racine, g.script)
   process.argv.splice(1, 2, script)
-  const { produire } = await import(pathToFileURL(script).href)
+  const produire = await charger(script)
   await piloter(g, produire, { racine, check, journal })
 }
 
