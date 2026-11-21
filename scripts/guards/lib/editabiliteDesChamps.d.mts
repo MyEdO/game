@@ -19,6 +19,8 @@ export interface ChampDuDocument {
   /** L'id du type PORTEUR d'une propriété sans déclaration propre : clé LITTÉRALE d'un type mappé, ou propriété
    *  produite par une fabrique (une déclaration pour tous ses produits). */
   porteur?: number;
+  /** Suffixe du chemin vers un élément scalaire de tableau, tuple ou record. */
+  position?: string;
 }
 
 export interface FieldEditability {
@@ -46,9 +48,31 @@ export function programmeDuPerimetre(root: string, racines: readonly Racine[]): 
 export function perimetreDeLaRacine(program: SessionProgramme, root: string, racine: Racine): ChampDuDocument[];
 /** Une écriture que l'aller-retour de l'éditeur joue : le document avant et après, le chemin écrit depuis la racine du
  *  document, la valeur jouée, la saisie qui l'a portée et, issue du choix d'une variante, la clé de son discriminant. */
-export interface EcritureJouee { avant: unknown; apres: unknown; chemin: (string | number)[]; valeur: unknown; saisie: string; variante?: string }
-/** Les chemins que créditent des écritures jouées, chacun avec le document d'après où il se lit, sur tout porteur. */
-export function cheminsCreditesJoues(ecrituresJouees: readonly EcritureJouee[]): { apres: unknown; chemin: (string | number)[] }[];
+export type PasDEcriture = string | number;
+export interface ModeleDEcriture {
+  cleDeListe(document: unknown, cheminListe: readonly PasDEcriture[], element: unknown): unknown;
+  forme(document: unknown, chemin: readonly PasDEcriture[]): unknown;
+}
+export interface MouvementDEcriture { geste: 'monter' | 'inserer' | 'retirer'; chemin: readonly PasDEcriture[] }
+export interface EcritureJouee {
+  avant: unknown;
+  apres: unknown;
+  chemin: readonly PasDEcriture[];
+  valeur: unknown;
+  saisie: string;
+  variante?: string;
+  crediteParent?: true;
+  mouvement?: MouvementDEcriture;
+  modele?: ModeleDEcriture;
+  renommage?: { avant: string; apres: string };
+}
+/** Les chemins crédités, et le chemin antérieur apparié d'un changement incident. */
+export function cheminsCreditesJoues(ecrituresJouees: readonly EcritureJouee[]): {
+  apres: unknown;
+  chemin: PasDEcriture[];
+  temoin?: { avant: unknown; chemin: PasDEcriture[] };
+  incident?: true;
+}[];
 /** La marque d'un crédit par aller-retour dans la colonne `authors`. */
 export const ALLER_RETOUR: string;
 /** `program` absent : bâti pour CET appel (~8 s). `ecrituresJouees` : créditées par aller-retour (`ALLER_RETOUR`). */
