@@ -1,24 +1,18 @@
-/**
- * Schéma de `stars.json` — Tableau des Signes astrologiques (ADE II 3), document mono-table : son dé
- * `die` tire un seuil (`rand`, borne haute cumulée), le dé de son sous-tirage (`sub`, `sousTirage`) départage les
- * variantes d'un même seuil (`sub` de la rangée).
- */
+/** ADE II 03 l.36-63. */
 import { z } from 'zod';
 import { document, sousTirage } from '../grammaire/document';
 import { executeesDe, mecaniqueDe } from '../grammaire/mecanique';
-import { nommerChamps } from '../grammaire/meta';
-import { deDuParse, ecartsDuDeDeLaTable, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
-import { facesDuDe } from '../../../engine/tables';
+import { metaDesChamps, nommerChamps } from '../grammaire/meta';
+import { ecartsDuDeDeLaTable, plageEntiereSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { formatDice, type DiceSpec } from '../../../engine/dice';
 
 export const file = 'stars.json';
 export const famille = 'config';
 
-/** Un signe, à son seuil du dé de la table. */
 export const rangee = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
-  rand: z.number(),
+  ...plageEntiereSchema.shape,
   signe: z.string(),
   classique: z.string(),
   ascendant: z.string(),
@@ -30,16 +24,14 @@ export const rangee = nommerChamps(z.strictObject({
    *  Critiques), et la langue unique `applyOps`/`GameOpEditor` la lit sans exception d'atelier.
    *  Désignateur : `createHero` (`engine/character.ts`), via `applyStarOps` (`engine/creation.ts`). */
   ops: executeesDe(mecaniqueDe({ 'grantTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
-  /** Étoile du Sorcier (ADE II 3 l.63) : fourchette du dé du sous-tirage (`sub` du document),
-   *  forme PARTAGÉE `{min, max}` que `findTableEntry` (`src/engine/tables.ts`) lit. Absente sur un
-   *  signe simple. */
-  sub: plageSchema.optional(),
+  /** ADE II 03 l.63. */
+  sub: plageEntiereSchema.optional(),
   desc: z.string().min(1),
   source: sourceRefSchema,
 }), {
   id: { label: 'identifiant' },
   label: { label: 'libellé' },
-  rand: { label: 'Seuil aléatoire (borne haute du dé)' },
+  ...metaDesChamps(plageEntiereSchema, { exigees: true }),
   signe: { label: 'Signe' },
   classique: { label: 'Nom classique' },
   ascendant: { label: 'Ascendant' },
@@ -63,7 +55,7 @@ const doc = document(
     sub: sousTirage,
   },
   {
-    sub: { label: 'Sous-tirage', hint: 'Départage les variantes d’un même seuil (Étoile du Sorcier)' },
+    sub: { label: 'Sous-tirage', hint: 'Départage les variantes d’une même fourchette (Étoile du Sorcier)' },
   },
   {
     edit: { niche: { categories: { stars: 'entries' } } },
@@ -72,48 +64,37 @@ const doc = document(
     // ADE II 3 l.42
     rangee,
     deDeTirage: true,
-    // COUVERTURE du sous-tirage — invariant du GROUPE de variantes, pas d'une rangée : une variante
-    // seule ne sait pas si sa voisine commence là où elle s'arrête. Le groupe est celui que le
-    // résolveur forme (`rollStar`, `src/engine/creation.ts`) : les rangées qui PARTAGENT le même
-    // `rand`. Le domaine est celui du dé du sous-tirage, d'un seul tenant.
-    // Sans lui, un trou ouvert au Codex ne lèverait RIEN : `findTableEntry` (`src/engine/tables.ts`)
-    // replie sur la dernière entrée, et un 5 rendrait la variante « Sorcier ! ».
-    affinerDataset: (dataset) =>
-      dataset.superRefine((v, ctx) => {
-        const { sub, entries } = v as { sub: { die: DiceSpec }; entries: { id: string; rand: number; sub?: { min: number; max: number } }[] };
-        const subDie = deDuParse(sub);
-        if (!subDie) return;
-        const groupes = new Map<number, typeof entries>();
-        for (const e of entries) groupes.set(e.rand, [...(groupes.get(e.rand) ?? []), e]);
-        for (const [rand, groupe] of groupes) {
-          if (!groupe.some((e) => e.sub)) continue;
-          const sans = groupe.filter((e) => !e.sub).map((e) => `« ${e.id} »`);
-          if (sans.length) {
-            ctx.addIssue({
-              code: 'custom',
-              path: ['entries'],
-              message: `stars.json : le groupe de variantes du seuil ${rand} mêle des rangées AVEC et SANS sous-tirage (${sans.join(', ')}) — le résolveur ne retient que celles qui en portent un, les autres deviennent inatteignables.`,
-            });
-            continue;
-          }
-          if (groupe.length < 2) {
-            ctx.addIssue({
-              code: 'custom',
-              path: ['entries'],
-              message: `stars.json : le seuil ${rand} porte un sous-tirage sur une rangée SEULE — le dé du sous-tirage départage des variantes, il n'en départage aucune ici.`,
-            });
-            continue;
-          }
-          const ecarts = ecartsDuDeDeLaTable(sub, groupe.map((e) => ({ ...e.sub!, id: e.id })), (f) => `la variante « ${f.id} » (${f.min}–${f.max})`);
-          if (ecarts.length) {
-            ctx.addIssue({
-              code: 'custom',
-              path: ['entries'],
-              message: `stars.json : les variantes du seuil ${rand} ne couvrent pas le ${formatDice(subDie)} de ${totalDuDe(subDie, subDie.n)} à ${facesDuDe(subDie)} d'un seul tenant — ${ecarts.join(' ; ')}.`,
-            });
-          }
+    affinerDataset: (dataset) => dataset.superRefine((v, ctx) => {
+      const table = v as { die: DiceSpec; sub: { die: DiceSpec }; entries: z.output<typeof rangee>[] };
+      const groupes = new Map<number, typeof table.entries>();
+      for (const r of table.entries) {
+        const groupe = groupes.get(r.min);
+        if (groupe) groupe.push(r);
+        else groupes.set(r.min, [r]);
+      }
+      const refuser = (message: string) => ctx.addIssue({ code: 'custom', path: ['entries'], message: `${file} : ${message}` });
+      const bandes = [...groupes.values()].map(([r]) => r);
+      const ecarts = ecartsDuDeDeLaTable(table, bandes, (r) => `la rangée « ${r.id} »`);
+      if (ecarts.length) {
+        refuser(`les signes ne couvrent pas le ${formatDice(table.die)} d'un seul tenant — ${ecarts.join(' ; ')}.`);
+      }
+      for (const [bande, ...autres] of groupes.values()) {
+        const nom = `la bande ${bande.min}–${bande.max}`;
+        const variantes = [bande, ...autres].flatMap(({ id, sub }) => sub ? [{ ...sub, id }] : []);
+        if (autres.some((r) => r.max !== bande.max)) {
+          refuser(`${nom} regroupe des rangées de bornes hautes différentes.`);
         }
-      }),
+        if (autres.length === 0 && variantes.length === 0) continue;
+        if (autres.length === 0 || variantes.length !== autres.length + 1) {
+          refuser(`${nom} doit porter un signe simple ou au moins deux variantes ayant chacune un sous-tirage.`);
+          continue;
+        }
+        const ecartsDuSousTirage = ecartsDuDeDeLaTable(table.sub, variantes, (r) => `la variante « ${r.id} »`);
+        if (ecartsDuSousTirage.length) {
+          refuser(`les variantes de ${nom} ne couvrent pas le sous-tirage ${formatDice(table.sub.die)} d'un seul tenant — ${ecartsDuSousTirage.join(' ; ')}.`);
+        }
+      }
+    }),
   },
 );
 

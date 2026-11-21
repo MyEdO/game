@@ -9,13 +9,14 @@
   "source": {
     "book": "livre-de-base",
     "page": 40,
-    "note": "Tableau Couleur des Cheveux. Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40 : ancres data-folio l.744 et l.773), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 — d'où randByRace.gnome sur « blond-roux » (6) et « brun-dore » (10) (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) ⇒ pas de randByRace.ogre (#423). La couleur gnome « Bond doré » (rangée « auburn ») est le verbatim source (coquille probable, conservée règle 5)."
+    "note": "Tableau Couleur des Cheveux. Colonnes humain/nain/halfling/haut-elfe/elfe-sylvain = LDB 05 l.758-768 (folio 40 : ancres data-folio l.744 et l.773), bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20. Colonne gnome = NADJ (Nuits agitées et dures journées) « 15 - _GoBack.md » l.99-104 (p.89), bornes 2/3/4-6/7-10/11/12-14/15-17/18/19/20 (#420). Colonne ogre = ADE II (Archives de l'Empire vol. II) « 02 - Les ogres.md » l.305-311 (p.21), table 2d10×4 colonnes (gauche+droite) re-extraite du PDF (le pli Marker avait fait sauter la colonne 2d10 GAUCHE) : bornes 2/3/4/5-7/8-11/12-14/15-17/18/19/20 — motif IDENTIQUE au LDB (confirmé au livre : même motif que la table Couleur des yeux ogre adjacente, l.286-297) (#423). La couleur gnome « Bond doré » (rangée « auburn ») est le verbatim source (coquille probable, conservée règle 5)."
   },
   "entries": [
     {
       "id": "blond-blanc",
       "label": "Blond blanc",
-      "rand": 2,
+      "min": 2,
+      "max": 2,
       "color": {
         "humain": "Blond blanc",
         "halfling": "Gris",
@@ -29,7 +30,8 @@
     {
       "id": "blond-dore",
       "label": "Blond doré",
-      "rand": 3,
+      "min": 3,
+      "max": 3,
       "color": {
         "humain": "Blond doré",
         "halfling": "Paille",
@@ -43,9 +45,13 @@
     {
       "id": "blond-roux",
       "label": "Blond roux",
-      "rand": 4,
-      "randByRace": {
-        "gnome": 6
+      "min": 4,
+      "max": 4,
+      "plageParRace": {
+        "gnome": {
+          "min": 4,
+          "max": 6
+        }
       },
       "color": {
         "humain": "Blond roux",
@@ -60,9 +66,13 @@
     {
       "id": "brun-dore",
       "label": "Brun doré",
-      "rand": 7,
-      "randByRace": {
-        "gnome": 10
+      "min": 5,
+      "max": 7,
+      "plageParRace": {
+        "gnome": {
+          "min": 7,
+          "max": 10
+        }
       },
       "color": {
         "humain": "Brun doré",
@@ -77,7 +87,14 @@
     {
       "id": "brun-clair",
       "label": "Brun clair",
-      "rand": 11,
+      "min": 8,
+      "max": 11,
+      "plageParRace": {
+        "gnome": {
+          "min": 11,
+          "max": 11
+        }
+      },
       "color": {
         "humain": "Brun clair",
         "halfling": "Châtaigne",
@@ -91,7 +108,8 @@
     {
       "id": "brun-fonce",
       "label": "Brun foncé",
-      "rand": 14,
+      "min": 12,
+      "max": 14,
       "color": {
         "humain": "Brun foncé",
         "halfling": "Gingembre",
@@ -105,7 +123,8 @@
     {
       "id": "noir",
       "label": "Noir",
-      "rand": 17,
+      "min": 15,
+      "max": 17,
       "color": {
         "humain": "Noir",
         "halfling": "Moutarde",
@@ -119,7 +138,8 @@
     {
       "id": "auburn",
       "label": "Auburn",
-      "rand": 18,
+      "min": 18,
+      "max": 18,
       "color": {
         "humain": "Auburn",
         "halfling": "Amande",
@@ -133,7 +153,8 @@
     {
       "id": "roux",
       "label": "Roux",
-      "rand": 19,
+      "min": 19,
+      "max": 19,
       "color": {
         "humain": "Roux",
         "halfling": "Chocolat",
@@ -147,7 +168,8 @@
     {
       "id": "gris",
       "label": "Gris",
-      "rand": 20,
+      "min": 20,
+      "max": 20,
       "color": {
         "humain": "Gris",
         "halfling": "Réglisse",

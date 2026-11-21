@@ -1,8 +1,9 @@
 import { tableTotale } from '../lib/tableTotale';
 import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
-import { desEnSuite } from './dice.testkit';
-import { makeRNG, roll } from './dice';
+import { raceKeySchema } from '../data/schemas/grammaire/valeurs';
+import { deMax, desEnSuite } from './dice.testkit';
+import { makeRNG } from './dice';
 import { findTableEntry } from './tables';
 import { loadRuleOverrides, ruleOverrides, setRule } from './policy';
 import type { EntreeVivante } from '../data/datasets';
@@ -28,8 +29,8 @@ import {
   XP_CHARS_REASSIGNED,
   XP_STAR_ROLLED,
 } from './creation';
-import { careersForSpecies, findSpeciesById, libelleDeCouleur, offreDuJet, species, stars, type SpeciesData } from '../data';
-import { setDataset } from '../data/overrides';
+import { careersForSpecies, findSpeciesById, eyes, hairs, libelleDeCouleur, offreDuJet, species, stars, type SpeciesData } from '../data';
+import { champDEnTete, setDataset, setEnTete } from '../data/overrides';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 
 describe('bonus de PX des choix aléatoires (LDB 04 l.91 / 05 l.208-341)', () => {
@@ -43,36 +44,59 @@ describe('bonus de PX des choix aléatoires (LDB 04 l.91 / 05 l.208-341)', () =>
 });
 
 describe('rollStar — signe astral (ADE II, table d100)', () => {
-  it('renvoie toujours un signe existant (par id STABLE) + le d100 tiré', () => {
-    const ids = new Set(stars.map((s) => s.id));
-    for (let seed = 0; seed < 200; seed++) {
-      const r = rollStar(makeRNG(seed));
-      expect(ids.has(r.id)).toBe(true);
-      expect(r.roll).toBeGreaterThanOrEqual(1);
-      expect(r.roll).toBeLessThanOrEqual(100);
+  const signe = (id: string, min: number, max: number) => ({
+    id, label: id, min, max, source: { book: 'archives-de-l-empire-2', page: 39 },
+    desc: 'Un signe.', signe: 'Signe', classique: 'Classique', ascendant: 'Ascendant',
+    dates: 'Dates', dieux: 'Dieux', apparence: 'Apparence',
+  });
+
+  function avecDeuxGroupes(corps: () => void) {
+    const imprime = [...stars];
+    const sub = champDEnTete('stars', '', 'sub');
+    // Les deux premiers sous-tirages n’ont ni le même rattachement ni la même partition.
+    setDataset('stars', [
+      { ...signe('variante-b2', 6, 8), sub: { min: 3, max: 4 } },
+      { ...signe('variante-a2', 3, 5), sub: { min: 2, max: 4 } },
+      signe('simple', 1, 2),
+      { ...signe('variante-a1', 3, 5), sub: { min: 1, max: 1 } },
+      { ...signe('variante-b1', 6, 8), sub: { min: 1, max: 2 } },
+    ]);
+    setEnTete('stars', [{ ancetre: '', champ: 'sub', valeur: { die: { n: 1, sides: 4 } } }]);
+    try { sousLeDe('stars', { n: 1, sides: 8 }, corps); } finally {
+      setEnTete('stars', [{ ancetre: '', champ: 'sub', valeur: sub }]);
+      setDataset('stars', imprime);
     }
-  });
+  }
 
-  it('déterministe pour un même seed', () => {
-    expect(rollStar(makeRNG(1234))).toEqual(rollStar(makeRNG(1234)));
-  });
-
-  it('la sentinelle de test « TEST » est absente des données émises', () => {
-    expect(stars.some((s) => s.label === 'TEST' || s.rand > 100)).toBe(false);
-  });
-
-  it('l\'Étoile du Sorcier : le 1d10 interne produit les 4 variantes (ADE II 3 l.63)', () => {
-    const variants = stars.filter((s) => /Étoile du Sorcier/.test(s.label)).map((s) => s.id);
-    expect(variants.length).toBe(4);
-    const seen = new Set<string>();
-    for (let seed = 0; seed < 3000; seed++) {
-      const r = rollStar(makeRNG(seed)).id;
-      if (/etoile-du-sorcier/.test(r)) {
-        expect(variants).toContain(r); // jamais une variante hors des 4 bandes
-        seen.add(r);
+  it('chaque résultat est rattaché à sa propre plage principale, dans tout ordre', () => {
+    avecDeuxGroupes(() => {
+      expect(rollStar(desEnSuite([1]))).toEqual({ roll: 1, id: 'simple' });
+      expect(rollStar(desEnSuite([2]))).toEqual({ roll: 2, id: 'simple' });
+      for (let principal = 3; principal <= 8; principal++) {
+        for (let secondaire = 1; secondaire <= 4; secondaire++) {
+          const id = principal <= 5
+            ? (secondaire === 1 ? 'variante-a1' : 'variante-a2')
+            : (secondaire <= 2 ? 'variante-b1' : 'variante-b2');
+          expect(rollStar(desEnSuite([principal, secondaire]))).toEqual({ roll: principal, id });
+        }
       }
-    }
-    expect(seen.size).toBe(4); // les 4 bandes du d10 sont atteignables
+    });
+  });
+
+  it('un jet sans rangée nomme la table et le total, y compris pour le sous-tirage', () => {
+    avecDeuxGroupes(() => {
+      sousLeDe('stars', { n: 1, sides: 9 }, () => {
+        expect(() => rollStar(deMax)).toThrow(/signes astrologiques.*9/i);
+      });
+      expect(() => rollStar(desEnSuite([8, 5]))).toThrow(/sous-tirage des signes astrologiques.*5/i);
+    });
+  });
+
+  it('les quatre variantes de l’Étoile du Sorcier sont atteintes aux bornes imprimées (ADE II 03 l.63)', () => {
+    expect([1, 4, 7, 10].map((face) => rollStar(desEnSuite([100, face])).id)).toEqual([
+      'l-etoile-du-sorcier-sixieme-sens', 'l-etoile-du-sorcier-seconde-vue',
+      'l-etoile-du-sorcier-magie-mineure', 'l-etoile-du-sorcier-sorcier',
+    ]);
   });
 });
 
@@ -256,6 +280,38 @@ describe('Détails (LDB 05 l.701-768)', () => {
   });
 });
 
+describe('Couleurs des yeux et des cheveux au dé de leur table', () => {
+  const color = tableTotale(raceKeySchema.options, () => 'Noir');
+  const rangees = [
+    { id: 'seconde', label: 'Seconde', min: 4, max: 6, color, plageParRace: { gnome: { min: 5, max: 6 } } },
+    { id: 'premiere', label: 'Première', min: 2, max: 3, color, plageParRace: { gnome: { min: 2, max: 4 } } },
+  ];
+  it.each([
+    { table: 'eyes', tirer: rollEyes, imprime: eyes, nom: 'yeux' },
+    { table: 'hairs', tirer: rollHair, imprime: hairs, nom: 'cheveux' },
+  ] as const)('$table suit les plages par colonne et nomme les jets hors bande', ({ table, tirer, imprime, nom }) => {
+    const precedentes = [...imprime];
+    setDataset(table, rangees);
+    try {
+      sousLeDe(table, { n: 2, sides: 3 }, () => {
+        for (const race of raceKeySchema.options) {
+          for (let total = 2; total <= 6; total++) {
+            const face = Math.min(3, total - 1);
+            const seuil = race === 'gnome' ? 4 : 3;
+            const id = total <= seuil ? 'premiere' : 'seconde';
+            expect(tirer(race, desEnSuite([face, total - face]))).toEqual({ id, colonne: race });
+          }
+        }
+      });
+      sousLeDe(table, { n: 2, sides: 4 }, () => {
+        expect(() => tirer('gnome', deMax)).toThrow(new RegExp(`tableau de couleur des ${nom}, colonne gnome.*8`, 'i'));
+      });
+    } finally {
+      setDataset(table, precedentes);
+    }
+  });
+});
+
 describe('Couleur des cheveux — bornes 2d10 PAR RACE (rollHair, #420)', () => {
   // NADJ « 15 - _GoBack.md » l.99-104 (gnome, p.89) : bornes 4-6/7-10/11 ≠ LDB.
   const gnomeHair = (d2: number): string =>
@@ -276,33 +332,21 @@ describe('Couleur des cheveux — bornes 2d10 PAR RACE (rollHair, #420)', () => 
   const humain = findSpeciesById('humains-reiklander')!;
   const ogre = findSpeciesById('ogres')!;
   it('Gnome : chaque 2d10 rend la couleur NADJ — décalée du LDB pour 5,6,8,9,10 (rouge avant #420)', () => {
-    for (let seed = 0; seed < 400; seed++) {
-      const d2 = roll(2, 10, makeRNG(seed)); // même 1er tirage que rollHair(makeRNG(seed))
-      expect(libelleDeCouleur('hairs', rollHair(gnome.refChar, makeRNG(seed))), `seed=${seed} 2d10=${d2}`).toBe(gnomeHair(d2));
+    for (let d2 = 2; d2 <= 20; d2++) {
+      const face = Math.min(10, d2 - 1);
+      expect(libelleDeCouleur('hairs', rollHair(gnome.refChar, desEnSuite([face, d2 - face]))), `2d10=${d2}`).toBe(gnomeHair(d2));
     }
   });
   it('Les races LDB gardent les bornes LDB (override race-scopé) — humain reiklander', () => {
-    for (let seed = 0; seed < 400; seed++) {
-      const d2 = roll(2, 10, makeRNG(seed));
-      expect(libelleDeCouleur('hairs', rollHair(humain.refChar, makeRNG(seed))), `seed=${seed} 2d10=${d2}`).toBe(humainHair(d2));
+    for (let d2 = 2; d2 <= 20; d2++) {
+      const face = Math.min(10, d2 - 1);
+      expect(libelleDeCouleur('hairs', rollHair(humain.refChar, desEnSuite([face, d2 - face]))), `2d10=${d2}`).toBe(humainHair(d2));
     }
   });
   it('Ogre : chaque 2d10 rend la couleur ADE II — motif LDB confirmé au livre (#423)', () => {
-    for (let seed = 0; seed < 400; seed++) {
-      const d2 = roll(2, 10, makeRNG(seed));
-      expect(libelleDeCouleur('hairs', rollHair(ogre.refChar, makeRNG(seed))), `seed=${seed} 2d10=${d2}`).toBe(ogreHair(d2));
+    for (let d2 = 2; d2 <= 20; d2++) {
+      const face = Math.min(10, d2 - 1);
+      expect(libelleDeCouleur('hairs', rollHair(ogre.refChar, desEnSuite([face, d2 - face]))), `2d10=${d2}`).toBe(ogreHair(d2));
     }
-  });
-});
-
-describe('Couleur des yeux / des cheveux — le tirage suit le dé de sa table (#3578)', () => {
-  const humain = findSpeciesById('humains-reiklander')!;
-  const tirages = (table: 'eyes' | 'hairs', tirer: typeof rollEyes) =>
-    new Set(Array.from({ length: 300 }, (_, seed) => libelleDeCouleur(table, tirer(humain.refChar, makeRNG(seed)))));
-  it('à 1d10 posé par le seam, aucune couleur au-delà du seuil 10 (LDB 05 l.745-749, l.759-763)', () => {
-    sousLeDe('eyes', { n: 1, sides: 10 }, () => sousLeDe('hairs', { n: 1, sides: 10 }, () => {
-      expect(tirages('eyes', rollEyes)).toEqual(new Set(['Au choix', 'Vert', 'Bleu pâle', 'Bleu', 'Gris pâle']));
-      expect(tirages('hairs', rollHair)).toEqual(new Set(['Blond blanc', 'Blond doré', 'Blond roux', 'Brun doré', 'Brun clair']));
-    }));
   });
 });

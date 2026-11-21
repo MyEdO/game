@@ -37,7 +37,9 @@ import { cheminsDeSchema } from '../../scripts/guards/lib/structuresLocales.mts'
 import { SCHEMA_DEFS } from './schemas/_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './schemas/_registry-scenes.generated';
 import { defDe, descendre, enfantsDe, ouverts } from './schemas/grammaire/descente';
-import { detailRecipeSchema, plageOuverteSchema } from './schemas/grammaire/valeurs';
+import { detailRecipeSchema, plageOuverteSchema, raceKeySchema } from './schemas/grammaire/valeurs';
+import { validateDataset } from './schemas/validate';
+import { tableTotale } from '../lib/tableTotale';
 import { estObjet } from '../lib/objet.mjs';
 
 /** Les DEUX racines de donnée du projet, comme le scan des structures (`scripts/docs/lib/structures-scan.mts`) :
@@ -76,15 +78,15 @@ type Mesure = {
   borneHauteSeule: Site[];
   /** Objet portant une borne numérique et l'autre `null` : la bande OUVERTE (`plageOuverteSchema`). */
   bandesOuvertes: Site[];
-  /** Documents portant le champ `rand` (borne haute d100 portée par l'ENTITÉ), et son compte. */
-  rand: Record<string, number>;
+  /** Seuils de tirage à borne haute seule, par position. */
+  seuils: string[];
   /** Documents JSON effectivement lus, PAR RACINE — sans quoi l'élargissement de la marche à une
    *  seconde racine serait un no-op indétectable (elle n'y porte, aujourd'hui, aucune borne). */
   documentsParRacine: Record<string, number>;
 };
 
 function mesurer(): Mesure {
-  const m: Mesure = { paires: {}, emboites: [], deuxBornes: [], borneHauteSeule: [], bandesOuvertes: [], rand: {}, documentsParRacine: {} };
+  const m: Mesure = { paires: {}, emboites: [], deuxBornes: [], borneHauteSeule: [], bandesOuvertes: [], seuils: [], documentsParRacine: {} };
   const walk = (n: unknown, doc: string, chemin: string, dansTableau: boolean): void => {
     if (Array.isArray(n)) {
       for (const e of n) walk(e, doc, `${chemin}[]`, true);
@@ -109,7 +111,7 @@ function mesurer(): Mesure {
     if (dansTableau && 'max' in o && !('min' in o) && (estNombre(o.max) || o.max === null)) {
       m.borneHauteSeule.push({ doc, chemin, cles });
     }
-    if (estNombre(o.rand)) m.rand[doc] = (m.rand[doc] ?? 0) + 1;
+    for (const c of cles.filter((cle) => cle === 'rand' || cle === 'randByRace')) m.seuils.push(`${doc}${chemin}.${c}`);
 
     for (const c of cles) walk(o[c], doc, `${chemin}.${c}`, false);
   };
@@ -217,15 +219,8 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     ).toEqual([]);
   });
 
-  it('A — `rand` (borne haute d100 portée par l’ENTITÉ) est un RESTE NOMMÉ, borné à quatre documents', () => {
-    const PORTEURS_DE_RAND = ['astrology.json', 'eyes.json', 'hairs.json', 'stars.json'];
-    // Reste ANCRÉ au pilotage de #1463 : sa cible est un document TABLE dédié (DESIGN v2 S1), donc
-    // il appartient à la vague `reference`/`pick,table` — pas à celle-ci. Ce qu'on verrouille ici,
-    // c'est son PÉRIMÈTRE : il ne doit pas s'étendre à un cinquième document en attendant.
-    expect(
-      Object.keys(M.rand).filter((d) => !PORTEURS_DE_RAND.includes(d)),
-      '`rand` a gagné un document : la borne haute portée par l’entité ne s’étend pas — sa cible est un document TABLE dédié (#1463 S1).',
-    ).toEqual([]);
+  it('A — les tables portent des fourchettes explicites dans les deux racines', () => {
+    expect(M.seuils).toEqual([]);
   });
 
   it('B — les bornes d’un RÉGLAGE et celles d’un TIRAGE sont DISJOINTES', () => {
@@ -254,5 +249,75 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
       M.emboites,
       'un objet emboîte sa fourchette sous `range` : `findTableEntry` (`src/engine/tables.ts`) lit la forme PLATE `{min, max}` — emboîter fork le lookup partagé.',
     ).toEqual([]);
+  });
+});
+
+describe('Couverture des tables de création', () => {
+  const source = { book: 'livre-de-base', page: 40 };
+  const repere = (id: string, min: number, max: number) => ({ id, label: id, min, max });
+  const demeure = (id: string, min: number, max: number) => ({
+    ...repere(id, min, max), type: 'astrology', desc: 'Une demeure.', source,
+  });
+
+  it('les repères des demeures couvrent 1 à 10 dans tout ordre (ADE II 03 l.504-512)', () => {
+    const premieres = demeure('premieres', 1, 5);
+    const suivantes = demeure('suivantes', 6, 10);
+    expect(validateDataset('astrology.json', [suivantes, premieres])).toBeNull();
+    expect(validateDataset('astrology.json', [premieres, { ...suivantes, min: 7 }])).toMatch(/astrology\.json/);
+    expect(validateDataset('astrology.json', [premieres, { ...suivantes, max: 11 }])).toMatch(/astrology\.json/);
+    expect(validateDataset('astrology.json', [{ ...premieres, max: 5.5 }, { ...suivantes, min: 6.5 }])).toMatch(/entier/i);
+  });
+
+  it.each(['eyes', 'hairs'])('%s exige le dé entier dans chaque colonne', (type) => {
+    const color = tableTotale(raceKeySchema.options, () => 'Brun');
+    const premiere = { ...repere('premiere', 2, 3), color };
+    const seconde = { ...repere('seconde', 4, 6), color };
+    const die = { n: 2, sides: 3 };
+    const fichier = `${type}.json`;
+    const table = { id: 'table-test', type, label: 'Table de test', source, die };
+    const erreurs = (entries: unknown[]) => validateDataset(fichier, { ...table, entries });
+    const plageParRace = { gnome: { min: 5, max: 6 } };
+    expect(erreurs([seconde, premiere])).toBeNull();
+    expect(erreurs([premiere, { ...seconde, min: 3 }])).toMatch(/couvr/i);
+    expect(erreurs([premiere, { ...seconde, plageParRace }])).toMatch(/gnome/i);
+    expect(erreurs([premiere, { ...seconde, max: 5 }])).toMatch(/couvr/i);
+    expect(erreurs([{ ...premiere, min: 1 }, seconde])).toMatch(/couvr/i);
+    expect(erreurs([
+      { ...premiere, plageParRace: { gnome: { min: 2, max: 3.5 } } },
+      { ...seconde, plageParRace: { gnome: { min: 4.5, max: 6 } } },
+    ])).toMatch(/entier/i);
+    expect(erreurs([premiere, { ...seconde, color: { humain: 'Brun' } }])).toMatch(/couleur/i);
+    expect(validateDataset(fichier, { ...table, die: { n: 2, sides: 4 }, entries: [premiere, seconde] })).toMatch(/couvr/i);
+  });
+
+  const signe = (id: string, min: number, max: number) => ({
+    ...repere(id, min, max), source, desc: 'Un signe.', signe: 'Signe', classique: 'Classique',
+    ascendant: 'Ascendant', dates: 'Dates', dieux: 'Dieux', apparence: 'Apparence',
+  });
+  const simple = signe('simple', 1, 3);
+  const varianteA = { ...signe('variante-a', 4, 6), sub: { min: 1, max: 2 } };
+  const varianteB = { ...signe('variante-b', 4, 6), sub: { min: 3, max: 4 } };
+  const table = {
+    id: 'table-test', type: 'stars', label: 'Table de test', source, die: { n: 1, sides: 6 }, sub: { die: { n: 1, sides: 4 } },
+  };
+  const erreursDesSignes = (entries: unknown[]) => validateDataset('stars.json', { ...table, entries });
+
+  it('un groupe à largeur et rattachement communs couvre le sous-dé, dans tout ordre', () => {
+    expect(erreursDesSignes([varianteB, simple, varianteA])).toBeNull();
+    expect(erreursDesSignes([simple, varianteA, { ...varianteB, max: 5 }])).toMatch(/stars\.json/);
+    expect(erreursDesSignes([simple, varianteA, { ...varianteB, min: 5 }])).toMatch(/stars\.json/);
+    expect(erreursDesSignes([simple, varianteA])).toMatch(/stars\.json/);
+    expect(erreursDesSignes([simple, varianteA, signe('intrus', 4, 6), varianteB])).toMatch(/stars\.json/);
+    expect(erreursDesSignes([simple, signe('doublon', 1, 3), varianteA, varianteB])).toMatch(/stars\.json/);
+  });
+
+  it('les plages principales et secondaires couvrent leur dé sans trou, recouvrement ou fraction', () => {
+    expect(erreursDesSignes([{ ...simple, max: 2 }, varianteA, varianteB])).toMatch(/couvr/i);
+    expect(erreursDesSignes([{ ...simple, max: 4 }, varianteA, varianteB])).toMatch(/couvr/i);
+    expect(erreursDesSignes([simple, varianteA, { ...varianteB, sub: { min: 4, max: 4 } }])).toMatch(/couvr/i);
+    expect(erreursDesSignes([simple, varianteA, { ...varianteB, sub: { min: 2, max: 4 } }])).toMatch(/couvr/i);
+    expect(erreursDesSignes([
+      simple, { ...varianteA, sub: { min: 1, max: 2.5 } }, { ...varianteB, sub: { min: 3.5, max: 4 } },
+    ])).toMatch(/entier/i);
   });
 });

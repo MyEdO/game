@@ -30,7 +30,7 @@ import {
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
 // importés directement d'`engine/massBattle`).
 import type { FoyerDeRegle, RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
-import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
+import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, plageDeCouleur, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
 import { reliefDefaultsSchema } from '../../data/schemas/defs-scenes/scene';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
@@ -126,7 +126,7 @@ import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
-import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
+import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
 import { dureeEnJours } from '../../engine/clock';
 import { formatDiseaseTime, sujetDeContraction } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
@@ -2150,7 +2150,7 @@ const CODEX_SPECS = {
   celestialHouses: {
     label: 'codex.fiche.demeuresAstrologiques', group: 'personnage',
     // ADE II 03 l.504-512, l.514
-    build: () => celestialHouses.map((h, i) => depuisEnveloppe(h, { sub: fourchette((celestialHouses[i - 1]?.rand ?? 0) + 1, h.rand) })),
+    build: () => celestialHouses.map((h) => depuisEnveloppe(h, { sub: fourchette(h.min, h.max) })),
   },
   groups: {
     label: 'codex.fiche.groupesCible', group: 'monde',
@@ -2819,31 +2819,20 @@ const CODEX_SPECS = {
  *  est un getter re-projetable (fraîcheur). */
 export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex, CodexCategorySpec][]).map(([key, spec]) => makeCategory(key, spec));
 
-/** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
- *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
- *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
 function couleursDuTableau(table: typeof tableDesYeux | typeof tableDesCheveux, de: DeDeTable): CodexItem[] {
-  const rangee = (e: (typeof eyes)[number]) => e.rand;
-  const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
-  /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */
-  const bande = (borne: (e: (typeof eyes)[number]) => number, e: (typeof eyes)[number]) => {
-    const precedentes = table.entries.map(borne).filter((b) => b < borne(e));
-    return bandeAuDe(de, precedentes.length ? Math.max(...precedentes) + 1 : totalDuDe(de, de.n), borne(e));
-  };
   return table.entries.map((e) => {
-    const sub = bande(rangee, e);
-    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, (race) => bande(colonne(race), e))) });
+    const sub = bandeAuDe(de, e.min, e.max);
+    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, de)) });
   });
 }
 
-/** Section d'une couleur (yeux/cheveux) — couleur par colonne d'espèce, suivie de la bande de la colonne
- *  quand elle diffère de `sub`, la bande de la rangée. */
-function colorTableSection(c: (typeof eyes)[number], sub: string, bandeDeColonne: (race: RaceKey) => string): CodexSection {
+function colorTableSection(c: (typeof eyes)[number], sub: string, de: DeDeTable): CodexSection {
   return {
     title: tr('codex.fiche.couleurParEspeceColonneRefchar'), layout: 'list',
-    rows: (Object.entries(c.color) as [RaceKey, string | undefined][]).filter(([, v]) => v).map(([sp, v]) => {
-      const bandeSp = bandeDeColonne(sp);
-      return { t: 'kv', k: sp, v: bandeSp === sub ? v! : `${v} · ${bandeSp}` } as CodexRow;
+    rows: (Object.entries(c.color) as [RaceKey, string][]).map(([sp, v]) => {
+      const { min, max } = plageDeCouleur(c, sp);
+      const bandeSp = bandeAuDe(de, min, max);
+      return { t: 'kv', k: sp, v: bandeSp === sub ? v : `${v} · ${bandeSp}` };
     }),
   };
 }
