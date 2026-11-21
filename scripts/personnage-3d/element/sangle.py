@@ -8,18 +8,15 @@ gauche, posée sur la pièce publiée qu'elle contourne (`CONTOURNE`, une seule 
   plier), plus le jeu, en double nappe ; poids empruntés au support puis lissés.
 - cases, si `CASES` en déclare : l'emplacement `EMPLACEMENT`, puis `EMPLACEMENT#<rang>`, que la sangle offre devant
   (`Base.offrir`), chacun sur le milieu de la bande, son +Y glTF le long de l'objet qu'on y glisse, vers le haut, son +Z
-  sur la normale sortante, qui suit les poids de la sangle sous lui ; l'hôte y range les objets (#3844).
+  sur la normale sortante, qui suit les poids de la sangle sous lui ; l'hôte y range les objets (#3844). Une case qui
+  nomme un passant de `PASSANTS` reçoit sa boucle de sangle (`passant`), aux poids de la case : elle enjambe l'objet
+  qu'on y glisse et le suit.
 Silhouettes et clés `gabarit_*` transférées du support publié sous la sangle.
 """
 import math
 
 import numpy as np
-from mathutils import Vector
-from tissu import Maillage, centre_de, emprunter, lisser, porteur_de, voisinage
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
+from tissu import Maillage, centre_de, emprunter, joindre, lisser, porteur_de, unitaire, viser, voisinage
 
 
 def points_d_attache(b, D, support):
@@ -32,6 +29,24 @@ def points_d_attache(b, D, support):
     flanc = P[np.abs(P[:, 2] - D['HANCHE']) < D['TRANCHE_HANCHE']]
     hanche = np.array([flanc[:, 0].max(), (flanc[:, 1].min() + flanc[:, 1].max()) / 2, D['HANCHE']])
     return epaule, hanche
+
+
+def passant(b, nom, P, origine, axes, w, mat, epaisseur):
+    """Le passant `P` d'une case d'origine `origine` et d'axes `axes` (X en travers de l'objet, Y le long de lui, Z
+    sortant) : une boucle de sangle large de `largeur` le long de l'objet, deux montants plantés dans la sangle de part
+    et d'autre de lui, à `rayon` de l'axe, et un demi-cercle de `segments` côtés autour de son centre, à `centre`
+    au-dessus de la case ; double nappe d'`epaisseur`, aux poids `w` de la case."""
+    x, y, z = axes
+    r = P['rayon'] + epaisseur
+    profil = [(-r, -epaisseur)] + [(-r * math.cos(a), P['centre'] + r * math.sin(a))
+                                   for a in np.linspace(0.0, math.pi, P['segments'] + 1)] + [(r, -epaisseur)]
+    M = Maillage()
+    bords = [M.ajouter([origine + u * x + c * z + k * P['largeur'] / 2 * y for u, c in profil], None) for k in (-1, 1)]
+    dedans = origine + P['centre'] * z
+    for i in range(len(profil) - 1):
+        M.quad(bords[0][i], bords[0][i + 1], bords[1][i + 1], bords[1][i], dedans)
+    X, orientes, normales = M.orienter()
+    return b.nappe(nom, X, normales, np.tile(w, (len(X), 1)), orientes, mat, epaisseur)
 
 
 def construire(D, materiaux, b):
@@ -56,8 +71,7 @@ def construire(D, materiaux, b):
         distances = []
         for k in (-1, 0, 1):
             origine = epaule + k * demi * n + centre[0] * e1 + centre[1] * e2
-            touche = support['arbre'].ray_cast(Vector((origine + D['PORTEE'] * d).tolist()), Vector((-d).tolist()),
-                                            D['PORTEE'])
+            touche = viser(support, origine, d, D['PORTEE'])
             if touche[0] is not None:
                 distances.append(D['PORTEE'] - touche[3])
         if not distances:
@@ -103,16 +117,22 @@ def construire(D, materiaux, b):
             sortante = -sortante
         return p, tangente, sortante, W[bords[0][chemin[j + (u > 0.5)]]]
 
-    for rang, (t, angle, decalage) in enumerate(D.get('CASES', []), start=1):
+    passants = []
+    for rang, (t, angle, decalage, *boucle) in enumerate(D.get('CASES', []), start=1):
         p, tangente, sortante, w = sur_la_sangle(t)
         a = math.radians(angle)
         axe = unitaire(math.cos(a) * n - math.sin(a) * tangente)
         gauche = axe if axe[0] > 0 else -axe
         haut = axe if axe[2] > 0 else -axe
         z = unitaire(sortante - (sortante @ haut) * haut)
-        b.offrir(D['EMPLACEMENT'] if rang == 1 else f"{D['EMPLACEMENT']}#{rang}", w, p + gauche * decalage,
-                 (np.cross(haut, z), haut, z))
+        origine, axes = p + gauche * decalage, (np.cross(haut, z), haut, z)
+        b.offrir(D['EMPLACEMENT'] if rang == 1 else f"{D['EMPLACEMENT']}#{rang}", w, origine, axes)
+        for nom in boucle:
+            passants.append(passant(b, f'passant-{rang}', D['PASSANTS'][nom], origine, axes, w, materiaux['sangle'],
+                                    D['EPAISSEUR']))
 
+    if passants:
+        sangle = joindre([sangle] + passants)
     sangle.name = D['MANIFESTE']['cle']['piece']
     b.transferer(sangle, D['ZONES'], masques=[([True] * len(sangle.data.vertices), D['ZONES'],
                                                 {publie: D['ZONES_DU_SUPPORT']})])

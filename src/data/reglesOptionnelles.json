@@ -353,6 +353,28 @@
     "hint": "La cible d’un coup de corps à corps porté par une croisée ouverte est sous ce couvert, quel que soit le mur de la croisée. Défaut Très Difficile (–30), la couverture totale (LDB 14 l.86). Le tir par une croisée n’en dépend pas."
   },
   {
+    "id": "frenesie-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Difficulté d’entrée en Frénésie",
+    "ref": "LDB 21 l.31",
+    "maison": "Le Livre de base demande un Test de Force Mentale sans préciser sa Difficulté.",
+    "group": "Combat",
+    "kind": "mode",
+    "default": "intermediaire",
+    "options": [
+      "tresFacile",
+      "facile",
+      "accessible",
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile",
+      "presqueImpossible",
+      "impossible"
+    ],
+    "hint": "Difficulté du Test de Force Mentale pour entrer en Frénésie."
+  },
+  {
     "id": "combat-cible-inconsciente",
     "type": "reglesOptionnelles",
     "label": "Cible Inconsciente",
@@ -752,7 +774,7 @@
     "type": "reglesOptionnelles",
     "label": "Délai avant de retenter une Évaluation (jours)",
     "ref": "LDB 59 l.41",
-    "maison": "LDB 59 l.41 ne fixe aucun délai avant une nouvelle tentative d’Évaluation, et LDB 12 l.94 ne prévoit de nouvel essai que sur un échec à 0 DR. Ce réglage permet de retenter l’Évaluation d’un objet après un échec à DR négatif, une fois le délai écoulé. À 0 jour, la nouvelle tentative est possible immédiatement.",
+    "maison": "LDB 12 l.94 envisage un nouvel essai sur un résultat marginal et peu concluant. LDB 59 l.41 décrit l’Évaluation sans fixer de délai. Ce réglage fixe le nombre de jours avant de retenter l’Évaluation d’un objet après un échec à DR négatif. À 0 jour, la nouvelle tentative est possible immédiatement.",
     "group": "Marché",
     "kind": "param",
     "default": 1,
@@ -1073,6 +1095,20 @@
     "kind": "flag",
     "default": false,
     "hint": "Règles facultatives ADE II (Annexe I) pour gagner de nouveaux Traits psychologiques en cours de partie : Phobie du noir (États Brisé de Terreur cumulés ≥ Bonus de FM → Phobie), Animosité & Haine (dépenser le Destin pour survivre → Test de Calme ; échec → Animosité, doublon → Haine), Trauma (Ambition rendue impossible → Test de Calme ; échec → Trauma). La Cible d’une Animosité se lit sur le tueur (sa Race ou ses sous-groupes, sinon l’individu), celle d’une Phobie sur les causes des Terreurs (la plus récente ou la plus fréquente) ; le joueur la choisit quand plusieurs s’offrent. Désactivé par défaut."
+  },
+  {
+    "id": "chirurgie-dr-cible",
+    "type": "reglesOptionnelles",
+    "label": "Chirurgie : DR à cumuler",
+    "ref": "LDB 10 l.184",
+    "maison": "Le Livre de base laisse au MJ le choix du DR à cumuler, généralement entre 5 et 10.",
+    "group": "Soins",
+    "kind": "param",
+    "default": 7,
+    "min": 5,
+    "max": 10,
+    "step": 1,
+    "hint": "DR à cumuler pour les opérations de Chirurgie commencées après le changement du réglage."
   },
   {
     "id": "maladie-mode",

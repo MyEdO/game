@@ -5,12 +5,12 @@
 //   lexique  → scripts/docs/lib/structures-lexique.mts (concepts FERMÉS, une entrée = un concept)
 // Sortie : docs/structures-donnees.md. Re-run : npx tsx scripts/docs/build-structures.mts
 // (npm run docs:structures).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 //
 // Le doc est la carte de PILOTAGE du chantier #1463 : il rend l'INVENTAIRE de la dette que la donnée révèle
 // (scripts/guards/lib/inventaireDeDette.mts, §7), hors de la porte des comptes et sans stock commis (#3021).
 import { execFileSync } from 'node:child_process';
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs';
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs';
 import {
   scanDuCorpus,
   scannerRedeclarations,
@@ -40,7 +40,7 @@ import { collectionsDesDocuments } from '../../src/data/schemas/grammaire/collec
 import { effectSchema } from '../../src/data/schemas/defs-scenes/effets';
 import { defDe, descendre, enfantsDe } from '../../src/data/schemas/grammaire/descente';
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUT = 'docs/structures-donnees.md';
   const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
@@ -453,7 +453,7 @@ function rendu() {
 
   out += `### ${SECTION.orphelines} Hors strate — signatures ORPHELINES\n\n`;
   out += 'Objet qui ANNONCE une référence (clé `…Id`/`…Ids`/`…Ref`, clé réservée, clé d’identité) et qui ne\n';
-  out += 'résout vers RIEN, sans être un document, et qui ne porte pas d’`op` (la strate Ops le porterait).\n';
+  out += 'résout vers RIEN. Les documents, formes classées, collections à clé et GameOps validées à leur site (§5) sont déjà couverts.\n';
   out += 'Aucune strate ne le porte : c’est ce que le détecteur ne sait pas nommer, et il se compte au lieu\n';
   out += 'de se taire. Inventaire `STRUCTURES_ORPHELINES` (§7) ; le LOT suit le motif — `L1a #1466` quand le NOM de la\n';
   out += 'clé annonçait une FK (`clé de référence non résolue`), `#1553` pour les autres motifs.\n\n';
@@ -478,11 +478,9 @@ function rendu() {
       scan.orphelines.map((o) => [`\`${o.dataset}\``, `\`${o.champ}\``, `\`${o.signature}\``, o.motif, o.occurrences]),
     );
     out += `Au-delà des orphelines, **${scan.objets.invisibles}** objets sur **${scan.objets.vus}** ne sont portés par AUCUNE\n`;
-    out += 'strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des\n';
-    out += 'documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation\n';
-    out += `\`{text}\` sous un champ porteur mesuré est une FORME, §${SECTION.concept(CONCEPTS[0])}). Restent trois familles : les CHARGES UTILES pures\n`;
-    out += '(`{x,y}` d’une tuile, bloc de caractéristiques, `{flat,plusBF}` de dégâts), les objets d’un `Flow`\n';
-    out += `ou d’une \`Formula\` (\`{kind,steps}\`, \`{bonusOf}\`) et les objets à \`op\`, dont la grammaire est mesurée en §5.\n`;
+    out += 'strate ou par le relevé des GameOps. On y trouve des charges utiles (`{x,y}` d’une tuile,\n';
+    out += 'bloc de caractéristiques), des objets d’un `Flow` ou d’une `Formula` (`{kind,steps}`, `{bonusOf}`) et\n';
+    out += 'des porteurs d’`op` qui ne sont pas des GameOps validées (§5).\n';
     out += `Leur dette de STRUCTURE ne se mesure pas ici, sur la donnée : elle se mesure sur le SCHÉMA (§${SECTION.locales}).\n\n`;
   }
 
@@ -492,21 +490,21 @@ function rendu() {
     const classes: readonly ClasseDeStructure[] = ['D5', 'G1', 'L'];
     const parFichier = new Map<string, Record<ClasseDeStructure, number>>();
     for (const n of noeuds) {
-      const c = parFichier.get(n.fichier) ?? { D5: 0, G: 0, G1: 0, L: 0 };
+      const c = parFichier.get(n.fichier) ?? { D5: 0, G: 0, C: 0, G1: 0, L: 0 };
       c[n.classe] += 1;
       parFichier.set(n.fichier, c);
     }
     const auStock = noeuds.filter((n) => classes.includes(n.classe)).length;
     out += `### ${SECTION.locales} Structures LOCALES — la dette de structure, mesurée sur le schéma\n\n`;
-    out += `Un site est un NŒUD de schéma d’un document authoré (objet, ou nœud non validant), au nom de son schéma de document\n`;
+    out += `Un site est un NŒUD de schéma d’un document authoré (objet, record ou nœud non validant), au nom de son schéma de document\n`;
     out += `(\`‹racine›#‹type›\`, \`nomDuDocument\`) et à son chemin de schéma : ajouter une donnée conforme, ou un document de plus\n`;
     out += `d’un type existant, n’en crée aucun. Mesure : \`noeudsDeStructure\`\n`;
     out += `(\`scripts/guards/lib/structuresLocales.mts\`) ; stock : \`${PORTEURS.STRUCTURES_LOCALES}\`, volet \`STRUCTURES_LOCALES\` sous la porte\n`;
     out += 'des comptes. Classes : **D5** nœud non validant (`unknown`, `any`, `custom`) · **G** nœud de la grammaire PARTAGÉ\n';
-    out += '(au moins deux defs, ou une déclaration d’op), hors stock · **G1** nœud de la grammaire composé par un seul def ·\n';
+    out += '(au moins deux defs, ou une déclaration d’op), hors stock · **C** record, hors stock · **G1** nœud de la grammaire composé par un seul def ·\n';
     out += '**L** structure locale au def. Un site se solde en composant un nœud partagé de la grammaire.\n\n';
     out += `Nœuds de site : **${noeuds.length}**, dont **${auStock}** au stock (`;
-    out += (['D5', 'G1', 'L', 'G'] as const).map((c) => `${c} ${noeuds.filter((n) => n.classe === c).length}`).join(' · ') + ').\n\n';
+    out += (['D5', 'G', 'C', 'G1', 'L'] as const).map((c) => `${c} ${noeuds.filter((n) => n.classe === c).length}`).join(' · ') + ').\n\n';
     const lignes = [...parFichier]
       .map(([fichier, c]) => ({ fichier, c, total: classes.reduce((a, k) => a + c[k], 0) }))
       .filter((l) => l.total > 0)
@@ -575,33 +573,34 @@ function rendu() {
   );
 
   // ---------------------------------------------------------------------------
-  out += '## 5. Ops en donnée (strate Ops)\n\n';
+  out += '## 5. Ops en donnée\n\n';
   const nbSignaturesOps = new Set(scan.ops.map((o) => `${o.op} | ${o.signature}`)).size;
-  const totalObjetsAOp = scan.totalOps + scan.totalConditionsAvecOp;
-  out += '`gameOpSchema` est un `looseObject` (`src/data/schemas/grammaire/mecanique.ts`) : seul `op` est contraint.\n';
-  out += `Mesure : **${totalObjetsAOp}** objets portent un \`op\` = **${scan.totalOps}** ops de jeu + **${scan.totalConditionsAvecOp}**\n`;
-  out += `Conditions dont l’\`op\` est un COMPARATEUR (\`kind\` reconnu par \`conditionSchema\`, kinds lus par AST).\n`;
-  out += `**${scan.totalConditionsAvecOp + scan.totalConditionsSansOp}** Conditions au total, dont **${scan.totalConditionsSansOp}** sans \`op\` :\n`;
-  out += 'celles-là n’ont jamais été comptées en op — le retrait des Conditions du compte d’ops vaut\n';
-  out += `${totalObjetsAOp} → ${scan.totalOps}, jamais ${totalObjetsAOp} → ${totalObjetsAOp - (scan.totalConditionsAvecOp + scan.totalConditionsSansOp)}.\n`;
+  const autresPorteurs = scan.autresPorteursDOp.reduce((n, o) => n + (o.op === undefined ? 0 : o.occurrences), 0);
+  const totalObjetsAOp = scan.totalOps + scan.totalConditionsAvecOp + autresPorteurs;
+  out += 'Une GameOp ou une Condition est comptée si le schéma local ouvert par `coDescendre` la valide.\n';
+  out += 'La déclaration `payloads-op` repère les GameOps dans leur régime de validation. `OP_DEFS` juge les charges\n';
+  out += 'typées et `OPS_NON_TYPEES` énumère les opérations admises dont la charge reste à typer.\n\n';
+  out += `Les **${totalObjetsAOp}** objets portant \`op\` se répartissent en **${scan.totalOps}** GameOps, **${scan.totalConditionsAvecOp}**\n`;
+  out += `Conditions avec comparateur et **${autresPorteurs}** autres porteurs. On compte aussi **${scan.totalConditionsSansOp}** Conditions sans \`op\`.\n`;
   out += `Noms d’op distincts : **${new Set(scan.ops.map((o) => o.op)).size}**, signatures distinctes : **${nbSignaturesOps}**.\n\n`;
   out += tableau(
     ['`kind` de Condition', 'Avec `op`', 'Sans `op`'],
     scan.conditions.map((c) => [`\`${c.kind}\``, c.avecOp || '—', c.sansOp || '—']),
   );
-  {
-    const total = scan.opsComparateurs.reduce((a, o) => a + o.occurrences, 0);
-    out += `Restent **${total}** occurrence(s) dont le nom d’op n’est pas alphabétique (un COMPARATEUR) sous un\n`;
-    out += '`kind` étranger à `conditionSchema` : elles sont encore comptées en op ci-dessous, mesurées ici.\n\n';
-    out += tableau(
-      ['Op', '`kind` porté', 'Dataset', 'Occurrences'],
-      scan.opsComparateurs.map((o) => [`\`${o.op}\``, `\`${o.kind}\``, `\`${o.dataset}\``, o.occurrences]),
-    );
-  }
+  const totalParMotif = (motif: typeof scan.autresPorteursDOp[number]['motif']) =>
+    scan.autresPorteursDOp.reduce((n, o) => n + (o.motif === motif ? o.occurrences : 0), 0);
+  out += `Le détail hors GameOps et Conditions validées compte **${totalParMotif('op inconnue')}** opérations inconnues, **${totalParMotif('charge refusée')}** charges refusées, y compris sans \`op\`,\n`;
+  out += `et **${totalParMotif('hors site GameOp')}** occurrences hors d’un site GameOp.\n\n`;
+  out += tableau(
+    ['Motif', 'Op', '`kind` porté', 'Dataset', 'Champ', 'Signature', 'Occurrences'],
+    scan.autresPorteursDOp.map((o) => [
+      o.motif, `\`${o.op ?? '(absent)'}\``, `\`${o.kind}\``, `\`${o.dataset}\``, `\`${o.champ}\``, `\`${o.signature}\``, o.occurrences,
+    ]),
+  );
   {
     const CLES_REF = ['skillId', 'skill', 'talentId', 'trappingId', 'traitId', 'spellId', 'tableId', 'spec'];
-    out += 'Une ligne par (op, signature, dataset), mesurée sur la donnée, lot `L1c #1468` : la cible est une union\n';
-    out += 'discriminée générée d’`OP_DEFS`, à refs EMBOÎTÉES (`skill: {id, spec}`). La dette d’ops que la porte juge\n';
+    out += 'Le relevé des GameOps validées compte une ligne par (op, signature, dataset). Le lot `L1c #1468`\n';
+    out += 'porte le typage des charges et les références emboîtées (`skill: {id, spec}`). La dette d’ops que la porte juge\n';
     out += 'est le volet `DETTE_OPS`, mesuré au schéma seul : `OPS_NON_TYPEES` et les références à plat de `OP_DEFS`.\n\n';
     out += tableau(
       ['Op', 'Signature', 'Dataset', 'Occurrences', 'Clés de ref à plat'],
@@ -686,4 +685,8 @@ export function rendre() {
   return new Map([[path, out]]);
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') });
+export function* produire() {
+  yield rendu();
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire);

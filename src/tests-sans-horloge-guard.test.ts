@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { entreeDe } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { describe, expect, it } from 'vitest';
 import { codeSeul } from '../scripts/guards/lib/codeSeul.mjs';
 import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
@@ -69,7 +69,7 @@ const HARNAIS = 'src/test-setup-noyau.ts';
 describe('tests-sans-horloge-guard : aucun test joué par `npm test` ne lit l’horloge', () => {
   const tests = detenteur(() => [
     ...fichiersDeLaSuite(),
-    { rel: HARNAIS, text: readFileSync(fileURLToPath(new URL('./test-setup-noyau.ts', import.meta.url)), 'utf8') },
+    entreeDe(resolve(__dirname, '..', HARNAIS)),
   ]);
 
   it('le corpus scanné est le RÉEL — sinon la garde mesurerait le vide', () => {

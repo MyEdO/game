@@ -35,8 +35,8 @@ describe('apparences d’objets d’auteur : références validées au parse de 
 
   it('refuse les apparences connues étrangères à leur objet dans les trois formes d’auteur', () => {
     const refus = [
-      giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: 'cape' } }),
-      gameOpSchema.safeParse({ op: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: 'cape' } }),
+      giveTrappingSchema.safeParse({ type: 'giveTrapping', objet: { id: 'arme-simple' }, apparence: { id: 'cape' } }),
+      gameOpSchema.safeParse({ op: 'giveTrapping', objet: { id: 'arme-simple' }, apparence: { id: 'cape' } }),
       sceneSchema.safeParse(scene({ 'arme-simple': 'cape' })),
     ];
     for (const r of refus) {
@@ -50,8 +50,8 @@ describe('apparences d’objets d’auteur : références validées au parse de 
 
   it('les trois portes acceptent exactement la liste canonique pour un objet', () => {
     for (const apparence of apparencesAdmissiblesDObjet({ trappingId: 'arme-simple' })) {
-      expect(giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: apparence.id } }).success).toBe(true);
-      expect(gameOpSchema.safeParse({ op: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: apparence.id } }).success).toBe(true);
+      expect(giveTrappingSchema.safeParse({ type: 'giveTrapping', objet: { id: 'arme-simple' }, apparence: { id: apparence.id } }).success).toBe(true);
+      expect(gameOpSchema.safeParse({ op: 'giveTrapping', objet: { id: 'arme-simple' }, apparence: { id: apparence.id } }).success).toBe(true);
       expect(entityAppearanceSchema.safeParse({ apparencesObjets: { 'arme-simple': { id: apparence.id } } }).success).toBe(true);
     }
   });
@@ -75,7 +75,7 @@ function avecPremierObjetDonne(v: unknown, id: string): boolean {
   if (Array.isArray(v)) return v.some((e) => avecPremierObjetDonne(e, id));
   if (typeof v !== 'object' || v === null) return false;
   const o = v as Record<string, unknown>;
-  if (o.op === 'giveTrapping' && typeof o.trappingId === 'string') return (o.trappingId = id), true;
+  if (o.op === 'giveTrapping' && o.objet) return (o.objet = { id }), true;
   return Object.values(o).some((e) => avecPremierObjetDonne(e, id));
 }
 

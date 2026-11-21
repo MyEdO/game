@@ -28,8 +28,6 @@ export type RumourRow = LandCargoData['rumeurs']['entries'][number];
 
 const LAND = landCargo;
 
-export const WINE_QUALITY = LAND.qualiteDuVin.entries;
-
 /** Profil COMMERCIAL d'un Lieu terrestre/fluvial (Index géographique, l.183-278) — porté par le LIEU de
  *  la carte du monde (`MapPlace.market`, donnée d'auteur). Reproduit les colonnes de l'Index. */
 export interface LandMarketProfile {
@@ -107,24 +105,40 @@ export function rollRandomLandCargo(season: Season, rng: RNG): CargoDef {
   return rollSeasonalCargo(VOIE_TERRESTRE, season, rng);
 }
 
-/** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie : le dé de la table → qualité → prix de base
- *  en CO par point d'Enc (`prixParPointDEnc`). `bonusEchelons` monte le résultat de N crans dans le tableau.
- *  PUR. MSRC 13 l.91-104 */
-export function rollWineQuality(rng: RNG, bonusEchelons = 0): { roll: number; label: string; price: number } {
-  const { entries } = LAND.qualiteDuVin;
-  const tirage = rollDice(deDeLaTableTiree(LAND.qualiteDuVin), rng);
-  let idx = findTableEntryIndex(entries, tirage);
-  if (idx < 0) idx = 0;
-  idx = Math.min(entries.length - 1, idx + Math.max(0, bonusEchelons));
-  const tier = entries[idx];
-  return { roll: tirage, label: tier.label, price: prixParPointDEnc(tier.price, VOIE_TERRESTRE) };
+/** Rang et libellés du barème au tirage de l’offre. MSRC 13 l.93-104 */
+export interface QualiteSecreteDuVin {
+  rang: number;
+  libelles: readonly string[];
 }
 
-/** Prix de BASE terrestre en CO par point d'Enc : le Vin/Eau-de-vie passe par la table de qualité SECRÈTE
- *  (`rollWineQuality`, + bonus régional du Lieu) ; les autres biens par la colonne saisonnière. PUR. MSRC 13 l.80-104 */
-export function landCargoBasePrice(cargo: CargoDef, season: Season, place: LandMarketProfile | undefined, rng: RNG): number {
-  if (cargo.wine) return rollWineQuality(rng, place?.wineBonusEchelons ?? 0).price;
-  return cargoBasePrice(cargo, season, rng);
+/** MSRC 13 l.91, l.95-104, l.166 */
+export function rollWineQuality(rng: RNG, bonusEchelons = 0): {
+  roll: number;
+  label: string;
+  price: number;
+  qualite: QualiteSecreteDuVin;
+} {
+  const { entries } = LAND.qualiteDuVin;
+  const tirage = rollDice(deDeLaTableTiree(LAND.qualiteDuVin), rng);
+  const rangTire = Math.max(0, findTableEntryIndex(entries, tirage));
+  const rang = Math.min(entries.length - 1, rangTire + Math.max(0, bonusEchelons));
+  const tier = entries[rang];
+  return {
+    roll: tirage,
+    label: tier.label,
+    price: prixParPointDEnc(tier.price, VOIE_TERRESTRE),
+    qualite: { rang, libelles: entries.map((e) => e.label) },
+  };
+}
+
+/** Prix en CO par point d'Enc et qualité secrète issue du même tirage. MSRC 13 l.80-104, l.166 */
+export function landCargoBasePrice(cargo: CargoDef, season: Season, place: LandMarketProfile | undefined, rng: RNG): {
+  basePrice: number;
+  qualiteSecreteDuVin?: QualiteSecreteDuVin;
+} {
+  if (!cargo.wine) return { basePrice: cargoBasePrice(cargo, season, rng) };
+  const { price, qualite } = rollWineQuality(rng, place?.wineBonusEchelons ?? 0);
+  return { basePrice: price, qualiteSecreteDuVin: qualite };
 }
 
 /** Difficulté du Test d'Évaluation de la qualité du Vin (l.95) : Intermédiaire, ou Accessible si le
@@ -133,22 +147,14 @@ export function wineEvalDifficulty(alcoholResist: number): Difficulty {
   return alcoholResist >= LAND.achat.seuilResistanceAlcool ? LAND.achat.difficulteEvaluationVinFacile : LAND.achat.difficulteEvaluationVin;
 }
 
-/** RÉVÉLATION de la qualité SECRÈTE d'un lot de Vin après le Test d'Évaluation (l.95). La qualité réelle est
- *  déduite du prix de base FIGÉ à l'ouverture, en CO par point d'Enc (`WINE_QUALITY` converti, prix uniques). Succès → la vraie qualité ; échec
- *  → une FAUSSE indication décalée de |DR| échelons (« donnez-lui une fausse indication dont l'inexactitude est
- *  en rapport avec son degré d'échec », l.95 — direction vers le haut, ou vers le bas si plafonnée, pour rester FAUSSE ;
- *  la source ne chiffre ni la direction ni la magnitude du décalage, tranchées ici en donnée). PUR. */
-export function wineEvalReveal(basePrice: number, success: boolean, sl: number): { trueLabel: string; shownLabel: string } {
-  const last = WINE_QUALITY.length - 1;
-  let idx = WINE_QUALITY.findIndex((w) => prixParPointDEnc(w.price, VOIE_TERRESTRE) === basePrice);
-  if (idx < 0) idx = 0;
-  const trueLabel = WINE_QUALITY[idx].label;
+/** MSRC 13 l.95 */
+export function wineEvalReveal({ rang, libelles }: QualiteSecreteDuVin, success: boolean, sl: number): { trueLabel: string; shownLabel: string } {
+  const trueLabel = libelles[rang];
   if (success) return { trueLabel, shownLabel: trueLabel };
+  const last = libelles.length - 1;
   const step = Math.max(1, Math.abs(sl));
-  let shown = idx + step;
-  if (shown > last) shown = idx - step; // décalage haut plafonné → on dévalue à la place (indication toujours FAUSSE)
-  shown = Math.min(last, Math.max(0, shown));
-  return { trueLabel, shownLabel: WINE_QUALITY[shown].label };
+  const shown = rang + step <= last ? rang + step : Math.max(0, rang - step);
+  return { trueLabel, shownLabel: libelles[shown] };
 }
 
 /** Surcoût d'un LOT PARTIEL à l'achat (l.131) : « le prix de base par 10 Points d'Encombrement doit être

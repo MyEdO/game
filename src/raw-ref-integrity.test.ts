@@ -66,8 +66,8 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
 
   it('aucune réf aveugle NEUVE (ligne vide + zéro recouvrement) hors du stock', () => {
     const detail = neuves.map((o) => {
-      const first = blind.find((b) => o.includes(`${b.file} :: ${b.ref}`));
-      return first ? `${o}  [${first.file}:${first.row}]` : o;
+      const first = blind.find((b) => o.includes(`${b.fichier} :: ${b.ref}`));
+      return first ? `${o}  [${first.fichier}:${first.row}]` : o;
     });
     expect(
       detail,
@@ -108,7 +108,7 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
 
   it('CLIQUET (fixture) : site NEUF et entrée SOLDÉE — les deux sens mordent, l’occurrence distingue les homonymes', () => {
     const ref = fixtureRef(1, 2);
-    const site = { file: 'a.ts', row: 1, ref, abbr: 'LDB', nn: '1', lo: 2, hi: 2 };
+    const site = { fichier: 'a.ts', row: 1, ref, abbr: 'LDB', nn: '1', lo: 2, hi: 2 };
     const entree = { fichier: 'a.ts', ref, occurrence: 1 };
     expect(ecartDesRefsAveugles([site], []).neuves.length).toBe(1);
     expect(ecartDesRefsAveugles([site, { ...site, row: 9 }], [entree]).neuves.length).toBe(1);
@@ -118,7 +118,7 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
   });
 
   it('RÉGIME CIBLE : l’arbre réel ne porte AUCUNE réf aveugle, et le stock est ABSENT', () => {
-    expect(blind.map((b: Site & { row: number }) => `${b.file}:${b.row} — ${b.ref}`)).toEqual([]);
+    expect(blind.map((b: Site & { row: number }) => `${b.fichier}:${b.row} — ${b.ref}`)).toEqual([]);
     expect(stock).toEqual([]);
   });
 
@@ -131,7 +131,7 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
     try {
       writeFileSync(join(dir, 'mut.ts'), fixtureLine('une regle inventee adossee', 17, 84));
       const mesure = scanBlindRefs(dir);
-      const [{ file: fichier, ref }] = sitesAveugles(mesure);
+      const [{ fichier, ref }] = sitesAveugles(mesure);
       // Le stock confronté est CONSTRUIT ici, jamais dérivé du stock du dépôt : ce test doit mordre à
       // l'identique quand le stock réel se repeuple (une entrée étrangère y serait SOLDÉE).
       // (a) stock VIDE : le site mesuré n'y figure pas → rouge nominatif.
@@ -209,7 +209,7 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
   it('toute exemption AU SITE porte sa raison ET sa date (jamais une exemption au fichier)', () => {
     const mal = SITE_EXEMPTIONS.filter(
       (e: Partial<SiteExemption>) =>
-        !e.file || !e.row || !e.ref || !e.raison || !/^\d{4}-\d{2}-\d{2}$/.test(e.date ?? ''),
+        !e.fichier || !e.row || !e.ref || !e.raison || !/^\d{4}-\d{2}-\d{2}$/.test(e.date ?? ''),
     );
     expect(mal, `Exemption(s) incomplète(s) : ${JSON.stringify(mal)}`).toEqual([]);
   });

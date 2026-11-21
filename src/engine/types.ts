@@ -160,10 +160,6 @@ export type TestedAvailability = Extract<Availability, 'limitee' | 'rare'>;
  *  renommé ou retiré ne compile plus. Consommé par `engine/appraisal`. */
 export const APPRAISED_AVAILABILITIES = ['rare', 'exotique'] as const satisfies readonly Availability[];
 
-/** Propulsion d'un véhicule/embarcation — pilote la table de localisation des dégâts (terre : roues/
- *  attelage ; fleuve/mer : voiles/avirons/coque). EDOC 7 (terrestre), MoR ch.5 (fluvial), MDG 13 (maritime). */
-export type Propulsion = 'terrestre' | 'fluvial' | 'maritime';
-
 /**
  * Véhicule / embarcation à coque — FOYER UNIQUE de la donnée (`src/data/vehicles.json`), data-driven.
  * Le même enregistrement porte TROIS facettes indépendantes (fin des doublons transports/trappings) :
@@ -214,12 +210,14 @@ export interface ReferenceDeCouleur {
 
 export type CouleurDePersonnage = ReferenceDeCouleur | { label: string };
 
+export type CouleursDesYeux = readonly [CouleurDePersonnage] | readonly [ReferenceDeCouleur, ReferenceDeCouleur];
+
 /** Détails supplémentaires d'un héros (LDB 05 étape 6 — cosmétique, aucune règle). */
 export interface HeroDetails {
   age?: number;
   /** Taille en cm. */
   height?: number;
-  eyes?: CouleurDePersonnage;
+  eyes?: CouleursDesYeux;
   hair?: CouleurDePersonnage;
   /** Ambitions à court / long terme (LDB 05 l.730-736). */
   ambitionShort?: string;
@@ -1218,10 +1216,10 @@ export type CoverClass = 'none' | DeckCoverClass;
 export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/schemas/defs-scenes/scene').authoredShipPosteSchema>;
 
 /** Pièce d'artillerie MONTÉE — forme VIVANTE (runtime, sur le Combattant-coque). Étend `AuthoredShipPoste`
- *  avec l'arme HYDRATÉE (`item`, base résolue de `trappingId` au spawn par `hydratePoste`). Au spawn, le chef
+ *  avec l'arme HYDRATÉE (`item`, base résolue de `engin.id` au spawn par `hydratePoste`). Au spawn, le chef
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `noyau/monde/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
-export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId' | 'ammo' | 'selectedAmmo'> {
+export interface ShipPoste extends Omit<AuthoredShipPoste, 'engin' | 'ammo' | 'selectedAmmo'> {
   /** L'arme HYDRATÉE (instance complète, profil d’engin via `trappingId`). Re-résolue à chaque spawn
    *  depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
@@ -1497,8 +1495,9 @@ export interface Combatant {
   wounds: { current: number; readonly max: MaximumDesBlessures; ecart: number; perduesSousZero?: number };
   advantage: number;
   conditions: ConditionInstance[];
-  /** Armes/armure ACTIVES (dérivées de l'équipement) — utilisées en combat. */
+  /** Armes actives du porteur. */
   weapons: Weapon[];
+  /** PA des pièces, mutations et du blindage. Les PA du Trait se lisent sur son instance via `armourPhysiqueAt`. */
   armour: ArmourPoints;
   /** Inventaire complet à stats (porté, équipé ou non) — héros. */
   items?: ItemInstance[];

@@ -33,8 +33,10 @@ import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource, tirerLaTable,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
+import { resoudreLeChoixDuTrait } from '../engine/traitOctroye';
 import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
+import { isMagicMissile } from '../engine/magic';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
@@ -161,7 +163,8 @@ import { humanizeFlowSentence } from './codex/humanize';
 import { ajouterLaPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
 import { effectiveTalents } from '../engine/talentEffects';
-import { ev } from './combatLog';
+import { ev, journaliser } from './combatLog';
+import { tenuParUnHumain } from './sieges';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
 import { dataLabel, groupesLabel, type WaterExposureMode } from '../data';
@@ -392,7 +395,9 @@ export function creaturesDeLaRecolte(s: Jeu): string[] {
 export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
 
 /** Les créatures que le choix `victoire.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
-export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
+export function creaturesADepecer(s: Jeu): string[] {
+  return creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
+}
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
  *  `test` de Savoir (Bêtes) → `giveTrapping` — la réussite donne les pièces fraîches à pleine quantité,
@@ -576,6 +581,7 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
   const ctx = leafOpsCtx({
     ...base, now, resolveTrapping: objetDuNarratif(get().campaignNarratif),
     ...crochetsDeCorruption(get, set), ...crochetDeZone(get),
+    onChoixDeTrait: crochetDuChoixDeTrait(get, set),
   }, e);
   for (const o of e.ops) if (o.op === 'delayed') scheduleDelayedOps(get, set, c, o, { now, untilTime: ctx.defaultUntilTime, label: ctx.label });
   const rest = e.ops.filter((o) => o.op !== 'delayed');
@@ -585,9 +591,35 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
   // affichable/lançable/posable comme un Critique. La feuille s'applique à la RÉSOLUTION du dernier dé
   // (`operationsDe`), avec les valeurs tombées. Aucune demande ⇒ chemin inchangé, au même point du rng.
   const demandes = demandesDeDes(rest, c, ctx);
-  if (!demandes.length) return applyOps(c, rest, ctx);
-  ouvrirDesDOps(set, c, rest, ctx, demandes[0]);
+  if (demandes.length) {
+    ouvrirDesDOps(set, c, rest, ctx, demandes[0]);
+    return OPS_DIFFEREES;
+  }
+  const avant = comptePasDifferes(get());
+  const lignes = applyOps(c, rest, ctx);
+  if (!get().battle) lignes.push(...drainPendingLog(get, set).map((e) => e.text));
+  if (comptePasDifferes(get()) <= avant) return lignes;
+  set(touchActors(get()));
+  journaliser(get, set, lignes, 'etat', { actorId: c.id });
   return OPS_DIFFEREES;
+}
+
+/** EDOC 13 l.245, l.276 ; LDB 85 l.207 */
+function crochetDuChoixDeTrait(get: Get, set: SetFn): NonNullable<OpsCtx['onChoixDeTrait']> {
+  return (cible, op, options, ctx) => {
+    if (!tenuParUnHumain(get(), cible.id)) return false;
+    const trait = refLabel('traits', op.trait);
+    pushStep(set, (index) => choiceStep({
+      id: `choixDeTrait-${cible.id}-${index}`,
+      kind: 'choixDeTrait',
+      actorId: cible.id,
+      label: t('step.choixDeTrait', { trait }),
+      icon: 'magie/puissance',
+      options,
+      meta: { differeLaSuite: true, operationsDe: [op], opsDeCtx: porterOpsCtx(ctx) },
+    }), revealPurpose('sequence', false));
+    return true;
+  };
 }
 
 /**
@@ -650,6 +682,12 @@ function opsDeLEtape(step: CascadeStep): GameOp[] | null {
   return v as GameOp[];
 }
 
+function appliquerLesOpsReprises(get: Get, set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx) {
+  const journal = applyOps(cible, ops, ctx);
+  set(touchActors(get()));
+  return { consequences: freeCons(journal) };
+}
+
 /** IDENTITÉ de la grappe de dés d'une étape : celle qu'elle DÉCLARE, sinon la SIENNE (elle l'ouvre). */
 const groupeDe = (s: CascadeStep): string => (typeof s.meta?.opsDeGroupe === 'string' ? s.meta.opsDeGroupe : s.id);
 
@@ -691,6 +729,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte): OpsCtx | nu
     ...campAdvantageHooks(get),
     ...crochetDuSol(get, set),
     ...crochetDeZone(get),
+    onChoixDeTrait: crochetDuChoixDeTrait(get, set),
     ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
     ...(hull ? { hull } : {}),
     ...(caster ? { caster } : {}),
@@ -1647,10 +1686,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: libelleEffet('giveTrapping'), icon: 'objet/divers',
     make: () => ({ type: 'giveTrapping', custom: '' }),
     apply: (e, env) => {
-      // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
       const destinataire = env.hero(e.heroId);
-      const it = itemFromGive(e, env.get().forgerUnId, undefined, objetDuNarratif(env.get().campaignNarratif), destinataire ? contexteDeNaissanceDObjet(destinataire) : undefined);
+      const it = itemFromGive({ ...e, trappingId: e.objet?.id }, env.get().forgerUnId, undefined, objetDuNarratif(env.get().campaignNarratif), destinataire ? contexteDeNaissanceDObjet(destinataire) : undefined);
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
       // Évaluation, #2), teinte légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       if (e.identified === false) it.identified = false;
@@ -1718,10 +1756,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   learnSpell: {
     group: 'Récompenses', label: libelleEffet('learnSpell'), icon: 'magie/puissance',
-    make: () => ({ type: 'learnSpell', spell: '', heroId: '' }),
+    make: () => ({ type: 'learnSpell', sort: { id: '' }, heroId: '' }),
     apply: (e, env) => {
       // LDB 46 l.14-20, #1702, #2312.
-      const sp = findSpellById(e.spell);
+      const sp = findSpellById(e.sort.id);
       if (!sp) return;
       const learnable = (h: Combatant) => verdictApprentissage(h, sp) === 'eligible';
       const who = env.mutateHero(
@@ -2223,16 +2261,16 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   setVessel: {
     group: 'Navigation', label: libelleEffet('setVessel'), icon: 'voyage/ancre',
-    make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: moraleBase() }),
+    make: () => ({ type: 'setVessel', navire: { id: navireSeme() }, morale: moraleBase() }),
     apply: (e, env) => {
       // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ContenuDeScenario.vessel`,
       // mais authorable. Moral neuf par défaut (`moraleBase`) ; coque intacte sauf `hull*` authoré.
-      const v = findVehicleById(e.vehicleId);
-      if (!v?.ship) return; // ref invalide (validée par `refs`) : no-op
+      const v = findVehicleById(e.navire.id);
+      if (!v?.ship) return;
       env.set({
         vessel: {
           uid: env.get().forgerUnId('navire'),
-          vehicleId: e.vehicleId,
+          vehicleId: e.navire.id,
           ...(e.label?.trim() ? { label: e.label.trim() } : {}), // #230 — nom d'instance (affichage)
           morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: semainesCompletes(dayIndex(env.get().gameTime)), factors: [] }, // MDG 14 l.143
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
@@ -2244,12 +2282,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         },
       });
       env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));
-    },
-    refs: (e) => {
-      const v = e.vehicleId ? findVehicleById(e.vehicleId) : undefined;
-      if (!v) return [{ level: 'error', message: `Effet → navire inexistant « ${e.vehicleId || '(vide)'} »` }];
-      if (!v.ship) return [{ level: 'error', message: `Effet → « ${v.label} » n'est pas un navire (pas de facette ship)` }];
-      return [];
     },
   },
   adjustVessel: {
@@ -2361,13 +2393,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   castSpell: {
     group: 'Combat & social', label: libelleEffet('castSpell'), icon: 'magie/puissance',
-    make: () => ({ type: 'castSpell', casterId: '', spellId: '', mode: 'jet' }),
+    make: () => ({ type: 'castSpell', casterId: '', sort: { id: '' }, mode: 'jet' }),
     apply: (e, env) => {
       const { get, set } = env;
       const caster = actorIn(get(), e.casterId);
       if (!caster) { env.log(t('eff.lanceurAbsent', { id: e.casterId })); return; }
-      const spell = findSpellById(e.spellId);
-      if (!spell) { env.log(t('eff.sortAbsent', { id: e.spellId })); return; }
+      const spell = findSpellById(e.sort.id);
+      if (!spell) { env.log(t('eff.sortAbsent', { id: e.sort.id })); return; }
       const target = (e.targetId ? actorIn(get(), e.targetId) : undefined) ?? caster;
       if (e.mode === 'forcerLaReussite') {
         // Exécuteur déclaré par `combatFlow` (table `lancerLeSortGaranti`). #98
@@ -2375,18 +2407,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         env.log(`${caster.label} incante ${spell.label} (rituel garanti).`);
         return;
       }
-      if (get().battle) {
-        // EN COMBAT : flux d'incantation STANDARD (jet influençable si piloté par un humain, cadence-aware,
-        // même chemin que l'IA) — exécuteur déclaré par `combatFlow` (table `lancerLeSort`).
-        tablesPosees().lancerLeSort(get, set, caster, target, spell.id); // `castSpell`, `noyau/combatFlow` (#98)
+      if (!get().battle && isMagicMissile(spell)) {
+        refuserGeste(get, set, t('cs.magicMissileNeedsTarget', { spell: spell.label }));
         return;
       }
-      // HORS COMBAT (couture D) : seul un héros du GROUPE a un flux d'incantation jouable (`incanterLeSort`,
-      // jet réel par modale) — un PNJ hors combat n'a pas de Combatant à faire incanter (`actorIn` ne
-      // l'a alors résolu que depuis `party`), pas de pseudo-combat inventé pour ce cas.
-      get().incanterLeSort(caster.id, spell.id, target.id);
+      tablesPosees().lancerLeSort(get, set, caster, target, spell.id);
     },
-    // `spellId` : prouvé au schéma (`castSpellSchema`, `idDe('spell')`) ; `casterId` y est une chaîne libre.
     refs: (e) => (e.casterId ? [] : [{ level: 'error', message: 'Effet Incanter : lanceur manquant' }]),
   },
 
@@ -2544,7 +2570,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: '
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'operationsDe', 'chuteDe', 'choixDeFlux', 'volontaireDeFlux', MALADIE_DE_L_EQUIPAGE] as const;
+export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'operationsDe', 'choixDeTrait', 'chuteDe', 'choixDeFlux', 'volontaireDeFlux', MALADIE_DE_L_EQUIPAGE] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
 export const GENRES_HOTES = ['jetDeTestDeScene'] as const;
@@ -2578,11 +2604,18 @@ export const TABLES = {
       }
       const reste = demandesDeDes(ops, hero, ctx).filter((d) => !des.has(d.cle));
       if (reste.length) { ouvrirDesDOps(set, hero, ops, ctx, reste[0], groupe); return; }
-      const journal = applyOps(hero, ops, { ...ctx, des });
-      set(touchActors(get()));
       // La suite confiée à cette étape est rejouée par le GOULOT (`cascade.commitStep`), une fois cette
       // conséquence journalisée (`jouerLesClotures`).
-      return { consequences: freeCons(journal) };
+      return appliquerLesOpsReprises(get, set, hero, ops, { ...ctx, des });
+    },
+    choixDeTrait: (get, set, step, cible) => {
+      const op = opsDeLEtape(step)?.[0];
+      const choix = step.options?.find(({ key }) => key === step.chosen);
+      if (op?.op !== 'grantTrait' || !choix) return;
+      if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
+      if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      return appliquerLesOpsReprises(get, set, cible, [resoudreLeChoixDuTrait(op, choix.key)], ctx);
     },
     /** Décision d'un nœud `choix` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
      *  continuation du Flow, sous le libellé et le DR du Flow qui l'a ouverte. */

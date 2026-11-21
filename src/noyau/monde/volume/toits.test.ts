@@ -245,6 +245,20 @@ describe('roofPans — VOLUME d’avant-toit (soffite débordant + fascia par É
     expect(pf.filter((f) => f.material.part === 'soffite')).toHaveLength(4);
     expect(pf.filter((f) => f.material.part === 'fascia')).toHaveLength(4);
   });
+
+  it('pignon (gable) : chaque rampant porte sa rive, soffite et fascia rattachés à son pan, sans dépasser le faîte (#4471)', () => {
+    const shape: RoofShapeSpec = { profile: 'gable', ridge: 'x', pitch: 1, eaveHeightM: 4 };
+    const { faces, pans } = roofPans(rect(0, 0, 6, 3), 'tuile', { overhang: 0.32, fasciaDrop: 0.2 }, shape);
+    const rampant = (f: Face) => (f.material.part === 'soffite' || f.material.part === 'fascia') && Math.abs(f.poly[1].h - f.poly[0].h) > 1e-9;
+    const rives = faces.filter(rampant);
+    expect(rives.filter((f) => f.material.part === 'soffite')).toHaveLength(4);
+    expect(rives.filter((f) => f.material.part === 'fascia')).toHaveLength(4);
+    const servies = pans.flatMap((p) => p.faces);
+    for (const f of rives) expect(servies.filter((s) => s === f), 'une rive servie par un seul pan').toHaveLength(1);
+    const faite = 4 + 1.5;
+    for (const f of rives) expect(Math.max(...f.poly.map((p) => p.h))).toBeLessThanOrEqual(faite + 1e-9);
+    for (const f of rives.filter((x) => x.material.part === 'soffite')) expect(isPlanar(f)).toBe(true);
+  });
 });
 describe('buildRoofs — masses de bâtiment (#823)', () => {
   const mass = (patch: Partial<BuildingMass> = {}): BuildingMass => ({

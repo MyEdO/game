@@ -384,7 +384,7 @@ export const cleDeRegle = (selecteurs) => selecteurs.join(', ').replace(/\s+/g, 
 
 /**
  * Sites d'IDENTITÉ : une déclaration qui n'est pas du PLACEMENT.
- * @param {readonly import('./cssCouches.mjs').Fichier[]} fichiers @returns {{ file: string, ref: string }[]}
+ * @param {readonly import('./cssCouches.mjs').Fichier[]} fichiers @returns {import('./stock.mjs').Site[]}
  */
 export function sitesIdentiteEcran(fichiers) {
   const sites = [];
@@ -392,7 +392,7 @@ export function sitesIdentiteEcran(fichiers) {
     for (const { selecteurs, corps } of reglesCss(f.text)) {
       const sel = cleDeRegle(selecteurs);
       for (const { prop, valeur } of declarations(corps)) {
-        if (!estPlacement(prop, valeur)) sites.push({ file: f.rel, ref: `${sel} :: ${prop}` });
+        if (!estPlacement(prop, valeur)) sites.push({ fichier: f.rel, ref: `${sel} :: ${prop}` });
       }
     }
   }
@@ -401,7 +401,7 @@ export function sitesIdentiteEcran(fichiers) {
 
 /**
  * Sites d'ESPACEMENT hors échelle `--sp-*`.
- * @param {readonly import('./cssCouches.mjs').Fichier[]} fichiers @returns {{ file: string, ref: string }[]}
+ * @param {readonly import('./cssCouches.mjs').Fichier[]} fichiers @returns {import('./stock.mjs').Site[]}
  */
 export function sitesEspacementHorsEchelle(fichiers) {
   const sites = [];
@@ -410,7 +410,7 @@ export function sitesEspacementHorsEchelle(fichiers) {
       const sel = cleDeRegle(selecteurs);
       for (const { prop, valeur } of declarations(corps)) {
         if (PROPRIETES_A_ECHELLE.has(prop) && valeurHorsEchelle(valeur)) {
-          sites.push({ file: f.rel, ref: `${sel} :: ${prop} :: ${valeur.replace(/\s+/g, ' ')}` });
+          sites.push({ fichier: f.rel, ref: `${sel} :: ${prop} :: ${valeur.replace(/\s+/g, ' ')}` });
         }
       }
     }
@@ -510,7 +510,7 @@ const SEP = '\u0000';
 const clesDe = (fichiers, mesure) => {
   const m = new Map();
   for (const s of mesure(fichiers)) {
-    const k = s.file + SEP + s.ref;
+    const k = s.fichier + SEP + s.ref;
     m.set(k, (m.get(k) ?? 0) + 1);
   }
   return m;
@@ -565,7 +565,7 @@ export function franchissements(parent, commit) {
  * parent, pour les seuls couples dont les deux chemins sont au stock (#1806 D5″).
  * @param {Parameters<typeof modulesDEcran>[0]} image @param {typeof image} commit
  * @param {{ renommages?: ReadonlyMap<string, string>,
- *   stockAvant?: Record<'identite' | 'espacement', Iterable<{ fichier: string, ref: string }>> }} [options]
+ *   stockAvant?: Record<'identite' | 'espacement', Iterable<import('./stock.mjs').Site>> }} [options]
  */
 export function ventiler(image, commit, { renommages = new Map(), stockAvant } = {}) {
   const exAvant = modulesExemptes(image);
@@ -596,7 +596,7 @@ export function ventiler(image, commit, { renommages = new Map(), stockAvant } =
     const sorti = moins(Sb, Sh);
     const SORTI = taille(sorti);
     const accru = moins(Sh, Sb);
-    /** @type {{ fichier: string, ref: string, n: number }[]} */
+    /** @type {import('./cssCouches.mjs').Retour[]} */
     const retournes = [];
     for (const [k, n] of accru) {
       const pris = Math.min(n, Eb.get(k) ?? 0);
@@ -663,9 +663,9 @@ export function ligneDeVentilation(nom, v) {
  * ne comptait pas et que `HEAD` portait déjà — les `retournes` d'une ventilation `HEAD` → arbre
  * faite sur `stockDeTete`. Par clé (fichier, réf), les occurrences au-delà du compte de `stockDeTete`,
  * dans la limite du retour : un site NEUF n'est jamais admis.
- * @template {{ fichier: string, ref: string, occurrence: number }} E
- * @param {readonly E[]} mesurees @param {Iterable<{ fichier: string, ref: string }>} stockDeTete
- * @param {readonly { fichier: string, ref: string, n: number }[]} retournes @returns {E[]}
+ * @template {import('./stock.mjs').EntreeDeSite} E
+ * @param {readonly E[]} mesurees @param {Iterable<import('./stock.mjs').Site>} stockDeTete
+ * @param {readonly import('./cssCouches.mjs').Retour[]} retournes @returns {E[]}
  */
 export function admisAuRetour(mesurees, stockDeTete, retournes) {
   const compte = clesDEntrees(stockDeTete, (f) => f);

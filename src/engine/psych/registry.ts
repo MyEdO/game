@@ -7,13 +7,21 @@
  * Codex), zéro code par trait.
  */
 import type { PsychParse } from './types';
-import { PSY, type PsychTrait } from '../psychology';
+import type { PsychTrait } from '../psychology';
 import type { TraitList } from '../statEntry';
 import { findTraitById } from '../../data';
+import type { IdsParEspace } from '../../data/schemas/_ids.generated';
 import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
 import { cibleDeLArg, ciblePsyLue, estCibleType, type CiblePsy } from './ciblage';
 
 export type { PsychParse } from './types';
+
+/** Les Traits psy que le moteur NOMME, par `id` STABLE de `psychology.json` (LDB 21) : chaque valeur est typée
+ *  par l'espace `psychology.json` d'`IdsParEspace`, un id hors catalogue ne compile pas. Le type d'un Trait
+ *  porté reste OUVERT (`string`, #1692) : le Codex en crée d'autres. */
+export const PSY = {
+  frenesie: 'frenesie', peur: 'peur', terreur: 'terreur', animosite: 'animosite', haine: 'haine', prejuge: 'prejuge', phobie: 'phobie',
+} as const satisfies Record<string, IdsParEspace['psychology.json']>;
 
 /** Cibles d'UNE instance : son `arg` est une seule Cible — plusieurs Cibles sont plusieurs instances,
  *  agrégées par `parsePsychTraits`. « (un/une/deux) au choix » = wildcard(s) — Cible `undefined`

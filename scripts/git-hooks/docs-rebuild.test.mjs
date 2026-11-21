@@ -624,13 +624,17 @@ const servirAvec = (racine, { generateurs, construire, annonces = [] }) => servi
 })
 
 test('checkout existant sans mesure : la passe servie génère et atteste, la suivante est silencieuse', () => {
-  const primitive = pathToFileURL(join(RACINE, 'scripts/docs/lib/ecriture-derives.mjs')).href
   const cible = ['docs', 'checkout.md'].join('/')
   const generateurs = [{ runner: 'node', script: 'g/checkout.mjs', targets: [cible] }]
   const { racine } = instanceDeDepot({ fichiers: {
     '.gitignore': 'docs/\n.wt-checkout/\n',
     'source.txt': 'source réelle',
-    'g/checkout.mjs': `import { readFileSync } from 'node:fs'\nimport { ecrireOuVerifier } from ${JSON.stringify(primitive)}\necrireOuVerifier({out: readFileSync('source.txt', 'utf8'), path: ${JSON.stringify(cible)}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer'})\n`,
+    'g/checkout.mjs': [
+      "import { readFileSync } from 'node:fs'",
+      'export function* produire() {',
+      `  yield { out: readFileSync('source.txt', 'utf8'), path: ${JSON.stringify(cible)}, staleMsg: 'périmé', rerunMsg: 'relancer' }`,
+      '}',
+    ].join('\n'),
   } })
   const git = gitDe(racine)
   const worktree = join(racine, '.wt-checkout')
@@ -660,7 +664,6 @@ test('checkout existant sans mesure : la passe servie génère et atteste, la su
 })
 
 test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, CODE synchrone selon attestation', () => {
-  const primitive = pathToFileURL(join(RACINE, 'scripts/docs/lib/ecriture-derives.mjs')).href
   const module = pathToFileURL(join(RACINE, 'scripts/docs/build-all.mjs')).href
   const doc = (nom) => ['docs', `${nom}.md`].join('/')
   const noms = ['code', 'a', 'b', 'c']
@@ -669,12 +672,13 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, 
   const source = (nom) => nom === 'b' ? doc('a') : nom === 'a' ? 'scripts/docs/lib/source-a.txt' : `notes/${nom}/source.txt`
   const generateur = (nom) => [
     "import { appendFileSync, readFileSync } from 'node:fs'",
-    `import { ecrireOuVerifier } from ${JSON.stringify(primitive)}`,
-    `const texte = readFileSync(${JSON.stringify(source(nom))}, 'utf8') + readFileSync('commun.txt', 'utf8')`,
-    nom === 'code' ? "const resultat = texte + readFileSync('node_modules/dependency-value.txt', 'utf8')" :
-      nom === 'c' ? "const resultat = texte + readFileSync('src/code.gen.ts', 'utf8')" : 'const resultat = texte',
-    nom === 'code' ? "appendFileSync('node_modules/code-journal.txt', process.argv.includes('--check') ? 'verification\\n' : 'ecriture\\n')" : '',
-    `ecrireOuVerifier({ out: resultat, path: ${JSON.stringify(cible(nom))}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer' })`,
+    'export function* produire({ check }) {',
+    `  const texte = readFileSync(${JSON.stringify(source(nom))}, 'utf8') + readFileSync('commun.txt', 'utf8')`,
+    nom === 'code' ? "  const resultat = texte + readFileSync('node_modules/dependency-value.txt', 'utf8')" :
+      nom === 'c' ? "  const resultat = texte + readFileSync('src/code.gen.ts', 'utf8')" : '  const resultat = texte',
+    nom === 'code' ? "  appendFileSync('node_modules/code-journal.txt', check ? 'verification\\n' : 'ecriture\\n')" : '',
+    `  yield { out: resultat, path: ${JSON.stringify(cible(nom))}, staleMsg: 'périmé', rerunMsg: 'relancer' }`,
+    '}',
   ].join('\n')
   const { racine } = instanceDeDepot({ fichiers: {
     '.gitignore': 'node_modules/\n', 'commun.txt': 'commun',

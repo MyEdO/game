@@ -42,7 +42,7 @@ Câblé par des **Effects** (`src/data/schemas/defs-scenes/effets.ts`), jamais e
 - `adjustVessel` — patch INCRÉMENTAL (`name`/`morale`/`hullCurrent`/`saboteurDR`…) sans réinitialiser le
   reste (ex. `saboteurDR` remis à 0 quand un sabotage est levé, sans toucher la coque).
 - `ops` sur `on: 'navire'` — les ops de NAVIRE (`manann`, `shipMorale`, `shipCritical`, `OPS_DU_NAVIRE`,
-  `src/engine/ops.ts`) et les ops de coque (`wounds`) sur le navire de campagne (`src/noyau/navireOps.ts`).
+  `src/engine/faitsDOp.ts`) et les ops de coque (`wounds`) sur le navire de campagne (`src/noyau/navireOps.ts`).
   L'Humeur de Manann d'une campagne se décale par `{ op: 'manann', factorId }`, `factorId` RÉEL de
   `src/data/sea-events.json` (réf. de registre `seaManannFactors`), jamais un delta brut anonyme.
 - `saboteurDR` (dans `[-5,0]`) — malus discret aux Tests d'équipage de COMBAT ; s'authore SUR le
@@ -547,6 +547,10 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 - **Groupes du lieu** : `Scene.groups` (ids de `groups.json` qu'un porteur déclare, champ « Groupes du lieu » du
   pli Scène de l'Inspector) fait de la scène la source de ces Groupes pour tout Trait psy qui les vise, en combat
   comme hors combat (`etiquetteDeScene`, `src/noyau/monde/porteurs.ts`).
+- **Groupes d’une possession** : renseigner « Groupes de l’objet » sur sa fiche de catalogue ou dans les objets
+  du narratif (`narratif.objets[].groups`). Pour montrer une possession d’auteur sur un PNJ, la déclarer portée
+  dans son inventaire. Quand la possession est en vue, ses Groupes sont une source de Psychologie dont les
+  effets n’ajoutent aucun Groupe à son porteur (#3045, Q4).
 
 ## 11. Règles d'or
 

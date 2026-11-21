@@ -17,6 +17,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { estModule } from '../guards/lib/importGraph.mjs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
@@ -25,7 +26,6 @@ const COUTURE = 'scripts/raw/_lib.mjs'
 /** Ce banc-ci ÉNONCE le motif ; il ne liste rien. */
 const SOI = 'scripts/raw/couture-unique.test.mjs'
 const RACINES = ['scripts', 'src']
-const CODE = /\.(mjs|mts|ts|tsx|js)$/
 /** Un appel de LISTING (les deux du lecteur à ordre total, et les formes brutes de Node) dont
  *  l'expression nomme la racine de l'Atlas — deux lignes de fenêtre, un argument pouvant passer à
  *  la ligne. */
@@ -47,7 +47,7 @@ const viseLAtlas = (expr, nomsLies) =>
 test('aucun module ne PARCOURT `docs/raw` hors de la couture', () => {
   const sites = []
   for (const racine of RACINES) {
-    for (const rel of listerArbre(join(ROOT, racine), { filtre: (r) => CODE.test(r) })) {
+    for (const rel of listerArbre(join(ROOT, racine), { filtre: estModule })) {
       const chemin = `${racine}/${rel}`
       if (chemin === COUTURE || chemin === SOI) continue
       const texte = readFileSync(join(ROOT, chemin), 'utf8')

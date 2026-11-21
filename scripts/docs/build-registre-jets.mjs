@@ -1,7 +1,7 @@
 // REGISTRE des chemins de jet — GÉNÉRÉ depuis les modules de gardes `scripts/guards/lib/rollSeam*.mjs` et
 // `scripts/guards/lib/routeursDeTest.mjs` (jamais une recopie à la main). Sortie : docs/registre-jets.md. Re-run :
 // node scripts/docs/build-registre-jets.mjs (npm run docs:registre-jets).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 //
 // SOURCE UNIQUE : les listes (familles canoniques, stocks + justifications) vivent dans
 // `rollSeamWhitelist.mjs` et sont VÉRIFIÉES par `src/noyau/roll-seam-exclusivity-guard.test.ts` ;
@@ -14,9 +14,10 @@
 // population avant que les lots de re-routage la fassent bouger.
 import { readFileSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import {
   scanPendingJetFabrication, engineRollerExports, scanEngineDelegatedRoll,
   engineDiceRollers, scanDesHorsPorte, AMORCE_DES,
@@ -30,7 +31,7 @@ import {
   PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS,
 } from '../guards/lib/rollSeamWhitelist.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const ROOT = fileURLToPath(new URL('../..', import.meta.url))
   const OUT = 'docs/registre-jets.md'
@@ -39,7 +40,7 @@ function rendu() {
   /** Fichiers de PRODUCTION (hors tests) d'un jeu de dossiers, en chemin relatif POSIX, en ORDRE TOTAL. */
   function prodFiles(...dirs) {
     return dirs.flatMap((d) =>
-      listerArbre(join(ROOT, d), { filtre: (rel) => /\.tsx?$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
+      listerArbre(join(ROOT, d), { filtre: (rel) => estModule(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
         .map((rel) => ({ rel: `${d}/${rel}`, text: readFileSync(join(ROOT, d, rel), 'utf8') })),
     )
   }
@@ -159,11 +160,11 @@ function rendu() {
     runCombatFlow: 'hôte de COMBAT d\'`executerFlow` : remet le nœud et la continuation à `resolveFlowTest`.',
     runSceneConsumableFlow: 'hôte du consommable bu HORS combat : modale restreinte au buveur.',
     runPureFlowLines: 'hôte PUR des effets déclenchés sans voie de jet : il LÈVE sur un nœud `test`, jamais de branche muette.',
-    resolveFlowTest: 'voie CADENCE-AWARE en combat : étape de cascade influençable pour un acteur piloté, jet inline sinon.',
+    resolveFlowTest: 'Test d’acteur en combat et hors combat. Le siège qui tient le porteur joue une étape influençable dans la séquence d’accueil. Les automates résolvent le Test directement.',
     resolveInlineFlowTest: 'nœud `test` RACINE d\'un effet déclenché atteint sans store : jet inline, branche jouée par `runPureFlowLines`.',
     bandeTriggeredTest: 'MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés.',
     collectRoundEndTestSteps: 'Tests de FIN DE ROUND d\'un porteur surfacé : une étape influençable par source d\'effet.',
-    routeTriggeredTest: 'porte d\'un Test SUBI : hors combat, modale au sujet ; en combat, `runCombatFlow`.',
+    routeTriggeredTest: 'Porte canonique des Tests déclenchés en et hors combat. Un Test subi simple et autonome hors rencontre conserve sa modale. Les Tests de gain d’État et d’entretien à l’horloge rejoignent la cascade par `runCombatFlow`.',
     CORPS_DU_FRANCHISSEMENT: 'escalade d\'une arête en combat : modale restreinte au grimpeur (hors combat, `runFlow`).',
   }
   const routeurs = new Map()
@@ -414,4 +415,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

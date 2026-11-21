@@ -4,14 +4,15 @@
  * le foyer. Hors du foyer, sur le périmètre des gardes (tests compris), aucune recopie du prédicat, en ligne ou sous une
  * déclaration renommée, ni de sa forme niée (`PREDICAT_D_OBJET`), ni de la lecture (`LECTURE_AU_CHEMIN`).
  *
- * Ce que cette garde ne voit pas : le prédicat réparti sur plusieurs instructions, la lecture en boucle, et les scripts
- * hors du périmètre des gardes — un script de workflow (`.claude/workflows/*.js`, `*.workflow.js`) ne charge aucun module
- * (`scripts/guards/lib/jouer-workflow.mjs`), et un mod de `.claude/skills/` se copie seul pour sa vérification
- * (`scripts/mods/verifier.mjs`).
+ * Le lanceur du harnais joue un workflow JavaScript reconnu par sa forme dans une enveloppe autonome
+ * (`scripts/guards/lib/jouer-workflow.mjs`). Les validations d’arguments de cette famille sont hors garde.
+ * Le prédicat réparti sur plusieurs instructions et la lecture en boucle échappent au détecteur.
+ * Un mod de `.claude/skills/` se copie seul pour sa vérification (`scripts/mods/verifier.mjs`).
  */
 import { describe, it, expect } from 'vitest';
 import { constructionsReserveesDuCorpus, scanConstructionsReservees, LECTURE_AU_CHEMIN, PREDICAT_D_OBJET } from '../scripts/guards/lib/canonUnique.mjs';
 import { corpusTypeScriptDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
+import { estDialecteDeWorkflow, lireWorkflow } from '../scripts/guards/lib/formeDeWorkflow.mjs';
 
 const FOYER = 'src/lib/objet.mjs';
 
@@ -19,14 +20,48 @@ const PREDICAT = [{ ...PREDICAT_D_OBJET, foyer: FOYER }];
 
 const LECTURE = [{ ...LECTURE_AU_CHEMIN, foyer: FOYER }];
 
+/** La forme d'un workflow n'est jugée que dans les fichiers où le scan a trouvé une recopie. */
+function recopiesDesModules(
+  ...[corpus, constructions]: Parameters<typeof constructionsReserveesDuCorpus>
+) {
+  const textes = new Map(corpus.map(({ rel, text }) => [rel, text]));
+  return constructionsReserveesDuCorpus(corpus, constructions).filter(({ rel }) => {
+    if (!estDialecteDeWorkflow(rel)) return true;
+    const { script, defauts } = lireWorkflow(textes.get(rel)!, rel);
+    return !script || defauts.length > 0;
+  });
+}
+
 /** Les constructions reconnues dans un texte, par défaut un module de `src/`. */
 const fixture = (text: string, rel = 'src/noyau/fixture.ts') =>
   scanConstructionsReservees({ rel, text }, PREDICAT).map((t) => t.construction);
 const VU = ['PREDICAT_D_OBJET'];
 
+it('seul un workflow JavaScript reconnu par le harnais écarte une recopie', () => {
+  const source = "const objet = (v) => !!v && typeof v === 'object' && !Array.isArray(v);\n" +
+    'const lire = (o, chemin) => chemin.reduce((v, pas) => v[pas], o);\n';
+  const workflow = 'export const meta = {};\n' + source + "return agent('témoin');";
+  const candidatTypeScript = 'export const meta = {}; declare global { function agent(): void; }\n' +
+    "export const objet = (v: unknown) => !!v && typeof v === 'object' && !Array.isArray(v);\n" +
+    'const lire = (o: Record<string, unknown>, chemin: string[]) => chemin.reduce((v, pas) => v[pas], o);\n' +
+    'agent();';
+  const fichiers = [
+    { rel: 'scripts/enveloppe.js', text: workflow },
+    { rel: 'scripts/enveloppe.mjs', text: workflow },
+    { rel: 'scripts/enveloppe.cjs', text: workflow },
+    { rel: 'scripts/incomplet.workflow.js', text: 'export const meta = {};\n' + source },
+    { rel: 'scripts/module.workflow.js', text: source },
+    { rel: 'src/lib/module.ts', text: candidatTypeScript },
+  ];
+  for (const constructions of [PREDICAT, LECTURE]) {
+    expect(recopiesDesModules(fichiers, constructions).map(({ rel }) => rel))
+      .toEqual(['scripts/incomplet.workflow.js', 'scripts/module.workflow.js', 'src/lib/module.ts']);
+  }
+});
+
 describe('prédicat d’objet (#3117)', () => {
   it('aucune recopie du prédicat d’objet hors du foyer', () => {
-    expect(constructionsReserveesDuCorpus(corpusTypeScriptDesGardes(), PREDICAT)).toEqual([]);
+    expect(recopiesDesModules(corpusTypeScriptDesGardes(), PREDICAT)).toEqual([]);
   });
 
   it('la déclaration recopiée, quel que soit son nom et l’ordre de ses opérandes', () => {
@@ -67,7 +102,7 @@ describe('lecture au chemin (#4020)', () => {
   const LU = ['LECTURE_AU_CHEMIN'];
 
   it('aucune recopie de la lecture au chemin hors du foyer', () => {
-    expect(constructionsReserveesDuCorpus(corpusTypeScriptDesGardes(), LECTURE)).toEqual([]);
+    expect(recopiesDesModules(corpusTypeScriptDesGardes(), LECTURE)).toEqual([]);
   });
 
   it('la lecture recopiée, quel que soit son nom, sa conversion et sa garde', () => {

@@ -37,7 +37,7 @@ import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../e
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
 import {
-  creatureAttacks,
+  armeDesTentacules,
   attaqueDeCle,
   attaquesNaturelles,
   attaqueNaturelle,
@@ -280,25 +280,21 @@ export function availableAttacks(scene: Scene | null, active: Combatant, battle:
     if (a.trigger === 'action' && !actionDispo) continue;
     if (a.trigger === 'free' && gratuitesRestantes(active, a.kind, a) === 0) continue; // LDB 85 l.237 ; LDB 85 l.405
     const melee = MELEE_MANEUVER_KINDS.includes(a.kind);
+    // LDB 85 l.405 ; #1765
+    const repliTentacule = a.kind === 'tentacules' && !a.bfInclus;
+    const arme = armeDesTentacules(active, a);
+    if (repliTentacule && (arme?.uid == null || !active.pos ||
+        !battle.combatants.some((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos))) continue;
     out.push({
-      id: a.cle, kind: a.kind, label: a.def.label, icon: MANEUVER_ICON[a.kind],
+      id: repliTentacule && a.cle === a.def.id ? 'tentacule' : a.cle,
+      kind: a.kind, label: repliTentacule && arme ? arme.label : a.def.label, icon: MANEUVER_ICON[a.kind],
       targeting: melee ? 'melee' : 'zone',
       ...(melee ? { reach: 1, forceMelee: true, freeKind: a.kind } : { def: a.def, modeDAvantage: a.modeDAvantage }),
+      ...(arme?.uid != null ? { weaponUid: arme.uid } : {}),
       cost: { action: a.trigger === 'action', advantage: prix, ...(cout.movement ? { movement: true } : {}) },
     });
   }
-  // (2) Arme de Tentacule qu'un TRAIT accorde (`recomputeLoadout`, LDB 85 l.405), retrouvée par sa source : plafond du
-  //     trait qui l'octroie (`plafondParTour`, compteur partagé), 0 Avantage. Comme toute attaque de mêlée, elle
-  //     s'APPROCHE (charge/rejoindre) → dispo dès qu'un ennemi existe (adjacence non requise).
-  const tentacule = active.weapons.find((w) => w.natural && w.attackKind === 'tentacules' && w.source?.kind === 'trait');
-  if (
-    tentacule?.uid != null &&
-    gratuitesRestantes(active, 'tentacules', creatureAttacks(active.traits ?? []).find((a) => a.kind === 'tentacules')) > 0 &&
-    !!active.pos &&
-    battle.combatants.some((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos)
-  )
-    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacules', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: tentacule.uid, freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
-  // (3) Poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) : « servir la pièce » = attaque DÉDIÉE portant
+  // (2) Poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) : « servir la pièce » = attaque DÉDIÉE portant
   //     l'arme du poste (`weaponUid` → canon ÉPINGLÉ, même si le servant porte une arme perso de mêlée pour
   //     l'abordage). Arc + portée INTRINSÈQUES (firedAttackBlock garde déjà l'arc de `w.mountSide`). Coûte
   //     l'Action ; `targeting:'melee'` = chemin approche-puis-frappe commun (une arme à distance y tire en
@@ -310,13 +306,13 @@ export function availableAttacks(scene: Scene | null, active: Combatant, battle:
     // (AA 10 l.169/171). DIRECTE (canon/baliste) : ciblage de combattant classique. Flag DONNÉE, zéro liste en dur.
     if (w) out.push({ id: 'poste', label: `Servir ${w.label}`, icon: 'action/servir-l-engin', targeting: 'melee', weaponUid: w.uid, cost: { action: true, advantage: 0 }, ...(w.indirect ? { indirect: true } : {}) });
   }
-  // (4) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-longueur-arme`) :
+  // (3) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-longueur-arme`) :
   //     Test opposé de Corps à corps pour entrer dans la longueur d'arme. Dispo si la règle est ON, l'Action
   //     dispo, et un adversaire Engagé présente une différence d'allonge pertinente. Choix EXPLICITE de
   //     l'« Attaque ▾ », pas une frappe.
   if (rule('combat-longueur-arme') && actionDispo && battle.combatants.some((c) => auContactEligible(active, c)))
     out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attaquer', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
-  // (5) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
+  // (4) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
   //     (Dégâts / Empêtré) ou « Briser » (Avantage supérieur). Dispo si l'Action est dispo et un adversaire
   //     est Empoigné. Choix EXPLICITE de l'« Attaque ▾ ».
   if (actionDispo && battle.combatants.some((c) => grappleActionEligible(active, c)))

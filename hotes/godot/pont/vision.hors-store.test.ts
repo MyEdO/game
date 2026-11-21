@@ -21,7 +21,7 @@ import { depuisBase64 } from '../../../src/lib/base64';
 import { hash32AuMillieme } from '../../../src/lib/hash';
 import { t } from '../../../src/i18n';
 import type { VisionDuMonde } from '../../../src/noyau/index';
-import type { Jet, Ligne } from '../../../src/hote/elements';
+import type { Ligne } from '../../../src/hote/elements';
 
 const INCONNU = t('vision.horsDeVue');
 
@@ -102,7 +102,10 @@ describe('melee-dans-le-noir — les gobelins au contact, hors de la vue du grou
     jouer(clic!);
     expect(vue().projection.fenetre, 'le second clic ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDAttaque' } });
     expect((corpsDe(vue(), 'cible') as Ligne).texte, 'la fenêtre ne nomme pas sa cible').toBe(t('ecran.attaque.cible', { cible: INCONNU }));
-    expect((corpsDe(vue(), 'defense') as Jet).qui, 'ni celui qui se défend').toBe(INCONNU);
+    const defense = vue().projection.jets.find((j) => j.flux === 'attaque')?.lignes.find((l) => l.id === 'defenseur');
+    expect(defense, 'un porteur invisible sans identifiant projeté').toMatchObject({ qui: null, porteurHorsDeVue: true });
+    expect(JSON.stringify(defense)).not.toContain(vise!);
+    expect(corpsDe(vue(), 'defense'), 'le jet de la cible conserve le nom neutre').toMatchObject({ type: 'jet', qui: INCONNU, combattant: null });
     const ecran = JSON.stringify(vue().zones);
     const noms = entitesDe('melee-dans-le-noir').filter((e) => ENNEMIS.includes(e.id) && e.label).map((e) => e.label!);
     expect(noms, 'témoin : les deux gobelins portent leur nom').toHaveLength(ENNEMIS.length);

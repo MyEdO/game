@@ -10,6 +10,7 @@ import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Dir8 } from '../../geometry/dir8';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
+import { armourPhysiqueAt, sourceDuTraitA } from '../../engine/armourBypass';
 import { findTierEntry } from '../../engine/tables';
 import {
   findCreatureById,
@@ -70,15 +71,15 @@ const armureEquipee = (i: ItemInstance): Armure => ({
   couche: findGroupeDArmureById(i.subType)?.couche ?? -1,
 });
 
-/** L'armure de statbloc de `c` (PA par localisation, `c.armour`), si son apparence la déclare portée (`armurePortee`, son
- *  apparence d'auteur, sinon sa créature ; #774) : par Groupe d'armure atteint, les localisations dont les PA ont ce Groupe
- *  pour palier (`groupeDuPalier`), à sa teinte. */
+/** L'armure de statbloc déclarée portée regroupe ses Localisations par palier de PA nets. #774 */
 function armureDeStatbloc(c: Combatant): Armure[] {
   if (!(c.appearanceOverride?.armurePortee ?? findCreatureById(c.creatureId)?.appearance?.armurePortee)) return [];
   const parGroupe = new Map<GroupeDArmure, HitLocation[]>();
   for (const loc of LOCALISATIONS_DE_COUP) {
-    if (!(c.armour[loc] > 0)) continue;
-    const groupe = groupeDuPalier(c.armour[loc]);
+    const trait = sourceDuTraitA(c, loc);
+    const pa = trait ? (trait.matiere === 'peau' ? 0 : trait.pa) : armourPhysiqueAt(c, loc);
+    if (pa <= 0) continue;
+    const groupe = groupeDuPalier(pa);
     parGroupe.set(groupe, [...(parGroupe.get(groupe) ?? []), loc]);
   }
   return [...parGroupe].map(([groupe, locs]) => ({ objet: { nom: groupe.label, candidats: [], locs, ...(groupe.teinte ? { teinte: groupe.teinte.id } : {}) }, couche: groupe.couche }));

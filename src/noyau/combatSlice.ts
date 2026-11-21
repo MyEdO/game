@@ -212,6 +212,7 @@ import {
   syncDerivedConditions,
   isConditionLocked,
   soinDeDetermination,
+  poseDeterminationCanceller,
   isActionLocked,
 } from '../engine/conditions';
 import {
@@ -232,7 +233,7 @@ import {
 import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
 import { soinDeLActe } from './acteDeSoin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
-import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
+import { treatTrauma, receiveMedicalAid } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
 import { entreeEnRencontre } from '../engine/persistence';
 import { testValue, actorHasSkill, soutienDetail, type SupportDetail } from '../engine/skills';
@@ -300,16 +301,18 @@ import { refusDImmunite } from './determinationDuJet';
 import { porteurDeLObjet } from './monde/carrier';
 import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
+import { sourcePsyAuCombat } from './monde/porteurs';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
-import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
+import { aiDriven, controlsCombatant, influencesLocally, decidingSeat, refuserAuSiegeAgissant } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type OptionsDuClic } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { declarationDuReglageNomme, type CorpsDesReglages } from './reglagesDuJet';
 import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
 import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuChoixDeCibles, refusDuPasDeSurincantation } from './fenetreDIncantation';
-import { findSpellById } from '../data/index';
+import { findSpellById, type SpellData } from '../data/index';
+import { sortDeDomaineAccessibleParTrait, sortsDisponibles } from '../engine/sortsDuPnj';
 import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { distanceDeCombat, distanceDeContact } from './monde/footprint';
@@ -362,9 +365,15 @@ function refusDuTourDe(s: Jeu, acteurId: string, horsDuTour: string): string | n
   return barre.forme !== 'ouverte' ? barre.raison : barre.active.id !== acteurId ? horsDuTour : null;
 }
 
+function refusDuSortDeDomaine(lanceur: Combatant, sort: SpellData): string | null {
+  return sortDeDomaineAccessibleParTrait(sort) && !sortsDisponibles(lanceur).includes(sort.id)
+    ? t('cs.sortIndisponible', { name: lanceur.label, spell: sort.label })
+    : null;
+}
+
 /** Le verdict de l'ENTRÉE du registre (`actionGate`) que ce commit exécute, lu au commit comme à l'offre.
- *  Refusé, il se dit par `refuserGesteDuSiege` quand l'acteur est piloté (`controlsCombatant`) : au siège
- *  local seulement, jamais chez l'hôte pour un invité. Un acteur de l'IA est refusé sans bandeau. `true` = refusé. */
+ *  Quand l'acteur est piloté (`controlsCombatant`), `refuserGesteDuSiege` dit le refus au siège qui a agi.
+ *  `true` = refusé. */
 function refuseParSonEntree(get: Get, set: Set, entree: string, active: Combatant, battle: BattleState, args?: ContexteDOffre): boolean {
   const verdict = actionGate(entree, { active, battle, scene: get().scene, netMode: get().net.mode, gameTime: get().gameTime, args });
   if (verdict.ok) return false;
@@ -1583,7 +1592,12 @@ export function createCombatSlice(get: Get, set: Set) {
       const aim = battle.combatants
         .filter((c) => c.kind !== gunner.kind && !isOutOfAction(c) && c.pos && chebyshev(pt, c.pos) <= sa.radius)
         .sort((a, b) => chebyshev(pt, a.pos!) - chebyshev(pt, b.pos!))[0];
-      if (!aim) { get().ecrireAuJournal(t('cf.siegeSansCible', { name: gunner.label })); return; }
+      if (!aim) {
+        const etat = get();
+        const refus = t('cf.siegeSansCible', { name: gunner.label });
+        if (!refuserAuSiegeAgissant(etat, refus)) etat.ecrireAuJournal(refus);
+        return;
+      }
       // Pilonnage : la pièce est SERVIE (hors loadout main/secondaire) → `openAttackCascade` ne gate jamais un
       // canon monté (`attackHandGate` = null), mais passe par le MÊME point partagé que les autres attaques.
       openAttackCascade(get, set, { attackerId: gunner.id, targetId: aim.id, location: null, result: null, weaponUid: sa.weaponUid, center: { ...pt }, siege: true }, 'Pilonnage', 'feu/explosif');
@@ -1902,17 +1916,17 @@ export function createCombatSlice(get: Get, set: Set) {
       const spell = findSpellById(spellId);
       if (!lanceur || !spell) return;
       if (battle) {
-        const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label })) ?? refusActionDepensee(battle);
+        const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label }))
+          ?? refusActionDepensee(battle) ?? refusDuSortDeDomaine(lanceur, spell);
         if (refus) return void refuserGesteDuSiege(get, set, refus);
         set({ battle: { ...battle, action: 'incantation', selectedSpellId: spellId, reachable: new Map() } });
         castZoneSpell(get, set, lanceur, spellId); // no-op si le sort n'est pas une ZdE chiffrable
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
-      if (isMagicMissile(spell)) {
-        get().ecrireAuJournal(t('cs.magicMissileNeedsTarget', { spell: spell.label }));
-        return;
-      }
+      if (isMagicMissile(spell)) return void refuserGeste(get, set, t('cs.magicMissileNeedsTarget', { spell: spell.label }));
+      const refus = fromGrimoire ? null : refusDuSortDeDomaine(lanceur, spell);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       const cible = s.party.find((c) => c.id === cibleId) ?? lanceur;
       castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false, focused selon caster.focus)
     },
@@ -1978,16 +1992,12 @@ export function createCombatSlice(get: Get, set: Set) {
         // Action, sort focalisable, Compétence, contrecoup (LDB 46/40) : le verdict de l'entrée `focalisation`.
         if (refuseParSonEntree(get, set, 'focalisation', lanceur, battle, { spellId })) return;
       } else {
-        if (!isArcaneSpell(spell)) {
-          get().ecrireAuJournal(t('cs.cannotFocus'));
-          return;
-        }
+        if (!isArcaneSpell(spell)) return void refuserGeste(get, set, t('cs.cannotFocus'));
         const fblocked = castBlockedBy(lanceur, 'focalisation');
-        if (fblocked) {
-          get().ecrireAuJournal(t('cs.focusBlocked', { name: lanceur.label, reason: fblocked }));
-          return;
-        }
+        if (fblocked) return void refuserGeste(get, set, t('cs.focusBlocked', { name: lanceur.label, reason: fblocked }));
       }
+      const refus = refusDuSortDeDomaine(lanceur, spell);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       set({ pendingFocus: { casterId: lanceur.id, spellId: spell.id, result: null } });
     },
 
@@ -2935,14 +2945,14 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!battle || !pa) return;
       const lance = garanti(pa.result, pa.combatantId, 'jet de l’Approche');
       const c = inBattleId(battle, pa.combatantId);
-      const src = inBattleId(battle, pa.sourceId);
+      const src = sourcePsyAuCombat(battle, pa.sourceId);
       set({ pendingApproach: null });
       if (!c) return;
       const ok = lance.success;
-      const nomDeLaSource = garanti(nomEnVue(get(), pa.sourceId), pa.sourceId, 'source de l’Approche');
+      const nomDeLaSource = src.genre === 'objet' ? src.nom : garanti(nomEnVue(get(), pa.sourceId), pa.sourceId, 'source de l’Approche');
       const log = [...battle.log, ev('peur', ok
         ? t('cs.courageYes', { name: c.label, src: nomDeLaSource })
-        : t('cs.courageNo', { name: c.label, src: nomDeLaSource }), c.id, src?.id)];
+        : t('cs.courageNo', { name: c.label, src: nomDeLaSource }), c.id, src.genre === 'combattant' ? src.ancre?.id : undefined)];
       set({ battle: { ...get().battle!, fearGate: ok ? 'passed' : 'failed', log } });
       if (ok) {
         // Relance le geste différé (le gate est 'passed') AVEC l'intention de son clic d'origine, que ce clic a dissoute.

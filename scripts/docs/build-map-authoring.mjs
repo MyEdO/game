@@ -10,12 +10,13 @@
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs),
  * avec la lecture AST + JSDoc du socle `scripts/docs/lib/jsdocUnion.mjs` (patron build-effects.mjs).
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-map-authoring.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
 import * as ts from 'typescript/unstable/ast'
 import {
   loadSource,
@@ -27,10 +28,10 @@ import {
   noyauZod,
   proprietesZod as lireProprietesZod,
 } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-map-authoring'
   const MAPSPEC = 'src/noyau/mapSpec.ts'
@@ -288,7 +289,7 @@ function rendu() {
 
   // ── Exemples VIVANTS : quel scénario emploie quel champ ──────────────────────────────────────────
 
-  const SCENES_SRC = listerArbre(SCENES, { filtre: (rel) => rel.endsWith('.ts') && !rel.includes('.test.') })
+  const SCENES_SRC = listerArbre(SCENES, { filtre: (rel) => estModule(rel) && !rel.includes('.test.') })
     .map((rel) => `${SCENES}/${rel}`)
     .map((f) => ({ f, t: readFileSync(f, 'utf8') }))
     .filter(({ t }) => /\bbuildScene\s*\(|\bMapSpec\b/.test(t))
@@ -625,4 +626,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

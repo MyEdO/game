@@ -37,7 +37,7 @@ export function formatDe(chemin: string): FormatDeStock;
 export function entreesRegenerees<S extends Site & { famille?: string }>(
   sites: readonly S[],
   p?: Partial<EcheanceNullable> & { ancien?: Iterable<Record<string, unknown>> },
-): (EntreeDeSite & Partial<Echeance> & Omit<S, 'file' | 'ref' | 'famille'>)[];
+): (EntreeDeSite & Partial<Echeance> & Omit<S, keyof Site | 'famille'>)[];
 
 export function comptesParFamille<F extends string>(
   items: readonly { famille?: string }[],

@@ -25,6 +25,7 @@ import { document } from '../grammaire/document';
 import { couleurHexSchema, detailRecipeSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
 import { type MaterialDomain } from '../../materials.types';
 import { estObjet } from '../../../lib/objet.mjs';
+import { kitDeToitSchema } from './structureAppearance';
 
 export const file = 'materials.json';
 export const famille = 'entite';
@@ -53,7 +54,7 @@ const chargeParDiscriminant = {
   prop: ['color', 'roughness', 'metalness'],
   roof: [
     'couverture', 'vueDeDessus', 'detail', 'N', 'E', 'S', 'O', 'line',
-    'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap',
+    'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap', 'kit',
   ],
   relief: ['built', 'detail', 'face', 'foot', 'slopeTop', 'shadeDark'],
 } as const satisfies Record<MaterialDomain, readonly string[]>;
@@ -89,6 +90,7 @@ const doc = document(
     fasciaThickM: z.number().optional(),
     fascia: z.string().optional(),
     ridgeCap: z.string().optional(),
+    kit: kitDeToitSchema.optional(),
     // ── domaine `relief`
     built: z.boolean().optional(),
     face: z.string().optional(),
@@ -129,6 +131,10 @@ const doc = document(
     fasciaThickM: { label: 'Épaisseur de planche de rive', hint: 'En mètres' },
     fascia: { label: 'Couleur de planche de rive' },
     ridgeCap: { label: 'Couleur de faîtière' },
+    kit: {
+      label: 'Famille du kit de toit',
+      hint: 'Les pièces 3D (faîtière) que l’hôte Godot pose sur les faîtes d’une nappe de cette couverture',
+    },
     built: { label: 'Relief bâti', hint: 'Ouvrage maçonné (vs relief naturel type talus)' },
     face: { label: 'Couleur de face', hint: 'Teinte de la face principale du relief' },
     foot: { label: 'Couleur de pied', hint: 'Falaise : ombre de pied' },

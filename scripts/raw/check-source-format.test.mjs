@@ -73,7 +73,7 @@ test('ligne1-hors-format : `*Folio N+*` et `# Titre` sont NOMMÉS, la tranche d�
   const scan = { nom: '01 - Credits.md', texte: '*Folio 3+*\n\n# CRÉDITS\n' }
   const sites = sitesDuDossier(DIR, [scan, { ...scan, nom: '02 - Suite.md' }])
   const l1 = sites.filter((s) => s.famille === 'ligne1-hors-format')
-  assert.deepEqual(l1.map((s) => [s.file, s.ref]), [[`${DIR}/01 - Credits.md`, '*Folio N+*'], [`${DIR}/02 - Suite.md`, '*Folio N+*']], 'un site par FICHIER, sa forme')
+  assert.deepEqual(l1.map((s) => [s.fichier, s.ref]), [[`${DIR}/01 - Credits.md`, '*Folio N+*'], [`${DIR}/02 - Suite.md`, '*Folio N+*']], 'un site par FICHIER, sa forme')
 })
 
 test('sans-folio : un chapitre sans aucune ancre `data-folio` est compté ; l’index ne l’est jamais', () => {
@@ -91,7 +91,7 @@ test('sans-folio : un chapitre sans aucune ancre `data-folio` est compté ; l’
 test('#3884 sans-folio : un livre qui DÉCLARE n’imprimer aucun folio se tait ; non déclaré, il est jugé', () => {
   const fichiers = [{ nom: '01 - X.md', texte: '*Pages PDF 1-4*\n\n## X\n' }, indexVivant(['01 - X.md'])]
   const liste = listePour(['01 - X.md'])
-  const sansFolio = (declare) => sitesDuDossier(DIR, fichiers, liste, declare).filter((s) => s.famille === 'sans-folio').map((s) => s.file)
+  const sansFolio = (declare) => sitesDuDossier(DIR, fichiers, liste, declare).filter((s) => s.famille === 'sans-folio').map((s) => s.fichier)
   assert.deepEqual(sansFolio(true), [])
   assert.deepEqual(sansFolio(false), [`${DIR}/01 - X.md`])
 })
@@ -221,7 +221,7 @@ test('grain : la LIGNE 1, les NOMS et l’INDEX se confrontent à la liste — r
 test('sans-decoupe : un livre SANS liste de découpe rend un site par chapitre', () => {
   const fichiers = [chapitreDe('01 - A.md', '# **A**'), chapitreDe('02 - B.md', '# **B**')]
   const sites = sitesDuDossier(DIR, fichiers).filter((s) => s.famille === 'sans-decoupe')
-  assert.deepEqual(sites.map((s) => [s.file, s.ref]), [[`${DIR}/01 - A.md`, 'grain non déclaré'], [`${DIR}/02 - B.md`, 'grain non déclaré']])
+  assert.deepEqual(sites.map((s) => [s.fichier, s.ref]), [[`${DIR}/01 - A.md`, 'grain non déclaré'], [`${DIR}/02 - B.md`, 'grain non déclaré']])
   // Avec une liste, la famille se TAIT : le grain se juge par confrontation, pas par stock.
   const liste = [{ titre: 'A', ouverture: 'A', page: 6, pageFin: 8 }, { titre: 'B', ouverture: 'B', page: 6, pageFin: 8 }]
   assert.deepEqual(sitesDuDossier(DIR, fichiers, liste).filter((s) => s.famille === 'sans-decoupe'), [])
@@ -268,7 +268,7 @@ test('largeur-de-numero : une largeur PAR DOSSIER, celle du plus grand numéro',
   assert.deepEqual(largeurs(['99 - A.md', '100 - B.md']).map((s) => s.ref), ['hors largeur 3'])
   assert.deepEqual(largeurs(['07 - A.md', '100 - B.md']).map((s) => s.ref), ['hors largeur 3'])
   // Un site par fichier hors largeur.
-  assert.deepEqual(largeurs(['07 - A.md', '08 - B.md', '100 - C.md']).map((s) => s.file), ['Source/Livre/07 - A.md', 'Source/Livre/08 - B.md'])
+  assert.deepEqual(largeurs(['07 - A.md', '08 - B.md', '100 - C.md']).map((s) => s.fichier), ['Source/Livre/07 - A.md', 'Source/Livre/08 - B.md'])
   // `00 - Index.md` n'est pas un chapitre : il ne porte ni largeur ni écart.
   assert.deepEqual(largeurs(['07 - A.md', '21 - B.md']).concat(
     sitesDuDossier(DIR, [chap('07 - A.md'), indexVivant(['07 - A.md'])]).filter((s) => s.famille === 'largeur-de-numero'),
@@ -312,12 +312,12 @@ test('DISQUE : un dossier au format ne rend rien ; un dossier « scan/folio », 
     ])
     // Le `fichier` nomme le chapitre fautif lui-même (l'index pour `index-mort`) : sans `.md`,
     // l'entrée serait invisible aux portes de croissance (stocksNominatifs.mjs).
-    assert.deepEqual(sites.map((s) => s.file.split('/').pop()), [
+    assert.deepEqual(sites.map((s) => s.fichier.split('/').pop()), [
       '01 - Credits.md', '02 - _GoBack.md', '01 - Credits.md', '02 - _GoBack.md', '02 - _GoBack.md', '00 - Index.md', '01 - Credits.md', '02 - _GoBack.md',
     ])
     for (const s of sites) {
-      assert.ok(!s.file.includes('\\'), `chemin POSIX attendu : ${s.file}`)
-      assert.match(s.file, /\.md$/, `le stock doit nommer un fichier : ${s.file}`)
+      assert.ok(!s.fichier.includes('\\'), `chemin POSIX attendu : ${s.fichier}`)
+      assert.match(s.fichier, /\.md$/, `le stock doit nommer un fichier : ${s.fichier}`)
     }
   } finally { rmSync(casse.racine, { recursive: true, force: true }) }
 })
@@ -365,7 +365,7 @@ test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des écarts mesurés sur l’
 test('un solde laisse le quoi à l’octet', () => {
   const sites = scanAll()
   const [s0] = sites
-  const reste = sites.filter((s) => s.famille !== s0.famille || s.file !== s0.file || s.ref !== s0.ref)
+  const reste = sites.filter((s) => s.famille !== s0.famille || s.fichier !== s0.fichier || s.ref !== s0.ref)
   assert.ok(reste.length < sites.length)
   const enPlace = texteEnPlace(STOCK_PATH)
   const [r] = regenerations(reste)
@@ -489,7 +489,7 @@ test('mobilier : un chiffre d’onglet RÉINJECTÉ en ligne seule ou dans une li
     const sites = mobilierAvec(id, (nom, t) => (nom === cible ? [t, '', x, '', `fin de paragraphe ${x}`].join('\n') : t))
     const rouges = rougesAuSite(sites)
     assert.equal(rouges.length, 2, `${id} : ${JSON.stringify(rouges)}`)
-    assert.ok(rouges.every((r) => r.file.endsWith(`/${cible}`) && r.ref.includes(`« ${x} »`)))
+    assert.ok(rouges.every((r) => r.fichier.endsWith(`/${cible}`) && r.ref.includes(`« ${x} »`)))
     assert.deepEqual(rouges.map((r) => r.ref.split(' ')[1]), ['romain-seul', 'mot'])
   }
 })
@@ -514,7 +514,7 @@ test('mobilier : un chiffre d’onglet AJOUTÉ à une ligne EXEMPTÉE rougit —
     const retouche = (n, t) => (n !== nom ? t : t.split('\n').map((l, j) => (j === cible.ligne - 1 ? `${l} ${cible.jeton}` : l)).join('\n'))
     const rouges = rougesAuSite(mobilierAvec(id, retouche))
     assert.equal(rouges.length, 1, `${id} : ${JSON.stringify(rouges)}`)
-    assert.ok(rouges[0].file === cible.fichier && rouges[0].ref.startsWith(`l.${cible.ligne} mot « ${cible.jeton} »`))
+    assert.ok(rouges[0].fichier === cible.fichier && rouges[0].ref.startsWith(`l.${cible.ligne} mot « ${cible.jeton} »`))
   }
 })
 
@@ -540,7 +540,7 @@ test('titre-soude : un titre RE-SOUDÉ à son corps ROUGIT, nommé à sa ligne',
     const rouges = titresSoudesDuDossier(dir, (n) => resoude(n, readText(`${dir}/${n}`)), liste)
     assert.equal(rouges.length, 1, id)
     assert.match(rouges[0].ref, /^l\.\d+ p5 : \*\*/)
-    assert.equal(rouges[0].file, `${dir}/${nom}`)
+    assert.equal(rouges[0].fichier, `${dir}/${nom}`)
   }
 })
 
@@ -559,7 +559,7 @@ test('imperatif-soude : un trait d’union RETIRÉ ou DÉTACHÉ rougit, nommé �
   const lire = ldbRetouche((t) => t.replace('rappelez-vous', 'rappelezvous').replace('Rappelez-vous', 'Rappelez- vous'))
   const rouges = imperatifsSoudesAll([LDB_DIR], [], lire)
   assert.equal(rouges.length, 2, JSON.stringify(rouges))
-  for (const r of rouges) assert.equal(r.file, TALENTS_LDB)
+  for (const r of rouges) assert.equal(r.fichier, TALENTS_LDB)
   assert.match(rouges[0].ref, /^l\.\d+ soude « rappelezvous » : /)
   assert.match(rouges[1].ref, /^l\.\d+ detache « Rappelez- vous » : /)
 })

@@ -37,7 +37,7 @@ describe('Effet castSpell (#98)', () => {
 
     it('route par le MÊME flux standard que `castSpell` direct (héros manuel → `pendingCast` ouvert, jet non résolu)', () => {
       const { W, A } = setup();
-      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: W.id, spellId: 'chute', targetId: A.id }]);
+      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: W.id, sort: { id: 'chute' }, targetId: A.id }]);
       const pc = banc.getState().pendingCast;
       expect(pc).not.toBeNull();
       expect(pc!.casterId).toBe(W.id);
@@ -48,14 +48,14 @@ describe('Effet castSpell (#98)', () => {
 
     it('lanceur introuvable → refus journalisé, aucun `pendingCast`', () => {
       const { A } = setup();
-      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: 'inconnu', spellId: 'chute', targetId: A.id }]);
+      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: 'inconnu', sort: { id: 'chute' }, targetId: A.id }]);
       expect(banc.getState().pendingCast).toBeNull();
       expect(banc.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);
     });
 
     it('lanceur ENNEMI (IA) : le jet est auto-roulé (`pendingCast.result` posé), comme un cast d’IA normal', () => {
       const { E, A } = setup();
-      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: E.id, spellId: 'chute', targetId: A.id }]);
+      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: E.id, sort: { id: 'chute' }, targetId: A.id }]);
       const pc = banc.getState().pendingCast;
       expect(pc).not.toBeNull();
       expect(pc!.casterId).toBe(E.id);
@@ -68,7 +68,7 @@ describe('Effet castSpell (#98)', () => {
       A.wounds.current = Math.max(0, before - 3);
       const wounded = banc.getState().battle!.combatants.find((c) => c.id === A.id)!.wounds.current;
       applyEffects(banc.getState, banc.setState, [
-        { type: 'castSpell', casterId: W.id, spellId: 'benediction-de-guerison', targetId: A.id, mode: 'forcerLaReussite' },
+        { type: 'castSpell', casterId: W.id, sort: { id: 'benediction-de-guerison' }, targetId: A.id, mode: 'forcerLaReussite' },
       ]);
       expect(banc.getState().pendingCast).toBeNull();
       const after = banc.getState().battle!.combatants.find((c) => c.id === A.id)!;
@@ -80,7 +80,7 @@ describe('Effet castSpell (#98)', () => {
     it('un héros du groupe route par `incanterLeSort` (jet réel, `pendingCast` ouvert)', () => {
       const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       banc.setState({ party: [wiz], battle: null, pendingCast: null });
-      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, spellId: 'chute' }]);
+      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, sort: { id: 'chute' } }]);
       const pc = banc.getState().pendingCast;
       expect(pc).not.toBeNull();
       expect(pc!.casterId).toBe(wiz.id);
@@ -90,7 +90,7 @@ describe('Effet castSpell (#98)', () => {
     it('un PNJ (pas un héros du groupe, pas en combat) est refusé — pas de pseudo-combat inventé', () => {
       const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       banc.setState({ party: [wiz], battle: null, pendingCast: null, journal: [] });
-      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: 'pnj-rituel', spellId: 'chute' }]);
+      applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: 'pnj-rituel', sort: { id: 'chute' } }]);
       expect(banc.getState().pendingCast).toBeNull();
       expect(banc.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);
     });
@@ -102,7 +102,7 @@ describe('Effet castSpell (#98)', () => {
       const before = ally.wounds.current;
       banc.setState({ party: [wiz, ally], battle: null, pendingCast: null, journal: [] });
       applyEffects(banc.getState, banc.setState, [
-        { type: 'castSpell', casterId: wiz.id, spellId: 'benediction-de-guerison', targetId: ally.id, mode: 'forcerLaReussite' },
+        { type: 'castSpell', casterId: wiz.id, sort: { id: 'benediction-de-guerison' }, targetId: ally.id, mode: 'forcerLaReussite' },
       ]);
       expect(banc.getState().pendingCast).toBeNull();
       const after = banc.getState().party.find((h) => h.id === ally.id)!;
@@ -113,7 +113,7 @@ describe('Effet castSpell (#98)', () => {
   it('sort introuvable → refus journalisé', () => {
     const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
     banc.setState({ party: [wiz], battle: null, pendingCast: null, journal: [] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, spellId: 'inexistant' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, sort: { id: 'inexistant' } }]);
     expect(banc.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);
   });
 });

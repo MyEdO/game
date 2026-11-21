@@ -8,6 +8,8 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 // Les LECTEURS de l'Atlas, importés pour leur acceptation DÉCLARÉE (`CLASSES`) — la table du
 // contrat plus bas la confronte, ligne à ligne. Aucun de ces modules ne lit le disque à son
@@ -606,7 +608,7 @@ test('acceptation DÉCLARÉE : AUCUN lecteur de `scripts/raw` n’échappe à la
   const ICI = dirname(fileURLToPath(import.meta.url))
   const declares = new Set(ACCEPTATIONS.flatMap((a) => Object.keys(a.declarants)).map((k) => k.split(' ')[0]))
   const exporteurs = listerDossier(ICI)
-    .filter((f) => f.endsWith('.mjs') && !f.endsWith('.test.mjs'))
+    .filter((f) => estModule(f) && !estSuiteVitest(f))
     .filter((f) => /^export const CLASSES\b/m.test(readFileSync(join(ICI, f), 'utf8')))
   assert.deepEqual(exporteurs.filter((f) => !declares.has(f)), [])
 })

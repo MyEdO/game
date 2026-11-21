@@ -10,14 +10,15 @@
  * aucun manifeste d'iconographie n'existe, et la charte de dessin est DÉJÀ écrite en tête de
  * `src/data/icons/defs/action.ts` : elle se cite depuis là, elle ne se recopie pas.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-icones.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { ALLOWED_CHARS } from '../guards/lib/emojiAffordance.mjs'
+import { EXTENSIONS_DE_SCRIPT } from '../guards/lib/dialecte.mjs'
 import { RACINES_DES_ZONES } from '../guards/lib/couches.mjs'
 import { REGISTRIES } from './lib/cibles-registres.mjs'
 
@@ -36,7 +37,7 @@ function lire(p) {
 /** L'entrée `ICON_FAMILIES` de `REGISTRIES`, lue par défaut. */
 const ENTREE_ICONES = REGISTRIES.find(r => r.arrayName === 'ICON_FAMILIES')
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire, depuis l'entrée de registre `entree`. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire, depuis l'entrée de registre `entree`. */
 function rendu(entree) {
 
   /** Première capture d'un motif, fail-fast (une constante déplacée casse ici, pas dans le .md). */
@@ -182,19 +183,15 @@ function rendu(entree) {
     }
   }
 
-  capture(NO_EMOJI, /readCorpus\((RACINES_DES_ZONES),/, 'le balayage des racines des zones `RACINES_DES_ZONES`', 'src/no-emoji-affordance.test.ts')
   const RACINE_SCAN = RACINES_DES_ZONES.join('/`, `')
-  /** Les extensions que la garde demande à `readCorpus` (`exts: ['.ts', '.tsx', '.json']`), rendues en
-   *  la forme que le § 7 affiche — un motif de fin de nom, comme la garde le lit. */
-  const EXTENSIONS_SCAN = `/\\.(${capture(
+  /** Les extensions de données déclarées dans le corpus de scripts, pour le motif affiché au § 7. */
+  const extensionsDonnees = capture(
     NO_EMOJI,
-    /exts: \[([^\]]+)\]/,
-    'les extensions de `readCorpus`',
+    /readCorpus\(RACINES_DES_ZONES,\s*\{\s*exts:\s*\[\s*\.\.\.EXTENSIONS_DE_SCRIPT,\s*((?:'\.[a-z]+',?\s*)+)\]/,
+    'la composition des extensions de `readCorpus`',
     'src/no-emoji-affordance.test.ts',
-  )
-    .split(',')
-    .map((e) => e.trim().replace(/^'\.?|'$/g, ''))
-    .join('|')})$/`
+  ).match(/\.[a-z]+/g)
+  const EXTENSIONS_SCAN = `/\\.(${[...EXTENSIONS_DE_SCRIPT, ...extensionsDonnees].map((e) => e.slice(1)).join('|')})$/`
 
   // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -377,4 +374,8 @@ export function rendre(entree = ENTREE_ICONES) {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(ENTREE_ICONES), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu(ENTREE_ICONES)
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

@@ -14,7 +14,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * aurait attrapé le trou de la DÉFENSE avant l'audit. Whitelist FIXE, zéro violation tolérée.
  */
 
-/** Les `.ts(x)` de `src/` (hors tests) rendus par la primitive de marche `readCorpus` : chemin POSIX
+/** Les scripts de `src/` (hors tests) rendus par la primitive de marche `readCorpus` : chemin POSIX
  *  relatif à la racine repo + texte. */
 function offendersFor(symbol: string, allowed: string[]): string[] {
   const out: string[] = [];

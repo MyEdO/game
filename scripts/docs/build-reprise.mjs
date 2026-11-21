@@ -11,13 +11,14 @@
  * « éditorial en donnée » (build-donnees.mjs) — il n'existe aucun manifeste de reprise à froid, et
  * en fabriquer un pour six phrases de motivation créerait une source de vérité de plus.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-reprise.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { PLAFOND_PAQUET_NODE_MS, maxWorkersMono } from '../test/partition.mjs'
 import { ECRIT_LU, lanesDeCi } from '../gates/toutes.mjs'
 import { gatesDeCi } from '../gates/gatesDeCi.mjs'
@@ -41,7 +42,7 @@ function chemin(p) {
   return p
 }
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   // ── Sources FACTUELLES ───────────────────────────────────────────────────────────────────────────
 
@@ -171,7 +172,7 @@ function rendu() {
   const WORKERS = maxWorkersMono(Infinity)
 
   // Comptes d'inventaire du clone.
-  const NB_GUARD_LIBS = listerDossier(chemin('scripts/guards/lib')).filter((f) => f.endsWith('.mjs')).length
+  const NB_GUARD_LIBS = listerDossier(chemin('scripts/guards/lib')).filter(estModule).length
   const NB_HOOKS_SESSION = listerDossier(chemin('scripts/hooks')).filter((f) => f.endsWith('.mjs') && !f.endsWith('.test.mjs')).length
   /** Scripts de `scripts/hooks/` que la surface Claude DÉCLARE. Le dossier en porte davantage : une
    *  lib importée par un hook n'est pas un hook, et un hook propre à Codex n'est déclaré que là-bas
@@ -511,7 +512,7 @@ C'est le signal qu'un geste manuel a dévié de ce que \`npm install\` pose seul
 
 - \`${chemin('Source')}/\` — texte des livres en \`.md\`, **citable** (réfs \`LDB <chap> l.<ligne>\`).
 - \`src/data/\` — données app-owned (${NB_DATA_JSON} fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : ${NB_GUARD_LIBS} modules
+- Les gardes de données : ${NB_GUARD_LIBS} fichiers de script (déclarations de types comprises)
   sous \`scripts/guards/lib/\` (dont \`scripts/guards/lib/commentPoison.mjs\`,
   \`scripts/guards/lib/emojiAffordance.mjs\`, \`scripts/guards/lib/hardcode.mjs\`,
   \`scripts/guards/lib/labelLogic.mjs\`).
@@ -654,4 +655,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

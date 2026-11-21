@@ -121,12 +121,13 @@ export { conversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
 export type { Combatant } from '../engine/types';
-export type { ModLine, RollBreakdown } from '../engine/combat';
+export type { ModLine } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
-export { quiTientLaMain } from './netOwnership';
+export { quiTientLaMain, withActingSeat } from './netOwnership';
 export { fermerLeSiege, siegeDe, siegesDeLaTable, siegesOfferts } from './sieges';
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
+export { GUEST_INTENTS } from './intentionsDeSiege';
 export { DESIGNATIONS, type Designation } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
@@ -149,6 +150,7 @@ export {
   type Regard,
 } from './monde/aretes';
 export { cotesDeMarchesDeLaCouche, cotesDeMarchesDeLaScene, type CoteDeMarches } from './monde/cotesDeMarches';
+export { faitieresDeLaScene, type Faitiere } from './monde/faitieres';
 export type { Scene } from './monde/scene';
 export type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
@@ -306,7 +308,7 @@ export {
   sameSel,
   segmentDeLaSelection,
   selRect,
-  structuresCrenelables,
+  apparencesCrenelables,
   structuresDeLArete,
   type Sel,
   type WallPaint,

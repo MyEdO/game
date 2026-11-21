@@ -220,19 +220,20 @@ export const aUneCleDeSection = (e) => CLE_DE_REF.test(String(e.ref ?? ''))
  * `ref` prend l'occurrence que la section a dans son NOUVEAU fichier. Rend les entrées recalées et
  * celles qu'aucune section ne porte — jamais devinées. `portee` restreint les entrées concernées ;
  * les autres passent inchangées.
- * @returns {{ entrees: object[], recalees: string[], orphelines: string[] }}
+ * @param {readonly import('../guards/lib/stockDeSites.mjs').EntreeEnPlace[]} entrees
+ * @returns {{ entrees: import('../guards/lib/stockDeSites.mjs').EntreeEnPlace[], recalees: string[], orphelines: string[] }}
  */
 export function recalerStock(entrees, racine, carte, { portee = () => true } = {}) {
   const recalees = []
   const orphelines = []
   const out = entrees.map((e) => {
-    const chemin = e.fichier ?? e.file
+    const chemin = e.fichier
     if (typeof chemin !== 'string' || !chemin.startsWith(`${racine}/`) || !portee(e)) return e
     const ancien = chemin.slice(racine.length + 1)
     const m = CLE_DE_REF.exec(String(e.ref ?? ''))
     const cible = m ? carte.get(`${ancien} :: ${m[0]}`) : null
     if (!cible) { orphelines.push(`${chemin} :: ${e.ref}`); return e }
-    const neuf = { ...e, [e.fichier != null ? 'fichier' : 'file']: `${racine}/${cible.fichier}`, ref: String(e.ref).replace(CLE_DE_REF, cible.ref) }
+    const neuf = { ...e, fichier: `${racine}/${cible.fichier}`, ref: String(e.ref).replace(CLE_DE_REF, cible.ref) }
     if (cible.fichier === ancien && neuf.ref === e.ref) return e
     recalees.push(`${ancien} :: ${e.ref}  →  ${cible.fichier} :: ${neuf.ref}`)
     return neuf
@@ -326,11 +327,13 @@ function afficherStocks(stocks) {
 }
 
 /** Les entrées de stock keyées sur une section SCINDÉE par un titre neuf : `chemin :: ref  ← titre`.
- *  Leur texte a pu passer dans la section neuve — jamais deviné. PUR. */
+ *  Leur texte a pu passer dans la section neuve — jamais deviné. PUR.
+ * @param {readonly import('../guards/lib/stockDeSites.mjs').EntreeEnPlace[]} entrees
+ */
 export function entreesScindees(entrees, racine, scindees) {
   const par = new Map(scindees.map((x) => [x.cle, x.par]))
   return entrees.flatMap((e) => {
-    const chemin = e.fichier ?? e.file
+    const chemin = e.fichier
     const m = CLE_DE_REF.exec(String(e.ref ?? ''))
     if (typeof chemin !== 'string' || !chemin.startsWith(`${racine}/`) || !m) return []
     const k = `${chemin.slice(racine.length + 1)} :: ${m[0]}`

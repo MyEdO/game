@@ -22,6 +22,7 @@ import {
   finAvantOperateur,
   pipelinesProfonds,
   pipelinesDeJetons,
+  texteDuSegment,
   sansRedirections,
   affectationsDEnvironnement,
   versCheminNatif,
@@ -244,6 +245,54 @@ test('npm run <x> : la résolution suit le dépôt ANCRÉ, pas celui du hook', (
     assert.deepEqual(segmentsProfonds('npm run ferme'), [['npm', 'run', 'ferme']], 'la portée a fui hors de son appel')
   } finally {
     rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('pipelinesDeJetons déplie les scripts du manifeste de chaque portée, y compris en récursion', (t) => {
+  const base = mkdtempSync(join(tmpdir(), 'manifeste-npm-portee-'))
+  t.after(() => rmSync(base, { recursive: true, force: true }))
+  const sous = join(base, 'sous')
+  mkdirSync(sous)
+  for (const [dir, mot] of [[base, 'racine'], [sous, 'imbrique']]) {
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { verifier: 'npm run interne', interne: `echo ${mot}` } }))
+  }
+
+  const executer = () => pipelinesDeJetons('npm run verifier').flat().map(texteDuSegment)
+  const attendu = (mot) => [`echo ${mot}`, 'npm run interne', 'npm run verifier']
+  assert.deepEqual(executer(), ['npm run verifier'])
+  sousRacineNpm(base, () => {
+    assert.deepEqual(executer(), attendu('racine'))
+    assert.deepEqual(sousRacineNpm(sous, executer), attendu('imbrique'))
+    assert.deepEqual(executer(), attendu('racine'))
+  })
+  assert.deepEqual(executer(), ['npm run verifier'])
+})
+
+test('pipelinesDeJetons mémorise le manifeste absent dès une analyse sans scripts fournis', (t) => {
+  const base = mkdtempSync(join(tmpdir(), 'manifeste-npm-absent-'))
+  t.after(() => rmSync(base, { recursive: true, force: true }))
+  sousRacineNpm(base, () => {
+    pipelinesDeJetons('echo sans-script')
+    writeFileSync(join(base, 'package.json'), JSON.stringify({ scripts: { verifier: 'echo disque' } }))
+    assert.deepEqual(pipelinesDeJetons('npm run verifier').flat().map(texteDuSegment), ['npm run verifier'])
+  })
+})
+
+test('pipelinesDeJetons préserve une table explicite, y compris null, et lit le manifeste pour undefined', (t) => {
+  const base = mkdtempSync(join(tmpdir(), 'manifeste-npm-fourni-'))
+  t.after(() => rmSync(base, { recursive: true, force: true }))
+  for (const [nom, scripts, attendu] of [
+    ['table', { verifier: 'npm run interne', interne: 'echo fourni' }, ['echo fourni', 'npm run interne', 'npm run verifier']],
+    ['null', null, ['npm run verifier']],
+  ]) {
+    const dir = join(base, nom)
+    mkdirSync(dir)
+    sousRacineNpm(dir, () => {
+      const executer = (options) => pipelinesDeJetons('npm run verifier', 0, options).flat().map(texteDuSegment)
+      assert.deepEqual(executer({ scripts }), attendu)
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { verifier: 'echo disque' } }))
+      assert.deepEqual(executer({ scripts: undefined }), ['echo disque', 'npm run verifier'])
+    })
   }
 })
 

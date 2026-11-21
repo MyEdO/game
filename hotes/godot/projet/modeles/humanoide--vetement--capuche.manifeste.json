@@ -9,10 +9,7 @@
     "mode": "squelette"
   },
   "couche": "manteau",
-  "couvre": [
-    "tete",
-    "cou"
-  ],
+  "couvre": [],
   "silhouettes": [
     "feminin",
     "corpulence",
@@ -24,10 +21,15 @@
       "nom": "capuche",
       "palette": "accent",
       "matiere": "prop--laine"
+    },
+    {
+      "nom": "doublure",
+      "palette": "vet2",
+      "matiere": "prop--toile-ecrue"
     }
   ],
   "glb": {
-    "sha256": "29362cf1726c962c3c7c8627b119a946031867952b3a27e71f323e912620e80c",
-    "octets": 638492
+    "sha256": "c930c0abd733f34241f559a4ea8f7c562e3b1c51eb2c6621f765db0aa167dfa5",
+    "octets": 570148
   }
 }

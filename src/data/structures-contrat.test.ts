@@ -53,7 +53,7 @@ import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire
 import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
 import { STRUCTURES_CIBLES } from '../../scripts/guards/lib/structuresStock.mjs';
-import { sujetDuJetSchema } from './schemas/grammaire/mecanique';
+import { conditionSchema, gameOpSchema, sujetDuJetSchema } from './schemas/grammaire/mecanique';
 import { estObjet } from '../lib/objet.mjs';
 
 /**
@@ -1030,19 +1030,19 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
     ).toBe(scan.documents.length);
   });
 
-  it('§5 : les Conditions retirées du compte d’ops sont celles qui PORTAIENT un `op`', () => {
+  it('§5 : chaque objet à `op` est une GameOp, une Condition ou un autre porteur', () => {
     let objetsAOp = 0;
     const marche = (v: unknown): void => {
       if (Array.isArray(v)) { v.forEach(marche); return; }
       if (!v || typeof v !== 'object') return;
-      if (typeof (v as { op?: unknown }).op === 'string') objetsAOp += 1;
+      if (Object.prototype.hasOwnProperty.call(v, 'op')) objetsAOp += 1;
       Object.values(v).forEach(marche);
     };
     for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
     expect(objetsAOp, 'la marche brute ne voit aucun `op` : l’égalité ci-dessous ne mesurerait rien.').toBeGreaterThan(0);
     expect(
-      scan.totalConditionsAvecOp + scan.totalOps,
-      'ops de jeu + Conditions à `op` = objets portant un `op` chaîne (marche brute des documents du scan) : une Condition sans `op` comptée en op, ou un `op` qui échappe aux deux, rompt l’égalité.',
+      scan.totalConditionsAvecOp + scan.totalOps + scan.autresPorteursDOp.reduce((n, o) => n + (o.op === undefined ? 0 : o.occurrences), 0),
+      'La somme des trois catégories doit retrouver la marche brute des objets portant `op`.',
     ).toBe(objetsAOp);
   });
 });
@@ -1134,9 +1134,14 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
       const sonde = document('sonde', 'entite', {
         sondes: z.array(z.strictObject({ skillIdent: z.string(), poids: z.number() })),
-        opsSonde: z.array(z.strictObject({ op: z.literal('sondeJuge'), talentId: z.string(), valeur: z.number() })),
+        opsSonde: z.array(gameOpSchema),
+        copies: z.array(z.strictObject({ op: z.literal('heal'), amount: z.number(), id: z.string().optional() })),
+        conditions: z.array(conditionSchema),
         casses: z.array(z.strictObject({ machinId: z.string() })),
-      }, { sondes: { label: 'Sondes' }, opsSonde: { label: 'Ops' }, casses: { label: 'Casses' } },
+      }, {
+        sondes: { label: 'Sondes' }, opsSonde: { label: 'Ops' }, copies: { label: 'Copies' },
+        conditions: { label: 'Conditions' }, casses: { label: 'Casses' },
+      },
       { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } });
       const defs: SchemaDef[] = [...DEFS, { file: 'sonde.json', root: 'src/data', famille: 'entite', schema: sonde.schema }];
       const chemin = join(copie, 'src/data/sonde.json');
@@ -1154,7 +1159,16 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
 
       const axes: Array<Record<string, unknown>> = [{ id: 'sonde', type: 'sonde', label: 'Sonde', maison: 'sonde' }];
       axes[0].sondes = [{ skillIdent: 'athletisme', poids: 3 }]; // graphie de référence NEUVE
-      axes[0].opsSonde = [{ op: 'sondeJuge', talentId: 'affable', valeur: 1 }]; // op NEUVE à ref à plat
+      axes[0].opsSonde = [
+        { op: 'heal', amount: 1 },
+        { op: 'arrowWard', machinId: 'absent' },
+        { op: 'heal', amount: false, machinId: 'absent' },
+        { op: 'constructor', machinId: 'absent' },
+        { op: 'toString' },
+        { machinId: 'absent' },
+      ];
+      axes[0].copies = [{ op: 'heal', amount: 1 }, { op: 'heal', amount: 1, id: 'absent' }];
+      axes[0].conditions = [{ kind: 'slThreshold', op: '>=', value: 0 }];
       axes[0].casses = [{ machinId: 'ceci-n-existe-pas' }]; // FK morte : clé …Id qui ne résout vers rien
       writeFileSync(chemin, JSON.stringify(axes), 'utf8');
 
@@ -1169,9 +1183,24 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       expect(orphelinesNeuves, 'une FK morte (`machinId`) n’est pas vue : le motif `clé de référence non résolue` serait inatteignable.').toContain(
         'sonde.json | casses | machinId | clé de référence non résolue',
       );
-      expect(opsNeuves, 'une op NEUVE à ref à plat n’est pas vue : le dénominateur de la strate Ops serait aveugle.').toContain(
-        'sondeJuge | op,talentId,valeur | sonde.json',
-      );
+      expect(opsNeuves).toEqual(['arrowWard | machinId,op | sonde.json', 'heal | amount,op | sonde.json']);
+      expect(apres.totalOps).toBe(temoin.totalOps + 2);
+      expect(apres.totalConditionsAvecOp).toBe(temoin.totalConditionsAvecOp + 1);
+      expect(apres.autresPorteursDOp.filter((o) => o.dataset === 'sonde.json').map(({ motif, op, champ }) => [motif, op, champ])).toEqual([
+        ['charge refusée', undefined, 'opsSonde'],
+        ['charge refusée', 'heal', 'opsSonde'],
+        ['hors site GameOp', 'heal', 'copies'],
+        ['hors site GameOp', 'heal', 'copies'],
+        ['op inconnue', 'constructor', 'opsSonde'],
+        ['op inconnue', 'toString', 'opsSonde'],
+      ]);
+      expect(orphelinesNeuves.filter((o) => o.startsWith('sonde.json | opsSonde'))).toEqual([
+        'sonde.json | opsSonde | amount,machinId,op | clé de référence non résolue',
+        'sonde.json | opsSonde | machinId | clé de référence non résolue',
+        'sonde.json | opsSonde | machinId,op | clé de référence non résolue',
+      ]);
+      expect(orphelinesNeuves).toContain('sonde.json | copies | amount,id,op | identité non résolue');
+      expect(apres.objets.invisibles).toBe(temoin.objets.invisibles + 3);
     } finally {
       rmSync(copie, { recursive: true, force: true });
     }

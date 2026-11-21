@@ -74,8 +74,8 @@ describe('coutures du héros en combat (#2312)', () => {
     const id = combat();
     expect(partages(grp(id), cbt(id))).toEqual([]);
     const effets = [
-      { type: 'giveTrapping', trappingId: 'corde', heroId: id },
-      { type: 'learnSpell', spell: 'sommeil', heroId: id },
+      { type: 'giveTrapping', objet: { id: 'corde' }, heroId: id },
+      { type: 'learnSpell', sort: { id: 'sommeil' }, heroId: id },
       { type: 'inflictDisease', disease: 'vers-de-carie', heroId: id },
       { type: 'inflictTrauma', kind: 'fracture', severity: 'mineur', location: 'brasD', heroId: id },
       { type: 'giveSin', amount: 1, heroId: id },
@@ -382,7 +382,7 @@ describe('la composition du groupe ne change pas en combat (#2312)', () => {
 });
 
 describe('markActed relit l’état vivant (ramasserLObjet, #2312)', () => {
-  for (const eff of [{ type: 'giveTrapping', trappingId: 'tromblon' }, { type: 'giveMoney', montant: { gold: 1 } }]) {
+  for (const eff of [{ type: 'giveTrapping', objet: { id: 'tromblon' } }, { type: 'giveMoney', montant: { gold: 1 } }]) {
     it(`${eff.type} : l’approche en attente est scellée sur l’objet vivant`, () => {
       const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
       hero.items = hero.items ?? [];

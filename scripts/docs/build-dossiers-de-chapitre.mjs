@@ -5,10 +5,10 @@
 // (scripts/raw/build-implemente.mjs) : la fiche ne connaît pas le paquet, le paquet la cite.
 // Sortie : docs/dossiers-de-chapitre.md (cible pure, jamais commitée, #2203).
 // Re-run : node scripts/docs/build-dossiers-de-chapitre.mjs (npm run docs:dossiers).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { chargerDossiers } from '../raw/lib/dossiers.mjs'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_LIVRES } from '../guards/lib/projetsLivres.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
@@ -98,7 +98,7 @@ export function rendreEtat(fiches, paquets) {
   return out
 }
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const fiches = chargerDossiers()
   const out = rendreEtat(fiches, lirePaquets())
@@ -118,4 +118,8 @@ export function rendre() {
   return new Map([[cible, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

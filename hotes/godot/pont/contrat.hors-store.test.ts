@@ -12,7 +12,6 @@ import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
 import { CLIC_DU_CHAMP, PREFERENCES, cleDuGeste, plateauDeLaScene, preferenceDef } from '../../../src/noyau/index';
-import { t } from '../../../src/i18n';
 import { SONS_DE_LA_PARTIE } from '../../../src/noyau/effetsDeLAppel';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
@@ -196,11 +195,11 @@ describe('la file de la partie', () => {
     expect(produit(), 'rien ne sort deux fois').toEqual(RIEN);
   });
 
-  it('un geste refusé à un siège sort sa ligne et le son de ses dés à la `Suite` suivante, une fois', () => {
+  it('un geste refusé à un siège sort le son de ses dés à la `Suite` suivante, une fois', () => {
     expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 1 })).categorie).toBe('permission');
     expect(erreurDe(appel('jouer', { type: 'jetLancer', args: ['cascade', 'sorciere'], siege: 1 })).categorie).toBe('permission');
     const p = produit();
-    expect(p.journal.map((l) => ('texte' in l ? l.texte : null)), 'la ligne de chaque refus').toEqual([t('coop.intentRefused'), t('coop.intentRefused')]);
+    expect(p.journal).toEqual([]);
     expect(p.effets.some((e) => e.quoi === 'son' && e.son.id === SONS_DE_LA_PARTIE.des), 'le son des dés du verbe de jet').toBe(true);
     expect(produit(), 'rien ne sort deux fois').toEqual(RIEN);
   });

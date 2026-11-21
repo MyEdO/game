@@ -103,10 +103,11 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(ambigues, 'Couture(s) AMBIGUË(S) (clé portée par plusieurs sites, aucun n’est couture) — distinguer les sites :\n' + ambigues.join('\n')).toEqual([]);
   });
 
-  it('CORPUS unique : tout `src/` en `.ts`/`.tsx`, instruments Vitest exclus, rien hors `src/`', { timeout: 60_000 }, () => {
+  it('CORPUS unique : tous les dialectes de script de `src/`, instruments Vitest exclus', { timeout: 60_000 }, () => {
     expect(estDansLeCorpus('src/scenes/test-scenarios/marche-equipement.ts')).toBe(true);
     expect(estDansLeCorpus('src/i18n/index.ts')).toBe(true);
     expect(estDansLeCorpus('src/ui/App.tsx')).toBe(true);
+    expect(estDansLeCorpus('src/lib/coupeAuMot.mjs')).toBe(true);
     expect(estDansLeCorpus('src/label-logic-guard.test.ts')).toBe(false);
     expect(estDansLeCorpus('scripts/guards/lib/labelLogic.mjs')).toBe(false);
     expect(estDansLeCorpus('src/data/trappings.json')).toBe(false);
@@ -536,6 +537,11 @@ describe('garde-fou « logique par LIBELLÉ hors du champ label » (#142 LOT 7)'
       "const ids = { 'tres-longue': 2, 'considérable': 3 };", // table keyée par ids (minuscules)
     ].join('\n');
     expect(scanLabelLiteralCompare('fixture.tsx', 'const tag = el.tagName;\n' + src)).toEqual([]);
+    const substitutions = [
+      "const ligatures = { œ: 'oe', æ: 'ae' };",
+      "const alphabet = { é: 'e', '𐐀': 'a' };",
+    ].join('\n');
+    expect(scanLabelLiteralCompare('caracteres.mjs', substitutions)).toEqual([]);
   });
 
   it('ANTI-VACANCE : échoue sur la faute de RÉCOLTE reconstituée (regex de libellé sur une valeur dérivée d’un champ)', () => {

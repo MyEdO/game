@@ -1,0 +1,772 @@
+<meta charset="utf-8">
+<title>Kit et dispositions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Table de jugement : un rail d'écrans, une visionneuse sur fond sombre, les décisions à côté de l'image. */
+:root{
+  --fond:#eceef0; --surface:#f8f9fa; --creux:#e1e4e8; --trait:#cfd5db;
+  --texte:#1b2127; --texte-2:#56616c;
+  --accent:#86621a; --accent-fond:#f1e6c8; --sur-accent:#fff;
+  --mat:#131110; --sur-mat:#e9dcc0; --sur-mat-2:#a59a84;
+  --ok:#2c7a4b; --ok-fond:#dcefe2; --revoir:#9a5c06; --revoir-fond:#f6e7c9; --refus:#b0352e; --refus-fond:#f6dedb;
+  --calque:#5fd4ff; --ombre:0 1px 2px rgba(20,25,30,.08);
+  --f-titre:"IM Fell English SC","Iowan Old Style",Georgia,serif;
+  --f-texte:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-chiffres:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --haut-barre:92px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --fond:#131619; --surface:#1b1f23; --creux:#24292e; --trait:#313840;
+  --texte:#e5e8ea; --texte-2:#98a3ad;
+  --accent:#d8b45c; --accent-fond:#3a301a; --sur-accent:#1b1509;
+  --mat:#0a0908; --sur-mat:#e9dcc0; --sur-mat-2:#a59a84;
+  --ok:#6dc38d; --ok-fond:#1d3527; --revoir:#e2ab4f; --revoir-fond:#3b2d12; --refus:#ec7c73; --refus-fond:#42201d;
+  --calque:#5fd4ff; --ombre:none; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --fond:#131619; --surface:#1b1f23; --creux:#24292e; --trait:#313840;
+  --texte:#e5e8ea; --texte-2:#98a3ad;
+  --accent:#d8b45c; --accent-fond:#3a301a; --sur-accent:#1b1509;
+  --mat:#0a0908; --sur-mat:#e9dcc0; --sur-mat-2:#a59a84;
+  --ok:#6dc38d; --ok-fond:#1d3527; --revoir:#e2ab4f; --revoir-fond:#3b2d12; --refus:#ec7c73; --refus-fond:#42201d;
+  --calque:#5fd4ff; --ombre:none; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--fond);color:var(--texte);font:15px/1.45 var(--f-texte);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+a{color:inherit}
+button,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,p,ul,figure{margin:0}
+ul{padding:0;list-style:none}
+code{font:12.5px var(--f-chiffres);background:var(--creux);padding:0 4px;border-radius:3px;overflow-wrap:anywhere}
+.gouttiere{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Barre */
+.barre{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--trait)}
+.barre-haut{display:flex;align-items:baseline;gap:8px 16px;flex-wrap:wrap;padding-block:10px 4px}
+.barre h1{font:400 21px/1.1 var(--f-titre);letter-spacing:.02em}
+.etat-verdicts{font-size:13px;color:var(--texte-2);margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0}
+.pouls{width:8px;height:8px;border-radius:50%;background:var(--texte-2);flex:none}
+.pouls[data-e="direct"]{background:var(--ok)}
+.pouls[data-e="lecture"]{background:var(--revoir)}
+.onglets{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-inline:-6px}
+.onglets a{flex:none;padding:8px 10px 9px;text-decoration:none;color:var(--texte-2);border-bottom:2px solid transparent;font-weight:600;white-space:nowrap}
+.onglets a:hover{color:var(--texte)}
+.onglets a[aria-current="page"]{color:var(--texte);border-color:var(--accent)}
+.compte{font:600 11.5px var(--f-chiffres);background:var(--accent-fond);color:var(--accent);border-radius:9px;padding:1px 6px;margin-left:4px}
+.compte:empty{display:none}
+
+main{padding-block:18px 48px}
+.vue[hidden]{display:none}
+.titre-vue{font:400 26px/1.15 var(--f-titre);letter-spacing:.02em;text-wrap:balance}
+.chapo{color:var(--texte-2);max-width:68ch;margin-top:6px}
+.sur-titre{font:600 11.5px var(--f-texte);letter-spacing:.09em;text-transform:uppercase;color:var(--texte-2)}
+
+/* Écrans : rail | visionneuse | décisions */
+.atelier{display:grid;grid-template-columns:224px minmax(0,1fr) 330px;gap:20px;align-items:start}
+.rail,.decisions{position:sticky;top:calc(var(--haut-barre) + env(safe-area-inset-top,0px) + 18px);max-height:calc(100vh - var(--haut-barre) - 36px);overflow-y:auto;scrollbar-width:thin}
+.rail h2{font:600 11.5px var(--f-texte);letter-spacing:.09em;text-transform:uppercase;color:var(--texte-2);padding:12px 8px 4px;display:flex;justify-content:space-between;gap:8px}
+.rail h2:first-child{padding-top:0}
+.rail a{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;text-decoration:none;line-height:1.25}
+.rail a:hover{background:var(--creux)}
+.rail a[aria-current="true"]{background:var(--accent-fond);color:var(--texte);font-weight:600}
+.rail .nb{margin-left:auto;font:11.5px var(--f-chiffres);color:var(--texte-2);flex:none}
+.pastille{font:600 11px var(--f-chiffres);min-width:18px;text-align:center;padding:1px 5px;border-radius:9px;background:var(--accent);color:var(--sur-accent);flex:none}
+.pastille[data-fini]{background:var(--ok-fond);color:var(--ok)}
+.choisir{display:none;width:100%;padding:9px 10px;border:1px solid var(--trait);border-radius:6px;background:var(--surface)}
+
+.fil{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:8px}
+.fil h2{font:400 22px/1.15 var(--f-titre);letter-spacing:.02em}
+.fil .ou{color:var(--texte-2)}
+.fil .rang{margin-left:auto;font:12.5px var(--f-chiffres);color:var(--texte-2)}
+.scene{position:relative;background:var(--mat);aspect-ratio:16/9;width:100%;max-width:100%;border-radius:4px;overflow:hidden;margin-inline:auto}
+.scene img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.scene .ref{opacity:0;pointer-events:none}
+.scene[data-cmp="bascule"] .ref{opacity:1}
+.scene[data-cmp="diff"] .ref{opacity:1;mix-blend-mode:difference}
+.scene svg{position:absolute;inset:0;width:100%;height:100%}
+.cadre{fill:transparent;stroke:var(--calque);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:crosshair}
+.cadre:hover,.cadre[data-vif]{fill:color-mix(in srgb,var(--calque) 22%,transparent);stroke-width:2.5}
+.point{stroke:var(--calque);stroke-width:2;vector-effect:non-scaling-stroke}
+.etiquette{position:absolute;z-index:2;transform:translateY(-100%);background:var(--calque);color:#06222e;font:600 12px var(--f-chiffres);padding:2px 6px;border-radius:3px 3px 3px 0;white-space:nowrap;pointer-events:none}
+.etiquette.dessous{transform:none;border-radius:0 3px 3px 3px}
+.temoin{position:absolute;left:8px;bottom:8px;z-index:2;background:rgba(10,9,8,.82);color:var(--sur-mat);font-size:12.5px;padding:3px 8px;border-radius:3px;pointer-events:none}
+.outils{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.outil{border:1px solid var(--trait);background:var(--surface);border-radius:6px;padding:5px 10px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;user-select:none;touch-action:manipulation}
+.outil:hover{border-color:var(--texte-2)}
+.outil[aria-pressed="true"]{background:var(--accent-fond);border-color:var(--accent)}
+.outil:disabled{opacity:.5;cursor:default}
+kbd{font:11px var(--f-chiffres);border:1px solid var(--trait);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--texte-2);background:var(--fond)}
+.pousse{margin-left:auto}
+.reference{font-size:13px;color:var(--texte-2);margin-top:6px;min-height:1.45em}
+.reference b{color:var(--texte);font-weight:600}
+.roles{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+#calque[hidden],.roles[hidden],.note[hidden]{display:none}
+.role{font:12px var(--f-chiffres);border:1px solid var(--trait);border-radius:4px;padding:1px 6px;background:var(--surface);cursor:default}
+.role:hover,.role[data-vif]{border-color:var(--accent);background:var(--accent-fond)}
+.bande{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 6px;scrollbar-width:thin}
+.bande a{flex:none;width:132px;text-decoration:none;font-size:12.5px;line-height:1.25;color:var(--texte-2);position:relative}
+.bande img{display:block;width:132px;height:74px;object-fit:cover;background:var(--mat);border-radius:3px;outline:2px solid transparent;outline-offset:1px;margin-bottom:4px}
+.bande a[aria-current="true"]{color:var(--texte);font-weight:600}
+.bande a[aria-current="true"] img{outline-color:var(--accent)}
+.bande .pastille{position:absolute;top:4px;right:4px}
+.pas{display:flex;justify-content:space-between;gap:12px;margin-top:6px}
+.pas a{text-decoration:none;color:var(--texte-2);padding:6px 0;max-width:48%;min-width:0;overflow-wrap:anywhere}
+.pas a:hover{color:var(--texte)}
+.pas a:last-child{text-align:right;margin-left:auto}
+.atelier[data-grand] {grid-template-columns:minmax(0,1fr)}
+.atelier[data-grand] .rail,.atelier[data-grand] .decisions{display:none}
+.atelier[data-grand] .scene{width:min(100%,calc((100vh - var(--haut-barre) - 150px) * 16 / 9))}
+
+.lieu{margin-top:14px;padding-top:12px;border-top:1px solid var(--trait)}
+.lieu h3{font:400 18px/1.2 var(--f-titre);letter-spacing:.02em;margin-top:6px}
+.lieu-aide{font-size:13px;color:var(--texte-2);margin-top:2px;max-width:70ch}
+.lieu-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px;margin:8px 0 14px}
+.variante{text-decoration:none;font-size:13.5px;line-height:1.3;min-width:0;display:block}
+.variante>img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--mat);border-radius:3px;outline:2px solid transparent;outline-offset:1px;margin-bottom:5px}
+.variante[aria-current="true"]>img{outline-color:var(--accent)}
+.variante[aria-current="true"]>span{font-weight:600}
+.variante>span{display:block;margin-top:5px}
+.variante b{font-weight:600}
+.variante small{display:block;color:var(--texte-2);font-size:13px}
+/* Décisions */
+.decisions h2{font:400 19px/1.2 var(--f-titre);letter-spacing:.02em}
+.groupe{margin-top:14px}
+.groupe>h3{font:600 11.5px var(--f-texte);letter-spacing:.09em;text-transform:uppercase;color:var(--texte-2);margin-bottom:6px}
+.vide{color:var(--texte-2);font-size:14px;padding:10px 0}
+.choix{background:var(--surface);border:1px solid var(--trait);border-left:3px solid var(--trait);border-radius:4px;padding:10px 12px;margin-bottom:8px;box-shadow:var(--ombre);min-width:0}
+.choix[data-etat="valide"]{border-left-color:var(--ok)}
+.choix[data-etat="a-revoir"]{border-left-color:var(--revoir)}
+.choix[data-etat="refuse"]{border-left-color:var(--refus)}
+.choix-ou{font-size:12.5px;color:var(--texte-2);margin-bottom:4px;display:flex;flex-wrap:wrap;gap:2px 10px}
+.choix-ou a{text-underline-offset:2px}
+.choix-texte{overflow-wrap:anywhere}
+.verdict{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:9px}
+.verdict button{border:1px solid var(--trait);background:transparent;border-radius:14px;padding:3px 11px;cursor:pointer;font-size:13.5px;touch-action:manipulation}
+.verdict button:hover:not(:disabled){border-color:var(--texte-2)}
+.verdict button:disabled{cursor:default;opacity:.55}
+.verdict button[aria-pressed="true"]{font-weight:600;opacity:1}
+.verdict button[data-v="valide"][aria-pressed="true"]{background:var(--ok-fond);border-color:var(--ok);color:var(--ok)}
+.verdict button[data-v="a-revoir"][aria-pressed="true"]{background:var(--revoir-fond);border-color:var(--revoir);color:var(--revoir)}
+.verdict button[data-v="refuse"][aria-pressed="true"]{background:var(--refus-fond);border-color:var(--refus);color:var(--refus)}
+.qui{font-size:12.5px;color:var(--texte-2)}
+.note{display:block;width:100%;margin-top:8px;border:1px solid var(--trait);border-radius:4px;background:var(--fond);padding:6px 8px;resize:vertical;min-height:2.6em}
+.note[readonly]{border-style:dashed;resize:none}
+body[data-verdicts="sans"] .verdict,body[data-verdicts="sans"] .note{display:none}
+
+/* À décider */
+.avancee{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
+.jauge{flex:1 1 220px;height:8px;border-radius:4px;background:var(--creux);overflow:hidden;display:flex;max-width:520px}
+.jauge i{display:block;height:100%}
+.jauge .j-ok{background:var(--ok)}.jauge .j-rv{background:var(--revoir)}.jauge .j-rf{background:var(--refus)}
+.filtres{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.filtre{border:1px solid var(--trait);background:var(--surface);border-radius:14px;padding:3px 11px;cursor:pointer;font-size:13.5px}
+.filtre[aria-pressed="true"]{background:var(--accent-fond);border-color:var(--accent);font-weight:600}
+.filtre .nbf{font:11.5px var(--f-chiffres);color:var(--texte-2);margin-left:4px}
+.liste h2{font:400 21px/1.2 var(--f-titre);margin:26px 0 10px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.liste h2 small{font:13px var(--f-texte);color:var(--texte-2)}
+.ligne{display:grid;grid-template-columns:148px minmax(0,1fr);gap:12px;align-items:start;max-width:920px}
+.ligne>a img,.ligne .trans{display:block;width:148px;height:83px;border-radius:3px;background:var(--mat);object-fit:cover}
+.ligne .trans{display:grid;place-items:center;text-align:center;background:var(--creux);color:var(--texte-2);font-size:12.5px;padding:6px}
+
+/* Gabarits */
+.gabarit{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:16px 24px;padding-block:24px;border-top:1px solid var(--trait);margin-top:24px;align-items:start;scroll-margin-top:calc(var(--haut-barre) + 12px)}
+.gabarit h2{font:400 22px/1.2 var(--f-titre)}
+.gabarit p{max-width:64ch;margin-top:6px}
+.schema{background:var(--mat);border-radius:4px;aspect-ratio:16/9;position:relative;overflow:hidden;max-width:100%}
+.schema svg{position:absolute;inset:0;width:100%;height:100%}
+.schema .cadre{stroke:var(--sur-mat-2);fill:rgba(233,220,192,.05)}
+.schema .cadre:hover,.schema .cadre[data-vif]{stroke:var(--calque);fill:rgba(95,212,255,.2)}
+.schema text{fill:var(--sur-mat-2);font:22px var(--f-chiffres);pointer-events:none}
+.schema .point{stroke:var(--sur-mat-2)}
+.vignettes{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-top:12px}
+.vignettes a{text-decoration:none;font-size:12.5px;line-height:1.25;color:var(--texte-2);min-width:0;overflow-wrap:anywhere}
+.vignettes a:hover{color:var(--texte)}
+.vignettes img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--mat);border-radius:3px;margin-bottom:4px}
+.regles{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px 28px;margin-top:14px}
+.regles h3{font:600 15px var(--f-texte);margin-bottom:4px}
+.regles p,.regles li{color:var(--texte-2);font-size:14px}
+.regles li{padding-left:12px;text-indent:-12px;margin-top:3px}
+.regles li::before{content:"– "}
+.citation{border-left:3px solid var(--accent);padding:4px 0 4px 14px;margin-top:14px;max-width:60ch;font-style:italic;font-size:16px}
+.citation cite{display:block;font-style:normal;font-size:13px;color:var(--texte-2);margin-top:2px}
+
+/* Kit et cibles */
+.planche{margin-top:28px;max-width:1180px}
+.planche h2,.famille-cibles h2{font:400 22px/1.2 var(--f-titre)}
+.planche p{color:var(--texte-2);max-width:72ch;margin:2px 0 10px}
+.image{display:block;padding:0;border:0;background:var(--mat);border-radius:4px;overflow:hidden;cursor:zoom-in;width:100%}
+.image img{display:block;width:100%;height:auto}
+.mesures{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 24px;margin-top:16px;max-width:1180px}
+.mesures dt{font-weight:600}
+.mesures dd{margin:0;color:var(--texte-2);font-size:14px}
+.famille-cibles{margin-top:30px}
+.famille-cibles>p{color:var(--texte-2);margin-top:2px}
+.cibles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;margin-top:12px}
+.cible h3{font:600 15px var(--f-texte);margin:8px 0 2px}
+.cible p{font-size:14px;color:var(--texte-2)}
+.cible .a-noter{margin-top:4px;color:var(--texte)}
+.cible .a-noter b{font-weight:600;color:var(--revoir)}
+
+/* Loupe */
+.loupe{position:fixed;inset:0;z-index:40;background:rgba(8,7,6,.94);display:grid;grid-template-rows:auto minmax(0,1fr) auto;color:var(--sur-mat);padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.loupe[hidden]{display:none}
+.loupe-haut{display:flex;gap:8px;align-items:center;padding-bottom:8px}
+.loupe-haut span{margin-right:auto;font:400 18px var(--f-titre)}
+.loupe button{background:transparent;border:1px solid var(--sur-mat-2);color:var(--sur-mat);border-radius:6px;padding:5px 11px;cursor:pointer}
+.loupe img{width:100%;height:100%;object-fit:contain;min-height:0}
+.loupe p{font-size:14px;color:var(--sur-mat-2);padding-top:8px;max-width:90ch;margin-inline:auto;text-align:center}
+.annonce{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;background:var(--texte);color:var(--fond);padding:8px 14px;border-radius:6px;font-size:14px;max-width:calc(100% - 32px)}
+
+@media (max-width:1180px){
+  .atelier{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .choisir{display:block;margin-bottom:12px}
+  .decisions{position:static;max-height:none;overflow:visible}
+  .gabarit{grid-template-columns:minmax(0,1fr)}
+  kbd{display:none}
+}
+@media (max-width:560px){
+  :root{--haut-barre:84px}
+  .barre h1{font-size:18px}
+  .etat-verdicts{flex-basis:100%;margin-left:0}
+  .titre-vue{font-size:22px}
+  .fil h2{font-size:19px}
+  .ligne{grid-template-columns:minmax(0,1fr)}
+  .ligne>a img,.ligne .trans{width:132px;height:74px}
+  .bande a,.bande img{width:108px}.bande img{height:61px}
+  .outil{padding:5px 8px;font-size:14px}
+}
+@media (prefers-reduced-motion:no-preference){.scene .ref{transition:opacity .06s}}
+</style>
+
+<header class="barre">
+  <div class="gouttiere">
+    <div class="barre-haut">
+      <h1>Kit et dispositions</h1>
+      <div class="etat-verdicts"><i class="pouls" id="pouls"></i><span id="etat-verdicts">Verdicts : connexion…</span></div>
+    </div>
+    <nav class="onglets" aria-label="Vues">
+      <a href="#ecrans" data-onglet="ecrans">Écrans</a>
+      <a href="#a-decider" data-onglet="a-decider">À décider<span class="compte" id="compte-reste"></span></a>
+      <a href="#gabarits" data-onglet="gabarits">Gabarits</a>
+      <a href="#kit" data-onglet="kit">Kit</a>
+    </nav>
+  </div>
+</header>
+
+<main class="gouttiere">
+  <section class="vue" id="vue-ecrans">
+    <select class="choisir" id="choisir" aria-label="Choisir un écran"></select>
+    <div class="atelier" id="atelier">
+      <nav class="rail" id="rail" aria-label="Écrans par famille"></nav>
+      <div class="visionneuse">
+        <div class="fil"><h2 id="nom-ecran"></h2><span class="ou" id="nom-etat"></span><span class="rang" id="rang"></span></div>
+        <div class="scene" id="scene">
+          <img id="image" alt="">
+          <img id="image-ref" class="ref" alt="">
+          <svg id="calque" viewBox="0 0 1280 720" preserveAspectRatio="none" hidden></svg>
+          <div class="etiquette" id="etiquette" hidden></div>
+          <div class="temoin" id="temoin" hidden></div>
+        </div>
+        <div class="outils">
+          <button class="outil" id="o-cadres" aria-pressed="false" title="Dessiner les cadres fixes sur l'image"><span id="o-cadres-nom">Cadres</span> <kbd>C</kbd></button>
+          <button class="outil" id="o-epingle" aria-pressed="false" title="Garder cet état comme référence de comparaison">Épingler <kbd>P</kbd></button>
+          <button class="outil" id="o-bascule" title="Maintenir pour voir la référence à la place de l'image">Voir la référence <kbd>Espace</kbd></button>
+          <button class="outil" id="o-diff" aria-pressed="false" title="Ce qui a bougé s'allume, ce qui est identique reste noir">Différence <kbd>D</kbd></button>
+          <button class="outil pousse" id="o-grand" aria-pressed="false">Agrandir <kbd>F</kbd></button>
+        </div>
+        <p class="reference" id="reference"></p>
+        <div class="roles" id="roles" hidden></div>
+        <div class="bande" id="bande"></div>
+        <section class="lieu" id="lieu" hidden></section>
+        <div class="pas"><a id="pas-avant" href="#"></a><a id="pas-apres" href="#"></a></div>
+      </div>
+      <aside class="decisions" id="decisions" aria-label="À valider"></aside>
+    </div>
+  </section>
+
+  <section class="vue" id="vue-a-decider" hidden>
+    <h2 class="titre-vue">À décider</h2>
+    <p class="chapo" id="chapo-decider">Chaque choix de design relevé sur les maquettes attend un verdict. L'image mène à l'état concerné.</p>
+    <div class="avancee" id="avancee"></div>
+    <div class="filtres" id="filtres-statut" role="group" aria-label="Filtrer par verdict"></div>
+    <div class="filtres" id="filtres-famille" role="group" aria-label="Filtrer par famille"></div>
+    <div class="liste" id="liste"></div>
+  </section>
+
+  <section class="vue" id="vue-gabarits" hidden>
+    <h2 class="titre-vue">Gabarits de page</h2>
+    <p class="chapo">Chaque boîte récurrente a un rôle, et ce rôle a un seul rectangle sur la vue de 1280 × 720, le même dans tous les états et sur tous les écrans. Le contenu s'adapte au cadre, jamais l'inverse. Les schémas sont tracés à partir de la table des cadres ; survolez une boîte pour lire sa cote.</p>
+    <blockquote class="citation">« Rien de pire que des boites qui bougent d un écran à l autre, ce n est pas acceptable »<cite>Clément, 19 novembre 2026</cite></blockquote>
+    <div id="liste-gabarits"></div>
+    <div class="gabarit" style="display:block">
+      <h2>Règles communes à tous les écrans</h2>
+      <div class="regles">
+        <div><h3>Quand le contenu dépasse</h3><ul>
+          <li>Rien ne se tronque : une colonne, une page ou une liste trop longue défile dans son cadre, sans barre, avec un fondu qui annonce la suite.</li>
+          <li>L'action principale se voit toujours sans défiler.</li>
+          <li>La prose d'un document se lit par pages entières, « Page 1 sur N ».</li>
+          <li>Trois cartes de choix côte à côte au plus ; au-delà, la liste se pagine par trois.</li>
+          <li>En combat, l'aperçu d'une cible ou la fiche d'un combattant prend la place du journal, qui revient ensuite.</li></ul></div>
+        <div><h3>Ce qui a le droit de bouger</h3><ul>
+          <li>Seul ce qui suit ce qu'il désigne : aperçu au survol, bulle de refus, marques et pastilles de la scène, liste déroulée, fiche d'un combattant.</li>
+          <li>Tout le reste a sa ligne dans la table des cadres.</li>
+          <li>L'aperçu au survol a une seule largeur, 300 px, à côté de l'élément, sa pointe vers lui.</li></ul></div>
+        <div><h3>Bulle de refus</h3><ul>
+          <li>La raison d'un refus se lit au survol de l'élément fermé.</li>
+          <li>La bulle reste dans son cadre et ne couvre aucun texte : au-dessus, puis de côté, sinon dessous.</li>
+          <li>Faute de place, la raison remplace la ligne secondaire de l'élément.</li></ul></div>
+        <div><h3>Places qui ne changent jamais</h3><ul>
+          <li>La croix en haut à droite ; en combat elle passe sous le système.</li>
+          <li>Le retour en bas à gauche, et rien d'autre dans ce coin.</li>
+          <li>Journal et système en bas à droite hors combat ; en combat le système monte, le bas-droit est la fin du tour.</li>
+          <li>L'action qui fait avancer est la première de sa rangée, ce qui annule vient en dernier.</li>
+          <li>Jusqu'à six sections : onglets en haut du panneau ; au-delà, signets au bord droit.</li></ul></div>
+        <div><h3>Écran plus large ou plus étroit</h3><ul>
+          <li>Aucune pièce ne grandit : seul le décor prend la place gagnée.</li>
+          <li>Quand la largeur manque, une colonne de trop devient un onglet de sa voisine, puis le détail se pose par-dessus.</li>
+          <li>Une pièce du kit ne rétrécit jamais et rien ne défile de côté.</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="vue" id="vue-kit" hidden>
+    <h2 class="titre-vue">Le kit</h2>
+    <p class="chapo">Les pièces visuelles dont toutes les maquettes sont faites, sur cinq planches. Une pièce garde sa taille et ses teintes partout ; cliquez une planche pour la voir en grand.</p>
+    <dl class="mesures">
+      <div><dt>Plaque</dt><dd>Trois hauteurs : petite 28, moyenne 40, appel 52. États : repos, survol, armée, fermée.</dd></div>
+      <div><dt>Carte de choix</dt><dd>92 de haut, de 200 à 262 de large : la seule pièce qui s'étire.</dd></div>
+      <div><dt>Bouton rond</dt><dd>Cinq tailles : 20, 34, 44, 52 et 92. La croix fait 44, le retour et les coins 52.</dd></div>
+      <div><dt>Aperçu au survol</dt><dd>Une seule largeur, 300.</dd></div>
+    </dl>
+    <div id="planches"></div>
+  </section>
+
+</main>
+
+<div class="loupe" id="loupe" hidden role="dialog" aria-modal="true" aria-label="Image en grand">
+  <div class="loupe-haut"><span id="loupe-titre"></span><button id="loupe-avant" aria-label="Image précédente">←</button><button id="loupe-apres" aria-label="Image suivante">→</button><button id="loupe-fermer">Fermer</button></div>
+  <img id="loupe-image" alt="">
+  <p id="loupe-legende"></p>
+</div>
+<div class="annonce" id="annonce" role="status" hidden></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const ech = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const prose = s => ech(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+const memo = { lire(k) { try { return localStorage.getItem(k); } catch { return null; } }, ecrire(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+const ACCENTS = { activites: 'activités', aneantissement: 'anéantissement', arrivee: 'arrivée', bete: 'bête', bordee: 'bordée', caracteristiques: 'caractéristiques', carriere: 'carrière', competence: 'compétence', competences: 'compétences', creation: 'création', creneaux: 'créneaux', debut: 'début', declaration: 'déclaration', defaite: 'défaite', defense: 'défense', depart: 'départ', depense: 'dépense', desengagement: 'désengagement', designation: 'désignation', detail: 'détail', determination: 'détermination', echec: 'échec', echoppe: 'échoppe', editeur: 'éditeur', engage: 'engagé', entree: 'entrée', entrees: 'entrées', etapes: 'étapes', etat: 'état', evenement: 'événement', experience: 'expérience', fenetre: 'fenêtre', heros: 'héros', hotes: 'hôtes', identite: 'identité', medecin: 'médecin', montee: 'montée', negoce: 'négoce', peril: 'péril', piece: 'pièce', premiere: 'première', preparation: 'préparation', presentation: 'présentation', pretires: 'prétirés', prothese: 'prothèse', qualites: 'qualités', rattrapes: 'rattrapés', reassigner: 'réassigner', recit: 'récit', relache: 'relâche', resilience: 'résilience', resistance: 'résistance', scene: 'scène', seance: 'séance', siege: 'siège', survole: 'survolé', survolee: 'survolée', pietre: 'piètre', tombe: 'tombé', systeme: 'système', tablee: 'tablée', vehicule: 'véhicule', visee: 'visée', bogenhafen: 'Bögenhafen', altstadt: 'Altstadt', steinbruck: 'Steinbrück' };
+function nom(id) {
+  let m = id.split('-').map((w, i, t) => (w === 'a' ? 'à' : w === 'de' && t[i - 1] === 'le' && (i === t.length - 1 || t[i + 1] === 'armes' || t[i + 1] === 'empoigner' || t[i + 1] === 'harpon') ? 'dé' : ACCENTS[w] || w));
+  let s = m.join(' ').replace(/\b([dl]) (?=[aeiouyhéèêâî])/gi, "$1'");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const GABARITS = [
+  { id: 'ouverture', titre: "Écran d'ouverture", texte: "Accueil, menu de la partie, ouverture et fin de chapitre. Un grand titre, la colonne des entrées avec la principale en tête, le groupe au socle. À l'accueil les outils, « Options » au bout ; aux chapitres « Continuer » au-dessus de « Plus tard ».", roles: ['titre-libre', 'entrees', 'outils', 'seance-du-chapitre', 'socle', 'action-de-coin', 'coins'] },
+  { id: 'gestion', titre: 'Écran de gestion', texte: "Options, sauvegardes, nouvelle partie, fin de séance, compendium, salon en ligne, carnet. Le titre en cartouche et la croix, ni retour ni pastille du système. Le panneau de commande à gauche, le registre et ses signets dont les lignes défilent ; l'action principale au pied de ce qu'elle concerne.", roles: ['cartouche', 'fermer', 'colonne-gestion', 'registre', 'signets', 'affaire', 'emplacements', 'avis', 'feuillets-de-seance', 'groupe-de-seance', 'campagnes', 'tablee', 'volet-droit', 'action-de-coin'] },
+  { id: 'fiche', titre: 'Fiche', texte: "Fiche du héros, progression, création, dossiers. L'identité à gauche, le profil en bande, puis la silhouette et les sections, ou les deux panneaux de la progression. La création a sa frise d'étapes, le choix, le détail et le héros qui se dessine. Deux colonnes au plus par section : une troisième devient un onglet.", roles: ['identite', 'profil', 'figure', 'sections', 'progression-gauche', 'progression-droite', 'etapes', 'choix', 'detail', 'heros-neuf', 'socle', 'fermer', 'coins'] },
+  { id: 'lieu-et-voyage', titre: 'Lieu et voyage', texte: "Le titre du lieu, le récit et ce que le lieu propose à gauche ; le panneau d'activité au coin haut-droit, son action au pied ; le groupe au socle ; le retour dès qu'on peut partir sans rien résoudre ; le journal à droite. Panneau d'activité et journal ne se montrent pas ensemble. C'est le décor qui paie la place.", roles: ['cartouche', 'recit', 'colonne-gauche', 'note', 'hotes', 'hotes-en-deux', 'page', 'colonne-droite', 'vignette', 'colonne-droite-basse', 'carte-du-monde', 'carte-de-la-ville', 'ouvrir-1', 'ouvrir-2', 'journal', 'regard', 'gestes-du-groupe', 'frise', 'socle', 'retour', 'coins', 'action-de-coin'] },
+  { id: 'combat', titre: 'Combat', texte: "La borne du round, l'ordre d'initiative avec l'actif en bas, le système en haut à droite, le journal posé sur le champ sans fond plein, la barre de l'actif au socle (valeurs à gauche, portrait au centre, actions à droite), la fin du tour en bas à droite.", roles: ['round', 'ordre', 'systeme', 'journal', 'journal-entier', 'socle', 'fin-du-tour'] },
+  { id: 'fenetre-du-bas', titre: 'Fenêtre du bas', texte: "Jets et choix. Une seule hauteur, à la place du socle : même gauche, même largeur, même bas. Le héros concerné toujours à gauche, l'adversaire ou l'interlocuteur à droite en miroir ; la rangée d'actions centrée au pied, la principale en premier.", roles: ['fenetre', 'socle'] },
+  { id: 'recit', titre: 'Récit, document et issue', texte: "Un carton au-dessus du socle qui reste, son action centrée au pied, la prose d'un document paginée. Pour la fin d'un combat, une bannière d'issue et une action unique, sans socle.", roles: ['carton', 'issue', 'socle'] },
+  { id: 'edition', titre: "Outil d'édition", texte: "La barre d'outils en haut, « Tester la scène » en dernier contre la croix ; les volets en une colonne à onglets, le plan et son pied, l'inspecteur à droite.", roles: ['barre-d-outils', 'volets', 'plan', 'pied', 'inspecteur'] },
+  { id: 'consultation', titre: 'Consultation', texte: "Le Compendium, un plein écran à part, trois cadres fixes d'un état à l'autre : la barre (titre, retour et suivant, la recherche, le fil, la bascule « Atelier », la croix seule de l'écran), la liste qui défile et la fiche, objet de l'écran. L'Index se pose par-dessus la liste et la fiche.", roles: ['barre-du-compendium', 'liste-du-compendium', 'fiche-du-compendium', 'index-du-compendium'] },
+];
+const PLANCHES = {
+  'planche-annonces': ['Annonces', "Cartouche de titre, bannière d'issue et son action, aperçu au survol, signets du registre, pile d'action de coin."],
+  'planche-boutons': ['Boutons', 'Boutons ronds dans leurs cinq tailles et leurs états (survol, armé, fermé), compteurs, outils à libellé, médaillons, croix, retour, écran à ouvrir et coins.'],
+  'planche-marques': ['Marques', 'Disques et compteurs, sceaux de dé et leurs issues, segments, réglettes, jauges et filets sur bois et sur parchemin, rubans et rubriques.'],
+  'planche-plaques': ['Plaques', 'Plaques au repos, survolées, armées, fermées, avec prix ou numéro ; les trois hauteurs ; onglets, cartes de choix, bourses et champs sur parchemin et sur bois.'],
+  'planche-portraits': ['Portraits', "Portraits de la plus petite taille à l'affiche, camps (héros, hôte, ennemi), portrait choisi, esquisse, place libre ; pictogrammes ; rangs et cartouches de personnage."],
+};
+const FAMILLES_CIBLES = [
+  ['Accueil', '', ['accueil']],
+  ['Options', 'Un écran et deux de ses états.', ['options', 'options-chance', 'options-verrou']],
+  ['Combat', 'Le tour du héros, deux variantes pour lancer un sort, et le jet tombé.', ['combat-tour-du-heros', 'combat-liste-ouverte', 'combat-barre-de-l-actif', 'attaque-jet-tombe']],
+  ['Logis', 'Le même écran selon la qualité de l\'établissement.', ['auberge-fin-du-voyage', 'auberge-bouge-altstadt', 'logis-qualites']],
+  ['Lieux', 'Bourg, enceintes, grande ville.', ['lieu-steinbruck', 'lieu-enceintes', 'ville-bogenhafen-quartiers']],
+  ['Voyage et commerce', '', ['voyage-image-cible', 'echoppe-panier']],
+  ['Héros', '', ['creation-carriere', 'fiche-du-heros']],
+];
+/* Cible validée → écran où elle se consulte. Une ligne par écran : ajouter l'identifiant de la cible suffit. */
+const CIBLES_DES_ECRANS = {
+  'accueil': ['accueil'],
+  'options': ['options', 'options-chance', 'options-verrou'],
+  'tour-de-combat': ['combat-tour-du-heros', 'combat-barre-de-l-actif', 'combat-liste-ouverte'],
+  'jet-d-attaque': ['attaque-jet-tombe'],
+  'nuit': ['auberge-fin-du-voyage', 'logis-qualites', 'auberge-bouge-altstadt'],
+  'arrivee': ['lieu-steinbruck', 'lieu-enceintes'],
+  'interlude': ['ville-bogenhafen-quartiers'],
+  'carte-du-monde': ['ville-bogenhafen-quartiers'],
+  'creation': ['creation-carriere'],
+  'fiche-du-heros': ['fiche-du-heros'],
+  'halle': ['echoppe-panier'],
+  'voyage-fluvial': ['voyage-image-cible'],
+};
+/* Variantes d'un écran selon le lieu : l'état de base et tout état nommé <base>-<variante> forment un groupe comparé côte à côte. */
+const VARIANTES_DE_LIEU = [
+  { ecran: 'nuit', base: 'nuit-a-l-auberge', titre: 'Selon la qualité du logis' },
+  { ecran: 'arrivee', base: 'arrivee', titre: "Selon l'enceinte du lieu" },
+];
+const VERDICTS = [['valide', 'Validé'], ['a-revoir', 'À revoir'], ['refuse', 'Refusé']];
+
+let D, ETATS = [], parCle = new Map(), parEtat = new Map(), familleDe = {}, choixDe = new Map(), transverses = {};
+let courant = -1, precedent = -1, epingle = -1, modeCadres = 0, diff = false, vueActive = '';
+let db = null, usager = null, moi = null, peutEcrire = false;
+const verdicts = new Map(), noms = new Map(), files = new Map();
+const filtre = { statut: 'tous', famille: '' };
+let figes = null, recu = false;
+
+/* ---------- Données ---------- */
+function preparer(d) {
+  D = d;
+  for (const f of d.familles) for (const e of f.ecrans) {
+    familleDe[e] = f;
+    for (const s of d.ecrans[e]) { const x = { ecran: e, etat: s, i: ETATS.length, cle: `${e}--${s}`, img: `${e}-${s}.jpg` }; ETATS.push(x); parCle.set(x.cle, x); parEtat.set(s, x); }
+  }
+  for (const c of d.choix) {
+    if (!c.etats.length) (transverses[c.famille] ||= []).push(c);
+    for (const s of c.etats) { if (!choixDe.has(s)) choixDe.set(s, []); choixDe.get(s).push(c); }
+  }
+}
+const groupeDeLieu = e => VARIANTES_DE_LIEU.find(v => v.ecran === e);
+const variantesDe = e => { const g = groupeDeLieu(e); return g ? etatsDe(e).filter(x => x.etat === g.base || x.etat.startsWith(g.base + '-')) : []; };
+const nomVariante = x => { const g = groupeDeLieu(x.ecran); return g && x.etat.startsWith(g.base + '-') ? nom(x.etat.slice(g.base.length + 1)) : ''; };
+const nomEtat = x => nomVariante(x) ? 'Lieu : ' + nomVariante(x).toLowerCase() : x.etat === x.ecran ? 'État de base' : x.etat.startsWith(x.ecran + '-') ? nom(x.etat.slice(x.ecran.length + 1)) : nom(x.etat);
+const lien = x => `#e-${x.cle}`;
+const etatsDe = e => D.ecrans[e].map(s => parEtat.get(s));
+const choixEcran = e => [...new Set(D.ecrans[e].flatMap(s => choixDe.get(s) || []))];
+const decide = c => verdicts.has(c.id);
+const reste = cs => cs.filter(c => !decide(c)).length;
+
+/* ---------- Verdicts ---------- */
+function carte(c, avecLieu) {
+  const lieux = avecLieu ? c.etats.map(s => parEtat.get(s)).map(x => `<a href="${lien(x)}">${ech(nom(x.ecran))} · ${ech(nomEtat(x))}</a>`).join('') : '';
+  return `<article class="choix" data-choix="${c.id}">${lieux ? `<p class="choix-ou">${lieux}</p>` : ''}
+    <p class="choix-texte">${prose(c.texte)}</p>
+    <div class="verdict" role="group" aria-label="Verdict">${VERDICTS.map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="false">${t}</button>`).join('')}<span class="qui"></span></div>
+    <textarea class="note" id="note-${c.id}" rows="2" placeholder="Note pour ce verdict (facultatif)" aria-label="Note" hidden></textarea></article>`;
+}
+const quand = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); };
+const auteur = id => noms.get(id) || (id && id === moi ? 'Vous' : 'Un juge');
+function rafraichirCartes(racine = document) {
+  for (const a of $$('[data-choix]', racine)) {
+    const v = verdicts.get(a.dataset.choix);
+    a.dataset.etat = v ? v.etat : '';
+    for (const b of $$('[data-v]', a)) { b.setAttribute('aria-pressed', String(!!v && v.etat === b.dataset.v)); b.disabled = !peutEcrire; }
+    $('.qui', a).textContent = v ? [auteur(v.par), quand(v.le)].filter(Boolean).join(', ') : '';
+    const n = $('.note', a);
+    n.readOnly = !peutEcrire;
+    n.hidden = !v || (!peutEcrire && !v.note);
+    if (document.activeElement !== n) n.value = (v && v.note) || '';
+  }
+}
+function rafraichirComptes() {
+  const total = D.choix.length, r = reste(D.choix);
+  $('#compte-reste').textContent = db ? (r || '') : total;
+  if (db) $('#etat-verdicts').textContent = `${total - r} sur ${total} décidés` + (peutEcrire ? '' : ' · lecture seule');
+  dessinerRail(); if (courant >= 0) dessinerBande();
+  if (vueActive === 'a-decider') dessinerAvancee();
+}
+function annoncer(t) { const a = $('#annonce'); a.textContent = t; a.hidden = false; clearTimeout(annoncer.t); annoncer.t = setTimeout(() => a.hidden = true, 4000); }
+function ecrire(id, suivant) {
+  const avant = verdicts.get(id);
+  if (!suivant && !avant) return;
+  if (suivant && avant && avant.etat === suivant.etat && (avant.note || '') === (suivant.note || '')) return;
+  const doc = db.collection('verdicts').doc(id);
+  const geste = () => (suivant ? doc.set({ etat: suivant.etat, ...(suivant.note ? { note: suivant.note } : {}), par: moi, le: new Date().toISOString() }) : doc.delete())
+    .catch(e => {
+      if (e && (e.code === 'invalid_argument' || e.code === 'revoked')) { peutEcrire = false; rafraichirCartes(); rafraichirComptes(); annoncer("Vous n'avez pas le droit d'enregistrer un verdict sur cette page."); }
+      else annoncer("Le verdict n'a pas pu être enregistré. Réessayez dans un instant.");
+    });
+  const file = (files.get(id) || Promise.resolve()).then(geste);
+  files.set(id, file);
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-v]'); if (!b || !peutEcrire) return;
+  const id = b.closest('[data-choix]').dataset.choix, v = verdicts.get(id);
+  ecrire(id, v && v.etat === b.dataset.v ? null : { etat: b.dataset.v, note: v && v.note });
+});
+document.addEventListener('change', ev => {
+  const n = ev.target.closest('.note'); if (!n || !peutEcrire) return;
+  const id = n.closest('[data-choix]').dataset.choix, v = verdicts.get(id);
+  if (v) ecrire(id, { etat: v.etat, note: n.value.trim() });
+});
+async function brancher() {
+  const borne = p => Promise.race([Promise.resolve(p).catch(() => null), new Promise(r => setTimeout(() => r(null), 10000))]);
+  const use = n => (window.claude && typeof window.claude.use === 'function' ? borne(window.claude.use(n)) : Promise.resolve(null));
+  [db, usager] = await Promise.all([use('db'), use('user')]);
+  if (!db) {
+    document.body.dataset.verdicts = 'sans';
+    $('#pouls').dataset.e = 'lecture';
+    $('#etat-verdicts').textContent = 'Consultation seule : les verdicts se donnent depuis la page partagée';
+    $('#chapo-decider').textContent = "Les choix de design relevés sur les maquettes. Les verdicts se donnent et se lisent depuis la page partagée ; ici, la liste est en consultation.";
+    rafraichirComptes(); if (vueActive === 'a-decider') dessinerDecider();
+    return;
+  }
+  if (usager) { moi = await borne(usager.id()); const droit = await borne(usager.can('data.write')); peutEcrire = !!moi && droit !== false; }
+  filtre.statut = 'reste';
+  db.collection('verdicts').onSnapshot(snap => {
+    verdicts.clear();
+    for (const d of snap.docs) { const v = d.data(); if (v && VERDICTS.some(([k]) => k === v.etat)) verdicts.set(d.id, v); }
+    $('#pouls').dataset.e = 'direct';
+    rafraichirCartes(); rafraichirComptes();
+    if (vueActive === 'a-decider' && (!figes || !recu)) dessinerDecider();
+    recu = true;
+    const inconnus = [...new Set([...verdicts.values()].map(v => v.par).filter(p => p && !noms.has(p)))];
+    if (usager && inconnus.length) usager.profiles(inconnus).then(ps => { for (const p of inconnus) noms.set(p, (ps[p] && ps[p].name) || ''); rafraichirCartes(); });
+  }, () => { $('#pouls').dataset.e = 'lecture'; peutEcrire = false; $('#etat-verdicts').textContent = 'Verdicts indisponibles pour le moment'; rafraichirCartes(); });
+}
+
+/* ---------- Écrans ---------- */
+function pastille(cs) { if (!cs.length) return ''; const r = db ? reste(cs) : cs.length; return r ? `<span class="pastille" title="${r} choix à valider">${r}</span>` : `<span class="pastille" data-fini title="Tout est décidé">✓</span>`; }
+function dessinerRail() {
+  const ici = courant >= 0 ? ETATS[courant].ecran : '';
+  $('#rail').innerHTML = D.familles.map(f => `<h2>${ech(f.titre)}</h2><ul>` + f.ecrans.map(e => {
+    const n = D.ecrans[e].length;
+    return `<li><a href="${lien(etatsDe(e)[0])}" data-ecran="${e}"${e === ici ? ' aria-current="true"' : ''}><span>${ech(nom(e))}</span><span class="nb">${n > 1 ? n : ''}</span>${pastille(choixEcran(e))}</a></li>`;
+  }).join('') + '</ul>').join('');
+}
+function dessinerBande() {
+  const x = ETATS[courant], es = etatsDe(x.ecran);
+  $('#bande').innerHTML = es.length < 2 ? '' : es.map(s => `<a href="${lien(s)}"${s === x ? ' aria-current="true"' : ''}><img loading="lazy" src="min/${s.img}" alt="">${ech(nomEtat(s))}${pastille(choixDe.get(s.etat) || [])}</a>`).join('');
+  const a = $('#bande [aria-current]'); if (a) a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+function rolesDe(ecran) { return modeCadres === 2 ? Object.keys(D.cadres) : [...new Set((D.gabarits[ecran] || []).flatMap(g => (GABARITS.find(x => x.id === g) || { roles: [] }).roles))]; }
+function tracer(roles, avecTexte) {
+  const rs = roles.filter(r => D.cadres[r]).map(r => [r, D.cadres[r]]).sort((a, b) => (b[1][2] || 0) * (b[1][3] || 0) - (a[1][2] || 0) * (a[1][3] || 0));
+  const pris = [];
+  return rs.map(([r, c]) => {
+    if (c.length === 2) return `<g data-role="${r}" data-cote="${c.join(', ')}"><path class="point" d="M${c[0] - 14} ${c[1]}h28M${c[0]} ${c[1] - 14}v28"/><rect class="cadre" x="${c[0] - 14}" y="${c[1] - 14}" width="28" height="28"/></g>`;
+    const [x, y, w, h] = c, lw = r.length * 13.5 + 16;
+    const libre = avecTexte && lw < w && h > 40 && !pris.some(q => x < q[0] + q[2] && q[0] < x + lw && Math.abs(q[1] - y) < 30);
+    const texte = libre ? (pris.push([x, y, lw]), `<text x="${x + 8}" y="${y + 26}">${r}</text>`) : '';
+    return `<g data-role="${r}" data-cote="${x}, ${y} · ${w} × ${h}"><rect class="cadre" x="${x}" y="${y}" width="${w}" height="${h}"/>${texte}</g>`;
+  }).join('');
+}
+function dessinerCalque() {
+  const x = ETATS[courant], svg = $('#calque'), roles = $('#roles');
+  $('#o-cadres').setAttribute('aria-pressed', String(modeCadres > 0));
+  $('#o-cadres-nom').textContent = modeCadres === 2 ? 'Cadres : tous' : modeCadres === 1 ? 'Cadres : du gabarit' : 'Cadres';
+  svg.toggleAttribute('hidden', !modeCadres); roles.hidden = !modeCadres; $('#etiquette').hidden = true;
+  if (!modeCadres) return;
+  const rs = rolesDe(x.ecran);
+  svg.innerHTML = tracer(rs, false);
+  roles.innerHTML = rs.map(r => `<span class="role" data-role="${r}">${r}</span>`).join('');
+}
+function vif(racine, role, oui) { for (const g of $$(`[data-role="${role}"]`, racine)) { const c = g.matches('.role') ? g : $('.cadre', g); if (c) oui ? c.setAttribute('data-vif', '') : c.removeAttribute('data-vif'); } }
+function etiqueter(g) {
+  const e = $('#etiquette'); if (!g) { e.hidden = true; return; }
+  const c = D.cadres[g.dataset.role]; e.textContent = `${g.dataset.role} · ${g.dataset.cote}`;
+  e.style.left = Math.min(c[0] / 12.8, 60) + '%'; e.style.top = c[1] / 7.2 + '%'; e.classList.toggle('dessous', c[1] < 40); e.hidden = false;
+}
+const viser = '.visionneuse';
+document.addEventListener('pointerover', ev => {
+  const g = ev.target.closest('[data-role]'); if (!g) return;
+  const racine = g.closest(viser) || g.closest('.gabarit'); if (!racine) return;
+  vif(racine, g.dataset.role, true);
+  if (racine.matches(viser)) etiqueter($(`#calque [data-role="${g.dataset.role}"]`));
+  else { const l = $('.cote', racine); if (l) l.textContent = `${g.dataset.role} : ${g.dataset.cote || D.cadres[g.dataset.role].join(', ')}`; }
+});
+document.addEventListener('pointerout', ev => {
+  const g = ev.target.closest('[data-role]'); if (!g) return;
+  const racine = g.closest(viser) || g.closest('.gabarit'); if (racine) vif(racine, g.dataset.role, false);
+});
+function referenceDe() { return epingle >= 0 ? epingle : precedent; }
+function dessinerReference() {
+  const r = referenceDe(), ok = r >= 0 && r !== courant, x = ok ? ETATS[r] : null;
+  $('#image-ref').src = ok ? `img/${x.img}` : '';
+  $('#o-epingle').setAttribute('aria-pressed', String(epingle >= 0));
+  $('#o-bascule').disabled = $('#o-diff').disabled = !ok;
+  if (!ok && diff) diff = false;
+  $('#o-diff').setAttribute('aria-pressed', String(diff));
+  $('#scene').dataset.cmp = diff ? 'diff' : '';
+  $('#temoin').hidden = !diff; if (diff) $('#temoin').textContent = `Différence avec ${nom(x.ecran)} · ${nomEtat(x)}`;
+  $('#reference').innerHTML = epingle === courant ? 'Cet état est la référence épinglée. Allez sur un autre état pour comparer.'
+    : ok ? `Référence${epingle >= 0 ? ' épinglée' : ''} : <b>${ech(nom(x.ecran))} · ${ech(nomEtat(x))}</b>. Maintenez « Voir la référence » pour basculer : une boîte qui bouge saute aux yeux.`
+    : 'Pour vérifier que les boîtes ne bougent pas, passez à un autre état puis maintenez « Voir la référence ».';
+}
+function dessinerLieu() {
+  const x = ETATS[courant], g = groupeDeLieu(x.ecran), vs = variantesDe(x.ecran);
+  const parId = Object.fromEntries(D.cibles.map(c => [c.id, c])), cs = (CIBLES_DES_ECRANS[x.ecran] || []).filter(i => parId[i]);
+  const bloc = $('#lieu'); bloc.hidden = vs.length < 2 && !cs.length; if (bloc.hidden) return;
+  const variantes = vs.length > 1 ? `<h3>${ech(g.titre)}</h3><p class="lieu-aide">Le même écran dans chaque lieu, côte à côte. Cliquez une variante pour l'ouvrir en grand, puis « Voir la référence » pour la comparer à la précédente.</p>
+    <div class="lieu-grille">${vs.map(s => `<a class="variante" href="${lien(s)}"${s === x ? ' aria-current="true"' : ''}><img loading="lazy" src="img/${s.img}" alt=""><span>${ech(nomVariante(s) || 'Lieu de base')}</span></a>`).join('')}</div>` : '';
+  const cibles = cs.length ? `<h3>${vs.length > 1 ? 'Cibles validées pour comparer' : g ? ech(g.titre) + ' : cibles validées' : 'Cibles validées de cet écran'}</h3>
+    <div class="lieu-grille">${cs.map(i => { const quoi = parId[i].legende.split(' | ')[0]; return `<figure class="variante"><button class="image" data-loupe="cibles/${i}.jpg" data-titre="${ech(nom(i))}" data-legende="${ech(quoi)}"><img loading="lazy" src="cibles/${i}.jpg" alt=""></button><span><b>${ech(nom(i))}</b> · cible validée</span><small>${prose(quoi)}</small></figure>`; }).join('')}</div>` : '';
+  bloc.innerHTML = variantes + cibles;
+}
+function dessinerDecisions() {
+  const x = ETATS[courant], f = familleDe[x.ecran];
+  const ici = choixDe.get(x.etat) || [], ailleurs = choixEcran(x.ecran).filter(c => !ici.includes(c)), tr = transverses[f.id] || [];
+  $('#decisions').innerHTML = `<h2>À valider</h2>
+    <div class="groupe"><h3>Sur cet état</h3>${ici.length ? ici.map(c => carte(c)).join('') : `<p class="vide">Rien n'attend de décision sur cet état.</p>`}</div>
+    ${ailleurs.length ? `<div class="groupe"><h3>Sur les autres états de l'écran</h3>${ailleurs.map(c => carte(c, true)).join('')}</div>` : ''}
+    ${tr.length ? `<div class="groupe"><h3>Pour toute la famille ${ech(f.titre)}</h3>${tr.map(c => carte(c)).join('')}</div>` : ''}`;
+  rafraichirCartes($('#decisions'));
+}
+function montrer(i) {
+  if (i === courant) return;
+  const ancien = courant >= 0 ? ETATS[courant].ecran : '';
+  if (courant >= 0) precedent = courant;
+  courant = i; const x = ETATS[i], f = familleDe[x.ecran];
+  $('#image').src = `img/${x.img}`; $('#image').alt = `${nom(x.ecran)}, ${nomEtat(x)}`;
+  for (const v of [ETATS[i + 1], ETATS[i - 1]]) if (v) new Image().src = `img/${v.img}`;
+  $('#nom-ecran').textContent = nom(x.ecran);
+  const es = D.ecrans[x.ecran];
+  $('#nom-etat').textContent = `${f.titre} · ${nomEtat(x)}`;
+  $('#rang').textContent = `état ${es.indexOf(x.etat) + 1} sur ${es.length} · ${i + 1} / ${ETATS.length}`;
+  if (ancien !== x.ecran) {
+    for (const a of $$('#rail a')) a.dataset.ecran === x.ecran ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current');
+    const a = $('#rail [aria-current]'); if (a) a.scrollIntoView({ block: 'nearest' });
+    $('#choisir').value = x.ecran;
+  }
+  dessinerBande(); dessinerCalque(); dessinerReference(); dessinerLieu(); dessinerDecisions();
+  const av = ETATS[i - 1], ap = ETATS[i + 1], pa = $('#pas-avant'), pp = $('#pas-apres');
+  pa.hidden = !av; pp.hidden = !ap;
+  if (av) { pa.href = lien(av); pa.textContent = `← ${nom(av.ecran)} · ${nomEtat(av)}`; }
+  if (ap) { pp.href = lien(ap); pp.textContent = `${nom(ap.ecran)} · ${nomEtat(ap)} →`; }
+  memo.ecrire('kd-etat', x.cle);
+}
+function aller(i) { if (i < 0 || i >= ETATS.length) return; location.replace(lien(ETATS[i])); }
+function autreEcran(pas) {
+  const ordre = D.familles.flatMap(f => f.ecrans), k = ordre.indexOf(ETATS[courant].ecran) + pas;
+  if (k >= 0 && k < ordre.length) aller(etatsDe(ordre[k])[0].i);
+}
+function basculer(oui) { if ($('#o-bascule').disabled) return; $('#scene').dataset.cmp = oui ? 'bascule' : diff ? 'diff' : ''; const t = $('#temoin'); t.hidden = !oui && !diff; if (oui) { const x = ETATS[referenceDe()]; t.textContent = `Référence : ${nom(x.ecran)} · ${nomEtat(x)}`; } else if (diff) dessinerReference(); }
+function outils() {
+  $('#o-cadres').onclick = () => { modeCadres = (modeCadres + 1) % 3; memo.ecrire('kd-cadres', modeCadres); dessinerCalque(); };
+  $('#o-epingle').onclick = () => { epingle = epingle === courant ? -1 : courant; dessinerReference(); };
+  $('#o-diff').onclick = () => { diff = !diff; dessinerReference(); };
+  $('#o-grand').onclick = () => { const a = $('#atelier'), g = !a.hasAttribute('data-grand'); a.toggleAttribute('data-grand', g); $('#o-grand').setAttribute('aria-pressed', String(g)); };
+  const b = $('#o-bascule');
+  b.addEventListener('pointerdown', ev => { try { b.setPointerCapture(ev.pointerId); } catch {} basculer(true); });
+  for (const e of ['pointerup', 'pointercancel', 'blur']) b.addEventListener(e, () => basculer(false));
+  b.addEventListener('contextmenu', ev => ev.preventDefault());
+  $('#choisir').innerHTML = D.familles.map(f => `<optgroup label="${ech(f.titre)}">${f.ecrans.map(e => `<option value="${e}">${ech(nom(e))}${D.ecrans[e].length > 1 ? ` (${D.ecrans[e].length} états)` : ''}</option>`).join('')}</optgroup>`).join('');
+  $('#choisir').onchange = ev => { location.hash = lien(etatsDe(ev.target.value)[0]); };
+  $('#calque').addEventListener('click', ev => etiqueter(ev.target.closest('[data-role]')));
+}
+document.addEventListener('keydown', ev => {
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (!$('#loupe').hidden) {
+    if (ev.key === 'Escape') fermerLoupe(); else if (ev.key === 'ArrowRight') loupePas(1); else if (ev.key === 'ArrowLeft') loupePas(-1); else return;
+    ev.preventDefault(); return;
+  }
+  if (ev.target.closest('textarea,select,input') || vueActive !== 'ecrans') return;
+  const k = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+  if (k === 'ArrowRight') aller(courant + 1); else if (k === 'ArrowLeft') aller(courant - 1);
+  else if (k === 'ArrowDown') autreEcran(1); else if (k === 'ArrowUp') autreEcran(-1);
+  else if (k === 'c') $('#o-cadres').click(); else if (k === 'p') $('#o-epingle').click();
+  else if (k === 'd') { if (!$('#o-diff').disabled) $('#o-diff').click(); }
+  else if (k === 'f') $('#o-grand').click();
+  else if (k === 'Escape') { if ($('#atelier').hasAttribute('data-grand')) $('#o-grand').click(); }
+  else if (k === ' ') { if (ev.target.closest('button,a')) return; if (!ev.repeat) basculer(true); }
+  else return;
+  ev.preventDefault();
+});
+document.addEventListener('keyup', ev => { if (ev.key === ' ' && vueActive === 'ecrans') basculer(false); });
+
+/* ---------- À décider ---------- */
+function dessinerAvancee() {
+  const t = D.choix.length, n = k => D.choix.filter(c => (verdicts.get(c.id) || {}).etat === k).length;
+  const [a, b, c] = ['valide', 'a-revoir', 'refuse'].map(n);
+  $('#avancee').innerHTML = !db ? `<span>${t} choix relevés sur ${ETATS.length} états.</span>` : `<div class="jauge" role="img" aria-label="${a + b + c} décidés sur ${t}"><i class="j-ok" style="width:${a / t * 100}%"></i><i class="j-rv" style="width:${b / t * 100}%"></i><i class="j-rf" style="width:${c / t * 100}%"></i></div><span><b>${t - a - b - c}</b> restent à décider · ${a} validés · ${b} à revoir · ${c} refusés</span>`;
+  const st = [['reste', 'Reste à décider', t - a - b - c], ['tous', 'Tous', t], ['valide', 'Validés', a], ['a-revoir', 'À revoir', b], ['refuse', 'Refusés', c]];
+  $('#filtres-statut').hidden = !db;
+  $('#filtres-statut').innerHTML = st.map(([k, l, q]) => `<button type="button" class="filtre" data-statut="${k}" aria-pressed="${filtre.statut === k}">${l}<span class="nbf">${q}</span></button>`).join('');
+  $('#filtres-famille').innerHTML = `<button type="button" class="filtre" data-famille="" aria-pressed="${!filtre.famille}">Toutes les familles</button>` + D.familles.map(f => { const cs = D.choix.filter(c => c.famille === f.id); return `<button type="button" class="filtre" data-famille="${f.id}" aria-pressed="${filtre.famille === f.id}">${ech(f.titre)}<span class="nbf">${db ? reste(cs) + ' / ' : ''}${cs.length}</span></button>`; }).join('');
+}
+function dessinerDecider() {
+  dessinerAvancee();
+  const garde = c => (!filtre.famille || c.famille === filtre.famille) && (filtre.statut === 'tous' || (filtre.statut === 'reste' ? !decide(c) : (verdicts.get(c.id) || {}).etat === filtre.statut));
+  const retenus = D.choix.filter(garde); figes = db ? new Set(retenus.map(c => c.id)) : null;
+  $('#liste').innerHTML = retenus.length ? D.familles.map(f => {
+    const cs = retenus.filter(c => c.famille === f.id); if (!cs.length) return '';
+    return `<h2>${ech(f.titre)} <small>${cs.length} choix</small></h2>` + cs.map(c => {
+      const x = c.etats.length ? parEtat.get(c.etats[0]) : null;
+      return `<div class="ligne">${x ? `<a href="${lien(x)}" title="Voir l'état"><img loading="lazy" src="min/${x.img}" alt="${ech(nom(x.ecran))}"></a>` : `<span class="trans">Toute la famille</span>`}<div>${carte(c, true)}</div></div>`;
+    }).join('');
+  }).join('') : `<p class="vide">${filtre.statut === 'reste' ? 'Tout est décidé ici.' : 'Aucun choix ne correspond à ce filtre.'}</p>`;
+  rafraichirCartes($('#liste'));
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('.filtre'); if (!b) return;
+  if ('statut' in b.dataset) filtre.statut = b.dataset.statut; else filtre.famille = b.dataset.famille;
+  dessinerDecider();
+});
+
+/* ---------- Gabarits, kit, cibles ---------- */
+function dessinerGabarits() {
+  $('#liste-gabarits').innerHTML = GABARITS.map(g => {
+    const es = Object.keys(D.ecrans).filter(e => (D.gabarits[e] || []).includes(g.id));
+    return `<section class="gabarit" id="g-${g.id}"><div><div class="schema"><svg viewBox="0 0 1280 720" preserveAspectRatio="none" role="img" aria-label="Schéma du gabarit ${ech(g.titre)}">${tracer(g.roles, true)}</svg></div>
+      <div class="roles">${g.roles.map(r => `<span class="role" data-role="${r}">${r}</span>`).join('')}</div><p class="reference cote">Survolez une boîte : x, y · largeur × hauteur.</p></div>
+      <div><p class="sur-titre">${es.length} écran${es.length > 1 ? 's' : ''}</p><h2>${ech(g.titre)}</h2><p>${ech(g.texte)}</p>
+      <div class="vignettes">${es.map(e => { const x = etatsDe(e)[0]; return `<a href="${lien(x)}"><img loading="lazy" src="min/${x.img}" alt="">${ech(nom(e))}</a>`; }).join('')}</div></div></section>`;
+  }).join('');
+}
+let galerie = [], rangLoupe = 0;
+function dessinerKit() {
+  $('#planches').innerHTML = D.kit.map(k => { const [t, l] = PLANCHES[k] || [nom(k), '']; return `<figure class="planche" id="k-${k}"><h2>${ech(t)}</h2><p>${ech(l)}</p><button class="image" data-loupe="kit/${k}.jpg" data-titre="${ech(t)}" data-legende="${ech(l)}"><img loading="lazy" src="kit/${k}.jpg" alt="Planche ${ech(t)}" width="1600" height="900"></button></figure>`; }).join('');
+}
+function dessinerCibles() {
+  const parId = Object.fromEntries(D.cibles.map(c => [c.id, c])), vus = new Set();
+  const ecranDe = i => Object.keys(CIBLES_DES_ECRANS).filter(e => D.ecrans[e] && CIBLES_DES_ECRANS[e].includes(i));
+  const groupes = FAMILLES_CIBLES.map(([t, p, ids]) => [t, p, ids.filter(i => parId[i] && vus.add(i))]);
+  const autres = D.cibles.map(c => c.id).filter(i => !vus.has(i)); if (autres.length) groupes.push(['Autres', '', autres]);
+  $('#liste-cibles').innerHTML = groupes.filter(g => g[2].length).map(([t, p, ids]) => `<section class="famille-cibles"><h2>${ech(t)}</h2>${p ? `<p>${ech(p)}</p>` : ''}<div class="cibles">` + ids.map(i => {
+    const [quoi, note] = parId[i].legende.split(' | ');
+    const utile = note && note.trim() !== 'aucun';
+    return `<figure class="cible" id="c-${i}"><button class="image" data-loupe="cibles/${i}.jpg" data-titre="${ech(nom(i))}" data-legende="${ech(quoi)}"><img loading="lazy" src="cibles/${i}.jpg" alt=""></button><h3>${ech(nom(i))}</h3><p>${prose(quoi.charAt(0).toUpperCase() + quoi.slice(1))}.</p>${utile ? `<p class="a-noter"><b>Écart à noter.</b> ${prose(note)}.</p>` : ''}${ecranDe(i).map(e => `<p><a href="${lien(etatsDe(e)[0])}">Voir avec l'écran ${ech(nom(e))}</a></p>`).join('')}</figure>`;
+  }).join('') + '</div></section>').join('');
+}
+function ouvrirLoupe(b) { galerie = $$('[data-loupe]', b.closest('.vue')); rangLoupe = galerie.indexOf(b); $('#loupe').hidden = false; peindreLoupe(); $('#loupe-fermer').focus(); }
+function peindreLoupe() { const b = galerie[rangLoupe]; $('#loupe-image').src = b.dataset.loupe; $('#loupe-image').alt = b.dataset.titre; $('#loupe-titre').textContent = b.dataset.titre; $('#loupe-legende').textContent = b.dataset.legende; }
+function loupePas(p) { rangLoupe = (rangLoupe + p + galerie.length) % galerie.length; peindreLoupe(); }
+function fermerLoupe() { $('#loupe').hidden = true; const b = galerie[rangLoupe]; if (b) b.focus(); }
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-loupe]'); if (b) return ouvrirLoupe(b);
+  if (ev.target.id === 'loupe-fermer' || ev.target.id === 'loupe') fermerLoupe();
+  else if (ev.target.id === 'loupe-avant') loupePas(-1); else if (ev.target.id === 'loupe-apres') loupePas(1);
+});
+$('#image').addEventListener('dblclick', () => $('#o-grand').click());
+
+/* ---------- Route ---------- */
+const faits = {};
+function route() {
+  let h = location.hash.slice(1), vue = 'ecrans', cible = null, etat = null;
+  if (h.startsWith('e-')) { const c = h.slice(2); etat = parCle.get(c) || (D.ecrans[c] && etatsDe(c)[0]) || null; }
+  else if (h === 'a-decider') vue = 'a-decider';
+  else if (h === 'gabarits' || h.startsWith('g-')) { vue = 'gabarits'; cible = h.startsWith('g-') ? h : null; }
+  else if (h === 'kit' || h.startsWith('k-')) { vue = 'kit'; cible = h.startsWith('k-') ? h : null; }
+  if (vue === 'ecrans') montrer((etat || (courant >= 0 ? ETATS[courant] : parCle.get(memo.lire('kd-etat')) || ETATS[0])).i);
+  const change = vue !== vueActive; vueActive = vue;
+  for (const s of $$('.vue')) s.hidden = s.id !== 'vue-' + vue;
+  for (const a of $$('.onglets a')) a.dataset.onglet === vue ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
+  if (vue === 'a-decider' && change) dessinerDecider();
+  if (vue === 'gabarits' && !faits.g) { faits.g = 1; dessinerGabarits(); }
+  if (vue === 'kit' && !faits.k) { faits.k = 1; dessinerKit(); }
+  if (vue !== 'a-decider') figes = null;
+  if (cible) { const e = document.getElementById(cible); if (e) e.scrollIntoView(); } else if (change) scrollTo(0, 0);
+}
+
+fetch('donnees.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+  preparer(d);
+  modeCadres = +(memo.lire('kd-cadres') || 0) % 3;
+  outils(); dessinerRail(); route();
+  addEventListener('hashchange', route);
+  rafraichirComptes();
+  brancher();
+}).catch(() => { $('main').innerHTML = '<p class="vide">Les données de la page n\'ont pas pu être chargées. Rechargez la page.</p>'; });
+})();
+</script>

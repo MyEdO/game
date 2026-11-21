@@ -12,6 +12,9 @@ import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
 import { appliquerLInstantane, buildDeLaCoop, instantaneDeLaCoop } from '../../noyau/coop';
 import { etatInitialDuJeu, initialNet } from '../../noyau/etat';
 import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
+import { poserLeCombat } from '../../noyau/combatOrParty.testkit';
+import { decidingSeat } from '../../noyau/netOwnership';
+import { armeDeTest } from '../../engine/objetsDeTest.testkit';
 import { t } from '../../i18n';
 
 const BASE = 'http://localhost:8787';
@@ -131,14 +134,59 @@ describe('salon — l’hôte', () => {
     expect(instantanesAuSiege1(ws).length - auJoin).toBe(1);
   });
 
-  it('l’intention d’un siège arrive au rappel de `heberger`, et à lui seul : un rappel qui ne fait rien laisse l’état', async () => {
-    const vues: [string, unknown[], number][] = [];
-    const ws = await hoteAvecUnInvite((action, args, siege) => { vues.push([action, args, siege]); });
+  it('le rappel reçoit les arguments à leur forme et le siège du transport', async () => {
+    const appliquer = vi.fn<AppliquerLIntention>();
+    const ws = await hoteAvecUnInvite(appliquer);
     const avant = banc.getState();
-    ws.receive(intentionDuSiege1('terminerLeTour', [7]));
+    const intentions: [string, unknown[]][] = [
+      ['terminerLeTour', []],
+      ['cliquerLaCase', [{ x: 1, y: 2 }, undefined, { confirm: true, intentionId: 'course' }]],
+      ['recruterLeHeros', [{ pretire: 'harbull-piedvelu' }]],
+      ['jetRegler', ['soins', 'mode', 'blessures']],
+      ['fenetreChoisir', ['renier', 'renier', false]],
+    ];
+    for (const [verbe, args] of intentions) ws.receive(intentionDuSiege1(verbe, args));
     await vi.advanceTimersByTimeAsync(0);
-    expect(vues).toEqual([['terminerLeTour', [7], 1]]);
+    expect(appliquer.mock.calls).toEqual(intentions.map(([verbe, args]) => [verbe, JSON.parse(JSON.stringify(args)), 1]));
     expect(banc.getState()).toBe(avant);
+  });
+
+  it('lit les désignations du début de Round au siège de l’invité puis revient au siège local', async () => {
+    const siegesAuRappel: number[] = [];
+    const appliquer = vi.fn<AppliquerLIntention>(() => { siegesAuRappel.push(decidingSeat(banc.getState())); });
+    const ws = await hoteAvecUnInvite(appliquer);
+    const { ally } = poserLeCombat(banc.setState, { turn: -1, round: 2 });
+    ally.fortune = 1;
+    ally.talents = [{ talentId: 'tir-rapide', times: 1 }];
+    ally.weapons = [armeDeTest('arc')];
+    banc.setState({
+      pendingRoundStart: { round: 2 },
+      net: { ...banc.getState().net, ownership: { [ally.id]: 1 } },
+    });
+
+    ws.receive(intentionDuSiege1('fenetreChoisir', ['debutDuRound', 'promouvoir', ally.id]));
+    ws.receive(intentionDuSiege1('fenetreChoisir', ['debutDuRound', 'viser', ally.id]));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(appliquer.mock.calls).toEqual([
+      ['fenetreChoisir', ['debutDuRound', 'promouvoir', ally.id], 1],
+      ['fenetreChoisir', ['debutDuRound', 'viser', ally.id], 1],
+    ]);
+    expect(siegesAuRappel).toEqual([0, 0]);
+  });
+
+  it('refuse la forme avant le rappel et ignore les verbes hors liste', async () => {
+    const appliquer = vi.fn<AppliquerLIntention>();
+    const ws = await hoteAvecUnInvite(appliquer);
+    const debut = ws.sent.length;
+    ws.receive(intentionDuSiege1('terminerLeTour', [false]));
+    ws.receive(intentionDuSiege1('recruterLeHeros', [{ pretire: 'héros absent du registre' }]));
+    ws.receive(intentionDuSiege1('affecterLEmplacementAuSiege', [1, 1]));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(appliquer).not.toHaveBeenCalled();
+    expect(ws.sent.slice(debut).map((raw) => {
+      const { to, data, z } = JSON.parse(raw) as { to: number; data?: string; z?: string };
+      return [to, parseMessage(data ?? z?.slice(2) ?? '')];
+    })).toEqual(Array.from({ length: 2 }, () => [1, { kind: 'intent-refused', texte: t('coop.intentRefused') }]));
   });
 
   it('le rappel d’intention lève sur la première : la panne la reçoit une fois, la seconde arrive au rappel', async () => {
@@ -148,10 +196,10 @@ describe('salon — l’hôte', () => {
       vues.push(action);
       if (vues.length === 1) throw new Error('rappel');
     }, (e) => pannes.push(e));
-    ws.receive(intentionDuSiege1('A', []));
-    ws.receive(intentionDuSiege1('B', []));
+    ws.receive(intentionDuSiege1('annulerLeDeplacement', []));
+    ws.receive(intentionDuSiege1('terminerLeTour', []));
     await vi.advanceTimersByTimeAsync(0);
-    expect(vues).toEqual(['A', 'B']);
+    expect(vues).toEqual(['annulerLeDeplacement', 'terminerLeTour']);
     expect(pannes.map((e) => (e as Error).message)).toEqual(['rappel']);
   });
 

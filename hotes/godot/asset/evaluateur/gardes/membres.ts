@@ -19,7 +19,8 @@ import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import { rotationLocale, type Echantillon, type Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 
-export const ZONES_DES_MEMBRES: readonly string[] = ['avant_bras_g', 'avant_bras_d', 'main_g', 'main_d'];
+/** Les zones des avant-bras et des mains, que Godot lit aussi (`Noyau.ZONES_DES_MEMBRES`, `scripts/gen-noyau-godot.mjs`). */
+export const ZONES_DES_MEMBRES = ['avant_bras_g', 'avant_bras_d', 'main_g', 'main_d'] as const;
 export const ZONES_DU_TRONC: readonly string[] = ['torse', 'hanches'];
 
 /** Le côté des cellules où se rangent les triangles du tronc, et la portée de la recherche de sa surface la plus proche. */

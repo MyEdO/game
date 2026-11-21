@@ -15,11 +15,12 @@
     },
     {
       "nom": "bouchon",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     }
   ],
   "glb": {
-    "sha256": "ac9fefa41a5361d7405f88d5cd5cd8979d38e1aa28d8e3169bd45d17c0ff51c5",
-    "octets": 59864
+    "sha256": "8a9294dec1cf6fefa501bcfbc8865e710d065dcbcd76d406a1d110f244175cb9",
+    "octets": 65864
   }
 }

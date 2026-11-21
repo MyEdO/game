@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "toit",
+  "cle": {
+    "kit": "ardoise"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "ardoise",
+      "palette": "corps",
+      "matiere": "prop--prop-ardoise"
+    },
+    {
+      "nom": "crochet",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "1c5a70ef33bd5695eb3ed6e8f0b4bb0ab77503e6c03c86fb65a636353cdc5309",
+    "octets": 26604
+  }
+}

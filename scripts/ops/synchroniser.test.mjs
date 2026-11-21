@@ -1155,15 +1155,14 @@ function bancSourceModifiee(mode) {
   const cheminDeDemande = 'demande.mjs'
   const registre = JSON.stringify([{ runner: 'node', script: 'g/reconstruire.mjs', targets: [cible] }])
   const generateur = String.raw`import { appendFileSync, readFileSync } from 'node:fs'
-import { ecrireOuVerifier } from ${url('docs/lib/ecriture-derives.mjs')}
-const source = readFileSync('source.txt', 'utf8')
-const mode = readFileSync('mode.txt', 'utf8')
-if (mode === 'toujours' || (mode === 'une fois' && source === 'initiale\n')) {
-  appendFileSync('source.txt', 'changement\n')
+export function* produire() {
+  const source = readFileSync('source.txt', 'utf8')
+  const mode = readFileSync('mode.txt', 'utf8')
+  if (mode === 'toujours' || (mode === 'une fois' && source === 'initiale\n')) {
+    appendFileSync('source.txt', 'changement\n')
+  }
+  yield { out: source, path: ${JSON.stringify(cible)}, staleMsg: 'périmé', rerunMsg: 'relancer' }
 }
-ecrireOuVerifier({
-  out: source, path: ${JSON.stringify(cible)}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer',
-})
 `
   const build = `import { executer } from ${url('docs/build-all.mjs')}
 process.exitCode = await executer({ cwd: process.cwd(), generateurs: ${registre}, verificateurs: [] })

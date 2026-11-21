@@ -7,7 +7,6 @@ import {
   scanRawIdEqualities,
   isRegistryIdBranchExcluded,
   SCAN_DIRS,
-  SCAN_EXTS,
   OP_VOCABULARY,
 } from '../scripts/guards/lib/registryIdBranch.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
@@ -92,9 +91,8 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/seaNavigation.ts': 1,
   // Les trois `o.skill === 'esquive'` de `downgradeTornMuscle`/`traumaDodgePenalty`/`traumaSkillPenalty`
   // (référence de Compétence EMBOÎTÉE, accès par `.id`) : l'Esquive y est NOMMÉE par le RAW (LDB 18).
-  // Le poseur UNIQUE de l'annulateur `determination` (`poseDeterminationCanceller`), dans le module qui
-  // POSSÈDE la table `PASSIVE_CANCELLERS`. Le reste : pénalité de combat PAR MAIN (doigts/main) + crochet
-  // entraîné — axes NON couverts par `cumul`.
+  // L'identité de l'annulateur de Détermination. Le reste concerne la pénalité de combat
+  // par main (doigts/main) et le crochet entraîné.
   'src/engine/trauma.ts': 7,
   'src/engine/weaponDamage.ts': 1,
   'src/engine/windsOfMagic.ts': 1,
@@ -149,7 +147,7 @@ function analyse(dirs: string[]) {
   let a = _analyses.get(cle);
   if (!a) {
     a = { principal: [], brut: [] };
-    for (const { fichier: { rel, text }, sourceFile: sf } of analyserCorpus(readCorpus(dirs, { exts: SCAN_EXTS, tests: true }).filter(({ rel }) => !isRegistryIdBranchExcluded(rel)))) {
+    for (const { fichier: { rel, text }, sourceFile: sf } of analyserCorpus(readCorpus(dirs, { tests: true }).filter(({ rel }) => !isRegistryIdBranchExcluded(rel)))) {
       if (!sf) continue;
       for (const fd of scanRegistryIdBranch(rel, text, sf)) a.principal.push({ rel, ...fd });
       for (const fd of scanRawIdEqualities(rel, text, sf)) a.brut.push({ rel, ...fd });

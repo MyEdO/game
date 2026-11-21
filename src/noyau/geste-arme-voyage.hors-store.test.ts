@@ -18,11 +18,12 @@
  */
 import { resetFields } from './stateFields';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { argsAvecIntentionLocale } from './localIntent';
 import { refusDeCharge } from './refusDuTour';
 import { withActingSeat } from './netOwnership';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { refuserGeste, eteindreRefus } from './refusVisible';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import { snapshotSave } from './persistance/save';
@@ -30,6 +31,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { chebyshev } from '../engine/grid';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -164,9 +166,11 @@ describe('(B) COOP — l’intention part de l’ÉMETTEUR dans les args, l’h�
   it('SIÈGE sans intention : son clic ne court pas et ne dissout pas l’intention armée du propriétaire', () => {
     const { H, net0 } = hoteArmeHerosConfie('course');
     try {
-      withActingSeat(1, () => get().cliquerLaCase({ x: 10 + 6, y: 10 }, undefined, { confirm: true }));
+      const refus = vi.fn();
+      appliquerLIntentionDUnSiege(banc.getState, 1, 'cliquerLaCase', [{ x: 10 + 6, y: 10 }, undefined, { confirm: true }], refus);
       banc.reprendreLesEnAttente();
-      expect(get().refus?.texte ?? '', 'témoin : le geste du siège a passé la garde de possession, puis refusé faute d’intention').toContain('Course');
+      expect(refus.mock.calls).toEqual([[t('cs.refusCourseNonArmee')]]);
+      expect(get().refus).toBeNull();
       expect(get().localIntent, 'le clic d’un autre siège a dissous l’intention de l’hôte').toEqual({ actionId: 'course' });
       expect(get().pendingRun ?? get().pendingCascade, 'le siège a couru sur la case de l’hôte').toBeFalsy();
       expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });

@@ -79,6 +79,7 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
   amelioration: { categorie: 'amelioration', cle: { amelioration: 'figure-de-proue' }, liaison: { mode: 'rigide' }, montage: 'ancrages', surfaces: METAL },
   arete: { categorie: 'arete', cle: { kit: 'colombage' }, liaison: { mode: 'rigide' }, surfaces: METAL },
   escalier: { categorie: 'escalier', cle: { kit: 'bois' }, liaison: { mode: 'rigide' }, surfaces: METAL },
+  toit: { categorie: 'toit', cle: { kit: 'ardoise' }, liaison: { mode: 'rigide' }, surfaces: METAL },
 };
 
 const aUneBase = (categorie: CategorieDElement) => REGLES_DES_CATEGORIES[categorie].base;
@@ -164,6 +165,8 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['piece-hors-categorie', 'arête à un kit d’escalier', manifeste('arete', { cle: { kit: 'bois' } })],
   ['cle-inconnue', 'escalier à un kit hors de `kitDEscalierSchema`', manifeste('escalier', { cle: { kit: 'marbre' } })],
   ['piece-hors-categorie', 'escalier à un kit d’arête', manifeste('escalier', { cle: { kit: 'colombage' } })],
+  ['cle-inconnue', 'toit à un kit hors de `kitDeToitSchema`', manifeste('toit', { cle: { kit: 'lauze' } })],
+  ['piece-hors-categorie', 'toit à un kit d’escalier', manifeste('toit', { cle: { kit: 'bois' } })],
   ['cle-mal-formee', 'arête à la clé d’un décor', manifeste('arete', { cle: { prop: 'tonneau' } })],
   ['champ-hors-categorie', '`selon` sur une arête', manifeste('arete', { selon: {} })],
   ['piece-hors-categorie', 'armure qui vise un vêtement', manifeste('armure', { cle: { piece: 'pourpoint' } })],
@@ -289,14 +292,14 @@ describe('validerElement : un mesh rigide se monte sous un os de la base', () =>
   });
 });
 
-describe('validerElement : un décor, un véhicule, une arête ou un escalier n’a pas de base (#2987, #4471)', () => {
-  it.each(['decor', 'vehicule', 'arete', 'escalier'] as const)('un `%s` garde son mesh à la racine', (categorie) => {
+describe('validerElement : un décor, un véhicule, une arête, un escalier ou un toit n’a pas de base (#2987, #4471)', () => {
+  it.each(['decor', 'vehicule', 'arete', 'escalier', 'toit'] as const)('un `%s` garde son mesh à la racine', (categorie) => {
     expect(verdict(manifeste(categorie)).ok).toBe(true);
   });
-  it.each(['decor', 'vehicule', 'arete', 'escalier'] as const)('un `%s` qui nomme une base est refusé', (categorie) => {
+  it.each(['decor', 'vehicule', 'arete', 'escalier', 'toit'] as const)('un `%s` qui nomme une base est refusé', (categorie) => {
     expect(codes(manifeste(categorie, { base: 'humanoide' }))).toEqual(['champ-hors-categorie']);
   });
-  const sansBase = ['decor', 'vehicule', 'arete', 'escalier'] as const;
+  const sansBase = ['decor', 'vehicule', 'arete', 'escalier', 'toit'] as const;
   it.each(sansBase)('un `%s` dont un mesh pend à une articulation est refusé, faute de base', (categorie) => {
     expect(verdict(...surGlb(categorie, {}, glbAvec('hand_r')))).toEqual({
       ok: false, ecarts: [{ code: 'rigide-sur-os-absent', ou: 'liaison.mode', detail: `lame pend à hand_r, mais un élément \`${categorie}\` n’a pas de base dont il serait un os` }],

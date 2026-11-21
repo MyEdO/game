@@ -43,8 +43,8 @@ const PLACE_DU_POINT := QUART_DE_TOUR
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
 const CASE_DE_CONTACT := 0.02
-## Le pas, en mètres, dont un rayon reprend au-delà d'un point touché (`point_au_dela`), et dont un tronçon recouvre la
-## fin du précédent (`point_en_deca`).
+## Le pas, en mètres, dont un rayon reprend au-delà d'un point touché (`point_au_dela`, `cote_au_dela`), et dont un
+## tronçon recouvre la fin du précédent (`point_en_deca`).
 const PAS_AU_DELA_M := 0.0005
 ## La longueur, en mètres, d'un tronçon dont un rayon reprend (`bout_du_troncon`) : le moteur physique du projet
 ## (GodotPhysics3D, `physics/3d/physics_engine` au défaut) manque toute face plus proche de l'origine du tronçon que
@@ -182,6 +182,14 @@ static func longueur_d_arete(sens: Vector2) -> float:
 ## en X et en Z du plateau, ce dont monte un point de la pièce par unité de plateau, ses montants gardés verticaux.
 static func pente_d_arete(sens: Vector2, entree: float, sortie: float, par_case: float) -> Vector2:
 	return sens.normalized() * hauteur_au_plateau(sortie - entree, par_case) / longueur_d_arete(sens)
+
+
+## L'échelle d'une faîtière d'un modèle de toit longue de `long` mètres, dont chaque bras descend d'une pente de 1,
+## posée sur un faîte qui court selon `sens` entre deux pans dont les pentes diffèrent de deux fois `ecart` (mètres par
+## case), sur un plateau de `par_case` mètres par case (#4471) : en longueur celle qui la porte à la longueur du faîte,
+## en hauteur celle qui porte la pente de ses bras à `ecart`, et métrique en épaisseur.
+static func echelle_de_faitiere(sens: Vector2, ecart: float, long: float, par_case: float) -> Vector3:
+	return Vector3(longueur_d_arete(sens) / long, hauteur_au_plateau(ecart, par_case) * echelle_metrique(par_case), echelle_metrique(par_case))
 
 
 ## L'échelle d'une pièce d'un modèle d'arête long de `long` mètres et haut de `haut` mètres posée sur une arête qui
@@ -746,8 +754,9 @@ static func axe_de_rangement(emplacement: Basis, point: Vector3, axe: int) -> Ve
 	return bas if axe == Vector3.AXIS_Y else bas.cross(sortante)
 
 
-## Le poids cumulé des repères d'un point suivi (`MontageDeComposition._suivre_les_poids`) de poids cumulé `cumul`, quand
-## s'y ajoute un repère de poids `poids`.
+## Le poids cumulé `cumul` quand s'y ajoute le poids `poids` : des repères d'un point suivi
+## (`MontageDeComposition._suivre_les_poids`), ou des poids de peau sur un os ou une liaison
+## (`MontageDeComposition._membres_des_os_de_la_base`, `_liaisons_dominantes`).
 static func cumul_des_poids(cumul: float, poids: float) -> float:
 	return cumul + poids
 
@@ -850,6 +859,12 @@ static func decalage_a_cote(decalage: float, sens: float, debut_precedent: float
 ## La case, de `CASE_DE_CONTACT` mètres en (x, y) d'un repère de rangement, où tombe le sommet `sommet`.
 static func case_de_contact(sommet: Vector3) -> Vector2i:
 	return Vector2i(floori(sommet.x / CASE_DE_CONTACT), floori(sommet.y / CASE_DE_CONTACT))
+
+
+## La cote d'où la visée d'une case (`centre_de_contact`, de `PORTEE_DE_CONTACT` à son opposé) reprend au-delà de la cote
+## `cote` qu'elle touche (`MontageDeComposition._appuyer`).
+static func cote_au_dela(cote: float) -> float:
+	return cote - PAS_AU_DELA_M
 
 
 ## Le point d'un repère de rangement au centre de la case `case`, à la cote `cote` sur la normale sortante.

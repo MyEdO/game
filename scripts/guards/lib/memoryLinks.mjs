@@ -50,7 +50,7 @@ import { TRAVAIL, depotDe, enfantsDirects, imageDeHead, listerImage, racineDe } 
 import { parUnitesDeCode, listerDossier } from './lister.mjs';
 import { extname, join } from 'node:path';
 import { sansBlocsDeCode } from './liensMarkdown.mjs';
-import { ast, scriptKindDe, typescript } from './dialecte.mjs';
+import { ast, EXTENSIONS_DE_SCRIPT, scriptKindDe, typescript } from './dialecte.mjs';
 
 /** Dossier de la mémoire persistante, relatif à la racine du dépôt. */
 export const MEMORY_DIR = '.claude/memory';
@@ -104,7 +104,7 @@ export const RACINES_HORS_MEMOIRE = [
 ];
 
 /** Extensions LUES par la portée 2 — tout le reste (binaire, image, verrou) n'a pas de prose. */
-const EXTENSIONS_LUES = new Set(['.ts', '.tsx', '.mts', '.mjs', '.js', '.jsx', '.md', '.json', '.css', '.toml']);
+const EXTENSIONS_LUES = new Set([...EXTENSIONS_DE_SCRIPT, '.md', '.json', '.css', '.toml']);
 
 /**
  * Chemins EXCLUS de la portée 2, chacun avec sa raison. Ce ne sont pas des offenseurs tolérés :

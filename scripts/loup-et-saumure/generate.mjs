@@ -197,7 +197,7 @@ scenes.push(scene({
                 // embarque Kramer à bord. Levé au démasquage (nuit du chat) via `adjustVessel { saboteurDR: 0 }`.
                 // crew : roster SALARIÉ d'un petit caboteur (paie hebdo `tickCampaignVesselWeek`, `crew-roles.json`). #216
                 {
-                  type: 'setVessel', vehicleId: 'loup-imperial', label: 'Le Grimm',
+                  type: 'setVessel', navire: { id: 'loup-imperial' }, label: 'Le Grimm',
                   morale: 75, hullCurrent: 180, hullMax: 180, saboteurDR: -2, waterLitres: GRIMM_WATER_LITRES,
                   crew: [
                     { roleId: 'navigateur', count: 1 },

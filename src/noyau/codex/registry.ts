@@ -15,7 +15,7 @@ import { CLES_DE_DATASET, type CleCodex } from '../../data/schemas/_cles-de-data
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappingsEffectifs, siegeEngines, groupeDeSiege, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
   allAxes,
@@ -30,7 +30,7 @@ import {
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
 // importés directement d'`engine/massBattle`).
 import type { FoyerDeRegle, RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
-import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
+import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, plageDeCouleur, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
 import { reliefDefaultsSchema } from '../../data/schemas/defs-scenes/scene';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
@@ -120,13 +120,13 @@ import {
   type HitLocation,
   type Difficulty,
 } from '../../engine/types';
-import type { ResolveurDePreset } from '../monde/resolveursDuNarratif';
-import type { Porteur, PorteurDeRangee } from './porteur';
+import type { PorteurDeRangee } from './porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
+import { armourPhysiqueAt } from '../../engine/armourBypass';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
-import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
+import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
 import { dureeEnJours } from '../../engine/clock';
 import { formatDiseaseTime, sujetDeContraction } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
@@ -2035,7 +2035,9 @@ const CODEX_SPECS = {
     // libellé — l'affichage se lit sur le document, sans lookup transverse.
     build: () => names.map((pool) => ({
       id: pool.id, label: pool.label,
-      sub: tr('codex.fiche.noms2', { length: pool.maleFirstNames.length, length2: pool.femaleFirstNames.length, length3: pool.lastNames.length }),
+      sub: pool.firstNamePrefixes && pool.firstNameSuffixes
+        ? tr('codex.fiche.composantesDePrenoms', { racines: pool.firstNamePrefixes.length, terminaisons: pool.firstNameSuffixes.length })
+        : tr('codex.fiche.noms2', { length: pool.maleFirstNames.length, length2: pool.femaleFirstNames.length, length3: pool.lastNames.length }),
       sections: sections(
         // RESTE ASSUMÉ : une rangée porte la LISTE entière (`join(', ')`), pas un nom — en pastille
         // elle ferait une pastille géante. Éclater la donnée en une pastille par nom est un chantier
@@ -2043,6 +2045,8 @@ const CODEX_SPECS = {
         pool.maleFirstNames.length ? { title: tr('codex.fiche.prenomsMasculins'), layout: 'chips', rows: [{ t: 'text', text: pool.maleFirstNames.join(', ') }] } : null,
         pool.femaleFirstNames.length ? { title: tr('codex.fiche.prenomsFeminins'), layout: 'chips', rows: [{ t: 'text', text: pool.femaleFirstNames.join(', ') }] } : null,
         pool.lastNames.length ? { title: tr('codex.fiche.nomsDeFamille'), layout: 'chips', rows: [{ t: 'text', text: pool.lastNames.join(', ') }] } : null,
+        pool.firstNamePrefixes ? { title: tr('codex.fiche.racinesDePrenoms'), layout: 'chips', rows: [{ t: 'text', text: pool.firstNamePrefixes.join(', ') }] } : null,
+        pool.firstNameSuffixes ? { title: tr('codex.fiche.terminaisonsDePrenoms'), layout: 'chips', rows: [{ t: 'text', text: pool.firstNameSuffixes.join(', ') }] } : null,
       ),
     })),
   },
@@ -2150,7 +2154,7 @@ const CODEX_SPECS = {
   celestialHouses: {
     label: 'codex.fiche.demeuresAstrologiques', group: 'personnage',
     // ADE II 03 l.504-512, l.514
-    build: () => celestialHouses.map((h, i) => depuisEnveloppe(h, { sub: fourchette((celestialHouses[i - 1]?.rand ?? 0) + 1, h.rand) })),
+    build: () => celestialHouses.map((h) => depuisEnveloppe(h, { sub: fourchette(h.min, h.max) })),
   },
   groups: {
     label: 'codex.fiche.groupesCible', group: 'monde',
@@ -2819,31 +2823,20 @@ const CODEX_SPECS = {
  *  est un getter re-projetable (fraîcheur). */
 export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex, CodexCategorySpec][]).map(([key, spec]) => makeCategory(key, spec));
 
-/** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
- *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
- *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
 function couleursDuTableau(table: typeof tableDesYeux | typeof tableDesCheveux, de: DeDeTable): CodexItem[] {
-  const rangee = (e: (typeof eyes)[number]) => e.rand;
-  const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
-  /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */
-  const bande = (borne: (e: (typeof eyes)[number]) => number, e: (typeof eyes)[number]) => {
-    const precedentes = table.entries.map(borne).filter((b) => b < borne(e));
-    return bandeAuDe(de, precedentes.length ? Math.max(...precedentes) + 1 : totalDuDe(de, de.n), borne(e));
-  };
   return table.entries.map((e) => {
-    const sub = bande(rangee, e);
-    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, (race) => bande(colonne(race), e))) });
+    const sub = bandeAuDe(de, e.min, e.max);
+    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, de)) });
   });
 }
 
-/** Section d'une couleur (yeux/cheveux) — couleur par colonne d'espèce, suivie de la bande de la colonne
- *  quand elle diffère de `sub`, la bande de la rangée. */
-function colorTableSection(c: (typeof eyes)[number], sub: string, bandeDeColonne: (race: RaceKey) => string): CodexSection {
+function colorTableSection(c: (typeof eyes)[number], sub: string, de: DeDeTable): CodexSection {
   return {
     title: tr('codex.fiche.couleurParEspeceColonneRefchar'), layout: 'list',
-    rows: (Object.entries(c.color) as [RaceKey, string | undefined][]).filter(([, v]) => v).map(([sp, v]) => {
-      const bandeSp = bandeDeColonne(sp);
-      return { t: 'kv', k: sp, v: bandeSp === sub ? v! : `${v} · ${bandeSp}` } as CodexRow;
+    rows: (Object.entries(c.color) as [RaceKey, string][]).map(([sp, v]) => {
+      const { min, max } = plageDeCouleur(c, sp);
+      const bandeSp = bandeAuDe(de, min, max);
+      return { t: 'kv', k: sp, v: bandeSp === sub ? v : `${v} · ${bandeSp}` };
     }),
   };
 }
@@ -2873,11 +2866,6 @@ export const clustersIn = (group: CodexGroup): { flat: CodexCategory[]; clusters
 
 /** Catégorie par clé. */
 export const categoryByKey = (key: string): CodexCategory | undefined => CODEX.find((c) => c.key === key);
-
-/** Identité STABLE d'une entrée de Codex = sérialisation canonique du couple `{category, id}` —
- *  `CodexItem.id` est unique par catégorie, la clé de navigation qualifie donc la catégorie. C'est
- *  la clé de sélection du navigateur (jamais un `.label ===` nu). */
-export const codexItemKey = (category: string, id: string): string => `${category}␞${id}`;
 
 // ── Index de lookup PARESSEUX (par catégorie) ────────────────────────────────────────────────────
 // `codexLookupById` est appelé par CHAQUE `CodexRef` à CHAQUE rendu → un `items.find` linéaire ne scale
@@ -2946,54 +2934,17 @@ export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): Co
     const category = groupeDeSiege(w.subType) ? 'siegeEngines' : 'trappings';
     return id ? { ...idRefRow(category, id, undefined, w.label), badge } : { t: 'chip', label: w.label, badge };
   });
-  const worn = ARMOUR_LOCS.filter((l) => (c.armour?.[l] ?? 0) > 0);
+  const worn = ARMOUR_LOCS.flatMap((loc) => {
+    const pa = armourPhysiqueAt(c, loc);
+    return pa > 0 ? [`${HIT_LOCATION_LABELS[loc]} ${pa}`] : [];
+  });
   return sections(
     { title: tr('codex.fiche.caracteristiques'), layout: 'grid', rows: charRows },
     weaponRows.length ? { title: tr('codex.fiche.armes'), layout: 'chips', rows: weaponRows } : null,
-    worn.length ? { title: tr('codex.fiche.armure'), layout: 'list', rows: [{ t: 'text', text: worn.map((l) => `${HIT_LOCATION_LABELS[l]} ${c.armour![l]}`).join(' · ') }] } : null,
+    worn.length ? { title: tr('codex.fiche.armure'), layout: 'list', rows: [{ t: 'text', text: worn.join(' · ') }] } : null,
     chips(tr('codex.fiche.traits'), traitRefRows(c.traits, nomDIndividu)),
     skillRows.length ? { title: tr('codex.fiche.competences'), layout: 'chips', rows: skillRows } : null,
     chips(tr('codex.fiche.talents'), (c.talents ?? []).map((t) => idRefRow('talents', t.talentId, t.spec))),
     chips(tr('codex.fiche.sorts'), (c.spells ?? []).map((id) => idRefRow('spells', id))),
   );
-}
-
-/** Catégorie Codex des créatures (`CODEX`, clé `creatures`) : le `type` du porteur de leur `desc`. */
-const CATEGORIE_DES_CREATURES = 'creatures';
-
-const sectionDescription = (text: string, porteur: PorteurDeRangee | undefined): CodexSection =>
-  ({ title: '', layout: 'list', rows: [{ t: 'text', text, porteur }] });
-
-/**
- * La prose d'un combattant à fiche (#2206) : une section sans titre et l'entrée qui PORTE son texte
- * (`CodexSections`, `entree`), ou `null` sans prose. Lit le porteur de fiche, jamais `creatureId`
- * (celui d'un preset sans base est l'id du preset) ; lit `desc`, jamais `maison`.
- * - réf : la `desc` de la créature du catalogue ;
- * - preset : la `desc` de la fiche fusionnée. Quand elle EST la `desc` du profil du preset
- *   (`presetDe`, résolveur injecté), son porteur est le champ du document de projet
- *   (`porteurDuNarratif`, injecté : `undefined` hors projet) ; quand elle est la `desc` de sa base,
- *   la base la porte ; sinon (fiche figée, `sceneNpc.ts`) elle est nue ;
- * - statbloc (`defs-scenes/communs.ts`, aucun champ de prose), héros : `null`.
- */
-export function proseDeFiche(
-  c: Combatant,
-  presetDe: ResolveurDePreset,
-  porteurDuNarratif: (cle: 'presetsPnj', id: string, suite: string) => Porteur | undefined,
-): { section: CodexSection; entree?: { type: string; id: string } } | null {
-  const p = c.porteurDeFiche;
-  if (p?.presetCreature) {
-    const text = p.presetCreature.desc;
-    if (!text) return null;
-    const preset = presetDe(p.presetId);
-    if (preset?.profil?.desc === text) return { section: sectionDescription(text, porteurDuNarratif('presetsPnj', p.presetId, 'profil.desc')) };
-    const base = preset?.base?.id;
-    return base && findCreatureById(base)?.desc === text
-      ? { section: sectionDescription(text, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: base } }
-      : { section: sectionDescription(text, undefined) };
-  }
-  if (p?.ref !== undefined) {
-    const desc = findCreatureById(p.ref)?.desc;
-    return desc ? { section: sectionDescription(desc, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: p.ref } } : null;
-  }
-  return null;
 }

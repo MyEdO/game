@@ -170,7 +170,13 @@ const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 function texteDeLigneDeJet(l: LigneDeJet): string {
   const qui = l.qui ? `${l.qui} ` : '';
   switch (l.genre) {
-    case 'test': return `${qui}${l.test} ${l.jet ? `${l.jet.d100}/${l.cible ?? '—'} DR ${signe(l.jet.dr)} ${l.jet.reussi ? 'réussi' : 'raté'}` : `à jeter${l.cible === null ? '' : ` (cible ${l.cible})`}`}`;
+    case 'test': {
+      const sujet = `${qui}${l.test}`;
+      if (l.etat === 'masque') return `${sujet} ${t('ecran.jet.cache')}`;
+      if (!l.jet) return `${sujet} à jeter${l.cible === null ? '' : ` (cible ${l.cible})`}`;
+      const dr = l.jet.dr === null ? '' : ` DR ${signe(l.jet.dr)}`;
+      return `${sujet} ${l.jet.d100}/${l.cible ?? '—'}${dr} ${l.jet.verdict === 'reussite' ? 'réussi' : 'raté'}`;
+    }
     case 'table': return `${qui}${l.table} ${l.jet ? `${l.jet.d100} (${l.jet.effectif}) : ${l.jet.ligne}` : 'à tirer'}`;
     case 'de': return `${qui}${l.de} ${l.jet ? `${l.jet.naturel} → ${l.jet.total}${l.jet.lecture ? ` : ${l.jet.lecture}` : ''}` : 'à jeter'}`;
   }

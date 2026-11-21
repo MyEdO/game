@@ -83,11 +83,16 @@ test('P2 : une liaison proche masque la const externe, et la vraie const locale 
     ['src/a.ts:2 — `version` initialisé par `V = 3`'])
 })
 
-test('périmètre : `src/**` en `.ts`/`.tsx`, hors instruments, doublures et déclarations', () => {
-  assert.deepEqual(
-    ['src/a.ts', 'src/a.tsx', 'src/a.test.ts', 'src/a.testkit.ts', 'src/a.d.ts', 'scripts/migrations/x.mjs', 'scripts/a.ts'].map(relevePerimetre),
-    [true, true, false, false, false, false, false],
-  )
+test('périmètre : les scripts de production dans `src/**`', () => {
+  const retenus = ['src/a.ts', 'src/a.tsx', 'src/a.mjs']
+  const horsCorpus = ['src/a.test.ts', 'src/a.testkit.ts', 'src/a.d.ts', 'src/a.gd', 'scripts/migrations/x.mjs', 'scripts/a.ts']
+  for (const rel of retenus) assert.equal(relevePerimetre(rel), true, rel)
+  for (const rel of horsCorpus) assert.equal(relevePerimetre(rel), false, rel)
+
+  const contenu = 'export const document = { version: 1 };'
+  assert.deepEqual(juge([f('src/document.mjs', contenu), f('src/document.gd', contenu)]).P1, [
+    'src/document.mjs:1 — `version: 1`',
+  ])
 })
 
 const observerParcours = (t, visite) => {

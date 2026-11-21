@@ -3,7 +3,8 @@
     "id": "demeure-du-sens",
     "type": "astrology",
     "label": "Demeure du Sens",
-    "rand": 2,
+    "min": 1,
+    "max": 2,
     "desc": "la **Demeure du Sens**, qui régit la façon dont une personne exprime ses émotions.",
     "source": {
       "book": "archives-de-l-empire-2",
@@ -14,7 +15,8 @@
     "id": "demeure-des-epreuves",
     "type": "astrology",
     "label": "Demeure des Épreuves",
-    "rand": 4,
+    "min": 3,
+    "max": 4,
     "desc": "la **Demeure des Épreuves**, qui régit la manière dont une personne se comporte face à l'adversité et ce contre quoi elle a tendance à lutter dans sa vie.",
     "source": {
       "book": "archives-de-l-empire-2",
@@ -25,7 +27,8 @@
     "id": "demeure-de-la-pensee",
     "type": "astrology",
     "label": "Demeure de la Pensée",
-    "rand": 6,
+    "min": 5,
+    "max": 6,
     "desc": "la **Demeure de la Pensée**, qui régit les processus de pensée et la façon dont une personne communique.",
     "source": {
       "book": "archives-de-l-empire-2",
@@ -36,7 +39,8 @@
     "id": "demeure-de-l-amour",
     "type": "astrology",
     "label": "Demeure de l'Amour",
-    "rand": 8,
+    "min": 7,
+    "max": 8,
     "desc": "la **Demeure de l'Amour**, qui régit l'attitude d'une personne dans ses relations interpersonnelles, y compris les relations familiales et amoureuses.",
     "source": {
       "book": "archives-de-l-empire-2",
@@ -47,7 +51,8 @@
     "id": "demeure-de-l-argent",
     "type": "astrology",
     "label": "Demeure de l'Argent",
-    "rand": 10,
+    "min": 9,
+    "max": 10,
     "desc": "la **Demeure de l'Argent**, qui régit la relation d'une personne avec l'argent et les biens matériels.",
     "source": {
       "book": "archives-de-l-empire-2",

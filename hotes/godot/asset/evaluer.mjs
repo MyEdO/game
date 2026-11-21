@@ -4,6 +4,7 @@
 //   npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1]
 //     [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte]
+//     [--preset <id>]
 // Avec `--base`, chaque `<glb>` est un élément monté sur cette base, ensemble (une tenue), sa couche et ses zones lues
 // dans le manifeste d'élément voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import) :
 // la traversée des couches se mesure (#3743) ; seul un élément dont la forme `cle.apparence` est celle d'une arme (un
@@ -16,14 +17,20 @@
 // `--temoin` nomme le rapport `--json` d'un run antérieur : la sortie ne liste que les écarts absents du témoin
 // (`identiteDEcart`, `evaluateur/temoin.ts`) après une ligne de compte, et le code est 1 seulement s'il y en a ; `--json`
 // écrit toujours le rapport complet (#4338). Le libellé `élément k` d'un mesh est positionnel : le témoin se compare
-// aux mêmes `<glb>` dans le même ordre, les éléments neufs à la fin.
+// aux mêmes `<glb>` dans le même ordre, les éléments neufs à la fin. `--preset` nomme un preset de personnage
+// (`src/data/presets-de-personnage.json`) : chaque rigide qu'il range se mesure là où le jeu le range, au repos et à
+// chaque instant échantillonné, sur l'emplacement de la base ou la case de la pièce qui l'offre, posé par l'éditeur
+// Godot épinglé en un lancement (`posesDesRanges.mjs`, #4351), et la garde `rigideRange` le mesure contre ce qui est
+// porté ; un élément que le preset porte plusieurs fois se donne autant de fois, chaque `<glb>` montant à son tour la
+// ligne suivante du preset.
 import { spawn } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { estObjet } from '../../../src/lib/objet.mjs'
 import { chargerEvaluateur } from './charger.mjs'
+import { manifesteVoisin, posesDesRanges } from './posesDesRanges.mjs'
 
 const FACTEURS = ['sl', 'legs', 'arms', 'head', 'st']
 
@@ -69,6 +76,7 @@ try {
       json: { type: 'string' },
       plafonds: { type: 'string' },
       temoin: { type: 'string' },
+      preset: { type: 'string' },
     },
   })
   values = argumentsLus.values
@@ -85,16 +93,15 @@ try {
   plafonds = values.plafonds === undefined ? undefined : lirePlafonds(values.plafonds, silhouettes)
   if (values.temoin !== undefined && (values.porte || values['etats-gabarit'])) throw new Error('--temoin : --porte et --etats-gabarit incompatibles')
   temoin = values.temoin === undefined ? undefined : lireTemoin(values.temoin)
+  if (values.preset !== undefined && !(values.base && values.manifeste)) throw new Error('--preset : --base et --manifeste requis')
 } catch (erreur) {
   console.error(erreur.message)
   process.exit(2)
 }
-/** Le manifeste d'élément voisin du GLB `glb`, ou `undefined`. */
-const manifesteVoisin = (glb) => [glb.replace(/\.glb$/, '.element.json'), glb.replace(/\.glb$/, '.manifeste.json')].find(existsSync)
 const sansManifeste = values.base ? positionals.filter((g) => !manifesteVoisin(g)) : []
 if (values.base ? positionals.length === 0 || sansManifeste.length : positionals.length !== 1) {
   if (sansManifeste.length) console.error(`sans manifeste d’élément voisin (<id>.element.json ou <id>.manifeste.json) : ${sansManifeste.join(', ')}`)
-  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte]')
+  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte] [--preset <id>]')
   console.error('  sans --manifeste : ni gabarit ni prise, et seule la racine a une position animée')
   process.exit(2)
 }
@@ -147,6 +154,13 @@ const couche = (glb) => {
 const FORMES_D_ARMES = new Set(JSON.parse(readFileSync(new URL('../../../src/data/trappings.json', import.meta.url), 'utf8'))
   .filter((t) => t.shape && ['melee', 'distance'].includes(t.categorie)).map((t) => t.shape.id))
 const arme = (glb) => FORMES_D_ARMES.has(JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8')).cle?.apparence)
+/** Le rangeur de `evaluer` (`Rangeur`, `evaluateur/rangement.ts`) sous le preset de personnage `preset` : les poses
+ *  que le jeu donne aux rigides rangés des `<glb>` (`posesDesRanges`) ; une ligne du preset sans `<glb>` se dit. */
+const ranger = (preset) => async (instants) => {
+  const { elements, sans } = await posesDesRanges({ base: values.base, manifeste: values.manifeste, elements: positionals, preset, instants })
+  if (sans.length) console.error(`--preset ${preset} : ligne(s) montée(s) par le jeu sans <glb> répété : ${sans.join(', ')}`)
+  return elements
+}
 const entree = {
   base: readFileSync(values.base ?? positionals[0]),
   elements: values.base ? positionals.map((g) => readFileSync(g)) : [],
@@ -157,6 +171,7 @@ const entree = {
   ...(pas === undefined ? {} : { pas }),
   ...(values.clips ? { clips: values.clips.split(',').filter(Boolean) } : {}),
   ...(plafonds === undefined ? {} : { plafondsDesMembres: plafonds }),
+  ...(values.preset === undefined ? {} : { ranger: ranger(values.preset) }),
 }
 
 function afficherFiche(fiche) {

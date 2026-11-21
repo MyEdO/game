@@ -952,21 +952,30 @@ const LANCEURS_DE_SCRIPTS = new Map([
 // (`racineNpmCourante`, la racine npm du contexte du répartiteur, `racineNpmDe`) — sans lui, un
 // `cd <autre dépôt> && npm run x` serait lu dans le dépôt du HOOK. À défaut, le dépôt du hook.
 
-/** Table `scripts` du `package.json` de `dir` (`{}` s'il est absent ou illisible — un hook ne lève
- *  jamais). Lue une fois par répertoire : un hook décide en quelques millisecondes. */
 const DEPOT_DU_LECTEUR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const CACHE_SCRIPTS = new Map() // mémo-pur : répertoire résolu → sa table `scripts`
-export function scriptsNpm(dir = racineNpmCourante() ?? DEPOT_DU_LECTEUR) {
+
+function lireManifesteNpm(chemin) {
+  return JSON.parse(readFileSync(chemin, 'utf8'))
+}
+
+/** Table `scripts` du `package.json` de `dir` (`{}` s'il est absent ou illisible — un hook ne lève
+ *  jamais). Lue une fois par répertoire : un hook décide en quelques millisecondes. */
+export function scriptsNpm(dir = racineNpmCourante(DEPOT_DU_LECTEUR)) {
   const clef = resolve(dir)
   if (!CACHE_SCRIPTS.has(clef)) {
     let table = {}
     try {
-      const pkg = JSON.parse(readFileSync(join(clef, 'package.json'), 'utf8'))
+      const pkg = lireManifesteNpm(join(clef, 'package.json'))
       table = Object.fromEntries(Object.entries(pkg?.scripts ?? {}).filter(([, v]) => typeof v === 'string'))
     } catch {}
     CACHE_SCRIPTS.set(clef, table)
   }
   return CACHE_SCRIPTS.get(clef)
+}
+
+function scriptsDuFlux(scripts = scriptsNpm()) {
+  return scripts
 }
 
 /** Un mot nu que `tokenizeCommand` relit tel quel : ni blanc, ni quote, ni opérateur, ni substitution. */
@@ -1053,15 +1062,36 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
  *  (`affectationsDuSegment`). Lecture PARTAGÉE avec `commande-piege-guard`. */
 export function pipelinesDeJetons(command, profondeur = 0, options = {}) {
   if (!command) return []
+  const { flux, options: preparees } = preparerPipelines(command, options)
+  if (satureLeFlux(profondeur, preparees.budget)) return []
+  return pipelinesDuFlux(flux, profondeur, scriptsDuFlux(preparees.scripts), preparees)
+}
+
+function preparerPipelines(command, options) {
   const shell = options.shell ?? { parent: options.hote ?? null, fonctions: new Map(options.fonctions) }
   const jetons = tokenizeCommand(command, options)
-  return pipelinesDuFluxBorne(options.powershell ? jetons : lierPositionnels(jetons, options.positionnels ?? null), profondeur, { ...options, budget: options.budget ?? nouveauBudget(), shell })
+  const flux = options.powershell ? jetons : lierPositionnels(jetons, options.positionnels ?? null)
+  return { flux, options: { ...options, budget: options.budget ?? nouveauBudget(), shell } }
+}
+
+function pipelinesDeJetonsAvecScripts(command, profondeur, scripts, options) {
+  if (!command) return []
+  const { flux, options: preparees } = preparerPipelines(command, options)
+  return pipelinesDuFluxBorne(flux, profondeur, scripts, preparees)
 }
 
 /** `pipelinesDuFlux` au-delà de `PROFONDEUR_MAX_ENROBEURS` : rien, et `budget.sature`. */
-function pipelinesDuFluxBorne(flux, profondeur, options) {
-  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { options.budget.sature = true; return [] }
-  return pipelinesDuFlux(flux, profondeur, options)
+function satureLeFlux(profondeur, budget) {
+  if (profondeur > PROFONDEUR_MAX_ENROBEURS) {
+    budget.sature = true
+    return true
+  }
+  return false
+}
+
+function pipelinesDuFluxBorne(flux, profondeur, scripts, options) {
+  if (satureLeFlux(profondeur, options.budget)) return []
+  return pipelinesDuFlux(flux, profondeur, scripts, options)
 }
 
 /** Un shell FOURCHÉ de `shell` (sous-shell, membre de tube, substitution) : il hérite d'une COPIE de ses fonctions. */
@@ -1357,7 +1387,7 @@ function declarationsDuSegment(jetons) {
 /** `pipelinesDeJetons` sur un FLUX de jetons : la commande tokenisée, ou le corps d'un bloc, lu sans être
  *  re-tokenisé ni relu (`relu` : ses jetons sortent déjà de `jetonsDeBloc`). `expression` : le flux d'une
  *  sous-expression `@(…)`, où un énoncé quoté est une chaîne, comme dans un bloc. */
-function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, deploiePar, shell, relu = false, expression = false, powershell = false, boucle = null }) {
+function pipelinesDuFlux(flux, profondeur, scripts, { budget, suite = [], affectations = [], bloc, deploiePar, shell, relu = false, expression = false, powershell = false, boucle = null }) {
   const pipelines = []
   const boucles = [boucle]
   const lus = segmentsAvecOperateur(flux)
@@ -1427,7 +1457,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
     const deplie = (j) => {
       if (!j.substitutions?.length) return
       const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression, positionnels }) =>
-        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, fonctions: ici.fonctions, expression: sousExpression, powershell, positionnels }))
+        pipelinesDeJetonsAvecScripts(interne, profondeur + 1, scripts, { budget, affectations, bloc, hote: ici, fonctions: ici.fonctions, expression: sousExpression, powershell, positionnels }))
       for (const p of rendus) pipelines.push(p)
       deplies.set(j, rendus)
     }
@@ -1452,7 +1482,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
         // n'étant pas une commande.
         const argumentsDeLAppel = lireRedirections(segment, 1).arguments
         const corps = powershell ? lierArgumentsPowerShell(fonction, argumentsDeLAppel) : lierPositionnels(fonction.flux, argumentsDeLAppel)
-        for (const p of pipelinesDuFluxBorne(corps, profondeur + 1, { scripts, budget, affectations, bloc, deploiePar: lu, shell: ici, relu: powershell, powershell, boucle: lu.boucle })) pipelines.push(p)
+        for (const p of pipelinesDuFluxBorne(corps, profondeur + 1, scripts, { budget, affectations, bloc, deploiePar: lu, shell: ici, relu: powershell, powershell, boucle: lu.boucle })) pipelines.push(p)
         lu.jetons = [...redirectionsDuSegment(segment), ...fonction.redirections]
         lu.relus = lu.jetons
         lu.deploye = true
@@ -1470,11 +1500,11 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
           const heritees = SHELLS_IMPORTEURS.has(basenameExecutable(textes[0])) ? [...ici.fonctions].filter(([, f]) => f.exportee) : []
           const rattache = porteur?.memeShell ? { shell: ici } : { hote: ici, fonctions: heritees }
           const dialecte = porteur === null ? false : porteur.memeShell ? powershell : Boolean(ENROBEURS_ARGUMENT.get(basenameExecutable(textes[0]))?.hote)
-          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, deploiePar: lu, ...rattache, powershell: dialecte })) pipelines.push(p)
+          for (const p of pipelinesDeJetonsAvecScripts(inner, profondeur + 1, scripts, { budget, suite: suiteInterne, affectations, bloc, deploiePar: lu, ...rattache, powershell: dialecte })) pipelines.push(p)
         }
         const { corps } = lecture
         for (const c of corps) {
-          for (const p of pipelinesDuFlux(c.map(versFlux), profondeur, { scripts, budget, affectations, bloc: lu, shell: ici, relu: true, powershell, boucle: lu.boucle })) pipelines.push(p)
+          for (const p of pipelinesDuFlux(c.map(versFlux), profondeur, scripts, { budget, affectations, bloc: lu, shell: ici, relu: true, powershell, boucle: lu.boucle })) pipelines.push(p)
         }
         lu.deploye = inner !== null || corps.length > 0
       }
@@ -2089,4 +2119,4 @@ export function cibleDeLaCommande(command, cwd = process.cwd(), platform = proce
   return { dir: nomme.resolu, ignore: null }
 }
 
-export const CONTRATS_DE_DERIVATION = [{ fonction: pipelinesDeJetons, lectures: 'corpus' }]
+export const CONTRATS_DE_DERIVATION = [{ fonction: lireManifesteNpm, lectures: { chemin: 0 } }]

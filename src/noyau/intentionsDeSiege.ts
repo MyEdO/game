@@ -235,24 +235,37 @@ const _ouvertureTotale: Record<FluxMono, Ouverture> & Record<Exclude<FluxOuverts
 void _ouvertureTotale;
 type OuvreurParHote = { [K in FluxOuverts]: (typeof OUVERTURE_DES_FLUX)[K] extends { parHote: readonly (infer A)[] } ? A : never }[FluxOuverts];
 
-/** Sort d'une intention de siège : ignorée hors allowlist, refusée hors possession, sinon appliquée. */
+/** Issue du routage d'une intention de siège : ignorée hors allowlist, refusée hors possession, ou jouée par son action. */
 export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
 
 /**
  * Intention d'un SIÈGE appliquée dans l'état du propriétaire (spec coop §4bis, #1017). Ordre :
  *  1. allowlist `GUEST_INTENTS` : hors liste, rien, ni effet ni journal ;
- *  2. possession `intentAllowedFor` : refus au journal ;
+ *  2. possession `intentAllowedFor` : refus rendu au siège distant, ou au journal du siège local ;
  *  3. l'action AU NOM du siège (`withActingSeat`), seul canal du siège (`decidingSeat`) : les gardes « ce siège possède-t-il ce combattant ? »
  *     (`controlsCombatant`) jugent l'émetteur, et l'intention armée du propriétaire ne s'y lit pas
- *     (`localIntent.intentionDuProprietaire`) : seule compte l'intention jointe aux args, jugée chez le propriétaire.
+ *     (`localIntent.intentionDuProprietaire`) : seule compte l'intention jointe aux args, jugée chez le propriétaire ;
+ *     le premier refus dit pendant cet appel est rendu au siège distant.
  */
-export function appliquerLIntentionDUnSiege(get: Get, siege: number, action: string, args: readonly unknown[]): IssueDIntention {
+export function appliquerLIntentionDUnSiege(
+  get: Get, siege: number, action: string, args: readonly unknown[], rendreLeRefus?: (texte: string) => void,
+): IssueDIntention {
   if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';
-  if (!intentAllowedFor(get(), siege, action, [...args])) {
-    get().ecrireAuJournal(t('coop.intentRefused'));
+  const etat = get();
+  if (!intentAllowedFor(etat, siege, action, [...args])) {
+    const texte = t('coop.intentRefused');
+    if (siege === etat.net.mySeat) etat.ecrireAuJournal(texte);
+    else rendreLeRefus?.(texte);
     return 'refusee';
   }
-  const fn = (get() as unknown as Record<string, unknown>)[action];
-  if (typeof fn === 'function') withActingSeat(siege, () => (fn as (...a: readonly unknown[]) => void)(...args));
+  const fn = (etat as unknown as Record<string, unknown>)[action];
+  if (typeof fn === 'function') {
+    let refus: string | undefined;
+    withActingSeat(siege, () => (fn as (...a: readonly unknown[]) => void)(...args), {
+      get,
+      refuser: (texte) => { refus ??= texte; },
+    });
+    if (refus !== undefined) rendreLeRefus?.(refus);
+  }
   return 'appliquee';
 }

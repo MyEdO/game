@@ -45,7 +45,7 @@ const jet = (roll: number, target: number) => { const t = evaluateTest(roll, tar
 const TEST: TestNomme = { skill: { id: 'athletisme' }, difficulty: 'intermediaire', label: 'Course' };
 const COUP: AttackResult = {
   hit: true, attackerRoll: 21, netSL: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
-  attackerDetail: bd('Corps à corps', 21, 45), defenderDetail: bd('Esquive', 60, 40),
+  attackerDetail: bd('Corps à corps', 21, 45), defenderDetail: { ...bd('Esquive', 60, 40), mode: 'esquive' },
 };
 const ATTAQUE: PendingAttack = { attackerId: H.id, targetId: E.id, location: null, result: COUP };
 
@@ -211,7 +211,7 @@ function tableJetee(): CascadeStep {
 /** Le dé d'une ligne est tombé et se lit en entier : d100, cible, DR et verdict ; la ligne tirée d'une table ; le
  *  total d'un dé nu. */
 function ligneLue(l: LigneDeJet): boolean {
-  if (l.genre === 'test') return !!l.test && l.cible != null && !!l.jet && Number.isFinite(l.jet.d100) && Number.isFinite(l.jet.dr) && typeof l.jet.reussi === 'boolean';
+  if (l.genre === 'test') return !!l.test && l.etat === 'revele' && !!l.jet && Number.isFinite(l.jet.d100) && Number.isFinite(l.jet.dr) && l.jet.verdict === (l.jet.reussi ? 'reussite' : 'echec');
   if (l.genre === 'table') return !!l.table && !!l.jet && Number.isFinite(l.jet.d100) && !!l.jet.ligne;
   return !!l.de && !!l.jet && Number.isFinite(l.jet.total) && !!l.jet.lecture;
 }
@@ -267,7 +267,7 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
 
   it('lot d’étal : chaque dé du lot se lit avec sa valeur', () => {
     const s = { ...BASE, ...(FENETRES_A_JET.etalLot!.patch as Partial<Jeu>) } as Jeu;
-    expect(jetsEnVue(s)).toEqual([{ flux: 'etalLot', oppose: null, lignes: [{ genre: 'de', qui: null, de: 'Quantité', jet: { naturel: 4, total: 4, lecture: '4' } }] }]);
+    expect(jetsEnVue(s)).toMatchObject([{ flux: 'etalLot', sorte: 'de', oppose: null, lignes: [{ genre: 'de', etat: 'revele', qui: null, de: 'Quantité', jet: { naturel: 4, total: 4, lecture: '4' } }] }]);
   });
 
   it('un Test opposé dit la ligne gagnante et le DR net — égalité : aucune gagnante', () => {
@@ -276,13 +276,33 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
     const attaque = jetsEnVue({ ...BASE, ...ETAPES_HOTES.attaque.patch } as Jeu)[0];
     expect(attaque.oppose).toEqual({ gagnante: 0, drNet: 2 });
     expect(attaque.lignes.map((l) => l.qui)).toEqual([H.id, E.id]);
+    const preAttaque = jetsEnVue({ ...BASE, ...ETAPES_HOTES.attaque.patch, pendingAttack: { ...ATTAQUE, result: null } } as Jeu)[0];
+    expect(preAttaque.lignes[0].reference).not.toBeNull();
+    expect(attaque.lignes[0].reference).toEqual(preAttaque.lignes[0].reference);
+    expect(attaque.lignes[1].reference).toEqual({ genre: 'competence', id: 'esquive' });
+
+    const defense = { ...BASE, ...ETAPES_HOTES.defense.patch } as Jeu;
+    const preDefense = jetsEnVue({ ...defense, pendingDefense: { ...defense.pendingDefense!, def: null, result: null } })[0];
+    expect(preDefense.lignes.map((l) => l.reference)).toEqual(jetsEnVue(defense)[0].lignes.map((l) => l.reference));
+    expect(preDefense.lignes[1].reference).toEqual({ genre: 'competence', id: 'esquive' });
+  });
+
+  it('une réussite forcée de cascade porte son verdict propre sans inventer un gagnant par comparaison', () => {
+    const etape: CascadeStep = {
+      id: 'force', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance',
+      target: 45, base: 45, forcee: true, result: jet(1, 45),
+      meta: { opposed: { aT: tr(1, 90), attackerId: E.id, attackerName: fixtureText(E.label) } },
+    };
+    const [vue] = jetsEnVue({ ...BASE, pendingCascade: cascade(etape) });
+    expect(vue).toMatchObject({ sorte: 'oppose', oppose: null });
+    expect(vue.lignes[1]).toMatchObject({ etat: 'revele', jet: { verdict: 'reussite', forcee: true } });
   });
 
   it('le jet figé d’un Test opposé reste à lancer, sans gagnante ni DR net, tant que la réponse n’est pas jetée', () => {
     const s = { ...BASE, pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'jet', atk: tr(20, 50), def: null, result: null } } as Jeu;
-    expect(jetsEnVue(s)).toEqual([{ flux: 'auContact', oppose: null, lignes: [
-      { genre: 'test', qui: E.id, test: 'Corps à corps', cible: null, jet: null },
-      { genre: 'test', qui: H.id, test: 'Corps à corps', cible: null, jet: null },
+    expect(jetsEnVue(s)).toMatchObject([{ flux: 'auContact', sorte: 'oppose', oppose: null, lignes: [
+      { genre: 'test', qui: E.id, test: 'Corps à corps', cible: null, jet: null, etat: 'masque' },
+      { genre: 'test', qui: H.id, test: 'Corps à corps', cible: null, jet: null, etat: 'aJouer' },
     ] }]);
   });
 });
@@ -296,7 +316,7 @@ describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie'
       partie.envoyer({ type: 'jetLancer', args: ['cascade', 'sonne'] });
       partie.envoyer({ type: 'jetImposerLeResultat', args: ['cascade', 30, 'sonne'] });
       const { sl } = evaluateTest(30, 45);
-      expect(jetsEnVue(partie.etat())).toEqual([{ flux: 'cascade', oppose: null, lignes: [{ genre: 'test', qui: H.id, test: 'Résistance', cible: 45, jet: { d100: 30, dr: sl, reussi: true } }] }]);
+      expect(jetsEnVue(partie.etat())).toMatchObject([{ flux: 'cascade', sorte: 'simple', oppose: null, lignes: [{ genre: 'test', qui: H.id, test: 'Résistance', cible: 45, etat: 'revele', jet: { d100: 30, dr: sl, verdict: 'reussite' } }] }]);
     } finally {
       partie.fermer();
     }
@@ -309,7 +329,7 @@ describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie'
       expect(jetsEnVue(partie.etat())[0].lignes[0], 'avant le tirage : la table, à lancer').toMatchObject({ genre: 'table', jet: null });
       partie.envoyer({ type: 'jetLancer', args: ['cascadeTirage', 't'] });
       const r = partie.etat().pendingCascade!.participants[0].table!.result!;
-      expect(jetsEnVue(partie.etat())[0].lignes).toEqual([{ genre: 'table', qui: H.id, table: tableStepDef(tableId)!.label, jet: { d100: r.roll, effectif: r.die, ligne: r.lines[0] } }]);
+      expect(jetsEnVue(partie.etat())[0].lignes).toMatchObject([{ genre: 'table', qui: H.id, table: tableStepDef(tableId)!.label, etat: 'revele', reference: { genre: 'table', id: tableId }, jet: { d100: r.roll, effectif: r.die, ligne: r.lines[0] } }]);
     } finally {
       partie.fermer();
     }

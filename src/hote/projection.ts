@@ -125,7 +125,8 @@ export interface Projection {
    *  et l'id que ses gestes désignent (`pid`, `argumentsPosesDuGeste`) ; pour la cascade, son étape courante
    *  (`stepInteraction`, les clés d'un choix). */
   fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; gestes: GesteDuJeu[]; fermes: Record<string, string>; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
-  /** Les jets de la fenêtre qui tient la main (`jetsEnVue`), jetés ou à jeter, et le DR net d'un Test opposé tranché. */
+  /** Les jets de la fenêtre qui tient la main (`jetsEnVue`), avec leur état, les valeurs visibles au siège et
+   *  le DR net d'un Test opposé tranché et révélé. Les zones reprennent cette lecture. */
   jets: JetEnVue[];
   combat: null | {
     round: number;
@@ -290,6 +291,14 @@ export function casesAtteignables(etat: Jeu, monTour = etatDeLaBarre(etat).forme
     [...cases].map(([cle, cout]) => ({ zone, case: tileFromKey(cle), cout })).sort((a, b) => a.cout - b.cout || a.case.y - b.case.y || a.case.x - b.case.x));
 }
 
+/**
+ * @contrat Vue
+ * `projection.jets` porte les rangées de la fenêtre dans l'ordre de lecture. Chaque rangée donne son identifiant,
+ * sa référence connue, son état et les valeurs publiées pour le siège. Le verdict propre du Test et l'opposition
+ * tranchée sont des données distinctes. Les zones de l'écran reprennent cette lecture pour présenter les jets.
+ * Un résultat masqué ne se publie pas par une autre zone ni par les réglages de ce jet. La valeur du marchand
+ * reste cachée après révélation de son dé. La présentation filtre les données à partir du calendrier du noyau.
+ */
 /** La projection de l'état après `pas` gestes, sur un journal de `journal` lignes, chaque liste à ses `bornes`. */
 export function projeter(etat: Jeu, pas: number, journal: number, bornes: BornesDeLaProjection): Projection {
   const b = etat.battle;
@@ -302,12 +311,18 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
   const engages = tous.filter((c) => c.id === actif?.id || c.engage);
   const autres = tous.filter((c) => c.id !== actif?.id && !c.engage);
   const mvt = b && actif ? mouvementDuTour(b, actif) : null;
+  const jets = jetsEnVue(etat);
+  const incantationMasquee = jets.some((j) => j.flux === 'incantation' && j.lignes.some((l) => l.etat === 'masque'));
+  const fenetreProjetee = fenetre && {
+    ...fenetre,
+    gestes: fenetre.gestes.filter((g) => !incantationMasquee || g.flux !== 'incantation'),
+  };
   return {
     pas,
     ecran: etat.screen,
     scene: etat.scene ? { id: etat.scene.id, nom: etat.scene.label } : null,
-    fenetre: fenetre ? { cle: fenetre.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes: [...fenetre.gestes], fermes: fermesDe(etat, fenetre), pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
-    jets: jetsEnVue(etat),
+    fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(fenetreProjetee) } : null,
+    jets,
     combat: b
       ? {
           round: b.round,

@@ -11,13 +11,14 @@ import { parUnitesDeCode, listerArbre, listerDossier } from '../guards/lib/liste
 import { estSuiteVitest, SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
 import { cibleProduite, generateurDe } from './build-all.mjs'
-import { ast, typescript } from '../guards/lib/dialecte.mjs'
+import { ast, EXTENSIONS_DE_SCRIPT, typescript } from '../guards/lib/dialecte.mjs'
 import { RACINES_PRESENTES } from '../guards/lib/racinesPresentes.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
 
 const DOCS_DIR = 'docs'
 const SRC_DIR = 'src'
 const SCRIPTS_DIR = 'scripts'
-const EXTS_SRC = ['.ts', '.tsx', '.js', '.mjs', '.mts', '.json', '.css']
+const EXTS_SRC = [...EXTENSIONS_DE_SCRIPT, '.json', '.css']
 
 /** Fichiers de `dir` portant une des extensions, en ORDRE TOTAL (hors `node_modules`). */
 function fichiersSources(dir, exts) {
@@ -118,11 +119,11 @@ async function principal() {
   const problems = [] // { file, line, kind, tok }
 
   const hooks = ['scripts/git-hooks', 'scripts/hooks'].flatMap((dir) =>
-    listerArbre(dir, { filtre: (rel) => rel.endsWith('.mjs') && !rel.endsWith('.test.mjs') }).map((rel) => `${dir}/${rel}`))
+    listerArbre(dir, { filtre: (rel) => estModule(rel) && !estSuiteVitest(rel) }).map((rel) => `${dir}/${rel}`))
   const fichiersHooks = new Set(hooks)
   const raisonsDesHooks = new Map()
 
-  for (const file of [...fichiersSources(SRC_DIR, ['.ts', '.tsx', '.js', '.mjs', '.mts']), ...fichiersSources(SCRIPTS_DIR, ['.ts', '.tsx', '.js', '.mjs', '.mts'])]) {
+  for (const file of [SRC_DIR, SCRIPTS_DIR].flatMap((dir) => fichiersSources(dir, EXTENSIONS_DE_SCRIPT))) {
     const text = readFileSync(file, 'utf8')
     if (!aJugerParAst(text)) continue
     const sf = ast({ rel: file, text })
@@ -197,7 +198,7 @@ async function principal() {
   if (existsSync(MANIFESTE_PRIMITIVES)) {
     const brut = readFileSync(MANIFESTE_PRIMITIVES, 'utf8')
     const EXPORTED_SYMS = new Set()
-    for (const f of [SRC_DIR, SCRIPTS_DIR].flatMap((d) => fichiersSources(d, ['.ts', '.tsx', '.mjs', '.mts']))) {
+    for (const f of [SRC_DIR, SCRIPTS_DIR].flatMap((d) => fichiersSources(d, EXTENSIONS_DE_SCRIPT))) {
       const src = readFileSync(f, 'utf8')
       for (const m of src.matchAll(/export\s+(?:default\s+)?(?:async\s+)?(?:function\s*\*\s*|(?:function|class|interface|type|enum)\s+)([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
       for (const m of src.matchAll(/export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
@@ -249,7 +250,7 @@ async function principal() {
 
       // Faux positifs à écarter : extensions de fichier (`CLAUDE.md`…) et motifs jocker cités comme
       // ANTI-exemples exprès NON catalogués (`.voyage-*`, `.char-card*`…, cf. prose de la section).
-      const FILE_EXTS = new Set(['md', 'ts', 'tsx', 'js', 'jsx', 'mjs', 'mts', 'cjs', 'json', 'css'])
+      const FILE_EXTS = new Set([...EXTS_SRC, '.md'])
       const seen = new Set()
       const codeRe2 = /`([^`\n]+)`/g
       let mm
@@ -257,7 +258,7 @@ async function principal() {
         for (const c of mm[1].matchAll(/\.[A-Za-z][\w-]*/g)) {
           const cls = c[0]
           if (mm[1][c.index + cls.length] === '*') continue // motif jocker anti-exemple (`.voyage-*`)
-          if (seen.has(cls) || FILE_EXTS.has(cls.slice(1))) continue
+          if (seen.has(cls) || FILE_EXTS.has(cls)) continue
           seen.add(cls)
           const rx = new RegExp('\\' + cls + '(?![\\w-])')
           if (!rx.test(CSS_TEXT)) {
@@ -384,7 +385,7 @@ async function principal() {
   // tests-scanners qu'il joue ou exclut, la source d'une whitelist) ou en CHAÎNE ; aucune garde ne
   // confrontait ces noms au disque, et un renommage les laissait mentir en silence. Même résolution
   // que le sens 1 (fichier, dossier, glob, métavariable `<…>`).
-  // PÉRIMÈTRE dit : les hooks NON-test. Un `*.test.mjs` de hook monte des dépôts JETABLES et y cite
+  // PÉRIMÈTRE dit : les hooks NON-test. Une suite de test de hook monte des dépôts JETABLES et y cite
   // des chemins qui n'ont pas vocation à exister ici (mesuré : 116 des 124 chemins morts du périmètre
   // large sont des fixtures de test) — même raison que l'exclusion `docs/plans/` du sens 5.
   /** Un jeton porteur d'un JOKER (`*`, `?`, `[`) est un MOTIF de prose (`scripts/_tmp-qc-*.mts`,

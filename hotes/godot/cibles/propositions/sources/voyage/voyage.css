@@ -1,11 +1,10 @@
 /* Voyage (#3935, #4411) : les pièces de la famille au-dessus de la feuille commune ; leur place vit dans `../rendu.css`. */
-#titre.temps .fond{gap:12px;padding:0 12px}
 #titre.temps .n{font-size:29px;line-height:42px;margin:-9px 0 -9px}
 #titre.temps .m{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13.5px;color:#e6dabd}
 #trajet .fond{overflow:hidden}
 #trajet .fond>svg{position:absolute;inset:0;width:100%;height:100%}
 #frise{position:absolute}
-#frise .reste{position:absolute;right:10px;top:-14px;font-size:14px;color:#f0e2c2;white-space:nowrap}
+#frise .reste{position:absolute;right:10px;top:-14px;width:300px;text-align:right;font-size:14px;color:#f0e2c2;white-space:nowrap}
 #frise .reste b{font-size:22px}
 #titre.temps~#recit{top:144px}
 .ligne{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;line-height:23px;color:#eadfc4}
@@ -24,12 +23,9 @@
 .heros .attend.sombre{color:var(--or);background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #150d04,0 0 0 2px rgba(226,192,106,.55),0 2px 4px rgba(0,0,0,.6)}
 /* panneau de bord, à droite */
 .bord{position:absolute}
-.bord>.fond{padding:24px 16px 14px}
 .bord .t{font-size:12.5px;color:var(--or);margin-bottom:5px}
 /* le lieu d'arrivée : le récit du trajet */
 #recit.lieu p{font-size:16px;line-height:23px}
-#navire .jauge,#bord .jauge{margin:1px 0 7px}
-#navire>.fond{display:flex;flex-direction:column}
 /* la cadence au pied du panneau : ses plaques côte à côte */
 .cadence{flex:none;margin-top:4px}
 .cadence>div{display:flex;gap:8px;margin-top:3px}
@@ -59,7 +55,7 @@
 .stations .plaque>div{font-size:13px;padding:0 6px}
 #station p{margin:9px 2px 0;font-style:italic;font-size:13px;line-height:17px;color:#e6dabd}
 /* les Activités de la semaine en mer : les réglages de la semaine et sa validation */
-#bord.semaine .reglage{display:flex;justify-content:space-between;align-items:center;margin:2px 0 4px;font-size:14px;color:#eadfc4}
+#bord.semaine .reglage{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#eadfc4}
 #bord.semaine .moins-plus b{min-width:56px;text-align:center;font-size:13.5px;color:#f4e8ca}
-#bord.semaine .plaque{margin-top:4px}
 .poste.ferme .et .bulle-refus{z-index:3;font-weight:400;white-space:normal;width:310px;margin:0;font-size:13px;line-height:17px;color:#2a1d12;text-align:center}
+.etat-du-navire{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}

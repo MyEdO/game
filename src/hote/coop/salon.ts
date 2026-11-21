@@ -13,10 +13,13 @@
  * stockage du jeton et l'abonnement aux écritures de l'état. Le salon lit l'état par `get` et l'écrit par la machinerie
  * du noyau (`poserLeReseau`, `ecrireAuJournal`, `transmettreLesIntentions`, `restaurerLesIntentions`), chez l'hôte par
  * le rappel `appliquer` que reçoit `heberger` et, chez l'invité, par le rappel `appliquerSnapshot` que reçoit `rejoindre`.
+ * Le refus rendu par `appliquer` est livré au rappel `refuserLIntention` de l'invité auteur.
  * Une ouverture à la fois (`heberger` avant sa session posée, `rejoindre` avant `seated`), que `quitter` achève.
  */
-import { buildDeLaCoop, fermerLeSiege, initialNet, instantaneDeLaCoop, type Get } from '../../noyau/index';
+import { buildDeLaCoop, fermerLeSiege, GUEST_INTENTS, initialNet, instantaneDeLaCoop, withActingSeat, type Get } from '../../noyau/index';
 import { t } from '../../i18n';
+import { gesteDuVerbe, SANS_PISTE, type Geste } from '../geste';
+import { ErreurDeGeste } from '../partie';
 import { RoomGuest, RoomHost, type PortsDuRelais } from './relay';
 import { GuestSession, HostSession } from './session';
 
@@ -62,8 +65,8 @@ function siegeFerme(get: Get, seat: number): void {
   get().ecrireAuJournal(t('coop.seatClosed'));
 }
 
-/** L'intention d'un invité, chez l'hôte : `action(...args)` au nom de `siege`. */
-export type AppliquerLIntention = (action: string, args: unknown[], siege: number) => void;
+/** L'intention d'un invité, chez l'hôte : `action(...args)` au nom de `siege`, dont le refus éventuel lui revient. */
+export type AppliquerLIntention = (action: string, args: unknown[], siege: number) => string | void;
 
 /** Une ouverture en vol ; `finir` la clôt une fois, par une seule voie, et rend si c'était la sienne. */
 interface Ouverture {
@@ -74,12 +77,12 @@ interface Ouverture {
 /** Un salon : au plus une session à la fois, hôte ou invité. Ses objets réseau vivants (sessions, sockets) restent
  *  dans sa fermeture, jamais dans l'état (non sérialisables, jamais dans les instantanés). */
 export interface Salon {
-  /** Devient HÔTE : crée la room sur le Worker → code court, attend les invités, applique leurs intentions par
-   *  `appliquer`. Résout null s'il héberge, sinon le message d'erreur ; une levée en chemin va aussi à `panne`. */
+  /** Devient HÔTE : crée la room sur le Worker → code court, attend les invités et lit leurs arguments par
+   *  `gesteDuVerbe` avant `appliquer`. Résout null s'il héberge, sinon le message d'erreur ; une levée en chemin va aussi à `panne`. */
   heberger(get: Get, appliquer: AppliquerLIntention, name: string): Promise<string | null>;
   /** INVITÉ : rejoint une room par son code. Résout null si connecté, sinon le message d'erreur ; une levée en chemin
    *  va aussi à `panne`. Un token stocké (reload) reprend le MÊME siège tant que la room vit. */
-  rejoindre(get: Get, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null>;
+  rejoindre(get: Get, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string, refuserLIntention?: (texte: string) => void): Promise<string | null>;
   /** Quitte la session (les deux rôles) — retour au mode local, actions restaurées. Une ouverture en vol se résout
    *  dans l'appel (`coop.ouvertureAbandonnee`). */
   quitter(get: Get): void;
@@ -197,7 +200,17 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
     roomHost = rh;
     host = new HostSession({
       build: buildDeLaCoop(),
-      applyIntent: appliquer,
+      applyIntent: (action, args, siege) => {
+        if (!GUEST_INTENTS.has(action)) return;
+        let geste: Geste;
+        try {
+          geste = withActingSeat(siege, () => gesteDuVerbe(get(), { type: action, args }, SANS_PISTE));
+        } catch (erreur) {
+          if (erreur instanceof ErreurDeGeste && erreur.categorie === 'validation') return t('coop.intentRefused');
+          throw erreur;
+        }
+        return appliquer(geste.type, geste.args, siege);
+      },
       getSnapshot: () => instantaneDeLaCoop(get()),
       onSeatClosed: (seat) => siegeFerme(get, seat),
     });
@@ -227,7 +240,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
     desabonner = ports.abonner(diffuser);
   }
 
-  function rejoindre(get: Get, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null> {
+  function rejoindre(get: Get, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string, refuserLIntention?: (texte: string) => void): Promise<string | null> {
     const refus = refusDOuvrir(get, name);
     if (refus) return Promise.resolve(refus);
     const code = codeRaw.trim().toUpperCase();
@@ -265,6 +278,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
           build: buildDeLaCoop(),
           label: name,
           applySnapshot: appliquerSnapshot,
+          onIntentRefused: refuserLIntention,
           // Motif typé de l'hôte (mismatch de protocole) : canal du journal réseau, distinct du onClose générique
           // qui suit juste après (silencieux, cf. session.ts).
           onProtocolMismatch: (expected, got) => get().ecrireAuJournal(t('coop.protocolMismatch', { got, expected })),

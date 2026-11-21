@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
+import { estModule } from '../../../../scripts/guards/lib/importGraph.mjs';
 import { z } from 'zod';
 import merchantsJson from '../../merchants.json';
 import talentsJson from '../../talents.json';
@@ -556,10 +557,10 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
 });
 
 describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)', () => {
-  it('tout fichier de `defs/` se termine par une newline', () => {
+  it('tout script de `defs/` se termine par une newline', () => {
     const dossier = new URL('../defs/', import.meta.url);
     const fautifs = listerDossier(fileURLToPath(dossier))
-      .filter((f) => f.endsWith('.ts'))
+      .filter(estModule)
       .filter((f) => !readFileSync(new URL(f, dossier), 'utf8').endsWith('\n'));
     expect(fautifs).toEqual([]);
   });

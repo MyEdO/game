@@ -23,7 +23,7 @@ describe('combatantSections — une arme se lie au Codex par son id de catalogue
 
   it.each(['baliste', 'baliste-ade2'] as const)('%s : la baliste servie ouvre sa propre fiche d’engin', (id) => {
     const chef = herosDeScenario(idsDeTest, 'soldat');
-    const poste = hydratePoste({ trappingId: id, crewIds: [chef.id] }, idsDeTest('it'));
+    const poste = hydratePoste({ engin: { id: id }, crewIds: [chef.id] }, idsDeTest('it'));
     const w = mannedPosteWeapon(chef, poste)!;
     expect(w.trappingId).toBe(id);
     const [row] = rangeesArmes([w]);

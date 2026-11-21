@@ -70,6 +70,8 @@ import {
   aretesDeLaScene,
   cotesDeMarchesDeLaCouche,
   cotesDeMarchesDeLaScene,
+  faitieresDeLaScene,
+  type Faitiere,
   type AreteDessinee,
   type CoteDeMarches,
   type Combatant,
@@ -573,8 +575,7 @@ export interface VueDuPont {
  * Limites :
  * - ce qu'un appel en erreur avait produit sort à la `Suite` suivante, lu sur l'état de cette `Suite` : ses effets
  *   s'y placent, son point de reprise s'y juge (`pointDeRepriseAGarder`), un héros neuf demandé y ouvre la création
- *   par-dessus un panneau ouvert entre-temps, la ligne et le son d'un geste refusé à un siège sortent avec une `Suite`
- *   sans rapport ;
+ *   par-dessus un panneau ouvert entre-temps et le son d'un geste refusé à un siège sort avec une `Suite` sans rapport ;
  * - un jeton programmé par un appel en erreur attend la `Suite` suivante ;
  * - une réponse `interne` levée pendant la construction d'une `Suite` perd ce que cette `Suite` devait porter, jetons
  *   numérotés compris, restes de la file compris ; un reste dont le rendu lève fait donc répondre `interne` à l'appel
@@ -890,7 +891,21 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   };
   reposerLesReglages();
   /** Une partie que le pont tient (`tenir`) ; `miroir` : celle d'un invité assis, reflet de la partie de l'hôte. */
-  type Tenue = PartieAuGroupe & { file: ResultatDeLAppel[]; aDire: boolean; miroir: boolean; graine: number; pas: number; lignes: number; jour: number | null; panneau: PanneauDeLHote; roster: RosterMontre; brouillons: number; regard: Regard };
+  type Tenue = PartieAuGroupe & {
+    file: ResultatDeLAppel[];
+    refusRecus: string[];
+    refusPrioritaire: boolean;
+    aDire: boolean;
+    miroir: boolean;
+    graine: number;
+    pas: number;
+    lignes: number;
+    jour: number | null;
+    panneau: PanneauDeLHote;
+    roster: RosterMontre;
+    brouillons: number;
+    regard: Regard;
+  };
   let ouverte: Tenue | null = null;
   /** La partie que le pont tient pendant qu'il rejoint un salon, avant que son joueur soit assis (méthode `salon`). */
   let jonction: Tenue | null = null;
@@ -1150,6 +1165,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     o.jour = jour;
     const rendue = { vue: vueDe(o), programmes, journal, zones, effets: effetsDeLAppel(o.partie.etat(), evenements) };
     o.aDire = false;
+    o.refusPrioritaire = o.refusRecus.length > 0;
     return rendue;
   };
 
@@ -1217,7 +1233,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return resultat;
     };
     const jetons = { ...o.jetons, reprendre: (id: number) => verser(o.jetons.reprendre(id)) };
-    const tenue: Tenue = { partie: enFile(o.partie, verser), jetons, file, aDire: false, miroir: false, graine, pas: 0, lignes: 0, jour: null, panneau: null, roster: SANS_ROSTER, brouillons: 0, regard: 'tactique' };
+    const tenue: Tenue = {
+      partie: enFile(o.partie, verser), jetons, file, refusRecus: [], refusPrioritaire: false, aDire: false, miroir: false,
+      graine, pas: 0, lignes: 0, jour: null, panneau: null, roster: SANS_ROSTER, brouillons: 0, regard: 'tactique',
+    };
     tenue.partie.abonner(() => { tenue.aDire = true; });
     return relireLeRoster(tenue);
   };
@@ -1535,12 +1554,17 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * rampe ; l'hôte pose chaque pièce au nœud `<pièce>--<position>` de son kit s'il en est un, sinon `<pièce>` ;
      * comme une arête, les cases qu'il
      * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
-     * son pied, la cote de son milieu, et le bloc de sa case
+     * son pied, la cote de son milieu, et le bloc de sa case.
+     * `{ faitieres }` : `Faitiere[]` (`faitieresDeLaScene`), vides sans scène, sous la même clé de relecture
      */
-    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[] } {
+    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; faitieres: Faitiere[] } {
       entreeDe('aretes', json, []);
       const scene = demarree().partie.etat().scene;
-      return { aretes: scene ? aretesDeLaScene(scene) : [], cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [] };
+      return {
+        aretes: scene ? aretesDeLaScene(scene) : [],
+        cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [],
+        faitieres: scene ? faitieresDeLaScene(scene) : [],
+      };
     },
     /**
      * un geste : `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue ; une offre se
@@ -1783,7 +1807,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const definition = e.definition as string;
       const fiche = ficheDEntite({
         id: 'atelier', kind: 'personnage', ...(pieces.includes(definition) ? { engin: { id: definition } } : { vehicule: { id: definition } }), pos: { x: 0, y: 0 }, appearance,
-        postes: (postes as { definition: string; bord: FireArc }[]).map(({ definition, bord }) => ({ trappingId: definition, side: bord })),
+        postes: (postes as { definition: string; bord: FireArc }[]).map(({ definition, bord }) => ({ engin: { id: definition }, side: bord })),
         upgrades: (ameliorations as string[]).map((id) => ({ id })),
       }, () => undefined);
       const vehicule = vehiculeDuCombattant(fiche, undefined)!;
@@ -1880,7 +1904,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         const j = (jonction = tenir(ouvrirAuGroupe(entrees, persisterLeHeros, premierJeton), entrees.graine));
         const enCours: OuvertureDuSalon = { enCours: 'rejoindre' };
         poserLOuverture(enCours);
-        void leSalon.rejoindre(j.partie.etat, (data) => { j.partie.recevoir(data); }, geste.code, geste.nom).then((issue) => {
+        void leSalon.rejoindre(
+          j.partie.etat, (data) => { j.partie.recevoir(data); }, geste.code, geste.nom, (texte) => { j.refusRecus.push(texte); },
+        ).then((issue) => {
           if (ouverture !== enCours) return;
           poserLOuverture(null);
           if (issue === null) {
@@ -1911,7 +1937,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       } else {
         const enCours: OuvertureDuSalon = { enCours: 'heberger' };
         poserLOuverture(enCours);
-        void leSalon.heberger(o.partie.etat, (action, args, siege) => { o.partie.envoyer({ type: action, args, siege } as Intention); }, geste.nom).then((issue) => {
+        void leSalon.heberger(
+          o.partie.etat, (action, args, siege) => o.partie.envoyer({ type: action, args, siege } as Intention).refus, geste.nom,
+        ).then((issue) => {
           if (ouverture === enCours) poserLOuverture(issue === null ? null : { echec: issue });
         });
       }
@@ -1924,8 +1952,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * précédent `nouvelles` hors de `quitter` : les lignes du journal (section « Suite ») que chacun n'avait pas dites,
      * dont la raison de sa fin, ajoutées dans l'ordre des fins ; sinon une `Suite` quand la partie ouverte a quelque
      * chose à dire depuis la précédente : un résultat à sa file, ce que le réseau a écrit hors appel (relevé), une
-     * écriture de son état sans événement ni ligne (une présence), l'ouverture du salon posée ; sinon
-     * `{ rien: true }`, et sans partie ouverte. Godot l'appelle sur la minuterie du panneau du salon, tant que les
+     * écriture de son état sans événement ni ligne (une présence), l'ouverture du salon posée. Un refus `regle`
+     * adressé par l'hôte à cet invité se dit une fois et dans son ordre d'arrivée. Quand les deux attendent, une
+     * `Suite` passe d'abord, puis le refus à la relève suivante, même si un nouvel instantané est arrivé.
+     * Sinon `{ rien: true }`, comme sans partie ouverte. Godot l'appelle sur la minuterie du panneau du salon, tant que les
      * zones de `salon` offrent « Quitter le salon », et après chaque geste de `salon`.
      */
     nouvelles(json) {
@@ -1938,7 +1968,13 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       if (!ouverte) return { rien: true };
       const o = ouverte;
       o.partie.relever();
-      return o.aDire || o.file.length ? suite(o) : { rien: true };
+      if (!o.refusPrioritaire && (o.aDire || o.file.length)) return suite(o);
+      const refus = o.refusRecus.shift();
+      if (refus !== undefined) {
+        o.refusPrioritaire = false;
+        throw new ErreurDeGeste('regle', refus);
+      }
+      return { rien: true };
     },
     /**
      * aucune
@@ -1956,10 +1992,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
      * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, cotesDeMarches, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
+     * @returns `{ monde, aretes, cotesDeMarches, faitieres, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
      * d'échantillon que le noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie
      * (`echantillonDessine`, surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son
-     * plateau au regard `immersion` et ses côtés de marches (`aretes`, section « Vue »), ses nappes de toit, ses
+     * plateau au regard `immersion`, ses côtés de marches et ses faîtières (`aretes`, section « Vue »), ses nappes de toit, ses
      * couronnes, les clés des couronnes que sa brèche abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
      * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
      * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme

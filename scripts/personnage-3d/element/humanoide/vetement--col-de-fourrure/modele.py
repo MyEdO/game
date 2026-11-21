@@ -10,12 +10,11 @@ entre le col et le bord (`GONFLEMENT`), en touffes (`TOUFFES`). Double nappe, po
 reprises de la bure et du corps. Toute cote vient de `donnees.py`.
 """
 import math
-import random
 
 import numpy as np
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
+from maille import tirage
 from tissu import Maillage, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
 
 
@@ -24,7 +23,8 @@ def construire(D, materiaux, b):
     b.exiger(zones_des_cles)
     publies = [b.matieres_publiees(id_, D['MATIERES'][nom]) for nom, id_ in D['CONTOURNE'].items()]
     P, T, W = joindre_les_surfaces(publies + [b.corps(z) for z in D['ZONES_DU_CORPS']])
-    arbre = BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
+    porteur = porteur_de(P, T, W)
+    arbre = porteur['arbre']
 
     def vise(depart, d, portee, pas, jeu):
         """Le point le plus extérieur de la demi-droite (`depart`, `d`), sous `portee`, au `jeu` de la nappe intérieure aux
@@ -55,7 +55,7 @@ def construire(D, materiaux, b):
     C = np.array(b.tete(D['CENTRE']['os'])) + np.array([0.0, D['CENTRE']['dy'], 0.0])
     C[2] = D['CENTRE']['z']
     meches = lambeaux(D['LAMBEAUX'], m)
-    touffes = random.Random(sum(ord(x) * (i + 1) for i, x in enumerate(D['TOUFFES']['graine'])))
+    touffes = tirage(D['TOUFFES']['graine'])
     colonnes = []
     for j, psi in enumerate(psis):
         # Le profil de la colonne : le col puis une visée par pas d'élévation jusqu'au bord ; les rangs s'y posent à
@@ -85,7 +85,6 @@ def construire(D, materiaux, b):
     for A, B in zip(lignes, lignes[1:]):
         M.bande(A, B, C)
     X, orientes, normales = M.orienter()
-    porteur = porteur_de(P, T, W)
     Wx = lisser(np.array([emprunter(p, porteur)[0] for p in X]), voisinage(orientes, len(X)), D['LISSAGE_POIDS'])
     piece = b.nappe('fourrure', X, normales, Wx, orientes, materiaux['fourrure'], D['EPAISSEUR'])
     b.transferer(piece, zones_des_cles, masques=[([True] * len(piece.data.vertices), D['ZONES_DU_CORPS'],

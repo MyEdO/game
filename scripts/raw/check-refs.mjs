@@ -23,9 +23,11 @@ export const RAWDIR = 'docs/raw'
 // morte, qu'elle soit lue dans une fiche, un catalogue, une page d'auteur ou une épreuve datée.
 export const CLASSES = ['fiche', 'catalogue', 'auteur', 'epreuve']
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'dead-refs-stock.json')
-// Sites morts observés → sites du stock : la FICHE où la réf est lue (chemin depuis la racine du
-// dépôt, c'est lui que la porte de plage reconnaît) et la réf citée, borne HAUTE comprise.
-export const sitesMorts = (dead, rawDir = RAWDIR) => dead.map((d) => ({ file: `${rawDir}/${d.doc}`, ref: `${d.ref} l.${d.hi}` }))
+/** Les sites nomment la fiche depuis la racine du dépôt et la réf citée, borne haute comprise.
+ * @param {readonly (import('../guards/lib/stock.mjs').Site & { hi: number })[]} dead
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
+ */
+export const sitesMorts = (dead) => dead.map((d) => ({ fichier: d.fichier, ref: `${d.ref} l.${d.hi}` }))
 
 // Réfs `<ABRÉV> NN l.X…` d'une ligne, tous livres — génère `{ abbr, nn, hi }` (borne haute de la
 // plage dépliée par `span`). Graphie UNIQUE `refRe` (_lib.mjs).
@@ -47,7 +49,7 @@ function lineCount(path) {
   return lineCountCache.get(path)
 }
 
-/** Parcourt `rawDir` (docs/raw par défaut) et retourne les réfs mortes : `{ doc, row, ref, hi, chapterLines, file }`. */
+/** Parcourt `rawDir` (docs/raw par défaut) et retourne les réfs mortes : `{ fichier, row, ref, hi, chapterLines, file }`. */
 export function scanDeadRefs(rawDir = RAWDIR, classes = CLASSES, catalogues) {
   const dead = []
   for (const { relatif: doc, texte } of pagesDeLAtlasRendues(rawDir, { classes }, catalogues)) {
@@ -57,7 +59,7 @@ export function scanDeadRefs(rawDir = RAWDIR, classes = CLASSES, catalogues) {
         const cf = chapterFile(abbr, nn)
         if (!cf) continue // livre/chapitre introuvable : hors sujet (Sens A de reconcile.mjs)
         const chapterLines = lineCount(cf.path)
-        if (hi > chapterLines) dead.push({ doc, row: i + 1, ref: `${abbr} ${Number(nn)}`, hi, chapterLines, file: cf.file })
+        if (hi > chapterLines) dead.push({ fichier: `${rawDir}/${doc}`, row: i + 1, ref: `${abbr} ${Number(nn)}`, hi, chapterLines, file: cf.file })
       }
     })
   }
@@ -73,7 +75,9 @@ const QUOI =
   '`npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-refs.mjs`, et un solde total le retire.'
 
 /** La RÉGÉNÉRATION du stock des réfs mortes (`RegenerationDeStock`, `stockDeSites.mjs`), sur des réfs
- *  mortes (par défaut, celles de l'Atlas). */
+ *  mortes (par défaut, celles de l'Atlas).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (dead = scanDeadRefs()) => [{
   chemin: STOCK_PATH,
   politique: SOUS_LOT,
@@ -102,7 +106,7 @@ function main() {
     return
   }
   console.log('Détail (fichier:ligne — réf morte, le chapitre a N lignes) :')
-  for (const d of dead) console.log(`docs/raw/${d.doc}:${d.row} — ${d.ref} l.${d.hi} (${d.file} a ${d.chapterLines} lignes)`)
+  for (const d of dead) console.log(`${d.fichier}:${d.row} — ${d.ref} l.${d.hi} (${d.file} a ${d.chapterLines} lignes)`)
   process.exitCode = 1
 }
 

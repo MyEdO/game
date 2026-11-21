@@ -4,12 +4,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
 import { cheminAbsent, correspondGlob, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
-import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { canoniser, canoniserParDossier, dansLaMesure, memoireDeCanonisation, projeterListingMesure, relatifEntreCheminsCanoniques } from './chemin-mesure.mjs'
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { sousLEpoque } from './ecrivain-derives.mjs'
-import { clotureDImports } from '../../guards/lib/importGraph.mjs'
+import { clotureDImports, estModule } from '../../guards/lib/importGraph.mjs'
+import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs'
 
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
@@ -20,7 +21,7 @@ const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
 const OUTILS = ['package.json', 'package-lock.json']
 const PRECHARGES = ['scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
 const LIB_DES_DOCS = 'scripts/docs/lib'
-const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => rel.endsWith('.mjs') && !rel.endsWith('.test.mjs') })
+const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => estModule(rel) && !estSuiteVitest(rel) })
   .map((rel) => `${LIB_DES_DOCS}/${rel}`)
 
 /** #2603 */
@@ -34,9 +35,9 @@ function mesurerOutillage(ancien, memoire) {
   return [...fichiersDOutillage()].sort().map((rel) => [rel, hashFichier(RACINE_OUTILLAGE, rel, undefined, memoire)])
 }
 
-/** #2603 — la mémoire d'UNE vue : `canoniseurParDossier` et chemins sous la racine. */
+/** #2603 — la mémoire d'UNE vue : `canoniserParDossier` et chemins sous la racine. */
 function memoireDeVue() {
-  return { canon: canoniseurParDossier(), chemins: new Map() }
+  return { canon: memoireDeCanonisation(), chemins: new Map() }
 }
 
 export function nouvelleVue(racine, options, preuve = chargerPreuve(racine), mesures = lireMesure(racine, options, true), outillagePrecedent, perimetre = perimetreDeMesure(racine)) {
@@ -110,8 +111,9 @@ function cheminSous(racine, relatif, memoire, lien) {
   const connu = memoire?.chemins.get(cle)
   if (connu !== undefined) return connu
   const absolu = cheminLexical(racine, relatif)
-  const canonRacine = memoire ? memoire.canon(racine) : canoniser(racine)
-  if (relatifSousRacine(canonRacine, absolu, memoire && ((chemin) => memoire.canon(chemin, lien))) !== relatif) throw new Error('chemin de preuve hors racine')
+  const canonRacine = memoire ? canoniserParDossier(racine, memoire.canon) : canoniser(racine)
+  const canonAbsolu = memoire ? canoniserParDossier(absolu, memoire.canon, lien) : canoniser(absolu)
+  if (relatifEntreCheminsCanoniques(canonRacine, canonAbsolu) !== relatif) throw new Error('chemin de preuve hors racine')
   memoire?.chemins.set(cle, absolu)
   return absolu
 }

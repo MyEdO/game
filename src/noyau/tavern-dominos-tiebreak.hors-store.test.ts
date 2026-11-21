@@ -136,7 +136,10 @@ describe('Les dominos — NADJ 16 l.105', () => {
   /** Toute entrée `opposed` ouvre la MÊME séquence, paramétrée par sa SEULE donnée. */
   it('ZÉRO CÉRÉMONIE : toute entrée `opposed` du catalogue ouvre la séquence, paramétrée par sa SEULE donnée', () => {
     const a = heros();
+    const camps = 2;
+    const phasesParTourCombine = 2;
     for (const jeu of TAVERN_GAMES.filter((g) => g.mode === 'oppose')) {
+      const borneCombinee = (jeu.combined?.tours ?? 0) * phasesParTourCombine * (1 + camps);
       banc.setState({ party: [a], sequence: null, pendingCascade: null, tavernGames: null });
       get().jouerALaTaverne(a.id, { gameId: jeu.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, ...(jeu.team ? { allyProfil: 'elfe-haut-et-sylvain' } : {}) });
       const seq = get().sequence;
@@ -151,9 +154,10 @@ describe('Les dominos — NADJ 16 l.105', () => {
         ...(jeu.table ? { table: jeu.table } : {}),
         ...(jeu.drBonus ? { drBonus: jeu.drBonus } : {}),
         ...(jeu.avantage ? { avantage: true } : {}),
-        ...(jeu.volley ? { volley: jeu.volley, maxRounds: sequenceVolleyRounds(jeu.volley, 2) } : {}),
+        ...(jeu.volley ? { volley: jeu.volley, maxRounds: sequenceVolleyRounds(jeu.volley, camps) } : {}),
         ...(jeu.sides ? { sides: jeu.sides } : {}),
         ...(jeu.combined ? { combined: jeu.combined } : {}),
+        ...(!jeu.volley && borneCombinee > 0 ? { maxRounds: borneCombinee } : {}),
         ...(jeu.throwerPenalty ? { throwerPenalty: jeu.throwerPenalty } : {}),
       });
     }

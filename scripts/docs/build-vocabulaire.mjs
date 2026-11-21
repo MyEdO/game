@@ -4,7 +4,7 @@
 //   `EffectTrigger` / `EffectTargeting`, sortie de leurs schémas → src/data/schemas/grammaire/mecanique.ts
 // Sortie : docs/vocabulaire-mecanique.md. Re-run : node scripts/docs/build-vocabulaire.mjs
 // (npm run docs:vocabulaire).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 // Même socle AST/JSDoc que build-effects.mjs : scripts/docs/lib/jsdocUnion.mjs.
 //
 // Trois colonnes MESURÉES (jamais recopiées à la main) :
@@ -12,7 +12,7 @@
 //     laissée telle quelle par le moteur pur et résolue AILLEURS ; la colonne « Résolveurs » liste
 //     les modules de src/engine + src/noyau qui la nomment.
 //  2. « Usage en donnée » — occurrences `op` dans src/data (JSON parcouru en profondeur, l'`id` de
-//     l'entrée porteuse la plus proche est remonté ; .ts manuscrits sourcés par motif `op: '…'`).
+//     l'entrée porteuse la plus proche est remonté ; scripts manuscrits sourcés par motif `op: '…'`).
 //  3. « Concepts » — index inversé FR, du LEXIQUE ci-dessous appliqué au nom + au JSDoc de l'op.
 //
 // GARDE D'EXHAUSTIVITÉ (exit 1) : toute entrée d'union sans JSDoc exploitable, et toute op qui ne
@@ -22,13 +22,14 @@ import * as ts from 'typescript/unstable/ast'
 import { readFileSync } from 'node:fs'
 import { parLibelle, listerArbre } from '../guards/lib/lister.mjs'
 import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
+import { EXTENSIONS_DE_SCRIPT } from '../guards/lib/dialecte.mjs'
 import { basename } from 'node:path'
 import { loadSource, findAlias, aliasDoc, readUnionMembers, readSchemaUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { mesurerCanaux } from './lib/canauxMecaniques.mjs'
 import { estObjet } from '../../src/lib/objet.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OPS_SRC = 'src/engine/ops.ts'
   const FLOW_SRC = 'src/engine/flowCore.ts'
@@ -140,7 +141,7 @@ function rendu() {
 
   function measureResolvers(opNames) {
     const byOp = new Map(opNames.map((n) => [n, new Set()]))
-    const files = RESOLVER_ROOTS.flatMap((r) => fichiersSources(r, ['.ts', '.tsx'])).filter((f) => f !== OPS_SRC)
+    const files = RESOLVER_ROOTS.flatMap((r) => fichiersSources(r, EXTENSIONS_DE_SCRIPT)).filter((f) => f !== OPS_SRC)
     for (const f of files) {
       const text = readFileSync(f, 'utf8')
       // Restreint aux modules du vocabulaire (ils importent/manipulent `GameOp`) : évite qu'un
@@ -185,9 +186,9 @@ function rendu() {
       try { parsed = JSON.parse(readFileSync(f, 'utf8')) } catch { continue }
       walkJson(parsed, null, f, 0)
     }
-    // Données MANUSCRITES sourcées en .ts (criticals, shipCriticals, defs/…) : pas d'`id` remontable
+    // Données MANUSCRITES déclarées dans le code (criticals, shipCriticals, defs/…) : pas d'`id` remontable
     // sans typage — le fichier suffit à prouver l'usage.
-    for (const f of fichiersSources(DATA_ROOT, ['.ts'])) {
+    for (const f of fichiersSources(DATA_ROOT, EXTENSIONS_DE_SCRIPT)) {
       const text = readFileSync(f, 'utf8')
       for (const m of text.matchAll(/\bop:\s*'([A-Za-z][\w]*)'/g)) push(m[1], f, null)
     }
@@ -217,7 +218,7 @@ function rendu() {
   // ne mord que sur le zéro absolu, jamais sur une entité manquante.
   const CANAUX_ROOTS = [DATA_ROOT, ...RESOLVER_ROOTS]
   const CANAUX = mesurerCanaux(
-    CANAUX_ROOTS.flatMap((r) => fichiersSources(r, ['.ts'])).filter((f) => /^\s*(passive|effects|capabilities|combat)\??:|(interface|type)\s+\w*(Capabilities|CombatFeature)\b|const\s+\w*(Capabilities|combatFeature)Schema\b/m.test(readFileSync(f, 'utf8'))),
+    CANAUX_ROOTS.flatMap((r) => fichiersSources(r, EXTENSIONS_DE_SCRIPT)).filter((f) => /^\s*(passive|effects|capabilities|combat)\??:|(interface|type)\s+\w*(Capabilities|CombatFeature)\b|const\s+\w*(Capabilities|combatFeature)Schema\b/m.test(readFileSync(f, 'utf8'))),
   )
   if (!CANAUX.entites.length || !CANAUX.typesDrapeaux.length) {
     console.error(`${TOOL} — aucun canal mesuré sous ${CANAUX_ROOTS.join(', ')} (les champs \`passive\`/\`effects\`/\`capabilities\` ont changé de forme).`)
@@ -424,4 +425,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

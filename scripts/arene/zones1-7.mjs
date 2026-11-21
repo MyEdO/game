@@ -60,7 +60,7 @@ export function makeZone1() {
       P(4, 11, 'rack-armes', {
         label: 'Râtelier de l’arène',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'hallebarde' },
+          { type: 'giveTrapping', objet: { id: 'hallebarde' } },
           { type: 'journal', desc: 'Une hallebarde réglementaire dort sur le râtelier. Elle est à vous.' },
         ]),
       }),
@@ -148,7 +148,7 @@ export function makeZone2() {
         label: 'Coffre de la garnison',
         ...fouille([
           { type: 'giveMoney', montant: { gold: 3 } },
-          { type: 'giveTrapping', trappingId: 'bouclier' },
+          { type: 'giveTrapping', objet: { id: 'bouclier' } },
           { type: 'journal', desc: 'Le coffre de la garnison : 3 co et un bouclier frappé du Comte Palatin.' },
         ]),
       }),
@@ -343,7 +343,7 @@ export function makeZone4() {
       P(24, 2, 'coffre', {
         label: 'Reliquaire descellé',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'chemise-de-mailles' },
+          { type: 'giveTrapping', objet: { id: 'chemise-de-mailles' } },
           { type: 'journal', desc: 'Sous les os : une chemise de mailles, intacte. Les morts n’en font rien.' },
         ]),
       }),
@@ -429,7 +429,7 @@ export function makeZone5() {
       P(3, 12, 'rack-lances', {
         label: 'Râtelier de joute',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'lance-de-cavalerie' },
+          { type: 'giveTrapping', objet: { id: 'lance-de-cavalerie' } },
           { type: 'journal', desc: 'Une lance de cavalerie de tournoi — parfaite depuis une selle.' },
         ]),
       }),
@@ -522,7 +522,7 @@ export function makeZone6() {
       P(8, 16, 'cheval-mort', {
         label: 'Monture éventrée',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'faxtoryll' },
+          { type: 'giveTrapping', objet: { id: 'faxtoryll' } },
           { type: 'journal', desc: 'Les fontes du cavalier disparu contenaient du faxtoryll — encore sec.' },
         ]),
       }),
@@ -602,7 +602,7 @@ export function makeZone7() {
         ...fouille(testNode(
           { skill: { id: 'athletisme' }, difficulty: 'intermediaire', label: 'Éventrer le cocon sans s’y prendre', stake: { authored: 'Ouvrir la soie sans se faire mordre : une potion de guérison intacte, sinon une Infection Mineure.' } },
           [
-            { type: 'giveTrapping', trappingId: 'potion-de-guerison' },
+            { type: 'giveTrapping', objet: { id: 'potion-de-guerison' } },
             { type: 'journal', desc: 'Dans la soie : la besace d’une victime, potion intacte.' },
           ],
           [
@@ -623,7 +623,7 @@ export function makeZone7() {
       P(26, 4, 'champignon', {
         label: 'Chapeaux moirés',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'bonnet-de-fou' },
+          { type: 'giveTrapping', objet: { id: 'bonnet-de-fou' } },
           { type: 'journal', desc: 'Des chapeaux moirés de Bonnet de fou — l’apothicaire en donnerait cher.' },
         ]),
       }),
@@ -634,7 +634,7 @@ export function makeZone7() {
       P(17, 14, 'cadavre', {
         label: 'Chasseur momifié',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'arc' },
+          { type: 'giveTrapping', objet: { id: 'arc' } },
           { type: 'journal', desc: 'Le chasseur n’aura plus besoin de son arc. Sa corde est encore bonne.' },
         ]),
       }),

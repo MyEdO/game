@@ -6,7 +6,8 @@
  * d'installation. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte. `coteACote` pose la maquette
  * déclarée, ramenée à la taille de la capture, au-dessus de la capture et de leur fondu, ou dit pourquoi il ne le peut.
  * La vue de base du projet est la vue de référence ramenée à 720 de haut : l'interface s'y dessine comme sur sa maquette
- * à toute fenêtre, plus large en ratio que la maquette ou non.
+ * à toute fenêtre, plus large en ratio que la maquette ou non. `ecart` compte les pixels qui diffèrent entre deux PNG et
+ * la boîte qui les contient ; d'une taille à l'autre, tous.
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -16,7 +17,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs';
 import VUES_RECETTE from '../../scripts/recette/vues-recette.json';
-import { coteACote, deposerLesPlanches, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur, VUE_DE_BASE } from './planches.mjs';
+import { coteACote, deposerLesPlanches, ecart, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur, VUE_DE_BASE } from './planches.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
 afterAll(() => rmSync(racine, { recursive: true, force: true }));
@@ -116,5 +117,16 @@ describe('la vue de base du projet', () => {
     const hauteur = 720;
     const reference = VUES_RECETTE.find((v) => v.nom === 'bureau')!;
     expect(VUE_DE_BASE).toEqual({ largeur: Math.floor((reference.largeur * hauteur) / reference.hauteur), hauteur });
+  });
+});
+
+describe('ecart', () => {
+  const png = (w: number, h: number, autres: number[] = []) => encoderPng({ w, h, data: Buffer.from(Array.from({ length: w * h }, (_, k) => (autres.includes(k) ? [200, 10, 10, 255] : [10, 20, 30, 255])).flat()) });
+  it('compte les pixels qui diffèrent et leur boîte, aucun entre deux images égales', () => {
+    expect(ecart(png(4, 3), png(4, 3))).toEqual({ pixels: 0, boite: '' });
+    expect(ecart(png(4, 3, [5, 11]), png(4, 3))).toEqual({ pixels: 2, boite: 'de (1, 1) à (3, 2)' });
+  });
+  it('compte tous les pixels d’une taille à l’autre', () => {
+    expect(ecart(png(4, 3), png(2, 2))).toEqual({ pixels: 12, boite: 'étalon 2×2, rendu 4×3' });
   });
 });

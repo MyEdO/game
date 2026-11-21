@@ -20,7 +20,7 @@
  */
 import { fabriqueLocale, type FabriqueDId } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
-import { CharKey, CHAR_KEYS, Characteristics, Combatant, type HeroDetails } from '../../engine/types';
+import { CharKey, CHAR_KEYS, Characteristics, Combatant, type HeroDetails, type ReferenceDeCouleur } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
 import type { Status } from '../../engine/money';
 import {
@@ -34,6 +34,7 @@ import {
   rollInitialWealth,
   type TirageDeRichesse,
   tirerLesDetails,
+  nombreDeTiragesDesYeux,
   rollStar,
   XP_SPECIES_ACCEPTED,
   XP_CAREER_FIRST,
@@ -86,6 +87,7 @@ import {
   advancementLabel,
   refLabel,
   findStarById,
+  eyes,
   celestialHouses,
   SpeciesData,
   CareerLevelData,
@@ -790,6 +792,35 @@ export type EtatCivil = Pick<CreatorDraft, 'label' | 'motivation' | 'ambitionSho
 export function withEtatCivil(d: CreatorDraft, patch: Partial<EtatCivil>): CreatorDraft {
   return { ...d, ...patch };
 }
+
+/** LDB 05 l.703, l.716, l.742-754 */
+export function choixDesYeux(d: CreatorDraft): {
+  couleurs: ReferenceDeCouleur[];
+  premierePourUnePaire: ReferenceDeCouleur | undefined;
+} {
+  const colonne = draftSpecies(d)?.refChar;
+  if (!colonne) return { couleurs: [], premierePourUnePaire: undefined };
+  const couleurs = eyes.filter((rangee) => !rangee.choixLibrePour?.includes(colonne)).map(({ id }) => ({ id, colonne }));
+  const actuelle = d.eyes?.[0];
+  const premierePourUnePaire = nombreDeTiragesDesYeux(colonne) === 2 && actuelle && 'id' in actuelle && actuelle.colonne === colonne
+    ? couleurs.find((c) => c.id === actuelle.id)
+    : undefined;
+  return { couleurs, premierePourUnePaire };
+}
+
+/** LDB 05 l.703 */
+export function withCouleurDesYeux(d: CreatorDraft, rang: 0 | 1, id: string | null): CreatorDraft {
+  const { couleurs, premierePourUnePaire } = choixDesYeux(d);
+  const couleur = couleurs.find((c) => c.id === id);
+  if (rang === 0) {
+    if (!couleur) return d;
+    const seconde = d.eyes?.[1];
+    return withEtatCivil(d, { eyes: seconde && seconde.colonne === couleur.colonne ? [couleur, seconde] : [couleur] });
+  }
+  if (!premierePourUnePaire || (id !== null && !couleur)) return d;
+  return withEtatCivil(d, { eyes: couleur ? [premierePourUnePaire, couleur] : [premierePourUnePaire] });
+}
+
 /** Sexe `sex` de l'apparence. */
 export function withSexe(d: CreatorDraft, sex: Sexe): CreatorDraft {
   return { ...d, apparence: { ...d.apparence, sex } };
@@ -801,9 +832,9 @@ export function withSexeSuivant(d: CreatorDraft): CreatorDraft {
 }
 /** Nom tiré au générateur de l'espèce (`generateName`) avec la graine `graine` ; sans espèce ni table de noms, le
  *  brouillon est INCHANGÉ. */
-export function rollDraftName(d: CreatorDraft, graine: number): CreatorDraft {
+export function rollDraftName(d: CreatorDraft, graine: number, style?: 'humain'): CreatorDraft {
   const sp = draftSpecies(d);
-  const label = sp ? generateName(sp.refChar, d.apparence.sex, makeRNG(graine)) : null;
+  const label = sp ? generateName(sp.refChar, d.apparence.sex, makeRNG(graine), style) : null;
   return label ? withEtatCivil(d, { label }) : d;
 }
 /** Geste « Aux dés » du physique ; sans espèce, le brouillon est INCHANGÉ. */

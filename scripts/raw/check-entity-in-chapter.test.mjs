@@ -79,14 +79,14 @@ test('stripArticles : tolère « Empreint de la Magie » vs « Empreint de Magie
 
 test('sitesEntites : un site = le DOC et le NOM de l’entité, deux homonymes → deux occurrences', () => {
   const sites = sitesEntites([
-    { doc: 'docs/raw/4e/talents.md', row: 12, name: 'X' },
-    { doc: 'docs/raw/4e/talents.md', row: 40, name: 'X' },
-    { doc: 'docs/raw/4e/talents.md', row: 51, name: 'Y' },
+    { fichier: 'docs/raw/4e/talents.md', row: 12, name: 'X' },
+    { fichier: 'docs/raw/4e/talents.md', row: 40, name: 'X' },
+    { fichier: 'docs/raw/4e/talents.md', row: 51, name: 'Y' },
   ])
   assert.deepEqual(sites, [
-    { file: 'docs/raw/4e/talents.md', ref: 'X' },
-    { file: 'docs/raw/4e/talents.md', ref: 'X' },
-    { file: 'docs/raw/4e/talents.md', ref: 'Y' },
+    { fichier: 'docs/raw/4e/talents.md', ref: 'X' },
+    { fichier: 'docs/raw/4e/talents.md', ref: 'X' },
+    { fichier: 'docs/raw/4e/talents.md', ref: 'Y' },
   ], 'la ligne du doc ne fait pas partie du site')
   const { neuves } = ecartDuVolet({ sites, stock: [], ou: 'entity-in-chapter-stock.json' })
   assert.equal(neuves.length, 3)

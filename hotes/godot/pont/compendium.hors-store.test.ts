@@ -9,8 +9,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
 import type { Bouton, Choix, Entite, Formulaire } from '../../../src/hote/elements';
 import type { ZonesDuCompendium } from '../../../src/hote/compendium';
-import { datasetArray, datasetObject, resetData, setDataset } from '../../../src/data/overrides';
+import { datasetArray, datasetObject, resetData, setDataset, setEnTete } from '../../../src/data/overrides';
 import { hash32 } from '../../../src/lib/hash';
+import { tableTotale } from '../../../src/lib/tableTotale';
+import { raceKeySchema } from '../../../src/data/schemas/grammaire/valeurs';
 import { rangee } from '../../../src/data/schemas/defs/mutationTables';
 import { traitCapabilitiesSchema } from '../../../src/data/schemas/defs/traits';
 import { validateDataset } from '../../../src/data/schemas/validate';
@@ -310,6 +312,67 @@ describe('compendium', () => {
     const ecrit = zonesDe(appel('compendium', { type: 'enTete', args: [2, 10] }));
     const r = appel('compendium', boutonDe(ecrit, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
     expect(JSON.parse(r.donnees.texte).die).toEqual({ n: 2, sides: 10 });
+  });
+
+  describe('édition des plages de création', () => {
+    const couleur = { id: 'couleur-test', label: 'Une couleur', color: tableTotale(raceKeySchema.options, () => 'Gris'), min: 2, max: 6 };
+    const deEnTete = { ancetre: '', champ: 'die', valeur: { n: 2, sides: 3 } };
+    const signe = {
+      id: 'signe-test', label: 'Un signe', min: 1, max: 100, desc: 'Un signe', signe: 'Signe',
+      classique: 'Classique', ascendant: 'Ascendant', dates: 'Dates', dieux: 'Dieux', apparence: 'Apparence',
+      source: { book: 'archives-de-l-empire-2', page: 39 }, sub: { min: 1, max: 5 },
+    };
+    const formulaire = (zones: ZonesDuCompendium, chemin: string): Formulaire => {
+      const trouve = zones['compendium.atelier'].find((e): e is Formulaire => e.type === 'formulaire' && e.id === `valeur/${chemin}`);
+      expect(trouve, chemin).toBeDefined();
+      return trouve!;
+    };
+    const saisir = (f: Formulaire, valeur: number) => ({
+      type: 'valeur', args: [...f.champs.flatMap((c) => c.type === 'fixe' ? [c.valeur] : []), valeur],
+    });
+
+    it.each([
+      {
+        categorie: 'eyes', id: couleur.id, chemin: '', max: 6,
+        poser: () => {
+          setEnTete('eyes', [deEnTete]);
+          setDataset('eyes', [couleur]);
+        },
+      },
+      {
+        categorie: 'hairs', id: couleur.id, chemin: 'plageParRace/gnome', max: 6,
+        poser: () => {
+          setEnTete('hairs', [deEnTete]);
+          setDataset('hairs', [{ ...couleur, plageParRace: { gnome: { min: 2, max: 6 } } }]);
+        },
+      },
+      {
+        categorie: 'stars', id: signe.id, chemin: 'sub', max: 5,
+        poser: () => {
+          setEnTete('stars', [{ ancetre: '', champ: 'sub', valeur: { die: { n: 1, sides: 10 } } }]);
+          setDataset('stars', [signe, { ...signe, id: 'autre-signe', sub: { min: 6, max: 10 } }]);
+        },
+      },
+      {
+        categorie: 'celestialHouses', id: 'demeure-test', chemin: '', max: 10,
+        poser: () => {
+          setDataset('celestialHouses', [{
+            id: 'demeure-test', type: 'astrology', label: 'Demeure de test', min: 1, max: 10, desc: 'Une demeure.', source: signe.source,
+          }]);
+        },
+      },
+    ] as const)('$categorie offre les deux bornes par le formulaire et refuse une plage incomplète', ({ categorie, id, chemin, max, poser }) => {
+      poser();
+      const { appel } = table();
+      const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie, id }));
+      const atelier = zonesDe(appel('compendium', boutonDe(ouvert, 'modifier').jeu));
+      const prefixe = chemin ? `${chemin}/` : '';
+      expect(formulaire(atelier, `${prefixe}min`).champs).toContainEqual(expect.objectContaining({ type: 'saisieNombre', pas: 1 }));
+      const borne = formulaire(atelier, `${prefixe}max`);
+      expect(borne.champs).toContainEqual(expect.objectContaining({ type: 'saisieNombre', valeur: max, pas: 1 }));
+      zonesDe(appel('compendium', saisir(borne, max - 1)));
+      expect(erreurDe(appel('compendium', { compendium: { geste: 'enregistrer' } }))).toMatchObject({ categorie: 'regle' });
+    });
   });
 
   it('supprimer une entrée désignée est refusé en règle, sa raison dite', () => {

@@ -1,7 +1,8 @@
-"""Le banc commun aux kits de pièces (#4471), ceux des arêtes (`test_arete.py`) et ceux des escaliers
-(`test_escalier.py`) : chaque modèle d'une famille bâti deux fois par `construire.py` (`DesKits`), la lecture des
-nœuds racine de son GLB (`noeuds`) et les gardes qu'ils partagent : mêmes octets, manifeste, données sans couleur,
-budget de triangles, coques closes aux faces vers le dehors (`glb.coques_en_defaut`)."""
+"""Le banc commun aux kits de pièces (#4471), ceux des arêtes (`test_arete.py`), ceux des escaliers
+(`test_escalier.py`) et ceux des toits (`test_toit.py`) : chaque modèle d'une famille bâti deux fois par
+`construire.py` (`DesKits`), la lecture des nœuds racine de son GLB (`noeuds`), la section d'une pièce à un bout qu'elle
+raccorde (`section`) et les gardes qu'ils partagent : mêmes octets, manifeste, données sans couleur, budget de
+triangles, coques closes aux faces vers le dehors (`glb.coques_en_defaut`)."""
 import json
 import re
 import runpy
@@ -36,6 +37,11 @@ def triangles_du_noeud(glb, piece, sauf=()):
             lire_accesseur(document, binaire, p['indices']).astype(np.int64).reshape(-1, 3)]
         for p in document['meshes'][noeud['mesh']]['primitives']
         if document['materials'][p['material']]['name'] not in sauf])
+
+
+def section(sommets, bout):
+    """La section (Y, Z au millimètre) des `sommets` à l'abscisse `bout`."""
+    return {(round(float(y), 3), round(float(z), 3)) for x, y, z in sommets if abs(x - bout) < TOLERANCE}
 
 
 class DesKits:

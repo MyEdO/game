@@ -301,7 +301,7 @@ describe('une réf que le SCHÉMA d’un effet prouve se dit UNE fois — aucun 
     const s = scene();
     s.triggers.push({
       id: 't-sort', rect: { x: 0, y: 0, w: 1, h: 1 },
-      flow: flowFromEffects([{ type: 'castSpell', casterId: 'start', spellId: 'sort-mort', mode: 'jet' }]),
+      flow: flowFromEffects([{ type: 'castSpell', casterId: 'start', sort: { id: 'sort-mort' }, mode: 'jet' }]),
     });
     const fautes = validateScene([s]).filter((w) => w.message.includes('sort-mort'));
     expect(fautes.map((w) => w.message)).toHaveLength(1);

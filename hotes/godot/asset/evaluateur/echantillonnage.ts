@@ -81,9 +81,11 @@ export function instants(clip: AnimationClip, pas: number): number[] {
 }
 
 /** Chaque (clip, t) de `clips` joué sur `scene` aux `instants` du clip au pas `pas`, pour `meshes`, `gabarit` reposé sur
- *  chaque instant joué (`reposerGabarit`). La pose de repos est rendue à la fin de chaque clip. */
+ *  chaque instant joué (`reposerGabarit`), puis `poser(clip, t)` appelé avant la mesure. La pose de repos est rendue à
+ *  la fin de chaque clip. */
 export function* echantillonner(
   scene: Object3D, meshes: readonly Mesh[], clips: readonly AnimationClip[], pas = PAS_PAR_DEFAUT, gabarit: GabaritPose | null = null,
+  poser: (clip: string, t: number) => void = () => {},
 ): Generator<Echantillon> {
   for (const clip of clips) {
     const mixer = new AnimationMixer(scene);
@@ -95,6 +97,7 @@ export function* echantillonner(
       for (const t of instants(clip, pas)) {
         if (gabarit) reposerGabarit(gabarit, () => mixer.setTime(t), gabarit.clipsPlantes.includes(clip.name));
         else mixer.setTime(t);
+        poser(clip.name, t);
         yield { clip: clip.name, t, ...poseCourante(scene, meshes) };
       }
     } finally {

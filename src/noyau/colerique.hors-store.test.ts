@@ -48,6 +48,7 @@ const accordes = (c: Combatant) => ({
 describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l.324-330)', () => {
   function auCamp() {
     const [w, s, p] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat', 'pretre');
+    w.spells = [...(w.spells ?? []), SOURCE.id];
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
     banc.getState().incanterLeSort(w.id, 'colerique', s.id);
     const heros = (id: string) => banc.getState().party.find((c) => c.id === id)!;

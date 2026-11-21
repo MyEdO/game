@@ -36,8 +36,13 @@ Après tout commit, toute fusion ou tout rebase : les hooks examinent l'attestat
 (`scripts/git-hooks/reconstruction.mjs`) une fois l'arbre libre de toute opération Git.
 Les sources, sondes, listings, outils et sorties mesurés décident de la fraîcheur. Tout mode
 d'écriture mesure et certifie ; une sortie identique laisse son lecteur frais.
-Les écrivains partagent `scripts/docs/lib/ecrivain-derives.mjs` : une production de code préempte
-la passe courante, dont toute écriture suivante est refusée, puis la passe est rejouée.
+Les générateurs rendent leurs textes pour les lecteurs et proposent leurs sorties au lanceur commun
+`scripts/docs/lib/ecriture-derives.mjs`. Les commandes individuelles et `build-all` passent par ce port.
+Il vérifie les destinations déclarées dans `targets` et `injecte`, applique les rendus et les amorces
+sous époque, et compare les sorties en `--check` sans écrire de cible. Une amorce sert au chargement
+du registre sur un arbre neuf. Seul le rendu final compte comme cible produite. Les écrivains
+partagent `scripts/docs/lib/ecrivain-derives.mjs` : une production de code préempte la passe courante,
+dont toute écriture suivante est refusée, puis la passe est rejouée.
 
 **Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
 l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les
@@ -55,7 +60,8 @@ chaque version est lue par le format de son extension (`FORMATS`, `scripts/guard
 et la fusion se fait au niveau du GROUPE de site, donc deux soldes de groupes disjoints d'un même stock
 ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un fichier sans collection
 de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, utilisée par le pilote. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
-mesure>`.
+mesure>`. Le type `Site` de `src/lib/stock.d.mts` porte `fichier` et `ref` du balayage à l’entrée.
+`sitesEnEntrees` ajoute l’occurrence dans l’ordre du balayage, avec les mesures du site.
 
 **Fusion des imports** (`.gitattributes`, `merge=imports` sur `.ts`, `.tsx`, `.mts`, `.mjs`, pilote
 `scripts/git-hooks/merge-imports.mjs` déclaré par `npm run postinstall`, #4178) : la fusion 3-voies
@@ -612,8 +618,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             attente et les refus au geste), `coop/` (la coop sur le `Transport` que l'hôte fournit :
                             `protocol.ts`, les messages et leur validation, `session.ts`, `HostSession`/`GuestSession`
                             hôte-autoritaires, l'instantané pour seul état diffusé, scènes de la campagne comprises
-                            (`campaignDoc`, `appliquerLInstantane`) ; `transport.ts`, le port
-                            `Transport`, et sa paire en mémoire de test `transport.testkit.ts`),
+                            (`campaignDoc`, `appliquerLInstantane`). `salon.ts` lit les arguments des intentions
+                            admises par `gesteDuVerbe` sur l'état de l'hôte au nom du siège du transport, avant de
+                            les transmettre au noyau. `transport.ts`, le port `Transport`, et sa paire en mémoire
+                            de test `transport.testkit.ts`),
                             `stockageWeb.ts` (accès protégé au `localStorage` et au `sessionStorage`, `stockageWeb`,
                             pour la page de l’hôte Godot ; un dictionnaire persisté s'y relit par
                             `lireDictionnaire` de `lib/stockage.ts`, chaque VALEUR validée par son lecteur contre son
@@ -813,8 +821,9 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   garde « lu ⇒ produit » (`src/scenes/drapeau-lu-produit.test.ts`).
 - **Moteur de campagne** : transitions de scènes (registre depuis `campaign`), tests de
   compétence interactifs (modal + branches), inventaire/argent/handouts (state party-level).
-- **Inventaire/équipement** : chaque héros a `items: ItemInstance[]` ; `weapons`/`armour`
-  ACTIFS dérivés via `recomputeLoadout` (équiper change le combat). Fiche = `CharacterSheet.tsx`.
+- **Inventaire et équipement.** `recomputeLoadout` compose les armes actives et les PA des objets et mutations du
+  porteur. L’état de l’arme autonome d’un Trait et l’usure de son Armure appartiennent à l’instance du Trait.
+  `armourPhysiqueAt` lit ses PA nets avec les autres PA physiques. La fiche se compose dans `src/noyau/ficheDuPorteur.ts`.
 - **Rendu et éditeur**. Godot dessine les entités et le décor. Le noyau porte la géométrie du monde
   (`src/noyau/monde/volume/`). L’éditeur Godot joue les gestes de la session du noyau pour les
   scènes, cartes et narratifs.

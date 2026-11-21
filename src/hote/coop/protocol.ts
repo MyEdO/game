@@ -3,6 +3,7 @@
  * des INTENTS (action de store rejouable), l'hôte renvoie des SNAPSHOTS (état complet, mêmes
  * données JSON-sûres que la sauvegarde, `instantaneDeLaCoop`, `noyau/coop.ts`). `parseMessage` valide
  * la FORME de chaque message : le réseau est une entrée non fiable → null, jamais d'exception.
+ * Un `intent-refused` porte le verdict de l'hôte au seul transport qui a émis l'intent.
  *
  * `hello.build` : le format de l'état et l'empreinte des registres que nomme un snapshot
  * (`buildDeLaCoop`, `noyau/coop.ts`), comparée par l'hôte au hello.
@@ -13,12 +14,13 @@
  */
 import { estObjet } from '../../lib/objet.mjs';
 
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 export type NetMessage =
   | { kind: 'hello'; protocol: number; build: string; label: string }
   | { kind: 'intent'; action: string; args: unknown[]; seat: number }
   | { kind: 'snapshot'; data: Record<string, unknown> }
+  | { kind: 'intent-refused'; texte: string }
   | { kind: 'error'; reason: 'protocol-mismatch'; expected: number; got: number }
   | { kind: 'error'; reason: 'format-mismatch'; expected: string; got: string }
   | { kind: 'bye' };
@@ -49,6 +51,8 @@ export function parseMessage(raw: string): NetMessage | null {
       return estObjet(m.data)
         ? { kind: 'snapshot', data: m.data }
         : null;
+    case 'intent-refused':
+      return typeof m.texte === 'string' ? { kind: 'intent-refused', texte: m.texte } : null;
     case 'error':
       if (m.reason === 'protocol-mismatch' && typeof m.expected === 'number' && typeof m.got === 'number')
         return { kind: 'error', reason: 'protocol-mismatch', expected: m.expected, got: m.got };

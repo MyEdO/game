@@ -44,9 +44,9 @@ const auCombat = (id: string) => inBattleId(banc.getState().battle, id)!;
 
 /** Chaque handler de la classe : l'effet, et ce qu'il a écrit sur une copie du héros. */
 const HANDLERS: { nom: string; effet: (id: string) => Effect; ecrit: (c: Combatant) => unknown; avant?: (id: string) => void }[] = [
-  { nom: 'giveTrapping', effet: (id) => ({ type: 'giveTrapping', trappingId: 'corde', heroId: id }), ecrit: (c) => (c.items ?? []).filter((i) => i.trappingId === 'corde').length },
+  { nom: 'giveTrapping', effet: (id) => ({ type: 'giveTrapping', objet: { id: 'corde' }, heroId: id }), ecrit: (c) => (c.items ?? []).filter((i) => i.trappingId === 'corde').length },
   { nom: 'giveXp', effet: () => ({ type: 'giveXp', amount: 70 }), ecrit: (c) => c.xp },
-  { nom: 'learnSpell', effet: (id) => ({ type: 'learnSpell', spell: 'sommeil', heroId: id }), ecrit: (c) => (c.spells ?? []).includes('sommeil') },
+  { nom: 'learnSpell', effet: (id) => ({ type: 'learnSpell', sort: { id: 'sommeil' }, heroId: id }), ecrit: (c) => (c.spells ?? []).includes('sommeil') },
   {
     nom: 'restoreFortune',
     avant: (id) => banc.setState((s) => ecrireActeur(s, id, (h) => ({ ...h, fortune: 0 }))),
@@ -108,7 +108,7 @@ describe('ecrireActeur — chaque handler migré écrit là où le jeu lit (#231
     const hero = poserGroupe();
     entrerEnCombat();
     const avant = (auGroupe(hero.id).items ?? []).length;
-    jouer({ type: 'giveTrapping', trappingId: 'corde', heroId: hero.id });
+    jouer({ type: 'giveTrapping', objet: { id: 'corde' }, heroId: hero.id });
     expect((auCombat(hero.id).items ?? []).length).toBe(avant + 1);
     finalizeBattle(() => banc.getState(), banc.setState);
     expect((auGroupe(hero.id).items ?? []).length).toBe(avant + 1);
@@ -117,7 +117,7 @@ describe('ecrireActeur — chaque handler migré écrit là où le jeu lit (#231
   it('un sort appris en combat est lançable dans ce combat, et gardé après lui', () => {
     const hero = poserGroupe();
     entrerEnCombat();
-    jouer({ type: 'learnSpell', spell: 'sommeil', heroId: hero.id });
+    jouer({ type: 'learnSpell', sort: { id: 'sommeil' }, heroId: hero.id });
     const battle = banc.getState().battle as BattleState;
     const sorts = ACTION_CANDIDATES['sorts-du-heros']({ active: auCombat(hero.id), battle, state: banc.getState() } as never);
     expect(sorts).toContain('sommeil');

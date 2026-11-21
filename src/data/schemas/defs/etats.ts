@@ -20,7 +20,7 @@ const recoverSchema = nommerChamps(z.strictObject({
   ...jetSchema.shape,
   opposedBy: z.literal('source').optional(),
   opposedDifficulty: difficultySchema.optional(),
-  /** Enjeu du jet de récupération, porté par l'État (patron `ActivityDef.stake`) — lu par `stateRecoveryStakeRef`. */
+  /** Enjeu du jet de récupération, porté par l'État (patron `ActivityDef.stake`) — lu par `stakeEntry`. */
   enjeu: z.string(),
   /** Forme déclarée de `enjeu` (garde `stake-form.test.ts`). */
   form: stakeFormSchema,

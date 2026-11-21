@@ -2,10 +2,10 @@
    tabourets (`../rendu.js`, écrans `compendium`, `coop`, `editeur-de-scene`, `editeur-carte-du-monde`). Maquette hors du
    jeu. */
 /* une ligne de liste : nom, compte à droite */
-const ligneDeListe = (nom, compte = '', { la = false, icone = null } = {}) => `<div class="ligne ${la ? 'la' : ''}">${icone ? picto(icone, 16, la ? '#2a1a08' : '#e2c06a') : ''}<span>${nom}</span>${compte !== '' ? `<em class="chiffres">${compte}</em>` : ''}</div>`;
+const ligneDeListe = (nom, compte = '', { la = false, icone = null } = {}) => `<div class="ligne ${la ? 'la' : ''}" data-primitive="ligneDeListe">${icone ? picto(icone, 16, la ? '#2a1a08' : '#e2c06a') : ''}<span>${nom}</span>${compte !== '' ? `<em class="chiffres">${compte}</em>` : ''}</div>`;
 /* la table ronde du salon, vue de dessus : ses quatre tabourets, la carte, la chandelle, les dés */
 const TABOURETS = [[178, 112], [462, 112], [178, 358], [462, 358]];
-const tableDuSalon = () => `<svg viewBox="0 0 640 520"><defs>
+const tableDuSalon = () => `<svg viewBox="0 0 640 520" data-primitive="tableDuSalon"><defs>
     <radialGradient id="t-bois" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#7a5230"/><stop offset=".6" stop-color="#553519"/><stop offset="1" stop-color="#2e1b0c"/></radialGradient>
     <radialGradient id="t-lueur"><stop offset="0" stop-color="#ffd98a" stop-opacity=".75"/><stop offset=".35" stop-color="#ffb45a" stop-opacity=".28"/><stop offset="1" stop-color="#ffb45a" stop-opacity="0"/></radialGradient>
     <clipPath id="t-rond"><circle cx="320" cy="235" r="132"/></clipPath></defs>

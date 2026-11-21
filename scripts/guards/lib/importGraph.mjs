@@ -6,20 +6,18 @@
 
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
-import { analyserTexte, analyserCorpus, typescript } from './dialecte.mjs';
+import { analyserTexte, analyserCorpus, EXTENSIONS_DE_SCRIPT, typescript } from './dialecte.mjs';
 import { correspondGlob } from './lister.mjs';
 import { METHODES_VITEST, OBJETS_VITEST } from './arcsDImport.mjs';
 import { createRequire } from 'node:module';
 import { URL as NodeURL, fileURLToPath, pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 
-const EXTS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'];
+/** Chemin d'un script reconnu par le dialecte du dépôt. */
+export const estModule = (chemin) => EXTENSIONS_DE_SCRIPT.some((ext) => chemin.endsWith(ext));
 
-/** Chemin de module de code reconnu par `EXTS`. */
-export const estModule = (chemin) => EXTS.some((ext) => chemin.endsWith(ext));
-
-/** Les pathspecs git des modules de code sous `dossier` (`EXTS`). @param {string} dossier */
-export const pathspecsDeModules = (dossier) => EXTS.map((ext) => `${dossier}/*${ext}`);
+/** Les pathspecs git des modules de code sous `dossier`. @param {string} dossier */
+export const pathspecsDeModules = (dossier) => EXTENSIONS_DE_SCRIPT.map((ext) => `${dossier}/*${ext}`);
 
 /** Les modules par programme TypeScript (`analyserCorpus`) : pic mesuré de 589 Mo à 64, OOM à 128 (#2586). */
 export const LOT_D_ANALYSE = 64;
@@ -307,6 +305,9 @@ export const aliasDuDepot = (racine = '.') => {
   return aliasParRacine.get(abs);
 };
 
+// Ordre d'essai d'un import sans extension, d'abord en fichier puis en index de dossier.
+const EXTENSIONS_D_ESSAI = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'];
+
 /** Source TypeScript d'un spécificateur à extension JS émise : `./x.mjs` désigne `x.mts` quand
  *  `x.mjs` n'existe pas (TypeScript, `moduleResolution: "bundler"`, Handbook « Modules Reference »,
  *  extension substitution) — la forme de `src/**` vers `scripts/docs/lib/*.mts`. */
@@ -323,7 +324,7 @@ const fichierExiste = (chemin) => {
  * Résout un spécificateur d'import RELATIF (`./foo`, `../bar`) vers un fichier source réel :
  * spécificateur portant DÉJÀ son extension (`./x.mjs`, `./data.json` — la forme des 109 imports de
  * `src/**` vers les libs de garde) ou, absent, sa source TypeScript (`EXTS_TS_DE`), sinon extension
- * déduite d'`EXTS`, sinon repli `index.*`. Un spécificateur qui commence par un ALIAS (`alias`, `@/…`)
+ * déduite d'`EXTENSIONS_D_ESSAI`, sinon repli `index.*`. Un spécificateur qui commence par un ALIAS (`alias`, `@/…`)
  * se résout sous sa cible ; sous `racine`, un spécificateur `/…` part de la racine (Vite, comme `cibleLexicale` de
  * `interneLint.mjs`) ; un paquet npm rend `null` (hors périmètre).
  * `existe` (chemin absolu POSIX → présent ?) et `alias` disent quel ARBRE fait foi : le disque du
@@ -346,8 +347,8 @@ export function resolveImport(fromFile, spec, existe = fichierExiste, alias = al
     const source = (EXTS_TS_DE[ext] ?? []).map((e) => radical + e).find((f) => existe(f));
     if (source) return source;
   }
-  for (const ext of EXTS) if (existe(base + ext)) return base + ext;
-  for (const ext of EXTS) if (existe(`${base}/index${ext}`)) return `${base}/index${ext}`;
+  for (const ext of EXTENSIONS_D_ESSAI) if (existe(base + ext)) return base + ext;
+  for (const ext of EXTENSIONS_D_ESSAI) if (existe(`${base}/index${ext}`)) return `${base}/index${ext}`;
   return null;
 }
 

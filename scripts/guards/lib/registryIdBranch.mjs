@@ -40,9 +40,6 @@ const ts = tsModule;
 
 export const SCAN_DIRS = [...porteeDeGarde(['engine', 'noyau', 'data']), 'scripts'];
 
-/** Extensions scannées : TypeScript du jeu ET JavaScript d'outillage (`scripts/**` est en `.mjs`). */
-export const SCAN_EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.js'];
-
 /** Arbre syntaxique d'un fichier, bâti à chaque appel : l'appelant qui passe les deux scans sur le
  *  même fichier le tient et le leur passe (`tsProgram.mjs`, en-tête, pour la durée de vie).
  *  @param {string} relPath @param {string} contenu @returns {import('typescript/unstable/ast').SourceFile} */

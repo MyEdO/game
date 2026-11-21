@@ -260,6 +260,9 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   (`roof--<id>`, domaine `roof`) ne porte que sa neutre et son relief : une nappe de toit ou une couronne lit la neutre,
   projetée sur le plan de chaque face, ses rangs le long de l'égout, et teinte par la couleur de ses sommets, celle de
   `materials.json` (`VolumeDeScene._matiere`, `nappe` de `art/monde.gdshader`, recette `recettes/nappe-texturee.gd`).
+  Le bardage d'un pignon (`structure--<apparence>` du mur qu'il prolonge, face de sa nappe) ne porte de même que sa
+  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur : sans `.jpg`,
+  un morceau de cette apparence garde la couleur de ses sommets (#4471).
   Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
   se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
@@ -282,11 +285,21 @@ revient à l'orchestrateur, qui l'ajoute au kit. Les preuves (rendus, mesures, c
 
 Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, surfaces porteuses, coupes des zones,
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
-`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `Base.nappe`, `lambeaux` pour
-un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
-sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
+`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `unitaire`, `lambeaux` pour
+un ourlet effiloché ; `Base.nappe` pour une double nappe, `Base.nappe_simple` pour une nappe simple, à plusieurs
+matériaux par `teintes` ; `porteur_de` et son `arbre_de` pour une surface porteuse, visée par `viser` (résultat brut),
+`toucher` (point et normale sortante, `None` sans surface) ou `sur_le_porteur` (erreur sans surface) ;
+`Base.offrir_sur` pour offrir un emplacement sur une surface), `maille.py` pour un solide rigide (cylindre, tour à
+sections rondes ou elliptiques, boîte, tube, tore…) et pour l'aléa semé d'un id (`tirage`), `element/lame.py` pour une
+arme à lame et son fourreau (épée,
 dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
-robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
+robe longue fermée sur le filet `jupe` (bure, jupe, pourpoint matelassé) ; un vêtement d'une autre coupe (robe du
+Sorcier, chemise, pourpoint) compose ses pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
+`anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de` ; `element/taille.py` pour
+ce qui ceint la taille sur une robe publiée (cordelière, ceinture à boucle : `axe_du_corps`, `ceindre`),
+`element/tete.py` pour une tête de race sur la couture du cou (un dossier ne porte que son `donnees.py` et
+`from tete import construire`) et
+`element/sangle.py` pour une sangle en bandoulière posée sur la pièce
 qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
@@ -349,7 +362,12 @@ l'os, dans l'ordre des `objets` du preset, sauf sur les cases qu'une pièce offr
 section « Atelier 3D » du contrat du pont). Un objet glissé en travers d'une sangle se centre sur son origine ; une
 arme pend par le haut de son fourreau, poignée au-dessus. Un fourreau est un objet du même GLB qui porte la propriété
 `fourreau` : l'hôte ne le montre que l'arme rangée. Un écart cuit dans l'élément le ferait flotter sur un autre porteur
-(#3743, #3844).
+(#3743, #3844). Cette pose ne vit que dans Godot : `rendu.py --preset <id>` et `npm run godot:evaluer -- … --preset <id>`
+la lui demandent (`hotes/godot/asset/posesDesRanges.mjs`, un lancement de l'éditeur épinglé par appel, sous le verrou
+de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posent chaque rigide rangé où le jeu le pose ;
+la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
+pièce qui offre sa case. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
+chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
@@ -565,7 +583,7 @@ puis restaurer le réglage de revue. Changer la lumière ne corrige pas la forme
 Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, poses et clips utiles,
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
 lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
-(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset`, la pose au `--clip`, et sa `planche.png` porte
+(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset` et y range ses rigides comme le jeu, la pose au `--clip`, et sa `planche.png` porte
 `--illustration` à gauche ; `--cadre x,y,z,étendue` (mètres, repère de `bounds` de `render-report.json`) en fait des gros
 plans. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
@@ -949,6 +967,57 @@ budget, coques closes, raccord) et compare chaque manifeste au publié. Une fami
 `kitDEscalierSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
 « Publier »).
 
+## 13. Toit
+
+La faîtière qu'un hôte pose sur le faîte d'un toit (catégorie `toit`, clé `{ "kit": <couverture> }`, le `kit` d'une
+couverture de `src/data/materials.json`) se construit comme
+un kit d'escalier (chapitre 12), par `scripts/personnage-3d/construire.py`, un dossier par couverture,
+`scripts/personnage-3d/toit/<couverture>/` (`donnees.py`, `modele.py`), et ses communs dans `toit/faitage.py`, qui met
+ceux des escaliers et des arêtes au chemin (`volee.py`, `geometrie.py`). Un kit est un GLB, `toit--<couverture>`, un
+nœud racine à mesh par pièce de `PIECES_DE_TOIT` (`src/noyau/monde/piecesDArete.ts`, lues du noyau par
+`toit/pieces.mjs`) : la seule `faitiere`. Les pans restent ceux du noyau. Couvertures livrées : `ardoise` (une ardoise par
+bras, chaque paire recouvrant la suivante, coins de queue abattus, crochets de fer), `tuile` (tuiles demi-rondes à
+bourrelet, scellées d'un solin de mortier de chaque côté) et `chaume` (selle de paille épaisse au bord en dents, tresse
+à trois brins sur son dos, baguettes de noisetier filées et croisées).
+
+**Repère, sur le toit d'école.** X le long du faîte, de -L/2 à +L/2 (une case, 2 m) ; Y la hauteur, 0 sur l'arête du
+faîte ; Z en travers. La pièce se modèle sur deux pans qui descendent du faîte d'une pente de 1 (`faitage.pan`) : l'hôte
+étire Y, sans la cisailler, à la pente des deux pans qu'elle coiffe. Rien n'y suppose donc une pente : le dessous
+de la pièce suit les pans, rien ne descend sous eux, et une épaisseur se porte en hauteur (`faitage.plaque`, par sa
+levée au-dessus du pan), jamais d'équerre au pan.
+
+**Raccord.** Deux cases voisines se raccordent bout à bout : rien ne passe les bouts, et la section de la pièce est la
+même aux deux. Ce qui se recouvre le long du faîte (ardoises, tuiles) va à un pas qui divise la case, qui coupe un
+élément en son milieu à chaque bout (`faitage.recouvrants`) : la moitié de queue d'un bout se complète de la moitié de
+tête de la case voisine, sans joint ni élément doublé. Ce qui se file (solin, selle, brins, baguettes) va à une période
+qui divise la case, ses sections dans des plans d'abscisse constante (`faitage.file`, `volee.profil`). Rien n'y est tiré
+au sort. Un lissage (`ANGLE_LISSE`) reste sous l'angle droit : lissés, les bouts d'une pièce marquent le joint de deux
+cases.
+
+**Couleur.** La surface principale nomme l'emplacement `corps`, que l'hôte teint de la couleur de faîtière de la
+couverture (`ridgeCap`, `src/data/materials.json`) ; les autres (`metal`, `joint`, `accent`, `bois`) gardent la texture
+de leur matière du domaine `prop`, sans couleur imposée.
+
+**Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py toit/<couverture> --sortie /atelier/<couverture>
+npm run godot:valider -- /atelier/<couverture>/toit--<couverture>/toit--<couverture>.element.json \
+  /atelier/<couverture>/toit--<couverture>/toit--<couverture>.glb
+npm run personnage-3d:integrer -- toit/<couverture>
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py <couverture> --couverture <id> \
+  --modeles /atelier/<couverture> --sortie /atelier/revue-<couverture>
+```
+
+`toit/revue.py` rend la faîtière seule sur le toit d'école, teinte du `ridgeCap` de la couverture `--couverture` dont
+elle est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus, puis une ligne par faîte de `revue.FAITES` :
+trois cases bout à bout sur deux pans de même pente, un toit raide puis un toit plat, la pièce étirée en hauteur
+comme l'hôte la pose, pour voir son raccord et son assise. `npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque
+kit deux fois aux mêmes octets, mesure sa pièce (nœud, repère, budget, coques closes, assise sur les pans, raccord) et
+compare chaque manifeste au publié ; chaque kit qu'une couverture nomme y a son modèle. Une couverture neuve entre
+d'abord au `kitDeToitSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
+« Publier »).
+
 ## Disponibilité à sonder avant chaque production
 
 Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur livraison du design :
@@ -957,7 +1026,7 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 |---|---|---|
 | base hachée et porte complète, chaînes/silhouettes et matrice | constructeur humanoïde, manifeste livré, rapports et revue | L1 |
 | garde-robe (têtes, coiffures, pièces, ensembles) résolvant la clé | données du jeu et identité publiée par le noyau | T |
-| constructeur de l'élément (rigide, skinné ; tête à venir) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`) | #3743, migration des éléments publiés |
+| constructeur de l'élément (rigide, skinné, tête) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`, `tete.py`) | #3743, migration des éléments publiés |
 | couverture, liaison et autres gardes complètes | appels de gardes de l'évaluateur Node | L1 |
 | import contrôlé schéma 3, unicité, rapport de couverture | importeur d'assets et ses tests | L3 |
 | montage par ids, couches et emplacements, contrôles de retrait | pont et hôte Godot | L4 |

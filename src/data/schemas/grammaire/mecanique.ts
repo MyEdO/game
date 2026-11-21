@@ -7,13 +7,14 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
  */
 import { z } from 'zod';
 import { estObjet } from '../../../lib/objet.mjs';
-import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
+import { tableTotale } from '../../../lib/tableTotale';
+import { avecApparenceDObjetDonne, objetDonneSchema, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants, defDe } from './descente';
 import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './collection-cle';
 import { listeSansCle } from './liste-sans-cle';
 import { marquerProduit } from './interne/produits';
-import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
+import { categorieDEntreeAPool, findTraitById, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import {
@@ -34,6 +35,7 @@ import {
   charKeySchema,
   cibleEtendueSchema,
   contexteDeTestSchema,
+  combatFeatureSchema,
   deDeTirageSchema,
   diceSpecSchema,
   difficultySchema,
@@ -61,7 +63,7 @@ import {
   tirageSchema,
   type FormuleAuPeche,
 } from './valeurs';
-import { lireLesCiblesPsy, traitInstanceSchema } from './reference';
+import { lireLesCiblesPsy, traitInstanceSchema, type TraitPose } from './reference';
 import {
   affinerAvecCatalogues,
   idDe,
@@ -630,29 +632,35 @@ const DECLARATIONS_D_OPS = {
    *  (LDB 47 l.441). Sa Cible est
    *  posée (`trait.arg`) ou TIRÉE (`cible`, `pick` tirages sur une table de Cibles) : EDOC 12 l.217, l.241.
    *  `indicePerSL` s'ajoute à l'Indice au DR du jet : LDB 47 l.420. */
-  grantTrait: nommerChamps(affinerAvecCatalogues(z.strictObject({
+  grantTrait: declarerPayload({
     op: z.literal('grantTrait'),
     trait: traitInstanceSchema,
+    choix: reserve(z.literal(true).optional()),
     cible: tirageDeCibleSchema.optional(),
     indicePerSL: perSLSchema.optional(),
     onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
-  }), (lire) => {
+  }, { op: { label: "opération" }, trait: { label: "Trait" }, choix: { label: "Choisir la spécialisation" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }, raffinementDeCatalogue((lire) => {
     const { specAuCatalogue } = lire.specialisations('trait');
+    const lireLeTrait = lire.racine('trait', (id: string) => findTraitById(id));
     return (o, ctx) => {
-      if (!o.cible) return;
-      const { id, arg } = o.trait;
+      const { id, arg } = o.trait as Pick<TraitPose, 'id' | 'arg'>;
+      const cible = o.cible as TirageDeCible | undefined;
+      if (o.choix && (!lireLeTrait(id)?.capabilities?.spellcaster || arg !== undefined || cible)) {
+        ctx.addIssue({ code: 'custom', path: ['choix'], message: `Trait « ${id} » : le choix exige un Trait de lanceur de sorts, sans argument déjà posé ni Cible tirée.` });
+      }
+      if (!cible) return;
       if (arg !== undefined) {
         ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
       }
-      const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !specAuCatalogue(id, g));
+      const absents = GROUPES_TIRABLES[cible.table.id]().filter((g) => !specAuCatalogue(id, g));
       if (absents.length) {
-        ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
+        ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
       }
     };
-  }), { op: { label: "opération" }, trait: { label: "Trait" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  })),
   /** Pose d'AUTEUR d'un état psychologique : jamais une entrée qui en devient une autre (`becomes`). LDB 21 l.56 */
   beginPsych: nommerChamps(affinerAvecCatalogues(z.strictObject({
     op: z.literal('beginPsych'),
@@ -782,11 +790,11 @@ const DECLARATIONS_D_OPS = {
   giveTrapping: nommerChamps(avecApparenceDObjetDonne(z.strictObject({
     op: z.literal('giveTrapping'),
     apparence: ref('apparence').optional(),
-    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET }).optional(),
+    objet: objetDonneSchema.optional(),
     custom: z.string().optional(),
     count: z.number().optional(),
     perSL: perSLSchema.optional(),
-  })), { op: { label: "opération"  }, apparence: { label: "apparence" }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
+  })), { op: { label: "opération"  }, apparence: { label: "apparence" }, objet: { label: "objet" }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
   /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op
    *  sans créature est refusée AU PARSE (#1882), jamais spawnée. `addTraits` : instances de Trait
    *  (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est une feuille `idDe('trait')`. */
@@ -1130,6 +1138,22 @@ const conditionDEspeceSchema = ref('species', {
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
 });
 
+export const capaciteDeCombatSchema = z.lazy(() => {
+  const combat = combatFeatureSchema.unwrap();
+  const champs = metaDesChamps(combat, { exigees: true });
+  const capacites = (Object.keys(champs) as (keyof typeof champs)[])
+    .filter((cle) => combat.shape[cle].safeParse(true).success);
+  return enumNomme(tableTotale(capacites, (cle) => champs[cle].label));
+});
+
+/** EDOC 13 l.234, l.262-266 */
+export const domaineDuChaosSchema = enumNomme({
+  nurgle: 'Nurgle',
+  slaanesh: 'Slaanesh',
+  tzeentch: 'Tzeentch',
+  indivisible: 'Indivisible',
+});
+
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
 
@@ -1157,7 +1181,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
           beforeMinute: z.number().optional(),
         }), { afterHour: { label: "après cette heure" }, afterMinute: { label: "après cette minute" }, beforeHour: { label: "avant cette heure" }, beforeMinute: { label: "avant cette minute" } }), 'conditionDe', 'condition.time.window'),
       }), { kind: { label: "type"  }, window: { label: "créneau horaire" } }), 'conditionDe', 'condition.time')),
-      variante('Possède un objet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('hasItem'), trappingId: z.string(), count: z.number().optional() }), { kind: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, count: { label: "nombre" } }), 'conditionDe', 'condition.hasItem')),
+      variante('Possède un objet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('hasItem'), objet: objetDonneSchema, count: z.number().optional() }), { kind: { label: "type"  }, objet: { label: "objet" }, count: { label: "nombre" } }), 'conditionDe', 'condition.hasItem')),
       variante('Bourse ≥', marquerProduit(nommerChamps(z.strictObject({
         kind: z.literal('money'),
         atLeast: z.union([
@@ -1187,10 +1211,10 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('Au sein d’un Test d’équipage (à bord)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('crewTest') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.crewTest')),
       variante('Pendant un Round de combat', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('roundDeCombat') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.roundDeCombat')),
       variante('Distance à l’ennemi le plus proche', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('nearestFoe'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.nearestFoe')),
-      variante('Capacité de combat', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('capability'), who: actorRefSchema, id: z.string(), op: compareOpSchema.optional(), value: z.number().optional() }), { kind: { label: "type"  }, who: { label: "acteur"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.capability')),
+      variante('Capacité de combat', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('capability'), who: actorRefSchema, id: capaciteDeCombatSchema, op: compareOpSchema.optional(), value: z.number().optional() }), { kind: { label: "type"  }, who: { label: "acteur"  }, id: { label: "capacité" }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.capability')),
       variante('Camp / relation', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('relation'), who: actorRefSchema, is: relationOrCampSchema }), { kind: { label: "type"  }, who: { label: "acteur"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.relation')),
       variante('Possède (Groupe/Talent/Trait)', hasConditionSchema),
-      variante('Domaine du Chaos du lanceur', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('casterChaosDomain'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.casterChaosDomain')),
+      variante('Domaine du Chaos du lanceur', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('casterChaosDomain'), is: domaineDuChaosSchema }), { kind: { label: "type"  }, is: { label: "domaine" } }), 'conditionDe', 'condition.casterChaosDomain')),
       variante('Atteinte VISIBLE (apparence)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.visiblePassive')),
       variante('Est un NAVIRE', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('navire'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.navire')),
       variante('Cible de l’affliction en vue (psychologie)', reservee('cibleEnVue', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('cibleEnVue'), hostiles: z.literal(true).optional() }), { kind: { label: "type"  }, hostiles: { label: "hostiles seulement" } }), 'conditionDe', 'condition.cibleEnVue'))),
@@ -1943,7 +1967,7 @@ function construire(regimes: Regimes) {
    */
   const gameOp: z.ZodType<GameOp> = marquerProduit(nommerChamps(OP_EN_DONNEE.superRefine((v, ctx) => {
     marquerOpAtteinte(ctx);
-    const payload = opDefs[v.op];
+    const payload = Object.prototype.hasOwnProperty.call(opDefs, v.op) ? opDefs[v.op] : undefined;
     if (payload) {
       const res = payload.safeParse(v);
       // L'issue du payload est REPORTÉE TELLE QUELLE, seul son `message` est préfixé du nom de l'op :
@@ -1969,7 +1993,7 @@ function construire(regimes: Regimes) {
    *  feuille : sur la feuille, `'caster'` = porteur, `'target'` = cible résolue par le trigger. */
   declarerEnfants(gameOp, Object.entries(opDefs).map(([op, noeud]) => ({ noeud, segment: '^' + op })), valeur => {
     const op = (valeur as { op?: string } | null)?.op;
-    return op && opDefs[op] ? [opDefs[op]] : [];
+    return typeof op === 'string' && Object.prototype.hasOwnProperty.call(opDefs, op) ? [opDefs[op]] : [];
   }, 'payloads-op');
   nommerNoeud(gameOp, { opacite: { nature: 'dispatch-op', raison: 'Payloads stricts déclarés ; OPS_NON_TYPEES reste opaque.' } });
 

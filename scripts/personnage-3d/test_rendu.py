@@ -1,7 +1,8 @@
 """rendu (#4002) : les os de repos déplacés par `gabarit.osDesSilhouettes`, chaque translation tournée par le repère de
 repos de son parent, invisibles au repos et centre de rotation de l'os sous une pose ; le relief de la peau sous
 `corpulence` ; la palette d'un preset, les couleurs de sa race d'abord (#4379) ; une matière sans texture au catalogue
-laisse le matériau ; le relief projeté pose la normale du jeu (#4527)."""
+laisse le matériau ; le relief projeté pose la normale du jeu (#4527) ; un rigide rangé se pose à la transformation que
+le jeu lui donne, hors de son os (#4351)."""
 import argparse
 import tempfile
 import unittest
@@ -12,7 +13,7 @@ import numpy
 from glb import ecrire_glb, lire_glb
 from habillage import couleur_lineaire
 from rendu import (accuser_le_relief, deplacements_des_os, deplacer_les_os, facteur_de_relief, habiller_le_modele, importer, lire_cadre,
-                   matrice_du_noeud, palette)
+                   matrice_du_noeud, palette, ranger)
 
 RACINE_TOURNEE = [0, 0, 2 ** -0.5, 2 ** -0.5]
 """Quart de tour autour de Z (glTF)."""
@@ -118,6 +119,39 @@ class LireCadre(unittest.TestCase):
         for texte in ('0,0,0.6', '0,0,0.6,1,2', '0,0,haut,1', '0,0,0.6,0', '0,0,0.6,-1', '0,0,nan,1', '0,0,0.6,inf', ''):
             with self.subTest(texte=texte), self.assertRaises(argparse.ArgumentTypeError):
                 lire_cadre(texte)
+
+
+class Rangement(unittest.TestCase):
+    """Deux rigides pendus à l'os `main` du GLB d'essai, de même nom de nœud glTF : celui que le jeu range quitte son os
+    pour la transformation donnée, convertie de glTF (Y haut) à Blender (Z haut) ; celui qu'il ne range pas y reste."""
+
+    POSE = [0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0.5, 1.25, -0.75, 1]
+    """Colonne par colonne : un quart de tour autour de Y glTF, puis la translation (0,5 ; 1,25 ; -0,75)."""
+
+    def test_le_rigide_range_prend_la_pose_du_jeu_et_le_tenu_garde_son_os(self):
+        import bpy
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        with tempfile.TemporaryDirectory() as dossier:
+            chemin = Path(dossier) / 'essai.glb'
+            glb_d_essai(chemin)
+            rig = next(o for o in importer(bpy, chemin) if o.type == 'ARMATURE')
+        fioles = []
+        for _ in range(2):
+            fiole = bpy.data.objects.new('fiole', bpy.data.meshes.new('fiole'))
+            bpy.context.scene.collection.objects.link(fiole)
+            fiole.parent, fiole.parent_type, fiole.parent_bone = rig, 'BONE', 'main'
+            fioles.append(fiole)
+        bpy.context.view_layer.update()
+        self.assertEqual([f.name for f in fioles], ['fiole', 'fiole.001'])
+        tenue = numpy.array(fioles[0].matrix_world)
+        ranger([([fioles[0]], {}), ([fioles[1]], {}), ([rig], {})],
+               [{'ligne': 'main', 'meshes': {'fiole': None}}, {'ligne': 'bandouliere', 'meshes': {'fiole': self.POSE}}, None])
+        bpy.context.view_layer.update()
+        numpy.testing.assert_allclose(numpy.array(fioles[0].matrix_world), tenue, atol=1e-6)
+        self.assertEqual(fioles[0].parent_bone, 'main')
+        self.assertIsNone(fioles[1].parent)
+        numpy.testing.assert_allclose(numpy.array(fioles[1].matrix_world),
+                                      [[0, -1, 0, 0.5], [1, 0, 0, 0.75], [0, 0, 1, 1.25], [0, 0, 0, 1]], atol=1e-6)
 
 
 class DansBlender(unittest.TestCase):

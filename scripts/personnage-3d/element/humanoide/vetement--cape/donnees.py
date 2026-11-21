@@ -29,7 +29,7 @@ MATERIAUX = {'cape': ('accent', 'laine')}
 emplacements de vêtement, pris par la robe : `accent`, celui de la capuche (HYPOTHÈSE). Gris de construction."""
 
 CONTOURNE = {'robe': 'humanoide--vetement--robe', 'bandouliere': 'humanoide--accessoire--bandouliere-a-parchemins'}
-MATIERES = {'robe': ['robe', 'dessous'], 'bandouliere': ['sangle', 'parchemin', 'fiole', 'bouchon']}
+MATIERES = {'robe': ['robe', 'dessous'], 'bandouliere': ['sangle']}
 ZONES_PUBLIEES = {'robe': ['torse', 'hanches', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d', 'mollet_g', 'mollet_d'],
                   'bandouliere': ['cou', 'torse']}
 """Les éléments publiés sous la cape, leurs matières et les zones de leurs meshes : la cape les contourne et emprunte, au

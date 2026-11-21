@@ -112,6 +112,7 @@ import {
   ligneDuCoup,
   freeAttackWeapon,
   defaultParryWeapon,
+  defenseTestOf,
   advantageModLine,
   toucheAvecPrise,
   toucheNonIgnoree,
@@ -262,6 +263,7 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
 import { critiqueDie } from '../data/criticals';
 import { canCastFromGrimoire } from '../engine/grimoire';
+import { sortsDisponibles } from '../engine/sortsDuPnj';
 import { effectiveCastingNumber } from '../engine/castingNumber';
 import type { CastingNumberMod } from '../engine/castingNumber';
 import {
@@ -294,7 +296,6 @@ import {
   GRAPPLE,
   type SpellData,
   type ManeuverDef,
-  libelleOuAbsence,
   SPEC_SOURCES,
 } from '../data';
 import { applyHullCritical, exposedCrew, optsDeCritiqueDeCoque } from '../engine/shipCritical';
@@ -358,6 +359,7 @@ import {
   isActionLocked,
 } from '../engine/conditions';
 import {
+  armeDesTentacules,
   creatureAttacks,
   attaquesNaturelles,
   attaqueNaturelle,
@@ -478,7 +480,7 @@ import {
   pickAttackWeaponList,
 } from './mount';
 import { couvertDuCoup, couvertDuTir, lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
-import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
+import { etiquettesDesObjetsPortes, sourcePsyAuCombat, sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertDepuisDifficulte, couvertLePlusProtecteur } from '../engine/cover';
 import { couvertDuPoste } from '../engine/navalTraits';
 import {
@@ -593,7 +595,7 @@ import {
 } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
-import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
+import { aiDriven, controlsCombatant, defenseSurfaced, refuserAuSiegeAgissant } from './netOwnership';
 import { jetSurfaced, tenuParUnHumain } from './sieges';
 import { resolveRecoverTest } from './combat/recover';
 // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
@@ -740,14 +742,14 @@ export function victimeDuCoup(battle: BattleState, target: Combatant, pa: Pendin
   return pa.victimId ? inBattleId(battle, pa.victimId) ?? target : target;
 }
 
-/** Arme SYNTHÉTISÉE d'une attaque gratuite de créature (`freeKind`) de `attacker` : celle du jet piloté
+/** Arme d'une attaque gratuite de créature (`freeKind`) de `attacker` : celle du jet piloté
  *  (`attackWeaponOf`), de l'aperçu du geste (`apercuDuGeste`) et de l'IA (`applyFreeAttack`). `null` quand
  *  l'attaque épingle une arme PORTÉE (`weaponUid`) : c'est alors elle qui frappe. LDB 85 l.387 */
 export function armeDeLaGratuite(attacker: Combatant, kind: string, weaponUid?: string): Weapon | null {
   if (weaponUid != null && attacker.weapons.some((w) => w.uid === weaponUid)) return null;
   const attaque = attaqueNaturelle(attacker.traits ?? [], kind);
   if (!attaque) throw new Error(`armeDeLaGratuite : ${attacker.id} n'a aucune attaque naturelle « ${kind} »`);
-  return freeAttackWeapon(attaque);
+  return armeDesTentacules(attacker, attaque) ?? freeAttackWeapon(attaque);
 }
 
 /** Arme effectivement tirée : mêlée au contact, distance sinon (Atout Pistolet pour tirer en Combat
@@ -1483,11 +1485,12 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
 export function previewDefense(
   defender: Combatant,
   ctx?: { mode?: 'parade' | 'esquive'; parryWeapon?: Weapon; vsWeapon?: Weapon; dodgeMods?: ModLine[] },
-): { label: string; mods: ModLine[]; difficulty: Difficulty; difficultyCombined?: number; difficultyParts?: ModLine[] } {
+): { label: string; test: ReturnType<typeof defenseTestOf>; mods: ModLine[]; difficulty: Difficulty; difficultyCombined?: number; difficultyParts?: ModLine[] } {
   const mode = ctx?.mode ?? bestDefenseMode(defender);
-  const { mods, difficulty, difficultyCombined, difficultyParts } = ligneDeDefense(defender, { ...ctx, mode, parryWeapon: ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defaultParryWeapon(defender) });
+  const arme = ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defaultParryWeapon(defender);
+  const { mods, difficulty, difficultyCombined, difficultyParts } = ligneDeDefense(defender, { ...ctx, mode, parryWeapon: arme });
   return {
-    label: DEFENSE_LABEL[mode], mods, difficulty,
+    label: DEFENSE_LABEL[mode], test: defenseTestOf(defender, mode, arme), mods, difficulty,
     ...(difficultyCombined != null ? { difficultyCombined } : {}),
     ...(difficultyParts ? { difficultyParts } : {}),
   };
@@ -2002,12 +2005,17 @@ export function frenzyTarget(get: Get, c: Combatant): Combatant | null {
 
 /** Source de PEUR active dont `dest` RAPPROCHE l'acteur (LDB 21 l.27) — null si aucune, ou si
  *  immunisé à la Psychologie. « Sous l'emprise » : `sousPeur`. Pure. */
-export function fearedSourceTowards(battle: BattleState, active: Combatant, dest: Pt): Combatant | null {
+function fearedSourceTowards(get: Get, battle: BattleState, active: Combatant, dest: Pt) {
   if (!active.pos || isPsychImmune(active)) return null;
+  const { scene, campaignNarratif } = get();
   for (const p of active.psychState ?? []) {
-    if (!sousPeur(p)) continue;
-    const src = inBattleId(battle, p.sourceId);
-    if (src?.pos && !isOutOfAction(src) && chebyshev(dest, src.pos) < chebyshev(active.pos, src.pos)) return src;
+    if (!sousPeur(p) || p.sourceId === undefined) continue;
+    const src = sourcePsyAuCombat(battle, p.sourceId);
+    const ancre = src.ancre;
+    if (!ancre?.pos || isOutOfAction(ancre) || chebyshev(dest, ancre.pos) >= chebyshev(active.pos, ancre.pos)) continue;
+    if (src.genre === 'objet' && (!scene || !sourcesPsyEnVue(battle, scene, active, (c) => c.id === ancre.id, objetDuNarratif(campaignNarratif))
+      .some((enVue) => idDeSource(enVue) === src.id))) continue;
+    return src;
   }
   return null;
 }
@@ -2019,9 +2027,9 @@ export function fearedSourceTowards(battle: BattleState, active: Combatant, dest
 export function retenuParLaPeur(get: Get, set: SetFn, active: Combatant, dest: Pt, intent: PendingApproach['intent']): boolean {
   const battle = get().battle;
   if (!battle || battle.fearGate === 'passed') return false;
-  const feared = fearedSourceTowards(battle, active, dest);
+  const feared = fearedSourceTowards(get, battle, active, dest);
   if (!feared) return false;
-  if (battle.fearGate === 'failed') return refuserGeste(get, set, tr('cs.fearNoApproach', { name: active.label, feared: feared.label }));
+  if (battle.fearGate === 'failed') return refuserGeste(get, set, tr('cs.fearNoApproach', { name: active.label, feared: feared.nom }));
   set({
     pendingApproach: { combatantId: active.id, test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: feared.id, intent, result: null },
     battle: { ...battle, preview: null },
@@ -5439,6 +5447,8 @@ export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, t
 }
 
 export function castRefused(get: Get, set: SetFn, actor: Combatant, msg: string): void {
+  const etat = get();
+  if (controlsCombatant(etat, actor) && refuserAuSiegeAgissant(etat, msg)) return;
   journaliser(get, set, [msg], 'sort', { actorId: actor.id });
 }
 
@@ -5471,7 +5481,9 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   applyIncomingMeleeAdvantage(get, attacker, target, weapon); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
   const r = resolveAttack(get, attacker, target, weapon, pa.location ?? undefined, pa.fromCharge, pa.dansLeTas, pa.tirImmobile, pa.withhold, pa.siege); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
   if (!r) {
-    get().ecrireAuJournal(weapon.type === 'distance' ? tr('cf.ligneDeVueMasquee') : tr('cs.meleeOutOfRange'));
+    const etat = get();
+    const refus = weapon.type === 'distance' ? tr('cf.ligneDeVueMasquee') : tr('cs.meleeOutOfRange');
+    if (!controlsCombatant(etat, attacker) || !refuserAuSiegeAgissant(etat, refus)) etat.ecrireAuJournal(refus);
     set({ pendingAttack: null });
     advanceCombatJet(get); // défense en profondeur : ne JAMAIS laisser la cascade d'attaque orpheline (sinon soft-lock de fin de tour)
     return;
@@ -6060,12 +6072,14 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   if (ancrage === 'target' || !castAfterCrit(res, pc.critChoice)) return;
   const centre = ancrage === 'caster' ? caster.pos : pt;
   const range = spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene));
-  if (range != null && chebyshev(caster.pos, centre) > range) {
-    get().ecrireAuJournal(tr('cf.zoneHorsDePortee', { spell: spell.label, range }));
-    return;
-  }
-  if (ancrage !== 'caster' && castSightBlocked(get, caster.pos, centre)) {
-    get().ecrireAuJournal(tr('cf.sansLigneDeVue', { spell: spell.label }));
+  const refus = range != null && chebyshev(caster.pos, centre) > range
+    ? tr('cf.zoneHorsDePortee', { spell: spell.label, range })
+    : ancrage !== 'caster' && castSightBlocked(get, caster.pos, centre)
+      ? tr('cf.sansLigneDeVue', { spell: spell.label })
+      : null;
+  if (refus) {
+    const etat = get();
+    if (!controlsCombatant(etat, caster) || !refuserAuSiegeAgissant(etat, refus)) etat.ecrireAuJournal(refus);
     return;
   }
   const radius = pc.zone.radius;
@@ -6183,7 +6197,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
   );
   // Sorts connus, résolus + enrichis (portée en cases, forme, fiabilité d'incantation, Focalisation, Unicité).
   const spells: CastableSpell[] = [];
-  for (const id of enemy.spells ?? []) {
+  for (const id of sortsDisponibles(enemy)) {
     const data = resolveSpell(id);
     if (!data) continue;
     const cn = data.cn ?? 0;
@@ -6414,6 +6428,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
     next = rederiveCastSL(caster, target, spell, res, pc.missile && !unplacedZone, pc.focused, out.casterNetSL - res.sl);
     next.log = `${out.log} ${next.log}`;
   }
+  next = { ...next, slPropre: res.slPropre ?? res.sl };
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
   const oc = aiDriven(get(), caster) && pc.missile && !pc.zone
     ? aiOvercastPlan(get().scene, caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, pc.critChoice)
@@ -8615,16 +8630,19 @@ function cleDeTour(battle: BattleState, id: string): string {
  *  résolus INLINE par le même Flow — patron EXACT de la Surprise (`resolveAmbush`). La conséquence PURE
  *  de l'échec (1 État Brisé) est une op `condition` portée par la branche `echec`. */
 export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, fromPos: Pt, toPos?: Pt): void {
-  const battle = get().battle;
+  const { battle, scene, campaignNarratif } = get();
   const arrivee = toPos ?? mover.pos;
   if (!battle || !arrivee) return;
+  const objets = new Set(etiquettesDesObjetsPortes(mover, objetDuNarratif(campaignNarratif)).map((s) => s.id));
+  const fumees = objets.size ? smokeOf(battle) : [];
   const dues: { c: Combatant; indice: number }[] = [];
   for (const c of battle.combatants) {
-    if (c.id === mover.id || isOutOfAction(c) || !c.pos) continue; // la Peur portée nomme sa source, quel que soit son camp
-    const peur = (c.psychState ?? []).find((p) => p.sourceId === mover.id && sousPeur(p));
-    if (!peur) continue;
-    if (chebyshev(arrivee, c.pos) >= chebyshev(fromPos, c.pos)) continue; // n'a pas fini plus près
-    dues.push({ c, indice: indiceDePeur(peur) });
+    const pos = c.pos;
+    if (c.id === mover.id || isOutOfAction(c) || !pos) continue;
+    if (chebyshev(arrivee, pos) >= chebyshev(fromPos, pos)) continue;
+    const peur = (c.psychState ?? []).find((p) => sousPeur(p) && (p.sourceId === mover.id
+      || (p.sourceId !== undefined && objets.has(p.sourceId) && scene !== null && losClear(scene, pos, arrivee, fumees))));
+    if (peur) dues.push({ c, indice: indiceDePeur(peur) });
   }
   if (!dues.length) return;
   // Le foyer est l'ENTRÉE de psychologie affrontée (`peur`), qui porte déjà son enjeu et sa fiche — pas
@@ -8768,7 +8786,7 @@ function lecturePsy(get: Get, c: Combatant): { battle: BattleState; sources: Sou
   const battle = get().battle;
   const scene = get().scene;
   if (!battle || !scene || !c.pos || isPsychImmune(c, avantageDesEngages(battle, c))) return null;
-  const sources = sourcesPsyEnVue(battle, scene, c, (v) => !isOutOfAction(v)); // LDB 85 l.264-266
+  const sources = sourcesPsyEnVue(battle, scene, c, (v) => !isOutOfAction(v), objetDuNarratif(get().campaignNarratif)); // LDB 85 l.264-266
   const neuves = sources.flatMap((source): SourceNeuve[] => {
     const src = fearSourceFor(c, source, riderFearSize(battle, c)); // AA 13 l.25
     const id = idDeSource(source);
@@ -8786,8 +8804,7 @@ function dueDeSource(c: Combatant, n: SourceNeuve): PsychDue {
 function nomDeLaSource(l: { battle: BattleState; sources: readonly SourceEnVue[] }, id: string): PlayerText {
   const s = l.sources.find((v) => idDeSource(v) === id);
   if (s) return libelleDeSource(s);
-  const c = inBattleId(l.battle, id);
-  return c ? nomDe(c) : libelleOuAbsence(undefined, 'combattant', id);
+  return sourcePsyAuCombat(l.battle, id).nom;
 }
 
 /** Re-tests des afflictions ciblées actives de `c` dus au `moment` du Round `round`, tant qu'un membre de

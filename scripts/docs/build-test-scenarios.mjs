@@ -2,7 +2,7 @@ import { analyserCorpus } from '../guards/lib/dialecte.mjs';
 /**
  * Génère `docs/test-scenarios.md` — catalogue des scénarios de test Godot.
  * Re-run : `node scripts/docs/build-test-scenarios.mjs` (`npm run docs:test-scenarios`).
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  * Objet (#903 suite) — la table « Catalogue actuel » recopiait à la main un sous-ensemble du
  * registre réel (`_registry.generated.ts`, 34 scénarios) : mesuré 9 scénarios ABSENTS du .md
@@ -26,9 +26,9 @@ import { readFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 import { join } from 'node:path'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const DIR = 'src/scenes/test-scenarios'
   const SECTIONS = [
@@ -275,4 +275,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)
