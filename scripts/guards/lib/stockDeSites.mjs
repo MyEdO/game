@@ -210,8 +210,7 @@ export const entreesRegenerees = (sites, { lot, date, ancien = [] } = {}) =>
 export const comptesParFamille = (items, familles) =>
   tableTotale(familles, (f) => items.filter((s) => s.famille === f).length)
 
-/** Le motif de tout écrivain qui refuse la croissance : `DECROISSANT`, et l'écrivain des comptes
- *  (`actualiserOccurrences`, `occurrencesStock.mjs`). */
+/** Le motif de refus de la politique `DECROISSANT`. */
 export const MOTIF_DECROISSANT = "Cet outil ne peut qu'écrire un stock PLUS PETIT."
 
 /** Politique `DECROISSANT` : la régénération n'écrit qu'un stock PLUS PETIT — une entrée neuve ou

@@ -7,9 +7,11 @@
 // Fixtures sous `os.tmpdir()` : le corps du rapport est un FICHIER (`--body-file`).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { analyserTexte } from '../guards/lib/dialecte.mjs'
+import { evaluateurDuDepot, lectureDeModule } from '../guards/lib/racinesBalayees.mjs'
 import { DESCRIPTION_LABEL, decider, options, recit, signaler, survivanteDe } from './signaler-rouge.mjs'
 
 /** Un `spawn` de doublure : enregistre les appels, sert les sorties données dans l'ordre. */
@@ -72,6 +74,26 @@ test('les options : `--prefixe` vaut `--titre` par défaut, une option manquante
     () => options(['--titre', 'x', '--label', 'canari', '--corps', 'r.md', '--verdict', 'orange']),
     /--verdict doit valoir/,
   )
+})
+
+test('le corps fourni par argv couvre le corpus et un appel littéral garde son chemin', () => {
+  const rel = 'scripts/ops/signaler-rouge.mjs'
+  const litt = 'scripts/ops/appel-signaler.mjs'
+  const textes = new Map([
+    [rel, readFileSync(new URL('./signaler-rouge.mjs', import.meta.url), 'utf8')],
+    [litt, "import { signaler } from './signaler-rouge.mjs'; signaler({ corps: 'docs/architecture.md' })"],
+  ])
+  const lectures = new Map([...textes].map(([rel, text]) => [rel, lectureDeModule(rel, analyserTexte({ rel, text }).sourceFile)]))
+  const evaluateur = evaluateurDuDepot({
+    lecture: (fichier) => lectures.get(fichier),
+    cible: (_fichier, spec) => spec === './signaler-rouge.mjs' ? rel : null,
+  })
+  const lecturesDeLAppel = (fichier) => evaluateur.sitesDe(fichier).filter((site) => site.appel === 'signaler').flatMap((site) => site.valeurs)
+  assert.deepEqual(lecturesDeLAppel(rel), [{
+    chemin: '',
+    sous: 'couverture corpus entier : scripts/ops/signaler-rouge.mjs#options:retour.corps — chaîne sans borne déclarée à la source',
+  }])
+  assert.deepEqual(lecturesDeLAppel(litt), [{ chemin: 'docs/architecture.md' }])
 })
 
 test('ROUGE sans survivante : label idempotent, recherche par préfixe, issue CRÉÉE avec son label', () => {

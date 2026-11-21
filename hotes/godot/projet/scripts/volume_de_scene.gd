@@ -185,19 +185,20 @@ func manquants(monde: Dictionary) -> Dictionary:
 	}
 
 
-## Les matières des géométries reçues que leurs maillages peuvent employer, y compris après remaillage d'un décor.
+## Les matières des géométries reçues que leurs maillages peuvent employer, y compris après remaillage d'un décor, chacune
+## à vrai si une nappe ou une couronne la porte : sa texture neutre sert (`_matiere`).
 static func matieres_des_morceaux(recus: Dictionary) -> Dictionary:
 	var matieres := {}
 	for famille in ["volume", "toits", "couronnes"]:
 		for geometrie: Dictionary in recus.get(famille, []):
-			_relever_les_matieres(geometrie, matieres)
+			_relever_les_matieres(geometrie, matieres, famille != "volume")
 	return matieres
 
 
-static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary) -> void:
+static func _relever_les_matieres(geometrie: Dictionary, matieres: Dictionary, neutre: bool) -> void:
 	for surface: Dictionary in geometrie.surfaces:
 		if not surface.get("priseSeulement", false) and not surface.has("navire"):
-			matieres[surface.matiere] = false
+			matieres[surface.matiere] = matieres.get(surface.matiere, false) or neutre
 
 
 ## Le volume du manifeste `monde` (`{ monde, toits, couronnes }`) à l'échelle d'une unité par case, sa case (0, 0) sur
@@ -642,7 +643,7 @@ func _poser_le_morceau(noeud: Node3D, morceau: Dictionary) -> void:
 	noeud.set_meta("decors", decors)
 	if not flottaisons.is_empty() or not decors.is_empty():
 		noeud.set_meta("geometrie", morceau)
-		_retenir_les_textures_du_remaillage(noeud, morceau)
+		_retenir_les_textures_du_remaillage(noeud, morceau, true)
 	else:
 		noeud.remove_meta("geometrie")
 		noeud.remove_meta("textures_du_remaillage")
@@ -713,20 +714,20 @@ func _poser_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 	noeud.set_meta("decors", decors)
 	if not decors.is_empty():
 		noeud.set_meta("geometrie", nappe)
-		_retenir_les_textures_du_remaillage(noeud, nappe)
+		_retenir_les_textures_du_remaillage(noeud, nappe, false)
 	else:
 		noeud.remove_meta("geometrie")
 		noeud.remove_meta("textures_du_remaillage")
 	_mailler_la_nappe(noeud, nappe)
 
 
-## Les textures déjà préparées des surfaces qu'un remaillage de ce nœud peut faire revenir.
-static func _retenir_les_textures_du_remaillage(noeud: Node3D, geometrie: Dictionary) -> void:
+## Les textures déjà préparées des surfaces qu'un remaillage de ce nœud, un morceau si `masquee`, peut faire revenir.
+static func _retenir_les_textures_du_remaillage(noeud: Node3D, geometrie: Dictionary, masquee: bool) -> void:
 	var matieres := {}
-	_relever_les_matieres(geometrie, matieres)
+	_relever_les_matieres(geometrie, matieres, not masquee)
 	var textures: Array[Texture2D] = []
 	for nom: String in matieres:
-		for chemin: String in [texture_de(nom), relief_de(nom)]:
+		for chemin: String in [_albedo_de(nom, masquee), relief_de(nom)]:
 			var texture := TexturesDeMatiere.retenue(chemin)
 			if texture != null:
 				textures.append(texture)
@@ -1047,19 +1048,23 @@ func _retournes(tableau: Variant) -> Variant:
 
 ## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde »), du shader
 ## de monde : texturée (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets, liée à la vision posée
-## (`voir`). Celle d'un morceau (`masquee`) est liée au masque posé (`retirer`) ; celle d'une nappe, jamais : sa texture
-## de retrait reste la noire par défaut, rien ne s'y replie.
+## (`voir`). Celle d'un morceau (`masquee`) est liée au masque posé (`retirer`), sa texture projetée sur les trois axes ;
+## celle d'une nappe ou d'une couronne, jamais : sa texture de retrait reste la noire par défaut, rien ne s'y replie ; sa
+## texture est la neutre (`texture_neutre_de`), projetée sur le plan de chaque face et teinte par la couleur de ses
+## sommets (`nappe`, `art/monde.gdshader`).
 func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
 	var matieres := _matieres_masquees if masquee else _matieres_des_nappes
 	var reference := matieres.get(nom) as WeakRef
 	var matiere := reference.get_ref() as ShaderMaterial if reference != null else null
 	if matiere != null:
 		return matiere
-	var albedo := TexturesDeMatiere.retenue(texture_de(nom))
+	var albedo := TexturesDeMatiere.retenue(_albedo_de(nom, masquee))
 	matiere = (matiere_texturee_masquee if albedo != null else couleur_des_sommets_masquee).duplicate()
 	texturer(matiere, nom, albedo, true)
 	if masquee:
 		matiere.set_shader_parameter("retrait", _retrait)
+	elif albedo != null:
+		matiere.set_shader_parameter("nappe", 1.0)
 	_lier_la_vision_a(matiere)
 	matieres[nom] = weakref(matiere)
 	return matiere
@@ -1068,6 +1073,12 @@ func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
 ## Le chemin de la texture de la matière `nom` au projet.
 static func texture_de(nom: String) -> String:
 	return "res://textures/%s.jpg" % nom
+
+
+## Le chemin de la texture que lit la matière `nom` d'un morceau (`masquee`), ou d'une nappe ou d'une couronne
+## (`_matiere`).
+static func _albedo_de(nom: String, masquee: bool) -> String:
+	return texture_de(nom) if masquee else texture_neutre_de(nom)
 
 
 ## Le chemin du relief de la texture de la matière `nom` au projet.

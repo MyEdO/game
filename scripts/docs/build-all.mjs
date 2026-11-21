@@ -32,7 +32,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre, listerDossier } from '../guards/lib/lister.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
 import { prendreVerrou, tenantEnUneLigne } from '../test/verrou.mjs'
 import { estGesteLourd, verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { cheminsDeLEcrivain, ecrivainTenu, ENV_EPOQUE, preempterLesDerives } from './lib/ecrivain-derives.mjs'
@@ -461,7 +461,7 @@ function executerLesGenerateurs({
       try {
         writeSync(3, JSON.stringify({ generateur, raison }))
       } catch {
-        // Le journal porte déjà la cause ; une panne du canal ne change pas le code 79.
+        // Le journal porte déjà la cause ; une panne du canal ne change pas le verdict.
       }
     }
     return CODE_SOURCE_MODIFIEE
@@ -696,24 +696,21 @@ function executerLesGenerateurs({
   }
 }
 
-/** Code de sortie « SOURCE MODIFIÉE » : une source du générateur a changé pendant sa passe (`SourceModifiee`),
- *  préemption transitoire que l'appelant rejoue (#2603). Valeur maison, hors de la plage sysexits.h. */
-export const CODE_SOURCE_MODIFIEE = 79
-
-/** Drapeau privé du détaché : le diagnostic du code 79 s'écrit sur son descripteur 3. */
+/** Drapeau privé du détaché : le diagnostic de `CODE_SOURCE_MODIFIEE` s'écrit sur son descripteur 3. */
 export const DIAGNOSTIC_RECONSTRUCTION = '--diagnostic-reconstruction'
 
 /**
- * `geste()` joué sous le verrou des gestes lourds de `cwd` (`verrouGestesLourds`), pris sous `attente` : REND son
- * code, ou `CODE_DIFFERE` si le verrou est resté tenu à l'échéance, rien n'ayant tourné.
- * @param {{ cwd: string, argv: string[], geste: () => number | Promise<number>, attente?: { echeanceMs: number, pasMs: number, parTenant?: boolean } }} p
+ * Joue `geste` avec l’environnement porteur du verrou des gestes lourds de `cwd`, pris sous `attente`.
+ * Rend son code, ou `CODE_DIFFERE` si le verrou est resté tenu à l’échéance.
+ * @param {{ cwd: string, argv: string[], geste: (contexte: { env: NodeJS.ProcessEnv }) => number | Promise<number>,
+ *   attente?: { echeanceMs: number, pasMs: number, parTenant?: boolean }, env?: NodeJS.ProcessEnv }} p
  */
-export async function sousGestesLourds({ cwd, argv, geste, attente, env = process.env, signal }) {
+export async function sousGestesLourds({ cwd, argv, geste, attente, env = process.env }) {
   const verrou = verrouGestesLourds(cwd)
   const delai = attente ?? verrou.attente
   const annoncer = (tenant) => console.error(`docs:build — en attente : ${verrou.libelle} : ${tenantEnUneLigne(tenant)} (échéance ${delai.echeanceMs / 60_000} min par tenant)`)
   const prise = prendreVerrou({
-    chemin: verrou.chemin, libelle: verrou.libelle, identite: verrou.identite, cwd, env, signal,
+    chemin: verrou.chemin, libelle: verrou.libelle, identite: verrou.identite, cwd, env,
     commande: ['node', 'scripts/docs/build-all.mjs', ...argv].join(' '),
     attente: { ...delai, annoncer },
   })

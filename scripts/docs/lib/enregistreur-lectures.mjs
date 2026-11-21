@@ -314,6 +314,7 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
     fichiers,
     dossiers,
     ecrits,
+    mesurer,
     restaurer,
     // Un fichier ÉCRIT par le générateur n'est pas une de ses sources, même s'il l'a relu avant
     // (`build-implemente.mjs` réinjecte un champ dans les fiches docs/raw qu'il vient de lire).

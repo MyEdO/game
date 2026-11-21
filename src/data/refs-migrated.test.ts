@@ -509,9 +509,9 @@ describe('Compétences de statbloc, de Carrière et d’espèce — observations
   });
 });
 
-// ── OBSERVATIONS NOMMÉES (#1457 B1) — `talents[]` de statbloc, de Carrière et d'espèce : la spéc est
-// admise au parse (`talentRefSchema`, `refOuSpec('talent')`) ; les deux passes de `talentRefSchema`
-// (texte d'instance, sentinelle) restent des stocks nommés ici.
+// ── OBSERVATIONS NOMMÉES (#1457 B1) — `talents[]` de statbloc, de Carrière et d'espèce.
+// `talentRefSchema` admet le texte d'instance d'un Talent sans catalogue. Le parse refuse la
+// sentinelle de spécialisation (#1456) et l'inventaire en mesure le stock vide.
 describe('Talents de statbloc, de Carrière et d’espèce — observations nommées (#1457 B1)', () => {
   const { textes, sentinelles } = collecteSpecs('talents');
 

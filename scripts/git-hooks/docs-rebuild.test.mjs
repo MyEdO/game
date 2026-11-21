@@ -7,8 +7,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, executer, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { ciblesSurDisque, executer, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
@@ -30,6 +30,8 @@ test('codeDeLArbre : la vraie couture CLI mesure et certifie les seuls codes pé
     return { status: 17 }
   }
   assert.equal(codeDeLArbre(cwd, lancer), 17)
+  assert.equal(codeDeLArbre(cwd, () => ({ status: 0, signal: 'SIGTERM' })), 1)
+  assert.equal(codeDeLArbre(cwd, () => ({ status: null, signal: null })), 1)
   assert.equal(codeDeLArbre(cwd, () => ({ error: new Error('absent') })), 1)
 })
 import { attendreLibre, prendreVerrou, tenantDe } from '../test/verrou.mjs'
@@ -476,13 +478,13 @@ test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucu
   }
 })
 
-/** Les modules qu'un point d'entrée d'outil charge avant ses gardes : la barrière et ses `import()` (le verrou, la
- *  porte), le répartiteur sans les siens (ses gardes) — dérivés de leurs imports (`clotureDImports`) —, et le lecteur
- *  d'entrée que la barrière charge par un `import()` à gabarit, hors de la clôture (`LECTEUR`, `scripts/hooks/barriere-outil.mjs`, #2712). */
+/**
+ * Les modules qu'un point d'entrée d'outil charge avant ses gardes : la clôture de la barrière, imports
+ * dynamiques compris, et celle des imports statiques du répartiteur (#2187 #2712).
+ */
 const CHAINE_DE_LA_BARRIERE = [...new Set([
   ...clotureDImports([join(RACINE, 'scripts', 'hooks', 'barriere-outil.mjs')], { racine: RACINE, typesEffaces: true }),
   ...clotureDImports([join(RACINE, 'scripts', 'hooks', 'repartiteur.mjs')], { racine: RACINE, typesEffaces: true, dynamiques: false }),
-  ...clotureDImports([join(RACINE, 'scripts', 'guards', 'lib', 'stdinBorne.mjs')], { racine: RACINE, typesEffaces: true }),
 ])]
 
 test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pendant le `npm ci` sort en 2, jamais en 1', () => {

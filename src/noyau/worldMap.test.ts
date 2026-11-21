@@ -20,6 +20,8 @@ import {
 } from './worldMap';
 import { findCargoEntryById } from '../engine/cargo';
 import { lieuxServices, navalPorts } from '../data';
+import { poserRegimeVivant } from '../data/schemas/grammaire/idsVivants';
+import { espaceDe } from '../data/schemas/grammaire/ref';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
@@ -377,6 +379,89 @@ describe('parseProject — porte de schéma', () => {
     const avecNull = { ...scene('s1'), triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
     expect(() => parseProject(projet([avecNull]))).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
     expect(() => parseSceneDeProjet(avecNull)).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
+  });
+});
+
+describe.each([
+  { porte: 'parseSceneDeProjet', lire: parseSceneDeProjet },
+  { porte: 'parseProject', lire: (brute: unknown) => parseProject(projet([brute])).scenes[0] },
+])('$porte — offre de couchage de scène', ({ lire }) => {
+  const rect = { x: 0, y: 0, w: 1, h: 1 };
+
+  it('préserve l’absence et les offres vides', () => {
+    const sansOffre = lire(scene('s1'));
+    expect(sansOffre.rest).toBeUndefined();
+    expect(sansOffre.restZones).toBeUndefined();
+
+    const restZones = [{ rect, places: {} }];
+    const offreVide = lire({ ...scene('s1'), rest: {}, restZones });
+    expect(offreVide.rest).toStrictEqual({});
+    expect(offreVide.restZones).toStrictEqual(restZones);
+  });
+
+  it.each(['pietre', 'normale', 'grande'])('préserve les couchages combinés et la qualité %s', (quality) => {
+    const rest = { auberge: true, maison: false, camp: true, quality };
+    const restZones = [{ rect, places: { auberge: false, maison: true, camp: true }, quality }];
+    const chargee = lire({ ...scene('s1'), rest, restZones });
+    expect(chargee.rest).toStrictEqual(rest);
+    expect(chargee.restZones).toStrictEqual(restZones);
+  });
+
+  it.each([
+    { variante: 'bord dans l’offre globale', repos: { rest: { bord: true } }, faute: /Clé non reconnue : "bord"/ },
+    {
+      variante: 'bord dans les places d’une zone',
+      repos: { restZones: [{ rect, places: { bord: true } }] },
+      faute: /Clé non reconnue : "bord"/,
+    },
+    {
+      variante: 'qualité dans les places d’une zone',
+      repos: { restZones: [{ rect, places: { quality: 'normale' } }] },
+      faute: /Clé non reconnue : "quality"/,
+    },
+    { variante: 'couchage global non booléen', repos: { rest: { maison: 'oui' } }, faute: /chez soi:.*booléen attendu/ },
+    {
+      variante: 'couchage de zone non booléen',
+      repos: { restZones: [{ rect, places: { maison: 'oui' } }] },
+      faute: /chez soi:.*booléen attendu/,
+    },
+    { variante: 'qualité globale inconnue', repos: { rest: { quality: 'confortable' } }, faute: /qualité: Option invalide/ },
+    {
+      variante: 'qualité de zone inconnue',
+      repos: { restZones: [{ rect, places: {}, quality: 'confortable' }] },
+      faute: /qualité: Option invalide/,
+    },
+  ])('refuse la variante « $variante »', ({ repos, faute }) => {
+    expect(() => lire({ ...scene('s1'), ...repos })).toThrow(faute);
+  });
+});
+
+describe('parseProject — offre de l’établissement', () => {
+  const livre = 'livre-de-test';
+  const typeDeService = 'hebergement-de-test';
+  const espaces = new Map([
+    [espaceDe('book'), new Set([livre])],
+    [espaceDe('serviceDeLieu'), new Set([typeDeService])],
+  ]);
+
+  function lireLHebergement(rest: Record<string, unknown>) {
+    const services = [{ id: 'auberge', kind: { id: typeDeService }, rest }];
+    const worldMap = { ...wm, places: [{ ...place('s1'), services }] };
+    const precedent = poserRegimeVivant((cle) => espaces.get(cle) ?? precedent?.(cle));
+    try {
+      return parseProject(projet([scene('s1')], { worldMap })).worldMap?.places[0].services?.[0].rest;
+    } finally {
+      poserRegimeVivant(precedent);
+    }
+  }
+
+  it('préserve la qualité et les offres d’auberge sourcées', () => {
+    const rest = { quality: 'grande', offres: [{ id: 'chambre', source: { book: livre, page: 1 } }] };
+    expect(lireLHebergement(rest)).toStrictEqual(rest);
+  });
+
+  it.each(['auberge', 'maison', 'camp', 'bord'])('refuse le booléen de couchage %s', (cle) => {
+    expect(() => lireLHebergement({ [cle]: true })).toThrow(`Clé non reconnue : "${cle}"`);
   });
 });
 

@@ -4,9 +4,9 @@
  *
  * Une forme écrite dans `schemas/grammaire/` (référence, source, dé, quantité, apparence…) est la
  * SEULE graphie de son concept. Un littéral `z.object`/`z.strictObject`/`z.looseObject` qui en
- * recouvre la signature ailleurs est une seconde graphie — c'est exactement ce que le dénominateur
- * L0 du chantier (`STRUCTURES_REDECLARATIONS`) mesure côté donnée. Et un `.extend(` posé sur une
- * porte de la grammaire lui fait PERDRE son registre et sa `.meta()` (zod 4.4.3, cf. en-tête de
+ * recouvre la signature ailleurs peut constituer une seconde graphie. Le volet `STRUCTURES_REDECLARATIONS`
+ * mesure les recopies dans l’AST des defs. Un `.extend(` posé sur une porte de la grammaire lui fait
+ * perdre son registre et sa `.meta()` (zod 4.4.3, cf. en-tête de
  * `grammaire/ref.ts`) : la porte étendue n'est plus la porte.
  *
  * Le VOCABULAIRE n'est pas recopié ici : il est DÉRIVÉ par introspection des schémas eux-mêmes
@@ -52,8 +52,8 @@ const GARDE = {
   angleMort: [
     'le volet `redeclaration` exige l’ÉGALITÉ des jeux de clés : un littéral qui ne recopie qu’une PARTIE ' +
       'd’une forme (`{n, sides}` sans `plus`), ou qui la recopie CHARGÉE d’une charge utile (un document ' +
-      'porteur de `id` + `type`), n’est pas vu — ces deux cas sont mesurés côté DONNÉE par ' +
-      '`STRUCTURES_REDECLARATIONS` (signature projetée, `+…`), pas ici.',
+      'porteur de `id` + `type`), n’est pas vu. Le volet `STRUCTURES_REDECLARATIONS` mesure ' +
+      'les signatures projetées (`+…`) par le lexique dans l’AST des defs.',
     'les signatures à UNE seule clé (`{fixed}`, `{roll}`, `{dice}`, `{wildcard}`) sont écartées du volet ' +
       '`redeclaration` : elles collisionneraient avec tout champ homonyme. Les graphies de référence à une ' +
       'clé sont tenues par le volet `alias` à la place.',

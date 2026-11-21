@@ -12166,6 +12166,10 @@
     "shape": {
       "id": "pertuisane"
     },
+    "formChoices": [
+      "pertuisane_lance",
+      "fauchard"
+    ],
     "rangement": {
       "id": "dos"
     },

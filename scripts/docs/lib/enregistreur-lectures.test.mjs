@@ -70,6 +70,45 @@ test('collecte hooks : append impossible après préparation rejette import et p
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
+test('collecte hooks : le lstat illisible d’une cible est nommé dans la mesure et le chargement continue', () => {
+  const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'collecte-hooks-lstat-')))
+  const sortie = path.join(racine, 'lecture')
+  const cible = path.join(racine, 'propre.mjs')
+  const source = path.join(racine, 'source.mjs')
+  const hooks = new URL('./enregistreur-hooks.mjs', import.meta.url).href
+  try {
+    for (const chemin of [source, cible]) writeFileSync(chemin, 'export const valeur = 1')
+    for (const refuse of [false, true]) {
+      const pilote = `
+        import fs from 'node:fs'
+        const lstat = fs.lstatSync
+        fs.lstatSync = function (chemin, ...args) {
+          if (${refuse} && chemin === ${JSON.stringify(cible)}) {
+            throw Object.assign(new Error('EACCES témoin : lstat interdit'), { code: 'EACCES' })
+          }
+          return lstat.call(this, chemin, ...args)
+        }
+        const { initialize, load } = await import(${JSON.stringify(hooks)})
+        initialize(${JSON.stringify({ racine, sortie, ignores: [], cibles: ['propre.mjs'] })})
+        for (const url of ${JSON.stringify([source, cible].map((fichier) => pathToFileURL(fichier).href))}) {
+          console.log(await load(url, {}, () => url))
+        }
+      `
+      const vu = spawnSync(process.execPath, ['--input-type=module', '--eval', pilote], {
+        cwd: racine, env: { ...process.env, NODE_OPTIONS: '' }, encoding: 'utf8', timeout: 15_000,
+      })
+      assert.equal(vu.status, 0, vu.stderr)
+      assert.ok(vu.stdout.includes(pathToFileURL(source).href))
+      assert.ok(vu.stdout.includes(pathToFileURL(cible).href))
+      const mesure = fusionnerLectures(racine)
+      assert.deepEqual(mesure.fichiers, ['source.mjs'])
+      assert.deepEqual(mesure.incomplet, refuse
+        ? [`mesure du chemin ${pathToFileURL(cible).href} dans le crochet : EACCES témoin : lstat interdit`]
+        : [])
+    }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 // #2586
 test('collecte hooks : observer de mesure impossible rejette import', () => {
   const racine = mkdtempSync(path.join(tmpdir(), 'collecte-mesures-'))

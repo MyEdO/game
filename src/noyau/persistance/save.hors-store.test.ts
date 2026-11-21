@@ -3,8 +3,10 @@
  * d'un autre format est refusée, une save chargée ouvre une partie (`creerPartie`) avec ses règles maison, et le
  * refus d'écrire se décide ici.
  */
+import { combattantDeTest } from '../../engine/combattantDeTest.testkit';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
-import { describe, it, expect } from 'vitest';
+import { itemFromTrappingById } from '../../engine/items';
+import { describe, it, expect, onTestFinished, vi } from 'vitest';
 import {
   chargerLaSave,
   creerPartie,
@@ -22,9 +24,10 @@ import {
 import { initialNet, type BattleState } from '../etat';
 import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
-import { conditionIds, eyes, findVehicleById, species } from '../../data/index';
+import { conditionIds, eyes, findVehicleById, species, type TrappingData } from '../../data/index';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { FORMAT_SAVE } from './formats.generated';
+import * as referencesDeCreation from './referencesDeCreation';
 import { enregistrerEntree, supprimerEntree } from '../../data/atelierDuCodex';
 import { ciblePsy } from '../../engine/psych/ciblage';
 import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-conditions-etendues';
@@ -55,6 +58,37 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
 });
 
 describe('lireSave — format courant et références de création historiques', () => {
+  it('relit la sauvegarde du profil Pertuisane/Fauchard avec ses données intactes', () => {
+    const profil: TrappingData = {
+      id: 'pertuisane-fauchard',
+      label: 'Pertuisane/Fauchard',
+      categorie: 'melee',
+      subType: { id: 'armes-d-hast' },
+      hands: 2,
+      availability: 'limitee',
+      shape: { id: 'pertuisane' },
+      qualities: [{ id: 'defensive' }, { id: 'empaleuse' }, { id: 'taillade', value: 2 }],
+      price: null,
+      source: { book: 'aux-armes', page: 97 },
+    };
+    const arme = itemFromTrappingById(profil.id, idsDeTest, (id) => id === profil.id ? profil : undefined)!;
+    expect(arme).toMatchObject({ trappingId: profil.id, shape: profil.shape, qualities: profil.qualities });
+    const porteur = combattantDeTest({
+      kind: 'heros',
+      items: [arme],
+      details: { age: 24, eyes: { id: 'bleu', colonne: 'humain' }, hair: { label: 'Brun clair' } },
+    });
+    const courante = snapshotSave({ ...etatInitialDuJeu(), party: [porteur] }, '2026-11-21T06:30:00.000Z');
+    const migrerLesReferences = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesReferences');
+    onTestFinished(() => migrerLesReferences.mockRestore());
+
+    const relire = (version: string) => lireSave(exporterLaSauvegarde({ ...courante, version }));
+    expect(relire(FORMAT_SAVE)).toEqual(courante);
+    expect(relire('e5b0e479130fc5d7')).toEqual(courante);
+    expect(relire('autre-format')).toBe('autreFormat');
+    expect(migrerLesReferences).not.toHaveBeenCalled();
+  });
+
   it('charge les anciennes couleurs dans le groupe et chez le PNJ, y compris une ambiguïté du LDB', () => {
     const save = snapshotSave(etatInitialDuJeu(), '2026-11-21T06:30:00.000Z');
     const ancien = {

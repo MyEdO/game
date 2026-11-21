@@ -7,7 +7,7 @@
  * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
-import type { QualiteDeRepos, RectDeCases, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
+import type { RectDeCases, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { FlowDeScene, TestDeScene } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
@@ -20,7 +20,7 @@ import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
-  facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
+  facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneSchema, sceneStationAnchorSchema, triggerSchema,
   victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
 } from '../../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
@@ -333,10 +333,10 @@ export interface Scene {
    *  (auberge/chez soi/camp, combinables) + qualité (`QUALITE_DU_REPOS`, LDB 66 l.5).
    *  Absent = camp seulement ; tout à false = repos interdit ici. La météo ci-dessus donne la
    *  sévérité d'Exposition d'une nuit dehors (engine/exposure). */
-  rest?: { auberge?: boolean; maison?: boolean; camp?: boolean; quality?: QualiteDeRepos };
+  rest?: z.output<typeof sceneSchema.shape.rest>;
   /** Offre de repos PAR ZONE (prioritaire sur `rest` là où le groupe se tient) — « paramétrable
    *  sur la zone » : le quartier de l'auberge offre des chambres, la place du marché non. */
-  restZones?: { rect: { x: number; y: number; w: number; h: number; z?: number }; places: { auberge?: boolean; maison?: boolean; camp?: boolean }; quality?: QualiteDeRepos }[];
+  restZones?: z.output<typeof sceneSchema.shape.restZones>;
   /** ZONES D'EFFET posées sur la carte (éditeur) — PIÈGES / hasards / brasiers : tout combattant qui
    *  TRAVERSE (`onCross` : pic, flaque acide, glyphe) ou STATIONNE (`perRound` : nuage de poison,
    *  brasier) y subit l'effet (Dégâts/soin/États en `GameOp[]`). Converties en `BattleZone`
