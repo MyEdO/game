@@ -6,7 +6,7 @@
  */
 import type { Jeu } from './etat';
 import { fenetreDuJeu, TOUT_RESOUDRE, type FenetreDuJeu } from './combatAuto';
-import { resoutLaRangeeIci, stepInteraction } from './cascade';
+import { fermetureHoteDeToutResoudre, resoutLaRangeeIci, stepInteraction } from './cascade';
 import type { PendingCascade } from './pendings';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, type CleDeRegistre, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
@@ -31,11 +31,14 @@ function verbeDuCycle(flux: FlowKey, g: GesteDuJeu): { verbe: RollVerb; enFenetr
 
 /** Ce qui ferme maintenant « tout résoudre » sur la cascade `pc` (`TOUT_RESOUDRE`) : la validation de l'étape
  *  (`jetValider('cascade')`) quand l'étape attend un choix que rien ne tranche à la place du joueur
- *  (`resolveRemainingCascade`), ou au bilan ; sur une bande dont les rangées en attente ne sont pas au siège qui décide
+ *  (`resolveRemainingCascade`), ou au bilan ; la fermeture de l’étape hôte ; sur une bande dont les rangées
+ *  en attente ne sont pas au siège qui décide
  *  (`resoutLaRangeeIci`, #1273), ses jets lancés. */
 function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | null {
   const etape = pc.participants[pc.cursor];
   if (!etape || stepInteraction(etape) === 'choix') return fermeturesDuFlux(s, 'cascade').valider;
+  const fermeture = fermetureHoteDeToutResoudre(s, etape);
+  if (fermeture) return fermeture;
   const enAttente = stepInteraction(etape) === 'batch' ? etape.participants!.filter((r) => !r.result) : [];
   return enAttente.length && !enAttente.some((r) => resoutLaRangeeIci(s, r.id)) ? 'jetLance' : null;
 }

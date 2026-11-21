@@ -45,11 +45,12 @@ import type {
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t, type MsgKey } from '../i18n';
 import { refuserGeste } from './refusVisible';
+import { libelleDeLaFermeture } from './libelles';
 import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
-import { canFixDie, decidingSeat, influencesLocally } from './netOwnership';
+import { canFixDie, decidingSeat, influencesLocally, intentAllowedFor } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
 import { toRecapLines, type RecapLine } from './recapLine';
@@ -73,7 +74,7 @@ import { tablesPosees } from './tablesPosees';
 import { cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { seatOwns, tenuParUnHumain } from './sieges';
-import { jouerLaPaireDuJet } from './combatAuto';
+import { jouerLaPaireDuJet, TOUT_RESOUDRE } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 import { noterAuProcesVerbal } from './voyageCadence';
 
@@ -503,6 +504,12 @@ export function stepReady(step: CascadeStep, s: Partial<Jeu>): boolean {
     case 'choix': return step.chosen != null;
     case 'affichage': return !hoteEnAttente(s, step);
   }
+}
+
+export function fermetureHoteDeToutResoudre(s: Jeu, etape: CascadeStep): 'etapeHoteEnAttente' | 'horsSiege' | null {
+  if (stepInteraction(etape) !== 'affichage' || stepReady(etape, s)) return null;
+  const { verbe, flux } = TOUT_RESOUDRE;
+  return intentAllowedFor(s, decidingSeat(s), verbe, [flux]) ? 'etapeHoteEnAttente' : 'horsSiege';
 }
 
 /**
@@ -1921,6 +1928,14 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
 /** « Tout résoudre », la rangée omise de `jetLancer('cascade')` (`RollFlowSpec.multi.sansRangee`) : les étapes restantes
  *  (`resolveRemainingCascade`), puis le dénouement de la séquence qu'elles finalisent (`clotureDeCascade`). */
 export function toutResoudre(get: Get, set: Set): void {
+  const s = get();
+  const p = s.pendingCascade;
+  const etape = p?.participants[p.cursor];
+  const fermeture = etape && fermetureHoteDeToutResoudre(s, etape);
+  if (fermeture) {
+    refuserGeste(get, set, libelleDeLaFermeture(fermeture));
+    return;
+  }
   const done = resolveRemainingCascade(get, set);
   if (done) clotureDeCascade(done);
 }
