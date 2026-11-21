@@ -9,7 +9,7 @@ import type { CharKey, Difficulty } from './types';
 import type { GameOp } from './ops';
 import type { DiceSpec } from './dice';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
-import type { JetFixe } from './flowCore';
+import type { FlowTestNode, JetFixe } from './flowCore';
 
 /** Les clés de CODE des tables de séquence (`src/noyau/sequenceCore.ts`, part TOTALE sur chaque liste) :
  *  la donnée n'en nomme pas d'autre. Ce qui indexe est le nom d'un EFFET, jamais l'identité d'une
@@ -250,14 +250,14 @@ export interface SequenceSide {
 export interface SequenceCombinedRules {
   /** La SECONDE valeur confrontée au même dé (Compétence ou Caractéristique). */
   second: { skill?: RefASpecialisation; characteristic?: CharKey };
-  /** Tous les combien d'échecs de la SECONDE lecture les `ops` se paient (`NADJ 16 l.90` : « Pour
+  /** Tous les combien d'échecs de la SECONDE lecture le Test échoit (`NADJ 16 l.90` : « Pour
    *  chaque 3 Tests d'Initiative auxquels vous échouez »). 0/absent : à chaque échec. */
   echecsParEcheance?: number;
-  /** Tous les combien de MARQUES effacées les `ops` se paient (`l.90` : « pour chaque 2 chouettes que
+  /** Tous les combien de MARQUES effacées le Test échoit (`l.90` : « pour chaque 2 chouettes que
    *  vous effacez »). */
   effacementsParEcheance?: number;
-  /** Ce que coûte l'échéance (échecs cumulés, ou marques effacées) — appliqué au porteur. */
-  ops?: readonly GameOp[];
+  /** NADJ 16 l.90 */
+  echeance?: FlowTestNode & { test: JetFixe<'difficulty'> };
   /** Le camp qui obtient le MOINS de DR à la première lecture prend une MARQUE (`l.90`). */
   markLoser?: boolean;
   /** État dont l'apparition ARRÊTE la partie avant terme — id d'`etats.json`, DÉCLARÉ (le code ne

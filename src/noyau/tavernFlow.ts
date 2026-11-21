@@ -25,7 +25,7 @@
  */
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { nomDe } from '../engine/nom';
-import type { FlowTest } from '../engine/flowCore';
+import { spellOps, type FlowTest } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import {
   findTavernGameById, resolveTavernRound, rollTavernTest, roundSL,
@@ -100,6 +100,7 @@ import {
   type SequenceVolleyRow,
   type SequenceSide,
   type SequenceCombinedRules,
+  type SequenceThrowerPenalty,
 } from '../engine/sequenceVocab';
 import type { RNG } from '../engine/dice';
 import { actorIn } from './monde/combatants';
@@ -318,6 +319,8 @@ export interface TavernPayload {
   side?: string;
   /** TEST COMBINÉ : marques, échecs de seconde lecture, effacements, rang du tour (Cerevis l.90). */
   combined?: TavernCombinedState;
+  /** Fiche d'un vis-à-vis hors du groupe, tenue pendant le Test combiné. */
+  ficheAdverseDeLaPartie?: Combatant;
   /** SPÉCIAUX de chaque siège à fiche, par id de fiche, figés à l'ouverture (`specialsApplicables`,
    *  NADJ 16 l.82). Un siège absent n'en a aucun. */
   specials?: Record<string, TavernSpecial[]>;
@@ -336,13 +339,14 @@ function difficulteDuSiege(p: TavernPayload, base: Difficulty, siege: string): D
 /** Clés de camp de l'accumulateur du socle — le challenger et son vis-à-vis. */
 const CAMP_PLAYER = 'joueur' satisfies CampDeTaverne;
 const CAMP_OPPONENT = 'adversaire' satisfies CampDeTaverne;
+const CAMPS_DE_TAVERNE = [CAMP_PLAYER, CAMP_OPPONENT] as const;
 /** Issue d'un ABANDON du challenger (`SequenceDef.abandon`) : une défaite, qui se dit comme telle. */
 const TAVERN_ABANDON = 'abandon';
 
 /** Kind de l'étape de CHOIX d'option de Test (Middenball l.119) — une par héros surfacé. */
 const TAVERN_CHOICE_KIND = 'taverneOption';
 
-/** Kind de l'étape de Résistance à l'alcool d'un lancer RATÉ (Torchon l.111). */
+/** NADJ 16 l.90 et l.111 */
 const TAVERN_DRINK_KIND = 'taverneBoisson';
 
 /**
@@ -358,7 +362,10 @@ export function tavernParams(jeu: TavernGame, joueurs = 0): SequenceParams {
   const bornePot = pot?.roundsPerManche && manches > 0 ? manches * pot.roundsPerManche : 0;
   // Une volée se joue à DEUX passages (le challenger et son vis-à-vis) — l'effectif de la table est
   // celui du jeu de pot, pas le sien.
-  const borne = bornePot > 0 ? bornePot : (game.volley ? sequenceVolleyRounds(game.volley, 2) : 0);
+  const borneVolee = game.volley ? sequenceVolleyRounds(game.volley, 2) : 0;
+  // Un tour combiné peut ouvrir un choix d'effacement et le Test du tour, chacun suivi d'une échéance par camp.
+  const borneCombinee = game.combined ? nombreDeToursCombines(game.combined) * 2 * (1 + CAMPS_DE_TAVERNE.length) : 0;
+  const borne = bornePot || borneVolee || borneCombinee;
   return {
     ...(borne > 0 ? { maxRounds: borne } : {}),
     ...(game.target != null ? { target: game.target } : {}),
@@ -437,7 +444,7 @@ function preparerLaPartie(s: Jeu, heroId: string, opts: ReglageDePartie): Partie
   const opp = opts.opponent;
   const refusDuVisAVis = refusDAdversaire(s, game.id, challenger.id, opp.kind, opp.id);
   if (refusDuVisAVis) return { refus: refusDuVisAVis };
-  const opponentActor = opp.kind === 'heros' ? s.party.find((h) => h.id === opp.id)
+  const opponentActor = opp.kind === 'heros' ? s.party.find((h) => h.id === opp.id && h.id !== challenger.id)
     : opp.kind === 'pnj' ? sceneNpc(s.scene, opp.id, presetDuNarratif(s.campaignNarratif), objetDuNarratif(s.campaignNarratif))
       : pnjAuProfil(opp.id, HABITUE);
   if (!!game.team !== (opts.allyProfil !== undefined)) {
@@ -491,6 +498,7 @@ export function jouerALaTaverne(get: Get, set: Set, heroId: string, opts: Reglag
     chargeUtile: {
       gameId: game.id, challengerId: challenger.id, opponentValue, opponentName,
       ...(opponentId ? { opponentId } : {}), stakeBrass,
+      ...(game.combined && opp.kind !== 'heros' ? { ficheAdverseDeLaPartie: opponentActor } : {}),
       ...(allie ? { allyValue: tavernGameValue(allie, game) } : {}),
       ...(Object.keys(specials).length ? { specials } : {}),
       ...(game.pot
@@ -791,15 +799,50 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
   };
 }
 
-/** `meta` de l'étape `taverneBoisson` : le camp et le nom du lanceur puni. */
+/** NADJ 16 l.111 */
 interface PinteDuLanceur { camp: CampDeTaverne; who: string }
 
-/** Lit le lanceur posé par `torchonRate`, SEUL producteur de l'étape (#1906). */
+/** Lit les données du lanceur posées par `torchonRate`. */
 function lirePinte(meta: CascadeStepMeta | undefined): PinteDuLanceur {
   const camp = meta?.camp;
   if ((camp !== 'joueur' && camp !== 'adversaire') || typeof meta?.who !== 'string')
     throw new Error('[taverneBoisson] étape sans lanceur alors que `torchonRate` le pose (#1906)');
   return { camp, who: meta.who };
+}
+
+/** NADJ 16 l.90 et l.111 */
+function sanctionDeTaverneStep(
+  seq: SequenceState<TavernPayload>,
+  game: TavernGame,
+  acteur: Combatant,
+  regles: Pick<SequenceThrowerPenalty, 'test' | 'label'>,
+  meta?: PinteDuLanceur,
+): BuiltCascadeStep | undefined {
+  const p = seq.chargeUtile;
+  const test = testDeSequence(regles.test);
+  return monoStep({
+    id: `${TAVERN_DRINK_KIND}-${seq.manche}`,
+    kind: TAVERN_DRINK_KIND,
+    icon: 'navigation/des',
+    label: composeRollLabel(acteur, regles.label ?? game.label, test),
+    actor: acteur,
+    difficulty: regles.test.difficulty,
+    ligne: { test },
+    stake: combatStakeRef('taverne-partie', {
+      values: {
+        jeu: game.label, adversaire: p.opponentName,
+        mise: p.stakeBrass > 0 ? formatMoney(fromBrass(p.stakeBrass)) : 'aucune',
+      },
+    }),
+    ...(meta ? { meta: { camp: meta.camp, who: meta.who } } : {}),
+  });
+}
+
+function effetsDeLaSanction(
+  get: Get, gameId: string, acteur: Combatant | undefined, ops: SequenceThrowerPenalty['ops'],
+): string[] {
+  if (!acteur || !ops?.length) return [];
+  return applyOps(acteur, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: gameId } });
 }
 
 /** Le Test PROPRE d'une rangée de taverne : le verdict du d100 (`evaluateTest`, LDB 12 l.25-28), jamais
@@ -832,18 +875,8 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   if (resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base)).attackerWins) return [];
   const heros = actorIn(get(), lanceur.id);
   const id = `${TAVERN_DRINK_KIND}-${seq.manche}`;
-  const etape = heros && !cadenceAuto() && jetSurfaced(get(), heros)
-    ? monoStep({
-      id,
-      kind: TAVERN_DRINK_KIND,
-      icon: 'navigation/des',
-      label: composeRollLabel(heros, regles.label ?? game.label, test),
-      actor: heros,
-      difficulty,
-      ligne: { test },
-      stake: combatStakeRef('taverne-partie', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } }),
-      meta: { camp: lanceur.camp, who: lanceur.label } satisfies PinteDuLanceur,
-    })
+  const etape = heros && surfaceOf(get, heros.id)
+    ? sanctionDeTaverneStep(seq, game, heros, regles, { camp: lanceur.camp, who: lanceur.label })
     : undefined;
   if (etape) {
     pushStep(set, etape, SEQUENCE_PURPOSE);
@@ -876,11 +909,7 @@ function torchonBoit(get: Get, set: Set, lanceurId: string, camp: CampDeTaverne,
   const lignes: string[] = regles.lines?.echec
     ? [interpolate(regles.lines.echec, { who: label, points: perte, s: pluriel(perte) })]
     : [];
-  if (acteur && regles.ops?.length) {
-    // ANCRAGE DE RÈGLE : ce que la sanction applique se relie à la FICHE DU JEU, qui porte sa règle
-    // verbatim — un effet actif sans ancrage s'affiche NU (`effect-rule-anchor`).
-    lignes.push(...applyOps(acteur, [...regles.ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: seq.chargeUtile.gameId } }));
-  }
+  lignes.push(...effetsDeLaSanction(get, seq.chargeUtile.gameId, acteur, regles.ops));
   if (perte) setSequenceCumuls(get, set, { ...seq.cumuls, [camp]: (seq.cumuls[camp] ?? 0) - perte });
   return lignes;
 }
@@ -943,10 +972,12 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   if (game.roundShape === 'volley') return volleyRound(get, seq, rng);
   // CAMPS ASYMÉTRIQUES : le camp mené s'annonce AVANT la première manche (sa conversion en dépend).
   if (game.sides?.length && p.side == null) return sideRound(get, seq, game, rng);
-  // MARQUES à EFFACER (Cerevis l.88) : le geste appartient au joueur, il précède le tour.
-  if (game.combined && !p.combined?.efface) {
-    const efface = combinedEraseRound(get, seq, game);
-    if (efface) return efface;
+  if (game.combined) {
+    if (p.combined?.echeances?.length) return combinedPenaltyRound(get, seq, game);
+    if (!p.combined?.efface) {
+      const efface = combinedEraseRound(get, seq, game);
+      if (efface) return efface;
+    }
   }
   // OPTIONS de Test d'une manche ORDINAIRE (Alvatafl l.25 : « un Test d'**Intelligence** ou de
   // **Savoir (Art de la Guerre)** ») — MÊME capacité déclarée que le jeu d'équipe, autre forme de
@@ -957,7 +988,9 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   }
   // L’adversaire INCARNÉ de la manche — compagnon OU PNJ de scène : la même couture, sinon un
   // adversaire à fiche perdrait sa rangée et retomberait sur le montage à jet adverse figé.
-  const opponentHero = tavernActor(get, p.opponentId);
+  const opponentHero = p.opponentId
+    ? p.ficheAdverseDeLaPartie ?? tavernActor(get, p.opponentId)
+    : undefined;
   const title = stepDetail(dataLabel(game.label), t('tavern.contre', { who: challenger.label, adversaire: p.opponentName }));
   const stake = combatStakeRef('taverne-partie', {
     values: {
@@ -993,7 +1026,8 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   // son camp quand le Test l'admet (l.34).
   const difficulteAdverse = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[challenger.id]), idAdverse(p));
   const avantageAdverse = avantageSurLaCible(optMien, p.advantage?.[CAMP_OPPONENT] ?? 0).reduce((s, l) => s + l.value, 0);
-  const rolled = rollTavernTest(p.opponentValue, rng, difficulteAdverse, avantageAdverse);
+  const valeurAdverse = p.ficheAdverseDeLaPartie ? testValue(p.ficheAdverseDeLaPartie, optMien.test) : p.opponentValue;
+  const rolled = rollTavernTest(valeurAdverse, rng, difficulteAdverse, avantageAdverse);
   const surLaCible = avantageSurLaCible(optMien, challenger);
   // TEST COMBINÉ (Cerevis l.90) : la fenêtre annonce SES DEUX cibles — sans quoi le second Test ne se
   // découvrait qu'en le ratant (friction mesurée en recette, #1279 S3).
@@ -1034,7 +1068,8 @@ function jetsDesCamps(get: Get<Jeu>, p: TavernPayload, step: CascadeStep): {
     if (!mien || !sien || !estJete(mien.result) || !estJete(sien.result)) return undefined;
     return {
       joueur: asTest(mien.result, mien.base), adversaire: asTest(sien.result, sien.base),
-      acteurDuJoueur: tavernActor(get, p.challengerId), acteurDeLAdversaire: tavernActor(get, p.opponentId),
+      acteurDuJoueur: tavernActor(get, p.challengerId),
+      acteurDeLAdversaire: p.ficheAdverseDeLaPartie ?? tavernActor(get, p.opponentId),
     };
   }
   if (!estJete(step.result)) return undefined;
@@ -1042,6 +1077,7 @@ function jetsDesCamps(get: Get<Jeu>, p: TavernPayload, step: CascadeStep): {
     joueur: asTest(step.result, step.base),
     adversaire: garanti(step.meta?.opposed?.aT, step.id, 'jet adverse figé de la manche'),
     acteurDuJoueur: actorIn(get(), p.challengerId),
+    acteurDeLAdversaire: p.ficheAdverseDeLaPartie,
   };
 }
 
@@ -1867,14 +1903,16 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
   // TEST COMBINÉ : le score d'un camp est son compte de MARQUES (l.90) — le PLUS BAS l'emporte, la
   // jauge n'a donc pas de cible.
   if (game.combined) {
+    const etat = p.combined;
+    const tourAvecEcheance = etat?.echeances?.length && !etat.efface;
     return {
       title: dataLabel(game.label),
       camps: [
         { id: CAMP_PLAYER, label: dataLabel(challenger.label), score: seq.cumuls[CAMP_PLAYER] ?? 0, note: t('tavern.cerevisNote') },
         { id: CAMP_OPPONENT, label: dataLabel(p.opponentName), score: seq.cumuls[CAMP_OPPONENT] ?? 0 },
       ],
-      manche: p.combined?.tour ?? 1,
-      ...(game.combined.tours != null ? { manches: game.combined.tours } : {}),
+      manche: (etat?.tour ?? 1) - (tourAvecEcheance ? 1 : 0),
+      ...(game.combined.tours != null ? { manches: nombreDeToursCombines(game.combined) } : {}),
       ...(game.scoreUnit ? { unit: dataLabel(game.scoreUnit) } : {}),
     };
   }
@@ -2373,6 +2411,8 @@ export interface TavernCombinedState {
   tour: number;
   /** La question de l'effacement est POSÉE pour ce tour (elle ne se repose pas au même tour). */
   efface?: boolean;
+  /** Camps qui doivent encore jouer leur Test avant la suite du tour ou de la partie. */
+  echeances?: CampDeTaverne[];
 }
 
 /** Compte NEUF (aucun camp n'a rien marqué). */
@@ -2380,9 +2420,44 @@ function combinedInit(): TavernCombinedState {
   return { echecs: { joueur: 0, adversaire: 0 }, effacements: { joueur: 0, adversaire: 0 }, tour: 1 };
 }
 
-/** Le porteur d'un camp : le challenger, ou son vis-à-vis quand c'est un compagnon. */
-function combinedActor(get: Get, p: TavernPayload, camp: string): Combatant | undefined {
-  return tavernActor(get, camp === CAMP_PLAYER ? p.challengerId : p.opponentId);
+function combinedActor(get: Get, p: TavernPayload, camp: CampDeTaverne): Combatant | undefined {
+  return camp === CAMP_PLAYER
+    ? tavernActor(get, p.challengerId)
+    : p.ficheAdverseDeLaPartie ?? tavernActor(get, p.opponentId);
+}
+
+function regleDEcheance(seq: SequenceState<TavernPayload>, game: TavernGame): SequenceCombinedRules['echeance'] {
+  const regles = seq.parametres.combined;
+  return regles?.echeance ?? (regles && 'ops' in regles ? game.combined?.echeance : undefined);
+}
+
+/** NADJ 16 l.90 */
+function combinedPenaltyRound(get: Get, seq: SequenceState<TavernPayload>, game: TavernGame): SequenceRound<TavernPayload> | undefined {
+  const p = seq.chargeUtile;
+  const camp = p.combined?.echeances?.[0];
+  const regles = regleDEcheance(seq, game);
+  const acteur = camp && combinedActor(get, p, camp);
+  if (!acteur || !regles) return undefined;
+  const step = sanctionDeTaverneStep(seq, game, acteur, regles);
+  return step && {
+    title: step.label ?? dataLabel(game.label), icon: 'navigation/des', steps: [step], immediate: !surfaceOf(get, acteur.id),
+  };
+}
+
+function combinedBoit(get: Get, set: Set, seq: SequenceState<TavernPayload>, step: CascadeStep): string[] {
+  const p = seq.chargeUtile;
+  const camp = p.combined?.echeances?.[0];
+  const game = findTavernGameById(p.gameId);
+  if (!camp || !game || step.result?.success !== false) return [];
+  const ops = spellOps(regleDEcheance(seq, game)?.echec, 'target');
+  const acteur = combinedActor(get, p, camp);
+  if (!ops.length || !acteur || acteur.id !== step.actorId) return [];
+
+  const acteurDuBanc = actorIn(get(), acteur.id);
+  const buveur = acteurDuBanc ?? structuredClone(acteur);
+  const lignes = effetsDeLaSanction(get, game.id, buveur, ops);
+  if (!acteurDuBanc) setSequenceChargeUtile(get, set, { ...p, ficheAdverseDeLaPartie: buveur });
+  return lignes;
 }
 
 /** ÉCHÉANCE d'un compteur : l'intervalle DÉCLARÉ est-il atteint à ce compte ? (l.90 : « pour chaque 3
@@ -2392,27 +2467,28 @@ function combinedEcheance(compte: number, intervalle: number | undefined): boole
   return compte > 0 && compte % pas === 0;
 }
 
-/** FABRIQUE du tour d'EFFACEMENT : le porteur qui a des marques décide s'il en efface une (et boit).
- *  Aucun siège pour le tenir : il n'efface pas (le RAW ne l'y oblige jamais). */
+/** NADJ 16 l.88 */
 function combinedEraseRound(get: Get, seq: SequenceState<TavernPayload>, game: TavernGame): SequenceRound<TavernPayload> | undefined {
-  const p = seq.chargeUtile;
-  const etat = p.combined ?? combinedInit();
-  const heros = combinedActor(get, p, CAMP_PLAYER);
-  const marques = seq.cumuls[CAMP_PLAYER] ?? 0;
-  if (!heros || marques <= 0 || cadenceAuto() || !jetSurfaced(get(), heros)) return undefined;
-  const etape = choiceStep({
-    id: `${TAVERN_ERASE_KIND}-${seq.manche}`,
-    kind: TAVERN_ERASE_KIND,
-    icon: 'navigation/des',
-    label: t('tavern.cerevisEffaceChoix', { who: heros.label, marques, s: pluriel(marques) }),
-    actorId: heros.id,
-    options: [
-      { key: 'efface', label: t('tavern.cerevisEfface') },
-      { key: 'garde', label: t('tavern.cerevisGarde') },
-    ],
-    defaultChoice: 'garde',
+  const etat = seq.chargeUtile.combined ?? combinedInit();
+  const steps = CAMPS_DE_TAVERNE.flatMap((camp) => {
+    const acteur = combinedActor(get, seq.chargeUtile, camp);
+    const marques = seq.cumuls[camp] ?? 0;
+    if (!acteur || marques <= 0 || !surfaceOf(get, acteur.id)) return [];
+    const etape = choiceStep({
+      id: `${TAVERN_ERASE_KIND}-${seq.manche}-${camp}`,
+      kind: TAVERN_ERASE_KIND,
+      label: t('tavern.cerevisEffaceChoix', { who: acteur.label, marques, s: pluriel(marques) }),
+      icon: 'navigation/des',
+      actorId: acteur.id,
+      options: [
+        { key: 'efface', label: t('tavern.cerevisEfface') },
+        { key: 'garde', label: t('tavern.cerevisGarde') },
+      ],
+      defaultChoice: 'garde',
+    });
+    return etape ? [etape] : [];
   });
-  return etape ? { title: t('tavern.cerevisTour', { jeu: game.label, n: etat.tour }), icon: 'navigation/des', steps: [etape] } : undefined;
+  return steps.length ? { title: t('tavern.cerevisTour', { jeu: game.label, n: etat.tour }), icon: 'navigation/des', steps } : undefined;
 }
 
 /** La SECONDE cible d'un camp : la valeur DÉCLARÉE (`combined.second`) montée par l'accesseur canon
@@ -2424,92 +2500,97 @@ function combinedSecondTarget(regles: SequenceCombinedRules, acteur: Combatant |
     : effectiveTarget(undefined, test, difficulty, nue);
 }
 
-/**
- * RÉDUCTEUR DE CLÔTURE d'un tour à Test COMBINÉ (`NADJ 16 l.90`) : la première lecture désigne le
- * perdant du tour (une marque), la seconde — LE MÊME DÉ, `evaluateCombinedTest` — compte les échecs et
- * paie ce que la donnée déclare à chaque échéance.
- */
+function nombreDeToursCombines(regles: SequenceCombinedRules): number {
+  return Math.max(1, Math.ceil(regles.tours ?? 1));
+}
+
+function combinedVerdict(
+  get: Get,
+  p: TavernPayload,
+  regles: SequenceCombinedRules,
+  etat: TavernCombinedState,
+  cumuls: Record<string, number>,
+  log: string[],
+): SequenceVerdict<TavernPayload> {
+  const chargeUtile = { ...p, combined: etat };
+  if (etat.echeances?.length) return { suite: 'poursuivre', cumuls, chargeUtile, log };
+
+  const arret = regles.stopCondition;
+  const sousLaTable = !!arret && CAMPS_DE_TAVERNE.some((camp) => {
+    const porteur = combinedActor(get, p, camp);
+    return !!porteur && hasCondition(porteur, arret);
+  });
+  if (!sousLaTable && etat.tour <= nombreDeToursCombines(regles)) return { suite: 'poursuivre', cumuls, chargeUtile, log };
+  if (sousLaTable) log.push(t('tavern.cerevisSousLaTable'));
+  const mien = cumuls[CAMP_PLAYER] ?? 0;
+  const sien = cumuls[CAMP_OPPONENT] ?? 0;
+  const issue = mien < sien ? CAMP_PLAYER : sien < mien ? CAMP_OPPONENT : 'egalite';
+  return { suite: 'fin', issue, cumuls, chargeUtile, log };
+}
+
+/** NADJ 16 l.88–90 */
 function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): SequenceVerdict<TavernPayload> {
   const { get, seq, mancheClose } = ctx;
   const p = seq.chargeUtile;
   const regles = seq.parametres.combined;
   if (!regles) return { suite: 'fin', issue: 'egalite' };
   const etat = p.combined ?? combinedInit();
-  const log: string[] = [];
+  if (etat.echeances?.length) {
+    return combinedVerdict(get, p, regles, { ...etat, echeances: etat.echeances.slice(1) }, seq.cumuls, []);
+  }
 
-  // 1) L'EFFACEMENT tranché : la marque part, la demi-chope se boit, et l'échéance se paie.
-  const efface = mancheClose.participants.find((s) => s.kind === TAVERN_ERASE_KIND);
-  if (efface) {
-    if (efface.chosen !== 'efface') return { suite: 'poursuivre', chargeUtile: { ...p, combined: { ...etat, efface: true } } };
-    // La demi-chope se boit, la marque part, et l'échéance déclarée se paie — le journal DIT tout
-    // cela (un mouvement d'ivresse muet serait invérifiable pour le joueur).
-    const marques = { ...seq.cumuls, [CAMP_PLAYER]: Math.max(0, (seq.cumuls[CAMP_PLAYER] ?? 0) - 1) };
-    const effacements = { ...etat.effacements, [CAMP_PLAYER]: etat.effacements[CAMP_PLAYER] + 1 };
-    const heros = combinedActor(get, p, CAMP_PLAYER);
-    log.push(t('tavern.cerevisEffacee', { who: garanti(heros, p.challengerId, 'cérévis').label }));
-    if (heros && combinedEcheance(effacements[CAMP_PLAYER], regles.effacementsParEcheance) && regles.ops?.length) {
-      log.push(...applyOps(heros, [...regles.ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: game.id } }));
+  const log: string[] = [];
+  const marques = { ...seq.cumuls };
+  const echeances: CampDeTaverne[] = [];
+  const sanction = regleDEcheance(seq, game);
+  const noterEcheance = (camp: CampDeTaverne, acteur: Combatant, nombre: number, intervalle: number | undefined): void => {
+    if (!sanction || !combinedEcheance(nombre, intervalle)) return;
+    echeances.push(camp);
+    log.push(t('tavern.cerevisAlcool', { who: acteur.label }));
+  };
+
+  const effacementsJoues = mancheClose.participants.filter((s) => s.kind === TAVERN_ERASE_KIND);
+  if (effacementsJoues.length) {
+    const effacements = { ...etat.effacements };
+    for (const camp of CAMPS_DE_TAVERNE) {
+      const acteur = combinedActor(get, p, camp);
+      if (!acteur || !effacementsJoues.some((s) => s.actorId === acteur.id && s.chosen === 'efface')) continue;
+      marques[camp] = Math.max(0, (marques[camp] ?? 0) - 1);
+      effacements[camp] += 1;
+      log.push(t('tavern.cerevisEffacee', { who: acteur.label }));
+      noterEcheance(camp, acteur, effacements[camp], regles.effacementsParEcheance);
     }
-    return { suite: 'poursuivre', cumuls: marques, chargeUtile: { ...p, combined: { ...etat, effacements, efface: true } }, log };
+    return combinedVerdict(get, p, regles, { ...etat, effacements, efface: true, echeances }, marques, log);
   }
 
   const sides = tavernSides(ctx);
   if (!sides) return { suite: 'fin', issue: 'egalite' };
-  // LES MARQUES sont l'ACCUMULATEUR du socle (`seq.cumuls`) ; le compte des échecs reste à la charge utile.
-  const marques = { ...seq.cumuls };
   const echecs = { ...etat.echecs };
-
-  // 2) LA PREMIÈRE LECTURE : le plus BAS DR prend la marque (l.90). À égalité, personne ne perd le
-  //    tour — la source ne désigne QUE « le joueur qui a obtenu le moins de DR ».
   const drMien = sides.joueur.sl;
   const drSien = sides.adversaire.sl;
-  const perdant = regles.markLoser
-    ? (drMien < drSien ? CAMP_PLAYER : drSien < drMien ? CAMP_OPPONENT : undefined)
-    : undefined;
+  const perdant = !regles.markLoser || drMien === drSien ? undefined : drMien < drSien ? CAMP_PLAYER : CAMP_OPPONENT;
   if (perdant) {
     marques[perdant] = (marques[perdant] ?? 0) + 1;
     const qui = perdant === CAMP_PLAYER ? garanti(sides.acteurDuJoueur, p.challengerId, 'cérévis').label : p.opponentName;
     log.push(t('tavern.cerevisChouette', { who: qui, dr: perdant === CAMP_PLAYER ? drMien : drSien }));
   }
 
-  // 3) LA SECONDE LECTURE, sur LE MÊME dé (`LDB 12 l.202-208`) : chaque échec compte, et l'échéance
-  //    déclarée paie ce que la donnée dit.
-  for (const camp of [CAMP_PLAYER, CAMP_OPPONENT] as const) {
-    const jet = camp === CAMP_PLAYER ? sides.joueur : sides.adversaire;
+  for (const camp of CAMPS_DE_TAVERNE) {
+    const jet = sides[camp];
     const acteur = camp === CAMP_PLAYER ? sides.acteurDuJoueur : sides.acteurDeLAdversaire;
-    const difficulty = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[p.challengerId]), camp === CAMP_PLAYER ? p.challengerId : idAdverse(p));
+    const id = camp === CAMP_PLAYER ? p.challengerId : idAdverse(p);
+    const choix = p.choices?.[id] ?? p.choices?.[p.challengerId];
+    const difficulty = difficulteDuSiege(p, difficulteDeBase(game, choix), id);
     const cible2 = combinedSecondTarget(regles, acteur, difficulty, p.opponentValue);
-    const combine = evaluateCombinedTest(jet.roll, jet.target, cible2);
-    if (combine.b.success) continue;
+    if (evaluateCombinedTest(jet.roll, jet.target, cible2).b.success) continue;
     echecs[camp] += 1;
-    const qui = camp === CAMP_PLAYER ? garanti(sides.acteurDuJoueur, p.challengerId, 'cérévis').label : p.opponentName;
-    log.push(t('tavern.cerevisGorgee', { who: qui }));
-    const porteur = combinedActor(get, p, camp);
-    if (porteur && combinedEcheance(echecs[camp], regles.echecsParEcheance) && regles.ops?.length) {
-      log.push(t('tavern.cerevisAlcool', { who: qui }));
-      // ANCRAGE DE RÈGLE : ce que la partie fait boire se relie à la FICHE DU JEU, qui porte sa règle
-      // verbatim — une pastille d'ivresse sans fiche ne dirait pas d'où elle vient.
-      log.push(...applyOps(porteur, [...regles.ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: game.id } }));
-    }
+    log.push(t('tavern.cerevisGorgee', { who: acteur?.label ?? p.opponentName }));
+    if (acteur) noterEcheance(camp, acteur, echecs[camp], regles.echecsParEcheance);
   }
 
-  const suite: TavernCombinedState = { echecs, effacements: etat.effacements, tour: etat.tour + 1 };
-  const mien = marques[CAMP_PLAYER] ?? 0;
-  const sien = marques[CAMP_OPPONENT] ?? 0;
-  const chargeUtile: TavernPayload = {
-    ...sansChoix(p), combined: suite,
-    last: { dr: { joueur: mien, adversaire: sien } },
-  };
-  // FIN : sous la table (l.88), ou au bout des tours DÉCLARÉS (arbitrage maison éditable).
-  const arret = regles.stopCondition;
-  const sousLaTable = !!arret && [CAMP_PLAYER, CAMP_OPPONENT].some((c) => {
-    const porteur = combinedActor(get, p, c);
-    return !!porteur && hasCondition(porteur, arret);
-  });
-  if (!sousLaTable && etat.tour < (regles.tours ?? 0)) return { suite: 'poursuivre', cumuls: marques, chargeUtile, log };
-  if (sousLaTable) log.push(t('tavern.cerevisSousLaTable'));
-  // Le MOINS de chouettes l'emporte (arbitrage maison : le RAW ne nomme aucun vainqueur).
-  return { suite: 'fin', issue: mien < sien ? 'joueur' : sien < mien ? 'adversaire' : 'egalite', cumuls: marques, chargeUtile, log };
+  const suite = { echecs, effacements: etat.effacements, tour: etat.tour + 1, echeances };
+  const apres = { ...sansChoix(p), last: { dr: { joueur: marques[CAMP_PLAYER] ?? 0, adversaire: marques[CAMP_OPPONENT] ?? 0 } } };
+  return combinedVerdict(get, apres, regles, suite, marques, log);
 }
 
 /** L'unité de score d'un jeu accordée à un compte (`scoreUnit`/`scoreUnitSingular`) ; des DR sans unité
@@ -2634,6 +2715,8 @@ export const TABLES = {
     },
     [TAVERN_DRINK_KIND]: (get, set, step) => {
       if (!step.result || !step.actorId) return {};
+      const seq = activeSequence<TavernPayload>(get);
+      if (seq?.chargeUtile.combined?.echeances?.length) return { consequences: freeCons(combinedBoit(get, set, seq, step)) };
       const { camp, who } = lirePinte(step.meta);
       return { consequences: freeCons(torchonBoit(get, set, step.actorId, camp, who, step.result.success)) };
     },
@@ -2720,7 +2803,6 @@ export const TABLES = {
     [TAVERN_AIM_KIND]: () => ({}),
     [TAVERN_GAIN_KIND]: () => ({}),
     [TAVERN_SIDE_KIND]: () => ({}),
-    /** APPLIER de l'effacement : la clôture seule en tire les conséquences (patron du réducteur unique). */
     [TAVERN_ERASE_KIND]: () => ({}),
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   famillesTirables: [
@@ -2729,11 +2811,19 @@ export const TABLES = {
   sequences: {
     [TAVERN_SEQUENCE]: {
       manche: tavernRound, clore: tavernClose, denouer: tavernSettle, tableau: tavernBoard,
-      abandon: (seq) => ({
-        label: t('tavern.abandon'), title: t('tavern.abandonTitre'), issue: TAVERN_ABANDON,
-        // Manche de MISE en vol (cible annoncée) : on n'en sort que par le pli (NADJ 16 l.17).
-        ...(seq.chargeUtile.pot !== undefined && seq.chargeUtile.target != null ? { refus: t('tavern.abandonEntreDeuxManches') } : {}),
-      }),
+      abandon: (seq, manche) => {
+        const p = seq.chargeUtile;
+        const abandon = { label: t('tavern.abandon'), title: t('tavern.abandonTitre'), issue: TAVERN_ABANDON };
+        // NADJ 16 l.17
+        if (p.pot !== undefined && p.target != null) return { ...abandon, refus: t('tavern.abandonEntreDeuxManches') };
+        if (p.combined?.echeances?.length || (seq.parametres.combined && manche.entamee)) {
+          return { ...abandon, refus: t('seq.abandonEntreDeuxTests') };
+        }
+        if (manche.participants.some((s) => s.kind === TAVERN_ERASE_KIND && s.committed && s.chosen === 'efface')) {
+          return { ...abandon, refus: t('seq.abandonChoixEnCours') };
+        }
+        return abandon;
+      },
     },
   },
 } satisfies FragmentDeTables;

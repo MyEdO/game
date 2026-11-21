@@ -120,8 +120,15 @@ const TRANSITION_DU_DR_PROPRE = {
   avant: TRANSITION_DES_FORMES_D_APPARENCE.apres,
   apres: '6567d83e466bf816',
 };
-const FORMAT_AVANT_LE_DR_PROPRE = FORMAT_SAVE === TRANSITION_DU_DR_PROPRE.apres
-  ? TRANSITION_DU_DR_PROPRE.avant : FORMAT_SAVE;
+/** #4644 */
+const TRANSITION_DES_ECHEANCES_DE_TAVERNE = {
+  avant: TRANSITION_DU_DR_PROPRE.apres,
+  apres: '780589fdfcaf0e3a',
+};
+const FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE = FORMAT_SAVE === TRANSITION_DES_ECHEANCES_DE_TAVERNE.apres
+  ? TRANSITION_DES_ECHEANCES_DE_TAVERNE.avant : FORMAT_SAVE;
+const FORMAT_AVANT_LE_DR_PROPRE = FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE === TRANSITION_DU_DR_PROPRE.apres
+  ? TRANSITION_DU_DR_PROPRE.avant : FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE;
 const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_D_APPARENCE.apres
   ? TRANSITION_DES_FORMES_D_APPARENCE.avant : FORMAT_AVANT_LE_DR_PROPRE;
 
@@ -129,7 +136,8 @@ const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
+  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE
+      || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
       || formatAvantLesReferences('save', version, FORMAT_DE_REFERENCE))
     && typeof savedAt === 'string'
     && !!data && typeof data === 'object';
