@@ -214,12 +214,14 @@ export interface ReferenceDeCouleur {
 
 export type CouleurDePersonnage = ReferenceDeCouleur | { label: string };
 
+export type CouleursDesYeux = readonly [CouleurDePersonnage] | readonly [ReferenceDeCouleur, ReferenceDeCouleur];
+
 /** Détails supplémentaires d'un héros (LDB 05 étape 6 — cosmétique, aucune règle). */
 export interface HeroDetails {
   age?: number;
   /** Taille en cm. */
   height?: number;
-  eyes?: CouleurDePersonnage;
+  eyes?: CouleursDesYeux;
   hair?: CouleurDePersonnage;
   /** Ambitions à court / long terme (LDB 05 l.730-736). */
   ambitionShort?: string;

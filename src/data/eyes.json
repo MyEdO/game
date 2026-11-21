@@ -17,6 +17,9 @@
       "label": "Au choix",
       "min": 2,
       "max": 2,
+      "choixLibrePour": [
+        "humain"
+      ],
       "color": {
         "humain": "Au choix",
         "halfling": "Gris clair",

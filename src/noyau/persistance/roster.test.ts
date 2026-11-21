@@ -53,10 +53,10 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
       ...ancien,
       hero: {
         ...ancien.hero,
-        details: { eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' } },
+        details: { eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' } },
       },
       draft: {
-        ...ancien.draft, eyes: { label: 'Bleu' }, hair: { label: 'Couleur inconnue' },
+        ...ancien.draft, eyes: [{ label: 'Bleu' }], hair: { label: 'Couleur inconnue' },
         speciesTalentChoices: {
           choix: { pick: 1, of: [{ pick: 1, of: [{ pick: 2, table: { id: 'talents-aleatoires' } }, { id: 'doue-en-calcul' }] }] },
         },
@@ -67,11 +67,45 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
     expect(lireLeRoster(ecrireLeRoster(lu!.heros))).toEqual(lu);
   });
 
+  it('relit l’ancien roster et l’ancien export qui portaient une seule référence de couleur', () => {
+    const original = entry('elfe');
+    const couleur = { id: 'bleu', colonne: 'haut-elfe' };
+    const ancien = {
+      ...original,
+      hero: { ...original.hero, details: { eyes: couleur } },
+      draft: { ...original.draft, eyes: { label: 'Saphir historique' } },
+    };
+    const attendu = {
+      ...ancien,
+      hero: { ...ancien.hero, details: { eyes: [couleur] } },
+      draft: { ...ancien.draft, eyes: [{ label: 'Saphir historique' }] },
+    };
+    expect(lireLeRoster(JSON.stringify({ version: 'e459f742094ad0cc', heros: [ancien] }))?.heros).toEqual([attendu]);
+    expect(rosterImport(JSON.stringify({ kind: 'wfrp4-hero', version: '1d8c8c61ae823704', ...ancien })).entry).toEqual(attendu);
+  });
+
+  it('restitue les couleurs tirées dans le héros et dans le brouillon du roster et de l’export', () => {
+    const original = entry('elfe');
+    const draft = rollDraftDetails(withCareer(withSpecies(newDraft(7), 'elfes-sylvains'), 'soldat'));
+    const personnage = buildHero(draft, idsDeTest, original.hero.id);
+    const porteur: RosterEntry = { ...original, hero: { ...personnage, id: original.hero.id }, draft };
+    const dansLeRoster = lireLeRoster(ecrireLeRoster([porteur]))?.heros[0];
+    const dansLExport = rosterImport(rosterExport(porteur)).entry;
+    const attendu = [
+      { id: 'marron-fonce', colonne: 'elfe-sylvain' },
+      { id: 'gris-pale', colonne: 'elfe-sylvain' },
+    ];
+    for (const lue of [dansLeRoster, dansLExport]) {
+      expect(lue?.hero.details?.eyes).toEqual(attendu);
+      expect(lue?.draft.eyes).toEqual(attendu);
+    }
+  });
+
   it('préserve le physique tiré avant un changement d’espèce sans lui attribuer sa nouvelle colonne', () => {
     const tire = rollDraftDetails(withSpecies(newDraft(149), 'humains-reiklander'));
     const draft = withCareer(withSpecies(tire, 'nains'), 'soldat');
     const personnage = buildHero(draft, idsDeTest, 'ancien-physique');
-    const libelles = { eyes: libelleDeCouleur('eyes', draft.eyes), hair: libelleDeCouleur('hairs', draft.hair) };
+    const libelles = { eyes: libelleDeCouleur('eyes', draft.eyes?.[0]), hair: libelleDeCouleur('hairs', draft.hair) };
     expect(libelles).toEqual({ eyes: 'Bleu', hair: 'Brun foncé' });
     expect(personnage.species).toBe('nains');
     const ancien = {
@@ -80,7 +114,7 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
       hero: { ...personnage, details: { ...personnage.details, ...libelles } },
     };
     const lu = lireLeRoster(JSON.stringify({ version: '5207758a6bf0bfd7', heros: [ancien] }));
-    const couleurs = { eyes: { label: 'Bleu' }, hair: { label: 'Brun foncé' } };
+    const couleurs = { eyes: [{ label: 'Bleu' }], hair: { label: 'Brun foncé' } };
     expect(lu?.heros[0].hero.details).toMatchObject(couleurs);
     expect(lu?.heros[0].draft).toMatchObject(couleurs);
   });

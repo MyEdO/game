@@ -493,7 +493,7 @@ describe('buildHero — bout en bout', () => {
   });
   it('héros conforme : PX bonus, Augmentations, libellés résolus, désignations posées', () => {
     let d = readyDraft();
-    d = { ...d, age: 20, height: 175, eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' } };
+    d = { ...d, age: 20, height: 175, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' } };
     const hero = buildHero(d, idsDeTest, 'h-test');
     expect(hero.xp).toBe(xpTotal(d));
     expect(Object.values(hero.charAdvances ?? {}).reduce((a, b) => a + (b ?? 0), 0)).toBe(5);

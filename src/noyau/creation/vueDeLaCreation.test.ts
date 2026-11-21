@@ -5,12 +5,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildHero,
+  charRolls,
   draftFromHero,
   rollDraftDetails,
   carrieresOffertes,
   draftSpecies,
   newDraft,
   rollDraftCareer,
+  rollDraftChars,
+  rollDraftWealth,
   withCareer,
   withCoastalSwap,
   withSpecies,
@@ -69,6 +72,57 @@ describe('la création en pages', () => {
     c = apresLeGeste(c, options(premiere).find((o) => o.libelle === '5')!.geste);
     expect(options(rubrique(rubriquesDeLaPage(c, 'chars'), seconde.id)).map((o) => [o.libelle, o.refus !== null])).toEqual([['0', false], ['1', true], ['2', true], ['3', true], ['4', true], ['5', true]]);
   });
+
+  it.each([
+    ['hauts-elfes', 'haut-elfe', 'Citrine et Turquoise'],
+    ['elfes-sylvains', 'elfe-sylvain', 'Châtain clair et Châtaigne'],
+  ] as const)('affiche et restitue les deux couleurs de %s sans déplacer les autres jets', (espece, colonne, libelle) => {
+    const initial = withCareer(withSpecies(newDraft(7), espece), 'soldat');
+    const physique = rubrique(rubriquesDeLaPage(initial, 'details'), 'physique');
+    if (physique.genre !== 'geste') throw new Error('Le physique doit s’offrir aux dés');
+    const tire = apresLeGeste(initial, physique.geste);
+    const attendu = [{ id: 'marron-fonce', colonne }, { id: 'gris-pale', colonne }];
+    const heros = buildHero(tire, idsDeTest, 'heros-elfe');
+    expect(heros.details?.eyes).toEqual(attendu);
+    const rouvert = draftFromHero(heros, 7);
+    expect(rouvert.eyes).toEqual(attendu);
+    expect(rubrique(rubriquesDeLaPage(rouvert, 'details'), 'yeux')).toMatchObject({ valeur: libelle });
+
+    const autresTirages = (d: CreatorDraft) => ({
+      carriere: rollDraftCareer(d).careerRolls,
+      caracteristiques: charRolls(rollDraftChars(d)),
+      bourse: rollDraftWealth(d).wealthRoll,
+    });
+    expect(autresTirages(tire)).toEqual(autresTirages(initial));
+    expect(apresLeGeste(rollDraftChars(initial), physique.geste).eyes).toEqual(attendu);
+  });
+
+  it('choisit manuellement des rangées par leur id et peut laisser une seule couleur aux elfes', () => {
+    const page = (d: CreatorDraft) => rubriquesDeLaPage(d, 'details');
+    const prendre = (d: CreatorDraft, rubriqueId: string, rang: 0 | 1, id: string | null): CreatorDraft => {
+      const o = options(rubrique(page(d), rubriqueId)).find((o) => o.geste.geste === 'couleurDesYeux'
+        && o.geste.args[0] === rang && o.geste.args[1] === id);
+      if (!o) throw new Error(`Choix d’yeux absent : ${id}`);
+      return apresLeGeste(d, o.geste);
+    };
+    const initial = withCareer(withSpecies(newDraft(7), 'hauts-elfes'), 'soldat');
+    const premier = prendre(initial, 'choixYeux', 0, 'au-choix');
+    expect(premier.eyes).toEqual([{ id: 'au-choix', colonne: 'haut-elfe' }]);
+    expect(rubrique(page(premier), 'physique')).toMatchObject({ genre: 'geste' });
+    const deux = prendre(premier, 'choixSecondeCouleur', 1, 'bleu');
+    expect(rubrique(page(deux), 'yeux')).toMatchObject({ valeur: 'Jais et Saphir' });
+    const modifie = prendre(deux, 'choixYeux', 0, 'bleu');
+    expect(buildHero(modifie, idsDeTest, 'heros-choisi').details?.eyes).toEqual([
+      { id: 'bleu', colonne: 'haut-elfe' }, { id: 'bleu', colonne: 'haut-elfe' },
+    ]);
+    expect(prendre(modifie, 'choixSecondeCouleur', 1, null).eyes).toEqual([{ id: 'bleu', colonne: 'haut-elfe' }]);
+
+    const passeHumain = withSpecies(deux, 'humains-reiklander');
+    expect(rubrique(page(passeHumain), 'yeux')).toMatchObject({ valeur: 'Jais et Saphir' });
+    expect(page(passeHumain).some((r) => r.id === 'choixSecondeCouleur')).toBe(false);
+    expect(options(rubrique(page(passeHumain), 'choixYeux')).map((o) => o.libelle)).not.toContain('Au choix');
+    expect(prendre(passeHumain, 'choixYeux', 0, 'vert').eyes).toEqual([{ id: 'vert', colonne: 'humain' }]);
+  });
 });
 
 it('une couleur renommée au Codex suit le même héros rouvert dans la création', () => {
@@ -77,7 +131,7 @@ it('une couleur renommée au Codex suit le même héros rouvert dans la créatio
   const heros = buildHero(d, idsDeTest, 'heros-couleurs');
   const rouvert = draftFromHero(heros, 7);
   const yeux = () => rubrique(rubriquesDeLaPage(rouvert, 'details'), 'yeux');
-  expect(heros.details?.eyes).toEqual({ id: 'gris', colonne: 'humain' });
+  expect(heros.details?.eyes).toEqual([{ id: 'gris', colonne: 'humain' }]);
   expect(rouvert.eyes).toEqual(heros.details?.eyes);
   expect(yeux()).toMatchObject({ genre: 'valeur', valeur: 'Gris' });
 
@@ -88,7 +142,7 @@ it('une couleur renommée au Codex suit le même héros rouvert dans la créatio
   try {
     expect(transaction.texte).toContain('Gris perle');
     expect(yeux()).toMatchObject({ genre: 'valeur', valeur: 'Gris perle' });
-    expect(heros.details?.eyes).toEqual({ id: 'gris', colonne: 'humain' });
+    expect(heros.details?.eyes).toEqual([{ id: 'gris', colonne: 'humain' }]);
   } finally {
     transaction.reprendre();
   }

@@ -20,6 +20,7 @@ import {
   rollHeight,
   rollEyes,
   rollHair,
+  tirerLesDetails,
   rollStar,
   applyStarOps,
   XP_SPECIES_ACCEPTED,
@@ -277,6 +278,35 @@ describe('Détails (LDB 05 l.701-768)', () => {
     expect(a).toEqual({ id: 'gris-pale', colonne: 'elfe-sylvain' });
     expect(b).toEqual({ id: 'gris', colonne: 'elfe-sylvain' });
     expect([libelleDeCouleur('eyes', a), libelleDeCouleur('eyes', b)]).toEqual(['Châtaigne', 'Châtaigne']);
+  });
+
+  it('Haut Elfe : âge, taille, 2d10 deux fois sur les yeux, puis cheveux (LDB 05 l.716, l.742-768)', () => {
+    const rng = desEnSuite([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 2, 3, 10, 10, 1, 2, 9]);
+    expect(tirerLesDetails('haut-elfe', rng)).toEqual({
+      age: 85, height: 183,
+      eyes: [{ id: 'bleu', colonne: 'haut-elfe' }, { id: 'noir', colonne: 'haut-elfe' }],
+      hair: { id: 'blond-dore', colonne: 'haut-elfe' },
+    });
+    expect(rng.int(1, 10)).toBe(9);
+  });
+
+  it('Elfe Sylvain : les deux lancers peuvent atteindre la même rangée (LDB 05 l.716, l.749)', () => {
+    const rng = desEnSuite([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 4, 4, 5, 6, 1, 2]);
+    expect(tirerLesDetails('elfe-sylvain', rng)).toEqual({
+      age: 85, height: 183,
+      eyes: [{ id: 'gris-pale', colonne: 'elfe-sylvain' }, { id: 'gris-pale', colonne: 'elfe-sylvain' }],
+      hair: { id: 'blond-dore', colonne: 'elfe-sylvain' },
+    });
+  });
+
+  it('Reiklander : un seul lancer sur les yeux entre la taille et les cheveux (LDB 05 l.716, l.742-768)', () => {
+    const rng = desEnSuite([7, 1, 2, 3, 4, 5, 6, 7, 2, 2, 9]);
+    expect(tirerLesDetails('humain', rng)).toEqual({
+      age: 22, height: 160,
+      eyes: [{ id: 'gris', colonne: 'humain' }],
+      hair: { id: 'blond-roux', colonne: 'humain' },
+    });
+    expect(rng.int(1, 10)).toBe(9);
   });
 });
 
