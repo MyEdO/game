@@ -353,7 +353,7 @@ function ouvrirLeChoixDeGuilde(get: Get, set: Set, m: MerchantState, ligne: Lign
       { key: 'consulter', label: t('mf.guildeConsulter') },
       { key: 'renoncer', label: t('mf.guildeRenoncer') },
     ],
-    meta: { entityId, rolledAt, articleId: echec.id, availability: echec.availability, target: echec.target, heroId },
+    meta: { entityId, rolledAt, articleId: echec.id, availability: echec.availability, seuilDeRelance: echec.target, heroId },
   });
   if (!step) return;
   const stock = get().merchantStocks[entityId];
@@ -383,16 +383,16 @@ function ajouterAuPanier(get: Get, set: Set, id: IdDArticleAAcheter): void {
 
 function lireLeRecoursDeGuilde(s: Jeu, meta: CascadeStepMeta | undefined) {
   if (!meta) return null;
-  const { entityId, rolledAt, articleId, availability, target, heroId } = meta;
+  const { entityId, rolledAt, articleId, availability, seuilDeRelance, heroId } = meta;
   const m = s.merchant;
   if (!m || m.entityId !== entityId) return null;
-  if (typeof articleId !== 'string' || typeof target !== 'number' || (availability !== 'limitee' && availability !== 'rare')) return null;
+  if (typeof articleId !== 'string' || typeof seuilDeRelance !== 'number' || (availability !== 'limitee' && availability !== 'rare')) return null;
   const stock = s.merchantStocks[m.entityId];
   if (!stock || stock.rolledAt !== rolledAt || stock.stock.some(({ id }) => id === articleId)) return null;
   const hero = titulairesPourLeMarche(s, m).find((h) => h.id === heroId && peutTenter(h, RAGOT_DE_GUILDE));
   const article = catalogEntryOf(articleId);
   if (!hero || !article) return null;
-  return { m, stock, hero, articleId, article, availability, target, meta } as const;
+  return { m, stock, hero, articleId, article, availability, seuilDeRelance, meta } as const;
 }
 
 function stockApresRecours(set: Set, recours: NonNullable<ReturnType<typeof lireLeRecoursDeGuilde>>, base: number) {
@@ -1362,7 +1362,7 @@ export const TABLES = {
         id: `${step.id}:${MERCHANT_GUILD_AVAILABILITY}`,
         kind: MERCHANT_GUILD_AVAILABILITY,
         label: stepDetail(t('mf.guildeRelance'), dataLabel(recours.article.label)),
-        cible: recours.target,
+        cible: recours.seuilDeRelance,
         verdict: { reussite: t('mf.guildeArticleTrouve'), echec: t('mf.guildeArticleAbsent') },
         meta: recours.meta,
       });

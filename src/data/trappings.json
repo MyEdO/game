@@ -7195,14 +7195,7 @@
       "book": "livre-de-base",
       "page": 89,
       "note": "LDB 08 l.2235, l.2249, l.2273"
-    },
-    "alsoIn": [
-      {
-        "book": "livre-de-base",
-        "page": 304,
-        "note": "LDB 68 l.11, l.25"
-      }
-    ]
+    }
   },
   {
     "id": "licence-guilde-de-droit",
@@ -7225,14 +7218,7 @@
       "book": "livre-de-base",
       "page": 193,
       "note": "LDB 22 l.12"
-    },
-    "alsoIn": [
-      {
-        "book": "livre-de-base",
-        "page": 304,
-        "note": "LDB 68 l.11, l.25"
-      }
-    ]
+    }
   },
   {
     "id": "livre-apothicaire",
