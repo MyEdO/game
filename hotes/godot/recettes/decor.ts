@@ -157,7 +157,7 @@ export function figerLeDecor(listage: Listage) {
     paletteDesAretes: paletteDistincte(),
     volee: appel('echantillon', { famille: 'sol', id: SOL_A_MARCHES }),
     toit: {
-      ...Object.fromEntries(PLATEAUX_DU_TOIT.map((metresPerTile) => [metresPerTile, echantillonDessine({ ...sceneDEchantillon('toit', TOIT), metresPerTile })])),
+      ...tableTotale(PLATEAUX_DU_TOIT.map(String), (_, i) => echantillonDessine({ ...sceneDEchantillon('toit', TOIT), metresPerTile: PLATEAUX_DU_TOIT[i] })),
       diligence: sansMorceaux(echantillonDessine(paquetDuJeu(diligenceCampaign).scenes.find((s) => s.id === 'la-diligence')!)),
     },
   };
