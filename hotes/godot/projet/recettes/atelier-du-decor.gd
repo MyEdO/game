@@ -4,8 +4,9 @@ extends SceneTree
 ## pont figé (`PontFige`, `pont_fige.gd`, sur les échantillons figés par la sonde, `hotes/godot/recettes/decor.ts`,
 ## `figerLeDecor`). Chaque famille servie a sa liste de tête, de clé `modele/<famille>`, qui offre chacune de ses entrées
 ## dans l'ordre servi. Un décor sans modèle, un décor servi par son modèle, la mer, une matière de relief, une matière de
-## toit, un mur crénelé et un mur de chaque famille d'un modèle d'arête servi (#4471), chacun de ceux-là choisi
-## l'atelier au repos (`_choisir_au_repos`), choisis tour à tour : à chaque geste, l'atelier envoie l'entrée attendue,
+## toit, un mur crénelé et un mur de chaque famille d'un modèle d'arête servi (#4471), choisis tour à tour ; celui qui
+## pose le premier une famille de modèle d'arête, que l'atelier lit alors, est choisi l'atelier au repos
+## (`_choisir_au_repos`) : à chaque geste, l'atelier envoie l'entrée attendue,
 ## et sa scène (`VolumeDeScene`) pose autant de triangles que le volume servi hors des surfaces des décors servis
 ## (`decors`, la crête du mur crénelé comprise), et le modèle de chaque pose de chaque décor servi
 ## (`MontageDesModeles.poses`), chaque arête et chaque nappe de toit servies, et chaque couronne sauf celles que sa
@@ -43,13 +44,17 @@ func _recetter() -> void:
 			var offertes := range(liste.item_count).map(func(rang: int) -> Variant: return liste.get_item_metadata(rang))
 			_verifier(offertes == famille.entrees.map(func(entree: Dictionary) -> String: return entree.id), "modele/%s : %d entrées offertes, attendu les %d servies dans leur ordre" % [famille.id, offertes.size(), famille.entrees.size()])
 	var derniere := ""
+	var lues := {}
 	for cle: String in decor.echantillon:
 		var entree: Dictionary = JSON.parse_string(cle)
 		var avant := {ecran = pont.ecran, appels = pont.entrees.size()}
-		if _d_un_modele_servi(decor.echantillon[cle], decor.modeles.aretes):
+		var servies := _familles_servies(decor.echantillon[cle], decor.modeles.aretes)
+		if servies.any(func(famille: String) -> bool: return not lues.has(famille)):
 			await _choisir_au_repos(atelier, pont, entree)
 		else:
 			_choisir(atelier, "modele/%s" % entree.famille, entree.id)
+		for famille in servies:
+			lues[famille] = true
 		await _attendre_l_echantillon(atelier, pont, avant, entree, decor.echantillon[cle])
 		_conforme(atelier, pont, cle, decor.echantillon[cle], "%s %s" % [entree.famille, entree.id])
 		derniere = cle
@@ -94,9 +99,9 @@ func _choisir_au_repos(atelier: Node, pont: PontFige, entree: Dictionary) -> voi
 	pont.relache.emit()
 
 
-## Si une arête de l'échantillon `reponse` a pour famille une de celles dont le modèle d'arête est servi (`aretes`).
-static func _d_un_modele_servi(reponse: Dictionary, aretes: Dictionary) -> bool:
-	return reponse.aretes.any(func(a: Dictionary) -> bool: return aretes.has(a.famille))
+## Les familles des arêtes de l'échantillon `reponse` dont le modèle d'arête est servi (`aretes`).
+static func _familles_servies(reponse: Dictionary, aretes: Dictionary) -> Array:
+	return reponse.aretes.map(func(a: Dictionary) -> String: return a.famille).filter(func(famille: String) -> bool: return aretes.has(famille))
 
 
 ## Si l'atelier `atelier` est au repos : ses peaux mesurées et aucun clip lu, son écran ne se republiant qu'à un geste
