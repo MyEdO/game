@@ -725,13 +725,18 @@ export function encoderLecture(racine) {
     if (actifs.has(v)) throw new Error('IR_CYCLE')
     const tableau = Array.isArray(v)
     if (!tableau) { const prototype = Object.getPrototypeOf(v); if (prototype !== Object.prototype && prototype !== null) throw new Error('IR_DOMAINE_JSON') }
-    const proprietes = Object.getOwnPropertyDescriptors(v)
-    for (const p of Object.values(proprietes)) if (!Object.hasOwn(p, 'value')) throw new Error('IR_DOMAINE_JSON')
-    if (Object.hasOwn(proprietes, 'toJSON') && (tableau || !proprietes.toJSON.enumerable)) throw new Error('IR_DOMAINE_JSON')
     const cles = []
     const valeurs = []
-    if (tableau) for (let i = 0; i < v.length; i++) valeurs.push(proprietes[i]?.value)
-    else for (const k of Object.keys(v)) { const x = proprietes[k].value; if (x !== undefined) { cles.push(k); valeurs.push(x) } }
+    if (tableau) {
+      const proprietes = Object.getOwnPropertyDescriptors(v)
+      for (const p of Object.values(proprietes)) if (!Object.hasOwn(p, 'value')) throw new Error('IR_DOMAINE_JSON')
+      if (Object.hasOwn(proprietes, 'toJSON')) throw new Error('IR_DOMAINE_JSON')
+      for (let i = 0; i < v.length; i++) valeurs.push(proprietes[i]?.value)
+    } else for (const k of Object.getOwnPropertyNames(v)) {
+      const p = Object.getOwnPropertyDescriptor(v, k)
+      if (!Object.hasOwn(p, 'value') || (k === 'toJSON' && !p.enumerable)) throw new Error('IR_DOMAINE_JSON')
+      if (p.enumerable && p.value !== undefined) { cles.push(k); valeurs.push(p.value) }
+    }
     actifs.add(v)
     return { v, tableau, cles, valeurs, references: [] }
   }
