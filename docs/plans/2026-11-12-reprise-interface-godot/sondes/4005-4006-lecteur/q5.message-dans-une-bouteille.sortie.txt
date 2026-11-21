@@ -1,0 +1,11 @@
+
+===== CHOICE message-dans-une-bouteille (graine 1)
+apres runSeaDay : slot=test[Message dans une bouteille] cursor=0/1 cur=choixDeFlux pile=[] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=3 lines=1 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 0 avanceEtape(choixDeFlux) -> slot=travelDay[Journée en mer] cursor=0/1 cur=merProgressionChoix pile=[] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=2 lines=3 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 1 avanceEtape(merProgressionChoix) -> slot=travelDay[Journée en mer] cursor=1/2 cur=equipage-progression pile=[] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=2 lines=3 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 2 avanceEtape(equipage-progression) -> slot=travelDay[Journée en mer] cursor=2/3 cur=equipage-orientation pile=[] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=2 lines=4 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 3 avanceEtape(equipage-orientation) -> slot=seaScorbut[Entretien — Maladies] cursor=0/1 cur=mer-mal-de-mer pile=[] pendingTest=null travelPlan=true daysAtSea=0 daysToEvent=2 lines=6 events=1 log=undefined pendingRest=false shoreLeave=false gameTime=480 recap=false
+pas 4 avanceEtape(mer-mal-de-mer) -> slot=null pile=[] pendingTest=null travelPlan=true daysAtSea=1 daysToEvent=2 lines=0 events=0 log=1 pendingRest=true shoreLeave=false gameTime=1080 recap=false
+>>> pendingRest ouvert : journée close (halte)
+FINAL slot=null pile=[] pendingTest=null travelPlan=true daysAtSea=1 daysToEvent=2 lines=0 events=0 log=1 pendingRest=true shoreLeave=false gameTime=1080 recap=false
+journal(queue): ["Soldat — mal de mer : contracté.","Tueur — mal de mer : contracté.","Sorcier — mal de mer : contracté.","Soldat gagne l’État Exténué — Malaise.","Tueur gagne l’État Exténué — Malaise.","Sorcier gagne l’État Exténué — Malaise."]

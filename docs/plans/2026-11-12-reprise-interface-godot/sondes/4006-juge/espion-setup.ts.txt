@@ -1,0 +1,20 @@
+import { beforeEach, afterAll, vi } from 'vitest';
+import { appendFileSync } from 'node:fs';
+import * as pw from '/home/user/game/src/noyau/partyWipe';
+const F = '/tmp/claude-0/-home-user/47cccebd-91e8-5432-b0c8-43d48aefbcdb/scratchpad/juge-4006/espion.jsonl';
+const g: any = globalThis as any;
+if (!g.__origCHC) g.__origCHC = pw.clotureHorsCombat;
+const recs: string[] = [];
+beforeEach((ctx) => {
+  const orig = g.__origCHC;
+  vi.spyOn(pw, 'clotureHorsCombat', 'get').mockReturnValue(((get: any, set: any, slotALEntree: any) => {
+    const s = get();
+    const slot = s.pendingCascade;
+    if (slot && slot !== slotALEntree) {
+      const pile = (new Error().stack ?? '').split('\n').slice(2, 9).map((l) => (l.match(/at (\S+)/)?.[1] ?? '?')).join('<');
+      recs.push(JSON.stringify({ test: ctx.task.file?.name + ' :: ' + ctx.task.name, battle: !!s.battle, slot: slot.purpose + '[' + slot.title + ']', cur: slot.participants[slot.cursor]?.kind, entree: slotALEntree ? slotALEntree.purpose + '[' + slotALEntree.title + ']' : null, memePurposeQuEntree: !!slotALEntree && slotALEntree.purpose === slot.purpose, pile }));
+    }
+    return orig(get, set, slotALEntree);
+  }) as any);
+});
+afterAll(() => { if (recs.length) appendFileSync(F, recs.join('\n') + '\n'); recs.length = 0; });

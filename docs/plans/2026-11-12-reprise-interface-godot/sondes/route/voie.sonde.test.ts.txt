@@ -1,0 +1,17 @@
+import { describe, expect, it } from '/home/user/game/node_modules/vitest/dist/index.js';
+import { etatInitialDuJeu } from '/home/user/game/src/noyau/etat';
+import { voyageEnVue } from '/home/user/game/src/noyau/voyageEnVue';
+import { scenario } from '/home/user/game/src/scenes/test-scenarios/15-commerce-fluvial';
+
+describe('sonde : la voie d’un trajet en barge payé', () => {
+  it('route de barge sans `river` (plan terrestre, travelFlow.ts:508)', () => {
+    let n = 0; const built = (scenario as any).construire(() => 'id-' + n++);
+    const carte = built.worldMap;
+    
+    const route = carte.routes.find((r: any) => r.id === 'r-grunburg-hornlach');
+    const s = { ...etatInitialDuJeu(), worldMap: carte, travelPlan: { routeId: route.id, fromPlaceId: route.a.id, toPlaceId: route.b.id, mode: 'barge', departAt: 0, hoursPerDay: 6, km: 30, kmDone: 12, interrupted: false } } as any;
+    const v = voyageEnVue(s)!;
+    expect({ river: route.river ?? null, voie: v.voie, mode: v.mode, moyen: v.moyen }).toEqual({});
+    expect(v.voie).toBe('terre');
+  });
+});

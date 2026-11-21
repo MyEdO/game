@@ -1,0 +1,19 @@
+appliers instrumentes: 130 lecture seule: 0
+tablesPosees voit instrumentes 130 / 130
+ISSUES {
+ "mer-evt -> halte": 150,
+ "mer -> halte": 60,
+ "fleuve -> halte": 60,
+ "terre -> halte": 60,
+ "terre-peril -> halte": 60
+}
+jouerLaJournee entrees=390 sousSlotVivant=0 {}
+ECRITURES DU SLOT PAR UN APPLIER (hors combat):
+  1x mer | applier=mer-evenement-de-bord | pilote=LOCAL(immediat) | slotAvant=null -> slotApres=test[Débris marins] cur=choixDeFlux
+  1x mer | applier=mer-evenement-de-bord | pilote=LOCAL(immediat) | slotAvant=null -> slotApres=test[Vaisseau fantôme (littéralement)] cur=choixDeFlux
+  8x mer-evt | applier=mer-evenement-de-bord | pilote=LOCAL(immediat) | slotAvant=null -> slotApres=test[Autres voyageurs] cur=choixDeFlux
+  4x mer-evt | applier=mer-evenement-de-bord | pilote=LOCAL(immediat) | slotAvant=null -> slotApres=test[Canot de sauvetage] cur=choixDeFlux
+  8x mer-evt | applier=mer-evenement-de-bord | pilote=LOCAL(immediat) | slotAvant=null -> slotApres=test[Débris marins] cur=choixDeFlux
+  4x mer-evt | applier=mer-evenement-de-bord | pilote=LOCAL(immediat) | slotAvant=null -> slotApres=test[Message dans une bouteille] cur=choixDeFlux
+  6x mer-evt | applier=mer-evenement-de-bord | pilote=LOCAL(immediat) | slotAvant=null -> slotApres=test[Vaisseau de pestiférés] cur=choixDeFlux
+  9x mer-evt | applier=mer-evenement-de-bord | pilote=LOCAL(immediat) | slotAvant=null -> slotApres=test[Vaisseau fantôme (littéralement)] cur=choixDeFlux
