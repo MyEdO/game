@@ -16,8 +16,6 @@ Premières maquettes : chaque « choix à valider » attend l'utilisateur.
   blanc sous elle, le prix de la boîte fixe.
 - À valider (#4585) : l'état du navire (coque, Moral, eau douce, vivres) sur deux colonnes, toutes ses valeurs visibles
   dans le panneau bas sans défiler ; « Vivres » au lieu de « Vivres de l'équipage ».
-- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
-  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 
 La carte du monde n'est pas redessinée : elle existe (`exploration-et-recit/carte-du-monde.jpg`) et sert de modèle ;
 les états d'ici gardent ses lieux et ses distances (La Diligence, 75 km, Sept Rayons, 115 km, Altdorf).

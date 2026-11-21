@@ -12,14 +12,6 @@ décor (`sources/combat-suite/decors.js`, la carte de `sources/lieux-et-nuit/car
 ou la fenêtre du bas qui prend sa place ; le Test spectaculaire de Puissance et l'issue de la bataille, un carton
 au-dessus du bandeau (gabarit 7). `bataille-de-masse-preparation` est un état de l'écran `interlude`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
-- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
-  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
-- À valider (#4585) : le panneau de la poursuite ne répète pas la Distance quand la frise la montre ; sinon, la Distance
-  et sa jauge sur une ligne ; les issues en une rangée (« semés à 100 · collision et abordage à 0 »), la condition de
-  chacune au survol. La sommation dit le navire hostile et ses forbans sur une ligne.
-- À valider (#4585) : le Test d'équipage et le Test de Mouvement de la fenêtre rangent chaque lanceur dans une case
-  fixe (cinq par rang) : son portrait, son seuil, son DR ou ce qu'il attend ; qui, son poste, son Test et le détail de
-  l'issue au survol ; la règle et la somme sous la rangée.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Surincantation », « {restant} pas sur {budget} »,
 « Cibles supplémentaires : … à cliquer sur la carte », « Contrer seul », « S’unir », « Passer », « Déclarer »,
@@ -352,6 +344,9 @@ exemple.
   le billet montre le Test tombé, son lancer est `course-poursuite-en-mer-test` ; la décision qui ouvre la poursuite est
   `course-poursuite-en-mer-sommation` ; l'abordage à Distance 0 (MDG 13 l.420) renvoie au combat naval
   (`voyage/combat-naval.jpg`) ; la pastille « Postes de bord » suit celle de `voyage/voyage-en-mer`.
+- À valider (#4585) : le panneau de la poursuite ne répète pas la Distance quand la frise la montre ; sinon, la Distance
+  et sa jauge sur une ligne ; les issues en une rangée (« semés à 100 · collision et abordage à 0 »), la condition de
+  chacune au survol. La sommation dit le navire hostile et ses forbans sur une ligne.
 
 ## course-poursuite-en-mer-test
 - Le Test d'équipage de Poursuite à lancer (MDG 14 l.67-71), rôle après rôle : le billet du Test donne une rangée par
@@ -365,6 +360,9 @@ exemple.
 - À valider : les gestes au pied du billet plutôt que dans un bandeau du jet, les héros gardant leur bandeau ;
   l'ordre des rangées ; seuils d'exemple ; l'état après le dé d'une rangée est
   `course-poursuite-en-mer-test-tombe` ; le Chansonnier (MDG 14 l.71) n'est pas tenu.
+- À valider (#4585) : le Test d'équipage et le Test de Mouvement de la fenêtre rangent chaque lanceur dans une case
+  fixe (cinq par rang) : son portrait, son seuil, son DR ou ce qu'il attend ; qui, son poste, son Test et le détail de
+  l'issue au survol ; la règle et la somme sous la rangée.
 
 ## course-poursuite-en-mer-test-tombe
 - Le Test d'équipage après le dé d'une rangée, nouvel état de la page du Test : la rangée de Mira tombée en échec,

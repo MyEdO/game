@@ -10,6 +10,8 @@
 // rend, par gabarit (le champ `gabarit` des états), la synthèse (états, places, pièces sans place, contenus dont ceux
 // vus dans un seul état, contenus qui bougent par classe) puis, pour chaque contenu qui bouge, sa classe, ce qui en
 // diffère, ses relevés distincts et les états qui portent chacun :
+// Il rend aussi, par gabarit, le relevé `brut` de ses états (`rendre.mjs`), sans effet sur son code : ce que les
+// emplacements de primitive et les illustrations portent hors d'une primitive, puis le compte de chaque état :
 //   node contenus.mjs <dossier>
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -35,9 +37,10 @@ if (import.meta.main) {
   /** Les gabarits : pour chacun, ses états et, par contenu (porteur | rôle), ses relevés distincts et leurs états. */
   const gabarits = new Map()
   for (const f of readdirSync(dossier).filter((f) => f.endsWith('.json')).sort()) {
-    const { ecran, etat, gabarit, contenus } = JSON.parse(readFileSync(join(dossier, f), 'utf8'))
-    const g = gabarits.get(gabarit) ?? gabarits.set(gabarit, { etats: 0, contenus: new Map() }).get(gabarit)
+    const { ecran, etat, gabarit, contenus, brut } = JSON.parse(readFileSync(join(dossier, f), 'utf8'))
+    const g = gabarits.get(gabarit) ?? gabarits.set(gabarit, { etats: 0, contenus: new Map(), bruts: [] }).get(gabarit)
     g.etats++
+    g.bruts.push({ etat: `${ecran}/${etat}`, ...brut })
     for (const [cle, valeur] of Object.entries(contenus)) {
       const releves = g.contenus.get(cle) ?? g.contenus.set(cle, []).get(cle)
       const meme = releves.find((r) => !differe(r.valeur, valeur).length)
@@ -65,6 +68,15 @@ if (import.meta.main) {
       lignes.push(`${c} ${cle} : ${releves.length} relevés, diffèrent par ${d}`)
       for (const { valeur, etats: e } of releves) lignes.push(`    ${valeur.liste ? JSON.stringify(valeur.liste) : `${valeur.rect.join(',')}${valeur.texte ? ' texte' : ''}`} (${e.length}) : ${e.join(', ')}`)
     }
+  }
+  const bruts = [...gabarits].sort().map(([gabarit, { etats, bruts: b }]) => {
+    const somme = (k) => b.reduce((n, x) => n + x[k].length, 0)
+    return { gabarit, etats, b, emplacement: somme('emplacement'), illustration: somme('illustration') }
+  })
+  lignes.push('', `== brut : ${bruts.reduce((n, g) => n + g.emplacement, 0)} en emplacement, ${bruts.reduce((n, g) => n + g.illustration, 0)} en illustration`)
+  for (const { gabarit, etats, b, emplacement, illustration } of bruts) {
+    lignes.push(`brut ${gabarit} : ${etats} états, ${emplacement} en emplacement, ${illustration} en illustration`)
+    for (const x of b) lignes.push(`    ${x.etat} : ${x.emplacement.length} + ${x.illustration.length}`)
   }
   console.log(lignes.join('\n'))
   process.exitCode = bloquants ? 1 : 0

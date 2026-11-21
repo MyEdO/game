@@ -9,8 +9,6 @@ Sources au dépôt : trois écrans de `sources/maquettes/`, chacun la liste de s
 `port-avitaillement`). Les décors de la halle et du quai et la carte du port vivent dans `sources/commerce/commerce.js` ;
 le Marchandage prend le jet opposé de `sources/combat/` (`jet.css`, `jet.js`).
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
-- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
-  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 - À valider (#4585) : la page d'un service garde au pied de son corps une place fixe (`page/pied`, 50 de haut),
   vide quand rien n'y va ; les bourses du groupe y tiennent en une rangée de cinq cases : chaque héros par son
   portrait et sa part, ce que sa bourse contient au survol, le −/+ autour du portrait de la part réglée, puis le
@@ -20,7 +18,6 @@ Premières maquettes : chaque « choix à valider » attend l'utilisateur.
   la phrase qui explique une quantité ou une ligne passe au survol de son libellé (la part minimale du négociant,
   la contenance d'un tonneau, sa contenance en litres restant écrite) ; les porteurs de la page sans rubrique
   « Porteur » ; les salariés du bord deux par rang.
-- À valider (#4585) : la cale du port dit ses vivres et son eau douce sur une ligne.
 
 Cible écrite suivie : `../ecrites/lieu.md` (halle : ligne par denrée, chargement, lots, billet de rumeur ; port : un
 lieu ; Marchandage : le bandeau de jet du combat à sa place). Règles du 2026-11-16 appliquées par-dessus : un choix
@@ -166,6 +163,7 @@ bandeau de jet opposé est celui du combat.
 - RAW : MDG 14 l.236-252. Code : `src/noyau/portFlow.ts:553-601`.
 - À valider : les jours de vivres que l'achat donne à l'équipage ne sont pas montrés (aucun lecteur ne les sert) ;
   l'Encombrement des vivres dans la cale non montré.
+- À valider (#4585) : la cale du port dit ses vivres et son eau douce sur une ligne.
 
 ## Non dessiné
 - L'achat à l'échoppe (acte individuel, payé par l'acheteur, #3004) n'a pas d'image dans cette famille.
