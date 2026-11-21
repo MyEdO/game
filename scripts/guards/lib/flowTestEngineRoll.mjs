@@ -44,15 +44,9 @@ import { analyserCorpus } from './dialecte.mjs';
 //  - un résolveur qui roule SES PROPRES dés (le d100 de sévérité de `resolveCritique`) sans lire de
 //    nœud reste vert : (L) est faux pour lui, et la donnée qu'il transporte n'est pas une lecture.
 //
-// ANGLE MORT STRUCTUREL, celui qui a coûté (#1657 B3-1b) : un rouleur qui lit une FORME PROPRIÉTAIRE.
-// `NODE_TYPES` nomme les types du NŒUD canonique ; une fonction qui roule un jet décrit par un type
-// PROPRE au domaine (`Amputation` : `{difficulty, sequels, loss}` — 28 Tests de Résistance, LDB 18
-// l.237) satisfait (R) mais jamais (L), et la garde rendait 7 sites là où le moteur en roulait 9. Le
-// remède n'est PAS d'élargir `NODE_TYPES` (une liste de formes propriétaires est un registre qui
-// grandit) : c'est de faire MOURIR la forme propriétaire — ce que B3-1b a fait, le type `Amputation`
-// cessant de décrire un jet au profit du nœud `test` canonique. L'angle mort reste ENTIER pour toute
-// forme propriétaire NEUVE : la garde ne peut pas voir un jet qui refuse le vocabulaire commun, et
-// c'est le contrat de forme (`flowtest-derived-stake.hors-store.test.ts`, `docs/registre-jets.md`) qui l'attrape.
+// ANGLE MORT STRUCTUREL : un rouleur qui lit une FORME PROPRIÉTAIRE satisfait (R) mais jamais (L).
+// Le contrat de forme impose le vocabulaire commun avant la détection de roulage
+// (`flowtest-derived-stake.hors-store.test.ts`, `docs/registre-jets.md`).
 //
 // ANGLES MORTS assumés (faux négatifs préférés au bruit — doctrine des gardes du dépôt) :
 //  - type ALIASÉ à l'import (`import type { FlowTestNode as N }`) : la comparaison est textuelle sur

@@ -1,28 +1,24 @@
-import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade, draineEtapes } from './cascade.testkit';
 import { applyCriticalToTarget, openCombatEndCascade } from './combatFlow';
 import { resolveCritique } from '../engine/critical';
-import { runPureFlowLines } from './combat/flowEval';
 import { testValue } from '../engine/skills';
-import { addCondition } from '../engine/conditions';
-import { CRITIQUE_DOCS } from '../data/criticals';
-import type { Flow } from '../engine/flowCore';
+import { addCondition, stacks } from '../engine/conditions';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
 import { resolveStake } from '../data';
-import { stacks } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, HitLocation, Trauma } from '../engine/types';
 import type { CascadeStep } from './pendings';
-import { desDuTest } from '../engine/dice.testkit';
+import { chargerLaSave, exporterLaSauvegarde, lireSave, refusDeSauvegarde, snapshotSave } from './persistance/save';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { avecSequelles } from '../engine/trauma';
+import { actorIn } from './monde/combatants';
 
 let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); });
+beforeEach(() => { banc = ouvrirLeBanc({ desFixes: true }); });
 
 /**
  * #1657 B3-1 — LE TEST D'UNE BLESSURE CRITIQUE PASSE PAR LA PORTE.
@@ -187,91 +183,179 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
 });
 
 
-/**
- * #1657 B3-1b — LES 28 TESTS D'AMPUTATION (LDB 18 l.237) PASSENT PAR LA MÊME PORTE.
- *
- * RAW l.237, verbatim : « À chaque fois que vous subissez une Blessure critique où il est indiqué
- * *Amputation (Difficulté)*, vous devez réussir un Test de **Résistance** (la difficulté est indiquée
- * entre parenthèses) ou gagner 1 État *À Terre*. Sur un échec (-2 DR) ou pire, vous recevez également
- * un État *Sonné*. Si vous échouez avec au moins -4 DR, gagnez un État *Inconscient*. »
- *
- * Le moteur les roulait, sur une valeur calculée à la main (Endurance + Avances de Résistance) qui
- * ignorait les États du jeteur — donc sans Chance, sans Pacte, sans Résilience. Ils naissent désormais
- * comme des étapes, et la valeur testée est celle de la PORTE (`rollLine` → `testValue`).
- */
-describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la valeur de la porte', () => {
-  /** Le nœud `test` d'un Flow qui EN EST un — rouge nommé sinon. */
-  const noeudDeTest = (f: Flow | undefined) => {
-    if (!f || f.kind !== 'test') throw new Error(`noeud test attendu, recu : ${f ? f.kind : 'rien'}`);
-    return f;
-  };
-  const etapes = (f: Flow | undefined): Flow[] => (f && f.kind === 'sequence' ? f.etapes : f ? [f] : []);
+const etapeCourante = (): CascadeStep | undefined => {
+  const cascade = banc.getState().pendingCascade;
+  return cascade?.participants[cascade.cursor];
+};
 
-  it('(vi) héros 2× Sonné, « Doigt sectionné » (dé 83) : la cible est celle de la PORTE, États compris', () => {
+function attendreLeTestDe(entryId: string): CascadeStep {
+  for (let i = 0; i < 10; i++) {
+    const etape = etapeCourante();
+    if (!etape) break;
+    if (etape.kind === 'testDeclenche' && etape.stake && resolveStake(etape.stake).rule?.id === entryId) return etape;
+    avanceEtapeCascade(banc.getState);
+  }
+  throw new Error(`Aucun Test de la rangée « ${entryId} » dans la cascade.`);
+}
+
+function relireLaSauvegarde(): void {
+  const json = exporterLaSauvegarde(snapshotSave(banc.getState(), '2512-01-01'));
+  const lue = lireSave(json);
+  if (typeof lue === 'string') throw new Error(lue);
+  banc.setState(chargerLaSave(lue).etat);
+}
+
+const porteur = () => actorIn(banc.getState(), 'h')!;
+const orteilsPerdus = () => porteur().traumas?.filter((t) => t.traumaId === 'orteil-ampute') ?? [];
+const plaies = () => porteur().traumas?.filter((t) => t.needsSurgery) ?? [];
+
+// LDB 18 l.121,171,180,237–239.
+describe('#1675 — le Flow de la rangée passe par la porte et reprend en ordre', () => {
+  it.each(['en combat', 'hors combat'])('Doigt sectionné %s : la perte du côté touché précède l’unique Test de plaie', (milieu) => {
     seedBattleRng(1);
     const hero = mk('h', 'heros');
-    addCondition(hero, 'sonne', 2); // LDB 16 l.125 : « une pénalité de -10 à tous les Tests », ×2
-    combat(hero, mk('e', 'ennemi'));
-    subirCritique(hero, 'brasD', 83); // LDB bras 81-85 « Doigt sectionné » — Amputation (Accessible)
+    addCondition(hero, 'sonne', 2);
+    if (milieu === 'en combat') combat(hero, mk('e', 'ennemi'));
+    else banc.setState({ party: [hero], scene: testScene() });
+    subirCritique(hero, 'brasG', 83);
 
-    const st = etapeTest();
-    expect(st, 'aucune étape : le Test d’Amputation est resté silencieux au moteur').toBeTruthy();
-    expect(st!.actorId).toBe('h');
-    expect(st!.rollLabel).toBe('Résistance');       // l.237 — la COMPÉTENCE, jamais l'Endurance nue
-    expect(st!.difficulty).toBe('accessible');
-    // Endurance 35 → Niveau de Résistance 35 ; 2× Sonné = −20 ⇒ 15 (LDB 16 l.125). Une valeur calculée
-    // hors de la porte (Endurance + Avances) rendrait 35 : elle ne voit aucun État.
-    expect(testValue(hero, { skill: { id: 'resistance' } })).toBe(15);
-    expect(st!.target, 'la cible ignore les États : la valeur maison est revenue').toBe(15 + 20);
-    expect(hero.traumas, 'ni plaie ni séquelle avant le jet').toEqual([]);
+    const test = attendreLeTestDe('doigt-sectionne');
+    expect(test).toMatchObject({ actorId: 'h', rollLabel: 'Résistance', difficulty: 'accessible' });
+    expect(test.target).toBe(testValue(hero, { skill: { id: 'resistance' } }) + 20);
+    expect(test.target).toBe(35);
+    expect(porteur().traumas).toEqual(expect.arrayContaining([
+      expect.objectContaining({ traumaId: 'doigt-ampute', location: 'brasG', count: 1 }),
+      expect.objectContaining({ needsSurgery: true, location: 'brasG' }),
+    ]));
+
+    avanceEtapeCascade(banc.getState, () => 7);
+    expect(draineEtapes(banc.getState).filter((s) => s.kind === 'testDeclenche')).toEqual([]);
+    expect(stacks(porteur(), 'sonne')).toBe(2);
+    expect(stacks(porteur(), 'a-terre')).toBe(0);
+    expect(porteur().traumas?.filter((t) => t.traumaId === 'doigt-ampute')).toMatchObject([{ location: 'brasG', count: 1 }]);
   });
 
-  it('(vii) POST-RENCONTRE (l.171) : le nœud ARMÉ part par la porte à la fin du combat, jamais en silence', () => {
+  it('Main mutilée : les deux Tests à −20 ont chacun leur rôle', () => {
     seedBattleRng(1);
     const hero = mk('h', 'heros');
-    const coupure = CRITIQUE_DOCS.flatMap((d) => d.entries).find((e) => e.id === 'coupure-a-l-orteil')!;
-    // Marqueur ARMÉ par un critique antérieur (« Coupure à l'orteil » : « Une fois la rencontre terminée… »).
-    (hero as unknown as { traumas: Trauma[] }).traumas =
-      avecSequelles([], resolveCritique('ldb', mk('h', 'heros'), 'jambeD', makeRNG(1), { forcedRoll: coupure.min }).traumas);
     combat(hero, mk('e', 'ennemi'));
+    subirCritique(hero, 'brasG', 95);
+
+    const rangee = attendreLeTestDe('main-mutilee');
+    expect(rangee).toMatchObject({ label: 'Résistance', difficulty: 'difficile' });
+    avanceEtapeCascade(banc.getState, () => 7);
+
+    const plaie = attendreLeTestDe('main-mutilee');
+    expect(plaie).toMatchObject({ label: 'Plaie d’amputation', difficulty: 'difficile' });
+    expect(porteur().traumas).toEqual(expect.arrayContaining([
+      expect.objectContaining({ traumaId: 'main-bras-ampute', location: 'brasG' }),
+    ]));
+  });
+
+  it('Coupure à l’orteil : le report survit à la save et une réussite écarte le Test de plaie', () => {
+    seedBattleRng(1);
+    const hero = mk('h', 'heros');
+    combat(hero, mk('e', 'ennemi'));
+    subirCritique(hero, 'jambeG', 48);
+    expect(etapeTest()).toBeUndefined();
+    expect(orteilsPerdus()).toEqual([]);
+    expect(plaies()).toEqual([]);
+    expect(stacks(porteur(), 'hemorragique')).toBe(1);
+    draineEtapes(banc.getState);
+    relireLaSauvegarde();
 
     openCombatEndCascade(banc.getState, banc.setState);
-
-    const st = etapeTest();
-    expect(st, 'le Test différé s’est joué en silence : aucune fenêtre au bilan de combat').toBeTruthy();
-    expect(st!.actorId).toBe('h');
-    expect(st!.rollLabel).toBe('Résistance');
-    expect(st!.difficulty).toBe('intermediaire'); // l.171 : le GATE, « un Test de Résistance Intermédiaire (+0) »
-    expect(resolveStake(st!.stake!).rule).toEqual({ category: 'criticalsJambe', id: 'coupure-a-l-orteil' });
-    expect(hero.traumas!.some((t) => t.pendingAmputation), 'le marqueur doit être CONSOMMÉ').toBe(false);
-    // La cascade porte la borne de fin de combat : sans elle, sa fermeture rejouerait le bilan.
+    const gate = attendreLeTestDe('coupure-a-l-orteil');
+    expect(gate).toMatchObject({ actorId: 'h', rollLabel: 'Résistance', difficulty: 'intermediaire' });
+    expect(resolveStake(gate.stake!).rule).toEqual({ category: 'criticalsJambe', id: 'coupure-a-l-orteil' });
+    expect(porteur().traumas?.some((t) => t.pendingAmputation)).toBe(false);
     expect(banc.getState().pendingCascade!.combatEndBoundary).toBe(true);
+
+    avanceEtapeCascade(banc.getState, () => 7);
+    expect(draineEtapes(banc.getState).filter((s) => s.kind === 'testDeclenche' && s.stake
+      && resolveStake(s.stake).rule?.id === 'coupure-a-l-orteil')).toEqual([]);
+    expect(orteilsPerdus()).toEqual([]);
+    expect(plaies()).toEqual([]);
+    expect(stacks(porteur(), 'a-terre')).toBe(0);
   });
 
-  it('(viii) « Coupure à l’orteil » : gate RÉUSSI = rien ; gate raté puis Test raté à −2 DR = Sonné + amputation', () => {
+  it('Coupure à l’orteil : l’échec du Test reporté pose un orteil perdu avant la plaie', () => {
     seedBattleRng(1);
     const hero = mk('h', 'heros');
-    const coupure = CRITIQUE_DOCS.flatMap((d) => d.entries).find((e) => e.id === 'coupure-a-l-orteil')!;
-    const gate = noeudDeTest(
-      resolveCritique('ldb', hero, 'jambeD', makeRNG(1), { forcedRoll: coupure.min })
-        .traumas.find((t) => t.pendingAmputation)!.pendingAmputation,
-    );
+    combat(hero, mk('e', 'ennemi'));
+    subirCritique(hero, 'jambeG', 48);
+    draineEtapes(banc.getState);
+    openCombatEndCascade(banc.getState, banc.setState);
 
-    // Gate RÉUSSI (l.171 : la perte n'a lieu que « sur un échec ») — aucune conséquence, pas même un État.
-    const sauf = mk('h', 'heros');
-    runPureFlowLines(sauf, sauf, gate.reussite, { idNeuf: idsDeTest, rng: desDuTest, sl: 3 });
-    expect(sauf.traumas).toEqual([]);
-    expect(stacks(sauf, 'a-terre')).toBe(0);
+    attendreLeTestDe('coupure-a-l-orteil');
+    avanceEtapeCascade(banc.getState, () => 93);
+    const plaie = attendreLeTestDe('coupure-a-l-orteil');
+    expect(plaie.difficulty).toBe('accessible');
+    expect(orteilsPerdus()).toMatchObject([{ location: 'jambeG', count: 1 }]);
+    expect(plaies()).toMatchObject([{ location: 'jambeG' }]);
+    expect(stacks(porteur(), 'a-terre')).toBe(0);
 
-    // Gate RATÉ → le Test d'Amputation (l.237) ; RATÉ à −2 DR → À Terre + Sonné + la perte de l'orteil.
-    const [interne, perte] = etapes(gate.echec);
-    const touche = mk('h', 'heros');
-    runPureFlowLines(touche, touche, noeudDeTest(interne).echec, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
-    runPureFlowLines(touche, touche, perte, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
-    expect(stacks(touche, 'a-terre')).toBe(1);
-    expect(stacks(touche, 'sonne')).toBe(1);
-    expect(stacks(touche, 'inconscient'), 'l’Inconscient n’arrive qu’à −4 DR').toBe(0);
-    expect(touche.traumas!.some((t) => t.traumaId === 'orteil-ampute')).toBe(true);
-    expect(touche.traumas!.some((t) => t.needsSurgery)).toBe(true);
+    avanceEtapeCascade(banc.getState, () => 78);
+    expect(stacks(porteur(), 'a-terre')).toBe(1);
+    expect(stacks(porteur(), 'sonne')).toBe(1);
+    expect(stacks(porteur(), 'inconscient')).toBe(0);
+    expect(orteilsPerdus()).toMatchObject([{ location: 'jambeG', count: 1 }]);
+  });
+
+  it('Pied écrasé : la réussite du premier +20 écarte la perte et laisse l’échéance de Chirurgie', () => {
+    seedBattleRng(1);
+    const hero = mk('h', 'heros');
+    combat(hero, mk('e', 'ennemi'));
+    subirCritique(hero, 'jambeG', 92);
+
+    const gate = attendreLeTestDe('pied-ecrase');
+    expect(gate).toMatchObject({ rollLabel: 'Résistance', difficulty: 'accessible' });
+    expect(orteilsPerdus()).toEqual([]);
+    expect(plaies()).toMatchObject([{ location: 'jambeG', amputateAfterDays: expect.any(Number) }]);
+    expect(stacks(porteur(), 'hemorragique')).toBe(2);
+    avanceEtapeCascade(banc.getState, () => 7);
+    expect(draineEtapes(banc.getState).filter((s) => s.kind === 'testDeclenche')).toEqual([]);
+    expect(orteilsPerdus()).toEqual([]);
+    expect(plaies()).toMatchObject([{ location: 'jambeG', amputateAfterDays: expect.any(Number) }]);
+    expect(stacks(porteur(), 'a-terre')).toBe(0);
+  });
+
+  it.each([
+    { jet: 58, dr: 0, unites: 1, horsCombat: false },
+    { jet: 84, dr: -3, unites: 4, horsCombat: true },
+  ])('Pied écrasé : une perte de $unites au premier +20 (DR $dr) survit à la reprise et au succès de la plaie', ({ jet, dr, unites, horsCombat }) => {
+    seedBattleRng(1);
+    const hero = mk('h', 'heros');
+    if (horsCombat) banc.setState({ party: [hero], scene: testScene() });
+    else combat(hero, mk('e', 'ennemi'));
+    subirCritique(hero, 'jambeG', 92);
+
+    const get = banc.getState;
+    const gate = attendreLeTestDe('pied-ecrase');
+    expect(gate).toMatchObject({ label: 'Perte de l’orteil', difficulty: 'accessible', target: 55 });
+    get().jetLancer('cascade', gate.id);
+    get().jetImposerLeResultat('cascade', jet, gate.id);
+    expect(etapeCourante()?.result).toMatchObject({ roll: jet, success: false, sl: dr });
+    get().jetValider('cascade');
+    const plaie = attendreLeTestDe('pied-ecrase');
+    expect(plaie).toMatchObject({ label: 'Plaie d’amputation', difficulty: 'accessible' });
+    expect(orteilsPerdus()).toMatchObject([{ location: 'jambeG', count: unites }]);
+    expect(plaies()).toMatchObject([{ location: 'jambeG', amputateAfterDays: expect.any(Number) }]);
+    expect(stacks(porteur(), 'a-terre')).toBe(1);
+    expect(stacks(porteur(), 'sonne')).toBe(0);
+
+    if (horsCombat) expect(refusDeSauvegarde(banc.getState(), 0)).toBeNull();
+    relireLaSauvegarde();
+    const reprise = attendreLeTestDe('pied-ecrase');
+    expect(reprise).toMatchObject({ id: plaie.id, label: plaie.label, stake: plaie.stake });
+    expect(orteilsPerdus()).toMatchObject([{ location: 'jambeG', count: unites }]);
+
+    avanceEtapeCascade(banc.getState, () => 7);
+    expect(draineEtapes(banc.getState).filter((s) => s.kind === 'testDeclenche')).toEqual([]);
+    expect(orteilsPerdus()).toMatchObject([{ location: 'jambeG', count: unites }]);
+    expect(plaies()).toMatchObject([{ location: 'jambeG', amputateAfterDays: expect.any(Number) }]);
+    expect(stacks(porteur(), 'a-terre')).toBe(1);
+    expect(stacks(porteur(), 'sonne')).toBe(0);
+    expect(stacks(porteur(), 'inconscient')).toBe(0);
   });
 });

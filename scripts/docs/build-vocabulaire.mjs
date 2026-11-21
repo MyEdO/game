@@ -53,7 +53,7 @@ function rendu() {
     ['Armes : enchanter, altérer, invoquer, désarmer', /\barmes?\b|d'arme|lame|d[ée]sarm|\bl[âa]che l'objet|atout\/d[ée]faut|passif d'arme/i],
     ['Attaquer : touche, attaque gratuite, mot-clé d\'attaque', /attaqu|\btouche\b|frapp|riposte|\bcharge\b|assaut|mot-cl[ée]/i],
     ['Avantage', /avantage/i],
-    ['Blessures, dégâts, Coups Critiques', /blessur|d[ée]g[âa]ts?\b|critiques?\b|h[ée]morrag|\bPB\b/i],
+    ['Blessures, dégâts, Coups Critiques', /blessur|d[ée]g[âa]ts?\b|critiques?\b|h[ée]morrag|\bamput(?:er|ations?)\b|\bPB\b/i],
     ['Caractéristiques et attributs (max de Blessures, Chance…)', /caract[ée]ristique|attribut secondaire|bonus de force/i],
     ['Compétences, Talents, Carrières : octroyer, modifier', /comp[ée]tence|talent|carri[èe]re/i],
     ['Composition : séquence d\'ops, palier, tableau, récurrence', /tableau|\btable\b|paliers?\b|jet [àa] paliers|r[ée]current|tirage sur/i],

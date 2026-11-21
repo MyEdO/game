@@ -209,8 +209,7 @@ export function traumaLabelOf(id: string): string {
 /**
  * Séquelles PERMANENTES d'une amputation (LDB 18 l.233-286) — distinctes de la plaie chirurgicale : elles
  * survivent à la Chirurgie (le membre reste absent). Instanciées depuis les `sequels` (ids de fiche
- * `traumas.json`) DÉCLARÉS STRUCTURELLEMENT sur le critique (`entry.amputation.sequels`, relayés par l'op
- * `amputer`) — plus aucune lecture du texte. La latéralité (brasG/brasD, jambeG/jambeD) provient de la
+ * `traumas.json`) portés par l’op `amputer`. La latéralité (brasG/brasD, jambeG/jambeD) provient de la
  * `location` réelle du coup — hypothèse de jeu : **tout le monde est DROITIER** (main principale = brasD).
  * Une séquelle CUMULATIVE (`TraumaFiche.cumul`) reçoit ici le nombre d'unités que la LIGNE de Critique
  * fait perdre (`units` — « Perdez 1d10 dents », « un orteil par DR en dessous de 0 ») ; une séquelle NON
@@ -536,7 +535,7 @@ export function stampCriticalEscalation(
 ): void {
   if (!esc) return;
   // La PLAIE chirurgicale est le PORTEUR de l'escalade — `perRound` (« Main ouverte », LDB 18 l.122) comme
-  // `apresDelai` (« Pied écrasé », l.180) vivent SUR elle. Le nœud d'Amputation la pose à la porte, APRÈS
+  // `apresDelai` (« Pied écrasé », l.180) vivent SUR elle. L’op `amputer` la pose à la porte, APRÈS
   // ce point : l'escalade la CRÉE donc elle-même. UNE écriture de cette création, partagée par les deux
   // escalades ; l'op `amputer` dédoublonne par membre (`estPlaieAmputation`), la plaie reste unique.
   let plaie = traumas.find(estPlaieAmputation);

@@ -812,15 +812,7 @@ export type GameOp =
   /** Guérit `count` (+échelle DR) Blessures critiques de convalescence — jamais une amputation
    *  (Larmes de Shallya, LDB 42). */
   | { op: 'cureCriticalWound'; count?: number; countPerSL?: PerSL }
-  /** AMPUTATION (LDB 18 l.233-286) : pose la plaie chirurgicale (`needsSurgery`) et les séquelles
-   *  PERMANENTES `sequels` (ids de fiche `traumas.json`), puis consolide les cumuls
-   *  (`consolidateAmputations` — doigts/orteils/dents/organes pairés). `loc` = Localisation du membre
-   *  perdu (défaut : celle du coup courant, `ctx.location`). `unites` = quantité perdue par les séquelles
-   *  CUMULATIVES (« Perdez 1d10 dents », défaut 1) ; `unitesPerSL` l'échelonne sur le DR (« plus un orteil
-   *  par DR en dessous de 0 » ⇔ `{every:1, amount:1, onFailure:true}` lu sur le `ctx.sl` de la branche
-   *  `fail`). Ses producteurs actuels sont les rangées de Critique (`noeudAmputation`,
-   *  engine/critical.ts) : c'est la conséquence que la ligne prononce, exprimée dans le vocabulaire
-   *  commun — donc authoréable comme toute op (Trait de créature qui tranche un membre). */
+  /** LDB 18 l.233–286. */
   | { op: 'amputer'; sequels: string[]; loc?: HitLocation; unites?: Formula; unitesPerSL?: PerSL }
   /** PB réduits à 0 SEUL (Châtiment, Tonnerre et foudre — LDB 40). L'Inconscient/Enflammé est posé
    *  par une op `condition` séparée dans l'entrée appelante. */

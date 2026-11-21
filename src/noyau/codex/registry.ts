@@ -83,9 +83,8 @@ import { interludeEventDie } from '../../data/interludeEvents';
 import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
 import { spellOps, walkFlow, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
-import { estCausePersistante, type GameOp } from '../../engine/ops';
-import { noeudAmputation } from '../../engine/critical';
-import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
+import { estCausePersistante } from '../../engine/ops';
+import { critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
@@ -114,6 +113,7 @@ import {
   CHAR_LABELS,
   HIT_LOCATION_LABELS,
   DIFFICULTY_LABELS,
+  DIFFICULTE_PAR_DEFAUT,
   LOCALISATIONS_DE_COUP,
   type Combatant,
   type CharKey,
@@ -133,7 +133,7 @@ import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
-import { humanizeCastBonus, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
+import { humanizeCastBonus, humanizeCondition, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
 import { libelleDUnEnginAuCodex, reverseGroups, bookContents } from './relations';
 import { formatManeuverMeasure } from './maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
@@ -703,55 +703,50 @@ function makeCategory(key: CleCodex, spec: CodexCategorySpec): CodexCategory {
   };
 }
 
-/** Les nœuds `test` d'un Flow, dans l'ordre de jeu — le joueur doit voir AUTANT de jets que le moteur
- *  en joue (doctrine de la forme canonique des jets). Marche récursive, aucune forme n'est supposée. */
-function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
-  if (!f) return [];
-  switch (f.kind) {
-    case 'test': return [f, ...noeudsDeTest(f.reussite), ...noeudsDeTest(f.echec)];
-    case 'sequence': return f.etapes.flatMap(noeudsDeTest);
-    case 'si': return [...noeudsDeTest(f.alors), ...noeudsDeTest(f.sinon)];
-    case 'choix': return [...noeudsDeTest(f.oui), ...noeudsDeTest(f.non)];
-    case 'effet': return [];
-    default: return f satisfies never;
-  }
+function noeudsDeTest(flow: Flow | undefined): FlowTestNode[] {
+  const tests: FlowTestNode[] = [];
+  if (flow) walkFlow(flow, (noeud) => {
+    if (noeud.kind === 'test') tests.push(noeud);
+  });
+  return tests;
 }
 
-/**
- * Ops d'un Flow SANS FRANCHIR un jet — la conséquence de CE niveau, les sous-jets exclus. C'est ce qui
- * distingue « ce que ce jet applique » de « ce que le jet suivant appliquera » : `spellOps` descend dans
- * les branches d'un `test` imbriqué et ferait promettre à un jet les États du suivant (« Coupure à
- * l'orteil » : le gate l.171 annoncerait les États du Test l.237). Les `si` sont TRAVERSÉS (leurs deux
- * branches font partie de la conséquence de ce niveau — l'échelle de DR de l.237), les `test` NON.
- * Sur le Flow entier, la même marche rend l'amputation que la ligne PRONONCE hors de tout jet
- * (« Vous perdez votre main – Amputation (Difficile) », LDB 18 l.124). Question DISTINCTE de
- * `certainFlowOps` (« que promet CETTE branche », fail-closed sur tout nœud incertain).
- */
-function opsHorsJet(f: Flow | undefined): GameOp[] {
-  if (!f) return [];
-  const ops: GameOp[] = [];
-  walkFlow(f, (noeud) => {
+/** Les conséquences immédiates d'une branche, avec ses conditions et ses Tests suivants. */
+function lignesDeConsequences(flow: Flow, afficherSuite: boolean): CodexRow[] {
+  const rows: CodexRow[] = [];
+  walkFlow(flow, (noeud) => {
     switch (noeud.kind) {
       case 'sequence': return;
-      case 'si': return;
       case 'effet':
-        if (noeud.effet.type === 'ops') ops.push(...noeud.effet.ops);
+        rows.push(...opRows(noeud.effet.ops));
         return;
+      case 'si': {
+        const alors = lignesDeConsequences(noeud.alors, afficherSuite);
+        const sinon = noeud.sinon ? lignesDeConsequences(noeud.sinon, afficherSuite) : [];
+        if (alors.length) rows.push({ t: 'sub', label: tr('codex.describe.si', { v: humanizeCondition(noeud.condition, ETATS_DU_CODEX) }) }, ...alors);
+        if (sinon.length) rows.push({ t: 'sub', label: tr('codex.describe.sinon') }, ...sinon);
+        return 'ignorer';
+      }
       case 'test':
+        if (afficherSuite) rows.push({ t: 'text', text: tr('codex.fiche.suiteDuJet', { v: libelleDeJet(noeud) }) });
+        return 'ignorer';
       case 'choix':
         return 'ignorer';
-      default:
-        noeud satisfies never;
-        return;
     }
   });
-  return ops;
+  return rows;
 }
 
-/** Libellé d'un nœud `test` : « Compétence Difficulté », la Compétence résolue PAR ID. */
-function libelleDeJet(n: FlowTestNode): string {
+function consequencesDeCritique(flow: Flow | undefined, title: string, afficherSuite = false): CodexSection | null {
+  const rows = flow ? lignesDeConsequences(flow, afficherSuite) : [];
+  return rows.length ? { title, layout: 'list', rows } : null;
+}
+
+function libelleDeJet({ test }: FlowTestNode): string {
+  const sujet = testSkillLabel(test) ?? tr('codex.fiche.jet');
   // lecture déclarée : la fiche décrit le Test tel que la donnée l'authore
-  return `${refLabel('skills', n.test.skill ?? { id: 'resistance' })} ${DIFFICULTY_LABELS[n.test.difficulty!]}`;
+  const jet = `${sujet} ${DIFFICULTY_LABELS[test.difficulty ?? DIFFICULTE_PAR_DEFAUT]}`;
+  return test.label ? tr('codex.fiche.jetAvecRole', { role: test.label, jet }) : jet;
 }
 
 /** Item Codex d'une entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET
@@ -759,13 +754,10 @@ function libelleDeJet(n: FlowTestNode): string {
  *  d100 → nom, effet immédiat (`ops`, même vocabulaire GameOp que passifs/sorts), le JET de la rangée
  *  (Difficulté + conséquence de l'échec, #1682) et les Traumatismes engendrés en cross-réf (résolus par
  *  id → libellé, comme les Tables de Corruption pour les mutations). La trivialité (« T », AA 07
- *  l.79) est DÉRIVÉE de la rangée, jamais relue d'un champ.
- *
- *  Le/les Test(s) d'AMPUTATION (LDB 18 l.237) sont DÉRIVÉS du nœud que le moteur fabrique
- *  (`noeudAmputation`) — jamais re-décrits ici : la vue et le jeu ne peuvent pas diverger. */
+ *  l.79) est DÉRIVÉE de la rangée, jamais relue d'un champ. */
 function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKey): CodexItem {
   const jet = e.test;
-  const amputation = e.amputation && noeudAmputation(e, e.amputation, jeu, CRIT_TABLE_LOCATION[table]);
+  const amputation = e.amputation?.flow;
   const jetsAmp = noeudsDeTest(amputation);
   return depuisEnveloppe(e, {
     sub: bandeAuDe(critiqueDie(jeu, table), e.min, e.max),
@@ -778,12 +770,16 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
     ),
     sections: sections(
       passiveSection(e.ops, tr('codex.fiche.effetImmediat')),
-      jet ? passiveSection(opsHorsJet(jet.echec), tr('codex.fiche.siLeJetEchoue')) : null,
-      jet ? passiveSection(opsHorsJet(jet.reussite), tr('codex.fiche.siLeJetReussit')) : null,
-      ...jetsAmp.map((n) => passiveSection(opsHorsJet(n.echec), tr('codex.fiche.siLeJetEchoue2', { v: libelleDeJet(n) }))),
-      // L'amputation que la ligne PRONONCE (22 rangées sur 26 : « Vous perdez votre main ») vit HORS des
-      // branches — sans cette section, le Codex ne montrerait que le jet et tairait la perte elle-même.
-      passiveSection(opsHorsJet(amputation), tr('codex.fiche.amputationQuoiQueDonneLeJet')),
+      consequencesDeCritique(jet?.echec, tr('codex.fiche.siLeJetEchoue')),
+      consequencesDeCritique(jet?.reussite, tr('codex.fiche.siLeJetReussit')),
+      consequencesDeCritique(amputation, tr('codex.fiche.amputationQuoiQueDonneLeJet')),
+      ...jetsAmp.flatMap((noeud) => {
+        const v = libelleDeJet(noeud);
+        return [
+          consequencesDeCritique(noeud.echec, tr('codex.fiche.siLeJetEchoue2', { v }), true),
+          consequencesDeCritique(noeud.reussite, tr('codex.fiche.siLeJetReussit2', { v }), true),
+        ];
+      }),
       e.traumas?.length
         ? {
             title: tr('codex.fiche.traumatismesEngendres'), layout: 'chips',

@@ -5,7 +5,6 @@ import { document } from '../grammaire/document';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import {
   cibleEtendueSchema,
-  difficultySchema,
   enumNomme,
   hitLocationSchema,
   maisonSchema,
@@ -81,24 +80,6 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
   onHealGrant: { label: 'octroi après guérison' },
 });
 
-/** LDB 18 l.237. */
-export const amputationSchema = nommerChamps(z.strictObject({
-  difficulty: difficultySchema,
-  sequels: refs('trauma'),
-
-  unites: formulaSchema.optional(),
-  // LDB 18 l.171 ; AA 07 l.171.
-  timing: z.literal('postEncounter').optional(),
-
-  loss: nommerChamps(z.strictObject({ difficulty: difficultySchema.optional(), perDR: z.boolean().optional() }), { difficulty: { label: 'difficulté' }, perDR: { label: 'par DR' } }).optional(),
-}), {
-  difficulty: { label: 'difficulté' },
-  sequels: { label: 'séquelles' },
-  unites: { label: 'unités' },
-  timing: { label: 'moment' },
-  loss: { label: 'perte' },
-});
-
 const rangeeAPlat = z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
@@ -106,7 +87,14 @@ const rangeeAPlat = z.strictObject({
   ops: executeesDe().optional(),
   test: noeudCritique.optional(),
   lethal: z.boolean().optional(),
-  amputation: amputationSchema.optional(),
+  amputation: nommerChamps(z.strictObject({
+    flow: flowSchema,
+    // LDB 18 l.171 ; AA 07 l.171.
+    timing: z.literal('postEncounter').optional(),
+  }), {
+    flow: { label: 'déroulement' },
+    timing: { label: 'moment' },
+  }).optional(),
   traumas: refs('trauma').optional(),
   escalation: critEscalationSchema.optional(),
   // Note MAISON (#195) : trace éditable d'une valeur mécanique absente littéralement du texte RAW (règle stricte 7).
