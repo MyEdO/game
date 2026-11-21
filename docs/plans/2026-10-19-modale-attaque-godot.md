@@ -111,3 +111,11 @@ Dans le dossier du projet `poc-godot/captures-modale/` :
 - Le rendu des fiches Codex au survol, présentes sur chaque libellé et chaque pastille du jeu.
 - Le coût de maintenir deux langages (TypeScript pour les règles, GDScript pour l'écran) et un contrat entre eux.
 - L'avis d'un joueur sur l'écran : les captures sont celles d'une recette pilotée par script.
+
+## Complément de vérification (2026-11-21)
+
+Les dix PNG d’octobre sont inventoriés ci-dessus. Le dossier de projet cité n’a pas été retrouvé dans l’arbre Git historique, les artefacts de #2877 ou les dossiers partagés accessibles. Les cinq vues suivantes ont été reproduites dans la vue 2D depuis le [commit historique détaché](https://github.com/MyEdO/game/commit/3baf8483b9367260756cfd5d3e87948caa929b48), sans modification de la source suivie. Export Web debug Godot `4.7.stable.official.5b4e0cb0f`, Chromium 156 avec SwiftShader, 1280 × 720. Playwright a envoyé les gestes de souris et de clavier et observé les réponses du pont. Console à 0 erreur et 0 avertissement.
+
+- Sigmund choisit « Bras droit (−20) ». L’aperçu actualisé affiche `40 −20 = 20`. [Localisation choisie](../../public/qc/soldes/2870-rejeu-localisation.png)
+- Au round 2, Grunni ouvre l’aperçu contre un brigand à 15/15 Blessures. Il lance à Entrée, puis clique sur « Chance : +1 DR » et sur « Appliquer ». Le DR net passe de +1 à +2. Le pont et le panneau « Dernier jet » indiquent 4 Blessures perdues, et la vue du pont confirme 15 → 11. [Avant le jet](../../public/qc/soldes/2870-rejeu-avant-jet.png) · [Après le jet](../../public/qc/soldes/2870-rejeu-apres-jet.png) · [Après l’influence](../../public/qc/soldes/2870-rejeu-apres-influence.png) · [Après application](../../public/qc/soldes/2870-rejeu-apres-appliquer.png)
+- Les tests du pont ont été rejoués au même commit avec Vitest, 15/15 verts. La victoire 3D au round 5 et le cas arrêté au round 55 sont issus de la recette historique décrite plus haut. La recette historique 2D couvre une attaque complète.
