@@ -2618,6 +2618,89 @@ test('mkdtemp : le consommateur réel retient une lecture sous suffixe aléatoir
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
+// #2586
+test('manifeste npm : la portée choisit le fichier lu, même absent, et respecte la table fournie', () => {
+  const modules = {
+    'portee.mjs': `
+      export function sousRacineNpm(dir, fn) { return portee.run(dir || null, fn) }
+      export function racineNpmCourante(repli = null) { return portee.getStore() ?? repli }
+      export const CONTRATS_DE_DERIVATION = [
+        { fonction: sousRacineNpm, portee: { nom: 'npm', valeur: 0, rappel: 1 } },
+        { fonction: racineNpmCourante, retour: { type: 'portee', nom: 'npm', repli: 0 } },
+      ]
+    `,
+    'shell.mjs': `
+      import { readFileSync } from 'node:fs'
+      import { resolve } from 'node:path'
+      import { racineNpmCourante } from './portee.mjs'
+      function lire(chemin) { return readFileSync(chemin, 'utf8') }
+      function scriptsNpm(dir = racineNpmCourante(import.meta.dirname)) { return lire(resolve(dir, 'package.json')) }
+      function scriptsDuFlux(scripts = scriptsNpm()) { return scripts }
+      export function pipelinesDeJetons(commande, profondeur, { scripts } = {}) { return scriptsDuFlux(scripts) }
+      export const CONTRATS_DE_DERIVATION = [{ fonction: lire, lectures: { chemin: 0 } }]
+    `,
+    'banc.mjs': `
+      import { sousRacineNpm as sous } from './portee.mjs'
+      import { pipelinesDeJetons as lancer } from './shell.mjs'
+      lancer('npm run test', 0, {})
+      sous('un', () => lancer('npm run test', 0, {}))
+      sous('sous/absent', () => lancer('npm run test', 0, { scripts: undefined }))
+      sous('fourni', () => lancer('npm run test', 0, { scripts: {} }))
+      sous('nul', () => lancer('npm run test', 0, { scripts: null }))
+      sous('extérieur', () => {
+        sous('intérieur', () => lancer('npm run test', 0, {}))
+        lancer('npm run test', 0, {})
+      })
+      sous(lieuInconnu(), () => lancer('npm run test', 0, {}))
+      sous('scripts', () => garde.evaluer())
+      sous('étalé', () => lancer('npm run test', 0, { scripts: {}, ...{ scripts: undefined } }))
+      sous('écrasé', () => lancer('npm run test', 0, { scripts: undefined, ...{ scripts: {} } }))
+      sous('opaque', () => lancer('npm run test', 0, { scripts: {}, ...garde.options }))
+      function autre() { garde.evaluer() }
+      function transmettre() { autre() }
+      sous('nommé', transmettre)
+      sous('nommé enveloppé', () => transmettre())
+      sous('paramètre inutile', (_) => garde.evaluer())
+      sous('homonyme', () => garde.map())
+      sous('calculé', () => fabrique().evaluer())
+      const injecte = { evaluer: lancer }
+      sous('membre connu', () => injecte.evaluer('npm run test'))
+      function passer(f) { f('npm run test') }
+      sous('fonction liée', () => passer(lancer))
+      sous('fonction indéterminée', () => passer(garde.evaluer))
+      function passerEncore(f) { passer(f) }
+      sous('fonction transmise', () => passerEncore(garde.evaluer))
+      sous('itérateur', () => [1].map(() => lancer('npm run test')))
+      sous('calcul pur', () => [1].map(n => n + 1))
+    `,
+  }
+  const sites = sitesDesDeuxRegimes(modules, 'banc.mjs')
+  const chemin = (identite) => ({ identite })
+  assert.deepEqual(sites.slice(0, 4), [
+    ['pipelinesDeJetons', [chemin('package.json')]],
+    ['sousRacineNpm', [chemin('un/package.json')]],
+    ['sousRacineNpm', [chemin('sous/absent/package.json')]],
+    ['sousRacineNpm', [chemin('intérieur/package.json'), chemin('extérieur/package.json')]],
+  ])
+  const opaque = ['sousRacineNpm', [couvert('portee.mjs#sousRacineNpm', 'rappel de portée indéterminé')]]
+  assert.deepEqual(sites.slice(4), [
+    ['sousRacineNpm', [couvert('shell.mjs#lire', 'appel lieuInconnu')]],
+    opaque,
+    ['sousRacineNpm', [chemin('étalé/package.json')]],
+    ['sousRacineNpm', [chemin('opaque/package.json')]],
+    opaque,
+    opaque,
+    opaque,
+    opaque,
+    opaque,
+    ['sousRacineNpm', [chemin('membre connu/package.json')]],
+    ['sousRacineNpm', [chemin('fonction liée/package.json')]],
+    opaque,
+    opaque,
+    ['sousRacineNpm', [chemin('itérateur/package.json')]],
+  ])
+})
+
 test('contrat sérialisé : la source est une dépendance des réponses mises en cache', () => {
   const source = "export function lit(){readFileSync(inconnu())}\nexport const CONTRATS_DE_DERIVATION=[{fonction:lit,lectures:'corpus'}]"
   const modules = { 'canon.mjs': source, 'banc.mjs': "import {lit} from './canon.mjs'\nlit('x')" }
