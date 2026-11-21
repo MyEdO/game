@@ -70,7 +70,7 @@ beforeEach(() => {
 describe('campaignData — câblage giveTrapping campagne-d’abord par le chemin d’état réel (#767)', () => {
   it('giveTrapping d’un objet de campagne crée l’objet DE CAMPAGNE (kind melee) quand la couche est chargée', () => {
     loadCampaign();
-    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: LAME_CAMPAGNE }, heroId: 'a' }]);
     const it = (banc.getState().party[0].items ?? []).find((i) => i.trappingId === LAME_CAMPAGNE);
     expect(it?.label).toBe('Lame maudite');
     expect(it?.kind).toBe('melee'); // objet à stats du narratif, pas un customTrapping
@@ -79,7 +79,7 @@ describe('campaignData — câblage giveTrapping campagne-d’abord par le chemi
   it('sans couche chargée : le MÊME giveTrapping tombe sur un customTrapping (kind misc) — la clé est au bon site', () => {
     banc.setState({ party: [hero()], campaignNarratif: null });
     banc.getState().lancerLaScene(fixtureScene('nu-scene'));
-    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: LAME_CAMPAGNE }, heroId: 'a' }]);
     const it = (banc.getState().party[0].items ?? []).find((i) => i.label === LAME_CAMPAGNE || i.trappingId === LAME_CAMPAGNE);
     expect(it).toBeTruthy();
     expect(it?.trappingId).toBeUndefined(); // customTrapping : aucune réf catalogue
@@ -88,7 +88,7 @@ describe('campaignData — câblage giveTrapping campagne-d’abord par le chemi
 });
 
 describe('#4257 — références d’objet de campagne jouées par les GameOps', () => {
-  const don: GameOp = { op: 'giveTrapping', trappingId: LAME_CAMPAGNE };
+  const don: GameOp = { op: 'giveTrapping', objet: { id: LAME_CAMPAGNE } };
   const invocation: GameOp = { op: 'grantWeapon', label: 'Lame invoquée', damage: 3, form: { id: LAME_CAMPAGNE } };
   const jouer = (ops: GameOp[]) => applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: 'a', ops }]);
   const objetRecu = () => banc.getState().party[0].items?.find((it) => it.trappingId === LAME_CAMPAGNE);
@@ -108,7 +108,7 @@ describe('#4257 — références d’objet de campagne jouées par les GameOps',
       onHitEffects: [{ trigger: 'onHit', on: 'soi', flow: { kind: 'effet', effet: { type: 'ops', ops: [don] } } }],
     } satisfies NarratifBlock['objets'][number];
     loadCampaign({ ...narratif, objets: [...narratif.objets, arme] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: arme.id, heroId: 'a' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: arme.id }, heroId: 'a' }]);
     const porteur = banc.getState().party[0];
     const item = porteur.items!.find((it) => it.trappingId === arme.id)!;
     const set = loadoutCreate(porteur);
@@ -181,12 +181,12 @@ describe('#4257 — références d’objet de campagne jouées par les GameOps',
 
 describe('#2967 — flux des objets portés de campagne', () => {
   const remettre = (id: string) => {
-    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: id, heroId: 'a' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: id }, heroId: 'a' }]);
     return trouver(id)!;
   };
   const trouver = (id: string) => banc.getState().party[0].items?.find((i) => i.trappingId === id);
   const don: NonNullable<NarratifBlock['objets'][number]['consumable']> = {
-    kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: 'corde' }] },
+    kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: 'corde' } }] },
   };
   function ouvrir(...objets: NarratifBlock['objets']): void {
     const scene = fixtureScene();
@@ -230,7 +230,7 @@ describe('#2967 — flux des objets portés de campagne', () => {
       ...objetDeCampagne({ id: 'dose-differee', categorie: 'trapping', subType: null }),
       consumable: {
         kind: 'test', test: { characteristic: 'endurance', stake: { authored: 'Obtenir la Lame maudite après avoir bu la dose.' } },
-        reussite: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: LAME_CAMPAGNE }] } },
+        reussite: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: LAME_CAMPAGNE } }] } },
         echec: { kind: 'sequence', etapes: [] },
       },
     } satisfies NarratifBlock['objets'][number];
@@ -266,7 +266,7 @@ describe('#2967 — flux des objets portés de campagne', () => {
       ...objetDeCampagne({ id: 'manteau-horloge', categorie: 'trapping', subType: { id: 'vetements-et-accessoires' } }),
       effects: [{
         trigger: 'onDayStart', on: 'soi',
-        flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: LAME_CAMPAGNE }] } },
+        flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: LAME_CAMPAGNE } }] } },
       }],
     } satisfies NarratifBlock['objets'][number];
     ouvrir(manteau, ...narratif.objets);
@@ -282,7 +282,7 @@ describe('#2967 — flux des objets portés de campagne', () => {
       ...objetDeCampagne({ id: 'arme-effet-porte', label: 'Arme au don' }),
       effects: [{
         trigger: 'onHit', on: 'soi',
-        flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: LAME_CAMPAGNE }] } },
+        flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: LAME_CAMPAGNE } }] } },
       }],
     } satisfies NarratifBlock['objets'][number];
     ouvrir(source, ...narratif.objets);

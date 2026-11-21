@@ -243,7 +243,7 @@ function sorcier(aiControlled: boolean): ReturnType<typeof herosDeScenario> {
   return w;
 }
 /** Le Flow qui fait incanter `w` : l'applier qui le joue ouvre l'hôte d'incantation (lanceur tenu) ou le joue d'office (IA). */
-const incanter = (w: { id: string }): Flow => ({ kind: 'effet', effet: { type: 'castSpell', casterId: w.id, spellId: 'armure-aethyrique', mode: 'jet' } });
+const incanter = (w: { id: string }): Flow => ({ kind: 'effet', effet: { type: 'castSpell', casterId: w.id, sort: { id: 'armure-aethyrique' }, mode: 'jet' } });
 
 describe('#4006 — la sortie d’hôte d’un Test de scène reprend la séquence qu’il a parquée', () => {
   /** Une séquence TENUE AU SLOT dont la 1ʳᵉ étape ouvre `flow` : validée, son applier la parque derrière l'hôte. */

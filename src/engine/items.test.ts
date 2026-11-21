@@ -341,14 +341,14 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
 
   it('set par défaut : une baliste équipée n’amorce aucun set, l’arme ordinaire seule y entre', () => {
     const epee = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'e', equipped: true };
-    const baliste = { ...hydratePoste({ trappingId: 'baliste' }, 'b').item, equipped: true };
+    const baliste = { ...hydratePoste({ engin: { id: 'baliste' } }, 'b').item, equipped: true };
     const c = heroWith([epee, baliste]);
     recomputeLoadout(c);
     expect(c.loadouts!.map((lo) => [lo.main, lo.secondaire])).toEqual([['e', undefined], [undefined, undefined]]);
   });
 
   it('élagage : un set qui désigne une baliste (sauvegarde existante) se vide au premier recalcul', () => {
-    const baliste = { ...hydratePoste({ trappingId: 'baliste' }, 'b').item, equipped: true };
+    const baliste = { ...hydratePoste({ engin: { id: 'baliste' } }, 'b').item, equipped: true };
     const c = heroWith([baliste], { loadouts: [{ id: 'l', main: 'b', secondaire: 'b' }], activeLoadoutId: 'l' });
     recomputeLoadout(c);
     expect(c.loadouts).toEqual([{ id: 'l' }]);
@@ -1115,7 +1115,7 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
   const chef = { characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, weapons: [] } as unknown as Combatant;
 
   it('forme NEUVE : `{ trappingId }` → item complet du catalogue, arme dérivée FONCTIONNELLE', () => {
-    const p = hydratePoste({ trappingId: 'canon-moyen', side: 'tribord', crewIds: ['g1'] }, 'poste-de-test');
+    const p = hydratePoste({ engin: { id: 'canon-moyen' }, side: 'tribord', crewIds: ['g1'] }, 'poste-de-test');
     expect(p.item.trappingId).toBe('canon-moyen');
     const cat = findSiegeEngineById('canon-moyen')!;
     expect(p.item.damage).toEqual(cat.damage); // base RÉSOLUE (jamais copiée en donnée)
@@ -1129,15 +1129,15 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
   });
 
   it('uid : celui de sa place (#2907)', () => {
-    expect(hydratePoste({ trappingId: 'pierrier' }, 'poste-de-test').item.uid).toBe('poste-de-test');
+    expect(hydratePoste({ engin: { id: 'pierrier' } }, 'poste-de-test').item.uid).toBe('poste-de-test');
   });
 
   it.each(['engin-inexistant-222', 'dague'])('un poste refuse une référence hors catalogue des engins : %s', (trappingId) => {
-    expect(() => hydratePoste({ trappingId }, 'poste-de-test')).toThrow(/Engin de siège inconnu/);
+    expect(() => hydratePoste({ engin: { id: trappingId } }, 'poste-de-test')).toThrow(/Engin de siège inconnu/);
   });
 
   it('coffre : chaque munition est le gabarit du catalogue à sa quantité, sous l’uid de sa place ; la choisie la désigne (MDG 12 l.410-424)', () => {
-    const p = hydratePoste({ trappingId: 'canon-moyen', ammo: { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }, selectedAmmo: { id: 'mitraille-et-poudre' } }, 'poste-de-test');
+    const p = hydratePoste({ engin: { id: 'canon-moyen' }, ammo: { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }, selectedAmmo: { id: 'mitraille-et-poudre' } }, 'poste-de-test');
     expect(p.ammo).toEqual([
       { ...gabaritDObjet('boulet-et-poudre'), uid: 'poste-de-test-boulet-et-poudre', qty: 12 },
       { ...gabaritDObjet('mitraille-et-poudre'), uid: 'poste-de-test-mitraille-et-poudre', qty: 4 },

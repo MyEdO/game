@@ -76,7 +76,7 @@ function construireScene(): Scene {
         // orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
         {
           engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
-          postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
+          postes: [{ engin: { id: 'belier-ade2' }, crewIds: [...RAM_CREW] }],
         },
         // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
         // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais

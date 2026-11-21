@@ -196,7 +196,7 @@ function construireScene(): Scene {
           { type: 'journal', desc: 'La bande de Knud Cratinx gît à son tour. La route, enfin, se tait.' },
           { type: 'giveXp', amount: 100 },
           { type: 'giveMoney', montant: { silver: 15 } },
-          { type: 'giveTrapping', trappingId: 'arbalete', identified: true },
+          { type: 'giveTrapping', objet: { id: 'arbalete' }, identified: true },
         ]),
       },
     ],

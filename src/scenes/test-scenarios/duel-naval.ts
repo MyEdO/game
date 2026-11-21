@@ -13,7 +13,7 @@ import type { TestScenario } from './_shared';
 
 /** Poste d'artillerie ARMÉ (coffre à boulets, MDG 12 l.410-424). L'équipage abstrait le sert d'office à la Mer. */
 function canon(side: 'tribord' | 'babord' | 'proue' | 'poupe'): AuthoredShipPoste {
-  return { trappingId: 'canon-moyen', side, ammo: { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }, selectedAmmo: { id: 'boulet-et-poudre' } };
+  return { engin: { id: 'canon-moyen' }, side, ammo: { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }, selectedAmmo: { id: 'boulet-et-poudre' } };
 }
 /** Marin d'équipage COMPÉTENT (passager, hors rendu à la Mer) — CustomStatblock sourcé (règle stricte 7 : aucune
  *  créature « matelot » au bestiaire → omission documentée). Le barreur tient la Voile, l'artilleur la Poudre noire. */

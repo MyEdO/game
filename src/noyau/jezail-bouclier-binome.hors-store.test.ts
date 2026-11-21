@@ -116,7 +116,7 @@ describe.each([
     const servant = combattantDeTest({ id: 'servant', kind, pos: { x: 5, y: 5 } });
     const P = porteur('partenaire', kind, { x: 6, y: 5 }, [BOUCLIER]);
     const affut = spawnEnemy({ engin: 'baliste' }, 'affut', { x: 5, y: 4 }, {
-      postes: [{ trappingId: 'baliste', crewIds: [servant.id] }],
+      postes: [{ engin: { id: 'baliste' }, crewIds: [servant.id] }],
     });
     const tous = [affut, servant, P];
     applyShipPostes(tous);

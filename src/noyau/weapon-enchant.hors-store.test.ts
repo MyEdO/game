@@ -69,7 +69,7 @@ describe('Invocation et forme d’arme fixée à la naissance', () => {
     const { getState, setState } = banc;
     banc.setState({ party: [pretre], campaignNarratif: { ...emptyNarratif(), objets: [ARME] } });
     applyEffects(getState, setState, [{
-      type: 'giveTrapping', trappingId: ARME.id, heroId: pretre.id,
+      type: 'giveTrapping', objet: { id: ARME.id }, heroId: pretre.id,
       ...(forme === 'pertuisane' ? {} : { apparence: { id: forme } }),
     }]);
     const heros = () => getState().party[0];

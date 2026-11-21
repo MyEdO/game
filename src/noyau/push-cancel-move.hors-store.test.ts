@@ -19,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
-const mkPoste = (crewIds: string[]): ShipPoste => hydratePoste({ trappingId: 'belier-ade2', crewIds }, idsDeTest('it'));
+const mkPoste = (crewIds: string[]): ShipPoste => hydratePoste({ engin: { id: 'belier-ade2' }, crewIds }, idsDeTest('it'));
 
 const mkHull = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
   combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'ennemi', pos, conditions: [], weapons: [],

@@ -61,7 +61,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   exposeDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
   contractDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
   reduceDiseaseDays: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: false }],
-  giveTrapping: [{ field: 'trappingId', ds: 'trappings', label: 'Possession', required: false }],
+  giveTrapping: [{ field: 'objet.id', ds: 'trappings', label: 'Possession', required: false }],
   equipage: [{ field: 'role.id', ds: 'crewRoles', label: 'Rôle d’équipage', required: false }],
   navireHostile: [
     { field: 'navire.id', ds: 'vehicles', label: 'Navire', required: true },

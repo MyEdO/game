@@ -71,6 +71,8 @@ export type Terrain = string & {};
 
 /** Les nœuds du dialogue, que désignent `start` et `choices[].next`. */
 const NOEUDS = { collection: 'nodes', catalogue: 'nœuds du dialogue' } as const satisfies PorteeLocale;
+/** Les pièces que désignent les étages et façades des bâtiments de la scène. */
+export const PIECES_DE_LA_SCENE = { collection: 'effectZones', catalogue: 'zones intérieures de la scène', retient: [{ champ: 'presentation', vaut: 'interior' }] } as const satisfies PorteeLocale;
 /** Les membres de la rencontre, que désigne la cible de son objectif `woundsThreshold`. #3606 */
 export const MEMBRES_DE_LA_RENCONTRE = { collection: 'members', catalogue: 'membres de la rencontre' } as const satisfies PorteeLocale;
 /** Les montures de la rencontre, ses membres qui portent `mount`, que désigne la monture chevauchée d'un membre. #3606 */
@@ -86,7 +88,7 @@ export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean
 
 /** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn (`hydratePoste`, #222). MDG 12-13 */
 export const authoredShipPosteSchema = nommerChamps(z.strictObject({
-  trappingId: idDe('engin', undefined, { nue: true }),
+  engin: ref(idDe('engin', undefined, { nue: true })),
   /** Absent : pivot libre (`inFireArc`). */
   side: posteSideSchema.optional(),
   cover: deckCoverSchema.optional(),
@@ -103,7 +105,7 @@ export const authoredShipPosteSchema = nommerChamps(z.strictObject({
   /** L'une des munitions du coffre. MDG 12 l.410-424 */
   selectedAmmo: ref('trapping', undefined, 'ammunition').optional(),
   anchor: ptSchema.optional(),
-}), { trappingId: { label: "pièce", texte: { regime: "technique" } }, side: { label: "côté" }, cover: { label: "couvert" }, crewIds: { label: "servants", texte: { regime: "technique" } }, chambered: { label: "munitions chambrées" }, loaded: { label: "chargée" }, reloadProgress: { label: "progression de la recharge" }, ammo: { label: "munitions", texte: { regime: "technique" } }, selectedAmmo: { label: "munition choisie" }, anchor: { label: "ancre" } });
+}), { engin: { label: "pièce" }, side: { label: "côté" }, cover: { label: "couvert" }, crewIds: { label: "servants", texte: { regime: "technique" } }, chambered: { label: "munitions chambrées" }, loaded: { label: "chargée" }, reloadProgress: { label: "progression de la recharge" }, ammo: { label: "munitions", texte: { regime: "technique" } }, selectedAmmo: { label: "munition choisie" }, anchor: { label: "ancre" } });
 /** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('groupe'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
@@ -304,7 +306,7 @@ export interface FauteDEntite { chemin: readonly (string | number)[]; message: s
  *  cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'trappingId' | 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'engin' | 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
   const absence = porteurAbsent(ent);
   const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
@@ -315,9 +317,9 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     if (estUnNavireAPonts(ent.vehicule?.id) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
     ent.postes?.forEach((p, rang) => {
-      const piece = { trappingId: p.trappingId, subType: findSiegeEngineById(p.trappingId)?.subType?.id };
+      const piece = { trappingId: p.engin.id, subType: findSiegeEngineById(p.engin.id)?.subType?.id };
       for (const id of Object.keys(p.ammo ?? {})) {
-        if (!chargeLArme(findTrappingById, { trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.trappingId} » ne charge pas` });
+        if (!chargeLArme(findTrappingById, { trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.engin.id} » ne charge pas` });
       }
       if (p.selectedAmmo && !(p.selectedAmmo.id in (p.ammo ?? {}))) fautes.push({ chemin: ['postes', rang, 'selectedAmmo'], message: `munition choisie « ${p.selectedAmmo.id} » hors du coffre du poste` });
     });
@@ -357,7 +359,7 @@ export const architectureStoreySchema = nommerChamps(z.strictObject({
   id: z.string(),
   z: z.number(),
   parts: listeCle(architecturePartSchema, 'id'),
-  roomZoneIds: z.array(z.string()),
+  roomZoneIds: refs(PIECES_DE_LA_SCENE),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, z: { label: "étage" }, parts: { label: "parties" }, roomZoneIds: { label: "pièces" , texte: { regime: "technique"} } });
 /** Nature d'un ornement de façade — les trois `KINDS_DE_DECOR` (`noyau/monde/facades`) portent le libellé
  *  du prop que le catalogue de façades leur pose (`data/props.json`). */
@@ -384,7 +386,7 @@ export const facadeSectionSchema = nommerChamps(z.strictObject({
   z: z.number(),
   edges: z.array(architectureEdgeRefSchema),
   appearance: z.string(),
-  roomZoneIds: z.array(z.string()).optional(),
+  roomZoneIds: refs(PIECES_DE_LA_SCENE).optional(),
   features: listeCle(facadeFeatureSchema, 'id').optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, z: { label: "étage" }, edges: { label: "arêtes" }, appearance: { label: "apparence" , texte: { regime: "technique"} }, roomZoneIds: { label: "pièces" , texte: { regime: "technique"} }, features: { label: "détails" } });
 /** Profil de toiture d'une masse/d'une intention de toiture. */
@@ -764,7 +766,7 @@ export const layerSchema = nommerChamps(z.strictObject({
    *  structure crénelée (`structureAppearance.json`) → la crénelure (`cretesDePerimetre`) en dérive des MERLONS
    *  sur le PÉRIMÈTRE (arête dont le voisin même-z n'est pas crénelé) — jamais à l'intérieur. Marqueur de
    *  DÉCORATION seulement (comme un toit auto-dessiné) : n'affecte NI la passabilité NI la LdV plongeante. */
-  crenellated: z.array(z.string().nullable()).optional(),
+  crenellated: z.array(idDe('apparenceCrenelee', undefined, { nue: true }).nullable()).optional(),
 }), { z: { label: "étage" }, tiles: { label: "cases" , texte: { regime: "technique"} }, height: { label: "hauteurs" }, crenellated: { label: "créneaux" , texte: { regime: "technique"} } });
 
 /** `ZoneArea` — rectangle ou disque de Chebyshev (rayon en CASES). */
@@ -904,7 +906,7 @@ const cleDArete = { nom: 'x,y,side,z', de: (w: z.infer<typeof wallSegSchema>): s
  *  Consommé par `battleScenesToStations` (noyau/stations.ts) ; absence d'ancre → repli déterministe
  *  côté consommateur. */
 export const sceneStationAnchorSchema = nommerChamps(z.strictObject({
-  sceneId: z.string(),
+  sceneId: idDe('sceneDeBataille', undefined, { nue: true }),
   pos: ptSchema,
 }), { sceneId: { label: "scène" , texte: { regime: "technique"} }, pos: { label: "position" } });
 
@@ -1018,7 +1020,7 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
       message: `la zone jouable (${zone.x},${zone.y}) ${zone.w}×${zone.h} sort de la grille ${scene.dimensions.w}×${scene.dimensions.h}`,
     });
   }
-}), PORTEES_DE_LA_SCENE), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, zoneJouable: { label: "zone jouable" }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
+}), [...PORTEES_DE_LA_SCENE, PIECES_DE_LA_SCENE]), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, zoneJouable: { label: "zone jouable" }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
 
 nommerNoeud(sceneSchema, { element: 'scène' });
 nommerNoeud(triggerSchema, { element: 'déclencheur' });

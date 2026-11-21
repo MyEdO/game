@@ -537,14 +537,14 @@ export function customTrapping(name: string, idNeuf: FabriqueDId): ItemInstance 
 /** Le gabarit d'un objet custom (`customTrapping`). */
 const gabaritCustom = (name: string): GabaritDObjet => ({ label: name, kind: 'misc', qualities: [], enc: 0, equipped: false });
 
-/** Résout l'ItemInstance d'un Effet `giveTrapping` : objet de CATALOGUE (`trappingId`) sinon objet CUSTOM
+/** Résout l'ItemInstance d'un don : objet du catalogue (`trappingId`) ou objet personnalisé
  *  (`custom`, nom libre hors-base). SOURCE UNIQUE (applyEffects + ramassage de prop). `source` (optionnel) =
  *  entité déclenchante (sort/talent/…) — stampée sur l'instance pour l'ancrage de règle (`ItemInstance.source`). */
 export function itemFromGive(give: DonDObjet, idNeuf: FabriqueDId, source?: EffectSource, resolveTrapping: TrappingResolver = trappingBrutParId, contexte?: ContexteDeNaissanceDObjet): ItemInstance {
   return instanceDuGabarit(gabaritDuDon(give, source, resolveTrapping, contexte), idNeuf('it'));
 }
 
-/** Ce qu'un Effet `giveTrapping` donne (`itemFromGive`). */
+/** Paramètres de construction d'une instance d'objet. */
 type DonDObjet = { trappingId?: string; custom?: string; teinte?: { id: string }; apparence?: { id: string }; qualities?: string[] };
 
 /** Le gabarit de l'objet d'un Effet `giveTrapping` : la couture de `itemFromGive`, sans uid. */
@@ -565,13 +565,14 @@ export function withGiveQualities(base: QualityInstance[], give: { qualities?: s
 /** Qualités RÉSOLUES d'un `giveTrapping` = qualités de la def du catalogue (`itemFromGive`) + qualités
  *  magiques ajoutées. Même liste que l'objet effectivement reçu (apply) → sert l'AFFICHAGE des chips de
  *  butin, qu'elles vivent dans la def (objet catalogué) ou sur l'Effet (magique). */
-export function giveTrappingQualities(give: { trappingId?: string; custom?: string; qualities?: string[] }, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
-  return resolveQualities(objetAuProfilEffectif(gabaritDuDon(give, undefined, resolveTrapping))).map((r) => r.instance);
+export function giveTrappingQualities(give: { objet?: { id: string }; custom?: string; qualities?: string[] }, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
+  return resolveQualities(objetAuProfilEffectif(gabaritDuDon({ ...give, trappingId: give.objet?.id }, undefined, resolveTrapping))).map((r) => r.instance);
 }
 
 /** Libellé d'affichage d'un Effet `giveTrapping` (catalogue → label, sinon nom custom). */
-export function giveTrappingLabel(give: { trappingId?: string; custom?: string }, resolveTrapping: TrappingResolver = findTrappingById): string {
-  return give.trappingId ? (resolveTrapping(give.trappingId)?.label ?? give.trappingId) : (give.custom ?? 'Objet');
+export function giveTrappingLabel(give: { objet?: { id: string }; custom?: string }, resolveTrapping: TrappingResolver = findTrappingById): string {
+  const id = give.objet?.id;
+  return id ? (resolveTrapping(id)?.label ?? id) : (give.custom ?? 'Objet');
 }
 
 /** Libellé D'AFFICHAGE d'une instance d'objet, DÉRIVÉ de son id STABLE (`trappingId` → libellé FR du
@@ -1237,7 +1238,7 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
  * La pièce reçoit `uidDeLaPlace` et chaque munition `<uidDeLaPlace>-<id>` (#2907).
  */
 export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPoste {
-  const { trappingId, ammo, selectedAmmo, ...etat } = a;
+  const { engin: { id: trappingId }, ammo, selectedAmmo, ...etat } = a;
   const fiche = findSiegeEngineById(trappingId);
   if (!fiche) throw new Error(`[poste] Engin de siège inconnu « ${trappingId} » (#222)`);
   const poste: ShipPoste = { ...etat, item: instanceDuGabarit(gabaritDuCatalogue(fiche), uidDeLaPlace) };

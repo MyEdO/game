@@ -14,7 +14,6 @@ import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
   byId, findTalentById, findSeaShantyById,
-  findSiegeEngineById,
   findWeaponGroupById, findGroupById,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
@@ -25,10 +24,6 @@ import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
 import { MANANN_FACTORS } from '../engine/seaVoyage';
 import { pretires } from './pregens';
-import areneProject from '../scenes/arene/arene-projet.json';
-import bargeProject from '../scenes/barge-du-sel/barge-du-sel-projet.json';
-import diligenceProject from '../scenes/diligence/diligence-projet.json';
-import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
 import { CHAR_KEYS } from '../engine/types';
 import { fileURLToPath } from 'node:url';
@@ -565,50 +560,6 @@ describe('appearance.species — espèce d’apparence (fauteDEspece), jamais un
     const bad: string[] = [];
     for (const s of SCENARIOS) collect(s.construire(idsDeTest).party, `${s.id}.party`, bad);
     expect(bad, bad.join('\n')).toEqual([]);
-  });
-});
-
-// ── GARDE DE CLASSE (#222) — anti-copie-périmée des POSTES d'artillerie. Un `ShipPoste` AUTHORÉ ne porte que
-// sa RÉF catalogue (`trappingId`) ; la base (Dégâts/Qualités/Enc/Portée) est HYDRATÉE au spawn (`hydratePoste`
-// → `itemFromTrappingById`), JAMAIS matérialisée dans la donnée de scène (qui dériverait du catalogue).
-//  - INVARIANT DUR (toutes scènes) : un poste NEUF (`trappingId` au niveau du poste) NE porte AUCUNE base
-//    copiée (`item`/`damage`/`qualities`/`enc`…) et sa réf RÉSOUT au catalogue.
-//  - INVARIANT DUR (projets de campagne, #218) : ZÉRO poste en forme ANCIENNE (`item` complet copié) — les
-//    deux projets sont régénérés par `scripts/campagne/lib.mjs::poste` (forme référence `{ trappingId, … }`).
-describe('postes d’artillerie — réf catalogue hydratée, jamais une base copiée (#222)', () => {
-  const BASE_FIELDS = ['item', 'damage', 'qualities', 'enc', 'range', 'reach', 'pa'] as const;
-  const walkPostes = (node: unknown, where: string, visit: (poste: Record<string, unknown>, where: string) => void): void => {
-    if (Array.isArray(node)) { node.forEach((x, i) => walkPostes(x, `${where}[${i}]`, visit)); return; }
-    if (!isObj(node)) return;
-    if (Array.isArray(node.postes)) node.postes.forEach((p, i) => { if (isObj(p)) visit(p, `${where}.postes[${i}]`); });
-    for (const [k, v] of Object.entries(node)) walkPostes(v, `${where}.${k}`, visit);
-  };
-
-  it('INVARIANT DUR — tout poste NEUF (`trappingId`) résout au catalogue et NE matérialise aucune base', () => {
-    const bad: string[] = [];
-    const hard = (p: Record<string, unknown>, where: string): void => {
-      if (typeof p.trappingId !== 'string') return; // forme ancienne (item) → report ci-dessous
-      if (!findSiegeEngineById(p.trappingId)) bad.push(`${where} : trappingId « ${p.trappingId} » inconnu du catalogue`);
-      for (const f of BASE_FIELDS) if (f in p) bad.push(`${where} : « ${f} » copié alors qu'hydratable de « ${p.trappingId} » (base interdite en donnée, #222)`);
-    };
-    walkPostes(areneProject, 'arene-projet.json', hard);
-    walkPostes(bargeProject, 'barge-du-sel-projet.json', hard);
-    walkPostes(diligenceProject, 'diligence-projet.json', hard);
-    walkPostes(loupProject, 'loup-et-saumure-projet.json', hard);
-    for (const s of SCENARIOS) {
-      const c = s.construire(idsDeTest);
-      walkPostes(c.scene, `${s.id}.scene`, hard);
-      if (c.extraScenes) walkPostes(c.extraScenes, `${s.id}.extraScenes`, hard);
-      walkPostes(c.party, `${s.id}.party`, hard);
-    }
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-
-  it('INVARIANT DUR (#218) — les projets régénérés ne portent AUCUN poste en forme ANCIENNE (item copié)', () => {
-    const stale: string[] = [];
-    walkPostes(areneProject, 'arene-projet.json', (p, where) => { if (typeof p.trappingId !== 'string' && isObj(p.item)) stale.push(where); });
-    walkPostes(loupProject, 'loup-et-saumure-projet.json', (p, where) => { if (typeof p.trappingId !== 'string' && isObj(p.item)) stale.push(where); });
-    expect(stale, `postes old-format (item copié) restants — régénérer via scripts/campagne/lib.mjs::poste :\n${stale.join('\n')}`).toEqual([]);
   });
 });
 

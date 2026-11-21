@@ -159,9 +159,9 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'etats', id: o.id.id, label, show, badge };
     }
     case 'giveTrapping': {
-      if (!o.trappingId) return textRow(o); // objet CUSTOM (misc) sans id de catalogue → repli
-      const label = findTrappingById(o.trappingId)?.label ?? o.trappingId;
-      return { t: 'ref', category: 'trappings', id: o.trappingId, label, show: giveTrappingLabel(o), badge: o.count && o.count > 1 ? `×${o.count}` : undefined };
+      if (!o.objet) return textRow(o);
+      const label = findTrappingById(o.objet.id)?.label ?? o.objet.id;
+      return { t: 'ref', category: 'trappings', id: o.objet.id, label, show: giveTrappingLabel(o), badge: o.count && o.count > 1 ? `×${o.count}` : undefined };
     }
     case 'contractDisease': {
       const label = diseaseLabel(o.disease);

@@ -202,7 +202,7 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
 
   it('la fiche du Canon à flammes nain fournit le profil du poste servi (ADE II 08 l.233-253, l.270)', () => {
     const trappingId = 'canon-a-flammes-nain-ade2';
-    const arme = mannedPosteWeapon(chef, hydratePoste({ trappingId, side: 'tribord' }, 'poste-de-test'));
+    const arme = mannedPosteWeapon(chef, hydratePoste({ engin: { id: trappingId }, side: 'tribord' }, 'poste-de-test'));
     expect(arme).toMatchObject({ trappingId, minRangeBand: 'courte', weaponGroup: 'machine-de-guerre', reload: 3 });
     expect(arme?.onHitEffects).toHaveLength(1);
     expect(weaponFromTrait(t({ id: 'a-distance', arg: trappingId, value: 12 }))?.trappingId).toBeUndefined();

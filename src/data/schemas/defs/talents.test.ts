@@ -1,10 +1,3 @@
-/**
- * `TestMatch` (`talents.json`, champ `test.matches[]`) — la SPÉCIALISATION visée se déclare d'UNE
- * façon : `skill.spec` fixe, `specFromInstance` (la spec élue de l'instance) ou `exceptSpec` (toutes
- * sauf). Le résolveur `matchApplies` (`src/engine/magic.ts`) fait ÉCRASER `skill.spec` par
- * `specFromInstance`, et rend `exceptSpec` inerte dès que la spec est épinglée : une donnée qui
- * combine les deux mentirait sur le Test qu'elle prétend reconnaître. La porte la refuse.
- */
 import { describe, expect, it } from 'vitest';
 import { schema } from './talents';
 import talentsJson from '../../talents.json';
@@ -25,21 +18,20 @@ describe('talents.json — `TestMatch` : un seul régime de spécialisation', ()
     expect(TALENTS.find((t) => t.id === 'combat-deloyal')?.test).toEqual(SPEC_FIXE);
   });
 
-  it('les deux régimes SEULS restent admis (spec élue de l’instance, exception)', () => {
+  it('admet la spécialisation de l’instance ou une spécialisation à exclure', () => {
     expect(schema.safeParse(avec({ raw: RAW, matches: [{ skill: { id: 'corps-a-corps' }, specFromInstance: true }] })).success).toBe(true);
-    expect(schema.safeParse(avec({ raw: RAW, matches: [{ skill: { id: 'corps-a-corps' }, exceptSpec: 'bagarre' }] })).success).toBe(true);
+    expect(schema.safeParse(avec({ raw: RAW, matches: [{ skill: { id: 'corps-a-corps', spec: 'bagarre' }, sauf: true }] })).success).toBe(true);
   });
 
-  const refuses: [string, string, unknown][] = [
-    ['`specFromInstance` AVEC `skill.spec`', 'specFromInstance', { raw: RAW, matches: [{ skill: { id: 'corps-a-corps', spec: 'bagarre' }, specFromInstance: true }] }],
-    ['`exceptSpec` AVEC `skill.spec`', 'exceptSpec', { raw: RAW, matches: [{ skill: { id: 'corps-a-corps', spec: 'bagarre' }, exceptSpec: 'brutal' }] }],
-  ];
-  for (const [cas, cle, test] of refuses)
-    it(`REFUSÉ : ${cas} — le message NOMME l’entrée fautive`, () => {
-      const r = schema.safeParse(avec(test));
-      expect(r.success).toBe(false);
-      const msg = r.error!.issues.map((i) => i.message).join('\n');
-      expect(msg).toContain('corps-a-corps (bagarre)');
-      expect(msg).toContain(cle);
-    });
+  it.each([
+    ['la spécialisation du Talent et celle de la Compétence sont renseignées', { ...SPEC_FIXE.matches[0], specFromInstance: true }, /corps-a-corps \(bagarre\).*specFromInstance/],
+    ['le champ exclu ne désigne aucune spécialisation', { skill: { id: 'corps-a-corps' }, sauf: true }, /Choisir la spécialisation à exclure/],
+    ['la compétence ne résout pas', { skill: { id: 'introuvable', spec: 'bagarre' }, sauf: true }, /introuvable/],
+    ['une spécialisation existe pour une autre compétence', { skill: { id: 'langue', spec: 'bagarre' }, sauf: true }, /absente des spécialisations de « langue »/],
+    ['la référence a une spécialisation déclarée à plat', { skill: { id: 'langue' }, exceptSpec: 'magick' }, /exceptSpec/],
+  ])('refuse le test si %s', (_cas, match, message) => {
+    const result = schema.safeParse(avec({ raw: RAW, matches: [match] }));
+    expect(result.success).toBe(false);
+    expect(result.error!.issues.map((issue) => issue.message).join('\n')).toMatch(message);
+  });
 });

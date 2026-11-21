@@ -34,8 +34,8 @@ afterEach(() => setDataset('trappings', LIVRES));
 const idsDeLaVue = (): string[] => trappingsInstanciables().map((t) => t.id);
 const horsDeLaVue = (): string[] => trappings.filter((t) => !idsDeLaVue().includes(t.id)).map((t) => t.id);
 const messages = (r: { success: boolean; error?: { issues: { message: string }[] } }): string => (r.error?.issues ?? []).map((i) => i.message).join('\n');
-const effet = (trappingId: string) => giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId });
-const op = (trappingId: string) => gameOpSchema.safeParse({ op: 'giveTrapping', trappingId });
+const effet = (trappingId: string) => giveTrappingSchema.safeParse({ type: 'giveTrapping', objet: { id: trappingId } });
+const op = (trappingId: string) => gameOpSchema.safeParse({ op: 'giveTrapping', objet: { id: trappingId } });
 const forme = (id: string) => gameOpSchema.safeParse({ op: 'grantWeapon', label: 'Arme', damage: 1, form: { id } });
 
 describe('vue `trappingsInstanciables`', () => {

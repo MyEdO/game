@@ -16,5 +16,5 @@ export function armeDeTest(id: string, { hand, ...etat }: EtatDArmeDeTest = {}):
 }
 
 export function armeDePosteDeTest(id: string): Weapon {
-  return weaponFromItem(hydratePoste({ trappingId: id }, idsDeTest('it')).item);
+  return weaponFromItem(hydratePoste({ engin: { id: id } }, idsDeTest('it')).item);
 }

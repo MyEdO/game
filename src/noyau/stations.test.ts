@@ -20,7 +20,7 @@ const mkCrew = (id: string): Combatant =>
     wounds: blessuresDeBase(12) })) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
-  hydratePoste({ trappingId: engineId, crewIds, side }, idsDeTest('it'));
+  hydratePoste({ engin: { id: engineId }, crewIds, side }, idsDeTest('it'));
 
 const mkHull = (id: string, kind: Combatant['kind'], postes: ShipPoste[], pos = { x: 5, y: 7 }, footprint?: number): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, pos, conditions: [], skills: [], talents: [], weapons: [], postes,
@@ -144,12 +144,12 @@ describe('posteAnchor — ordre de résolution', () => {
     ({ id: 'h', name: 'h', kind: 'ennemi', pos, ...(footprint ? { footprint } : {}) }) as unknown as Combatant;
 
   it('`poste.anchor` authoré fait foi (par-dessus l’empreinte)', () => {
-    const poste: ShipPoste = hydratePoste({ trappingId: 'baliste', side: 'tribord', anchor: { x: 9, y: 9, z: 1 } }, idsDeTest('it'));
+    const poste: ShipPoste = hydratePoste({ engin: { id: 'baliste' }, side: 'tribord', anchor: { x: 9, y: 9, z: 1 } }, idsDeTest('it'));
     expect(posteAnchor(hull({ x: 5, y: 5 }, 3), poste, { heading: 'N' })).toEqual({ x: 9, y: 9, z: 1 });
   });
 
   it('empreinte>1 + arc + cap → décalage HORS-CENTRE, deux bords donnent deux cases distinctes', () => {
-    const { item } = hydratePoste({ trappingId: 'baliste' }, idsDeTest('it'));
+    const { item } = hydratePoste({ engin: { id: 'baliste' } }, idsDeTest('it'));
     const tribord: ShipPoste = { item, side: 'tribord' };
     const babord: ShipPoste = { item, side: 'babord' };
     const h = hull({ x: 10, y: 10 }, 3); // step = floor(3/2) = 1
@@ -161,7 +161,7 @@ describe('posteAnchor — ordre de résolution', () => {
   });
 
   it('sans empreinte/side/cap → pos de coque telle quelle ; sans pos → undefined', () => {
-    const poste: ShipPoste = hydratePoste({ trappingId: 'baliste' }, idsDeTest('it'));
+    const poste: ShipPoste = hydratePoste({ engin: { id: 'baliste' } }, idsDeTest('it'));
     expect(posteAnchor(hull({ x: 4, y: 6 }), poste)).toMatchObject({ x: 4, y: 6 });
     expect(posteAnchor(hull(undefined), poste)).toBeUndefined();
   });
