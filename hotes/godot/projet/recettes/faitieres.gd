@@ -8,8 +8,10 @@ extends SceneTree
 ## chaque bras descend d'une pente de 1), puis de chaque modèle de toit servi au figé (`toits` de la réponse de
 ## `modeles`). Chaque faîtière a son instance ; son arête court d'un bout du faîte à l'autre, à sa cote, et deux faîtières
 ## voisines se rejoignent au bout qu'elles partagent ; au modèle de test, le bout de chaque bras repose sur le plus haut
-## des triangles des nappes posées à son aplomb, quelle que soit sa nappe, sauf au bout LIBRE d'un faîte (aucune faîtière
-## voisine), où le faîte finit sur ses arêtiers ou ses noues : ces bras se comptent sans se sonder ; cachée avec sa nappe
+## des triangles des nappes posées à son aplomb, quelle que soit sa nappe, sauf au bout libre INTÉRIEUR d'un faîte (aucune
+## faîtière voisine, et le toit continue une demi-case au-delà sur son axe, `_bout_interieur`), où le faîte finit sur
+## ses arêtiers ou ses noues : ces bras se comptent sans se sonder ; un bout de rive, que seul le débord prolonge, se sonde ;
+## cachée avec sa nappe
 ## (`VolumeDeScene.cacher`), elle quitte les instances
 ## vues, et y revient quand la nappe revient. L'instance se lit par `VolumeDeScene.transform_d_instance`, sans rendu.
 
@@ -123,7 +125,7 @@ static func _groupes(volume: VolumeDeScene) -> Array:
 
 ## Les faîtières `faitieres` posées sur `volume`, au moment `moment` : une instance chacune, son arête d'un bout du faîte
 ## à l'autre à sa cote, les voisines jointes ; et, si `sur_les_pans`, le bout de chaque bras sur le toit à son aplomb, hors
-## des bouts libres.
+## des bouts libres intérieurs.
 func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur_les_pans: bool) -> void:
 	var triangles := _triangles_des_nappes(volume)
 	var extremites := {}
@@ -158,7 +160,8 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 			if sur_les_pans:
 				for le_long: float in [-SONDE, 0.0, SONDE]:
 					var bout_du_cote: Vector2 = milieu + sens * signf(le_long) / 2.0
-					var libre: bool = le_long != 0.0 and extremites.get(Vector2(snappedf(bout_du_cote.x, EPSILON), snappedf(bout_du_cote.y, EPSILON)), 0) == 1
+					var libre: bool = le_long != 0.0 and extremites.get(Vector2(snappedf(bout_du_cote.x, EPSILON), snappedf(bout_du_cote.y, EPSILON)), 0) == 1 \
+							and _bout_interieur(triangles, bout_du_cote, sens.normalized() * signf(le_long))
 					for cote: float in [-1.0, 1.0]:
 						if libre:
 							libres += 1
@@ -182,7 +185,15 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 		_fautes.append("%s : aucune faîtière voisine d'une autre, la continuité ne se recette pas" % moment)
 	if sur_les_pans and sondes == 0:
 		_fautes.append("%s : aucun bras sondé sur son pan" % moment)
-	print("[faitieres] %s : %d faîtières, %d bouts joints, %d bras sondés, %d au bout libre d'un faîte" % [moment, poses, jointes, sondes, libres])
+	print("[faitieres] %s : %d faîtières, %d bouts joints, %d bras sondés, %d au bout libre intérieur d'un faîte" % [moment, poses, jointes, sondes, libres])
+
+
+## Le bout `coin` d'un faîte (repère des cases centrées), qui court vers `sens` à la cote `cote` (unités du plateau),
+## est-il INTÉRIEUR ? Une demi-case au-delà, sur son axe, le toit continue : la croupe passé les arêtiers, ou le pan que
+## les noues rejoignent. Au bout d'une rive, le débord s'arrête en deçà (tant qu'il reste plus court qu'une demi-case).
+static func _bout_interieur(triangles: Array, coin: Vector2, sens: Vector2) -> bool:
+	var au_dela := coin + sens * MiseEnPage.DEMI_CASE
+	return not _pan_sous(triangles, Vector3(au_dela.x + MiseEnPage.DEMI_CASE, 0.0, au_dela.y + MiseEnPage.DEMI_CASE)).is_empty()
 
 
 ## Les triangles des nappes posées sur `volume`, au monde, ceux qui ne sont pas verticaux.

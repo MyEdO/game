@@ -210,21 +210,22 @@ export function faitesDuGroupe(groupId: string, pans: readonly PanDuGroupe[]): F
   });
 }
 
-/** La pièce d'un tronçon `ta`→`tb` couvre une case : à son milieu, une demi-case de part et d'autre du faîte, l'un des
- *  pans les plus hauts des pans `pans` du groupe doit être l'un des `versants` du faîte (même plan). Sinon un autre pan
- *  passe au-dessus de la pose, là où les versants se resserrent (le faîte d'une enveloppe qui rejoint la croupe commune). */
+/** La pièce d'un tronçon `ta`→`tb` couvre une case : en l'un de ses bouts ou en son milieu, une demi-case de part et
+ *  d'autre du faîte, l'un des pans les plus hauts des pans `pans` du groupe doit être l'un des `versants` du faîte (même
+ *  plan). Sinon un autre pan passe au-dessus de la pose sur toute sa longueur, là où les versants se resserrent (le faîte
+ *  d'une enveloppe qui rejoint la croupe commune) ; un croisement de faîtes ne la retire pas. */
 function posable(pans: readonly PanDuGroupe[], versants: readonly [PanDuGroupe, PanDuGroupe], ta: GP, tb: GP): boolean {
   const m = { x: (ta.x + tb.x) / 2, y: (ta.y + tb.y) / 2 };
   const l = Math.hypot(tb.x - ta.x, tb.y - ta.y);
   const n = { x: -(tb.y - ta.y) / l, y: (tb.x - ta.x) / l };
   const plan = (p: PanDuGroupe, q: Pt) => p.poly[0].h + p.gx * (q.x - p.poly[0].x) + p.gy * (q.y - p.poly[0].y);
   const memePlan = (p: PanDuGroupe, v: PanDuGroupe) => Math.abs(p.gx - v.gx) < EPS && Math.abs(p.gy - v.gy) < EPS && Math.abs(plan(p, m) - plan(v, m)) < EPS;
-  return [-1, 1].every((cote) => {
-    const q = { x: m.x + cote * DEMI_POSE * n.x, y: m.y + cote * DEMI_POSE * n.y };
+  return [ta, m, tb].some((o) => [-1, 1].every((cote) => {
+    const q = { x: o.x + cote * DEMI_POSE * n.x, y: o.y + cote * DEMI_POSE * n.y };
     const sous = pans.filter((p) => dansLePan(p.poly, q));
     const haut = Math.max(...sous.map((p) => plan(p, q)));
     return sous.some((p) => plan(p, q) > haut - EPS && versants.some((v) => memePlan(p, v)));
-  });
+  }));
 }
 
 /** La demi-largeur (cases) que couvre la pièce d'un tronçon de part et d'autre de son faîte. */
