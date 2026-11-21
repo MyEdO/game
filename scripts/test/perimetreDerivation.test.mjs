@@ -207,6 +207,75 @@ test('sondes d’identité : changement au chemin ou de ses préfixes, et conser
   assert.equal(modifier(canon).get(canon)?.nature, 'touché')
 })
 
+test('manifestes npm du shell : chaque portée suit ses candidats sans rattacher le setup au corpus', (t) => {
+  const racine = dossierDe(t)
+  const memos = memosDeDerivation(racine, 'manifestes-npm')
+  const premier = 'scripts/lecture-npm-a.test.mjs'
+  const second = 'scripts/lecture-npm-b.test.mjs'
+  const explicite = 'scripts/lecture-npm-fournie.test.mjs'
+  const opaque = 'scripts/lecture-npm-opaque.test.mjs'
+  const vitest = 'src/jeu.test.ts'
+  const manifesteA = 'ateliers/a/package.json'
+  const manifesteB = 'ateliers/b/package.json'
+  const imports = `
+    import { fileURLToPath } from 'node:url'
+    import { pipelinesDeJetons } from './guards/lib/commandeShell.mjs'
+    import { sousRacineNpm } from './guards/lib/racineNpm.mjs'
+  `
+  const textes = new Map([
+    ...['commandeShell.mjs', 'racineNpm.mjs', 'natureDuChemin.mjs', 'appelsRunners.mjs', 'invocation.mjs']
+      .map((f) => [`scripts/guards/lib/${f}`, readFileSync(new URL(`../guards/lib/${f}`, import.meta.url), 'utf8')]),
+    ['vitest.config.ts', "export default { test: { setupFiles: ['src/setup.ts'] } }"],
+    ['src/setup.ts', `
+      import { versCheminNatif } from '../scripts/guards/lib/commandeShell.mjs'
+      versCheminNatif('/c/arbre', 'win32', '/tmp')
+    `],
+    [vitest, 'export {}'],
+    [premier, `${imports}
+      const base = fileURLToPath(new URL('../ateliers/a', import.meta.url))
+      sousRacineNpm(base, () => pipelinesDeJetons('sh -c "npm run jouer"'))
+    `],
+    [second, `${imports}
+      const base = fileURLToPath(new URL('../ateliers/b', import.meta.url))
+      sousRacineNpm(base, () => pipelinesDeJetons('npm run jouer', 0, { scripts: undefined }))
+    `],
+    [explicite, `${imports}
+      const base = fileURLToPath(new URL('../ateliers/a', import.meta.url))
+      sousRacineNpm(base, () => pipelinesDeJetons('npm run jouer', 0, { scripts: { jouer: 'echo fourni' } }))
+      sousRacineNpm(process.env.CWD_NPM, () => pipelinesDeJetons('npm run jouer', 0, { scripts: null }))
+    `],
+    [opaque, `${imports}
+      sousRacineNpm(process.env.CWD_NPM, () => pipelinesDeJetons('npm run jouer'))
+    `],
+    ['ateliers/b/existant.txt', 'témoin'],
+  ])
+  const mesurer = (touche, operation = 'modification', intacts = []) => {
+    const stables = [...textes.keys(), ...intacts]
+    return deriverPerimetre({
+      racine,
+      touches: [touche],
+      avant: operation === 'ajout' ? stables : [...stables, touche],
+      post: operation === 'retrait' ? stables : [...stables, touche],
+      lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])),
+      memos,
+    }).retenus
+  }
+  const verifier = (retenus, attendus) => assert.deepEqual(
+    [...retenus].map(([test, lien]) => [test, lien.racine]).sort(([a], [b]) => a.localeCompare(b)),
+    attendus,
+  )
+
+  verifier(mesurer('.claude/soldes/temoin.md', 'ajout'), [[opaque, '.']])
+  for (const operation of ['ajout', 'modification', 'retrait']) {
+    const retenus = mesurer(manifesteA, operation)
+    verifier(retenus, [[premier, manifesteA], [opaque, '.']])
+    assert.equal(retenus.get(premier)?.touche, manifesteA, operation)
+  }
+  verifier(mesurer(manifesteB), [[second, manifesteB], [opaque, '.']])
+  verifier(mesurer('ateliers/a/premier-descendant.txt', 'ajout'), [[premier, manifesteA], [opaque, '.']])
+  verifier(mesurer('ateliers/a/voisin.md', 'ajout', [manifesteA]), [[opaque, '.']])
+})
+
 test('sondes d’identité : un lien versionné ou une jonction inchangée peut masquer la cible touchée', (t) => {
   const alias = 'donnees/alias'
   const jonction = 'donnees/jonction'

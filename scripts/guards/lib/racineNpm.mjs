@@ -10,8 +10,8 @@ const portee = new AsyncLocalStorage()
 /** `fn()` évalué avec `dir` pour dépôt de résolution des scripts npm ; sa valeur (promesse comprise). */
 export const sousRacineNpm = (dir, fn) => portee.run(dir || null, fn)
 
-/** Le dépôt de résolution de la portée courante, `null` hors de toute portée. */
-export const racineNpmCourante = () => portee.getStore() ?? null
+/** Le dépôt de résolution de la portée courante, ou `repli` hors de toute portée. */
+export const racineNpmCourante = (repli = null) => portee.getStore() ?? repli
 
 /**
  * La racine npm d'une commande lancée dans `dir` : son premier ancêtre, lui compris, qui porte un
@@ -27,3 +27,8 @@ export function racineNpmDe(dir) {
     if (dirname(courant) === courant) return depart
   }
 }
+
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: racineNpmCourante, retour: { type: 'portee', nom: 'racine-npm', repli: 0 } },
+  { fonction: sousRacineNpm, portee: { nom: 'racine-npm', valeur: 0, rappel: 1 } },
+]
