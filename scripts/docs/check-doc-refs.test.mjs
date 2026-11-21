@@ -112,8 +112,9 @@ test('un chemin cité par un hook est jugé une fois, en commentaire comme en ch
     const suite = 'scripts/test/absente.test.mjs'
     const chemin = 'scripts/test/absent.mjs'
     const hooks = ['scripts/git-hooks/porteur.mjs', 'scripts/hooks/porteur.mjs']
+    const porteur = 'scripts/porteur.mjs'
     for (const hook of hooks) writeFileSync(join(racine, hook), `// ${suite}\nconst chemin = '${chemin}'\n`)
-    writeFileSync(join(racine, 'scripts/porteur.mjs'), `// ${suite}\nconst chemin = '${chemin}'\n`)
+    writeFileSync(join(racine, porteur), `// ${suite}\nconst chemin = '${chemin}'\n`)
     const vu = spawnSync(process.execPath, [CLI], { cwd: racine, encoding: 'utf8', timeout: 15_000 })
     assert.equal(vu.status, 1, vu.stderr)
     assert.deepEqual(vu.stderr.trim().split(/\r?\n/).slice(1).map((ligne) => ligne.trim().replaceAll('\\', '/')), [
@@ -121,7 +122,7 @@ test('un chemin cité par un hook est jugé une fois, en commentaire comme en ch
         `${hook}:1  [chemin cité par un hook, absent du disque]  ${suite}`,
         `${hook}:2  [chemin cité par un hook, absent du disque]  ${chemin}`,
       ]),
-      `scripts/porteur.mjs:1  [suite citée mais absente]  ${suite}`,
+      `${porteur}:1  [suite citée mais absente]  ${suite}`,
     ])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
