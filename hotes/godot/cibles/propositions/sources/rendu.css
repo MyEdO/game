@@ -17,7 +17,7 @@
 #jet .annonce{white-space:nowrap}
 /* la table tirée et la table de Tests, dans la place large : la tête fixe, le reste défile */
 #jet .place>:is(#critique,#verdict.tests){height:100%;display:flex;flex-direction:column}
-#jet .place>:is(#critique,#verdict.tests)>.defile{flex:1}
+#jet .place>#critique>.defile{flex:1}
 #jet #critique .defile p{margin-top:3px}
 /* ce que le jet vise : sa vie sous son rôle, la jauge à la largeur de sa colonne */
 #jet .visee .pv .jauge{width:auto}
@@ -111,6 +111,11 @@
 #page .lignes .ligne .c{grid-column:1;line-height:13px;margin-top:-3px}
 #page .lignes .ligne .px{grid-column:2;grid-row:1 / span 2}
 #page .lignes .ligne>:is(.moins-plus,.n){grid-column:3;grid-row:1 / span 2}
+/* des lignes qui ne se règlent pas : deux par rang, le prix et le nombre à droite du nom */
+#page .lignes.deux{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+#page .lignes.deux .ligne{grid-template-columns:minmax(0,1fr) auto 18px;column-gap:8px;min-height:28px;padding-top:0;padding-bottom:0}
+#page .lignes.deux .ligne>*{grid-row:1}
+#page .lignes.deux .ligne>b{grid-column:1}
 /* pendant le Marchandage, la quantité est arrêtée : son curseur se retire, le compte la dit */
 #ui:has(>#jet) #page :is(.quantite,.r:has(+.quantite),.filet:has(+.r+.quantite)){display:none}
 
@@ -131,11 +136,21 @@
 #verdict.tests td:last-child{padding-left:10px;font-family:"Fell SC"}
 #verdict.tests tr.courant td{color:#7c1f14;font-weight:600}
 #verdict.tests tr.somme td{font-weight:600}
+#verdict.tests .lanceurs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:6px}
+#verdict.tests .lanceur{display:flex;align-items:center;gap:6px;height:44px;padding:0 6px;border:1px solid rgba(60,40,20,.35);border-radius:3px;color:#2a1d12}
+#verdict.tests .lanceur.courant{border:2px solid #a8842f;background:rgba(255,240,190,.5);padding:0 5px}
+#verdict.tests .lanceur>div{display:flex;flex-direction:column;min-width:0}
+#verdict.tests .lanceur b{font-size:17px;line-height:20px}
+#verdict.tests .lanceur span{font-size:11.5px;line-height:14px;white-space:nowrap;font-family:"Fell SC"}
+#verdict.tests .lanceur.courant :is(b,span){color:#7c1f14}
 
 /* 4. Lieu, la bataille : le panneau de la Puissance au coin haut-droit, les Scènes sur leurs emplacements du champ, le
    carton du Test de Puissance ou de l'issue au-dessus du bandeau (gabarit 7) */
 #panneau.armees .ligne b{font-family:"Grenze Gotisch";font-weight:600;font-size:17px;letter-spacing:.3px;color:#f4e8ca}
 #panneau .t{font-size:12px;color:var(--creme-2)}
+#panneau .ligne.distance{align-items:center}
+#panneau .ligne.distance .jauge{flex:1}
+#panneau .issues{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
 .jouera.joue span{color:#eadfc4}
 .poste.scene{width:230px}
 .scene .postes-de-scene{align-self:stretch;min-height:58px;display:flex;justify-content:center;align-items:center;gap:6px;z-index:1}
@@ -166,13 +181,13 @@
 .lieu.droite{transform:translate(calc(-100% + 26px),-100%)}
 .lieu.droite::after{left:auto;right:21px}
 #lieu h3{font-size:23px;line-height:32px}
-#lieu .forces{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+#lieu .forces{font-size:11.5px;line-height:14px;color:var(--creme-2);white-space:nowrap}
+#lieu .activites-breves{display:flex;flex-wrap:wrap;gap:10px}
+#lieu .activite-breve{position:relative}
 #lieu .activite{position:relative;gap:9px;padding:5px 10px}
 #lieu .activite b{font-size:16.5px;line-height:21px}
 #lieu .activite .c{font-size:10.5px;line-height:13px}
 #lieu .activite i{font-size:11.5px;line-height:15px}
-#lieu .fermees{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-#lieu .activite.fermee b{color:#8d8474}
 /* les activités défilent entre la tête du lieu et l'envoi, au pied */
 
 /* 5. Combat : la borne du round 22 / 16, l'ordre du tour au bord gauche dans la marge de 160 sous la borne, l'actif en

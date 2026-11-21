@@ -903,11 +903,13 @@ export interface Rail {
   pied: string;
 }
 
-/** Ce qu'un héros règle sur la part commune : le héros, sa part, ce que sa bourse contient. */
+/** Ce qu'un héros règle sur la part commune : le héros, sa part, ce que sa bourse contient ; `reglee` : la part que le
+ *  joueur règle, son −/+ montré sans survol. */
 export interface Part {
   heros: string;
   part: Sous;
   avoir: Sous;
+  reglee?: true;
 }
 
 /** Une voie offerte sur une page de service (un soin, une vente, un travail) : son id (son pictogramme), son nom, son
@@ -1106,12 +1108,10 @@ export interface LigneDeCompte {
 
 /** Un bloc d'une page de service. */
 export type BlocDePage =
-  /** Une phrase de la page. */
-  | { bloc: 'texte'; texte: string }
   /** Les porteurs à choisir : leur id, leur nom, leur Encombrement porté sur leur charge, la part prévue ; `pris`. */
   | { bloc: 'porteurs'; porteurs: { id: Porteur['id']; nom: string; porte: number; charge: number; ajout?: number; pris?: true }[] }
-  /** Une quantité réglée entre ses bornes. */
-  | { bloc: 'quantite'; libelle: string; valeur: number; min: number; max: number }
+  /** Une quantité réglée entre ses bornes ; `aide`, la phrase qui l'explique, au survol de son libellé. */
+  | { bloc: 'quantite'; libelle: string; valeur: number; min: number; max: number; aide?: string }
   /** Des lignes de faits. */
   | { bloc: 'faits'; lignes: LigneDeCompte[] }
   /** Un compte et son total. */
@@ -1120,9 +1120,9 @@ export type BlocDePage =
   | { bloc: 'voies'; voies: Voie[] }
   /** Les parts des bourses du groupe. */
   | { bloc: 'parts'; parts: Part[] }
-  /** Des lignes à choisir ou à régler : leur nom, ce qu'elles sont, leur prix, ce qu'on en a ou en veut ; `reglable`, le
-   *  nombre se règle ; `prise`. */
-  | { bloc: 'lignes'; lignes: { nom: string; sous?: string; prix: Sous; nombre: number; prise?: true }[]; reglable?: true }
+  /** Des lignes à choisir ou à régler : leur nom, ce qu'elles sont, leur prix, ce qu'on en a ou en veut, la phrase qui
+   *  l'explique au survol (`aide`) ; `reglable`, le nombre se règle (sinon, deux lignes par rang) ; `prise`. */
+  | { bloc: 'lignes'; lignes: { nom: string; sous?: string; prix: Sous; nombre: number; prise?: true; aide?: string }[]; reglable?: true }
   /** Un nombre à régler. */
   | { bloc: 'nombre'; libelle: string; valeur: number };
 

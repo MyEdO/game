@@ -30,7 +30,9 @@ du tour (`ordre/actif`) ; les onglets des sections de la fiche, des dossiers et 
 fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; la colonne du choix de la création (quatre rangées, la haute des deuxième
 et troisième, la liste et son pied : `heros.md`, « Grille du choix ») ; le pied de
 l'identité qui progresse ; la grille des colonnes (`colonne`, `sources/gestes.js` : la tête, le corps qui défile sous
-elle, ou le plein, le corps sur la bande de la tête quand le panneau n'en a pas, le geste au pied, la note sous lui ;
+elle, ou le plein, le corps sur la bande de la tête quand le panneau n'en a pas, ce qui décide au pied du corps
+(`pied`, une place fixe que le corps laisse dans tous les états : à la page d'un service, les bourses du groupe, la mise
+d'une partie, ce que le patient paie), le geste au pied, la note sous lui ;
 à gauche sous le cartouche, le corps prend la hauteur que la note laisse au plein du rail des services, dont la note
 se pose sous le dernier service que la colonne peut porter, quel qu'en soit le nombre, et au carnet les documents remis
 sous elle) ; les hôtes d'une scène de commerce, chacun à la case de son genre (`commerce.md`) ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre

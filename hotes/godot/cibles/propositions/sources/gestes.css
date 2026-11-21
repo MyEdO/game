@@ -337,6 +337,11 @@ html,body{margin:0;background:var(--noir)}
 .qui-paie .part .moins-plus b{min-width:74px;text-align:center}
 .qui-paie .part i{font-size:12px;opacity:.75;text-align:right;white-space:nowrap}
 .qui-paie .total{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;padding-top:4px;border-top:1px solid currentColor}
+.bourses{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;height:100%}
+.case-bourse{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid currentColor;border-radius:3px;border-color:rgba(60,40,20,.35)}
+.case-bourse .moins-plus{gap:4px}
+.case-bourse b{font-size:12.5px;white-space:nowrap;line-height:15px}
+.case-bourse.total b{font-size:13.5px}
 /* saisir un texte : le champ, sur parchemin ou sur bois */
 .champ{display:block}
 .champ>span{display:block;font-size:13px;color:var(--rouille);margin-bottom:4px}

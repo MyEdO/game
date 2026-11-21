@@ -318,11 +318,12 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le contenu de chaque place d'un cadre (`cadre/place`), que `rendu.js` pose au rect de sa ligne (`PLACES`) ; une
      place sans contenu n'est pas posée */
   const places = (cadre, contenus) => Object.entries(contenus).filter(([, html]) => html).map(([nom, html]) => `<div class="place" data-place="${cadre}/${nom}">${html}</div>`).join('');
-  /* la grille d'une colonne (`cadre` : son rôle) : sa tête, son corps qui défile, ses entrées à écarts uniformes, son
-     geste au pied fixe et la note sous lui, chacun à sa place (`cadre/tete`, `cadre/corps`, `cadre/geste`, `cadre/note`) ;
-     sans tête, le corps prend aussi sa bande (`cadre/plein`, qu'aucun état ne porte avec la tête) ; `liste` : le corps est
-     une liste longue par nature (`defile`) */
-  const colonne = (cadre, { tete = '', corps = '', geste = '', note = '', liste = false }) => `<div class="colonne">${places(cadre, { tete, [tete ? 'corps' : 'plein']: corps && defile(corps, 'corps', { liste }), geste, note })}</div>`;
+  /* la grille d'une colonne (`cadre` : son rôle) : sa tête, son corps qui défile, ses entrées à écarts uniformes, ce
+     qui décide au pied du corps (`pied` : une place fixe entre le corps et le geste, que le corps laisse dans tous les
+     états), son geste au pied fixe et la note sous lui, chacun à sa place (`cadre/tete`, `cadre/corps`, `cadre/pied`,
+     `cadre/geste`, `cadre/note`) ; sans tête, le corps prend aussi sa bande (`cadre/plein`, qu'aucun état ne porte avec
+     la tête) ; `liste` : le corps est une liste longue par nature (`defile`) */
+  const colonne = (cadre, { tete = '', corps = '', pied = '', geste = '', note = '', liste = false }) => `<div class="colonne">${places(cadre, { tete, [tete ? 'corps' : 'plein']: corps && defile(corps, 'corps', { liste }), pied, geste, note })}</div>`;
   /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques ; `cadre` :
      chaque onglet à sa place `cadre/onglet-k`, de même largeur, une section absente (`null`) laisse la sienne vide */
   const onglets = (noms, active, cadre = '') => {
@@ -404,6 +405,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const bourse = ({ heros, avoir, parts, total, reglable = true }) => `<div class="qui-paie${parts ? ' parts' : ''}">${medaillon('bourse', { taille: 'moyen' })}<div class="q">${parts
     ? `<span class="rubrique">Bourses du groupe</span>${parts.map(([nom, part, reste]) => `<div class="part"><span>${nom}</span>${reglable ? moinsPlus({ entre: `<b class="chiffres">${part}</b>` }) : `<b class="chiffres">${part}</b>`}<i>sur ${reste}</i></div>`).join('')}<div class="total"><span class="rubrique">Total</span><b class="chiffres">${total}</b></div>`
     : `<span class="rubrique">Bourse ${de(heros)}</span><b class="chiffres">${avoir}</b>`}</div></div>`;
+  /* les bourses du groupe au pied d'une page : une case fixe par héros, son portrait et sa part, puis le total ; le −/+
+     de la part réglée (`reglee`) autour du portrait, ce que la bourse contient dans la bulle du survol (fiche
+     `user-doctrine-icone-identifie-survol-detaille`) ; `reglable: false` comme `bourse` */
+  const rangeeDeBourses = ({ parts, total, reglable = true }) => `<div class="bourses">${parts.map(({ id, nom, part, avoir, reglee }) => `<div class="case-bourse" title="${nom} : ${part} sur ${avoir}">${reglable && reglee ? moinsPlus({ entre: portrait(id, { taille: 'menu' }) }) : portrait(id, { taille: 'menu' })}<b class="chiffres" data-texte="part ${nom}">${part}</b></div>`).join('')}<div class="case-bourse total" title="Total des parts">${medaillon('bourse', { taille: 'petit' })}<b class="chiffres" data-texte="total">${total}</b></div></div>`;
   /* « de » devant un nom, élidé devant une voyelle (« Bourse d’Ilyanwe », « Test d’Intuition ») */
   const de = (nom) => (/^[aeiouàâäéèêëîïôöùûüœæ]/i.test(String(nom)) ? `d’${nom}` : `de ${nom}`);
   /* saisir un texte : le libellé de rubrique s'il y en a un, la valeur et son curseur, ou l'attente d'un champ vide ;
@@ -413,6 +418,6 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   Object.assign(globalThis, {
     W, H, alea, melange,
     PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
-    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ, mobile, defile, de,
+    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
   });
 }

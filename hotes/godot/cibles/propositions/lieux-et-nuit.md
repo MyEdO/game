@@ -14,6 +14,15 @@ interludes liés à des lieux et à des PNJ, jamais une fenêtre à cinquante ch
 page des services de son lieu.
 - À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
   haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
+- À valider (#4585) : la page des soins pose ce que le patient paie et sa bourse en une ligne au pied de son corps
+  (`page/pied`) ; un soin y montre son nom, son Test et son prix, ce qu'il fait (ou la raison qui le ferme) au survol.
+- À valider (#4585) : la partie d'un jeu de taverne pose la mise au pied du corps de sa page (`page/pied`), sans la
+  rubrique « La mise de … » que la ligne « Bourse de … » dit déjà.
+- À valider (#4585) : au bivouac, ce que la nuit jouera tient en une rangée (« La nuit jouera », le rond et le jet de
+  chacun, son nom au survol), et le Test d'un abri passe au survol de la rangée des abris.
+- À valider (#4585) : au lieu choisi de l'interlude, les forces de la bataille sous son nom ; l'Activité prise en
+  entier, les autres en une rangée de médaillons, leur nom, leur Test et leur enjeu au survol, la raison qui ferme une
+  Activité dans sa bulle de refus.
 - À valider (#4585) : à l'auberge, les avis de l'aubergiste au pied du corps de sa colonne, toujours en vue : la
   grille des offres se resserre (3 px entre deux lignes) et le corps prend la hauteur de la colonne sous sa tête.
 

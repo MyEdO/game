@@ -14,6 +14,12 @@ au-dessus du bandeau (gabarit 7). `bataille-de-masse-preparation` est un état d
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 - À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
   haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
+- À valider (#4585) : le panneau de la poursuite ne répète pas la Distance quand la frise la montre ; sinon, la Distance
+  et sa jauge sur une ligne ; les issues en une rangée (« semés à 100 · collision et abordage à 0 »), la condition de
+  chacune au survol. La sommation dit le navire hostile et ses forbans sur une ligne.
+- À valider (#4585) : le Test d'équipage et le Test de Mouvement de la fenêtre rangent chaque lanceur dans une case
+  fixe (cinq par rang) : son portrait, son seuil, son DR ou ce qu'il attend ; qui, son poste, son Test et le détail de
+  l'issue au survol ; la règle et la somme sous la rangée.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Surincantation », « {restant} pas sur {budget} »,
 « Cibles supplémentaires : … à cliquer sur la carte », « Contrer seul », « S’unir », « Passer », « Déclarer »,
