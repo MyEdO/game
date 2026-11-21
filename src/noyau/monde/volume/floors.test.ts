@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildFloors, edgeBlends, isOverhang, capsSolid, capsSolidDirect, fogFloorZ } from './floors';
 import type { Face, FloorEl } from './types';
-import { emptyScene, heightAt, type Scene } from '../scene';
+import { emptyScene, heightAt, isWalkable, setTileCollapsed, type Scene } from '../scene';
+import { walkNeighbors } from '../path';
+import { volumeDepuis } from './volume';
 import { gradeBetween, STEP_MAX_M } from '../relief';
 import { terrainMatiere } from '../terrain';
 import { CONTREMARCHE_M, dessusDe, hauteurDuDessus } from './pente';
@@ -404,6 +406,72 @@ describe('buildFloors — surplomb (tablier au-dessus d’une surface marchable)
     const noFloor = deckScene();
     noFloor.layers[0].tiles = new Array(16).fill('vide');
     expect(isOverhang(noFloor, 1, 1, 1)).toBe(false);
+  });
+
+  describe('#3833 — le terrain sous le tablier', () => {
+    const index = 1 * 4 + 1;
+    const avecTonneau = (s: Scene, z: number): Scene => ({
+      ...s,
+      entities: [{ id: 'tonneau-1', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 1, y: 1 }, z }],
+    });
+    const faces = (s: Scene, z: number) => volumeDepuis(s, null).etat.sols.get(z)![index]!;
+    const pieds = (fs: readonly Face[]) => fs.filter((f) => f.material.part === 'pilier').map((f) => f.poly[1].h);
+
+    it('un tonneau au rez laisse les mêmes tranches au tablier et barre le pas au rez', () => {
+      const s = deckScene();
+      s.layers[0].height!.fill(1);
+      const occupe = avecTonneau(s, 0);
+      const libre = volumeDepuis(s, null);
+      const pose = volumeDepuis(occupe, null);
+      const tranches = (fs: readonly Face[]) => fs.filter((f) => f.material.part === 'deck').map((f) => f.poly.map((p) => p.h));
+      const sansDecor = libre.etat.sols.get(1)![index]!;
+      const avecDecor = pose.etat.sols.get(1)![index]!;
+
+      expect(walkNeighbors(s, { x: 0, y: 1 })).toContainEqual({ x: 1, y: 1 });
+      expect(walkNeighbors(occupe, { x: 0, y: 1 })).not.toContainEqual({ x: 1, y: 1 });
+      expect(tranches(sansDecor)).toEqual(Array.from({ length: 4 }, () => [4, 4, 3.7, 3.7]));
+      expect(tranches(avecDecor)).toEqual(tranches(sansDecor));
+      expect(avecDecor).toEqual(sansDecor);
+      expect(isOverhang(occupe, 1, 1, 1)).toBe(true);
+
+      const repris = volumeDepuis(occupe, libre.etat);
+      expect(repris.volume).toEqual(pose.volume);
+      expect(repris.etat.sols.get(1)![index]).toBe(sansDecor);
+    });
+
+    it('les montants s’arrêtent au premier sol inférieur, avec ou sans tonneau', () => {
+      const s = deckScene();
+      s.layers[0].height!.fill(1);
+      s.layers.push({ z: 2, tiles: [...s.layers[1].tiles], height: new Array(16).fill(7) });
+
+      const effondree = setTileCollapsed(s, 1, 1, 1);
+      expect(isWalkable(effondree, 1, 1, 1)).toBe(false);
+      expect(faces(effondree, 1)).toBeNull();
+      expect(pieds(faces(effondree, 2))).toEqual([1, 1, 1, 1]);
+      const solAuDessus = elAt(buildFloors(effondree, undefined, { activeZ: 2 }), 1, 1, 2)!;
+      expect(pieds(solAuDessus.faces)).toEqual([1, 1, 1, 1]);
+
+      expect(pieds(faces(s, 2))).toEqual([4, 4, 4, 4]);
+      expect(pieds(faces(avecTonneau(s, 1), 2))).toEqual([4, 4, 4, 4]);
+    });
+
+    it('une couche manquante ne masque pas le sol réel immédiatement en dessous', () => {
+      const s = deckScene();
+      s.layers[0].height!.fill(1);
+      s.layers.push({ z: 3, tiles: [...s.layers[1].tiles], height: new Array(16).fill(7) });
+
+      expect(pieds(faces(s, 3))).toEqual([4, 4, 4, 4]);
+    });
+
+    it('un mur à la hauteur de l’étage lui sert de bloc plein', () => {
+      const s = deckScene();
+      s.layers[0].tiles[index] = 'mur';
+
+      expect(isOverhang(s, 1, 1, 1)).toBe(false);
+      expect(capsSolidDirect(s, 1, 1, 1)).toBe(true);
+      expect(faces(s, 1).map((f) => f.material)).toEqual([{ domain: 'terrain', id: 'terre' }]);
+      expect(reliefParts(elAt(buildFloors(s), 1, 1)).length).toBeGreaterThan(0);
+    });
   });
 
   it('bords sur le vide = DALLE FINE (deck, pierre) + PILIERS aux coins (dédupliqués), pas des falaises', () => {
