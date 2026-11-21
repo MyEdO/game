@@ -760,10 +760,10 @@ func poser_les_aretes(aretes: Array, cotes: Array, faitieres: Array) -> void:
 ## Les poses des arêtes `aretes`, chacune elle-même, de son catalogue `aretes`, à plat (de `entree` à `sortie`, toutes
 ## deux à son pied), celles des côtés de marches `cotes`, une par pièce de chacun (`pieces`), de son catalogue
 ## `escaliers`, à la place de sa rampe dans sa suite de rampes (`position`), sans palette, montant de son `entree` à
-## sa `sortie` le long de son `sens`, toutes deux sans gradient ni écart ; et celles des faîtières `faitieres`, chacune
-## elle-même, de son catalogue `toits`, cisaillée de son `gradient`, son V ouvert de son `ecart`.
+## sa `sortie` le long de son `sens`, toutes deux sans écart ; et celles des faîtières `faitieres`, chacune elle-même,
+## de son catalogue `toits`, son V ouvert de son `ecart`.
 static func _poses_de(aretes: Array, cotes: Array, faitieres: Array) -> Array:
-	var a_plat := {gradient = {x = 0.0, y = 0.0}, ecart = 0.0}
+	var a_plat := {ecart = 0.0}
 	var poses := aretes.map(func(a: Dictionary) -> Dictionary: return a.merged(a_plat.merged({catalogue = "aretes", entree = a.pied, sortie = a.pied})))
 	for c: Dictionary in cotes:
 		for piece: String in c.pieces:
@@ -1303,12 +1303,12 @@ func _maillage_teint(mesh: Mesh) -> Mesh:
 
 ## Le repère, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de
 ## l'instance de la pose `a` : sa pièce posée au centre de l'arête (`MiseEnPage.centre_d_arete`, à son socle),
-## cisaillée autour de lui de sa pente le long de son sens et en travers de son gradient (`MiseEnPage.pente_de_pose`),
-## ses montants restant verticaux. Lu par des témoins sans calcul : `place`, à la place des instances sous `Aretes` ; `cisaillee`, ce
+## cisaillée autour de lui de sa pente le long de son sens (`MiseEnPage.pente_d_arete`), ses montants restant
+## verticaux. Lu par des témoins sans calcul : `place`, à la place des instances sous `Aretes` ; `cisaillee`, ce
 ## cisaillement au centre de l'arête sous `Aretes`, portant `posee` à cette place ; `lue`, sous les instances, à la place
 ## de `posee`.
 func transform_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Transform3D:
-	var pente := MiseEnPage.pente_de_pose(Vector2(a.sens.x, a.sens.y), a.entree, a.sortie, Vector2(a.gradient.x, a.gradient.y), metres_par_case)
+	var pente := MiseEnPage.pente_d_arete(Vector2(a.sens.x, a.sens.y), a.entree, a.sortie, metres_par_case)
 	var place := Node3D.new()
 	var cisaillee := Node3D.new()
 	var posee := Node3D.new()

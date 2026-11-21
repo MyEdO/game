@@ -24,6 +24,9 @@ const LONG := 2.0
 const BRAS := 0.4
 ## La part de la longueur de la pièce où se sondent les bouts de ses bras, en deçà de ses bouts.
 const SONDE := 0.8
+## L'écart, en mètres, dont les rangs coplanaires des faces d'une nappe (`COPLANAR_BIAS_M` de
+## `src/noyau/monde/volume/worldTris.ts`, par rang) décalent le soffite d'une rive du plan de son pan.
+const RANGS_M := 0.01
 var _fautes: Array[String] = []
 
 
@@ -146,7 +149,7 @@ func _des_faitieres(volume: VolumeDeScene, faitieres: Array, moment: String, sur
 					for cote: float in [-1.0, 1.0]:
 						var bras: Vector3 = monde * Vector3(le_long * LONG / 2.0, -BRAS, cote * BRAS)
 						var pan := _cote_du_pan(triangles, bras)
-						if is_nan(pan) or absf(bras.y - pan) > EPSILON:
+						if is_nan(pan) or absf(bras.y - pan) > EPSILON + RANGS_M / volume.metres_par_case:
 							_fautes.append("%s, %s : bras %s à %.4f, pan à %.4f" % [moment, pose.cle, cote, bras.y, pan])
 	if poses != faitieres.size():
 		_fautes.append("%s : %d faîtières posées, attendu %d" % [moment, poses, faitieres.size()])

@@ -184,15 +184,6 @@ static func pente_d_arete(sens: Vector2, entree: float, sortie: float, par_case:
 	return sens.normalized() * hauteur_au_plateau(sortie - entree, par_case) / longueur_d_arete(sens)
 
 
-## La pente, dans le plan du plateau, d'une pièce posée comme une arête qui court selon `sens`, de la cote `entree`
-## (mètres) à son premier bout à la cote `sortie` à son second, sur un toit de gradient `gradient` (mètres par case en X
-## et en Z du plateau), sur un plateau de `par_case` mètres par case (#4471) : le long de son sens, celle de ses deux
-## cotes (`pente_d_arete`) ; en travers, celle du gradient, ses montants gardés verticaux.
-static func pente_de_pose(sens: Vector2, entree: float, sortie: float, gradient: Vector2, par_case: float) -> Vector2:
-	var travers := gradient - gradient.project(sens)
-	return pente_d_arete(sens, entree, sortie, par_case) + travers * echelle_metrique(par_case)
-
-
 ## L'échelle d'une faîtière d'un modèle de toit longue de `long` mètres, dont chaque bras descend d'une pente de 1,
 ## posée sur un faîte qui court selon `sens` entre deux pans dont les pentes diffèrent de deux fois `ecart` (mètres par
 ## case), sur un plateau de `par_case` mètres par case (#4471) : en longueur celle qui la porte à la longueur du faîte,

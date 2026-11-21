@@ -1538,15 +1538,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * comme une arête, les cases qu'il
      * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
      * son pied, la cote de son milieu, et le bloc de sa case.
-     * `{ faitieres }` : les faîtes des nappes de toit de la scène (`faitieresDeLaScene`, `src/noyau/monde/faitieres.ts`),
-     * vides sans scène, sous la même clé de relecture. Chacun : `{ cle, nappe, cases, couverture, famille, piece,
-     * position, palette, milieu, sens, pied, entree, sortie, bloc, gradient, ecart }`, la nappe dont il tombe
-     * (`nappeKey`, levée par `toitsLeves`), les cases qu'il couvre, la couverture de sa nappe et la famille de son kit
-     * de toit (`kit` de `materials.json`), sa pièce (`faitiere`, `Noyau.PieceDeToit`) à la place `seule`, sa palette
-     * (`corps`, le `ridgeCap` de la couverture) ; comme une arête, son milieu et son sens, sa cote en mètres à ses deux
-     * bouts et au milieu, le bloc de sa première case ; le gradient moyen de ses deux pans `{ x, y }` et la
-     * demi-différence de leurs pentes (`ecart`), en mètres par case : l'hôte cisaille la pièce du gradient et ouvre son
-     * V de l'écart, chaque bras épousant un pan
+     * `{ faitieres }` : `Faitiere[]` (`faitieresDeLaScene`), vides sans scène, sous la même clé de relecture
      */
     aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[]; faitieres: Faitiere[] } {
       entreeDe('aretes', json, []);

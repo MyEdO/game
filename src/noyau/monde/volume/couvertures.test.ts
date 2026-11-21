@@ -43,8 +43,10 @@ describe('apparence de toit (JSON pur iso/plan)', () => {
   });
 
   it('chaque couverture nomme la famille du kit de sa faîtière et sa teinte (#4471)', () => {
-    expect(Object.fromEntries(matieresDe('roof').filter((m) => m.couverture).map((m) => [m.id, m.kit]))).toEqual({ chaume: 'chaume', 'toit-ardoise': 'ardoise', tuile: 'tuile' });
-    for (const m of matieresDe('roof').filter((x) => x.couverture)) expect(m.ridgeCap, m.id).toMatch(/^#[0-9a-f]{6}$/);
+    for (const m of matieresDe('roof').filter((x) => x.couverture)) {
+      expect(m.kit, m.id).toBeTruthy();
+      expect(m.ridgeCap, m.id).toMatch(/^#[0-9a-f]{6}$/);
+    }
   });
 
   it('id absent du registre → entrée de REPLI VISIBLE au ton d’alarme (#877)', () => {

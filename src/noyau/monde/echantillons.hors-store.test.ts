@@ -8,6 +8,8 @@ import { cretesDePerimetre } from './volume/creneaux';
 import { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type FamilleDEchantillon } from './echantillons';
 import { terrainKitDEscalier } from './terrain';
 import { METRES_PER_LEVEL } from './relief';
+import { roofMaterial } from './volume/matieres';
+import { sceneMetresPerTile } from './scene';
 
 const matieres = (dessine: { surfaces: { matiere: string }[] }): string[] => dessine.surfaces.map((s) => s.matiere);
 const matieresDuVolume = (volume: { morceaux: { surfaces: { matiere: string }[] }[] }): string[] => volume.morceaux.flatMap(matieres);
@@ -63,7 +65,8 @@ describe('les échantillons du monde (#3802)', () => {
   it.each(matieresDe('roof').filter((m) => m.couverture).map((m) => m.id))('la couverture %s montre sa faîtière sur le faîte du pignon et de la croupe, et le bardage des pignons (#4471)', (id) => {
     const { faitieres, toits } = echantillonDessine('toit', id);
     expect(new Set(faitieres.map((f) => f.couverture))).toEqual(new Set([id]));
-    expect(faitieres.reduce((l, f) => l + Math.hypot(f.sens.x, f.sens.y), 0), 'le faîte du pignon (3 cases) et celui de la croupe (1)').toBeCloseTo(4, 9);
+    const debord = roofMaterial(id).eaveOverhangM! / sceneMetresPerTile(sceneDEchantillon('toit', id));
+    expect(faitieres.reduce((l, f) => l + Math.hypot(f.sens.x, f.sens.y), 0), 'le faîte du pignon (3 cases et ses deux rives) et celui de la croupe (1)').toBeCloseTo(4 + 2 * debord, 9);
     const pignons = toits.filter((n) => matieres(n).includes(`structure--${semencesDeScene.facade.id}`));
     expect(pignons.length, 'le pignon et l’appentis ferment leur comble').toBe(2);
   });

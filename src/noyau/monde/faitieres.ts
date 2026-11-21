@@ -4,13 +4,14 @@
  * pans d'un groupe se coupent aux sommets du groupe (jonctions en T) ; un segment que portent deux pans de gradients
  * G1 et G2, n1 la normale en plan qui entre dans le premier, est SAILLANT si (G1 − G2)·n1 < 0, et un segment saillant
  * horizontal est un faîte. Un faîte qui borde une facette (un pan au gradient diagonal, champ de croupe) n'en reçoit
- * aucune. Chaque faîte est servi une fois, en TRONÇONS d'une case coupés aux bords des cases (`tronconsDuFaite`) : une
- * pièce de kit couvre une case et se raccorde bout à bout. Chaque tronçon se pose comme une arête (`AreteDessinee`,
- * `./aretes.ts`) : son milieu et son sens, sa cote, le gradient moyen de ses deux pans (le cisaillement de la pièce) et
- * la demi-différence de leurs pentes (l'ouverture du V de la pièce).
+ * aucune. Le soffite d'une rive prolonge le plan de son pan au-delà du pignon, et son faîte avec lui. Chaque faîte est
+ * servi une fois, en TRONÇONS d'une case coupés aux bords des cases (`tronconsDuFaite`) : une pièce de kit couvre une
+ * case et se raccorde bout à bout. Chaque tronçon se pose comme une arête (`AreteDessinee`,
+ * `./aretes.ts`) : son milieu et son sens, sa cote, et la demi-différence des pentes de ses deux pans (l'ouverture du V
+ * de la pièce).
  */
 import type { Pt } from './path';
-import type { GP } from './volume/types';
+import type { Face, GP } from './volume/types';
 import type { SceneDesToits } from './scene';
 import { pansDesNappes, resolveNappes } from './volume/toits';
 import { roofMaterial } from './volume/matieres';
@@ -29,28 +30,40 @@ const EPS = 1e-6;
  *  longueur, en cases : l'étirement d'une pièce reste borné à la moitié de sa longueur. */
 const TRONCON_MAX = 1.5;
 
-/** Une faîtière telle qu'un hôte la pose : sa clé, la nappe dont elle tombe (`nappeKey`, levée par `toitsLeves`), les
- *  cases qu'elle couvre (sa vision), la couverture de sa nappe, la famille de son kit (`kit` de `materials.json`), sa
- *  pièce et sa place (`seule`), sa palette (`corps` : le `ridgeCap` de la couverture) ; et ce que sa pose demande comme
- *  une arête : son milieu et son sens (repère des cases centrées, en cases), sa cote (m) à ses deux bouts (`entree`,
- *  `sortie`) et au milieu (`pied`), le bloc de sa première case (`blocDeLaCase`), le gradient moyen de ses deux pans
- *  (`gradient`, m par case vers +x et +y) et la demi-différence de leurs pentes (`ecart`, m par case). */
+/**
+ * @contrat Vue
+ * Une faîtière telle qu'un hôte la pose (méthode `aretes`, `faitieres`) : un tronçon d'un faîte, posé comme une arête.
+ */
 export interface Faitiere {
+  /** Sa clé : `faite|<groupe de nappes>|<bout>|<bout>`. */
   cle: string;
+  /** La nappe dont elle tombe (`nappeKey`), levée avec elle (`toitsLeves`). */
   nappe: string;
+  /** Les cases `{ x, y, z }` qu'elle traverse, celles de sa vision. */
   cases: Required<Pt>[];
+  /** La couverture de sa nappe (domaine `roof` de `materials.json`). */
   couverture: string;
+  /** La famille du kit de toit de sa couverture (`kit` de `materials.json`), modèle `toit--<famille>`. */
   famille: KitDeToit;
+  /** Sa pièce (`Noyau.PieceDeToit`). */
   piece: PieceDeToit;
+  /** Sa place (`Noyau.Position`) : toujours `seule`. */
   position: 'seule';
+  /** Sa palette : `corps`, le `ridgeCap` de sa couverture. */
   palette: { corps: string };
+  /** Son milieu, en cases (repère des cases centrées). */
   milieu: Pt;
+  /** Son sens, d'un bout à l'autre, en cases. */
   sens: Pt;
+  /** Sa cote (m) en son milieu. */
   pied: number;
+  /** Sa cote (m) à son premier bout. */
   entree: number;
+  /** Sa cote (m) à son second bout. */
   sortie: number;
+  /** Le bloc de sa première case (`blocDeLaCase`). */
   bloc: string;
-  gradient: Pt;
+  /** La demi-différence des pentes de ses deux pans (m par case) : l'ouverture du V de sa pièce. */
   ecart: number;
 }
 
@@ -127,60 +140,75 @@ function casesDuSegment(a: GP, b: GP, cells: ReadonlySet<string>, z: number): Re
  *  (`nappeKey`), les cases et la couche de sa masse, sa couverture. */
 export interface PanDuGroupe { poly: readonly GP[]; gx: number; gy: number; nappe: string; cells: ReadonlySet<string>; z: number; couverture: string }
 
-/** Les faîtes des pans `pans` du groupe `groupId`, et le nombre de faîtes qui bordent une facette, sans faîtière. PUR. */
-export function faitesDuGroupe(groupId: string, pans: readonly PanDuGroupe[]): { faitieres: Faitiere[]; surFacette: number } {
-  const faitieres: Faitiere[] = [];
-  let surFacette = 0;
+/** Les faîtes des pans `pans` du groupe `groupId`, en tronçons (`tronconsDuFaite`). Les segments saillants horizontaux
+ *  d'une même droite, d'une même cote, d'une même nappe et d'un même écart qui se touchent ne font qu'un faîte : le
+ *  débord d'une rive prolonge celui de son pan. PUR. */
+export function faitesDuGroupe(groupId: string, pans: readonly PanDuGroupe[]): Faitiere[] {
+  const faites = new Map<string, { pan: PanDuGroupe; ecart: number; selonX: boolean; lo: number; hi: number; a: GP }[]>();
   for (const [, { a, b, porteurs }] of segmentsDuGroupe(pans)) {
     if (porteurs.length !== 2 || Math.abs(b.h - a.h) > EPS) continue;
     const [o1, o2] = porteurs;
     const [p1, p2] = [pans[o1.i], pans[o2.i]];
     const ecart = Math.hypot(p1.gx - p2.gx, p1.gy - p2.gy) / 2;
-    if (ecart < EPS || (p1.gx - p2.gx) * o1.nx + (p1.gy - p2.gy) * o1.ny >= -EPS) continue;
-    if (facette(p1) || facette(p2)) { surFacette++; continue; }
-    const def = roofMaterial(p1.couverture);
-    if (!def.kit || !def.ridgeCap) continue;
-    for (const [ta, tb] of tronconsDuFaite(a, b)) {
-      const cases = casesDuSegment(ta, tb, p1.cells, p1.z);
-      faitieres.push({
+    if (ecart < EPS || (p1.gx - p2.gx) * o1.nx + (p1.gy - p2.gy) * o1.ny >= -EPS || facette(p1) || facette(p2)) continue;
+    const selonX = Math.abs(b.x - a.x) > EPS;
+    const [u, v] = selonX ? [a.x, b.x] : [a.y, b.y];
+    const droite = `${p1.nappe}|${ecart.toFixed(6)}|${selonX ? `y${a.y.toFixed(5)}` : `x${a.x.toFixed(5)}`}|${a.h.toFixed(4)}`;
+    (faites.get(droite) ?? faites.set(droite, []).get(droite)!).push({ pan: p1, ecart, selonX, lo: Math.min(u, v), hi: Math.max(u, v), a });
+  }
+  const bouts: { pan: PanDuGroupe; ecart: number; a: GP; b: GP }[] = [];
+  for (const segments of faites.values()) {
+    segments.sort((p, q) => p.lo - q.lo);
+    const { pan, ecart, selonX, a } = segments[0];
+    const point = (t: number): GP => (selonX ? { x: t, y: a.y, h: a.h } : { x: a.x, y: t, h: a.h });
+    let [lo, hi] = [segments[0].lo, segments[0].hi];
+    for (const s of segments.slice(1)) {
+      if (s.lo <= hi + EPS) hi = Math.max(hi, s.hi);
+      else { bouts.push({ pan, ecart, a: point(lo), b: point(hi) }); [lo, hi] = [s.lo, s.hi]; }
+    }
+    bouts.push({ pan, ecart, a: point(lo), b: point(hi) });
+  }
+  return bouts.flatMap(({ pan, ecart, a, b }) => {
+    const def = roofMaterial(pan.couverture);
+    if (!def.kit || !def.ridgeCap) return [];
+    const { kit, ridgeCap } = def;
+    return tronconsDuFaite(a, b).map(([ta, tb]): Faitiere => {
+      const cases = casesDuSegment(ta, tb, pan.cells, pan.z);
+      return {
         cle: `faite|${groupId}|${cle3(ta)}|${cle3(tb)}`,
-        nappe: p1.nappe,
+        nappe: pan.nappe,
         cases,
-        couverture: p1.couverture,
-        famille: def.kit,
+        couverture: pan.couverture,
+        famille: kit,
         piece: 'faitiere',
         position: 'seule',
-        palette: { corps: def.ridgeCap },
+        palette: { corps: ridgeCap },
         milieu: { x: (ta.x + tb.x) / 2, y: (ta.y + tb.y) / 2 },
         sens: { x: tb.x - ta.x, y: tb.y - ta.y },
         pied: ta.h,
         entree: ta.h,
         sortie: tb.h,
         bloc: blocDeLaCase(cases[0]),
-        gradient: { x: (p1.gx + p2.gx) / 2, y: (p1.gy + p2.gy) / 2 },
         ecart,
-      });
-    }
-  }
-  return { faitieres, surFacette };
+      };
+    });
+  });
 }
 
-/** Les faîtes de chaque groupe de nappes de `scene` (`faitesDuGroupe` sur les pans servis, `pansDesNappes`), et le
- *  nombre de faîtes qui bordent une facette. Retenus par scène et version des datasets (`memoByRef`). */
-export const faitesDeLaScene = memoByRef((scene: SceneDesToits): { faitieres: Faitiere[]; surFacette: number } => {
+/** Une face d'un pan servi est un soffite de RIVE : un soffite dont le bord intérieur suit la pente du rampant. */
+const soffiteDeRive = (face: Face): boolean => face.material.part === 'soffite' && Math.abs(face.poly[1].h - face.poly[0].h) > EPS;
+
+/** Les faîtières de chaque groupe de nappes de `scene` (`faitesDuGroupe`), lues sur les pans servis (`pansDesNappes`),
+ *  chacun avec les soffites de ses rives, qui prolongent son plan au-delà du pignon. Retenues par scène et version des
+ *  datasets (`memoByRef`). */
+export const faitieresDeLaScene = memoByRef((scene: SceneDesToits): Faitiere[] => {
   const pansParCle = pansDesNappes(scene);
   const groupes = new Map<string, PanDuGroupe[]>();
   for (const [cle, nappe] of resolveNappes(scene)) {
     const groupe = groupes.get(nappe.groupId) ?? groupes.set(nappe.groupId, []).get(nappe.groupId)!;
     for (const pan of pansParCle.get(cle)!)
-      groupe.push({ poly: pan.face.poly, gx: pan.gx, gy: pan.gy, nappe: cle, cells: nappe.cells, z: nappe.mass.z, couverture: nappe.mass.material.id });
+      for (const face of [pan.face, ...pan.faces.filter(soffiteDeRive)])
+        groupe.push({ poly: face.poly, gx: pan.gx, gy: pan.gy, nappe: cle, cells: nappe.cells, z: nappe.mass.z, couverture: nappe.mass.material.id });
   }
-  const parGroupe = [...groupes].map(([groupId, pans]) => faitesDuGroupe(groupId, pans));
-  return { faitieres: parGroupe.flatMap((g) => g.faitieres), surFacette: parGroupe.reduce((n, g) => n + g.surFacette, 0) };
+  return [...groupes].flatMap(([groupId, pans]) => faitesDuGroupe(groupId, pans));
 });
-
-/** Les faîtières de `scene` (`faitesDeLaScene`). */
-export const faitieresDeLaScene = (scene: SceneDesToits): Faitiere[] => faitesDeLaScene(scene).faitieres;
-
-/** Les faîtières de la couche `z` de `scene` (`faitieresDeLaScene`). */
-export const faitieresDeLaCouche = (scene: SceneDesToits, z: number): Faitiere[] => faitieresDeLaScene(scene).filter((f) => f.cases[0].z === z);
