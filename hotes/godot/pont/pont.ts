@@ -1522,12 +1522,18 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`, `src/noyau/monde/volume/volume.ts`).
      * `{ cotesDeMarches }` : les côtés des cases de marches de la scène (`cotesDeMarchesDeLaScene`,
      * `src/noyau/monde/cotesDeMarches.ts`), vides sans scène, sous la même clé de relecture. Chacun : `{ cle, case,
-     * cote, classe, pieces, entree, sortie, famille, cases, milieu, sens, pied, bloc }`, sa clé `marches|x,y,z|côté`, sa
-     * case `{ x, y, z }`, son côté (`N`, `E`, `S`, `O`), de travers à l'axe où monte la case ; sa classe, `rejointe`
-     * (une voisine rejointe à pied, plus basse ou égale) ou `vide` (une falaise, une case absente), et ses pièces
-     * (`limon`, puis `rampe` pour le vide, `Noyau.PieceDEscalier`) ; les cotes en mètres du bord du dessus de la case à
-     * son premier bout (`entree`) et à son second (`sortie`) dans son sens, que partage la case voisine sur l'axe ; la
-     * famille du kit d'escalier de son terrain (`kitDEscalier` de `terrains.json`) ; comme une arête, les cases qu'il
+     * cote, classe, pieces, entree, sortie, famille, position, cases, milieu, sens, pied, bloc }`, sa clé
+     * `marches|x,y,z|côté`, sa case `{ x, y, z }`, son côté (`N`, `E`, `S`, `O`), de travers à l'axe où monte la case ;
+     * sa classe, `rejointe` (une voisine rejointe à pied, plus basse ou égale, à au plus `STEP_MAX_M` sous chaque bout
+     * du bord) ou `vide` (une falaise, une case absente, une voisine plus basse), et ses pièces (`limon`, puis `rampe`
+     * pour le vide, `Noyau.PieceDEscalier`) ; les cotes en mètres du bord du dessus de la case à son premier bout
+     * (`entree`) et à son second (`sortie`) dans son sens, que partage la case voisine sur l'axe ; la famille du kit
+     * d'escalier de son terrain (`kitDEscalier` de `terrains.json`) ; la place de sa rampe dans la suite des côtés à
+     * rampe bout à bout de même côté de case, de même couche et de même famille (`Noyau.Position`), rangée dans leur
+     * sens : `gauche` au premier, dont le bout -X de la pièce, X le long du sens, est l'`entree`, `droite` au dernier,
+     * dont le bout +X est la `sortie`, `milieu` entre eux, `seule` pour une rampe sans voisine et pour un côté sans
+     * rampe ; l'hôte pose chaque pièce au nœud `<pièce>--<position>` de son kit s'il en est un, sinon `<pièce>` ;
+     * comme une arête, les cases qu'il
      * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
      * son pied, la cote de son milieu, et le bloc de sa case
      */

@@ -708,6 +708,12 @@ export function metresDEscalade(scene: Pick<Scene, 'dimensions' | 'layers'>, fro
   return Math.abs(heightAt(scene, to.x, to.y, to.z ?? 0) - heightAt(scene, from.x, from.y, from.z ?? 0));
 }
 
+/** Le pied de l'escalade de `from` à `to` à travers leur arête (`climbEdgeBetween`) : celle des deux cases dont le sol
+ *  (`heightAt`) est le plus bas, `from` à égalité. PUR. */
+export function piedDEscalade<P extends { x: number; y: number; z?: number }>(scene: Pick<Scene, 'dimensions' | 'layers'>, from: P, to: P): P {
+  return heightAt(scene, to.x, to.y, to.z ?? 0) < heightAt(scene, from.x, from.y, from.z ?? 0) ? to : from;
+}
+
 /** Clé de flag d'état d'une porte (`scene.flags`) — `true` = OUVERTE, `false` = FERMÉE (override runtime
  *  de l'état authored `closed`). Absent du flag = défaut authored (`!closed`). */
 export function doorKey(x: number, y: number, side: WallSide, z = 0): string {

@@ -14,9 +14,9 @@ import { terrainGradientId } from '../catalog/terrain';
 
 const dims: Dims = { w: 4, h: 4 };
 
-function withHeight(): Scene {
+function withHeight(terrain = 'plancher'): Scene {
   const s = emptyScene('scene-test', 4, 4);
-  s.layers[0].tiles = new Array(16).fill('plancher');
+  s.layers[0].tiles = new Array(16).fill(terrain);
   s.layers[0].height = new Array(16).fill(0);
   return s;
 }
@@ -62,9 +62,9 @@ describe('floorSvg — losange de base', () => {
 
 describe('floorSvg — parois de relief', () => {
   it('une case en falaise porte la classe `elev-cliff` et grossit le SVG', () => {
-    const s = withHeight();
+    const s = withHeight('terre');
     setH(s, 1, 1, 4);
-    const flat = floorSvg(elAt(withHeight(), 1, 1), dims);
+    const flat = floorSvg(elAt(withHeight('terre'), 1, 1), dims);
     const raised = floorSvg(elAt(s, 1, 1), dims);
     expect(raised.length).toBeGreaterThan(flat.length);
     expect(raised).toContain('elev-cliff');
@@ -73,7 +73,7 @@ describe('floorSvg — parois de relief', () => {
   it('un bord de tablier rend une dalle `overhang-deck` et des piliers `overhang-pillar`', () => {
     const s = withHeight();
     s.layers.push({ z: 1, tiles: new Array(16).fill('vide'), height: new Array(16).fill(0) });
-    s.layers[1].tiles[1 * 4 + 1] = 'planches';
+    s.layers[1].tiles[1 * 4 + 1] = 'terre';
     s.layers[1].height![1 * 4 + 1] = 4;
     const svg = floorSvg(elAt(s, 1, 1, 1, 1), dims);
     expect(svg).toContain('overhang-deck');

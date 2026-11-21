@@ -11,6 +11,12 @@ de fer clouée sur la joue du limon et sur celle de la main courante se complèt
 Les deux pièces partagent leur pied, la cote du bord : la rampe ne se pose qu'avec le limon, ses balustres dressés
 sur son chapeau.
 
+Au bout d'une suite de rampes, un poteau termine la main courante (`rampe--gauche` au bout -X, `rampe--droite` au bout
++X, `rampe--seule` aux deux, `volee.BOUTS`) : un pilastre tourné entre un pied et une tête carrés, plus fort qu'un
+balustre, coiffé d'une pointe, dressé sur le limon à la place du balustre du bout, de la face de celui-ci au bout de
+la case ; la main courante s'arrête dans sa tête, sans éclisse. `rampe` est la pièce du milieu, et le bout qu'une pièce
+raccorde reste le sien.
+
 Matières : le bois prend `bois-chene`, les éclisses et leurs clous `fer-noirci`. Chaque surface nomme son emplacement
 de palette ; aucune couleur ne s'y lit, et l'hôte ne leur en impose aucune : elles gardent la texture de leur matière.
 
@@ -49,6 +55,16 @@ RAMPE = {
     "balustres": 8, "axe": 0.04, "carre": 0.045, "pied": 0.4, "tete": 0.8,
     "fut": {"profil": ((0.0, 0.016), (0.16, 0.022), (0.4, 0.014), (0.85, 0.012), (1.0, 0.018)), "cotes": 8},
     "main_courante": {"dessous": 0.88, "dessus": 0.95, "largeur": 0.08, "chanfrein": 0.014},
+}
+
+# Poteau : la hauteur (m) où finit son `pied` carré, celle où commence sa `tete`, qui reçoit la main courante, et celle
+# de son `dessus` ; `fut` : le profil tourné entre eux, comme celui d'un balustre ; `pointe` : la hauteur (m) de celle
+# qui le coiffe et ce dont elle se resserre de chaque côté (m). Son côté n'est pas une cote : le demi-pas des balustres
+# et le demi-côté de leur carré.
+POTEAU = {
+    "pied": 0.46, "tete": 0.82, "dessus": 1.02,
+    "fut": {"profil": ((0.0, 0.05), (0.14, 0.068), (0.4, 0.046), (0.85, 0.038), (1.0, 0.056)), "cotes": 10},
+    "pointe": (0.06, 0.045),
 }
 
 # Éclisse : la demi-plaque de fer de chaque bout, sa `longueur` le long de la pièce, son `epaisseur` (m) ; `clou` : le

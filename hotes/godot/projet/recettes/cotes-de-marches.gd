@@ -5,13 +5,14 @@ extends SceneTree
 ## figé par la sonde, `volee` de `hotes/godot/recettes/decor.ts`), posés par le volume de la scène
 ## (`VolumeDeScene.poser_les_aretes`), sur un plateau de 2 m comme de 3 m par case, du modèle d'escalier de test
 ## (`_modele_de_test` : `limon` et `rampe` à plat, modélisés du pied de la pièce vers le haut et du bord de la case vers
-## le dehors), puis de chaque modèle d'escalier servi au figé (`escaliers` de la réponse de `modeles`, lu par le
+## le dehors), puis de chaque modèle d'escalier servi au figé, au moins un (`escaliers` de la réponse de `modeles`, lu par le
 ## chargeur des décors). Chaque pièce de chaque côté a son instance dans le groupe de sa pièce ; le pied de sa pièce va
 ## du bord du dessus de sa case à un bout (`entree`) à l'autre (`sortie`) le long de son sens, ses montants restent
 ## verticaux, son +Z va vers son dehors (`(-sens.y, sens.x)`) ; deux côtés voisins sur la volée se rejoignent au coin
-## qu'ils partagent. Un côté dont la famille n'a aucun modèle servi ne pose rien : aucune boîte. L'échelle de
-## l'échantillon d'un mur (`ENCLOS`), du modèle d'arête de test au nœud `echelle`, va de son pied à son pied plus le
-## dénivelé des cases qu'elle sépare (`hauteurM`).
+## qu'ils partagent. Au modèle de test, la rampe d'un côté au bout -X de sa suite (`position`) prend son nœud
+## `rampe--gauche`, toute autre pièce le nœud de sa pièce. Un côté dont la famille n'a aucun modèle servi ne pose rien :
+## aucune boîte. L'échelle de l'échantillon d'un mur (`ENCLOS`), du modèle d'arête de test au nœud `echelle`, va de son
+## pied à son pied plus le dénivelé des cases qu'elle sépare (`hauteurM`).
 ## L'instance d'un groupe se lit par `VolumeDeScene.transform_d_instance`, sans rendu.
 
 const RECETTE_AUTONOME := true
@@ -27,6 +28,8 @@ const MODELE_D_ARETE := "arete--test"
 const LONG := 2.0
 const HAUT := 0.9
 const EPAIS := 0.1
+## Le nœud de la rampe au bout -X de sa suite, seul nœud de place du modèle d'escalier de test.
+const RAMPE_A_GAUCHE := Noyau.PieceDEscalier.RAMPE + "--" + Noyau.Position.GAUCHE
 ## Une famille qu'aucun modèle d'escalier ne sert.
 const FAMILLE_SANS_MODELE := "sans-modele"
 var _fautes: Array[String] = []
@@ -52,16 +55,18 @@ func _recetter() -> void:
 		var volume := _volume_de_test(metres_par_case, famille, echelles[0].famille)
 		volume.poser_les_aretes([], cotes)
 		_des_cotes(volume, cotes, "test, %.0f m par case" % metres_par_case)
+		_aux_noeuds_de_leur_place(volume, cotes, "test, %.0f m par case" % metres_par_case)
 		_sans_modele(volume, cotes)
 		_de_l_echelle(volume, echelles[0])
-	if not servis.is_empty():
-		PontFige.poser(self, decor)
-		MontageDeComposition.retenir_les_modeles(decor.modeles, decor.listage)
-		for servie: String in servis:
-			var volume := ARETE.volume_neuf(_scene(), PLATEAUX[0])
-			volume.poser_les_aretes([], cotes.map(func(c: Dictionary) -> Dictionary: return c.merged({famille = servie}, true)))
-			await volume.attendre_les_aretes()
-			_des_cotes(volume, cotes, "servi %s" % servis[servie])
+	if servis.is_empty():
+		_fautes.append("%s : aucun modèle d'escalier servi au figé" % FIGE)
+	PontFige.poser(self, decor)
+	MontageDeComposition.retenir_les_modeles(decor.modeles, decor.listage)
+	for servie: String in servis:
+		var volume := ARETE.volume_neuf(_scene(), PLATEAUX[0])
+		volume.poser_les_aretes([], cotes.map(func(c: Dictionary) -> Dictionary: return c.merged({famille = servie}, true)))
+		await volume.attendre_les_aretes()
+		_des_cotes(volume, cotes, "servi %s" % servis[servie])
 	for faute in _fautes:
 		push_error("[cotes-de-marches] " + faute)
 	print("[cotes-de-marches] erreurs=", _fautes.size())
@@ -90,7 +95,8 @@ func _volume_de_test(metres_par_case: float, escalier: String, arete: String) ->
 	MontageDeComposition.retenir_les_modeles({aretes = {arete: MODELE_D_ARETE}, escaliers = {escalier: MODELE_D_ESCALIER},
 		surfaces = {MODELE_D_ARETE: [], MODELE_D_ESCALIER: []}}, {})
 	var volume := ARETE.volume_neuf(_scene(), metres_par_case)
-	volume._modeles_d_arete[MODELE_D_ESCALIER] = _modele_de_test([Noyau.PieceDEscalier.LIMON, Noyau.PieceDEscalier.RAMPE])
+	volume._modeles_d_arete[MODELE_D_ESCALIER] = _modele_de_test([Noyau.PieceDEscalier.LIMON, Noyau.PieceDEscalier.RAMPE,
+		RAMPE_A_GAUCHE])
 	return volume
 
 
@@ -166,6 +172,27 @@ func _a_sa_place(volume: VolumeDeScene, groupe: Node3D, pose: Dictionary, moment
 		_fautes.append("%s, %s %s : +Z vers %s, attendu vers le dehors %s" % [moment, pose.cle, pose.piece, monde.basis.z.normalized(), dehors])
 
 
+## Les pièces des côtés `cotes` posés sur `volume` du modèle de test, au moment `moment`, chacune au nœud de la place de
+## sa rampe que dit son côté (`position`) : `RAMPE_A_GAUCHE` pour la rampe d'un côté `gauche`, le nœud de sa pièce
+## sinon (`VolumeDeScene.noeud_de_la_piece`) ; au moins une de chaque.
+func _aux_noeuds_de_leur_place(volume: VolumeDeScene, cotes: Array, moment: String) -> void:
+	var place_de := {}
+	for c: Dictionary in cotes:
+		place_de[c.cle] = c.position
+	var vus := {}
+	for groupe: Node3D in volume.get_node("Aretes").get_children():
+		for pose: Dictionary in groupe.get_meta("aretes"):
+			if pose.catalogue != "escaliers":
+				continue
+			var gauche: bool = pose.piece == Noyau.PieceDEscalier.RAMPE and place_de[pose.cle] == Noyau.Position.GAUCHE
+			var attendu := "Vu_%s" % (RAMPE_A_GAUCHE if gauche else pose.piece)
+			vus[attendu] = true
+			if groupe.find_children(attendu, "MultiMeshInstance3D", true, false).is_empty():
+				_fautes.append("%s, %s %s (%s) : aucune instance %s" % [moment, pose.cle, pose.piece, place_de[pose.cle], attendu])
+	if not vus.has("Vu_" + RAMPE_A_GAUCHE) or not vus.has("Vu_" + Noyau.PieceDEscalier.RAMPE):
+		_fautes.append("%s : rampes posées aux nœuds %s, attendu %s et %s" % [moment, vus.keys(), RAMPE_A_GAUCHE, Noyau.PieceDEscalier.RAMPE])
+
+
 ## Les côtés `cotes` d'une famille qu'aucun modèle ne sert, posés sur `volume` avec les autres : aucun groupe de plus.
 func _sans_modele(volume: VolumeDeScene, cotes: Array) -> void:
 	var avant := volume.get_node("Aretes").get_child_count()
@@ -179,7 +206,7 @@ func _sans_modele(volume: VolumeDeScene, cotes: Array) -> void:
 ## cases qu'elle sépare.
 func _de_l_echelle(volume: VolumeDeScene, echelle: Dictionary) -> void:
 	volume._modeles_d_arete[MODELE_D_ARETE] = _modele_de_test([Noyau.Piece.ECHELLE])
-	volume.poser_les_aretes([echelle])
+	volume.poser_les_aretes([echelle], [])
 	var groupes := volume.get_node("Aretes").get_children()
 	if groupes.size() != 1:
 		_fautes.append("échelle : %d groupes posés, attendu 1" % groupes.size())

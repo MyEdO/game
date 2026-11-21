@@ -5,21 +5,26 @@ kit, un nœud racine par pièce (`PieceDArete`, `src/noyau/monde/aretes.ts`).
 Repère. Dans Blender, x le long de l'arête, centrée ; z depuis le pied ; y l'épaisseur, centrée, la face du dehors vers
 -y (`DEHORS`), comme le front d'un décor (`maille.py`). L'export glTF le place en (X, Y, Z) = (x, z, -y) : X le long de
 l'arête, Y depuis le pied, Z l'épaisseur, le dehors vers +Z. Chaque pièce garde l'origine de l'arête."""
+import json
 import random
+from pathlib import Path
 
 from mathutils import Vector
 
 import habillage
 from maille import Maille, boite, objet, poutre
+from script_node import lancer
 
 X, HAUT = Vector((1, 0, 0)), Vector((0, 0, 1))
 DEHORS = Vector((0, -1, 0))
 """Le sens de la face du dehors d'une arête, dans le repère de Blender."""
 SEPARATEUR = "--"
 GRAVATS = "gravats"
-GAUCHE, MILIEU, DROITE = "gauche", "milieu", "droite"
-"""La position d'une arête dans une ouverture de plusieurs arêtes : son nœud est `<pièce>--<position>`, `gauche` au
-bout -X de l'ouverture, `droite` à son bout +X ; l'arête d'une ouverture d'une seule arête prend le nœud `<pièce>`."""
+POSITIONS = {p.upper(): p for p in json.loads(lancer(Path(__file__).parent / "positions.mjs", [], ""))}
+SEULE, GAUCHE, MILIEU, DROITE = (POSITIONS[nom] for nom in ("SEULE", "GAUCHE", "MILIEU", "DROITE"))
+"""Les places d'une pièce dans sa suite (`POSITIONS_DANS_L_OUVERTURE`, `src/noyau/monde/piecesDArete.ts`, que lance
+`positions.mjs`), par leur nom comme `Noyau.Position` : son nœud est `<pièce>--<position>`, `gauche` au bout -X de la
+suite, `droite` à son bout +X ; l'arête d'une ouverture d'une seule arête prend le nœud `<pièce>`."""
 
 
 def noeud(piece, position=None):

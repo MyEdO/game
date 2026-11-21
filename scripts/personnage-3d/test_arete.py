@@ -20,9 +20,10 @@ from script_node import lancer
 
 FAMILLE = 'arete'
 sys.path.insert(0, str(ICI / FAMILLE))
+from geometrie import DROITE, GAUCHE, MILIEU  # noqa: E402
 from menuiserie import VITRE  # noqa: E402
 PIECES = set(json.loads(lancer(ICI / FAMILLE / 'pieces.mjs', [], '')))
-POSITIONS = ('gauche', 'milieu', 'droite')
+POSITIONS = (GAUCHE, MILIEU, DROITE)
 PLEINES = ('mur', 'fenetre-close')
 ECHELLE = 'echelle'
 PAS_DU_JOUR = 0.005   # m

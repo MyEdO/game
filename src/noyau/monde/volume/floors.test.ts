@@ -254,7 +254,7 @@ describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)'
     s.layers[0].tiles = new Array(16).fill('plancher');
     s.layers[0].height = new Array(16).fill(0);
     s.layers.push({ z: 1, tiles: new Array(16).fill('vide'), height: new Array(16).fill(0) });
-    s.layers[1].tiles[1 * 4 + 1] = 'planches';
+    s.layers[1].tiles[1 * 4 + 1] = 'terre';
     s.layers[1].height![1 * 4 + 1] = 4;
     s.reliefDefaults = { ...s.reliefDefaults, deck: { id: 'terre' }, pilier: { id: 'terre' } }; // ≠ défauts `pierre`/`pilier`
     const el = elAt(buildFloors(s, undefined, { activeZ: 1 }), 1, 1, 1)!;
@@ -386,13 +386,13 @@ describe('buildFloors — wedges de raccord de terrain', () => {
 });
 
 describe('buildFloors — surplomb (tablier au-dessus d’une surface marchable)', () => {
-  /** z0 praticable partout ; tablier 1×1 en (1,1) à z1, 4 m, cerné de vide. */
-  function deckScene(): Scene {
+  /** z0 praticable partout ; tablier 1×1 du terrain `terrain` en (1,1) à z1, 4 m, cerné de vide. */
+  function deckScene(terrain = 'terre'): Scene {
     const s = emptyScene('scene-test', 4, 4);
     s.layers[0].tiles = new Array(16).fill('plancher');
     s.layers[0].height = new Array(16).fill(0);
     s.layers.push({ z: 1, tiles: new Array(16).fill('vide'), height: new Array(16).fill(0) });
-    s.layers[1].tiles[1 * 4 + 1] = 'planches';
+    s.layers[1].tiles[1 * 4 + 1] = terrain;
     s.layers[1].height![1 * 4 + 1] = 4;
     return s;
   }
@@ -419,6 +419,13 @@ describe('buildFloors — surplomb (tablier au-dessus d’une surface marchable)
     expect(pillars.every((f) => f.poly.length === 2 && f.poly[1].h === 0)).toBe(true); // jusqu'à la surface inférieure
     // Ordre de peinture : piliers (les plus en arrière) AVANT les parois, base ensuite, wedges à la fin.
     expect(el.faces.findIndex((f) => f.material.part === 'pilier')).toBe(0);
+  });
+
+  it('tranche d’un tablier bâti : la matière de son terrain, en dalle fine (#4471)', () => {
+    const el = elAt(buildFloors(deckScene('planches'), undefined, { activeZ: 1 }), 1, 1, 1)!;
+    const tranches = el.faces.filter((f) => f.poly.length > 2 && estVerticale(f));
+    expect(tranches.map((f) => f.material)).toEqual(new Array(4).fill({ domain: 'terrain', id: 'planches' }));
+    expect(tranches[0].poly.map((p) => p.h)).toEqual([4, 4, 4 - 0.3, 4 - 0.3]);
   });
 
   it('fantôme au-dessus de la zone active : SEULS les surplombs sont émis', () => {

@@ -750,19 +750,19 @@ func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 ## (`modele_servi`) ne se pose qu'une fois ce modèle lu : il se lit une fois les autres posées
 ## (`_lire_le_modele_d_arete`), et les poses reçues se reposent à sa lecture ; celle d'un modèle illisible se pose en
 ## boîte, sans relire le modèle, si sa sorte se replie (`SORTES`), sinon pas du tout.
-func poser_les_aretes(aretes: Array, cotes: Array = []) -> void:
+func poser_les_aretes(aretes: Array, cotes: Array) -> void:
 	_poser(_poses_de(aretes, cotes))
 
 
 ## Les poses des arêtes `aretes`, chacune elle-même, de son catalogue `aretes`, à plat (de `entree` à `sortie`, toutes
 ## deux à son pied), et celles des côtés de marches `cotes`, une par pièce de chacun (`pieces`), de son catalogue
-## `escaliers`, seule dans son ouverture, sans palette, montant de son `entree` à sa `sortie` le long de son `sens`.
+## `escaliers`, à la place de sa rampe dans sa suite de rampes (`position`), sans palette, montant de son `entree` à
+## sa `sortie` le long de son `sens`.
 static func _poses_de(aretes: Array, cotes: Array) -> Array:
 	var poses := aretes.map(func(a: Dictionary) -> Dictionary: return a.merged({catalogue = "aretes", entree = a.pied, sortie = a.pied}))
 	for c: Dictionary in cotes:
 		for piece: String in c.pieces:
-			poses.append(c.merged({catalogue = "escaliers", piece = piece, position = Noyau.Position.SEULE, palette = {},
-				hauteurM = 0.0}))
+			poses.append(c.merged({catalogue = "escaliers", piece = piece, palette = {}, hauteurM = 0.0}))
 	return poses
 
 

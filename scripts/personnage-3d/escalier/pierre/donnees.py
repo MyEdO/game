@@ -11,6 +11,11 @@ voisine : d'une case à l'autre, les lits et les parements se suivent sans ressa
 Les deux pièces partagent leur pied, la cote du bord : la rampe ne se pose qu'avec le limon, son mur monté sur
 l'assise, plus large que lui.
 
+Au bout d'une suite de rampes, un pilier d'échiffre termine le mur (`rampe--gauche` au bout -X, `rampe--droite` au
+bout +X, `rampe--seule` aux deux, `volee.BOUTS`) : un dé de pierres de taille de la largeur du limon, monté sur lui
+plus haut que le chaperon, qui s'y arrête, et couronné d'une dalle à pointe. `rampe` est la pièce du milieu, et le bout
+qu'une pièce raccorde reste le sien.
+
 Matières : la pierre, son âme et le chaperon prennent `pierre-atre`. Chaque surface nomme son emplacement de palette ;
 aucune couleur ne s'y lit, et l'hôte ne leur en impose aucune : elles gardent la texture de leur matière.
 
@@ -63,3 +68,8 @@ RAMPE = {
     },
     "chaperon": {"hauteur": 0.12, "debord": 0.035, "rive": 0.06, "faite": 0.05, "dalle": 0.5, "joint": 0.012},
 }
+
+# Pilier : son `cote` (m), le long de la case et depuis le plan du bord, la `hauteur` (m) de son dé, du dessus du limon
+# à sa couronne, bâti de l'appareil du limon ; `couronne` : l'épaisseur (m) de sa dalle, la hauteur (m) de sa pointe et
+# ce dont elle se resserre de chaque côté (m).
+PILIER = {"cote": 0.38, "hauteur": 0.66, "couronne": (0.06, 0.1, 0.13)}

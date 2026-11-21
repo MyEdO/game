@@ -238,12 +238,12 @@ export function floorFaces(scene: SceneDuVolume, x: number, y: number, z: number
     const plancher = displayHeightAt(scene, x + dx, y + dy, z);
     const lien = voisine != null && rejointAPied(scene, x, y, x + dx, y + dy, z);
     // La matière vient de la DONNÉE (#1691) : le flanc d'un BLOC PLEIN est celui de SON terrain (`terrains.json ›
-    // matiere`), la paroi d'un sol bâti, contremarche ou falaise, est son terrain (#4471), hors du bord de surplomb ;
-    // toute autre paroi prend la matière que la SCÈNE pose pour cette partie. Aucun repli : ces sources sont exigées au
+    // matiere`), la paroi d'un sol bâti, contremarche, falaise ou tranche de surplomb, est son terrain (#4471) ; toute
+    // autre paroi prend la matière que la SCÈNE pose pour cette partie. Aucun repli : ces sources sont exigées au
     // parse.
     const material: Face['material'] = solidBlock
       ? { domain: 'relief', id: terrainMatiere(terrain)!, part: 'cliff' }
-      : !deck && terrainBuilt(terrain)
+      : terrainBuilt(terrain)
         ? { domain: 'terrain', id: terrain }
         : { domain: 'relief', id: scene.reliefDefaults[deck ? 'deck' : lien ? 'ramp' : 'cliff'].id, part: deck ? 'deck' : lien ? 'ramp' : 'cliff' };
     const [A, B] = edgeCorners(x, y, side);

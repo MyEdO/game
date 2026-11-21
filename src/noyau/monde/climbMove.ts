@@ -1,4 +1,4 @@
-import { Scene, WallSeg, heightAt, climbEdgeBetween, metresDEscalade } from './scene';
+import { Scene, WallSeg, climbEdgeBetween, metresDEscalade, piedDEscalade } from './scene';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { flowFromEffects } from './flow';
 import { EMPTY_FLOW } from '../../engine/flowCore';
@@ -39,7 +39,7 @@ export function planClimb(scene: Scene, from: Pt, to: Pt, hasGrimpeur: boolean, 
   // Chute sur échec = vraie hauteur métrique (relief) entre les deux surfaces — retombe au pied, la plus basse.
   // En combat, le faller NOMMÉ (`fallerId`) chute et regagne le pied ; hors combat, c'est le GROUPE.
   const metres = metresDEscalade(scene, from, to);
-  const pied = heightAt(scene, to.x, to.y, to.z ?? 0) < heightAt(scene, from.x, from.y, from.z ?? 0) ? to : from;
+  const pied = piedDEscalade(scene, from, to);
   const foot = { x: pied.x, y: pied.y, z: pied.z ?? 0 };
   const fall: Effect = fallerId
     ? { type: 'fall', target: 'heros', heroId: fallerId, metres, to: foot }

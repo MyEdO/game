@@ -134,7 +134,7 @@ func _des_boites(volume: VolumeDeScene) -> void:
 	var boite := arete.merged({cle = "boite", famille = null})
 	var voisine := arete.merged({cle = "voisine", famille = null, milieu = {x = 1.0, y = -0.5}}, true)
 	var partie := arete.merged({cle = "partie", famille = null, bloc = "0/1/0"}, true)
-	volume.poser_les_aretes([sans_modele, boite, voisine, partie])
+	volume.poser_les_aretes([sans_modele, boite, voisine, partie], [])
 	var aretes := volume.get_node("Aretes")
 	var groupes := _groupes(aretes)
 	if groupes.keys() != [["sans-modele"], ["boite", "voisine"], ["partie"]]:
@@ -154,7 +154,7 @@ func _des_boites(volume: VolumeDeScene) -> void:
 	if volume.ce_qui_est_pose().aretes != 4:
 		_fautes.append("posées, %d arêtes comptées, attendu 4" % volume.ce_qui_est_pose().aretes)
 	var seuil := voisine.merged({piece = Noyau.Piece.PORTE_OUVERTE}, true)
-	volume.poser_les_aretes([sans_modele.duplicate(true), boite.duplicate(true), seuil])
+	volume.poser_les_aretes([sans_modele.duplicate(true), boite.duplicate(true), seuil], [])
 	var reposes := _groupes(aretes)
 	if reposes.keys() != [["sans-modele"], ["boite"], ["voisine"]]:
 		_fautes.append("posées à nouveau, les groupes sont %s, attendu la boîte sans modèle, la boîte, le seuil"
@@ -197,7 +197,7 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 		servie.merged({cle = "echelle", milieu = {x = 25.0, y = -0.5}, piece = Noyau.Piece.ECHELLE, hauteurM = 3.0}, true),
 		servie.merged({cle = "boite", famille = null, palette = {}, milieu = {x = 11.0, y = -0.5}}, true),
 	]
-	volume.poser_les_aretes(aretes)
+	volume.poser_les_aretes(aretes, [])
 	await volume.attendre_les_aretes()
 	var groupes := _groupes(volume.get_node("Aretes"))
 	var attendus := [["boite"]] + aretes.filter(func(a: Dictionary) -> bool: return a.famille != null).map(
@@ -224,7 +224,7 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 				% [surface.nom, surface.palette, surface.matiere])
 	if texturees.is_empty():
 		_fautes.append("aucune surface texturée contrôlée, surfaces %s" % [surfaces.map(func(s: Dictionary) -> String: return s.nom)])
-	volume.poser_les_aretes(aretes.map(func(a: Dictionary) -> Dictionary: return a.duplicate(true)))
+	volume.poser_les_aretes(aretes.map(func(a: Dictionary) -> Dictionary: return a.duplicate(true)), [])
 	var reposes := _groupes(volume.get_node("Aretes"))
 	if reposes.values() != groupes.values() or volume.ce_qui_est_pose().aretes != aretes.size():
 		_fautes.append("modèle lu, posées à nouveau, les groupes ne sont pas gardés")
@@ -242,10 +242,10 @@ func _d_un_modele_illisible(volume: VolumeDeScene) -> void:
 	var arete := {cle = "illisible", famille = FAMILLE_ILLISIBLE, palette = _palette, piece = Noyau.Piece.MUR,
 		position = Noyau.Position.SEULE, bloc = "0/0/0", pied = PIED_M, hauteurM = HAUTEUR_M,
 		milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}}
-	volume.poser_les_aretes([arete])
+	volume.poser_les_aretes([arete], [])
 	await volume.attendre_les_aretes()
 	_seule_boite(volume, "lu")
-	volume.poser_les_aretes([arete.duplicate(true)])
+	volume.poser_les_aretes([arete.duplicate(true)], [])
 	_seule_boite(volume, "posé à nouveau")
 	print("[arete-au-pied] modèle illisible : en lecture %s, %d lecture(s) close(s)" % [volume.aretes_en_lecture(), lectures[0]])
 	if volume.aretes_en_lecture() or lectures[0] != 1:
@@ -296,7 +296,7 @@ func _ouverture_de_deux(volume: VolumeDeScene, famille: String) -> void:
 		porte.merged({cle = "gauche", position = Noyau.Position.GAUCHE, milieu = {x = 0.0, y = -0.5}}, true),
 		porte.merged({cle = "droite", position = Noyau.Position.DROITE, milieu = {x = 1.0, y = -0.5}}, true),
 	]
-	volume.poser_les_aretes(aretes)
+	volume.poser_les_aretes(aretes, [])
 	await volume.attendre_les_aretes()
 	var groupes := _groupes(volume.get_node("Aretes"))
 	if groupes.keys() != [["gauche"], ["droite"]]:
@@ -326,7 +326,7 @@ func _bout_a_bout(volume: VolumeDeScene, famille: String) -> void:
 		servie.merged({cle = "muret", milieu = {x = 6.0, y = -0.5}, hauteurM = MURET_M}, true),
 		servie.merged({cle = "diagonale", milieu = {x = 4.0, y = 0.0}, sens = {x = 1.0, y = 1.0}}, true),
 	]
-	volume.poser_les_aretes(aretes)
+	volume.poser_les_aretes(aretes, [])
 	await volume.attendre_les_aretes()
 	var groupes := _groupes(volume.get_node("Aretes"))
 	for a: Dictionary in aretes:
@@ -365,7 +365,7 @@ func _caches_bornes(volume: VolumeDeScene, famille: String) -> void:
 		pied = 0.0, hauteurM = HAUTEUR_M, milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, cases = []}
 	var tailles := []
 	for tour in TOURS_DE_VIDAGE:
-		volume.poser_les_aretes([arete.duplicate(true)])
+		volume.poser_les_aretes([arete.duplicate(true)], [])
 		await volume.attendre_les_aretes()
 		tailles.append([volume._maillages_teints.size(), volume._matieres_teintes.size()])
 		volume.vider()

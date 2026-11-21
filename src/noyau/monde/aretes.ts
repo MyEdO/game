@@ -21,6 +21,7 @@ import {
   edgeOf,
   heightAt,
   metresDEscalade,
+  piedDEscalade,
   solPraticable,
   piedDeLArete,
   porteAuteur,
@@ -54,14 +55,13 @@ import { DIR8_DELTA } from '../../geometry/dir8';
 import { wallPartColor } from './volume/structures';
 import type { WallPart } from '../../data/structureAppearance.types';
 import type { Slot } from '../../lib/palette';
-import type { PIECES_D_ARETE } from './piecesDArete';
+import type { PIECES_D_ARETE, POSITIONS_DANS_L_OUVERTURE } from './piecesDArete';
 
 /** La pièce qu'une arête porte, l'une de `PIECES_D_ARETE`. */
 export type PieceDArete = (typeof PIECES_D_ARETE)[number];
 
-/** La place d'une arête dans son ouverture (`ouverturesDeLaScene`) : seule, ou à son bout -X (`gauche`), entre ses
- *  deux bouts (`milieu`), à son bout +X (`droite`), X le long du `sens` de l'arête (#4471). */
-export type PositionDansLOuverture = 'seule' | 'gauche' | 'milieu' | 'droite';
+/** La place d'une arête dans son ouverture (`ouverturesDeLaScene`), l'une de `POSITIONS_DANS_L_OUVERTURE`. */
+export type PositionDansLOuverture = (typeof POSITIONS_DANS_L_OUVERTURE)[number];
 
 /** Une arête telle qu'un hôte la dessine : sa clé (`edgeKey`), les cases de la carte qu'elle sépare à sa couche
  *  (`casesDeFace`, `inMapBounds` : une ou deux), son milieu et son sens en coins de grille (`wallEnds`,
@@ -121,7 +121,8 @@ function escaladeDeLEchelle(scene: Scene, seg: WallSeg): { pied: Pt; arrivee: Pt
     if (![de, vers].every((c) => inMapBounds(scene.dimensions, c) && solPraticable(scene, c.x, c.y, c.z))) return [];
     const portee = climbEdgeBetween(scene, de, vers);
     if (!portee || edgeKey(portee) !== edgeKey(seg)) return [];
-    const [bas, haut] = heightAt(scene, vers.x, vers.y, vers.z) < heightAt(scene, de.x, de.y, de.z) ? [vers, de] : [de, vers];
+    const bas = piedDEscalade(scene, de, vers);
+    const haut = bas === de ? vers : de;
     return [{ pied: bas, arrivee: haut, metres: metresDEscalade(scene, de, vers) }];
   }));
   const plusHaute = pas.reduce<(typeof pas)[number] | null>((m, p) => (!m || p.metres > m.metres ? p : m), null);

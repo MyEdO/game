@@ -871,11 +871,16 @@ Les pièces qu'un hôte pose sur les côtés d'une case de marches (catégorie `
 `scripts/personnage-3d/construire.py`, un dossier par famille, `scripts/personnage-3d/escalier/<famille>/`
 (`donnees.py`, `modele.py`), et leurs communs dans `escalier/volee.py`, qui met ceux des arêtes au chemin
 (`geometrie.py`, `menuiserie.py`, `maconnerie.py`). Un kit est un GLB, `escalier--<famille>`, un nœud racine à mesh par
-pièce de `PIECES_D_ESCALIER` (`src/noyau/monde/piecesDArete.ts`) et aucun autre : `limon`, sur un côté que borde une
+pièce de `PIECES_D_ESCALIER` (`src/noyau/monde/piecesDArete.ts`) : `limon`, sur un côté que borde une
 case rejointe à pied ou le vide, et `rampe`, sur un côté que borde le vide (`cotesDeMarchesDeLaScene`,
-`src/noyau/monde/cotesDeMarches.ts`). Les marches restent celles du noyau. Familles livrées : `bois` (limon de planche
-à chapeau, balustres tournés sous une main courante, éclisses de fer) et `pierre` (assise de pierres de taille, mur
-d'échiffre à chaperon de dalles).
+`src/noyau/monde/cotesDeMarches.ts`), plus un nœud `rampe--<position>` par bout d'une suite de rampes (`volee.BOUTS`),
+et aucun autre : `rampe--gauche` termine la suite d'un poteau à son bout -X, `rampe--droite` à son bout +X,
+`rampe--seule` aux deux ; `rampe` est la pièce du milieu, que l'hôte pose aussi faute du nœud de la position. Les
+marches restent celles du noyau. Familles livrées : `bois` (limon de planche à chapeau, balustres tournés sous une main
+courante, éclisses de fer, poteau tourné coiffé d'une pointe) et `pierre` (assise de pierres de taille, mur d'échiffre
+à chaperon de dalles, pilier de pierres de taille couronné). Chaque famille qu'un terrain nomme a son kit :
+`test_chaque_kit_d_escalier_d_un_terrain_a_son_modele` (`test_escalier.py`) lit le `kitDEscalier` de chaque terrain de
+`src/data/terrains.json`.
 
 **Repère, à plat.** X le long de l'axe montant, de -L/2 à +L/2 (une case, 2 m) ; Y depuis le pied de la pièce ; Z vers
 le dehors, 0 au plan du bord de la case, que rien ne passe. Une pièce se modèle sans pente : l'hôte la cisaille, Y
@@ -885,10 +890,11 @@ dedans au plan du bord (Z = 0) ; la rampe, qui ne se pose qu'avec lui, se dresse
 pour qu'aucune de leurs faces ne se double au bout d'une volée.
 
 **Raccord.** Deux cases voisines se raccordent bout à bout, quelle que soit la pente de chacune : la section d'une
-pièce est la même à ses deux bouts ; rien n'y est tiré au sort (les pierres des bouts sont des pierres de taille de
+pièce est la même à ses deux bouts, et celle d'une rampe de bout est celle de `rampe` au bout qu'elle raccorde ; rien n'y est tiré au sort (les pierres des bouts sont des pierres de taille de
 façon constante, `maconnerie.Appareil.rang`) ; ce qui se répète (balustres, dalles du chaperon) va à un pas qui divise
-la case, à un demi-pas des bouts, ou par moitiés que la case voisine complète (demi-dalle, demi-éclisse). `test_escalier.py`
-le mesure : section des deux bouts, vides de même largeur d'une case à l'autre, rampe sur le dessus du limon.
+la case, à un demi-pas des bouts, ou par moitiés que la case voisine complète (demi-dalle, demi-éclisse). Un poteau tient dans sa case, au bout, d'aplomb comme le reste : l'hôte cisaille son
+couronnement avec la pièce. `test_escalier.py` le mesure : section de chaque bout raccordé, même poteau à chaque
+position, vides de même largeur d'une case à l'autre hors celui que borde un poteau, rampe sur le dessus du limon.
 
 **Couleur.** Chaque surface nomme un emplacement de palette et sa matière du domaine `prop` ; l'hôte ne lui impose
 aucune couleur : elle garde la texture de sa matière.
@@ -904,8 +910,9 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/escalier/revu
   --modeles /atelier/<famille> --sortie /atelier/revue-<famille>
 ```
 
-`escalier/revue.py` rend chaque pièce seule, à plat, de face, de trois-quarts et de dessus, puis la ligne `volee` : deux
-cases bout à bout, toutes leurs pièces posées, chacune cisaillée à sa pente, pour voir le raccord. `npm run
+`escalier/revue.py` rend chaque nœud seul, à plat, de face, de trois-quarts et de dessus, puis la ligne `volee` : trois
+cases bout à bout, chacune son limon et sa rampe à sa position (`gauche`, milieu, `droite`), cisaillée à sa pente, pour
+voir le raccord et les poteaux. `npm run
 personnage-3d:tests` (`test_escalier.py`) bâtit chaque kit deux fois aux mêmes octets, mesure ses pièces (nœuds, repère,
 budget, coques closes, raccord) et compare chaque manifeste au publié. Une famille neuve entre d'abord au
 `kitDEscalierSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
