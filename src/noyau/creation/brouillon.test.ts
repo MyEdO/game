@@ -193,11 +193,11 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
     const de = (i: number, j: number) => adresseDeCreation.especeTirage(i, j);
     const d = {
       ...withSpecies(newDraft(1), 'humains-middenland'),
-      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } },
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { pick: 1, table: { id: 'talents-aleatoires' } } },
       talentRerolls: { [de(1, 0)]: 1, [de(2, 1)]: 1 },
       randomSpecPicks: { [de(1, 0)]: 'odorat', [de(2, 0)]: 'gout' },
     };
-    expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { random: 1 })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
+    expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { pick: 1, table: { id: 'talents-aleatoires' } })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
     const change = withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { id: 'destinee' });
     expect(change.speciesTalentChoices).toEqual({ [adresseDeCreation.especeTalent(1)]: { id: 'destinee' } });
     expect(change.talentRerolls).toEqual({ [de(2, 1)]: 1 });
@@ -210,7 +210,7 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
     const de = (i: number, j: number) => adresseDeCreation.especeTirage(i, j);
     const d = {
       ...withSpecies(newDraft(1), 'humains-middenland'),
-      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } },
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { pick: 1, table: { id: 'talents-aleatoires' } } },
       talentRerolls: { [de(1, 0)]: 1, [de(10, 0)]: 2 },
       randomSpecPicks: { [de(1, 0)]: 'odorat', [de(10, 0)]: 'gout' },
     };
@@ -493,7 +493,7 @@ describe('buildHero — bout en bout', () => {
   });
   it('héros conforme : PX bonus, Augmentations, libellés résolus, désignations posées', () => {
     let d = readyDraft();
-    d = { ...d, age: 20, height: 175, eyes: 'Bleu', hair: 'Brun' };
+    d = { ...d, age: 20, height: 175, eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' } };
     const hero = buildHero(d, idsDeTest, 'h-test');
     expect(hero.xp).toBe(xpTotal(d));
     expect(Object.values(hero.charAdvances ?? {}).reduce((a, b) => a + (b ?? 0), 0)).toBe(5);
@@ -697,7 +697,7 @@ describe('signe astral (ADE II 3) — étape, tirage, PX et effet', () => {
 describe('clés des choix de Talents d’espèce : l’adresse de l’entrée', () => {
   it('chaque entrée « A ou B » de chaque espèce est adressée par son rang dans `sp.talents`', () => {
     for (const sp of allSpecies) {
-      const attendues = sp.talents.flatMap((a, i) => ('pick' in a ? [adresseDeCreation.especeTalent(i)] : []));
+      const attendues = sp.talents.flatMap((a, i) => ('of' in a ? [adresseDeCreation.especeTalent(i)] : []));
       expect(speciesTalentChoiceEntries(withSpecies(newDraft(7), sp.id)).map((e) => e.adresse)).toEqual(attendues);
     }
   });

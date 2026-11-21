@@ -73,6 +73,7 @@ export const TYPES = {
   species: { espace: 'species.json', catalogue: 'espèces' },
   // LDB 05 l.214 : `species.json › refCareer` nomme sa colonne du Tableau des Classes et Carrières aléatoires.
   carrieresAleatoires: { espace: 'carrieres-aleatoires.json', catalogue: 'colonnes du Tableau des Classes et Carrières aléatoires' },
+  talentsAleatoires: { espace: 'talents-aleatoires.json', catalogue: 'tables de Talents aléatoires' },
   navalTrait: { espace: 'naval-traits.json', catalogue: 'traits navals' },
   // PORT du catalogue naval : `MapPlace.port.ref` résout AU PARSE, toutes les réfs mortes nommées.
   navalPort: { espace: 'naval-ports.json', catalogue: 'ports' },
@@ -1230,7 +1231,7 @@ export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
  *
  * `optionsDuPorteur` ouvre l'`of` aux formes que le PORTEUR admet en plus des trois ci-dessus —
  * même composition FERMÉE que l'`extra` de `ref()`/`specRef()` : le porteur déclare ce qu'il
- * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
+ * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `tirageSurTable`).
  */
 export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur: readonly z.ZodType<O>[] = []): z.ZodType<Parmi<number, O | RefASpecialisation>> {
   return parmi<O | RefASpecialisation, number>([nommerNoeud(ref(type), { label: 'référence' }), specRef(type), ...optionsDuPorteur], nombreDeTirages());

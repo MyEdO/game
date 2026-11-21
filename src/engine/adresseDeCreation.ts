@@ -38,7 +38,7 @@ const marquer = (cle: string): AdresseDeCreation =>
 export const adresseDeCreation = {
   // eslint-disable-next-line murs/marques -- #1988 : fabrique, gabarit de la famille `espece:talents` — composer l'adresse EST son corps de métier (cf. JSDoc).
   especeTalent: (i: number): AdresseDeCreation => marquer(`espece:talents:${i}`),
-  /** Tirage `j` d'une entrée `{random: n}` de l'entrée d'espèce `i`, y compris comme option d'un choix. */
+  /** Tirage `j` sur la table de l'entrée d'espèce `i` (`{pick, table}`), y compris comme option d'un choix. */
   // eslint-disable-next-line murs/marques -- #1988 : fabrique, gabarit du tirage sous une entrée d'espèce — composer l'adresse EST son corps de métier (cf. JSDoc).
   especeTirage: (i: number, j: number): AdresseDeCreation => marquer(`espece:talents:${i}:tirage:${j}`),
   // eslint-disable-next-line murs/marques -- #1988 : fabrique, gabarit de la famille `carriere:competences` — composer l'adresse EST son corps de métier (cf. JSDoc).

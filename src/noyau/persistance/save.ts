@@ -8,8 +8,9 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : `version` vaut
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). Toute autre forme est refusée
- * (`lireSave`), sans migration. Une save au format courant qui nomme une règle, un État ou la Cible d'un Trait
- * psychologique hors du registre courant se CHARGE, élaguée de ces seuls ids (`elaguerSave`, #1463 LD.1).
+ * (`lireSave`). La forme précédant les références de création (#3917) est convertie à cette lecture. Une save
+ * qui nomme une règle, un État ou la Cible d'un Trait psychologique hors du registre courant se charge
+ * élaguée de ces ids (`elaguerSave`, #1463 LD.1).
  */
 import type { RuleValue } from '../../engine/policy';
 import { weeklyCrewWageBrass } from '../../engine/crewMorale';
@@ -26,6 +27,7 @@ import { rencontreEngagee } from '../monde/combatants';
 import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
+import { formatAvantLesReferences, migrerLaSaveAvantLesReferences } from './referencesDeCreation';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { EVT } from '../bus';
@@ -108,10 +110,10 @@ export function unpackHouseRules(data: Record<string, unknown>): { game: Record<
   return { game, rules: rules as Record<string, RuleValue> | undefined };
 }
 
-/** Validation de forme d'une save (format COURANT + data objet). */
+/** Validation de l'enveloppe de sauvegarde à la lecture. */
 function isValidSave(s: unknown): s is SaveGame {
   return !!s && typeof s === 'object'
-    && (s as SaveGame).version === FORMAT_SAVE
+    && ((s as SaveGame).version === FORMAT_SAVE || formatAvantLesReferences('save', (s as SaveGame).version, FORMAT_SAVE))
     && typeof (s as SaveGame).savedAt === 'string'
     && !!(s as SaveGame).data && typeof (s as SaveGame).data === 'object';
 }
@@ -136,7 +138,12 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
     return 'illisible';
   }
   if (!isValidSave(parsed)) return 'autreFormat';
-  return scenesRefusees(parsed.data) ? 'sceneInvalide' : parsed;
+  if (scenesRefusees(parsed.data)) return 'sceneInvalide';
+  if (parsed.version !== FORMAT_SAVE) {
+    migrerLaSaveAvantLesReferences(parsed.data);
+    parsed.version = FORMAT_SAVE;
+  }
+  return parsed;
 }
 
 /** Une scène de `data` (la courante, celles du paquet de campagne) est-elle refusée par la porte des scènes

@@ -79,12 +79,13 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
     expect(partie.etat().party.map((h) => h.label), JSON.stringify(r).slice(0, 300)).toContain('Témoin');
   });
   it('une forme récursive (`AdvancementRef`, `FORMES`) : un « n parmi » imbriqué valide passe, l’invalide se refuse à son chemin', () => {
-    expect(lire('recruterLeHeros', avecOption({ pick: 1, of: [{ id: 'x' }, { pick: 1, of: [{ random: 1 }] }] }))).toHaveProperty('args');
+    const option = { pick: 1, of: [{ id: 'x' }, { pick: 1, of: [{ pick: 1, table: { id: 'table-ajoutee-au-codex' } }] }] };
+    expect(lire('recruterLeHeros', avecOption(option))).toHaveProperty('args');
     expect(refus('recruterLeHeros', avecOption({ pick: 1, of: [{ pick: 1, of: [{ id: 3 }] }] })))
       .toContain(`heros.brouillon.speciesTalentChoices["${adresse}"].of[0].of[0].id : une chaîne attendue`);
   });
   it('une imbrication sans fond se refuse en `validation`, sans lever', () => {
-    let option: unknown = { random: 1 };
+    let option: unknown = { pick: 1, table: { id: 'talents-aleatoires' } };
     for (let i = 0; i < 20_000; i++) option = { pick: 1, of: [option] };
     expect(refus('recruterLeHeros', avecOption(option))).toMatch(/niveaux d’imbrication/);
   });

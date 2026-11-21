@@ -38,7 +38,7 @@ const doc = document(
     baseChar: z.record(charKeySchema, z.number()),
     /** Compétences d'espèce (positionnel +5/+3 — lu via `advancementLabel`). */
     skills: z.array(avancement('skill')),
-    /** Talents d'espèce : réf, choix « A ou B » (`pick`), « Au choix » (`choix`), tirage (`random`). */
+    /** LDB 05 l.484, l.499-512 */
     talents: z.array(avancement('talent')),
     /** LDB 21 */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }),

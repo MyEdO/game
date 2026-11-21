@@ -559,7 +559,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `ObsoleteCause`, lecture d'un emplacement comme import) avec `exporterLaSauvegarde`,
                             `chargerLaSave` qui rend l'état de jeu à ouvrir élagué, ses règles
                             maison et ses retraits, `refusDeSauvegarde` ; règles maison du snapshot coop) et
-                            `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
+                            `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré) ;
+                            `referencesDeCreation.ts` convertit à la lecture la sauvegarde, le roster et l'export
+                            aux formes générées avant #3916 et #3917. Leurs écritures emploient les formats courants.
   coop.ts                   LA COOP sans hôte (#3041) : `buildDeLaCoop` (le `build` comparé au `hello`),
                             `instantaneDeLaCoop` (l'instantané de l'état de jeu que l'hôte diffuse : clés de la
                             sauvegarde, paquet de campagne en stub, hors `LOCALES_AU_CLIENT`, règles maison jointes),
@@ -598,7 +600,7 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             sont les offres du noyau, `siegesOfferts` ; et `lireUnGesteDuSalon`, le geste de salon
                             lu dans les zones d'avant le geste, ou refusé),
                             `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,
-                            lister ; une save d'un autre format ou illisible est REJETÉE et RETIRÉE à la lecture,
+                            lister ; une save illisible ou d'un format refusé est rejetée et retirée à la lecture,
                             son retrait cumulé dans le témoin, que `prendreLesRetraitsDeSauvegardes` consomme pour
                             le message au joueur), `temoin.ts` (le témoin persisté d'un chargement : cumul au témoin déjà posé, prise unique ;
                             la relecture et l'union des retraits sont à `noyau/persistance/elagage.ts`), `bibliotheque.ts`

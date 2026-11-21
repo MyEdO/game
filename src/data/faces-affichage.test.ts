@@ -21,8 +21,8 @@ describe('faces d’affichage : le texte FR de la donnée', () => {
 
   it('avancement : « A ou B », tirage d’un ou de plusieurs Talents', () => {
     expect(advancementLabel('talents', { pick: 1, of: [{ id: 'guide-fluvial' }, { id: 'bonnes-jambes' }] })).toBe('Guide fluvial ou Bonnes jambes');
-    expect(advancementLabel('talents', { random: 1 })).toBe('Talent aléatoire');
-    expect(advancementLabel('talents', { random: 3 })).toBe('3 Talents aléatoires');
+    expect(advancementLabel('talents', { pick: 1, table: { id: 'talents-aleatoires' } })).toBe('Talent aléatoire');
+    expect(advancementLabel('talents', { pick: 3, table: { id: 'talents-aleatoires' } })).toBe('3 Talents aléatoires');
     expect(advancementLabel('talents', { pick: 2, of: [{ id: 'guide-fluvial' }, { id: 'bonnes-jambes' }] })).toBe('2 parmi : Guide fluvial, Bonnes jambes');
   });
 
@@ -66,7 +66,7 @@ describe('faces d’affichage : le liant suit SA clé de message', () => {
     expect(trappingRefLabel({ id: 'dague', qualityChoice: 'qualite' })).toBe('Dague (any quality)');
     expect(trappingRefLabel({ wildcard: 'arme', qualityChoice: 'qualite' })).toBe('Weapon (any) (any quality)');
     expect(trappingRefLabel({ id: 'dague', qualityChoice: 'haute' })).toBe('Dague (best quality)');
-    expect(advancementLabel('talents', { random: 3 })).toBe('3 random Talents');
+    expect(advancementLabel('talents', { pick: 3, table: { id: 'talents-aleatoires' } })).toBe('3 random Talents');
   });
 });
 

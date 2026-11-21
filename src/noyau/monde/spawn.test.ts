@@ -705,9 +705,13 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
     expect(details?.age).toBeLessThanOrEqual(25);
     expect(details?.height).toBeGreaterThanOrEqual(150); // 145 + 5d10 cm, LDB 05 l.724
     expect(details?.height).toBeLessThanOrEqual(195);
-    expect(details?.eyes).toBeTruthy();
-    expect(details?.hair).toBeTruthy();
+    expect(details?.eyes).toMatchObject({ colonne: 'humain' });
+    expect(details?.hair).toMatchObject({ colonne: 'humain' });
     expect(ficheDEntite(humain('garde-1'), sansPreset).details).toEqual(details);
+    expect(ficheDEntite(humain('garde-1', { appearance: { species: 'halflings' } }), sansPreset).details).toMatchObject({
+      eyes: { id: 'gris-pale', colonne: 'halfling' },
+      hair: { id: 'noir', colonne: 'halfling' },
+    });
   });
 
   it('ce que l’auteur pose prime : son nom, un statbloc, un individu nommé du bestiaire', () => {
