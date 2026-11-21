@@ -49,8 +49,8 @@ import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
 import { GitIndisponible, INDEX, TRONC, baseCommune, fusionnesEnCours, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import {
-  COLLECTIONS_A_COMPTE, DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, motifAPlat,
-  type CorpusDesComptes, type EntreeDeCompte, type SiteDeDetteDOp,
+  DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, STRUCTURES_REDECLARATIONS, motifAPlat,
+  type EntreeDeCompte, type SiteDeDetteDOp,
 } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
@@ -69,23 +69,16 @@ export const sitesDeDetteDOps = (nonTypees: Iterable<string>, opDefs: Readonly<R
   ...Object.entries(refsAPlat(opDefs)).flatMap(([op, cles]) => cles.map((cle) => ({ op, motif: motifAPlat(cle) }))),
 ];
 
-/** Le corpus des comptes de la racine `root` : les redéclarations de l'AST de ses defs. */
-export const corpusDesComptes = (root: string): CorpusDesComptes => ({ redeclarations: scannerRedeclarations(root).redeclarations });
-
 /** Les entrées mesurées de chaque collection sous la porte, par nom. */
 export type Comptes = ReadonlyMap<string, readonly EntreeDeCompte[]>;
-
-/** Les comptes d'un corpus, collection par collection (`COLLECTIONS_A_COMPTE`). */
-export const comptesDuCorpus = (corpus: CorpusDesComptes): Comptes => new Map(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c.mesure(corpus)]));
 
 /** Une liste de sites comme entrées de compte. */
 const enEntrees = (sites: readonly object[]): EntreeDeCompte[] => sites as unknown as EntreeDeCompte[];
 
-/** Les comptes de la racine `root` (le répertoire courant pour `Source/`) : ses collections à compte, les volets
- *  `DETTE_OPS`, `FEUILLES_D_ID` et `STRUCTURES_LOCALES` (le code de l'image) et `SOURCE_FORMAT`. */
+/** Les comptes de la racine `root` (le répertoire courant pour `Source/`) mesurés sur le code de l'image. */
 const comptesDeLaRacine = (root: string): Comptes =>
   new Map([
-    ...comptesDuCorpus(corpusDesComptes(root)),
+    [STRUCTURES_REDECLARATIONS.nom, STRUCTURES_REDECLARATIONS.mesure(scannerRedeclarations(root).redeclarations)],
     [DETTE_OPS.nom, enEntrees(sitesDeDetteDOps(OPS_NON_TYPEES, OP_DEFS))],
     [FEUILLES_D_ID.nom, enEntrees(sitesEnEntrees(cheminsDeDocument()))],
     [STRUCTURES_LOCALES.nom, enEntrees(sitesEnEntrees(sitesDeStructure()))],

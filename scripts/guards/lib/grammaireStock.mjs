@@ -3,8 +3,8 @@
 // (#1466 L1a). Patron whitelist-en-lib du dépôt (`horsStrateStock.mjs`).
 //
 // Clé = `<fichier>:<symbole>[.<champ>]|<motif>|<detail>` — jamais un numéro de ligne : une ligne
-// bouge à chaque édition du module et ferait rougir la garde sans qu'aucune forme n'ait changé
-// (même raison qu'en tête de `STRUCTURES_REDECLARATIONS`). Les trois motifs :
+// bouge à chaque édition du module et ferait rougir la garde sans qu'aucune forme n'ait changé.
+// Les trois motifs :
 //   - `redeclaration` : le jeu de clés du littéral EST la signature d'un schéma de la grammaire ;
 //   - `alias`         : le littéral porte une GRAPHIE HISTORIQUE de référence (`skillId`, `ref`…) ;
 //   - `extend`        : `.extend(` posé sur une porte de la grammaire (zod 4.4.3 y perd registre
@@ -23,8 +23,7 @@
 // Le contrat est BIDIRECTIONNEL : un site hors stock = rouge (dérive neuve) ; une entrée sans site
 // = rouge (entrée périmée). Ce stock ne fait que DÉCROÎTRE.
 //
-// Les LOTS reprennent ceux du dénominateur L0 (`structuresStock.mjs`, `STRUCTURES_REDECLARATIONS`)
-// quand le site y correspond : concept Compétence → `L2 #1463`, Talent/Objet/Créature/Véhicule →
+// Lots : concept Compétence → `L2 #1463`, Talent/Objet/Créature/Véhicule →
 // `L3 #1463`, source → `L1d #1463`.
 
 /** Graphie historique de référence à une COMPÉTENCE (`skill`/`skillId` + `spec`) — meurt quand le
