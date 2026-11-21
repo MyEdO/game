@@ -190,79 +190,53 @@ function durcirDifficulte(existing: ConditionInstance, difficulte: Difficulty | 
   else delete existing.difficulte;
 }
 
+type PoseDEtat = Pick<ConditionInstance, 'escapeStrength' | 'escapeThreshold' | 'entangleOnFail' | 'struggleDamage' | 'difficulte' | 'derivedFrom'> & ConditionLocks;
+type DureeDEtat = { roundsLeft: number } | { untilTime: number };
+
+function poserEtat(c: Combatant, id: string, value: number, pose: PoseDEtat, duree?: DureeDEtat): void {
+  etatExige(id);
+  if (!groupAdvantage()) c.advantage = 0; // LDB 16 l.7
+  const { escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, lockedUntil, unlockBy, difficulte, derivedFrom } = pose;
+  const existing = c.conditions.find((x) => x.id === id);
+  if (existing) {
+    empileSurPionExistant(existing, value);
+    if (escapeStrength != null) existing.escapeStrength = Math.max(existing.escapeStrength ?? 0, escapeStrength);
+    if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
+    if (entangleOnFail) existing.entangleOnFail = true;
+    if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
+    durcirDifficulte(existing, difficulte);
+    if (lockedUntil != null) existing.lockedUntil = lockedUntil;
+    if (unlockBy != null) existing.unlockBy = unlockBy;
+    if (derivedFrom) existing.derivedFrom = derivedFrom;
+    if (!duree) delete existing.roundsLeft;
+    else if ('roundsLeft' in duree && existing.roundsLeft != null) existing.roundsLeft = Math.max(existing.roundsLeft, duree.roundsLeft);
+    else if ('untilTime' in duree && existing.untilTime != null) existing.untilTime = Math.max(existing.untilTime, duree.untilTime);
+  } else {
+    c.conditions.push({
+      id, value, ...duree,
+      ...(escapeStrength != null ? { escapeStrength } : {}),
+      ...(escapeThreshold != null ? { escapeThreshold } : {}),
+      ...(entangleOnFail ? { entangleOnFail } : {}),
+      ...(struggleDamage != null ? { struggleDamage } : {}),
+      ...(difficulte ? { difficulte } : {}),
+      ...(lockedUntil != null ? { lockedUntil } : {}),
+      ...(unlockBy != null ? { unlockBy } : {}),
+      ...(derivedFrom ? { derivedFrom } : {}),
+    });
+  }
+  onConditionGained?.(c, id);
+}
+
 export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks, difficulte?: Difficulty): void {
-  etatExige(name);
-  const { lockedUntil, unlockBy } = locks ?? {};
-  if (!groupAdvantage()) c.advantage = 0; // « Si vous subissez un État quel qu'il soit, vous perdez immédiatement tout Avantage » (LDB 16 l.7) — pas de perte per-combattant en mode « Avantage de groupe » (la réserve du camp ne change pas)
-  const existing = c.conditions.find((x) => x.id === name);
-  if (existing) {
-    empileSurPionExistant(existing, value);
-    // Force d'évasion (Empêtré « se libérer » — LDB 16 l.66) : sur ré-application, on garde la PLUS
-    // CONTRAIGNANTE (max), pour qu'un Enchevêtrement ne soit pas affaibli par un État Empêtré « banal »
-    // qui s'empile par-dessus (et inversement, un sort plus fort durcit l'évasion).
-    if (escapeStrength != null) existing.escapeStrength = Math.max(existing.escapeStrength ?? 0, escapeStrength);
-    if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
-    if (entangleOnFail) existing.entangleOnFail = true;
-    if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
-    durcirDifficulte(existing, difficulte);
-    if (lockedUntil != null) existing.lockedUntil = lockedUntil; // un Critique re-verrouille l'État déjà porté
-    if (unlockBy != null) existing.unlockBy = unlockBy; // un Critique re-verrouille l'État déjà porté (acte de soin, LDB 18)
-    // Un ajout NON temporisé sur un État à durée : la durée saute (l'État redevient régi
-    // par ses règles normales — on n'écourte jamais un État au prétexte qu'un sort expirait).
-    delete existing.roundsLeft;
-  } else {
-    c.conditions.push({ id: name, value, ...(escapeStrength != null ? { escapeStrength } : {}), ...(escapeThreshold != null ? { escapeThreshold } : {}), ...(entangleOnFail ? { entangleOnFail } : {}), ...(struggleDamage != null ? { struggleDamage } : {}), ...(difficulte ? { difficulte } : {}), ...(lockedUntil != null ? { lockedUntil } : {}), ...(unlockBy != null ? { unlockBy } : {}) });
-  }
-  // L'État vient d'être GAGNÉ (nouveau ou empilé) → déclenche `onGainCondition` (Mâchoires d'acier).
-  onConditionGained?.(c, name);
+  poserEtat(c, name, value, { escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, ...locks, difficulte });
 }
 
-/** Ajout d'un État À DURÉE (posé par un sort : « 1 État Sonné qui dure N Rounds », LDB).
- *  Sur un État déjà porté : temporisé → durée max conservée ; NON temporisé → inchangé
- *  (la durée du sort ne raccourcit pas un État permanent). */
 export function addTimedCondition(c: Combatant, name: string, value: number, rounds: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, difficulte?: Difficulty): void {
-  etatExige(name);
-  const existing = c.conditions.find((x) => x.id === name);
-  if (existing) {
-    if (!groupAdvantage()) c.advantage = 0;
-    empileSurPionExistant(existing, value);
-    if (escapeStrength != null) existing.escapeStrength = Math.max(existing.escapeStrength ?? 0, escapeStrength);
-    if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
-    if (entangleOnFail) existing.entangleOnFail = true;
-    if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
-    durcirDifficulte(existing, difficulte);
-    if (existing.roundsLeft != null) existing.roundsLeft = Math.max(existing.roundsLeft, rounds);
-    // sinon : instance non temporisée — elle le reste.
-    onConditionGained?.(c, name); // État empilé (gagné) → déclenche `onGainCondition`
-  } else {
-    addCondition(c, name, value, escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, undefined, difficulte); // (déclenche déjà `onGainCondition`)
-    c.conditions.find((x) => x.id === name)!.roundsLeft = rounds;
-  }
+  poserEtat(c, name, value, { escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, difficulte }, { roundsLeft: rounds });
 }
 
-/** Ajout d'un État à durée d'HORLOGE (`until` = minute `gameTime` d'échéance) — Belladone : « Un sommeil
- *  induit par la belladone dure 1d10 + 4 heures » (LDB 72 l.18), Fleur de lune (LDB 71 l.29). Purgé par
- *  `purgeClockEffects` (upkeep), même patron que `castPenalties.untilTime`. Sur un État déjà porté :
- *  temporisé-horloge → échéance MAX conservée ; NON temporisé → inchangé (on n'écourte jamais un État
- *  permanent au prétexte qu'une drogue expirait). */
 export function addClockCondition(c: Combatant, name: string, value: number, until: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, difficulte?: Difficulty): void {
-  etatExige(name);
-  const existing = c.conditions.find((x) => x.id === name);
-  if (existing) {
-    if (!groupAdvantage()) c.advantage = 0; // Perte d'Avantage sur État (LDB 16 l.7) — inerte en mode « Avantage de groupe »
-    empileSurPionExistant(existing, value);
-    if (escapeStrength != null) existing.escapeStrength = Math.max(existing.escapeStrength ?? 0, escapeStrength);
-    if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
-    if (entangleOnFail) existing.entangleOnFail = true;
-    if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
-    durcirDifficulte(existing, difficulte);
-    if (existing.untilTime != null) existing.untilTime = Math.max(existing.untilTime, until);
-    // sinon : instance non temporisée — elle le reste.
-    onConditionGained?.(c, name); // État empilé (gagné) → déclenche `onGainCondition`
-  } else {
-    addCondition(c, name, value, escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, undefined, difficulte); // (déclenche déjà `onGainCondition`)
-    c.conditions.find((x) => x.id === name)!.untilTime = until;
-  }
+  poserEtat(c, name, value, { escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, difficulte }, { untilTime: until });
 }
 
 /** Un État est-il VERROUILLÉ ? Trois formes, d'un même verdict :
@@ -515,8 +489,7 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
     const source = src ? refLabel(src.category, { id: src.id }) : t('cond.derivedSrcFallback');
     if (cibleN > porteN) {
       c.conditions = portees; // la liste EXISTE dès qu'on y pose (porteur forgé sans `conditions`)
-      addCondition(c, id, cibleN - porteN);
-      c.conditions.find((x) => x.id === id)!.derivedFrom = { stacks: cibleN, ...(src ? { src } : {}) };
+      poserEtat(c, id, cibleN - porteN, { derivedFrom: { stacks: cibleN, ...(src ? { src } : {}) } });
       log.push(t('cond.derivedGain', { name: c.label, cond: conditionLabel(id), src: source }));
       emit?.({ stateId: id, change: 'gain', targetId: c.id });
       continue;

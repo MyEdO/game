@@ -2705,36 +2705,40 @@
         "condition": "sonne",
         "on": "soi",
         "flow": {
-          "kind": "test",
-          "test": {
-            "skill": {
-              "id": "resistance"
+          "kind": "choix",
+          "invite": "Mâchoires d'acier",
+          "oui": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "intermediaire"
             },
-            "difficulty": "intermediaire"
-          },
-          "reussite": {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "on": "caster",
-              "ops": [
-                {
-                  "op": "removeCondition",
-                  "id": {
-                    "id": "sonne"
-                  },
-                  "value": 1,
-                  "valuePerSL": {
-                    "every": 1,
-                    "amount": 1
+            "reussite": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "caster",
+                "ops": [
+                  {
+                    "op": "removeCondition",
+                    "id": {
+                      "id": "sonne"
+                    },
+                    "value": 1,
+                    "valuePerSL": {
+                      "every": 1,
+                      "amount": 1
+                    }
                   }
-                }
-              ]
+                ]
+              }
+            },
+            "echec": {
+              "kind": "sequence",
+              "etapes": []
             }
-          },
-          "echec": {
-            "kind": "sequence",
-            "etapes": []
           }
         }
       }

@@ -41,6 +41,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
+function accepterMachoires(): void {
+  const cascade = get().pendingCascade;
+  const choix = cascade?.participants[cascade.cursor];
+  if (choix?.kind !== 'choixDeclenche') return;
+  get().jetRegler('cascade', 'choix', 'oui', choix.id);
+  get().jetValider('cascade');
+}
+
 // ── Volet (a) — statique minimal ────────────────────────────────────────────────────────────────
 const DOSSIER = dirname(fileURLToPath(import.meta.url));
 /** Retire commentaires de bloc et de ligne — un prédicat CITÉ en prose (« cf. `defenseSurfaced` ») n'est
@@ -215,6 +223,7 @@ function behavioralFloor(): void {
     const { H } = freshCombat();
     H.talents = [...(H.talents ?? []), { talentId: 'machoires-d-acier', times: 1 }];
     addCondition(H, COND.sonne, 2);
+    accepterMachoires();
     expect(get().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === H.id), 'Test déclenché (Mâchoires) doit REMONTER').toBeTruthy();
   }
   // 5) Défense réactive de mêlée (LDB 13) — gaté `defenseSurfaced` (cadence-agnostique).
@@ -280,7 +289,8 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     addCondition(E, COND.sonne, 2); // onGainCondition → routeTriggeredTest → resolveFlowTest → humanControlled(E)=true
     const c = get().pendingCascade;
     expect(c, 'l’ennemi assigné doit ouvrir une cascade').toBeTruthy();
-    expect(c!.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === E.id), 'le Test REMONTE au nom de l’ennemi assigné').toBe(true);
+    accepterMachoires();
+    expect(get().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche' && s.actorId === E.id), 'le Test REMONTE au nom de l’ennemi assigné').toBe(true);
   });
 
   it('le même ennemi NON assigné → Test déclenché résolu INLINE (aucune cascade)', () => {

@@ -99,7 +99,7 @@ const noeudDEtat = (id: string): NoeudTest => {
 
 /** Le nœud `test` d'un talent (Mâchoires d'acier : branche `on:'caster'`, auto-portée). */
 const noeudDeTalent = (id: string): NoeudTest => {
-  const noeud = findTalentById(id)?.effects?.find((x) => x.flow.kind === 'test')?.flow;
+  const noeud = noeudsTest(findTalentById(id)?.effects)[0];
   if (noeud?.kind !== 'test') throw new Error(`aucun nœud \`test\` aux effets du talent « ${id} »`);
   return noeud;
 };
