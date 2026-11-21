@@ -115,6 +115,7 @@ describe('volumeDuMonde (#3476)', () => {
   it('dans un morceau, une surface par matière, nommée par son domaine et son id, qui se suivent : le terrain du dessus, le relief de la paroi', () => {
     const s = marche();
     s.reliefDefaults = { ...s.reliefDefaults, cliff: { id: 'pierre' } };
+    s.layers[0].tiles = ['plancher', 'terre'];
     s.layers[0].height = [0, 3];
     const [m, ...autres] = volumeDuMonde(s).morceaux;
     expect(autres, 'deux cases d’un bloc, sans décor : un seul morceau').toEqual([]);
@@ -122,7 +123,7 @@ describe('volumeDuMonde (#3476)', () => {
     expect(m.surfaces[m.surfaces.length - 1].fin).toBe(m.positions.length / 3);
     expect(new Set(m.surfaces.map((x) => x.matiere)).size).toBe(m.surfaces.length);
     const tris = triangles(m);
-    expect(tris.filter((t) => t.ys.every((y) => y === 3)).map((t) => t.matiere)).toEqual(expect.arrayContaining(['terrain--plancher']));
+    expect(tris.filter((t) => t.ys.every((y) => y === 3)).map((t) => t.matiere)).toEqual(expect.arrayContaining(['terrain--terre']));
     expect(tris.filter((t) => Math.abs(t.normale[1]) < 1e-3).map((t) => t.matiere)).toContain('relief--pierre');
   });
 
