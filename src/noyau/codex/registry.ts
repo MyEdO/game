@@ -113,6 +113,7 @@ import {
   CHAR_LABELS,
   HIT_LOCATION_LABELS,
   DIFFICULTY_LABELS,
+  DIFFICULTE_PAR_DEFAUT,
   LOCALISATIONS_DE_COUP,
   type Combatant,
   type CharKey,
@@ -743,7 +744,7 @@ function consequencesDeCritique(flow: Flow | undefined, title: string, afficherS
 
 function libelleDeJet({ test }: FlowTestNode): string {
   const sujet = testSkillLabel(test) ?? tr('codex.fiche.jet');
-  const jet = `${sujet} ${DIFFICULTY_LABELS[test.difficulty ?? 'intermediaire']}`;
+  const jet = `${sujet} ${DIFFICULTY_LABELS[test.difficulty ?? DIFFICULTE_PAR_DEFAUT]}`;
   return test.label ? tr('codex.fiche.jetAvecRole', { role: test.label, jet }) : jet;
 }
 
