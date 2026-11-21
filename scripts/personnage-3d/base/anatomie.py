@@ -112,6 +112,12 @@ def yeux(objets):
     return sum(sommets, Vector()) / len(sommets)
 
 
+def os_de_la_face(votes):
+    """L'os dominant d'une face : celui que donnent le plus de ses sommets, `votes` étant l'os dominant de chacun ; à
+    égalité, le premier par son nom."""
+    return max(sorted(set(votes)), key=votes.count)
+
+
 def zones_des_faces(objet, centre_des_yeux, rig):
     """La zone de chaque face du corps : os dominant de ses sommets, puis régions du genou, du visage et du nez."""
     groupes = {g.index: g.name for g in objet.vertex_groups}
@@ -122,7 +128,7 @@ def zones_des_faces(objet, centre_des_yeux, rig):
         votes = [dominant[i] for i in face.vertices]
         if None in votes:
             raise RuntimeError(f'{objet.name} : face {face.index} sur un sommet sans os')
-        os = max(sorted(set(votes)), key=votes.count)
+        os = os_de_la_face(votes)
         zone, c = zone_de_l_os(os), face.center
         if zone.startswith(('cuisse_', 'mollet_')) and abs(c.z - genoux[os[-1]]) <= GENOU_DEMI_HAUTEUR:
             zone = 'genou_' + zone[-1]
