@@ -1943,7 +1943,7 @@ function construire(regimes: Regimes) {
    */
   const gameOp: z.ZodType<GameOp> = marquerProduit(nommerChamps(OP_EN_DONNEE.superRefine((v, ctx) => {
     marquerOpAtteinte(ctx);
-    const payload = opDefs[v.op];
+    const payload = Object.prototype.hasOwnProperty.call(opDefs, v.op) ? opDefs[v.op] : undefined;
     if (payload) {
       const res = payload.safeParse(v);
       // L'issue du payload est REPORTÉE TELLE QUELLE, seul son `message` est préfixé du nom de l'op :
@@ -1969,7 +1969,7 @@ function construire(regimes: Regimes) {
    *  feuille : sur la feuille, `'caster'` = porteur, `'target'` = cible résolue par le trigger. */
   declarerEnfants(gameOp, Object.entries(opDefs).map(([op, noeud]) => ({ noeud, segment: '^' + op })), valeur => {
     const op = (valeur as { op?: string } | null)?.op;
-    return op && opDefs[op] ? [opDefs[op]] : [];
+    return typeof op === 'string' && Object.prototype.hasOwnProperty.call(opDefs, op) ? [opDefs[op]] : [];
   }, 'payloads-op');
   nommerNoeud(gameOp, { opacite: { nature: 'dispatch-op', raison: 'Payloads stricts déclarés ; OPS_NON_TYPEES reste opaque.' } });
 
