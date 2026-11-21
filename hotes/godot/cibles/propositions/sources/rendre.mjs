@@ -37,6 +37,7 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { listerEntrees } from '../../../../../scripts/guards/lib/lister.mjs'
 import { chromium } from 'playwright'
+import { refusDuNavigateur } from '../../../planches.mjs'
 import { classe } from './contenus.mjs'
 
 /** La vue `bureau` des vues de la recette, la vue de référence de la recette et des étalons. */
@@ -276,7 +277,15 @@ const format = page ? { ...FORMATS['16:9'], facteur: Number(reste[0] ?? FORMATS[
 if (!format) throw new Error(`rendre.mjs <écran> <sortie.png> --format ${Object.keys(FORMATS).join('|')} [--etat <état>]`)
 const etat = option('--etat')
 const etats = page ? null : await chargerLEcran(cible, etat)
-const b = await chromium.launch({ args: ['--allow-file-access-from-files'] })
+/** Le navigateur épinglé des planches (`EPINGLE`, `refusDuNavigateur`) : le build complet de Chromium (`channel`), jamais
+ *  le headless shell. */
+const b = await chromium.launch({ channel: 'chromium', args: ['--allow-file-access-from-files'] })
+const { product } = await (await b.newBrowserCDPSession()).send('Browser.getVersion')
+const refus = refusDuNavigateur(product, { plateforme: process.platform, architecture: process.arch })
+if (refus) {
+  await b.close()
+  throw new Error(`[rendre] ${refus}`)
+}
 /** Le dossier du relevé `contenu` (`RELEVE_CONTENUS`), un fichier par état, que `contenus.mjs` agrège. */
 const CONTENUS = process.env.RELEVE_CONTENUS
 if (CONTENUS) mkdirSync(CONTENUS, { recursive: true })

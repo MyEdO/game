@@ -28,9 +28,12 @@ export const VUE_DE_BASE = (() => {
   return Object.freeze({ largeur: lue('width'), hauteur: lue('height') })
 })()
 export const MAQUETTES = fileURLToPath(new URL('./cibles/maquettes.json', import.meta.url))
-/** Le build du navigateur des étalons : la version de Playwright qui l'installe, et celle de Chrome for Testing qu'il
- *  installe. Monter l'épingle, c'est reposer tous les étalons dans le même commit. */
-export const EPINGLE = Object.freeze({ playwright: '1.63.0', chrome: '153.0.8010.12' })
+/** Le build du navigateur des étalons : la version de Playwright qui l'installe (`devDependencies` de `package.json`),
+ *  et celle de Chrome for Testing qu'il installe. Monter l'épingle, c'est reposer tous les étalons dans le même commit. */
+export const EPINGLE = Object.freeze({
+  playwright: JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).devDependencies.playwright,
+  chrome: '153.0.8010.12',
+})
 /** La plateforme où l'épingle a été mesurée (`process.platform`, `process.arch`). */
 const PLATEFORME = Object.freeze({ plateforme: 'linux', architecture: 'x64' })
 

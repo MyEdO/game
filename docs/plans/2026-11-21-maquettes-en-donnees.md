@@ -58,11 +58,11 @@ Le détail et les sources sont dans la carte.
   - le DOM écrit aussi du style (`rendu.js:1821`, `n.style.fontSize`).
 - **Peintres sous `#ui`** : `#plan` de l'éditeur, `#carte` de la ville, `#reikland`, `#trajet`, `#frise`. Ce sont des centaines de nœuds SVG, avec des mots en dur.
 - **Outillage** :
-  - `rendre.mjs` sort en 1 sur tout relevé non vide et lance le playwright nu ;
+  - `rendre.mjs` sort en 1 sur tout relevé non vide et lance le navigateur épinglé (2026-11-21) ;
   - `npm run godot:maquettes` arrive avec l'atterrissage, en 16:9 seulement ;
   - `ecart` et `decodePng` existent dans `hotes/godot/etalons.mjs` sans être exportés, et ce script lève une erreur au chargement sans `--web` ;
-  - le navigateur est épinglé dans `planches.mjs:33` (`EPINGLE`) ;
-  - playwright s'installe hors dépendances (`npm i --no-save playwright`, `images.md:250-252`).
+  - le navigateur est épinglé dans `planches.mjs:33` (`EPINGLE`), sa version de Playwright lue dans `package.json` ;
+  - playwright est une dépendance de développement épinglée (`package.json`, décision du 2026-11-21).
 - **Le premier relevé envisagé ne mesurait rien** : en marquant seulement les racines de `cadre` et de `places`, la fenêtre du pilote et 21 états de `fiche` sur 25 passent à 0 sans migration. Le relevé doit porter sur l'émission.
 
 ## Règles
@@ -107,7 +107,7 @@ Le détail et les sources sont dans la carte.
 1. **Outillage.**
    - **Comparaison au pixel** :
      - `ecart` et `decodePng` sont extraits dans un module partagé, que `etalons.mjs` réutilise ;
-     - `rendre.mjs` lance le navigateur épinglé (`EPINGLE`) ;
+     - `rendre.mjs` lance le navigateur épinglé (`EPINGLE`, `refusDuNavigateur`) : fait le 2026-11-21 ;
      - rendu de référence des 170 états × 4 formats, puis comparaison avec un code non nul au-delà de la tolérance ;
      - la tolérance se mesure sur deux passes successives.
    - **Passe complète** : elle rend aussi les planches du kit (`kit/planche-*.html`).
