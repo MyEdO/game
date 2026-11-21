@@ -32,9 +32,13 @@ l'identité qui progresse ; le pied du rail des services, sous le dernier servic
 soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
 (portrait, identité, rangée des dés, issue). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
 `habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
-premier état du même rôle. Le relevé `contenu`, en mode rapport (`RELEVE_CONTENUS=<dossier>`, agrégé par
-`sources/contenus.mjs`), compare d'un état à l'autre du même gabarit le rect de ce que chaque place porte (ses enfants,
-et ce qui y défile) : l'inventaire de ce qui bouge dans une place fixe, qui ne fait échouer aucun rendu.
+premier état du même rôle. Le relevé `contenu` (`sources/contenus.mjs`) compare d'un état à l'autre du même gabarit
+le rect de ce que chaque place porte, et classe chaque écart : **A** une boîte déplacée (son coin bouge, ou la taille
+d'un contenu qui n'est pas un texte en ligne, ou le départ, les x ou les écarts des entrées d'une liste qui défile),
+**B** la seule longueur d'un texte dont le coin reste fixe, **C** le seul nombre des entrées d'une liste qui défile.
+Un A d'un gabarit pilote (`PILOTES` : `fenetre-du-bas`) fait échouer le rendu, contre les autres écrans du gabarit
+déjà rendus sous `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe) et les autres états de la même passe ; les
+autres gabarits restent en rapport (`node sources/contenus.mjs <dossier>`, code 1 sur un A d'un pilote).
 
 **Le contenu s'adapte au cadre, jamais l'inverse.** Aucun panneau ne prend la hauteur de son contenu, aucune fenêtre
 ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile ou passe en onglets ; seules la prose d'un

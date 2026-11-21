@@ -3,7 +3,7 @@
 
 /* le round */
 #round .fond{display:flex;align-items:center;gap:12px;padding:0 14px}
-#round .n{font-size:30px;line-height:30px;color:#f1e4c4;text-shadow:0 2px 3px #000}
+#round .n{width:96px;font-size:30px;line-height:30px;color:#f1e4c4;text-shadow:0 2px 3px #000}
 #round .t{font-size:13.5px;color:var(--creme-2);line-height:16px}
 
 /* l'ordre du tour : colonne du bord gauche, l'actif en bas */
@@ -49,7 +49,8 @@
 
 /* le journal : trois lignes dans un coin */
 #journal{position:absolute;text-align:right}
-#journal .tete{display:flex;justify-content:flex-end;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2;margin-bottom:7px}
+#journal .tete{height:34px;display:flex;justify-content:flex-end;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2;margin-bottom:7px}
+#journal .defile{height:115px;margin:-12px -24px;padding:12px 24px}
 #journal p{margin:0 0 5px;font-style:italic;font-size:14.5px;line-height:19px;color:#e6dabd}
 #journal p.vieux{color:#bdb096}
 #journal p.borne-j{font-family:"Fell SC";font-style:normal;font-size:12.5px;letter-spacing:1px;color:var(--creme-2)}

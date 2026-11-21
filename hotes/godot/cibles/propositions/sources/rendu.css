@@ -42,12 +42,12 @@
 #critique .dr{line-height:normal}
 #critique .tirage .sceau b{font-size:14px}
 /* les rangées d'un Test d'équipage tiennent au-dessus des suites : leur intitulé sur une ligne, une rangée à la hauteur de son portrait */
-#jet .rangees{max-width:272px}
+#jet .rangees{max-width:272px;height:100%}
 #jet .rangees .t{letter-spacing:.5px}
 #jet .rangees .rangee{height:32px}
 /* une ligne de butin à la hauteur de ses portraits */
 #jet .ligne-b{height:34px}
-#jet .enjeu{padding-left:14px}
+#jet .enjeu{padding-left:14px;height:100%}
 /* les deux natures d'une Corruption tiennent dans leur colonne : les cartes s'y partagent la largeur, leur ligne passe à la ligne */
 #jet .nature .carte{min-width:0}
 #jet .nature .carte .qui{white-space:normal}
@@ -188,11 +188,10 @@
 #ordre .rang{flex:none}
 #ordre .rang .nom{white-space:normal;line-height:normal}
 #ordre .rang .jauge,#ordre .rang.actif .jauge{flex:none;width:38px}
-#ordre .rang.actif{flex-direction:column;align-items:flex-start;gap:4px}
+#ordre .rang.actif{flex-direction:column;align-items:flex-start;gap:4px;height:100%}
 #ordre .rang.actif .nom{font-size:16px}
 #ordre .rang.actif .jauge{width:74px}
 #ordre .rang:not(.actif) .etat-porte .rubrique{display:none}
-#journal .lignes{max-height:190px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;mask-image:linear-gradient(transparent,#000 48px)}
 
 
 /* 5. Combat, le tour : la barre de l'actif au rect `socle` ; les valeurs à gauche, le portrait au
@@ -216,8 +215,7 @@
 #gestes .rapides{display:flex;justify-content:space-between}
 #actif-portrait{left:calc(50% - 480px + 343px);top:auto;bottom:82px}
 #actif-nom{left:calc(50% - 480px + 311px);top:auto;bottom:34px;width:160px}
-#liste{left:calc(50% - 480px + 460px);bottom:160px;width:262px}
-#liste.a-prix{width:300px}
+#liste{left:calc(50% - 480px + 460px);bottom:160px;width:300px}
 #apercu-sort.rapide .apercu{left:calc(50% - 480px + 460px);bottom:166px;--pointe:41px}
 #apercu-sort.liste .apercu{left:calc(50% - 480px + 148px);bottom:212px;--pointe:150px}
 #apercu-sort td:first-child,#apercu-sort td:last-child{white-space:normal}

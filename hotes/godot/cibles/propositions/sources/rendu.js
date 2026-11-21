@@ -390,7 +390,7 @@
   const combat = (c, { fin = false, lu = null, journal = false, cede = false } = {}) => [
     `<div id="round" class="cadre bois" data-piece="round"><div class="fond bois"><div class="n gothique">Round ${c.round}</div><div class="t rubrique">${c.tour ? `tour ${c.tour.rang}<br>sur ${c.tour.sur}` : 'le round<br>débute'}</div></div>${ferrures}</div>`,
     `<div id="ordre" data-piece="ordre">${[...c.ordre.slice(c.tour ? 1 : 0).map((id) => rangDe(id, id === lu ? 'lu' : '')), borne(c.round + 1), ...c.suivant.map((id, k) => rangDe(id, k ? 'fantome loin' : 'fantome'))].reverse().join('')}${places('ordre', { actif: c.tour && rangDe(c.ordre[0], 'actif') })}</div>`,
-    ...(cede ? [] : [`<div id="journal" data-piece="journal"><div class="tete rubrique ombre">Journal ${rond('journal', 'petit', { arme: journal })}</div>${c.journal.map(entree).join('')}</div>`]),
+    ...(cede ? [] : [`<div id="journal" data-piece="journal"><div class="tete rubrique ombre">Journal ${rond('journal', 'petit', { arme: journal })}</div>${defile(c.journal.map(entree).join(''), 'au-pied')}</div>`]),
     `<div id="fin" class="${fin ? '' : 'ferme'}" data-piece="fin-du-tour">${rond('fin', 'maitre', { ferme: !fin })}<span class="rubrique ombre">Fin du tour</span></div>`,
   ];
 
@@ -491,7 +491,7 @@
     SYSTEME,
     ...combat(e.combat, { fin: !e.barre.adverse, lu: e.pose?.role === 'fiche' ? e.pose.fiche.qui : null, journal: e.pose?.role === 'journal', cede: CEDENT_LE_JOURNAL.includes(e.pose?.role) }),
     ...barre(e.barre),
-    ...(e.liste ? [`<div id="liste" class="cadre bois${e.liste.lignes.some((l) => typeof l !== 'string') ? ' a-prix' : ''}" data-piece="liste"${mobile('ancre')}><div class="fond"><div class="t rubrique">${echapper(e.liste.titre)}</div>${e.liste.lignes.map((l, k) => (typeof l === 'string' ? plaque(echapper(l), { armee: k === e.liste.choisie, classe: 'ligne-l' }) : plaque(echapper(l.nom), { armee: k === e.liste.choisie, classe: 'ligne-l', prix: `${l.enSoute} en soute` }))).join('')}</div>${ferrures}</div>`] : []),
+    ...(e.liste ? [`<div id="liste" class="cadre bois" data-piece="liste"${mobile('ancre')}><div class="fond"><div class="t rubrique">${echapper(e.liste.titre)}</div>${e.liste.lignes.map((l, k) => (typeof l === 'string' ? plaque(echapper(l), { armee: k === e.liste.choisie, classe: 'ligne-l' }) : plaque(echapper(l.nom), { armee: k === e.liste.choisie, classe: 'ligne-l', prix: `${l.enSoute} en soute` }))).join('')}</div>${ferrures}</div>`] : []),
     ...(e.pose ? POSES[e.pose.role](e.pose, e) : []),
     ...(e.offres ?? []).map(offre),
   ];
