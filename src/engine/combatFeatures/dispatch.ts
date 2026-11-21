@@ -15,7 +15,7 @@ import { refCouvre } from '../../data/schemas/grammaire/ref';
 import { effectiveTalents } from '../talentEffects';
 import { featuresOf, levelSum } from './talents';
 
-export { featuresOf, talentCorruptionThreshold } from './talents';
+export { featuresOf } from './talents';
 
 /** Famille d'incantation d'un Talent par son `id` STABLE (« magie-mineure », « beni ») via sa DONNÉE
  *  EFFECTIVE (`effectiveEntry`, #563/#564 — `combat` est republiable par variante réglée, comme pour

@@ -37,8 +37,6 @@ import { t } from '../i18n';
 
 export {
   acquerirTalent,
-  estLInstanceDe,
-  retirerTalent,
   talentAcquisitions,
   talentMaxById,
   talentMaxReached,

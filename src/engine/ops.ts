@@ -140,7 +140,7 @@ import { applyActiveEffect } from './effetsActifs';
 import { cleDeDe, desDeclaresDe, hauteurDeChute, type DeDeclare } from './faitsDOp';
 
 export { applyActiveEffect } from './effetsActifs';
-export { resolveFormula, valeurNonLiee } from './formule';
+export { resolveFormula } from './formule';
 export {
   cleDeDe,
   D10_CHUTE,
@@ -149,8 +149,6 @@ export {
   estOpDeLaBourseDuGroupe,
   estOpDuMarche,
   estOpDuNavire,
-  opDemandeUnDe,
-  OPS_DU_NAVIRE,
   type DemandeDe,
   type OpDuNavire,
 } from './faitsDOp';

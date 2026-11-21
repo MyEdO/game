@@ -57,7 +57,6 @@ export {
   diseasePassiveOps,
   maladieDeclaree,
   severiteEffective,
-  symptomPassive,
   symptomSuppressed,
 } from './passifsDeMaladie';
 

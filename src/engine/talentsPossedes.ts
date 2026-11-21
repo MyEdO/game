@@ -53,7 +53,7 @@ export function traitGrantedTalents(c: Pick<PorteurDeTalents, 'traits'>): RefDes
  *  entrer dans `c.talents` (aucune acquisition, aucun coût en PX, rien à l'avancement). Un effet dont
  *  le compte de Rounds est épuisé ne compte plus (le retrait matériel se fait à la frontière de Round) ;
  *  les échelles `clock`/`adventure` sont purgées par leur horloge respective. */
-export function effectGrantedTalents(c: Pick<PorteurDeTalents, 'activeEffects'>): RefDesignee[] {
+function effectGrantedTalents(c: Pick<PorteurDeTalents, 'activeEffects'>): RefDesignee[] {
   const out: RefDesignee[] = [];
   for (const e of c.activeEffects ?? []) {
     if (!e.grantedTalent) continue;

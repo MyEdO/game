@@ -5,7 +5,7 @@ import { baseWithTalents } from './talentsPossedes';
 import type { Combatant, TalentInstance } from './types';
 import { effectiveEntry } from './variants';
 
-/** LDB 05 l.406 ; LDB 07 l.47 ; LDB 10 l.17–18, l.704 ; AA 13 l.54–59, l.70–74. */
+/** LDB 05 l.406 ; LDB 07 l.47 ; LDB 10 l.17–18, l.704 ; AA 13 l.55, l.72. */
 export function talentMaxById(hero: PorteurDeTalents, talentId: string, spec?: string): number | null {
   const max = effectiveEntry(findTalentById(talentId))?.max;
   if (max == null) return null;
@@ -32,7 +32,7 @@ export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?
 export type PorteurDeTalents = Pick<Combatant, 'characteristics'> & { talents?: TalentInstance[] };
 
 /** L'instance `x` est-elle le Talent `ref` (id et spécialisation) ? */
-export const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && memeSpecialisation(x.spec, ref.spec);
+const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && memeSpecialisation(x.spec, ref.spec);
 
 /**
  * ACQUISITION d'une instance de Talent — seule couture qui écrit `talents` : le Maxi borne (`LDB 10

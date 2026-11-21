@@ -10,7 +10,7 @@ import type { Combatant } from './types';
 export const maladieDeclaree = (d: Pick<Disease, 'phase'>): boolean => d.phase === 'active';
 
 /** LDB 20 l.157 */
-export function symptomPassive(inst: DiseaseSymptom, severity: 'moderee' | 'grave' | undefined = inst.severity): OpPassive[] {
+function symptomPassive(inst: DiseaseSymptom, severity: 'moderee' | 'grave' | undefined = inst.severity): OpPassive[] {
   const s = findSymptomById(inst.symptomId);
   if (!s) return [];
   const out: OpPassive[] = [...(s.passive ?? [])];
