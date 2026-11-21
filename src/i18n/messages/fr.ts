@@ -2158,6 +2158,7 @@ export const fr = {
   'cs.cannotFocus': 'Ce sort ne peut pas être focalisé.',
   'cs.focusBlocked': '{name} ne peut pas focaliser : {reason}.',
   'cs.magicMissileNeedsTarget': '{spell} est un Projectile magique — il faut une cible ennemie (en combat).',
+  'cs.sortIndisponible': '{spell} n’est pas disponible pour {name}.',
   // ── Phase C : narration du flux de combat (noyau/combatFlow). ──
   'cf.libelleDuCouvert': 'Couvert ({cover})',
   'cf.libelleDuSort': 'Incantation / NI {ni}',
@@ -2836,6 +2837,7 @@ export const fr = {
   'step.sujetDetail': '{sujet} — {detail}',
   'step.sujetPrecision': '{sujet} ({precision})',
   'step.personneChoisie': '{src} : désigner la personne visée par {name}',
+  'step.choixDeTrait': 'Choisir le Domaine de {trait}',
   'step.cibleAcquise': '{name} : choisir la Cible de son Trait psychologique acquis',
   'step.traitDeTraumatisme': '{name} : choisir le Trait psychologique de son Trauma',
   'step.manche': 'Manche {n} — {quoi}',

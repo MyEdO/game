@@ -48,7 +48,7 @@ import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mec
 import { bypassedAP } from './armourBypass';
 import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedTrait, sameInstance, traitsAccordesPar } from './grantedTraits';
 import { caracDuCombattant, evaluer, resolveFormula, slBonus, valeurSansTirage } from './formule';
-import { traitsOctroyes } from './traitOctroye';
+import { choixDuTrait, traitsOctroyes, type ChoixDuTrait } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps, recoitLaCorruption } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
@@ -690,7 +690,7 @@ export type GameOp =
    *  `condition` (résolue MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects`, dont le retrait
    *  `removeActiveEffects` dé-accorde le trait) : un Trait borné en JOURS le dit ici (Désespoir,
    *  VDM 09 l.280). Exclusif de `durationRounds` ; absent = durée du contexte (`durationFromCtx`). */
-  | { op: 'grantTrait'; trait: TraitPose; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
+  | { op: 'grantTrait'; trait: TraitPose; choix?: true; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
   /** RETRAIT d'un Trait de créature porté (`c.traits`) — l'INVERSE de `grantTrait`, même vocabulaire :
    *  retire ce que LA SOURCE COURANTE (`ctx.source`) a accordé, instances retrouvées par le registre
    *  `TraitInstance.src`. Une instance NATIVE, ou accordée par un TIERS (Haine d'une prière, LDB 226),
@@ -1507,6 +1507,8 @@ export interface OpsCtx {
   /** Jets sur le Tableau RÉELLEMENT choisis par le lanceur (EDOC 13 l.276 : « vous POUVEZ » — décidable,
    *  jamais forcé), borné à `overcastDurationSteps`. Absent = tous les pas alloués (défaut, IA). */
   chosenTableRolls?: number;
+  /** EDOC 13 l.245. */
+  onChoixDeTrait?: (cible: Combatant, op: Extract<GameOp, { op: 'grantTrait' }>, options: readonly ChoixDuTrait[], ctx: OpsCtx) => boolean;
   /** Marqueur de RÉ-ENTRANCE `onOwnTestFailed` : posé sur le flowCtx des effets déclenchés par ce trigger
    *  (MSRC 16 — Crampes). Threadé jusqu'à un nœud Flow `test` (le FM de palier 2) routé en cascade : son
    *  étape est tamponnée `meta.noOwnTestFailed` pour que sa résolution NE ré-émette JAMAIS le trigger
@@ -1756,7 +1758,7 @@ export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
  *  le résolveur d'objets et les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage
  *  et du sol, qui reçoivent leur cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
  *  sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'onChoixDeTrait', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
@@ -2356,6 +2358,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantTrait': {
         if (!groupGate(o.onlyGroups)) break; // « les Mort-vivant/Démoniaque gagnent Instable » (Bannissement)
+        if (o.choix && ctx.onChoixDeTrait?.(target, o, choixDuTrait(o.trait.id, target), ctx)) break;
         const duree = durationFromOp(o, ctx, ref);
         for (const inst of traitsOctroyes(o, { lanceur: ref, porteur: target, rng, sl: ctx.sl, src: source })) {
           grantTrait(target, inst);

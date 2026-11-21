@@ -263,6 +263,7 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
 import { critiqueDie } from '../data/criticals';
 import { canCastFromGrimoire } from '../engine/grimoire';
+import { sortsDisponibles } from '../engine/sortsDuPnj';
 import { effectiveCastingNumber } from '../engine/castingNumber';
 import type { CastingNumberMod } from '../engine/castingNumber';
 import {
@@ -6191,7 +6192,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
   );
   // Sorts connus, résolus + enrichis (portée en cases, forme, fiabilité d'incantation, Focalisation, Unicité).
   const spells: CastableSpell[] = [];
-  for (const id of enemy.spells ?? []) {
+  for (const id of sortsDisponibles(enemy)) {
     const data = resolveSpell(id);
     if (!data) continue;
     const cn = data.cn ?? 0;

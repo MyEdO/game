@@ -14,6 +14,7 @@ import {
   findTraitById,
   findQualityById,
   findDamageTypeById,
+  findGodById,
   findConditionById,
   SPEC_SOURCES,
   type SpecsSource,
@@ -36,7 +37,9 @@ export const traitLabelById = (id: string): string => findTraitById(id)?.label ?
 function resolveTraitArg(def: TraitData | undefined, arg: string): string {
   const source = def?.specsSource;
   if (!source || ARG_JOKER.test(arg.trim())) return arg;
-  return SPEC_SOURCES[source].label(arg.trim());
+  const cle = arg.trim();
+  const dieu = def.capabilities?.spellcaster ? findGodById(cle) : undefined;
+  return dieu?.chaosSpells?.length ? dieu.label : SPEC_SOURCES[source].label(cle);
 }
 
 /** Traits dont la valeur est un BONUS de Dégâts signé (« Morsure +9 », « À distance +8 ») — affichés

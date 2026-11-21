@@ -506,9 +506,9 @@
           {
             "op": "grantTrait",
             "trait": {
-              "id": "lanceur-de-sorts",
-              "arg": "au choix"
-            }
+              "id": "lanceur-de-sorts"
+            },
+            "choix": true
           }
         ]
       }

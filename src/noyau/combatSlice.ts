@@ -310,7 +310,8 @@ import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { declarationDuReglageNomme, type CorpsDesReglages } from './reglagesDuJet';
 import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
 import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuChoixDeCibles, refusDuPasDeSurincantation } from './fenetreDIncantation';
-import { findSpellById } from '../data/index';
+import { findSpellById, type SpellData } from '../data/index';
+import { sortDeDomaineAccessibleParTrait, sortsDisponibles } from '../engine/sortsDuPnj';
 import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { distanceDeCombat, distanceDeContact } from './monde/footprint';
@@ -361,6 +362,12 @@ function barreDuGeste(s: Jeu): EtatDeLaBarre {
 function refusDuTourDe(s: Jeu, acteurId: string, horsDuTour: string): string | null {
   const barre = barreDuGeste(s);
   return barre.forme !== 'ouverte' ? barre.raison : barre.active.id !== acteurId ? horsDuTour : null;
+}
+
+function refusDuSortDeDomaine(lanceur: Combatant, sort: SpellData): string | null {
+  return sortDeDomaineAccessibleParTrait(sort) && !sortsDisponibles(lanceur).includes(sort.id)
+    ? t('cs.sortIndisponible', { name: lanceur.label, spell: sort.label })
+    : null;
 }
 
 /** Le verdict de l'ENTRÉE du registre (`actionGate`) que ce commit exécute, lu au commit comme à l'offre.
@@ -1908,7 +1915,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const spell = findSpellById(spellId);
       if (!lanceur || !spell) return;
       if (battle) {
-        const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label })) ?? refusActionDepensee(battle);
+        const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label }))
+          ?? refusActionDepensee(battle) ?? refusDuSortDeDomaine(lanceur, spell);
         if (refus) return void refuserGesteDuSiege(get, set, refus);
         set({ battle: { ...battle, action: 'incantation', selectedSpellId: spellId, reachable: new Map() } });
         castZoneSpell(get, set, lanceur, spellId); // no-op si le sort n'est pas une ZdE chiffrable
@@ -1916,6 +1924,8 @@ export function createCombatSlice(get: Get, set: Set) {
         return;
       }
       if (isMagicMissile(spell)) return void refuserGeste(get, set, t('cs.magicMissileNeedsTarget', { spell: spell.label }));
+      const refus = fromGrimoire ? null : refusDuSortDeDomaine(lanceur, spell);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       const cible = s.party.find((c) => c.id === cibleId) ?? lanceur;
       castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false, focused selon caster.focus)
     },
@@ -1985,6 +1995,8 @@ export function createCombatSlice(get: Get, set: Set) {
         const fblocked = castBlockedBy(lanceur, 'focalisation');
         if (fblocked) return void refuserGeste(get, set, t('cs.focusBlocked', { name: lanceur.label, reason: fblocked }));
       }
+      const refus = refusDuSortDeDomaine(lanceur, spell);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       set({ pendingFocus: { casterId: lanceur.id, spellId: spell.id, result: null } });
     },
 
