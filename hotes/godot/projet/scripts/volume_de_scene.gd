@@ -802,7 +802,7 @@ func _lire_le_modele_d_arete(modele: String) -> void:
 	var jeton := RefCounted.new()
 	_en_lecture[modele] = jeton
 	var recueil: Array[String] = []
-	var scene: Node3D = await chargeur.scene_du_modele(modele, recueil)
+	var scene: Node3D = await chargeur.scene_du_modele(modele, recueil, true)
 	if _en_lecture.get(modele) != jeton:
 		if scene != null:
 			scene.free()

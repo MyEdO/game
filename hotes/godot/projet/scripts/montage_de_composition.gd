@@ -249,7 +249,7 @@ static func porte_un_blason(element: String) -> bool:
 ## ses meshes, ses skins, ses matériaux et ses clips : un porteur qui en change un en fait le sien (`materiau_local`,
 ## `cuire_les_formes`, `boucler`). `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et
 ## un fichier qui ne s'est pas téléchargé se redemande.
-func scene_du_modele(id: String, recueil: Array[String]) -> Node3D:
+func scene_du_modele(id: String, recueil: Array[String], grouper_sur_web := false) -> Node3D:
 	var vie := _vie
 	if vie == null:
 		return null
@@ -270,7 +270,7 @@ func scene_du_modele(id: String, recueil: Array[String]) -> Node3D:
 		return null
 	var en_preparation := InstanceEnPreparation.new()
 	en_preparation.scene = lecture.paquet.instantiate() as Node3D
-	await preparer_les_textures(self, en_preparation.scene, surfaces)
+	await preparer_les_textures(self, en_preparation.scene, surfaces, grouper_sur_web)
 	if vie != _vie:
 		return null
 	var scene := en_preparation.scene
@@ -279,7 +279,7 @@ func scene_du_modele(id: String, recueil: Array[String]) -> Node3D:
 
 
 ## Les textures des matières que portent les maillages de cette instance, tenues par les maillages eux-mêmes.
-static func preparer_les_textures(hote: Node, scene: Node3D, surfaces: Array) -> void:
+static func preparer_les_textures(hote: Node, scene: Node3D, surfaces: Array, grouper_sur_web := false) -> void:
 	var par_nom := {}
 	for surface: Dictionary in surfaces:
 		if not surface.get("matiere", "").is_empty():
@@ -305,7 +305,7 @@ static func preparer_les_textures(hote: Node, scene: Node3D, surfaces: Array) ->
 			matieres[surface.matiere] = neutre or matieres.get(surface.matiere, false)
 			var propres: Dictionary = par_maillage.get_or_add(maillage, {})
 			propres[surface.matiere] = neutre or propres.get(surface.matiere, false)
-	var textures := await TexturesDeMatiere.preparer(hote, matieres)
+	var textures := await TexturesDeMatiere.preparer(hote, matieres, grouper_sur_web)
 	if not is_instance_valid(scene):
 		return
 	for maillage: MeshInstance3D in par_maillage:

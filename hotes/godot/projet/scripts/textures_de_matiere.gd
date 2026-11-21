@@ -2,9 +2,13 @@
 class_name TexturesDeMatiere
 extends Node
 
+## Nombre maximal de lectures groupées consécutives sur une image Web.
+const LECTURES_GROUPEES_PAR_IMAGE := 5
+
 
 class Lecture extends RefCounted:
 	var terminee := false
+	var grouper_sur_web := false
 	var texture: Texture2D
 
 
@@ -30,14 +34,15 @@ static func chemins_de(matiere: String, neutre: bool) -> PackedStringArray:
 
 ## Par chemin, les textures présentes des matières demandées (chaque nom à vrai si sa variante neutre sert).
 ## Le lot rendu tient les textures jusqu'à leur pose ou tant que le porteur les utilise.
-static func preparer(hote: Node, matieres: Dictionary) -> Dictionary:
+## Sur le Web, les lectures consécutives des lots groupés peuvent partager une image.
+static func preparer(hote: Node, matieres: Dictionary, grouper_sur_web := false) -> Dictionary:
 	if matieres.is_empty():
 		return {}
 	var chargeur := hote.get_node("/root/Textures") as TexturesDeMatiere
-	return await chargeur._preparer(matieres)
+	return await chargeur._preparer(matieres, grouper_sur_web)
 
 
-func _preparer(matieres: Dictionary) -> Dictionary:
+func _preparer(matieres: Dictionary, grouper_sur_web: bool) -> Dictionary:
 	var textures := {}
 	var attendues: Dictionary[String, Lecture] = {}
 	for matiere: String in matieres:
@@ -47,14 +52,15 @@ func _preparer(matieres: Dictionary) -> Dictionary:
 		for chemin: String in chemins:
 			if not ResourceLoader.exists(chemin, "Texture2D"):
 				continue
-			if _en_vol.has(chemin):
-				attendues[chemin] = _en_vol[chemin]
-				continue
-			var texture := retenue(chemin)
-			if texture == null:
-				attendues[chemin] = _demander(chemin)
-			else:
-				textures[chemin] = texture
+			var lecture: Lecture = _en_vol.get(chemin)
+			if lecture == null:
+				var texture := retenue(chemin)
+				if texture != null:
+					textures[chemin] = texture
+					continue
+				lecture = _demander(chemin)
+			lecture.grouper_sur_web = lecture.grouper_sur_web or grouper_sur_web
+			attendues[chemin] = lecture
 	var arbre := get_tree()
 	while not attendues.is_empty():
 		await arbre.process_frame
@@ -80,8 +86,7 @@ func _demander(chemin: String) -> Lecture:
 
 func _process(_delta: float) -> void:
 	if OS.has_feature("web"):
-		var chemin: String = _en_vol.keys().front()
-		_terminer(chemin, ResourceLoader.load(chemin, "Texture2D"))
+		_lire_sur_web()
 	else:
 		for chemin: String in _en_vol.keys():
 			var statut := ResourceLoader.load_threaded_get_status(chemin)
@@ -92,6 +97,18 @@ func _process(_delta: float) -> void:
 				_terminer(chemin, ressource)
 	if _en_vol.is_empty():
 		set_process(false)
+
+
+func _lire_sur_web() -> void:
+	var premiere := true
+	for chemin: String in _en_vol.keys().slice(0, LECTURES_GROUPEES_PAR_IMAGE):
+		var groupee := _en_vol[chemin].grouper_sur_web
+		if not premiere and not groupee:
+			break
+		_terminer(chemin, ResourceLoader.load(chemin, "Texture2D"))
+		if not groupee:
+			break
+		premiere = false
 
 
 func _terminer(chemin: String, ressource: Resource) -> void:
