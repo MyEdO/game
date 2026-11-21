@@ -9,7 +9,8 @@ import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { sousLEpoque } from './ecrivain-derives.mjs'
-import { clotureDImports } from '../../guards/lib/importGraph.mjs'
+import { clotureDImports, estModule } from '../../guards/lib/importGraph.mjs'
+import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs'
 
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
@@ -20,7 +21,7 @@ const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
 const OUTILS = ['package.json', 'package-lock.json']
 const PRECHARGES = ['scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
 const LIB_DES_DOCS = 'scripts/docs/lib'
-const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => rel.endsWith('.mjs') && !rel.endsWith('.test.mjs') })
+const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => estModule(rel) && !estSuiteVitest(rel) })
   .map((rel) => `${LIB_DES_DOCS}/${rel}`)
 
 /** #2603 */

@@ -11,7 +11,7 @@
 // de la table, qui restent une MESURE, pas une déduction.
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { clotureDImports } from '../guards/lib/importGraph.mjs'
+import { clotureDImports, estModule } from '../guards/lib/importGraph.mjs'
 import { gatesDeCi } from './gatesDeCi.mjs'
 import { GATES, listerTests, testsDe } from './testsParGate.mjs'
 import { OPERATIONS_FS } from '../guards/lib/ecrituresFichiers.mjs'
@@ -32,7 +32,7 @@ const LANCEUR_TESTS = 'scripts/gates/testsSansEcriture.mjs'
 function fichiersDe(commande, racine, gate, lister) {
   const out = []
   for (const jeton of commande.split(/\s+/))
-    if (/^[\w./-]+\.(?:mjs|mts|js|ts)$/.test(jeton) && existsSync(join(racine, jeton))) out.push(jeton)
+    if (/^[\w./-]+\.[a-z]+$/.test(jeton) && estModule(jeton) && existsSync(join(racine, jeton))) out.push(jeton)
   if (out.includes(LANCEUR_TESTS) && GATES.includes(gate)) out.push('scripts/test/node-tests.mjs', ...testsDe(gate, lister))
   return out
 }

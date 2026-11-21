@@ -22,7 +22,7 @@
 //
 // PÉRIMÈTRE MESURÉ — l'énumération passe EXCLUSIVEMENT par `git ls-files` (fichiers SUIVIS) :
 //   SENS 1 : `docs/plans/**` en `.md`, `.html` (`.dc.html` compris).
-//   SENS 2 et 3 : tout fichier suivi d'extension `.md .mjs .mts .ts .tsx .js .json .yml .yaml .css .html`,
+//   SENS 2 et 3 : tout script suivi (`EXTENSIONS_DE_SCRIPT`) et les fichiers suivis `.md .json .yml .yaml .css .html`,
 //   moins les CORPUS HISTORIQUES (`CORPUS_HISTORIQUES`).
 // La citation se cherche dans le texte JOINT (lignes recollées, préfixes de commentaire retirés) :
 // une réf coupée en fin de ligne (l'en-tête de src/engine/testOutcome.ts) est un chemin comme un autre. Le
@@ -69,14 +69,15 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
+import { EXTENSIONS_DE_SCRIPT } from '../guards/lib/dialecte.mjs'
 
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
 const tracked = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
   .split('\n').map((s) => s.trim()).filter(Boolean)
 
 const PLAN_EXTS = ['.md', '.html']
-const SCAN_EXTS = ['.md', '.mjs', '.mts', '.ts', '.tsx', '.js', '.json', '.yml', '.yaml', '.css', '.html']
-const REF_EXTS = ['.md', '.html', '.htm', '.json', '.mjs', '.mts', '.ts', '.tsx', '.js', '.css', '.svg', '.png', '.txt']
+const SCAN_EXTS = [...EXTENSIONS_DE_SCRIPT, '.md', '.json', '.yml', '.yaml', '.css', '.html']
+const REF_EXTS = [...EXTENSIONS_DE_SCRIPT, '.md', '.html', '.htm', '.json', '.css', '.svg', '.png', '.txt']
 
 const read = (rel) => { try { return readFileSync(`${ROOT}/${rel}`, 'utf8') } catch { return null } }
 const isDir = (p) => { try { return statSync(p).isDirectory() } catch { return false } }

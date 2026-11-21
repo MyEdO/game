@@ -13,7 +13,7 @@ import { scanEmetteurBrut, SCAN_DIRS, PROPRIETAIRE, EMETTEURS } from '../scripts
  */
 function referencesHorsEmetteurs(dirs: string[], relDe: (rel: string) => string = (rel) => rel): string[] {
   const out: string[] = [];
-  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(dirs, { exts: ['.mjs'], tests: true }))) {
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(dirs, { tests: true }))) {
     for (const f of scanEmetteurBrut(relDe(rel), text, sourceFile!)) out.push(`${rel}:${f.line} ${f.dans}`);
   }
   return out;
@@ -25,9 +25,9 @@ describe('garde — l’émetteur brut d’entrée n’est lu que par les émett
   });
 
   it('TÉMOIN sur le corpus RÉEL : le propriétaire est scanné, et chacun de ses émetteurs y référence l’émetteur brut', { timeout: 120_000 }, () => {
-    const proprietaire = [...analyserCorpus(readCorpus(SCAN_DIRS, { exts: ['.mjs'], tests: true }))].find((c) => c.fichier.rel === PROPRIETAIRE);
+    const proprietaire = readCorpus(SCAN_DIRS, { tests: true }).find((f) => f.rel === PROPRIETAIRE);
     expect(proprietaire, `${PROPRIETAIRE} absent du corpus de SCAN_DIRS : la garde serait verte par vacuité`).toBeDefined();
-    const sousUnAutreNom = scanEmetteurBrut('scripts/recette/temoin.mjs', proprietaire!.fichier.text, proprietaire!.sourceFile!);
+    const sousUnAutreNom = scanEmetteurBrut('scripts/recette/temoin.mjs', proprietaire!.text);
     expect([...new Set(sousUnAutreNom.map((f) => f.dans))].filter((d) => EMETTEURS.includes(d)).sort()).toEqual([...EMETTEURS].sort());
   });
 
@@ -39,9 +39,9 @@ describe('garde — l’émetteur brut d’entrée n’est lu que par les émett
         'export function geste(s) { return emetteursBruts.get(s); }',
         'export function clicBrut(s) { return emetteursBruts.get(s)("Input.dispatchMouseEvent", {}); }',
       ].join('\n'));
-      writeFileSync(join(dir, 'autre.mjs'), 'export const fuite = (m, s) => m.emetteursBruts.get(s);\n// emetteursBruts en commentaire\nconst t = "emetteursBruts";\n');
+      writeFileSync(join(dir, 'autre.cts'), 'export const fuite = (m, s) => m.emetteursBruts.get(s);\n// emetteursBruts en commentaire\nconst t = "emetteursBruts";\n');
       expect(referencesHorsEmetteurs([dir], (rel) => (rel.endsWith('/lib.mjs') ? PROPRIETAIRE : rel)).sort()).toEqual([
-        expect.stringMatching(/autre\.mjs:1 \(module\)$/),
+        expect.stringMatching(/autre\.cts:1 \(module\)$/),
         expect.stringMatching(/lib\.mjs:3 clicBrut$/),
       ]);
     } finally {

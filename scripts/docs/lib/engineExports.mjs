@@ -8,14 +8,15 @@ import { ast, analyserCorpus } from '../../guards/lib/dialecte.mjs';
 import * as ts from 'typescript/unstable/ast'
 import { readFileSync } from 'node:fs'
 import { listerArbre } from '../../guards/lib/lister.mjs'
+import { estModule } from '../../guards/lib/importGraph.mjs'
 import { estFichierVitest, estKitDeTest } from '../../guards/lib/fichierVitest.mjs'
 import { jsdocBody, firstSentence } from './jsdocUnion.mjs'
 
 export const ENGINE_ROOT = 'src/engine'
 
-/** Fichiers `.ts` sous `root`, hors instruments et kits de test (`fichierVitest.mjs`) : mesure de PRODUCTION, jamais de spec. */
+/** Modules de code sous `root`, hors instruments et kits de test (`fichierVitest.mjs`) : mesure de PRODUCTION, jamais de spec. */
 export function fichiersMoteur(root = ENGINE_ROOT) {
-  return listerArbre(root, { filtre: (rel) => rel.endsWith('.ts') && !estFichierVitest(rel) && !estKitDeTest(rel) })
+  return listerArbre(root, { filtre: (rel) => estModule(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
     .map((rel) => `${root}/${rel}`)
 }
 

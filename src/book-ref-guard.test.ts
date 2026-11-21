@@ -1,8 +1,8 @@
-import { ast, analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
+import { analyserCorpus, avecAnalyse } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import type { Checker } from 'typescript/unstable/sync';
+import { contexteImports, liaisonImportee, type ContexteImports } from '../scripts/guards/lib/canonUnique.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { alternationDuRegistre, REGISTRE_LIVRES } from '../scripts/guards/lib/rawRefIntegrity.mjs';
 import { garanti } from './lib/garanti';
@@ -27,8 +27,6 @@ import { dossierDe, porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
  * descriptions de schéma (`hint`, `describe`, `refine`), lues par les seuls écrans d'AUTORING.
  *
  */
-
-const SRC_DIR = fileURLToPath(new URL('.', import.meta.url));
 
 /**
  * `abbr` d'un livre du registre (`src/data/books.json`) suivi d'un numéro de chapitre/fiche.
@@ -80,10 +78,25 @@ function estPuitsDeDiagnostic(node: ts.Node, sf: ts.SourceFile): boolean {
   return ts.isPropertyAccessExpression(appele) && ts.isIdentifier(appele.expression) && appele.expression.text === 'console';
 }
 
-/** Nœuds RENDUS uniquement — les commentaires (trivia) ne sont jamais visités ; `horsDiagnostic` taille
+/** Un argument direct d'une assertion Node porte une attente de test. Les expressions imbriquées
+ *  restent parcourues et le checker distingue l'import d'un homonyme local. */
+function estTexteDAssertion(node: ts.Node, sf: ts.SourceFile, imports: ContexteImports): boolean {
+  const appel = node.parent;
+  if (!appel || !ts.isCallExpression(appel) || !appel.arguments.some((arg) => arg === node)) return false;
+  const appele = appel.expression;
+  const parMembre = ts.isPropertyAccessExpression(appele);
+  const recepteur = parMembre ? appele.expression : appele;
+  if (!ts.isIdentifier(recepteur)) return false;
+  const origine = liaisonImportee(recepteur, sf, imports);
+  if (!origine || (origine.spec !== 'node:assert' && origine.spec !== 'node:assert/strict')) return false;
+  return parMembre ? ['*', 'default', 'strict'].includes(origine.nom) : origine.nom !== '*';
+}
+
+/** Nœuds RENDUS uniquement — les commentaires sont de la trivia ; `horsDiagnostic` taille
  *  les puits de diagnostic (`estPuitsDeDiagnostic`). */
-function renderedBookRefs(file: string, src: string, sf = ast({ rel: file, text: src })!, horsDiagnostic = false): { line: number; text: string }[] {
+function renderedBookRefs(sf: ts.SourceFile, checker: Checker | undefined, horsDiagnostic = false): { line: number; text: string }[] {
   const hits: { line: number; text: string }[] = [];
+  const imports = contexteImports(sf, checker);
   const visit = (node: ts.Node): void => {
     if (horsDiagnostic && estPuitsDeDiagnostic(node, sf)) return;
     if (ts.isPropertyAssignment(node) && ts.isStringLiteral(node.name) && node.name.text.startsWith(CLES_DU_CODEX)) return;
@@ -91,13 +104,17 @@ function renderedBookRefs(file: string, src: string, sf = ast({ rel: file, text:
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) text = node.text;
     else if (ts.isJsxText(node)) text = node.text;
     else if (ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) text = node.text;
-    if (text && BOOK_REF.test(text)) {
+    if (text && BOOK_REF.test(text) && !estTexteDAssertion(node, sf, imports)) {
       hits.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: text.trim().slice(0, 120) });
     }
     node.forEachChild(visit);
   };
   visit(sf);
   return hits;
+}
+
+function refsDuTexte(rel: string, text: string, horsDiagnostic = false) {
+  return avecAnalyse({ rel, text }, undefined, undefined, (sf, checker) => renderedBookRefs(sf, checker, horsDiagnostic));
 }
 
 /**
@@ -129,9 +146,9 @@ const CONSIGNE = 'retirer la réf (elle va en commentaire au site qui écrit le 
 describe('réfs de livre — réservées au Codex et aux surfaces d’authoring (#601)', () => {
   it.each(PERIMETRES_DE_JEU)('aucun texte joueur du périmètre $nom ne porte une référence de livre (#3059)', ({ racines, horsDiagnostic }) => {
     const offenders: string[] = [];
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus([...racines]))) {
+    for (const { fichier: { rel }, sourceFile, checker } of analyserCorpus(readCorpus(racines))) {
       if (rel.startsWith(CODEX_DU_NOYAU)) continue;
-      for (const h of renderedBookRefs(rel, text, sourceFile!, horsDiagnostic)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
+      for (const h of renderedBookRefs(sourceFile!, checker, horsDiagnostic)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
     }
     expect(offenders, `Réf de livre dans un texte joueur (${CONSIGNE}) :\n${offenders.join('\n')}`).toEqual([]);
   });
@@ -145,7 +162,7 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
       `console.error("frappe refusée (${sigle} 85 l.41)");`,
       `const o = { detail: "Le groupe fait face (${sigle} 15 l.94)." };`,
     ].join('\n');
-    const lignes = (horsDiagnostic: boolean) => renderedBookRefs('__probe.ts', texte, undefined, horsDiagnostic).map((h) => h.line);
+    const lignes = (horsDiagnostic: boolean) => refsDuTexte('__probe.ts', texte, horsDiagnostic).map((h) => h.line);
     expect(lignes(true)).toEqual([1, 5]);
     expect(lignes(false)).toEqual([1, 2, 3, 4, 5]);
   });
@@ -159,7 +176,7 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
       `  'log.coup': 'Le coup porte (${sigle} 13)',`,
       `};`,
     ].join('\n');
-    expect(renderedBookRefs('__catalogue.ts', catalogue).map((h) => h.line)).toEqual([3, 4]);
+    expect(refsDuTexte('__catalogue.ts', catalogue).map((h) => h.line)).toEqual([3, 4]);
   });
 
   it('le détecteur voit RÉELLEMENT une réf rendue (et ignore les commentaires)', () => {
@@ -168,20 +185,19 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
     // serait déjà échappé) : aucune identité de livre n'est écrite ici, et un registre qui perdrait
     // ce livre déplacerait la sonde avec lui.
     const sigle = REGISTRE_LIVRES.find((b) => b.abbr)!.abbr!;
-    const probe = join(SRC_DIR, '__probe.tsx');
-    const sf = ast({ rel: probe, text: [
-        `// glose en commentaire (${sigle} 23 l.141) — tolérée`,
-        `export const a = "Refuser la Faveur (${sigle} 23 l.141)";`,
-        `export const b = "la voie des sorciers (${sigle}).";`,
-        `export const c = "un mot qui contient ${sigle} sans le citer";`,
-      ].join('\n') })!;
-    const hits: number[] = [];
-    const visit = (n: ts.Node): void => {
-      if (ts.isStringLiteral(n) && BOOK_REF.test(n.text)) hits.push(sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1);
-      n.forEachChild(visit);
-    };
-    visit(sf);
-    expect(hits).toEqual([2, 3]);
+    const texte = [
+      "import assert from 'node:assert/strict';",
+      "import { strictEqual as verifier } from 'node:assert';",
+      `// glose en commentaire (${sigle} 23 l.141) — tolérée`,
+      `export const a = "Refuser la Faveur (${sigle} 23 l.141)";`,
+      `export const b = "la voie des sorciers (${sigle}).";`,
+      `export const c = "un mot qui contient ${sigle} sans le citer";`,
+      `assert.equal(v, "Baliste (${sigle})");`,
+      `verifier(v, "Profil attendu (${sigle})");`,
+      `assert.equal(v, afficher("Profil rendu (${sigle})"));`,
+      `function autre(assert) { assert.equal(v, "Traité par un homonyme (${sigle})"); }`,
+    ].join('\n');
+    expect(refsDuTexte('__probe.tsx', texte).map((h) => h.line)).toEqual([4, 5, 9, 10]);
   });
 
   it('le motif est DÉRIVÉ du registre ENTIER, jamais une seconde alternation (#1826)', () => {

@@ -56,6 +56,7 @@ import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
 import { estDocumentARangees } from './documentARangees.mts';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
+import { estModule } from './importGraph.mjs';
 import { listerEntrees, parUnitesDeCode } from './lister.mjs';
 import { empreinteDeChamps } from './occurrencesStock.mjs';
 import { PORTEURS } from './porteursDesComptes.mjs';
@@ -243,11 +244,11 @@ function empreinteConjointe(noeuds: readonly object[]): string {
   return empreinteDeChamps([...types].map(([cle, t]) => [cle, t.size === 1 ? [...t][0] : 'intersection']));
 }
 
-/** Les exports zod de chaque module de `grammaire/` (hors tests). */
+/** Les exports zod des modules exécutables de `grammaire/`, hors déclarations et instruments de test. */
 const GRAMMAIRE = fileURLToPath(new URL('../../../src/data/schemas/grammaire/', import.meta.url));
 const EXPORTS_DE_GRAMMAIRE: readonly unknown[] = (await Promise.all(
   listerEntrees(GRAMMAIRE).entrees
-    .filter((f) => f.nature === 'file' && /\.ts$/.test(f.nom) && !/\.d\.ts$/.test(f.nom) && !estFichierVitest(f.nom) && !estKitDeTest(f.nom))
+    .filter((f) => f.nature === 'file' && estModule(f.nom) && !/\.d\.[cm]?ts$/.test(f.nom) && !estFichierVitest(f.nom) && !estKitDeTest(f.nom))
     .map(async (f) => Object.values(await import(pathToFileURL(join(GRAMMAIRE, f.nom)).href) as Record<string, unknown>)),
 )).flat().filter(estNoeud);
 

@@ -79,7 +79,7 @@ function customsInJson(value: unknown, path: string, out: { where: string; label
   }
 }
 
-const GIVE_CUSTOM_TS = /giveTrapping'[^\n]*?\bcustom:\s*'([^']+)'/;
+const GIVE_CUSTOM = /giveTrapping'[^\n]*?\bcustom:\s*'([^']+)'/;
 
 describe('giveTrapping : un `custom` ne recrée jamais un objet du catalogue', () => {
   const jsonFiles = [
@@ -99,11 +99,11 @@ describe('giveTrapping : un `custom` ne recrée jamais un objet du catalogue', (
     expect(hits, `Objets de catalogue recréés en \`custom\` :\n${hits.join('\n')}`).toEqual([]);
   });
 
-  it('scènes authorées en TypeScript', () => {
+  it('scènes authorées en code', () => {
     const hits: string[] = [];
-    for (const { rel, text } of readCorpus(['src/scenes'], { exts: ['.ts'] })) {
+    for (const { rel, text } of readCorpus(['src/scenes'])) {
       text.split(/\r?\n/).forEach((line, i) => {
-        const m = GIVE_CUSTOM_TS.exec(line);
+        const m = GIVE_CUSTOM.exec(line);
         const hit = m && recreates(m[1]);
         if (m && hit) hits.push(hitLine(`${rel}:${i + 1}`, m[1], hit));
       });

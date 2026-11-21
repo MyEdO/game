@@ -6,6 +6,7 @@
 // pour un refactor : les clés imbriquées profondes ne sont pas déroulées, seul le NIVEAU 1 de
 // l'objet passé à `set(` est lu.
 import { readFileSync } from 'node:fs';
+import { estModule } from './importGraph.mjs';
 import { listerArbre } from './lister.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { join, relative } from 'node:path';
@@ -88,7 +89,7 @@ export function runSetScan(root) {
   const noyauDir = join(root, 'src/noyau');
   const pendingKeys = stateFieldKeys(noyauDir);
   const files = listerArbre(noyauDir, {
-    filtre: (f) => f.endsWith('.ts') && !estFichierVitest(f) && !estKitDeTest(f) && f !== 'stateFields.ts',
+    filtre: (f) => estModule(f) && !estFichierVitest(f) && !estKitDeTest(f) && f !== 'stateFields.ts',
   });
 
   const report = [];

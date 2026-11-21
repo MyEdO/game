@@ -7,6 +7,7 @@
 import { existsSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
 import { estLivreExtrait } from '../../raw/_lib.mjs'
 
@@ -68,10 +69,10 @@ export function sitesFautifs(texte, litteraux, { shell = false } = {}) {
 }
 
 // Fichiers de CODE, et JSON de configuration (racine, `.claude/`, `.codex/`, `.agents/`, `.github/`).
-const CODE = /\.(mjs|js|cjs|ts|mts|tsx|py|sh|ps1)$/
+const EXTENSIONS_DE_CODE = [...EXTENSIONS_DE_SCRIPT, '.py', '.sh', '.ps1']
 const CONFIG_JSON = /^(?:[^/]+|\.(?:claude|codex|agents|github)\/.+)\.json$/
 /** `f` (relatif POSIX) est-il balayé par la garde ? PURE. */
-export const estBalaye = (f) => CODE.test(f) || CONFIG_JSON.test(f)
+export const estBalaye = (f) => EXTENSIONS_DE_CODE.some((ext) => f.endsWith(ext)) || CONFIG_JSON.test(f)
 export const estShell = (f) => /\.(sh|ps1)$/.test(f)
 
 // Exemptions AU SITE : `fichier` + `motif` de la ligne + `raison`. Chacune doit toucher un site.

@@ -18,6 +18,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { ALLOWED_CHARS } from '../guards/lib/emojiAffordance.mjs'
+import { EXTENSIONS_DE_SCRIPT } from '../guards/lib/dialecte.mjs'
 import { RACINES_DES_ZONES } from '../guards/lib/couches.mjs'
 import { REGISTRIES } from './lib/cibles-registres.mjs'
 
@@ -182,19 +183,15 @@ function rendu(entree) {
     }
   }
 
-  capture(NO_EMOJI, /readCorpus\((RACINES_DES_ZONES),/, 'le balayage des racines des zones `RACINES_DES_ZONES`', 'src/no-emoji-affordance.test.ts')
   const RACINE_SCAN = RACINES_DES_ZONES.join('/`, `')
-  /** Les extensions que la garde demande à `readCorpus` (`exts: ['.ts', '.tsx', '.json']`), rendues en
-   *  la forme que le § 7 affiche — un motif de fin de nom, comme la garde le lit. */
-  const EXTENSIONS_SCAN = `/\\.(${capture(
+  /** Les extensions de données déclarées dans le corpus de scripts, pour le motif affiché au § 7. */
+  const extensionsDonnees = capture(
     NO_EMOJI,
-    /exts: \[([^\]]+)\]/,
-    'les extensions de `readCorpus`',
+    /readCorpus\(RACINES_DES_ZONES,\s*\{\s*exts:\s*\[\s*\.\.\.EXTENSIONS_DE_SCRIPT,\s*((?:'\.[a-z]+',?\s*)+)\]/,
+    'la composition des extensions de `readCorpus`',
     'src/no-emoji-affordance.test.ts',
-  )
-    .split(',')
-    .map((e) => e.trim().replace(/^'\.?|'$/g, ''))
-    .join('|')})$/`
+  ).match(/\.[a-z]+/g)
+  const EXTENSIONS_SCAN = `/\\.(${[...EXTENSIONS_DE_SCRIPT, ...extensionsDonnees].map((e) => e.slice(1)).join('|')})$/`
 
   // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
 

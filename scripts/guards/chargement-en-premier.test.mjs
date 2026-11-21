@@ -52,11 +52,25 @@ test('un travailleur qui tombe APRÈS le dernier verdict de son lot fait échoue
   assert.match(echecs[0].erreur, /^travailleur en panne après le dernier verdict de son lot de 1 \(code 1\) : Error: panne tardive$/)
 })
 
-test('le champ : les sources TypeScript, hors tests, testkits et déclarations', () => {
-  assert.deepEqual(
-    ['a.ts', 'b.test.ts', 'c.testkit.ts', 'd.d.ts', 'e.json', 'f.tsx', 'g.mts', 'h.hors-store.test.ts', 'noyau.testkit.test.ts'].filter(estModuleACharger),
-    ['a.ts', 'f.tsx', 'g.mts'],
-  )
+test('le champ : les scripts de src et le TypeScript des hôtes externes, hors tests et déclarations', () => {
+  const scripts = [
+    'src/lib/a.ts', 'src/lib/a.mts', 'src/lib/a.cts', 'src/lib/a.tsx',
+    'src/lib/a.js', 'src/lib/a.mjs', 'src/lib/a.cjs', 'src/lib/a.jsx',
+    'hotes/godot/a.ts', 'hotes/godot/a.mts', 'hotes/godot/a.tsx',
+  ]
+  const horsChamp = [
+    'src/lib/a.test.ts', 'src/lib/a.testkit.cjs', 'src/lib/a.bench.mjs', 'src/lib/a.hors-store.test.ts',
+    'src/lib/a.d.ts', 'src/lib/a.d.mts', 'src/lib/a.d.cts', 'src/lib/a.json',
+    'hotes/godot/recette.mjs', 'hotes/godot/cibles/propositions/sources/gestes.js',
+  ]
+  assert.deepEqual([...scripts, ...horsChamp].filter(estModuleACharger), scripts)
+})
+
+test('le module .mjs réel de src/lib entre dans le champ et se charge en premier sous Vite', async () => {
+  const racine = fileURLToPath(new URL('../../', import.meta.url))
+  const temoin = 'src/lib/coupeAuMot.mjs'
+  assert.ok(modulesDeZone(racine, 'lib').includes(temoin))
+  assert.deepEqual(await chargerEnPremier(racine, [temoin]), [])
 })
 
 test('le dépôt réel : la zone `noyau` énumère ses modules, sans aucun test', () => {

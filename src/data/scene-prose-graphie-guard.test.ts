@@ -35,7 +35,6 @@ import { detenteur } from '../lib/detenteur.testkit';
 
 /** Racines d'AUTHORING balayées — le code qui PRODUIT des documents de scène. */
 const RACINES = ['src', 'scripts'];
-const EXTS = ['.ts', '.tsx', '.mjs', '.mts', '.js'];
 
 /**
  * EXEMPTIONS au SITE, nominatives et MESURÉES :
@@ -174,7 +173,7 @@ function masquerDefinitionDOutil(texte: string): string {
 const masquer = (texte: string): string => masquerDefinitionDOutil(masquerMetaDeWorkflow(masquerFrontmatter(texte)));
 
 describe('graphie de la prose de scène — aucun producteur ne réécrit la forme retirée (#1467 L1b)', () => {
-  const corpus = detenteur(() => readCorpus(RACINES, { exts: EXTS, tests: true }).filter((f) => !estExempt(f.rel)));
+  const corpus = detenteur(() => readCorpus(RACINES, { tests: true }).filter((f) => !estExempt(f.rel)));
 
   it('le corpus balayé est NON VIDE et couvre les deux racines (sans quoi la garde serait un no-op vert)', () => {
     expect(corpus().length).toBeGreaterThan(500);

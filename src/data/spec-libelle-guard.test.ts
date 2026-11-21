@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sitesSpecLibelle } from '../../scripts/guards/lib/specLibelle.mjs';
+import { estModule } from '../../scripts/guards/lib/importGraph.mjs';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { skills, talents } from '.';
 
@@ -25,7 +26,7 @@ for (const e of [...skills, ...talents] as { id: string; specs?: unknown }[]) {
 
 describe('garde « spécialisation écrite en libellé »', () => {
   it('INVENTAIRE : aucune spécialisation en libellé dans src/, hors exemption au site', { timeout: 120_000 }, () => {
-    const fichiers = listerArbre(join(ROOT, 'src'), { filtre: (rel: string) => /\.tsx?$/.test(rel) })
+    const fichiers = listerArbre(join(ROOT, 'src'), { filtre: estModule })
       .map((rel: string) => ({ rel: `src/${rel}`, text: readFileSync(join(ROOT, 'src', rel), 'utf8') }))
       .filter((f: { text: string }) => /\bspec\b/.test(f.text));
     const sites = sitesSpecLibelle(fichiers, catalogue);

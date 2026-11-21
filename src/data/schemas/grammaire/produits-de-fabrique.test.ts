@@ -123,7 +123,7 @@ function constructionsNonMarquees(rel: string, texte: string, fabriquesDerivante
 }
 
 describe('GARDE — un objet construit par une fonction de la grammaire est un produit marqué', () => {
-  const grammaire = () => readCorpus(['src/data/schemas/grammaire'], { exts: ['.ts'] }).filter((s) => !s.rel.endsWith('.test.ts'));
+  const grammaire = () => readCorpus(['src/data/schemas/grammaire']);
 
   it('les fabriques dérivantes de la grammaire sont reconnues ; aucune construction d’objet de fabrique hors d’un marquage', () => {
     const sources = grammaire();

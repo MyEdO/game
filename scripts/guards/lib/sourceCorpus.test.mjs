@@ -38,11 +38,11 @@ import assert from 'node:assert/strict'
 // eslint-disable-next-line murs/ordre-total-imports -- ORACLE du cas (f) : marche naïve TÉMOIN, indépendante de `listerArbre` par construction (sinon le test ne prouverait rien) ; son rendu est trié par unités de code avant comparaison, l’ordre du système de fichiers n’en sort jamais.
 import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, relative, sep } from 'node:path'
+import { basename, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { constructionsReserveesDuCorpus, recopieDeCanon } from './canonUnique.mjs'
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
-import { readCorpus, sAppliqueA, viderCorpus } from './sourceCorpus.mjs'
+import { estRetenu, readCorpus, sAppliqueA, viderCorpus } from './sourceCorpus.mjs'
 
 /** La même racine que celle contre laquelle `sourceCorpus.mjs` normalise ses clés. */
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
@@ -80,15 +80,26 @@ test('une DÉCLARATION `.d.ts` est hors corpus, `tests` et `exts` quels qu’ils
   }
 })
 
-test('un banc et un kit de test entrent dans le corpus sous `tests`', () => {
+test('le corpus par défaut lit chaque dialecte et réserve les instruments à `tests`', () => {
   viderCorpus()
-  const racine = mkdtempSync(join(tmpdir(), 'corpus-kit-'))
+  const racine = mkdtempSync(join(tmpdir(), 'corpus-dialectes-'))
   try {
-    writeFileSync(join(racine, 'prod.ts'), 'prod')
-    writeFileSync(join(racine, 'outil.testkit.ts'), 'kit')
-    writeFileSync(join(racine, 'banc.bench.ts'), 'banc')
-    assert.deepEqual(readCorpus([racine]).map((f) => f.text), ['prod'])
-    assert.deepEqual(readCorpus([racine], { tests: true }).map((f) => f.text), ['banc', 'kit', 'prod'])
+    const scripts = [
+      'compagnon.d.cts', 'compagnon.d.mts', 'composant.tsx', 'contrat.fixture.ts',
+      'module.cts', 'module.mts', 'outil.cjs', 'outil.js', 'outil.mjs', 'vue.jsx',
+    ]
+    const instruments = ['atelier.testkit.cjs', 'banc.bench.mts', 'vue.test.tsx']
+    const autres = ['contrat.d.ts', 'script.gd', 'table.json']
+    const fichiers = [...scripts, ...instruments, ...autres]
+    for (const nom of fichiers) writeFileSync(join(racine, nom), nom)
+
+    for (const tests of [false, true]) {
+      const attendus = (tests ? [...scripts, ...instruments] : [...scripts]).sort()
+      assert.deepEqual(readCorpus([racine], { tests }).map((f) => basename(f.rel)), attendus)
+      assert.deepEqual(fichiers.filter((nom) => estRetenu(nom, { tests })).sort(), attendus)
+    }
+    assert.deepEqual(readCorpus([racine], { exts: ['.gd'] }).map((f) => f.text), ['script.gd'])
+    assert.equal(readCorpus([racine]), readCorpus([racine], { exts: EXTENSIONS_DE_SCRIPT }))
   } finally {
     viderCorpus()
     rmSync(racine, { recursive: true, force: true })
@@ -205,16 +216,16 @@ test('la clé est NORMALISÉE : absolu ≡ relatif ≡ séparateur final', () =>
  * rendrait l'oracle circulaire, il ne pourrait plus contredire le corpus. Écrite ICI et nulle part
  * ailleurs : c'est le témoin indépendant de `listerArbre` + `readCorpus`. Aucun cardinal n'est
  * attendu — l'oracle est la MARCHE, jamais un nombre, qui périmerait au fichier suivant.
- * @param {string} dir @param {string[]} exts @param {boolean} tests
+ * @param {string} dir @param {boolean} tests
  * @returns {string[]} chemins POSIX depuis la racine du dépôt, triés.
  */
-function marcheNaive(dir, exts, tests) {
+function marcheNaive(dir, tests) {
   const out = []
   const descendre = (d) => {
     for (const nom of readdirSync(d, { withFileTypes: true })) {
       const p = join(d, nom.name)
       if (nom.isDirectory()) { descendre(p); continue }
-      if (!exts.some((e) => nom.name.endsWith(e))) continue
+      if (!/\.(?:[cm]?[jt]s|[jt]sx)$/.test(nom.name)) continue
       if (!tests && /\.(test|bench|testkit)\.[cm]?[jt]sx?$/.test(nom.name)) continue
       if (/\.d\.ts$/.test(nom.name)) continue
       out.push(relative(ROOT, p).split('\\').join('/'))
@@ -228,7 +239,7 @@ test('PÉRIMÈTRE sur l’arbre RÉEL : `readCorpus([\'src\'])` rend EXACTEMENT 
   viderCorpus()
   const SRC = join(ROOT, 'src')
   for (const tests of [false, true]) {
-    const attendu = marcheNaive(SRC, ['.ts', '.tsx'], tests)
+    const attendu = marcheNaive(SRC, tests)
     const rendu = readCorpus(['src'], { tests }).map((f) => f.rel)
     assert.ok(attendu.length > 0, 'l’oracle lui-même ne voit rien : la comparaison ne prouverait rien')
     const trie = [...rendu].sort()
@@ -353,7 +364,7 @@ const RECOPIES_DE_CORPUS_FILE = [{
 }]
 
 test('les types des fichiers de corpus dérivent de CorpusFile', () => {
-  const fichiers = readCorpus(['src', 'hotes', 'scripts'], { exts: [...EXTENSIONS_DE_SCRIPT], tests: true })
+  const fichiers = readCorpus(['src', 'hotes', 'scripts'], { tests: true })
   assert.deepEqual(constructionsReserveesDuCorpus(fichiers, RECOPIES_DE_CORPUS_FILE), [])
 })
 

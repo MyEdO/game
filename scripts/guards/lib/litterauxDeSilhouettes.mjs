@@ -5,6 +5,7 @@
 // LIMITE : garde LEXICALE — un identifiant recomposé (`'carrure_' + sens`) lui échappe.
 
 import { basename } from 'node:path';
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
 import { readCorpus } from './sourceCorpus.mjs';
 
@@ -14,7 +15,7 @@ export const SOCLE = 'hotes/godot/asset/silhouettes.ts';
 /** Les racines balayées : producteurs et consommateurs du vocabulaire. */
 export const RACINES = Object.freeze(['scripts/personnage-3d', 'hotes/godot']);
 
-const EXTENSIONS = ['.py', '.ts', '.mts', '.mjs', '.js', '.gd'];
+const EXTENSIONS = [...EXTENSIONS_DE_SCRIPT, '.py', '.gd'];
 
 /** Le corpus balayé : le code des `RACINES`, testkits compris (un kit qui écrit un identifiant le redéclare
  *  comme le code), hors instruments Vitest (`estFichierVitest`), hors `test_*.py` et hors `SOCLE`. */

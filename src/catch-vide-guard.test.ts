@@ -21,7 +21,7 @@ const GARDE = {
     '(`.catch(() => {})`), appliquées au corpus de `readCorpus` ' +
     '(`scripts/guards/lib/sourceCorpus.mjs`, #1462) — aucun parcours de dossiers local.',
   perimetre:
-    '`src/**`, extensions `.ts` et `.tsx`, TESTS EXCLUS (défaut `tests: false` de `readCorpus`) : la ' +
+    '`src/**`, dialectes de script et instruments exclus selon le défaut de `readCorpus` : la ' +
     'garde mesure le code de PRODUCTION — un harnais qui avale une erreur ne trompe aucun joueur.',
   angleMort: [
     'Le comptage est STRICT : il ne voit que les corps STRICTEMENT vides. Un `catch` au corps ' +

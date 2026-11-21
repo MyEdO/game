@@ -27,6 +27,7 @@ import { cleDeSite, remedeNomme, sitesEnEntrees } from '../scripts/guards/lib/st
 import { renommagesDeStructure, SOUS_LA_PORTE, type EntreeDeStructure } from '../scripts/guards/lib/occurrencesStock.mjs';
 import { cheminsDeDocument } from '../scripts/guards/lib/structuresLocales.mts';
 import { commitDe, depotDe, reussi, shaDe } from '../scripts/guards/lib/gitPorte.mjs';
+import { estModule } from '../scripts/guards/lib/importGraph.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { CHEMINS_EXPORTES } from '../scripts/migrations/replay-head.mjs';
 import { estObjet } from './lib/objet.mjs';
@@ -336,7 +337,7 @@ describe('jugerLesComptes — l’image d’une borne se pose HORS de tout dép�
 describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune plage', () => {
   const ROOT = fileURLToPath(new URL('..', import.meta.url));
   /** Les fichiers TEXTE d'une copie de l'arbre : ce que lisent la génération du code et la mesure. */
-  const TEXTE = /\.(?:md|json|ts|tsx|mts|mjs|js|cjs|css|snap)$/;
+  const estTexte = (p: string) => estModule(p) || /\.(?:md|json|css|snap)$/.test(p);
   const env = Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith('GIT_')));
   /** Les comptes de la racine `cwd`, mesurés par le point d'entrée de la porte dans un processus `tsx`. */
   const executer = promisify(execFile);
@@ -409,11 +410,11 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     try {
       for (const rel of Object.keys(CHEMINS_EXPORTES))
         if (rel === 'Source') symlinkSync(join(ROOT, rel), join(dossier, rel), 'junction');
-        else cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || TEXTE.test(p)) });
+        else cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || estTexte(p)) });
       const { docs: documents, brutParDocument } = lireDocuments(ROOT);
       const defs = defsDeDocument();
       const familles = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
-      const code = readCorpus(['src'], { exts: ['.ts', '.tsx', '.mts', '.mjs'], tests: true }).filter((f) => !f.rel.includes('.generated.')).map((f) => f.text);
+      const code = readCorpus(['src'], { tests: true }).filter((f) => !f.rel.includes('.generated.')).map((f) => f.text);
       const cite = citations([...brutParDocument.values()], code);
       const touches = { ajouts: 0, retraits: 0 };
       /** Par document, ses gestes, ceux que son schéma a refusés (et le premier motif) et ceux appliqués. */

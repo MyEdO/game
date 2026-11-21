@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 import { listerArbre } from './lister.mjs'
 
 const DATE = /\b20\d{2}-\d{2}(?:-\d{2})?\b/
@@ -9,13 +10,14 @@ const ATTRIBUTION = /\b(?:utilisateurs?|users?|cl[ée]ment|arbitrages?)\b|\bverb
 const REFERENCE_SOURCE = /\b[A-ZÀ-ÖØ-Þ]{2,}(?:\s+(?:\d+|[IVX]+))\s+l\.\s*\d+/
 const RACINES = ['.claude/rules', '.claude/skills', '.claude/agents', '.agents', '.codex/agents', 'docs']
 const FICHIERS = ['AGENTS.md', '.claude/credo.md', '.claude/sous-agents.md']
+const EXTENSIONS_DE_CONTEXTE = [...EXTENSIONS_DE_SCRIPT, '.md', '.toml', '.yaml', '.yml', '.txt', '.json']
 
 /** Les chemins textuels qui portent les consignes et références vivantes. */
 export function estContexteVivant(chemin) {
   const rel = String(chemin).replace(/\\/g, '/')
   // docs/plans/ datés : archives du design, jamais consignes vivantes.
   if (/^docs\/plans\/(?:[^/]+\/)*20\d{2}-\d{2}-\d{2}[^/]*(?:\/|$)/.test(rel)) return false
-  return FICHIERS.includes(rel) || (RACINES.some((racine) => rel.startsWith(racine + '/')) && /\.(?:md|toml|ya?ml|txt|json|js|mjs)$/.test(rel))
+  return FICHIERS.includes(rel) || (RACINES.some((racine) => rel.startsWith(racine + '/')) && EXTENSIONS_DE_CONTEXTE.some((ext) => rel.endsWith(ext)))
 }
 
 /**
