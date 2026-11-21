@@ -24,7 +24,6 @@ import {
   type SceneDesCouronnes,
   type SceneDesToits,
 } from '../scene';
-import { entityBlockedAt } from '../sceneRules';
 import { versionDesDatasets } from '../../../data/versionDataset';
 import { decorDuTerrain, terrainAbsent, terrainsAvecGlyphe } from '../terrain';
 import { garanti } from '../../../lib/garanti';
@@ -358,15 +357,14 @@ type FaceDuMorceau = FacePlacee & FaceRangee;
 
 /**
  * L'état d'où le volume d'une scène se reprend (`volumeDepuis`) : la scène vue par son volume (`SceneDuVolume`) dont il
- * est issu, les montants de chaque couche (`montantsDeLaCouche`, par case `x,y`), les cases bloquées par une entité
- * (`x,y,z`), par couche et par case les faces de sol, par décor posé (`PoseDeDecor.cle`) sa pose et ses faces, par crête
+ * est issu, les montants de chaque couche (`montantsDeLaCouche`, par case `x,y`), par couche et par case les faces de sol,
+ * par décor posé (`PoseDeDecor.cle`) sa pose et ses faces, par crête
  * (sa case et son arête) ses faces, par case de flottaison sa face de mer, les quads de chaque face, et par morceau ses
  * faces, leurs rangs et le morceau.
  */
 export interface EtatDuVolume {
   readonly scene: Readonly<SceneDuVolume>;
   readonly montants: ReadonlyMap<number, ReadonlyMap<string, readonly Face[]>>;
-  readonly bloquees: ReadonlySet<string>;
   readonly sols: ReadonlyMap<number, readonly (readonly Face[] | null)[]>;
   readonly decors: ReadonlyMap<string, DecorPose>;
   readonly cretes: ReadonlyMap<string, Readonly<{ canon: string; faces: readonly Face[] }>>;
@@ -500,15 +498,6 @@ function memeCadre(avant: EtatDuVolume, scene: Readonly<SceneDuVolume>): boolean
     && a.layers.length === scene.layers.length && a.layers.every((l, i) => l.z === scene.layers[i].z);
 }
 
-/** Les cases `x,y,z` des couches de `scene` que bloque une entité (`entityBlockedAt`). */
-function casesBloquees(scene: Readonly<SceneDuVolume>): Set<string> {
-  const { w, h } = scene.dimensions;
-  const out = new Set<string>();
-  for (const { z } of scene.layers)
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (entityBlockedAt(scene, x, y, z)) out.add(spaceCellKey(x, y, z));
-  return out;
-}
-
 /** Les segments `walls` par arête (`edgeKey`), dans leur ordre. */
 function parArete(walls: readonly WallSeg[]): Map<string, WallSeg[]> {
   const out = new Map<string, WallSeg[]>();
@@ -517,9 +506,9 @@ function parArete(walls: readonly WallSeg[]): Map<string, WallSeg[]> {
 }
 
 /** Les cases `(x, y, z)` de `scene` dont le sol est à refaire depuis `avant` : dans toutes les couches, celles à
- *  `RAYON_DU_SOL` au plus d'une case dont la tuile, la hauteur, le crénelage, un segment de `walls` (même objet, sinon
- *  même contenu) ou le blocage par une entité diffère ; et celles dont les montants diffèrent par contenu. */
-function solARefaire(avant: EtatDuVolume, scene: Readonly<SceneDuVolume>, montants: EtatDuVolume['montants'], bloquees: ReadonlySet<string>): (x: number, y: number, z: number) => boolean {
+ *  `RAYON_DU_SOL` au plus d'une case dont la tuile, la hauteur, le crénelage ou un segment de `walls` (même objet, sinon
+ *  même contenu) diffère ; et celles dont les montants diffèrent par contenu. */
+function solARefaire(avant: EtatDuVolume, scene: Readonly<SceneDuVolume>, montants: EtatDuVolume['montants']): (x: number, y: number, z: number) => boolean {
   const { w, h } = scene.dimensions;
   const a = avant.scene;
   const touchees: [number, number][] = [];
@@ -527,8 +516,8 @@ function solARefaire(avant: EtatDuVolume, scene: Readonly<SceneDuVolume>, montan
     const { z } = couche;
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
-        const change = (couche !== a.layers[i] && (tileAt(a, x, y, z) !== tileAt(scene, x, y, z) || heightAt(a, x, y, z) !== heightAt(scene, x, y, z) || crenellatedAt(a, x, y, z) !== crenellatedAt(scene, x, y, z)))
-          || bloquees.has(spaceCellKey(x, y, z)) !== avant.bloquees.has(spaceCellKey(x, y, z));
+        const change = couche !== a.layers[i] && (tileAt(a, x, y, z) !== tileAt(scene, x, y, z)
+          || heightAt(a, x, y, z) !== heightAt(scene, x, y, z) || crenellatedAt(a, x, y, z) !== crenellatedAt(scene, x, y, z));
         if (change) touchees.push([x, y]);
       }
   });
@@ -608,8 +597,7 @@ export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuV
   const provenance = provenanceDesNavires(scene);
   const avant = precedent && memeCadre(precedent, scene) ? precedent : null;
   const montants = new Map(scene.layers.map(({ z }) => [z, montantsDeLaCouche(scene, z)]));
-  const bloquees = casesBloquees(scene);
-  const aRefaire = avant ? solARefaire(avant, scene, montants, bloquees) : () => true;
+  const aRefaire = avant ? solARefaire(avant, scene, montants) : () => true;
   const parCase = <T>(f: (x: number, y: number, z: number, i: number) => T) => new Map(scene.layers.map(({ z }) => [z, Array.from({ length: w * h }, (_, i) => f(i % w, Math.floor(i / w), z, i))]));
   const sols = parCase((x, y, z, i) =>
     avant && !aRefaire(x, y, z) ? avant.sols.get(z)![i] : floorFaces(scene, x, y, z, isOverhang(scene, x, y, z), montants.get(z)!.get(`${x},${y}`) ?? []));
@@ -675,7 +663,7 @@ export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuV
   return {
     volume: { metresParCase: mpt, hauteurs, morceaux: [...morceaux.values()].map((m) => m.morceau) },
     etat: {
-      scene, montants, bloquees, sols,
+      scene, montants, sols,
       decors: new Map(decors.map((d) => [d.pose.cle, d])),
       cretes: new Map(cretes.map((c) => [c.cle, c])),
       mer, quads, morceaux,
