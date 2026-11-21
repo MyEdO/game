@@ -572,7 +572,10 @@ Livrer, dans le même commit, le dossier `element/<base>/<id>/` (données et mod
 licences que dépose l'import sous `hotes/godot/projet/modeles/`, puis le GLB à la Release (section « Importer une base et
 ses éléments ») ; `npm run personnage-3d:tests` (`test_element.py`) reconstruit chaque élément d'`element/` et compare son
 manifeste, empreinte comprise, au publié, et l'import refuse `[construction-absente]` un élément sur base dont le dossier
-manque. Garder un rapport lié aux empreintes exactes. Garder hors dépôt
+manque. Le même test exige d'une peau qui remplace des zones de la base (couche `peau`, `couvre` non vide : une tête)
+qu'elle suive la base à leur couture, au repos et sous chaque silhouette et chaque clé `gabarit_*`, la reconstruite comme
+la publiée à chaque course : une base republiée se livre avec ses têtes reconstruites et republiées (#4413). Garder un
+rapport lié aux empreintes exactes. Garder hors dépôt
 illustration, contrat, captures et fiches de mesures ; ne pas réattribuer d'anciennes preuves à
 un nouvel export. Les voisins restent identiques, signatures à l'appui.
 
