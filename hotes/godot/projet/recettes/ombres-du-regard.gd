@@ -66,7 +66,7 @@ func _recetter() -> void:
 	masque[POSE_DE_L_ETAGE_AU_MASQUE * LARGEUR] = 255
 	monde.volume.retirer({masque = Marshalls.raw_to_base64(masque), largeur = LARGEUR, rangees = RANGEES})
 	monde.volume.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}),
-		ARETE.merged({cle = "sans-modele", famille = AU_PIED.FAMILLE_SANS_MODELE})], [])
+		ARETE.merged({cle = "sans-modele", famille = AU_PIED.FAMILLE_SANS_MODELE})], [], [])
 	var degagees: Array = JSON.parse_string(JSON.stringify(["boite", "sans-modele"].map(func(cle: String) -> Dictionary: return {cle = cle, abattueSous = [0, 1, 2, 3]})))
 	var retraits := [0]
 	monde.volume.retire.connect(func() -> void: retraits[0] += 1)

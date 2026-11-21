@@ -149,6 +149,7 @@ export {
   type Regard,
 } from './monde/aretes';
 export { cotesDeMarchesDeLaCouche, cotesDeMarchesDeLaScene, type CoteDeMarches } from './monde/cotesDeMarches';
+export { faitieresDeLaScene, type Faitiere } from './monde/faitieres';
 export type { Scene } from './monde/scene';
 export type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';

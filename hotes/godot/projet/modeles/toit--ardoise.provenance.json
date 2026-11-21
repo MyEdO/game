@@ -1,0 +1,13 @@
+{
+  "model": "toit--ardoise.glb",
+  "model_sha256": "1c5a70ef33bd5695eb3ed6e8f0b4bb0ab77503e6c03c86fb65a636353cdc5309",
+  "importe_le": "2026-11-21",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

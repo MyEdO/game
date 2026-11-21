@@ -235,6 +235,9 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   (`roof--<id>`, domaine `roof`) ne porte que sa neutre et son relief : une nappe de toit ou une couronne lit la neutre,
   projetée sur le plan de chaque face, ses rangs le long de l'égout, et teinte par la couleur de ses sommets, celle de
   `materials.json` (`VolumeDeScene._matiere`, `nappe` de `art/monde.gdshader`, recette `recettes/nappe-texturee.gd`).
+  Le bardage d'un pignon (`structure--<apparence>` du mur qu'il prolonge, face de sa nappe) ne porte de même que sa
+  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur : sans `.jpg`,
+  un morceau de cette apparence garde la couleur de ses sommets (#4471).
   Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
   se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
@@ -922,6 +925,57 @@ voir le raccord et les poteaux. `npm run
 personnage-3d:tests` (`test_escalier.py`) bâtit chaque kit deux fois aux mêmes octets, mesure ses pièces (nœuds, repère,
 budget, coques closes, raccord) et compare chaque manifeste au publié. Une famille neuve entre d'abord au
 `kitDEscalierSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
+« Publier »).
+
+## 13. Toit
+
+La faîtière qu'un hôte pose sur le faîte d'un toit (catégorie `toit`, clé `{ "kit": <couverture> }`, le `kit` d'une
+couverture de `src/data/materials.json`) se construit comme
+un kit d'escalier (chapitre 12), par `scripts/personnage-3d/construire.py`, un dossier par couverture,
+`scripts/personnage-3d/toit/<couverture>/` (`donnees.py`, `modele.py`), et ses communs dans `toit/faitage.py`, qui met
+ceux des escaliers et des arêtes au chemin (`volee.py`, `geometrie.py`). Un kit est un GLB, `toit--<couverture>`, un
+nœud racine à mesh par pièce de `PIECES_DE_TOIT` (`src/noyau/monde/piecesDArete.ts`, lues du noyau par
+`toit/pieces.mjs`) : la seule `faitiere`. Les pans restent ceux du noyau. Couvertures livrées : `ardoise` (une ardoise par
+bras, chaque paire recouvrant la suivante, coins de queue abattus, crochets de fer), `tuile` (tuiles demi-rondes à
+bourrelet, scellées d'un solin de mortier de chaque côté) et `chaume` (selle de paille épaisse au bord en dents, tresse
+à trois brins sur son dos, baguettes de noisetier filées et croisées).
+
+**Repère, sur le toit d'école.** X le long du faîte, de -L/2 à +L/2 (une case, 2 m) ; Y la hauteur, 0 sur l'arête du
+faîte ; Z en travers. La pièce se modèle sur deux pans qui descendent du faîte d'une pente de 1 (`faitage.pan`) : l'hôte
+étire Y, sans la cisailler, à la pente des deux pans qu'elle coiffe. Rien n'y suppose donc une pente : le dessous
+de la pièce suit les pans, rien ne descend sous eux, et une épaisseur se porte en hauteur (`faitage.plaque`, par sa
+levée au-dessus du pan), jamais d'équerre au pan.
+
+**Raccord.** Deux cases voisines se raccordent bout à bout : rien ne passe les bouts, et la section de la pièce est la
+même aux deux. Ce qui se recouvre le long du faîte (ardoises, tuiles) va à un pas qui divise la case, qui coupe un
+élément en son milieu à chaque bout (`faitage.recouvrants`) : la moitié de queue d'un bout se complète de la moitié de
+tête de la case voisine, sans joint ni élément doublé. Ce qui se file (solin, selle, brins, baguettes) va à une période
+qui divise la case, ses sections dans des plans d'abscisse constante (`faitage.file`, `volee.profil`). Rien n'y est tiré
+au sort. Un lissage (`ANGLE_LISSE`) reste sous l'angle droit : lissés, les bouts d'une pièce marquent le joint de deux
+cases.
+
+**Couleur.** La surface principale nomme l'emplacement `corps`, que l'hôte teint de la couleur de faîtière de la
+couverture (`ridgeCap`, `src/data/materials.json`) ; les autres (`metal`, `joint`, `accent`, `bois`) gardent la texture
+de leur matière du domaine `prop`, sans couleur imposée.
+
+**Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py toit/<couverture> --sortie /atelier/<couverture>
+npm run godot:valider -- /atelier/<couverture>/toit--<couverture>/toit--<couverture>.element.json \
+  /atelier/<couverture>/toit--<couverture>/toit--<couverture>.glb
+npm run personnage-3d:integrer -- toit/<couverture>
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py <couverture> --couverture <id> \
+  --modeles /atelier/<couverture> --sortie /atelier/revue-<couverture>
+```
+
+`toit/revue.py` rend la faîtière seule sur le toit d'école, teinte du `ridgeCap` de la couverture `--couverture` dont
+elle est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus, puis une ligne par faîte de `revue.FAITES` :
+trois cases bout à bout sur deux pans de même pente, un toit raide puis un toit plat, la pièce étirée en hauteur
+comme l'hôte la pose, pour voir son raccord et son assise. `npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque
+kit deux fois aux mêmes octets, mesure sa pièce (nœud, repère, budget, coques closes, assise sur les pans, raccord) et
+compare chaque manifeste au publié ; chaque kit qu'une couverture nomme y a son modèle. Une couverture neuve entre
+d'abord au `kitDeToitSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
 « Publier »).
 
 ## Disponibilité à sonder avant chaque production

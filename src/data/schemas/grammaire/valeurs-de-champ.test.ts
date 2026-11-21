@@ -101,6 +101,8 @@ const NOMMES = [
   'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement',
   // `kitDEscalierSchema` (#4471) : la famille du kit 3D d'escalier d'un terrain bâti (`terrains.json`).
   'bois|pierre',
+  // `kitDeToitSchema` (#4471) : la famille du kit 3D de toit d'une couverture (`materials.json`).
+  'ardoise|tuile|chaume',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',

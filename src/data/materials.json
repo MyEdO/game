@@ -446,7 +446,8 @@
     "soffite": "#3d130c",
     "fasciaDropM": 0.2,
     "fascia": "#2e0e07",
-    "ridgeCap": "#bf5e46"
+    "ridgeCap": "#bf5e46",
+    "kit": "tuile"
   },
   {
     "id": "chaume",
@@ -460,7 +461,9 @@
     "O": "#997c3c",
     "line": "#463714",
     "eaveOverhangM": 0.72,
-    "soffite": "#4a3a16"
+    "soffite": "#4a3a16",
+    "ridgeCap": "#8a6f35",
+    "kit": "chaume"
   },
   {
     "id": "toit-ardoise",
@@ -477,7 +480,8 @@
     "soffite": "#222831",
     "fasciaDropM": 0.16,
     "fascia": "#171c22",
-    "ridgeCap": "#788896"
+    "ridgeCap": "#788896",
+    "kit": "ardoise"
   },
   {
     "id": "plan",

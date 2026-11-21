@@ -40,6 +40,10 @@ export const kitSchema = enumNomme({
  *  ses cases de marches (#4471, `terrains.json`). */
 export const kitDEscalierSchema = enumNomme({ bois: 'Bois', pierre: 'Pierre' });
 
+/** La famille du kit 3D de toit d'une couverture : le modèle `toit--<famille>` dont l'hôte pose la faîtière sur les
+ *  faîtes de ses nappes (#4471, `kit` de `materials.json`). */
+export const kitDeToitSchema = enumNomme({ ardoise: 'Ardoise', tuile: 'Tuile', chaume: 'Chaume' });
+
 const doc = document(
   'structureAppearance',
   famille,

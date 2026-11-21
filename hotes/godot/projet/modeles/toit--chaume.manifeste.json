@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "toit",
+  "cle": {
+    "kit": "chaume"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "selle",
+      "palette": "corps",
+      "matiere": "prop--paille"
+    },
+    {
+      "nom": "tresse",
+      "palette": "accent",
+      "matiere": "prop--paille"
+    },
+    {
+      "nom": "baguette",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    }
+  ],
+  "glb": {
+    "sha256": "c052163b8fb7be4fd582f5b90d443dde4bc2f635dafc3aaa8a7aa61085fe9d86",
+    "octets": 34768
+  }
+}

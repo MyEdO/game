@@ -1290,6 +1290,8 @@ export const terrains = datasetDe<typeof terrainsDef>(terrainsJson);
 export type TerrainDef = EntreeDe<typeof terrainsDef>;
 /** Les familles de kit 3D d'escalier, une par modèle `escalier--<famille>` (`kitDEscalierSchema`). */
 export type KitDEscalier = NonNullable<TerrainDef['kitDEscalier']>;
+/** Les familles de kit 3D de toit, une par modèle `toit--<famille>` (`kitDeToitSchema`, `kit` d'une couverture). */
+export type KitDeToit = NonNullable<RoofMaterialDef['kit']>;
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade
