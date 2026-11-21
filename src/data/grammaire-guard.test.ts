@@ -22,7 +22,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { envDeDepotForge } from '../../scripts/guards/lib/depotGabarit.mjs';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus, type CorpusFile } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 import { neufsDe } from '../../scripts/migrations/replay.mjs';
 import { scan } from '../../scripts/guards/lib/grammaireGuard.mjs';
@@ -205,7 +205,7 @@ describe('liaison lexicale des extensions de grammaire', () => {
 function trouvailles(): { cle: string; ligne: number }[] {
   const regles = { signatures: signaturesDeLaGrammaire(), alias: ALIAS };
   const out: { cle: string; ligne: number }[] = [];
-  const relever = (fichiers: readonly { rel: string; text: string }[], sansRedeclaration: boolean) => {
+  const relever = (fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[], sansRedeclaration: boolean) => {
     for (const { fichier: f, sourceFile, checker } of analyserCorpus(fichiers))
       for (const t of scan(f.rel, f.text, { ...regles, sansRedeclaration }, sourceFile!, checker))
         out.push({ cle: `${f.rel}:${t.symbole}${t.champ ? '.' + t.champ : ''}|${t.motif}|${t.detail}`, ligne: t.ligne });

@@ -77,7 +77,7 @@ function membreTest(ts, hote) {
 
 /**
  * Les sites de ROUTAGE d'un nœud `test` dans un corpus de production.
- * @param {{ rel: string, text: string }[]} files
+ * @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} files
  * @returns {{ file: string, fn: string, porte: string }[]}
  */
 export function scanRouteursDeTest(files) {

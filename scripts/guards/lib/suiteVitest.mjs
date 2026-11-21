@@ -24,7 +24,7 @@ export function suiteVitestDuDepot(racine = RACINE, { env, suite: estDeLaSuite =
 
 /** Les fichiers de la suite `suite` du dépôt de `racine` (`suiteVitestDuDepot`, git sous `env`), avec leur chemin
  *  absolu et leur texte, lu une fois par worker (`entreeDe`, mémo de `sourceCorpus.mjs`).
- *  @returns {{ abs: string, rel: string, text: string }[]} */
+ *  @returns {import('./suiteVitest.mjs').FichierDeSuite[]} */
 export function fichiersDeLaSuite(racine = RACINE, { env, suite } = {}) {
   return suiteVitestDuDepot(racine, { env, suite }).map((rel) => {
     const abs = join(racine, rel)

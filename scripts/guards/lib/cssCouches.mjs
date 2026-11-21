@@ -384,7 +384,7 @@ export const cleDeRegle = (selecteurs) => selecteurs.join(', ').replace(/\s+/g, 
 
 /**
  * Sites d'IDENTITÉ : une déclaration qui n'est pas du PLACEMENT.
- * @param {readonly { rel: string, text: string }[]} fichiers @returns {{ file: string, ref: string }[]}
+ * @param {readonly import('./cssCouches.mjs').Fichier[]} fichiers @returns {{ file: string, ref: string }[]}
  */
 export function sitesIdentiteEcran(fichiers) {
   const sites = [];
@@ -401,7 +401,7 @@ export function sitesIdentiteEcran(fichiers) {
 
 /**
  * Sites d'ESPACEMENT hors échelle `--sp-*`.
- * @param {readonly { rel: string, text: string }[]} fichiers @returns {{ file: string, ref: string }[]}
+ * @param {readonly import('./cssCouches.mjs').Fichier[]} fichiers @returns {{ file: string, ref: string }[]}
  */
 export function sitesEspacementHorsEchelle(fichiers) {
   const sites = [];
@@ -477,7 +477,7 @@ export function modulesExemptes({ manifeste, partagees, reutilises }) {
 /**
  * Les modules d'ÉCRAN d'une image : son stock (`modulesExemptes` en est le complément) moins
  * `FEUILLE_LAYOUT`.
- * @param {{ fichiers: readonly { rel: string, text: string }[], manifeste: readonly { id: string, fichier?: string, css?: string }[], partagees: readonly string[], reutilises: ReadonlySet<string> }} image
+ * @param {{ fichiers: readonly import('./cssCouches.mjs').Fichier[], manifeste: readonly { id: string, fichier?: string, css?: string }[], partagees: readonly string[], reutilises: ReadonlySet<string> }} image
  */
 export function modulesDEcran(image) {
   const exempts = modulesExemptes(image);

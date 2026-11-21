@@ -1,3 +1,5 @@
+import type { CorpusFile } from './sourceCorpus.mjs';
+
 export interface FlowTestRollSite {
   /** Chemin POSIX depuis la racine du dépôt. */
   file: string;
@@ -13,5 +15,5 @@ export interface FlowTestRollSite {
   detail: string;
 }
 
-export function scanFlowTestEngineRoll(engineFiles: { rel: string; text: string }[]): FlowTestRollSite[];
+export function scanFlowTestEngineRoll(engineFiles: Pick<CorpusFile, 'rel' | 'text'>[]): FlowTestRollSite[];
 export function siteLabel(s: FlowTestRollSite): string;

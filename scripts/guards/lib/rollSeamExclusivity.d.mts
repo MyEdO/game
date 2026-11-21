@@ -1,4 +1,5 @@
 import type { Checker } from 'typescript/unstable/sync';
+import type { CorpusFile } from './sourceCorpus.mjs';
 export interface Finding {
   line: number;
   detail: string;
@@ -20,11 +21,11 @@ export function scanPendingJetFabrication(relPath: string, contenu: string, sour
 
 /** Registre des chemins de jet (#1066) — famille (D) « roulage délégué à un export de src/engine ». */
 export function engineRollerExports(
-  engineFiles: { rel: string; text: string }[],
+  engineFiles: Pick<CorpusFile, 'rel' | 'text'>[],
   amorce?: readonly string[],
 ): Map<string, { file: string; line: number }>;
 export function engineHomonyms(
-  engineFiles: { rel: string; text: string }[],
+  engineFiles: Pick<CorpusFile, 'rel' | 'text'>[],
 ): Map<string, { files: string[]; rollsDirectly: boolean }>;
 export function scanEngineDelegatedRoll(
   relPath: string,
@@ -39,7 +40,7 @@ export const AMORCE_TEST: readonly string[];
 export const AMORCE_DES: readonly string[];
 export const DES_HORS_PORTE_RX: RegExp;
 export function engineDiceRollers(
-  engineFiles: { rel: string; text: string }[],
+  engineFiles: Pick<CorpusFile, 'rel' | 'text'>[],
 ): Readonly<Record<string, readonly string[]>>;
 export function scanDesHorsPorte(
   relPath: string,
