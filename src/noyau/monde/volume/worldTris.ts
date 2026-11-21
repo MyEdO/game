@@ -129,34 +129,39 @@ export function trianglesOrientes(g: FaceGeom, centre: CentreCarte): TriangleOri
 }
 
 /** Les triangles d'un polygone plan SIMPLE, convexe ou non, par découpe d'OREILLES dans le plan de sa normale. Une
- *  oreille est un sommet saillant (ou aligné) dont le triangle ne contient aucun autre sommet ; elle se cherche à partir
- *  du deuxième sommet, si bien qu'un polygone convexe rend l'éventail depuis son premier sommet. */
+ *  oreille est un sommet strictement saillant dont le triangle ne contient aucun autre sommet, ni dedans ni sur son bord ;
+ *  elle se cherche à partir du deuxième sommet, si bien qu'un polygone strictement convexe rend l'éventail depuis son
+ *  premier sommet. Un sommet aligné sur ses voisins reste sommet des triangles voisins (aucune jonction en T avec la face
+ *  d'à côté) ; une face sans aire n'a aucun triangle. */
 export function trianglesDuPolygone(poly: WorldPoly): Tri[] {
-  if (poly.length < 3) return [];
   const n = polyNormal(poly);
+  if (!n) return [];
   // Projection sur le plan de coordonnées le plus face à la normale, orientée pour que le polygone y tourne dans le sens direct.
-  const axe = !n ? 'y' : Math.abs(n.x) >= Math.abs(n.y) && Math.abs(n.x) >= Math.abs(n.z) ? 'x' : Math.abs(n.y) >= Math.abs(n.z) ? 'y' : 'z';
-  const sens = !n ? 1 : Math.sign(n[axe]) || 1;
+  const axe = Math.abs(n.x) >= Math.abs(n.y) && Math.abs(n.x) >= Math.abs(n.z) ? 'x' : Math.abs(n.y) >= Math.abs(n.z) ? 'y' : 'z';
+  const sens = Math.sign(n[axe]);
   const plan = (p: Vec3): [number, number] => (axe === 'x' ? [p.y, p.z] : axe === 'y' ? [p.z, p.x] : [p.x, p.y]);
   const pts = poly.map(plan);
   const croix = (a: number, b: number, c: number) =>
     sens * ((pts[b][0] - pts[a][0]) * (pts[c][1] - pts[a][1]) - (pts[b][1] - pts[a][1]) * (pts[c][0] - pts[a][0]));
+  const memePoint = (p: number, q: number) => pts[p][0] === pts[q][0] && pts[p][1] === pts[q][1];
   const TOL = 1e-12;
   const restants = poly.map((_, i) => i);
   const out: Tri[] = [];
-  while (restants.length > 3) {
+  const voisins = (k: number): [number, number, number] => {
     const m = restants.length;
-    const oreille = (k: number): boolean => {
-      const [a, b, c] = [restants[(k + m - 1) % m], restants[k], restants[(k + 1) % m]];
-      if (croix(a, b, c) < -TOL) return false;
-      return restants.every((q) => q === a || q === b || q === c
-        || (pts[q][0] === pts[a][0] && pts[q][1] === pts[a][1]) || (pts[q][0] === pts[b][0] && pts[q][1] === pts[b][1])
-        || (pts[q][0] === pts[c][0] && pts[q][1] === pts[c][1])
-        || !(croix(a, b, q) > TOL && croix(b, c, q) > TOL && croix(c, a, q) > TOL));
-    };
-    const ordre = [...Array(m).keys()].map((i) => (i + 1) % m);
-    const k = ordre.find(oreille) ?? 1;
-    out.push([poly[restants[(k + m - 1) % m]], poly[restants[k]], poly[restants[(k + 1) % m]]]);
+    return [restants[(k + m - 1) % m], restants[k], restants[(k + 1) % m]];
+  };
+  const oreille = (k: number): boolean => {
+    const [a, b, c] = voisins(k);
+    if (croix(a, b, c) <= TOL) return false;
+    return restants.every((q) => memePoint(q, a) || memePoint(q, b) || memePoint(q, c)
+      || croix(a, b, q) < -TOL || croix(b, c, q) < -TOL || croix(c, a, q) < -TOL);
+  };
+  while (restants.length > 3) {
+    const k = restants.map((_, i) => (i + 1) % restants.length).find(oreille);
+    if (k === undefined) throw new Error(`trianglesDuPolygone : contour non simple (${restants.length} sommets sans oreille)`);
+    const [a, b, c] = voisins(k);
+    out.push([poly[a], poly[b], poly[c]]);
     restants.splice(k, 1);
   }
   out.push([poly[restants[0]], poly[restants[1]], poly[restants[2]]]);
