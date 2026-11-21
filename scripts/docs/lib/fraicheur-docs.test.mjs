@@ -529,19 +529,20 @@ function bancFroid() {
   for (const nom of ['a', 'b']) rmSync(path.join(b.racine, ['docs', nom + '.md'].join('/')))
   poser(b.racine, docFroid('a'), '# A\n')
   poser(b.racine, docFroid('b'), '# B\n')
-  const injecteur = { runner: 'node', script: 'g/injecte.mjs', targets: [], injecte: ['docs/raw/**/*.md', 'notes/raw.md'] }
-  const lecteur = { runner: 'node', script: 'g/lecteur.mjs', targets: [docFroid('lecteur')] }
+  const producteur = { runner: 'node', script: 'g/raw.mjs', targets: [docFroid('rapport-*')] }
+  const lecteur = { runner: 'node', script: 'g/lecteur.mjs', targets: [doc('lecteur')] }
   for (const racine of [b.racine, b.cible]) {
-    poser(racine, injecteur.script, 'export const injecte = 1\n')
+    poser(racine, producteur.script, 'export const raw = 1\n')
     poser(racine, lecteur.script, 'export const lecteur = 1\n')
     poser(racine, 'notes/raw.md', '# RAW\n')
   }
-  poser(b.racine, docFroid('lecteur'), '# lecteur\n')
-  const opts = { ...options, generateurs: [...options.generateurs.map((g) => ['g/a.mjs', 'g/b.mjs'].includes(g.script) ? { ...g, targets: [docFroid(path.posix.basename(g.script, '.mjs'))] } : g), injecteur, lecteur] }
+  poser(b.racine, docFroid('rapport-raw'), '# rapport RAW\n')
+  poser(b.racine, doc('lecteur'), '# lecteur\n')
+  const opts = { ...options, generateurs: [...options.generateurs.map((g) => ['g/a.mjs', 'g/b.mjs'].includes(g.script) ? { ...g, targets: [docFroid(path.posix.basename(g.script, '.mjs'))] } : g), producteur, lecteur] }
   for (const nom of ['a', 'b']) b.mesure['g/' + nom + '.mjs'].cibles = [docFroid(nom)]
-  b.mesure[injecteur.script] = { fichiers: [injecteur.script, 'notes/raw.md'], dossiers: ['docs/raw'], cibles: [], git: [], sondes: [], incomplet: [] }
+  b.mesure[producteur.script] = { fichiers: [producteur.script, 'notes/raw.md'], dossiers: ['docs/raw'], cibles: [docFroid('rapport-raw')], git: [], sondes: [], incomplet: [] }
   b.mesure[lecteur.script] = {
-    fichiers: [lecteur.script, docFroid('a'), 'notes/raw.md'], dossiers: [], cibles: [docFroid('lecteur')], git: [],
+    fichiers: [lecteur.script, docFroid('a'), 'notes/raw.md'], dossiers: [], cibles: [doc('lecteur')], git: [],
     sondes: [{ chemin: docFroid('b'), type: 'exists', existe: true, nature: null }, { chemin: docFroid('b'), type: 'stat', existe: true, nature: 'file' }], incomplet: [],
   }
   poser(b.racine, SOURCES_LUES, JSON.stringify(b.mesure))
@@ -549,14 +550,15 @@ function bancFroid() {
   return { ...b, opts }
 }
 
-test('cible froide : glob injecte recoupant les docs purs, listing, fichiers et sondes restent identiques', () => {
+test('cible froide : les cibles littérales et glob gardent les listings, fichiers et sondes mesurés', () => {
   const b = bancFroid()
   try {
     const vu = copier(b, b.opts)
     assert.equal(vu.ok, true, vu.raison)
     assert.deepEqual(vu.scriptsARegenerer, [])
-    assert.equal(vu.copies, 3)
+    assert.equal(vu.copies, 4)
     assert.equal(preuveValide(b.cible, b.opts).ok, true)
+    assert.equal(readFileSync(path.join(b.cible, docFroid('rapport-raw')), 'utf8'), '# rapport RAW\n')
     assert.equal(readFileSync(path.join(b.cible, 'notes/raw.md'), 'utf8'), '# RAW\n')
   } finally { b.jeter() }
 })
@@ -567,13 +569,12 @@ test('cible froide : source RAW différente conserve les producteurs frais et co
     poser(b.racine, 'notes/raw.md', '# RAW changé\n')
     const vu = copier(b, b.opts)
     assert.equal(vu.ok, true, vu.raison)
-    assert.ok(vu.scriptsARegenerer.includes('g/injecte.mjs'))
-    assert.ok(vu.scriptsARegenerer.includes('g/lecteur.mjs'))
-    assert.deepEqual(vu.scriptsARegenerer, ['g/injecte.mjs', 'g/lecteur.mjs'])
+    assert.deepEqual(vu.scriptsARegenerer, ['g/raw.mjs', 'g/lecteur.mjs'])
     assert.equal(vu.copies, 2)
     assert.equal(existsSync(path.join(b.cible, docFroid('a'))), true)
     assert.equal(existsSync(path.join(b.cible, docFroid('b'))), true)
-    assert.equal(existsSync(path.join(b.cible, docFroid('lecteur'))), false)
+    assert.equal(existsSync(path.join(b.cible, docFroid('rapport-raw'))), false)
+    assert.equal(existsSync(path.join(b.cible, doc('lecteur'))), false)
     assert.equal(readFileSync(path.join(b.cible, 'notes/raw.md'), 'utf8'), '# RAW\n')
   } finally { b.jeter() }
 })
@@ -810,36 +811,6 @@ test('cache partiel : copie les docs frais et conserve le code certifié localem
   } finally { b.jeter() }
 })
 
-test('mixte édité : sélection du producteur, jamais copie du fichier injecté', () => {
-  const b = banc()
-  try {
-    const mixte = ['notes', 'mixte.md'].join('/')
-    poser(b.racine, mixte, '# mixte')
-    poser(b.cible, mixte, '# cible')
-    const opts = { ...options, generateurs: options.generateurs.map((g) => g.script === 'g/a.mjs' ? { ...g, injecte: [mixte] } : g) }
-    certifier(b.racine, b.mesure, opts)
-    const vu = copier(b, opts)
-    assert.equal(vu.ok, true, vu.raison)
-    assert.ok(vu.scriptsARegenerer.includes('g/a.mjs'))
-    assert.equal(readFileSync(path.join(b.cible, mixte), 'utf8'), '# cible')
-  } finally { b.jeter() }
-})
-
-test('mixte déclaré par glob : jamais copié, même si ses octets concordent', () => {
-  const b = banc()
-  try {
-    const mixte = ['notes', 'mixte.md'].join('/')
-    poser(b.racine, mixte, '# mixte')
-    poser(b.cible, mixte, '# mixte')
-    const opts = { ...options, generateurs: options.generateurs.map((g) => g.script === 'g/a.mjs' ? { ...g, injecte: ['notes/*.md'] } : g) }
-    certifier(b.racine, b.mesure, opts)
-    const vu = copier(b, opts)
-    assert.equal(vu.ok, true, vu.raison)
-    assert.equal(vu.copies, 2)
-    assert.deepEqual(vu.scriptsARegenerer, [])
-  } finally { b.jeter() }
-})
-
 test('code cible altéré : producteur et consommateur dans fermeture canonique', () => {
   const b = banc()
   try {
@@ -958,46 +929,24 @@ test('source modifiée après génération avant preuve finale : certificat reti
   } finally { b.jeter() }
 })
 
-test('sortie mixte finale : dernier écrivain attesté conserve les injections ordonnées', () => {
-  const b = banc()
-  try {
-    const mixte = ['notes', 'mixte.md'].join('/')
-    poser(b.racine, mixte, '# A')
-    const opts = { ...options, generateurs: options.generateurs.map((g) => g.script !== 'g/code.mjs' ? { ...g, injecte: [mixte] } : g) }
-    const preparation = preparerPreuves(b.racine, opts)
-    const records = new Map()
-    for (const g of opts.generateurs) {
-      if (g.script === 'g/b.mjs') poser(b.racine, mixte, '# A et B')
-      const vu = certifierGenerateur(b.racine, g, b.mesure[g.script], opts, avantGenerateur(b.racine, g, opts, preparation))
-      assert.equal(vu.ok, true, vu.raison)
-      records.set(g.script, vu.record)
-    }
-    enregistrerPreuve(b.racine, opts, preparation, records)
-    assert.equal(preuveValide(b.racine, opts).ok, true)
-    assert.deepEqual(chargerPreuve(b.racine).generateurs['g/a.mjs'].sorties.find(([rel]) => rel === mixte), chargerPreuve(b.racine).generateurs['g/b.mjs'].sorties.find(([rel]) => rel === mixte))
-  } finally { b.jeter() }
-})
-
-for (const corruption of ['après certification', 'écrivain non certifié']) {
-  test(`sortie mixte finale refusée : ${corruption}`, () => {
+for (const corruption of ['sortie changée après certification', 'certification manquante']) {
+  test(`preuve finale : certificat pur retiré (${corruption})`, () => {
     const b = banc()
     try {
-      const mixte = ['notes', 'mixte.md'].join('/')
-      poser(b.racine, mixte, '# A')
-      const opts = { ...options, generateurs: options.generateurs.map((g) => g.script !== 'g/code.mjs' ? { ...g, injecte: [mixte] } : g) }
-      const preparation = preparerPreuves(b.racine, opts)
+      const preparation = preparerPreuves(b.racine, options)
       const records = new Map()
-      for (const g of opts.generateurs) {
-        const vu = certifierGenerateur(b.racine, g, b.mesure[g.script], opts, avantGenerateur(b.racine, g, opts, preparation))
+      for (const g of options.generateurs) {
+        const vu = certifierGenerateur(b.racine, g, b.mesure[g.script], options, avantGenerateur(b.racine, g, options, preparation))
         assert.equal(vu.ok, true, vu.raison)
         records.set(g.script, vu.record)
       }
-      if (corruption === 'après certification') poser(b.racine, mixte, 'corrompu')
-      else records.set('g/b.mjs', null)
-      enregistrerPreuve(b.racine, opts, preparation, records)
-      assert.equal(chargerPreuve(b.racine).generateurs['g/a.mjs'], undefined)
-      assert.equal(chargerPreuve(b.racine).generateurs['g/b.mjs'], undefined)
-      assert.ok(chargerPreuve(b.racine).generateurs['g/code.mjs'])
+      if (corruption === 'sortie changée après certification') poser(b.racine, doc('a'), 'corrompu')
+      else records.set('g/a.mjs', null)
+      enregistrerPreuve(b.racine, options, preparation, records)
+      const preuves = chargerPreuve(b.racine).generateurs
+      assert.equal(preuves['g/a.mjs'], undefined)
+      assert.deepEqual(preuves['g/b.mjs'], records.get('g/b.mjs'))
+      assert.deepEqual(preuves['g/code.mjs'], records.get('g/code.mjs'))
     } finally { b.jeter() }
   })
 }

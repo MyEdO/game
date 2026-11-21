@@ -37,8 +37,11 @@ import { prendreVerrou, tenantEnUneLigne } from '../test/verrou.mjs'
 import { estGesteLourd, verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { cheminsDeLEcrivain, ecrivainTenu, ENV_EPOQUE, preempterLesDerives } from './lib/ecrivain-derives.mjs'
 import { gitDirDe } from '../hooks/barriere-outil.mjs'
-import { ciblesRenduesDans, ecrireSourcesLues, estUnDocMarkdown, fusionnerLectures, LECTURES_DU_BUILD, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
-import { perimetreDeMesure } from './lib/perimetre-mesure.mjs'
+import {
+  ciblesRenduesDans, ecrireSourcesLues, estUnDocMarkdown, fusionnerLectures,
+  LECTURES_DU_BUILD, serialiserSourcesLues,
+} from './lib/ecriture-derives.mjs'
+import { perimetreDeMesure, verifierCiblesPures } from './lib/perimetre-mesure.mjs'
 import {
   avantGenerateur,
   certifierGenerateur,
@@ -52,7 +55,7 @@ import {
   vueApresGenerateur,
 } from './lib/fraicheur-docs.mjs'
 
-import { GENERATORS, SOURCES_LUES, ciblesLitterales, estCiblePure } from './lib/cibles-generees.mjs'
+import { GENERATORS, SOURCES_LUES, ciblesLitterales, estCiblePure, validerDeclaration } from './lib/cibles-generees.mjs'
 export { GENERATORS, LUS_PAR_LES_GENERATEURS, SOURCES_LUES, ciblesLitterales, estCiblePure } from './lib/cibles-generees.mjs'
 
 export const ciblesPures = (cwd, generateurs = GENERATORS) =>
@@ -171,7 +174,7 @@ function tsxEsmDe(cwd) {
 /** Le `tsxEsm` de `generateurs` : l'entrée de cet arbre (`tsxEsmDe`) si l'un est `runner: 'tsx'`, sinon `null`. */
 const tsxEsmPour = (generateurs, cwd) => (generateurs.some((g) => g.runner === 'tsx') ? tsxEsmDe(cwd) : null)
 
-/** Chemins visés par une liste de `targets`/`injecte` — un glob se déplie sur le disque dans la
+/** Chemins visés par une liste de `targets` — un glob se déplie sur le disque dans la
  *  grammaire UNIQUE du dépôt (`motifDeGlob` / `correspondGlob`, `scripts/guards/lib/lister.mjs`), et
  *  dans aucune autre : ce site ne lit pas le motif lui-même, il le DONNE à lire.
  *  La marche est bornée DEUX fois, par le motif seul : à la racine, ses segments sans joker ; en
@@ -202,10 +205,10 @@ const JOUER_GENERATEUR = fileURLToPath(new URL('lib/jouer-generateur.mjs', impor
  * (`--check`), `rendre` (`RENDRE_SEUL`, rien d'écrit ni de comparé). L'enregistreur en `NODE_OPTIONS`
  * quand le rendu se mesure, puis `tsx/esm` (argv, joué après `NODE_OPTIONS`).
  */
-function commandeDe({ runner, script, targets, injecte }, { cwd, mode, tsxEsm, lectures, ignores, cibles, derivees, motifsDeclares, env: environnement = process.env }) {
+function commandeDe({ runner, script, targets }, { cwd, mode, tsxEsm, lectures, ignores, cibles, derivees, motifsDeclares, env: environnement = process.env }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
-    ...(mode === 'rendre' ? [RENDRE_SEUL, script] : [JOUER_GENERATEUR, JSON.stringify({ script, targets, injecte, lectures })]),
+    ...(mode === 'rendre' ? [RENDRE_SEUL, script] : [JOUER_GENERATEUR, JSON.stringify({ runner, script, targets, lectures })]),
     ...(mode === 'verifier' ? ['--check'] : []),
   ]
   const env = envIsole(environnement, binLocal(cwd))
@@ -216,7 +219,7 @@ function commandeDe({ runner, script, targets, injecte }, { cwd, mode, tsxEsm, l
     env.WFRP_LECTURES_IGNORES = ignores
     if (derivees) env.WFRP_LECTURES_CIBLES_DERIVEES = derivees
     env.WFRP_LECTURES_CIBLE = cibles.join(',')
-    env.WFRP_LECTURES_MOTIFS_PROPRES = JSON.stringify([...(targets ?? []), ...(injecte ?? [])])
+    env.WFRP_LECTURES_MOTIFS_PROPRES = JSON.stringify(targets)
     env.WFRP_LECTURES_MOTIFS_DECLARES = JSON.stringify(motifsDeclares ?? [])
   }
   return { args, env }
@@ -331,15 +334,14 @@ export function preparerLectures(cwd, racineLectures) {
 
 /**
  * LA mesure d'un générateur : `g` joué en `mode` (`commandeDe`) sous l'enregistreur, ses lectures
- * consignées dans `lectures`. Un générateur relit ce qu'il écrit (sa cible en `verifier`, le fichier
- * où il injecte un champ) : ses `targets` et `injecte` dépliés sortent de ses sources. LÈVE comme `run`.
+ * consignées dans `lectures`. En mode `verifier`, le lanceur relit les cibles pour comparer les rendus.
+ * Les chemins de ses `targets` dépliés sortent de la mesure des sources. LÈVE comme `run`.
  * REND `lues` (`fusionnerLectures`) et `entree`, ce que `SOURCES_LUES` consigne pour `g`.
  */
 export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, derivees, motifsDeclares, env = process.env }) {
   mkdirSync(lectures, { recursive: true })
   const ecrites = ciblesSurDisque(g.targets, cwd)
-  const injectees = ciblesSurDisque(g.injecte ?? [], cwd)
-  run(g, { cwd, env, quiet, mode, tsxEsm, lectures, ignores, derivees, motifsDeclares, cibles: [...new Set([...ecrites, ...injectees])].sort() })
+  run(g, { cwd, env, quiet, mode, tsxEsm, lectures, ignores, derivees, motifsDeclares, cibles: [...new Set(ecrites)].sort() })
   const lues = fusionnerLectures(lectures)
   return { lues, entree: { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()], git: lues.git ?? [], sondes: lues.sondes ?? [], incomplet: lues.incomplet ?? [] } }
 }
@@ -360,10 +362,11 @@ export function mesurerEnRendu(scripts, { cwd, generateurs = GENERATORS }) {
   try {
     const ignores = preparerLectures(cwd, racineLectures)
     const derivees = path.join(racineLectures, 'derivees.json')
-    writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
+    const motifsDeclares = generateurs.flatMap((g) => g.targets)
+    writeFileSync(derivees, JSON.stringify(ciblesSurDisque(motifsDeclares, cwd)))
     return new Map(mesures.map((g, i) => [
       g.script,
-      mesurerGenerateur(g, { cwd, mode: 'rendre', quiet: true, tsxEsm, ignores, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]), lectures: path.join(racineLectures, String(i)) }),
+      mesurerGenerateur(g, { cwd, mode: 'rendre', quiet: true, tsxEsm, ignores, derivees, motifsDeclares, lectures: path.join(racineLectures, String(i)) }),
     ]))
   } finally {
     rmSync(racineLectures, { recursive: true, force: true })
@@ -465,6 +468,14 @@ function executerLesGenerateurs({
   }
   const quiet = argv.includes('--quiet')
   const check = argv.includes('--check')
+  try {
+    generateurs.forEach(validerDeclaration)
+    verifierCiblesPures(cwd, generateurs)
+  } catch (e) {
+    console.error(`docs:${check ? 'check' : 'build'} — ARRÊT : ${e.message}`)
+    return 1
+  }
+  const motifsDeclares = generateurs.flatMap((g) => g.targets)
   const perimes = argv.includes('--perimes') && !check
   const modeSelectif = argv.includes('--code')
   const selection = modeSelectif ? generateursDeCode(generateurs) : generateurs
@@ -551,14 +562,14 @@ function executerLesGenerateurs({
           return e instanceof SourceModifiee ? conflitDeSource(g.script, e.message) : 1
         }
         writeFileSync(ignoresLectures, JSON.stringify([...(avant ? avant.baseline.ignores : perimetreDeMesure(cwd).ignores)]))
-        writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
+        writeFileSync(derivees, JSON.stringify(ciblesSurDisque(motifsDeclares, cwd)))
         if (!check) {
           invaliderPreuve(cwd, [g.script])
           ecrits++
         }
         try {
           mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
-            cwd, env, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
+            cwd, env, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares,
           }), { mesurer: etapeHeritee(cwd) })
         } catch (e) {
           transmettreDiagnostic(e, quiet)
@@ -629,17 +640,8 @@ function executerLesGenerateurs({
       vue = nouvelleVue(cwd, fraicheur, preuve)
       const divergences = eligibles.map((g) => {
         const record = preuve.generateurs[g.script]
-        const validite = recordValide(cwd, g, fraicheur, record, { sorties: false, vue })
-        if (!validite.ok) return [g.script, validite.raison]
-        const pures = record.sorties.filter(([rel]) => g.targets.some((motif) => correspondGlob(rel, motif)))
-        const actuelles = [...new Set(ciblesSurDisque(g.targets, cwd))].sort().map((rel) => [rel, vue.hashes.get(rel)])
-        if (JSON.stringify(pures) !== JSON.stringify(actuelles)) {
-          const anciennes = new Map(pures)
-          const presentes = new Map(actuelles)
-          const chemins = [...new Set([...anciennes.keys(), ...presentes.keys()])].filter((rel) => anciennes.get(rel) !== presentes.get(rel))
-          return [g.script, `sorties pures différentes : ${chemins.join(', ')}`]
-        }
-        return null
+        const validite = recordValide(cwd, g, fraicheur, record, { vue })
+        return validite.ok ? null : [g.script, validite.raison]
       }).filter(Boolean)
       reprise = new Set(divergences.map(([script]) => script))
       if (reprise.size) {

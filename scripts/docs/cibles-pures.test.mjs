@@ -6,6 +6,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { blocDesCiblesPures, ciblesPures, estCiblePure, GENERATORS, ignoresHorsCibles, motifsQuiIgnorent, renduDe } from './build-all.mjs'
 import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
+import { verifierCiblesPures } from './lib/perimetre-mesure.mjs'
 
 const ROOT = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
 
@@ -29,6 +30,5 @@ test('le bloc n’ignore rien d’autre qu’une cible pure', () => {
 })
 
 test('l’index ne porte aucune cible pure', () => {
-  const suivies = gitDeLArbreReel(ROOT)('-c', 'core.quotepath=false', 'ls-files', '-z', '--cached', '--', ...ciblesPures(ROOT)).split('\0').filter(Boolean)
-  assert.deepEqual(suivies, [], 'git rm --cached -- $(node scripts/docs/build-all.mjs --cibles-pures)')
+  assert.doesNotThrow(() => verifierCiblesPures(ROOT, GENERATORS))
 })

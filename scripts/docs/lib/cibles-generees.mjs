@@ -16,11 +16,21 @@ export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.incl
  *  lit `hotes/godot/pont/pont.ts`, qui importe `hotes/godot/asset`. Un export qui rejoue `GENERATORS` les porte. */
 export const LUS_PAR_LES_GENERATEURS = Object.freeze(['hotes/godot/pont', 'hotes/godot/asset'])
 
+/** La forme fermée d'une déclaration de générateur, commune au registre et au lanceur. */
+export function validerDeclaration(g) {
+  const { runner, script, targets, ...autres } = g
+  const inconnues = Object.keys(autres)
+  if (inconnues.length) throw new Error(`${script} : champs inconnus dans la déclaration : ${inconnues.join(', ')}`)
+  if ((runner !== 'node' && runner !== 'tsx') || typeof script !== 'string' || !script
+      || !Array.isArray(targets) || targets.some((motif) => typeof motif !== 'string' || !motif)) {
+    throw new Error(`${script} : déclaration attendue { runner, script, targets }`)
+  }
+}
+
 /** `{ runner, script, targets }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
  *  EN ENTIER (glob toléré), jamais commités (`ciblesPures`).
- *  Les fichiers simplement mis à jour dans un bloc se déclarent dans `injecte`.
  *  Un générateur exporte `rendre()` (cible → texte) et `produire()` (les rendus et leurs messages).
- *  Le lanceur applique les rendus à `targets` ou `injecte`, ou les compare en `--check`.
+ *  Le lanceur écrit les rendus dans `targets` ou les compare en `--check`.
  *  Un lecteur du texte d'une cible passe par `rendreCible`.
  *  Ordre = ordre d'exécution. Gelée à sa déclaration (`Object.freeze` du tableau et de chaque générateur, que Node
  *  nu évalue : les hooks lisent ce module) : `chargerGenerateur` y lit le module qu'il charge, et le mur de clôture le
@@ -64,6 +74,8 @@ export const GENERATORS = Object.freeze([
   { runner: 'node', script: 'scripts/raw/reconcile.mjs', targets: ['docs/raw/reconciliation.md'] },
   { runner: 'node', script: 'scripts/raw/reanchor.mjs', targets: ['docs/raw/reanchor.md'] },
 ].map(Object.freeze))
+
+GENERATORS.forEach(validerDeclaration)
 
 /** Chemin du dérivé LOCAL qui porte les sets MESURÉS, un par générateur. */
 export const SOURCES_LUES = 'docs/.sources-lues.json'
