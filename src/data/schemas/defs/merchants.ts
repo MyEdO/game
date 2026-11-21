@@ -5,6 +5,7 @@ import { nommerChamps } from '../grammaire/meta';
  * (`src/data/merchants.types.ts`).
  */
 import { z } from 'zod';
+import { marqueDeListe, marquerCollection } from '../grammaire/collection-cle';
 import { affinerAvecCatalogues, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
@@ -21,7 +22,7 @@ export const majorationDAchatSchema = z.number().positive();
 export const joursDeReassortSchema = z.number().int().min(0);
 
 /** LDB 68 l.48 */
-export const licencesDeGuildeSchema = affinerAvecCatalogues(z.array(ref('trapping')), (lire) => {
+const licencesDeGuilde = affinerAvecCatalogues(z.array(ref('trapping')), (lire) => {
   const catalogue = lire.catalogue('trapping');
   const estIdentifiee = catalogue.porteLeMarqueur('licenceDeGuilde');
   return (licences, ctx) => {
@@ -32,6 +33,7 @@ export const licencesDeGuildeSchema = affinerAvecCatalogues(z.array(ref('trappin
     });
   };
 });
+export const licencesDeGuildeSchema = marquerCollection(licencesDeGuilde, marqueDeListe<{ id: string }>('id'));
 
 const doc = document(
   'merchants',
