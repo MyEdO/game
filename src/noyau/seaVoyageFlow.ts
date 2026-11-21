@@ -274,8 +274,6 @@ export interface SeaVoyageState {
   heading: WindDirection;
   weather: SeaWeather;
   windFrom: WindDirection;
-  /** Jours en mer avant le prochain événement de bord (1d10, ch.15 l.89 — suspendu au port, l.19). */
-  daysToEvent: number;
   /** Jours passés en mer (scorbut : Test par mois sans nourriture correcte, MDG 14 l.230). */
   daysAtSea: number;
   /** TONNEAU D'EAU CONTAMINÉ (MDG 14 l.209) : un porteur de peste noire/flux sanglant/courante galopante/
@@ -943,7 +941,7 @@ function buildOverspeedStep(get: Get, index: number): BuiltCascadeStep | undefin
     ligne: ligneDuVaisseau(hull),
     // SURPLUS de M du jour (`effMToday − M de conception`) : c'est ce qui choisit la bande du tableau
     // (l.121-142). Il se LIT sur l'étape par sa NOTE d'enjeu (`stake`, zone d'accueil de ce que le jet
-    // met en jeu) — le libellé d'action reste le NOM de l'action (docs/charte-ui.md).
+    // met en jeu) — le libellé d'action reste le NOM de l'action (docs/ajouter-un-flux-de-jet.md).
     stake: voyageStakeRef('mer-survitesse', { overM: sea.effMToday - baseM, damage: row.damage }),
     meta: { overspeedDamage: row.damage },
   });
@@ -1310,7 +1308,6 @@ export function buildSeaPlan(
     sea: {
       heading,
       ...meteoDuJour(get, ship.hull, undefined, rng), // graine du 1ᵉʳ jour (le cran de vent quotidien s'y accroche)
-      daysToEvent: rollDaysToNextEvent(rng), // « Tous les 1d10 jours » (ch.15 l.89)
       daysAtSea: 0, lines: [], milesToday: 0, hullAtDayStart: ship.hull.wounds.current,
       ...(opts.pace ? { forcePace: opts.pace } : {}), // Forcer le rythme (MDG 13 l.95-107)
     },
@@ -1560,7 +1557,9 @@ function reprendreLeTempsEnMerApresEffet(get: Get, set: Set, borneDuPas: number,
  *  construction du jour, qui le lit décompté (`buildSeaBoardEventStep`). Le compteur se retire à la résolution
  *  de l'événement, par l'applier du `kind`, qui tire le délai suivant. */
 function decompterLEvenementDeBord(get: Get, set: Set): void {
-  patchSea(get, set, { daysToEvent: get().travelPlan!.sea!.daysToEvent - 1 });
+  const vessel = garanti(get().vessel, get().travelPlan?.routeId, 'navire de campagne');
+  const daysToEvent = (vessel.daysToEvent ?? rollDaysToNextEvent(battleRng())) - 1;
+  set({ vessel: { ...vessel, daysToEvent } });
 }
 
 /** L'ÉVÉNEMENT DE BORD du jour (MDG 15 l.89) quand le compteur décompté est à zéro ou en dessous — une étape à TABLE de monde,
@@ -1572,8 +1571,9 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
   if (!sea) return undefined;
   const etape = { id: SEA_BOARD_EVENT_STEP_ID, kind: SEA_BOARD_EVENT_KIND, worldOwner: true, icon: 'voyage/vague', label: t('step.seaBoardEvent') } as const;
   if (sea.forcedEventId) return displayStep(etape);
-  if (sea.daysToEvent > 0) return undefined;
-  const mood = vesselManann(get().vessel);
+  const { vessel, travelPlan } = get();
+  if (garanti(vessel?.daysToEvent, travelPlan?.routeId, 'délai du prochain événement de bord') > 0) return undefined;
+  const mood = vesselManann(vessel);
   return tableStep({
     ...etape,
     table: { tableId: SEA_BOARD_EVENT_TABLE, ...(mood.score ? { mod: mood.score } : {}) },
@@ -2971,13 +2971,12 @@ export const TABLES = {
       const tiree = step.table?.result;
       const id = tiree?.id ?? get().travelPlan?.sea?.forcedEventId;
       if (!id) return {};
-      const rng = battleRng();
       const event = seaBoardEventById(id);
-      // Le délai du PROCHAIN événement se tire ICI, juste après le dé d'événement, et il est posé AVANT la
-      // conséquence : celle-ci peut surfacer sa propre cascade, et une reprise re-déclencherait sinon CE
-      // même tirage. L'événement nommé ne se consomme que s'il a donné l'id : une rangée tirée le laisse au
-      // jour suivant.
-      patchSea(get, set, { daysToEvent: rollDaysToNextEvent(rng), ...(tiree ? {} : { forcedEventId: undefined }) });
+      // Avant la conséquence, qui peut ouvrir une autre séquence. Une péripétie de route peut avoir
+      // remplacé le navire du jour par un navire neuf, dont le décompte commencera le jour suivant.
+      const vessel = get().vessel;
+      if (vessel?.daysToEvent !== undefined) set({ vessel: { ...vessel, daysToEvent: rollDaysToNextEvent(battleRng()) } });
+      if (!tiree) patchSea(get, set, { forcedEventId: undefined });
       if (!event) return {};
       // UNE ligne par événement, et c'est la CONSÉQUENCE de l'étape (titre + texte VERBATIM de
       // `sea-events.json`, AGENTS.md règle 5) : `commitStep` la journalise ET la garde en `outcome`, donc

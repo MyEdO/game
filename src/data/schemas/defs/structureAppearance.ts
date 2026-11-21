@@ -49,12 +49,10 @@ const doc = document(
     detail: detailRecipeSchema.optional(),
     face: z.string(),
     post: z.string(),
-    bayPanel: z.boolean().optional(),
     band: z.string().optional(),
     cap: z.string().optional(),
     rubble: z.string().optional(),
     rubbleHi: z.string().optional(),
-    recess: z.string().optional(),
     wood: nommerChamps(z
       .strictObject({
         inset: z.string(),
@@ -78,7 +76,6 @@ const doc = document(
         merlonCount: z.number(),
         merlonStep: z.number(),
         merlonHeightPx: z.number(),
-        bands: z.array(z.number()),
         bandThickPx: z.number(),
         parapetBandFrac: z.number(),
         arasePx: z.number(),
@@ -87,7 +84,6 @@ const doc = document(
       merlonCount: { label: 'Nombre de merlons' },
       merlonStep: { label: 'Espacement des merlons' },
       merlonHeightPx: { label: 'Hauteur des merlons (px)' },
-      bands: { label: 'Bandes' },
       bandThickPx: { label: 'Épaisseur des bandes (px)' },
       parapetBandFrac: { label: 'Bande de parapet (fraction)' },
       arasePx: { label: 'Arase (px)' },
@@ -96,9 +92,7 @@ const doc = document(
     door: nommerChamps(z
       .strictObject({
         openingFrac: z.number(),
-        lintelPx: z.number(),
         jamb: z.string().optional(),
-        jambCap: z.string().optional(),
         leaf: z.string().optional(),
         plank: z.string().optional(),
         handle: z.string().optional(),
@@ -117,9 +111,7 @@ const doc = document(
           .optional(),
       }), {
       openingFrac: { label: 'Ouverture (fraction)' },
-      lintelPx: { label: 'Linteau (px)' },
       jamb: { label: 'Jambage' },
-      jambCap: { label: 'Couronnement du jambage' },
       leaf: { label: 'Vantail' },
       plank: { label: 'Planche' },
       handle: { label: 'Poignée' },
@@ -129,14 +121,12 @@ const doc = document(
     window: nommerChamps(z
       .strictObject({
         glass: z.string().optional(),
-        lit: z.string().optional(),
         /** Le bois des vantaux (volets de la croisée, porte) d'une apparence sans `door.leaf` ni `wood.inset`
          *  (`wallPartColor`, partie `vantail`). */
         frame: z.string().optional(),
         mullion: z.string().optional(),
       }), {
       glass: { label: 'Vitre' },
-      lit: { label: 'Éclairée' },
       frame: { label: 'Bois des vantaux' },
       mullion: { label: 'Meneau' },
     })
@@ -160,19 +150,17 @@ const doc = document(
     detail: { label: 'Recette de détail' },
     face: { label: 'Couleur de face', hint: 'Teinte de base du pan de mur' },
     post: { label: 'Couleur de poteau', hint: 'Teinte des montants' },
-    bayPanel: { label: 'Panneau mouluré', hint: 'Ajoute le panneau et sa moulure de travée sur le pan plein' },
     band: { label: 'Couleur de bande', hint: 'Pierre : ferrure de courtine, barreaux de herse' },
     cap: { label: 'Couleur de couronnement' },
     rubble: { label: 'Couleur de gravats' },
     rubbleHi: { label: 'Couleur de gravats (clair)', hint: 'Reflet des gravats' },
-    recess: { label: 'Couleur de renfoncement', hint: 'Glyphe en creux de la vue de plan (corps de garde)' },
     wood: {
       label: 'Habillage bois',
       hint: 'Teintes de panneau, cadre/chambranle, couronnement, plinthe et gravats en bois',
     },
     parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet' },
     door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail, poignée et herse' },
-    window: { label: 'Fenêtre', hint: 'Vitre, bois des vantaux, meneau et teinte éclairée' },
+    window: { label: 'Fenêtre', hint: 'Vitre, bois des vantaux et meneau' },
     relief: {
       label: 'Relief de paroi',
       hint: 'Saillie et épaisseur en mètres par partie de mur, plus l’épaisseur de matière pleine (wallM)',
@@ -182,10 +170,10 @@ const doc = document(
     codex: {
       exempt: {
         kind: 'vocabulaire-app-interne',
-        raison: "presets d'apparence de structure (rendu iso), pas une fiche de contenu.",
+        raison: "apparences de structure utilisées par la géométrie du noyau et le rendu Godot.",
       },
     },
-    edit: { none: 'presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`' },
+    edit: { none: 'apparences de structure éditées au fichier' },
   },
 );
 

@@ -34,7 +34,7 @@ import type { Calage } from '../../data/props.types';
 import type { Pt } from './path';
 import { estAbsent, terrainHorsGrille, terrainWalkable } from './terrain';
 import { entityBlockedAt } from './sceneRules';
-import { gradeBetween, metricToLift, STEP_MAX_M } from './relief';
+import { gradeBetween, STEP_MAX_M } from './relief';
 import type { Grade } from '../../data/materials.types';
 import { aretesA } from './wallIndex';
 
@@ -497,21 +497,10 @@ export function plafondDe(scene: SceneDuVolume, p: Pt): number {
  * `p.z`. DÉCOUPLÉE de l'index de couche, qui ne sert qu'au TRI : la couche 0 porte du relief comme
  * les autres, donc une absence de `z` vaut la couche 0, JAMAIS une hauteur nulle. Les coordonnées
  * sont ARRONDIES (une position en cours de marche tombe entre deux cases ; `heightAt` indexe une
- * case entière). C'est le sol que le monde volumique tend à ses passes de pose (`solM` de
- * `gameIso/stage`), et ce dont l'élévation d'affichage `liftDe` dérive. PUR.
+ * case entière). C'est la hauteur de la surface en mètres. PUR.
  */
 export function hauteurDe(scene: Scene, p: Pt): number {
   return heightAt(scene, Math.round(p.x), Math.round(p.y), p.z ?? 0);
-}
-
-/**
- * ÉLÉVATION D'AFFICHAGE d'un point de grille — SOURCE UNIQUE du lift, celle que consomment le trait de
- * mur (`gameIso/stage/layers.tsx`), le picking (`gameIso/stage/pickResolve.ts`), le curseur de
- * combat, les arêtes, les surlignages et les aperçus de déplacement. DÉRIVÉ de `hauteurDe` : la
- * hauteur métrique de la case rendue en unités de niveau. PUR.
- */
-export function liftDe(scene: Scene, p: Pt): number {
-  return metricToLift(hauteurDe(scene, p));
 }
 
 /** Id de structure crénelée d'une case de chemin de ronde (couche `z`), ou `null`. Marqueur de RENDU PUR
@@ -779,14 +768,6 @@ export function porteEnJeu(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
  *  plan : une porte secrète n'y est jamais une entrée). */
 export function porteNonSecrete(seg: WallSeg): boolean {
   return porteAuteur(seg) && !secretAuteur(seg);
-}
-
-/** Lecture d'une arête : `auteur` = le document authoré (éditeur), `jeu` = l'état runtime (partie, POV). */
-export type LectureDArete = 'auteur' | 'jeu';
-
-/** L'arête se lit-elle en PORTE sous cette lecture ? `auteur` : `porteAuteur` ; `jeu` : `porteEnJeu`. */
-export function porteSelon(scene: Pick<Scene, 'flags'>, seg: WallSeg, lecture: LectureDArete): boolean {
-  return lecture === 'auteur' ? porteAuteur(seg) : porteEnJeu(scene, seg);
 }
 
 /** Le segment de PORTE EN JEU sur l'arête (x,y,side,z), ou undefined (`porteEnJeu` : une porte secrète

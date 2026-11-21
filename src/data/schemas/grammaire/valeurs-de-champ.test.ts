@@ -365,7 +365,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'groupe|ennemis',
   'groupe|heros',
   'pas|trot|galop',
-  'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',
   'remplace|ajoute',

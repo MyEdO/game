@@ -1,10 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "index.html",
     "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "hotes/**/*.hors-store.test.ts",
+    "hotes/**/*.test.ts",
     "scripts/**/*.{mjs,mts,ts}",
     "!scripts/test/lib/**",
     "src/**/*.generated.ts",

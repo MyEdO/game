@@ -18,7 +18,7 @@ import { descendre } from './descente';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { DEFS_DE_DOCUMENT } from '../validate';
 import { conditionIds } from '../../index';
-import { scanDuCorpus } from '../../../../scripts/docs/lib/structures-scan.mjs';
+import { lireDocuments } from '../../../../scripts/docs/lib/structures-scan.mjs';
 
 const COMPETENCE = IDS_PAR_ESPACE['skills.json'][0];
 const TALENT = IDS_PAR_ESPACE['talents.json'][0];
@@ -322,7 +322,7 @@ describe('GARDE DU MASQUAGE — aucun nœud ne perd au parse de mesure une réf�
 
   it('les documents des DEUX racines n’en portent aucun (payloads de CHAQUE famille mécanique compris, re-parsés par son `gameOp`)', () => {
     const racine = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-    const { brutParNom } = scanDuCorpus(racine).scan;
+    const { brutParNom } = lireDocuments(racine);
     const documents = DEFS_DE_DOCUMENT.filter((d) => brutParNom.has(d.file));
     expect(documents.length).toBeGreaterThan(100);
     const { sonde, restaurer } = instrumenter([

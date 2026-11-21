@@ -44,7 +44,7 @@ export function tableOuverte<T extends BandeOuverte>(bandes: readonly T[]): (T &
  *  faces du dé quand la table se tire au dé (d100 → « 01–50 », d10 → « 1–5 »), « 96+ » pour la bande
  *  ouverte en haut, « ≤50 » pour la bande ouverte en bas (`null` ou `tableOuverte`). Une ligne à
  *  borne unique ne s'écrit pas « 7–7 ». Une borne négative prend le signe moins « − » et la bande
- *  le séparateur « à » (« −4 à −3 », MDG 13 l.74). docs/charte-ui.md, « Bande de table ». PUR. */
+ *  le séparateur « à » (« −4 à −3 », MDG 13 l.74). docs/ajouter-un-flux-de-jet.md, « Bande de table ». PUR. */
 export function fourchette(min: number | null, max: number | null, dieMax = 0): string {
   const borne = (n: number) => (n < 0 ? `−${-n}` : dieMax >= 100 ? String(n).padStart(2, '0') : String(n));
   const bas = min ?? Number.NEGATIVE_INFINITY;
@@ -80,7 +80,7 @@ export function facesDuDe(de: DeDeTable): number {
 }
 
 /** GRAPHIE UNIQUE d'une bande précédée de son dé (« 1d100 01–35 », « 1d10 9–10 ») : libellé du dé
- *  par `formatDice`, bande par `fourchette` cadrée sur `facesDuDe`. docs/charte-ui.md,
+ *  par `formatDice`, bande par `fourchette` cadrée sur `facesDuDe`. docs/ajouter-un-flux-de-jet.md,
  *  « Bande de table ». PUR. */
 export function bandeAuDe(de: DeDeTable, min: number | null, max: number | null): string {
   return `${formatDice(de)} ${fourchette(min, max, facesDuDe(de))}`;

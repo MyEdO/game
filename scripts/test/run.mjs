@@ -1,48 +1,30 @@
 #!/usr/bin/env node
-// Lanceur de `npm test` : DEUX processus Vitest concurrents, l'un pour les fichiers `node`,
-// l'autre pour les fichiers `@vitest-environment jsdom`.
-//
-// Mesure de référence — 2026-08-23, dos à dos sur arbre identique, 16 cœurs : mono 127,5 s →
-// split 97,8 s (−23 %), mêmes 1 451 fichiers. La parité porte sur les FICHIERS : sous
-// `isolate:false` le groupement change, et un flake d'ordre (`bascule-de-vue`) change de verdict.
-//
-// `WFRP_TEST_PARTIE=i/K` ne joue que la tranche `i` de la suite (`trancher`, partition.mjs), sous
-// le même choix partagé/mono : c'est le job matrice `suite` de `.github/workflows/ci.yml`.
-//
-// `--regime=lot|suite` (`regimeDeArgv`, partition.mjs ; `suite` par défaut) choisit l'empreinte d'un worker
-// (`EMPREINTES_WORKER_MO`) qui borne les workers ; il n'est jamais transmis à Vitest.
-//
-// La sortie des enfants est relayée telle quelle ET tee-ée AU FIL DE L'EAU dans
-// `node_modules/.cache/vitest-run-<pid>.txt` : un run tué (timeout, coupure) laisse quand même son
-// début, et le fichier porte LUI-MÊME son `status:` — seul artefact hors du pont d'outillage.
+// Lanceur de Vitest pour le dépôt. WFRP_TEST_PARTIE=i/K sélectionne une tranche disjointe (CI).
+// Le régime demandé borne les workers par la mémoire disponible. La sortie et le verdict sont
+// enregistrés au fil de l’eau sous node_modules/.cache/vitest-run-<pid>.txt.
 import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import {
-  argumentsEnfant,
   bilanDiagnostic,
   bornesWorkers,
   demandeWorkers,
   maxWorkersMono,
   capaciteDuLanceur,
-  codeAgrege,
   compterSentinelles,
   fichiersNommes,
   enteteCapture,
   envEnfant,
   partieDe,
   regimeDeArgv,
-  partitionner,
   porteBilan,
   refusDePartie,
   trancher,
   VARIABLE_PARTIE,
-  repartitionWorkers,
   resumeLancement,
   SENTINELLES,
-  cotesRequis,
   separerArguments,
   cheminsGlobSuspects,
   TAS_UTILISE,
@@ -67,9 +49,7 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     console.error(refusVitest)
     return 2
   }
-  // Atelier jetable, un dossier par processus lanceur (deux runs concurrents ne se recouvrent pas) :
-  // hors de l'arbre versionné, mais SOUS le projet — les configs générées y résolvent
-  // `vite`/`@vitejs/plugin-react` par remontée normale de `node_modules`.
+  // Atelier isolé de la configuration de tranche, ignoré par Git.
   const ATELIERS = path.join(RACINE, 'node_modules/.vitest-split')
   const ATELIER = path.join(ATELIERS, nomDAtelier(process.pid, performance.timeOrigin))
   const CACHE = path.join(RACINE, 'node_modules/.cache')
@@ -108,7 +88,7 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     return 2
   }
   const ARGV = DEMANDE.argv
-  const { filtres, mono } = separerArguments(ARGV, (t) => fs.existsSync(path.resolve(RACINE, t)))
+  const { filtres } = separerArguments(ARGV, (t) => fs.existsSync(path.resolve(RACINE, t)))
   const PARTIE = partieDe(env[VARIABLE_PARTIE])
   const refusPartie = PARTIE?.refus ?? (PARTIE ? refusDePartie({ filtres, argv: ARGV_DU_LANCEUR }) : null)
   if (refusPartie) {
@@ -133,15 +113,11 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
   }
   console.log('[memoire] admission Vitest : ' + JSON.stringify(CAPACITE))
   const CPUS = CAPACITE.servis
-  const WORKERS = repartitionWorkers(CPUS)
   const refuserDemande = (plafond) => {
     if (DEMANDE.maxWorkers === null || DEMANDE.maxWorkers <= plafond) return false
     console.error('[memoire] CONCURRENCE_SUPERIEURE_CAPACITE : maxWorkers admis ' + plafond)
     return true
   }
-  // Mode RÉELLEMENT servi : le partage se décide au-delà du seuil, mais se retire encore après coup
-  // (drapeau global à un seul processus, filtre qui ne touche qu'un côté, chemin à métacaractère).
-  let partageEffectif = false
   // Enfants Vitest vivants, chacun avec la promesse de son `close` : l'atelier et le verrou ne se rendent
   // qu'après le `close` de tous. Un arrêt (signal du lanceur, annulation) est relayé à chacun et interdit
   // tout lancement ultérieur.
@@ -268,20 +244,18 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     return fin
   }
 
-  /** Lancement à un seul processus Vitest : machine sous le seuil de partage, drapeau global à un
-   *  seul processus, ou filtre qui ne touche qu'un côté. */
-  function lancementUnique(args) {
+  function lancer(args) {
     if (refuserDemande(Math.min(CAPACITE.portes, maxWorkersMono(CPUS)))) return Promise.resolve(2)
     return lancerVitest([VITEST, 'run', ...bornesWorkers(args, CPUS, DEMANDE), ...args])
   }
 
-  /** Config Vitest générée dans l'atelier : celle de `vite.config.ts`, `include` REMPLACÉ par `inclus`. */
+  /** Config Vitest générée dans l'atelier : celle de `vitest.config.ts`, `include` REMPLACÉ par `inclus`. */
   function ecrireConfig(nom, inclus) {
     const config = path.join(ATELIER, `vitest.${nom}.config.ts`)
     fs.writeFileSync(
       config,
       `// Généré par scripts/test/run.mjs à chaque lancement — jamais édité, jamais committé.\n` +
-        `import base from ${JSON.stringify(posix(path.join(RACINE, 'vite.config.ts')))};\n` +
+        `import base from ${JSON.stringify(posix(path.join(RACINE, 'vitest.config.ts')))};\n` +
         // `mergeConfig` CONCATÈNE les `include` (mesuré 2026-08-23) : l'étalement explicite est
         // le seul moyen de REMPLACER la liste du fichier de base.
         `export default { ...base, root: ${JSON.stringify(posix(RACINE))}, ` +
@@ -292,13 +266,8 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
 
   async function principal() {
     if (signal?.aborted) return 1
-    if (!PARTIE && (mono || !WORKERS.split)) return lancementUnique(ARGV)
+    if (!PARTIE) return lancer(ARGV)
 
-    balayerAteliersMorts()
-    fs.mkdirSync(ATELIER, { recursive: true })
-
-    // La suite a UNE définition, celle des shards de la CI (`suiteVitestDuDepot`, #2651) ; absolue en barres obliques,
-    // comme Vitest résout ses fichiers, pour `partitionner` et `cotesRequis` ; relative dans les `include` générés.
     let suite
     try {
       suite = enumerer(RACINE, { env: ENV })
@@ -309,57 +278,24 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
       observer(refus, true)
       return 1
     }
-    const base = posix(path.resolve(RACINE))
-    const tous = suite.map((rel) => `${base}/${rel}`)
-    let fichiers = tous
-    let args = ARGV
-    if (PARTIE) {
-      const tranche = trancher(suite, PARTIE)
-      const ligne =
-        `[partie] ${PARTIE.i}/${PARTIE.k} : ${tranche.fichiers.length} fichier(s) sur ${tous.length}` +
-        ` · empreinte ${tranche.empreinte} · liste ${tranche.empreinteListe}\n`
-      process.stdout.write(ligne)
-      ecrireCapture(ligne)
-      const suspects = cheminsGlobSuspects(tranche.fichiers)
-      if (suspects.length) {
-        const refus = `[partie] chemin à métacaractère de glob, tranche inexprimable en \`include\` : ${suspects[0]}`
-        process.stderr.write(`${refus}\n`)
-        ecrireCapture(`${refus}\n`)
-        observer(refus, true)
-        return 1
-      }
-      fichiers = tranche.fichiers.map((rel) => `${base}/${rel}`)
-      args = ['--config', ecrireConfig('partie', tranche.fichiers), ...ARGV]
-    }
-    const partition = partitionner(fichiers, (f) => fs.readFileSync(f, 'utf8'))
-    if (mono || !WORKERS.split) return lancementUnique(args)
-
-    const cotes = cotesRequis(filtres, partition, RACINE)
-    const suspects = cheminsGlobSuspects(fichiers)
-    if (cotes.length < 2 || suspects.length) {
-      if (suspects.length) {
-        process.stderr.write(
-          `[split] chemin à métacaractère de glob, partage impossible : ${suspects[0]}\n`,
-        )
-      }
-      return lancementUnique(args)
+    const tranche = trancher(suite, PARTIE)
+    const ligne =
+      `[partie] ${PARTIE.i}/${PARTIE.k} : ${tranche.fichiers.length} fichier(s) sur ${suite.length}` +
+      ` · empreinte ${tranche.empreinte} · liste ${tranche.empreinteListe}\n`
+    process.stdout.write(ligne)
+    ecrireCapture(ligne)
+    const suspects = cheminsGlobSuspects(tranche.fichiers)
+    if (suspects.length) {
+      const refus = `[partie] chemin à métacaractère de glob, tranche inexprimable en \`include\` : ${suspects[0]}`
+      process.stderr.write(`${refus}\n`)
+      ecrireCapture(`${refus}\n`)
+      observer(refus, true)
+      return 1
     }
 
-    if (refuserDemande(WORKERS.node)) return 2
-    partageEffectif = true
-    const debut = Date.now()
-
-    const lancerCote = async (cote) => {
-      const config = ecrireConfig(cote, partition[cote].map((f) => posix(path.relative(RACINE, f))))
-      return { cote, code: await lancerVitest(argumentsEnfant(VITEST, config, WORKERS[cote], ARGV, DEMANDE), '[' + cote + '] ') }
-    }
-
-    const resultats = await Promise.all(cotes.map(lancerCote))
-    const real = ((Date.now() - debut) / 1000).toFixed(1)
-    const synthese = resultats.map((r) => `${r.cote}: exit ${r.code}`).join(' · ')
-    process.stdout.write(`${synthese} · real ${real}s\n`)
-    ecrireCapture(`${synthese} · real ${real}s\n`)
-    return codeAgrege(resultats.map((r) => r.code))
+    balayerAteliersMorts()
+    fs.mkdirSync(ATELIER, { recursive: true })
+    return lancer(['--config', ecrireConfig('partie', tranche.fichiers), ...ARGV])
   }
 
   let code
@@ -384,10 +320,7 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     memMaxGo: memoire.systemeMax / 2 ** 30,
     rssMaxMo: memoire.rssMax / 2 ** 20,
     secondes: (Date.now() - DEBUT) / 1000,
-    partage: partageEffectif,
-    maxWorkers: partageEffectif
-      ? `node ${Math.min(WORKERS.node, DEMANDE.maxWorkers ?? Infinity)}+jsdom ${Math.min(WORKERS.jsdom, DEMANDE.maxWorkers ?? Infinity)}`
-      : bornesWorkers(ARGV, CPUS, DEMANDE)[0].split('=')[1],
+    maxWorkers: bornesWorkers(ARGV, CPUS, DEMANDE)[0].split('=')[1],
     tasMaxMo,
   })
   process.stdout.write(diagnostic)

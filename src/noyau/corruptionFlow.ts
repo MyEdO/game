@@ -212,7 +212,7 @@ const tablesDeNature = memoParVersion('mutationNature', () => {
 // Puissance, sous-tables « Tête bestiale ») : fourchettes et ids de mutation PROJETÉS depuis la
 // donnée (`mutationTableRows`, par référence) ; le lookup mécanique reste `mutationAt`. Le `label`
 // est celui rendu au JOUEUR (rangée de tirage) → `mutationTablePlayerLabel`, sans marque de livre
-// (`docs/charte-ui.md`) ; le libellé d'authoring reste intact en donnée.
+// (`src/book-ref-guard.test.ts`) ; le libellé d'authoring reste intact en donnée.
 // FAMILLE (#1692), même patron que les tables de nature ci-dessus : le jeu de Tableaux est celui de
 // `mutationTables` À CET INSTANT — une table ajoutée au Codex est tirable, une table retirée quitte
 // le registre, là où une boucle jouée à l'import figeait les deux à vie.

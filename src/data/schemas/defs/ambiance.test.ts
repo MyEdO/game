@@ -1,7 +1,6 @@
 /**
- * `fogTint` est une DONNÉE éditable qui pilote les trois rendus (couleur de sommet three, `brightness`
- * du voile iso, lumière d'ambiance POV) : le schéma doit refuser AU CHARGEMENT toute valeur qui casse
- * la politique — hors de [0,1], ordre inversé, ou `explored` nul (dénominateur du cran POV).
+ * `fogTint` fixe la lumière des cases visibles, explorées et inconnues pour les regards Godot.
+ * Le schéma refuse un facteur hors de [0,1], un ordre inversé et un facteur `explored` nul.
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './ambiance';
@@ -18,7 +17,7 @@ describe('ambiance.json — `fogTint` est borné et ORDONNÉ', () => {
   });
 
   const refuses: [string, Record<string, number>][] = [
-    ['`explored` nul — le cran POV `unknown` y divise (→ Infinity)', { visible: 1, explored: 0, unknown: 0.15 }],
+    ['`explored` nul — une case explorée perd toute lumière', { visible: 1, explored: 0, unknown: 0.15 }],
     ['ordre inversé — jamais-vu plus lumineux que le souvenir', { visible: 1, explored: 0.42, unknown: 0.9 }],
     ['facteur négatif', { visible: 1, explored: 0.42, unknown: -0.1 }],
     ['facteur > 1 — une teinte sur-expose au lieu d’éclaircir', { visible: 1, explored: 1.4, unknown: 0.15 }],
@@ -153,88 +152,5 @@ describe('ambiance.json — `weather[].brume` est bornée (#1247)', () => {
     const desordre = schema.safeParse(avecBrume({ ...BRUME_BONNE, layers: [{ hM: 2, alpha: 0.2 }, { hM: 1, alpha: 0.2 }] }));
     expect(desordre.success).toBe(false);
     if (!desordre.success) expect(desordre.error.issues.map((i) => i.message).join('\n')).toContain('croître STRICTEMENT');
-  });
-});
-
-/**
- * `faceShade` (#1300) — le MODELÉ DE FORME de la voie volumique, en donnée. Le schéma doit refuser au
- * CHARGEMENT ce qui rend le modelé faux plutôt qu'étrange : une paire cycliquement ADJACENTE jumelle
- * (l'angle qu'elles forment cesse de se lire — le défaut même que ce bloc corrige), un contraste qui
- * enfonce la famille la plus sombre sous le plancher de luminance, un facteur qui ÉCLAIRE au lieu de
- * retirer, et un cycle qui n'a pas ses quatre directions.
- */
-const avecFaceShade = (faceShade: unknown) => ({ ...ambianceJson, faceShade });
-const SHADE_BON = { haut: 1, verticales: [0.95, 0.86, 0.7, 0.58], bas: 0.55 };
-
-describe('ambiance.json — `faceShade` est borné et SÉPARE les familles adjacentes (#1300)', () => {
-  it('la donnée réelle passe, et le témoin de ce fichier EST la donnée réelle', () => {
-    expect(schema.safeParse(ambianceJson).success).toBe(true);
-    expect(ambianceJson.faceShade).toEqual(SHADE_BON);
-  });
-
-  const refuses: [string, Record<string, unknown>][] = [
-    ['deux familles cycliquement ADJACENTES jumelles — leur angle ne se lit plus', { ...SHADE_BON, verticales: [0.95, 0.9, 0.9, 0.61] }],
-    ['la première verticale ÉGALE à l’horizontale — le sol et le mur −z rendent la même valeur, l’arête de plinthe disparaît', { ...SHADE_BON, verticales: [1, 0.9, 0.73, 0.61] }],
-    ['le BOUCLAGE du cycle jumelé — la quatrième et la première sont adjacentes elles aussi', { ...SHADE_BON, verticales: [0.9, 0.8, 0.7, 0.9] }],
-    ['cycle NON monotone — l’ordre de la grille ne se lit plus comme une rotation', { ...SHADE_BON, verticales: [0.9, 0.61, 0.73, 1] }],
-    ['contraste trop fort — la famille la plus sombre passe sous le plancher de luminance', { ...SHADE_BON, verticales: [1, 0.8, 0.6, 0.4] }],
-    ['un facteur qui ÉCLAIRE (> 1) — le modelé retire de la lumière, il n’en ajoute pas', { ...SHADE_BON, verticales: [1.3, 1, 0.8, 0.7] }],
-    ['un facteur NUL — une face noire n’est pas un modelé', { ...SHADE_BON, bas: 0 }],
-    ['trois verticales — le cycle de la grille en a quatre', { ...SHADE_BON, verticales: [1, 0.9, 0.73] }],
-    ['cinq verticales', { ...SHADE_BON, verticales: [1, 0.9, 0.8, 0.7, 0.6] }],
-    ['horizontale haute hors bornes', { ...SHADE_BON, haut: 1.2 }],
-    ['champ inconnu (frappe de l’auteur)', { ...SHADE_BON, plafond: 0.5 }],
-  ];
-  for (const [cas, faceShade] of refuses)
-    it(`REFUSÉ : ${cas}`, () => {
-      expect(schema.safeParse(avecFaceShade(faceShade)).success).toBe(false);
-    });
-
-  it('le message d’erreur DIT la règle', () => {
-    const jumelles = schema.safeParse(avecFaceShade({ ...SHADE_BON, verticales: [0.95, 0.9, 0.9, 0.61] }));
-    expect(jumelles.success).toBe(false);
-    if (!jumelles.success)
-      expect(jumelles.error.issues.map((i) => i.message).join('\n')).toContain('cycliquement adjacentes');
-  });
-});
-
-/**
- * `entreeEnScene` (#1372) — le RAYON et le PLAFOND du voile de chargement sont une donnée éditable
- * qui décide de ce que le joueur voit à l'ouverture d'une carte : un rayon nul ouvre la scène sur des
- * quads nus, un plafond nul aussi, et un plafond démesuré laisse l'écran voilé sur un SVG en panne.
- * Le schéma doit refuser ces quatre-là AU CHARGEMENT.
- */
-const avecEntree = (entreeEnScene: unknown) => ({ ...ambianceJson, entreeEnScene });
-const ENTREE_BON = { rayonM: 12, plafondMs: 2000 };
-
-describe('ambiance.json — `entreeEnScene` est borné (#1372)', () => {
-  it('la donnée réelle passe, et le témoin de ce fichier EST la donnée réelle', () => {
-    expect(schema.safeParse(ambianceJson).success).toBe(true);
-    expect(ambianceJson.entreeEnScene).toEqual(ENTREE_BON);
-  });
-
-  const refuses: [string, Record<string, unknown>][] = [
-    ['rayon NUL — aucun sujet n’est « proche », la scène s’ouvre sur des quads nus', { ...ENTREE_BON, rayonM: 0 }],
-    ['rayon négatif', { ...ENTREE_BON, rayonM: -3 }],
-    ['rayon démesuré — le voile attend la carte entière, il n’y a plus de progressif', { ...ENTREE_BON, rayonM: 400 }],
-    ['plafond NUL — le voile tombe avant la première texture', { ...ENTREE_BON, plafondMs: 0 }],
-    ['plafond négatif', { ...ENTREE_BON, plafondMs: -1 }],
-    ['plafond démesuré — ce n’est plus une borne de sécurité', { ...ENTREE_BON, plafondMs: 60000 }],
-    ['rayon absent', { plafondMs: 2000 }],
-    ['plafond absent', { rayonM: 12 }],
-    ['champ inconnu (frappe de l’auteur)', { ...ENTREE_BON, rayonCases: 8 }],
-  ];
-  for (const [cas, entree] of refuses)
-    it(`REFUSÉ : ${cas}`, () => {
-      expect(schema.safeParse(avecEntree(entree)).success).toBe(false);
-    });
-
-  it('le message d’erreur DIT la règle (un auteur doit savoir quoi corriger)', () => {
-    const rayon = schema.safeParse(avecEntree({ ...ENTREE_BON, rayonM: 0 }));
-    expect(rayon.success).toBe(false);
-    if (!rayon.success) expect(rayon.error.issues.map((i) => i.message).join('\n')).toContain('le rayon doit être > 0');
-    const plafond = schema.safeParse(avecEntree({ ...ENTREE_BON, plafondMs: 60000 }));
-    expect(plafond.success).toBe(false);
-    if (!plafond.success) expect(plafond.error.issues.map((i) => i.message).join('\n')).toContain('≤ 10000 ms');
   });
 });

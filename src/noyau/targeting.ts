@@ -71,15 +71,6 @@ export function validTargets(get: () => Jeu): Combatant[] {
   return [...cands].sort((a, b) => distanceDeCombat(get().scene, active, a) - distanceDeCombat(get().scene, active, b));
 }
 
-/** Cible SUIVANTE (Tab) : la plus proche valide, ou la suivante par distance si une est déjà visée —
- *  cycle complet sur toutes les cibles valides puis retour à la première. Null si aucune. */
-export function cycleTarget(get: () => Jeu, currentId: string | null): Combatant | null {
-  const sorted = validTargets(get);
-  if (!sorted.length) return null;
-  const idx = sorted.findIndex((c) => c.id === currentId);
-  return sorted[(idx + 1) % sorted.length];
-}
-
 /** Aperçu du mode-CASE courant (Pousser/Téléportation/pose de zone) à `pt` — MÊME registre que le clic
  *  (`tileValidAt`/`tilePreview` du mode courant, #198) : réticule + direction/coût au survol souris ET
  *  au déplacement du curseur clavier (`combatCursor.tile`, appelant commun). null hors mode-case ou
@@ -92,15 +83,4 @@ export function tilePreviewAt(get: () => Jeu, pt: Pt): TilePreview | null {
   const mode = currentTargetingMode(get);
   if (!mode.tileValidAt || !mode.tilePreview || !mode.tileValidAt(get, active, pt)) return null;
   return mode.tilePreview(get, active, pt);
-}
-
-/** Cible PRÉCÉDENTE (Maj+Tab / gâchette gauche) : symétrique de `cycleTarget`, sens inverse. Null si aucune. */
-export function cyclePrevTarget(get: () => Jeu, currentId: string | null): Combatant | null {
-  const sorted = validTargets(get);
-  if (!sorted.length) return null;
-  const idx = sorted.findIndex((c) => c.id === currentId);
-  // idx === -1 (aucune cible courante) → -1-1 = -2 ; +len ramène à l'avant-dernier. On veut la DERNIÈRE
-  // quand rien n'est visé → on part de 0 dans ce cas pour que (0-1+len)%len = dernière.
-  const from = idx < 0 ? 0 : idx;
-  return sorted[(from - 1 + sorted.length) % sorted.length];
 }

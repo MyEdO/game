@@ -2292,7 +2292,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
 export type CascadeStepBase = CascadeStepCore & LectureDuDe;
 
 /** Étape qui LANCE un dé : `target` (cible effective) et `rollLabel` (compétence lancée) vont
- *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/charte-ui.md`). */
+ *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/ajouter-un-flux-de-jet.md`). */
 export type CascadeRollStep = CascadeStepBase & { target: number; rollLabel: string };
 
 /** Étape qui lance un dé LU EN TEST (`LectureDuDe` `'test'`, LDB 12 l.28). */

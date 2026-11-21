@@ -832,8 +832,10 @@ export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_R
  *  `const RECETTE_RENDUE := true` jouée en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
  *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
- *  pas, et que Godot remplace, est une erreur. Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne
- *  de clôture (`erreurs=<n>`) ; ce que le moteur écrit ensuite en se fermant n'en est pas. */
+ *  pas, et que Godot remplace, est une erreur. La recette imprime sa ligne de clôture (`erreurs=<n>`) après ses
+ *  assertions et les libérations de scène qu'elle joue. Le code de sortie et les lignes `ERROR` ou `SCRIPT ERROR`
+ *  jusqu'à cette clôture entrent dans le verdict. Le journal intégral garde aussi les diagnostics que le moteur écrit
+ *  à l'arrêt du processus, après la clôture (#4215). */
 function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
     deposerLaVue(copie, 'decor', figerLeDecor(await listage(DOSSIER_DES_MODELES)))

@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { REGISTRE_LIVRES, estLivreExtrait } from '../../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { cheminDuDepot } from '../../../scripts/source/adresses.mjs';
-// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { cheminChapitre as cheminDuLecteur } from '../../../scripts/source/lecteur-fs.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import {

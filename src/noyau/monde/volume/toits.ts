@@ -63,14 +63,6 @@ function bodyLabel(body: ArchitectureBody): string {
  *  sa chute (`RoofMaterialDef.eaveOverhangM`). */
 export const ROOF_SLOPE_M = isoPxToM(17);
 
-/** Rangs de tuiles PAR CRAN de montée, dérivés du PAS MÉTRIQUE de la recette du matériau
- *  (`detail.courses.hM` — SOURCE UNIQUE de l'espacement, partagée builder ↔ backend toits) ; un
- *  matériau sans recette d'assises ne porte aucun rang. */
-export function roofCoursesPerStep(det?: { courses?: { hM: number } }): number | undefined {
-  const hM = det?.courses?.hM;
-  return hM ? Math.max(1, Math.round(ROOF_SLOPE_M / hM)) : undefined;
-}
-
 const EPS = 1e-9;
 
 /** VOLUME de l'avant-toit (Lot 3) piloté par la DONNÉE matériau (`RoofMaterialDef`) : `overhang` = run du

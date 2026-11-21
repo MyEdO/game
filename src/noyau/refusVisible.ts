@@ -57,6 +57,3 @@ export function refuserGesteDuSiege(get: Get, set: Set, texte: string): boolean 
 export function eteindreRefus(get: Get, set: Set, refus: RefusIHM): void {
   if (get().refus === refus) set({ refus: null });
 }
-
-/** Durée d'affichage d'un refus (ms) — le temps de le lire, pas plus : c'est un retour de geste. */
-export const REFUS_MS = 2600;

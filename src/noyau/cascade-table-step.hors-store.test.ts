@@ -152,7 +152,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
 
   it('charte UI : AUCUN libellé de table d’étape ne porte de référence de LIVRE (c’est une surface JOUEUR)', () => {
     // Le `label` d'une table enregistrée est rendu par `CascadeModal` (rangée de tirage) : il tombe donc
-    // sous `docs/charte-ui.md` — « JAMAIS de référence au livre dans un texte joueur ». Les libellés
+    // sous `src/book-ref-guard.test.ts` — « JAMAIS de référence au livre dans un texte joueur ». Les libellés
     // d'AUTHORING qui portent leur provenance (`mutationTables.json` : « Physique — Khorne (EDOC) ») se
     // PROJETTENT avant d'entrer au registre. L'invariant est écrit avec CETTE projection (`stripBookMarker`,
     // `src/data/bookMarker.ts`) — un critère maison (tokenisation, liste de sigles) divergerait d'elle.

@@ -1,9 +1,9 @@
 // Banc de l'index imprimé (#1887, lot 7) : ses règles sur des fixtures, et sur le CRB RÉEL
 // (`121 - Index.md`) ses INVARIANTS et des cas nommés ; les comptes s'impriment, jamais assertés.
 import { describe, it, expect } from 'vitest';
-// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { chapitresParses, cheminChapitre } from '../../../scripts/source/lecteur-fs.mjs';
-// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { readText } from '../../../scripts/raw/_lib.mjs';
 import { cheminDuDepot } from '../../../scripts/source/adresses.mjs';
 import { lireIndexImprime, type EntreeDIndexImprime } from './index-imprime.ts';

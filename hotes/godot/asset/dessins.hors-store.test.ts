@@ -4,14 +4,15 @@
  * que `projet/scripts/dessin.gd` lit pour le tracer ; chaque cadre qu'un style de `projet/art` nomme y est.
  */
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { CADRES, COUCHES_DE_PAYSAGE, FONDS, ICON_DEFS } from '../../../src/noyau/index';
 import { figerLesDessins } from './dessins';
 
-const ART = new URL('../projet/art/', import.meta.url);
-const THEME = readFileSync(new URL('theme.tres', ART), 'utf8');
+const ART = fileURLToPath(new URL('../projet/art/', import.meta.url));
+const THEME = readFileSync(join(ART, 'theme.tres'), 'utf8');
 
 describe('le catalogue des dessins de l’hôte Godot', () => {
   const catalogue = figerLesDessins();
@@ -33,7 +34,7 @@ describe('le catalogue des dessins de l’hôte Godot', () => {
   });
 
   it('chaque cadre qu’un style de `projet/art` nomme (`cadre.gd`) est au catalogue', () => {
-    const nommes = listerDossier(fileURLToPath(ART)).filter((f) => f.endsWith('.tres')).flatMap((f) => [...readFileSync(new URL(f, ART), 'utf8').matchAll(/^cadre = "([^"]+)"$/gm)].map((m) => `${f} : ${m[1]}`));
+    const nommes = listerDossier(ART).filter((f) => f.endsWith('.tres')).flatMap((f) => [...readFileSync(join(ART, f), 'utf8').matchAll(/^cadre = "([^"]+)"$/gm)].map((m) => `${f} : ${m[1]}`));
     expect(nommes.length).toBeGreaterThan(0);
     expect(nommes.filter((n) => !(n.split(' : ')[1] in catalogue.cadre.tranches)), 'un cadre nommé hors du catalogue').toEqual([]);
   });

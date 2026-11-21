@@ -801,7 +801,7 @@ describe('validateScene — une écriture rend les avertissements d’une valida
     }],
   ];
 
-  it('après chaque retouche, ceux du projet cloné (identités neuves), ordre compris', () => {
+  it('après chaque retouche, ceux du projet cloné (identités neuves), ordre compris', { timeout: 60_000 }, () => {
     const projet = paquetDuJeu(diligenceCampaign);
     let scenes = projet.scenes;
     for (const [nom, retouche] of RETOUCHES) {

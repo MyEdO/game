@@ -8,6 +8,8 @@ import type * as structuresDef from '../data/schemas/defs/structures';
 import type * as vehiclesDef from '../data/schemas/defs/vehicles';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
+import type { ConsumableDuration } from './consumables';
+import type { CritTestNode } from '../data/criticals';
 import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
@@ -1004,7 +1006,7 @@ export interface Trauma {
    *  personnage porte l'État `whileCondition`, tout critique SUBSÉQUENT à `location` (ou toute Localisation si
    *  absente) impose le nœud `test` de sauvegarde (la branche empruntée porte ses ops). Stampé par
    *  `stampCriticalEscalation`, lu par `fireCritTriggers` au point unique de résolution des critiques. */
-  critTrigger?: { location?: HitLocation; whileCondition: string; test: import('../data/criticals').CritTestNode };
+  critTrigger?: { location?: HitLocation; whileCondition: string; test: CritTestNode };
   /** Amputation DIFFÉRÉE à la fin de la rencontre (LDB 18, « Coupure à l'orteil » l.171 : « Une fois la
    *  rencontre terminée… ») : le/les Test(s) FABRIQUÉS par `resolveCritique` pour un
    *  `amputation.timing === 'postEncounter'`, ENJEU POSÉ — ARMÉS ici (même patron de nœud persisté que
@@ -1092,7 +1094,7 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   desc?: string;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — copiée du trapping,
    *  résolue AU BOIRE (`consumableUntilTime`) → `ctx.defaultUntilTime` des ops appliquées. */
-  consumableDuration?: import('./consumables').ConsumableDuration;
+  consumableDuration?: ConsumableDuration;
   /** `id` du Groupe/famille (`WeaponGroupData.id`) — munition : famille compatible (arc/arbalete/
    *  poudre-noire) ; armure : type (plate/mailles/cuir-souple…). Correspond à `Weapon.subType`. */
   subType?: string;
@@ -1242,7 +1244,7 @@ export type ZoneBarre = 'arsenal' | 'accesRapide' | 'capacites';
 
 /** UNE case posée : l'action du registre (`src/data/actions.json`) et la CLÉ DÉCLARÉE de la case,
  *  qui distingue les N alvéoles d'une même action (`sort-<spellId>`, `avantage-<skillId>`,
- *  `q-objet-<trappingId>`, `attaque-<attackId>`, `soi-<maneuverId>`, ou `ActionDef.keys[0]`).
+ *  `q-objet-<trappingId>`, `attaque-<attackId>`, `soi-<maneuverId>`).
  *  Cette clé est une identité de MODÈLE, déclarée au site de la case — jamais un uid d'INSTANCE
  *  (boire une potion changerait l'uid et tuerait l'adresse), jamais un libellé. */
 export interface EntreeBarre {

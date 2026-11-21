@@ -23,7 +23,6 @@ import { lexemesGdscript } from './gdscript.mjs';
  *  TypeScript et le JavaScript (`extractComments`), le GDScript de l'hôte Godot (`lexemesGdscript`). */
 const EXTRACTEURS = Object.freeze({
   '.ts': extractComments,
-  '.tsx': extractComments,
   '.mts': extractComments,
   '.mjs': extractComments,
   '.gd': (src) => lexemesGdscript(src).commentaires,

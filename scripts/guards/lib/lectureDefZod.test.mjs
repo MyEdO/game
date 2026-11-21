@@ -15,8 +15,15 @@ test('un champ d’enfants lu sur un `def` ou un `defDe(…)` est une lecture ; 
 });
 
 test('`_def` et `_zod[\'def\']` sont des accès à `def`', () => {
-  const texte = ['a = x._def.shape;', "b = x._zod['def'].shape;", 'c = x._zod?.["def"];', "d = x._zod['type'];", 'e = mon_def_local;'].join('\n');
-  assert.deepEqual(lecturesDefZod(texte, CHAMPS).map((t) => t.ligne), [1, 2, 3]);
+  const texte = [
+    'a = x._def.shape;',
+    "b = x._zod['def'].shape;",
+    'c = x._zod?.["def"];',
+    "d = x._zod['type'];",
+    'e = mon_def_local;',
+    'f = x._zod[ `def` ];',
+  ].join('\n');
+  assert.deepEqual(lecturesDefZod(texte, CHAMPS).map((t) => t.ligne), [1, 2, 3, 6]);
 });
 
 test('un identifiant assigné depuis `defDe(` est un `def`, quel que soit son nom', () => {
@@ -24,12 +31,37 @@ test('un identifiant assigné depuis `defDe(` est un `def`, quel que soit son no
   assert.deepEqual(lecturesDefZod(texte, CHAMPS).map((t) => t.ligne), [2, 4]);
 });
 
+test('une lecture d’alias dépend de son assignation dans le fichier entier', () => {
+  const extrait = '$nd.shape;';
+  assert.deepEqual(lecturesDefZod(extrait, CHAMPS), []);
+  const texte = ['$nd =', '  defDe(n);', '  ' + extrait].join('\n');
+  assert.deepEqual(lecturesDefZod(texte, CHAMPS), [{ ligne: 3, extrait }]);
+});
+
 test('un `defDe(…)` aux parenthèses imbriquées, et une déstructuration de `defDe(…)`', () => {
-  const texte = ['x = defDe(defDe(n)?.x)?.shape;', 'y = defDe(f(n, g(m))).element;', 'const { shape, type } = defDe(n);', 'const { type } = defDe(n);', 'z = defDe(n)?.type;'].join('\n');
-  assert.deepEqual(lecturesDefZod(texte, CHAMPS).map((t) => t.ligne), [1, 2, 3]);
+  const texte = [
+    'x = defDe(defDe(n)?.x)?.shape;',
+    'y = defDe(f(n, g(m))).element;',
+    'const { shape, type } = defDe(n);',
+    'const { type } = defDe(n);',
+    'z = defDe(n)?.type;',
+    'const { element: enfant }: DefZod = defDe(n);',
+  ].join('\n');
+  assert.deepEqual(lecturesDefZod(texte, CHAMPS).map((t) => t.ligne), [1, 2, 3, 6]);
 });
 
 test('un commentaire ou une chaîne ne sont pas du code', () => {
-  const texte = ['// on lit `_zod.def` ici', "const s = 'def.shape';", '/* def.options */'].join('\n');
+  const texte = [
+    '// on lit `_zod.def` ici',
+    "const s = 'def.shape';",
+    '/* def.options */',
+    '/* nd = defDe(n); */ nd.shape;',
+    'const t = `nd = defDe(n); x._zod["def"]`; nd.options;',
+  ].join('\n');
   assert.deepEqual(lecturesDefZod(texte, CHAMPS), []);
+});
+
+test('un accès dans la substitution d’un gabarit est du code', () => {
+  const extrait = 'const s = `forme : ${x._zod["def"]}`;';
+  assert.deepEqual(lecturesDefZod('  ' + extrait, CHAMPS), [{ ligne: 1, extrait }]);
 });

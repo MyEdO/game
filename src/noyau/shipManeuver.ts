@@ -71,13 +71,6 @@ function ligneDuRoleTentable(crew: Combatant, role: CrewRoleData, valeur: number
   return rollLine({ actor: crew, difficulty: difficulteDuRole(cumul), valeur, surLaCible: crewRoleTestMods(crew, role, navigation, sense) });
 }
 
-/** Ligne du Test d'UN contributeur à son rôle (`rollLine`, même valeur, Difficulté et modificateurs que
- *  `rollCrewRole`), ou son refus nommé quand le rôle n'est pas tentable (LDB 09 l.30) — MDG 14 l.53. */
-export function ligneDuRole(crew: Combatant, role: CrewRoleData, navigation: RefDesignee, cumul = false, sense?: PairedSense): { ligne: RollLineParts } | { refus: PlayerText } {
-  const rv = crewRoleValue(crew, role, navigation, sense);
-  return rv.refus != null ? { refus: rv.refus } : { ligne: ligneDuRoleTentable(crew, role, rv.value, navigation, cumul, sense) };
-}
-
 /** Résilience « Je ne faillirai pas ! » pour UN contributeur (PJ) : DR MAXIMAL à son rôle (LDB 17 l.68). PUR. */
 export function forceCrewRole(crew: Combatant, roleId: string, navigation: RefDesignee, cumul = false, sense?: PairedSense): Exclude<CrewRoleRoll, EchecSansJet> | null {
   const role = findCrewRoleById(roleId);

@@ -1,8 +1,6 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `ambiance.json` — AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/
- * filtre d'étage), consommée comme `AmbianceDef` (objet RACINE unique, PAS un tableau) —
- * `DatasetDe`, `src/data/index.ts`.
+ * Lumière, visibilité et météo des regards Godot (`AmbianceDef`, `src/data/index.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -12,29 +10,10 @@ import { ref } from '../grammaire/ref';
 export const file = 'ambiance.json';
 export const famille = 'config';
 
-const radialVeilSchema = nommerChamps(z.strictObject({
-  cx: z.string(),
-  cy: z.string(),
-  r: z.string(),
-  color: z.string(),
-  alpha: z.number(),
-  innerOff: z.string().optional(),
-}), {
-  cx: { label: 'centre horizontal' },
-  cy: { label: 'centre vertical' },
-  r: { label: 'rayon' },
-  color: { label: 'couleur' },
-  alpha: { label: 'opacité' },
-  innerOff: { label: 'décalage intérieur' },
-});
-
 const povFogSchema = nommerChamps(z.strictObject({
   farTiles: z.number(),
   fogStartT: z.number(),
-  /** Exposant de la courbe de brume (`fogAt`, `pov/camera.ts`), porté au shader comme LITTÉRAL GLSL à
-   *  quatre décimales (`applyFogGamma`, `backends/webgl/sceneMeshes.ts`). Le plancher est celui de ce
-   *  littéral : sous 0,00005 il s'écrirait « 0.0000 », donc `pow(x, 0) = 1` — une brume PLEINE partout,
-   *  sans un mot. 0,1 le tient à distance (données actuelles : 2 dehors, 1,2 dedans). #1176 P3-1c */
+  /** Exposant de la courbe de brume projetée vers Godot (`lumiereDeLaScene`). */
   fogGamma: z.number().positive().min(0.1),
 }), {
   farTiles: { label: 'portée en cases' },
@@ -79,12 +58,10 @@ const precipSchema = nommerChamps(z
 });
 
 /** #1247 — BRUME MONDE d'un type de météo : des nappes horizontales translucides posées à des cotes
- *  fixes au-dessus du sol, dans le volume de la voie volumique (`backends/webgl/weatherSheets.ts`).
+ *  fixes au-dessus du sol (`meteoSurLesBandes`, `src/noyau/monde/meteo.ts`).
  *
  *  RÉFÉRENCE de `hM` : cote ABSOLUE monde, comptée au-dessus du sol le plus BAS de l'emprise de la
- *  carte — la même référence que le recyclage du semis de précipitation (`precipArea`,
- *  `backends/webgl/weatherParticles.ts`), pour que les deux expressions d'une même météo se posent
- *  dans le même repère. Une carte à fort relief a donc des nappes qui rasent ses creux et enterrent
+ *  carte (`sceneGroundSpan`). Une carte à fort relief a donc des nappes qui rasent ses creux et enterrent
  *  ses sommets : c'est le prix d'une cote unique par scène, et c'est mesurable à l'authoring.
  *
  *  Les bornes sont des bornes de BUDGET et de TRI : quatre nappes au plus (au-delà, c'est un voile
@@ -105,8 +82,7 @@ const brumeSchema = nommerChamps(z
       .min(1)
       .max(4),
     /** RESSERREMENT de la portée première personne sous cette météo (part de la portée du milieu) :
-     *  1 = portée intacte. Appliqué EN AMONT de la courbe de brume ET du plan lointain de la caméra
-     *  (`povDepth`) — les deux ou aucun. */
+     *  1 = portée intacte. Multiplie le début et la fin de la brume dans `lumiereDeLaScene`. */
     povTightenK: z.number().gt(0).max(1).optional(),
   })
   .refine((b) => b.layers.every((l, i) => i === 0 || l.hM > b.layers[i - 1].hM), {
@@ -121,9 +97,6 @@ const brumeSchema = nommerChamps(z
 const weatherFxSchema = nommerChamps(z.strictObject({
   tint: z.string(),
   alpha: z.number(),
-  particles: z.enum(['pluie', 'averse', 'neige']).optional(),
-  pcolor: z.string().optional(),
-  density: z.number().optional(),
   /** Absent = ce type ne fait TOMBER aucune particule (le brouillard n'en fait pas). */
   precip: precipSchema.optional(),
   /** Absent = ce type ne pose AUCUNE nappe de brume (la pluie et la neige n'en posent pas : leur
@@ -134,9 +107,6 @@ const weatherFxSchema = nommerChamps(z.strictObject({
 }), {
   tint: { label: 'teinte' },
   alpha: { label: 'opacité' },
-  particles: { label: 'particules' },
-  pcolor: { label: 'couleur des particules' },
-  density: { label: 'densité' },
   precip: { label: 'précipitations' },
   brume: { label: 'brume' },
   son: { label: 'son' },
@@ -146,62 +116,15 @@ const weatherFxSchema = nommerChamps(z.strictObject({
  *  plus, il sur-expose (ou inverse le signe de la couleur). */
 const tintFactor = z.number().min(0).max(1);
 
-/** #1300 — MODELÉ DE FORME de la voie volumique : facteur d'irradiance ambiante par FAMILLE
- *  D'ORIENTATION, multiplié dans la couleur de chaque face selon la direction qu'elle regarde. Terme
- *  d'exposition au ciel et aux ouvertures, PAS une lampe — aucune source ne s'y ajoute, et une face
- *  d'une famille sombre reste sous une face d'une autre famille éclairée à l'identique.
- *  Six familles : les deux horizontales (`haut` = sol/toit, `bas` = soffite), et les quatre verticales
- *  dans l'ORDRE CYCLIQUE de la grille — `verticales[0..3]` = −z, +x, +z, −x.
- *
- *  Bornes : un facteur RETIRE de la lumière, il n'en ajoute pas (0 exclu, 1 compris). Les quatre
- *  verticales DÉCROISSENT strictement le long du cycle : c'est ce qui interdit qu'une paire
- *  cycliquement adjacente soit jumelle — le bouclage compris, la première étant alors la plus grande.
- *  Deux familles adjacentes jumelles ne modèlent plus l'angle qu'elles forment, ce qui est le défaut
- *  que ce bloc corrige. La PREMIÈRE verticale passe SOUS l'horizontale haute pour la même raison : le
- *  sol et le mur qu'il rejoint sont covisibles à chaque plinthe, et à valeur égale leur arête
- *  disparaît. Le rapport max/min des verticales est plafonné : au-delà, la famille la plus sombre
- *  passe sous le plancher de luminance de la scène (palier `tenebres` × `fogTint.explored`).
- *
- *  `bas` a un producteur : le DESSOUS d'un décor volumique (`noyau/monde/volume/propVolumes.ts`), dont
- *  chaque face porte son propre dehors jusqu'à la cuisson. Les murs, eux, n'en produisent aucun —
- *  `wallBoxPolys` (`noyau/monde/volume/worldTris.ts`) omet le dessous d'un mur, et un sol présente
- *  toujours sa normale vers le haut. */
-const faceShadeSchema = nommerChamps(z
-  .strictObject({
-    haut: z.number().gt(0).max(1),
-    verticales: z.array(z.number().gt(0).max(1)).length(4),
-    bas: z.number().gt(0).max(1),
-  })
-  .refine((s) => s.verticales.every((v, i) => i === 0 || v < s.verticales[i - 1]), {
-    message:
-      'faceShade.verticales : les quatre facteurs doivent DÉCROÎTRE strictement le long du cycle (−z, +x, +z, −x) — deux familles cycliquement adjacentes égales laissent l’angle qu’elles forment sans modelé',
-  })
-  .refine((s) => s.verticales[0] < s.haut, {
-    message:
-      'faceShade : la première verticale doit passer SOUS `haut` — un sol et le mur qu’il rejoint sont covisibles à chaque plinthe, et à valeur égale leur arête disparaît',
-  })
-  .refine((s) => Math.max(...s.verticales) / Math.min(...s.verticales) <= 2, {
-    message: 'faceShade.verticales : rapport max/min ≤ 2 — au-delà, la famille la plus sombre passe sous le plancher de luminance',
-  }), {
-  haut: { label: 'face supérieure' },
-  verticales: { label: 'faces verticales' },
-  bas: { label: 'face inférieure' },
-});
-
 const doc = document(
   'ambiance',
   famille,
   {
-  ambientFloor: z.number(),
-  // `fogTint` = APPLICATION de la politique de visibilité en facteur MULTIPLICATIF (0..1), partagée par
-  // les trois rendus. Trois invariants la tiennent : un facteur reste
-  // dans [0,1] ; l'ordre des états ne s'inverse pas (une case jamais vue ne peut pas être plus lumineuse
-  // qu'un souvenir, ni un souvenir plus lumineux que le vu) ; `explored` est le DÉNOMINATEUR du cran
-  // d'ambiance de la première personne, donc strictement positif.
+  // La visibilité du groupe ordonne l’éclairement des cases visibles, explorées et inconnues.
   fogTint: nommerChamps(z
     .strictObject({ visible: tintFactor, explored: tintFactor, unknown: tintFactor })
     .refine((t) => t.explored > 0, {
-      message: 'fogTint.explored doit être > 0 : il divise le cran d’ambiance POV (`POV_AMBIENT.unknown`)',
+      message: 'fogTint.explored doit être > 0 : une case explorée garde une part de lumière',
     })
     .refine((t) => t.visible >= t.explored && t.explored >= t.unknown, {
       message: 'fogTint doit décroître visible ≥ explored ≥ unknown : une case moins connue ne peut pas être plus lumineuse',
@@ -210,44 +133,8 @@ const doc = document(
     explored: { label: 'exploré' },
     unknown: { label: 'inconnu' },
   }),
-  faceShade: faceShadeSchema,
-  /** #1372 — ENTRÉE EN SCÈNE : le voile bref que l'écran tient pendant que les sujets PROCHES du
-   *  groupe reçoivent leur texture (`stage/GameStage3D.tsx`). Valeurs MAISON (rendu, hors RAW).
-   *
-   *  `rayonM` est un rayon MONDE en mètres, comparé à la distance du sujet au groupe dans le repère
-   *  three — il ne se compte pas en cases : deux scènes de `mpt` différents ne montreraient pas la
-   *  même profondeur de décor sous le même chiffre. `plafondMs` est la borne de SÉCURITÉ : un SVG
-   *  qui ne se charge jamais tiendrait sinon le voile pour toute la session. Les bornes sont des
-   *  bornes d'usage — un rayon nul ne voile rien, un plafond de dix secondes n'est plus un plafond. */
-  entreeEnScene: nommerChamps(z.strictObject({
-    rayonM: z
-      .number()
-      .gt(0, 'entreeEnScene.rayonM : le rayon doit être > 0 — à zéro aucun sujet n’est « proche », et le voile tombe sans avoir rien couvert')
-      .max(200, 'entreeEnScene.rayonM : le rayon doit rester ≤ 200 m — au-delà, le voile attend la carte ENTIÈRE et il n’y a plus de progressif'),
-    plafondMs: z
-      .number()
-      .gt(0, 'entreeEnScene.plafondMs : le plafond doit être > 0 — à zéro le voile tombe avant la première texture')
-      .max(10000, 'entreeEnScene.plafondMs : le plafond doit rester ≤ 10000 ms — au-delà ce n’est plus une borne de sécurité, l’écran reste voilé'),
-  }), { rayonM: { label: 'rayon en mètres' }, plafondMs: { label: 'délai maximal en millisecondes' } }),
   iso: nommerChamps(z.strictObject({
-    warm: radialVeilSchema,
-    vignette: radialVeilSchema,
-    lowerFloorDim: nommerChamps(z.strictObject({ saturate: z.number(), slope: z.number() }), { saturate: { label: 'saturation' }, slope: { label: 'pente' } }),
     stageBg: z.string(),
-    nightVeil: z.string(),
-    nightVeilMax: z.number(),
-    dayVignetteFloor: z.number(),
-    edgeDepth: nommerChamps(z.strictObject({
-      color: z.string(),
-      alpha: z.number(),
-      topFrac: z.number(),
-      bottomFrac: z.number(),
-    }), {
-      color: { label: 'couleur' },
-      alpha: { label: 'opacité' },
-      topFrac: { label: 'fraction supérieure' },
-      bottomFrac: { label: 'fraction inférieure' },
-    }),
     weather: nommerChamps(z.strictObject({
       pluie: weatherFxSchema.optional(),
       brouillard: weatherFxSchema.optional(),
@@ -260,73 +147,35 @@ const doc = document(
       tempete: { label: 'tempête' },
     }),
   }), {
-    warm: { label: 'voile chaud' },
-    vignette: { label: 'vignette' },
-    lowerFloorDim: { label: 'atténuation de l’étage inférieur' },
     stageBg: { label: 'fond de scène' },
-    nightVeil: { label: 'voile nocturne' },
-    nightVeilMax: { label: 'opacité maximale du voile nocturne' },
-    dayVignetteFloor: { label: 'plancher de vignette diurne' },
-    edgeDepth: { label: 'profondeur des bords' },
     weather: { label: 'météo' },
   }),
   pov: nommerChamps(z.strictObject({
     skyTop: z.string(),
     fogIndoor: z.string(),
     fogOutdoor: z.string(),
-    fogOutdoorSurface: z.string(),
-    ambientUnseen: z.number(),
-    warm: radialVeilSchema,
-    floorOcclusion: z.number(),
     depth: nommerChamps(z.strictObject({
       outdoor: povFogSchema,
       indoor: povFogSchema,
-      lod: nommerChamps(z.strictObject({
-        blocksT: z.number(),
-        fadeT: z.number(),
-        minJointSpacingPx: z.number(),
-        meshStartT: z.number(),
-        meshFadeT: z.number(),
-        meshShade: z.number(),
-        meshJointWM: z.number(),
-      }), {
-        blocksT: { label: 'distance des volumes simplifiés' },
-        fadeT: { label: 'distance de disparition' },
-        minJointSpacingPx: { label: 'espacement minimal des joints en pixels' },
-        meshStartT: { label: 'apparition des maillages' },
-        meshFadeT: { label: 'disparition des maillages' },
-        meshShade: { label: 'ombrage des maillages' },
-        meshJointWM: { label: 'largeur des joints en mètres' },
-      }),
     }), {
       outdoor: { label: 'extérieur' },
       indoor: { label: 'intérieur' },
-      lod: { label: 'niveau de détail' },
     }),
-    vignette: radialVeilSchema,
   }), {
     skyTop: { label: 'haut du ciel' },
     fogIndoor: { label: 'brume intérieure' },
     fogOutdoor: { label: 'brume extérieure' },
-    fogOutdoorSurface: { label: 'brume extérieure au sol' },
-    ambientUnseen: { label: 'lumière ambiante hors de vue' },
-    warm: { label: 'voile chaud' },
-    floorOcclusion: { label: 'occlusion du sol' },
     depth: { label: 'profondeur' },
-    vignette: { label: 'vignette' },
   }),
   },
   {
-    ambientFloor: { label: 'Plancher ambiant', hint: 'Luminosité minimale garantie, quel que soit le calcul de scène' },
     fogTint: { label: 'Teinte de brouillard', hint: 'Facteurs multiplicatifs visible/exploré/inconnu de la politique de visibilité' },
-    faceShade: { label: 'Modelé des faces', hint: 'Facteurs d’irradiance ambiante par orientation de face' },
-    entreeEnScene: { label: 'Entrée en scène', hint: 'Voile bref pendant le chargement des textures des sujets proches' },
-    iso: { label: 'Ambiance isométrique', hint: 'Réglages de voiles, vignette et météo propres à la vue isométrique' },
-    pov: { label: 'Ambiance première personne', hint: 'Réglages de brumes, profondeur et vignette propres à la vue première personne' },
+    iso: { label: 'Fond et météo', hint: 'Fond des regards tactique et plateau, catalogue météo de la scène' },
+    pov: { label: 'Ambiance en immersion', hint: 'Couleurs du ciel et courbe de brume en immersion' },
   },
   {
     codex: {
-      exempt: { kind: 'vocabulaire-app-interne', raison: 'config de rendu (éclairage iso/POV), pas une fiche de contenu.' },
+      exempt: { kind: 'vocabulaire-app-interne', raison: 'configuration de lumière, visibilité et météo des regards.' },
     },
     edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
   },

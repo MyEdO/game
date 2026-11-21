@@ -112,8 +112,7 @@ export type PropPoint3 = z.output<typeof propsDef.propPoint3Schema>;
 export type PropSize3 = z.output<typeof propsDef.propSize3Schema>;
 
 /** Côtés admis d'un cylindre. 12 est EXCLU : ses faces latérales tombent sur l'arête de couteau du
- *  modelé de forme (4 normales à ±45°, `noyau/monde/volume/worldTris:shadeFamily` départage alors des
- *  familles de 4/3/3/2 au lieu de 3/3/3/3) — un fût de la même recette y prend deux tons de trop. */
+ *  modelé de forme (quatre normales à ±45°). Un cylindre à 8 ou 16 côtés évite ces directions. */
 export type PropCylinderSides = 8 | 16;
 export const PROP_CYLINDER_SIDES: readonly PropCylinderSides[] = [8, 16];
 

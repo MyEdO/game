@@ -36,11 +36,15 @@ const paquetDe = (id) => (id.startsWith(VIRTUEL_DU_BUNDLER)
  *  casse, seul, en `.md` ou `.txt`, ou en fin de nom (`THIRD-PARTY-LICENSE`). */
 const TEXTE_DE_PAQUET = /(^|[-_])(licen[cs]e|copying)(\.(md|txt))?$/i
 
+/** Les répertoires npm des modules du bundle, par leur chemin d’installation. */
+function dossiersDesPaquets(modules) {
+  return [...new Set(modules.flatMap((id) => paquetDe(id) ?? []))].sort()
+}
+
 /** L'avis de chaque paquet npm d'où vient le code d'un module parmi `modules`, les ids des modules d'un bundle : ses
  *  textes de licence mis bout à bout. */
 export function avisDesPaquets(modules) {
-  const dossiers = [...new Set(modules.flatMap((id) => paquetDe(id) ?? []))].sort()
-  return dossiers.map((dossier) => {
+  return dossiersDesPaquets(modules).map((dossier) => {
     const { name, version } = JSON.parse(readFileSync(join(dossier, 'package.json'), 'utf8'))
     const textes = listerDossier(dossier).filter((f) => TEXTE_DE_PAQUET.test(f)).map((f) => join(dossier, f))
     const source = textes.length ? textes.join(', ') : join(dossier, 'LICENSE')
@@ -104,3 +108,11 @@ export function deposerLesAvis(sortie, liste) {
   console.log(`[avis] ${liste.length} avis de licence sous ${join(sortie, AVIS)} : ${liste.map((a) => a.oeuvre).join(', ')}`)
   return []
 }
+
+/** L’installation npm peut lier un paquet du dépôt. Le scanner conserve cette possibilité.
+ *  Lu par la dérivation des balayages.
+ *  @public
+ */
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: dossiersDesPaquets, retour: { type: 'collection', element: { type: 'chaine' } } },
+]

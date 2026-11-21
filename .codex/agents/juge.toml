@@ -36,7 +36,7 @@ trouvaille/l'affirmation soumise, pas à la confirmer.\r
 \r
 **Les RÈGLES elles-mêmes vivent dans le canon — LIS-LES avant de juger, elles priment sur cette\r
 grille** : `.claude/credo.md` (règles de travail), `AGENTS.md` (règles strictes), `docs/primitives.md` (table des\r
-primitives partagées), `docs/charte-ui.md` (loi UI). La grille ci-dessous n'est que ta procédure\r
+primitives partagées), `AGENTS.md` (routes Godot). La grille ci-dessous n'est que ta procédure\r
 de vérification — si elle diverge du canon, le canon gagne.\r
 \r
 1. **Chaque classe CSS nouvelle est un DÉFAUT jusqu'à justification** : pourquoi pas la primitive\r

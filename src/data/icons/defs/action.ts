@@ -4,12 +4,12 @@ import type { IconFamily } from '../types';
    Grille 24×24, motif centré, ~2px de marge de respiration.
    Trait principal stroke-width 1.8, terminaisons et jointures RONDES ; détails fins 1.2.
    « Dessiné main » : courbes C plutôt que droites parfaites, micro-asymétries voulues —
-   cohérent avec Ornaments.tsx et la direction du rendu iso.
+   en accord avec les ornements de jeu.
    Silhouette PLEINE (fill currentColor) pour le motif porteur dès que l'icône doit rester
    lisible à 14px ; UNE seule métaphore par icône, pas de micro-détails, pas de texte.
    Couleur : currentColor (accent var(--gold) toléré avec parcimonie) ; une pièce pleine à ses matières (le dé
-   de navigation/des) nomme les jetons de la palette, var(--…), que le web (src/ui/styles/base.css) et le thème
-   de l'hôte définissent l'un et l'autre ; jamais de hex.
+   de navigation/des) nomme les jetons de la palette, var(--…), résolus à partir du thème Godot dans
+   hotes/godot/projet/scripts/dessin.gd.
    ════════════════════════════════════════════════════════════════════════════ */
 
 /** Trait principal. */

@@ -1,10 +1,7 @@
-// Logique PURE du lanceur de suite `scripts/test/run.mjs`, du séquenceur de `vite.config.ts` et du mur de
-// `scripts/test/perimetre.mjs` : partition des fichiers de test par environnement, répartition des workers,
-// routage des filtres. Aucun spawn ; le seul accès disque est la mesure système `mesureMemoireDisponibleMo`.
+// Calcul des tranches de la suite Vitest, de ses bornes de mémoire et de son diagnostic.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import os from 'node:os'
-import { relative, isAbsolute, join } from 'node:path'
 import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 
 /** Le nom de l'atelier du lanceur `pid` né à `naissance` (ms epoch) : `<pid>-<naissance>`, la naissance écrite par le lanceur lui-même (#2603). PURE. */
@@ -47,29 +44,6 @@ export function grouperParEnvironnement(elements, environnementDe) {
     groupes.set(environnement, [...(groupes.get(environnement) ?? []), element])
   }
   return [...groupes.values()].flat()
-}
-
-/** Deux seaux : `jsdom` (docblock jsdom) et `node` (tout le reste). Le seau ne décide QUE du
- *  processus qui portera le fichier — Vitest relit le docblock et honore l'environnement réel,
- *  donc un `happy-dom` embarqué côté node reste exécuté en happy-dom. */
-export function partitionner(fichiers, lire, defaut = 'node') {
-  const node = []
-  const jsdom = []
-  for (const f of fichiers) (environnementDe(lire(f), defaut) === 'jsdom' ? jsdom : node).push(f)
-  return { node, jsdom }
-}
-
-/** Seuil du partage, en cœurs : sous 7 (`n − 1 < 6`), un seul processus Vitest. */
-export const SEUIL_PARTAGE = 7
-
-/** Workers par processus : 2/3 node · 1/3 jsdom sur `n − 1`, le cœur restant allant au parent.
- *  Le gain du partage est mesuré à 16 cœurs (10+5, 12+6) ; la CI GitHub publique (4 vCPU) reste
- *  sous le seuil, donc mono-processus. Le régime RÉEL de chaque run est mesuré et imprimé par la
- *  ligne `[diag] machine` du lanceur (cœurs, mémoire, mode, bornes). */
-export function repartitionWorkers(n) {
-  if (n < SEUIL_PARTAGE) return { split: false, node: n, jsdom: 0 }
-  const node = Math.max(1, Math.round((2 / 3) * (n - 1)))
-  return { split: true, node, jsdom: Math.max(1, n - 1 - node) }
 }
 
 /** Entier > 0 posé par l'environnement, sinon la mesure système. */
@@ -161,14 +135,14 @@ export function memoireDisponibleMo(env, mesure = mesureMemoireDisponibleMo) {
 }
 
 /** Borne du vieil espace V8 d'un worker de la suite, en Mo (`--max-old-space-size`, posée par
- *  `vite.config.ts`, vérifiée par `src/tasDesWorkers.testkit.ts`). Paramètre de BANC, mesuré le
+ *  `vitest.config.ts`, vérifiée par `src/tasDesWorkers.testkit.ts`). Paramètre de BANC, mesuré le
  *  2026-09-26 sur un conteneur de 4 cœurs et 15,7 Go, 3 workers (#1801) : sans borne, V8 taille le
  *  tas de chaque processus sur la machine (8 240 Mo par worker) ; à 2 048 Mo deux workers meurent
  *  (2 043 Mo vivants après compaction) ; à 3 072 Mo, suite en 339 s, pic système 11,8 Go,
  *  `worker perdu 0`. */
 export const TAS_WORKER_MO = 3072
 
-/** Délai d'un test Vitest, en ms (`testTimeout` de `vite.config.ts` et de `vitest.noyau.config.ts`) : paramètre de
+/** Délai d'un test Vitest, en ms (`testTimeout` de `vitest.config.ts`) : paramètre de
  *  BANC calé sur le test le plus lourd mesuré en CI (#1619) ; le contrat des tests ne change pas. */
 export const DELAI_DE_TEST_MS = 15_000
 
@@ -212,24 +186,14 @@ export function admissionNode(cpus, disponibleOctets, { profils = [], parentOcte
   return { concurrence, budgetOctets, minimumOctets, parentOctets, picOctets, fichierDimensionnant: dimensionnant?.fichier, refus }
 }
 
-/** Capacité servie par le lanceur Vitest sous le régime `regime` (`EMPREINTES_WORKER_MO`), mémoire `memoireMo` en
- *  Mo : cœurs mesurés bornés par les workers que la mémoire disponible porte, plus le cœur du parent (même
- *  convention que `repartitionWorkers`/`maxWorkersMono`). Calculée avec un parent ; si ce résultat partage,
- *  recalculée avec deux (node et jsdom) — elle peut alors retomber sous le seuil, en mono, qui n'a qu'un parent.
- *  `portes` est le compte de workers que la mémoire porte ; `refus` vaut `MEMOIRE_INSUFFISANTE` sous `minimumMo`
- *  (un parent et `MINIMUM_WORKERS` workers, bornés par les cœurs et par `fichiers`, les fichiers lancés,
- *  `fichiersNommes` : un worker ne reçoit jamais plus que les fichiers lancés). Un régime inconnu lève. Régime
- *  `node --test` : `admissionNode`. */
+/** Capacité de Vitest : un parent et des workers bornés par les cœurs et la mémoire disponible.
+ *  Sous le minimum requis par le régime et le nombre de fichiers, l’admission est refusée. */
 export function capacite(cpus, memoireMo, regime, fichiers = Infinity) {
   if (!Object.hasOwn(EMPREINTES_WORKER_MO, regime))
     throw new Error(`régime de lancement inconnu : « ${regime} » — attendu ${Object.keys(EMPREINTES_WORKER_MO).join(' | ')}`)
   const empreinteMo = EMPREINTES_WORKER_MO[regime]
-  const avec = (parents) => {
-    const portes = Math.floor((memoireMo - parents * PARENT_MO) / empreinteMo)
-    return { portes, servis: Math.min(cpus, 1 + Math.max(0, portes)) }
-  }
-  const mono = avec(1)
-  const { portes, servis } = repartitionWorkers(mono.servis).split ? avec(2) : mono
+  const portes = Math.floor((memoireMo - PARENT_MO) / empreinteMo)
+  const servis = Math.min(cpus, 1 + Math.max(0, portes))
   const minimumMo = PARENT_MO + Math.min(MINIMUM_WORKERS, maxWorkersMono(cpus), fichiers) * empreinteMo
   return {
     refus: memoireMo < minimumMo ? 'MEMOIRE_INSUFFISANTE' : null,
@@ -240,38 +204,9 @@ export function capacite(cpus, memoireMo, regime, fichiers = Infinity) {
     empreinteMo,
     servis,
     portes,
-    parents: repartitionWorkers(servis).split ? 2 : 1,
+    parents: 1,
     borne: servis < cpus ? 'mémoire' : 'cœurs',
   }
-}
-
-/** Filtrage positionnel de Vitest — reproduction de `filterFiles`
- *  (node_modules/vitest/dist/chunks/index.DpLw24bj.js:12279-12284) : chemins relatifs à la racine,
- *  comparaison insensible à la casse, filtres passés en `/` sous Windows. */
-export function filtrerFichiers(fichiers, filtres, racine, plateforme = process.platform) {
-  if (!filtres.length) return fichiers
-  const fs = plateforme === 'win32' ? filtres.map((f) => f.replace(/\\/g, '/')) : filtres
-  return fichiers.filter((t) => {
-    // eslint-disable-next-line murs/ordre-total-locale -- reproduction de `filterFiles` de Vitest (réf. ci-dessus), qui replie par `toLocaleLowerCase` : c'est le filtre de Vitest que ce site doit rendre
-    const cible = relative(racine, t).toLocaleLowerCase()
-    return fs.some((f) => {
-      if (isAbsolute(f) && t.startsWith(f)) return true
-      const rel = f.endsWith('/') ? join(relative(racine, f), '/') : relative(racine, f)
-      // eslint-disable-next-line murs/ordre-total-locale -- reproduction de `filterFiles` de Vitest (réf. ci-dessus), qui replie par `toLocaleLowerCase` : c'est le filtre de Vitest que ce site doit rendre
-      return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())
-    })
-  })
-}
-
-/** Côtés à lancer pour ces filtres : un filtre qui ne désigne que des fichiers jsdom ne rend que
- *  `jsdom`. Aucun filtre → les deux. Aucun fichier touché → `node` seul, donc un côté unique : le
- *  lanceur retombe sur le lancement mono-processus, qui rend le verdict de Vitest sur ce filtre. */
-export function cotesRequis(filtres, partition, racine, plateforme = process.platform) {
-  if (!filtres.length) return ['node', 'jsdom']
-  const cotes = ['node', 'jsdom'].filter(
-    (c) => filtrerFichiers(partition[c], filtres, racine, plateforme).length > 0,
-  )
-  return cotes.length ? cotes : ['node']
 }
 
 /** La capacité servie par le lanceur sous l'environnement `env`, le régime `regime` et les `fichiers` lancés : `capacite`
@@ -313,7 +248,7 @@ export const DRAPEAUX_MONO = [
 /** Sépare les arguments passés après `npm test --` : positionnels vs drapeaux. Un positionnel ne
  *  devient un FILTRE de routage que s'il est un chemin existant (`estChemin`) ; tout autre token
  *  (valeur de drapeau, motif de `-t`, nombre) ne route rien. Aucun argument n'est consommé ici :
- *  l'argv de l'appelant part intact dans l'enfant (cf. `argumentsEnfant`). */
+ *  l'argv de l'appelant part intact dans l'enfant. */
 export function separerArguments(argv, estChemin = () => true) {
   const filtres = []
   let mono = false
@@ -358,29 +293,6 @@ export function demandeWorkers(argv) {
   return { argv: reste, maxWorkers }
 }
 
-/** Ligne de commande d'un enfant : les drapeaux du partage, `--maxWorkers` abaissé à la demande de l'appelant
- *  (`demandeWorkers`), puis l'argv de l'appelant privé de cette seule demande — rien d'autre n'est reconstruit,
- *  donc aucun argument n'est perdu, dupliqué ni déplacé. Une demande refusée lève. */
-export function argumentsEnfant(vitest, config, workers, argv, demande = demandeWorkers(argv)) {
-  if (demande.refus) throw new Error(demande.refus)
-  return [
-    vitest,
-    'run',
-    '--config',
-    config,
-    '--maxWorkers',
-    String(Math.min(workers, demande.maxWorkers ?? workers)),
-    // Un filtre qui ne touche qu'un côté laisse l'autre sans fichier : ce n'est pas un échec.
-    '--passWithNoTests',
-    ...demande.argv,
-  ]
-}
-
-/** Verdict du lanceur : les deux côtés doivent réussir. */
-export function codeAgrege(codes) {
-  return codes.every((c) => c === 0) ? 0 : 1
-}
-
 /** Une entrée d'`include` est un GLOB : un chemin porteur de métacaractère ne peut pas être
  *  recopié tel quel dans la config générée sans risquer d'être perdu des deux côtés. */
 export function cheminsGlobSuspects(chemins) {
@@ -389,8 +301,7 @@ export function cheminsGlobSuspects(chemins) {
 
 /** Plafond de workers du lancement mono-processus : `min(4, cœurs − 1)`, plancher 1 — le lanceur
  *  occupe un cœur. La CI publique à 4 vCPU a relevé 14,9 Go / 15,6 Go (96 %) de mémoire système
- *  avec 4 workers ([diag] du run 33458711078, #1619). Le lancement partagé a ses propres bornes
- *  (`argumentsEnfant`). */
+ *  avec 4 workers ([diag] du run 33458711078, #1619).  */
 export const maxWorkersMono = (cpus) => Math.max(1, Math.min(4, cpus - 1))
 
 /** Plafond à injecter devant l'argv de l'appelant : `maxWorkersMono(cpus)`, abaissé à la demande de l'appelant
@@ -442,17 +353,8 @@ export function resumeLancement({ statut, bilan, queue, capture }) {
   return lignes.join('\n') + '\n'
 }
 
-/** Motifs de DÉTRESSE du run, comptés au fil de la sortie. Chaque regex est un fragment VERBATIM du
- *  message émetteur : react/cjs/react.development.js:2620 (act chevauchants),
- *  react-dom/cjs/react-dom.development.js:27628 (act hors act) et :29371 (unmount pendant rendu),
- *  @vitest/runner/dist/index.js:72 (test expiré), tinypool/dist/index.js:118 (worker perdu — le
- *  message porte une capitale, d'où le drapeau `i`). Un message d'amont qui change fait tomber le
- *  test d'échantillons de `run.test.mjs`, jamais le compteur en silence. */
+// Messages de détresse de Vitest, comptés au fil de la sortie.
 export const SENTINELLES = [
-  ['act hors act', /inside a test was not wrapped in act/],
-  ['act chevauchants', /overlapping act\(\) calls/],
-  ['unmount pendant rendu', /synchronously unmount a root while React was already rendering/],
-  ['React coincé', /Should not already be working/],
   ['test expiré', /Test timed out in \d+ms/],
   ['worker perdu', /worker exited unexpectedly|JS heap out of memory/i],
 ]
@@ -473,14 +375,10 @@ export function compterSentinelles(lignes) {
   return compte
 }
 
-/** Bloc `[diag]` du run : machine (ce que le lanceur a RÉELLEMENT servi, et ce qui l'a borné), pic
- *  de mémoire relevé au fil du run, comptes de sentinelles, pic de tas d'un worker. `capacite`,
- *  `partage` et `maxWorkers` sont FOURNIS et non déduits des cœurs : un drapeau global à un seul
- *  processus (`--coverage`) impose le mono même à 16 cœurs. `tasMaxMo` vaut `null` sans aucune ligne
- *  de tas. */
+/** Diagnostic de la capacité, de la pression mémoire et des sentinelles observées dans la sortie. */
 export function bilanDiagnostic(
   compte,
-  { capacite, memGo, memMaxGo, rssMaxMo, secondes, partage, maxWorkers, tasMaxMo },
+  { capacite, memGo, memMaxGo, rssMaxMo, secondes, maxWorkers, tasMaxMo },
 ) {
   const { cpus, memoireMo, regime, empreinteMo, servis, portes, parents } = capacite
   const pourcent = memGo > 0 ? Math.round((memMaxGo / memGo) * 100) : 0
@@ -497,7 +395,7 @@ export function bilanDiagnostic(
   return [
     `[diag] machine : ${cpus} cœurs · ${memGo.toFixed(1)} Go · disponible ${(memoireMo / 2 ** 10).toFixed(1)} Go` +
       ` → régime ${regime} (${empreinteMo} Mo par worker) · ${porte} · réserve de ${parents} parent${parents > 1 ? 's' : ''} · borné par ${borne}` +
-      ` · ${partage ? 'partagé' : 'mono'} (seuil ${SEUIL_PARTAGE}) · maxWorkers=${maxWorkers}`,
+      ` · maxWorkers=${maxWorkers}`,
     `[diag] mémoire système max : ${memMaxGo.toFixed(1)} Go / ${memGo.toFixed(1)} Go (${pourcent} %)` +
       ` · rss lanceur max ${Math.round(rssMaxMo)} Mo · fenêtre ${secondes.toFixed(1)} s`,
     `[diag] sentinelles : ${comptes}`,

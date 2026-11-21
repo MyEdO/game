@@ -43,8 +43,7 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
 })
 
 /** Les exemptions AU SITE du mur de l'ordre total, nommées : le crochet de l'enregistreur de lectures
- *  (il POSE le listing), la reproduction du filtre de Vitest (`toLocaleLowerCase`) et l'oracle naïf du
- *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). Une exemption est keyée par
+ *  (il POSE le listing) et l'oracle naïf du banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). Une exemption est keyée par
  *  le CONTENU de la ligne que la directive ÉTEINT (`fichier :: <ligne trimée>`, `cleDeContenu`, #2200) :
  *  la suivante pour `-next-line`, la sienne pour `-line` ; la forme bloc, qui n'éteint pas UNE ligne,
  *  est refusée par `directivesMurs.test.mjs`. Le texte de la directive se répète (le même crochet dans `enregistreur-lectures.mjs`),
@@ -64,8 +63,6 @@ const EXEMPTIONS_DU_MUR = [
   "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(await new Promise((fin, echec) => fs.glob('rappel/*.md', { cwd: racine }, (e, r) => (e ? echec(e) : fin(r)))), [])",
   "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(await Array.fromAsync(fs.promises.glob('promesse/*.md', { cwd: racine })), [])",
   "scripts/docs/lib/enregistreur-lectures.test.mjs :: const globSurPipe = (pipe) => fs.globSync('*', { cwd: pipe })",
-  'scripts/test/partition.mjs :: const cible = relative(racine, t).toLocaleLowerCase()',
-  'scripts/test/partition.mjs :: return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())',
 ]
 
 const estScript = (rel) => EXTENSIONS_DE_SCRIPT.some((ext) => rel.endsWith(ext))

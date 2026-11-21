@@ -72,12 +72,12 @@ describe('maison sans source — collections nominatives', () => {
     ]);
     expect(Object.keys(SANS_LIVRE_DEFINITIF).sort()).toEqual([
       'actions', 'ambiance', 'apparences', 'books', 'buildings', 'calendarPhases',
-      'decorPalette', 'defauts-de-compilation', 'donnees.manifest', 'gabarits', 'garde-robe', 'groups', 'lieux-services', 'lightLevels',
+      'defauts-de-compilation', 'donnees.manifest', 'gabarits', 'garde-robe', 'groups', 'lieux-services', 'lightLevels',
       'lightTones', 'materials', 'merchantFamilies', 'merchants', 'names', 'planDeBestiaire',
       'primitives.manifest', 'progression-schemas.derived', 'props',
       'raceAppearance', 'raw.manifest', 'rendus',
       'semences-de-scene', 'speciesRace', 'structureAppearance',
-      'systemes.manifest', 'teintesJeu', 'terrains',
+      'systemes.manifest', 'terrains',
     ]);
 
     const communes = Object.keys(SANS_LIVRE_DEFINITIF).filter((k) => k in SOURCE_EN_PROFONDEUR);

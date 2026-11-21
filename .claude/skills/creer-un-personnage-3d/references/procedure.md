@@ -407,7 +407,9 @@ revoir les interfaces de même classe et les tenues concernées dans le périmè
 
 ### Commandes utilisables
 
-Depuis la racine du dépôt, vers un dossier neuf hors du dépôt (refusé sinon) :
+Depuis la racine du dépôt, exécuter `node hotes/godot/asset/recuperer-modeles.mjs` pour alimenter le
+cache avec les GLB publiés que le checkout épingle. Lancer ensuite le constructeur vers un dossier
+neuf hors du dépôt (refusé sinon).
 
 ```sh
 node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton --sortie /atelier/baton
@@ -415,7 +417,7 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/const
 
 Le constructeur lit les GLB dans le cache des modèles (`~/.cache/wfrp-modeles-3d/`, `--cache` pour un autre), chacun
 sous l'empreinte que le dépôt épingle dans `hotes/godot/projet/modeles/<id>.manifeste.json` : la base et les éléments
-contournés ; `npm run godot:sonde` y tire ceux qui manquent. Il écrit `/atelier/baton/<id>/` : `<id>.glb`,
+contournés. Il écrit `/atelier/baton/<id>/` : `<id>.glb`,
 `<id>.element.json` (le manifeste schéma 3, empreinte et taille du GLB comprises), `manifest.json` (l'enveloppe de
 l'import) et les licences des packs de la base, et imprime l'empreinte et les triangles. Deux constructions donnent les
 mêmes octets. `--local <id>=<glb>` (répétable) lit une voisine du lot pas encore importée, que l'élément contourne, à son
@@ -458,8 +460,8 @@ Cette validation ne remplace pas l'évaluation géométrique du GLB.
 celui d'élément. Chaque GLB d'élément porte son manifeste voisin (`<id>.element.json` du dossier de production, ou
 `<id>.manifeste.json` d'un import), d'où l'évaluateur lit sa couche et ses zones ; plusieurs GLB s'évaluent ensemble,
 et c'est ainsi que la traversée des couches se mesure : évaluer la tenue (tête, coiffure, vêtements, rigides), pas la
-pièce seule. Les GLB publiés sous `hotes/godot/projet/modeles/` y sont déposés par `npm run godot:sonde`. Le dossier du
-rapport doit déjà exister :
+pièce seule. Depuis la racine du dépôt, `node hotes/godot/asset/recuperer-modeles.mjs` dépose les GLB
+publiés du checkout sous `hotes/godot/projet/modeles/`. Le dossier du rapport doit déjà exister :
 
 ```sh
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json

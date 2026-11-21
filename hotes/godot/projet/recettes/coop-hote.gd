@@ -76,8 +76,11 @@ func _heberger(nom: String) -> bool:
 	return true
 
 
-## P2 : la valeur du siège de l'invité pressée sur le héros au tour, relue pressée.
+## P2 : l'invité constate sa barre spectatrice avant que l'hôte lui attribue le héros au tour.
 func _p2() -> bool:
+	var temoin := _echange.path_join("spectatrice")
+	if not await _attendre(func() -> bool: return FileAccess.file_exists(temoin), "la barre spectatrice constatée par l'invité"):
+		return false
 	_heros = "heros/" + _heros_au_tour()
 	if not await _attribuer():
 		return false

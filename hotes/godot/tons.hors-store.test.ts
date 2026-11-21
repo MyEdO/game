@@ -4,11 +4,13 @@
  * la redéfinit pas.
  */
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { TONS_DU_THEME } from '../../src/hote/elements';
 
-const PROJET = new URL('./projet/', import.meta.url);
-const lire = (chemin: string): string => readFileSync(new URL(chemin.replace(/^res:\/\//, ''), PROJET), 'utf8');
+const PROJET = fileURLToPath(new URL('./projet/', import.meta.url));
+const lire = (chemin: string): string => readFileSync(join(PROJET, chemin.replace(/^res:\/\//, '')), 'utf8');
 
 /** Les variations que le thème `texte` déclare (`<variation>/base_type`). */
 const variationsDu = (texte: string): string[] => [...texte.matchAll(/^(\w+)\/base_type = /gm)].map(([, v]) => v);

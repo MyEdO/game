@@ -170,68 +170,6 @@ export function parseTraitInstance(text: string): TraitPose {
   return trait;
 }
 
-/** Mêmes nombres sous les mêmes clés (fourchette, Indice par Localisation), ou deux absences. */
-const memesNombres = (a: Readonly<Record<string, number>> | undefined, b: Readonly<Record<string, number>> | undefined): boolean =>
-  a === b || (!!a && !!b && Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((k) => a[k] === b[k]));
-
-/** Même VALEUR posée : même id, Indice (nombre ou formule) ou fourchette ou Indice par Localisation,
- *  Aspect, Difficulté, compte, portée et Traits conférés de même valeur — ce qu'atteste une provenance. */
-const memeValeur = (a: TraitPose, b: TraitPose): boolean =>
-  a.id === b.id && JSON.stringify(a.value) === JSON.stringify(b.value) && memesNombres(a.plage, b.plage) && memesNombres(a.parLocalisation, b.parLocalisation)
-  && a.arg === b.arg && a.difficulte === b.difficulte && a.count === b.count && a.range === b.range
-  && (a.confere ?? []).length === (b.confere ?? []).length && (a.confere ?? []).every((c, i) => memeValeur(c, b.confere![i]));
-/** Même Trait au même Aspect, quelle que soit la valeur. */
-const memeAspect = (a: TraitPose, b: TraitPose): boolean => a.id === b.id && a.arg === b.arg;
-/** Même Trait. */
-const memeId = (a: TraitPose, b: TraitPose): boolean => a.id === b.id;
-
-/** La saisie relue sur une pose EXISTANTE. `formatTrait` ne rend que l'id, l'Indice, l'Aspect, la Difficulté,
- *  le compte, la portée et les Traits conférés ; le reste de la pose ne survit qu'à ce qu'il qualifie :
- *  - les drapeaux (`natural`, `hidden`) qualifient le TRAIT : ils survivent au même id ;
- *  - la matière de l'Armure (`matiere`) qualifie la VALEUR : une saisie qui ne la dit pas la garde à la même
- *    valeur (`memeValeur`) ;
- *  - la provenance (`source`, `alsoIn`, `maison`) atteste la VALEUR posée : elle survit à la même valeur
- *    (`memeValeur`) et tombe dès que l'un de ses termes change, avec celle des Traits conférés.
- *  Relue UNE fois à la fin de la saisie (`SaisieEnBrouillon`), jamais à chaque frappe. SEULE voie
- *  d'édition en chaîne d'un Trait déjà posé : `parseTraitInstance` nu repose une pose NEUVE. */
-export function relireTrait(text: string, avant: TraitPose): TraitPose {
-  const relu = parseTraitInstance(text);
-  if (!memeId(relu, avant)) return relu;
-  const valeur = memeValeur(relu, avant);
-  return {
-    ...relu,
-    ...(avant.natural !== undefined ? { natural: avant.natural } : {}),
-    ...(avant.hidden !== undefined ? { hidden: avant.hidden } : {}),
-    ...(valeur && relu.matiere === undefined && avant.matiere !== undefined ? { matiere: avant.matiere } : {}),
-    ...(valeur && avant.source !== undefined ? { source: avant.source } : {}),
-    ...(valeur && avant.alsoIn !== undefined ? { alsoIn: avant.alsoIn } : {}),
-    ...(valeur && avant.maison !== undefined ? { maison: avant.maison } : {}),
-    ...(valeur && avant.confere !== undefined ? { confere: avant.confere } : {}),
-  };
-}
-
-/** Une LISTE de saisies relue sur ses poses d'origine, appariées en PASSES sur toute la liste, chaque
- *  pose servant une fois : d'abord à valeur égale (`memeValeur` : la pose revient entière), puis parmi
- *  les restantes au même Aspect, puis au même id seul (les drapeaux suivent, la provenance tombe,
- *  `relireTrait`) ; une saisie sans pose de même id est NEUVE. Ni le rang ni l'ordre des saisies ne
- *  décident : retirer ou réordonner un Trait ne fait passer aucun drapeau ni aucune provenance à un autre,
- *  doublons de même id compris. */
-export function relireTraits(texts: readonly string[], avant: readonly TraitPose[]): TraitPose[] {
-  const relus = texts.map(parseTraitInstance);
-  const prises = avant.map(() => false);
-  const appariees: (TraitPose | undefined)[] = relus.map(() => undefined);
-  for (const apparie of [memeValeur, memeAspect, memeId]) {
-    relus.forEach((relu, i) => {
-      if (appariees[i]) return;
-      const k = avant.findIndex((p, j) => !prises[j] && apparie(relu, p));
-      if (k < 0) return;
-      prises[k] = true;
-      appariees[i] = avant[k];
-    });
-  }
-  return relus.map((relu, i) => (appariees[i] ? relireTrait(texts[i], appariees[i]) : relu));
-}
-
 /** Sépare un éventuel Indice de fin (« X 3 » / « X (3) » / « X (1A) ») du libellé. L'UNITÉ qui suit la valeur
  *  (`QualityData.indice.unite`, rendue par `qualityRefLabel`, `AA 08 l.136` « Taillade (1A) ») est absorbée :
  *  sans ça, un aller-retour prose→structure perdrait l'Indice de Taillade. Une majoration (« X +1 », munition seule,

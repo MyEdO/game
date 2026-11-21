@@ -45,7 +45,7 @@ function rendu() {
 
   const orphanPrimitives = PRIMITIVES.filter((p) => !usedByAny.get(p.id))
 
-  // --- modules non rattachés à un système (scope : src/state + src/engine top-level, src/noyau entier, hors tests) ---
+  // --- modules non rattachés à un système (scope : src/engine top-level et src/noyau entier, hors tests) ---
   function topLevelSourceFiles(dir) {
     return listerDossier(dir)
       .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
@@ -55,7 +55,7 @@ function rendu() {
   const ALL_UNIONS = new Set()
   for (const c of closures.values()) for (const f of c) ALL_UNIONS.add(f)
   const noyauSourceFiles = () => listerArbre('src/noyau', { filtre: (f) => f.endsWith('.ts') && !f.endsWith('.test.ts') }).map((f) => `src/noyau/${f}`)
-  const INVENTORY = [...topLevelSourceFiles('src/state'), ...noyauSourceFiles(), ...topLevelSourceFiles('src/engine')]
+  const INVENTORY = [...noyauSourceFiles(), ...topLevelSourceFiles('src/engine')]
   const uncovered = INVENTORY.filter((f) => !ALL_UNIONS.has(f)).sort()
 
   // --- rendu docs/systemes.md ---
@@ -69,8 +69,8 @@ function rendu() {
   out += `parcours AST des spécificateurs de module, RÉSOLUS s'ils sont RELATIFS (\`./\`, \`../\`) ou sous un alias\n`
   out += `de \`tsconfig.json\` (\`@/…\`) — un paquet npm n'est jamais suivi (\`resolveImport\` renvoie \`null\`), donc invisible ici sans\n`
   out += `que la primitive soit hors d'usage. L'inventaire « modules non rattachés » est lui-même borné : SURFACE de\n`
-  out += `\`src/state\`/\`src/engine\` (\`listerDossier\` non récursif) et \`src/noyau\` entier, \`*.test.ts\` exclus — un fichier niché dans un\n`
-  out += `sous-dossier, ou situé ailleurs (\`src/ui\`, \`src/gameIso\`, \`src/data\`…), n'y apparaît jamais, rattaché ou non.\n\n`
+  out += `\`src/engine\` (\`listerDossier\` non récursif) et \`src/noyau\` entier, \`*.test.ts\` exclus — un fichier niché dans un\n`
+  out += `sous-dossier, ou situé ailleurs (\`src/data\`, \`hotes\`…), n'y apparaît jamais, rattaché ou non.\n\n`
 
   out += `## Sommaire des systèmes\n\n`
   out += `| Système | État | Modules racines | Ticket |\n|---|---|---|---|\n`
@@ -96,7 +96,7 @@ function rendu() {
     ? orphanPrimitives.map((p) => `- \`${p.label}\` (${p.fichier}) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).\n`).join('')
     : '- (aucune)\n'
 
-  out += `\n## Modules \`src/state\`/\`src/noyau\`/\`src/engine\` non rattachés à un système déclaré\n\n`
+  out += `\n## Modules \`src/noyau\`/\`src/engine\` non rattachés à un système déclaré\n\n`
   out += `Portée : fichiers top-level (hors \`*.test.ts\`) non atteints par la closure d'import d'AUCUN système du\n`
   out += `manifeste. Informatif — inclut les infra partagées (store, types, helpers transverses) qu'aucun système\n`
   out += `unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec bloquant de ce script.\n\n`

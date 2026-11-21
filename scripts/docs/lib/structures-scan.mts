@@ -113,11 +113,11 @@ const chargeRecord = (brut: unknown): unknown => {
   return estObjet(entries) ? entries : brut;
 };
 
-const regimeEntrees = (racineJson: string, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
+export const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
   if (familleDeclaree?.startsWith('liste')) return 'elements';
   if (familleDeclaree?.startsWith('record')) return 'valeurs';
   if (familleDeclaree) return 'racine';
-  return racineJson === 'array' ? 'elements' : 'racine';
+  return Array.isArray(brut) ? 'elements' : 'racine';
 };
 
 /** Liste les documents des deux `RACINES`, chemins POSIX relatifs à la racine du dépôt. */
@@ -135,6 +135,15 @@ export function listerDocuments(root: string): Document[] {
     }
   }
   return out.filter((d, i, xs) => xs.findIndex((x) => x.chemin === d.chemin) === i);
+}
+
+export function lireDocuments(root: string) {
+  const docs = listerDocuments(root);
+  const brutParDocument = new Map<string, unknown>(
+    docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
+  );
+  const brutParNom: ReadonlyMap<string, unknown> = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)]));
+  return { docs, brutParDocument, brutParNom };
 }
 
 const inc = <K,>(m: Map<K, number>, k: K, n = 1) => m.set(k, (m.get(k) ?? 0) + n);
@@ -605,11 +614,7 @@ export function scannerDonnees(
   choixDeclares: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
   choixDesOps: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
 ) {
-  const docs = listerDocuments(root);
-  const brutParDocument = new Map<string, unknown>(
-    docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
-  );
-  const brutParNom = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)])) as ReadonlyMap<string, unknown>;
+  const { docs, brutParDocument, brutParNom } = lireDocuments(root);
   const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
   const collections = collectionsDesDocuments(defs, brutParNom);
@@ -672,7 +677,7 @@ export function scannerDonnees(
     const brut = brutParDocument.get(doc.chemin);
     const racineJson = Array.isArray(brut) ? 'array' : estObjet(brut) ? 'object' : classeDeType(brut);
     const familleDeclaree = famillesDeclarees.get(doc.nom) ?? '';
-    const regime = regimeEntrees(racineJson, familleDeclaree || undefined);
+    const regime = regimeEntrees(brut, familleDeclaree || undefined);
     /** En régime `valeurs`, la carte clé→valeur vit sous `entries` dès que le record est enveloppé. */
     const charge = regime === 'valeurs' ? chargeRecord(brut) : brut;
     const brutes: unknown[] =

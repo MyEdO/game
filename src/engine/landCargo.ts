@@ -29,12 +29,6 @@ export type RumourRow = LandCargoData['rumeurs']['entries'][number];
 const LAND = landCargo;
 
 export const WINE_QUALITY = LAND.qualiteDuVin.entries;
-/** Échelons de Richesse et leur Mise à prix — source UNIQUE des libellés d'authoring de l'éditeur de
- *  marché. Pourcentages de MSRC 13 l.150-156 ; libellés de l'échelle des indices l.52-60 (1 Pauvre …
- *  5 Florissant), que l'exemple l.174 confirme contre la colonne Description de l.150-156, décalée
- *  d'un cran dans le livre — arbitrage NOMMÉ en tête de
- *  `scripts/migrations/2026-09-01-1463-gram-seuils-prix-offre.mjs`. */
-export const LAND_RICHESSE_ROWS: readonly LandCargoData['vente']['offreParRichesse'][number][] = LAND.vente.offreParRichesse;
 
 /** Profil COMMERCIAL d'un Lieu terrestre/fluvial (Index géographique, l.183-278) — porté par le LIEU de
  *  la carte du monde (`MapPlace.market`, donnée d'auteur). Reproduit les colonnes de l'Index. */

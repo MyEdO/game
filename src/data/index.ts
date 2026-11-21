@@ -5,6 +5,7 @@
  */
 import type { EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
+import type { ConsumableDuration } from '../engine/consumables';
 import { listeEt, t, type MsgKey } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
@@ -196,7 +197,6 @@ import ambianceJson from './ambiance.json';
 import localisationJson from './localisation.json';
 import type * as localisationDef from './schemas/defs/localisation';
 import type * as ambianceDef from './schemas/defs/ambiance';
-import teintesJeuJson from './teintesJeu.json';
 import navalTraitsJson from './naval-traits.json';
 import navalPortsJson from './naval-ports.json';
 import lieuxServicesJson from './lieux-services.json';
@@ -985,7 +985,7 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
   consumable?: import('../engine/flowCore').Flow;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — résolue AU BOIRE
    *  (dés tirés une fois), les ops durables du Flow expirent à l'échéance (`purgeClockEffects`). */
-  consumableDuration?: import('../engine/consumables').ConsumableDuration;
+  consumableDuration?: ConsumableDuration;
   /** Contenant (LDB 64) : capacité de rangement (« Contenu », en Enc). Sacs/sacoches/sac à dos. */
   container?: { capacity: number };
   /** NI d'énergie magique qu'UN GRAMME de cet objet apporte à un Test d'Incantation/Focalisation en
@@ -1056,9 +1056,8 @@ export type GroupeDArmure = Extract<WeaponGroupData, { kind: 'armour' }>;
  *  `id` STABLE (jamais traduit) ; `label` = rendu FR localisable. Registre SSOT (`groups.json`),
  *  référencé par les cibles de Traits psy et les filtres `onlyGroups`/`exceptGroups`/zones. */
 export type GroupData = EntreeDe<typeof groupsDef>;
-/** Famille de PRÉSENTATION du stock marchand (`MerchantPanel`, ordre d'affichage = ordre du tableau).
- *  `match` = règle de classement d'une ligne de stock (priorité unit > shield > categorie > fallback
- *  au `match` vide) ; `columns` = ids de colonnes de stats à afficher (vocabulaire `colonnesDuMarchand`). */
+/** Famille du stock marchand dans l'ordre d'affichage. La règle `match` classe les articles par unité,
+ *  bouclier ou catégorie, puis les range dans la famille dont le `match` est vide. */
 export type MerchantFamilyData = EntreeDe<typeof merchantFamiliesDef>;
 export const merchantFamilies = datasetDe<typeof merchantFamiliesDef>(merchantFamiliesJson);
 /** Rareté de récolte/trophée = `Availability` (LDB 59) ÉTENDUE de `'unique'` (pièce de bestiaire singulière). */
@@ -1350,14 +1349,12 @@ export const matierePlan = (): RoofMaterialDef => {
   return plan;
 };
 
-/** AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/filtre d'étage) — donnée pure. */
 /** Les tables de Localisation des coups (`localisation.json`) : personnage par forme de corps, navire, navire fluvial. */
 export const tablesDeLocalisation = datasetDe<typeof localisationDef>(localisationJson);
+/** Lumière, visibilité et météo des regards Godot. */
 export const ambiance = datasetDe<typeof ambianceDef>(ambianceJson);
-/** L'ambiance de rendu partagée iso ⇄ POV, au type de son schéma (`schemas/defs/ambiance.ts`). */
+/** Données d’ambiance dont le noyau dérive les regards Godot. */
 export type AmbianceDef = DatasetDe<typeof ambianceDef>;
-/** Halo radial (voile chaud / vignette). */
-export type RadialVeilDef = AmbianceDef['iso']['warm'];
 /** Les types de météo authorée de scène que l'ambiance habille (`scene.weather`, #239). */
 export type WeatherFxId = keyof AmbianceDef['iso']['weather'];
 /** L'habillage d'un type de météo (#239). */
@@ -1367,9 +1364,6 @@ export type WeatherPrecipDef = NonNullable<WeatherFxDef['precip']>;
 /** La brume monde d'un type de météo (#1247). */
 export type WeatherBrumeDef = NonNullable<WeatherFxDef['brume']>;
 
-/** TEINTES DE JEU du terrain (surbrillances tactiques + identité d'unité), `id → #rrggbb` — donnée
- *  pure, servie aux peintres (schéma et invariants : `schemas/defs/teintesJeu.ts`). */
-export const teintesJeu: Record<import('./schemas/defs/teintesJeu').TeinteId, string> = teintesJeuJson.entries;
 
 /** Traits & Améliorations de navire (MDG 12) — catalogue app-owned éditable au Codex. La DONNÉE (`desc`
  *  verbatim + effet) vit ici ; `engine/navalTraits.ts` ne fait que la LIRE (aucune valeur codée en dur).
@@ -1574,8 +1568,6 @@ export type AxisData = EntreeDe<typeof axesDef>;
 export const allAxes = datasetDe<typeof axesDef>(axesJson);
 const axeParId = indexParId('axes', allAxes);
 export const findAxisById: (id: string) => AxisData | undefined = axeParId;
-/** Socle par défaut d'une campagne SANS `activeAxes` déclaré (`WorldMap.activeAxes`). */
-export const coreAxisIds = memoParVersion('axes', (): string[] => allAxes.filter((a) => a.core).map((a) => a.id));
 /** Le Tableau de couleur des yeux (`eyes.json`, LDB 05 l.742-754), document à rangées tiré à son dé. */
 export const tableDesYeux = datasetDe<typeof couleurDesYeux>(eyesJson);
 /** Le Tableau de couleur des cheveux (`hairs.json`, LDB 05 l.756-768), document à rangées tiré à son dé. */

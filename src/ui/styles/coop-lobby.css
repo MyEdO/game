@@ -1,8 +1,0 @@
-/* ════════ SALON COOP (`CoopLobby.tsx`) — PLACEMENT seul ════════
-   L'écran compose `MenuSubScreen` (carte, en-tête, corps défilant), `.panel`, `Stack`/`Row`/`Grid` :
-   il ne lui reste qu'un réglage que la couche layout ne porte pas. */
-
-/* Les deux actions de l'hôte se partagent la largeur et passent à la ligne sous 180px chacune. */
-.coop-actions .btn {
-  flex: 1 1 180px;
-}

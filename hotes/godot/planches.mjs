@@ -2,8 +2,8 @@
 // `figerLesPlanches`, `recettes/ecran.ts`), que le jeu montre à l'adresse `?planche=<nom>`
 // (`projet/scripts/pont_de_planche.gd`) ; son étalon est la capture de son écran que le banc compare (`etalons.mjs`).
 // Une planche est un dérivé de l'export, jamais commitée : `construire.mjs --export` la fige et la dépose sous
-// `<export>/planches/<nom>.json`, les réponses que partagent les planches de son scénario sous
-// `<export>/planches/communes/<scenario>.json` (`deposerLesPlanches`). Sous `etalons/` sont commités `<nom>.png`,
+// `<export>/planches/<nom>.json`, chaque jeu de réponses communes sous
+// `<export>/planches/communes/<empreinte>.json` (`deposerLesPlanches`). Sous `etalons/` sont commités `<nom>.png`,
 // l'étalon de la planche, et `valides.json`, par nom de planche la date et l'empreinte SHA-256 de l'étalon que l'utilisateur a validé. Un étalon ne vaut que pour le
 // Chromium épinglé (`EPINGLE`) sous Linux x86-64 (`refusDuNavigateur`) : le canari le compare
 // (mesure `godot-etalons` de `.github/workflows/canari.yml`), qui installe ce Chromium à la version de Playwright lue ici.
@@ -34,22 +34,22 @@ export const EPINGLE = Object.freeze({ playwright: '1.63.0', chrome: '153.0.8010
 /** La plateforme où l'épingle a été mesurée (`process.platform`, `process.arch`). */
 const PLATEFORME = Object.freeze({ plateforme: 'linux', architecture: 'x64' })
 
-/** Les planches `planches` (`figerLesPlanches`) écrites sous `planches/` de `sortie`, celles d'avant retirées, et les
- *  réponses communes de chaque scénario sous `planches/communes/` ; deux planches d'un scénario aux réponses communes
- *  différentes : refusé. */
+/** Dépose chaque planche et déduplique les réponses communes identiques par leur empreinte. */
 export function deposerLesPlanches(sortie, planches) {
   const dossier = join(sortie, 'planches')
+  const dossierCommun = join(dossier, 'communes')
   rmSync(dossier, { recursive: true, force: true })
-  mkdirSync(join(dossier, 'communes'), { recursive: true })
-  const parScenario = new Map()
+  mkdirSync(dossierCommun, { recursive: true })
+  const empreintes = new Set()
   for (const { communes, ...planche } of planches) {
-    const { scenario } = planche.parametres
     const json = JSON.stringify(communes)
-    if (parScenario.has(scenario) && parScenario.get(scenario) !== json) throw new Error(`${planche.nom} : les réponses communes de ${scenario} ne sont pas celles de ses autres planches`)
-    parScenario.set(scenario, json)
-    writeFileSync(join(dossier, `${planche.nom}.json`), `${JSON.stringify(planche)}\n`)
+    const empreinte = createHash('sha256').update(json).digest('hex')
+    if (!empreintes.has(empreinte)) {
+      writeFileSync(join(dossierCommun, `${empreinte}.json`), `${json}\n`)
+      empreintes.add(empreinte)
+    }
+    writeFileSync(join(dossier, `${planche.nom}.json`), `${JSON.stringify({ ...planche, communes: empreinte })}\n`)
   }
-  for (const [scenario, json] of parScenario) writeFileSync(join(dossier, 'communes', `${scenario}.json`), `${json}\n`)
 }
 
 /** Le refus du banc pour le navigateur `navigateur` (le `product` de `Browser.getVersion`, `<nom>/<version>`) lancé

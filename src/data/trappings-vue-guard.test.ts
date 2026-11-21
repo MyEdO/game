@@ -1,5 +1,5 @@
 /**
- * GARDE — le catalogue BRUT des trappings ne se lit qu'à des sites nommés (#1988) : tout producteur
+ * GARDE — le catalogue BRUT des trappings se lit dans ses modules de référence (#1988) : tout producteur
  * d'ids d'objet lit la vue `trappingsInstanciables` (`data/index.ts`), la sous-liste de schéma
  * `INSTANCIABLE_PAR_ID` n'est jamais redéclarée par un filtre. Construction réservée
  * `lectureBruteDeCollection` (`scripts/guards/lib/canonUnique.mjs`), domaine = code de PRODUCTION de
@@ -25,15 +25,6 @@ const FOYER = [
   'src/noyau/codex/session.ts',
 ];
 
-/** Sites où un appel au seam est ADMIS, chacun avec sa raison. */
-const SITES_ADMIS: readonly (SiteAdmis & { readonly raison: string })[] = [
-  { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'collectionDuDataset', raison: 'observation DEV du catalogue par id, en copie détachée ; aucun objet instancié' },
-  { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'datasetSerializeRoot', raison: 'lecture du schéma de la collection observée en copie détachée DEV ; aucune instanciation ni écriture' },
-  { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'ProsthesisField', appele: 'datasetArray', raison: 'champ de COMPARAISON (`traumas.prosthesis`, `engine/trauma.ts › prosthesisCancels` compare aux objets portés, n’instancie rien), #1463' },
-  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'useUnivers', appele: 'entreesDuDataset', raison: 'univers d’un sélecteur générique : ses options et sa saisie se jugent sur la sous-liste du nœud du champ (`refusDuNoeud`)' },
-  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'valeursDistinctes', appele: 'entreesDuDataset', raison: 'valeurs distinctes d’un champ (libellés, vocabulaire) proposées à une saisie libre, jamais des ids' },
-];
-
 const PARAMETRES = {
   nom: 'LECTURE_BRUTE_DES_TRAPPINGS',
   liaisons: [
@@ -46,10 +37,12 @@ const PARAMETRES = {
   dataset: 'trappings',
 } as const;
 const domaine = (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel);
-const GARDE = { ...lectureBruteDeCollection({ ...PARAMETRES, sitesAdmis: SITES_ADMIS }), foyer: FOYER, domaine };
-const SANS_SITES = { ...lectureBruteDeCollection(PARAMETRES), foyer: FOYER, domaine };
+const GARDE = { ...lectureBruteDeCollection(PARAMETRES), foyer: FOYER, domaine };
 
-const lignes = (text: string, rel = 'src/engine/temoin.ts') => scanConstructionsReservees({ rel, text }, [GARDE]).map((t) => t.line);
+function lignes(text: string, rel = 'src/engine/temoin.ts', sitesAdmis?: readonly SiteAdmis[]): number[] {
+  const garde = sitesAdmis ? { ...lectureBruteDeCollection({ ...PARAMETRES, sitesAdmis }), foyer: FOYER, domaine } : GARDE;
+  return scanConstructionsReservees({ rel, text }, [garde]).map((t) => t.line);
+}
 
 describe('lecture brute des trappings hors de la vue', () => {
   /** La frontière de la garde est une DONNÉE : chaque forme, son verdict (`[2]` vue, `[]` non vue). */
@@ -76,15 +69,20 @@ describe('lecture brute des trappings hors de la vue', () => {
     expect(lignes(texte)).toEqual(attendu);
   });
 
-  it('un site admis ne l’est qu’à SA déclaration englobante, jamais au fichier', () => {
-    const texte = "import { datasetArray } from '../../../data/overrides';\nfunction ProsthesisField() { return datasetArray('trappings'); }\nfunction Autre() { return datasetArray('trappings'); }";
-    expect(lignes(texte, 'src/ui/editor/codex/CodexEdit.tsx')).toEqual([3]);
+  it('un site admis ne l’est qu’à sa déclaration englobante et dans son fichier', () => {
+    const fichier = 'src/engine/temoin.ts';
+    const texte = "import { datasetArray } from '../data/overrides';\nfunction consulter() { return datasetArray('trappings'); }\nfunction instancier() { return datasetArray('trappings'); }";
+    const sites: SiteAdmis[] = [{ rel: fichier, englobante: 'consulter', appele: 'datasetArray' }];
+    expect(lignes(texte, fichier, sites)).toEqual([3]);
+    expect(lignes(texte, 'src/engine/autre.ts', sites)).toEqual([2, 3]);
   });
 
-  it('admet les deux lectures de recette seulement dans leur fonction d’observation nommée', () => {
-    const texte = "import { collectionDuDataset, datasetSerializeRoot } from '../data/overrides';\nfunction entreeDeRecette() {\ncollectionDuDataset(cle);\ndatasetSerializeRoot(cle);\n}\nfunction autre() {\ncollectionDuDataset(cle);\ndatasetSerializeRoot(cle);\n}";
-    expect(lignes(texte, 'src/state/devtools.ts')).toEqual([7, 8]);
-    expect(lignes(texte, 'src/state/autre.ts')).toEqual([3, 4, 7, 8]);
+  it('une déclaration témoin peut nommer plusieurs lectures admises sans les ouvrir à ses voisines', () => {
+    const rel = 'src/engine/temoin.ts';
+    const texte = "import { collectionDuDataset, datasetSerializeRoot } from '../data/overrides';\nfunction consulter() {\ncollectionDuDataset(cle);\ndatasetSerializeRoot(cle);\n}\nfunction autre() {\ncollectionDuDataset(cle);\ndatasetSerializeRoot(cle);\n}";
+    const sites: SiteAdmis[] = ['collectionDuDataset', 'datasetSerializeRoot'].map((appele) => ({ rel, englobante: 'consulter', appele }));
+    expect(lignes(texte, rel, sites)).toEqual([7, 8]);
+    expect(lignes(texte, 'src/engine/autre.ts', sites)).toEqual([3, 4, 7, 8]);
   });
 
   it('le FOYER seul est hors de la garde : son texte, sous un autre chemin, est vu', () => {
@@ -92,13 +90,6 @@ describe('lecture brute des trappings hors de la vue', () => {
     expect(foyer, 'le foyer existe').toBeTruthy();
     expect(lignes(foyer.text, 'src/data/overrides.ts')).toEqual([]);
     expect(lignes(foyer.text, 'src/data/copie.ts').length).toBeGreaterThan(0);
-  });
-
-  it('chaque site admis existe : une admission sans site est morte', () => {
-    const vues = constructionsReserveesDuCorpus(corpusDesGardes(), [SANS_SITES]);
-    for (const s of SITES_ADMIS) {
-      expect(vues.some((t) => t.rel === s.rel && t.detail.includes(`\`${s.appele}`) && t.detail.endsWith(`dans \`${s.englobante}\``)), `${s.rel} › ${s.englobante} › ${s.appele}`).toBe(true);
-    }
   });
 
   it('aucune lecture brute sous `src/` ni `scripts/`', () => {

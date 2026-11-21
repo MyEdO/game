@@ -1,9 +1,9 @@
 import { tableTotale } from '../lib/tableTotale';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { makeRNG, roll } from './dice';
 import { findTableEntry } from './tables';
-import { setRule } from './policy';
+import { loadRuleOverrides, ruleOverrides, setRule } from './policy';
 import type { EntreeVivante } from '../data/datasets';
 import { CHAR_KEYS, CharKey } from './types';
 import {
@@ -116,6 +116,9 @@ describe('applyStarOps — effet d\'un signe aux ATTRIBUTS DE DÉPART (ADE II 3 
 describe('Tableau des Races aléatoires (LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE II 02 l.112-121)', () => {
   const GNOME = 'creation-gnome-jouable';
   const OGRE = 'creation-ogre-jouable';
+  let reglesInitiales: ReturnType<typeof ruleOverrides>;
+  beforeEach(() => { reglesInitiales = ruleOverrides(); });
+  afterEach(() => { loadRuleOverrides(reglesInitiales); });
   /** Les espèces que le jet `n` offre au joueur, sur la table qui s'applique. */
   const auJet = (n: number) => findTableEntry(randomSpeciesTable().entries, n).ids;
   /** Les espèces ouvertes de la race `race`, l'espèce nominale `nominale` en tête (LDB 04 l.91 ; ADE I 02 l.257). */

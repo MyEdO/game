@@ -285,7 +285,7 @@ JAMAIS un choix d'agent silencieux enterré. Avant de conclure « le moteur ne s
 - Canonicaliser via \`serializeDataset\` (\`${SERIALIZE}\`) — jamais un reformatage manuel ni un
   \`JSON.stringify\` maison (le round-trip est byte-exact).
 - \`npm test\` + \`npm run typecheck\` verts.
-- Si l'élément est visible au Codex/éditeur → **recette navigateur** (\`docs/recette-navigateur.md\`).
+- Si l’élément est visible au Compendium ou dans l’éditeur Godot, jouer le geste correspondant avec \`npm run godot:recette\`.
 
 ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describe`)'], (g) => `| \`${g.p}\` | ${g.quoi} |`)}
 `

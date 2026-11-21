@@ -283,7 +283,7 @@ import {
   type VainqueurOppose,
 } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
-import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
+import { testValue, soutienDetail, type TestDesigne } from '../engine/skills';
 import {
   findManeuverById,
   findDomainById,
@@ -5693,15 +5693,6 @@ export function counterspellSoutenu(
 export function counterspellSoutienFor(s: Jeu, pcs: PendingCounterspell | null | undefined, id: string): number {
   const grp = counterspellSoutenu(s, pcs);
   return grp && grp.leader.id === id ? grp.bonus : 0;
-}
-
-/** MÊME Soutien que `counterspellSoutienFor`, en DÉTAIL affichable : les contre-lanceurs unis QUI
- *  soutiennent ce meneur (`ids`), pour que la ligne de mod porte sa provenance. `undefined` hors
- *  meneur ou sans Soutien. */
-export function counterspellSupportFor(s: Jeu, pcs: PendingCounterspell | null | undefined, id: string): SupportDetail | undefined {
-  const grp = counterspellSoutenu(s, pcs);
-  if (!grp || grp.leader.id !== id || grp.bonus <= 0) return undefined;
-  return { count: grp.bonus / 10, bonus: grp.bonus, ids: grp.unis.filter((c) => c.id !== grp.leader.id).map((c) => c.id) };
 }
 
 /** Cette rangée LANCE-t-elle le dé de la fenêtre ? — déclarée `solo`, ou MENEUR du groupe uni (le

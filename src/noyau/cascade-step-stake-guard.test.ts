@@ -30,7 +30,7 @@ import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
  *  `testFlow` y est aussi muet qu'ailleurs). Un détecteur ne mesure que sa couverture : elle est NOMMÉE ici,
  *  la clé de baseline porte le dossier (`noyau/…`, `scenes/…`). */
 const SRC = join(process.cwd(), 'src');
-const SCAN_ROOTS = porteeDeGarde(['noyau', 'scenes'], ['state']).map((d) => join(process.cwd(), d));
+const SCAN_ROOTS = porteeDeGarde(['noyau', 'scenes']).map((d) => join(process.cwd(), d));
 
 /** Corpus RÉEL d'un jeu de racines : marche, lecture et mémoïsation par clé dans
  *  `scripts/guards/lib/sourceCorpus.mjs` — PARESSEUX, payé au 1ᵉʳ `it` qui le demande, jamais à la
@@ -632,7 +632,7 @@ describe('« un signe, un sens » — les enjeux et leurs conséquences parlent 
  * (`src/scenes`, projets JSON) en portent.
  */
 describe('l’enjeu AUTHORÉ reste au contenu — le moteur passe par les datasets (#1262 V2 L6c)', () => {
-  const MOTEUR = porteeDeGarde(['noyau', 'engine'], ['state']).map((d) => join(process.cwd(), d));
+  const MOTEUR = porteeDeGarde(['noyau', 'engine']).map((d) => join(process.cwd(), d));
   // La FORME du littéral d'enjeu authoré : `{ authored: … }` — `AuthoredStake` n'a que ce champ (ses
   // deux autres sont `never`), il ouvre donc toujours son accolade. Une ANNOTATION de paramètre
   // (`captureMutation(current: Scene, authored: Scene)`) ne pose aucun enjeu et suit une virgule.

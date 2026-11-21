@@ -6,7 +6,7 @@
  */
 import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
-import { DOSSIER_DES_MODELES, recupererModeles } from '../asset/release';
+import { avecModelesCommites } from '../asset/modelesCommites.testkit.ts';
 import { decorDeTest, decorSaisonnierDeTest, TEINTE_D_AUTOMNE } from '../asset/modeles.testkit.ts';
 import type { Saison } from '../asset/element.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
@@ -80,8 +80,8 @@ type Listage = Awaited<ReturnType<typeof listage>>;
 let commites: Promise<Listage> | undefined;
 
 /** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert, le GLB épinglé de
- *  chacun déposé d'abord (`recupererModeles`) ; lu une fois par graphe de modules. */
-export const modelesCommites = () => (commites ??= recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: () => {} }).then(() => listage(DOSSIER_DES_MODELES)));
+ *  chacun déposé d'abord dans un dossier de test ; lu une fois par graphe de modules. */
+export const modelesCommites = () => (commites ??= avecModelesCommites(listage));
 
 /** Les manifestes du listage commité `commites`, ceux des éléments `decor` retirés, plus l'élément `decor` de test
  *  `decor--<prop>` (`decorDeTest`) de chaque type de `props` : les seuls décors qu'ils servent. */

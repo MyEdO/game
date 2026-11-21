@@ -77,7 +77,7 @@ export const LABEL_SWITCH_RX = /switch\s*\([^)]*\.label\b/;
  *  `slugId(a?.b.label)`, un gabarit. Re-dériver un `id` du `.label` (affichage multilangue) au runtime
  *  couple l'identité à la langue — une traduction change l'id, cassant lookups/références/sauvegardes.
  *  Vise `.label` SEULEMENT (pas `.name` : la conversion d'un fragment TEXTE saisi en éditeur —
- *  `slugId(p.name)` d'un `splitLabel` — est la couture label→id d'authoring tolérée). Lecture par l'AST
+ *  `slugId(p.name)` après parsing — est la couture label→id d'authoring tolérée). Lecture par l'AST
  *  (`litLeLabel`, le critère du volet (c) de la garde de face), jamais par une regex de ligne.
  *  @param {string} relPath @param {string} contenu @returns {Set<number>} lignes des appels fautifs */
 function lignesDeSlugDepuisLabel(relPath, contenu, sourceFile) {

@@ -107,7 +107,7 @@ describe('areteDessinee — la palette de l’apparence (#4471)', () => {
       face: teinte(1), post: teinte(2), band: teinte(3), rubble: teinte(4),
       detail: { ...ville.detail!, courses: { ...ville.detail!.courses!, joint: teinte(5) } },
       door: { ...ville.door!, leaf: teinte(6), plank: teinte(7), handle: teinte(8), herse: { ...ville.door!.herse!, traverseColor: teinte(9) } },
-      window: { glass: teinte(10), lit: teinte(11), frame: teinte(12), mullion: teinte(13) },
+      window: { glass: teinte(10), frame: teinte(12), mullion: teinte(13) },
     };
   };
   it('une apparence qui les déclare sert les onze emplacements, chacun de sa couleur', () => {
@@ -158,6 +158,20 @@ describe('areteDessinee — la palette de l’apparence (#4471)', () => {
     });
     expect(areteDessinee(scene([]), { x: 0, y: 0, side: 'N', appearance: 'mur-en-pierre' }).palette.accent)
       .toBe(apparence('mur-en-pierre').window!.frame);
+  });
+  it('chaque apparence avec window.frame donne sa couleur au vantail de l’arête', () => {
+    const porteuses = structureAppearances.filter((apparence) => apparence.window?.frame !== undefined);
+    expect(porteuses.length, 'le catalogue fournit au moins une couleur de cadre').toBeGreaterThan(0);
+    const monde = scene([]);
+    expect(
+      porteuses
+        .filter((apparence) => {
+          const arete = areteDessinee(monde, { x: 0, y: 0, side: 'N', appearance: apparence.id, window: true });
+          return arete.piece !== 'fenetre' || arete.palette.accent !== apparence.window!.frame;
+        })
+        .map((apparence) => apparence.id),
+      'chaque cadre de croisée déclaré doit atteindre la couleur accent de l’arête',
+    ).toEqual([]);
   });
   it('une croisée qui ne déclare que son bois le donne aux vantaux, sa vitre et son meneau pris aux replis', () => {
     const { door: _porte, wood: _bois, ...pierre } = apparence('mur-de-chateau');

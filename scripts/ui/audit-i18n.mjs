@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { analyserCorpus } from '../guards/lib/dialecte.mjs';
+import { listerDossier } from '../guards/lib/lister.mjs';
 // Audit EXHAUSTIF (AST, pas grep à l'oeil) des chaines FR affichees en dur dans l'UI, hors
 // catalogue i18n (`src/i18n/`). Etape 1 du ticket #320 (2e chasse aux dettes, lot L6) — MESURE
 // seule, aucune migration. Scanne `src/ui/**/*.tsx?` + `src/state/**/*.ts(x)` (messages composes
@@ -17,7 +18,7 @@ import { analyserCorpus } from '../guards/lib/dialecte.mjs';
 // Usage : node scripts/ui/audit-i18n.mjs [--json] [--out <path>]
 import * as ts from 'typescript/unstable/ast';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs';
@@ -26,7 +27,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SCAN_DIRS = ['src/ui', 'src/state', 'src/noyau'];
 
 function walk(dir, acc = []) {
-  for (const e of readdirSync(dir)) {
+  for (const e of listerDossier(dir, { absent: 'vide' })) {
     const p = join(dir, e);
     let s; try { s = statSync(p); } catch { continue; }
     if (s.isDirectory()) walk(p, acc);
@@ -186,7 +187,7 @@ if (jsonOut || outPath) {
 }
 
 if (!jsonOut) {
-  console.log(`Fichiers scannés (src/ui + src/state, hors *.test.*) : ${report.scannedFiles}`);
+  console.log(`Fichiers scannés (hors *.test.*) : ${report.scannedFiles}`);
   console.log(`Fichiers avec ≥1 chaîne affichée hors catalogue      : ${report.filesWithDisplayedStrings}`);
   console.log(`Occurrences totales de chaînes affichées en dur       : ${report.totalDisplayedOccurrences}`);
   console.log(`  dont chaînes UNIQUES (après dédoublonnage)          : ${report.uniqueDisplayedStrings}`);

@@ -20,9 +20,9 @@ import {
 } from './decoupe.ts';
 import { descRefSchema } from '../schemas/grammaire/valeurs';
 import { poserRegimeVivant } from '../schemas/grammaire/idsVivants';
-// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { proseSource } from '../../../scripts/source/prose-source-plugin.mjs';
-// @ts-expect-error - garde ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - garde ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { sitesDuDossier } from '../../../scripts/raw/check-source-format.mjs';
 import type { Site } from '../../../scripts/guards/lib/stock.mjs';
 

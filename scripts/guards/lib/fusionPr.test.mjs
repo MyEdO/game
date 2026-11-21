@@ -1,11 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { fusionDePr, etatFileDePr } from './fusionPr.mjs'
+import { fusionDePr, etatFileDePr, DELAI_FILE_MS } from './fusionPr.mjs'
 import { ENTREE_2495, JEUNE_2495 } from '../../ops/fixtures/github-2495-file.mjs'
 
 const SHA = 'a'.repeat(40), AUTRE = 'b'.repeat(40)
 const PR = { id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, mergeCommit: null, autoMergeRequest: null, isInMergeQueue: false }
 const json = (value) => ({ ok: true, stdout: JSON.stringify(value) })
+const courses = (...workflow_runs) => json({ total_count: workflow_runs.length, workflow_runs })
 const identite = (pr = PR, viewer = { login: 'cgauche' }) => json({ data: { repository: { pullRequest: pr }, viewer } })
 const ARMEE = { ...PR, autoMergeRequest: { enabledAt: '2026-10-16T10:00:00Z' } }
 const FILE = { ...PR, isInMergeQueue: true, mergeQueueEntry: ENTREE_2495 }
@@ -91,12 +92,93 @@ for (const reponse of [{ ok: true, stdout: '' }, json({ data: {} }), json({ erro
     assert.equal(b.appels.length, 1)
   })
 for (const debut of [[], [identite(), REFUS], [identite(), REFUS, identite(), entree()]]) test('#2499 entrée sans merge_group : anomalie nommée', () => {
-  const b = banc([...debut, identite(FILE), json({ total_count: 0, workflow_runs: [] }), identite(FILE)], { maintenant: () => JEUNE_2495 + 10 * 60_000 })
+  const b = banc([...debut, identite(FILE), courses(), identite(FILE)], { maintenant: () => JEUNE_2495 + DELAI_FILE_MS })
   const vu = b.jouer()
   assert.equal(vu.ok, false)
   assert.equal(vu.entree.id, ENTREE_2495.id)
   assert.match(vu.raison, /aucun run CI merge_group/)
 })
+test('#2499 seuil de l’entrée stérile sous github-actions, lue par cgauche', () => {
+  const seuil = Date.parse(ENTREE_2495.enqueuedAt) + DELAI_FILE_MS
+  let maintenant = seuil - 1
+  const b = banc([identite(FILE), identite(FILE), courses(), identite(FILE)], { maintenant: () => maintenant })
+  assert.equal(b.lire().statut, 'enqueued')
+  assert.equal(b.appels.length, 1)
+  maintenant = seuil
+  const vu = b.lire()
+  assert.equal(vu.statut, 'anomalie')
+  assert.equal(vu.compte, 'cgauche')
+  assert.deepEqual(vu.entree, ENTREE_2495)
+  assert.match(vu.raison, /compte « github-actions ».*aucun run CI merge_group.*retirer cette entrée/)
+  assert.ok(vu.raison.includes(ENTREE_2495.headCommit.oid))
+  assert.equal(b.appels.length, 4)
+})
+
+const ENTREE_4631 = {
+  id: 'entree-temoin-4631',
+  state: 'AWAITING_CHECKS',
+  enqueuedAt: '2026-11-21T03:52:57Z',
+  enqueuer: { login: 'cgauche' },
+  headCommit: { oid: '1aa5dbfa081af9a5a487df0827fc5f9a3d446e81' },
+}
+const FILE_4631 = { ...FILE, id: 'PR4631', headRefOid: 'f2f4ca71f72a6740f7213101251a5bfde9616efd', mergeQueueEntry: ENTREE_4631 }
+const COURSE_4631 = {
+  id: 44864628040,
+  head_sha: ENTREE_4631.headCommit.oid,
+  event: 'merge_group',
+  name: 'CI',
+  repository: { full_name: 'MyEdO/game' },
+  created_at: '2026-11-21T04:08:46Z',
+}
+const DEBUT_4631 = Date.parse(ENTREE_4631.enqueuedAt)
+const options4631 = (maintenant) => ({ numero: 4631, sha: FILE_4631.headRefOid, maintenant })
+
+test('#4631 le même groupe reste en file jusqu’à sa course à 15 min 49 s', () => {
+  const apparition = Date.parse(COURSE_4631.created_at)
+  assert.equal(apparition - DEBUT_4631, 949_000)
+  let horloge = DEBUT_4631 + DELAI_FILE_MS
+  const b = banc([
+    identite(FILE_4631), courses(), identite(FILE_4631),
+    identite(FILE_4631), courses(), identite(FILE_4631),
+    identite(FILE_4631), courses(COURSE_4631),
+  ], options4631(() => horloge))
+  const attendue = { ok: true, statut: 'enqueued', deja: true, compte: 'cgauche', entree: ENTREE_4631 }
+  assert.deepEqual(b.lire(), attendue)
+  horloge = apparition - 1
+  assert.deepEqual(b.jouer(), attendue)
+  horloge = apparition
+  assert.deepEqual(b.lire(), attendue)
+  assert.deepEqual(b.appels.map(({ args }) => args[1] === 'graphql'), [true, false, true, true, false, true, true, false])
+  for (const appel of b.appels) {
+    assert.equal(appel.args[0], 'api')
+    assert.equal(estMutation(appel), false)
+    if (appel.args[1] === 'graphql') assert.equal(JSON.parse(appel.opts.input).variables.number, 4631)
+    else {
+      const chemin = appel.args.find((arg) => arg.includes('/runs?'))
+      const filtres = new URLSearchParams(chemin?.split('?')[1])
+      assert.equal(filtres.get('head_sha'), COURSE_4631.head_sha)
+      assert.equal(filtres.get('event'), 'merge_group')
+    }
+  }
+})
+
+for (const [nom, reponses, raison] of [
+  ['REST refusé', [identite(FILE_4631), { ok: false, raison: 'HTTP 503' }], /lecture des courses refusée.*HTTP 503/],
+  ['REST incomplet', [identite(FILE_4631), json({ total_count: 1, workflow_runs: [] })], /lecture des courses refusée.*non exhaustive/],
+  ['groupe absent', [identite({ ...FILE_4631, mergeQueueEntry: { ...ENTREE_4631, headCommit: null } })], /tête de groupe indéterminée/],
+  ['relecture refusée', [identite(FILE_4631), courses(), { ok: false, raison: 'HTTP 503' }], /relecture refusée.*HTTP 503/],
+  ['tête PR changée', [identite(FILE_4631), courses(), identite({ ...FILE_4631, headRefOid: AUTRE })], /relecture refusée.*tête de PR changée/],
+  ['entrée changée', [identite(FILE_4631), courses(), identite({ ...FILE_4631, mergeQueueEntry: { ...ENTREE_4631, id: 'nouvelle' } })], /entrée changée pendant lecture/],
+  ['groupe changé', [identite(FILE_4631), courses(), identite({ ...FILE_4631, mergeQueueEntry: { ...ENTREE_4631, headCommit: { oid: AUTRE } } })], /entrée changée pendant lecture/],
+]) test('#4631 ' + nom + ' conserve le diagnostic et s’arrête en lecture seule', () => {
+  const b = banc(reponses, options4631(() => DEBUT_4631 + DELAI_FILE_MS))
+  const vu = b.jouer()
+  assert.equal(vu.ok, false)
+  assert.equal(vu.entree.id, ENTREE_4631.id)
+  assert.match(vu.raison, raison)
+  assert.ok(b.appels.every((appel) => appel.args[0] === 'api' && !estMutation(appel)))
+})
+
 test('#2626 observation non armée reste en lecture seule', () => {
   const b = banc([identite()])
   assert.equal(b.lire().statut, undefined)

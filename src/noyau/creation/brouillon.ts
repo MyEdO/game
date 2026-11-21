@@ -261,8 +261,6 @@ export const draftPorteur = (d: CreatorDraft): PorteurDArme => {
 };
 export const draftLevel = (d: CreatorDraft): CareerLevelData | undefined =>
   levelsForCareer(d.careerId).find((l) => l.level === 1);
-/** Race choisie ET carrière choisie — la fiche vivante ne se construit qu'une fois les deux posées. */
-export const hasSpecies = (d: CreatorDraft): boolean => !!d.speciesId && !!draftSpecies(d);
 /** Caractéristiques de carrière du Niveau 1 (clés `CharKey` stables) sur lesquelles se répartissent
  *  les 5 Augmentations gratuites de création (LDB 05 l.459). La donnée EST déjà en `CharKey`
  *  (« CT », « F »… ; cf. le champ characteristics de CareerLevelData). SOURCE UNIQUE
@@ -578,10 +576,6 @@ export function speciesTalentRandomDrawn(d: CreatorDraft): TirageDeTalent[] {
 export function tiragesSansUtilisation(d: CreatorDraft): TirageDeTalent[] {
   return speciesTalentRandomDrawn(d).filter((t) => t.utilisations.length > 0 && t.utilisationChoisie == null);
 }
-/** Toutes les décisions de Talents d'espèce « A ou B » sont-elles tranchées ? */
-export function speciesTalentChoicesDone(d: CreatorDraft): boolean {
-  return speciesTalentChoiceEntries(d).every((e) => d.speciesTalentChoices[e.adresse] != null);
-}
 
 /** Probe : héros partiel (caracs + talents d'espèce + talent de carrière) pour Maxi/additions.
  *  `charsAlloc` compose `charAdvancesAlloc` aux Caractéristiques (BFM final requis par
@@ -688,24 +682,6 @@ export function withSpeciesSkillSpec(d: CreatorDraft, ref: RefASpecialisation, s
   const m = occupe(d, ref);
   const poser = (r: RefDesignee): RefDesignee => (m(r) ? (spec ? { id: r.id, spec } : { id: r.id }) : r);
   return { ...d, speciesPlus5: d.speciesPlus5.map(poser), speciesPlus3: d.speciesPlus3.map(poser) };
-}
-
-/** Palier atteignable au-dessus (`dir=1`) / au-dessous (`dir=-1`) du palier courant, quotas inclus —
- *  `null` = bouton grisé. Le `+` saute +3 quand son quota est plein mais qu'un +5 reste libre (et
- *  inversement le `−`) : le geste reste un Stepper, les paliers valides suivent le RAW. */
-export function speciesSkillStep(d: CreatorDraft, ref: RefASpecialisation, dir: 1 | -1): (0 | 3 | 5) | null {
-  const cur = speciesSkillTier(d, ref);
-  const m = occupe(d, ref);
-  const p5free = d.speciesPlus5.filter((r) => !m(r)).length < SPECIES_SKILLS_PLUS5;
-  const p3free = d.speciesPlus3.filter((r) => !m(r)).length < SPECIES_SKILLS_PLUS3;
-  if (dir === 1) {
-    if (cur === 0) return p3free ? 3 : p5free ? 5 : null;
-    if (cur === 3) return p5free ? 5 : null;
-    return null;
-  }
-  if (cur === 5) return p3free ? 3 : 0;
-  if (cur === 3) return 0;
-  return null;
 }
 
 /** Une Compétence retenue attend-elle sa spécialisation (joker, LDB 09 l.38) ? */

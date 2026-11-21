@@ -69,7 +69,8 @@ export const tenantEnUneLigne = (tenant) =>
 /**
  * @typedef {{ pid: number, commande?: string, cwd?: string, date?: string, generation?: string, empreinte?: string, creation?: number }} Tenant
  * @typedef {{ echeanceMs: number, pasMs: number, parTenant?: boolean, plafondMs?: number, annoncer?: (tenant: Tenant | null) => void }} Attente
- * @typedef {{ lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs?: number }} Identite
+ * @typedef {{ lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs?: number,
+ *   estZombie?: (pid: number) => boolean }} Identite
  * @typedef {{ identite?: Identite, estVivant?: (pid: number) => boolean, horloge?: () => number }} Juge
  * @typedef {{ chemin: string, libelle: string, pid?: number, commande?: string, cwd?: string,
  *   fs?: typeof fsReel, estVivant?: (pid: number) => boolean, maintenant?: () => string,
@@ -87,9 +88,10 @@ export const tenantEnUneLigne = (tenant) =>
  * (`reprendre`). `liberer` ne retire que le verrou qui porte encore la `generation` de la prise.
  * `identite` (`IDENTITE_MESUREE` par défaut) : un PID vivant dont `lireCreation` rend une date postérieure à la
  * `creation` du tenant + `toleranceMs` est un PID RÉUTILISÉ, donc mort ; `null` (indéterminé) vaut vivant ; un
- * tenant sans `creation` se juge sur son existence (`naissanceDuTenant`). Lu une fois par texte de verrou
- * distinct, puis tous les `pasMs` (sans `pasMs`, à chaque jugement). `estVivant` est la sonde d'existence de
- * `estPidVivantDepuis`. `borneMs` et `orphelins` : le juge est `consignant` (âge borné, tenant absent consigné).
+ * tenant sans `creation` se juge d’abord sur son existence (`naissanceDuTenant`). La création mesurée est lue une fois
+ * par texte de verrou distinct puis tous les `pasMs` (sans `pasMs`, à chaque jugement). `estVivant` est la sonde
+ * d'existence de `estPidVivantDepuis`. Si `estZombie` prouve un zombie, son verrou est repris (#4614).
+ * `borneMs` et `orphelins` : le juge est `consignant` (âge borné, tenant absent consigné).
  * La prise écrit sa `creation` : `performance.timeOrigin` au PID courant, `identite.lireCreation(pid)` à un PID tiers.
  * Un jeton d'emprunt du verrou dans `env` est jugé par `verdictDuJeton` : valide, la prise est empruntée ;
  * invalide, refus DÉFINITIF qui nomme sa raison.
@@ -216,15 +218,17 @@ function etapesDePrise({
 
 /**
  * Le juge de vie d'un tenant, `(tenant, brut) => boolean` : `estPidVivantDepuis` à sa naissance
- * (`naissanceDuTenant`), la date que `lireCreation` mesure lue une fois par texte `brut`, puis tous les `pasMs`.
+ * (`naissanceDuTenant`), puis la preuve éventuelle de son état zombie. La date que `lireCreation` mesure est lue
+ * une fois par texte `brut`, puis tous les `pasMs`.
  * @param {Juge} [juge]
  */
 function vivantSelon({ estVivant = estPidVivant, identite = IDENTITE_MESUREE, horloge = Date.now } = {}) {
   const lire = creationMemorisee(identite.lireCreation, { pasMs: identite.pasMs ?? 0, horloge })
-  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => estPidVivantDepuis(tenant.pid, naissanceDuTenant(tenant), {
-    toleranceMs: identite.toleranceMs,
-    lireCreation: (pid) => lire(pid, brut),
-  }, { estVivant })
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) =>
+    estPidVivantDepuis(tenant.pid, naissanceDuTenant(tenant), {
+      toleranceMs: identite.toleranceMs,
+      lireCreation: (pid) => lire(pid, brut),
+    }, { estVivant }) && !identite.estZombie?.(tenant.pid)
 }
 
 /** La clé du tenant d'un essai : sa `generation`, à défaut son texte. */

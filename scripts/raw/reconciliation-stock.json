@@ -8,7 +8,7 @@
       "quoi": "L'Ennemi dans l'Ombre, ch.10 (compétences) — aucune fiche de l'Atlas ne cite ce chapitre."
     },
     "MSRC 10": {
-      "sites": ["src/data/naval-traits.json", "src/ui/ship-stations-panel.test.tsx", "src/noyau/codex/registry-enveloppe.test.ts"],
+      "sites": ["src/data/naval-traits.json", "src/noyau/codex/registry-enveloppe.test.ts"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "Mort sur le Reik — Compagnon, ch.10 (postes de navire) — aucune fiche de l'Atlas ne cite ce chapitre."
@@ -18,12 +18,6 @@
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "Nuits agitées & dures journées, ch.4 (taverne) — aucune fiche de l'Atlas ne cite ce chapitre."
-    },
-    "PDT 8": {
-      "sites": ["src/ui/mono-stake-ratchet.test.ts"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "Le Pouvoir derrière le Trône, ch.8 — cité par l'instruction des candidats « porte à enfoncer » (#1117) ; aucune fiche de l'Atlas ne cite ce chapitre."
     }
   }
 }

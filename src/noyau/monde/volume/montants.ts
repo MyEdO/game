@@ -1,7 +1,7 @@
 /**
  * LES MONTANTS ET LA MATIÈRE PLEINE D'UN MUR (#3476) : épaisseurs MONDE (m) authorées en mètres, que la triangulation
- * reçoit par `FaceDepth` (`./worldTris`) — la croix d'un montant (poteau, jambage, pilier de surplomb) et la matière
- * pleine qu'il encadre.
+ * reçoit dans `faceQuadsOriented` (`./worldTris`). Elles couvrent la croix d’un montant (poteau, jambage, pilier de
+ * surplomb) et la matière pleine qu’il encadre.
  */
 import type { StructureAppearanceDef } from '../../../data';
 import type { EntreeVivante } from '../../../data/datasets';

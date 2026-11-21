@@ -259,7 +259,7 @@ describe('AttackResult — détail des jets (breakdown) pour la modale', () => {
 });
 
 /**
- * Z5c (`docs/charte-ui.md`) — le RÉSOLVEUR du Test opposé dit POURQUOI il a tranché, sur la LIGNE
+ * Z5c (`docs/ajouter-un-flux-de-jet.md`) — le RÉSOLVEUR du Test opposé dit POURQUOI il a tranché, sur la LIGNE
  * du camp concerné : le départage à la valeur nue (LDB 12 l.160) n'est plus une déduction de l'UI.
  * L'annotation est CONDITIONNÉE aux DR que les lignes AFFICHENT (les DR naturels) : un verdict rendu
  * sur des DR AJUSTÉS (Taille en Parade, Défensive…) reste MUET — sa phrase citerait une égalité de DR

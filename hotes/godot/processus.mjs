@@ -88,13 +88,17 @@ export function pontDuBundleDeReference(code, console, stockage) {
 /** Le délai après lequel un processus dont l'entrée a fini sort, quoi que le retienne. */
 export const BORNE_DE_SORTIE_MS = 1_000
 
+function fichierDeStockage() {
+  const { values: options } = parseArgs({ options: { stockage: { type: 'string' } } })
+  return options.stockage ?? null
+}
+
 /** Tient le tuyau du pont du bundle `code` sur l'entrée et la sortie standard du processus (`servirLeCanal`), sa
  *  `console` sur la sortie d'erreur, son stockage au fichier de son option `--stockage=<fichier>` ; l'entrée finie, au
  *  rappel de sa dernière écriture, la sortie standard vidée, une minuterie qui ne le retient pas le fait sortir en 0 à
  *  `BORNE_DE_SORTIE_MS`. */
 export async function tenirLeTuyau(code, serveur) {
-  const { values: options } = parseArgs({ options: { stockage: { type: 'string' } } })
-  await servirLeCanal(pontDuBundle(code, new Console(process.stderr), stockageDuProcessus(options.stockage ?? null)), serveur, { entree: process.stdin, sortie: process.stdout })
+  await servirLeCanal(pontDuBundle(code, new Console(process.stderr), stockageDuProcessus(fichierDeStockage())), serveur, { entree: process.stdin, sortie: process.stdout })
   process.stdout.write('', () => setTimeout(() => process.exit(0), BORNE_DE_SORTIE_MS).unref())
 }
 
@@ -127,3 +131,11 @@ export async function servirLeCanal(pont, { url, fermer }, { entree, sortie }, m
   }
   fermer()
 }
+
+/** Le chemin de stockage choisi en CLI peut désigner un fichier du dépôt.
+ *  Lu par la dérivation des balayages.
+ *  @public
+ */
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: fichierDeStockage, retour: { type: 'union', variantes: [{ type: 'chaine' }, { type: 'null' }] } },
+]

@@ -47,8 +47,6 @@ export interface SunJeu {
   /** Azimut MONDE du soleil (degrés) : 0 = `−z`, sens horaire vu du dessus. Nord de la scène INCLUS. */
   azimuthDeg: number;
 }
-
-const deg = (rad: number) => (rad * 180) / Math.PI;
 const rad = (d: number) => (d * Math.PI) / 180;
 const minuteOfDay = (minutes: number) => ((minutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
 
@@ -76,9 +74,4 @@ export function sunJeu(gameTime: number, northDeg = 0): SunJeu | null {
  *  nord de la scène. */
 export function sceneSun(scene: Pick<Scene, 'ambiance' | 'northDeg'>, gameTime: number): SunJeu | null {
   return isIndoor(scene) ? null : sunJeu(gameTime, scene.northDeg ?? 0);
-}
-
-/** Élévation (degrés) d'une direction de soleil — l'inverse de la pose, pour les gardes et le diagnostic. */
-export function sunElevationOf(dir: { x: number; y: number; z: number }): number {
-  return deg(Math.atan2(dir.y, Math.hypot(dir.x, dir.z)));
 }

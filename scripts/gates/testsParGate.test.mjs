@@ -14,7 +14,6 @@ import { join } from 'node:path'
 import { gatesDeCi } from './gatesDeCi.mjs'
 import { GATES, GATES_D_AUDIT, RACINES, couverture, gateDe, listerTests, testsDe } from './testsParGate.mjs'
 import { gitDe, gitDeLArbreReel } from '../test/gitDeBanc.mjs'
-import { SUITES_VITEST_DE_CI } from '../guards/lib/racinesDeLaSuite.mjs'
 
 const RACINE = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
 const listerReel = () => listerTests(RACINE)
@@ -74,24 +73,6 @@ function scriptsDuLanceur() {
   return par
 }
 
-/** Les scripts `test:*` de `package.json` qui lancent `vitest run --config <config>` : `{ nom du script -> config }`. */
-function scriptsVitest(scripts = scriptsDuPaquet()) {
-  const par = {}
-  for (const [nom, commande] of Object.entries(scripts)) {
-    const m = /\bvitest run --config (\S+)/.exec(commande)
-    if (nom.startsWith('test:') && m) par[nom] = m[1]
-  }
-  return par
-}
-
-/** Les suites de `suites` sans script de leur config, et les scripts Vitest de `parScript` sans déclaration. */
-function ecartsDesSuitesVitest(suites, parScript) {
-  return [
-    ...Object.entries(suites).filter(([nom, { config }]) => parScript[nom] !== config).map(([nom, { config }]) => `${nom} : déclarée (config ${config}) sans script \`vitest run --config ${config}\``),
-    ...Object.keys(parScript).filter((nom) => !(nom in suites)).map((nom) => `${nom} : script Vitest sans déclaration dans SUITES_VITEST_DE_CI`),
-  ]
-}
-
 test('propriété = EXÉCUTION : la table, package.json et ci.yml nomment le MÊME ensemble de gates', () => {
   const parScript = scriptsDuLanceur()
   for (const [nom, gate] of Object.entries(parScript))
@@ -107,25 +88,9 @@ test('propriété = EXÉCUTION : la table, package.json et ci.yml nomment le MÊ
     .filter((nom) => nom.startsWith('test:'))
   assert.deepEqual(
     enCi.sort(),
-    [...GATES, ...Object.keys(SUITES_VITEST_DE_CI)].sort(),
-    'les steps `npm run test:*` de .github/workflows/ci.yml doivent être exactement les gates de RACINES et les suites de ' +
-      'SUITES_VITEST_DE_CI : une gate hors CI joue dans le vide, un step hors table joue une liste que personne ne tient',
+    [...GATES].sort(),
+    'les steps `npm run test:*` de ci.yml correspondent aux gates de RACINES',
   )
-  assert.deepEqual(ecartsDesSuitesVitest(SUITES_VITEST_DE_CI, scriptsVitest()), [], 'chaque suite Vitest de la CI a son script `package.json` du même nom, sur sa config, et réciproquement')
-})
-
-test('une suite Vitest déclarée sans script, ou un script sans déclaration, est NOMMÉE', () => {
-  const suites = { 'test:a': { config: 'a.config.ts', motif: 'a/**' }, 'test:b': { config: 'b.config.ts', motif: 'b/**' } }
-  const parScript = scriptsVitest({
-    'test:a': 'node scripts/lancer-local.mjs vitest -- vitest run --config a.config.ts',
-    'test:b': 'vitest run --config autre.config.ts',
-    'test:c': 'vitest run --config c.config.ts',
-    'build': 'vitest run --config d.config.ts',
-  })
-  assert.deepEqual(ecartsDesSuitesVitest(suites, parScript), [
-    'test:b : déclarée (config b.config.ts) sans script `vitest run --config b.config.ts`',
-    'test:c : script Vitest sans déclaration dans SUITES_VITEST_DE_CI',
-  ])
 })
 
 test('une gate ajoutée à la table sans script ni step est NOMMÉE', () => {

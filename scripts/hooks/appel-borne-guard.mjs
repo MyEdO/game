@@ -73,9 +73,9 @@ function refusServeur(outil, graphie) {
     decision: 'deny',
     raison: `⛔ Serveur vite SANS BORNE DE VIE REFUSÉ (${graphie}, ${outil}, #2603) : vite ne s'arrête pas sur inactivité, et `
       + 'un serveur lancé sans `timeout` survit à l\'appel, au shell et à l\'agent. Lance-le par l\'outil Bash, borné et en fond : '
-      + '`timeout <N> npm run dev` (N en secondes, la durée de la recette), puis `node scripts/recette/arreter-dev.mjs` en fin de '
-      + 'recette. Sous PowerShell, `timeout` est le `timeout.exe` de Windows, qui ne borne rien : passe par Bash. '
-      + 'Variable d\'environnement : `VITE_RELAY_URL=… timeout <N> npm run dev`.',
+      + '`timeout <N> npx vite …` (N en secondes, la durée de la recette). '
+      + 'Sous PowerShell, `timeout` désigne `timeout.exe`. Bash permet d’utiliser le délai de coreutils. '
+      + 'Pour une variable d’environnement, utilise `VARIABLE=valeur timeout <N> npx vite …`.',
   }
 }
 

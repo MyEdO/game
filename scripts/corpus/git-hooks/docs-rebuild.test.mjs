@@ -12,7 +12,7 @@ const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
  *  l'Atlas et `scripts/raw/`, `src/`, tsconfig —, les moins coûteux à mesurer. */
 const MESURES = [
   'scripts/docs/build-doctrines.mjs', 'scripts/docs/build-reprise.mjs', 'scripts/raw/build-atlas-index.mjs',
-  'scripts/docs/build-usages-jets.mjs', 'scripts/docs/build-donnees.mjs',
+  'scripts/docs/build-registre-jets.mjs', 'scripts/docs/build-donnees.mjs',
 ]
 
 test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur la mesure RENDUE par les générateurs', () => {

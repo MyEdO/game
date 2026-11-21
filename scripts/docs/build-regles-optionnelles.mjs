@@ -11,9 +11,7 @@
  *    le `hint` VERBATIM (seul porteur de « ce que la règle change ») ;
  *  - les clés déclarées par le schéma `src/data/schemas/defs/reglesOptionnelles.ts` — c'est SUR
  *    cette liste que s'appuie l'angle mort annoncé (aucune clé ne déclare le contenu gaté) ;
- *  - le découpage en ONGLETS du panneau : seuil `OWN_TAB_MIN` et libellé du fourre-tout, lus dans
- *    `src/ui/houseRuleTabs.ts` ;
- *  - la clé de persistance `localStorage`, lue dans `src/hote/reglesMaison.ts`.
+ *  - la clé du stockage de l’hôte, lue dans src/hote/reglesMaison.ts.
  * La part ÉDITORIALE (comment activer, quoi faire avant de rapporter une absence) vit ICI, en dur.
  *
  * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
@@ -28,11 +26,8 @@ function rendu() {
   const OUTIL = 'build-regles-optionnelles'
   const DATA = 'src/data/reglesOptionnelles.json'
   const DEF = 'src/data/schemas/defs/reglesOptionnelles.ts'
-  const TABS = 'src/ui/houseRuleTabs.ts'
   const STORE = 'src/hote/reglesMaison.ts'
-  const PANNEAU = 'src/ui/HouseRulesModal.tsx'
   const POLICY = 'src/engine/policy.ts'
-  const RECETTE = 'docs/recette-navigateur.md'
 
   function abandon(msg) {
     console.error(`${OUTIL} — ${msg}`)
@@ -83,19 +78,11 @@ function rendu() {
   /** Clés d'ENVELOPPE mesurées en donnée mais posées par la fabrique (hors bloc `meta`). */
   const CLES_MESUREES = [...new Set(REGLES.flatMap((r) => Object.keys(r)))]
 
-  // ── Panneau : onglets dérivés ────────────────────────────────────────────────────────────────────
-
-  const TABS_SRC = lire(TABS)
-  const OWN_TAB_MIN = Number(capture(TABS_SRC, /export const OWN_TAB_MIN = (\d+)/, 'la constante `OWN_TAB_MIN`', TABS))
-  const MISC_LABEL = capture(TABS_SRC, /export const MISC_TAB_LABEL = '([^']+)'/, 'la constante `MISC_TAB_LABEL`', TABS)
-  if (!Number.isFinite(OWN_TAB_MIN) || OWN_TAB_MIN < 1) abandon(`\`OWN_TAB_MIN\` illisible dans ${TABS}`)
-
   const CLE_PERSISTANCE = capture(lire(STORE), /const CLE_DES_REGLES = '([^']+)'/, 'la clé de persistance `CLE_DES_REGLES`', STORE)
 
   for (const [f, sym] of [[POLICY, 'export function rule('], [POLICY, 'export function ruleDef(']]) {
     if (!lire(f).includes(sym)) abandon(`« ${sym.trim()} » introuvable dans ${f} (renommé ?)`)
   }
-  if (!lire(PANNEAU).includes('houseRuleTabs')) abandon(`${PANNEAU} ne compose plus \`houseRuleTabs\``)
 
   // ── Agrégats ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -104,7 +91,7 @@ function rendu() {
     if (!PAR_GROUPE.has(r.group)) PAR_GROUPE.set(r.group, [])
     PAR_GROUPE.get(r.group).push(r)
   }
-  const GROUPES = [...PAR_GROUPE.keys()] // ordre du registre (= ordre de découverte du panneau)
+  const GROUPES = [...PAR_GROUPE.keys()] // ordre du registre
   const MAISON = REGLES.filter((r) => r.maison !== undefined)
   const AVEC_SOURCE = REGLES.filter((r) => r.source !== undefined)
   const AVEC_ACTION = REGLES.filter((r) => r.action !== undefined)
@@ -143,22 +130,12 @@ function rendu() {
 
   const sectionsGroupes = GROUPES.map((g) => {
     const list = PAR_GROUPE.get(g)
-    const onglet = list.length >= OWN_TAB_MIN ? `onglet propre « ${g} »` : `onglet « ${MISC_LABEL} », intertitre « ${g} »`
-    return `### ${g} — ${list.length} règle${list.length > 1 ? 's' : ''}\n\nPanneau : ${onglet}.\n\n${tableGroupe(list)}`
+    return `### ${g} — ${list.length} règle${list.length > 1 ? 's' : ''}\n\n${tableGroupe(list)}`
   }).join('\n\n')
 
-  const tableGroupesResume = [
-    '| Groupe | Règles | Onglet du panneau |',
-    '|---|---|---|',
-    ...GROUPES.map((g) => {
-      const n = PAR_GROUPE.get(g).length
-      return `| ${g} | ${n} | ${n >= OWN_TAB_MIN ? `propre` : MISC_LABEL} |`
-    }),
-  ].join('\n')
-
   const tableKinds = [
-    '| `kind` | Entrées | Contrôle rendu | Forme de la valeur |',
-    '|---|---|---|---|',
+    '| `kind` | Entrées | Forme de la valeur |',
+    '|---|---|---|',
     ...KINDS_DECLARES.map((k) => {
       const n = REGLES.filter((r) => r.kind === k).length
       const forme =
@@ -167,8 +144,7 @@ function rendu() {
           : k === 'param'
             ? 'nombre borné (`min`/`max`, `step` optionnel)'
             : 'chaîne prise dans `options`'
-      const controle = k === 'flag' ? 'interrupteur' : k === 'param' ? 'champ chiffré' : 'choix segmenté'
-      return `| \`${k}\` | ${n} | ${controle} | ${forme} |`
+      return `| \`${k}\` | ${n} | ${forme} |`
     }),
   ].join('\n')
 
@@ -181,8 +157,7 @@ function rendu() {
 
 **Périmètre mesuré / angles morts** — sont LUES aux fichiers réels : les ${REGLES.length} entrées de
 \`${DATA}\` (id, libellé, groupe, forme, défaut, options/bornes, référence RAW, folio, présence de
-\`maison\` et d'\`action\`, \`hint\` verbatim), les clés déclarées par \`${DEF}\`, le seuil d'onglet
-\`OWN_TAB_MIN\` et le libellé du fourre-tout de \`${TABS}\`, la clé de persistance de \`${STORE}\`.
+\`maison\` et d'\`action\`, \`hint\` verbatim), les clés déclarées par \`${DEF}\` et la clé de stockage de \`${STORE}\`.
 **ANGLE MORT STRUCTUREL** : *la liste des contenus gatés n'est pas déclarée structurellement, c'est
 le \`hint\` qui le dit* — voir le § « Ce doc ne sait pas … » ci-dessous. Autre angle mort : ce doc
 décrit le REGISTRE, pas les SITES qui consultent la règle ; qu'une règle existe ne dit pas combien
@@ -198,16 +173,11 @@ activer la règle, **puis** rejouer le geste avant de conclure.
 
 ## Activer / désactiver une règle
 
-| Couture | Persistance | Où |
-|---|---|---|
-| Panneau **Options** in-game | **PERSISTÉE** — \`localStorage['${CLE_PERSISTANCE}']\` | \`${PANNEAU}\` (onglets dérivés par \`${TABS}\`), écriture par \`reglerUneRegleMaison\` (\`${STORE}\`) |
-| Console de recette \`__wfrp.rules(id, value)\` | **RUNTIME, NON persistée** (meurt au rechargement) | \`${RECETTE}\`, § « Groupe / campagne / règles » |
-| Console de recette \`__wfrp.rules(id, null)\` | réinitialise **et purge la surcharge persistée** | idem |
-| Lecture par le moteur | — | \`rule(id)\` / \`ruleDef(id)\` (\`${POLICY}\`) |
-
-L'asymétrie entre ces trois gestes, le verrou en cours de combat et la vérification de l'état
-persisté en fin de run sont décrits **une seule fois**, dans \`${RECETTE}\` : s'y reporter, ils ne
-sont pas recopiés ici.
+Dans Godot, ouvrir les réglages du jeu puis la rubrique Règles. Le pont délègue à
+\`src/hote/reglages.ts\` la projection et l’écriture, avec le verrou du noyau
+\`reglesMaisonMutables\` pendant le combat et pour un invité. Les surcharges passent par
+\`${STORE}\` et la clé \`${CLE_PERSISTANCE}\` du stockage de l’hôte.
+Le moteur lit les valeurs par \`rule(id)\` et \`ruleDef(id)\` (\`${POLICY}\`).
 
 ## Ce doc ne sait pas quelles règles gatent du CONTENU
 
@@ -224,14 +194,6 @@ structurelle — et une règle nouvellement gatante n'est signalée par aucune g
 
 ${tableKinds}
 
-## Groupes et onglets
-
-Le panneau ne code aucun groupe en dur : un groupe obtient son onglet à partir de
-**${OWN_TAB_MIN} entrées**, les résiduels tombent dans l'onglet « ${MISC_LABEL} » en gardant leur
-intertitre (\`${TABS}\`).
-
-${tableGroupesResume}
-
 ## Provenance
 
 ${MAISON.length} règles sur ${REGLES.length} portent un champ \`maison\` : le RAW ne chiffre pas la
@@ -246,7 +208,7 @@ ${sectionsGroupes}
   return {
     out,
     path: 'docs/regles-optionnelles.md',
-    staleMsg: `docs:regles-optionnelles — docs/regles-optionnelles.md est PÉRIMÉ (diverge de ${DATA}, ${DEF}, ${TABS}, ${STORE}, ou du script).`,
+    staleMsg: `docs:regles-optionnelles — docs/regles-optionnelles.md est PÉRIMÉ (diverge de ${DATA}, ${DEF}, ${STORE}, ou du script).`,
     rerunMsg: '  → relancer `npm run docs:regles-optionnelles` (dérivé jamais commité, #2203).',
     okMsg: 'docs:regles-optionnelles — OK (docs/regles-optionnelles.md à jour)',
     writeMsg: `docs/regles-optionnelles.md — ${REGLES.length} règles, ${GROUPES.length} groupes, ${KINDS_DECLARES.length} formes de contrôle, ${MAISON.length} maison.`,
