@@ -5,6 +5,27 @@ Annexe du skill `orchestrer-des-agents` (`.claude/skills/orchestrer-des-agents/S
 **7. Publication au fil de l’eau (#2626).** Le lot est l’unité de composition et de jugement ; chaque
 tête committée à CI verte se publie aussitôt par `npm run ops:publier -- --detache`, lot fini ou non.
 Commits intermédiaires `refs #N`, seul le solde clôt.
+- **Avant le commit de fermeture**, écris et stage `.claude/soldes/<N>.md` avec une seule section
+  `## Restes`. Mets `RAS` seul si tout est soldé. Sinon, indique chaque reste sous la forme
+  `- <reste> -> <disposition>`. Les dispositions sont définies par `checkRestesSection` et
+  `DISPOSITION_RE` dans la [porte du commit](../../../scripts/git-hooks/porte-du-commit.mjs).
+  Pour ce minimum hors écran, remplace la date par celle du jour et les deux preuves par tes résultats.
+
+  ```md
+  # Solde — AAAA-MM-JJ
+
+  VERIFIE: <vérification concrète et résultat, au moins 40 caractères>
+
+  ## Réfutation
+
+  verdict: CONFIRMÉ
+  <contre-épreuve et résultat, au moins 40 caractères>
+
+  ## Restes
+
+  RAS
+  ```
+
 - **Un travail suspendu hors PR** se pousse sur `wip/<N>-<sujet>`, et son lot se rend au ticket (skill
   `se-coordonner-entre-comptes`).
 - **Un lot = un chantier** (`npm run ops:chantier -- <N>`), même urgent pendant un train : jamais deux
