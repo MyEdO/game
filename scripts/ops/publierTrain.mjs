@@ -39,7 +39,6 @@ import {
   runDe,
   runEnVol,
   lancementDe,
-  journalVide,
   journalInitial,
   modeDuLog,
   ouvrirLog,
@@ -730,16 +729,9 @@ async function main({ maintenant, dormir }) {
     })
   }
 
-  mkdirSync(chemins.dossier, { recursive: true })
-  const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
-  // #2493 : constater l'interruption avant la rotation du log (`ouvrirLog`).
-  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}`, identite, maintenant, dormir })
-
-  // La TÊTE VIVANTE : la seule contre laquelle une étape verte se juge (`planDeReprise`).
-  const teteVivante = shaDe(depot, 'HEAD')
-
   if (options.etapes) {
-    const journal = surDisque ?? journalVide(branche)
+    const journal = lireJournal(chemins.json, branche, { strict: true })
+    const teteVivante = shaDe(depot, 'HEAD')
     const train = etatDuTrain(journal, { teteVivante, identite })
     process.stdout.write(
       `publication ${branche} — journal ${chemins.json}\n` +
@@ -751,6 +743,12 @@ async function main({ maintenant, dormir }) {
     return 0
   }
 
+  mkdirSync(chemins.dossier, { recursive: true })
+  const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
+  // #2493 : constater l'interruption avant la rotation du log (`ouvrirLog`).
+  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}`, identite, maintenant, dormir })
+
+  shaDe(depot, 'HEAD')
   if (!publication) throw new Error('train de publication sans snapshot validé')
 
   const enfant = process.env.WFRP_PUBLIER_ENFANT === '1'
