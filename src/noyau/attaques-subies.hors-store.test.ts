@@ -317,9 +317,11 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(test).toMatchObject({ kind: 'testDeclenche', actorId: H.id, difficulty: 'intermediaire', rollLabel: 'Résistance' });
     expect(s.pendingTest).toBeNull();
     expect(s.party[0].traumas?.some((t) => t.pendingAmputation)).toBe(false);
+    expect(s.party[0].traumas?.find((t) => t.traumaId === 'orteil-ampute')).toBeUndefined();
     lancerLEtape(banc, test.id, 99);
-    const amputation = banc.getState().pendingCascade!.participants.find((x) => x.kind === 'testDeclenche' && !x.committed)!;
-    expect(amputation).toMatchObject({ actorId: H.id, difficulty: 'accessible', label: 'Amputation' });
+    const amputation = seuleEtapeOuverte(banc);
+    expect(amputation).toMatchObject({ actorId: H.id, difficulty: 'accessible', label: 'Plaie d’amputation' });
+    expect(banc.getState().party[0].traumas?.find((t) => t.traumaId === 'orteil-ampute')).toMatchObject({ location: 'jambeG', count: 1 });
     lancerLEtape(banc, amputation.id, 5);
     s = banc.getState();
     expect(s.serieSubie).toBeNull();

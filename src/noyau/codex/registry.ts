@@ -744,6 +744,7 @@ function consequencesDeCritique(flow: Flow | undefined, title: string, afficherS
 
 function libelleDeJet({ test }: FlowTestNode): string {
   const sujet = testSkillLabel(test) ?? tr('codex.fiche.jet');
+  // lecture déclarée : la fiche décrit le Test tel que la donnée l'authore
   const jet = `${sujet} ${DIFFICULTY_LABELS[test.difficulty ?? DIFFICULTE_PAR_DEFAUT]}`;
   return test.label ? tr('codex.fiche.jetAvecRole', { role: test.label, jet }) : jet;
 }

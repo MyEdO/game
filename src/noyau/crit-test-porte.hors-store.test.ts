@@ -330,18 +330,13 @@ describe('#1675 — le Flow de la rangée passe par la porte et reprend en ordre
     else combat(hero, mk('e', 'ennemi'));
     subirCritique(hero, 'jambeG', 92);
 
-    if (horsCombat) {
-      draineEtapes(banc.getState);
-      const get = banc.getState;
-      get().jetLancer('test');
-      get().jetImposerLeResultat('test', jet);
-      expect(get().pendingTest).toMatchObject({ difficulty: 'accessible', success: false, sl: dr });
-      get().jetValider('test');
-    } else {
-      const gate = attendreLeTestDe('pied-ecrase');
-      expect(gate).toMatchObject({ label: 'Perte de l’orteil', difficulty: 'accessible', target: 55 });
-      avanceEtapeCascade(banc.getState, () => jet);
-    }
+    const get = banc.getState;
+    const gate = attendreLeTestDe('pied-ecrase');
+    expect(gate).toMatchObject({ label: 'Perte de l’orteil', difficulty: 'accessible', target: 55 });
+    get().jetLancer('cascade', gate.id);
+    get().jetImposerLeResultat('cascade', jet, gate.id);
+    expect(etapeCourante()?.result).toMatchObject({ roll: jet, success: false, sl: dr });
+    get().jetValider('cascade');
     const plaie = attendreLeTestDe('pied-ecrase');
     expect(plaie).toMatchObject({ label: 'Plaie d’amputation', difficulty: 'accessible' });
     expect(orteilsPerdus()).toMatchObject([{ location: 'jambeG', count: unites }]);
