@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, it, expect } from 'vitest';
+import { assert, describe, it, expect } from 'vitest';
 import type { ZodType } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
@@ -636,6 +636,13 @@ function textesDeDesignation(projet: unknown): { chemin: string; texte: string }
   return out;
 }
 
+function fautesDeDesignation(projet: ProjectDoc, fichier: string): string[] {
+  const ancres = projet.narratif.etats.flatMap((e) => (e.forme.kind === 'heros' ? e.forme.identite?.ancres ?? [] : []));
+  if (!ancres.length) return [];
+  const motif = motifEnMot(ancres);
+  return textesDeDesignation(projet).filter((t) => motif.test(t.texte)).map((t) => `${fichier}${t.chemin} : « ${t.texte} »`);
+}
+
 describe('identité d’un état `heros` dans les paquets livrés (EDO 02 l.112-127, #686)', () => {
   const projets = bundledFiles.map((f) => ({ f, p: parseProject(lireProjetLivre(f)) }));
   const identites = projets.flatMap(({ f, p }) => p.narratif.etats.flatMap((e) => (e.forme.kind === 'heros' && e.forme.identite ? [{ f, p, etat: e.id, identite: e.forme.identite }] : [])));
@@ -661,13 +668,21 @@ describe('identité d’un état `heros` dans les paquets livrés (EDO 02 l.112-
   });
 
   it('aucune ancre dans un texte de régime `designation` : la désignation ne dévoile pas le nom', () => {
-    const fautifs = projets.flatMap(({ f, p }) => {
-      const ancres = p.narratif.etats.flatMap((e) => (e.forme.kind === 'heros' ? e.forme.identite?.ancres ?? [] : []));
-      if (!ancres.length) return [];
-      const motif = motifEnMot(ancres);
-      return textesDeDesignation(p).filter((t) => motif.test(t.texte)).map((t) => `${f}${t.chemin} : « ${t.texte} »`);
-    });
-    expect(fautifs).toEqual([]);
+    expect(projets.flatMap(({ f, p }) => fautesDeDesignation(p, f))).toEqual([]);
+  });
+
+  it('repère une ancre dans le libellé du profil d’un PNJ précomposé', () => {
+    const fichier = 'diligence/diligence-projet.json';
+    const id = 'edo-fhluger-dagh';
+    const label = 'Kastor Lieberung';
+    const projet = parseProject(lireProjetLivre(fichier));
+    const profil = projet.narratif.presetsPnj.find((pnj) => pnj.id === id)?.profil;
+    assert(profil, `Profil de ${id} dans ${fichier}`);
+    profil.label = label;
+
+    expect(fautesDeDesignation(parseProject(projet), fichier)).toEqual([
+      `${fichier}.narratif.presetsPnj[${id}].profil.label : « ${label} »`,
+    ]);
   });
 
   it('chaque identité couvre la totalité espèce × sexe', () => {
