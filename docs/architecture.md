@@ -819,8 +819,9 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   garde « lu ⇒ produit » (`src/scenes/drapeau-lu-produit.test.ts`).
 - **Moteur de campagne** : transitions de scènes (registre depuis `campaign`), tests de
   compétence interactifs (modal + branches), inventaire/argent/handouts (state party-level).
-- **Inventaire/équipement** : chaque héros a `items: ItemInstance[]` ; `weapons`/`armour`
-  ACTIFS dérivés via `recomputeLoadout` (équiper change le combat). Fiche = `CharacterSheet.tsx`.
+- **Inventaire et équipement.** `recomputeLoadout` compose les armes actives et les PA des objets et mutations du
+  porteur. L’état de l’arme autonome d’un Trait et l’usure de son Armure appartiennent à l’instance du Trait.
+  `armourPhysiqueAt` lit ses PA nets avec les autres PA physiques. La fiche se compose dans `src/noyau/ficheDuPorteur.ts`.
 - **Rendu et éditeur**. Godot dessine les entités et le décor. Le noyau porte la géométrie du monde
   (`src/noyau/monde/volume/`). L’éditeur Godot joue les gestes de la session du noyau pour les
   scènes, cartes et narratifs.

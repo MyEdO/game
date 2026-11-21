@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { isOptionalNote, parseStatEntry, resoudreTrait, statName, traitsDuPorteur } from './statEntry';
-import type { EffectSource } from './types';
+import { LOCALISATIONS_DE_COUP, type EffectSource } from './types';
 import { creatureToCombatant, porteurDuProfil, statblockToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
-import { armourFromTraits } from './creatureEquip';
+import { armourPhysiqueAt } from './armourBypass';
 
 describe('parseStatEntry — parseur canonique des chaînes de statbloc', () => {
   const cases: [string, Partial<ReturnType<typeof parseStatEntry>>][] = [
@@ -100,7 +100,7 @@ describe('traitsDuPorteur / resoudreTrait — d’un Trait posé à l’instance
   });
   it('le spawn lit l’Indice formulé sur le profil du statbloc', () => {
     const sb = { type: 'statblock' as const, label: 'Fixture', char: { force: 35 }, traits: [{ id: 'arme', value: { sum: [{ bonusOf: 'force' as const }, 4] } }] };
-    expect(statblockToCombatant(sb, 'fixture', { x: 0, y: 0 }).traits).toEqual([{ id: 'arme', value: 7 }]);
+    expect(statblockToCombatant(sb, 'fixture', { x: 0, y: 0 }).traits).toEqual([expect.objectContaining({ id: 'arme', value: 7 })]);
   });
   it('le spawn fixe la fourchette sur la graine du porteur, et l’Armure tirée vaut à toutes ses Localisations', () => {
     const sb = { type: 'statblock' as const, label: 'Fixture', char: {}, traits: [{ id: 'armure', plage: { min: 1, max: 3 } }] };
@@ -109,7 +109,7 @@ describe('traitsDuPorteur / resoudreTrait — d’un Trait posé à l’instance
     expect(tiree).toBeGreaterThanOrEqual(1);
     expect(tiree).toBeLessThanOrEqual(3);
     expect(statblockToCombatant(sb, 'fixture', { x: 0, y: 0 }).traits).toEqual(c.traits);
-    expect(Object.values(armourFromTraits(c.traits!))).toEqual(Array(6).fill(tiree));
+    expect(LOCALISATIONS_DE_COUP.map((loc) => armourPhysiqueAt(c, loc))).toEqual(Array(6).fill(tiree));
   });
   it('Sirène (ZI 13 l.31) : l’Armure 1-3 facultative choisie se tire au spawn, PA comprises', () => {
     const sirene = findCreatureById('sirene')!;
@@ -117,6 +117,6 @@ describe('traitsDuPorteur / resoudreTrait — d’un Trait posé à l’instance
     const c = creatureToCombatant(sirene, 'sirene-fixture', { x: 0, y: 0 }, { optionals: [armure] });
     const tiree = c.traits!.find((t) => t.id === 'armure')!.value!;
     expect([1, 2, 3]).toContain(tiree);
-    expect(Object.values(c.armour!)).toEqual(Array(6).fill(tiree));
+    expect(LOCALISATIONS_DE_COUP.map((loc) => armourPhysiqueAt(c, loc))).toEqual(Array(6).fill(tiree));
   });
 });

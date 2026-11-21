@@ -359,6 +359,7 @@ import {
   isActionLocked,
 } from '../engine/conditions';
 import {
+  armeDesTentacules,
   creatureAttacks,
   attaquesNaturelles,
   attaqueNaturelle,
@@ -741,14 +742,14 @@ export function victimeDuCoup(battle: BattleState, target: Combatant, pa: Pendin
   return pa.victimId ? inBattleId(battle, pa.victimId) ?? target : target;
 }
 
-/** Arme SYNTHÉTISÉE d'une attaque gratuite de créature (`freeKind`) de `attacker` : celle du jet piloté
+/** Arme d'une attaque gratuite de créature (`freeKind`) de `attacker` : celle du jet piloté
  *  (`attackWeaponOf`), de l'aperçu du geste (`apercuDuGeste`) et de l'IA (`applyFreeAttack`). `null` quand
  *  l'attaque épingle une arme PORTÉE (`weaponUid`) : c'est alors elle qui frappe. LDB 85 l.387 */
 export function armeDeLaGratuite(attacker: Combatant, kind: string, weaponUid?: string): Weapon | null {
   if (weaponUid != null && attacker.weapons.some((w) => w.uid === weaponUid)) return null;
   const attaque = attaqueNaturelle(attacker.traits ?? [], kind);
   if (!attaque) throw new Error(`armeDeLaGratuite : ${attacker.id} n'a aucune attaque naturelle « ${kind} »`);
-  return freeAttackWeapon(attaque);
+  return armeDesTentacules(attacker, attaque) ?? freeAttackWeapon(attaque);
 }
 
 /** Arme effectivement tirée : mêlée au contact, distance sinon (Atout Pistolet pour tirer en Combat

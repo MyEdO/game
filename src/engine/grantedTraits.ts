@@ -18,6 +18,9 @@ import type { PsychTrait } from './psychology';
 import { parsePsychTraits } from './psych/registry';
 import { identiteDeCiblage, type CiblePsy } from './psych/ciblage';
 import type { TraitInstance } from './statEntry';
+import type { FabriqueDId } from './fabriqueDId';
+import { armureDuTrait } from './armourBypass';
+import { armesDUnTrait, synchroniserArmesDuProfil } from './creatureEquip';
 
 /** Re-dérive les scalaires psy depuis les traits courants (Peur/Terreur/Immunité). */
 function resyncPsychScalars(c: Combatant): void {
@@ -33,7 +36,8 @@ const memeSource = (a: EffectSource | undefined, b: EffectSource | undefined): b
 
 /** Égalité STRUCTURELLE de deux `TraitInstance` (la même instance accordée doit être retrouvée). */
 export const sameInstance = (a: TraitInstance, b: TraitInstance): boolean =>
-  a.id === b.id && (a.value ?? null) === (b.value ?? null) && (a.arg ?? '') === (b.arg ?? '')
+  a.uid !== undefined || b.uid !== undefined ? a.uid !== undefined && a.uid === b.uid :
+    a.id === b.id && (a.value ?? null) === (b.value ?? null) && (a.arg ?? '') === (b.arg ?? '')
   && (a.count ?? null) === (b.count ?? null) && (a.range ?? null) === (b.range ?? null)
   // PROVENANCE comprise : deux instances identiques de sources différentes (Haine (Elfes) d'une
   // mutation et d'une prière) ne sont pas la même — sans elle, le retrait tirerait au hasard.
@@ -51,13 +55,17 @@ const contributionPsy = (t: TraitInstance): PsychTrait[] =>
 
 /** Accorde le `TraitInstance` (structuré — `{ id:'vol', value:35 }`, `{ id:'haine', arg:'mort-vivant' }`) :
  *  posé en COPIE, psychologie re-synchronisée. Mute `c`. */
-export function grantTrait(c: Combatant, accorde: TraitInstance): void {
+export function grantTrait(c: Combatant, accorde: TraitInstance, idNeuf?: FabriqueDId): TraitInstance {
   const t = structuredClone(accorde); // #2097, #379
+  const arme = armesDUnTrait(t).length > 0;
+  if (idNeuf && (arme || armureDuTrait([t]))) t.uid = idNeuf('trait');
   c.traits = [...(c.traits ?? []), t];
-  c.liveTraits = [...(c.liveTraits ?? []), t]; // modificateurs de PROFIL du trait accordé → appliqués en DIRECT (collecteur passif)
+  if (arme) synchroniserArmesDuProfil(c);
+  c.liveTraits = [...(c.liveTraits ?? []), t];
   resyncPsychScalars(c);
   const contrib = contributionPsy(t);
   if (contrib.length) c.psychTraits = [...(c.psychTraits ?? []), ...contrib];
+  return t;
 }
 
 /** Accorde un Trait PSYCHOLOGIQUE (≠ état de combat) dans `c.psychTraits` — noyau PARTAGÉ par l'op
@@ -111,9 +119,11 @@ export function desactiverLAfflictionSansTrait(c: Combatant, pt: Pick<PsychTrait
 /** Retire UNE instance du trait accordé (jamais un natif en double : la dernière occurrence — celle
  *  posée par le sort) et synchronise la psychologie dérivée. Mute `c`. */
 export function removeGrantedTrait(c: Combatant, t: TraitInstance): void {
-  const i = dernierIndex(c.traits ?? [], (x) => sameInstance(x, t));
+  const traitsAvant = c.traits ?? [];
+  const i = dernierIndex(traitsAvant, (x) => sameInstance(x, t));
   if (i < 0) return;
-  c.traits = [...c.traits!.slice(0, i), ...c.traits!.slice(i + 1)];
+  c.traits = [...traitsAvant.slice(0, i), ...traitsAvant.slice(i + 1)];
+  if (armesDUnTrait(traitsAvant[i]).length) synchroniserArmesDuProfil(c, traitsAvant);
   const li = dernierIndex(c.liveTraits ?? [], (x) => sameInstance(x, t)); // retire l'occurrence accordée des modificateurs de profil en direct
   if (li >= 0) c.liveTraits = [...c.liveTraits!.slice(0, li), ...c.liveTraits!.slice(li + 1)];
   resyncPsychScalars(c);

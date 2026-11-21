@@ -34,11 +34,32 @@ export function sourcesDArmureA(c: Combatant, loc: HitLocation): SourceDArmure[]
 }
 
 /** La source du Trait Armure à `loc`. LDB 85 l.39 ; #1463 */
-export function sourceDuTraitA(c: Combatant, loc: HitLocation): SourceDArmure | undefined {
+export function sourceDuTraitA(c: Pick<Combatant, 'traits'>, loc: HitLocation): SourceDArmure | undefined {
   const trait = armureDuTrait(c.traits);
   if (!trait) return undefined;
-  const pa = trait.parLocalisation ? trait.parLocalisation[loc] : (trait.value ?? 0);
+  const pa = paNetsDuTrait(trait, loc);
   return { pa, matiere: trait.matiere, portee: trait.matiere !== undefined && trait.matiere !== 'peau' };
+}
+
+function paNetsDuTrait(trait: TraitInstance, loc: HitLocation): number {
+  const indice = trait.parLocalisation?.[loc] ?? trait.value ?? 0;
+  return Math.max(0, indice - (trait.usure?.[loc] ?? 0));
+}
+
+/** PA de la Localisation hors effets `apAll` et `apAt`. */
+export function armourPhysiqueAt(c: Pick<Combatant, 'armour' | 'traits'>, loc: HitLocation): number {
+  return (c.armour?.[loc] ?? 0) + (sourceDuTraitA(c, loc)?.pa ?? 0);
+}
+
+/** LDB 63 l.19, l.30 ; LDB 85 l.39. */
+export function userLePADuTrait(c: Combatant, loc: HitLocation): boolean {
+  const traits = c.traits ?? [];
+  const trait = armureDuTrait(traits);
+  if (!trait || paNetsDuTrait(trait, loc) <= 0) return false;
+  const index = traits.indexOf(trait);
+  const use = { ...trait, usure: { ...trait.usure, [loc]: (trait.usure?.[loc] ?? 0) + 1 } };
+  c.traits = [...traits.slice(0, index), use, ...traits.slice(index + 1)];
+  return true;
 }
 
 /** Somme des PA à `loc` dont la matière CONNUE satisfait `pred` ; une matière inconnue n'est retenue par aucun

@@ -8,18 +8,27 @@ import type { Combatant, Weapon } from './types';
 import type { CreatureData } from '../data';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import type { TraitInstance } from './statEntry';
-import { creatureToCombatant } from '../noyau/monde/spawn';
+import { creatureToCombatant, spawnEnemy } from '../noyau/monde/spawn';
+import { findSpellById } from '../data';
+import { mutationById } from '../data/mutations';
+import { attachMutation } from './corruption';
+import { idsDeTest } from './idsDeTest.testkit';
+import { makeRNG } from './dice';
+import { endOfRound } from './conditions';
+import { spellOps } from './flowCore';
+import { damageArmour, deviatableArmourAt, itemFromTrappingById, recomputeLoadout } from './items';
+import { applyOps } from './ops';
 import { woundsFromHit } from './woundsCalc';
 import { domainMissileMods } from './domainAttributes';
 import { effectiveArmourAt, bonus } from './characteristics';
 import { armourCastDRPenalty } from './magic';
 
 /** Profil de créature de fixture : seules ses Caractéristiques, ses Traits et ses Talents comptent ici. */
-const profil = (armure: TraitInstance, talents: CreatureData['talents'] = []): Combatant =>
+const profil = (armure?: TraitInstance, talents: CreatureData['talents'] = []): Combatant =>
   creatureToCombatant({
     id: idDeFixture('creature', 'fixture'), type: 'creatures', label: 'Fixture', title: null, folder: null,
     char: { M: 4, 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30, B: 15 },
-    traits: [armure], optionals: [], skills: [], talents, trappings: [], spells: [],
+    traits: armure ? [armure] : [], optionals: [], skills: [], talents, trappings: [], spells: [],
     source: { book: 'livre-de-base', page: 0 }, appearance: { species: 'humains-reiklander' },
   }, 'fixture', { x: 0, y: 0 });
 
@@ -76,5 +85,68 @@ describe('Repousser les Vents : le Trait Armure d’une matière d’armure est 
   it('la peau et la matière inconnue ne sont pas une armure portée', () => {
     expect(armourCastDRPenalty(profil(PEAU, sorcier('feu')))).toBe(0);
     expect(armourCastDRPenalty(profil(SANS_MATIERE, sorcier('feu')))).toBe(0);
+  });
+});
+
+
+describe('usure de l’Armure de Trait (LDB 63 l.19, LDB 85 l.39)', () => {
+  const ctx = () => ({ idNeuf: idsDeTest, rng: makeRNG(1) });
+
+  it('l’ours conserve son PA de peau à l’octroi d’une arme, puis perd durablement le PA de la localisation usée', () => {
+    const ours = spawnEnemy({ ref: 'ours' }, 'ours', undefined);
+    expect(effectiveArmourAt(ours, 'corps')).toBe(1);
+    applyOps(ours, [{ op: 'grantNaturalWeapon', label: 'Morsure', damage: 2 }], ctx());
+    expect(effectiveArmourAt(ours, 'corps')).toBe(1);
+    expect(damageArmour(ours, 'corps')).toBe(true);
+    recomputeLoadout(ours);
+    expect(effectiveArmourAt(ours, 'corps')).toBe(0);
+    expect(effectiveArmourAt(ours, 'tete')).toBe(1);
+    expect(ours.traits?.find((trait) => trait.id === 'armure')?.value).toBe(1);
+  });
+
+  it('la Déviation sacrifie le PA du Trait avant les Écailles épineuses hors Déviation', () => {
+    const c = profil();
+    attachMutation(c, mutationById('ecailles-epineuses')!, makeRNG(1));
+    recomputeLoadout(c);
+    applyOps(c, [{ op: 'grantTrait', trait: { id: 'armure', value: 1, matiere: 'peau' } }], ctx());
+    expect(effectiveArmourAt(c, 'corps')).toBe(2);
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
+
+    expect(damageArmour(c, 'corps')).toBe(true);
+    recomputeLoadout(c);
+    expect(effectiveArmourAt(c, 'corps')).toBe(1);
+    expect(deviatableArmourAt(c, 'corps')).toBe(false);
+    expect(c.mutations?.[0]?.usure).toBeUndefined();
+    expect(c.traits?.find((trait) => trait.id === 'armure')?.usure).toEqual({ corps: 1 });
+    expect(c.liveTraits?.find((trait) => trait.id === 'armure')?.usure).toBeUndefined();
+  });
+
+  it('Perforante ignore la peau octroyée et un seul PA de maille, puis l’octroi expire', () => {
+    const c = profil();
+    c.items = [{ ...itemFromTrappingById('chemise-de-mailles', idsDeTest)!, equipped: true }];
+    recomputeLoadout(c);
+    applyOps(c, [{ op: 'grantTrait', trait: PEAU, durationRounds: 1 }], ctx());
+    expect(effectiveArmourAt(c, 'corps')).toBe(4);
+    expect(blessures(c, false)).toBe(100 - be(c) - 4);
+    expect(blessures(c, true)).toBe(100 - be(c) - 1);
+    recomputeLoadout(c);
+    endOfRound(c, makeRNG(1), idsDeTest);
+    expect(effectiveArmourAt(c, 'corps')).toBe(2);
+    expect(blessures(c, true)).toBe(100 - be(c) - 1);
+  });
+
+  it('la Putréfaction use le cuir à une Localisation et réduit durablement la pénalité d’incantation', () => {
+    const c = profil({ ...MAILLES, matiere: 'leather' });
+    const sort = findSpellById('putrefaction')!;
+    const ops = spellOps(sort.effects, 'target');
+    expect(armourCastDRPenalty(c)).toBe(2);
+
+    applyOps(c, ops, ctx());
+    expect(effectiveArmourAt(c, 'corps')).toBe(1);
+    expect(effectiveArmourAt(c, 'tete')).toBe(0);
+    expect(armourCastDRPenalty(c)).toBe(1);
+    recomputeLoadout(c);
+    expect(armourCastDRPenalty(c)).toBe(1);
+    expect(effectiveArmourAt(c, 'corps')).toBe(1);
   });
 });

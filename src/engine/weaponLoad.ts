@@ -1,10 +1,10 @@
 import type { Combatant, ItemInstance, ShipPoste, Weapon } from './types';
+import type { TraitInstance } from './statEntry';
 
 /**
  * ÉTAT DE CHARGE — module FEUILLE (aucun import runtime) : les LECTEURS purs du cycle de charge.
  * Arbitrage utilisateur 2026-08-16 : « quand on charge une arme on sélectionne une munition » et « si j'ai
- * 2 armes à distance elles gèrent chacune leur propre rechargement et munition ». L'état vit donc sur
- * l'INSTANCE d'arme (`Combatant.weapons[i]`), ou sur la PIÈCE servie (`ShipPoste`) pour son canon.
+ * 2 armes à distance elles gèrent chacune leur propre rechargement et munition ».
  * Les ÉCRIVAINS (`loadWeapon`/`unloadWeapon`, engine/items.ts) sont les seuls à poser/effacer.
  */
 export interface WeaponLoadState {
@@ -25,21 +25,29 @@ export function objetSourceDeLArme(c: Combatant, weapon: Weapon): ItemInstance |
   return (c.items ?? []).find((i) => i.uid === weapon.uid);
 }
 
-/** REGISTRE de charge de CETTE arme — SOURCE UNIQUE de lecture/écriture, dans cet ordre :
- *  1. la PIÈCE servie quand l'arme est la sienne (son cycle vit sur elle, MDG 12) ;
- *  2. l'OBJET possédé de même `uid` (`c.items`) — porteur PERSISTANT : il survit au re-dérivage du set
- *     actif (`recomputeLoadout`), donc changer de set ne téléporte ni n'efface un coup chargé ;
- *  3. l'instance d'arme du porteur (`c.weapons`) pour une arme SANS objet (statbloc de créature/ennemi) ;
- *  4. l'arme reçue elle-même (fixtures nues).
- *  L'arme reçue peut être une COPIE bakée (munition fusionnée, sous-effectif) : on ne l'écrit jamais
- *  quand un registre persistant existe. */
-export function loadRegister(c: Combatant, weapon: Weapon): WeaponLoadState {
+/** Le Trait source de cette arme autonome. #3693 */
+export function traitSourceDeLArme(c: Combatant, weapon: Weapon): TraitInstance | undefined {
+  return weapon.uid === undefined ? undefined : c.traits?.find((trait) => trait.uid === weapon.uid);
+}
+
+/** Détache le registre du Trait des descripteurs de profil partagés. #3693 */
+export function modifierEtatDArmeDuTrait(c: Combatant, trait: TraitInstance): NonNullable<TraitInstance['etatDArme']> {
+  if (!c.liveTraits?.includes(trait)) return trait.etatDArme ??= {};
+  const etatDArme = { ...trait.etatDArme };
+  c.traits = c.traits!.map((t) => t === trait ? { ...t, etatDArme } : t);
+  return etatDArme;
+}
+
+/** Registre de charge : poste servi, objet, Trait d'arme ou instance de l'arme. #2907, #3693 */
+export function loadRegister(c: Combatant, weapon: Weapon, mode: 'lecture' | 'ecriture' = 'lecture'): WeaponLoadState {
   const poste: ShipPoste | undefined = c.mannedPoste;
   if (poste && weapon.uid != null && poste.item?.uid === weapon.uid) return poste;
   if (weapon.uid == null) return weapon;
-  return objetSourceDeLArme(c, weapon)
-    ?? (c.weapons ?? []).find((w) => w.uid === weapon.uid)
-    ?? weapon;
+  const objet = objetSourceDeLArme(c, weapon);
+  if (objet) return objet;
+  const trait = traitSourceDeLArme(c, weapon);
+  if (trait?.etatDArme) return mode === 'ecriture' ? modifierEtatDArmeDuTrait(c, trait) : trait.etatDArme;
+  return (c.weapons ?? []).find((w) => w.uid === weapon.uid) ?? weapon;
 }
 
 /** CETTE arme est-elle prête à tirer ? Sans Indice de Recharge il n'y a pas de cycle de charge (Arc, fronde :

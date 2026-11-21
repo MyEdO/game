@@ -468,6 +468,15 @@
     "verrou": "src/engine/classementDeTrait.test.ts"
   },
   {
+    "id": "paDuTrait",
+    "type": "primitives.manifest",
+    "label": "armureDuTrait/sourceDuTraitA/sourcesDArmureA/armourPhysiqueAt/userLePADuTrait",
+    "fichier": "src/engine/armourBypass.ts",
+    "concept": "les PA de l’Armure de Trait à une Localisation sont l’Indice net de l’usure portée par l’instance ; le lecteur donne aussi la matière et la nature portée, le total physique les ajoute aux autres PA, et l’usure suit la même instance",
+    "perimetre": "mitigation, contournement selon la matière, Déviation et autres dégâts d’armure, pénalité d’incantation, IA, fiche de combattant et armure de statbloc dessinée",
+    "verrou": "src/engine/armourBypass.test.ts, src/noyau/self-maneuver-transform.hors-store.test.ts"
+  },
+  {
     "id": "memeSpecialisation",
     "type": "primitives.manifest",
     "label": "memeSpecialisation",
