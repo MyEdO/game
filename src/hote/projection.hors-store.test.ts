@@ -1,10 +1,16 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, onTestFinished, vi } from 'vitest';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { projeter } from './projection';
 import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { frenzyTarget } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
+import { createHero } from '../engine/character';
+import { setRule, resetRule } from '../engine/policy';
+import { testValue } from '../engine/skills';
+import { ouvrirLeBanc } from '../noyau/banc.testkit';
+import { applyEffects } from '../noyau/combatEffects';
+import { imposerLesD100 } from '../noyau/battleRng.testkit';
 
 describe('projection d’un objet de campagne', () => {
   it('publie l’apparence de naissance, tenue en main, sur l’actif et dans la liste des combattants', () => {
@@ -54,5 +60,71 @@ describe('projection des cibles du Tab (`combat.cibles`)', () => {
     } finally {
       partie.fermer();
     }
+  });
+});
+
+describe('projection du verdict propre et de l’opposition', () => {
+  const bornes = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
+
+  function heros() {
+    return createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', seed: 101, talentsRolled: false });
+  }
+
+  it('la Corruption expose le Test simple, puis applique son gain au porteur à l’acquittement', () => {
+    onTestFinished(() => { vi.restoreAllMocks(); });
+    const h = heros();
+    const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [h] } });
+    const get = banc.getState;
+    const jet = () => projeter(get(), 0, 0, bornes).jets.find((j) => j.flux === 'corruption');
+    applyEffects(get, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: h.id }]);
+    const avant = jet()!;
+    expect(avant).toMatchObject({ sorte: 'simple', oppose: null });
+    expect(avant.lignes[0]).toMatchObject({
+      qui: h.id, id: expect.any(String), etat: 'aJouer', reference: { genre: 'competence', id: 'resistance' }, jet: null,
+    });
+    imposerLesD100(18);
+    get().jetLancer('corruption');
+    expect(jet()!.lignes[0]).toMatchObject({ id: avant.lignes[0].id, etat: 'revele', jet: { d100: 18 } });
+    get().jetImposerLeResultat('corruption', 99);
+    expect(jet()!.lignes[0]).toMatchObject({ id: avant.lignes[0].id, etat: 'revele', jet: { d100: 99, verdict: 'echec' } });
+    expect(get().party[0].corruption ?? 0).toBe(0);
+    get().jetValider('corruption');
+    expect(get().party[0].corruption).toBe(1);
+    expect(jet()).toBeUndefined();
+  });
+
+  it('les Dominos contre la salle gardent la victoire de l’opposition distincte du double échec individuel', () => {
+    onTestFinished(() => { vi.restoreAllMocks(); resetRule('jeux-de-taverne'); });
+    const h = heros();
+    h.skills = h.skills.filter((s) => s.id !== 'pari');
+    h.skills.push({ id: 'pari', characteristic: 'intelligence', advances: 70 - testValue(h, { skill: { id: 'pari' } }) });
+    const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [h] } });
+    const get = banc.getState;
+    const jet = () => projeter(get(), 0, 0, bornes).jets.find((j) => j.flux === 'cascade');
+    setRule('jeux-de-taverne', true);
+    imposerLesD100(99);
+    get().jouerALaTaverne(h.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    const etape = get().pendingCascade!.participants[0];
+    expect(etape.meta?.opposed?.aT.roll).toBe(99);
+    const avant = jet()!;
+    expect(avant).toMatchObject({ sorte: 'oppose', oppose: null });
+    expect(avant.lignes).toMatchObject([
+      { etat: 'masque', cible: null, jet: null },
+      { etat: 'aJouer', qui: h.id, jet: null },
+    ]);
+
+    get().jetLancer('cascade', etape.id);
+    expect(etape.target).toBeLessThan(95);
+    get().jetImposerLeResultat('cascade', 95, etape.id);
+    const joue = jet()!;
+    expect(joue.lignes.map((l) => l.id)).toEqual(avant.lignes.map((l) => l.id));
+    expect(joue.lignes).toMatchObject([
+      { etat: 'revele', jet: { d100: 99, verdict: 'echec' } },
+      { etat: 'revele', qui: h.id, jet: { d100: 95, verdict: 'echec' } },
+    ]);
+    expect(joue.oppose).toMatchObject({ gagnante: 1, drNet: expect.any(Number) });
+    expect(get().pendingCascade!.participants[0].result?.success).toBe(true);
+    get().jetValider('cascade');
+    expect(jet()).toBeUndefined();
   });
 });

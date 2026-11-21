@@ -3,13 +3,15 @@
  * à son prix, le panier et son total, la bourse, chaque possession des héros à vendre et le lot (`marchandEnVue`) ; un
  * choix que le corps porte ne se redessine pas en réglage.
  */
-import { afterEach, describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { departDeLaCarte, drainer, table, gestesDessines } from './pont.testkit';
 import type { Bouton, Element, Entite, Puce } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
+import { imposerLesD100 } from '../../../src/noyau/battleRng.testkit';
+import { rendreLaVue } from '../../../src/hoteTexte/vue';
 
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; vi.restoreAllMocks(); });
 
 /** Une partie du scénario `voyage` arrivée à Steinbruck, l'échoppe du forgeron ouverte. */
 function echoppe() {
@@ -68,5 +70,48 @@ describe('l’échoppe par le pont', () => {
     const c = corps(jouer(cape.jeu));
     expect(boutons(c['vente/bjorn']).find((b) => b.id === cape.id)?.presse, 'la possession pressée au lot').toBe(true);
     expect(c['vendre'], 'le lot se vend').toMatchObject({ refus: null });
+  });
+});
+
+describe('le Marchandage joué par le pont', () => {
+  it.each(['achat', 'vente'] as const)('garde le seuil du marchand opaque après le dé et la relance (%s)', (sens) => {
+    const { jouer } = echoppe();
+    let s = jouer({ type: 'fenetreChoisir', args: ['marchand', 'marchander', sens] });
+    const jet = (suite: Suite) => suite.vue.projection.jets.find((j) => j.flux === 'marchandage')!;
+    expect(jet(s).lignes).toMatchObject([
+      { id: 'joueur', etat: 'aJouer', cible: expect.any(Number), jet: null },
+      { id: 'marchand', etat: 'aJouer', cible: null, jet: null },
+    ]);
+    const [joueur] = jet(s).lignes.filter((l) => l.genre === 'test');
+    expect(s.vue.zones['fenetre.corps'].filter((e) => e.type === 'jet')).toMatchObject([
+      { cible: '≤ ' + joueur.cible, resultat: null },
+      { cible: null, resultat: null },
+    ]);
+    imposerLesD100(99, 29, 5);
+    s = jouer({ type: 'jetLancer', args: ['marchandage'] });
+    expect(jet(s).lignes[0]).toMatchObject({ cible: joueur.cible });
+    const verifier = (suite: Suite) => {
+      const j = jet(suite);
+      const [porteur, marchand] = j.lignes;
+      expect(marchand).toMatchObject({ genre: 'test', cible: null, jet: { d100: 29 } });
+      expect(suite.vue.zones['fenetre.corps'].filter((e) => e.type === 'jet' && e.resultat === '29')).toEqual([
+        expect.objectContaining({ cible: null, resultat: '29', detail: null, modificateurs: [] }),
+      ]);
+      expect(JSON.stringify(suite)).not.toMatch(/"cible":"≤ 45"|"cible":45,"jet":\{"d100":29/);
+      const ligne = rendreLaVue(suite.vue.projection).find((l) => l.startsWith('jet marchandage :'));
+      expect(ligne).toContain('29/');
+      expect(ligne).not.toContain('29/45');
+      expect(j).toMatchObject({ sorte: 'oppose', oppose: { drNet: expect.any(Number) } });
+      expect(porteur).toMatchObject({ id: expect.any(String), etat: 'revele', reference: { genre: 'competence', id: 'marchandage' } });
+      expect(marchand).toMatchObject({ id: expect.any(String), etat: 'revele', jet: { dr: expect.any(Number), verdict: 'reussite' } });
+      return marchand;
+    };
+    const marchand = verifier(s);
+    expect(jet(s).lignes[0].jet).toMatchObject({ d100: 99, verdict: 'echec' });
+    s = jouer({ type: 'jetRelancer', args: ['marchandage'] });
+    expect(verifier(s)).toEqual(marchand);
+    expect(jet(s).lignes[0].jet).toMatchObject({ d100: 5, verdict: 'reussite' });
+    s = jouer({ type: 'jetValider', args: ['marchandage'] });
+    expect(s.vue.projection.jets.some((j) => j.flux === 'marchandage')).toBe(false);
   });
 });

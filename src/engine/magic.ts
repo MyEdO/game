@@ -582,6 +582,8 @@ export interface CastResult {
    *  alors retomber les DEUX camps sur leurs cibles, jamais un mixte. */
   base?: number;
   sl: number;
+  /** DR du Test d'incantation avant la résolution du Contre-sort (LDB 46 l.156). */
+  slPropre?: number;
   /** Incantation Critique (double réussi). */
   isCritical: boolean;
   /** Maladresse (double raté) → Incantation Imparfaite / Colère des dieux. */

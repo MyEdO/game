@@ -555,8 +555,12 @@ export function secondReadOf(second: CascadeSecondRead | undefined, result: Casc
  * le dé est jeté sur une cible DÉJÀ modifiée, l'opposer à un `base` d'attaquant comparerait deux
  * grandeurs distinctes. PURE.
  */
+export function resoudreOppositionDeCascade(def: TestResult, opp: OpposedRowFreeze, defBase?: number) {
+  return resolveOpposed(opp.aT, { ...def, sl: def.sl + (opp.bonusSL ?? 0), base: defBase });
+}
+
 export function opposedCascadeRoll(def: TestResult, opp: OpposedRowFreeze, target: number, defBase?: number): CascadeRoll {
-  const o = resolveOpposed(opp.aT, { ...def, sl: def.sl + (opp.bonusSL ?? 0), base: defBase });
+  const o = resoudreOppositionDeCascade(def, opp, defBase);
   return {
     roll: def.roll, target, sl: def.sl,
     success: opposedBranchSuccess(o, opp.defenderMustWin),

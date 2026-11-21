@@ -18,12 +18,18 @@ import {
   ruleOverrides,
   type LigneDuJournal,
 } from '../../../src/noyau/index';
-import { appliquerLInstantane } from '../../../src/noyau/coop';
+import { appliquerLInstantane, instantaneDeLaCoop } from '../../../src/noyau/coop';
+import { surUnBancHorsTest } from '../../../src/noyau/banc.testkit';
+import { appliquerLIntentionDUnSiege } from '../../../src/noyau/intentionsDeSiege';
+import { armerLeCarreau, lancerLeCarreau, repondantDuContreSort } from '../../../src/noyau/contre-sort.testkit';
 import { AUTO_SLOT, cleDEmplacement } from '../../../src/hote/sauvegardes';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
 import type { ZonesDuSalon } from '../../../src/hote/salon';
 import type { Bouton, Element, Entite, Ligne } from '../../../src/hote/elements';
 import { t } from '../../../src/i18n';
+import { testScene } from '../../../src/scenes/test-fixture';
+import { herosDeScenario } from '../../../src/scenes/test-scenarios/_heros';
+import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 
 type Appel = ReturnType<typeof table>['appel'];
 
@@ -199,6 +205,59 @@ const offre = (s: { vue: { zones: { 'combat.offres': Element[] } } }, id: string
   s.vue.zones['combat.offres'].flatMap((c) => (c.type === 'choix' ? c.valeurs : [])).find((v) => v.id === id);
 
 describe('le pont rejoint un salon', () => {
+  it('Contre-sort : nouvelles filtre le lancer du MJ avant la réponse dans la Suite JSON', async () => {
+    const declarer = ['contreSort', 'declaration', 'solo', repondantDuContreSort];
+    const lancer = ['contreSort', repondantDuContreSort];
+    const trames = surUnBancHorsTest((banc) => {
+      const get = banc.getState;
+      const instantane = () => serializeMessage({ kind: 'snapshot', data: instantaneDeLaCoop(get()) });
+      armerLeCarreau(banc, testScene(), () => herosDeScenario(idsDeTest, 'sorcier'));
+      lancerLeCarreau(banc);
+      try {
+        expect(get().pendingCast!.result).toMatchObject({ roll: 30, target: 75, sl: 4 });
+        expect(get().pendingCounterspell!.participants[0]).toMatchObject({ id: repondantDuContreSort, result: null });
+        const avant = instantane();
+        appliquerLIntentionDUnSiege(get, 1, 'jetRegler', declarer);
+        const declare = instantane();
+        appliquerLIntentionDUnSiege(get, 1, 'jetLancer', lancer);
+        expect(get().pendingCounterspell!.participants[0].result).toBeTruthy();
+        return { avant, declare, apres: instantane() };
+      } finally {
+        vi.restoreAllMocks();
+      }
+    });
+
+    const { appel } = invite();
+    const ws = await assis(appel);
+    suiteDe(appel('nouvelles'));
+    await recevoir(ws, trames.avant);
+    const avant = suiteDe(appel('nouvelles'));
+    expect(avant.vue.projection.jets.find((j) => j.flux === 'incantation')?.lignes[0])
+      .toMatchObject({ etat: 'masque', cible: null, jet: null });
+    expect(avant.vue.zones['fenetre.corps'].find((e) => e.id === 'jet'))
+      .toMatchObject({ resultat: t('ecran.jet.cache'), cible: null, dr: null, verdict: null, detail: null });
+    expect(avant.vue.zones['fenetre.corps'].map((e) => e.id)).not.toContain('surincantation');
+    const fenetre = avant.vue.projection.fenetre!;
+    expect(fenetre.gestes.map((g) => g.flux)).not.toContain('incantation');
+    expect(fenetre.gestes).toContainEqual(expect.objectContaining({ flux: 'contreSort', verbe: 'jetLancer' }));
+    expect(Object.keys(fenetre.fermes).every((id) => !id.includes('@incantation'))).toBe(true);
+    const reglages = avant.vue.zones['fenetre.reglages'];
+    expect(reglages.some((e) => e.id.includes('@incantation'))).toBe(false);
+    expect(reglages.some((e) => e.id.includes('@contreSort'))).toBe(true);
+    expect(JSON.stringify(avant)).not.toMatch(/"≤ 75"|"d100":30|"resultat":"30"|"DR \+4"|"1 pas sur 1"/);
+
+    expect(appel('jouer', { type: 'jetRegler', args: declarer })).toMatchObject({ ok: true });
+    await recevoir(ws, trames.declare);
+    suiteDe(appel('nouvelles'));
+    expect(appel('jouer', { type: 'jetLancer', args: lancer })).toMatchObject({ ok: true });
+    expect(await intentionsParties(ws)).toEqual([['jetRegler', declarer], ['jetLancer', lancer]]);
+    await recevoir(ws, trames.apres);
+    const apres = suiteDe(appel('nouvelles'));
+    expect(apres.vue.projection.jets.find((j) => j.flux === 'incantation')?.lignes[0])
+      .toMatchObject({ etat: 'revele', cible: 75, jet: { d100: 30, dr: 4, verdict: 'reussite' } });
+    expect(apres.vue.zones['fenetre.corps'].find((e) => e.id === 'jet')).toMatchObject({ resultat: '30', cible: '≤ 75', dr: 'DR +4' });
+  });
+
   it('M1, M2 — assis, après chaque instantané sa vue est celle de l’hôte, ses gestes émettent des intentions ; le journal de l’hôte arrive une fois', async () => {
     const { instantanes, vues } = await tramesDeLHote();
     const { appel } = invite();
