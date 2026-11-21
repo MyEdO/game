@@ -41,7 +41,7 @@ import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
 import { plaiesDeLOperation } from './acteDeSoin';
 import { seaActivitiesCatalog } from './seaActivities';
-import { catalogEntryOf, libelleDeLaRepartition } from './merchantFlow';
+import { catalogEntryOf, libelleDeLaRepartition, lignesDAchat } from './merchantFlow';
 import { bulkCarriers } from './carriers';
 import { offresDeCargaison } from './cargaison';
 import { libelleDuDepot } from './interludeEnVue';
@@ -100,6 +100,8 @@ export type IdDePretire = string;
 export type IdDIntention = string;
 /** Un article du stock du marchand ouvert, par l'id de son entrée de catalogue (`catalogEntryOf`, `merchantFlow.ts`). */
 export type IdDArticle = string;
+/** Un article visé par le geste d’achat de l’échoppe ouverte (`lignesDAchat`). */
+export type IdDArticleAAcheter = string;
 /** Une ligne du butin ouvert (`pendingLoot`, `pendingVictory`), par son `uid` (`LootGear`). */
 export type IdDeLigneDeButin = string;
 /** Une ligne de la répartition des achats payés (`MerchantState.pendingDistribution`), par son `uid`. */
@@ -254,6 +256,7 @@ const lesAttaques = (s: Jeu) => {
 };
 const lesRamassables = (s: Jeu) =>
   (s.scene?.entities ?? []).flatMap((e) => entityPickables(e, s.flags, objetDuNarratif(s.campaignNarratif), s.objetsAuSol));
+const nomDArticle = (id: string): string | null => catalogEntryOf(id)?.label ?? null;
 const lesTraitsPsyPortes = (s: Jeu) => s.party.flatMap(traitsPsyChoisissables);
 const lesClassesDePassage = (): string[] => sansDoublon(travelVehicles().flatMap((v) => (vehicleTravel(v.id)?.classes ?? []).map((c) => c.id)));
 const lesOptionsDEtape = (s: Jeu) => (s.pendingCascade?.participants ?? []).flatMap((st) => st.options ?? []);
@@ -305,7 +308,12 @@ export const DESIGNATIONS = {
   IdDePorte: { mot: 'id de porte', lire: (s) => ids(portesDuMobile(s)), nom: (_s) => sansNom },
   IdDePretire: { mot: 'id de pré-tiré', lire: () => ids(pregens), nom: (_s) => parLabel(pregens) },
   IdDIntention: { mot: 'id d’intention', lire: () => ids(ACTIONS.filter((a) => a.run === 'armerLIntention')), nom: (_s) => parLabel(ACTIONS) },
-  IdDArticle: { mot: 'id d’article', lire: (s) => (s.merchant?.stock ?? []).map((l) => l.id), nom: (_s) => (id) => catalogEntryOf(id)?.label ?? null },
+  IdDArticle: { mot: 'id d’article', lire: (s) => ids(s.merchant?.stock ?? []), nom: (_s) => nomDArticle },
+  IdDArticleAAcheter: {
+    mot: 'id d’article à acheter',
+    lire: (s) => s.merchant ? ids(lignesDAchat(s, s.merchant)) : [],
+    nom: (_s) => nomDArticle,
+  },
   IdDeLigneDeButin: { mot: 'id de ligne de butin', lire: (s) => lignesDuButin(s).map((g) => g.uid), nom: (s) => indexe(lignesDuButin(s), (g) => g.uid, (g) => g.label) },
   IdDeLigneDeRepartition: {
     mot: 'id de ligne de répartition',

@@ -27,7 +27,7 @@
 - [L'Augure et les stupéfiants (VDM)](#laugure-et-les-stupéfiants-vdm) — `VDM 03 l.512-541`
 - [Psychométrie (Int) — Compétence Avancée (VDM)](#psychométrie-int--compétence-avancée-vdm) — `VDM 03 l.543-581`
 - [Alchimie ordinaire — Métier (Alchimiste) (VDM)](#alchimie-ordinaire--métier-alchimiste-vdm) — `VDM 03 l.584-664`
-- [Le laboratoire alchimique portatif (VDM)](#le-laboratoire-alchimique-portatif-vdm) — `VDM 03 l.615-617`
+- [Le laboratoire alchimique portatif (VDM)](#le-laboratoire-alchimique-portatif-vdm) — `VDM 03 l.657-659`
 - [Produits alchimiques — effets en jeu (VDM)](#produits-alchimiques--effets-en-jeu-vdm) — `VDM 03 l.666-690`
 - [Haute Alchimie (VDM)](#haute-alchimie-vdm) — `VDM 03 l.692-745`
 
@@ -1363,12 +1363,10 @@ Bonus de production (mécanisme partagé Isoler/Fabriquer) : chaque +DR obtenu a
 
 ## Le laboratoire alchimique portatif (VDM)
 
-Nécessaire de voyage requis (à défaut d'un laboratoire fixe ou du Talent Concocter) pour pratiquer l'alchimie sur le terrain.
-
 > « Ouverte, cette grande malle de voyage révèle les outils du métier d'alchimiste : un mortier et un pilon, des creusets, une petite forge, des outils d'artisan pour le travail du métal, de la verrerie pour raffiner et manipuler des liquides, et de nombreux tiroirs contenant des ingrédients. Ce nécessaire coûte 12 CO. »
 > — VDM 03 l.659
 
-**Sources RAW** : VDM 03 l.615-617
+**Sources RAW** : VDM 03 l.657-659
 
 **Voir aussi** : [Équipement](equipement.md), [Alchimie ordinaire](#alchimie-ordinaire--métier-alchimiste-vdm).
 

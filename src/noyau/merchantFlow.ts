@@ -7,7 +7,7 @@ import type { Jeu } from './etat';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type TestIds } from '../engine/types';
 import {
-  recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, ficheDObjetPorte, type TrappingResolver,
+  recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, ficheDObjetPorte, objetDuTrapping, type TrappingResolver,
 } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
@@ -15,7 +15,7 @@ import { SL_ASTOUNDING, cibleMesuree, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './monde/scene';
-import { partyAssisted, skillBaseValue, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
+import { partyAssisted, partyBest, peutTenter, skillBaseValue, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
@@ -24,14 +24,18 @@ import {
   rollStock,
   fullStock,
   availabilitySearchBonus,
+  baseDuStock,
   barterRatio,
   priceAfterHalvings,
   isTradable,
+  estDisponibiliteTestee,
   outOfTradeReason,
+  quantiteEnStock,
+  type EchecDeDisponibilite,
   type CatalogItem,
   type StockLine,
 } from '../engine/disponibilite';
-import { settlementSchema, type Settlement } from '../data/schemas/grammaire/valeurs';
+import { difficultySchema, settlementSchema, type Settlement } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
@@ -55,12 +59,13 @@ import type { MerchantArchetypeDef } from '../data/merchants.types';
 import type { UniteAchetable } from '../data/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
 import { startCascade } from './cascade';
-import { freeCons, openPartyTest } from './rollSeam';
+import { choiceStep, dieStep, freeCons, monoStep, openPartyTest, stepDetail, worldStep } from './rollSeam';
+import { tenuParUnHumain } from './sieges';
 import { rollLine } from './ligneDeJet';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
-import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
+import type { CascadeStep, CascadeStepMeta, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { cleDeBillet, colonneDeDisponibiliteDuMarchand, lieuDeLaScene, lieuDuGroupe, placeServiceMerchantId, type MapPlace } from './worldMap';
@@ -71,15 +76,16 @@ import { refuserGeste } from './refusVisible';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
-import { stepDetail } from './rollSeam';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
-import type { IdDArticle, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDObjet } from './designations';
+import type { IdDArticle, IdDArticleAAcheter, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDObjet } from './designations';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 import { porteurDeLObjet, refusDuHerosPorteur } from './monde/carrier';
+
+type LigneDeStock = { id: string; qty: number };
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
@@ -93,7 +99,7 @@ export interface MerchantState {
    *  pour un marchand de scène sans décor seedé. Rendue dans le slot `backdrop` du `ScreenShell`. */
   backdrop?: string;
   /** Stock & panier keyés par `trappingId` (`TrappingData.id`) — le libellé est résolu à l'affichage. */
-  stock: { id: string; qty: number }[];
+  stock: LigneDeStock[];
   bargainBuy?: BargainOutcome | null;
   bargainSell?: BargainOutcome | null;
   /** Botch (« rater de beaucoup », LDB 59 l.43) : le marchand se méfie — plus de marchandage cette visite. */
@@ -136,7 +142,14 @@ export type LigneDeRepartition = { uid: IdDeLigneDeRepartition; heroId: IdDeHero
 export const libelleDeLaRepartition = (d: LigneDeRepartition): string => ('item' in d ? d.item.label : catalogEntryOf(d.unit.id)?.label ?? d.unit.id);
 
 /** Stock PERSISTANT par marchand (la déplétion survit aux visites ; réassort par l'horloge, #T3). */
-export type MerchantStocks = Record<string, { stock: { id: string; qty: number }[]; rolledAt: number; bargainLocked?: boolean }>;
+interface StockPersiste {
+  stock: LigneDeStock[];
+  rolledAt: number;
+  echecs?: EchecDeDisponibilite[];
+  bargainLocked?: boolean;
+}
+
+export type MerchantStocks = Record<string, StockPersiste>;
 
 /** Prix listé d'un objet en sous de cuivre (catalogue × qualité d'artisanat) — la référence du seuil
  *  « Tenir les comptes » ET du Troc (avant majoration/Marchandage). null (0) si prix non chiffré. */
@@ -267,20 +280,131 @@ export function devisDuPanier(m: MerchantState, { ent, party, bourse, refusHote 
   return { lignes, total, refus: refusHote ?? (!lignes.length ? t('mf.panierVide') : !canAfford(bourse, total) ? t('mf.bourseInsuffisantePourLePanier') : null) };
 }
 
-/** Refus d'ajout d'une unité de la ligne `id` au panier, contre la bourse `bourse` du groupe que le panier
- *  déjà composé entame : la raison affichée, ou `null`. Ferme l'article au choix `marchand.ajouterAuPanier`, lu par
- *  l'écran. */
-export function refusDAjout(m: MerchantState, id: string, contexte: ContexteDAchat): string | null {
+const MERCHANT_GUILD_CHOICE = 'marchand-contact-choix';
+const MERCHANT_GUILD_GOSSIP = 'marchand-contact-ragot';
+const MERCHANT_GUILD_AVAILABILITY = 'marchand-contact-relance';
+const MERCHANT_GUILD_QUANTITY = 'marchand-contact-quantite';
+const RAGOT_DE_GUILDE = { skill: { id: 'ragot' }, characteristic: 'sociabilite' } satisfies TestIds;
+
+interface DemandeALaGuilde {
+  echec: EchecDeDisponibilite;
+  rolledAt: number;
+  heroId: string;
+}
+
+interface LigneDAchat extends LigneDeStock {
+  nom: string;
+  prix: Money | null;
+  auPanier: number;
+  refus: string | null;
+  demandeALaGuilde?: DemandeALaGuilde;
+}
+
+// LDB 68 l.25, l.46-48
+function titulairesPourLeMarche(s: Jeu, m: MerchantState): Combatant[] {
+  if (!rule('marche-membres-de-guildes') || refusDeRecherche(s, m)) return [];
+  const licences = entiteDuMarchand(s, m)?.merchant?.licencesDeGuilde
+    ?? findMerchantArchetypeById(m.archetype)?.licencesDeGuilde
+    ?? [];
+  const licencesIdentifiees = licences.filter(({ id }) => findTrappingById(id)?.licenceDeGuilde);
+  return s.party.filter((hero) => tenuParUnHumain(s, hero.id) && licencesIdentifiees.some(({ id }) => objetDuTrapping(hero, id)));
+}
+
+function ligneDAchat(m: MerchantState, contexte: ContexteDAchat, totalDuPanier: Money, ligne: LigneDeStock, demandeALaGuilde?: DemandeALaGuilde): LigneDAchat {
   const { ent, party, bourse } = contexte;
-  const stockQty = m.stock.find((l) => l.id === id)?.qty ?? 0;
-  const enPanier = (m.cart ?? []).find((c) => c.id === id)?.qty ?? 0;
-  const unitaire = prixDeLigne(m, id, ent, party);
-  const label = catalogEntryOf(id)?.label ?? id;
-  return m.bargainBuy != null ? t('mf.panierFige')
-    : enPanier >= stockQty ? t('mf.stockEpuise', { label })
-    : !unitaire ? t('mf.sansPrix', { label })
-    : !canAfford(bourse, moneyAdd(devisDuPanier(m, contexte).total, unitaire)) ? t('mf.bourseInsuffisante', { label })
+  const { id, qty } = ligne;
+  const auPanier = m.cart.find((c) => c.id === id)?.qty ?? 0;
+  const prix = prixDeLigne(m, id, ent, party);
+  const nom = catalogEntryOf(id)?.label ?? id;
+  const refus = m.bargainBuy != null ? t('mf.panierFige')
+    : !demandeALaGuilde && auPanier >= qty ? t('mf.stockEpuise', { label: nom })
+    : !prix ? t('mf.sansPrix', { label: nom })
+    : !demandeALaGuilde && !canAfford(bourse, moneyAdd(totalDuPanier, prix)) ? t('mf.bourseInsuffisante', { label: nom })
     : null;
+  return { ...ligne, nom, prix, auPanier, refus, demandeALaGuilde };
+}
+
+/** Lignes de l'étal ouvertes au geste d'achat. LDB 68 l.46-48 */
+export function lignesDAchat(s: Jeu, m: MerchantState): LigneDAchat[] {
+  const contexte = contexteDAchat(s, m);
+  const totalDuPanier = devisDuPanier(m, contexte).total;
+  const lignes = m.stock.map((ligne) => ligneDAchat(m, contexte, totalDuPanier, ligne));
+  const persiste = s.merchantStocks[m.entityId];
+  if (!persiste?.echecs?.length || s.pendingCascade || contexte.refusHote) return lignes;
+  const hero = partyBest(titulairesPourLeMarche(s, m), RAGOT_DE_GUILDE)?.actor;
+  if (!hero) return lignes;
+  const dejaEnStock = new Set(m.stock.map(({ id }) => id));
+  for (const echec of persiste.echecs) {
+    if (dejaEnStock.has(echec.id) || !catalogEntryOf(echec.id)) continue;
+    lignes.push(ligneDAchat(m, contexte, totalDuPanier, { id: echec.id, qty: 0 }, { echec, rolledAt: persiste.rolledAt, heroId: hero.id }));
+  }
+  return lignes;
+}
+
+// LDB 68 l.48
+function ouvrirLeChoixDeGuilde(get: Get, set: Set, m: MerchantState, ligne: LigneDAchat, demande: DemandeALaGuilde): void {
+  const { echec, rolledAt, heroId } = demande;
+  const { entityId } = m;
+  const step = choiceStep({
+    id: `${MERCHANT_GUILD_CHOICE}:${entityId}:${rolledAt}:${echec.id}`,
+    kind: MERCHANT_GUILD_CHOICE,
+    label: t('mf.guildeDisponibiliteRatee', { article: ligne.nom }),
+    actorId: heroId,
+    options: [
+      { key: 'consulter', label: t('mf.guildeConsulter') },
+      { key: 'renoncer', label: t('mf.guildeRenoncer') },
+    ],
+    meta: { entityId, rolledAt, articleId: echec.id, availability: echec.availability, seuilDeRelance: echec.target, heroId },
+  });
+  if (!step) return;
+  const stock = get().merchantStocks[entityId];
+  set((s) => ({
+    merchantStocks: {
+      ...s.merchantStocks,
+      [entityId]: { ...stock, echecs: stock.echecs?.filter(({ id }) => id !== echec.id) },
+    },
+  }));
+  startCascade(get, set, { title: t('mf.guildeTitre'), purpose: 'test', steps: [step] });
+}
+
+function ajouterAuPanier(get: Get, set: Set, id: IdDArticleAAcheter): void {
+  const s = get();
+  const m = garanti(s.merchant, 'marchand', 'échoppe ouverte');
+  const ligne = lignesDAchat(s, m).find((article) => article.id === id);
+  if (!ligne || ligne.refus) return;
+  if (ligne.demandeALaGuilde) {
+    ouvrirLeChoixDeGuilde(get, set, m, ligne, ligne.demandeALaGuilde);
+    return;
+  }
+  const cart = ligne.auPanier > 0
+    ? m.cart.map((c) => c.id === id ? { ...c, qty: c.qty + 1 } : c)
+    : [...m.cart, { id, qty: 1 }];
+  set({ merchant: { ...m, cart } });
+}
+
+function lireLeRecoursDeGuilde(s: Jeu, meta: CascadeStepMeta | undefined) {
+  if (!meta) return null;
+  const { entityId, rolledAt, articleId, availability, seuilDeRelance, heroId } = meta;
+  const m = s.merchant;
+  if (!m || m.entityId !== entityId) return null;
+  if (typeof articleId !== 'string' || typeof seuilDeRelance !== 'number' || !estDisponibiliteTestee(availability)) return null;
+  const stock = s.merchantStocks[m.entityId];
+  if (!stock || stock.rolledAt !== rolledAt || stock.stock.some(({ id }) => id === articleId)) return null;
+  const hero = titulairesPourLeMarche(s, m).find((h) => h.id === heroId && peutTenter(h, RAGOT_DE_GUILDE));
+  const article = catalogEntryOf(articleId);
+  if (!hero || !article) return null;
+  return { m, stock, hero, articleId, article, availability, seuilDeRelance, meta } as const;
+}
+
+function stockApresRecours(set: Set, recours: NonNullable<ReturnType<typeof lireLeRecoursDeGuilde>>, base: number) {
+  const { m, stock, articleId, availability } = recours;
+  const qty = quantiteEnStock(availability, base);
+  const lignes = [...m.stock, { id: articleId, qty }];
+  set((s) => ({
+    merchant: { ...m, stock: lignes },
+    merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...stock, stock: lignes } },
+  }));
+  return { consequences: freeCons([t('mf.quantiteDisponible', { qty })]) };
 }
 
 /** Carrières « cohérentes » pour la recherche de Disponibilité (LDB 59 l.50) — ids STABLES, pas des
@@ -308,7 +432,7 @@ function stockTraceLine(l: StockLine): string {
 function computeFreshStockLines(
   get: Get,
   ent: SceneEntity | undefined, arch: MerchantArchetypeDef, entityId: string, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
-): { stock: { id: string; qty: number }[]; tested: StockLine[] } {
+): { stock: LigneDeStock[]; tested: StockLine[]; echecs: EchecDeDisponibilite[] } {
   const guild = !!marketRule(ent, 'guild');
   const marketMode = marketRule(ent, 'marketMode') as string;
   const cat: CatalogItem[] = trappingsInstanciables()
@@ -332,15 +456,16 @@ function computeFreshStockLines(
   const period = Math.floor(now / restockPeriod);
   const seed = [...`${entityId}:${period}:${gossipDay ? 'g' : ''}`].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
   const dispoBonus = partyAvailabilityBonus(get().party, gossipDay);
-  const lines = marketMode === 'sans-disponibilite' || marketMode === 'simplifie'
-    ? fullStock(fullCat, settlement, makeRNG(seed), arch.curated)
-    : rollStock(fullCat, settlement, makeRNG(seed), arch.curated, dispoBonus);
-  return { stock: lines.map((l) => ({ id: l.id, qty: l.qty })), tested: lines.filter((l) => l.test) };
+  const rng = makeRNG(seed);
+  const { stock, echecs } = marketMode === 'sans-disponibilite' || marketMode === 'simplifie'
+    ? { stock: fullStock(fullCat, settlement, rng, arch.curated), echecs: [] }
+    : rollStock(fullCat, settlement, rng, arch.curated, dispoBonus);
+  return { stock: stock.map(({ id, qty }) => ({ id, qty })), tested: stock.filter((l) => l.test), echecs };
 }
 
 /** Persiste un stock FRAIS DÉJÀ CALCULÉ (`merchantStocks`) — réassort → on peut de nouveau marchander. */
-function persistStock(set: Set, entityId: string, stock: { id: string; qty: number }[], now: number): void {
-  set((s) => ({ merchantStocks: { ...s.merchantStocks, [entityId]: { stock, rolledAt: now, bargainLocked: false } } }));
+function persistStock(set: Set, entityId: string, rolledAt: number, stock: LigneDeStock[], echecs: EchecDeDisponibilite[]): void {
+  set((s) => ({ merchantStocks: { ...s.merchantStocks, [entityId]: { stock, rolledAt, echecs, bargainLocked: false } } }));
 }
 
 /** Réassort INLINE (local sans MJ, #273 dernier volet) : calcule + persiste + journalise en UNE fois —
@@ -349,10 +474,10 @@ function persistStock(set: Set, entityId: string, stock: { id: string; qty: numb
 function rollFreshStock(
   get: Get, set: Set,
   entityId: string, ent: SceneEntity | undefined, arch: MerchantArchetypeDef, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
-): { id: string; qty: number }[] {
-  const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
+): LigneDeStock[] {
+  const { stock, tested, echecs } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
   if (tested.length) get().ecrireAuJournal(t('mf.tirageDuMarche', { settlement: libelleDeValeur(settlementSchema, settlement), lignes: tested.map((l) => t('mf.ligneDeStock', { label: l.label, qty: l.qty })).join(', ') }));
-  persistStock(set, entityId, stock, now);
+  persistStock(set, entityId, now, stock, echecs);
   return stock;
 }
 
@@ -411,7 +536,7 @@ function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype
   // FRAIS (nouvelle Disponibilité) que si `restockPeriod` s'est écoulé depuis le dernier tirage.
   // Règles optionnelles « Marché » (LDB 59/60) : Guildes d'Artisans (Atouts/Défauts inversent la
   // Disponibilité) ; système simplifié (pas de Test de Disponibilité) ; cf. `marche-guildes`/`marche-mode`.
-  if (!prev || now - prev.rolledAt >= restockPeriod) {
+  if (!prev || (now > prev.rolledAt && now - prev.rolledAt >= restockPeriod)) {
     // #273 dernier volet — porte : siège MJ présent → tirage VISIBLE-LANÇABLE (jamais silencieux) ;
     // sinon → inline INCHANGÉ (zéro friction locale).
     if (get().net.gmSeat != null) {
@@ -745,7 +870,7 @@ function troquerLesObjets(get: Get, set: Set): void {
         return acquis.reduce(avecObjet, clone); // biens acquis
       }),
       merchant: { ...s.merchant!, stock: newStock, troc: null },
-      merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
+      merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime, echecs: persisted?.echecs } },
     };
   });
   get().ecrireAuJournal(t('mf.trocConclu', {
@@ -1131,7 +1256,7 @@ export function choixDuMarchand(get: Get, set: Set) {
   });
   return {
     marchand: {
-      ajouterAuPanier: (id) => ecrire((m) => ({ cart: m.cart.some((c) => c.id === id) ? m.cart.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c)) : [...m.cart, { id, qty: 1 }] })),
+      ajouterAuPanier: (id) => ajouterAuPanier(get, set, id),
       oterDuPanier: (id) => ecrire((m) => ({ cart: m.cart.map((c) => (c.id === id ? { ...c, qty: c.qty - 1 } : c)).filter((c) => c.qty > 0) })),
       retirerDuPanier: (id) => ecrire((m) => ({ cart: m.cart.filter((c) => c.id !== id) })),
       viderLePanier: () => ecrire(() => ({ cart: [] })),
@@ -1176,7 +1301,10 @@ export function cloturesDuMarchand(get: Get, set: Set) {
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = [MERCHANT_STOCK_KIND, MERCHANT_RAGOT_KIND] as const;
+export const GENRES_D_ETAPE = [
+  MERCHANT_STOCK_KIND, MERCHANT_RAGOT_KIND,
+  MERCHANT_GUILD_CHOICE, MERCHANT_GUILD_GOSSIP, MERCHANT_GUILD_AVAILABILITY, MERCHANT_GUILD_QUANTITY,
+] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -1194,8 +1322,8 @@ export const TABLES = {
       const now = Number(meta.now ?? get().gameTime);
       const restockPeriod = Number(meta.restockPeriod ?? MINUTES_PER_DAY);
       const gossipDay = !!meta.gossipDay;
-      const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
-      persistStock(set, entityId, stock, now);
+      const { stock, tested, echecs } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
+      persistStock(set, entityId, now, stock, echecs);
       set((s) => {
         if (s.merchant?.entityId === entityId) {
           // Rafraîchi PENDANT une visite en cours (recherche active) — même reset que le chemin inline.
@@ -1210,6 +1338,56 @@ export const TABLES = {
       return {
         consequences: freeCons(tested.map(stockTraceLine)),
       };
+    },
+    [MERCHANT_GUILD_CHOICE]: (get, _set, step) => {
+      if (step.chosen !== 'consulter') return {};
+      const recours = lireLeRecoursDeGuilde(get(), step.meta);
+      if (!recours) return {};
+      const ragot = monoStep({
+        id: `${step.id}:${MERCHANT_GUILD_GOSSIP}`,
+        kind: MERCHANT_GUILD_GOSSIP,
+        label: stepDetail(t('mf.guildeTitre'), dataLabel(recours.article.label)),
+        actor: recours.hero,
+        ligne: { test: RAGOT_DE_GUILDE },
+        difficulty: difficultySchema.parse(rule('marche-ragot-de-guilde-difficulte')),
+        stake: combatStakeRef(MERCHANT_GUILD_GOSSIP),
+        meta: recours.meta,
+      });
+      return ragot ? { insert: [ragot] } : {};
+    },
+    [MERCHANT_GUILD_GOSSIP]: (get, _set, step) => {
+      const recours = lireLeRecoursDeGuilde(get(), step.meta);
+      if (!recours || !step.result) return {};
+      if (!step.result.success) return { consequences: freeCons([t('mf.guildeSansPiste')]) };
+      const relance = worldStep({
+        id: `${step.id}:${MERCHANT_GUILD_AVAILABILITY}`,
+        kind: MERCHANT_GUILD_AVAILABILITY,
+        label: stepDetail(t('mf.guildeRelance'), dataLabel(recours.article.label)),
+        cible: recours.seuilDeRelance,
+        verdict: { reussite: t('mf.guildeArticleTrouve'), echec: t('mf.guildeArticleAbsent') },
+        meta: recours.meta,
+      });
+      return { insert: [relance], consequences: freeCons([t('mf.guildePiste')]) };
+    },
+    [MERCHANT_GUILD_AVAILABILITY]: (get, set, step) => {
+      const recours = lireLeRecoursDeGuilde(get(), step.meta);
+      if (!recours || !step.result?.success) return {};
+      const base = baseDuStock(recours.m.settlement);
+      if (typeof base === 'number') return stockApresRecours(set, recours, base);
+      const quantite = dieStep({
+        id: `${step.id}:${MERCHANT_GUILD_QUANTITY}`,
+        kind: MERCHANT_GUILD_QUANTITY,
+        label: stepDetail(t('mf.guildeQuantite'), dataLabel(recours.article.label)),
+        spec: base.dice,
+        worldOwner: true,
+        meta: recours.meta,
+      });
+      return quantite ? { insert: [quantite] } : {};
+    },
+    [MERCHANT_GUILD_QUANTITY]: (get, set, step) => {
+      const recours = lireLeRecoursDeGuilde(get(), step.meta);
+      const base = step.de?.result?.total;
+      return recours && base !== undefined ? stockApresRecours(set, recours, base) : {};
     },
     [MERCHANT_RAGOT_KIND]: (get, set, step) => {
       if (!step.result) return {};

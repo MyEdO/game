@@ -2340,6 +2340,23 @@
     }
   },
   {
+    "id": "marchand-contact-ragot",
+    "type": "stakes",
+    "label": "Contacts de Guilde à l’achat",
+    "cascade": "combat",
+    "template": "Réussite : vous pouvez relancer le Test de Disponibilité de cet article. Échec : vos contacts ne trouvent pas de piste.",
+    "form": "descripteur",
+    "rule": {
+      "id": "ragot",
+      "type": "skill"
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 305,
+      "note": "LDB 68 l.48"
+    }
+  },
+  {
     "id": "port-achat-marchandage",
     "type": "stakes",
     "label": "Marchandage d’achat de cargaison",

@@ -36,7 +36,7 @@ import {
   pointDuPlanSchema,
   settlementSchema,
 } from '../grammaire/valeurs';
-import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
+import { joursDeReassortSchema, licencesDeGuildeSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, testDeSceneSchema, variante } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
 import {
@@ -195,10 +195,11 @@ export const marchandDeSceneSchema = nommerChamps(z.strictObject({
   resaleRate: tauxDeRachatSchema.optional(),
   buyMarkup: majorationDAchatSchema.optional(),
   restockDays: joursDeReassortSchema.optional(),
+  licencesDeGuilde: licencesDeGuildeSchema.optional(),
   guild: z.boolean().optional(),
   marketMode: marketModeSchema.optional(),
   tenirComptes: z.boolean().optional(),
-}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "colonne de Disponibilité hors lieu" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
+}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "colonne de Disponibilité hors lieu" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, licencesDeGuilde: { label: 'Licences de Guilde appropriées', hint: 'Remplace les licences appropriées de l’archétype pour ce négoce' }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
 
 /** L'inventaire d'auteur d'un personnage : chaque objet par son id, vrai s'il le porte (`isWearable` ;
  *  une arme se tient par les sets d'armes). Il devient les objets du combattant au spawn. LDB 77 l.7, #3684 */

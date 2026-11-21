@@ -688,7 +688,10 @@ function echoppe(etat: Jeu): Element[] {
     puce('bourse', t('ecran.bourse'), m.bourse),
     ...m.etal.map((f): Entite => ({
       type: 'entite', id: `etal/${f.id}`, ton: 'neutre', nom: f.nom,
-      elements: f.articles.map((a) => boutonDeGeste(a.id, avecPrix(a.nom, a.prix), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0)),
+      elements: f.articles.map((a) => {
+        const nom = a.recoursDeGuilde ? t('mf.guildeArticleARechercher', { article: a.nom }) : a.nom;
+        return boutonDeGeste(a.id, avecPrix(nom, a.prix), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0);
+      }),
     })),
     {
       type: 'entite', id: 'panier', ton: 'neutre', nom: t('ecran.echoppe.panier'),

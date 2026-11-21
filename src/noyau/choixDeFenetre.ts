@@ -48,7 +48,7 @@ import type { IdDeHeros, IdDeRangee } from './designations';
 import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from './partyFlow';
 import {
   BAISSES_DE_PRIX_MAX, MODES_DE_MARCHE, barterRefusal, catalogEntryOf, contexteDAchat, demandeDuTroc, devisDeTroc, devisDeVente, devisDuPanier, exemplaireCede, libelleDeLaRepartition, objetsAReparer,
-  optionsDeTroc, refusDAjout, refusDeMarchandage, refusDeRecherche, refusDeRefusDuMarche, sellRefusal, type MerchantState, type ModeDeMarche,
+  lignesDAchat, optionsDeTroc, refusDeMarchandage, refusDeRecherche, refusDeRefusDuMarche, sellRefusal, type MerchantState, type ModeDeMarche,
 } from './merchantFlow';
 import { findTrappingById } from '../data/index';
 import { couchagesDeLaNuit, dormeurDuRepos, foodOptions, nourrituresDeTroupe } from './restFlow';
@@ -297,10 +297,7 @@ export const OUVERTS_DU_CHOIX = {
   },
   // LDB 59 l.43-60
   marchand: {
-    ajouterAuPanier: reglage('marchand', 'ajouterAuPanier', (s) => {
-      const m = s.merchant;
-      return m ? m.stock.map((l) => ({ ...article(l.id), refus: refusDAjout(m, l.id, contexteDAchat(s, m)) })) : [];
-    }),
+    ajouterAuPanier: aLEchoppe('ajouterAuPanier', (s, m) => lignesDAchat(s, m).map(({ id, nom, refus }) => ouverte(id, nom, refus))),
     oterDuPanier: reglage('marchand', 'oterDuPanier', (s) => (s.merchant?.cart ?? []).map((c) => article(c.id))),
     retirerDuPanier: reglage('marchand', 'retirerDuPanier', (s) => (s.merchant?.cart ?? []).map((c) => article(c.id))),
     viderLePanier: vider('viderLePanier', (m) => m.cart.length > 0),
