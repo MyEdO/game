@@ -15,8 +15,8 @@
  *
  * Un point retenu devant sa couverture, ou à moins de `JEU_M` derrière elle, recule à `JEU_M`, et ses voisins d'arête
  * reculent avec lui sans qu'aucun triangle se retourne (`ENTRAINEMENT`). Un triangle dont les trois points sont retenus
- * tout entiers ne se dessine plus, sauf s'ils le sont tous trois au bord de leur couverture (`bordsDe`) et qu'aucune ne
- * couvre son centre : cousu à elle, il reste dehors.
+ * tout entiers ne se dessine plus si une même couverture les retient tous trois hors de son bord (`bordsDe`), ou si l'une
+ * couvre son centre ; sinon, cousu à une couverture ou à cheval sur deux, il reste dehors.
  *
  * Qui couvre qui se lit aux couches déclarées, et se mesure entre deux pièces de même couche (`ordreDesCouches`).
  */
@@ -718,11 +718,11 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
     const points = souder(piece, endroits);
     const propres = new Map(points.map((q) => [q, poidsParNom(...q.membres[0])]));
     const repris = new Map<Point, Map<string, number>>(), restes = new Map<Point, number>(), reculs = new Map<Point, Vecteur>();
-    const tenus = new Set<Point>(), pleins = new Set<Point>(), laisses = new Set<Point>(), dedans = new Set<Point>();
+    const tenus = new Set<Point>(), pleins = new Set<Point>(), laisses = new Set<Point>(), dedans = couvertures.map(() => new Set<Point>());
     const pointDe = new Map<MaillageDePile, Point[]>(piece.maillages.map((m) => [m, new Array<Point>(m.positions.length / 3)]));
     for (const q of points) for (const [m, s] of q.membres) (pointDe.get(m) as Point[])[s] = q;
     const voisins = voisinsDe(piece, pointDe);
-    for (const couvrants of couvertures) {
+    for (const [k, couvrants] of couvertures.entries()) {
       const tenues = new Map<Point, Reprise>();
       for (const q of points) {
         const tenue = tenir(q, propres.get(q) as Map<string, number>, couvrants, squelette);
@@ -732,7 +732,7 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
         tenues.set(q, { poids, part });
         tenus.add(q);
         if (part >= 1) pleins.add(q);
-        if (part >= 1 && !auBord(tenue.touche)) dedans.add(q);
+        if (part >= 1 && !auBord(tenue.touche)) dedans[k].add(q);
         const pas = part * Math.min(0, e - JEU_M), deja = reculs.get(q);
         if (pas < 0 && (!deja || -pas > Math.hypot(...deja))) reculs.set(q, [pas * n[0], pas * n[1], pas * n[2]]);
       }
@@ -773,7 +773,7 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
       const gardes: number[] = [];
       for (let t = 0; t + 2 < m.indices.length; t += 3) {
         const coins = [de[m.indices[t]], de[m.indices[t + 1]], de[m.indices[t + 2]]];
-        if (coins.every((q) => pleins.has(q)) && (coins.some((q) => dedans.has(q)) || centreCouvert(coins, couvertures))) masques++;
+        if (coins.every((q) => pleins.has(q)) && (dedans.some((d) => coins.every((q) => d.has(q))) || centreCouvert(coins, couvertures))) masques++;
         else gardes.push(m.indices[t], m.indices[t + 1], m.indices[t + 2]);
       }
       m.indices = Uint32Array.from(gardes);
