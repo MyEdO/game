@@ -343,11 +343,7 @@ const DECLARATIONS_D_OPS = {
     symptomId: idDe('symptome'),
     severity: symptomSeveritySchema.optional(),
   }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptomId: { label: "symptôme" , texte: { regime: "technique"} }, severity: { label: "gravité"  } }),
-  /** `amputer` (LDB 18 l.233-286) : AUTHORABLE comme toute op (l'atelier la propose sous « Séquelles &
-   *  mobilité » — un Trait de créature qui tranche un membre s'écrit avec elle), mais AUCUNE donnée
-   *  committée ne la porte aujourd'hui : ses seuls producteurs sont les rangées de Critique, où
-   *  `noeudAmputation` (engine/critical.ts) la fabrique depuis `entry.amputation`. Son payload est typé
-   *  ICI comme celui de toute op authorée ; ses `sequels` sont des ids de fiche `traumas.json` (même graphie que `amputationSchema`). */
+  /** LDB 18 l.233–286. */
   amputer: nommerChamps(z.strictObject({
     op: z.literal('amputer'),
     sequels: refs('trauma'),

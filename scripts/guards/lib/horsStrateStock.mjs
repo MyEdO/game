@@ -59,7 +59,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#crew-test-types', ref: '.types[]', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[]', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].amputation', occurrence: 1 },
-  { fichier: 'src/data#criticals', ref: '[].entries[].amputation.loss', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].escalation', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].escalation.apresDelai', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].escalation.bleedOnReinjury', occurrence: 1 },
