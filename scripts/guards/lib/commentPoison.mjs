@@ -14,47 +14,40 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { allAbbrAlternation } from '../../raw/_lib.mjs';
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { LEGACY_VOCAB_SITES } from './legacyVocabStock.mjs';
 import { estRetenu, readCorpus, sAppliqueA } from './sourceCorpus.mjs';
 import { RACINES_PRESENTES } from './racinesPresentes.mjs';
 import { lexemesGdscript } from './gdscript.mjs';
 
-/** Les commentaires d'un fichier, par l'extracteur de son dialecte, chacun sous la forme `Comment` : le
- *  TypeScript et le JavaScript (`extractComments`), le GDScript de l'hôte Godot (`lexemesGdscript`). */
-const EXTRACTEURS = Object.freeze({
-  '.ts': extractComments,
-  '.mts': extractComments,
-  '.mjs': extractComments,
-  '.gd': (src) => lexemesGdscript(src).commentaires,
-});
+const EXTENSION_GDSCRIPT = '.gd';
+const estGdscript = (rel) => String(rel).endsWith(EXTENSION_GDSCRIPT);
 
 /** PÉRIMÈTRE DES GARDES — SOURCE UNIQUE des trois portes anti-poison (suite Vitest, pre-commit, hook
  *  au stylo) et du corpus des gardes qui balaient l'arbre (`corpusDesGardes`). Un fichier hors de ce
  *  périmètre n'est lu par aucune ; un fichier dedans l'est par toutes, tests compris (le poison écrit
  *  dans un test est du poison). Ses racines : `scripts`, et chaque racine des zones que l'arbre porte
- *  (`RACINES_PRESENTES`), un corpus vide levant (`readCorpus`) ; ses extensions, celles d'un dialecte
- *  dont les commentaires s'extraient (`EXTRACTEURS`). */
+ *  (`RACINES_PRESENTES`), un corpus vide levant (`readCorpus`) ; ses extensions sont celles des scripts
+ *  JS et TS et celle du GDScript. */
 export const PERIMETRE_DES_GARDES = Object.freeze({
   racines: Object.freeze([...RACINES_PRESENTES, 'scripts']),
-  extensions: Object.freeze(Object.keys(EXTRACTEURS)),
+  extensions: Object.freeze([...EXTENSIONS_DE_SCRIPT, EXTENSION_GDSCRIPT]),
   tests: true,
 });
 
 /** Le corpus du périmètre des gardes (`readCorpus`, mémoïsé : même tableau à chaque appel). */
 export const corpusDesGardes = () =>
-  readCorpus([...PERIMETRE_DES_GARDES.racines], { exts: [...PERIMETRE_DES_GARDES.extensions], tests: PERIMETRE_DES_GARDES.tests });
+  readCorpus(PERIMETRE_DES_GARDES.racines, { exts: PERIMETRE_DES_GARDES.extensions, tests: PERIMETRE_DES_GARDES.tests });
 
-const extensionDe = (rel) => String(rel).slice(String(rel).lastIndexOf('.'));
-const estTypeScript = (rel) => EXTRACTEURS[extensionDe(rel)] === extractComments;
 /** Le corpus des gardes en dialecte TypeScript ou JavaScript, celui que lisent les gardes qui l'analysent
  *  (`analyserCorpus`). */
-export const corpusTypeScriptDesGardes = () => corpusDesGardes().filter((f) => estTypeScript(f.rel));
+export const corpusTypeScriptDesGardes = () => corpusDesGardes().filter((f) => !estGdscript(f.rel));
 
-/** Les commentaires du fichier `rel`, de contenu `contenu`, par l'extracteur de son dialecte (`EXTRACTEURS`,
- *  `extractComments` hors du périmètre).
+/** Les commentaires du fichier `rel`, de contenu `contenu`, via `lexemesGdscript` pour le GDScript
+ *  et `extractComments` pour les autres chemins.
  * @param {string} rel @param {string} contenu @returns {Comment[]} */
 export function commentairesDe(rel, contenu) {
-  return (EXTRACTEURS[extensionDe(rel)] ?? extractComments)(contenu);
+  return estGdscript(rel) ? lexemesGdscript(contenu).commentaires : extractComments(contenu);
 }
 
 /** Le fichier est-il dans le périmètre des gardes ? Sous l'une des racines, et retenu par le corpus
@@ -669,9 +662,9 @@ const MOT = '[a-zA-ZÀ-ÿ]+';
 // et `m`, bornées par un non-mot où le tiret bas BORNE (un identifiant de code n'est pas de la prose),
 // et ne lisent pas le texte entre accents graves ; leurs cas vivent en littéraux dans
 // `src/comment-poison-guard.test.ts`.
-// Ce que ces deux familles ne voient pas. Les titres de test, la prose des `.md`, les chaînes des
-// `.json` et les fichiers `.js` : le garde-fou ne lit que les commentaires des fichiers `.ts`, `.tsx`,
-// `.mts` et `.mjs` de `src` et de `scripts` (#2048). Hors de l'art, un mot qui nomme aussi un autre
+// Ces deux familles lisent les commentaires de `PERIMETRE_DES_GARDES` (#2048). Les titres de
+// test, la prose des `.md` et les chaînes des `.json` sont hors de cette lecture.
+// Hors de l'art, un mot qui nomme aussi un autre
 // concept (« tokenisé » seul, l'auto-liage du Codex ; « gradient » seul, un ciel ; « teinte sombre »,
 // une couleur d'interface) : seules les formes qui ne nomment que l'art y sont lues. Un commentaire
 // qui porte le tag `[entériné …]` : la famille (e) le saute (#2048). Dans l'art, « famille » seul, qui
@@ -683,8 +676,8 @@ const MOT = '[a-zA-ZÀ-ÿ]+';
 // synonyme qu'aucune forme ne déclare échappe à la garde.
 // Ce que cette famille ne voit pas. « Exhaustif » seul, qui dit aussi la complétude d'un relevé ou la
 // vérification d'un `switch` : seules les formes qui le lient à une table, à un record ou au type sont
-// lues. Un synonyme qu'aucune forme ne déclare échappe à la garde. Les titres de test, les chaînes, la
-// prose des `.md`, les fichiers `.js` et un commentaire tagué `[entériné …]` (#2048).
+// lues. Un synonyme qu'aucune forme ne déclare échappe à la garde. Cette famille lit les commentaires
+// de `PERIMETRE_DES_GARDES` hors de ceux qui portent le tag `[entériné …]` (#2048).
 const HORS_ACCENTS_GRAVES = String.raw`(?<=^(?:[^\x60\n]*\x60[^\x60\n]*\x60)*[^\x60\n]*)`;
 const SECOND_NOM = (formes) => String.raw`(?<![\w@])(?:` + formes + String.raw`)(?![\wÀ-ÿ])`;
 const FORMES_DE_L_ART_SEUL = [

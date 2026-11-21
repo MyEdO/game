@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readCorpus, type CorpusFile } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { EXTENSIONS_DE_SCRIPT } from '../scripts/guards/lib/dialecte.mjs';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
 
 /**
@@ -10,11 +11,11 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
  * `jsdom`, `new URL(rel, base)`
  * est détourné vers la base du document, la résolution y passe donc par
  * `join(dirname(fileURLToPath(import.meta.url)), '..', 'styles', 'x.css')`, ou `resolve(__dirname, …)` dans un test
- * Vitest. Un `index` de `src/` ou son dossier ne se désigne pas par `new URL` : knip en ferait une entrée (garde
- * `src/index-mesures-par-knip.test.ts`).
+ * Vitest. Une lecture du texte d'un module passe son chemin résolu à `entreeDe`. Les entrées TypeScript
+ * résolues par Knip sont vérifiées dans `scripts/ops/knip-exports-ratchet.mjs` (#2931).
  *
- * PÉRIMÈTRE : `src/**` (`.ts`/`.tsx`) ET `scripts/**` (`.mjs`/`.mts`/`.py`) — l'outillage tourne sur la
- * CI et dans les worktrees d'agents, un chemin de machine y meurt exactement pareil.
+ * PÉRIMÈTRE : tous les scripts sous `src/**` et `scripts/**`, avec le Python de `scripts/**`.
+ * Le même chemin de machine échoue en CI et dans les worktrees d'agents.
  *
  * CODE SEUL (`codeSeul`, `scripts/guards/lib/commentPoison.mjs`) : la garde juge ce qui S'EXÉCUTE.
  * Une graphie de chemin CITÉE dans une JSDoc documente le comportement de la fonction (deux sites :
@@ -36,12 +37,6 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
  * littéral de chemin absolu, il est donc soumis à sa propre garde comme le reste du périmètre.
  */
 
-/** Racines scannées : dossier + extensions retenues. */
-const SCAN_ROOTS: { dir: string; exts: string[] }[] = [
-  { dir: 'src', exts: ['.ts', '.tsx'] },
-  { dir: 'scripts', exts: ['.mjs', '.mts', '.py'] },
-];
-
 const WIN_DRIVE = /(?<![A-Za-z0-9_-])(?<!(?<!\\)(?:\\\\)*\\)[A-Za-z]:[\\/]+[A-Za-z0-9._-]/g;
 const POSIX_HOME = /\/(?:home|Users)\/[A-Za-z0-9._-]+\//;
 /** Racines d'INSTALLATION de la plateforme : identiques sur toute machine Windows, elles ne nomment
@@ -60,10 +55,11 @@ export function absoluteMachinePathIn(line: string): string | null {
   return null;
 }
 
-function scanFiles(): Pick<CorpusFile, 'rel' | 'text'>[] {
-  return SCAN_ROOTS.flatMap(({ dir, exts }) =>
-    readCorpus([dir], { exts, tests: true }).map(({ rel, text }) => ({ rel, text })),
-  );
+function scanFiles() {
+  return [
+    ...readCorpus(['src'], { tests: true }),
+    ...readCorpus(['scripts'], { exts: [...EXTENSIONS_DE_SCRIPT, '.py'], tests: true }),
+  ];
 }
 
 const DRIVE = 'C' + ':';

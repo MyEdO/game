@@ -1,6 +1,6 @@
 import { statSync } from 'node:fs'
 import { join } from 'node:path'
-import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
 import { booksDe, coeursDe, coeursDuRegistre, domainesDe, livresDeCoeur, REGISTRE_LIVRES } from './_lib.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
@@ -51,17 +51,16 @@ export function rendre(rawDir = RAWDIR, registre = REGISTRE_LIVRES, registreDoma
   return new Map([[RAPPORT, lignes.join('\n')]])
 }
 
-function main() {
+export function* produire() {
+  exigerRacineAtlas()
   try {
-    for (const [path, out] of rendre()) ecrireOuVerifier({ path, out, check: process.argv.includes('--check'),
-      staleMsg: `build-atlas-index — ${path} PÉRIMÉ`, rerunMsg: '→ node scripts/raw/build-atlas-index.mjs' })
+    for (const [path, out] of rendre()) yield {
+      path, out, staleMsg: `build-atlas-index — ${path} PÉRIMÉ`, rerunMsg: '→ node scripts/raw/build-atlas-index.mjs',
+    }
   } catch (e) {
     console.error(String(e?.message ?? e))
     process.exitCode = 1
   }
 }
 
-if (import.meta.main) {
-  exigerRacineAtlas()
-  main()
-}
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

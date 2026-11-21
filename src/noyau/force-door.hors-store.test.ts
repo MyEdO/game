@@ -3,7 +3,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
-import { modalOwnerOf } from './modalArbiter';
+import { zonesDeLEcran } from '../hote/ecran';
+import { fenetreADessiner } from '../hote/gestes';
+import { projeter } from '../hote/projection';
+import { SANS_ROSTER } from '../hote/roster';
+import { t } from '../i18n';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+import { TOUT_RESOUDRE } from './combatAuto';
+import { cleDuGeste, modalOwnerOf } from './modalArbiter';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -58,6 +65,70 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     expect(st.groupOwner).toBe(true);
     expect(st.actorId, 'un jet de GROUPE n’a pas d’acteur unique').toBeUndefined();
     expect(modalOwnerOf(banc.getState()), 'fenêtre ouverte à tous les sièges').toBe('*');
+  });
+
+  it('la porte attend sa propre validation : « Tout résoudre » est refusé aux deux sièges puis la fenêtre se ferme', () => {
+    const [a, b] = heroes();
+    const { getState: get } = banc;
+    banc.setState({ net: { ...get().net, mode: 'hote', ownership: { [a.id]: 0, [b.id]: 1 }, slots: [0, 1, 0, 0] } });
+    get().enfoncerLaPorte({ label: 'Porte de la cave', doorBE: 0, doorB: 1, heroIds: [a.id, b.id], flag: 'cave_ouverte' });
+    const cle = cleDuGeste(TOUT_RESOUDRE);
+    const motif = t('jet.ferme.etapeHoteEnAttente');
+
+    const verifierLeRefus = () => {
+      const avant = get();
+      for (const siege of [0, 1]) {
+        const etat = { ...avant, net: { ...avant.net, mySeat: siege } };
+        const fenetre = fenetreADessiner(etat);
+        const projection = projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 });
+        expect(projection.fenetre?.fermes[cle], 'motif transmis dans la fenêtre').toBe(motif);
+        expect(fenetre?.gestes.find((geste) => geste.cle === cle)?.raison).toBe(motif);
+        expect(zonesDeLEcran(etat, projection, fenetre, null, SANS_ROSTER)['fenetre.gestes'].find((geste) => geste.id === cle))
+          .toMatchObject({ type: 'bouton', refus: motif, jeu: { type: 'jetLancer', args: ['cascade'] } });
+      }
+      get().jetLancer('cascade');
+      expect(get().journal.slice(-1), 'refus local').toEqual([motif]);
+      const refus: string[] = [];
+      appliquerLIntentionDUnSiege(get, 1, 'jetLancer', ['cascade'], (texte) => refus.push(texte));
+      expect(refus, 'refus rendu à l’invité').toEqual([motif]);
+      expect(get().pendingCascade).toBe(avant.pendingCascade);
+      expect(get().pendingForceDoor).toBe(avant.pendingForceDoor);
+      expect(get().flags.cave_ouverte).toBeUndefined();
+    };
+
+    verifierLeRefus();
+    get().jetForcerLaReussite('enfoncerLaPorte', a.id);
+    appliquerLIntentionDUnSiege(get, 1, 'jetForcerLaReussite', ['enfoncerLaPorte', b.id]);
+    expect(get().pendingForceDoor?.participants.every((rang) => rang.result !== null)).toBe(true);
+    verifierLeRefus();
+    get().jetValider('enfoncerLaPorte');
+    expect(get().flags.cave_ouverte).toBe(true);
+    expect(get().pendingForceDoor).toBeNull();
+    expect(get().pendingCascade).toBeNull();
+    expect(fenetreADessiner(get())?.gestes.some((geste) => geste.cle === cle) ?? false).toBe(false);
+  });
+
+  it('sur un Test étendu attribué, le refus de siège précède l’attente de l’étape', () => {
+    const [a] = heroes();
+    const { getState: get } = banc;
+    banc.setState({ net: { ...get().net, mode: 'hote', ownership: { [a.id]: 1 }, slots: [1, 0, 0, 0] } });
+    get().ouvrirLeTestEtendu({ actorId: a.id, label: 'Test étendu', skillLabel: 'Force', target: 70, drCible: 15 });
+    const avant = get();
+    const cle = cleDuGeste(TOUT_RESOUDRE);
+    const motifDeSiege = t('coop.intentRefused');
+    const motifDAttente = t('jet.ferme.etapeHoteEnAttente');
+    const invite = { ...avant, net: { ...avant.net, mySeat: 1 } };
+    expect(fenetreADessiner(avant)?.gestes.find((geste) => geste.cle === cle)?.raison).toBe(motifDeSiege);
+    expect(fenetreADessiner(invite)?.gestes.find((geste) => geste.cle === cle)?.raison).toBe(motifDAttente);
+    get().jetLancer('cascade');
+    expect(get().journal.slice(-1), 'refus de l’appel local direct').toEqual([motifDeSiege]);
+    expect(appliquerLIntentionDUnSiege(get, 0, 'jetLancer', ['cascade'])).toBe('refusee');
+    expect(get().journal.slice(-2)).toEqual([motifDeSiege, motifDeSiege]);
+    const refus: string[] = [];
+    appliquerLIntentionDUnSiege(get, 1, 'jetLancer', ['cascade'], (texte) => refus.push(texte));
+    expect(refus).toEqual([motifDAttente]);
+    expect(get().pendingCascade).toBe(avant.pendingCascade);
+    expect(get().pendingExtendedTest).toBe(avant.pendingExtendedTest);
   });
 
   it('EDO : DR + BF < BE → 0 dégât (la porte ne bouge pas) — objets sans minimum 1', () => {

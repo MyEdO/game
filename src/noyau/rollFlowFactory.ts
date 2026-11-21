@@ -65,19 +65,21 @@ import { t } from '../i18n';
  */
 
 /** Ce qui ferme un verbe du cycle de jet, ou la sortie d'une fenêtre (`sortieFermee`, `modalArbiter.ts`), maintenant ;
- *  son libellé est `jet.ferme.<code>` (`libelleDeLaFermeture`). */
+ *  `libelleDeLaFermeture` donne son libellé. */
 export type FermetureDuJet =
   | 'sansJet' | 'nonOffert' | 'sansActeur' | 'rangeeTemoin' | 'jetImpose'
   | 'jetNonLance' | 'jetLance' | 'jetReussi' | 'dejaRelance'
   | 'sansChance' | 'sansResilience' | 'reserveAuxHeros'
   | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance'
   | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee'
-  | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'acteAChanger' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
+  | 'choixDu' | 'etapeHoteEnAttente' | 'horsSiege' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'acteAChanger' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
   | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir' | 'seanceDuChapitre' | 'choixAReprendre'
   | 'preparationDeBataille' | 'batailleTerminee' | 'testSpectaculaireDu';
 
-/** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
-export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>(['declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee']);
+/** Les fermetures dont la fenêtre affiche le geste refusé avec sa raison. */
+export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>([
+  'declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee', 'etapeHoteEnAttente', 'horsSiege',
+]);
 
 /** Ce qui ferme chaque verbe de jet (`null` : ouvert), clôture (`valider`) comprise, lu par `RollFlowHandlers.fermetures`. */
 export type FermeturesDuJet = Record<RollVerb, FermetureDuJet | null>;

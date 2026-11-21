@@ -16,9 +16,11 @@
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
-import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
+import { attackKindSchema, contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
 import {
   armourBypassCategorieSchema,
+  capaciteDeCombatSchema,
+  domaineDuChaosSchema,
   loseTurnWhatSchema,
   ressourceDeDestinSchema,
   senseSchema,
@@ -282,7 +284,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     case 'flag': return t(neg ? 'codex.c.flag.non' : 'codex.c.flag', { expr: c.expr });
     case 'time': return neg ? t('codex.c.time.non', { creneau: timePhrase(c.window) }) : timePhrase(c.window);
     case 'hasItem': {
-      const label = c.trappingId || '?';
+      const label = refLabel('trappings', c.objet);
       return `${t(neg ? 'codex.c.hasItem.non' : 'codex.c.hasItem', { objet: label })}${c.count && c.count > 1 ? ` (×${c.count})` : ''}`;
     }
     case 'money': {
@@ -305,7 +307,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     case 'compare': return comparePhrase(c, neg);
     case 'slThreshold': return t('codex.c.slThreshold', { op: opWord(c.op, neg), valeur: c.value });
     case 'location': return t(neg ? 'codex.c.location.non' : 'codex.c.location', { loc: HIT_LOCATION_LABELS[c.is] });
-    case 'attackKind': return t(neg ? 'codex.c.attackKind.non' : 'codex.c.attackKind', { type: c.is });
+    case 'attackKind': return t(neg ? 'codex.c.attackKind.non' : 'codex.c.attackKind', { type: libelleDeValeur(attackKindSchema, c.is) });
     case 'startleCause': return t(neg ? 'codex.c.startleCause.non' : 'codex.c.startleCause', { cause: t(c.is === 'noise' ? 'codex.c.startleCause.bruit' : 'codex.c.startleCause.magie') });
     case 'woundsDealt': return t('codex.c.woundsDealt', { op: opWord(c.op, neg), valeur: c.value });
     case 'engagedAdvantageGap': return t('codex.c.engagedAdvantageGap', { op: opWord(c.op, neg), valeur: c.value });
@@ -319,7 +321,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     case 'crewTest': return t(neg ? 'codex.c.crewTest.non' : 'codex.c.crewTest');
     case 'roundDeCombat': return t(neg ? 'codex.c.roundDeCombat.non' : 'codex.c.roundDeCombat');
     case 'nearestFoe': return t('codex.c.nearestFoe', { op: opWord(c.op, neg), valeur: c.value });
-    case 'capability': return `${t(neg ? 'codex.c.capability.non' : 'codex.c.capability', { qui: who(c.who), id: c.id })}${c.value != null ? ` (${c.op ?? '>='} ${c.value})` : ''}`;
+    case 'capability': return `${t(neg ? 'codex.c.capability.non' : 'codex.c.capability', { qui: who(c.who), id: libelleDeValeur(capaciteDeCombatSchema, c.id) })}${c.value != null ? ` (${c.op ?? '>='} ${c.value})` : ''}`;
     case 'relation': return t(neg ? 'codex.c.relation.non' : 'codex.c.relation', { qui: who(c.who), rel: REL_PLAYER[c.is] });
     case 'has': {
       const qui = who(c.who);
@@ -329,7 +331,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
       if (c.what === 'immunity') return t(neg ? 'codex.c.has.immunity.non' : 'codex.c.has.immunity', { qui, nom: refLabel('damageTypes', { id: c.value }) });
       return t(neg ? 'codex.c.has.group.non' : 'codex.c.has.group', { qui, nom: groupLabel(c.value) });
     }
-    case 'casterChaosDomain': return t(neg ? 'codex.c.casterChaosDomain.non' : 'codex.c.casterChaosDomain', { dieu: refLabel('gods', { id: c.is }) });
+    case 'casterChaosDomain': return t(neg ? 'codex.c.casterChaosDomain.non' : 'codex.c.casterChaosDomain', { dieu: libelleDeValeur(domaineDuChaosSchema, c.is) });
     case 'visiblePassive': return t(neg ? 'codex.c.visiblePassive.non' : 'codex.c.visiblePassive', { qui: who(c.who) });
     case 'navire': return t(neg ? 'codex.c.navire.non' : 'codex.c.navire', { qui: who(c.who) });
     case 'skill': {

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
+import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { MAISON_SANS_SOURCE, MAISON_MASQUEES } from '../../scripts/guards/lib/integriteStock.mjs';
 import { SANS_LIVRE_DEFINITIF, SANS_PROVENANCE_EXIGEE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { exigeProvenanceExclusive } from './schemas/grammaire/document';
@@ -15,19 +15,19 @@ const lire = (dir: string, f: string): unknown => JSON.parse(readFileSync(join(d
 const jsons = (dir: string): string[] => listerArbre(dir, { filtre: (rel) => rel.endsWith('.json') });
 
 function sitesMaison(f: string, data: unknown, masquee: boolean) {
-  const sites = [];
+  const sites: (Site & { famille: string })[] = [];
   for (const entree of Array.isArray(data) ? data : [data]) {
     if (!entree || typeof entree !== 'object') continue;
     const r = entree as Record<string, unknown>;
     if (typeof r.maison !== 'string' || !r.maison.length || r.source !== undefined) continue;
     if (Array.isArray(data) && typeof r.id !== 'string') throw new Error(f + ' : entrée maison sans id');
-    sites.push({ famille: masquee ? 'maison-masquee' : 'maison-sans-source', file: 'src/data/' + f, ref: JSON.stringify([r.id ?? '$racine', 'maison', '', '']) });
+    sites.push({ famille: masquee ? 'maison-masquee' : 'maison-sans-source', fichier: 'src/data/' + f, ref: JSON.stringify([r.id ?? '$racine', 'maison', '', '']) });
   }
   return sites;
 }
 
 function mesure(masquee: boolean) {
-  const sites = [];
+  const sites: (Site & { famille: string })[] = [];
   for (const f of jsons(DATA_DIR)) {
     if (Boolean(SANS_PROVENANCE_EXIGEE[f.replace(/\.json$/, '')]) !== masquee) continue;
     if (!masquee && exigeProvenanceExclusive(schemaForFile(f))) continue;

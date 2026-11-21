@@ -31,7 +31,7 @@ const TOUT_POSITIONNE: Scene = {
   ],
   entities: [
     { id: 'depart', kind: 'heroStart', pos: { x: 1, y: 1 } },
-    { id: 'pnj', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 4, y: 5 }, postes: [{ trappingId: 'canon', anchor: { x: 5, y: 5 } }] },
+    { id: 'pnj', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 4, y: 5 }, postes: [{ engin: { id: 'canon' }, anchor: { x: 5, y: 5 } }] },
     { id: 'tonneau', kind: 'prop', pos: { x: 6, y: 2 }, calage: { x: 0.5, y: -0.5 } },
   ],
   stations: [{ sceneId: 'bataille', pos: { x: 7, y: 7 } }],

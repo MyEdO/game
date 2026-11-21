@@ -55,7 +55,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.175-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
-  hydratePoste({ trappingId: engineId, crewIds, side }, idsDeTest('it'));
+  hydratePoste({ engin: { id: engineId }, crewIds, side }, idsDeTest('it'));
 
 /** Scène terrestre minimale (40×40 d'herbe, 2 m/case) — PAS de merScale/metresPerTile « Mer ». */
 const groundScene = (): Scene =>
@@ -69,7 +69,7 @@ const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string
 //     `applyShipPostes` (kind-agnostique) sert la pièce au chef d'équipage. SANS `side` (tir omni).
 describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est servi (mannedPoste)', () => {
   it('SceneEntity NON-navire portant `postes` → `Combatant.postes` au spawn (comme la voie navale)', () => {
-    const poste = { trappingId: 'baliste', crewIds: ['gunner', 's1'] }; // PAS de `side` → exige `side` optionnel
+    const poste = { engin: { id: 'baliste' }, crewIds: ['gunner', 's1'] }; // PAS de `side` → exige `side` optionnel
     const emplacement = spawnEnemy({ statblock: { name: 'Affût de baliste', char: { B: 20 } } as never }, 'emplacement', { x: 5, y: 5 }, { postes: [poste] });
     expect(emplacement.postes).toBeTruthy();
     expect(emplacement.bodyShape).not.toBe('vehicule'); // AUCUN couplage navire (pas une coque)
@@ -106,7 +106,7 @@ describe('(B) Tir — le chef sert la pièce et touche la cible (resolveAttack, 
     });
     const [chef] = artilleurs;
     const affut = spawnEnemy({ engin: id }, 'emplacement', { x: 5, y: 5 }, { postes: [{
-      trappingId: id,
+      engin: { id: id },
       crewIds: artilleurs.map((c) => c.id),
       ammo: { 'carreau-de-baliste': 2 },
       selectedAmmo: { id: 'carreau-de-baliste' },
@@ -169,7 +169,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     // crewedFireWeapon est la SOURCE UNIQUE de la dégradation (réutilisée par firedWeapon) — éprouvée sur
     // l'arme dérivée du poste (le mortier n'a PAS le Défaut Imprécise de base → la pénalité l'AJOUTE).
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
-    const w0 = mannedPosteWeapon(chef, hydratePoste({ trappingId: 'mortier', crewIds: ['chef'] }, idsDeTest('it')))!;
+    const w0 = mannedPosteWeapon(chef, hydratePoste({ engin: { id: 'mortier' }, crewIds: ['chef'] }, idsDeTest('it')))!;
     const w = crewedFireWeapon(w0, 1); // présent 1, Indice 3 → déficit 2
     expect(w.reload).toBe(8); // Recharge 4 ×2
     expect(w.qualities.some((q) => q.id === 'imprecise')).toBe(true); // Défaut AJOUTÉ par le sous-effectif
@@ -180,7 +180,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
 //     LDB 13 l.106, arbitrage #3595 du 2026-11-07), soutenu par un servant adjacent (MDG 12 l.462).
 describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au sol (rechargerLArme/jetValider@rechargement)', () => {
   const setup = (order = ['chef', 'emplacement', 's1']) => {
-    const poste = hydratePoste({ trappingId: 'baliste', crewIds: [], loaded: false, reloadProgress: 2 }, idsDeTest('it'));
+    const poste = hydratePoste({ engin: { id: 'baliste' }, crewIds: [], loaded: false, reloadProgress: 2 }, idsDeTest('it'));
     const { item } = poste;
     const chef = mkGunner('chef', 'heros', { x: 5, y: 6 }, 80);
     chef.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 20 }] as never;
@@ -231,7 +231,7 @@ describe('(E) AoE — mortier + bombe explosion frappe un groupe au sol (branche
   it('toutes les cibles dans le rayon Indice subissent DR+Dégâts ; hors rayon = épargné', () => {
     seedBattleRng(7);
     const chef = mkGunner('chef', 'heros', { x: 0, y: 0 });
-    const mortier = mannedPosteWeapon(chef, hydratePoste({ trappingId: 'mortier', crewIds: ['chef'] }, idsDeTest('it')))!;
+    const mortier = mannedPosteWeapon(chef, hydratePoste({ engin: { id: 'mortier' }, crewIds: ['chef'] }, idsDeTest('it')))!;
     const bomb = itemFromTrappingById('bombe-de-mortier', idsDeTest)!; // Explosion Indice 5, Dégâts 12
     const w: Weapon = weaponWithAmmo(mortier, bomb); // arme effective : la qualité a-explosion est fusionnée
     expect(w.qualities.some((q) => q.id === 'a-explosion')).toBe(true);

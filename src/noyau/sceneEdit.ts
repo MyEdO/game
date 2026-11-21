@@ -20,7 +20,6 @@ import {
   type Dialogue,
   type DialogueChoice,
   type DialogueNode,
-  type Trigger,
   type EncounterDef,
   CellSide,
   canonEdge,
@@ -95,6 +94,7 @@ import {
 import { METRES_PER_LEVEL } from './monde/relief';
 import {
   entityKindSchema,
+  PIECES_DE_LA_SCENE,
   refusDeLEntite,
   sceneSchema,
   typeNonNomme,
@@ -585,17 +585,15 @@ export function paintHeight(scene: Scene, p: Pt, metres: number, brush: number, 
   return { ...scene, layers: scene.layers.map((l) => (l.z === layer.z ? { ...l, height } : l)) };
 }
 
-/** Marque un carré de côté `brush` centré sur p comme CRÉNELÉ (décoration de rendu ; id de structure
- *  crénelée = `structure`), sur la couche `z`. Miroir de `paintHeight` sur le tableau parallèle
- *  `crenellated`. `structure = null` efface. Marqueur de RENDU pur (le crest builder en dérive les merlons
- *  de périmètre) — n'affecte NI passabilité NI LdV ; orthogonal à la hauteur (`paintHeight`). */
-export function paintCrenellated(scene: Scene, p: Pt, structure: string | null, brush: number, z = 0): Scene {
+/** Écrit l'apparence à parapet sur le carré de côté `brush` centré sur `p` à l'étage `z`.
+ *  `null` efface la cellule. Le rendu en dérive les merlons de périmètre. */
+export function paintCrenellated(scene: Scene, p: Pt, apparence: string | null, brush: number, z = 0): Scene {
   const cases = empriseDuPinceau(scene.dimensions, p, brush);
   if (!cases.length) return scene;
   const { w, h } = scene.dimensions;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
   const crenellated = [...(layer.crenellated ?? new Array(w * h).fill(null))] as (string | null)[];
-  for (const c of cases) crenellated[c.y * w + c.x] = structure;
+  for (const c of cases) crenellated[c.y * w + c.x] = apparence;
   return { ...scene, layers: scene.layers.map((l) => (l.z === layer.z ? { ...l, crenellated } : l)) };
 }
 
@@ -635,7 +633,7 @@ export function setPosteEngine(scene: Scene, entityId: string, trappingId: strin
   return editEntity(scene, entityId, {
     label: t.label,
     engin: { id: trappingId },
-    postes: ent.postes!.map((p, i) => (i === 0 ? { ...p, trappingId } : p)),
+    postes: ent.postes!.map((p, i) => (i === 0 ? { ...p, engin: { id: trappingId } } : p)),
   });
 }
 
@@ -856,7 +854,9 @@ export function deleteSel(scene: Scene, sel: Sel): Scene {
     }),
   };
   if (sel?.type === 'restZone') return { ...scene, restZones: (scene.restZones ?? []).filter((_, i) => i !== sel.idx) };
-  if (sel?.type === 'effectZone') return { ...scene, effectZones: (scene.effectZones ?? []).filter((z) => z.id !== sel.id) };
+  if (sel?.type === 'effectZone') {
+    return sansLiensDePiece({ ...scene, effectZones: (scene.effectZones ?? []).filter((z) => z.id !== sel.id) }, sel.id);
+  }
   if (sel?.type === 'wall') {
     const others = (scene.walls ?? []).filter((w) => !(w.x === sel.x && w.y === sel.y && w.side === sel.side && (w.z ?? 0) === sel.z));
     return { ...scene, walls: others.length ? others : undefined };
@@ -1069,11 +1069,6 @@ export function addTrigger(scene: Scene, rect: RectDeCases, z = 0): { scene: Sce
   return { scene: { ...scene, triggers: [...scene.triggers, { id, rect: { ...rect, ...(z ? { z } : {}) }, once: true, flow: EMPTY_FLOW }] }, id };
 }
 
-/** Patche le trigger `id` (`champs` : une clé portée à `undefined` en retire le champ). */
-export function patchTrigger(scene: Scene, id: string, patch: Partial<Trigger>): Scene {
-  return { ...scene, triggers: scene.triggers.map((t) => (t.id === id ? champs(t, patch) : t)) };
-}
-
 /** Renomme le trigger `from`. Refusé (scène inchangée) pour un id vide ou déjà porté par un autre trigger. */
 export function renameTrigger(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
@@ -1196,25 +1191,10 @@ export function removeEncounter(scene: Scene, id: string): Scene {
   return { ...scene, encounters: scene.encounters.filter((e) => e.id !== id) };
 }
 
-/** Pose les blocs avancés lus (`lireBlocsAvances`) : chaque bloc présent REMPLACE celui de la scène. */
-export function poseBlocsAvances(scene: Scene, blocs: { dialogues?: Dialogue[]; triggers?: Trigger[]; encounters?: EncounterDef[] }): Scene {
-  return {
-    ...scene,
-    ...(blocs.dialogues !== undefined ? { dialogues: blocs.dialogues } : {}),
-    ...(blocs.triggers !== undefined ? { triggers: blocs.triggers } : {}),
-    ...(blocs.encounters !== undefined ? { encounters: blocs.encounters } : {}),
-  };
-}
-
 /** Crée une zone de repos sur `rect`, à l'étage `z` (camp par défaut — lieux/qualité éditables dans l'inspecteur). */
 export function addRestZone(scene: Scene, rect: RectDeCases, z = 0): { scene: Scene; idx: number } {
   const zones = [...(scene.restZones ?? []), { rect: { ...rect, ...(z ? { z } : {}) }, places: reposDeScene({}) }];
   return { scene: { ...scene, restZones: zones }, idx: zones.length - 1 };
-}
-
-/** Patche la zone de repos d'indice `idx`. */
-export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNullable<Scene['restZones']>[number]>): Scene {
-  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? (patch.quality ? champ({ ...z, ...patch }, 'quality', qualiteEcrite(patch.quality)) : { ...z, ...patch }) : z)) };
 }
 
 /** `q` telle que le document l'écrit : « normale » est l'absence du champ. */
@@ -1755,8 +1735,30 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
  *  barrière…). `id`, `area` et `z` restent au créateur — ils viennent du geste, pas de l'appelant. */
 export type EffectZoneSeed = Partial<Omit<SceneEffectZone, 'id' | 'area' | 'z'>>;
 
-/** Remplace la zone d'effet `id` par `zone`. */
-export const replaceEffectZone = (scene: Scene, id: string, zone: SceneEffectZone): Scene => ({ ...scene, effectZones: (scene.effectZones ?? []).map((z) => (z.id === id ? zone : z)) });
+function sansLiensDePiece(scene: Scene, id: string, etage?: number): Scene {
+  const detacher = <A extends { z: number; roomZoneIds?: string[] }>(partie: A): A => (
+    partie.z !== etage && partie.roomZoneIds?.includes(id)
+      ? { ...partie, roomZoneIds: partie.roomZoneIds.filter((piece) => piece !== id) }
+      : partie
+  );
+  return scene.architecture ? {
+    ...scene,
+    architecture: scene.architecture.map((corps) => ({
+      ...corps,
+      storeys: corps.storeys.map(detacher),
+      facades: corps.facades.map(detacher),
+    })),
+  } : scene;
+}
+
+/** Remplace la zone d'effet `id` par `zone` et détache les liens de pièce qui ne sont plus valides. */
+export function replaceEffectZone(scene: Scene, id: string, zone: SceneEffectZone): Scene {
+  const avant = scene.effectZones?.find((z) => z.id === id);
+  const remplacee = { ...scene, effectZones: (scene.effectZones ?? []).map((z) => (z.id === id ? zone : z)) };
+  if (avant?.presentation !== 'interior') return remplacee;
+  if (zone.presentation !== 'interior') return sansLiensDePiece(remplacee, id);
+  return (avant.z ?? 0) === (zone.z ?? 0) ? remplacee : sansLiensDePiece(remplacee, id, zone.z ?? 0);
+}
 
 /** Crée une ZONE D'EFFET sur `rect`, à l'étage `z` (id frais pour le rendu/sélection). Tout ce que la
  *  zone PORTE vient de `seed` : sans seed, elle naît DESCRIPTIVE (`isDescriptiveZone`) et libellée par
@@ -1770,23 +1772,15 @@ export function addEffectZone(scene: Scene, rect: RectDeCases, z = 0, seed: Effe
   return { scene: { ...scene, effectZones: zones }, id };
 }
 
-/** Renomme l'id d'une ZONE D'EFFET (référencée par `FacadeSection.roomZoneIds` — lien Façade↔Pièce) et
- *  REPROPAGE la référence, pour qu'un rebaptême n'aille pas casser un lien déjà posé dans l'éditeur.
+/** Renomme une zone d'effet et les références de pièce des étages et façades.
  *  Renvoie la scène inchangée si `from` absent, `to` vide/identique, ou collision d'id. */
 export function renameEffectZone(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
   const zones = scene.effectZones ?? [];
   if (!next || next === from || zones.some((z) => z.id === next) || !zones.some((z) => z.id === from)) return scene;
-  return {
-    ...scene,
-    effectZones: zones.map((z) => (z.id === from ? { ...z, id: next } : z)),
-    architecture: scene.architecture?.map((body) => ({
-      ...body,
-      facades: body.facades.map((f) => (f.roomZoneIds?.includes(from)
-        ? { ...f, roomZoneIds: f.roomZoneIds.map((id) => (id === from ? next : id)) }
-        : f)),
-    })),
-  };
+  const sites = sitesDeLaPortee(sceneSchema, scene, PIECES_DE_LA_SCENE).filter((site) => site.id === from);
+  const copie = reecritSites(scene, sites, next);
+  return { ...copie, effectZones: zones.map((zone) => zone.id === from ? { ...zone, id: next } : zone) };
 }
 
 
@@ -1985,16 +1979,6 @@ export function setSceneMusic(scene: Scene, piste: keyof NonNullable<Scene['musi
   const pistes = { ...scene.music, [piste]: v };
   const music = champs<NonNullable<Scene['music']>>({}, { ambient: pistes.ambient, combat: pistes.combat });
   return champ(scene, 'music', Object.keys(music).length ? music : undefined);
-}
-
-/** Pose le texte du message d'introduction ; un texte vide retire le message (provenance comprise). */
-export function setStartMessageTexte(scene: Scene, texte: string): Scene {
-  return champ(scene, 'startMessage', texte ? { ...scene.startMessage, texte } : undefined);
-}
-
-/** Patche la provenance du message d'introduction. No-op sans message. */
-export function patchStartMessage(scene: Scene, patch: Partial<NonNullable<Scene['startMessage']>>): Scene {
-  return scene.startMessage ? { ...scene, startMessage: { ...scene.startMessage, ...patch } } : scene;
 }
 
 /** Pose la matière de la partie de relief `part`. */

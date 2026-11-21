@@ -392,7 +392,9 @@ export function creaturesDeLaRecolte(s: Jeu): string[] {
 export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
 
 /** Les créatures que le choix `victoire.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
-export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
+export function creaturesADepecer(s: Jeu): string[] {
+  return creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
+}
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
  *  `test` de Savoir (Bêtes) → `giveTrapping` — la réussite donne les pièces fraîches à pleine quantité,
@@ -1647,10 +1649,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: libelleEffet('giveTrapping'), icon: 'objet/divers',
     make: () => ({ type: 'giveTrapping', custom: '' }),
     apply: (e, env) => {
-      // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
       const destinataire = env.hero(e.heroId);
-      const it = itemFromGive(e, env.get().forgerUnId, undefined, objetDuNarratif(env.get().campaignNarratif), destinataire ? contexteDeNaissanceDObjet(destinataire) : undefined);
+      const it = itemFromGive({ ...e, trappingId: e.objet?.id }, env.get().forgerUnId, undefined, objetDuNarratif(env.get().campaignNarratif), destinataire ? contexteDeNaissanceDObjet(destinataire) : undefined);
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
       // Évaluation, #2), teinte légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       if (e.identified === false) it.identified = false;
@@ -1718,10 +1719,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   learnSpell: {
     group: 'Récompenses', label: libelleEffet('learnSpell'), icon: 'magie/puissance',
-    make: () => ({ type: 'learnSpell', spell: '', heroId: '' }),
+    make: () => ({ type: 'learnSpell', sort: { id: '' }, heroId: '' }),
     apply: (e, env) => {
       // LDB 46 l.14-20, #1702, #2312.
-      const sp = findSpellById(e.spell);
+      const sp = findSpellById(e.sort.id);
       if (!sp) return;
       const learnable = (h: Combatant) => verdictApprentissage(h, sp) === 'eligible';
       const who = env.mutateHero(
@@ -2223,16 +2224,16 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   setVessel: {
     group: 'Navigation', label: libelleEffet('setVessel'), icon: 'voyage/ancre',
-    make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: moraleBase() }),
+    make: () => ({ type: 'setVessel', navire: { id: navireSeme() }, morale: moraleBase() }),
     apply: (e, env) => {
       // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ContenuDeScenario.vessel`,
       // mais authorable. Moral neuf par défaut (`moraleBase`) ; coque intacte sauf `hull*` authoré.
-      const v = findVehicleById(e.vehicleId);
-      if (!v?.ship) return; // ref invalide (validée par `refs`) : no-op
+      const v = findVehicleById(e.navire.id);
+      if (!v?.ship) return;
       env.set({
         vessel: {
           uid: env.get().forgerUnId('navire'),
-          vehicleId: e.vehicleId,
+          vehicleId: e.navire.id,
           ...(e.label?.trim() ? { label: e.label.trim() } : {}), // #230 — nom d'instance (affichage)
           morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: semainesCompletes(dayIndex(env.get().gameTime)), factors: [] }, // MDG 14 l.143
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
@@ -2244,12 +2245,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         },
       });
       env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));
-    },
-    refs: (e) => {
-      const v = e.vehicleId ? findVehicleById(e.vehicleId) : undefined;
-      if (!v) return [{ level: 'error', message: `Effet → navire inexistant « ${e.vehicleId || '(vide)'} »` }];
-      if (!v.ship) return [{ level: 'error', message: `Effet → « ${v.label} » n'est pas un navire (pas de facette ship)` }];
-      return [];
     },
   },
   adjustVessel: {
@@ -2361,13 +2356,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   castSpell: {
     group: 'Combat & social', label: libelleEffet('castSpell'), icon: 'magie/puissance',
-    make: () => ({ type: 'castSpell', casterId: '', spellId: '', mode: 'jet' }),
+    make: () => ({ type: 'castSpell', casterId: '', sort: { id: '' }, mode: 'jet' }),
     apply: (e, env) => {
       const { get, set } = env;
       const caster = actorIn(get(), e.casterId);
       if (!caster) { env.log(t('eff.lanceurAbsent', { id: e.casterId })); return; }
-      const spell = findSpellById(e.spellId);
-      if (!spell) { env.log(t('eff.sortAbsent', { id: e.spellId })); return; }
+      const spell = findSpellById(e.sort.id);
+      if (!spell) { env.log(t('eff.sortAbsent', { id: e.sort.id })); return; }
       const target = (e.targetId ? actorIn(get(), e.targetId) : undefined) ?? caster;
       if (e.mode === 'forcerLaReussite') {
         // Exécuteur déclaré par `combatFlow` (table `lancerLeSortGaranti`). #98
@@ -2386,7 +2381,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // l'a alors résolu que depuis `party`), pas de pseudo-combat inventé pour ce cas.
       get().incanterLeSort(caster.id, spell.id, target.id);
     },
-    // `spellId` : prouvé au schéma (`castSpellSchema`, `idDe('spell')`) ; `casterId` y est une chaîne libre.
     refs: (e) => (e.casterId ? [] : [{ level: 'error', message: 'Effet Incanter : lanceur manquant' }]),
   },
 

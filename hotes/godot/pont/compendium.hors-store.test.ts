@@ -9,8 +9,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
 import type { Bouton, Choix, Entite, Formulaire } from '../../../src/hote/elements';
 import type { ZonesDuCompendium } from '../../../src/hote/compendium';
-import { datasetArray, datasetObject, resetData, setDataset } from '../../../src/data/overrides';
+import { datasetArray, datasetObject, resetData, setDataset, setEnTete } from '../../../src/data/overrides';
 import { hash32 } from '../../../src/lib/hash';
+import { tableTotale } from '../../../src/lib/tableTotale';
+import { raceKeySchema } from '../../../src/data/schemas/grammaire/valeurs';
 import { rangee } from '../../../src/data/schemas/defs/mutationTables';
 import { traitCapabilitiesSchema } from '../../../src/data/schemas/defs/traits';
 import { validateDataset } from '../../../src/data/schemas/validate';
@@ -49,6 +51,95 @@ describe('compendium', () => {
     const talent = zonesDe(appel('compendium', suivre.jeu));
     expect(talent['compendium.fiche'][0].nom).toBe(libelleDe('talents', TALENT));
     expect(erreurDe(appel('compendium', { compendium: { geste: 'montrer', id: 'nulle-part' } })).categorie).toBe('validation');
+  });
+
+  it('une Compétence montre ses Races et ses Carrières par rang dans les deux séries de sections, à jour dès la première relecture après édition', async () => {
+    const { idDe, ref } = await import('../../../src/data/schemas/grammaire/ref');
+    const source = { book: 'codex-test-livre-renvois', page: 1 };
+    const desc = 'Entrée de recette du pont.';
+    setDataset('books', [...datasetArray('books'), { id: source.book, label: 'Livre de test', type: 'books', abbr: 'CTR', language: null, folder: null }]);
+    const competence = {
+      id: 'codex-test-competence-renvois', label: 'Cartographie des brumes', type: 'skills' as const,
+      characteristic: 'intelligence' as const, acces: 'base' as const, source, desc,
+    };
+    setDataset('skills', [...datasetArray('skills'), competence]);
+    const classe = { id: 'codex-test-classe-renvois', label: 'Explorateurs des brumes', type: 'classes' as const, trappings: [], source, desc };
+    setDataset('classes', [...datasetArray('classes'), classe]);
+    const carriere = {
+      id: 'codex-test-carriere-renvois', label: 'Traceur des brumes', type: 'careers' as const,
+      class: ref('classe').parse({ id: classe.id }), source, desc,
+    };
+    setDataset('careers', [...datasetArray('careers'), carriere]);
+    const referenceDeCarriere = ref('career').parse({ id: carriere.id });
+    const marques = [['capacite-de-combat', 'capacite-de-tir', 'force'], ['endurance'], ['initiative'], ['agilite']] as const;
+    const niveaux = marques.map((characteristics, index) => {
+      const level = index + 1;
+      return {
+        id: `${carriere.id}-${level}`, label: `Traceur au rang ${level}`, type: 'careerLevels' as const,
+        career: referenceDeCarriere, level, characteristics: [...characteristics],
+        skills: level === 1 || level === 4 ? [{ id: competence.id }] : [], talents: [], trappings: [],
+        status: { tier: 'bronze' as const, standing: 1 }, source,
+      };
+    });
+    setDataset('careerLevels', [...datasetArray('careerLevels'), ...niveaux]);
+    const colonne = {
+      id: 'codex-test-colonne-renvois', label: 'Colonne de test', type: 'carrieres-aleatoires' as const, kind: 'colonne' as const,
+      die: { n: 1, sides: 10 }, entries: [{ ...referenceDeCarriere, min: 1, max: 10 }], source,
+    };
+    setDataset('carrieresAleatoires', [...datasetArray('carrieresAleatoires'), colonne]);
+    const baseDEspece = {
+      type: 'species' as const, family: 'Peuples des brumes', refChar: 'humain' as const,
+      refCareer: idDe('carrieresAleatoires', 'colonne').parse(colonne.id),
+      movement: 3, fate: { fate: 1, resilience: 1, extra: 1 },
+      baseChar: {
+        'capacite-de-combat': 20, 'capacite-de-tir': 20, force: 20, endurance: 20, initiative: 20,
+        agilite: 20, dexterite: 20, intelligence: 20, 'force-mentale': 20, sociabilite: 20,
+      },
+      skills: [{ id: competence.id }], talents: [], grantGroups: [], source,
+    };
+    const zephyrs = { ...baseDEspece, id: 'codex-test-espece-zephyrs', label: 'Zéphyrs des brumes' };
+    const alizes = { ...baseDEspece, id: 'codex-test-espece-alizes', label: 'Alizés des brumes' };
+    setDataset('species', [...datasetArray('species'), zephyrs, alizes]);
+
+    const { appel } = table();
+    const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'skills', id: competence.id }));
+    expect(ouvert['compendium.fiche'][0].nom).toBe(competence.label);
+    const ids = ['section/0/0', 'section/1/0', 'renvoi/races', 'renvoi/careers'];
+    const sections = (zones: ZonesDuCompendium) => zones['compendium.fiche'].filter((e) => ids.includes(e.id));
+    const attendues = [
+      ['section/0/0', 'Races'],
+      ['section/1/0', 'Carrières (par rang)'],
+      ['renvoi/races', 'Races'],
+      ['renvoi/careers', 'Carrières (par rang)'],
+    ];
+    const [races, carrieres, renvoiRaces, renvoiCarrieres] = sections(ouvert);
+    expect(sections(ouvert).map(({ id, nom }) => [id, nom])).toEqual(attendues);
+    const liens = (section: Entite) => section.elements
+      .filter((e): e is Bouton => e.type === 'bouton')
+      .map(({ libelle, jeu }) => ({ libelle, jeu }));
+    const lien = (categorie: string, id: string, libelle: string) => ({ libelle, jeu: { compendium: { geste: 'suivre', categorie, id } } });
+    expect(liens(races)).toEqual([lien('races', alizes.id, alizes.label), lien('races', zephyrs.id, zephyrs.label)]);
+    expect(liens(renvoiRaces)).toEqual(liens(races));
+    expect(liens(carrieres)).toEqual([lien('careers', carriere.id, `${carriere.label} (N1, N4)`)]);
+    expect(liens(renvoiCarrieres)).toEqual(liens(carrieres));
+    const suivie = zonesDe(appel('compendium', boutonDe(ouvert, `careers/${carriere.id}`).jeu));
+    expect(suivie['compendium.fiche'][0].nom).toBe(carriere.label);
+
+    const ficheDuNiveau = zonesDe(appel('compendium', { ouvrir: true, categorie: 'careerLevels', id: niveaux[0].id }));
+    const atelier = zonesDe(appel('compendium', boutonDe(ficheDuNiveau, 'modifier').jeu));
+    const modifie = zonesDe(appel('compendium', boutonDe(atelier, 'valeur/skills/0/retirer').jeu));
+    const enregistre = appel('compendium', boutonDe(modifie, 'enregistrer').jeu);
+    expect(enregistre).toMatchObject({ ok: true, donnees: { fichier: 'careerLevels.json' } });
+    const ferme = zonesDe(appel('compendium', { compendium: { geste: 'enregistrement', reussi: true } }));
+    const famille = zonesDe(appel('compendium', boutonDe(ferme, 'competences').jeu));
+    const competences = zonesDe(appel('compendium', boutonDe(famille, 'skills').jeu));
+    const relu = zonesDe(appel('compendium', boutonDe(competences, competence.id).jeu));
+    const relues = sections(relu);
+    expect(relues.map(({ id, nom }) => [id, nom])).toEqual(attendues);
+    const [, carrieresRelues, , renvoiCarrieresRelues] = relues;
+    for (const section of [carrieresRelues, renvoiCarrieresRelues]) {
+      expect(liens(section)).toEqual([lien('careers', carriere.id, `${carriere.label} (N4)`)]);
+    }
   });
 
   it('la liste de bataille de masse ouvre la baliste ADE II dans l’atelier du catalogue d’engins', () => {
@@ -221,6 +312,67 @@ describe('compendium', () => {
     const ecrit = zonesDe(appel('compendium', { type: 'enTete', args: [2, 10] }));
     const r = appel('compendium', boutonDe(ecrit, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
     expect(JSON.parse(r.donnees.texte).die).toEqual({ n: 2, sides: 10 });
+  });
+
+  describe('édition des plages de création', () => {
+    const couleur = { id: 'couleur-test', label: 'Une couleur', color: tableTotale(raceKeySchema.options, () => 'Gris'), min: 2, max: 6 };
+    const deEnTete = { ancetre: '', champ: 'die', valeur: { n: 2, sides: 3 } };
+    const signe = {
+      id: 'signe-test', label: 'Un signe', min: 1, max: 100, desc: 'Un signe', signe: 'Signe',
+      classique: 'Classique', ascendant: 'Ascendant', dates: 'Dates', dieux: 'Dieux', apparence: 'Apparence',
+      source: { book: 'archives-de-l-empire-2', page: 39 }, sub: { min: 1, max: 5 },
+    };
+    const formulaire = (zones: ZonesDuCompendium, chemin: string): Formulaire => {
+      const trouve = zones['compendium.atelier'].find((e): e is Formulaire => e.type === 'formulaire' && e.id === `valeur/${chemin}`);
+      expect(trouve, chemin).toBeDefined();
+      return trouve!;
+    };
+    const saisir = (f: Formulaire, valeur: number) => ({
+      type: 'valeur', args: [...f.champs.flatMap((c) => c.type === 'fixe' ? [c.valeur] : []), valeur],
+    });
+
+    it.each([
+      {
+        categorie: 'eyes', id: couleur.id, chemin: '', max: 6,
+        poser: () => {
+          setEnTete('eyes', [deEnTete]);
+          setDataset('eyes', [couleur]);
+        },
+      },
+      {
+        categorie: 'hairs', id: couleur.id, chemin: 'plageParRace/gnome', max: 6,
+        poser: () => {
+          setEnTete('hairs', [deEnTete]);
+          setDataset('hairs', [{ ...couleur, plageParRace: { gnome: { min: 2, max: 6 } } }]);
+        },
+      },
+      {
+        categorie: 'stars', id: signe.id, chemin: 'sub', max: 5,
+        poser: () => {
+          setEnTete('stars', [{ ancetre: '', champ: 'sub', valeur: { die: { n: 1, sides: 10 } } }]);
+          setDataset('stars', [signe, { ...signe, id: 'autre-signe', sub: { min: 6, max: 10 } }]);
+        },
+      },
+      {
+        categorie: 'celestialHouses', id: 'demeure-test', chemin: '', max: 10,
+        poser: () => {
+          setDataset('celestialHouses', [{
+            id: 'demeure-test', type: 'astrology', label: 'Demeure de test', min: 1, max: 10, desc: 'Une demeure.', source: signe.source,
+          }]);
+        },
+      },
+    ] as const)('$categorie offre les deux bornes par le formulaire et refuse une plage incomplète', ({ categorie, id, chemin, max, poser }) => {
+      poser();
+      const { appel } = table();
+      const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie, id }));
+      const atelier = zonesDe(appel('compendium', boutonDe(ouvert, 'modifier').jeu));
+      const prefixe = chemin ? `${chemin}/` : '';
+      expect(formulaire(atelier, `${prefixe}min`).champs).toContainEqual(expect.objectContaining({ type: 'saisieNombre', pas: 1 }));
+      const borne = formulaire(atelier, `${prefixe}max`);
+      expect(borne.champs).toContainEqual(expect.objectContaining({ type: 'saisieNombre', valeur: max, pas: 1 }));
+      zonesDe(appel('compendium', saisir(borne, max - 1)));
+      expect(erreurDe(appel('compendium', { compendium: { geste: 'enregistrer' } }))).toMatchObject({ categorie: 'regle' });
+    });
   });
 
   it('supprimer une entrée désignée est refusé en règle, sa raison dite', () => {

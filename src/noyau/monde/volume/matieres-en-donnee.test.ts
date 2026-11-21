@@ -47,7 +47,7 @@ const SIGNAUX_STRUCTURELS = [
 const LIGNE_STRUCTURELLE = new RegExp(SIGNAUX_STRUCTURELS.map((s) => s.re.source).join('|'));
 
 function fichiersDuPerimetre(): { rel: string; code: string }[] {
-  return readCorpus([NOYAU], { exts: ['.ts'] }).map(({ rel, text }) => ({ rel, code: text }));
+  return readCorpus([NOYAU]).map(({ rel, text }) => ({ rel, code: text }));
 }
 
 /** Le code SANS ses commentaires, lignes préservées — mesure COMMUNE aux deux bras (matières et

@@ -199,33 +199,34 @@ const visee = (c: CompositionDActivite, q: string): boolean => c.atouts.includes
  *  porteur du groupe fermé par la raison du marché, l'Enc borné par le devis, la conclusion fermée par sa raison ; chaque
  *  lot des porteurs du groupe, sa vente et son bradage fermés par la raison du marché. */
 const choixDuMarche = (fenetre: FenetreDuMarche) => {
-  const f = FORMULES_DES_MARCHES[fenetre];
+  // La table de cargaison peut encore se charger quand le registre assemble ces lecteurs.
+  const formule = () => FORMULES_DES_MARCHES[fenetre];
   const ouvert = (s: Jeu): boolean => garanti(fenetreDuRegistre(fenetre), fenetre, 'fenêtre de marché').ouverte(s);
-  const brouillon = (s: Jeu) => (ouvert(s) ? f.brouillon(s) : undefined);
+  const brouillon = (s: Jeu) => (ouvert(s) ? formule().brouillon(s) : undefined);
   const lots = (s: Jeu, refus: (porteur: string, cargoId: string) => string | null): ValeurDuReglage[] => (ouvert(s)
     ? bulkCarriers(s).flatMap((c) => c.cargo.map((l) => ouverte(l.uid, t('valeur.lot', { lot: findCargoById(l.cargoId)?.label ?? l.cargoId, enc: l.enc, porteur: c.label }), refus(c.id, l.cargoId))))
     : []);
   return {
-    offre: reglage(fenetre, 'offre', (s) => (ouvert(s) ? f.offres(s).map((o) => ouverte(o.cargoId, o.label)) : []), (s) => brouillon(s)?.offre ?? null),
+    offre: reglage(fenetre, 'offre', (s) => (ouvert(s) ? formule().offres(s).map((o) => ouverte(o.cargoId, o.label)) : []), (s) => brouillon(s)?.offre ?? null),
     porteur: reglage(fenetre, 'porteur', (s) => {
       const achat = brouillon(s);
-      return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), f.refusDuPorteur(s, c.id))) : [];
+      return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), formule().refusDuPorteur(s, c.id))) : [];
     }, (s) => brouillon(s)?.porteur ?? null),
     // De 1 à la borne du devis.
     encombrement: (s: Jeu): Reglage => {
       const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'encombrement' as const }, libelle: libelleDuChoix(fenetre, 'encombrement'), note: null };
       const achat = brouillon(s);
-      const max = achat ? f.devis(s, achat.porteur, achat.offre).max : 0;
+      const max = achat ? formule().devis(s, achat.porteur, achat.offre).max : 0;
       return achat && max >= 1
         ? { ...base, courant: achat.enc, valeurs: null, bornes: { min: 1, max, pas: 1 } }
         : { ...base, courant: null, valeurs: [], bornes: null };
     },
     acheter: reglage(fenetre, 'acheter', (s) => {
       const achat = brouillon(s);
-      return achat ? [ouverte(true, libelleDuChoix(fenetre, 'acheter'), devisDeLAchat(s, f, achat).refus)] : [];
+      return achat ? [ouverte(true, libelleDuChoix(fenetre, 'acheter'), devisDeLAchat(s, formule(), achat).refus)] : [];
     }),
-    vendre: reglage(fenetre, 'vendre', (s) => lots(s, (porteur) => f.refusDuPorteur(s, porteur))),
-    jeter: reglage(fenetre, 'jeter', (s) => lots(s, (porteur, cargoId) => f.refusDuPorteur(s, porteur) ?? f.refusDeBradage(s, cargoId))),
+    vendre: reglage(fenetre, 'vendre', (s) => lots(s, (porteur) => formule().refusDuPorteur(s, porteur))),
+    jeter: reglage(fenetre, 'jeter', (s) => lots(s, (porteur, cargoId) => formule().refusDuPorteur(s, porteur) ?? formule().refusDeBradage(s, cargoId))),
   };
 };
 

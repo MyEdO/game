@@ -5,13 +5,13 @@
 // suit à son import dans `effets.ts` (`constanteImportee`).
 // Sortie : docs/campagne-effects.md.
 // Re-run : node scripts/docs/build-effects.mjs (npm run docs:effects).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 // Lecture d'union / extraction JSDoc / écriture-vérification : scripts/docs/lib/jsdocUnion.mjs
 // (socle PARTAGÉ avec build-vocabulaire.mjs).
 import { indexerConstantes, readZodUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const SRC = 'src/data/schemas/defs-scenes/effets.ts'
   const OUT = 'docs/campagne-effects.md'
@@ -54,4 +54,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

@@ -2136,7 +2136,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     const ancien = { ...get().vessel!, uid: 'navire-initial', daysToEvent: 1 };
     const route = {
       ...seaMap.routes[0],
-      perils: [{ label: 'Un nouveau navire', chancePct: 100, effects: [{ type: 'setVessel' as const, vehicleId: 'cogue' }] }],
+      perils: [{ label: 'Un nouveau navire', chancePct: 100, effects: [{ type: 'setVessel' as const, navire: { id: 'cogue' } }] }],
     };
     set({ worldMap: { ...seaMap, routes: [route] }, vessel: ancien });
     get().partirEnVoyage(route.id, 'mer', { cadence: 'jourParJour' });

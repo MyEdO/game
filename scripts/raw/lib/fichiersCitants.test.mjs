@@ -50,11 +50,11 @@ after(() => {
   rmSync(racine, { recursive: true, force: true })
 })
 
-const fichiers = (sites) => [...new Set(sites.map((s) => s.file))].sort()
+const fichiers = (sites) => [...new Set(sites.map((s) => s.fichier))].sort()
 
 test('CITANTS : bornes, ligne vide, ligne aveugle et graphie lisent le code ET les dossiers', () => {
   const attendu = [FICHIER_DOSSIER, FICHIER_CODE].sort()
-  const horsBornes = scanDeadCodeRefs(undefined, chapitreDe).map(({ file, kind }) => [file, kind]).sort()
+  const horsBornes = scanDeadCodeRefs(undefined, chapitreDe).map(({ fichier, kind }) => [fichier, kind]).sort()
   assert.deepEqual(horsBornes, attendu.map((file) => [file, 'out-of-bounds']), 'check-code-refs (bornes)')
   assert.deepEqual(fichiers(scanEmptyLineCodeRefs(undefined, chapitreDe)), attendu, 'check-code-refs (ligne vide)')
   assert.deepEqual(fichiers(scanBlindRefs(undefined, chapitreDe)), attendu, 'rawRefIntegrity')
@@ -62,7 +62,7 @@ test('CITANTS : bornes, ligne vide, ligne aveugle et graphie lisent le code ET l
 })
 
 test('CODE : le champ `Implémente` ignore les dossiers (build-implemente)', () => {
-  assert.deepEqual(fichiers(indexCode().impl), [FICHIER_CODE])
+  assert.deepEqual([...new Set(indexCode().impl.map((r) => r.file))].sort(), [FICHIER_CODE])
 })
 
 test("CODE : la réconciliation à l'Atlas ignore les dossiers (reconcile)", () => {

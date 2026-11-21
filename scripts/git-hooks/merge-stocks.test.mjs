@@ -58,7 +58,7 @@ test('un retrait des deux côtés du même site → une fois', () => {
 })
 
 test('homonymes : le groupe se recompte par ordinal, la porte reste verte, la régénération répare', () => {
-  const site = { file: 'src/data/spells.json', ref: 'homonyme' }
+  const site = { fichier: 'src/data/spells.json', ref: 'homonyme' }
   const avec = (n) => (es) => [...es, ...sitesEnEntrees(Array.from({ length: n }, () => site))]
   const O = varie(STOCK_MJS, lu(STOCK_MJS), avec(3))
   for (const [nA, nB, attendu, code] of [[2, 4, 3, 3], [2, 2, 2, 1]]) {

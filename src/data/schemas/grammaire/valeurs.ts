@@ -1103,23 +1103,6 @@ export const pointDuPlanSchema = nommerChamps(z.strictObject({ x: z.number(), y:
 export const raceKeySchema = z.enum(['humain', 'halfling', 'nain', 'gnome', 'ogre', 'haut-elfe', 'elfe-sylvain']);
 export type RaceKey = z.infer<typeof raceKeySchema>;
 
-/** Rangée d'une table de couleur par espèce, à son seuil du dé de la table — partagée par `eyes.json`
- *  (LDB 05 l.742-754) et `hairs.json` (LDB 05 l.756-768). */
-export const rangeeDeCouleurSchema = nommerChamps(z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  rand: z.number(),
-  /** Borne haute propre à une colonne (NADJ 15 l.99-104, #420) ; défaut = `rand`. */
-  randByRace: z.partialRecord(raceKeySchema, z.number()).optional(),
-  color: z.partialRecord(raceKeySchema, z.string()),
-}), {
-  id: { label: 'identifiant' },
-  label: { label: 'libellé' },
-  rand: { label: 'Seuil aléatoire (borne haute du dé)', hint: 'Borne haute cumulée du dé de la table qui atteint cette couleur, sauf borne propre à une race' },
-  randByRace: { label: 'Borne par race', hint: 'Borne haute du dé propre à une race, quand elle diffère du LDB' },
-  color: { label: 'Couleur par race', hint: 'Couleur affichée, par race (colonne du tableau)' },
-});
-
 /**
  * `CastingNumberMod` (`src/engine/castingNumber.ts`) — modificateur de NIVEAU D'INCANTATION porté
  * par un objet, un lieu, un support de lecture ou une Activité. Partagé par tous les datasets qui
@@ -1185,9 +1168,11 @@ export const OBJETS_DU_PROJET = {
   retient: [INSTANCIABLE_PAR_ID],
 } as const satisfies PorteeLocale;
 
+export const objetDonneSchema = ref(idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET, nue: true }));
+
 type FauteDApparence = { readonly path: readonly (string | number)[]; readonly message: string };
 
-/** #2948 — l'apparence `apparence` de l'objet `trappingId` (absent : objet `custom`), résolu par `resoudre`, au `path`. */
+/** #2948 — l'apparence `apparence` de l'objet (absent : objet `custom`), résolu par `resoudre`, au `path`. */
 function fautesDApparence(trappingId: string | undefined, apparence: string, resoudre: TrappingResolver, path: readonly (string | number)[]): FauteDApparence[] {
   const message = messageDApparenceDObjet(trappingId, apparence, resoudre);
   return message ? [{ path, message }] : [];
@@ -1202,14 +1187,15 @@ const signaler = (ctx: z.RefinementCtx, fautes: readonly FauteDApparence[]): voi
 
 /** OBJET DONNÉ (Effet et GameOp `giveTrapping`) : l'apparence d'un objet du catalogue ou `custom` se juge au catalogue ;
  *  celle d'un objet de la campagne, sous `OBJETS_DU_PROJET` (`controlerSousPortee`). */
-export function avecApparenceDObjetDonne<N extends z.ZodType<{ trappingId?: string; apparence?: { id: string } }>>(noeud: N): N {
+export function avecApparenceDObjetDonne<N extends z.ZodType<{ objet?: { id: string }; apparence?: { id: string } }>>(noeud: N): N {
   const jugee = noeud.superRefine((v, ctx) => {
-    if (v.apparence && (v.trappingId === undefined || findTrappingById(v.trappingId))) signaler(ctx, fautesDApparence(v.trappingId, v.apparence.id, findTrappingById, ['apparence', 'id']));
+    const id = v.objet?.id;
+    if (v.apparence && (id === undefined || findTrappingById(id))) signaler(ctx, fautesDApparence(id, v.apparence.id, findTrappingById, ['apparence', 'id']));
   });
   return controlerSousPortee(jugee, OBJETS_DU_PROJET, (valeur, entree) => {
-    if (!estObjet(valeur) || typeof valeur.trappingId !== 'string' || entree(valeur.trappingId) === undefined) return [];
+    if (!estObjet(valeur) || !estObjet(valeur.objet) || typeof valeur.objet.id !== 'string' || entree(valeur.objet.id) === undefined) return [];
     const apparence = idDApparence(valeur.apparence);
-    return apparence === undefined ? [] : fautesDApparence(valeur.trappingId, apparence, objetDeLaCampagne(entree), ['apparence', 'id']);
+    return apparence === undefined ? [] : fautesDApparence(valeur.objet.id, apparence, objetDeLaCampagne(entree), ['apparence', 'id']);
   });
 }
 
@@ -1474,6 +1460,56 @@ export const natureDInfluenceSchema = enumNomme(tableTotale(NATURES_D_INFLUENCE,
  * se vérifie, elle, par `ecartsDeCouverture` ci-dessous.
  */
 export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z.number() }), { min: { label: "Minimum" }, max: { label: "Maximum" } });
+
+/** Fourchette de résultats entiers. */
+export const plageEntiereSchema = nommerChamps(z.strictObject({
+  min: plageSchema.shape.min.int(),
+  max: plageSchema.shape.max.int(),
+}), metaDesChamps(plageSchema, { exigees: true }));
+
+/** Tableau de couleur par espèce : LDB 05 l.742-768 ; NADJ 15 l.82-104 ; ADE II 02 l.284-311. */
+export const rangeeDeCouleurSchema = nommerChamps(z.strictObject({
+  ...plageEntiereSchema.shape,
+  id: z.string(),
+  label: z.string(),
+  plageParRace: z.partialRecord(raceKeySchema, plageEntiereSchema).optional(),
+  choixLibrePour: z.array(raceKeySchema).optional(),
+  color: z.record(raceKeySchema, z.string().min(1)),
+}), {
+  ...metaDesChamps(plageEntiereSchema, { exigees: true }),
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  plageParRace: { label: 'Fourchette par race', hint: 'Fourchette propre à une colonne du tableau' },
+  choixLibrePour: { label: 'Couleur au choix', hint: 'Colonnes où la rangée laisse choisir la couleur' },
+  color: { label: 'Couleur par race', hint: 'Couleur affichée, par race (colonne du tableau)' },
+});
+
+type RangeeDeCouleur = z.output<typeof rangeeDeCouleurSchema>;
+
+export function plageDeCouleur(rangee: RangeeDeCouleur, race: RaceKey): { min: number; max: number } {
+  return rangee.plageParRace?.[race] ?? rangee;
+}
+
+export function couvertureDeLaTableDeCouleur(fichier: string): (dataset: z.ZodType<unknown>) => z.ZodType<unknown> {
+  return (dataset) => dataset.superRefine((v, ctx) => {
+    const table = v as PorteurDeDe & { id: string; entries: RangeeDeCouleur[] };
+    refuserLaCouverture(fichier, table, (r) => `la rangée « ${r.id} »`, ctx, ['entries']);
+    for (const race of raceKeySchema.options) {
+      if (!table.entries.some((r) => r.plageParRace?.[race])) continue;
+      const colonne = table.entries.map((r) => {
+        const { min, max } = plageDeCouleur(r, race);
+        return { min, max, id: r.id };
+      });
+      const ecarts = ecartsDuDeDeLaTable(table, colonne, (r) => `la rangée « ${r.id} »`);
+      if (ecarts.length) {
+        ctx.addIssue({
+          code: 'custom', path: ['entries'],
+          message: `${fichier} › ${race} : la colonne ne couvre pas le ${formatDice(table.die)} d'un seul tenant — ${ecarts.join(' ; ')}.`,
+        });
+      }
+    }
+  });
+}
 
 /**
  * FOURCHETTE À BORNE EXTRÊME OUVERTE — même concept `plage`, une seule divergence : la DERNIÈRE bande

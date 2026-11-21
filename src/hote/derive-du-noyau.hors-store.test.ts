@@ -27,7 +27,8 @@ const DOSSIERS = HOTES_DU_NOYAU.map(dossierDe).filter((d) => existsSync(new URL(
 
 /** Les fichiers de code des hôtes, relatifs à la racine du dépôt : TypeScript ou GDScript, ni test, ni table de test, ni
  *  cible générée, ni cible de design (`hotes/godot/cibles/`, #4411 : des maquettes qui écrivent leurs gestes en donnée,
- *  pas du code d'hôte). */
+ *  pas du code d'hôte). La recette JavaScript pilote l'hôte de l'extérieur : elle nomme les gestes
+ *  précis dont elle vérifie le parcours. */
 const fichiersDesHotes = (): string[] =>
   DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.(ts|gd)$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) }).map((f) => `${d}/${f}`).filter((f) => !estCiblePure(f, GENERATORS)))
     .filter((f) => !f.startsWith('hotes/godot/cibles/'));

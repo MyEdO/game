@@ -1,5 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, beforeEach, expect } from 'vitest';
+import { describe, it, beforeEach, expect, vi } from 'vitest';
 import { applyShipPostes } from './monde/shipPostes';
 import { availableAttacks } from './combatManeuvers';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
@@ -8,9 +8,11 @@ import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
 import type { Scene } from './monde/scene';
-import type { BattleState } from './etat';
+import { initialNet, type BattleState } from './etat';
 import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -51,7 +53,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 0, y: 0 }): Combatant =>
     wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  hydratePoste({ trappingId: engineId, crewIds }, idsDeTest('it'));
+  hydratePoste({ engin: { id: engineId }, crewIds }, idsDeTest('it'));
 
 /** Scène terrestre minimale (40×40 d'herbe, 2 m/case). */
 const groundScene = (): Scene =>
@@ -60,7 +62,7 @@ const groundScene = (): Scene =>
 
 /** Mortier + bombe Explosion 5 (Dégâts 12) = arme EFFECTIVE (qualité a-explosion fusionnée). */
 function mortarWithBomb(chef: Combatant): Weapon {
-  const mortier = mannedPosteWeapon(chef, hydratePoste({ trappingId: 'mortier', crewIds: ['chef'] }, idsDeTest('it')))!;
+  const mortier = mannedPosteWeapon(chef, hydratePoste({ engin: { id: 'mortier' }, crewIds: ['chef'] }, idsDeTest('it')))!;
   const bomb = itemFromTrappingById('bombe-de-mortier', idsDeTest)!;
   return weaponWithAmmo(mortier, bomb);
 }
@@ -217,7 +219,7 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     expect(banc.getState().battle!.acted).toBe(true); // Action consommée
   });
 
-  it('viser une case déserte (aucun ennemi dans le rayon) → pas de modale, pas de crash', () => {
+  it('viser une case déserte rend le refus au siège qui visait', () => {
     seedBattleRng(7);
     const poste = mkPoste('mortier', ['gunner']);
     const gunner = mkGunner('gunner', { x: 0, y: 0 }, 90);
@@ -226,10 +228,15 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     const all = [mkEmplacement(poste, { x: 0, y: 1 }), gunner, far];
     applyShipPostes(all);
     banc.setState({
+      mode: 'battle', journal: [],
       battle: { combatants: all, order: all.map((c) => c.id), turn: all.findIndex((c) => c.id === 'gunner'), round: 1, acted: false, log: [], crewActed: {}, zones: [] } as never,
       party: [gunner], facing: {}, scene: groundScene() as never, pendingSiegeAim: { gunnerId: 'gunner', weaponUid: gunner.weapons.find((w) => w.uid === poste.item.uid)!.uid!, radius: 3, rangeTiles: null }, pendingAttack: null, pendingCascade: null,
+      net: { ...initialNet(), mode: 'hote', ownership: { [gunner.id]: 1 }, slots: [1, 0, 0, 0] },
     });
-    expect(() => banc.getState().poserLePointDImpact({ x: 10, y: 0 })).not.toThrow();
+    const refus = vi.fn();
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'cliquerLaCase', [{ x: 10, y: 0 }], refus)).toBe('appliquee');
+    expect(refus.mock.calls).toEqual([[t('cf.siegeSansCible', { name: gunner.label })]]);
+    expect(banc.getState().journal).toEqual([]);
     expect(banc.getState().pendingAttack).toBeNull(); // tir à vide → aucune modale ouverte
     expect(far.wounds.current).toBe(far.wounds.max);
   });

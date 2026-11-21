@@ -158,6 +158,7 @@ export const fr = {
   'jet.ferme.choixCritiqueDu': 'Choisis l’effet de ton Incantation Critique.',
   'jet.ferme.actionEngagee': 'L’action est engagée, elle se joue jusqu’au bout.',
   'jet.ferme.choixDu': 'Le choix n’est pas encore fait.',
+  'jet.ferme.etapeHoteEnAttente': 'Termine l’étape en cours avant de tout résoudre.',
   'jet.ferme.etapesDues': 'Des étapes restent à jouer.',
   'jet.ferme.etapesJouees': 'Toutes les étapes sont jouées.',
   'jet.ferme.rienADeclarer': 'Aucune rangée à déclarer.',
@@ -4655,6 +4656,9 @@ export const fr = {
   'crea.vue.taille': 'Taille',
   'crea.vue.centimetres': '{n} cm',
   'crea.vue.yeux': 'Yeux',
+  'crea.vue.choisirYeux': 'Choisir la couleur des yeux',
+  'crea.vue.secondeCouleurDesYeux': 'Seconde couleur des yeux',
+  'crea.vue.uneSeuleCouleurDesYeux': 'Une seule couleur',
   'crea.vue.cheveux': 'Cheveux',
   'liste.et': '{debut} et {fin}',
   // Rapport d'une composition (`porteeDeComposition`, `noyau/apparence/composition.ts`) : un objet ni tenu ni rangé.

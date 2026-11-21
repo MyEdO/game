@@ -146,7 +146,7 @@ export function makeZone9() {
       P(13, 14, 'marmite', {
         label: 'Marmite du troll',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'potion-de-vitalite' },
+          { type: 'giveTrapping', objet: { id: 'potion-de-vitalite' } },
           { type: 'giveMoney', montant: { silver: 14 } },
           { type: 'journal', desc: 'Au fond du brouet : une fiole scellée (potion de vitalité !) et 14 pa qui n’ont pas fondu.' },
         ]),
@@ -155,7 +155,7 @@ export function makeZone9() {
         label: 'Magot de la caverne',
         ...fouille([
           { type: 'giveMoney', montant: { gold: 4 } },
-          { type: 'giveTrapping', trappingId: 'grande-hache' },
+          { type: 'giveTrapping', objet: { id: 'grande-hache' } },
           { type: 'journal', desc: 'Le magot : 4 co et une grande hache au fil intact. L’Ogre ne comptera plus rien.' },
         ]),
       }),
@@ -286,7 +286,7 @@ export function makeZone10() {
       P(31, 17, 'caisse', {
         label: 'Caisse de contrebande',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'lotus-noir' },
+          { type: 'giveTrapping', objet: { id: 'lotus-noir' } },
           { type: 'journal', desc: 'De la contrebande skavenne : un sachet de lotus noir. À manier avec des gants.' },
         ]),
       }),
@@ -384,8 +384,8 @@ export function makeZone11() {
       P(28, 14, 'coffre', {
         label: 'Coffre du célébrant',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'grimoire' },
-          { type: 'learnSpell', spell: 'eblouissant' },
+          { type: 'giveTrapping', objet: { id: 'grimoire' } },
+          { type: 'learnSpell', sort: { id: 'eblouissant' } },
           { type: 'journal', desc: 'Le grimoire du célébrant — votre sorcier en déchiffre déjà un charme (Éblouissant) ; le reste se lira au calme.' },
         ]),
       }),
@@ -483,7 +483,7 @@ export function makeZone12() {
       P(18, 9, 'sarcophage', {
         label: 'Sarcophage du seigneur',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'epee-batarde', qualities: ['magique', 'de-plaies-atroces'], identified: false },
+          { type: 'giveTrapping', objet: { id: 'epee-batarde' }, qualities: ['magique', 'de-plaies-atroces'], identified: false },
           { type: 'journal', desc: 'Entre les mains du gisant : une épée bâtarde au fil GLACIAL. Quelque chose dort dans cet acier — faites-la évaluer.' },
         ]),
       }),
@@ -601,7 +601,7 @@ export function makeZone13() {
         label: 'Coffre du trésor',
         ...fouille([
           { type: 'giveMoney', montant: { gold: 6 } },
-          { type: 'giveTrapping', trappingId: 'arc-elfique' },
+          { type: 'giveTrapping', objet: { id: 'arc-elfique' } },
           { type: 'journal', desc: 'Dans le coffre d’un pillard digéré : 6 co et un arc elfique que le feu n’a jamais mordu.' },
         ]),
       }),

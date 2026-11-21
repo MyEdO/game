@@ -128,7 +128,7 @@ describe('coupe au caractère suivie d’une ellipse', () => {
   });
 
   it('aucun site sous `src/` ni `scripts/`', { timeout: 120_000 }, () => {
-    const corpus = readCorpus(['src', 'scripts'], { exts: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'], tests: true });
+    const corpus = readCorpus(['src', 'scripts'], { tests: true });
     expect(coupesAuCaractere(corpus)).toEqual([]);
   });
 });

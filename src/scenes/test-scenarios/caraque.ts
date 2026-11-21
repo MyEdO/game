@@ -13,7 +13,7 @@ const AMELIORATIONS = ['sabord', 'figure-de-proue', 'ancre', 'nid-de-pie', 'clin
 const POSTES: readonly [FireArc, number][] = [['tribord', 3], ['babord', 3], ['proue', 1], ['poupe', 1]];
 
 /** Un canon moyen au bord `side`. */
-const canon = (side: FireArc): AuthoredShipPoste => ({ trappingId: 'canon-moyen', side });
+const canon = (side: FireArc): AuthoredShipPoste => ({ engin: { id: 'canon-moyen' }, side });
 
 const construireScene = (): Scene => buildScene({
   id: 'test-caraque',

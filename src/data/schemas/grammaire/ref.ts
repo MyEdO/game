@@ -68,7 +68,9 @@ export const TYPES = {
   spell: { espace: 'spells.json', catalogue: 'sorts' },
   creature: { espace: 'creatures.json', catalogue: 'créatures' },
   vehicle: { espace: 'vehicles.json', catalogue: 'véhicules' },
+  navire: { espace: 'vehicles.json?ship', catalogue: 'navires' },
   structure: { espace: 'structures.json', catalogue: 'structures' },
+  apparenceCrenelee: { espace: 'structureAppearance.json?parapet', catalogue: 'apparences crénelées' },
   career: { espace: 'careers.json', catalogue: 'carrières' },
   species: { espace: 'species.json', catalogue: 'espèces' },
   // LDB 05 l.214 : `species.json › refCareer` nomme sa colonne du Tableau des Classes et Carrières aléatoires.
@@ -149,6 +151,7 @@ export const TYPES = {
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
   action: { espace: 'actions.json', catalogue: 'actions' },
   activity: { espace: 'activities.json', catalogue: 'activités' },
+  sceneDeBataille: { espace: 'activities.json?sceneKind', catalogue: 'scènes de bataille' },
   location: { espace: 'locations.json', catalogue: 'lieux' },
   serviceDeLieu: { espace: 'lieux-services.json', catalogue: 'services de lieu' },
   // #2968 P-art : registre `src/data/fonds/defs`.

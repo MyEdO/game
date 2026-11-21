@@ -2654,7 +2654,7 @@ async function parcoursEditeur() {
     /** L'expression de la page vraie quand la zone Logique liste l'objet `id`. */
     const objetALaListe = (id) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'].find((el) => el.id === 'logique/objets/liste')?.valeurs ?? []).some((b) => b.id === 'logique/objets/${id}')`
     /** L'expression de la page de l'objet que donne l'Effet inspecté. */
-    const donne = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/flow/effet/trappingId')?.valeurs.find((b) => b.presse)?.jeu.args[2]`
+    const donne = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/flow/effet/objet/id')?.valeurs.find((b) => b.presse)?.jeu.args[2]`
     const renommer = async (de, vers) => {
       await taper('saisieTexte/nommer/nom', vers)
       await cliquerAuPanneau({ element: 'formulaire/nommer' })
@@ -2682,12 +2682,14 @@ async function parcoursEditeur() {
     const [declencheur] = ed.zones['editeur.logique'].find((el) => el.id === 'logique/declencheur/liste').valeurs
     await choisirLeDeclencheur(declencheur.id)
     await choisirAuChamp('valeur/flow/kind', (v) => v?.kind === 'effet', montre('valeur/flow/effet/type'))
-    await choisirAuChamp('valeur/flow/effet/type', (v) => v?.type === 'giveTrapping', montre('valeur/flow/effet/trappingId'))
+    const ajoutDuDon = 'valeur/flow/effet/objet/ajouter'
+    await choisirAuChamp('valeur/flow/effet/type', (v) => v?.type === 'giveTrapping', montre(ajoutDuDon))
     ed = await editeur()
-    const offert = inspecte(ed, 'valeur/flow/effet/trappingId').valeurs.find((b) => b.jeu.args[2] === 'lumignon')
-    assert.ok(offert, `le don de l’Effet « Donner un objet » offre l’objet de campagne : ${inspecte(ed, 'valeur/flow/effet/trappingId').valeurs.slice(-3).map((b) => b.libelle).join(', ')}`)
-    await choisirAuChamp('valeur/flow/effet/trappingId', (v) => v === 'lumignon', `${donne} === 'lumignon'`)
-    noter(`menu Fichier, « Scène », le déclencheur ${declencheur.libelle} choisi à la zone Logique, son flux « Effet », « ${inspecte(ed, 'valeur/flow/effet/type').valeurs.find((b) => b.presse).libelle} », l’objet « ${offert.libelle} » choisi parmi ${inspecte(ed, 'valeur/flow/effet/trappingId').valeurs.length} offerts`)
+    const objetsOfferts = inspecte(ed, ajoutDuDon).valeurs
+    const offert = objetsOfferts.find((b) => b.jeu.args[2]?.id === 'lumignon')
+    assert.ok(offert, `le don de l’Effet « Donner un objet » offre l’objet de campagne : ${objetsOfferts.slice(-3).map((b) => b.libelle).join(', ')}`)
+    await choisirAuChamp(ajoutDuDon, (v) => v?.id === 'lumignon', `${donne} === 'lumignon'`)
+    noter(`menu Fichier, « Scène », le déclencheur ${declencheur.libelle} choisi à la zone Logique, son flux « Effet », « ${inspecte(ed, 'valeur/flow/effet/type').valeurs.find((b) => b.presse).libelle} », l’objet « ${offert.libelle} » choisi parmi ${objetsOfferts.length} offerts`)
     await ouvrirLeNarratif()
     await choisirLObjet('lumignon')
     await renommer('lumignon', 'falot')
@@ -2698,7 +2700,7 @@ async function parcoursEditeur() {
     await revenirALaSceneEditee()
     await choisirLeDeclencheur(declencheur.id)
     await waitFor(session, `${donne} === 'falot'`)
-    await choisirAuChamp('valeur/flow/kind', (v) => v?.kind === 'sequence', `!${montre('valeur/flow/effet/trappingId')}`)
+    await choisirAuChamp('valeur/flow/kind', (v) => v?.kind === 'sequence', `!${montre('valeur/flow/effet/objet/id')}`)
     noter(`menu Fichier, « Scène », le déclencheur ${declencheur.libelle} : son don désigne « falot » ; son flux rendu à « ${inspecte(await editeur(), 'valeur/flow/kind').valeurs.find((b) => b.presse).libelle} »`)
     await ouvrirLeNarratif()
     await choisirLObjet('falot')
@@ -3055,13 +3057,13 @@ async function parcoursEditeur() {
   await cliquerAuPanneau('Combat')
   e = await editeur()
   const [premierEngin] = inspecte(e, 'valeur/postes/ajouter').valeurs
-  await choisirALaListe('valeur/postes/ajouter', premierEngin.id, 'editeur.inspecteur', montre('valeur/postes/0/trappingId'))
+  await choisirALaListe('valeur/postes/ajouter', premierEngin.id, 'editeur.inspecteur', montre('valeur/postes/0/engin/id'))
   e = await editeur()
-  const piece = inspecte(e, 'valeur/postes/0/trappingId').valeurs.find((b) => b.jeu.args[2] === 'canon-moyen')
-  await choisirALaListe('valeur/postes/0/trappingId', piece.id, 'editeur.inspecteur')
+  const piece = inspecte(e, 'valeur/postes/0/engin/id').valeurs.find((b) => b.jeu.args[2] === 'canon-moyen')
+  await choisirALaListe('valeur/postes/0/engin/id', piece.id, 'editeur.inspecteur')
   await waitFor(session, montre('valeur/postes/0/ammo/ajouter'))
   e = await editeur()
-  const pieceChoisie = inspecte(e, 'valeur/postes/0/trappingId').valeurs.find((b) => b.presse).libelle
+  const pieceChoisie = inspecte(e, 'valeur/postes/0/engin/id').valeurs.find((b) => b.presse).libelle
   const ajouterAuCoffre = inspecte(e, 'valeur/postes/0/ammo/ajouter').libelle
   await cliquerAuPanneau({ element: 'bouton/valeur/postes/0/ammo/ajouter' })
   await waitFor(session, montre('valeur/postes/0/ammo/boulet-et-poudre'))

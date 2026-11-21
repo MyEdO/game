@@ -238,15 +238,15 @@ test('préparation : une capture physique commune, null conservé, clés absente
     perimetreDeMesure(racine)
     const lectures = t.mock.method(fs, 'readFileSync')
     const listages = t.mock.method(fs, 'readdirSync')
-    const presences = t.mock.method(fs, 'existsSync')
+    const canonisations = t.mock.method(fs.realpathSync, 'native')
     syncBuiltinESMExports()
     perimetreDeMesure(racine)
     const parPerimetre = new Map(['data', 'data/sousdir'].map((rel) => [rel, compter(listages, rel, true)]))
-    for (const espion of [lectures, listages, presences]) espion.mock.resetCalls()
+    for (const espion of [lectures, listages, canonisations]) espion.mock.resetCalls()
     const preparation = preparerPreuves(racine, opts)
     assert.equal(compter(lectures, 'data/source.txt'), 1)
     assert.equal(compter(listages, 'data', true), 1 + parPerimetre.get('data'))
-    assert.equal(compter(presences, 'data/absent.txt'), 1)
+    assert.equal(compter(canonisations, 'data/absent.txt'), 1)
     assert.equal(preparation.vue.hashes.get('data/absent.txt'), null)
     assert.equal(preparation.fichiers.get('data/absent.txt'), null)
     assert.equal(preparation.vue.hashes.has('data/non-capture.txt'), false)
@@ -755,13 +755,17 @@ for (const [nom, changer] of [
 }
 
 test('certificat local divergent : doc local conservé et autre producteur copié', () => {
-  const primitive = new URL('./ecriture-derives.mjs', import.meta.url).href
   const generateurs = ['a', 'b'].map(nom => ({ runner: 'node', script: `g/${nom}.mjs`, targets: [doc(nom)] }))
   const { racine } = instanceDeDepot({ fichiers: {
     '.gitignore': 'docs/\n.wt-local/\n',
     ...Object.fromEntries(['a', 'b'].flatMap(nom => [
       [`data/${nom}.txt`, nom],
-      [`g/${nom}.mjs`, `import { readFileSync } from 'node:fs'\nimport { ecrireOuVerifier } from ${JSON.stringify(primitive)}\necrireOuVerifier({ out: readFileSync('data/${nom}.txt', 'utf8'), path: ${JSON.stringify(doc(nom))}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer' })\n`],
+      [`g/${nom}.mjs`, [
+        "import { readFileSync } from 'node:fs'",
+        'export function* produire() {',
+        `  yield { out: readFileSync('data/${nom}.txt', 'utf8'), path: ${JSON.stringify(doc(nom))}, staleMsg: 'périmé', rerunMsg: 'relancer' }`,
+        '}',
+      ].join('\n')],
     ])),
   } })
   const cible = path.join(racine, '.wt-local')

@@ -19,7 +19,7 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { libererSessions, repoProgram } from './guards/lib/tsProgram.mjs'
-import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './docs/lib/ecriture-derives.mjs'
 
 const require = createRequire(import.meta.url)
 const RACINE_DU_DEPOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
@@ -224,14 +224,15 @@ const texteDeSortie = (formats) =>
   `// GÉNÉRÉ par scripts/gen-formats.mjs (#2404) — jamais édité, jamais commité.\n`
   + formats.map((e) => `export const ${e.constante} = '${e.format}';\n`).join('')
 
-if (import.meta.main) {
+export function* produire() {
   const formats = calculerFormats()
   for (const e of formats) console.log(`gen-formats — ${e.constante} = ${e.format} (${e.noeuds} nœuds)`)
-  ecrireOuVerifier({
+  yield {
     out: texteDeSortie(formats),
     path: SORTIE,
-    check: process.argv.includes('--check'),
     staleMsg: `gen-formats — ${SORTIE} est PÉRIMÉ (diverge des types persistés).`,
     rerunMsg: '  → relancer `npm run gen`.',
-  })
+  }
 }
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

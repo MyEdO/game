@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { ecrireLeRoster, lireLeRoster, rosterAvecLeHeros, rosterExport, rosterImport, type HerosDuRoster, type RosterEntry } from './roster';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
+import { migrerLEntreeAvantLesDeuxCouleurs, migrerLEntreeAvantLesReferences } from './referencesDeCreation';
 import { nommerLesRetraits } from './elagage';
 import { t } from '../../i18n';
 import { ciblePsy } from '../../engine/psych/ciblage';
@@ -34,7 +35,7 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
     expect(lireLeRoster(brut)).toEqual({ heros, retraits: null });
   });
 
-  it('l’ancienne entrée relue et importée porte les références du héros et de son brouillon', () => {
+  it('la conversion d’une ancienne entrée porte les références du héros et de son brouillon', () => {
     const original = entry('reiklander');
     const ancien = {
       ...original,
@@ -47,31 +48,62 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
         speciesTalentChoices: { choix: { pick: 1, of: [{ pick: 1, of: [{ random: 2 }, { id: 'doue-en-calcul' }] }] } },
       },
     };
-    const lu = lireLeRoster(JSON.stringify({ version: '5207758a6bf0bfd7', heros: [ancien] }));
-    const importe = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', version: 'cd40631dc865d107', ...ancien }));
     const attendu = {
       ...ancien,
       hero: {
         ...ancien.hero,
-        details: { eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' } },
+        details: { eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' } },
       },
       draft: {
-        ...ancien.draft, eyes: { label: 'Bleu' }, hair: { label: 'Couleur inconnue' },
+        ...ancien.draft, eyes: [{ label: 'Bleu' }], hair: { label: 'Couleur inconnue' },
         speciesTalentChoices: {
           choix: { pick: 1, of: [{ pick: 1, of: [{ pick: 2, table: { id: 'talents-aleatoires' } }, { id: 'doue-en-calcul' }] }] },
         },
       },
     };
-    expect(lu?.heros).toEqual([attendu]);
-    expect(importe.entry).toEqual(attendu);
-    expect(lireLeRoster(ecrireLeRoster(lu!.heros))).toEqual(lu);
+    migrerLEntreeAvantLesReferences(ancien);
+    expect(ancien).toEqual(attendu);
+  });
+
+  it('enveloppe la référence de couleur unique du héros et celle de son brouillon', () => {
+    const original = entry('elfe');
+    const couleur = { id: 'bleu', colonne: 'haut-elfe' };
+    const ancien = {
+      ...original,
+      hero: { ...original.hero, details: { eyes: couleur } },
+      draft: { ...original.draft, eyes: { label: 'Saphir historique' } },
+    };
+    const attendu = {
+      ...ancien,
+      hero: { ...ancien.hero, details: { eyes: [couleur] } },
+      draft: { ...ancien.draft, eyes: [{ label: 'Saphir historique' }] },
+    };
+    migrerLEntreeAvantLesDeuxCouleurs(ancien);
+    expect(ancien).toEqual(attendu);
+  });
+
+  it('restitue les couleurs tirées dans le héros et dans le brouillon du roster et de l’export', () => {
+    const original = entry('elfe');
+    const draft = rollDraftDetails(withCareer(withSpecies(newDraft(7), 'elfes-sylvains'), 'soldat'));
+    const personnage = buildHero(draft, idsDeTest, original.hero.id);
+    const porteur: RosterEntry = { ...original, hero: { ...personnage, id: original.hero.id }, draft };
+    const dansLeRoster = lireLeRoster(ecrireLeRoster([porteur]))?.heros[0];
+    const dansLExport = rosterImport(rosterExport(porteur)).entry;
+    const attendu = [
+      { id: 'marron-fonce', colonne: 'elfe-sylvain' },
+      { id: 'gris-pale', colonne: 'elfe-sylvain' },
+    ];
+    for (const lue of [dansLeRoster, dansLExport]) {
+      expect(lue?.hero.details?.eyes).toEqual(attendu);
+      expect(lue?.draft.eyes).toEqual(attendu);
+    }
   });
 
   it('préserve le physique tiré avant un changement d’espèce sans lui attribuer sa nouvelle colonne', () => {
     const tire = rollDraftDetails(withSpecies(newDraft(149), 'humains-reiklander'));
     const draft = withCareer(withSpecies(tire, 'nains'), 'soldat');
     const personnage = buildHero(draft, idsDeTest, 'ancien-physique');
-    const libelles = { eyes: libelleDeCouleur('eyes', draft.eyes), hair: libelleDeCouleur('hairs', draft.hair) };
+    const libelles = { eyes: libelleDeCouleur('eyes', draft.eyes?.[0]), hair: libelleDeCouleur('hairs', draft.hair) };
     expect(libelles).toEqual({ eyes: 'Bleu', hair: 'Brun foncé' });
     expect(personnage.species).toBe('nains');
     const ancien = {
@@ -79,10 +111,29 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
       draft: { ...draft, ...libelles },
       hero: { ...personnage, details: { ...personnage.details, ...libelles } },
     };
-    const lu = lireLeRoster(JSON.stringify({ version: '5207758a6bf0bfd7', heros: [ancien] }));
-    const couleurs = { eyes: { label: 'Bleu' }, hair: { label: 'Brun foncé' } };
-    expect(lu?.heros[0].hero.details).toMatchObject(couleurs);
-    expect(lu?.heros[0].draft).toMatchObject(couleurs);
+    migrerLEntreeAvantLesReferences(ancien);
+    const couleurs = { eyes: [{ label: 'Bleu' }], hair: { label: 'Brun foncé' } };
+    expect(ancien.hero.details).toMatchObject(couleurs);
+    expect(ancien.draft).toMatchObject(couleurs);
+  });
+
+  it('refuse le roster et l’export antérieurs aux nouvelles références des Effets', () => {
+    const original = entry('h1');
+    const ancien = {
+      ...original,
+      hero: {
+        ...original.hero,
+        activeEffects: [{
+          label: 'Récolte de Rhya',
+          bonus: 0,
+          duration: { scale: 'rounds', left: 2 },
+          opsPerRound: [{ op: 'giveTrapping', trappingId: 'ration' }],
+        }],
+      },
+    };
+    expect(lireLeRoster(JSON.stringify({ version: '974d8daa87ece06f', heros: [ancien] }))).toBeNull();
+    expect(rosterImport(JSON.stringify({ kind: 'wfrp4-hero', version: '372cd4f616141f86', ...ancien })).error)
+      .toBe(t('picker.import.error.autreFormat'));
   });
 
   it('d’un autre format, sans tableau de héros, ou illisible : `null`', () => {

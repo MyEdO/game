@@ -10,7 +10,7 @@
 //   node scripts/gen-verbes.mjs            écrit les cibles
 //   node scripts/gen-verbes.mjs --check    compare sans écrire
 import { SORTIE_VERBES as SORTIE, SORTIE_NOMS_DE_PARAMETRE } from './docs/lib/cibles-registres.mjs'
-import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './docs/lib/ecriture-derives.mjs'
 import { partieLue } from './docs/lib/verbesDeLaPartie.mjs'
 import { parUnitesDeCode } from './guards/lib/lister.mjs'
 
@@ -77,16 +77,17 @@ export function rendre() {
   return new Map(cibles(partieLue()))
 }
 
-if (import.meta.main) {
+export function* produire() {
   const partie = partieLue()
   console.log(`gen-verbes — ${Object.keys(partie.verbes).length} verbes`)
   for (const [path, out] of cibles(partie)) {
-    ecrireOuVerifier({
+    yield {
       out,
       path,
-      check: process.argv.includes('--check'),
       staleMsg: `gen-verbes — ${path} est PÉRIMÉ (diverge du type des verbes).`,
       rerunMsg: '  → relancer `npm run gen`.',
-    })
+    }
   }
 }
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

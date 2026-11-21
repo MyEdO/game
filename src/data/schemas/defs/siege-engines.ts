@@ -23,7 +23,7 @@ const doc = document(
   {
     ...metaDesChamps(profilDArmeDeCatalogueSchema, { exigees: true }),
     categorie: { label: 'Catégorie' },
-    subType: { label: 'Sous-type' },
+    subType: { label: 'Sous-type', inverseCodex: true },
     siegeFootprint: { label: 'Empreinte au sol' },
     enc: { label: 'Encombrement' },
     availability: { label: 'Disponibilité' },

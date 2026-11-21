@@ -11031,7 +11031,9 @@
                   "every": 2,
                   "amount": 1
                 },
-                "trappingId": "ration"
+                "objet": {
+                  "id": "ration"
+                }
               },
               {
                 "op": "narrative",
@@ -12760,7 +12762,9 @@
                 "ops": [
                   {
                     "op": "giveTrapping",
-                    "trappingId": "ration"
+                    "objet": {
+                      "id": "ration"
+                    }
                   }
                 ]
               }
@@ -26195,7 +26199,9 @@
             "ops": [
               {
                 "op": "giveTrapping",
-                "trappingId": "baton-enchante"
+                "objet": {
+                  "id": "baton-enchante"
+                }
               }
             ]
           }

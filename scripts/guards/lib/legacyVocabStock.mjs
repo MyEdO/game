@@ -301,13 +301,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/engine/talentEffects.ts",
-    motif: "désormais",
-    ancre: "incluant les +5 de talent (désormais passifs, plus cuits dans `characteristics`).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/engine/traits/parity.test.ts",
     motif: "désormais",
     ancre: "Parité des Traits de créature (LDB 85). Le registre `TRAITS` est désormais DÉRIVÉ 1:1 de la donnée",

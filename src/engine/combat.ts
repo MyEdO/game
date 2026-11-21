@@ -30,6 +30,7 @@ import { peutEtreEmpoigne } from './grapple';
 import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune, siegeMultiplier } from './structures';
 import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue, testValue, type TestDesigne } from './skills';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import {
   Combatant,
@@ -447,6 +448,16 @@ export function defenseValueModParts(c: Combatant, mode: DefenseMode, weapon?: W
 /** Valeur de défense FONDUE = valeur NUE + ses modificateurs (identité `base + modificateurs`). */
 export function defenseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialBase?: number): number {
   return defenseBaseValue(c, mode, weapon, socialBase) + defenseValueMods(c, mode, weapon);
+}
+
+/**
+ * Sujet du Test de défense projeté avec la rangée (LDB 13 l.161-167). En Parade, la même arme
+ * que dans `defenseBaseValue` désigne le Test de mêlée et sa spécialité.
+ */
+export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): SujetDuJet {
+  if (mode === 'parade') return attackTestOf(c, weapon ?? defaultParryWeapon(c), 'melee');
+  if (mode === 'esquive') return { skill: { id: 'esquive' } };
+  return { skill: socialSkillId ? { id: socialSkillId } : undefined };
 }
 
 /** Détail d'un jet (pour l'affichage : base, modificateurs, cible, d100 et DR). */

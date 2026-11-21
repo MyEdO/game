@@ -1,14 +1,13 @@
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { scannerDonnees } from '../../scripts/docs/lib/structures-scan.mjs';
 import { sceneFlowSchema } from './schemas/defs-scenes/effets';
 import { projetSchema } from './schemas/defs-scenes/projet';
 
-const GRAMMAIRE = fileURLToPath(new URL('./schemas/grammaire/mecanique.ts', import.meta.url));
+const GRAMMAIRE = resolve(__dirname, 'schemas/grammaire/mecanique.ts');
 const PROJET = 'sonde-prose-projet.json';
 const CATALOGUE = 'sonde-prose-catalogue.json';
 

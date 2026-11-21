@@ -28,7 +28,7 @@ import { conditionIds, eyes, findVehicleById, species, type TrappingData } from 
 import { vehicleCombatant } from '../../engine/vehicle';
 import { FORMAT_SAVE } from './formats.generated';
 import * as referencesDeCreation from './referencesDeCreation';
-import { enregistrerEntree, supprimerEntree } from '../../data/atelierDuCodex';
+import { enregistrerEntree } from '../../data/atelierDuCodex';
 import { ciblePsy } from '../../engine/psych/ciblage';
 import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-conditions-etendues';
 
@@ -57,7 +57,7 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
   });
 });
 
-describe('lireSave — format courant et références de création historiques', () => {
+describe('lireSave — format courant', () => {
   it('relit la sauvegarde du profil Pertuisane/Fauchard avec ses données intactes', () => {
     const profil: TrappingData = {
       id: 'pertuisane-fauchard',
@@ -76,47 +76,52 @@ describe('lireSave — format courant et références de création historiques',
     const porteur = combattantDeTest({
       kind: 'heros',
       items: [arme],
-      details: { age: 24, eyes: { id: 'bleu', colonne: 'humain' }, hair: { label: 'Brun clair' } },
+      details: { age: 24, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { label: 'Brun clair' } },
     });
     const courante = snapshotSave({ ...etatInitialDuJeu(), party: [porteur] }, '2026-11-21T06:30:00.000Z');
     const migrerLesReferences = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesReferences');
     onTestFinished(() => migrerLesReferences.mockRestore());
 
-    const relire = (version: string) => lireSave(exporterLaSauvegarde({ ...courante, version }));
-    expect(relire(FORMAT_SAVE)).toEqual(courante);
-    expect(relire('e5b0e479130fc5d7')).toEqual(courante);
-    expect(relire('autre-format')).toBe('autreFormat');
+    expect(lireSave(exporterLaSauvegarde(courante))).toEqual(courante);
     expect(migrerLesReferences).not.toHaveBeenCalled();
   });
 
-  it('charge les anciennes couleurs dans le groupe et chez le PNJ, y compris une ambiguïté du LDB', () => {
+  it('refuse une sauvegarde antérieure à l’emboîtement des références de scène', () => {
     const save = snapshotSave(etatInitialDuJeu(), '2026-11-21T06:30:00.000Z');
-    const ancien = {
-      ...save,
-      version: 'a903b626aab8d8eb',
-      data: {
-        ...save.data,
-        party: [{ ...heros('reiklander'), species: 'humains-reiklander', details: { age: 24, eyes: 'Bleu', hair: 'Brun clair' } }],
-        battle: {
-          combatants: [{
-            ...heros('garde'), kind: 'ennemi', species: 'humain',
-            appearanceOverride: { species: 'halflings' },
-            details: { age: 35, eyes: 'Marron foncé', hair: 'Moutarde' },
-          }],
-        },
+    const scene = {
+      ...emptyScene('quai', 4, 4),
+      triggers: [{
+        id: 'depart',
+        rect: { x: 1, y: 1, w: 1, h: 1 },
+        flow: { kind: 'effet', effet: { type: 'setVessel', vehicleId: 'loup-imperial' } },
+      }],
+    };
+    const ancienne = { ...save, version: '6567d83e466bf816', data: { ...save.data, scene } };
+    expect(lireSave(JSON.stringify(ancienne))).toBe('autreFormat');
+  });
+});
+
+describe('migrerLaSaveAvantLesReferences — résolution des anciennes couleurs', () => {
+  it('résout les anciennes couleurs dans le groupe et chez le PNJ, y compris une ambiguïté du LDB', () => {
+    const save = snapshotSave(etatInitialDuJeu(), '2026-11-21T06:30:00.000Z');
+    const data = {
+      ...save.data,
+      party: [{ ...heros('reiklander'), species: 'humains-reiklander', details: { age: 24, eyes: 'Bleu', hair: 'Brun clair' } }],
+      battle: {
+        combatants: [{
+          ...heros('garde'), kind: 'ennemi', species: 'humain',
+          appearanceOverride: { species: 'halflings' },
+          details: { age: 35, eyes: 'Marron foncé', hair: 'Moutarde' },
+        }],
       },
     };
-    const lue = lireSave(JSON.stringify(ancien));
-    if (typeof lue === 'string') throw new Error(lue);
-    expect(lue.version).toBe(FORMAT_SAVE);
-    const { etat } = chargerLaSave(lue);
-    expect(etat.party[0].details).toEqual({
-      age: 24, eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' },
+    referencesDeCreation.migrerLaSaveAvantLesReferences(data);
+    expect(data.party[0].details).toEqual({
+      age: 24, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' },
     });
-    expect(etat.battle?.combatants[0].details).toEqual({
-      age: 35, eyes: { label: 'Marron foncé' }, hair: { id: 'noir', colonne: 'halfling' },
+    expect(data.battle.combatants[0].details).toEqual({
+      age: 35, eyes: [{ label: 'Marron foncé' }], hair: { id: 'noir', colonne: 'halfling' },
     });
-    expect(lireSave(exporterLaSauvegarde(lue))).toEqual(lue);
   });
 
   it('une espèce réaffectée au Codex ne désambiguïse pas rétrospectivement un ancien libellé', () => {
@@ -126,12 +131,9 @@ describe('lireSave — format courant et références de création historiques',
     const transaction = enregistrerEntree('races', { ...species[index], refChar: 'humain' }, index);
     if (!transaction.ok) throw new Error(transaction.erreurs.join(', '));
     try {
-      const lue = lireSave(JSON.stringify({
-        ...save, version: 'a903b626aab8d8eb',
-        data: { ...save.data, party: [{ ...heros('halfling'), species: espece, details: { eyes: 'Marron foncé', hair: 'Moutarde' } }] },
-      }));
-      if (typeof lue === 'string') throw new Error(lue);
-      expect(lue.data.party[0].details?.eyes).toEqual({ label: 'Marron foncé' });
+      const data = { ...save.data, party: [{ ...heros('halfling'), species: espece, details: { eyes: 'Marron foncé', hair: 'Moutarde' } }] };
+      referencesDeCreation.migrerLaSaveAvantLesReferences(data);
+      expect(data.party[0].details?.eyes).toEqual([{ label: 'Marron foncé' }]);
     } finally {
       transaction.reprendre();
     }
@@ -144,32 +146,55 @@ describe('lireSave — format courant et références de création historiques',
     const transaction = enregistrerEntree('eyes', { ...rangee, color: { ...rangee.color, humain: 'Bleu' } }, index);
     if (!transaction.ok) throw new Error(transaction.erreurs.join(', '));
     try {
-      const lue = lireSave(JSON.stringify({
-        ...save, version: 'a903b626aab8d8eb',
-        data: { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Bleu', hair: 'Brun clair' } }] },
-      }));
-      if (typeof lue === 'string') throw new Error(lue);
-      expect(lue.data.party[0].details?.eyes).toEqual({ label: 'Bleu' });
+      const data = { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Bleu', hair: 'Brun clair' } }] };
+      referencesDeCreation.migrerLaSaveAvantLesReferences(data);
+      expect(data.party[0].details?.eyes).toEqual([{ label: 'Bleu' }]);
     } finally {
       transaction.reprendre();
     }
   });
 
-  it('préserve la couleur ancienne dont la rangée a été supprimée au Codex', () => {
+  it('préserve la couleur ancienne dont la rangée a été remplacée au Codex', () => {
     const save = snapshotSave(etatInitialDuJeu(), '2026-11-21T06:30:00.000Z');
     const index = eyes.findIndex((e) => e.id === 'gris');
-    const transaction = supprimerEntree('eyes', index, []);
+    const rangee = eyes[index];
+    expect(rangee.color.humain).toBe('Gris');
+    const transaction = enregistrerEntree('eyes', {
+      ...rangee,
+      id: 'gris-ardoise',
+      label: 'Gris ardoise',
+      color: { ...rangee.color, humain: 'Gris ardoise' },
+    }, index);
     if (!transaction.ok) throw new Error(transaction.erreurs.join(', '));
     try {
-      const lue = lireSave(JSON.stringify({
-        ...save, version: 'a903b626aab8d8eb',
-        data: { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Gris', hair: 'Brun clair' } }] },
-      }));
-      if (typeof lue === 'string') throw new Error(lue);
-      expect(lue.data.party[0].details).toEqual({ eyes: { label: 'Gris' }, hair: { id: 'brun-clair', colonne: 'humain' } });
+      expect(eyes.some((e) => e.color.humain === 'Gris')).toBe(false);
+      const data = { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Gris', hair: 'Brun clair' } }] };
+      referencesDeCreation.migrerLaSaveAvantLesReferences(data);
+      expect(data.party[0].details).toEqual({ eyes: [{ label: 'Gris' }], hair: { id: 'brun-clair', colonne: 'humain' } });
     } finally {
       transaction.reprendre();
     }
+    expect(eyes[index]).toEqual(rangee);
+  });
+});
+
+describe('lireSave — reprise ou refus', () => {
+  it('resérialise deux couleurs d’yeux dans leur ordre et garde une rangée répétée', () => {
+    const hautElfe = combattantDeTest({
+      id: 'haut-elfe',
+      kind: 'heros',
+      details: { eyes: [{ id: 'bleu', colonne: 'haut-elfe' }, { id: 'noir', colonne: 'haut-elfe' }] },
+    });
+    const elfeSylvain = combattantDeTest({
+      id: 'elfe-sylvain',
+      kind: 'heros',
+      details: { eyes: [{ id: 'gris-pale', colonne: 'elfe-sylvain' }, { id: 'gris-pale', colonne: 'elfe-sylvain' }] },
+    });
+    const save = snapshotSave({ ...etatInitialDuJeu(), party: [hautElfe, elfeSylvain] }, '2026-11-21T06:30:00.000Z');
+    const lue = lireSave(exporterLaSauvegarde(save));
+    if (typeof lue === 'string') throw new Error(lue);
+    const { etat } = chargerLaSave(lue);
+    expect(etat.party.map((h) => h.details?.eyes)).toEqual([hautElfe.details?.eyes, elfeSylvain.details?.eyes]);
   });
 
   it('une save écrite par `snapshotSave` se relit telle quelle ; d’un autre format, refusée', () => {

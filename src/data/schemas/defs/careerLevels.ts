@@ -51,18 +51,22 @@ const doc = document(
     level: { label: 'Niveau', hint: 'Rang du Niveau au sein de la Carrière' },
     skills: {
       label: 'Compétences du Niveau',
+      inverseCodex: true,
       hint: 'Compétences ouvertes à l’Augmentation par ce Niveau (cumul des Niveaux ≤ courant ; l’italique du N1 sert à Gagner de l’argent)',
     },
     talents: {
       label: 'Talents du Niveau',
+      inverseCodex: true,
       hint: 'Talents disponibles à l’achat au Niveau COURANT seul (100 PX + 100 par prise) — pas ceux des Niveaux précédents',
     },
     trappings: {
       label: 'Possessions du Niveau',
+      inverseCodex: { type: 'trapping', portee: 'directe' },
       hint: 'Possessions listées à ce Niveau (celles du Niveau 1 dotent le personnage à la création)',
     },
     characteristics: {
       label: 'Caractéristiques du Niveau',
+      inverseCodex: { cle: 'characteristic' },
       hint: 'Caractéristiques de Carrière ouvertes par ce Niveau (Augmentations au coût standard, ×2 hors carrière) ; les Niveaux ≤ courant se cumulent',
     },
     status: { label: 'Statut social', hint: 'Échelon Bronze/Argent/Or de ce Niveau' },

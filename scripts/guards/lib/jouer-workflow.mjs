@@ -19,7 +19,7 @@ import { readFileSync } from 'node:fs'
 import { basename, join, relative, resolve, sep } from 'node:path'
 import { estSuiteVitest } from './fichierVitest.mjs'
 import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
-import { defautsDeRacine, lireWorkflow, PREFILTRE_DE_WORKFLOW } from './formeDeWorkflow.mjs'
+import { defautsDeRacine, estDialecteDeWorkflow, lireWorkflow, PREFILTRE_DE_WORKFLOW } from './formeDeWorkflow.mjs'
 
 /**
  * @typedef {object} RunDeWorkflow
@@ -46,7 +46,7 @@ function fichiersDuDepot(racine) {
  */
 export function reconnaissanceDuDepot(racine) {
   const base = resolve(racine)
-  const js = fichiersDuDepot(racine).filter((f) => /\.(c|m)?js$/.test(f))
+  const js = fichiersDuDepot(racine).filter(estDialecteDeWorkflow)
   const scripts = []
   const defauts = []
   let parses = 0

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { EXTENSIONS_DE_SCRIPT } from '../scripts/guards/lib/dialecte.mjs';
 import { emojisIn } from '../scripts/guards/lib/emojiAffordance.mjs';
 import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { RACINES_DES_ZONES } from '../scripts/guards/lib/couches.mjs';
@@ -8,7 +9,7 @@ import { RACINES_DES_ZONES } from '../scripts/guards/lib/couches.mjs';
  * Garde-fou anti-emoji (LOT 4) : aucun emoji dans le code, la donnée ni la prose affichée (journal, logs) — une
  * icône de donnée est un id du registre (`src/data/icons/`).
  * Couverture EXHAUSTIVE par défaut : ce test de BUILD balaie TOUTES les racines des zones (`RACINES_DES_ZONES`,
- * `couches.mjs` : walk récursif, .ts/.tsx/.json) ; il n'y a PAS de liste opt-in de dossiers (tout nouveau dossier
+ * `couches.mjs` : parcours récursif des scripts et des fichiers JSON) ; il n'y a PAS de liste opt-in de dossiers (tout nouveau dossier
  * naît couvert). Seules des EXCLUSIONS explicites et justifiées existent (ci-dessous), chacune par NATURE, jamais par
  * état de migration.
  * Mécanique de détection (plages Unicode, glyphes tolérés `✓ ☰ …`, `emojisIn`) :
@@ -27,9 +28,9 @@ const EXCLUDED = (rel: string): boolean =>
   rel.includes('__snapshots__/');
 
 describe('garde-fou anti-emoji (affordances → registre d’icônes)', () => {
-  it('aucun emoji dans toutes les racines des zones (.ts/.tsx/.json), hors exclusions par nature', () => {
+  it('aucun emoji dans toutes les racines des zones (scripts et JSON), hors exclusions par nature', () => {
     const offenders: string[] = [];
-    for (const { rel, text } of readCorpus(RACINES_DES_ZONES, { exts: ['.ts', '.tsx', '.json'], tests: true })) {
+    for (const { rel, text } of readCorpus(RACINES_DES_ZONES, { exts: [...EXTENSIONS_DE_SCRIPT, '.json'], tests: true })) {
       if (EXCLUDED(rel)) continue;
       const hits = emojisIn(text);
       if (hits.length) offenders.push(`${rel} → ${hits.join(' ')}`);

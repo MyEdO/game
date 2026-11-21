@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   scanLivresRecopies, identitesDe, identitesReelles, estExclu,
-  SCAN_DIRS, SCAN_EXTS, SEUIL, SITE_EXEMPTIONS,
+  SCAN_DIRS, SEUIL, SITE_EXEMPTIONS,
 } from '../scripts/guards/lib/livresRecopies.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
@@ -44,7 +44,7 @@ const formes = (src: string, nom = 'fixture.ts') => scanLivresRecopies(nom, src,
 describe('listes de livres recopiées — le code ne nomme aucun livre (#1825)', () => {
   it('aucune énumération littérale du code ne recopie le registre des livres', { timeout: 60_000 }, () => {
     const offenders: string[] = [];
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(SCAN_DIRS, { exts: SCAN_EXTS, tests: true }).filter(({ rel }) => !estExclu(rel)))) {
+    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(SCAN_DIRS, { tests: true }).filter(({ rel }) => !estExclu(rel)))) {
       for (const s of scanLivresRecopies(rel, text, undefined, sourceFile!)) {
         offenders.push(`${rel}:${s.line} — ${s.forme} figeant ${s.valeurs.length} livres : ${s.valeurs.join(', ')}`);
       }
@@ -140,7 +140,7 @@ describe('listes de livres recopiées — le code ne nomme aucun livre (#1825)',
   it('CÂBLAGE : le scan de CORPUS consomme réellement le détecteur (le registre RÉEL mord)', () => {
     // Sans ce banc, un corpus vide ou un détecteur débranché rendrait la garde verte par vacuité.
     // Les identités de la sonde sont PRISES au registre réel, jamais recopiées : deux suffisent.
-    const corpus = readCorpus(SCAN_DIRS, { exts: SCAN_EXTS, tests: true });
+    const corpus = readCorpus(SCAN_DIRS, { tests: true });
     expect(corpus.filter((f) => !estExclu(f.rel)).length).toBeGreaterThan(0);
     const unNomParLivre = new Map([...identitesReelles()].map(([nom, livre]) => [livre, nom]));
     const [un, deux] = [...unNomParLivre.values()];

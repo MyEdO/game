@@ -15,7 +15,6 @@ export interface ExemptionDeSite {
 export const SITE_EXEMPTIONS: ExemptionDeSite[];
 
 export const SCAN_DIRS: string[];
-export const SCAN_EXTS: string[];
 export const SEUIL: number;
 
 export function estExclu(rel: string): boolean;

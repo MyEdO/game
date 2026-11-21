@@ -1,6 +1,6 @@
 /**
  * LA PARTIE, sans store (#2817 D9) : un hôte qui n'a que la surface du noyau (`./index`) joue une attaque
- * jusqu'à la clôture du combat, puis une intention de siège sans verdict. Les dés viennent des entrées
+ * jusqu'à la clôture du combat, puis une intention de siège sans armement. Les dés viennent des entrées
  * (graine, dés fixés). Le duel est celui de `combatDeTest.testkit.ts`, dans la scène de fixture.
  */
 import { describe, it, expect, vi } from 'vitest';
@@ -89,7 +89,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
     }
   });
 
-  it('une intention de siège sans verdict ne court pas et laisse l’intention armée du propriétaire', () => {
+  it('une intention de siège sans armement rend son verdict et laisse l’intention du propriétaire', () => {
     const { H, partie: armee } = duel((etat, { H }) => ({ ...etat, net: { ...etat.net, mode: 'hote', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } }));
     armee.envoyer({ type: 'armerLIntention', args: ['course'] });
     expect(armee.etat().localIntent, 'témoin : le propriétaire a armé SA Course').toEqual({ actionId: 'course' });
@@ -100,9 +100,13 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       const loin = { x: H.pos!.x - 6, y: H.pos!.y };
       const horsPossession = partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }], siege: 2 });
       expect(horsPossession.issue, 'un siège qui ne possède pas l’acteur a passé la possession').toBe('refusee');
-      expect(horsPossession.journal.map((l) => l.de), 'le refus n’a rien écrit au journal').toEqual(['journal']);
-      expect(partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }], siege: 1 }).issue).toBe('appliquee');
-      expect(partie.etat().refus?.texte ?? '', 'témoin : le geste du siège a passé la possession, puis été refusé faute de verdict').toContain('Course');
+      expect(horsPossession.refus).toBe(t('coop.intentRefused'));
+      expect(horsPossession.journal).toEqual([]);
+      const sansArmement = partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }], siege: 1 });
+      expect(sansArmement.issue).toBe('appliquee');
+      expect(sansArmement.refus).toBe(t('cs.refusCourseNonArmee'));
+      expect(sansArmement.journal).toEqual([]);
+      expect(partie.etat().refus).toBeNull();
       expect(partie.etat().localIntent, 'le clic du siège a dissous l’intention du propriétaire').toEqual({ actionId: 'course' });
       expect(partie.etat().pendingRun ?? partie.etat().pendingCascade, 'le siège a couru sur la case du propriétaire').toBeFalsy();
       expect(combattant(partie, H.id).pos).toEqual({ x: 10, y: 10 });

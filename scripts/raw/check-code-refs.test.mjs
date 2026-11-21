@@ -76,9 +76,9 @@ test('.json scanné comme .ts/.tsx', () => {
 
 test('non-régression : les VRAIS citants n’ont aucune réf morte ni aucune réf sur ligne VIDE', () => {
   const mortes = scanDeadCodeRefs()
-  assert.deepEqual(mortes.map((d) => `${d.file}:${d.row} — ${d.ref}`), [], 'réf(s) de code MORTE(S)')
+  assert.deepEqual(mortes.map((d) => `${d.fichier}:${d.row} — ${d.ref}`), [], 'réf(s) de code MORTE(S)')
   const vides = scanEmptyLineCodeRefs()
-  assert.deepEqual(vides.map((v) => `${v.file}:${v.row} — ${v.ref}`), [], 'réf(s) de code sur ligne VIDE')
+  assert.deepEqual(vides.map((v) => `${v.fichier}:${v.row} — ${v.ref}`), [], 'réf(s) de code sur ligne VIDE')
 })
 
 // LDB 06 l.1 porte `*Pages PDF 48*`, LDB 06 l.2 est BLANCHE — ancrage réel du contrôle « ligne non vide ».
@@ -112,8 +112,8 @@ test('plage l.X-Y : vide seulement si TOUTE la plage est blanche', () => {
 })
 
 test('sitesDeCode : le site d’une réf du code est son fichier et sa réf, rien d’autre de la mesure', () => {
-  const mesure = { file: 'src/a.ts', row: 3, ref: 'LDB 6 l.2', abbr: 'LDB', nn: '06', hi: 2, chapterFile: 'x.md' }
-  assert.deepEqual(sitesDeCode([mesure]), [{ file: 'src/a.ts', ref: 'LDB 6 l.2' }])
+  const mesure = { fichier: 'src/a.ts', row: 3, ref: 'LDB 6 l.2', abbr: 'LDB', nn: '06', hi: 2, chapterFile: 'x.md' }
+  assert.deepEqual(sitesDeCode([mesure]), [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2' }])
 })
 
 test('régime ZÉRO-TOLÉRANCE (#583, #1898) : les deux stocks restent ABSENTS', () => {

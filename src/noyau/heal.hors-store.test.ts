@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { creditBourse } from './bourseFlow';
 import { ouvrirLeMedecin } from './medicFlow';
+import { jouerUnReglage } from '../hote/reglages';
 import { bourseOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
 import { availableHealModes } from '../engine/healing';
@@ -210,6 +211,7 @@ describe('Guérison — flux combat', () => {
 });
 
 describe('Guérison — infirmerie (hors combat)', () => {
+  afterEach(() => resetRule('chirurgie-dr-cible'));
   it('ouvrirLeMedecin : le brouillon (Blessures) au meilleur soigneur du groupe, applique, la modale RESTE ouverte', () => {
     const doc = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const al = hero({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 4), skills: [] });
@@ -342,7 +344,8 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().jetLancer('soins'); // ARME l'opération — chirurgien figé — et pose la 1re passe
     const sg0 = banc.getState().medic!.surgery!;
     expect(sg0.healerId).toBe('doc');
-    expect(sg0.drCible).toBeGreaterThanOrEqual(5); // cible MJ 5-10 (LDB 10)
+    expect(sg0.drCible).toBe(7);
+    expect(sg0.difficulty).toBe('intermediaire');
     expect(sg0.cumDR).toBe(0);
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().pendingSurgery?.roll).toBeNull(); // la passe posée, pas jetée
@@ -358,6 +361,35 @@ describe('Guérison — infirmerie (hors combat)', () => {
     expect(p.conditions.some((c) => c.id === 'hemorragique')).toBe(true);
     expect(banc.getState().medic).not.toBeNull(); // l'infirmerie reste ouverte après l'opération
     expect(banc.getState().pendingSurgery).toBeNull(); // la passe est fermée à la réussite
+  });
+
+  it('Chirurgie : le réglage fixe le DR cumulé à atteindre à l’armement, y compris après reprise', () => {
+    const surgeon = hero({ id: 'doc', talents: [{ talentId: 'chirurgie', times: 1 }] });
+    const patient = hero({ id: 'p', wounds: blessuresDeBase(40), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });
+    banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
+    banc.getState().ouvrirLeMedecin(patient.id);
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
+
+    const regler = (valeur: unknown) => jouerUnReglage(null, banc.getState(), { type: 'regle', args: ['chirurgie-dr-cible', valeur] });
+    regler(9);
+    expect(() => regler(4)).toThrow();
+    expect(() => regler(11)).toThrow();
+    expect(() => regler('8')).toThrow();
+    banc.getState().jetLancer('soins');
+    expect(banc.getState().medic?.surgery).toMatchObject({ drCible: 9, stake: { values: { drCible: 9 } } });
+    expect(banc.getState().pendingSurgery?.drCible).toBe(9);
+
+    regler(5);
+    expect(banc.getState().pendingSurgery?.drCible).toBe(9);
+    banc.getState().jetAnnuler('chirurgie');
+    banc.getState().jetLancer('soins');
+    expect(banc.getState().medic?.surgery?.drCible).toBe(9);
+    expect(banc.getState().pendingSurgery?.drCible).toBe(9);
+
+    banc.getState().fenetreChoisir('infirmerie', 'abandon', true);
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
+    banc.getState().jetLancer('soins');
+    expect(banc.getState().pendingSurgery?.drCible).toBe(5);
   });
 
   it('#2961 — Chirurgie : « Annuler la passe » ferme la passe avant son jet sans toucher l’opération ; après le jet, elle est sans effet ; « Arrêter l’opération » ferme les deux', () => {
@@ -442,6 +474,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
     expect(banc.getState().pendingHeal!.mode).toBe('reeducation');
+    jouerUnReglage(null, banc.getState(), { type: 'regle', args: ['chirurgie-dr-cible', 9] });
     banc.getState().jetLancer('soins'); // ARME la rééducation et pose la 1re passe
     const sg0 = banc.getState().medic!.surgery!;
     expect(sg0.kind).toBe('reeducation');

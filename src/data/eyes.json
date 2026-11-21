@@ -15,7 +15,11 @@
     {
       "id": "au-choix",
       "label": "Au choix",
-      "rand": 2,
+      "min": 2,
+      "max": 2,
+      "choixLibrePour": [
+        "humain"
+      ],
       "color": {
         "humain": "Au choix",
         "halfling": "Gris clair",
@@ -29,7 +33,8 @@
     {
       "id": "vert",
       "label": "Vert",
-      "rand": 3,
+      "min": 3,
+      "max": 3,
       "color": {
         "humain": "Vert",
         "halfling": "Gris",
@@ -43,7 +48,8 @@
     {
       "id": "bleu-pale",
       "label": "Bleu pâle",
-      "rand": 4,
+      "min": 4,
+      "max": 4,
       "color": {
         "humain": "Bleu pâle",
         "halfling": "Bleu pâle",
@@ -57,7 +63,8 @@
     {
       "id": "bleu",
       "label": "Bleu",
-      "rand": 7,
+      "min": 5,
+      "max": 7,
       "color": {
         "humain": "Bleu",
         "halfling": "Bleu",
@@ -71,7 +78,8 @@
     {
       "id": "gris-pale",
       "label": "Gris pâle",
-      "rand": 11,
+      "min": 8,
+      "max": 11,
       "color": {
         "humain": "Gris pâle",
         "halfling": "Vert",
@@ -85,7 +93,8 @@
     {
       "id": "gris",
       "label": "Gris",
-      "rand": 14,
+      "min": 12,
+      "max": 14,
       "color": {
         "humain": "Gris",
         "halfling": "Noisette",
@@ -99,7 +108,8 @@
     {
       "id": "marron",
       "label": "Marron",
-      "rand": 17,
+      "min": 15,
+      "max": 17,
       "color": {
         "humain": "Marron",
         "halfling": "Marron",
@@ -113,7 +123,8 @@
     {
       "id": "noisette",
       "label": "Noisette",
-      "rand": 18,
+      "min": 18,
+      "max": 18,
       "color": {
         "humain": "Noisette",
         "halfling": "Cuivre",
@@ -127,7 +138,8 @@
     {
       "id": "marron-fonce",
       "label": "Marron foncé",
-      "rand": 19,
+      "min": 19,
+      "max": 19,
       "color": {
         "humain": "Marron foncé",
         "halfling": "Marron foncé",
@@ -141,7 +153,8 @@
     {
       "id": "noir",
       "label": "Noir",
-      "rand": 20,
+      "min": 20,
+      "max": 20,
       "color": {
         "humain": "Noir",
         "halfling": "Marron foncé",

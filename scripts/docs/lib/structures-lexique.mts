@@ -43,13 +43,13 @@ export const DATASETS_DES_PROJETS: readonly string[] = listerProjetsLivres().map
 
 /**
  * Strate de la grammaire (#1463, design 2026-08-23) à laquelle une forme appartient.
- * QUATRE strates : la strate `Instance` du design v2 (SkillInstance, ItemInstance, snapshot de
+ * TROIS strates du lexique : la strate `Instance` du design v2 (SkillInstance, ItemInstance, snapshot de
  * sauvegarde) est HORS PÉRIMÈTRE PAR CONSTRUCTION — les deux racines mesurées ne portent que des
  * documents AUTHORÉS ; son dénominateur se mesurera sur le runtime et un snapshot de test
  * (#1463, commentaire « Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe
  * du commit 3a6017ebb) », point 1).
  */
-export type Strate = 'Référence' | 'Valeur' | 'Ops' | 'Document';
+export type Strate = 'Référence' | 'Valeur' | 'Document';
 
 /** Le dataset dont les références sont lotées L2 (les refs de Compétence) — #1463 design v2. */
 export const CIBLE_COMPETENCE = 'skills.json';
@@ -112,8 +112,8 @@ export const ANGLES_MORTS: readonly string[] = [
   'Une paire de bornes encodée en TUPLE `[min,max]` n’est mesurée par AUCUN concept : la mesure ne classe que des OBJETS, un tableau de deux nombres reste une valeur nue. 33 tuples à l’arbre sur 10 sites (2 racines ; 36 au 2026-11-21 avant la purge des recettes de toiture sans lecteur #4471, 2026-09-06 après l’entrée du dataset des terrains #1690 ; 7 sites au 2026-09-05 après la fusion des matières #1686 lot 2, 8 sites au 2026-09-01 après #1659 L-1659-3, 99 sur 18 à l’ouverture de la vague), et AUCUN n’est une plage — tous sont exclus nommément : 31 paramètres de recette de rendu (`detail.courses.blockWM` 13, `detail.speckle.rM` 17, `detail.tufts.hM` 1, sous `structureAppearance.json`/`materials.json`/`terrains.json`), `qualities.json › [].capabilities.fumbleDigits` (un ENSEMBLE de chiffres) et `structureAppearance.json › [].door.herse.traverseFracs` (des positions fractionnaires). SORTIES du stock parce que devenues des fourchettes `{min,max}` mesurées par le concept `plage` : les 72 disponibilités saisonnières (L-1659-2 ; rangées de `cargaisons-aleatoires.json` depuis #3578 L5), les 7 `ship-construction.json › standard[].lengthM` et les 4 `stars.json › [].sub` (L-1659-3). L’inventaire de ces 33 vit dans `src/data/plage-bornes-contrat.test.ts` (volet F) : il n’a plus à décroître, il a à ne pas repousser.',
   'Un concept exprimé en SCALAIRE hors liste (`species: "humain"`) est mesuré sous la forme `id-nu`, sans signature d’objet.',
   '`kind` est polysémique et n’est pas dédoublonné (Condition, Flow, pion de scène).',
+  'La mesure des GameOps et Conditions (§5) suit les nœuds locaux ouverts par `coDescendre` et leur validation. Les opérations valides sont couvertes par ce relevé, et leurs champs restent mesurés par les concepts de valeur et de référence.',
   'Le classement est ORDONNÉ : une VALEUR (reconnue à sa pose, sinon à son noyau) passe avant une RÉFÉRENCE ; un objet qui recoupe deux concepts n’est compté qu’une fois.',
-  'Deux comparateurs de `water-exposure.json` (`<=`/`>=` sous `woundsRemaining`/`woundsLost`) échappent à `conditionSchema` et restent comptés en op.',
   'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` (et au 3ᵉ argument de `document()`) des modules de schéma des documents, lus aux dossiers des registres de `SchemaDef` (`DOSSIERS_DE_DEFS`, `scripts/docs/lib/cibles-registres.mjs`) et keyés par BASENAME (deux modules homonymes LÈVENT) : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni un littéral hors de ces dossiers. Le « schéma commun candidat » est apparié par FORME EXACTE : même signature (valeurs comprises pour un objet réduit à ses étiquettes) et `kind` compatible. Deux `kind` littéraux textuels différents distinguent deux variantes. Un `kind` non résolu ou susceptible d’être écrasé reste candidat.',
   'SPREADS (`...X.shape` d’un schéma, `...X` d’un objet de shapes) : un littéral de def s’apparie et se classe sur ses seules clés PROPRES, une clé venue d’un spread étant composée, jamais re-tapée ; la grammaire, elle, les résout récursivement pour signer ses schémas communs (`jetSchema` = `characteristic,difficulty,skill`), et un spread qu’elle ne sait pas résoudre (`.pick(...)`, fabrique, paramètre) rend son littéral PARTIEL, exclu des communs. Angle mort : un re-tapage RÉPARTI entre spread et clés propres (`{ ...sujetDuJetSchema.shape, difficulty }` qui recompose `jetSchema`) n’est pas vu. Mesuré 2026-11-06 : 54 littéraux de def à spread, 7 littéraux de grammaire partiels ; le compte courant est au § 4 du doc (`angleMortDesSpreads`).',
   '`schemasCommuns` recommande le PREMIER candidat COMPATIBLE (racines avant niches). Plusieurs schémas compatibles peuvent porter la même forme. La recommandation dépend alors de leur ordre, même si le def est identique.',

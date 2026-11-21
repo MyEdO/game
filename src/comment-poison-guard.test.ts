@@ -27,6 +27,7 @@ import {
   type BaselineEntry,
 } from '../scripts/guards/lib/commentPoison.mjs';
 import { LEGACY_VOCAB_SITES } from '../scripts/guards/lib/legacyVocabStock.mjs';
+import { EXTENSIONS_DE_SCRIPT } from '../scripts/guards/lib/dialecte.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { detenteur } from './lib/detenteur.testkit';
 
@@ -49,7 +50,7 @@ const GARDE = {
     'INCLUS (le poison écrit dans un test est du poison). ' +
     'Cliquet des revendications d’autorité : les tests de `src/**`.',
   angleMort: [
-    'Les commentaires HTML/JSX (`<!-- … -->`, `{/* … */}` hors TS), les `.css` et les `.md` ne sont pas scannés (#593).',
+    'Les commentaires HTML (`<!-- … -->`), les `.css` et les `.md` ne sont pas scannés (#593).',
     'Un énoncé de règle qui n’emploie AUCUN mot des familles passe : la garde mesure un vocabulaire, pas une intention.',
     'Une occurrence en CHAÎNE est invisible par construction (`extractComments` ne lit que les commentaires) — dont les DONNÉES d’une garde.',
     'Le cliquet des revendications d’autorité ne couvre que les tests de `src/**` : un test de `scripts/**` y échappe — ' +
@@ -127,9 +128,15 @@ describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
     expect(GARDE.ticket).toBe('#1486');
   });
 
-  it('le corpus scanné couvre chaque racine et chaque extension de `PERIMETRE_DES_GARDES` (preuve de câblage)', () => {
+  it('le corpus couvre chaque racine et accepte les dialectes du périmètre', () => {
     const exts = new Set(CORPUS.map((f) => f.rel.slice(f.rel.lastIndexOf('.'))));
-    expect([...exts].sort()).toEqual([...PERIMETRE_DES_GARDES.extensions].sort());
+    expect(PERIMETRE_DES_GARDES.extensions).toEqual(expect.arrayContaining([...exts]));
+    const source = 'const temoin = "// chaîne";\n// commentaire';
+    for (const ext of EXTENSIONS_DE_SCRIPT) {
+      const rel = `src/temoin${ext}`;
+      expect(estFichierScanne(rel), rel).toBe(true);
+      expect(commentairesDe(rel, source).map((c) => c.line), rel).toEqual([2]);
+    }
     for (const racine of PERIMETRE_DES_GARDES.racines) expect(CORPUS.some((f) => f.rel.startsWith(`${racine}/`)), racine).toBe(true);
     expect(TESTS_SRC().length).toBeGreaterThan(0);
     expect(CORPUS.filter((f) => !estFichierScanne(f.rel)).map((f) => f.rel)).toEqual([]);

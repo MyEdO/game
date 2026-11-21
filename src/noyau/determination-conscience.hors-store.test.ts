@@ -26,8 +26,16 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { contractDisease, symptomSuppressed, diseasePassiveOps } from '../engine/disease';
 import { dailyDiseaseUpkeep } from '../engine/rest';
-import { syncDerivedConditions, derivedStacks, stacks, addCondition, raisonRefusDetermination, fenetreDetermination } from '../engine/conditions';
-import { passiveMods, poseDeterminationCanceller } from '../engine/trauma';
+import {
+  syncDerivedConditions,
+  derivedStacks,
+  stacks,
+  addCondition,
+  raisonRefusDetermination,
+  fenetreDetermination,
+  poseDeterminationCanceller,
+} from '../engine/conditions';
+import { passiveMods } from '../engine/trauma';
 import { purgeClockEffects } from './upkeep';
 import { determinationWindowId } from './combatSlice';
 import { rule, setRule } from '../engine/policy';

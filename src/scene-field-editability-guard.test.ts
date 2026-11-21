@@ -534,6 +534,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'AjustementsDArme.qualites.value @ src/data/schemas/grammaire/reference.ts',
       'AjustementsDArme.retire @ src/data/schemas/grammaire/reference.ts',
       'AjustementsDArme.sansSpecialisation @ src/data/schemas/grammaire/reference.ts',
+      'AuthoredShipPoste.engin.id @ src/data/schemas/grammaire/ref.ts',
       'AuthoredShipPoste.selectedAmmo.id @ src/data/schemas/grammaire/ref.ts',
       'Calage.x @ src/data/props.types.ts',
       'Calage.y @ src/data/props.types.ts',

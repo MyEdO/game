@@ -18,9 +18,10 @@ export const LUS_PAR_LES_GENERATEURS = Object.freeze(['hotes/godot/pont', 'hotes
 
 /** `{ runner, script, targets }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
  *  EN ENTIER (glob toléré), jamais commités (`ciblesPures`).
- *  Tout générateur sait `--check` : un de plus coûte une ligne ici, et rien d'autre.
- *  Tout générateur exporte `rendre()` : cible (chemin relatif POSIX) → texte, sans écrire ; il n'écrit
- *  que sous sa porte `import.meta.main`. Un lecteur du texte d'une cible passe par `rendreCible`.
+ *  Les fichiers simplement mis à jour dans un bloc se déclarent dans `injecte`.
+ *  Un générateur exporte `rendre()` (cible → texte) et `produire()` (les rendus et leurs messages).
+ *  Le lanceur applique les rendus à `targets` ou `injecte`, ou les compare en `--check`.
+ *  Un lecteur du texte d'une cible passe par `rendreCible`.
  *  Ordre = ordre d'exécution. Gelée à sa déclaration (`Object.freeze` du tableau et de chaque générateur, que Node
  *  nu évalue : les hooks lisent ce module) : `chargerGenerateur` y lit le module qu'il charge, et le mur de clôture le
  *  suit (`valeursDAcquisition`). */

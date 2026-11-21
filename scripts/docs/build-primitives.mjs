@@ -3,12 +3,12 @@
 // `scripts/docs/build-systemes.mjs` : une primitive se déclare à UN endroit, les deux docs en
 // dérivent.
 // Re-run : node scripts/docs/build-primitives.mjs (npm run docs:primitives).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 import { readFileSync, existsSync } from 'node:fs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const SOURCE = 'src/data/primitives.manifest.json'
   const CIBLE = 'docs/primitives.md'
@@ -80,4 +80,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

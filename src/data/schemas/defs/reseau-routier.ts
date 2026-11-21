@@ -84,7 +84,8 @@ const doc = document(
   { exiges: ['source'] },
 );
 
-export const schema = doc.schema;
+type ReseauRoutier = z.output<typeof doc.schema>;
+export const schema = doc.schema satisfies z.ZodType<ReseauRoutier>;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;

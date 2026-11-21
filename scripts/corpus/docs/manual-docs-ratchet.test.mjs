@@ -39,6 +39,7 @@ import { availableParallelism, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { enFileBornee } from '../../guards/lib/fileBornee.mjs'
+import { estModule } from '../../guards/lib/importGraph.mjs'
 import { listerDossier } from '../../guards/lib/lister.mjs'
 import { MANUAL_DOCS_STOCK } from '../../guards/lib/manualDocsStock.mjs'
 import { spawnBorne } from '../../guards/lib/processusBorne.mjs'
@@ -197,14 +198,14 @@ test('aucun doc MANUSCRIT ne se déclare `GÉNÉRÉ par` — le marqueur n’est
  * (« GÉNÉRÉ par `node scripts/docs/build-systemes.mjs` » vs « GÉNÉRÉ par `npx tsx
  * scripts/gen-sorts-doc.mts` ») : le motif capture tout le contenu entre backticks après
  * « GÉNÉRÉ par », puis retient le PREMIER token qui ressemble à un chemin de script exécutable
- * (`.mjs`/`.mts`/`.cjs`/`.ts`/`.js`) — insensible au lanceur (`node`, `npx tsx`…) qui le précède.
+ * — insensible au lanceur (`node`, `npx tsx`…) qui le précède.
  */
 const GENERATOR_QUOTE = /GÉNÉRÉ par\s+`([^`]+)`/
 
 function extractGeneratorScript(head) {
   const m = head.match(GENERATOR_QUOTE)
   if (!m) return null
-  return m[1].split(/\s+/).find((t) => /\.(?:mjs|mts|cjs|ts|js)$/.test(t)) ?? null
+  return m[1].split(/\s+/).find(estModule) ?? null
 }
 
 test('tout doc GÉNÉRÉ qui porte le marqueur `GÉNÉRÉ par` y cite SON générateur de GENERATORS', async () => {

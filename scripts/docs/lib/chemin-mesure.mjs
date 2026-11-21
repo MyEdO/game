@@ -51,8 +51,9 @@ export function ancetreExistant(abs, { strict = false } = {}) {
  * Forme CANONIQUE d'un chemin : `fs.realpathSync.native` rend la casse telle que le disque la porte
  * et suit jonctions et noms courts 8.3. Un chemin ABSENT du disque (le fichier d'un Write de
  * création) se canonise par son ancêtre EXISTANT le plus proche, le reste recollé tel quel : la
- * jonction traversée en amont est suivie quand même (#1973). Sans `strict`, une lecture illisible
- * garde la forme lexicale ; avec `strict`, seul un ancêtre `cheminAbsent` permet la remontée.
+ * jonction traversée en amont est suivie quand même (#1973). L'appel natif distingue l'absence d'un
+ * refus et évite les sondes de présence mesurées comme sources du générateur. Une autre erreur
+ * conserve la forme lexicale ou lève sous `strict`.
  *
  * DIRECTION de ce que suivre une jonction change : un fichier lu SOUS la racine par une jonction qui
  * pointe HORS d'elle devient un chemin hors racine — il est compté REJETÉ, pas retenu (mesuré sur une
@@ -62,18 +63,19 @@ export function ancetreExistant(abs, { strict = false } = {}) {
 export function canoniser(chemin, { strict = false } = {}) {
   const abs = path.resolve(chemin)
   if (estPipeNomme(abs)) return abs
-  let ancetre = ancetreExistant(abs, { strict })
-  while (ancetre !== null) {
+  let ancetre = abs
+  while (true) {
     try { return path.join(fs.realpathSync.native(ancetre), path.relative(ancetre, abs)) }
     catch (e) {
-      if (!strict) return abs
-      if (!cheminAbsent(e)) throw new Error(`canonisation physique illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
+      if (!cheminAbsent(e)) {
+        if (!strict) return abs
+        throw new Error(`canonisation physique illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
+      }
       const parent = path.dirname(ancetre)
       if (parent === ancetre) return abs
-      ancetre = ancetreExistant(parent, { strict })
+      ancetre = parent
     }
   }
-  return abs
 }
 
 /**

@@ -6,4 +6,12 @@ export const SOURCE_FORMAT: {
   readonly cible: (cle: string, e: import('../guards/lib/occurrencesStock.mjs').EntreeDeCompte) => string;
   readonly nombre: (e: import('../guards/lib/occurrencesStock.mjs').EntreeDeCompte) => number;
 };
-export function scanAll(dossiers?: readonly string[]): (import('../guards/lib/stock.mjs').Site & { famille: string; nombre?: number })[];
+type SiteDeFormat = import('../guards/lib/stock.mjs').Site & { famille: string; nombre?: number };
+
+export function scanAll(dossiers?: readonly string[]): SiteDeFormat[];
+export function sitesDuDossier(
+  dir: string,
+  fichiers: readonly { nom: string; texte: string }[],
+  liste?: readonly object[] | null,
+  sansFolio?: boolean,
+): SiteDeFormat[];

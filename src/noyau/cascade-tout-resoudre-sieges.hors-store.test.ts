@@ -10,6 +10,7 @@ import { initialNet, type BattleState } from './etat';
 import { initialFields } from './stateFields';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { startCascade } from './cascade';
+import { approachFearTrigger } from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { TOUT_RESOUDRE } from './combatAuto';
 import { cleDuGeste } from './modalArbiter';
@@ -31,7 +32,7 @@ const mk = (id: string, pos: { x: number; y: number }): Combatant =>
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 
 /** Table coop : `h1` au siège 0 (l'hôte), `h2` au siège 1 (l'invité) ; `net` surcharge le réseau (solo). */
-function table(net: Record<string, unknown> = { mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 }, slots: [0, 1, 0, 0] }) {
+function installerLaTable(net: Record<string, unknown> = { mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 }, slots: [0, 1, 0, 0] }) {
   seedBattleRng(11);
   const h1 = mk('h1', { x: 0, y: 0 });
   const h2 = mk('h2', { x: 3, y: 3 });
@@ -43,6 +44,11 @@ function table(net: Record<string, unknown> = { mode: 'hote', mySeat: 0, ownersh
     ...initialFields(), battle, mode: 'battle', scene: testScene(), party: [h1, h2],
     net: { ...initialNet(), gmSeat: undefined, seatNames: { 0: 'Hôte', 1: 'Invité' }, ...net },
   });
+  return battle;
+}
+
+function table(net?: Record<string, unknown>) {
+  installerLaTable(net);
   const row = (id: string): BatchParticipant => ({ id, interactive: true, base: 50, target: 50, result: null });
   const bande: CascadeStep = { id: 'bande', kind: cleDeFixture('bande-partagee'), label: fixtureText('Bande'), aggregate: 'none', participants: [row('h1'), row('h2')], result: null, groupOwner: true };
   startCascade(banc.getState, banc.setState, { title: 'Bande', purpose: 'test', steps: [bande] });
@@ -73,6 +79,32 @@ describe('#1273 — « Tout résoudre » d’une bande partagée : chacun les si
     expect(intention(0, 'jetLancer', ['cascade'])).toBe('appliquee');
     expect(banc.getState().pendingCascade!.cursor, 'l’hôte résout la rangée restante').toBe(1);
     expect(resultatDe('h2'), 'le dé de l’invité est gardé').toEqual(deDeLInvite);
+  });
+
+  it('sur la bande de Peur à l’approche, le siège invité joue sa rangée puis peut appliquer la bande complète', () => {
+    const battle = installerLaTable();
+    const source: Combatant = { ...mk('spectre', { x: 4, y: 4 }), kind: 'ennemi' };
+    const craintifs = battle.combatants.map((c): Combatant => ({
+      ...c,
+      psychState: [{ type: 'peur', sourceId: source.id, indice: 2, calmeDR: 0 }],
+    }));
+    banc.setState({ battle: { ...battle, combatants: [...craintifs, source] }, party: craintifs });
+    approachFearTrigger(banc.getState, banc.setState, source, { x: 9, y: 9 });
+
+    expect(toutResoudreAuSiege(1), 'sa rangée attend : ouvert').toBeNull();
+    expect(intention(1, 'jetLancer', ['cascade'])).toBe('appliquee');
+    expect(resultatDe('h1')).toBeNull();
+    expect(resultatDe('h2')).toBeTruthy();
+    expect(toutResoudreAuSiege(1), 'seul l’hôte doit encore jeter : fermé').toBe('jetLance');
+    intention(0, 'jetLancer', ['cascadeEnBande', 'h1']);
+
+    const dejaLances = [resultatDe('h1'), resultatDe('h2')];
+    expect(dejaLances.every(Boolean)).toBe(true);
+    expect(toutResoudreAuSiege(1), 'les deux rangées sont prêtes : ouvert').toBeNull();
+    expect(intention(1, 'jetLancer', ['cascade'])).toBe('appliquee');
+    expect([resultatDe('h1'), resultatDe('h2')]).toEqual(dejaLances);
+    expect(banc.getState().pendingCascade?.cursor).toBe(1);
+    expect(toutResoudreAuSiege(1)).toBe('etapesJouees');
   });
 
   it('l’hôte résout toute la bande', () => {

@@ -10,9 +10,9 @@ import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
+import { ecrireSourcesLues, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
 import { ignoresGit } from './perimetre-mesure.mjs'
-import { refusSourcesInsuffisantes } from '../build-all.mjs'
+import { refusSourcesInsuffisantes, SOURCES_LUES } from '../build-all.mjs'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 import fs from 'node:fs'
 import childProcess, { spawnSync } from 'node:child_process'
@@ -309,18 +309,16 @@ test('docs/.sources-lues.json est DÉTERMINISTE : l\'ordre de mesure ne le chang
   assert.match(direct, /"src\/a\/a\.ts",\n {6}"src\/b\/a\.ts"/)
 })
 
-test('`ecrireDoc` écrit le rendu, et n’écrit RIEN à rendu identique (la mtime ne bouge pas)', () => {
+test('`ecrireSourcesLues` écrit le rendu, et n’écrit RIEN à rendu identique (la mtime ne bouge pas)', () => {
   const racine = mkdtempSync(path.join(tmpdir(), 'ecriture-'))
   try {
-    const doc = path.join(racine, 'systemes.md')
-    ecrireDoc(doc, '# corps\n')
+    const doc = path.join(racine, SOURCES_LUES)
+    ecrireSourcesLues(racine, '# corps\n')
     assert.equal(readFileSync(doc, 'utf8'), '# corps\n')
-    // Les trois rapports d'Atlas réécrivaient leur .md à chaque run, pendant que la suite lit docs/raw/
-    // dans une autre lane.
     const avant = statSync(doc).mtimeMs
-    ecrireDoc(doc, '# corps\n')
-    assert.equal(statSync(doc).mtimeMs, avant, '`ecrireDoc` a réécrit un fichier inchangé')
-    ecrireDoc(doc, '# corps RÉGÉNÉRÉ\n')
+    ecrireSourcesLues(racine, '# corps\n')
+    assert.equal(statSync(doc).mtimeMs, avant, 'le fichier a été réécrit à contenu identique')
+    ecrireSourcesLues(racine, '# corps RÉGÉNÉRÉ\n')
     assert.equal(readFileSync(doc, 'utf8'), '# corps RÉGÉNÉRÉ\n')
   } finally {
     rmSync(racine, { recursive: true, force: true })

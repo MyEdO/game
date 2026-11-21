@@ -128,7 +128,7 @@ describe('objets du narratif : sites par clé ∪ sites de la portée ouverte su
   const avecObjets = (): ProjetEdite => {
     const p = projet();
     p.narratif = { ...p.narratif, objets: [objet, autre] };
-    p.scenes[0].triggers.push({ id: 'don', rect: { x: 1, y: 1, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: objet.id } } });
+    p.scenes[0].triggers.push({ id: 'don', rect: { x: 1, y: 1, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'giveTrapping', objet: { id: objet.id } } } });
     return p;
   };
   const cible = { registre: 'objets', id: objet.id } as const;

@@ -34,10 +34,9 @@ const SCAN_ROOTS = porteeDeGarde(['noyau', 'scenes']).map((d) => join(process.cw
 
 /** Corpus RÉEL d'un jeu de racines : marche, lecture et mémoïsation par clé dans
  *  `scripts/guards/lib/sourceCorpus.mjs` — PARESSEUX, payé au 1ᵉʳ `it` qui le demande, jamais à la
- *  collecte des tests. Le PÉRIMÈTRE reste ici : `.ts` seuls (aucun `.tsx` sous ces racines),
- *  hors tests. */
+ *  collecte des tests. Le corpus lit les scripts des racines demandées, hors tests. */
 function corpus(roots: string[]): { file: string; src: string }[] {
-  return readCorpus(roots, { exts: ['.ts'] }).map(({ abs, text }) => ({ file: abs, src: text }));
+  return readCorpus(roots).map(({ abs, text }) => ({ file: abs, src: text }));
 }
 
 /** Tous les fichiers scannés, tous dossiers de couverture confondus. */
