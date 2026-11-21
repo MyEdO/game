@@ -1514,24 +1514,29 @@ function kindsDeCondition(root: string): Set<string> {
  * signature est celle de son littéral RACINE l'emporte sur celui qui ne la porte qu'en sous-objet
  * (un schéma écrit en racine plutôt que le même littéral niché dans un autre) — sinon le gagnant dépendrait de
  * l'ordre de lecture des fichiers de la grammaire.
- * Les littéraux s'apparient par leur FORME (`formeDuLitteral`), pas par leur seule signature.
+ * Les littéraux s'apparient par leur FORME (`formeDuLitteral`) et par compatibilité du `kind` littéral.
  */
-function schemasCommuns(grammaire: readonly ts.SourceFile[], resoudre: Resolveur): Map<string, string> {
-  const racines = new Map<string, string>();
-  const niches = new Map<string, string>();
+function schemasCommuns(grammaire: readonly ts.SourceFile[], resoudre: Resolveur) {
+  type Candidat = { nom: string; kind: string | undefined };
+  const parForme = new Map<string, { racines: Candidat[]; niches: Candidat[] }>();
   const visite = (node: ts.Node, sf: ts.SourceFile) => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       for (const lit of litterauxZod(node.initializer, sf, resoudre)) {
         if (!lit.resolu.forme || lit.resolu.partiel) continue;
-        const cible = lit.champ === '' ? racines : niches;
-        if (!cible.has(lit.resolu.forme)) cible.set(lit.resolu.forme, node.name.text);
+        const candidats = parForme.get(lit.resolu.forme) ?? { racines: [], niches: [] };
+        (lit.champ === '' ? candidats.racines : candidats.niches).push({ nom: node.name.text, kind: lit.kindLitteral });
+        parForme.set(lit.resolu.forme, candidats);
       }
     }
     node.forEachChild((n) => visite(n, sf));
   };
   for (const sf of grammaire) visite(sf, sf);
-  for (const [sig, nom] of niches) if (!racines.has(sig)) racines.set(sig, nom);
-  return racines;
+  return (lit: LitteralZod): string | undefined => {
+    const candidats = parForme.get(lit.forme);
+    if (!candidats) return undefined;
+    const compatible = ({ kind }: Candidat) => kind === undefined || lit.kindLitteral === undefined || kind === lit.kindLitteral;
+    return (candidats.racines.find(compatible) ?? candidats.niches.find(compatible))?.nom;
+  };
 }
 
 /** Nom de la propriété qui PORTE ce littéral (le champ, quand il y en a un). */
@@ -1544,16 +1549,27 @@ const champDuLitteral = (lit: ts.Node): string => {
 };
 
 /** Les ÉTIQUETTES d'un littéral : ses clés `clé: z.literal(v)`, avec leur valeur. Une étiquette NOMME une variante. */
-const etiquettesDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile): ReadonlyMap<string, string> => {
+const etiquettesDuLitteral = (lit: ts.ObjectLiteralExpression, sf: ts.SourceFile) => {
   const etiquettes = new Map<string, string>();
+  let kindLitteral: string | undefined;
   for (const p of lit.properties) {
-    if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) continue;
+    const nom = 'name' in p ? p.name : undefined;
+    if (ts.isSpreadAssignment(p) || (nom && ts.isComputedPropertyName(nom))) {
+      kindLitteral = undefined;
+      continue;
+    }
+    if (!nom || !(ts.isIdentifier(nom) || ts.isStringLiteral(nom))) continue;
+    if (nom.text === 'kind') kindLitteral = undefined;
+    if (!ts.isPropertyAssignment(p)) continue;
     const v = p.initializer;
     if (!ts.isCallExpression(v) || !ts.isPropertyAccessExpression(v.expression) || v.expression.name.text !== 'literal') continue;
     const arg = v.arguments[0];
-    if (arg) etiquettes.set(p.name.text, ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg) ? arg.text : arg.getText(sf));
+    if (!arg) continue;
+    const texte = ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg) ? arg.text : undefined;
+    etiquettes.set(nom.text, texte ?? arg.getText(sf));
+    if (nom.text === 'kind') kindLitteral = texte;
   }
-  return etiquettes;
+  return { etiquettes, kindLitteral };
 };
 
 /**
@@ -1649,6 +1665,7 @@ type LitteralZod = {
   aSpread: boolean;
   forme: string;
   etiquettes: ReadonlyMap<string, string>;
+  kindLitteral: string | undefined;
   resolu: { cles: string[]; partiel: boolean; forme: string };
 };
 
@@ -1673,7 +1690,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile, resoudre: Resolveur) {
   const pousse = (lit: ts.ObjectLiteralExpression, champ: string) => {
     const cles = lit.properties.flatMap((p) => ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : []));
     const resolu = clesDuLitteral(lit, sf, resoudre);
-    const etiquettes = etiquettesDuLitteral(lit, sf);
+    const { etiquettes, kindLitteral } = etiquettesDuLitteral(lit, sf);
     out.push({
       ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1,
       champ,
@@ -1681,6 +1698,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile, resoudre: Resolveur) {
       aSpread: lit.properties.some(ts.isSpreadAssignment),
       forme: formeDuLitteral(cles, etiquettes),
       etiquettes,
+      kindLitteral,
       resolu: { ...resolu, forme: formeDuLitteral(resolu.cles, etiquettes) },
     });
   };
@@ -1821,7 +1839,7 @@ export function scannerRedeclarations(root: string): {
 } {
   const grammaire = sourcesGrammaire(root);
   const resoudre = resolveurDe(grammaire);
-  const communs = schemasCommuns(grammaire, resoudre);
+  const communPour = schemasCommuns(grammaire, resoudre);
   const lits = litterauxDefs(root, resoudre);
   const litsGrammaire = grammaire.flatMap((sf) => litterauxZod(sf, sf, resoudre));
   const admises = etiquettesDesPoses();
@@ -1840,7 +1858,7 @@ export function scannerRedeclarations(root: string): {
     if (!sig) return;
     const classe = classements[i];
     const cl = classe && admisAuConcept(classe, lit.etiquettes, admises, declarations) ? classe : null;
-    const commun = communs.get(lit.forme);
+    const commun = communPour(lit);
     if (!cl && !commun) return;
     out.push({
       def: lit.def,
