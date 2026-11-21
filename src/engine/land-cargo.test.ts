@@ -86,10 +86,10 @@ describe('Commerce terrestre MSRC 13 — VENTE (l.133-160)', () => {
     expect(sellDemandTarget(hameau)).toBe(10);    // 1×10, pas de commerce
   });
 
-  it('Mise à prix par Richesse (l.150-156) : Prospère(4→Animé) +5 % ; Misérable 50 % ; Moyen 100 %', () => {
-    expect(sellOfferPct(kemperbad)).toBe(105);  // Richesse 4 → Animé +5 % (exemple l.172)
-    expect(sellOfferPct(hameau)).toBe(50);      // Richesse 1 → Misérable 50 %
-    expect(sellOfferPct(grunburg)).toBe(80);    // Richesse 2 → Pauvre −20 %
+  it('Mise à prix par Indice de richesse — Kemperbad, Prospère (4), à 105 % du prix de base (MSRC 13 l.174, #1664)', () => {
+    expect(sellOfferPct(kemperbad)).toBe(105);
+    expect(sellOfferPct(hameau)).toBe(50);
+    expect(sellOfferPct(grunburg)).toBe(80);
   });
 
   it('bradage : moitié du prix de base à un Lieu « Commerce » (l.160), sinon impossible', () => {
