@@ -46,7 +46,7 @@ export function nouvelleVue(racine, options, preuve = chargerPreuve(racine), mes
 
 /** #2603 */
 export function vueApresGenerateur(vue, options, preuve, g, perimetre, ecrits) {
-  const motifs = [...g.targets, ...(g.injecte ?? [])]
+  const motifs = g.targets
   const sorties = new Set([...vue.cibles.get(JSON.stringify(motifs)), ...options.ciblesSurDisque(motifs, vue.racine), ...ecrits])
   const ancetres = new Set([...sorties].flatMap((rel) => {
     const liste = ['']
@@ -74,13 +74,14 @@ function photographier(racine, options, preuve, mesures, outillagePrecedent, per
   const selection = portee ? [portee] : (options.selection ?? options.generateurs)
   const scripts = new Set(selection.map((g) => g.script))
   const entrees = Object.entries({ ...mesures, ...Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure])) }).filter(([s]) => scripts.has(s)).map(([, e]) => e)
-  const motifs = [options.generateurs.flatMap((g) => g.targets), ...selection.map((g) => [...g.targets, ...(g.injecte ?? [])])]
+  const motifsDeclares = options.generateurs.flatMap((g) => g.targets)
+  const motifs = [motifsDeclares, ...selection.map((g) => g.targets)]
   const selections = new Map(motifs.map((m) => [JSON.stringify(m), m]))
   const cibles = new Map([...selections].map(([cle, m]) => [cle, reprise?.vue.cibles.has(cle) && !reprise.selectionTouchee(m) ? reprise.vue.cibles.get(cle) : options.ciblesSurDisque(m, racine)]))
   // #2586
   const perimetreVu = perimetre ?? perimetreDeMesure(racine)
   const ignores = perimetreVu.ignores
-  const haches = selection.flatMap((g) => [g.script, ...cibles.get(JSON.stringify([...g.targets, ...(g.injecte ?? [])]))])
+  const haches = selection.flatMap((g) => [g.script, ...cibles.get(JSON.stringify(g.targets))])
   const fichiers = new Set([...OUTILS, ...haches, ...entrees.flatMap((e) => e.fichiers ?? [])])
   const hashes = new Map([...fichiers].map((rel) => [rel, reprendre('hashes', rel, rel, () => hashFichier(racine, rel, undefined, memoire))]))
   const listings = new Map([...new Set(entrees.flatMap((e) => e.dossiers ?? []))].map((rel) => [rel, reprendre('listings', rel, rel, () => listing(racine, rel, memoire))]))
@@ -89,8 +90,7 @@ function photographier(racine, options, preuve, mesures, outillagePrecedent, per
   const demandes = new Map(entrees.flatMap((e) => (e.sondes ?? []).map((q) => [JSON.stringify(q), q])))
   const sondes = new Map([...demandes].map(([cle, q]) => [cle, reprendre('sondes', cle, q.chemin, () => sonde(racine, q, undefined, memoire))]))
   const outillage = mesurerOutillage(outillagePrecedent ?? Object.values(preuve?.generateurs ?? {})[0]?.sources?.contexte?.outillage, memoire)
-  const derivees = new Set(cibles.get(JSON.stringify(motifs[0])))
-  const motifsDeclares = options.generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])])
+  const derivees = new Set(cibles.get(JSON.stringify(motifsDeclares)))
   const admissions = new Map()
   const admis = (rel) => {
     let admission = admissions.get(rel)
@@ -183,23 +183,22 @@ function contexte(racine, g, vue) {
 function mesurerSources(racine, g, entree, options, vue) {
   entreeValide(racine, entree, vue?.memoire)
   const ignores = vue?.ignores ?? perimetreDeMesure(racine).ignores
-  const motifs = options.generateurs.flatMap((g) => g.targets)
-  const motifsDeclares = options.generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])])
-  const derivees = new Set(vue ? vue.cibles.get(JSON.stringify(motifs)) : options.ciblesSurDisque(motifs, racine))
+  const motifsDeclares = options.generateurs.flatMap((g) => g.targets)
+  const derivees = new Set(vue ? vue.cibles.get(JSON.stringify(motifsDeclares)) : options.ciblesSurDisque(motifsDeclares, racine))
   const admis = vue ? vue.admis : (rel) => dansLaMesure(rel, ignores, derivees, motifsDeclares)
   const fichiers = [...new Set([g.script, ...entree.fichiers.filter(admis)])].sort()
   const dossiers = [...new Set(entree.dossiers.filter(admis))].sort()
   return {
     contexte: contexte(racine, g, vue),
     fichiers: fichiers.map((rel) => [rel, hashFichier(racine, rel, vue)]),
-    dossiers: dossiers.map((rel) => [rel, projeterListingMesure(rel, vue ? vue.listings.get(rel) : listing(racine, rel), ignores, derivees, [...g.targets, ...(g.injecte ?? [])], motifsDeclares)]),
+    dossiers: dossiers.map((rel) => [rel, projeterListingMesure(rel, vue ? vue.listings.get(rel) : listing(racine, rel), ignores, derivees, g.targets, motifsDeclares)]),
     git: (entree.git ?? []).map((q) => vue ? vue.git.get(JSON.stringify(q)) : gitPorte.relireRequeteMesuree(gitPorte.depotDe(racine), q)),
     sondes: (entree.sondes ?? []).filter((q) => admis(q.chemin)).map((q) => sonde(racine, q, vue)),
   }
 }
 
 function sortiesDe(racine, g, options, vue) {
-  const motifs = [...g.targets, ...(g.injecte ?? [])]
+  const motifs = g.targets
   return [...new Set(vue ? vue.cibles.get(JSON.stringify(motifs)) : options.ciblesSurDisque(motifs, racine))].sort()
 }
 
@@ -240,7 +239,7 @@ export function preparerPreuves(racine, options) {
   const depot = gitPorte.depotDe(racine)
   const perimetre = perimetreDeMesure(racine)
   const ignores = perimetre.ignores
-  const motifsDeclares = options.generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])])
+  const motifsDeclares = options.generateurs.flatMap((g) => g.targets)
   const chemins = new Set(perimetre.nature === 'git'
     ? [...gitPorte.listerImage(depot, gitPorte.INDEX), ...gitPorte.listerImage(depot, gitPorte.TRAVAIL)].filter((rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares))
     : listerArbre(racine, { filtre: (rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares), descendre: (rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares) }))
@@ -305,13 +304,13 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     if (!egaux(sources.contexte, avant.contexte)) throw new SourceModifiee('outillage modifié pendant génération')
     const anciensFichiers = avant.baseline.fichiers
     const anciensDossiers = avant.baseline.dossiers
-    const motifsDeclares = options.generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])])
+    const motifsDeclares = options.generateurs.flatMap((g) => g.targets)
     for (const [rel, hash] of sources.fichiers) {
       if (!anciensFichiers.has(rel)) throw new Error(`source non capturée : ${rel}`)
       if (anciensFichiers.get(rel) !== hash) throw new SourceModifiee(`source modifiée : ${rel}`)
     }
     for (const [rel, noms] of sources.dossiers) {
-      const propres = [...g.targets, ...(g.injecte ?? [])]
+      const propres = g.targets
       if (!anciensDossiers.has(rel)) throw new Error(`listing non capturé : ${rel}`)
       if (!egaux(projeterListingMesure(rel, anciensDossiers.get(rel), avant.baseline.ignores, avant.baseline.derivees, propres, motifsDeclares), noms)) throw new SourceModifiee(`listing modifié : ${rel}`)
     }
@@ -320,7 +319,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options, vue) }
     const finale = capturer()
     const ignores = finale.ignores
-    const derivees = new Set(finale.cibles.get(JSON.stringify(options.generateurs.flatMap((g) => g.targets))))
+    const derivees = new Set(finale.cibles.get(JSON.stringify(motifsDeclares)))
     const parents = new Set()
     for (const [rel] of record.sorties) {
       let parent = path.posix.dirname(rel)
@@ -328,7 +327,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
       parents.add('')
     }
     const listings = new Map([...parents].map((rel) => [rel, listing(racine, rel, finale.memoire)]))
-    const propres = [...g.targets, ...(g.injecte ?? [])]
+    const propres = g.targets
     const observes = new Set(sources.dossiers.map(([rel]) => rel))
     const sortiesCertifiees = new Set(record.sorties.map(([rel]) => rel))
     const absentAvant = (rel) => {
@@ -385,19 +384,10 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
 export function enregistrerPreuve(racine, options, preparation, records, vue) {
   const cache = { version: 2, generateurs: { ...preparation.cache.generateurs } }
   vue ??= nouvelleVue(racine, options, { version: 2, generateurs: { ...cache.generateurs, ...Object.fromEntries([...records].filter(([, r]) => r)) } })
-  const derniersEcrivains = new Map()
   for (const [script, record] of records) {
     const g = options.generateurs.find((g) => g.script === script)
-    for (const [rel, hash] of record?.sorties ?? (g ? sortiesDe(racine, g, options, vue).map((rel) => [rel, null]) : [])) derniersEcrivains.set(rel, hash)
-  }
-  for (const [script, record] of records) {
-    const g = options.generateurs.find((g) => g.script === script)
-    const sorties = record && g ? mesurerSorties(racine, g, options, vue) : []
-    const pures = (liste) => liste.filter(([rel]) => g.targets.some((motif) => correspondGlob(rel, motif)))
-    if (record && g && recordValide(racine, g, options, record, { sorties: false, vue }).ok && egaux(pures(record.sorties), pures(sorties))
-      && sorties.every(([rel, hash]) => derniersEcrivains.get(rel) === hash)) {
-      cache.generateurs[script] = { ...record, sorties }
-    } else delete cache.generateurs[script]
+    if (g && recordValide(racine, g, options, record, { vue }).ok) cache.generateurs[script] = record
+    else delete cache.generateurs[script]
   }
   for (const script of Object.keys(cache.generateurs)) if (!options.generateurs.some((g) => g.script === script)) delete cache.generateurs[script]
   ecrirePreuve(racine, cache)

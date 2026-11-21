@@ -681,7 +681,7 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, 
     '}',
   ].join('\n')
   const { racine } = instanceDeDepot({ fichiers: {
-    '.gitignore': 'node_modules/\n', 'commun.txt': 'commun',
+    '.gitignore': 'node_modules/\n/docs/\n/src/code.gen.ts\n', 'commun.txt': 'commun',
     'scripts/docs/lib/source-a.txt': 'a', 'notes/c/source.txt': 'c', 'notes/code/source.txt': 'code',
     ...Object.fromEntries(noms.map((nom) => [`g/${nom}.mjs`, generateur(nom)])),
   } })
@@ -706,8 +706,6 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, 
   })
   try {
     const complet = jouer()
-    git('add', 'docs', 'notes', 'scripts', 'g', 'src', 'commun.txt', '.gitignore')
-    git('commit', '-q', '-m', 'mesure initiale')
     const origine = git('rev-parse', 'HEAD').trim()
     writeFileSync(join(racine, source('a')), 'a modifié')
     git('add', source('a'))

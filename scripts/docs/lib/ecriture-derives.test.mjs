@@ -76,7 +76,7 @@ test('apercuDivergences : une ligne longue est coupée AU MOT sous 240 caractèr
  * Lance un producteur témoin dans un PROCESSUS À PART. REND `{ status, stderr,
  * stdout, contenu }` — `contenu` = le fichier cible APRÈS l'appel.
  */
-function jouerPrimitive({ surDisque, out, check, injecte = false, cheminRendu = 'cible.md', lien, usurperJournal = false, usurperMode = false }) {
+function jouerPrimitive({ surDisque, out, check, champs = {}, cheminRendu = 'cible.md', lien, usurperJournal = false, usurperMode = false }) {
   const dossier = mkdtempSync(path.join(tmpdir(), 'ecrire-ou-verifier-'))
   try {
     const cible = path.join(dossier, 'cible.md')
@@ -96,9 +96,7 @@ function jouerPrimitive({ surDisque, out, check, injecte = false, cheminRendu = 
     const script = 'produire.mjs'
     writeFileSync(path.join(dossier, script), code)
     const cibleDeclaree = lien ? 'documents/cible.md' : 'cible.md'
-    const declaration = injecte
-      ? { script, targets: [], injecte: [cibleDeclaree] }
-      : { script, targets: [cibleDeclaree] }
+    const declaration = { runner: 'node', script, targets: [cibleDeclaree], ...champs }
     const args = [LANCEUR, JSON.stringify(declaration), ...(check ? ['--check'] : [])]
     const r = spawnSync(process.execPath, args, { cwd: dossier, encoding: 'utf8' })
     const stat = statSync(cible, { throwIfNoEntry: false })
@@ -144,20 +142,16 @@ test('lanceur en écriture : écrit le rendu tel quel, rend l’état d’avant'
   const absente = jouerPrimitive({ surDisque: null, out: '# neuf\n', check: false })
   assert.match(absente.stdout, /aJour=false/, 'une cible absente n’était pas à jour')
   assert.equal(absente.contenu, '# neuf\n')
+  const identique = jouerPrimitive({ surDisque: '# neuf\n', out: '# neuf\n', check: false })
+  assert.equal(identique.status, 0, identique.stderr)
+  assert.equal(identique.mtime, 50_000)
 })
 
-test('une injection suit les mêmes modes que les cibles entières', () => {
-  const enPlace = '# notes de départ\n'
-  const rendu = enPlace + 'bloc injecté\n'
-  const check = jouerPrimitive({ surDisque: enPlace, out: rendu, check: true, injecte: true })
-  assert.equal(check.status, 1, check.stderr)
-  assert.equal(check.contenu, enPlace)
-  assert.equal(check.mtime, 50_000)
-  const ecriture = jouerPrimitive({ surDisque: enPlace, out: rendu, check: false, injecte: true })
-  assert.equal(ecriture.status, 0, ecriture.stderr)
-  assert.equal(ecriture.contenu, rendu)
-  const identique = jouerPrimitive({ surDisque: rendu, out: rendu, check: false, injecte: true })
-  assert.equal(identique.mtime, 50_000)
+test('le lanceur refuse les champs étrangers à la déclaration avant de produire', () => {
+  const r = jouerPrimitive({ surDisque: null, out: '# neuf\n', check: false, champs: { injecte: ['cible.md'] } })
+  assert.equal(r.status, 1, r.stderr)
+  assert.match(r.stderr, /produire\.mjs : champs inconnus dans la déclaration : injecte/)
+  assert.equal(r.contenu, null)
 })
 
 test('un producteur ne peut rediriger le journal vers sa cible en vérification', () => {
@@ -180,7 +174,7 @@ test('le mode de vérification est fixé avant le chargement du producteur', () 
 test('le lanceur refuse une sortie étrangère à la déclaration du producteur', () => {
   const r = jouerPrimitive({ surDisque: null, out: 'hors déclaration', check: false, cheminRendu: 'autre.md' })
   assert.equal(r.status, 1, r.stderr)
-  assert.match(r.stderr, /produire\.mjs : cible hors de targets\/injecte : autre\.md/)
+  assert.match(r.stderr, /produire\.mjs : cible hors de targets : autre\.md/)
   assert.equal(r.cheminRenduExiste, false)
 })
 
@@ -189,7 +183,7 @@ test('le lanceur refuse une cible déclarée dont la jonction sort de l’arbre'
   try {
     const r = jouerPrimitive({ surDisque: null, out: 'hors racine', check: false, cheminRendu: 'documents/cible.md', lien: dehors })
     assert.equal(r.status, 1, r.stderr)
-    assert.match(r.stderr, /cible hors de targets\/injecte : documents\/cible\.md/)
+    assert.match(r.stderr, /cible hors de targets : documents\/cible\.md/)
     assert.equal(existsSync(path.join(dehors, 'cible.md')), false)
   } finally {
     rmSync(dehors, { recursive: true, force: true })

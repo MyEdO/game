@@ -38,7 +38,7 @@ Les sources, sondes, listings, outils et sorties mesurés décident de la fraîc
 d'écriture mesure et certifie ; une sortie identique laisse son lecteur frais.
 Les générateurs rendent leurs textes pour les lecteurs et proposent leurs sorties au lanceur commun
 `scripts/docs/lib/ecriture-derives.mjs`. Les commandes individuelles et `build-all` passent par ce port.
-Il vérifie les destinations déclarées dans `targets` et `injecte`, applique les rendus et les amorces
+Il vérifie les destinations selon les cibles pures de `targets`, applique les rendus et les amorces
 sous époque, et compare les sorties en `--check` sans écrire de cible. Une amorce sert au chargement
 du registre sur un arbre neuf. Seul le rendu final compte comme cible produite. Les écrivains
 partagent `scripts/docs/lib/ecrivain-derives.mjs` : une production de code préempte la passe courante,
