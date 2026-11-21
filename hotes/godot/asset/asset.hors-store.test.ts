@@ -3,7 +3,6 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { empreinte, sha256 } from './empreinte.ts';
 import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
@@ -957,7 +956,7 @@ describe('les verdicts gardés (`verdictsDuDossier`)', () => {
     const { dossier, cache } = dossierEtCache();
     juger(dossier, cache);
     const lu = JSON.parse(readFileSync(join(cache, MARQUEUR_DES_VERIFIES), 'utf8')) as { acceptes: Record<string, { cle: string }> };
-    const validateur = empreinteDesSources(fileURLToPath(new URL('./modeles.ts', import.meta.url)));
+    const validateur = empreinteDesSources(join(__dirname, 'modeles.ts'));
     expect(Object.values(lu.acceptes).map(({ cle }) => cle.split('|')[0])).toEqual([validateur, validateur]);
   });
   it('oublie toute acceptation notée sous une autre empreinte du validateur', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { clotureDImports } from '../../../scripts/guards/lib/importGraph.mjs';
 import { COUCHES, estZone, zoneDe } from '../../../scripts/guards/lib/couches.mjs';
 
@@ -12,7 +12,7 @@ import { COUCHES, estZone, zoneDe } from '../../../scripts/guards/lib/couches.mj
  */
 describe('anti-spoiler : la couche de campagne n’entre jamais dans l’index Compendium (#767)', () => {
   it('la clôture d’import du registre n’atteint aucun module du store', () => {
-    const registre = fileURLToPath(new URL('./registry.ts', import.meta.url));
+    const registre = resolve(__dirname, 'registry.ts');
     const cloture = [...clotureDImports([registre])];
     expect(cloture.length, 'la marche ne voit pas le registre : le test ne mesure plus rien.').toBeGreaterThan(10);
     const survit = (f: string): boolean => { const z = zoneDe(f); return estZone(z) && COUCHES[z].survit === true; };

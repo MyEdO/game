@@ -528,7 +528,6 @@ export type IndiceTemplate = typeof INDICE_TEMPLATE;
  *  `exposeDisease{disease: ARG_TEMPLATE}`), substitué par `withArg` (`noyau/triggeredEffects`) avant
  *  exécution. Même mécanisme qu'`INDICE_TEMPLATE`, pour l'arg au lieu de l'Indice. */
 export const ARG_TEMPLATE = '$arg';
-export type ArgTemplate = typeof ARG_TEMPLATE;
 
 /** Le NŒUD `test` seul — la forme UNIQUE du jet en donnée (jet + conséquence des deux branches), telle
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */
@@ -1002,14 +1001,6 @@ export function walkFlow<E = EffectOp>(
       flow satisfies never;
       return true;
   }
-}
-
-/** `flow` ne porte-t-il QUE des feuilles `F` ? Rétrécit le Flow de scène qu'écrit l'éditeur au Flow d'un porteur à
- *  feuilles restreintes (effet déclenché : `EffectOp`). */
-export function flowDeFeuilles<E, F extends E>(flow: Flow<E>, estFeuille: (e: E) => e is F): flow is Flow<F> {
-  let toutes = true;
-  walkFlow(flow, (n) => { if (n.kind === 'effet' && !estFeuille(n.effet)) toutes = false; });
-  return toutes;
 }
 
 /** Arrêt d'une exécution de Flow : `executerFlow` rend `arret` sans jouer le reste de sa pile. */
