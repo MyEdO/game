@@ -16,6 +16,7 @@ import {
   classifyQuote,
   continuations,
   regenerations,
+  rendre,
   scan,
   sitesLow,
   RAWDIR,
@@ -256,6 +257,25 @@ test('--remap : réf directe ET continuation nue réécrites par la carte', () =
     assert.deepEqual(r.nonRemappees, [])
     assert.equal(r.remappedTotal, 2)
     assert.equal(readFileSync(join(dir, relatif), 'utf8'), '- `CRB 075 l.23`, `l.25` — synthèse\n')
+  })
+})
+
+test('--apply et --remap modifient les fiches et signalent les références périmées du catalogue', () => {
+  const md = `## S\n\n- CC : LDB 05 l.300 — « ${CC} »\n\n- CRB 075 l.24 — synthèse\n`
+  const nomCatalogue = 'catalogue-fixture.md'
+  avecAtlasFixture({ 'fixture.md': md, [nomCatalogue]: md }, (dir, coeur) => {
+    const catalogue = `${coeur}/${nomCatalogue}`
+    const catalogues = () => new Map([[catalogue, md]])
+    const r = scan(dir, { catalogues, apply: true, remap: true, carteDe: () => CARTE_FORGEE })
+    assert.deepEqual([r.tally.DRIFT, r.appliedTotal, r.remappedTotal], [2, 1, 1])
+    assert.deepEqual(r.nonRemappees.map(({ doc, full }) => [basename(doc), full]), [[nomCatalogue, 'CRB 075 l.24']])
+    assert.equal(readFileSync(join(dir, coeur, 'fixture.md'), 'utf8'), md.replace('l.300', 'l.345').replace('l.24', 'l.23'))
+    assert.equal(readFileSync(join(dir, catalogue), 'utf8'), md)
+    const apres = scan(dir, { catalogues })
+    assert.equal(apres.tally.DRIFT, 1)
+    const [rapport] = rendre(apres).values()
+    assert.match(rapport, /DRIFT .*corriger les références de catalogue dans leur source/)
+    assert.doesNotMatch(rapport, /--apply/)
   })
 })
 

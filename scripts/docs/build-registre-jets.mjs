@@ -1,7 +1,7 @@
 // REGISTRE des chemins de jet — GÉNÉRÉ depuis les modules de gardes `scripts/guards/lib/rollSeam*.mjs` et
 // `scripts/guards/lib/routeursDeTest.mjs` (jamais une recopie à la main). Sortie : docs/registre-jets.md. Re-run :
 // node scripts/docs/build-registre-jets.mjs (npm run docs:registre-jets).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 //
 // SOURCE UNIQUE : les listes (familles canoniques, stocks + justifications) vivent dans
 // `rollSeamWhitelist.mjs` et sont VÉRIFIÉES par `src/noyau/roll-seam-exclusivity-guard.test.ts` ;
@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import {
   scanPendingJetFabrication, engineRollerExports, scanEngineDelegatedRoll,
   engineDiceRollers, scanDesHorsPorte, AMORCE_DES,
@@ -30,7 +30,7 @@ import {
   PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS,
 } from '../guards/lib/rollSeamWhitelist.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const ROOT = fileURLToPath(new URL('../..', import.meta.url))
   const OUT = 'docs/registre-jets.md'
@@ -414,4 +414,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

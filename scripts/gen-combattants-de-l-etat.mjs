@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 import * as ts from 'typescript/unstable/ast'
 import { TypeFlags } from 'typescript/unstable/sync'
 import { SORTIE_COMBATTANTS_DE_L_ETAT as SORTIE } from './docs/lib/cibles-registres.mjs'
-import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './docs/lib/ecriture-derives.mjs'
 import { libererSessions, repoProgram } from './guards/lib/tsProgram.mjs'
 import { parUnitesDeCode } from './guards/lib/lister.mjs'
 
@@ -120,17 +120,15 @@ export function rendre() {
   return new Map([[SORTIE, texteDeSortie(cheminsDesCombattants())]])
 }
 
-/** L'écriture (ou la vérification) de la cible, les chemins tenus dans sa seule portée. */
-function ecrireLaCible() {
+export function* produire() {
   const chemins = cheminsDesCombattants()
   console.log(`gen-combattants-de-l-etat — ${chemins.length} chemins`)
-  ecrireOuVerifier({
+  yield {
     out: texteDeSortie(chemins),
     path: SORTIE,
-    check: process.argv.includes('--check'),
     staleMsg: `gen-combattants-de-l-etat — ${SORTIE} est PÉRIMÉ (diverge du type \`EtatDeJeu\`).`,
     rerunMsg: '  → relancer `npm run gen`.',
-  })
+  }
 }
 
-if (import.meta.main) ecrireLaCible()
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

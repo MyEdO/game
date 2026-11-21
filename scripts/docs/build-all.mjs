@@ -37,9 +37,8 @@ import { prendreVerrou, tenantEnUneLigne } from '../test/verrou.mjs'
 import { estGesteLourd, verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { cheminsDeLEcrivain, ecrivainTenu, ENV_EPOQUE, preempterLesDerives } from './lib/ecrivain-derives.mjs'
 import { gitDirDe } from '../hooks/barriere-outil.mjs'
-import { ecrireDoc, ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
+import { ciblesRenduesDans, ecrireSourcesLues, estUnDocMarkdown, fusionnerLectures, LECTURES_DU_BUILD, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
 import { perimetreDeMesure } from './lib/perimetre-mesure.mjs'
-import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
 import {
   avantGenerateur,
   certifierGenerateur,
@@ -196,23 +195,21 @@ export function ciblesSurDisque(cibles, cwd) {
 
 /** Point d'entrée du mode `rendre` : il joue `rendre()` du générateur, sans écrire. */
 const RENDRE_SEUL = fileURLToPath(new URL('lib/rendre-seul.mjs', import.meta.url))
+const JOUER_GENERATEUR = fileURLToPath(new URL('lib/jouer-generateur.mjs', import.meta.url))
 
 /**
- * Argv et env d'un générateur. `mode` : `ecrire` (sa porte `import.meta.main`), `verifier`
+ * Argv et env d'un générateur. `mode` : `ecrire` (le lanceur des dérivés), `verifier`
  * (`--check`), `rendre` (`RENDRE_SEUL`, rien d'écrit ni de comparé). L'enregistreur en `NODE_OPTIONS`
- * quand le rendu se mesure, puis `tsx/esm` (argv, joué après `NODE_OPTIONS`). `rendues` : le fichier
- * de `ENV_CIBLES_RENDUES`.
+ * quand le rendu se mesure, puis `tsx/esm` (argv, joué après `NODE_OPTIONS`).
  */
-function commandeDe({ runner, script, targets, injecte }, { cwd, mode, tsxEsm, lectures, ignores, cibles, rendues, derivees, motifsDeclares, env: environnement = process.env }) {
+function commandeDe({ runner, script, targets, injecte }, { cwd, mode, tsxEsm, lectures, ignores, cibles, derivees, motifsDeclares, env: environnement = process.env }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
-    ...(mode === 'rendre' ? [RENDRE_SEUL] : []),
-    script,
+    ...(mode === 'rendre' ? [RENDRE_SEUL, script] : [JOUER_GENERATEUR, JSON.stringify({ script, targets, injecte, lectures })]),
     ...(mode === 'verifier' ? ['--check'] : []),
   ]
   const env = envIsole(environnement, binLocal(cwd))
   if (lectures) env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --import ${ENREGISTREUR}`.trim()
-  if (rendues) env[ENV_CIBLES_RENDUES] = rendues
   if (lectures) {
     env.WFRP_LECTURES_RACINE = cwd
     env.WFRP_LECTURES_SORTIE = path.join(lectures, 'l')
@@ -263,8 +260,8 @@ export function refusSourcesInsuffisantes(script, nombre, cheminsRejetes = 0) {
     : null
 }
 
-/** Les cibles LITTÉRALES (sans joker) de `g` que son rendu n'a pas produites : absentes du fichier
- *  `ENV_CIBLES_RENDUES` où `ecrireOuVerifier` consigne chaque cible rendue. Une cible littérale existe
+/** Les cibles LITTÉRALES (sans joker) de `g` que son rendu n'a pas produites : absentes du journal
+ *  où le lanceur consigne chaque cible finale. Une cible littérale existe
  *  par sa déclaration (`check-doc-refs.mjs`) : ce refus la tient. */
 function ciblesLitteralesNonRendues(g, fichier) {
   let texte
@@ -338,11 +335,11 @@ export function preparerLectures(cwd, racineLectures) {
  * où il injecte un champ) : ses `targets` et `injecte` dépliés sortent de ses sources. LÈVE comme `run`.
  * REND `lues` (`fusionnerLectures`) et `entree`, ce que `SOURCES_LUES` consigne pour `g`.
  */
-export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, rendues, derivees, motifsDeclares, env = process.env }) {
+export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, derivees, motifsDeclares, env = process.env }) {
   mkdirSync(lectures, { recursive: true })
   const ecrites = ciblesSurDisque(g.targets, cwd)
   const injectees = ciblesSurDisque(g.injecte ?? [], cwd)
-  run(g, { cwd, env, quiet, mode, tsxEsm, lectures, ignores, derivees, motifsDeclares, cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues })
+  run(g, { cwd, env, quiet, mode, tsxEsm, lectures, ignores, derivees, motifsDeclares, cibles: [...new Set([...ecrites, ...injectees])].sort() })
   const lues = fusionnerLectures(lectures)
   return { lues, entree: { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()], git: lues.git ?? [], sondes: lues.sondes ?? [], incomplet: lues.incomplet ?? [] } }
 }
@@ -496,7 +493,7 @@ function executerLesGenerateurs({
   const records = new Map()
   // Cibles écrites en entier, DÉPLIÉES une fois : la lecture tardive se juge contre elles.
   const ecritesPar = new Map(generateurs.map((g) => [g.script, ciblesSurDisque(g.targets, cwd)]))
-  const racineLectures = path.join(cwd, path.dirname(CACHE_FRAICHEUR), 'lectures', String(process.pid))
+  const racineLectures = path.join(cwd, LECTURES_DU_BUILD, String(process.pid))
   // Le cache de lectures de ce run se purge à chaque sortie d'`executer`.
   try {
     let ignoresLectures
@@ -562,7 +559,6 @@ function executerLesGenerateurs({
         try {
           mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
             cwd, env, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
-            rendues: path.join(dossier, 'cibles-rendues'),
           }), { mesurer: etapeHeritee(cwd) })
         } catch (e) {
           transmettreDiagnostic(e, quiet)
@@ -574,7 +570,7 @@ function executerLesGenerateurs({
           refus.push(`docs:check — ${g.script} — ${natureDuRouge(issue)}`)
           continue
         }
-        const nonRendues = ciblesLitteralesNonRendues(g, path.join(dossier, 'cibles-rendues'))
+        const nonRendues = ciblesLitteralesNonRendues(g, ciblesRenduesDans(dossier))
         if (nonRendues.length) {
           const message = `docs:build — ARRÊT sur ${g.script} : cible(s) LITTÉRALE(S) déclarée(s) que son rendu ne produit pas : ${nonRendues.join(', ')}.`
           if (!check) {
@@ -656,7 +652,7 @@ function executerLesGenerateurs({
       }
     } while (reprise.size)
     if (!check && ecrits) {
-      ecrireDoc(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))
+      ecrireSourcesLues(cwd, serialiserSourcesLues(parGenerateur))
       console.log(`${SOURCES_LUES} — ${Object.keys(parGenerateur).length} générateur(s) mesuré(s).`)
     }
     // Les vérificateurs purs, en écriture comme en `--check` : ils n'écrivent rien, leur code de sortie

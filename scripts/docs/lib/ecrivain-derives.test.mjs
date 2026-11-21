@@ -2,7 +2,7 @@
 // et le registre de code que le hook laisse n'est jamais plus vieux que ses sources.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -13,7 +13,7 @@ import { attendreSync } from '../../guards/lib/spawnResilient.mjs'
 import { PALIERS_RENOMMAGE_MS } from '../../guards/lib/renommageResilient.mjs'
 import { gitDirDe } from '../../hooks/barriere-outil.mjs'
 import { reconstruireApresGit } from '../../git-hooks/docs-rebuild.mjs'
-import { executer, GENERATORS } from '../build-all.mjs'
+import { executer, SOURCES_LUES } from '../build-all.mjs'
 import {
   ATTENTE_DU_HOOK,
   cheminsDeLEcrivain,
@@ -26,13 +26,17 @@ import {
   preempterLesDerives,
   sousLEpoque,
 } from './ecrivain-derives.mjs'
-import { ecrireDoc } from './ecriture-derives.mjs'
+import { ecrireSourcesLues } from './ecriture-derives.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 import { invaliderPreuve } from './fraicheur-docs.mjs'
 import { gitDe, gitEnFond } from '../../test/gitDeBanc.mjs'
 import { prendreVerrou } from '../../test/verrou.mjs'
 
 const url = (rel) => pathToFileURL(fileURLToPath(new URL(rel, import.meta.url))).href
+const commandeDuGenerateur = (script) => [
+  fileURLToPath(new URL('./jouer-generateur.mjs', import.meta.url)),
+  JSON.stringify({ script, targets: ['reg.js'] }),
+]
 
 /** Attend `existsSync(chemin)`, au plus `ms`. */
 function attendreFichier(chemin, ms = 60_000) {
@@ -50,7 +54,7 @@ test('#2603 — banc de la course : la passe en vol lit l’ancienne source, le 
   const generateur = join(signaux, 'gen-lent.mjs')
   writeFileSync(generateur, [
     `import { appendFileSync, readFileSync, writeFileSync, existsSync } from 'node:fs'`,
-    `import { ecrireDoc } from ${JSON.stringify(url('./ecriture-derives.mjs'))}`,
+    'export async function* produire() {',
     `const runs = ${JSON.stringify(join(signaux, 'runs'))}`,
     `const n = (existsSync(runs) ? readFileSync(runs, 'utf8').length : 0) + 1`,
     `appendFileSync(runs, 'x')`,
@@ -58,8 +62,9 @@ test('#2603 — banc de la course : la passe en vol lit l’ancienne source, le 
     `writeFileSync(${JSON.stringify(join(signaux, 'lu'))}, source)`,
     `const echeance = Date.now() + 60_000`,
     `while (!existsSync(${JSON.stringify(join(signaux, 'go'))})) { if (Date.now() > echeance) throw new Error('signal go jamais posé'); await new Promise((r) => setTimeout(r, 50)) }`,
-    `try { ecrireDoc(${JSON.stringify(registre)}, \`// depuis \${source}\\n\`) }`,
+    `try { yield { path: ${JSON.stringify(registre)}, out: \`// depuis \${source}\\n\` } }`,
     `finally { writeFileSync(${JSON.stringify(join(signaux, 'apres-'))} + n, readFileSync(${JSON.stringify(registre)}, 'utf8')) }`,
+    '}',
   ].join('\n'))
   const passe = join(signaux, 'passe.mjs')
   writeFileSync(passe, [
@@ -67,20 +72,22 @@ test('#2603 — banc de la course : la passe en vol lit l’ancienne source, le 
     `import { demanderLaReconstruction, servirLesDemandes } from ${JSON.stringify(url('../../git-hooks/reconstruction.mjs'))}`,
     `const racine = ${JSON.stringify(racine)}`,
     `demanderLaReconstruction(racine, { detacher: () => 0 })`,
-    `servirLesDemandes({ racine, passe: ({ env }) => spawnSync(process.execPath, [${JSON.stringify(generateur)}], { env: { ...process.env, ...env }, stdio: 'inherit' }).status ?? 1 })`,
+    `servirLesDemandes({ racine, passe: ({ env }) => spawnSync(process.execPath, ${JSON.stringify(commandeDuGenerateur(generateur))}, { env: { ...process.env, ...env }, stdio: 'inherit' }).status ?? 1 })`,
   ].join('\n'))
   const enfant = spawn(process.execPath, [passe], { cwd: racine, stdio: ['ignore', 'inherit', 'inherit'] })
   const fini = once(enfant, 'exit')
   try {
     attendreFichier(join(signaux, 'lu'))
     writeFileSync(join(racine, 'src/s.txt'), 'v2\n')
+    const rapide = join(signaux, 'gen-rapide.mjs')
+    writeFileSync(rapide, [
+      "import { readFileSync } from 'node:fs'",
+      "export function* produire() { yield { path: 'reg.js', out: '// depuis ' + readFileSync('src/s.txt', 'utf8') } }",
+    ].join('\n'))
     const vu = reconstruireApresGit({
       cwd: racine, hook: 'post-merge', annoncer: () => {}, demander: () => 1,
       generateurs: [{ script: 'gen.mjs', targets: ['reg.js'] }],
-      code: () => {
-        ecrireDoc(registre, `// depuis ${readFileSync(join(racine, 'src/s.txt'), 'utf8').trim()}\n`)
-        return 0
-      },
+      code: () => spawnSync(process.execPath, commandeDuGenerateur(rapide), { cwd: racine, stdio: 'inherit' }).status ?? 1,
     })
     assert.deepEqual(vu, { code: 0, seq: 1 })
     assert.equal(readFileSync(registre, 'utf8'), '// depuis v2\n')
@@ -129,7 +136,7 @@ test('#2603 — le verrou et l’époque de l’écrivain sont ceux du dépôt d
     gitDe(courant)('init', '-q')
     process.chdir(courant)
     const chemins = cheminsDeLEcrivain(join(banc, '.git'))
-    ecrireDoc(join(banc, 'docs', 'd.md'), 'un\n')
+    ecrireSourcesLues(banc, 'un\n')
     mkdirSync(join(banc, 'docs', '.cache'), { recursive: true })
     writeFileSync(join(banc, CACHE_FRAICHEUR), JSON.stringify({ version: 2, generateurs: { 'g.mjs': {} } }))
     invaliderPreuve(banc, ['g.mjs'])
@@ -139,12 +146,12 @@ test('#2603 — le verrou et l’époque de l’écrivain sont ceux du dépôt d
     const avant = process.env[ENV_EPOQUE]
     process.env[ENV_EPOQUE] = epoqueDe(chemins)
     try {
-      ecrireDoc(join(banc, 'docs', 'd.md'), 'deux\n')
+      ecrireSourcesLues(banc, 'deux\n')
     } finally {
       if (avant === undefined) delete process.env[ENV_EPOQUE]
       else process.env[ENV_EPOQUE] = avant
     }
-    assert.equal(readFileSync(join(banc, 'docs', 'd.md'), 'utf8'), 'deux\n', 'la passe écrit sous l’époque du banc de la cible')
+    assert.equal(readFileSync(join(banc, SOURCES_LUES), 'utf8'), 'deux\n', 'la passe écrit sous l’époque du banc de la cible')
     assert.equal(existsSync(join(courant, '.git', 'hooks-git')), false, 'rien sous le git-dir du dépôt courant')
   } finally {
     process.chdir(origine)
@@ -211,14 +218,14 @@ test('#2603 — sousLEpoque : une opération git en cours préempte la passe, ri
 })
 
 /** Une passe détachée (`servirLesDemandes`) de `racine` qui joue un générateur lent : il lit la source, signale
- *  `lu-<n>`, attend `go`, puis écrit `reg.js` par `ecrireDoc` ; `ecrit-<n>` porte l'`index.lock` vu après
+ *  `lu-<n>`, attend `go`, puis remet `reg.js` au lanceur ; `ecrit-<n>` porte l'`index.lock` vu après
  *  l'écriture, `refus-<n>` le refus. REND le processus et sa fin. */
 function passeLente(racine, signaux) {
   const generateur = join(signaux, 'gen-lent.mjs')
   writeFileSync(generateur, [
     `import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'`,
     `import { join } from 'node:path'`,
-    `import { ecrireDoc } from ${JSON.stringify(url('./ecriture-derives.mjs'))}`,
+    'export async function* produire() {',
     `const s = (nom) => join(${JSON.stringify(signaux)}, nom)`,
     `const n = (existsSync(s('runs')) ? readFileSync(s('runs'), 'utf8').length : 0) + 1`,
     `appendFileSync(s('runs'), 'x')`,
@@ -227,9 +234,10 @@ function passeLente(racine, signaux) {
     `const echeance = Date.now() + 60_000`,
     `while (!existsSync(s('go'))) { if (Date.now() > echeance) throw new Error('signal go jamais posé'); await new Promise((r) => setTimeout(r, 50)) }`,
     `try {`,
-    `  ecrireDoc(${JSON.stringify(join(racine, 'reg.js'))}, '// depuis ' + source)`,
+    "  yield { path: 'reg.js', out: '// depuis ' + source }",
     `  writeFileSync(s('ecrit-' + n), String(existsSync(${JSON.stringify(join(racine, '.git', 'index.lock'))})))`,
     `} catch (e) { writeFileSync(s('refus-' + n), String(e.message)) }`,
+    '}',
   ].join('\n'))
   const passe = join(signaux, 'passe.mjs')
   writeFileSync(passe, [
@@ -237,7 +245,7 @@ function passeLente(racine, signaux) {
     `import { demanderLaReconstruction, servirLesDemandes } from ${JSON.stringify(url('../../git-hooks/reconstruction.mjs'))}`,
     `const racine = ${JSON.stringify(racine)}`,
     `demanderLaReconstruction(racine, { detacher: () => 0 })`,
-    `servirLesDemandes({ racine, attenteArbre: { echeanceMs: 60_000, pasMs: 50 }, passe: ({ env }) => spawnSync(process.execPath, [${JSON.stringify(generateur)}], { env: { ...process.env, ...env }, stdio: 'inherit' }).status ?? 1 })`,
+    `servirLesDemandes({ racine, attenteArbre: { echeanceMs: 60_000, pasMs: 50 }, passe: ({ env }) => spawnSync(process.execPath, ${JSON.stringify(commandeDuGenerateur(generateur))}, { env: { ...process.env, ...env }, stdio: 'inherit' }).status ?? 1 })`,
   ].join('\n'))
   const enfant = spawn(process.execPath, [passe], { cwd: racine, stdio: ['ignore', 'inherit', 'inherit'] })
   return { enfant, fini: once(enfant, 'exit') }
@@ -312,15 +320,6 @@ test('#2603 — banc : une passe lente et un git checkout concurrent, zéro écr
     rmSync(signaux, { recursive: true, force: true })
     rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
   }
-})
-
-/** Les écritures directes de `node:fs` qu'un générateur ne fait jamais sur ses cibles : il passe par `ecrireDoc`. */
-const ECRITURE_DIRECTE = /\b(?:writeFileSync|writeFile|appendFileSync|createWriteStream)\s*\(/
-
-test('#2603 — tout générateur de GENERATORS écrit ses cibles et ses blocs injectés par ecrireDoc, jamais en écriture directe', () => {
-  const racine = fileURLToPath(new URL('../../../', import.meta.url))
-  const directs = GENERATORS.filter((g) => ECRITURE_DIRECTE.test(readFileSync(join(racine, g.script), 'utf8'))).map((g) => g.script)
-  assert.deepEqual(directs, [])
 })
 
 test('#2603 — ATTENTE_DU_HOOK couvre les paliers de PALIERS_RENOMMAGE_MS et sa marge, dans la borne de 10 s', () => {

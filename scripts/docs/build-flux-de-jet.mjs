@@ -12,16 +12,16 @@
  *  - les GARDES : chemin ancré + intitulé de leur `describe(...)`.
  * La part ÉDITORIALE (étapes de la recette, interdits) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-flux-de-jet.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import * as ts from 'typescript/unstable/ast'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-flux-de-jet'
   const VERBS = 'src/noyau/flowVerbs.ts'
@@ -387,4 +387,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

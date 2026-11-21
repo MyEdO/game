@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 import * as ts from 'typescript/unstable/ast'
 import { SignatureKind, TypeFlags } from 'typescript/unstable/sync'
 import { SORTIE_NOYAU_GODOT as SORTIE } from './docs/lib/cibles-registres.mjs'
-import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './docs/lib/ecriture-derives.mjs'
 import { libererSessions, repoProgram } from './guards/lib/tsProgram.mjs'
 import { parUnitesDeCode } from './guards/lib/lister.mjs'
 
@@ -143,14 +143,15 @@ export function rendre() {
   return new Map([[SORTIE, texteDeSortie(noyauLu())]])
 }
 
-if (import.meta.main) {
+export function* produire() {
   const noyau = noyauLu()
   console.log(`gen-noyau-godot — ${noyau.familles.length} familles, ${noyau.listes.map((l) => `${l.nom} ${l.valeurs.length}`).join(', ')}`)
-  ecrireOuVerifier({
+  yield {
     out: texteDeSortie(noyau),
     path: SORTIE,
-    check: process.argv.includes('--check'),
     staleMsg: `gen-noyau-godot — ${SORTIE} est PÉRIMÉ (diverge des unions du noyau).`,
     rerunMsg: '  → relancer `npm run gen`.',
-  })
+  }
 }
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)
