@@ -3,9 +3,11 @@ extends SceneTree
 ## La nappe de toit texturée (#4471) : sur le monde (`Monde`) d'un volume de deux couches, sous un soleil de biais
 ## (`LUMIERE`), un terrain texturé (`terrain--herbe`, un sol et une rampe) et, à la seconde couche, des nappes de toit
 ## d'ardoise (`roof--toit-ardoise`) : un pan tourné vers +Z, son soffite et sa planche de rive, et un pan tourné vers +X,
-## chacune sa nappe (`VolumeDeScene._matiere`, `art/monde.gdshader`, `nappe`), lus aux pixels de l'image rendue. Chaque
-## pan, vu de face, l'égout à l'horizontale, montre ses rangs le long de l'égout : les moyennes de ses lignes de pixels
-## sont périodiques d'au moins `RANGS_LE_LONG_DE_L_EGOUT` de plus que celles de ses colonnes. Chaque face, rendue
+## chacune sa nappe (`VolumeDeScene._matiere`, `art/monde.gdshader`, `nappe`), et un pignon vertical tourné vers +Z, au
+## bardage de son mur (`structure--mur-a-ossature-en-bois`), lus aux pixels de l'image rendue. Chaque pan, vu de face,
+## l'égout à l'horizontale, montre ses rangs le long de l'égout, et le pignon ses planches le long de sa base : les
+## moyennes de leurs lignes de pixels sont périodiques d'au moins `RANGS_LE_LONG_DE_L_EGOUT` de plus que celles de leurs
+## colonnes. Chaque face, rendue
 ## texturée puis de la couleur de ses sommets seule (une matière sans texture), garde son ton : sa texture neutre la
 ## multiplie de la même part sur chaque canal, à `MEME_TON` près. Le terrain rend les mêmes pixels quelle que soit la
 ## couleur de ses sommets.
@@ -20,6 +22,7 @@ const METRES_PAR_CASE := 2.0
 const ARDOISE := "roof--toit-ardoise"
 const SANS_TEXTURE := "roof--sans-texture"
 const HERBE := "terrain--herbe"
+const BARDAGE := "structure--mur-a-ossature-en-bois"
 ## Les couleurs de sommets, loin du gris, d'un pan, de son soffite et de sa planche de rive.
 const TONS := {pan = Color(0.7, 0.35, 0.2), soffite = Color(0.25, 0.6, 0.3), rive = Color(0.25, 0.35, 0.75)}
 const RANGS_LE_LONG_DE_L_EGOUT := 0.05
@@ -58,7 +61,7 @@ func _recetter() -> void:
 	environnement.volumetric_fog_enabled = false
 	await _poser(monde, ARDOISE, 0.5)
 	var nappes := _nappes(monde)
-	for nom in ["pan", "pan-x"]:
+	for nom in ["pan", "pan-x", "pignon"]:
 		var matiere := (nappes[nom].mesh as ArrayMesh).surface_get_material(0) as ShaderMaterial
 		if matiere.get_shader_parameter("albedo_texture") == null or matiere.get_shader_parameter("nappe") != 1.0:
 			_fautes.append("%s : la matière de la nappe n'est pas texturée en nappe" % nom)
@@ -66,8 +69,9 @@ func _recetter() -> void:
 	if terrain.get_shader_parameter("albedo_texture") == null or terrain.get_shader_parameter("nappe") != 0.0:
 		_fautes.append("le terrain n'est pas texturé hors nappe")
 	monde.regarder("immersion")
-	await _rangs(monde, nappes.pan, Vector3(0.0, 1.0, 1.0), 0.0)
-	await _rangs(monde, nappes["pan-x"], Vector3(1.0, 1.0, 0.0), PI / 2.0)
+	await _rangs(monde, nappes.pan, Vector3(0.0, 1.0, 1.0), 0.0, -PI / 4.0)
+	await _rangs(monde, nappes["pan-x"], Vector3(1.0, 1.0, 0.0), PI / 2.0, -PI / 4.0)
+	await _rangs(monde, nappes.pignon, Vector3(0.0, 0.0, 1.0), 0.0, 0.0)
 	await _tons(monde)
 	await _terrain(monde)
 	for faute in _fautes:
@@ -83,11 +87,13 @@ func _poser(monde: Monde, matiere: String, gris: float) -> void:
 	var soffite := [Vector3(2, 3, 8), Vector3(6, 3, 8), Vector3(6, 2.4, 8.6), Vector3(2, 2.4, 8.6)]
 	var rive := [Vector3(2, 2.4, 8.6), Vector3(6, 2.4, 8.6), Vector3(6, 1.6, 8.6), Vector3(2, 1.6, 8.6)]
 	var pan_x := [Vector3(9, 6, 14), Vector3(9, 6, 10), Vector3(9 + a, 3, 10), Vector3(9 + a, 3, 14)]
+	var pignon := [Vector3(2, 1, 12), Vector3(6, 1, 12), Vector3(6, 4, 12), Vector3(2, 4, 12)]
 	var toits := [
 		_nappe("pan", [[pan, TONS.pan]], matiere),
 		_nappe("soffite", [[soffite, TONS.soffite]], matiere),
 		_nappe("rive", [[rive, TONS.rive]], matiere),
 		_nappe("pan-x", [[pan_x, TONS.pan]], matiere),
+		_nappe("pignon", [[pignon, TONS.pan]], BARDAGE),
 	]
 	var gris_c := Color(gris, gris, gris)
 	var sol := [Vector3(-1, 0, -1), Vector3(15, 0, -1), Vector3(15, 0, 15), Vector3(-1, 0, 15)]
@@ -115,12 +121,12 @@ static func _nappes(monde: Monde) -> Dictionary:
 	return vues
 
 
-## Sous l'œil posé à `RECUL` cases du milieu du pan `vu` le long de sa normale `normale` (en mètres, vers le haut), au
-## lacet `lacet`, l'égout à l'horizontale : les moyennes des lignes de ses pixels sont périodiques d'au moins
+## Sous l'œil posé à `RECUL` cases du milieu du pan `vu` le long de sa normale `normale` (en mètres), au lacet `lacet` et
+## au tangage `tangage`, de face, l'égout à l'horizontale : les moyennes des lignes de ses pixels sont périodiques d'au moins
 ## `RANGS_LE_LONG_DE_L_EGOUT` de plus que celles de ses colonnes (`_periodicite`).
-func _rangs(monde: Monde, vu: MeshInstance3D, normale: Vector3, lacet: float) -> void:
+func _rangs(monde: Monde, vu: MeshInstance3D, normale: Vector3, lacet: float, tangage: float) -> void:
 	var milieu := vu.to_global(vu.mesh.get_aabb().get_center())
-	monde.poser_l_oeil(milieu + normale.normalized() * RECUL, lacet, -PI / 4.0)
+	monde.poser_l_oeil(milieu + normale.normalized() * RECUL, lacet, tangage)
 	var avec := await PIXELS.image(self)
 	vu.visible = false
 	var sans := await PIXELS.image(self)

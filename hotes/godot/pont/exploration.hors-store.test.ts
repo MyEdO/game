@@ -10,7 +10,15 @@ import { drainer, erreurDe, table, enFocus, mondeDe, morceauxDe, vueDe } from '.
 import type { MorceauxDuPont } from './pont';
 import { hash32AuMillieme } from '../../../src/lib/hash';
 import { depuisBase64 } from '../../../src/lib/base64';
-import { CLIC_DU_CHAMP, cotesDeMarchesDeLaScene, type AreteDessinee, type CoteDeMarches, type RetraitDuMonde } from '../../../src/noyau/index';
+import {
+  CLIC_DU_CHAMP,
+  cotesDeMarchesDeLaScene,
+  faitieresDeLaScene,
+  type AreteDessinee,
+  type CoteDeMarches,
+  type Faitiere,
+  type RetraitDuMonde,
+} from '../../../src/noyau/index';
 import { testScenarios } from '../../../src/scenes/test-scenarios';
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import type { Bouton } from '../../../src/hote/elements';
@@ -98,5 +106,13 @@ describe('l’exploration par le pont', () => {
     const servis = (appel('aretes') as unknown as { cotesDeMarches: CoteDeMarches[] }).cotesDeMarches;
     expect(servis.length, 'la volée de la cour').toBeGreaterThan(0);
     expect(servis).toEqual(cotesDeMarchesDeLaScene(testScenarios.find((s) => s.id === 'fenetre-ecuries')!.construire(idsDeTest).scene));
+  });
+
+  it('`aretes` sert aussi les faîtières des nappes de la scène, sous la même clé de relecture (#4471)', () => {
+    appel('quitter');
+    drainer(appel, appel('demarrer', { scenario: 'zones-pieces', graine: 7 }));
+    const servies = (appel('aretes') as unknown as { faitieres: Faitiere[] }).faitieres;
+    expect(servies.length, 'les faîtes des pièces').toBeGreaterThan(0);
+    expect(servies).toEqual(faitieresDeLaScene(testScenarios.find((s) => s.id === 'zones-pieces')!.construire(idsDeTest).scene));
   });
 });
