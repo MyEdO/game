@@ -7,7 +7,8 @@
 // premier état du même rôle de la même passe), des feuilles (texte, contrôle) recouvertes, rognées par un
 // ancêtre (`overflow`, ellipse) ou qui se chevauchent (`chevauche` : deux textes sur la même bande par la zone de
 // contenu de la police de leurs lignes, à moins de 3 px côte à côte ; un texte et un contrôle par le cœur des lignes), des actions principales (plaque armée, étape en cours) cachées
-// sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
+// sous le bord ou le fondu de ce qui défile (`cache`), ce qui défile et déborde sans être une liste longue par nature
+// (`masque` : un `data-defile` plus haut que sa boîte, sauf `data-defile="liste"`, la marque de `defile` de `gestes.js`), des pièces du kit plus petites que leur taille fixée
 // (`retrecit`), plus d'une croix dans l'écran (`croix`), et du défilement de la page. Ce qui se pose au survol
 // (`data-ancre="survol"`) ou par-dessus d'autres cadres (`data-surcouche`, l'Index du Compendium) n'est pas compté par
 // `croise` ; ce qu'une surcouche cache n'est ni `recouvert` ni `chevauche`. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
@@ -15,17 +16,29 @@
 // jamais un texte libre, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ;
 // la bulle qui n'a aucune pose libre (`data-sans-pose`, `gestes.js`) est `recouvert` ; ce
 // dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
-// `rogne` que le haut et le bas, et cache à ses ancêtres ce qui défile hors de lui :
+// `rogne` que le haut et le bas, et cache à ses ancêtres ce qui défile hors de lui. Le relevé `contenu` (#4585) relève
+// le rect de chaque enfant d'une place (`data-place` : la table `PLACES` de `rendu.js`, dont la grille des colonnes,
+// `colonne` de `gestes.js` : tête, corps qui défile, ou plein sans tête, pied fixe du corps, geste au pied, note sous lui), ou du fond d'une
+// pièce sans place, sous la clé porteur + rôle (pièce, place, première classe, `data-texte`, `data-cle` : l'id stable de
+// ce qu'il désigne, puis le rang parmi ceux du même rôle), et
+// les entrées de ce qui y défile en une liste (départ, x, écarts, jamais leur rang) ; il classe l'écart d'un état à
+// l'autre du même gabarit (`classe`, `contenus.mjs` : A boîte déplacée, B longueur de texte, C contenu de liste). Un A
+// est BLOQUANT, quel que soit le gabarit, contre les états déjà rendus de la passe et, sous
+// `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
+// `<écran>--<état>.json`, que `contenus.mjs <dossier>` agrège. Le rendu sort en code 1 si une page a une erreur, un
+// relevé non vide ou du défilement de la page ; `passe.mjs` rend tous les écrans et agrège :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
 //     `rendu.html` dans le format physique `<format>` (`FORMATS`). L'état, une donnée écrite (`maquettes/maquette.ts`),
 //     est posé sur `globalThis.MAQUETTE` avant la page.
-import { readFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { listerEntrees } from '../../../../../scripts/guards/lib/lister.mjs'
 import { chromium } from 'playwright'
+import { refusDuNavigateur } from '../../../planches.mjs'
+import { classe } from './contenus.mjs'
 
 /** La vue `bureau` des vues de la recette, la vue de référence de la recette et des étalons. */
 const BUREAU = JSON.parse(readFileSync(new URL('../../../../../scripts/recette/vues-recette.json', import.meta.url), 'utf8')).find((v) => v.nom === 'bureau')
@@ -218,11 +231,43 @@ const releve = ([largeur, hauteur]) => {
     const fondu = parseFloat(getComputedStyle(d).getPropertyValue('--fondu')) || 0
     return q.top < r.top + (d.classList.contains('avant') ? fondu : 0) - 1 || q.bottom > r.bottom - (d.classList.contains('suite') ? fondu : 0) + 1
   }).map(nomme)
+  /* ce qui défile et déborde (`masque`) : un `data-defile` visible dont le contenu dépasse sa boîte, sauf la liste
+     longue par nature (`data-defile="liste"`) ; ce qu'il cache, au survol ou au défilement, ne décide de rien */
+  const masque = [...document.querySelectorAll('#ui [data-defile]:not([data-defile="liste"])')].filter((d) => d.checkVisibility() && d.scrollHeight > d.clientHeight + 1)
+    .map((d) => `${d.closest('[data-piece]')?.dataset.piece ?? '-'}${d.closest('[data-place]') ? ' > ' + d.closest('[data-place]').dataset.place : ''} : ${d.scrollHeight} > ${d.clientHeight}`)
   /* une seule croix par écran (`../dispositions.md`, arbitrage 2) : plus d'une croix visible, hors de ce qui suit ce
      qu'il désigne */
   const croixVues = [...document.querySelectorAll('#ui .croix')].filter((e) => !e.closest('[data-mobile]') && e.checkVisibility())
   const croix = croixVues.length > 1 ? [`${croixVues.length} croix : ${croixVues.map((e) => e.closest('[data-piece]')?.dataset.piece ?? '-').join(', ')}`] : []
-  return { pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  /* le contenu des places (`contenu`, `contenus.mjs`) : le rect de chaque enfant visible d'une place (`data-place`), ou
+     du fond d'une pièce qui n'en a aucune, depuis le coin de ce qui le porte, sous la clé porteur + rôle (sa pièce, sa
+     place, sa première classe, son `data-texte` et son `data-cle`, l'id stable de ce qu'il désigne quand le markup en porte un, le rang parmi ceux du même rôle), marqué `texte` quand il porte du texte et que rien
+     en lui n'est autre qu'en ligne (`inline`, `inline-block`, `inline-flex`) ; les entrées de ce qui y défile (`data-defile`) en une seule liste sous la clé porteur +
+     rôle du défilant + `*` : le départ de la première depuis le haut du contenu défilé, leurs x et l'écart de chacune à
+     la précédente, jamais leur rang */
+  const role = (d) => d.dataset.piece ?? d.dataset.place ?? `${d.tagName.toLowerCase()}${d.classList[0] ? '.' + d.classList[0] : ''}${d.dataset.texte ? `[${d.dataset.texte}]` : ''}${d.dataset.cle ? `@${d.dataset.cle}` : ''}`
+  const contenus = {}
+  const poser = (cle, valeur) => { let k = 1; while (contenus[`${cle}${k > 1 ? ' #' + k : ''}`]) k++; contenus[`${cle}${k > 1 ? ' #' + k : ''}`] = valeur }
+  for (const e of document.querySelectorAll('#ui [data-piece]')) {
+    const propres = [...e.querySelectorAll('[data-place]')].filter((p) => p.closest('[data-piece]') === e)
+    for (const [nom, porteur] of propres.length ? propres.map((p) => [`${e.dataset.piece} > ${p.dataset.place}`, p]) : [[e.dataset.piece, e.querySelector(':scope > .fond') ?? e]]) {
+      const o = porteur.getBoundingClientRect()
+      const vus = (parent) => [...parent.children].filter((d) => d.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
+      const texte = (d) => d.textContent.trim() !== '' && [...d.querySelectorAll('*')].every((x) => getComputedStyle(x).display.startsWith('inline'))
+      for (const d of vus(porteur)) {
+        const q = d.getBoundingClientRect()
+        poser(`${nom} | ${role(d)}`, { rect: [q.left - o.left, q.top - o.top, q.width, q.height].map(Math.round), porteur: [o.left, o.top, o.width, o.height].map(Math.round), texte: texte(d) })
+      }
+      porteur.querySelectorAll('[data-defile]').forEach((d) => {
+        if (d.closest('[data-place], [data-piece]') !== porteur.closest('[data-place], [data-piece]')) return
+        const r = d.getBoundingClientRect(), entrees = vus(d).map((e) => e.getBoundingClientRect())
+        if (!entrees.length) return
+        const uniques = (v) => [...new Set(v.map(Math.round))].sort((m, n) => m - n)
+        poser(`${nom} | ${role(d)} > *`, { liste: { depart: Math.round(entrees[0].top - r.top + d.scrollTop), x: uniques(entrees.map((q) => q.left - r.left)), ecarts: uniques(entrees.slice(1).map((q, k) => q.top - entrees[k].bottom)), n: entrees.length } })
+      })
+    }
+  }
+  return { pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, masque, retrecit, contenus, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv
@@ -232,7 +277,26 @@ const format = page ? { ...FORMATS['16:9'], facteur: Number(reste[0] ?? FORMATS[
 if (!format) throw new Error(`rendre.mjs <écran> <sortie.png> --format ${Object.keys(FORMATS).join('|')} [--etat <état>]`)
 const etat = option('--etat')
 const etats = page ? null : await chargerLEcran(cible, etat)
-const b = await chromium.launch({ args: ['--allow-file-access-from-files'] })
+/** Le navigateur épinglé des planches (`EPINGLE`, `refusDuNavigateur`) : le build complet de Chromium (`channel`), jamais
+ *  le headless shell. */
+const b = await chromium.launch({ channel: 'chromium', args: ['--allow-file-access-from-files'] })
+const { product } = await (await b.newBrowserCDPSession()).send('Browser.getVersion')
+const refus = refusDuNavigateur(product, { plateforme: process.platform, architecture: process.arch })
+if (refus) {
+  await b.close()
+  throw new Error(`[rendre] ${refus}`)
+}
+/** Le dossier du relevé `contenu` (`RELEVE_CONTENUS`), un fichier par état, que `contenus.mjs` agrège. */
+const CONTENUS = process.env.RELEVE_CONTENUS
+if (CONTENUS) mkdirSync(CONTENUS, { recursive: true })
+/** Le premier relevé de chaque contenu d'un gabarit (gabarit | porteur | rôle), et son état, que `contenu`
+ * compare aux suivants : ceux des autres écrans déjà écrits sous `RELEVE_CONTENUS`, puis ceux de cette passe. */
+const REFERENCES = new Map()
+const referencer = (gabarit, contenus, etat) => { for (const [cle, valeur] of Object.entries(contenus)) if (!REFERENCES.has(`${gabarit} | ${cle}`)) REFERENCES.set(`${gabarit} | ${cle}`, { valeur, etat }) }
+if (CONTENUS) for (const f of readdirSync(CONTENUS).filter((f) => f.endsWith('.json') && !f.startsWith(`${cible}--`)).sort()) {
+  const { ecran, etat: e, gabarit, contenus } = JSON.parse(readFileSync(join(CONTENUS, f), 'utf8'))
+  referencer(gabarit, contenus, `${ecran}/${e}`)
+}
 /** La signature d'habillage de chaque rôle, au premier état rendu qui le porte, que `habille` compare aux suivants. */
 const HABILLAGES = new Map()
 /** La page `cible`, ou l'état `maquette` de l'écran, capturée en `sortie` avec son relevé. */
@@ -247,7 +311,13 @@ async function capturer(maquette, sortie) {
   const rendu = page ? null : await p.waitForFunction(() => globalThis.RAPPORT_DU_RENDU, null, { timeout: 30000 }).then((h) => h.jsonValue())
   await p.evaluate(() => document.fonts.ready)
   await p.waitForTimeout(400)
-  const { habillage, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur])
+  const { habillage, contenus, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur])
+  if (CONTENUS && maquette) writeFileSync(join(CONTENUS, `${cible}--${maquette.nom}.json`), JSON.stringify({ ecran: cible, etat: maquette.nom, gabarit: maquette.gabarit, contenus }))
+  rapport.contenu = maquette ? Object.entries(contenus).flatMap(([cle, valeur]) => {
+    const ref = REFERENCES.get(`${maquette.gabarit} | ${cle}`)
+    return ref && classe(ref.valeur, valeur) === 'A' ? [`${cle} : autre qu'à ${ref.etat}`] : []
+  }) : []
+  if (maquette) referencer(maquette.gabarit, contenus, `${cible}/${maquette.nom}`)
   rapport.habille = Object.entries(habillage).flatMap(([piece, { decale, signature }]) => {
     if (!HABILLAGES.has(piece)) HABILLAGES.set(piece, { signature, etat: maquette?.nom ?? cible })
     const ref = HABILLAGES.get(piece)
@@ -255,7 +325,9 @@ async function capturer(maquette, sortie) {
   })
   await p.screenshot({ path: sortie, clip: { x: 0, y: 0, width: format.largeur, height: format.hauteur } })
   console.log(`${maquette?.nom ?? cible} erreurs`, erreurs.length, erreurs.slice(0, 5).join(' | '))
-  console.log(JSON.stringify(rendu ? { ...rapport, ...rendu } : rapport))
+  const vu = rendu ? { ...rapport, ...rendu } : rapport
+  console.log(JSON.stringify(vu))
+  if (erreurs.length || vu.erreur || vu.defile || Object.values(vu).some((v) => Array.isArray(v) && v.length)) process.exitCode = 1
   await p.close()
 }
 if (page) await capturer(null, png)

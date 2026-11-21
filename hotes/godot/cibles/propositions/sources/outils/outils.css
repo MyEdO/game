@@ -23,7 +23,7 @@
 .cases b{flex:1;height:58px;display:grid;place-items:center;font-size:30px;line-height:58px;color:#3a1a10;background:rgba(255,248,222,.55);border-radius:2px;box-shadow:inset 0 1px 3px rgba(60,35,5,.55),0 0 0 1px rgba(60,40,20,.7)}
 #tablee{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto auto;column-gap:16px}
 #tablee>svg{position:absolute;left:0;top:0;width:100%;height:100%}
-#tablee .legende{grid-column:span 2;margin-top:10px;text-align:center;font-size:14px;line-height:18px;color:var(--creme-2)}
+#tablee .legende{grid-column:span 2;height:36px;margin-top:10px;text-align:center;font-size:14px;line-height:18px;color:var(--creme-2)}
 .siege{position:relative;width:200px;box-sizing:border-box;padding:9px 11px 10px;border-radius:3px;box-shadow:0 6px 14px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
 .siege .q{display:flex;align-items:center;gap:10px}
 .siege .q b{display:block;font-weight:600;font-size:22px;line-height:34px;margin:-7px 0 -6px;color:#f4e8ca;white-space:nowrap}
@@ -66,10 +66,10 @@
 #barre .croix{position:static}
 #barre .plaque.seule>div{padding:0 9px}
 #barre .sep{width:1px;height:30px;background:rgba(226,192,106,.28)}
-#volets .fond{padding:34px 10px 10px;display:flex;flex-direction:column}
+#volets .fond{padding:34px 10px 10px}
 #volets .onglets{position:absolute;left:10px;right:10px;top:-8px;display:flex;justify-content:center;gap:4px}
 #volets .onglets .plaque>div{font-size:12px;padding:0 8px}
-#volets .gestes{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+#volets .gestes{display:flex;flex-direction:column;gap:6px}
 #volets .gestes .plaque{flex:none}
 #volets .gestes .plaque>div{font-size:12px;letter-spacing:.6px}
 #volets .ligne{height:auto;min-height:32px;padding:5px 10px;box-sizing:border-box;white-space:normal;line-height:18px;font-size:14px}
@@ -88,7 +88,8 @@
 #nord{position:absolute;right:22px;top:18px;display:flex;align-items:center;gap:7px;font-size:12px;color:#f0e2c2;white-space:nowrap}
 #pied{display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:3px;box-shadow:0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.25);font-size:13.5px;color:#f0e2c2;white-space:nowrap}
 #pied .v{margin-left:auto;color:var(--creme-2)}
-#inspecteur .fond{height:100%;box-sizing:border-box;padding:26px 14px 12px;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none}
+#inspecteur .fond{height:100%;box-sizing:border-box}
+#inspecteur .defile.corps{gap:0}
 #inspecteur h3{margin:-8px 0 -8px;font-size:30px;line-height:44px;font-weight:600;color:#3a1a10;white-space:nowrap}
 #inspecteur .sous{font-size:12.5px;color:#5a2a12;white-space:nowrap}
 #inspecteur .trait{margin:9px 0 3px}
@@ -97,12 +98,15 @@
 .prop.gris>span{color:#7a6548}
 .prop .v{font-style:italic;font-size:13.5px;color:#4a3420;white-space:nowrap}
 .prop .pas-a-pas b{min-width:0;font-size:11.5px;letter-spacing:.3px}
-#inspecteur .r{font-size:13px;color:#6b1c10;margin:11px 0 2px}
+#inspecteur .r{font-size:13px;color:#6b1c10;margin:0;padding:11px 0 4px}
+#inspecteur .place>.r:first-child{padding-top:0}
 .renvoi{display:flex;align-items:center;gap:8px;height:32px;border-bottom:1px solid rgba(60,40,20,.22);font-size:14.5px;color:#2a1d12;white-space:nowrap}
 .renvoi svg:last-child{margin-left:auto}
 #inspecteur .champ>b{height:34px;font-size:15.5px}
-#inspecteur .plan-du-lieu{height:74px;margin-top:5px;display:grid;place-items:center;text-align:center;padding:0 16px;font-style:italic;font-size:13px;line-height:17px;color:#4a3420;border:1px dashed rgba(60,40,20,.55);border-radius:2px}
-#inspecteur .plaque{flex:none;margin-top:7px}
+#inspecteur .plan-du-lieu{height:74px;margin:0;display:grid;place-items:center;text-align:center;padding:0 16px;font-style:italic;font-size:13px;line-height:17px;color:#4a3420;border:1px dashed rgba(60,40,20,.55);border-radius:2px}
+#inspecteur .geste{padding-top:7px}
+#inspecteur [data-place="inspecteur/geste"]{display:flex;flex-direction:column;justify-content:flex-end}
+#inspecteur [data-place="inspecteur/geste"]>.plaque{flex:none}
 #inspecteur .plaque>div{font-size:13px}
 #inspecteur .segments b{font-size:11.5px;padding:3px 7px 4px;letter-spacing:.3px}
 
@@ -219,10 +223,9 @@
 .terrains b{font-weight:400;font-size:13px;line-height:26px;height:26px;padding:0 9px;border-radius:2px;color:#2a1d12;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.5);white-space:nowrap}
 .terrains b.la{font-weight:600;background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830);box-shadow:0 0 0 1px rgba(60,40,10,.85)}
 #inspecteur .moins-plus .copies{min-width:26px;text-align:center;font-size:15px;color:#2a1d12}
-#inspecteur .au-pied{margin-top:auto}
 #couches .plaque{position:relative}
 /* les sièges de la tablée : deux en tête, deux au pied, ceux de droite contre le bord droit */
-#tablee .siege{align-self:start}
+#tablee .siege{align-self:start;height:118px}
 #tablee .siege:nth-of-type(n+3){grid-row:3;align-self:end}
 #tablee .legende{grid-row:4}
 #tablee .siege:nth-of-type(even){justify-self:end}

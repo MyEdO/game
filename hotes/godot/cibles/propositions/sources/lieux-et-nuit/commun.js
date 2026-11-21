@@ -63,15 +63,15 @@ const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = ''
     </div>
   </div>`]; }))), { piece: 'socle', tete: (titre ? ruban(titre) : '') + clouer(4) });
 /* l'hôte posé dans la scène : (x, y) son coin, `l` sa largeur, `pointe` l'abscisse de sa pointe depuis son bord gauche ;
-   `piece` : son nom au relevé du rendu, celui d'un hôte qui suit la personne du décor qu'il désigne */
-const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', pointe = 60, piece = '' }) => `<div class="hote ${classe} cadre bois"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
-  ${cartouche({ icone, nom, sous, marque, texte: id })}${corps}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
+   `piece` : son nom au relevé du rendu, celui d'un hôte qui suit la personne du décor qu'il désigne ; son corps défile
+   sous le cartouche (`liste` : une liste longue par nature, `defile`), ses gestes (`pied`) au pied */
+const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', liste = false, pied = '', pointe = 60, piece = '' }) => `<div class="hote ${classe} cadre bois"${piece ? ` data-piece="${piece}"${mobile('scene')}` : ''} style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
+  ${cartouche({ icone, nom, sous, marque, texte: id })}${corps ? defile(corps, '', { liste }) : ''}${pied}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
 /* le rail des services d'un lieu : services = [icône, nom, armé, compte à droite] ; `piece` : la colonne qu'il tient,
-   dont le pied a sa place (`PLACES`, `../rendu.js`) quel que soit le nombre de services ; `suite` : ce qui suit son
-   pied dans le même panneau, à sa place */
+   sur sa grille (`colonne`) : les services en plein, qui défilent, `pied` en note sous eux, quel qu'en soit le nombre ;
+   `suite` : ce qui suit la note dans le même panneau, à sa place */
 const rail = (titre, services, pied, piece = 'colonne-gauche', suite = '') => cadre('rail', null, null, null, null, 'bois', `
-  ${services.map(([i, n, a, compte = null]) => plaque(n, { icone: i, armee: !!a, prix: compte })).join('')}
-  ${places(piece, { pied: `<div class="pied rubrique">${pied}</div>` })}${suite}
+  ${colonne(piece, { corps: services.map(([i, n, a, compte = null]) => plaque(n, { icone: i, armee: !!a, prix: compte })).join(''), note: `<div class="pied rubrique">${pied}</div>` })}${suite}
 `, { tete: ruban(titre), piece });
 /* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus ;
    `piece` : son nom au relevé du rendu ; `pointe` : le décalage de sa pointe depuis le centre */

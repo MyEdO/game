@@ -12,6 +12,10 @@ de campagne et le Compendium, des écrans sans image d'intention ni cible écrit
 la carte de l'éditeur, la ligne de liste et la tablée vivent dans `sources/outils/` (`editeur.js`, `outils.js`,
 `outils.css`).
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : les deux éditeurs sur la grille des colonnes (`dispositions.md`, « La grille intérieure ») : aux
+  volets, la liste au plein et les gestes de la scène au pied fixe du volet ; à l'inspecteur, ce qui est choisi en
+  tête, les propriétés au corps à écarts uniformes, la validation ou « Supprimer » au pied fixe ; la palette des
+  terrains de l'outil « Terrain » défile au corps (liste longue par nature) au lieu de descendre jusqu'au bas.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (`coop.*` l.1419-1441, `ecran.salon.*` l.1484-1495,
 `party.slot.invite` l.1286, `groupe.hoteSeul` l.2600, `ecran.editeur.*`, `ecran.compendium.*` l.892-932) ; talent

@@ -8,6 +8,12 @@ Compte rendu des huit écrans, sans cible écrite. Contenu lu au code, pas le de
 porte l'instant et la séance qu'ils partagent. Les décors (la crête au couchant, la salle commune, l'auberge-relais,
 Altdorf au matin, le jeu assombri) et les feuilles de la famille vivent dans `sources/accueil-et-systeme/`.
 Premières maquettes : chaque « À valider » attend l'utilisateur.
+- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
+  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
+- À valider (#4585) : le grand titre libre a une taille (80) et une grille pour l'accueil, le menu de la partie et le
+  chapitre (sur-titre, nom, filet, suite ; au chapitre la toile et le corps), monté de 20 ; la fin de chapitre porte le
+  nom de la campagne et son tome comme l'ouverture ; la colonne des entrées pose sous la principale l'instant qu'elle
+  reprend (la dernière sauvegarde à l'accueil, l'instant de la partie au menu, qui le portait sous son titre).
 
 Pièces neuves : registre relié et ses signets ; contrôles de réglage (oui/non, réglette, segments, pas-à-pas) ;
 affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé laiton ; case à cocher et son octroi
@@ -64,6 +70,8 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   `src/noyau/preferences.ts:36-83`) ; règles maison dans un registre relié, quinze signets (un domaine chacun, avec
   son compte), douze règles par feuillet ; l'aide se déplie sur la règle pointée ; une règle modifiée passe au rouge
   avec « Défaut » (`src/hote/reglages.ts:59-92`, `docs/regles-optionnelles.md`).
+- À valider (#4585) : chaque signet a la boîte de l'ouvert (176) ; un signet fermé ne montre que ses 160 premiers.
+- À valider (#4585) : l'étiquette d'un voyageur de la salle a une largeur fixe de 148.
 - À valider : un signet par domaine ; douze règles par feuillet ; libellés lisibles des options de liste (le jeu
   montre les ids) ; volumes en pourcentage ; « hors du livre » marque une valeur que le livre laisse au MJ et que le jeu
   fixe (le tag `maison` de la donnée).

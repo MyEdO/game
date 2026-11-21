@@ -8,7 +8,8 @@
     "src/**/*.generated.ts",
     "src/hoteTexte/serveur.ts",
     "hotes/godot/pont/entree.ts",
-    "hotes/godot/recettes/*.ts"
+    "hotes/godot/recettes/*.ts",
+    "hotes/godot/cibles/propositions/sources/rendre.mjs"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
