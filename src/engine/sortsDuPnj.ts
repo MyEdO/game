@@ -7,10 +7,12 @@
  */
 import type { Combatant } from './types';
 import type { PorteurDeFiche } from './statblock';
-import { casterTalents, talentOuvre } from './grimoire';
+import { arcaneDomainsOf, casterTalents, talentOuvre } from './grimoire';
 import { pettySpellQuotaFor } from './creation';
 import { hashSeed, makeRNG } from './dice';
-import { findCreatureById, findSpellById, findTraitById, refLabel, spells, type SpellData } from '../data';
+import { dataLabel, findCreatureById, findDomainById, findGodById, findSpellById, findTraitById, gods, refLabel, spells, type SpellData } from '../data';
+import type { TraitInstance } from './statEntry';
+import { traitLisible } from './traits/dispatch';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 
@@ -40,6 +42,44 @@ function quotaDuTalent(c: Combatant, kind: string, niveau: number): number | und
   return undefined;
 }
 
+/** LDB 85 l.207 ; LDB 47 l.5-11 ; EDOC 13 l.262-266. */
+function ouvertureDuDomaine(tr: TraitInstance): ListeDeSorts['admet'] | undefined {
+  const domaine = tr.arg;
+  if (domaine == null || !findTraitById(tr.id)?.capabilities?.spellcaster) return undefined;
+  if (!findDomainById(domaine) && !findGodById(domaine)?.chaosSpells?.length) return undefined;
+  return (sp) => domainesDuSort(sp).includes(domaine);
+}
+
+function domainesDuSort(sp: SpellData): readonly string[] {
+  if (sp.family === 'arcane') return arcaneDomainsOf(sp) ?? [];
+  if (sp.family !== 'chaos') return [];
+  return gods.flatMap((dieu) => dieu.chaosSpells?.includes(sp.id) ? [dieu.id] : []);
+}
+
+/** EDOC 13 l.245, l.276 ; LDB 85 l.207. */
+export function sortDeDomaineAccessibleParTrait(sp: SpellData): boolean {
+  if (sp.ritual) return false;
+  const domaines = domainesDuSort(sp);
+  return sp.family === 'arcane'
+    ? domaines.some((id) => !!findDomainById(id)?.arcane)
+    : domaines.length > 0;
+}
+
+/** EDOC 13 l.245, l.276 ; LDB 85 l.207. */
+export function sortsDisponibles(c: Combatant): string[] {
+  const connus = c.spells ?? [];
+  const domaines = (c.activeEffects ?? []).flatMap((effet) => {
+    if (!effet.grantedTrait || effet.duration.scale === 'permanent') return [];
+    const admet = ouvertureDuDomaine(effet.grantedTrait);
+    return admet ? [admet] : [];
+  });
+  if (!domaines.length) return connus;
+  const offerts = spells
+    .filter((sp) => !sp.ritual && domaines.some((admet) => admet(sp)))
+    .map((sp) => sp.id);
+  return [...new Set([...connus, ...offerts])];
+}
+
 /** Les listes de sorts que les Talents de lanceur (`casterTalents`) et les Traits Lanceur de Sorts (`spellcaster`) ou
  *  d'une famille d'incantation (`castingKind`, l'`arg` en spécialisation) ouvrent à `c`. Un quota exclut les Rituels. */
 export function listesDeSorts(c: Combatant): ListeDeSorts[] {
@@ -55,10 +95,12 @@ export function listesDeSorts(c: Combatant): ListeDeSorts[] {
   const parTrait = (c.traits ?? []).flatMap((tr): ListeDeSorts[] => {
     const cap = findTraitById(tr.id)?.capabilities;
     const kind = cap?.castingKind;
-    const admet = cap?.spellcaster ? (sp: SpellData) => sp.family === 'mineure' || sp.family === 'arcane' || sp.family === 'chaos'
+    const admet = cap?.spellcaster
+      ? ouvertureDuDomaine(tr) ?? ((sp: SpellData) => sp.family === 'mineure' || sp.family === 'arcane' || sp.family === 'chaos')
       : kind ? (sp: SpellData) => talentOuvre({ kind, spec: tr.arg }, sp)
       : undefined;
-    return admet ? [{ libelle: refLabel('traits', { id: tr.id, spec: tr.arg }), cle: `${tr.id}:${tr.arg ?? ''}`, admet }] : [];
+    const libelle = cap?.spellcaster ? dataLabel(traitLisible(tr)) : refLabel('traits', { id: tr.id, spec: tr.arg });
+    return admet ? [{ libelle, cle: `${tr.id}:${tr.arg ?? ''}`, admet }] : [];
   });
   return [...parTalent, ...parTrait];
 }

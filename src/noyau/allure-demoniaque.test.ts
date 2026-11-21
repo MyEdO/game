@@ -14,7 +14,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * Dé-stub d'« Allure démoniaque » (EDOC 13 l.270-280) : le Flow du sort sélectionne la colonne du Tableau
  * des aspects démoniaques (l.234-247) selon le Domaine du Chaos du lanceur (Condition `casterChaosDomain`),
  * tire sur la table `tables.json` (op `rollTable` `tableId`), octroie le Trait à la durée du Sort, et une
- * rangée « Mutation » attache une mutation PERMANENTE. RNG figé, sans store.
+ * rangée « Mutation » attache une mutation pour la durée du Sort. RNG figé, sans store.
  */
 const caster = (spec?: string): Combatant =>
   (blessuresSurLeProfil({

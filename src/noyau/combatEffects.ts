@@ -33,8 +33,10 @@ import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource, tirerLaTable,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
+import { resoudreLeChoixDuTrait } from '../engine/traitOctroye';
 import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
+import { isMagicMissile } from '../engine/magic';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
@@ -161,7 +163,8 @@ import { humanizeFlowSentence } from './codex/humanize';
 import { ajouterLaPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
 import { effectiveTalents } from '../engine/talentEffects';
-import { ev } from './combatLog';
+import { ev, journaliser } from './combatLog';
+import { tenuParUnHumain } from './sieges';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
 import { dataLabel, groupesLabel, type WaterExposureMode } from '../data';
@@ -578,6 +581,7 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
   const ctx = leafOpsCtx({
     ...base, now, resolveTrapping: objetDuNarratif(get().campaignNarratif),
     ...crochetsDeCorruption(get, set), ...crochetDeZone(get),
+    onChoixDeTrait: crochetDuChoixDeTrait(get, set),
   }, e);
   for (const o of e.ops) if (o.op === 'delayed') scheduleDelayedOps(get, set, c, o, { now, untilTime: ctx.defaultUntilTime, label: ctx.label });
   const rest = e.ops.filter((o) => o.op !== 'delayed');
@@ -587,9 +591,34 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
   // affichable/lançable/posable comme un Critique. La feuille s'applique à la RÉSOLUTION du dernier dé
   // (`operationsDe`), avec les valeurs tombées. Aucune demande ⇒ chemin inchangé, au même point du rng.
   const demandes = demandesDeDes(rest, c, ctx);
-  if (!demandes.length) return applyOps(c, rest, ctx);
-  ouvrirDesDOps(set, c, rest, ctx, demandes[0]);
+  if (demandes.length) {
+    ouvrirDesDOps(set, c, rest, ctx, demandes[0]);
+    return OPS_DIFFEREES;
+  }
+  const avant = comptePasDifferes(get());
+  const lignes = applyOps(c, rest, ctx);
+  if (comptePasDifferes(get()) <= avant) return lignes;
+  set(touchActors(get()));
+  journaliser(get, set, lignes, 'etat', { actorId: c.id });
   return OPS_DIFFEREES;
+}
+
+/** EDOC 13 l.245, l.276 ; LDB 85 l.207 */
+function crochetDuChoixDeTrait(get: Get, set: SetFn): NonNullable<OpsCtx['onChoixDeTrait']> {
+  return (cible, op, options, ctx) => {
+    if (!tenuParUnHumain(get(), cible.id)) return false;
+    const trait = refLabel('traits', op.trait);
+    pushStep(set, (index) => choiceStep({
+      id: `choixDeTrait-${cible.id}-${index}`,
+      kind: 'choixDeTrait',
+      actorId: cible.id,
+      label: t('step.choixDeTrait', { trait }),
+      icon: 'magie/puissance',
+      options,
+      meta: { differeLaSuite: true, operationsDe: [op], opsDeCtx: porterOpsCtx(ctx) },
+    }), revealPurpose('sequence', false));
+    return true;
+  };
 }
 
 /**
@@ -693,6 +722,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte): OpsCtx | nu
     ...campAdvantageHooks(get),
     ...crochetDuSol(get, set),
     ...crochetDeZone(get),
+    onChoixDeTrait: crochetDuChoixDeTrait(get, set),
     ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
     ...(hull ? { hull } : {}),
     ...(caster ? { caster } : {}),
@@ -2370,16 +2400,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         env.log(`${caster.label} incante ${spell.label} (rituel garanti).`);
         return;
       }
-      if (get().battle) {
-        // EN COMBAT : flux d'incantation STANDARD (jet influençable si piloté par un humain, cadence-aware,
-        // même chemin que l'IA) — exécuteur déclaré par `combatFlow` (table `lancerLeSort`).
-        tablesPosees().lancerLeSort(get, set, caster, target, spell.id); // `castSpell`, `noyau/combatFlow` (#98)
+      if (!get().battle && isMagicMissile(spell)) {
+        refuserGeste(get, set, t('cs.magicMissileNeedsTarget', { spell: spell.label }));
         return;
       }
-      // HORS COMBAT (couture D) : seul un héros du GROUPE a un flux d'incantation jouable (`incanterLeSort`,
-      // jet réel par modale) — un PNJ hors combat n'a pas de Combatant à faire incanter (`actorIn` ne
-      // l'a alors résolu que depuis `party`), pas de pseudo-combat inventé pour ce cas.
-      get().incanterLeSort(caster.id, spell.id, target.id);
+      tablesPosees().lancerLeSort(get, set, caster, target, spell.id);
     },
     refs: (e) => (e.casterId ? [] : [{ level: 'error', message: 'Effet Incanter : lanceur manquant' }]),
   },
@@ -2538,7 +2563,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: '
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'operationsDe', 'chuteDe', 'choixDeFlux', 'volontaireDeFlux', MALADIE_DE_L_EQUIPAGE] as const;
+export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'operationsDe', 'choixDeTrait', 'chuteDe', 'choixDeFlux', 'volontaireDeFlux', MALADIE_DE_L_EQUIPAGE] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
 export const GENRES_HOTES = ['jetDeTestDeScene'] as const;
@@ -2577,6 +2602,17 @@ export const TABLES = {
       // La suite confiée à cette étape est rejouée par le GOULOT (`cascade.commitStep`), une fois cette
       // conséquence journalisée (`jouerLesClotures`).
       return { consequences: freeCons(journal) };
+    },
+    choixDeTrait: (get, set, step, cible) => {
+      const op = opsDeLEtape(step)?.[0];
+      const choix = step.options?.find(({ key }) => key === step.chosen);
+      if (op?.op !== 'grantTrait' || !choix) return;
+      if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
+      if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      const lignes = applyOps(cible, [resoudreLeChoixDuTrait(op, choix.key)], ctx);
+      set(touchActors(get()));
+      return { consequences: freeCons(lignes) };
     },
     /** Décision d'un nœud `choix` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
      *  continuation du Flow, sous le libellé et le DR du Flow qui l'a ouverte. */

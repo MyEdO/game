@@ -107,13 +107,6 @@
     "bloque": "Maladie (Pourriture de Nurgle) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.239) posée sans Type : la maladie est absente de la VF, sa définition VO (Compagnon du Rat Cornu, Aventures à Ubersreik III : livres non extraits au registre `books.json`) n'entre pas dans `maladies.json` (prose d'une entrée VO non extraite, Durée jusqu'à la mort, symptômes par paliers d'un Test hebdomadaire, Difficulté de Contraction par source)"
   },
   {
-    "id": "4e/magie#test-d-incantation",
-    "type": "raw.manifest",
-    "label": "Test d'incantation",
-    "ticket": "#4658",
-    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:109`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
-  },
-  {
     "id": "4e/activites#tableau-des-evenements-d100",
     "type": "raw.manifest",
     "label": "Tableau des Événements (d100)",

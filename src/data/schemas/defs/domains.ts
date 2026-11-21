@@ -61,6 +61,8 @@ const doc = document(
 
     /** LDB 47 l.509 */
     arcane: ref('breathType').optional(),
+    /** ADE II 02 l.733. */
+    onlyGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR, min: 1 }).optional(),
     /** VDM 02 l.192 ; LDB 50. */
     dark: z.boolean().optional(),
     /** LDB 50 l.9 ; EDOC 13 l.606 */
@@ -147,6 +149,7 @@ const doc = document(
     couleur: { label: 'Teinte des effets', hint: 'Teinte `#rrggbb` des effets visuels d’un Sort du Domaine, à la place de celle de son rendu' },
     rendu: { label: 'Rendu des Sorts', hint: 'Rendu visuel et sonore d’un Sort du Domaine (`rendus.json`), à défaut celui des Sorts des Vents' },
     arcane: { label: 'Magie des Arcanes : Type de Souffle', hint: 'Domaine ouvert via le Talent Magie des Arcanes ; Type du sort Souffle (LDB 47 l.509)' },
+    onlyGroups: { label: 'Groupes autorisés' },
     dark: { label: 'Domaine sombre', hint: 'Nécromancie/Démonologie' },
     grantGroups: { label: 'Groupes accordés', hint: 'Groupes du porteur d’un Talent ou d’un Trait qui nomme ce Domaine' },
     tables: { label: 'Tables associées', hint: 'Tables de tables.json déclarées par le Domaine, par clé de rôle' },
