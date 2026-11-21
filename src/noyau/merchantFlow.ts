@@ -28,6 +28,7 @@ import {
   barterRatio,
   priceAfterHalvings,
   isTradable,
+  estDisponibiliteTestee,
   outOfTradeReason,
   quantiteEnStock,
   type EchecDeDisponibilite,
@@ -386,7 +387,7 @@ function lireLeRecoursDeGuilde(s: Jeu, meta: CascadeStepMeta | undefined) {
   const { entityId, rolledAt, articleId, availability, seuilDeRelance, heroId } = meta;
   const m = s.merchant;
   if (!m || m.entityId !== entityId) return null;
-  if (typeof articleId !== 'string' || typeof seuilDeRelance !== 'number' || (availability !== 'limitee' && availability !== 'rare')) return null;
+  if (typeof articleId !== 'string' || typeof seuilDeRelance !== 'number' || !estDisponibiliteTestee(availability)) return null;
   const stock = s.merchantStocks[m.entityId];
   if (!stock || stock.rolledAt !== rolledAt || stock.stock.some(({ id }) => id === articleId)) return null;
   const hero = titulairesPourLeMarche(s, m).find((h) => h.id === heroId && peutTenter(h, RAGOT_DE_GUILDE));

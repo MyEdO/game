@@ -3,6 +3,7 @@ import { findMerchantArchetypeById } from '../data';
 import { giveTrappingSchema } from '../data/schemas/defs-scenes/effets';
 import { withBourseMoney } from '../engine/bourse';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { estDisponibiliteTestee } from '../engine/disponibilite';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { setRule } from '../engine/policy';
 import { zonesDeLEcran } from '../hote/ecran';
@@ -138,7 +139,7 @@ describe('Membres de Guildes — achat et Disponibilité (LDB 68 l.46–48)', ()
     const g = monterMarche();
     const curated = findMerchantArchetypeById('medecin')?.curated ?? [];
     const ligne = g().merchant?.stock.find(({ id, qty }) =>
-      qty > 0 && ['rare', 'limitee'].includes(catalogEntryOf(id)?.availability ?? '') && !curated.some((cur) => cur === id));
+      qty > 0 && estDisponibiliteTestee(catalogEntryOf(id)?.availability) && !curated.some((cur) => cur === id));
     expect(ligne).toBeDefined();
     tenter(g, ligne!.id);
     expect(g().pendingCascade).toBeNull();

@@ -9,7 +9,7 @@ import { d100, tirer, type QuantiteTiree, type RNG } from './dice';
 import { AVAILABILITIES, type Availability, type TestedAvailability } from './types';
 import { disponibilite as dispoJson } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
-import type { Settlement } from '../data/schemas/grammaire/valeurs';
+import { dispoPctAvailabilitySchema, type Settlement } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -74,6 +74,10 @@ function tirerLaQuantiteEnStock(av: Availability | null, settlement: Settlement,
  *  inventée. */
 export function isTradable(av: unknown): av is Availability {
   return typeof av === 'string' && (AVAILABILITIES as readonly string[]).includes(av);
+}
+
+export function estDisponibiliteTestee(av: unknown): av is TestedAvailability {
+  return dispoPctAvailabilitySchema.safeParse(av).success;
 }
 
 /** Raison AFFICHABLE d'un refus de commerce — le refus porte sa cause, jamais un silence. */
@@ -174,7 +178,7 @@ export function rollStock(catalog: CatalogItem[], settlement: Settlement, rng: R
     if (!isTradable(av)) continue;
     const r = rollAvailability(av, settlement, rng, pctBonus); // recherche active (+10/+20 %, LDB 59 l.50)
     if (r.inStock) stock.push({ id: it.id, label: it.label, qty: r.qty, test: r.test });
-    else if (r.test && (av === 'limitee' || av === 'rare')) echecs.push({ id: it.id, availability: av, ...r.test });
+    else if (r.test && estDisponibiliteTestee(av)) echecs.push({ id: it.id, availability: av, ...r.test });
   }
   return { stock, echecs };
 }
