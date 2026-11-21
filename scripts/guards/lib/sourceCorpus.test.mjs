@@ -5,7 +5,7 @@
 //      faite APRÈS la première lecture reste invisible jusqu'à `viderCorpus()`.
 //  (b) CLÉ       : dossiers, extensions et `tests` font partie de la clé — trois corpus distincts.
 //  (c) IMMUABLE  : tableau et entrées gelés — un mémo partagé entre fichiers de test d'un worker
-//      (`isolate: false`, `vite.config.ts`) ne peut être licite qu'à cette condition.
+//      (`isolate: false`, `vitest.config.ts`) ne peut être licite qu'à cette condition.
 //  (d) NORMALISÉE : la clé porte le dossier en chemin POSIX depuis la racine — absolu, relatif et
 //      séparateur final désignent le MÊME corpus, là où les appelants mélangent les formes
 //      (`src/noyau/cascade-step-stake-guard.test.ts` passe des absolus, `src/engine/grid.test.ts`
@@ -77,14 +77,15 @@ test('une DÉCLARATION `.d.ts` est hors corpus, `tests` et `exts` quels qu’ils
   }
 })
 
-test('un KIT de test est hors corpus sans `tests`, dans le corpus sous `tests`', () => {
+test('un banc et un kit de test entrent dans le corpus sous `tests`', () => {
   viderCorpus()
   const racine = mkdtempSync(join(tmpdir(), 'corpus-kit-'))
   try {
     writeFileSync(join(racine, 'prod.ts'), 'prod')
     writeFileSync(join(racine, 'outil.testkit.ts'), 'kit')
+    writeFileSync(join(racine, 'banc.bench.ts'), 'banc')
     assert.deepEqual(readCorpus([racine]).map((f) => f.text), ['prod'])
-    assert.deepEqual(readCorpus([racine], { tests: true }).map((f) => f.text), ['kit', 'prod'])
+    assert.deepEqual(readCorpus([racine], { tests: true }).map((f) => f.text), ['banc', 'kit', 'prod'])
   } finally {
     viderCorpus()
     rmSync(racine, { recursive: true, force: true })
@@ -242,10 +243,6 @@ test('PÉRIMÈTRE sur l’arbre RÉEL : `readCorpus([\'src\'])` rend EXACTEMENT 
   assert.ok(
     avecTests.some((r) => /\.test\.tsx?$/.test(r)) && horsTests.every((r) => !/\.test\./.test(r)),
     'le filtre `tests` ne discrimine plus les fichiers de test',
-  )
-  assert.ok(
-    avecTests.some((r) => /\.bench\.tsx?$/.test(r)) && horsTests.every((r) => !/\.bench\./.test(r)),
-    '`tests: true` INCLUT exactement ce que le filtre exclut : les BANCS aussi, pas les seules suites',
   )
   assert.ok(
     avecTests.some((r) => /\.testkit\.tsx?$/.test(r)) && horsTests.every((r) => !/\.testkit\./.test(r)),

@@ -303,14 +303,14 @@ test('rendu sous win32 : le PATH transmis à un enfant est ramené à la graphie
 
 // Sur l'arbre réel, les deux modules de la simulation sont SOUS la racine : leurs enveloppes de `fs`
 // passent des chemins POSIX à l'hôte, qui résout le relatif par le cwd de l'hôte.
-test('rendu sous win32 : sur l’arbre réel, tsx (node_modules) trouve son `jsx` et `fs` résout le relatif sur le disque', (t) => {
+test('rendu sous win32 : sur l’arbre réel, tsx (node_modules) trouve la configuration TypeScript et `fs` résout le relatif sur le disque', (t) => {
   const source = [
     "import { getTsconfig } from 'get-tsconfig'",
     "import { realpathSync } from 'node:fs'",
-    "console.log(JSON.stringify([getTsconfig()?.config.compilerOptions.jsx, realpathSync('.')]))",
+    "console.log(JSON.stringify([getTsconfig()?.config.compilerOptions.moduleResolution, realpathSync('.')]))",
   ].join('\n')
   const vu = JSON.parse(sousWin32(t, RACINE, ['--input-type=module', '--eval', source]))
-  assert.deepEqual(vu, ['react-jsx', realpathSync(RACINE)])
+  assert.deepEqual(vu, ['bundler', realpathSync(RACINE)])
 })
 
 test('SDK natif sous win32 : identité ESM/CJS, tiers hôte, configuration disque et SourceFile Windows', (t) => {
