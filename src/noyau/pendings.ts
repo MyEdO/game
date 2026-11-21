@@ -1682,8 +1682,10 @@ export type Cloture =
   | { verbe: 'testRateDeLActeur'; actorId: string; sl: number }
   /** Effets PROGRAMMÉS dus au même pas d'horloge et pas encore joués (`fireScheduledEffects`). */
   | { verbe: 'effetsProgrammes'; restants: ScheduledEffect[] }
-  /** Suite du pas maritime déjà écoulé avant un Effet programmé. */
-  | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number }
+  | { verbe: 'reprendreEntretienDesRounds'; reprise: import('./outOfCombatUpkeep').RepriseEntretienDesRounds }
+  | { verbe: 'reprendreEntretienDeLHorloge'; minutes: number; apresLesRounds?: true }
+  /** Suite du pas maritime déjà écoulé. */
+  | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number; apresLesRounds?: true }
   /** Écran de victoire (`finalizeBattle`), POSÉ après le dé : il ne doit pas s'ouvrir devant lui, et
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }

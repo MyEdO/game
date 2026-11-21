@@ -39,6 +39,7 @@ import type {
   CascadeTableDecl,
   CascadeTableResult,
   OpposedRowFreeze,
+  Cloture,
   StepEvaluation,
   SeuilDeSauvegarde,
 } from './pendings';
@@ -72,14 +73,10 @@ import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
 import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
-import { fireOwnTestFailed } from './triggeredEffects';
 import { seatOwns, tenuParUnHumain } from './sieges';
 import { jouerLaPaireDuJet, TOUT_RESOUDRE } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 import { noterAuProcesVerbal } from './voyageCadence';
-
-/** Le trigger `onOwnTestFailed` d'un Test raté (MSRC 16 l.152), sur le RNG SEEDABLE (`battleRng`). */
-const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] => fireOwnTestFailed(get, actor, { sl, rng: battleRng() });
 
 /**
  * Conséquence d'une étape, appliquée à la VALIDATION. Mute le héros (via get/set), renvoie les
@@ -1052,6 +1049,11 @@ export function idDeLaDernierePoussee(): string | null {
   return fenetreInsertion?.dernier ?? null;
 }
 
+/** Ancre d'une réaction qui rejoint la séquence de l'étape ou du geste en cours. */
+export function ancreDeLaCascade(s: Pick<Jeu, 'pendingCascade'>): PendingCascade['purpose'] | undefined {
+  return fenetreInsertion?.purpose ?? s.pendingCascade?.purpose;
+}
+
 /**
  * La FENÊTRE qui accueille une poussée, ou `null` si elle doit aller au STORE (#1508). DEUX formes
  * d'ancrage, parce que le tableau en cours de validation n'est pas toujours dans le slot :
@@ -1265,27 +1267,23 @@ export function startCascade(
   });
 }
 
-/**
- * SEAM `onOwnTestFailed` d'une étape À PARTICIPANTS — calque EXACT du seam MONO (cf. `commitStep`
- * ci-dessous), joué PAR RANGÉE PERDANTE : le porteur est celui de la rangée (`part.id`), le DR est
- * celui de SON jet. Un effet déclenché sur ce trigger ne connaît pas la forme de la fenêtre — MSRC 16
- * l.152-158 (Crampes abdominales) verbatim : « Lorsqu'un Test se solde par un échec normal ou pire,
- * il se plie en deux de douleur […] et gagne l'État *Sonné*. » Une bande sourde le perdrait pour TOUS
- * ses héros. L'étampe `meta.noOwnTestFailed` coupe la ré-entrance, au niveau de la BANDE comme d'une
- * seule RANGÉE (`BatchParticipant.meta`, jumeau du `meta` d'étape).
- */
-function batchOwnTestFailedLines(get: Get, step: CascadeStep): string[] {
+/** MSRC 16 l.152–158 */
+function echecsDeLEtape(step: CascadeStep): Cloture[] {
   if (step.meta?.noOwnTestFailed) return [];
-  const lines: string[] = [];
-  for (const part of step.participants ?? []) {
-    // `statuQuo` : égalité parfaite d'un Test opposé (LDB 12 l.160) — rien ne s'est passé, ce n'est pas un
-    // Test raté : le trigger d'échec ne part pas. Une ligne non tentable est un échec (LDB 09 l.30 ; #2588 Q1).
-    if (!part.result || part.result.success || (estJete(part.result) && part.result.statuQuo) || part.meta?.noOwnTestFailed) continue;
-    const actor = actorIn(get(), part.id);
-    if (!actor) continue;
-    lines.push(...emettreOwnTestFailed(get, actor, part.result.sl));
+  const interaction = stepInteraction(step);
+  const echecs: Cloture[] = [];
+  const noter = (actorId: string, result: CascadeStep['result']) => {
+    if (!result || result.success || (estJete(result) && result.statuQuo)) return;
+    echecs.push({ verbe: 'testRateDeLActeur', actorId, sl: result.sl });
+  };
+  if (interaction === 'batch') {
+    for (const part of step.participants ?? []) {
+      if (!part.meta?.noOwnTestFailed) noter(part.id, part.result);
+    }
+  } else if (interaction === 'jet' && step.actorId) {
+    noter(step.actorId, step.result);
   }
-  return lines;
+  return echecs;
 }
 
 /** Applique la conséquence d'une étape + ses insertions ; renvoie le tableau d'étapes mis à jour, les
@@ -1360,13 +1358,13 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     const differesAvant = comptePasDifferes(get());
     out = applierDe(step.kind)?.(get, set, step, hero, { steps, index: i });
     pilote.suiteDeLHote?.();
-    const differe = comptePasDifferes(get()) > differesAvant ? OPS_DIFFEREES : undefined;
     // `consequences` (#295 Lot 0) : rendu en LIGNES STRUCTURÉES (#349, `resultLines`) — seule voie de
     // dénouement. Le journal texte reste alimenté depuis le même texte (`l.text`), par le routage
     // UNIQUE `journaliser` : combat ouvert → `battle.log`, sinon `journal`.
     lines = out?.consequences ? resultLines(out.consequences) : [];
     if (out?.dejaDites) assertDejaDitesPorteSesLignes(step, lines);
     else journaliser(get, set, lines.map((l) => l.text), 'information', { actorId: step.actorId });
+    const differe = comptePasDifferes(get()) > differesAvant ? OPS_DIFFEREES : undefined;
     // La CONSÉQUENCE est dite ; la CONTINUATION que l'étape porte (#1508 — le reste du lot/de la pile que
     // son dé a fait attendre) se joue MAINTENANT, jamais avant : c'est ce qui garde l'ordre de l'auteur
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
@@ -1375,27 +1373,12 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // chute) serait faussée par ce que la suite a déjà changé. Un applier qui a poussé une étape qui attend
     // (`differeLaSuite`) la lui CONFIE (`cloturer`) : elle se joue à sa fermeture (#4011). Une suite que
     // l'applier a remise à un autre porteur (`suiteGardee`) n'est plus la sienne.
-    if (!out?.suiteGardee) cloturer(get, set, differe, step.meta?.apresSuite ?? []);
+    cloturer(get, set, differe, [...echecsDeLEtape(step), ...(out?.suiteGardee ? [] : step.meta?.apresSuite ?? [])]);
   } finally {
     insereesParLApplier = fenetreInsertion?.inseres ?? [];
     bornes = fenetreInsertion?.bornes ?? null;
     fenetreInsertion = fenetreAvant;
   }
-  // SEAM CENTRAL `onOwnTestFailed` (tests DIFFÉRÉS d'entretien + tests déclenchés de combat en cascade) :
-  // toute étape à JET RATÉ (`faim`/`recuperation`/`maladie-test-quotidien`/`maladie-persistance`/`convalescence-fracture`/`contagion`/
-  // `testDeclenche`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
-  // `meta.noOwnTestFailed` (posée sur le FM de palier 2 des Crampes) coupe la ré-entrance. Sous-Test du FM
-  // résolu INLINE (pas de `set` threadé : ouvrir une cascade IMBRIQUÉE dans un commitStep serait fragile).
-  // Une BANDE émet PAR RANGÉE PERDANTE (`batchOwnTestFailedLines`) : le trigger est dû au Test, pas à la
-  // forme de la fenêtre — SOURCE UNIQUE ici pour les deux formes, jamais un second site par applier.
-  const interaction = stepInteraction(step);
-  // L'acteur se relit par son id après l'applier : l'écriture a pu le remplacer (`noyau/transitionDuJeu.ts`).
-  const acteur = step.actorId ? actorIn(get(), step.actorId) : undefined;
-  const ownTestFailedLines = interaction === 'batch'
-    ? batchOwnTestFailedLines(get, step)
-    : ((interaction === 'jet' && step.result && !step.result.success && !(estJete(step.result) && step.result.statuQuo) && acteur && !step.meta?.noOwnTestFailed)
-      ? emettreOwnTestFailed(get, acteur, step.result.sl) : []);
-  journaliser(get, set, ownTestFailedLines, 'information', { actorId: step.actorId });
   // L'étape VALIDÉE garde sa conséquence (`outcome`) pour rester LISIBLE dans la pile à l'écran. Une
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le
   // PRÉSERVE (sinon le journal vide l'effacerait à la validation).
@@ -1453,7 +1436,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   const aOuvertOuEtendu = (after !== null && after !== before) || pile.length > rangDeParcage;
   // Les BORNES des fragments collectés (`startCascade` sous fenêtre) : le pilote les fusionne à SON
   // écriture du slot, comme l'append hors fenêtre les fusionne au store (`startCascade`).
-  return { steps: next, journal: [...traces, ...lines.map((l) => l.text), ...ownTestFailedLines], suspended, parked, rangDeParcage, aOuvertOuEtendu, seq: seqBase + insereesParLApplier.length, bornes };
+  return { steps: next, journal: [...traces, ...lines.map((l) => l.text)], suspended, parked, rangDeParcage, aOuvertOuEtendu, seq: seqBase + insereesParLApplier.length, bornes };
 }
 
 /** Le RANG qui suit la dernière entrée ANTÉRIEURE à l'applier dans la pile de sortie (`0` si aucune ne l'est) :
@@ -1848,8 +1831,8 @@ function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: 
   return { ...p, ...fusionnerLesBornes(p, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length };
 }
 
-/** « Tout résoudre » roule-t-il cette rangée de bande au siège qui décide (`decidingSeat`) ? L'hôte, toutes ; un autre
- *  siège, celles qu'il influence (`influencesLocally`). #1273 */
+/** « Tout résoudre » roule-t-il au siège qui décide (`decidingSeat`) ? L'hôte, tous les tirages ; un autre
+ *  siège, ceux qu'il influence (`influencesLocally`). #1273 */
 export function resoutLaRangeeIci(s: Jeu, id: string): boolean {
   return seatOwns(s, decidingSeat(s), undefined) || influencesLocally(s, id);
 }
@@ -1877,7 +1860,15 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
   let fondu: PendingCascade = p; // les bornes des fragments collectés par les appliers
   for (let i = p.cursor; i < steps.length; i++) {
     const st = steps[i];
-    if (stepInteraction(st) === 'jet' && !st.result) {
+    const interaction = stepInteraction(st);
+    if (interaction === 'jet' || interaction === 'table' || interaction === 'de') {
+      const porteur = porteurDe(st);
+      if (surfaceOf(get, porteur) && !resoutLaRangeeIci(get(), porteur)) {
+        set({ pendingCascade: curseurPose(get, { ...fondu, participants: steps, seq, log }, i) });
+        return null;
+      }
+    }
+    if (interaction === 'jet' && !st.result) {
       const result = roulerDeEtape(st.target!, battleRng(), st.evaluation);
       steps = steps.map((x, k) => (k === i ? { ...x, result } : x));
     }

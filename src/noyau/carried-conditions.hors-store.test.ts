@@ -126,6 +126,20 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     expect(banc.getState().battle!.log.map((l) => l.text).join(' | ')).toContain('gagne l’État Aveuglé');
   });
 
+  it('Mâchoires d’acier résolu automatiquement laisse le Sonné porté par Chamon', () => {
+    const porteur = vue(cible.id);
+    porteur.aiControlled = true;
+    porteur.characteristics.endurance = 90;
+    porteur.talents = [{ talentId: 'machoires-d-acier', times: 1 }];
+    seedBattleRng(8);
+
+    lancerChamon(mage, porteur);
+
+    expect(stacks(vue(cible.id), 'sonne')).toBe(1);
+    expect(derivedStacks(vue(cible.id), 'sonne')).toBe(1);
+    expect(banc.getState().battle!.log.map((l) => l.text).join(' | ')).toContain('Résistance');
+  });
+
   it('les trois tiennent Round après Round, puis partent TOUS le Round où le Sort expire', () => {
     lancerChamon(mage, cible);
     for (const tour of [1, 2]) {
