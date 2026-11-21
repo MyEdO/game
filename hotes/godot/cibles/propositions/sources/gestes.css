@@ -286,12 +286,13 @@ html,body{margin:0;background:var(--noir)}
 .croix{position:absolute;right:22px;top:18px}
 /* quitter un lieu : la pastille de retour, 30 / 34 du coin bas-gauche, son libellé au-dessus d'elle */
 .retour{position:absolute;left:30px;bottom:34px;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:6px}
-.retour span{max-width:124px;font-size:14.5px;line-height:18px;color:var(--ivoire)}
+/* le libellé d'une sortie ou d'un écran à ouvrir a sa boîte, quelle que soit sa longueur : deux lignes posées sur le rond */
+.retour span{width:124px;height:36px;display:flex;align-items:flex-end;font-size:14.5px;line-height:18px;color:var(--ivoire)}
 /* hors combat : le journal et le système, 30 / 23 du coin bas-droit */
 #coins{position:absolute;right:30px;bottom:23px;display:flex;flex-direction:column;justify-content:flex-end;gap:14px}
 /* ouvrir un écran posé sur celui-ci : la pastille du bord droit, à 24 */
 .ouvrir{position:absolute;right:24px;display:flex;align-items:center;justify-content:flex-end;gap:11px}
-.ouvrir span{font-size:13.5px;color:var(--ivoire);white-space:nowrap}
+.ouvrir span{flex:none;width:124px;text-align:right;font-size:13.5px;color:var(--ivoire);white-space:nowrap}
 /* l'action de coin, qui concerne tout l'écran : une pile de plaques moyennes, 24 / 28 du coin bas-droit, la principale
    au-dessus */
 .action-de-coin{position:absolute;right:24px;bottom:28px;width:136px;display:flex;flex-direction:column;gap:9px}

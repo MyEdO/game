@@ -174,6 +174,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   rôle essentiel du Test de Progression, compte double (MDG 14 l.17-32, l.61-65) ; `src/noyau/shipCrew.ts:87`.
 - À valider : la place de chaque poste sur la silhouette ; les rôles tenus par les marins montrés en médaillon sans
   portrait ; le billet du rôle visé ; le rôle de chaque héros rappelé sur sa carte.
+- À valider (#4585) : chaque poste a 148 px de large au moins et une tête de la hauteur d'un portrait, que le poste
+  soit tenu ou vide : l'étiquette ne monte ni ne s'élargit quand un héros le prend, les tenants centrés sur la largeur
+  du poste (même gabarit aux postes de la nuit, `lieux-et-nuit.md`).
 
 ## postes-de-bord-station
 - Même écran que `postes-de-bord`. Bjorn est au poste « Repos » (aucun rôle, `affecterAuRoleABord(crewId, null)`),

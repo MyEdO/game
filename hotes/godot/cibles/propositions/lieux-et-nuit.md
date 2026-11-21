@@ -69,6 +69,8 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
   du livre ; le barbier n'est qu'à la Fin du Voyage ; tenancier et maître d'hôtel anonymes, leurs répliques sont des
   exemples ; un avis par risque, sans pictogramme propre ; le ruban de l'hôte, « La nuit et le repas », libellé neuf
   repris du service `nuit` du rail de la même maison.
+- À valider (#4585) : chaque poste de la scène a 148 px de large au moins et une tête de la hauteur d'un portrait,
+  tenu ou vide : l'étiquette ne bouge plus quand un héros prend le poste, les tenants centrés sur la largeur du poste.
 
 ### jeux-de-taverne
 - La même maison, service « Les jeux » : la table sous sa lanterne, trois joueurs PNJ, la place libre ; l'Al-zahr,

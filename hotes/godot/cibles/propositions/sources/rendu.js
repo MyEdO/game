@@ -1219,7 +1219,7 @@
   const ICONE_DU_COMMERCE = { halle: 'panier', quai: 'ancre', relais: 'lit' };
   const commerce = (c) => [
     titreDuLieu(c.titre, ICONE_DU_COMMERCE[c.decor]),
-    ...(c.recit ? [`<div id="recit" class="${c.arrivee ? 'lieu' : ''}" data-piece="recit">${c.arrivee ? `<div class="r rubrique ombre">Arrivée à ${echapper(c.arrivee.lieu)} · Voyage de ${c.arrivee.heures} h.</div>` : ''}<p class="ombre" data-texte="recit">${echapper(c.recit)}</p></div>`] : []),
+    ...(c.recit ? [`<div id="recit" class="${c.arrivee ? 'lieu' : ''}" data-piece="recit"><div class="r rubrique ombre">${c.arrivee ? `Arrivée à ${echapper(c.arrivee.lieu)} · Voyage de ${c.arrivee.heures} h.` : ''}</div><p class="ombre" data-texte="recit">${echapper(c.recit)}</p></div>`] : []),
     ...(c.rail ? [railDu(c.rail)] : []),
     ...(c.rumeur ? [`<div id="rumeur" class="parchemin" data-piece="note"><i class="clou"></i><div class="r">${echapper(c.rumeur.titre)}</div><p data-texte="rumeur">${echapper(c.rumeur.texte)}</p></div>`] : []),
     `<div id="scene-du-commerce" class="${c.decor}${c.carte && !c.carte.trajet ? ' en-deux' : ''}" data-piece="${c.carte && !c.carte.trajet ? 'hotes-en-deux' : 'hotes'}">${c.scene.map((h) => HOTES_DU_COMMERCE[h.role](h, c.carte && !c.carte.trajet ? 226 : largeurDe(h))).join('')}</div>`,
@@ -1291,8 +1291,8 @@
   const touche = (t) => `<kbd class="touche chiffres">${t}</kbd>`;
   const regardDu = (r) => `<div id="regard" class="cadre bois" data-piece="regard"><div class="fond bois"><span class="rubrique">Regard</span>${segments(Object.values(REGARDS), REGARDS[r])}${touche(TOUCHES.regard)}</div></div>`;
   /* le journal hors combat, au bord droit au-dessus du bandeau ou de la fenêtre du bas : la ligne neuve en dernier */
-  const journalDu = (lignes) => `<div id="fil" data-piece="journal"><div class="tete rubrique ombre">Journal</div>${lignes.map((l, k) => (typeof l === 'string'
-    ? `<p class="${k === lignes.length - 1 ? '' : 'vieux '}ombre">${echapper(l)}</p>` : `<p class="moment ombre">${echapper(l.moment)}</p>`)).join('')}</div>`;
+  const journalDu = (lignes) => `<div id="fil" data-piece="journal"><div class="tete rubrique ombre">Journal</div>${defile(lignes.map((l, k) => (typeof l === 'string'
+    ? `<p class="${k === lignes.length - 1 ? '' : 'vieux '}ombre">${echapper(l)}</p>` : `<p class="moment ombre">${echapper(l.moment)}</p>`)).join(''), 'au-pied')}</div>`;
   /* ce qui est à portée sur la scène, à son point (`pointDe`, `exploration-et-recit/scene.js`) : sa marque ; survolée, ce
      qu'on en sait et son geste, l'aperçu du côté où l'écran a la place ; signalée, son nom et son geste en poste */
   const marqueDe = (c, [x, y]) => `<div class="marque" data-piece="marque ${echapper(c.nom)}"${mobile('scene')} style="left:${x}px;top:${y}px">${medaillon(PICTO_DU_GESTE_DE_SCENE[c.geste.id], { taille: 'petit' })}</div>`;

@@ -328,6 +328,8 @@ exemple.
   défense ; ni Chance ni Résilience, le jet étant celui de l'armée ; les Scènes quittent le champ une fois le Round
   joué ; chiffres d'exemple (50 et 55 au départ, bonus de +10 au premier Round, 48 après les Scènes, dés 31 et 67) ;
   la Menace (`batailleEnVue.menace`) n'est pas montrée, l'exemple n'en ayant pas.
+- À valider (#4585) : le milieu du contenant a la largeur de celui de l'issue (360 px), les deux armées la même place
+  d'un état à l'autre.
 
 ## course-poursuite-en-mer
 - La traversée continue, sur l'écran du voyage en mer : la Cogue pirate dans le sillage, la Distance en frise de 0

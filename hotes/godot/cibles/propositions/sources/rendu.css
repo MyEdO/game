@@ -140,13 +140,12 @@
 #panneau .t{margin:2px 0 6px;font-size:12px;color:var(--creme-2)}
 .jouera.joue span{color:#eadfc4}
 .poste.scene{width:230px}
-.scene .postes-de-scene{display:flex;align-items:center;gap:6px;z-index:1}
+.scene .postes-de-scene{align-self:stretch;min-height:58px;display:flex;justify-content:center;align-items:center;gap:6px;z-index:1}
 .scene .et{width:100%;padding:8px 12px 9px}
 .scene .et span.position{color:var(--or)}
 .scene .et .plaque{margin-top:7px}
 .scene .et .plaque>div{font-size:12.5px}
-#epreuve .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
-#epreuve.issue .fond{grid-template-columns:1fr 360px 1fr}
+#epreuve .fond{display:grid;grid-template-columns:1fr 360px 1fr;padding:22px 20px 0}
 .ost{display:flex;align-items:center;gap:14px;height:108px}
 .ost.droite{flex-direction:row-reverse;text-align:right}
 .ost .n{font-family:"Grenze Gotisch";font-weight:600;font-size:21px;line-height:24px;color:#3a1a10;white-space:nowrap}

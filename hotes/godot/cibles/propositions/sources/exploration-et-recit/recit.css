@@ -3,7 +3,8 @@
 #ecran{background:#07080d}
 
 /* le journal hors combat : ses dernières lignes, la plus récente en bas */
-#fil{position:absolute;text-align:right}
+#fil{position:absolute;display:flex;flex-direction:column;text-align:right}
+#fil .defile{flex:1}
 #fil .tete{font-size:13.5px;color:var(--ivoire);margin-bottom:6px}
 #fil p{margin:0 0 5px;font-style:italic;font-size:14.5px;line-height:19px;color:var(--creme)}
 #fil p.vieux{color:var(--creme-2)}

@@ -5,7 +5,7 @@
 #trajet .fond{overflow:hidden}
 #trajet .fond>svg{position:absolute;inset:0;width:100%;height:100%}
 #frise{position:absolute}
-#frise .reste{position:absolute;right:10px;top:-14px;font-size:14px;color:#f0e2c2;white-space:nowrap}
+#frise .reste{position:absolute;right:10px;top:-14px;width:300px;text-align:right;font-size:14px;color:#f0e2c2;white-space:nowrap}
 #frise .reste b{font-size:22px}
 #titre.temps~#recit{top:144px}
 .ligne{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;line-height:23px;color:#eadfc4}

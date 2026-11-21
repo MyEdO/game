@@ -92,6 +92,8 @@ bandeau de jet opposé est celui du combat.
   (devis de chantier, réparation, carénage).
 - À valider : le port dessiné comme un lieu, ses services en cartouches plutôt qu'en liste ; l'état du navire lu sur le
   navire ; les départs en mer sur la carte du lieu ; un seul cartouche déplié à la fois.
+- À valider (#4585) : le récit garde la ligne de sa rubrique, vide hors d'une arrivée : son texte part du même y qu'à
+  l'arrivée (`voyage.md`).
 
 ## port-negoce
 - Page « Services du port » ouverte sur « Négoce de cargaison » (rail : Négoce de cargaison, Chantier naval,
