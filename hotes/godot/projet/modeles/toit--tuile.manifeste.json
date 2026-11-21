@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "toit",
+  "cle": {
+    "kit": "tuile"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "tuile",
+      "palette": "corps",
+      "matiere": "prop--terre-cuite"
+    },
+    {
+      "nom": "mortier",
+      "palette": "joint",
+      "matiere": "prop--pierre-atre"
+    }
+  ],
+  "glb": {
+    "sha256": "1f6b36cc7cf75fbc4ae8b6cadd2b1cef17530fcfa292592b17cbfb40a838f687",
+    "octets": 18416
+  }
+}

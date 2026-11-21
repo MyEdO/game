@@ -4,12 +4,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
 import { cheminAbsent, correspondGlob, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
-import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { canoniser, canoniserParDossier, dansLaMesure, memoireDeCanonisation, projeterListingMesure, relatifEntreCheminsCanoniques } from './chemin-mesure.mjs'
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { sousLEpoque } from './ecrivain-derives.mjs'
-import { clotureDImports } from '../../guards/lib/importGraph.mjs'
+import { clotureDImports, estModule } from '../../guards/lib/importGraph.mjs'
+import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs'
 
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
@@ -20,7 +21,7 @@ const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
 const OUTILS = ['package.json', 'package-lock.json']
 const PRECHARGES = ['scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
 const LIB_DES_DOCS = 'scripts/docs/lib'
-const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => rel.endsWith('.mjs') && !rel.endsWith('.test.mjs') })
+const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => estModule(rel) && !estSuiteVitest(rel) })
   .map((rel) => `${LIB_DES_DOCS}/${rel}`)
 
 /** #2603 */
@@ -34,9 +35,9 @@ function mesurerOutillage(ancien, memoire) {
   return [...fichiersDOutillage()].sort().map((rel) => [rel, hashFichier(RACINE_OUTILLAGE, rel, undefined, memoire)])
 }
 
-/** #2603 — la mémoire d'UNE vue : `canoniseurParDossier` et chemins sous la racine. */
+/** #2603 — la mémoire d'UNE vue : `canoniserParDossier` et chemins sous la racine. */
 function memoireDeVue() {
-  return { canon: canoniseurParDossier(), chemins: new Map() }
+  return { canon: memoireDeCanonisation(), chemins: new Map() }
 }
 
 export function nouvelleVue(racine, options, preuve = chargerPreuve(racine), mesures = lireMesure(racine, options, true), outillagePrecedent, perimetre = perimetreDeMesure(racine)) {
@@ -110,8 +111,9 @@ function cheminSous(racine, relatif, memoire, lien) {
   const connu = memoire?.chemins.get(cle)
   if (connu !== undefined) return connu
   const absolu = cheminLexical(racine, relatif)
-  const canonRacine = memoire ? memoire.canon(racine) : canoniser(racine)
-  if (relatifSousRacine(canonRacine, absolu, memoire && ((chemin) => memoire.canon(chemin, lien))) !== relatif) throw new Error('chemin de preuve hors racine')
+  const canonRacine = memoire ? canoniserParDossier(racine, memoire.canon) : canoniser(racine)
+  const canonAbsolu = memoire ? canoniserParDossier(absolu, memoire.canon, lien) : canoniser(absolu)
+  if (relatifEntreCheminsCanoniques(canonRacine, canonAbsolu) !== relatif) throw new Error('chemin de preuve hors racine')
   memoire?.chemins.set(cle, absolu)
   return absolu
 }
@@ -297,7 +299,8 @@ export function avantGenerateur(racine, g, options, preparation) {
 export function certifierGenerateur(racine, g, entree, options, avant) {
   try {
     const preuve = { version: 2, generateurs: { [g.script]: { mesure: entree, sources: { contexte: avant.contexte } } } }
-    const vue = photographier(racine, options, preuve, {}, undefined, perimetreDeMesure(racine), undefined, g)
+    const capturer = () => photographier(racine, options, preuve, {}, undefined, undefined, undefined, g)
+    const vue = capturer()
     const sources = mesurerSources(racine, g, entree, options, vue)
     if (!egaux(sources.contexte, avant.contexte)) throw new SourceModifiee('outillage modifié pendant génération')
     const anciensFichiers = avant.baseline.fichiers
@@ -312,11 +315,10 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
       if (!anciensDossiers.has(rel)) throw new Error(`listing non capturé : ${rel}`)
       if (!egaux(projeterListingMesure(rel, anciensDossiers.get(rel), avant.baseline.ignores, avant.baseline.derivees, propres, motifsDeclares), noms)) throw new SourceModifiee(`listing modifié : ${rel}`)
     }
-    const deriveesMesurees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
-    const sondesMesurees = (entree.sondes ?? []).filter((q) => dansLaMesure(q.chemin, vue.ignores, deriveesMesurees, motifsDeclares))
+    const sondesMesurees = (entree.sondes ?? []).filter((q) => vue.admis(q.chemin))
     if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, sondesMesurees)) throw new SourceModifiee('requête ou sonde modifiée pendant génération')
     const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options, vue) }
-    const finale = photographier(racine, options, preuve, {}, undefined, undefined, undefined, g)
+    const finale = capturer()
     const ignores = finale.ignores
     const derivees = new Set(finale.cibles.get(JSON.stringify(options.generateurs.flatMap((g) => g.targets))))
     const parents = new Set()

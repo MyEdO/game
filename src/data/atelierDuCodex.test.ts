@@ -7,6 +7,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { designations, enregistrerEntree, supprimerEntree } from './atelierDuCodex';
 import { reperesDuParse } from './schemas/grammaire/ref';
+import { rangee } from './schemas/defs/mutationTables';
+import { validateDataset } from './schemas/validate';
 import { projetSchema } from './schemas/defs-scenes/projet';
 import { versDisque } from './schemas/grammaire/prose';
 import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
@@ -393,6 +395,59 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
   });
 });
 
+describe('mutationTables — références et couverture dans la transaction de l’atelier', () => {
+  const fichier = 'mutationTables.json';
+  const premierId = 'premiere-mutation-3915';
+  const secondId = 'seconde-mutation-3915';
+  const table = {
+    id: 'table-de-corruption-3915',
+    type: 'mutationTables' as const,
+    label: 'Table de test',
+    maison: 'Table de test',
+    die: { n: 1, sides: 20 },
+  };
+  const rangs = [
+    { id: premierId, min: 1, max: 10 },
+    { id: secondId, min: 11, max: 20 },
+  ];
+
+  beforeEach(() => {
+    const mutations = [premierId, secondId].map((id) => ({
+      id, type: 'mutations' as const, label: id, maison: 'Mutation de test', desc: 'Mutation de test.', kind: 'physique' as const,
+    }));
+    setDataset('mutations', [...datasetArray('mutations'), ...mutations]);
+    setDataset('mutationTables', [...datasetArray('mutationTables'), { ...table, entries: rangs.map((r) => rangee.parse(r)) }]);
+  });
+  afterEach(() => resetData());
+
+  it.each([
+    ['un identifiant absent du catalogue', [{ ...rangs[0], id: 'mutation-3915-inexistante' }, rangs[1]], /mutation-3915-inexistante.*absent du catalogue des mutations/],
+    ['une borne basse hors du dé', [{ ...rangs[0], min: 0 }, rangs[1]], /commence à 0 au lieu de 1/],
+    ['un trou entre deux rangées', [rangs[0], { ...rangs[1], min: 12 }], /commence à 12 au lieu de 11/],
+    ['un chevauchement entre deux rangées', [rangs[0], { ...rangs[1], min: 10 }], /commence à 10 au lieu de 11/],
+    ['deux bornes fractionnaires consécutives', [{ ...rangs[0], max: 9.5 }, { ...rangs[1], min: 10.5 }], /entier attendu/],
+  ] as const)('refuse %s au schéma et restaure l’entrée', (_cas, entries, erreur) => {
+    const index = datasetArray('mutationTables').length - 1;
+    const avant = datasetArray('mutationTables')[index];
+    const editee = { ...table, entries };
+    expect(validateDataset(fichier, [avant])).toBeNull();
+    expect(validateDataset(fichier, [editee])).toMatch(erreur);
+    const resultat = enregistrerEntree('mutationTables', editee, index);
+    if (resultat.ok) resultat.reprendre();
+    expect(resultat).toEqual({ ok: false, erreurs: expect.arrayContaining([expect.stringMatching(erreur)]) });
+    expect(datasetArray('mutationTables')[index]).toBe(avant);
+  });
+
+  it('désigne la mutation par son catalogue et protège son retrait', () => {
+    const designe = designations('mutations', premierId, []);
+    expect(designe).toEqual([expect.stringContaining(`${fichier} › élément « ${table.id} »`)]);
+    const mutations = datasetArray('mutations').slice();
+    const index = mutations.findIndex((m: { id: string }) => m.id === premierId);
+    expect(supprimerEntree('mutations', index, []).ok).toBe(false);
+    expect(datasetArray('mutations')).toEqual(mutations);
+  });
+});
+
 describe('designations et supprimerEntree — ce qui désigne une entrée, et son retrait (#4020)', () => {
   afterEach(() => resetData());
   const niveau = () => datasetArray('careerLevels')[0];
@@ -415,16 +470,6 @@ describe('designations et supprimerEntree — ce qui désigne une entrée, et so
     expect(enregistrerEntree('talents', { ...base, id: 'talent-accorde', label: 'Talent accordé' }, -1).ok).toBe(true);
     expect(enregistrerEntree('talents', { ...base, id: 'talent-qui-accorde', label: 'Talent qui accorde', passive: [{ op: 'grantTalent', talent: { id: 'talent-accorde' } }] }, -1).ok).toBe(true);
     expect(designations('talents', 'talent-accorde', []).filter((d) => d.startsWith('talents.json › élément « talent-qui-accorde » › '))).toHaveLength(1);
-  });
-
-  it('une chaîne qu’aucun schéma ne type désigne l’entrée de même id : la mutation qu’une table de mutations tire', () => {
-    const rangee = datasetArray('mutationTables').flatMap((t) => t.entries).find((r) => r.mutation !== undefined)!;
-    const par = designations('mutations', rangee.mutation!, []);
-    expect(par.filter((d) => d.startsWith('mutationTables.json › ')).length).toBeGreaterThan(0);
-    const index = datasetArray('mutations').findIndex((m) => m.id === rangee.mutation);
-    const mutations = datasetArray('mutations').slice();
-    expect(supprimerEntree('mutations', index, []).ok).toBe(false);
-    expect(datasetArray('mutations')).toEqual(mutations);
   });
 
   it('une référence typée vers un autre espace qui porte le même id ne désigne pas', () => {

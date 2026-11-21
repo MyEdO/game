@@ -74,7 +74,6 @@ export type BattleTestModPool = Extract<BattleOutcomeTarget, 'allyTestMod' | 'fi
  *  `armyMight` = Puissance courante des deux armées (ADE II 8 l.71). Une mesure de plus s'ajoute ici et
  *  dans son résolveur, jamais un mot-clef par Activité. */
 export type BattleMeasure = 'armyMight';
-export type BattleOutcomeScale = 'fixed' | 'perDR' | 'perHit' | 'perKill';
 export type BattleOutcome = NonNullable<OutcomeBand['battle']>[number];
 
 /** Issue de PORTÉE ÉTAPE (Activité de voyage EDOC 8 OU Rencontre EDOC) — effet qui ne porte PAS sur
@@ -149,10 +148,6 @@ export type ResolverOf<O extends ResolverOwner> =
 /** Les membres d'`ActivityResolver` à l'EXÉCUTION (listes déroulantes du Codex, gardes) — DÉRIVÉS de
  *  `RESOLVER_OWNER`, jamais une seconde liste à tenir à jour. */
 export const ACTIVITY_RESOLVERS: readonly ActivityResolver[] = Object.keys(RESOLVER_OWNER) as ActivityResolver[];
-
-/** Résolveurs d'une famille, à l'EXÉCUTION (sélecteur du Codex filtré par contexte, gardes). */
-export const resolversOwnedBy = (owner: ResolverOwner): ActivityResolver[] =>
-  ACTIVITY_RESOLVERS.filter((r) => RESOLVER_OWNER[r] === owner);
 
 /** Bande d'ISSUE par Degrés de Réussite d'une Activité (tables « DR → résultat », ACE 12 l.31-65) :
  *  bornes de DR INCLUSIVES ; `on` distingue ±0 (« +0 à +1 » = succès / « −0 à −1 » = échec, comme les

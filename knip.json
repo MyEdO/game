@@ -1,16 +1,15 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "index.html",
     "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "hotes/**/*.hors-store.test.ts",
+    "hotes/**/*.test.ts",
     "scripts/**/*.{mjs,mts,ts}",
     "!scripts/test/lib/**",
     "src/**/*.generated.ts",
     "src/hoteTexte/serveur.ts",
     "hotes/godot/pont/entree.ts",
-    "hotes/godot/recettes/*.ts"
+    "hotes/godot/recettes/*.ts",
+    "hotes/godot/cibles/propositions/sources/rendre.mjs"
   ],
   "project": [
     "src/**/*.{ts,tsx}",

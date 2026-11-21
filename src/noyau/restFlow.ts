@@ -20,7 +20,9 @@
  *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon `activeExposureSeverity` (combatFlow) ;
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
+import type { z } from 'zod';
 import type { IconId } from '../data/icons';
+import type { restPlacesSchema } from '../data/schemas/defs-scenes/scene';
 import type { Combatant } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
 import type { RecapTone } from './recapLine';
@@ -71,7 +73,9 @@ import { activeExposureSeverity } from './combatFlow';
 import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
 
-export type RestKind = 'auberge' | 'maison' | 'camp';
+type SceneRestPlaces = z.output<typeof restPlacesSchema>;
+
+export type RestKind = keyof SceneRestPlaces;
 /** Une offre de chambre d'auberge. */
 export type OffreDeChambre = 'chambre' | 'grande';
 /** Une chambre d'auberge de la nuit, `<offre>-<numéro>` (`lireLaChambre`). */
@@ -84,12 +88,8 @@ export type RestFood = 'repas' | 'ration' | 'maison' | 'rien';
 
 /** Lieux de repos OFFERTS par le contexte (scène, effet, halte de voyage) — combinables :
  *  un village peut offrir l'auberge ET le camp ; chaque héros choisit ENSUITE le sien. */
-export interface RestPlaces {
-  auberge?: boolean;
-  maison?: boolean;
-  camp?: boolean;
-  /** À bord du navire de campagne (hamacs/quartiers, MDG 03 l.71 · 09 l.87) — couchage ABRITÉ (pas
-   *  d'Exposition de plein air) ; en mer c'est le seul couchage (l'offre `camp`/`dehors` s'efface). */
+export interface RestPlaces extends SceneRestPlaces {
+  /** MDG 03 l.71 · 09 l.87 */
   bord?: boolean;
 }
 

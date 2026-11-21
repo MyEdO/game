@@ -11,7 +11,8 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { effectiveChar } from '../engine/characteristics';
+import { effectiveArmourAt, effectiveChar } from '../engine/characteristics';
+import { recomputeLoadout } from '../engine/items';
 import { liveMorphRef } from '../engine/polymorph';
 import { hasTraitKey } from '../engine/traits/dispatch';
 
@@ -61,12 +62,17 @@ describe('manoeuvrerSurSoi — Métamorphose (activation joueur)', () => {
   it('toggle : reprendre la forme humaine restaure le profil de base', () => {
     const { H } = setup();
     const cc0 = effectiveChar(H, 'capacite-de-combat'), dex0 = effectiveChar(H, 'dexterite');
+    const pa0 = effectiveArmourAt(H, 'corps');
     banc.getState().manoeuvrerSurSoi('forme-hybride-ulric');
+    expect(effectiveArmourAt(live(H.id), 'corps')).toBe(pa0 + 2);
+    recomputeLoadout(live(H.id));
+    expect(effectiveArmourAt(live(H.id), 'corps')).toBe(pa0 + 2);
     banc.setState({ battle: { ...banc.getState().battle!, acted: false } }); // tour suivant
     banc.getState().manoeuvrerSurSoi('forme-humaine-ulric');
     const h = live(H.id);
     expect(effectiveChar(h, 'capacite-de-combat')).toBe(cc0);
     expect(effectiveChar(h, 'dexterite')).toBe(dex0);
+    expect(effectiveArmourAt(h, 'corps')).toBe(pa0);
     expect(hasTraitKey(h.traits, 'peur')).toBe(false);
     expect(liveMorphRef(h)).toBeUndefined();
     expect(applicableIds(h)).toEqual(['forme-hybride-ulric']); // de retour hors de la forme

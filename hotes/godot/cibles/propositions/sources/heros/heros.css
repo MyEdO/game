@@ -100,6 +100,17 @@
 .pill b{font-size:10.5px}
 .filigrane{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);opacity:.5}
 
+/* ───────── création : la colonne du choix, ses places (`choix/*`, `../rendu.js`) ───────── */
+#choix .place{display:flex;flex-direction:column}
+#choix .place>.filet:first-child{margin:4px 26px 5px}
+#choix .tete-l{flex:none;height:28px;margin:0 0 4px}
+#choix .tete-l>.plaques{margin-top:0}
+#choix .place>.defile{flex:1}
+#choix .defile>*{flex:none}
+#choix .tirage{flex:none;height:72px}
+#choix .comptes:first-child{margin-top:0}
+#choix .ligne-ecrite{margin-top:0}
+
 /* ───────── création : les Caractéristiques ───────── */
 .methodes .jeton{margin-left:auto}
 .tirage-c{display:flex;align-items:center;gap:10px;height:44px;margin-top:4px}
@@ -190,9 +201,9 @@
 .plaques{display:flex;gap:8px;margin-top:5px}
 .plaques .plaque{flex:1}
 .physique{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:6px}
-.mesure{display:flex;align-items:center;gap:11px}
-.mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
-.mesure .rub .note{font-size:11.5px}
+.physique .mesure{display:flex;align-items:center;gap:11px}
+.physique .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
+.physique .mesure .rub .note{font-size:11.5px}
 .ligne-ecrite{align-self:stretch;margin-top:9px}
 .ligne-ecrite .ecrit{margin-top:2px;height:30px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid var(--trait-encre);font-family:"Fell";font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
 .ligne-ecrite.saisi .ecrit{border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour);padding:0 8px 2px}
@@ -208,6 +219,9 @@
 .ident .tete .faits{margin-top:10px}
 .ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 5px}
 .ident .bl .chiffres{font-size:14px;color:var(--encre)}
+.ident [data-place="identite/reserves"]{display:flex;flex-direction:column}
+.ident [data-place="identite/reserves"]>.reserves{flex:1;align-content:start}
+.ident .reserve .rub{white-space:normal}
 .reserves{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
 .reserve{display:flex;align-items:center;gap:9px}
 .motivation{margin-top:2px;font-family:"Fell";font-style:italic;font-size:16px;line-height:21px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
@@ -216,7 +230,7 @@
 .presentation .competences .ligne{height:24px;padding:0 2px;font-size:13.5px}
 .presentation .competences .ligne small{font-size:12px}
 .presentation .page-c>.rub{margin:8px 0 3px}
-.presentation .reserves{row-gap:6px}
+.ident .en-reserve{justify-content:space-between}
 .presentation .filet{margin:6px 26px}
 .bourse-px{display:flex;align-items:center;gap:13px;margin-top:12px}
 .bourse-px .px{flex:none;min-width:84px;height:48px;padding:3px;border-radius:26px;box-shadow:0 3px 7px var(--brou),0 0 0 1px var(--contour)}
@@ -226,12 +240,12 @@
 .exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"Fell";font-size:14px;line-height:17px;color:var(--encre)}
 .exige>span:not(.cpt){flex:1;min-width:0}
 .exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
-.ident .pied{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.ident .pied{display:flex;flex-direction:column;gap:7px;height:100%}
 .ident .pied .rub{white-space:normal}
 .acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
 /* ───────── la fiche : le profil, la figure, les sections ───────── */
-.bande>.fond{display:grid;grid-template-columns:repeat(12,1fr);padding:0 6px}
+.bande>.fond{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));padding:0 6px}
 .bande .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:14px}
 .bande .c+.c{border-left:1px solid var(--filet-encre)}
 .bande .c .ab{font-family:"Fell SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
@@ -240,8 +254,10 @@
 .bande .c .jeton{margin-top:1px;height:19px;font-size:10.5px;padding:0 6px}
 .bande .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
 .bande .c>*{position:relative}
-/* la bande tient dans ses 96 : l'augmentation se pose au coin haut-droit de la valeur */
-.bande .c .aug{position:absolute;top:32px;right:6px;height:auto}
+/* la bande tient dans ses 96 : l'augmentation se pose au coin haut-droit de la valeur, la valeur décalée d'autant pour
+   que les deux tiennent dans le cadre de laiton d'une case de carrière */
+.bande .c .v{margin-right:16px}
+.bande .c .aug{position:absolute;top:32px;left:calc(50% + 9px);height:auto}
 .niche{flex:none;width:100%;height:100%;padding:4px;border-radius:2px;box-shadow:0 4px 10px var(--ombre),0 0 0 1px var(--contour)}
 .niche>div{width:100%;height:100%;background:radial-gradient(90% 70% at 50% 34%,#eadbb4,#d3bf90 60%,#b9a070);box-shadow:inset 0 0 0 1px var(--ombre),inset 0 0 22px var(--brou)}
 .niche svg{display:block;width:100%;height:100%}
@@ -315,6 +331,8 @@
 .achat.hors{border-bottom:0;color:var(--encre-2)}
 .achat.hors>.n{color:var(--encre-2)}
 .achat svg{flex:none}
+#competences>.fond{display:flex;flex-direction:column}
+#competences>.fond>.defile{flex:1}
 .depli{display:flex;align-items:flex-end;gap:10px;padding:6px 4px 7px 26px;border-bottom:1px solid var(--filet-encre);background:rgba(255,246,208,.35)}
 .depli .pills{flex:1;gap:4px}
 .depli .pill{height:19px;padding:0 7px;font-size:10px}
@@ -362,6 +380,6 @@
 .plaque.devenir{flex:none;align-self:stretch;margin-top:auto}
 #autre .lignes .ligne{height:30px;font-size:14px}
 #autre .deux{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
-#autre .plaques{margin:0 0 8px}
+#autre .plaques{height:28px;margin:0 0 8px}
 #autre .plaques .plaque>div{font-size:12px;padding:0 6px}
 #autre>.fond>.rub{margin-top:9px;white-space:normal}

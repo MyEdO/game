@@ -14,9 +14,9 @@ import { depotDe } from './gitPorte.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
-const COMPOSANT = 'src/ui/RollShell.tsx'
-const IMPORTEURS = ['A', 'B'].map((n) => `src/ui/Ecran${n}.tsx`)
-const MODULE = 'src/ui/styles/rs.css'
+const COMPOSANT = 'src/lib/normalize.ts'
+const IMPORTEURS = ['A', 'B'].map((n) => `src/lib/Ecran${n}.tsx`)
+const MODULE = 'src/lib/styles/rs.css'
 const PRIMITIVE = { id: 'rs', fichier: COMPOSANT, css: MODULE }
 
 /** Un arbre en mémoire : `textes` = `{ chemin: texte }` hors manifeste ; `citants` rend TOUT chemin de
@@ -41,60 +41,60 @@ test('importsDansLArbre : un batch conserve ordre, doublons, chemins absents et 
   const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
   try {
     const source = sourceDe({
-      ...importeursDe("import { RollShell } from './RollShell'\n", "import './RollShell'\n"),
-      'src/ui/NOTES.md': "import './RollShell'\n",
+      ...importeursDe("import { norm } from './normalize'\n", "import './normalize'\n"),
+      'src/lib/NOTES.md': "import './normalize'\n",
     })
-    const rels = [IMPORTEURS[0], 'src/ui/absent.ts', IMPORTEURS[0], 'src/ui/NOTES.md', IMPORTEURS[1]]
+    const rels = [IMPORTEURS[0], 'src/lib/absent.ts', IMPORTEURS[0], 'src/lib/NOTES.md', IMPORTEURS[1]]
     assert.deepEqual(importsDansLArbre(source, rels, { racine: RACINE }), [
-      [IMPORTEURS[0], [COMPOSANT]], ['src/ui/absent.ts', []], [IMPORTEURS[0], [COMPOSANT]], ['src/ui/NOTES.md', []], [IMPORTEURS[1], [COMPOSANT]],
+      [IMPORTEURS[0], [COMPOSANT]], ['src/lib/absent.ts', []], [IMPORTEURS[0], [COMPOSANT]], ['src/lib/NOTES.md', []], [IMPORTEURS[1], [COMPOSANT]],
     ])
     assert.equal(spy.mock.callCount(), 1)
-    assert.deepEqual(importsDansLArbre(source, ['src/ui/NOTES.md'], { racine: RACINE }), [['src/ui/NOTES.md', []]])
+    assert.deepEqual(importsDansLArbre(source, ['src/lib/NOTES.md'], { racine: RACINE }), [['src/lib/NOTES.md', []]])
     assert.equal(spy.mock.callCount(), 1)
-    assert.throws(() => importsDansLArbre(sourceDe(importeursDe('const x = ;', "import './RollShell'")), IMPORTEURS, { racine: RACINE }), /ne se parse pas/)
+    assert.throws(() => importsDansLArbre(sourceDe(importeursDe('const x = ;', "import './normalize'")), IMPORTEURS, { racine: RACINE }), /ne se parse pas/)
     assert.equal(spy.mock.callCount(), 2)
   } finally { spy.mock.restore() }
 })
 
 test('coteCss : un composant présent sur le DISQUE mais absent de l’arbre jugé n’est pas réutilisé', () => {
   assert.ok(existsSync(`${RACINE}/${COMPOSANT}`), `${COMPOSANT} doit exister sur le disque pour que le cas morde`)
-  const textes = importeursDe("import { RollShell } from './RollShell'\n", "import { RollShell } from './RollShell'\n")
+  const textes = importeursDe("import { norm } from './normalize'\n", "import { norm } from './normalize'\n")
   assert.deepEqual(reutilises(sourceDe(textes)), [COMPOSANT], 'témoin : dans l’arbre, il est réutilisé')
   assert.deepEqual(reutilises(sourceDe(textes, IMPORTEURS)), [])
 })
 
 test('coteCss : les arcs sont ceux de `specificateursDe` sur le fichier ENTIER — plusieurs lignes, commentaire, `/` final, `import(` puis `.then(` ; un littéral ne compte pas', () => {
   const formes = [
-    "import {\n  RollShell,\n} from\n  './RollShell'\n",
-    "import {\n  RollShell,\n} from\n  './RollShell' // primitive\n",
-    "import X from './RollShell/'\n",
-    "const M = await import(\n  './RollShell').then((m) => m.RollShell)\n",
+    "import {\n  norm,\n} from\n  './normalize'\n",
+    "import {\n  norm,\n} from\n  './normalize' // primitive\n",
+    "import X from './normalize/'\n",
+    "const M = await import(\n  './normalize').then((m) => m.norm)\n",
   ]
   for (const f of formes) assert.deepEqual(reutilises(sourceDe(importeursDe(f, formes[0]))), [COMPOSANT], f)
-  assert.deepEqual(reutilises(sourceDe(importeursDe(formes[0], "const p = './RollShell'\n"))), [],
+  assert.deepEqual(reutilises(sourceDe(importeursDe(formes[0], "const p = './normalize'\n"))), [],
     'un seul importeur réel : le littéral ne compte pas')
 })
 
 test('coteCss : l’alias se lit dans le `tsconfig.json` de l’arbre JUGÉ, cibles sous `racine`', () => {
   const tsconfig = (cle) => JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { [`${cle}/*`]: ['src/*'] } } })
   const par = (spec) => importeursDe(`import { R } from '${spec}'\n`, `import { R } from '${spec}'\n`)
-  assert.deepEqual(reutilises(sourceDe({ ...par('~/ui/RollShell'), 'tsconfig.json': tsconfig('~') })), [COMPOSANT],
+  assert.deepEqual(reutilises(sourceDe({ ...par('~/lib/normalize'), 'tsconfig.json': tsconfig('~') })), [COMPOSANT],
     'un alias que seul l’arbre jugé déclare')
-  assert.deepEqual(reutilises(sourceDe(par('@/ui/RollShell'))), [], 'l’arbre jugé sans `tsconfig.json` n’a aucun alias, quoi qu’en dise le disque')
+  assert.deepEqual(reutilises(sourceDe(par('@/lib/normalize'))), [], 'l’arbre jugé sans `tsconfig.json` n’a aucun alias, quoi qu’en dise le disque')
 })
 
 test('coteCss : un fichier qui n’est pas un MODULE de code (`.md`, `.json`, `.css`, `.snap`) n’importe jamais', () => {
-  const reel = "import { RollShell } from './RollShell'\n"
+  const reel = "import { norm } from './normalize'\n"
   for (const [f, t] of [
-    ['src/ui/NOTES.md', "```ts\nimport { RollShell } from './RollShell'\n```\n"],
-    ['src/ui/__snapshots__/x.test.tsx.snap', "exports[`a`] = `\"import { RollShell } from './RollShell'\"`;\n"],
-    ['src/ui/data.json', '{ "exemple": "import X from \'./RollShell\'" }\n'],
-    ['src/ui/b.css', "@import './RollShell.tsx';\n"],
+    ['src/lib/NOTES.md', "```ts\nimport { norm } from './normalize'\n```\n"],
+    ['src/lib/__snapshots__/x.test.tsx.snap', "exports[`a`] = `\"import { norm } from './normalize'\"`;\n"],
+    ['src/lib/data.json', '{ "exemple": "import X from \'./normalize\'" }\n'],
+    ['src/lib/b.css', "@import './normalize.ts';\n"],
   ]) assert.deepEqual(reutilises(sourceDe({ [IMPORTEURS[0]]: reel, [f]: t })), [], f)
 })
 
 test('stockCssDe : les deux volets ventilés du stock écrit ; une collection absente ou hors forme LÈVE en se nommant', () => {
-  const E = { fichier: 'src/ui/a.css', ref: '.a :: color', occurrence: 1 }
+  const E = { fichier: 'src/lib/a.css', ref: '.a :: color', occurrence: 1 }
   const texte = (identite, espacement) => `export const ${COLLECTIONS_VENTILEES.identite} = ${identite}\nexport const ${COLLECTIONS_VENTILEES.espacement} = ${espacement}\n`
   assert.deepEqual(stockCssDe(texte(`[\n  { fichier: '${E.fichier}', ref: '${E.ref}', occurrence: 1 },\n]`, '[]'), 'à HEAD'), { identite: [E], espacement: [] })
   assert.throws(() => stockCssDe(`export const ${COLLECTIONS_VENTILEES.identite} = []\n`, 'à HEAD'),
@@ -106,7 +106,7 @@ test('stockCssDe : les deux volets ventilés du stock écrit ; une collection ab
 /** Les mémos d'analyse (`memosDAnalyse`) d'un dépôt neuf, résolus contre ce dépôt-ci (`RACINE`). */
 const memosNeufs = (racine) => memosDAnalyse(depotDe(racine), { racine: RACINE })
 const fichierDesMemos = (racine) => join(racine, '.git', DOSSIER_DES_MEMOS, `specificateurs-typage.${versionDesMemos(RACINE)}.json`)
-const IMPORTE = importeursDe("import { RollShell } from './RollShell'\n", "import './RollShell'\n")
+const IMPORTE = importeursDe("import { norm } from './normalize'\n", "import './normalize'\n")
 
 /** Le côté `coteCss` de `source` sous `memos`, et le nombre d'analyses (`API.close`) qu'il a coûtées. */
 function coteMesure(source, memos) {
@@ -136,7 +136,7 @@ test('#2603 — memosDAnalyse : un texte changé, ou un analyseur changé (versi
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
   try {
     coteMesure(sourceDe(IMPORTE), memosNeufs(racine))
-    const change = importeursDe("import { RollShell } from './RollShell'\n", "const p = './RollShell'\n")
+    const change = importeursDe("import { norm } from './normalize'\n", "const p = './normalize'\n")
     assert.deepEqual(coteMesure(sourceDe(change), memosNeufs(racine)), { reutilises: [], analyses: 1 }, 'texte changé : recalcul')
     const lu = JSON.parse(readFileSync(fichierDesMemos(racine), 'utf8'))
     writeFileSync(fichierDesMemos(racine), JSON.stringify({ ...lu, version: 'un-autre-analyseur' }))

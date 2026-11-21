@@ -1,14 +1,13 @@
 /**
- * Garde de la CLÉ DE SITE d'un stock (#1903) : la clé se bâtit par `cleDeSite`/`groupeDeSite` et ses
- * champs se déclarent une fois, `scripts/guards/lib/stock.mjs`. Trois constructions réservées, jugées sur
- * le périmètre des gardes : la clé écrite en ligne (`cleEnLigne`), la ré-énumération des champs requis
- * de l'entrée de site, celle des champs du site observé (`Site`).
+ * `src/lib/stock.mjs` déclare les champs de la clé de site, du site observé et de l’échéance
+ * (#1903, #2016).
+ * La règle de l’échéance couvre `src/` et les dossiers d’outillage qui portent les stocks.
+ * Le lexique des structures date l’inscription d’un peuplement attendu.
  *
  * Ce que cette garde ne voit pas. Une paire d'affichage `fichier :: ref`, sans occurrence ni séparateur
- * final, n'est pas une clé. Une clé de groupe écrite sur les champs d'un site observé (`Site`, champ
- * `file`, avant `sitesEnEntrees`) : ses champs ne sont pas ceux de l'entrée. Une clé bâtie sans
- * séparateur littéral (concaténation de variables). Une clé calculée concaténée à son remède
- * (`cleDeSite(x) + ' — …'`) : la règle « clé calculée suivie de son remède » de `cleEnLigne` ne lit que
+ * final, n'est pas une clé. Une clé bâtie sans séparateur littéral (concaténation de variables).
+ * Une clé calculée concaténée à son remède (`cleDeSite(x) + ' — …'`) : la règle « clé calculée suivie
+ * de son remède » de `cleEnLigne` ne lit que
  * les gabarits. Une fonction de clé atteinte par une réexportation, une affectation
  * (`const k = cleDeSite`) ou un appel indirect : la même règle ne lit que l'appel d'une liaison importée
  * de son module déclaré (`estAppelDeclare`). La concordance des tuples de `stock.d.mts` avec les valeurs
@@ -26,34 +25,57 @@ import {
 } from '../scripts/guards/lib/canonUnique.mjs';
 import { corpusTypeScriptDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
 import {
-  CHAMPS_DE_GROUPE, CHAMPS_DE_SITE_OBSERVE, CHAMPS_REQUIS, CHAMP_D_OCCURRENCE, SEPARATEUR_DE_CLE,
-  SEPARATEUR_DE_REMEDE,
-} from '../scripts/guards/lib/stock.mjs';
+  CHAMPS_D_ECHEANCE, CHAMPS_DE_GROUPE, CHAMPS_DE_SITE_OBSERVE, CHAMPS_REQUIS,
+  CHAMP_D_OCCURRENCE, SEPARATEUR_DE_CLE, SEPARATEUR_DE_REMEDE,
+} from './lib/stock.mjs';
 
-const STOCK = 'scripts/guards/lib/stock.mjs';
+const STOCK = 'src/lib/stock.mjs';
+const ENTREE_HISTORIQUE = 'scripts/guards/lib/stock.mjs';
+const FONCTIONS_DE_CLE = ['cleDeSite', 'groupeDeSite'];
 const FOYER_DE_LA_CLE = [STOCK, 'scripts/guards/lib/stock.test.mjs', 'src/cle-de-site-guard.test.ts'];
 
-const CLE_DE_SITE = [
+function domaineDesStocks(rel: string): boolean {
+  return rel.startsWith('src/') || rel.startsWith('scripts/guards/')
+    || rel.startsWith('scripts/raw/') || rel.startsWith('scripts/hooks/');
+}
+
+function domaineDuSite(rel: string): boolean {
+  return domaineDesStocks(rel) || rel.startsWith('scripts/data/') || rel.startsWith('scripts/git-hooks/');
+}
+
+const CONSTRUCTIONS_DE_STOCK = [
   {
     ...cleEnLigne({
       nom: 'clé de site en ligne', champsDeGroupe: CHAMPS_DE_GROUPE, occurrence: CHAMP_D_OCCURRENCE,
       separateur: SEPARATEUR_DE_CLE, separateurDeRemede: SEPARATEUR_DE_REMEDE,
-      fonctionsDeCle: { [STOCK]: ['cleDeSite', 'groupeDeSite'] },
+      fonctionsDeCle: { [STOCK]: FONCTIONS_DE_CLE, [ENTREE_HISTORIQUE]: FONCTIONS_DE_CLE },
     }),
     foyer: FOYER_DE_LA_CLE,
   },
   { ...recopieDeCanon({ nom: 'clé de site', membres: CHAMPS_REQUIS, complet: true, formes: ['tableau', 'membres de type'] }), foyer: FOYER_DE_LA_CLE },
-  { ...recopieDeCanon({ nom: 'Site', membres: CHAMPS_DE_SITE_OBSERVE, complet: true, formes: ['membres de type'] }), foyer: STOCK },
+  {
+    ...recopieDeCanon({ nom: 'Site', membres: CHAMPS_DE_SITE_OBSERVE, complet: true, formes: ['membres de type'] }),
+    foyer: STOCK,
+    domaine: domaineDuSite,
+  },
+  { ...recopieDeCanon({ nom: 'Site', membres: ['file', 'ref'], complet: true, formes: ['membres de type'] }), foyer: STOCK },
+  {
+    ...recopieDeCanon({
+      nom: 'échéance de stock', membres: CHAMPS_D_ECHEANCE, complet: true, formes: ['tableau', 'membres de type'],
+    }),
+    foyer: STOCK,
+    domaine: domaineDesStocks,
+  },
 ];
 
 /** Les constructions reconnues dans un texte hors foyer. */
 const fixture = (text: string, rel = 'src/fixture.ts') =>
-  scanConstructionsReservees({ rel, text }, CLE_DE_SITE).map((t) => t.construction);
+  scanConstructionsReservees({ rel, text }, CONSTRUCTIONS_DE_STOCK).map((t) => t.construction);
 const EN_LIGNE = ['clé de site en ligne'];
 
 describe('clé de site (#1903)', () => {
-  it('aucune clé de site recopiée hors de son foyer dans le périmètre des gardes', () => {
-    expect(constructionsReserveesDuCorpus(corpusTypeScriptDesGardes(), CLE_DE_SITE)).toEqual([]);
+  it('les constructions de stock sont déclarées dans leur foyer', () => {
+    expect(constructionsReserveesDuCorpus(corpusTypeScriptDesGardes(), CONSTRUCTIONS_DE_STOCK)).toEqual([]);
   });
 
   it('clé à occurrence', () => {
@@ -81,6 +103,8 @@ describe('clé de site (#1903)', () => {
   });
 
   it('clé calculée suivie de son remède', () => {
+    const importeCanon = "import { cleDeSite } from './lib/stock.mjs';\n";
+    expect(fixture(importeCanon + 'const m = `${cleDeSite(e)} — x`;')).toEqual(EN_LIGNE);
     const importe = "import { cleDeSite } from '../scripts/guards/lib/stock.mjs';\n";
     expect(fixture(`${importe}const m = \`\${cleDeSite(e)} — x\`;`)).toEqual(EN_LIGNE);
     expect(fixture("import { cleDeSite as k } from '../scripts/guards/lib/stock.mjs';\nconst m = `${k(e)} — x`;")).toEqual(EN_LIGNE);
@@ -92,12 +116,21 @@ describe('clé de site (#1903)', () => {
 
   it('les champs requis de l’entrée de site, en tableau ou en membres de type', () => {
     expect(fixture("const c = ['fichier', 'ref', 'occurrence'];")).toEqual(['clé de site']);
-    expect(fixture('interface X { fichier: string; ref: string; occurrence: number; lot?: string }')).toEqual(['clé de site']);
+    expect(fixture('interface X { fichier: string; ref: string; occurrence: number; lot?: string }')).toEqual(['clé de site', 'Site']);
     expect(fixture("const c = ['famille', 'ref'];"), 'sous-ensemble d’un autre vocabulaire').toEqual([]);
   });
 
+  it('les champs d’échéance, en tableau ou dans une déclaration de stock', () => {
+    expect(fixture("const c = ['date', 'lot'];")).toEqual(['échéance de stock']);
+    expect(fixture('export type Entree = { date: string; lot: string };', 'scripts/guards/lib/exempleStock.d.mts'))
+      .toEqual(['échéance de stock']);
+  });
+
   it('les champs du site observé, en membres de type', () => {
+    expect(fixture('type Y = { fichier: string; ref: string; row: number };')).toEqual(['Site']);
     expect(fixture('type Y = { file: string; ref: string; row: number };')).toEqual(['Site']);
+    expect(fixture('type Y = { file: string; row: number };')).toEqual([]);
+    expect(fixture('type Adresse = { fichier: string; ref: unknown };', 'scripts/source/adresses.d.mts')).toEqual([]);
   });
 
   it('le foyer', () => {
@@ -124,7 +157,7 @@ describe('clé de site (#1903)', () => {
     expect(typesDocumentaires).toHaveLength(3);
     expect(typesDocumentaires.every((n) => (n.flags & ts.NodeFlags.JSDoc) !== 0)).toBe(true);
     expect(fixture(jsdoc, 'src/fixture.mjs')).toEqual([]);
-    expect(fixture(jsdoc + '\n/** Entrée du code. */\ninterface Entree { fichier: string; ref: string; occurrence: number }\n/** Site du code. */\ntype Observe = { file: string; ref: string; row: number };')).toEqual(['clé de site', 'Site']);
+    expect(fixture(jsdoc + '\n/** Entrée du code. */\ninterface Entree { fichier: string; ref: string; occurrence: number }\n/** Site du code. */\ntype Observe = { file: string; ref: string; row: number };')).toEqual(['clé de site', 'Site', 'Site']);
   });
 
   it('le corpus exclut les sous-arbres JSDoc des tags @typedef, @param et @satisfies', () => {
@@ -133,6 +166,6 @@ describe('clé de site (#1903)', () => {
       { rel: 'src/param.mjs', text: '/** @param {{ file: string, ref: string, row: number }} x */\nfunction lire(x) { return x; }' },
       { rel: 'src/satisfies.mjs', text: '/** @satisfies {{ fichier: string, ref: string, occurrence: number }} */\nconst x = {};' },
     ];
-    expect(constructionsReserveesDuCorpus(corpus, CLE_DE_SITE)).toEqual([]);
+    expect(constructionsReserveesDuCorpus(corpus, CONSTRUCTIONS_DE_STOCK)).toEqual([]);
   });
 });

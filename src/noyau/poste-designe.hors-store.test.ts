@@ -20,7 +20,7 @@ const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 60, force: 30, endu
 const emplacement = (id: string, pos: { x: number; y: number }): Combatant =>
   combattantDeTest({ id, label: id, kind: 'ennemi', pos, conditions: [], weapons: [], items: [], inert: true,
     wounds: blessuresDeBase(0), advantage: 0,
-    postes: [hydratePoste({ trappingId: 'baliste', ammo: { 'carreau-de-baliste': 4, 'carreau-nain-norse': 4 } }, `${id}-poste-0`)] });
+    postes: [hydratePoste({ engin: { id: 'baliste' }, ammo: { 'carreau-de-baliste': 4, 'carreau-nain-norse': 4 } }, `${id}-poste-0`)] });
 
 const heros = (pos: { x: number; y: number }): Combatant =>
   combattantDeTest({ id: 'hero', label: 'hero', kind: 'heros', characteristics: CHARS, pos, movement: 4,

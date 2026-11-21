@@ -15,6 +15,7 @@ export interface FieldReadHit {
 }
 
 export function listProdFiles(dir: string): string[];
+export function programmeDesChamps(root: string, fichiers: readonly string[]): SessionProgramme;
 
 /** La cible d'un scan : le type NOMMÉ et le module qui le DÉCLARE (l'identité est la déclaration). */
 export interface FieldScanTarget {

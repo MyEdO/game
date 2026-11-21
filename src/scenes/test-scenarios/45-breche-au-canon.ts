@@ -37,7 +37,7 @@ function batterie(): AuthoredEnemy[] {
     const i0 = n * (equipe + 1);
     const crewIds = Array.from({ length: equipe }, (_, k) => `enemy-${ENC}-${i0 + 1 + k}`);
     const slots = crewFormationSlots({ pos, footprint: 2 }, { crewIds }, { heading: 'S' });
-    const affut: AuthoredEnemy = { engin: { id: PIECE }, pos, facing: 'S', postes: [{ trappingId: PIECE, crewIds }] };
+    const affut: AuthoredEnemy = { engin: { id: PIECE }, pos, facing: 'S', postes: [{ engin: { id: PIECE }, crewIds }] };
     const servants: AuthoredEnemy[] = crewIds.map((_, k) => ({
       creature: { id: 'wolfgard-hohmann' }, pos: slots[k], facing: 'S', label: k === 0 ? 'Chef de pièce' : 'Servant de canon',
       skills: projForPiece(PIECE),

@@ -34,7 +34,7 @@ import {
   refusDeCouverture,
 } from './toutes.mjs'
 import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
-import { coeurs, repartitionWorkers } from '../test/partition.mjs'
+import { coeurs, maxWorkersMono } from '../test/partition.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { prendreVerrouAsync } from '../test/verrou.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
@@ -548,9 +548,7 @@ test('un plafond par gate, jamais un défaut muet', () => {
 test('la SUITE est bornée pendant les lanes, par la couture qui existe déjà', () => {
   assert.ok(COEURS_SUITE_EN_LANES > 0 && COEURS_SUITE_EN_LANES < 16)
   assert.equal(coeurs({ WFRP_TEST_COEURS: String(COEURS_SUITE_EN_LANES) }, () => 16), COEURS_SUITE_EN_LANES)
-  const borne = repartitionWorkers(COEURS_SUITE_EN_LANES)
-  const plein = repartitionWorkers(16)
-  assert.ok(borne.node + borne.jsdom < plein.node + plein.jsdom, 'la borne ne borne rien')
+  assert.ok(maxWorkersMono(COEURS_SUITE_EN_LANES) < COEURS_SUITE_EN_LANES, 'réserve de cœurs pour les autres portes')
 })
 
 test('les LANES ne tournent que sur une machine AU-DELÀ de la borne de la suite', () => {

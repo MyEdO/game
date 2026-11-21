@@ -21,7 +21,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * L'ARCHER porte son arc en DONNÉE (`inventaire`, patron `ecuries-clayonnage`) : la créature
  * `gobelin` n'a AUCUNE arme à distance dans son statbloc (trait `arme` = mêlée, aucun
  * `trappings`), et sans arc l'IA n'a que la Course — la condition « provenant de l'extérieur » ne se
- * produisait jamais. Les trois gestes de recette sont dans `docs/recette-navigateur.md`.
+ * produisait jamais.
  */
 
 const HERO_START = { x: 3, y: 5 };

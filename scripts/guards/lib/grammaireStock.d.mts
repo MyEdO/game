@@ -1,1 +1,3 @@
-export const GRAMMAIRE_STOCK: Readonly<Record<string, { raison: string; lot: string; date: string }>>;
+import type { Echeance } from './stock.mjs';
+
+export const GRAMMAIRE_STOCK: Readonly<Record<string, Echeance & { raison: string }>>;

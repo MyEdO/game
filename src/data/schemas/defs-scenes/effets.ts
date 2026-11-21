@@ -14,7 +14,7 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  * (transition/dialogue/combat…) et sur `conditionSchema` : aucune structure n'est recopiée.
  */
 import { z } from 'zod';
-import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from '../grammaire/valeurs';
+import { avecApparenceDObjetDonne, objetDonneSchema } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { listeSansCle } from '../grammaire/liste-sans-cle';
 import { proseNommee } from '../grammaire/prose';
@@ -38,9 +38,8 @@ import {
   testDeSceneSchema,
 } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
-import { idDe, recordDIds, ref, refOuSpec, refTypee } from '../grammaire/ref';
+import { idDe, recordDIds, ref, refs, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
-import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import {
   customStatblockSchema,
   DIALOGUES_DE_LA_SCENE,
@@ -91,6 +90,8 @@ export const pursuitPolicySchema = nommerChamps(z.strictObject({
   prioritaires: z.array(z.string()).optional(),
 }), { sacrifice: { label: "sacrifice"  }, ecartM: { label: "écart de Mouvement" }, arret: { label: "arrêt"  }, prioritaires: { label: "cibles prioritaires" , texte: { regime: "technique"} } });
 /** ADE II 8. */
+const scenesDeBatailleSchema: z.ZodType<string[], string[]> = refs('sceneDeBataille');
+
 export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   nomDesAllies: z.string().optional(),
   nomDesEnnemis: z.string().optional(),
@@ -99,12 +100,12 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   /** ADE II 8 l.124. */
   plannedRounds: z.number().optional(),
   /** ADE II 8 l.128. */
-  scenes: z.array(z.string()).optional(),
+  scenes: scenesDeBatailleSchema.optional(),
   /** ADE II 8 l.128. */
-  situations: z.array(z.array(z.string())).optional(),
+  situations: z.array(scenesDeBatailleSchema).optional(),
   situationSize: z.number().optional(),
   /** Rencontres de la scène à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène). */
-  sceneEncounters: recordDIds('activity', ref(RENCONTRES_DE_LA_SCENE)).optional(),
+  sceneEncounters: recordDIds('sceneDeBataille', ref(RENCONTRES_DE_LA_SCENE)).optional(),
   /** ADE II 8 l.81. */
   modificateurAllie: z.number().optional(),
 }), { nomDesAllies: { label: "nom des alliés" , texte: { regime: "designation"} }, nomDesEnnemis: { label: "nom des ennemis" , texte: { regime: "designation"} }, puissanceAlliee: { label: "puissance alliée" }, puissanceEnnemie: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, modificateurAllie: { label: "modificateur allié" } }), 'massBattle.terrain');
@@ -148,17 +149,13 @@ export const setObjectiveSchema = proseNommee(nommerChamps(z.strictObject({
 /** Retire un objectif de la pile : `id` précis, ou TOUS si absent (fin d'acte). */
 export const clearObjectiveSchema = nommerChamps(z.strictObject({ type: z.literal('clearObjective'), id: z.string().optional() }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
 
-/** Objet donné par `giveTrapping` : feuille OUVERTE de `INSTANCIABLE_PAR_ID`, FORME DE SORTIE déclarée
- *  nue (patron `sortSchema`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
-const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET });
-
-/** Donne un objet à un héros (défaut : le premier). `trappingId` = objet à stats de la campagne
- *  (`narratif.objets`) ou du catalogue, feuille OUVERTE de `INSTANCIABLE_PAR_ID` ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
+/** Donne un objet à un héros (défaut : le premier). `objet` désigne un objet à stats de la campagne
+ *  (`narratif.objets`) ou du catalogue ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
  *  stats. L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities` AJOUTÉES
  *  (Atout/Défaut), `identified:false` = qualités masquées jusqu'à Évaluation (#2), `teinte` = recoloration. */
 export const giveTrappingSchema = nommerChamps(avecApparenceDObjetDonne(z.strictObject({
   type: z.literal('giveTrapping'),
-  trappingId: objetDonneSchema.optional(),
+  objet: objetDonneSchema.optional(),
   custom: z.string().optional(),
   heroId: z.string().optional(),
   qualities: z.array(idDe('quality', undefined, { nue: true })).optional(),
@@ -174,7 +171,7 @@ export const giveTrappingSchema = nommerChamps(avecApparenceDObjetDonne(z.strict
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-})), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+})), { type: { label: "type"  }, objet: { label: "objet" }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que
@@ -444,16 +441,14 @@ export const waterExposureSchema = nommerChamps(z.strictObject({
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, mode: { label: "mode"  }, source: { label: "source" , texte: { regime: "technique"} }, target: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
-/** Id de `spells.json` : porte `idDe('spell')`, FORME DE SORTIE déclarée nue (patron `couvertureSchema`,
- *  `./scene.ts`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
-const sortSchema: z.ZodType<string, string> = idDe('spell');
+const sortSchema = ref(idDe('spell', undefined, { nue: true }));
 
 /** LDB 46 l.14-20 */
 export const learnSpellSchema = nommerChamps(z.strictObject({
   type: z.literal('learnSpell'),
-  spell: sortSchema,
+  sort: sortSchema,
   heroId: z.string().optional(),
-}), { type: { label: "type"  }, spell: { label: "sort" , texte: { regime: "technique"} }, heroId: { label: "héros" , texte: { regime: "technique"} } });
+}), { type: { label: "type"  }, sort: { label: "sort" }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** Incantation SCRIPTÉE (#98) : rituel scénique, piège magique, PNJ qui lance à un beat précis (dialogue,
  *  trigger, effet différé). `casterId`/`targetId` = id STABLE d'un combattant — un combattant EN COMBAT
@@ -468,10 +463,10 @@ export const learnSpellSchema = nommerChamps(z.strictObject({
 export const castSpellSchema = nommerChamps(z.strictObject({
   type: z.literal('castSpell'),
   casterId: z.string(),
-  spellId: sortSchema,
+  sort: sortSchema,
   targetId: z.string().optional(),
   mode: z.enum(['jet', 'forcerLaReussite']).optional(),
-}), { type: { label: "type"  }, casterId: { label: "lanceur" , texte: { regime: "technique"} }, spellId: { label: "sort" , texte: { regime: "technique"} }, targetId: { label: "cible" , texte: { regime: "technique"} }, mode: { label: "mode"  } });
+}), { type: { label: "type"  }, casterId: { label: "lanceur" , texte: { regime: "technique"} }, sort: { label: "sort" }, targetId: { label: "cible" , texte: { regime: "technique"} }, mode: { label: "mode"  } });
 
 /** LDB 05 l.793-841 ; LDB 17 l.81 */
 export const sessionEndSchema = nommerChamps(z.strictObject({ type: z.literal('sessionEnd') }), { type: { label: "type"  } });
@@ -512,14 +507,13 @@ export const openTavernGamesSchema = nommerChamps(z.strictObject({ type: z.liter
  *  Sans effet si le projet n'a pas de carte ou en combat. */
 export const openWorldMapSchema = nommerChamps(z.strictObject({ type: z.literal('openWorldMap') }), { type: { label: "type"  } });
 
-const idDeVehicule: z.ZodType<string, string> = idDe('vehicle');
 /** Dote le groupe d'un NAVIRE DE CAMPAGNE (`state.vessel`, `MDG 13-15`) — à poser quand le groupe
- *  reçoit/achète un bateau (don d'un patron, chantier). `vehicleId` = un navire de `vehicles.json`
+ *  reçoit/achète un bateau (don d'un patron, chantier). `navire` désigne une entrée de `vehicles.json`
  *  (facette `ship`) ; Moral et Blessures de coque INITIAUX authorés (coque neuve = pas de `wounds`).
  *  Le navire survit aux jours et aux combats (le voyage maritime et le Port en repartent). */
 export const setVesselSchema = nommerChamps(z.strictObject({
   type: z.literal('setVessel'),
-  vehicleId: idDeVehicule,
+  navire: ref(idDe('navire', undefined, { nue: true })),
   label: z.string().optional(),
   morale: z.number().optional(),
   hullCurrent: z.number().optional(),
@@ -529,7 +523,7 @@ export const setVesselSchema = nommerChamps(z.strictObject({
   vivre: ref('trapping').optional(),
   provisions: z.number().int().min(0).optional(),
   crew: z.array(crewHireSchema).optional(),
-}).superRefine(refuserLeVivreDuNavire), { type: { label: "type"  }, vehicleId: { label: "véhicule" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, provisions: { label: "rations (jours-homme)" }, crew: { label: "équipage" } });
+}).superRefine(refuserLeVivreDuNavire), { type: { label: "type"  }, navire: { label: "navire" }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, provisions: { label: "rations (jours-homme)" }, crew: { label: "équipage" } });
 
 /** AJUSTE le navire de campagne EXISTANT (#233) — patch des SEULS champs fournis, contrairement à
  *  `setVessel` (remplacement total : effacerait Humeur de Manann/dégâts/Moral accumulés). À poser

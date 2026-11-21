@@ -69,7 +69,7 @@ import { isSorceryDomain } from '../engine/domainAttributes';
 import { itemCapability } from '../engine/capabilities';
 import { eligibleTalent, spellCost, verdictApprentissage } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { levelsForCareer, byId, careerLabelFor, findSpellById, refLabel, type SpellData } from '../data/index';
+import { levelsForCareer, byId, careerLabelFor, findApparenceById, findSpellById, refLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { rangDAjout, rangsDuGroupe, seatOwns } from './sieges';
@@ -349,7 +349,16 @@ export function poserLApparence(get: Get, set: Set, uid: string, apparence: stri
   const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   const it = get().party.find((h) => h.id === heroId)!.items!.find((i) => i.uid === uid)!;
   if (!it.trappingId) return void refuserGeste(get, set, t('pf.apparenceSansCatalogue', { item: it.label }));
-  if (!choisirApparenceDObjet({ ...it }, apparence, resolveTrapping)) return void refuserGeste(get, set, t('pf.apparenceNonAdmise', { item: it.label }));
+  const proposition = { ...it };
+  const choixAdmis = choisirApparenceDObjet(proposition, apparence, resolveTrapping);
+  const formeActuelle = it.shape?.id;
+  const formeProposee = proposition.shape?.id;
+  const changementDeFormeFixee = formeActuelle !== formeProposee && (
+    findApparenceById(formeActuelle)?.formeFixeeALaNaissance || findApparenceById(formeProposee)?.formeFixeeALaNaissance
+  );
+  if (!choixAdmis || changementDeFormeFixee) {
+    return void refuserGeste(get, set, t('pf.apparenceNonAdmise', { item: it.label }));
+  }
   mutLoadout(set, heroId, (c) => {
     choisirApparenceDObjet(c.items!.find((i) => i.uid === uid)!, apparence, resolveTrapping);
   });

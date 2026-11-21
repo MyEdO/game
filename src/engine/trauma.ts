@@ -10,6 +10,7 @@
  * defenseModifiers — et ne s'applique qu'aux jets d'arme qui IMPLIQUENT la main blessée (jamais un charMod
  * CC/CT global). Le trauma est enregistré (label+note) même sans effet modélisé.
  */
+import { joursParSemaine } from './clock';
 import {
   Combatant,
   CharKey,
@@ -23,36 +24,35 @@ import {
   Weapon,
   effectRef,
   locationLabel,
+  type ActiveEffect,
   type BodyShape,
   type ModFamille,
   type Main,
 } from './types';
 import { RNG } from './dice';
-import type { Duration } from './duration';
 import type { CritEscalation } from '../data/criticals';
 import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
-import { poserEnjeu, type FlowTestNode } from './flowCore';
+import type { FlowTestNode } from './flowCore';
+import { poserEnjeu } from './enjeuDuTest';
 import type { StakeRef } from '../data';
 import { isPainless, traitPassiveMods } from './traits/dispatch';
 import { findById, findConditionById, findPsychologyById, refLabel } from '../data';
 import { RULE_REF, type CodexTarget } from './ruleRefs';
-import { talentPassiveMods } from './talentEffects';
-import { diseasePassiveOps } from './disease';
+import { talentPassiveMods } from './talentsPossedes';
+import { diseasePassiveOps } from './passifsDeMaladie';
 import { sourceSuspended } from './suspension';
-import { hungerCharPenalties, thirstCharPenalties } from './provisions';
-import { drunkCharPenalties } from './drunkenness';
+import { hungerCharPenalties, thirstCharPenalties } from './passifsDePrivation';
+import { drunkCharPenalties } from './passifsDIvresse';
 import { hasActiveFlag } from './activeFlags';
 import { wornSocialMods, qualityWearMods } from './wearPenalty';
 import type { GameOp, OpPassive, PairedSense, PassiveKind, PassiveMod } from './ops';
-import { resolveFormula, applyActiveEffect } from './ops';
-import { removeActiveEffects } from './conditions';
-import { valeurSansTirage, type LectureDeCarac, type Referent } from './formule';
+import { resolveFormula, valeurSansTirage, type LectureDeCarac, type Referent } from './formule';
 import traumasJson from '../data/traumas.json';
 import { datasetDe, type EntreeDe } from '../data/datasets';
 import type * as traumasDef from '../data/schemas/defs/traumas';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
-import { isHeld } from './capabilities';
+import { isHeld } from './weaponLoad';
 
 export type TraumaKind = NonNullable<TraumaFiche['kind']>;
 export type TraumaSeverity = NonNullable<TraumaFiche['severity']>;
@@ -727,8 +727,8 @@ function eligibleForHeal(t: Trauma): boolean {
   // Un seul jet de Guérison par trauma (l.222 : « une seule fois ») — l'échec consomme aussi le jet.
   if (t.recoveryDays == null || t.healAccelerated) return false;
   if (t.kind === 'dechirure') return true;
-  // fracture : la pose (bandage) doit intervenir dans la SEMAINE suivant la fracture (l.204).
-  return t.kind === 'fracture' && !t.fractureSet && t.recoveryTotal != null && t.recoveryDays > t.recoveryTotal - 7;
+  // LDB 18 l.204
+  return t.kind === 'fracture' && !t.fractureSet && t.recoveryTotal != null && t.recoveryDays > t.recoveryTotal - joursParSemaine();
 }
 
 /**
@@ -862,15 +862,13 @@ const PASSIVE_CANCELLERS: Record<PassiveKind, ('determination' | 'painless' | 'p
   intrinseque: [],
 };
 
-/** POSEUR UNIQUE de l'annulateur `determination` de la table ci-dessus (`ActiveEffect.ignoreCritMods`,
- *  LDB 17 l.60 : `{scale:'rounds', left:1}`) — toutes ses dépenses passent par ici, il n'existe donc
- *  jamais deux effets concurrents : le `effectId` `determination-crit` est REMPLACÉ à chaque pose.
- *  Le `label` est celui que le JOURNAL doit lire à la dissipation — l'appelant le nomme. */
-export const DETERMINATION_CANCELLER_ID = 'determination-crit';
-export function poseDeterminationCanceller(c: Combatant, duration: Duration, label: string): void {
-  removeActiveEffects(c, (e) => e.effectId === DETERMINATION_CANCELLER_ID);
-  applyActiveEffect(c, { label, effectId: DETERMINATION_CANCELLER_ID, bonus: 0, duration, ignoreCritMods: true });
-}
+const DETERMINATION_CANCELLER_ID = 'determination-crit';
+
+/** LDB 17 l.60 */
+export const annulateurDeSequelles = Object.freeze({
+  id: DETERMINATION_CANCELLER_ID,
+  designe: (e: Pick<ActiveEffect, 'effectId'>): boolean => e.effectId === DETERMINATION_CANCELLER_ID,
+});
 
 /** Le `kind` est-il ADDITIF (sommé dans la BASE : mutation/qualité, corps/équipement permanent) plutôt que
  *  VOLATIL (trauma/maladie/faim/sort, lu par `effectiveChar`/`traumaSkillPenalty`) ? Seuls les
@@ -942,10 +940,7 @@ export function aPassifVisible(c: Combatant): boolean {
 export function passiveMods(c: Combatant): PassiveMod[] {
   const out: PassiveMod[] = [];
   out.push(...traumaPassiveMods(c));
-  // Maladies (kind `maladie`, annulée par Détermination ; passifs des symptômes via `diseasePassiveOps`) +
-  // Faim (kind `faim`, non annulée : `noHunger` purge l'état à l'entretien, pas ici). Pénalités de
-  // Caractéristique → contributions volatiles (`effectiveChar`). Producteurs SANS cycle (disease/provisions n'importent ni trauma ni
-  // characteristics). Gating UNIFORME sans `t` ; sauté en bloc si annulé (perf : pas de boucle par clé).
+  // LDB 20 l.157–159 ; LDB 18 l.340, l.342
   if (c.diseases?.length && modSurvives(c, 'maladie')) {
     out.push(...diseasePassiveOps(c)); // déjà kind `maladie` + `src` = le symptôme émetteur
   }
@@ -1084,8 +1079,7 @@ export function passiveTestMod(c: Combatant, charKey: CharKey): number {
 /** Les `testMod` GLOBAUX (sans `characteristic`) portés par les MALADIES actives (kind `maladie`), UN PAR
  *  symptôme émetteur — pénalité « −N à TOUS les Tests » (Crampes abdominales −20, MSRC 16 l.152). NON
  *  exprimable en `charMod` (qui fausserait les stats DÉRIVÉES — SB/BE/Mouvement/PB max). Additive et
- *  CUMULATIVE avec les États (les maladies ne sont pas dans le pool non-cumul des États, LDB 16 l.13) ;
- *  annulable par Détermination via le gate `maladie` déjà appliqué en amont dans `passiveMods`.
+ *  CUMULATIVE avec les États (LDB 16 l.13).
  *  SOURCE UNIQUE de la Σ (`passiveGlobalTestMod`) ET des lignes NOMMÉES du détail de jet
  *  (`combatTestPenaltyParts`, conditions.ts) : le `src` de chaque `PassiveMod` porte le symptôme. */
 export function passiveGlobalTestParts(c: Combatant): PassiveMod[] {

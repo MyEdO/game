@@ -21,7 +21,7 @@ const GARDE = {
     '(`.catch(() => {})`), appliquées au corpus de `readCorpus` ' +
     '(`scripts/guards/lib/sourceCorpus.mjs`, #1462) — aucun parcours de dossiers local.',
   perimetre:
-    '`src/**`, extensions `.ts` et `.tsx`, TESTS EXCLUS (défaut `tests: false` de `readCorpus`) : la ' +
+    '`src/**`, dialectes de script et instruments exclus selon le défaut de `readCorpus` : la ' +
     'garde mesure le code de PRODUCTION — un harnais qui avale une erreur ne trompe aucun joueur.',
   angleMort: [
     'Le comptage est STRICT : il ne voit que les corps STRICTEMENT vides. Un `catch` au corps ' +
@@ -50,9 +50,6 @@ const CATCH_BLOC_VIDE = /catch\s*(?:\([^)]*\))?\s*\{\s*\}/g;
 const CATCH_PROMESSE_VIDE = /\.catch\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)/g;
 
 const BASELINE: Record<string, number> = {
-  'src/audio/engine.ts': 1, // autoplay refusé par le navigateur — silence légitime, commenté au site
-  'src/ui/CoopPanels.tsx': 1, // #1577 (élargi par commentaire du 2026-08-30 aux 2 sites presse-papiers)
-  'src/ui/ErrorCollectorBanner.tsx': 1, // #1577 (élargi par commentaire du 2026-08-30 aux 2 sites presse-papiers)
 };
 
 describe('catch-vide-guard : cliquet des catch vides de src/', () => {

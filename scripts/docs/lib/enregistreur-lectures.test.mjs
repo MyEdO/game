@@ -10,9 +10,9 @@ import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
+import { ecrireSourcesLues, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
 import { ignoresGit } from './perimetre-mesure.mjs'
-import { refusSourcesInsuffisantes } from '../build-all.mjs'
+import { refusSourcesInsuffisantes, SOURCES_LUES } from '../build-all.mjs'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 import fs from 'node:fs'
 import childProcess, { spawnSync } from 'node:child_process'
@@ -66,6 +66,45 @@ test('collecte hooks : append impossible après préparation rejette import et p
         assert.match(vu.stderr, /EISDIR|EPERM|EACCES/)
         assert.doesNotMatch(vu.stdout, /import terminé/)
       } else assert.match(vu.stdout, /import terminé/)
+    }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('collecte hooks : le lstat illisible d’une cible est nommé dans la mesure et le chargement continue', () => {
+  const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'collecte-hooks-lstat-')))
+  const sortie = path.join(racine, 'lecture')
+  const cible = path.join(racine, 'propre.mjs')
+  const source = path.join(racine, 'source.mjs')
+  const hooks = new URL('./enregistreur-hooks.mjs', import.meta.url).href
+  try {
+    for (const chemin of [source, cible]) writeFileSync(chemin, 'export const valeur = 1')
+    for (const refuse of [false, true]) {
+      const pilote = `
+        import fs from 'node:fs'
+        const lstat = fs.lstatSync
+        fs.lstatSync = function (chemin, ...args) {
+          if (${refuse} && chemin === ${JSON.stringify(cible)}) {
+            throw Object.assign(new Error('EACCES témoin : lstat interdit'), { code: 'EACCES' })
+          }
+          return lstat.call(this, chemin, ...args)
+        }
+        const { initialize, load } = await import(${JSON.stringify(hooks)})
+        initialize(${JSON.stringify({ racine, sortie, ignores: [], cibles: ['propre.mjs'] })})
+        for (const url of ${JSON.stringify([source, cible].map((fichier) => pathToFileURL(fichier).href))}) {
+          console.log(await load(url, {}, () => url))
+        }
+      `
+      const vu = spawnSync(process.execPath, ['--input-type=module', '--eval', pilote], {
+        cwd: racine, env: { ...process.env, NODE_OPTIONS: '' }, encoding: 'utf8', timeout: 15_000,
+      })
+      assert.equal(vu.status, 0, vu.stderr)
+      assert.ok(vu.stdout.includes(pathToFileURL(source).href))
+      assert.ok(vu.stdout.includes(pathToFileURL(cible).href))
+      const mesure = fusionnerLectures(racine)
+      assert.deepEqual(mesure.fichiers, ['source.mjs'])
+      assert.deepEqual(mesure.incomplet, refuse
+        ? [`mesure du chemin ${pathToFileURL(cible).href} dans le crochet : EACCES témoin : lstat interdit`]
+        : [])
     }
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
@@ -270,18 +309,16 @@ test('docs/.sources-lues.json est DÉTERMINISTE : l\'ordre de mesure ne le chang
   assert.match(direct, /"src\/a\/a\.ts",\n {6}"src\/b\/a\.ts"/)
 })
 
-test('`ecrireDoc` écrit le rendu, et n’écrit RIEN à rendu identique (la mtime ne bouge pas)', () => {
+test('`ecrireSourcesLues` écrit le rendu, et n’écrit RIEN à rendu identique (la mtime ne bouge pas)', () => {
   const racine = mkdtempSync(path.join(tmpdir(), 'ecriture-'))
   try {
-    const doc = path.join(racine, 'systemes.md')
-    ecrireDoc(doc, '# corps\n')
+    const doc = path.join(racine, SOURCES_LUES)
+    ecrireSourcesLues(racine, '# corps\n')
     assert.equal(readFileSync(doc, 'utf8'), '# corps\n')
-    // Les trois rapports d'Atlas réécrivaient leur .md à chaque run, pendant que la suite lit docs/raw/
-    // dans une autre lane.
     const avant = statSync(doc).mtimeMs
-    ecrireDoc(doc, '# corps\n')
-    assert.equal(statSync(doc).mtimeMs, avant, '`ecrireDoc` a réécrit un fichier inchangé')
-    ecrireDoc(doc, '# corps RÉGÉNÉRÉ\n')
+    ecrireSourcesLues(racine, '# corps\n')
+    assert.equal(statSync(doc).mtimeMs, avant, 'le fichier a été réécrit à contenu identique')
+    ecrireSourcesLues(racine, '# corps RÉGÉNÉRÉ\n')
     assert.equal(readFileSync(doc, 'utf8'), '# corps RÉGÉNÉRÉ\n')
   } finally {
     rmSync(racine, { recursive: true, force: true })

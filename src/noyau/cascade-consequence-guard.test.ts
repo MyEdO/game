@@ -97,7 +97,7 @@ describe('composeur — canal journal: déprécié des CascadeApplier (#295, ver
  * lui-même échappe au motif par construction : c'est le volet « canal » (lint AST) plus bas qui tient
  * la porte d'entrée, pas ce compteur.
  */
-const CONTENT_DIRS = porteeDeGarde(['noyau', 'engine'], ['state']);
+const CONTENT_DIRS = porteeDeGarde(['noyau', 'engine']);
 
 /**
  * VOLET CATALOGUE (#1318 V8c₂) — le compteur ci-dessus lit du CODE ; depuis que la narration passe par

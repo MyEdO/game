@@ -94,14 +94,12 @@ const doc = document(
       reserve: z.number().optional(),
       pick: z.enum(['reserve', 'choix']).optional(),
       rows: z.array(nommerChamps(z.strictObject({
-        min: z.number().optional(),
-        max: z.number().optional(),
+        ...plageSchema.partial().shape,
         difficulty: difficultySchema.optional(),
         points: z.number().optional(),
         label: z.string(),
       }), {
-        min: { label: 'Minimum' },
-        max: { label: 'Maximum' },
+        ...metaDesChamps(plageSchema, { exigees: true }),
         difficulty: { label: 'Difficulté' },
         points: { label: 'Points' },
         label: { label: 'Libellé' },
@@ -136,16 +134,21 @@ const doc = document(
       second: sujetDuJetSchema,
       echecsParEcheance: z.number().optional(),
       effacementsParEcheance: z.number().optional(),
+      test: testFixeSchema.optional(),
       ops: executeesDe().optional(),
       markLoser: z.boolean().optional(),
       /** NADJ 16 l.88 */
       stopCondition: idDe('etat').optional(),
       tours: z.number().optional(),
+    }).superRefine(({ test, ops }, ctx) => {
+      if (ops === undefined || test !== undefined) return;
+      ctx.addIssue({ code: 'custom', path: ['ops'], message: 'Les opérations d’échec exigent un Test à échéance.' });
     }), {
       second: { label: 'Second Test' },
       echecsParEcheance: { label: 'Fréquence d’échec' },
       effacementsParEcheance: { label: 'Fréquence d’effacement' },
-      ops: { label: 'Opérations' },
+      test: { label: 'Test à échéance' },
+      ops: { label: 'Opérations en cas d’échec' },
       markLoser: { label: 'Marquer le perdant' },
       stopCondition: { label: 'Condition d’arrêt' },
       tours: { label: 'Tours' },

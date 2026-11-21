@@ -1,12 +1,8 @@
 // Garde « docs vivantes » — les références vivantes (docs/*.md, hors docs/plans/ & docs/raw/) ne
-// doivent jamais mentir. Six vérifications déterministes, exit 1 avec la liste fichier:ligne sinon :
-//   1. CHEMINS  — tout chemin cité d'une racine de zone (`src/…`, `hotes/…`) ou de `scripts/…` existe sur le disque
-//      (fichier, dossier ou glob).
-//   2. SYMBOLES — tout appel de fonction backtiqué (`nomCamel(` / `NomPascal(`) se retrouve dans src/ ou scripts/.
-//   3. PRIMITIVES — tout symbole de `src/data/primitives.manifest.json` est un EXPORT réel de src/ ou de scripts/.
-//   4. CATALOGUE CSS — les deux sens entre `docs/charte-ui.md` et les feuilles `.css` de src/.
-//   5. SENS INVERSE — tout chemin `docs/….md` cité par src/ ou scripts/ existe sur le disque.
-//   6. HOOKS — tout chemin d'une racine de zone ou de `scripts/…` cité par un hook (git-hooks, hooks) existe.
+// doivent jamais mentir. Ce contrôle juge les chemins et symboles cités par les docs, le manifeste
+// des primitives, le catalogue CSS, les renvois aux docs, les chemins nommés par les hooks et le
+// contexte permanent, ainsi que les suites citées en commentaire ou dans les raisons des gates.
+// Un échec rend la liste des références mortes avec leur fichier et leur ligne.
 // Un métavariable `<…>` qui suit un chemin le tronque au dossier (ex. `src/ui/jetProps/<hook>.tsx`
 // → on valide `src/ui/jetProps/`). Re-run : node scripts/docs/check-doc-refs.mjs (npm run docs:check).
 import { readFileSync, existsSync, statSync } from 'node:fs'
@@ -15,13 +11,14 @@ import { parUnitesDeCode, listerArbre, listerDossier } from '../guards/lib/liste
 import { estSuiteVitest, SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
 import { cibleProduite, generateurDe } from './build-all.mjs'
-import { ast, typescript } from '../guards/lib/dialecte.mjs'
+import { ast, EXTENSIONS_DE_SCRIPT, typescript } from '../guards/lib/dialecte.mjs'
 import { RACINES_PRESENTES } from '../guards/lib/racinesPresentes.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
 
 const DOCS_DIR = 'docs'
 const SRC_DIR = 'src'
 const SCRIPTS_DIR = 'scripts'
-const EXTS_SRC = ['.ts', '.tsx', '.js', '.mjs', '.mts', '.json', '.css']
+const EXTS_SRC = [...EXTENSIONS_DE_SCRIPT, '.json', '.css']
 
 /** Fichiers de `dir` portant une des extensions, en ORDRE TOTAL (hors `node_modules`). */
 function fichiersSources(dir, exts) {
@@ -60,8 +57,29 @@ function* candidatsSuites(text) {
 }
 
 /** Présélection du sens des suites citées : `false` seulement pour un texte où l'arbre syntaxique ne trouverait
- *  aucune suite citée (ni candidat brut, ni `ECRIT_LU`, ni échappement `\u`). */
-export const aJugerParAst = (text) => !candidatsSuites(text).next().done || text.includes('ECRIT_LU') || text.includes('\\u')
+ *  aucune suite citée (ni candidat brut, ni propriété de raison, ni échappement hexadécimal ou Unicode). */
+export const aJugerParAst = (text) => !candidatsSuites(text).next().done || text.includes('raison') || /\\[ux\r\n]/.test(text)
+
+
+/** Le parseur décode le littéral en conservant ici un repère par changement de ligne physique. */
+function ligneDansLaRaison(source, { text, position, fin }) {
+  const debut = lineAt(source, position)
+  const litteral = source.slice(position - 1, fin + 1)
+  if (!litteral.includes('\n')) return () => debut
+
+  let repere = '\uE000'
+  while (text.includes(repere)) repere += 'L'
+  const avecReperes = litteral.replaceAll('\n', `\n${repere}`)
+  const sf = ast({ rel: 'raison-avec-reperes.mjs', text: `const raison = ${avecReperes}` })
+  const raison = sf.statements[0].declarationList.declarations[0].initializer.text
+  let positionDecodee = 0
+  const debuts = raison.split(repere).map((morceau) => {
+    const debutDuMorceau = positionDecodee
+    positionDecodee += morceau.length
+    return debutDuMorceau
+  })
+  return (index) => debut + debuts.findLastIndex((position) => position <= index)
+}
 
 async function principal() {
   // --- index des identifiants présents dans src/ et scripts/ (= « grep dans src/ et scripts/ ») ---
@@ -100,28 +118,40 @@ async function principal() {
 
   const problems = [] // { file, line, kind, tok }
 
-  for (const file of [...fichiersSources(SRC_DIR, ['.ts', '.tsx', '.js', '.mjs', '.mts']), ...fichiersSources(SCRIPTS_DIR, ['.ts', '.tsx', '.js', '.mjs', '.mts'])]) {
+  const hooks = ['scripts/git-hooks', 'scripts/hooks'].flatMap((dir) =>
+    listerArbre(dir, { filtre: (rel) => estModule(rel) && !estSuiteVitest(rel) }).map((rel) => `${dir}/${rel}`))
+  const fichiersHooks = new Set(hooks)
+  const raisonsDesHooks = new Map()
+
+  for (const file of [SRC_DIR, SCRIPTS_DIR].flatMap((dir) => fichiersSources(dir, EXTENSIONS_DE_SCRIPT))) {
     const text = readFileSync(file, 'utf8')
     if (!aJugerParAst(text)) continue
     const sf = ast({ rel: file, text })
     const ts = typescript()
     const spans = new Map()
+    const cheminPosix = file.replaceAll('\\', '/')
+    const jugeParLeHook = fichiersHooks.has(cheminPosix)
     const commentaire = (range) => spans.set(range.pos, { text: text.slice(range.pos, range.end), position: range.pos })
     const raison = (n) => {
-      if (ts.isStringLiteralLikeNode(n)) spans.set(n.pos, { text: n.text, position: n.getStart(sf) + 1 })
+      if (ts.isStringLiteralLikeNode(n)) spans.set(n.pos, { text: n.text, position: n.getStart(sf) + 1, fin: n.end - 1 })
       else if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.PlusToken) { raison(n.left); raison(n.right) }
     }
     const visiter = (n) => {
-      for (const range of ts.getLeadingCommentRanges(text, n.pos) ?? []) commentaire(range)
-      for (const range of ts.getTrailingCommentRanges(text, n.end) ?? []) commentaire(range)
-      if (ts.isPropertyAssignment(n) && n.name?.text === 'raison') {
-        let porteur = n
-        while (porteur && !(ts.isVariableDeclaration(porteur) && ts.isIdentifier(porteur.name) && porteur.name.text === 'ECRIT_LU')) porteur = porteur.parent
-        if (porteur) raison(n.initializer)
+      if (!jugeParLeHook) {
+        for (const range of ts.getLeadingCommentRanges(text, n.pos) ?? []) commentaire(range)
+        for (const range of ts.getTrailingCommentRanges(text, n.end) ?? []) commentaire(range)
+      }
+      if (ts.isPropertyAssignment(n) && n.name?.text === 'raison' && ts.isObjectLiteralExpression(n.parent)) {
+        const champs = n.parent.properties
+        if (champs.some((p) => p.name?.text === 'ecrit') && champs.some((p) => p.name?.text === 'lit')) raison(n.initializer)
       }
       n.forEachChild(visiter)
     }
     visiter(sf)
+    if (jugeParLeHook) {
+      if (spans.size) raisonsDesHooks.set(cheminPosix, [...spans.values()])
+      continue
+    }
     for (const span of spans.values()) for (const { tok, index } of candidatsSuites(span.text)) {
       jugerChemin(tok, { file, line: lineAt(text, span.position + index), kind: 'suite citée mais absente', tok })
     }
@@ -168,7 +198,7 @@ async function principal() {
   if (existsSync(MANIFESTE_PRIMITIVES)) {
     const brut = readFileSync(MANIFESTE_PRIMITIVES, 'utf8')
     const EXPORTED_SYMS = new Set()
-    for (const f of [SRC_DIR, SCRIPTS_DIR].flatMap((d) => fichiersSources(d, ['.ts', '.tsx', '.mjs', '.mts']))) {
+    for (const f of [SRC_DIR, SCRIPTS_DIR].flatMap((d) => fichiersSources(d, EXTENSIONS_DE_SCRIPT))) {
       const src = readFileSync(f, 'utf8')
       for (const m of src.matchAll(/export\s+(?:default\s+)?(?:async\s+)?(?:function\s*\*\s*|(?:function|class|interface|type|enum)\s+)([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
       for (const m of src.matchAll(/export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
@@ -220,7 +250,7 @@ async function principal() {
 
       // Faux positifs à écarter : extensions de fichier (`CLAUDE.md`…) et motifs jocker cités comme
       // ANTI-exemples exprès NON catalogués (`.voyage-*`, `.char-card*`…, cf. prose de la section).
-      const FILE_EXTS = new Set(['md', 'ts', 'tsx', 'js', 'jsx', 'mjs', 'mts', 'cjs', 'json', 'css'])
+      const FILE_EXTS = new Set([...EXTS_SRC, '.md'])
       const seen = new Set()
       const codeRe2 = /`([^`\n]+)`/g
       let mm
@@ -228,7 +258,7 @@ async function principal() {
         for (const c of mm[1].matchAll(/\.[A-Za-z][\w-]*/g)) {
           const cls = c[0]
           if (mm[1][c.index + cls.length] === '*') continue // motif jocker anti-exemple (`.voyage-*`)
-          if (seen.has(cls) || FILE_EXTS.has(cls.slice(1))) continue
+          if (seen.has(cls) || FILE_EXTS.has(cls)) continue
           seen.add(cls)
           const rx = new RegExp('\\' + cls + '(?![\\w-])')
           if (!rx.test(CSS_TEXT)) {
@@ -355,10 +385,9 @@ async function principal() {
   // tests-scanners qu'il joue ou exclut, la source d'une whitelist) ou en CHAÎNE ; aucune garde ne
   // confrontait ces noms au disque, et un renommage les laissait mentir en silence. Même résolution
   // que le sens 1 (fichier, dossier, glob, métavariable `<…>`).
-  // PÉRIMÈTRE dit : les hooks NON-test. Un `*.test.mjs` de hook monte des dépôts JETABLES et y cite
+  // PÉRIMÈTRE dit : les hooks NON-test. Une suite de test de hook monte des dépôts JETABLES et y cite
   // des chemins qui n'ont pas vocation à exister ici (mesuré : 116 des 124 chemins morts du périmètre
   // large sont des fixtures de test) — même raison que l'exclusion `docs/plans/` du sens 5.
-  const HOOKS_DIRS = ['scripts/git-hooks', 'scripts/hooks']
   /** Un jeton porteur d'un JOKER (`*`, `?`, `[`) est un MOTIF de prose (`scripts/_tmp-qc-*.mts`,
    *  `*-guard.test.ts`), pas un chemin : il ne se confronte pas au disque. SEULE définition — les sens
    *  6 et 7 la partagent. */
@@ -371,24 +400,28 @@ async function principal() {
   // prédicat partagé (`scripts/guards/lib/fichierVitest.mjs`) — COMPOSÉ, jamais recopié, et non ancré
   // à droite puisqu'on le cherche AU FIL du texte.
   const NOM_DE_TEST_RE = new RegExp(String.raw`\b[A-Za-z0-9_.-]+` + SUFFIXE_SUITE + String.raw`\b`, 'g')
-  for (const dir of HOOKS_DIRS) {
-    for (const rel of listerArbre(dir, { filtre: (r) => r.endsWith('.mjs') && !r.endsWith('.test.mjs') })) {
-      const f = `${dir}/${rel}`
-      const text = readFileSync(f, 'utf8')
-      let m
-      while ((m = CHEMIN_RE.exec(text))) {
-        const tok = cheminCite(text, m)
-        const ligne = lineAt(text, m.index)
+  for (const f of hooks) {
+    const text = readFileSync(f, 'utf8')
+    const raisons = raisonsDesHooks.get(f) ?? []
+    // Le littéral d'une raison porte ses citations décodées. Le scan brut couvre le reste du hook.
+    const jugerFragment = (fragment, ligneDe, estRaison) => {
+      const dejaJuge = (index) => !estRaison && raisons.some((r) => r.position <= index && index < r.fin)
+      for (const m of fragment.matchAll(CHEMIN_RE)) {
+        if (dejaJuge(m.index)) continue
+        const tok = cheminCite(fragment, m)
         if (estMetavariable(tok)) continue
-        jugerChemin(tok, { file: f, line: ligne, kind: 'chemin cité par un hook, absent du disque', tok })
+        const kind = estRaison && NOM_DE_SUITE.test(tok) ? 'suite citée mais absente' : 'chemin cité par un hook, absent du disque'
+        jugerChemin(tok, { file: f, line: ligneDe(m.index), kind, tok })
       }
-      while ((m = NOM_DE_TEST_RE.exec(text))) {
-        if (estMotif(text.slice(Math.max(0, m.index - 2), m.index))) continue // motif, pas un nom
-        if (text[m.index - 1] === '/') continue // queue d'un CHEMIN, déjà jugé au sens 6
+      for (const m of fragment.matchAll(NOM_DE_TEST_RE)) {
+        if (dejaJuge(m.index) || estMotif(fragment.slice(Math.max(0, m.index - 2), m.index))) continue
+        if (fragment[m.index - 1] === '/') continue // queue d'un CHEMIN, déjà jugé au sens 6
         if (TESTS_SRC.has(m[0])) continue
-        problems.push({ file: f, line: lineAt(text, m.index), kind: 'test nommé par un hook, absent de src/', tok: m[0] })
+        problems.push({ file: f, line: ligneDe(m.index), kind: 'test nommé par un hook, absent de src/', tok: m[0] })
       }
     }
+    for (const raison of raisons) jugerFragment(raison.text, ligneDansLaRaison(text, raison), true)
+    jugerFragment(text, (index) => lineAt(text, index), false)
   }
 
   // 7. LE CONTEXTE PERMANENT CITE DU CODE — le credo, les défs d'agents et les skills sont chargés à

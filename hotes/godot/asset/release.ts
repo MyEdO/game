@@ -5,7 +5,7 @@
  * qui porte l'empreinte. `recupererModeles` tire de la Release le GLB qui manque dans le cache, le vérifie et le dépose
  * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas. Un modèle dont la provenance
  * porte `hors_release` (`CLE_HORS_RELEASE`) vit sur le poste seulement : ni dans la Release, ni suivi par git
- * (`suivisHorsRelease`). Les textures du sol et le kit des arêtes y vivent de même (`./epingles.ts`, #3476).
+ * (`suivisHorsRelease`). Les textures du sol et les sons y vivent de même (`./epingles.ts`, #3476).
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -52,9 +52,9 @@ const resoudreLImport = (depuis: string, specifieur: string): string | undefined
 /** Les imports et exports relatifs d'un module, dynamiques compris. */
 const IMPORT_RELATIF = /\b(?:from|import)\s*\(?\s*['"](\.{1,2}\/[^'"]+)['"]/g;
 
-/** L'empreinte SHA-256 des sources du module `entree` et de tout ce qu'il importe par chemin relatif, de proche en
- *  proche (données JSON comprises) : un octet changé dans l'une la change. Les sources se lisent depuis la racine du
- *  dépôt (`RACINE_DU_DEPOT`). */
+/** L'empreinte SHA-256 des fichiers atteints par les imports relatifs du validateur, lue depuis `RACINE_DU_DEPOT`.
+ *  La marche suit les imports des dialectes que `resoudreLImport` essaie pour les modules sans extension. Un fichier
+ *  explicitement importé hors de ces dialectes, comme un JSON, contribue par ses octets en tant que feuille. */
 export function empreinteDesSources(entree: string): string {
   const vus = new Set<string>();
   const pile = [relative(RACINE_DU_DEPOT, entree)];
@@ -78,7 +78,7 @@ export function empreinteDesSources(entree: string): string {
 
 /** L'empreinte du validateur des modèles (`validerModele`, `./modeles.ts`), calculée une fois par processus. */
 let empreinteDuValidateur: string | undefined;
-const validateur = (): string => (empreinteDuValidateur ??= empreinteDesSources(fileURLToPath(new URL('./modeles.ts', import.meta.url))));
+const validateur = (): string => (empreinteDuValidateur ??= empreinteDesSources(resolve(dirname(fileURLToPath(import.meta.url)), 'modeles.ts')));
 
 /** Ce que le marqueur garde d'un manifeste accepté contre son GLB : la clé de ce verdict (`verdictsDuDossier`), et les
  *  os qui portent les meshes rigides du GLB (`osDesRigides`). */

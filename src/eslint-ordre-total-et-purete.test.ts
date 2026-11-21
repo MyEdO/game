@@ -13,7 +13,6 @@ import {
   SURFACE_DU_NOYAU,
   dossierDe,
   estZone,
-  fermeParLaSurvie,
   fermeture,
   paquetFerme,
   porteManquee,
@@ -182,10 +181,11 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
 
   it('CONTRAT : une zone qui survit à la bascule (`survit`) n’ouvre que des zones qui survivent, en valeur, en type et par porte', () => {
     const survivent = Object.keys(COUCHES).filter((z) => COUCHES[z].survit === true);
-    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'hote', 'hoteTexte', 'hotes', 'i18n', 'lib', 'noyau', 'scenes']);
+    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'hote', 'hoteTexte', 'hotes', 'i18n', 'lib', 'noyau', 'racine', 'scenes']);
+    expect(survivent).toHaveLength(Object.keys(COUCHES).length);
     for (const z of survivent) {
       const { importe, types = [], portes = {} } = COUCHES[z];
-      expect(importe, `${z} importe toutes les zones`).not.toBe('*');
+      expect(importe === '*', `${z} et ses droits d’import`).toBe(z === 'racine');
       for (const v of [...(importe === '*' ? [] : importe), ...types, ...Object.keys(portes)]) expect(COUCHES[v].survit, `${z} ouvre ${v}`).toBe(true);
     }
   });
@@ -205,42 +205,24 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     const oracle: [de: string, vers: string, typeSeul: boolean, verdict: ReturnType<typeof fermeture>][] = [
       ['engine', 'data', false, null], // importe
       ['engine', 'engine', false, null], // même zone
-      ['racine', 'ui', false, null], // '*'
+      ['racine', 'hotes', false, null], // '*'
       ['data', 'scenes', false, 'type'], // fermé (#2884)
-      ['audio', 'state', true, 'type'], // fermé (#2884)
-      ['audio', 'noyau', false, 'type'],
-      ['scenes', 'state', true, 'type'], // fermé (#2884)
-      ['scenes', 'ui', true, 'type'],
-      ['data', 'state', true, 'type'],
-      ['engine', 'gameIso', true, 'type'], // fermé (#2884)
-      ['data', 'gameIso', true, 'type'], // fermé (#2884)
-      ['state', 'ui', true, null], // `types`
-      ['state', 'ui', false, 'execution'],
-      ['state', 'gameIso', true, 'type'], // fermé
-      ['engine', 'state', true, 'type'],
       ['lib', 'engine', false, 'type'], // feuille
-      ['ui', 'racine', false, 'type'], // la présentation n'importe pas l'entrée
       ['engine', 'constructor', false, 'type'], // clé du prototype
-      ['constructor', 'ui', false, null], // zone inconnue : `murs/zone` la refuse, pas ce verdict
-      ['noyau', 'state', false, 'type'], // fermé (#2817 D5)
-      ['noyau', 'state', true, 'type'],
-      ['noyau', 'web', false, 'type'], // fermé
+      ['constructor', 'hotes', false, null], // zone inconnue : `murs/zone` la refuse, pas ce verdict
       ['engine', 'noyau', false, 'type'],
       ['scenes', 'noyau', false, null], // importe
       ['data', 'noyau', true, 'type'], // fermé (#2884)
       ['data', 'noyau', false, 'type'],
-      ['web', 'state', false, 'type'], // fermé
       ['hoteTexte', 'noyau', false, null], // importe (par sa porte)
       ['hoteTexte', 'scenes', false, null],
       ['hoteTexte', 'engine', true, 'type'], // fermé (#2898)
-      ['hoteTexte', 'state', true, 'type'],
       ['hoteTexte', 'data', true, 'type'],
       ['noyau', 'hoteTexte', false, 'type'],
       ['hote', 'noyau', false, null], // importe (par sa porte, #2928)
       ['hote', 'scenes', false, null],
       ['hote', 'engine', true, 'type'], // fermé
       ['hote', 'data', true, 'type'],
-      ['hote', 'state', true, 'type'],
       ['hote', 'hoteTexte', true, 'type'], // le module commun ne lit aucun hôte
       ['hote', 'hotes', true, 'type'],
       ['noyau', 'hote', true, 'type'],
@@ -250,7 +232,6 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['hotes', 'scenes', false, null],
       ['hotes', 'engine', true, 'type'], // fermé (#2928 M4)
       ['hotes', 'data', true, 'type'],
-      ['hotes', 'state', true, 'type'],
       ['hotes', 'hoteTexte', true, 'type'],
       ['hoteTexte', 'hotes', true, 'type'],
       ['scenes', 'hote', true, 'type'],
@@ -281,31 +262,30 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['noyau', 'zod', false], // hors de l'hôte web
       ['noyau', '@scope/react', false],
       ['noyau', null, false], // module de Node
-      ['state', 'react', false], // ne survit pas
-      ['ui', 'three', false],
-      ['racine', 'react', false],
+      ['racine', 'react', true],
+      ['racine', 'three', true],
       ['constructor', 'react', false],
     ];
     expect(paquets.map(([de, p]) => paquetFerme(de, p))).toEqual(paquets.map(([, , v]) => v));
   });
 
-  it('PÉRIMÈTRE : des fichiers RÉELS de chaque zone sont sous les murs, dans chaque dialecte ; la réexportation, en production de `src/state`, `src/noyau` et `src/scenes` hors de la surface', () => {
+  it('PÉRIMÈTRE : des fichiers RÉELS de chaque zone sont sous les murs, dans chaque dialecte ; la réexportation, en production de `src/noyau` et `src/scenes` hors de la surface', () => {
     const regles = (rel: string) => Object.keys(configPourFichier(rel).rules);
     for (const zone of ZONES) {
       for (const rel of sondes(zone)) {
         expect(regles(rel), rel).toEqual(expect.arrayContaining([REGLE, 'murs/zone', 'murs/suite-jouee']));
-        expect(regles(rel).includes(REEX), rel).toBe(['state', 'noyau', 'scenes'].includes(zone) && !estKitDeTest(rel));
+        expect(regles(rel).includes(REEX), rel).toBe(['noyau', 'scenes'].includes(zone) && !estKitDeTest(rel));
       }
     }
     for (const ext of ['.mjs', '.mts', '.cjs', '.js', '.jsx', '.tsx']) {
       expect(regles(`src/lib/zz-dialecte${ext}`), ext).toEqual(expect.arrayContaining([REGLE, 'murs/zone', 'murs/suite-jouee']));
     }
-    const [state] = sondes('state');
-    const horsReexportation = [SURFACE_DU_NOYAU, voisin(state, 0).replace(/\.ts$/, '.test.ts'), voisin(state, 1).replace(/\.ts$/, '.testkit.ts'), 'src/noyau/zz.d.ts'];
+    const [noyau] = sondes('noyau');
+    const horsReexportation = [SURFACE_DU_NOYAU, voisin(noyau, 0).replace(/\.ts$/, '.test.ts'), voisin(noyau, 1).replace(/\.ts$/, '.testkit.ts'), 'src/noyau/zz.d.ts'];
     expect(horsReexportation.filter((rel) => regles(rel).includes(REEX))).toEqual([]);
   });
 
-  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…` ; depuis une suite, celui de `fermeParLaSurvie`', { timeout: 460_000 }, () => {
+  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 460_000 }, () => {
     const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
     for (const de of ZONES) {
       for (const rel of sondes(de)) {
@@ -323,26 +303,21 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
         }
       }
     }
-    // INSTRUMENTS (#3058) : une suite de chaque zone vers chaque autre, en import nommé relatif (le câblage de
-    // `fermeParLaSurvie`) ; sur la première paire fermée, chaque forme sous chaque arc (le jugeur, `jugeurDArcs`, est
-    // celui de la pureté de couche).
-    const [ferme] = ZONES.flatMap((de) => ZONES.filter((vers) => fermeParLaSurvie(de, vers)).map((vers) => [de, vers]));
-    expect(ferme, 'aucune paire fermée aux instruments : le banc ne mesure rien').toBeDefined();
-    const instruments: { cle: string; attendu: string; fixture: { filePath: string; code: string }; forme: string }[] = [];
+    // Les suites gardent tous les imports entre zones vivantes. Chaque forme d’accès à Three hors de son
+    // outillage reste refusée, en valeur comme en type.
     for (const de of ZONES) {
       const [rel] = sondes(de);
       for (const vers of ZONES.filter((v) => v !== de)) {
-        const tout = de === ferme[0] && vers === ferme[1];
-        const variantes = tout ? arcsVers(rel, vers).flatMap((arc) => FORMES.filter((f) => arc.avecMotif || f.nom !== 'import.meta.glob').map((f) => ({ f, arc })))
-          : [{ f: FORMES[0], arc: arcsVers(rel, vers)[0] }];
-        for (const { f, arc: { p } } of variantes) {
-          const filePath = suite(voisin(rel, cas.length + instruments.length));
-          instruments.push({ cle: `${filePath} → ${p} (${f.nom})`, attendu: fermeParLaSurvie(de, vers) ? INSTR : 'passe', fixture: { filePath, code: f.code(p) }, forme: f.nom });
-        }
+        const { p } = arcsVers(rel, vers)[0];
+        const filePath = suite(voisin(rel, cas.length));
+        cas.push({ cle: `${filePath} → ${p}`, attendu: 'passe', fixture: { filePath, code: FORMES[0].code(p) } });
       }
     }
-    expect(FORMES.filter((f) => !instruments.some((c) => c.forme === f.nom && c.attendu === INSTR)).map((f) => f.nom), 'forme sans cas rouge d’instrument').toEqual([]);
-    cas.push(...instruments);
+    const [noyau] = sondes('noyau');
+    for (const f of FORMES.filter(({ nom }) => nom !== 'import.meta.glob')) {
+      const filePath = suite(voisin(noyau, cas.length));
+      cas.push({ cle: `${filePath} → three (${f.nom})`, attendu: INSTR, fixture: { filePath, code: f.code('three') } });
+    }
     const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE, REEX, INSTR]);
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
@@ -375,22 +350,21 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
   it('FORMES : une suite d’une zone qui survit est sous le mur des instruments, pas sous la pureté de couche ; un import interne à la zone passe, la requête ne compte pas', () => {
     const [rel] = sondes('engine');
     const [data] = sondes('data');
-    const [state] = sondes('state');
     const specifieur = (de: string, vers: string) => specifieurs(de, vers)[0];
     const obtenus = verdicts([
-      { filePath: suite(voisin(rel, 0)), code: `import { X } from '${specifieur(rel, 'ui')}';\nexport const a = X;\n` },
+      { filePath: suite(voisin(rel, 0)), code: `import { X } from 'three';\nexport const a = X;\n` },
       { filePath: voisin(rel, 1), code: "import { rollD100 } from './dice';\nexport const a = rollD100;\n" },
       { filePath: voisin(data, 2), code: `import x from '${specifieur(data, 'engine')}?raw';\nexport const a = x;\n` },
-      { filePath: voisin(data, 3), code: `import x from '${specifieur(data, 'ui')}?raw';\nexport const a = x;\n` },
-      { filePath: voisin(data, 4), code: `export const g = import.meta.glob(['!${specifieur(data, 'ui')}.ts', '${specifieur(data, 'engine')}.ts']);\n` },
+      { filePath: voisin(data, 3), code: `import x from '${specifieur(data, 'hote')}?raw';\nexport const a = x;\n` },
+      { filePath: voisin(data, 4), code: `export const g = import.meta.glob(['!${specifieur(data, 'hote')}.ts', '${specifieur(data, 'engine')}.ts']);\n` },
       { filePath: 'src/lib/zz-dialecte.mjs', code: "import { X } from '../engine/x.js';\nexport const a = X;\n" },
-      { filePath: voisin(state, 6), code: `export const f = () => import('${relatif(state, `${dossierDe('gameIso')}X/x`)}');\n` },
+      { filePath: voisin(data, 6), code: `export const f = () => import('${relatif(data, `${dossierDe('hote')}X/x.json`)}');\n` },
     ], [REGLE, INSTR]);
     expect(obtenus).toEqual([INSTR, 'passe', 'passe', REGLE, 'passe', REGLE, 'passe']);
   });
 
   it('PARTAGE : un fichier d’une zone est sous la pureté de couche ou sous le mur des instruments, selon `estFichierVitest`, jamais sous les deux ni sous aucun', () => {
-    const vers = (rel: string) => `import { X } from '${relatif(rel, 'src/state/x')}';\nexport const a = X;\n`;
+    const vers = () => "import { X } from 'three';\nexport const a = X;\n";
     const cas: [filePath: string, attendu: string][] = [
       ['src/noyau/zz-partage-0.test.ts', INSTR],
       ['src/noyau/zz-partage-1.bench.ts', INSTR],
@@ -402,32 +376,27 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['hotes/zz-partage-7.hors-store.test.ts', INSTR],
     ];
     expect(cas.map(([f]) => estFichierVitest(f))).toEqual(cas.map(([, v]) => v === INSTR));
-    const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code: vers(filePath) })), [REGLE, INSTR]);
+    const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code: vers() })), [REGLE, INSTR]);
     expect(Object.fromEntries(cas.map(([f], i) => [f, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([f, v]) => [f, v])));
   });
 
-  it('INSTRUMENTS : une suite ou un banc d’une zone qui survit refuse le banc, le paquet de l’hôte web, le JSX et le spécificateur calculé ; `state→ui`, `noyau→scenes`, un module hors des zones, l’`import()` d’un `vi.mock` et la production passent', () => {
+  it('INSTRUMENTS : une suite ou un banc d’une zone qui survit refuse le banc, le paquet de l’hôte web, le JSX et le spécificateur calculé ; `noyau→scenes`, un module hors des zones, l’`import()` d’un `vi.mock` et la production passent', () => {
     const [noyau] = sondes('noyau');
     const [engine] = sondes('engine');
-    const [state] = sondes('state');
     const calcule = ['import(p)', 'require(p)', `${MOQUEUR}.mock(p)`, `${MOQUEUR}.doMock(p)`, 'vi.importActual(p)', 'vi.importMock(p)', 'createRequire(import.meta.url)(p)', 'module.require(p)', 'require(...[p])'];
     const cas: [cle: string, filePath: string, code: string, attendu: string][] = [
-      ['banc engine → ui (type)', voisin(engine, 0).replace(/\.ts$/, '.bench.ts'), `import type { X } from '${specifieurs(engine, 'ui')[0]}';\nexport type A = X;\n`, INSTR],
-      ['state → ui', suite(voisin(state, 1)), `import { X } from '${specifieurs(state, 'ui')[0]}';\nexport const a = X;\n`, 'passe'],
+      ['banc engine → three (type)', voisin(engine, 0).replace(/\.ts$/, '.bench.ts'), "import type { Mesh } from 'three';\nexport type A = Mesh;\n", INSTR],
       ['noyau → scenes', suite(voisin(noyau, 2)), `import { X } from '${specifieurs(noyau, 'scenes')[0]}';\nexport const a = X;\n`, 'passe'],
       ['noyau → hors des zones', suite(voisin(noyau, 3)), `import { X } from '${relatif(noyau, 'scripts/zz-pont.mjs')}';\nexport const a = X;\n`, 'passe'],
       ['noyau → react', suite(voisin(noyau, 4)), "import { useState } from 'react';\nexport const a = useState;\n", INSTR],
-      ['state → react', suite(voisin(state, 5)), "import { useState } from 'react';\nexport const a = useState;\n", 'passe'],
-      ['noyau : JSX', suite(voisin(noyau, 6)).replace(/\.ts$/, '.tsx'), 'export const A = () => <div />;\n', INSTR],
+      ['noyau : JSX', suite(voisin(noyau, 6)).replace(/\.ts$/, '.tsx'), 'export const A = () => <div />;\n', `murs/suite-jouee+${INSTR}`],
       ['noyau : mock d’un `import(…)`', suite(voisin(noyau, 7)), `${MOQUEUR}.mock(import('./zz-a'));\n`, 'passe'],
       ...calcule.map((appel, i): [string, string, string, string] => [`noyau : ${appel}`, suite(voisin(noyau, 8 + i)), `const p = './zz-' + 'a';\nexport const f = () => ${appel};\n`, INSTR]),
       ...calcule.map((appel, i): [string, string, string, string] => [`production noyau : ${appel}`, voisin(noyau, 20 + i), `const p = './zz-' + 'a';\nexport const f = () => ${appel};\n`, 'passe']),
-      ['state : import(p)', suite(voisin(state, 40)), "const p = './zz-' + 'a';\nexport const f = () => import(p);\n", 'passe'],
       ...CHARGEURS_DETOURNES.map(([forme, code], i): [string, string, string, string] => [`noyau : ${forme}`, suite(voisin(noyau, 50 + i)), code, INSTR]),
-      ...CHARGEURS_DETOURNES.map(([forme, code], i): [string, string, string, string] => [`state : ${forme}`, suite(voisin(state, 80 + i)), code, 'passe']),
       ...CHARGEURS_LISIBLES.map(([forme, code], i): [string, string, string, string] => [`noyau, lisible : ${forme}`, suite(voisin(noyau, 110 + i)), code, 'passe']),
     ];
-    const obtenus = verdicts(cas.map(([, filePath, code]) => ({ filePath, code })), [INSTR]);
+    const obtenus = verdicts(cas.map(([, filePath, code]) => ({ filePath, code })), [INSTR, 'murs/suite-jouee']);
     expect(Object.fromEntries(cas.map(([cle], i) => [cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([cle, , , v]) => [cle, v])));
   });
 
@@ -446,22 +415,23 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
 
-  it('JOKER : hors de `racine`, un motif d’`import.meta.glob` dont le dossier de zone est un joker est refusé, suite comprise ; un dossier écrit, un motif exclu, sa propre zone et la racine passent', () => {
+  it('JOKER : les motifs transversaux sont refusés en production et dans les suites ; un dossier autorisé, un motif exclu et sa propre zone passent', () => {
     const [noyau] = sondes('noyau');
     const [data] = sondes('data');
     const vers = (rel: string, motif: string) => relatif(rel, 'src').replace(/\/?$/, '/') + motif;
     const cas: [rel: string, motif: string, attendu: string, instrument?: true][] = [
       [noyau, vers(noyau, '*/x.ts'), REGLE],
       [noyau, vers(noyau, '**/*.ts'), REGLE],
-      [noyau, vers(noyau, '{state,engine}/x.ts'), REGLE],
+      [noyau, vers(noyau, '{data,engine}/x.ts'), REGLE],
       [data, vers(data, '*/*.json'), REGLE],
       [noyau, vers(noyau, 'engine/*.ts'), 'passe'],
       [noyau, vers(noyau, 'engine/**/*.ts'), 'passe'],
       [noyau, `!${vers(noyau, '*/x.ts')}`, 'passe'],
       [noyau, './**/*.ts', 'passe'],
-      ['src/zz-racine.ts', './*/x.ts', 'passe'],
+      ['src/zz-racine.ts', './*/x.ts', REGLE],
+      ['src/zz-racine.ts', './data/*.ts', 'passe'],
       [noyau, vers(noyau, '*/x.ts'), INSTR, true],
-      [noyau, vers(noyau, '{state,engine}/x.ts'), INSTR, true],
+      [noyau, vers(noyau, '{data,engine}/x.ts'), INSTR, true],
       [data, vers(data, '*/*.json'), INSTR, true],
       [noyau, vers(noyau, 'engine/*.ts'), 'passe', true],
       [noyau, `!${vers(noyau, '*/x.ts')}`, 'passe', true],
@@ -511,7 +481,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     }
   });
 
-  it('RÉEXPORTATION : un module de production de `src/state`, `src/noyau` ou `src/scenes` ne réexporte rien, sous aucune forme ; une déclaration locale, un réexport en valeur, la surface, `src/data` et un test passent', () => {
+  it('RÉEXPORTATION : un module de production de `src/noyau` ou `src/scenes` ne réexporte rien, sous aucune forme ; une déclaration locale, un réexport en valeur, la surface, `src/data` et un test passent', () => {
     const cas: [filePath: string, code: string, attendu: string][] = [
       ['src/noyau/zz-reex-0.ts', "export * from './a';\n", REEX],
       ['src/noyau/zz-reex-1.ts', "export * as c from './c';\n", REEX],
@@ -520,30 +490,30 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['src/noyau/monde/zz-reex-4.ts', "import { a } from './a';\nexport { a };\n", REEX],
       ['src/noyau/zz-reex-5.ts', "import * as ns from './ns';\nexport { ns };\n", REEX],
       ['src/noyau/zz-reex-6.ts', "import def from './def';\nexport { def as autre };\n", REEX],
-      ['src/state/zz-reex-7.ts', "import type { T } from '../noyau/t';\nexport type { T };\n", REEX],
-      ['src/state/zz-reex-8.ts', "export { x } from '../noyau/x';\n", REEX],
+      ['src/scenes/zz-reex-7.ts', "import type { T } from '../noyau/t';\nexport type { T };\n", REEX],
+      ['src/scenes/zz-reex-8.ts', "export { x } from '../noyau/x';\n", REEX],
       ['src/scenes/zz-reex-15.ts', "export { creerHeros } from '../engine/character';\n", REEX],
       ['src/noyau/zz-reex-9.ts', 'const locale = 1;\nexport { locale };\n', 'passe'],
       ['src/noyau/zz-reex-10.ts', "import { a } from './a';\nexport const valeur = a;\n", 'passe'],
       [SURFACE_DU_NOYAU, "export { a } from './a';\n", 'passe'],
       ['src/data/zz-reex-12.ts', "export { a } from './a';\n", 'passe'],
       ['src/noyau/zz-reex-13.test.ts', "export { a } from './a';\n", 'passe'],
-      ['src/state/zz-reex-14.testkit.ts', "export { a } from './a';\n", 'passe'],
+      ['src/scenes/zz-reex-14.testkit.ts', "export { a } from './a';\n", 'passe'],
     ];
     const obtenus = verdicts(cas.map(([filePath, code]) => ({ filePath, code })), [REEX, REGLE]);
     expect(Object.fromEntries(cas.map(([f], i) => [f, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([f, , v]) => [f, v])));
   });
 
-  it('SUITE JOUÉE : une suite que ni la suite principale ni celle du noyau ne jouent est refusée ; une suite jouée et un module passent', () => {
+  it('SUITE JOUÉE : une suite hors du corpus Vitest est refusée ; une suite jouée et un module passent', () => {
     const SUITE = 'murs/suite-jouee';
     const cas: [filePath: string, attendu: string][] = [
-      ['hotes/godot/pont/zz.test.ts', SUITE],
+      ['hotes/godot/pont/zz.test.ts', 'passe'],
       ['src/lib/zz.test.mjs', SUITE],
-      ['src/state/zz.test.js', SUITE],
+      ['src/lib/zz.test.js', SUITE],
       ['hotes/godot/pont/zz.hors-store.test.ts', 'passe'],
       ['src/hote/zz.test.ts', 'passe'],
       ['src/noyau/zz.hors-store.test.ts', 'passe'],
-      ['src/state/zz.test.tsx', 'passe'],
+      ['src/lib/zz.test.tsx', SUITE],
       ['hotes/godot/pont/zz.ts', 'passe'],
     ];
     const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code: 'export const a = 1;\n' })), [SUITE]);
@@ -611,13 +581,9 @@ function tableLint(formes: {nom: string; code: string; tsx?: boolean}[], chemin:
 /** Les couches dont les TESTS sont sous le mur de l'ordre total : le dossier de chaque zone. */
 const SOUS_LE_MUR = [...new Set(Object.keys(COUCHES).map(dossierDe))];
 
-/** Le premier fichier de PRODUCTION réel de `src/ui` (corpus, jamais un nom en dur) : le mur ne vise
- *  que les `*.test.*`, et c'est ce fichier-là qui le dit — un `files:` élargi à toute la couche se
- *  lirait ici. */
+/** Un module de production réel du moteur sert de témoin négatif de la portée du mur des tests. */
 function sondeProduction(): string {
-  const f = readCorpus(['src/ui'], { exts: ['.tsx'] })[0];
-  expect(f, 'src/ui : aucun composant de production — le témoin négatif ne mesure rien').toBeTruthy();
-  return f.rel;
+  return sondes('engine')[0];
 }
 
 /** Le premier fichier de TEST réel de la couche `dir`, à sa PROFONDEUR attendue : `src` désigne la
@@ -745,7 +711,7 @@ describe('ordre total dans les tests des zones — mur mesuré sur la config RÉ
     const generateur = await selecteursDe('scripts/docs/build-all.mjs');
     expect(generateur, 'la clôture des générateurs garde son volet `localeCompare`').toContain('localeCompare');
     // TÉMOIN NÉGATIF : le mur vise les TESTS, pas la couche — un composant de production n'en résout
-    // aucun sélecteur. Sans lui, un `files:` élargi à `src/ui/**` passerait inaperçu.
+    // aucun sélecteur. Sans lui, un `files:` élargi à `src/engine/**` passerait inaperçu.
     const production = sondeProduction();
     expect(
       await selecteursDe(production),

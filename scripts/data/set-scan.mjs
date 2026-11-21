@@ -10,7 +10,7 @@ import { runSetScan } from '../guards/lib/setScan.mjs';
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const { totalCalls, totalAdHocResets, files } = runSetScan(ROOT);
 
-console.log(`Fichiers avec au moins un set() (src/state/*.ts, hors store.ts/stateFields.ts) : ${files.length}`);
+console.log(`Fichiers avec au moins un set() (src/noyau, hors stateFields.ts et tests) : ${files.length}`);
 console.log(`Total set() littéraux détectés : ${totalCalls}`);
 console.log(`Total set() touchant un champ STATE_FIELDS (pending*) HORS resetFields(...) : ${totalAdHocResets}`);
 console.log('\nPar fichier (setCalls / adHocPendingResets) :');

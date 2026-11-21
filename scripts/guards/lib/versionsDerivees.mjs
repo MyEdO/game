@@ -18,7 +18,7 @@
 import { posix } from 'node:path'
 import { analyserCorpus, typescript } from './dialecte.mjs'
 import { libererSessions } from './tsProgram.mjs'
-import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
+import { estRetenu } from './sourceCorpus.mjs'
 
 /** Les champs qui portent une version de document. */
 const CHAMPS = new Set(['version', 'schema'])
@@ -27,13 +27,13 @@ const ETIQUETTES_DE_FORME = new Set(['kind', 'version', 'schema'])
 /** Le module des formats généré (`scripts/gen-formats.mjs`), par la fin de son spécificateur. */
 const FORMATS = /(^|\/)formats\.generated(\.[cm]?[jt]s)?$/
 
-/** Le fichier relève-t-il de la garde : `src/**` en `.ts`/`.tsx`, hors instruments et doublures. */
+/** Le fichier relève-t-il du corpus de production de `src/**` ? */
 export const relevePerimetre = (rel) =>
-  rel.startsWith('src/') && /\.tsx?$/.test(rel) && !/\.d\.ts$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel)
+  rel.startsWith('src/') && estRetenu(rel)
 
 /**
  * Les sites fautifs des trois prédicats, par prédicat : `chemin:ligne — motif`.
- * @param {readonly { rel: string, text: string }[]} fichiers
+ * @param {readonly Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers
  * @returns {{ P1: string[], P2: string[], P3: string[] }}
  */
 export function versionsNonDerivees(fichiers) {

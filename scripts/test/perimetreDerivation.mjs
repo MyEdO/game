@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { lstatSync, readFileSync } from 'node:fs'
 import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MessageChannel, Worker, receiveMessageOnPort } from 'node:worker_threads'
@@ -17,6 +17,7 @@ import {
 } from '../guards/lib/importGraph.mjs'
 import {
   APPEL_DE_LECTURE,
+  APPEL_D_ACQUISITION,
   certifierLecture,
   evaluerLotDuDepot,
   evaluer,
@@ -33,9 +34,10 @@ import { ancetresDe, LECTURES_DES_DEPENDANCES } from '../git-hooks/selection-des
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { memosDe, PAQUETS_VERSIONNANTS, texteSiPresent } from '../guards/lib/memosDAnalyse.mjs'
 import { empreinteDe, fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
+import { cheminAbsent } from '../guards/lib/lister.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Les fichiers dont un changement invalide toute dérivation : la suite entière est retenue. */
-const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vite.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
+const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vitest.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
 
 /** Le RANG d'un lien, du plus proche au plus lointain : touché, racine balayée (à rang égal, la plus
  *  SPÉCIFIQUE : `specificite`), import par distance, puis `setup` (le fichier n'est atteint que par les
@@ -45,7 +47,7 @@ export const RANG_TOOLCHAIN = RANG_SETUP + 1
 const rangDe = (lien) => lien.nature === 'touché' ? 0 : lien.nature === 'racine balayée' ? 1
   : lien.nature === 'import' ? 1 + lien.distance : lien.nature === 'setup' ? RANG_SETUP : RANG_TOOLCHAIN
 /** La config Vitest d'où se lisent les `setupFiles`. */
-const CONFIG_VITEST = 'vite.config.ts'
+const CONFIG_VITEST = 'vitest.config.ts'
 
 /** Les VARIANTES gardées par évaluation de module (`evaluations`) : une par jeu de réponses, les tours du
  *  point fixe des lecteurs en posant plusieurs. */
@@ -61,6 +63,24 @@ const blobDe = (texte) => {
 
 /** La racine `r` couvre-t-elle `chemin` (égalité, ou ANCÊTRE : `ancetresDe`) ? */
 const couvre = (r, chemin) => chemin === r || ancetresDe(chemin).includes(r)
+
+const normaliserIdentite = sep === '\\' ? (chemin) => chemin.toLowerCase() : (chemin) => chemin
+
+/** Une identité change au chemin touché, ou lorsqu’un premier/dernier descendant matérialise un dossier. */
+function changementsDIdentite(touches, avant, post) {
+  const dossiersDe = (image) => new Set(image.flatMap((f) => ancetresDe(normaliserIdentite(f))))
+  const dossiersAvant = dossiersDe(avant)
+  const dossiersApres = dossiersDe(post)
+  const changements = new Map()
+  for (const touche of touches) {
+    const chemin = normaliserIdentite(touche)
+    changements.set(chemin, touche)
+    for (const dossier of ancetresDe(chemin))
+      if (dossier && dossiersAvant.has(dossier) !== dossiersApres.has(dossier) && !changements.has(dossier))
+        changements.set(dossier, touche)
+  }
+  return changements
+}
 
 /**
  * Les fichiers touchés et les images d'un diff. `tete` absente : l'arbre de travail contre la base
@@ -98,14 +118,14 @@ function setupFilesDe(texte, analyser) {
 /** @typedef {{ site: string, fichier: string, helper: string, raison: string, moduleBalaieLeDepot: boolean }} NonResolu */
 
 /**
- * DÉRIVATION du périmètre. PURE hormis `lire` et les mémos. Chaque lot s'évalue par `evaluerLot` sur la
+ * DÉRIVATION du périmètre. PURE hormis les lecteurs et les mémos. Chaque lot s'évalue par `evaluerLot` sur la
  * clôture de ses lectures. `tailleLot` (questions par lot d'évaluation), `analyser`, `evaluerLot` et
  * `limiteIR` valent ceux de la production par défaut. `analyser` sert aussi la clôture d'imports (`clotureDImports`) ;
  * `stade` observe aussi chaque certification (`certifierLecture`) et chaque lot (`evaluerLot`).
- * @param {{ racine: string, touches: string[], post: string[], avant: string[], lire: (rels: string[]) => Map<string, string | null>, memos?: ReturnType<typeof memosDeDerivation> }} entree
+ * @param {{ racine: string, touches: string[], post: string[], avant: string[], lire: (rels: string[]) => Map<string, string | null>, lienOuIllisible?: (rel: string) => boolean, memos?: ReturnType<typeof memosDeDerivation> }} entree
  * @returns {{ retenus: Map<string, Lien>, toolchain: string[], nonResolus: NonResolu[], vitest: string[], node: string[], modules: number }}
  */
-export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos, stade = () => {},
+export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, lienOuIllisible, memos, stade = () => {},
   tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots, evaluerLot = evaluerLotDuDepot, limiteIR = LIMITE_IR }) {
   stade('graphe', null)
   const base = resolve(racine).split(sep).join('/')
@@ -126,28 +146,20 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     }))
   }
   const cache = new Map()
-  clotureDImports([...vitest, ...node, ...setup], {
+  const optionsDImports = {
     racine, typesEffaces: true, cache, analyser,
     arbre: { existe: (a) => ensemble.has(rel(a)), lire: lireAbs, fichiers: [...ensemble].map(abs) },
     specificateurs: memos && {
       lire: (a, t) => memos.lire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`),
       ecrire: (a, t, sites) => memos.ecrire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`, sites.map(({ spec, motifs, nature, ligne }) => ({ spec, motifs, nature, ligne }))),
     },
-  })
+  }
+  clotureDImports([...vitest, ...node, ...setup], optionsDImports)
   memos?.sauver?.()
   /** @type {Map<string, { importeur: string, spec: string }[]>} */
   const inverse = new Map()
-  for (const [cible, arcs] of grapheInverse(cache))
-    inverse.set(rel(cible), arcs.map((a) => ({ importeur: rel(a.importeur), spec: a.spec })))
   /** La clôture des `setupFiles` : ce que tout test Vitest atteint par eux, hors des distances. */
   const clotureSetup = new Set()
-  const pile = setup.map(abs)
-  while (pile.length) {
-    const a = pile.pop()
-    if (clotureSetup.has(rel(a))) continue
-    clotureSetup.add(rel(a))
-    for (const arc of cache.get(a) ?? []) pile.push(arc.cible)
-  }
   const estTest = (f) => presents.has(f) && (estDeLaSuiteVitest(f) || estTestNode(f))
 
   /** Tests qui atteignent `depart`, avec leur distance et la chaîne la plus courte (test → … → depart). */
@@ -174,7 +186,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     return atteints
   }
 
-  /** @typedef {{ nature: 'touché' | 'toolchain' | 'import' | 'racine balayée' | 'setup', distance: number, rang?: number, chaine?: string[], racine?: string, specificite?: number, site?: string, touche: string }} Lien */
+  /** @typedef {{ nature: 'touché' | 'toolchain' | 'import' | 'racine balayée' | 'setup', distance: number, rang?: number, chaine?: string[], racine?: string, identite?: true, specificite?: number, site?: string, touche: string }} Lien */
   /** @type {Map<string, Lien>} */
   const retenus = new Map()
   const retenir = (test, lien) => {
@@ -193,13 +205,6 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   }
   const parSetup = (lien) => { for (const t of vitest) retenir(t, { nature: 'setup', distance: 0, ...lien }) }
   const toolchain = touches.filter((t) => TOOLCHAIN.includes(t))
-  if (toolchain.length) for (const t of [...vitest, ...node]) retenir(t, { nature: 'toolchain', distance: 0, touche: toolchain[0] })
-  for (const t of touches) {
-    if (estTest(t)) retenir(t, { nature: 'touché', distance: 0, touche: t })
-    for (const [test, { distance, chaine }] of remonter(t)) if (distance > 0) retenir(test, { nature: 'import', distance, chaine, touche: t })
-    if (clotureSetup.has(t)) parSetup({ touche: t })
-  }
-
   const lectures = new Map()
   /** L'IR de `f` prélue par sa vague de clôture (`clotureDesLectures`) ; `null` pour un module illisible ou un fichier
    *  hors modules. */
@@ -236,7 +241,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   /** Les modules LECTEURS : ceux qui appellent une lecture, puis, au point fixe, les importeurs qui
    *  nomment un relais exporté d'un lecteur. L'ensemble reste stable pendant chaque tour : un relais se juge
    *  sur l'ensemble final. */
-  const lecteurs = new Set([...textes].filter(([, t]) => APPEL_DE_LECTURE.test(t)).map(([f]) => f))
+  const lecteurs = new Set()
   /** La réponse COURANTE à une requête de l'évaluateur (`partiesDeRequete`) : l'empreinte de la lecture
    *  d'un module (blob, `null` s'il n'est pas un module lisible), la cible d'un spécificateur — stables
    *  le temps d'une dérivation —, `peutLire`, qui suit les tours des lecteurs. */
@@ -248,7 +253,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     const texte = nature === 'lecture' ? textes.get(f) ?? lire([f]).get(f) ?? null : null
     return stables.set(requete, nature === 'cible' ? cibleDe(f, spec) : texte === null || !estModule(f) ? null : blobDe(texte)).get(requete)
   }
-  /** L'évaluation `nature` (`sitesDe`, `relaisExportes`) du module `f`, mémoïsée sous `evaluations` avec
+  /** L'évaluation `nature` du module `f`, mémoïsée sous `evaluations` avec
    *  les réponses de ses requêtes : une variante vaut tant que chacune de ses réponses tient. */
   const variante = (nature, f) => (memos?.lire('evaluations', `${nature}:${f}`) ?? [])
     .find(({ requetes }) => requetes.every(([r, reponse]) => reponseA(r) === reponse))
@@ -320,6 +325,46 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
       for (const f of lot) yield [f, vues.get(f)?.resultat ?? resultats.get(f)]
     }
   }
+  /** Une acquisition ajoute un arc au consommateur et ouvre la clôture du module acquis. Les arcs résolus
+   *  restent dans le graphe de cette image, les requêtes qui les justifient dans le mémo d'évaluation. */
+  const vus = new Set()
+  for (;;) {
+    const candidats = [...textes].filter(([f, t]) => !vus.has(f) && APPEL_D_ACQUISITION.test(t)).map(([f]) => f)
+    const nouveaux = new Set()
+    for (const [f, acquisitions] of evaluationsEnLots('acquisitionsDe', candidats)) {
+      vus.add(f)
+      const arcs = cache.get(abs(f))
+      for (const { script, ligne } of acquisitions) {
+        if (!ensemble.has(script) || !estModule(script)) continue
+        const cible = abs(script)
+        if (arcs.some((arc) => arc.cible === cible)) continue
+        const relatif = posix.relative(posix.dirname(f), script)
+        const spec = relatif.startsWith('../') ? relatif : `./${relatif}`
+        arcs.push({ cible, spec, nature: 'dynamique', ligne })
+        if (!cache.has(cible)) nouveaux.add(cible)
+      }
+    }
+    if (!nouveaux.size) break
+    clotureDImports([...nouveaux], optionsDImports)
+  }
+  for (const [cible, arcs] of grapheInverse(cache))
+    inverse.set(rel(cible), arcs.map((a) => ({ importeur: rel(a.importeur), spec: a.spec })))
+  const pile = setup.map(abs)
+  while (pile.length) {
+    const a = pile.pop()
+    if (clotureSetup.has(rel(a))) continue
+    clotureSetup.add(rel(a))
+    for (const arc of cache.get(a) ?? []) pile.push(arc.cible)
+  }
+
+  if (toolchain.length) for (const t of [...vitest, ...node]) retenir(t, { nature: 'toolchain', distance: 0, touche: toolchain[0] })
+  for (const t of touches) {
+    if (estTest(t)) retenir(t, { nature: 'touché', distance: 0, touche: t })
+    for (const [test, { distance, chaine }] of remonter(t)) if (distance > 0) retenir(test, { nature: 'import', distance, chaine, touche: t })
+    if (clotureSetup.has(t)) parSetup({ touche: t })
+  }
+
+  for (const [f, texte] of textes) if (APPEL_DE_LECTURE.test(texte)) lecteurs.add(f)
   for (let frontiere = [...lecteurs]; ;) {
     const suivante = new Set()
     for (const [f, noms] of evaluationsEnLots('relaisExportes', frontiere)) {
@@ -336,17 +381,32 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   const nonResolus = []
   /** Les modules dont un site balaie la RACINE du dépôt : tout fichier touché retient les tests qui les atteignent. */
   const balaientLeDepot = new Set()
+  let identitesChangees
+  const toucheDIdentite = (chemin) => {
+    if (!touches.length) return undefined
+    identitesChangees ??= changementsDIdentite(touches, avant, post)
+    const prefixes = [chemin, ...ancetresDe(chemin)].slice(0, -1)
+    for (const prefixe of prefixes) {
+      const touche = identitesChangees.get(normaliserIdentite(prefixe))
+      if (touche) return touche
+    }
+    // Un lien peut faire dépendre l’identité d’un chemin situé hors de ses préfixes lexicaux.
+    if (lienOuIllisible && prefixes.reverse().some(lienOuIllisible)) return touches[0]
+  }
   const tries = [...lecteurs].sort()
   for (const [f, sites] of evaluationsEnLots('sitesDe', tries)) {
     for (const site of sites) {
       const ici = `${f}:${site.ligne}`
       for (const v of site.valeurs) if ('non' in v) nonResolus.push({ site: ici, fichier: f, helper: site.appel, raison: v.non })
       for (const v of site.valeurs) {
-        if (!('chemin' in v)) continue
-        if (v.chemin === '') balaientLeDepot.add(f)
-        const touche = touches.find((t) => couvre(v.chemin, t))
+        const identite = 'identite' in v
+        if (!identite && !('chemin' in v)) continue
+        const chemin = identite ? v.identite : v.chemin
+        if (chemin === '') balaientLeDepot.add(f)
+        const touche = identite ? toucheDIdentite(chemin) : touches.find((t) => couvre(chemin, t))
         if (!touche) continue
-        const lien = { racine: v.chemin || '.', specificite: specificiteDe(v.chemin), site: `${ici} ${site.appel}`, touche }
+        const lien = { racine: chemin || '.', specificite: identite ? 1 : specificiteDe(chemin),
+          site: `${ici} ${site.appel}`, touche, ...(identite ? { identite: true } : {}) }
         for (const [test, { distance }] of remonter(f)) retenir(test, { nature: 'racine balayée', distance, ...lien })
         if (clotureSetup.has(f)) parSetup(lien)
       }
@@ -629,13 +689,19 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
   const chemins = [...new Set([...images.post, ...images.avant])].filter(estModule)
   const persistables = entreesDe(depot, 'HEAD', chemins)
   const imagesVivantes = new Map()
+  const liensGit = new Set()
   const garder = (rel, sha) => {
     if (!imagesVivantes.has(rel)) imagesVivantes.set(rel, new Set())
     imagesVivantes.get(rel).add(sha)
   }
   for (const [rel, { sha }] of persistables) garder(rel, sha)
-  for (const [borne, fichiers] of [[images.base, images.avant], [images.tete, images.post]])
-    if (borne) for (const [rel, { sha }] of entreesDe(depot, borne, fichiers.filter(estModule))) garder(rel, sha)
+  for (const [borne, fichiers] of [[images.base, images.avant], [images.tete, images.post]]) {
+    if (!borne) continue
+    for (const [rel, { sha, mode }] of entreesDe(depot, borne, fichiers)) {
+      if (mode === '120000') liensGit.add(normaliserIdentite(rel))
+      if (estModule(rel)) garder(rel, sha)
+    }
+  }
   if (!images.tete) for (const rel of images.post.filter(estModule)) {
     const texte = lire([rel]).get(rel)
     if (texte !== null && texte !== undefined) garder(rel, blobDe(texte))
@@ -643,7 +709,18 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
   stade('version', null)
   const memos = memosDeDerivation(dossierDesMemos, versionDesMemosDeDerivation(racine, { dossierDesMemos, lectureSeule, stade }), { lectureSeule, imagesVivantes, diagnostic: (famille, raison) => console.log(`[mémo] ${famille} : ${raison}`) })
   const lireAvant = images.base ? (rels) => lireEnLot(depot, images.base, rels) : undefined
-  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos, stade })
+  const liensDuDisque = new Map()
+  const lienOuIllisible = (rel) => {
+    if (liensGit.has(normaliserIdentite(rel))) return true
+    if (images.tete) return false
+    if (!liensDuDisque.has(rel)) {
+      try { liensDuDisque.set(rel, lstatSync(join(racine, rel)).isSymbolicLink()) }
+      catch (e) { liensDuDisque.set(rel, !cheminAbsent(e)) }
+    }
+    return liensDuDisque.get(rel)
+  }
+  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant,
+    lire, lireAvant, lienOuIllisible, memos, stade })
   stade('sauvegarde', null)
   memos.sauver()
   return enDTO(images, derive)

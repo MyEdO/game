@@ -218,7 +218,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   embleme: string|null, postes: string[], ameliorations: string[], couleurs: Record<materiau, string>, caches:
 ##   string[], taille: [number, number, number]|null, demande: { postes: { definition: string, bord: FireArc }[],
 ##   ameliorations: string[] } } | null, echantillon: { famille: string, id: string, triangles: number, aretes:
-## number, toits: number, couronnes: number } | null } }. `vehicule` est le véhicule demandé (section « Atelier 3D »),
+## number, cotesDeMarches: number, faitieres: number, toits: number, couronnes: number } | null } }. `vehicule` est le véhicule demandé (section « Atelier 3D »),
 ## `null` sans
 ##   lui : sa fiche, puis ce que son montage a posé (`MontageDeVehicule`) : l'élément, l'emblème de ses voiles, les
 ##   éléments de ses pièces et de ses Améliorations, la couleur de chaque surface de son élément à matériau propre

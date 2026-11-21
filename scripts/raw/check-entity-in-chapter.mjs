@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url'
 import { chapterFile, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture : les FICHES seules. Le garde lit les entrées `### <Nom>` de la
@@ -39,7 +40,11 @@ export const ciblesDeLAtlas = (rawDir = RAWDIR) =>
 export const STOCK_PATH = resolve(dirname(fileURLToPath(import.meta.url)), 'entity-in-chapter-stock.json')
 // Sites observés → sites du stock : le DOC de l'Atlas où l'entrée est lue (chemin depuis la racine du
 // dépôt) et le NOM de l'entité. Jamais `row` : la ligne du doc dérive à chaque édition de la fiche.
-export const sitesEntites = (violations) => violations.map((v) => ({ file: v.doc, ref: v.name }))
+/**
+ * @param {readonly (Pick<import('../guards/lib/stock.mjs').Site, 'fichier'> & { name: string })[]} violations
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
+ */
+export const sitesEntites = (violations) => violations.map((v) => ({ fichier: v.fichier, ref: v.name }))
 
 // `<ABBR> <N>` en tête de ligne Source (LDB inclus, alternation _lib.mjs partagée — jamais réécrite).
 // Chapitre = premier groupe de chiffres qui suit l'abréviation (`ch.` optionnel devant) ; une réf
@@ -81,7 +86,7 @@ function chapterTextOf(cf) {
 
 /** Parcourt un doc Atlas (cible RÉSOLUE par `ciblesDeLAtlas`, jamais écrite) et retourne les entrées `### <Nom>` /
  *  `**Source :** <ABBR> <N>…` dont `<Nom>` (normalisé) est ABSENT du texte du chapitre cité —
- *  `{ doc, row, name, ref, chapterFile }`. Réf sans chapitre numérique résoluble = ignorée. */
+ *  `{ fichier, row, name, ref, chapterFile }`. Réf sans chapitre numérique résoluble = ignorée. */
 export function scanMissingEntities(docPath) {
   const lines = readText(docPath).split('\n')
   const abbrRe = SOURCE_ABBR_RE()
@@ -107,7 +112,7 @@ export function scanMissingEntities(docPath) {
     if (!name) continue
     const needle = stripArticles(normalizeLoose(name))
     if (!needle || !chapterTextOf(cf).includes(needle)) {
-      violations.push({ doc: docPath, row: i + 1, name, ref: `${abbr} ${Number(nn)}`, chapterFile: cf.file })
+      violations.push({ fichier: docPath, row: i + 1, name, ref: `${abbr} ${Number(nn)}`, chapterFile: cf.file })
     }
   }
   return violations
@@ -127,7 +132,9 @@ const QUOI =
   'scripts/raw/check-entity-in-chapter.mjs`, et un solde total le retire.'
 
 /** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des violations (par
- *  défaut, celles des cibles de l'Atlas). */
+ *  défaut, celles des cibles de l'Atlas).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (violations = scanAll()) => [{
   chemin: STOCK_PATH,
   politique: SOUS_LOT,
@@ -157,8 +164,11 @@ function main() {
     return
   }
   console.log('Détail (fichier:ligne — nom, réf citée, chapitre résolu) :')
-  for (const v of violations) console.log(`${v.doc}:${v.row} — "${v.name}" cite ${v.ref} (${v.chapterFile}), nom absent`)
+  for (const v of violations) console.log(`${v.fichier}:${v.row} — "${v.name}" cite ${v.ref} (${v.chapterFile}), nom absent`)
   process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

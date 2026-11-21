@@ -91,16 +91,12 @@ export function rollSeasonalCargo(voie: Voie, saison: Season, rng: RNG): CargoDe
   return garanti(findCargoById(id), id, 'marchandise du Tableau des cargaisons');
 }
 
-/** L'Encombrement que couvre un prix du livre, par voie : donnée de la configuration de chaque voie. */
-const ENC_PAR_PRIX: Readonly<Record<Voie, number>> = {
-  mer: seaCargo.prixDuLivre.encParPrix,
-  terre: landCargo.prixDuLivre.encParPrix,
-};
+const commerceParVoie = { mer: seaCargo, terre: landCargo };
 
 /** SEULE conversion d'un prix du livre de la voie en CO par point d'Enc, l'unité de `CargoLot.basePriceGold`.
  *  PUR. MSRC 13 l.91, MDG 15 l.436 */
 export function prixParPointDEnc(prixDuLivre: number, voie: Voie): number {
-  return prixDuLivre / ENC_PAR_PRIX[voie];
+  return prixDuLivre / commerceParVoie[voie].prixDuLivre.encParPrix;
 }
 
 /** Prix de BASE d'une cargaison pour la saison, en CO par point d'Enc (`prixParPointDEnc`). Prix « à dés » tiré

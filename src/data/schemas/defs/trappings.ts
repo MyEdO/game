@@ -33,12 +33,12 @@ import { estObjet } from '../../../lib/objet.mjs';
 import { effetsDArmeDe, flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, perteSansEquipeSchema, qualiteDObjetRefSchema, weaponSchema, type QualiteDObjetRef } from '../grammaire/reference';
 import {
+  affinerAvecCatalogues,
   idDe,
-  porteLeMarqueur,
   ref,
   refs,
-  refusDeLEntree,
   dansLaSousListe,
+  type LecturesDuRaffinement,
 } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
@@ -54,14 +54,6 @@ export const apparenceDObjetSchema = nommerChamps(z.looseObject({
   shape: { label: 'Forme racine', hint: 'Forme par défaut de l’objet, fixée sur l’instance à sa naissance' },
   formChoices: { label: 'Formes proposées', hint: 'Formes racines parmi lesquelles l’apparence de l’objet peut être choisie' },
 });
-
-/** Une armure porte son TYPE d'armure : `subType` désigne une entrée de la sous-liste `armour` des Groupes
- *  (`weaponGroups.json?kind=armour`). Matière que le dessin et les exemptions de matériau
- *  (`matiereDuGroupe`, `src/data/index.ts`) lisent. Jugé par le refus de la sous-liste
- *  (`refusDeLEntree`, celui de `idDe('weaponGroup', 'armour')`) : une feuille `idDe` exécutée hors de l'arbre
- *  du schéma échappe à la marche du parse de mesure (`grammaire/parse-de-mesure.test.ts`, COUVERTURE). */
-const refusDuTypeDArmure = (subType: { id: string } | null): string | null =>
-  subType === null ? 'aucun type d’armure' : refusDeLEntree('weaponGroup', 'armour', subType);
 
 export const categorieDArmeSchema = enumNomme({
   melee: 'Armes de mêlée',
@@ -86,7 +78,8 @@ const chargeParDiscriminant = {
   trapping: [],
 } as const satisfies Record<Categorie, readonly string[]>;
 
-export const estGroupeDeSiege = porteLeMarqueur('weaponGroup', 'siege');
+export const lireLesGroupesDeSiege = (lire: LecturesDuRaffinement) =>
+  lire.catalogue('weaponGroup').porteLeMarqueur('siege');
 
 const effetsAToucheDeCampagne = effetsDArmeDe(triggeredEffectSchema, (objet) => {
   if (!estObjet(objet)) return {};
@@ -176,6 +169,7 @@ export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
   onHitEffects: { label: 'Effets à la touche', hint: 'Effets déclenchés au moment où l’arme touche sa cible' },
   munitions: {
     label: 'Munitions',
+    inverseCodex: true,
     hint: 'Seules munitions que charge cette arme, la représentative en tête ; vide : celles de sa famille qu’aucune arme ne nomme',
   },
   reach: { label: 'Allonge', hint: 'Porté par les armes de mêlée ; absent des objets sans profil d’arme' },
@@ -271,6 +265,8 @@ const doc = document(
     sizeFor: sizeCategorySchema.optional(),
     /** Arbitrage #4110 (2026-11-16) */
     reserveeA: ref('groupe', undefined, DECLARABLE_PAR_UN_PORTEUR).optional(),
+    /** #3045 Q4 ; EDOC 12 l.170-197 */
+    groups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 69 l.9 ; LDB 59 l.15 ; LDB 62 l.31 ; LDB 44 l.113-119 ; MDG 10 l.112 */
     availability: z.union([availabilitySchema, z.literal('ND')]).nullable(),
     ammoRangeMod: ammoRangeModSchema.nullable().optional(),
@@ -300,7 +296,7 @@ const doc = document(
       label: 'Catégorie',
       hint: 'Catégorie de catalogue : arme de mêlée, arme à distance, munition, armure ou possession',
     },
-    subType: { label: 'Sous-type', hint: 'Sous-catégorie au sein de la catégorie' },
+    subType: { label: 'Sous-type', inverseCodex: true, hint: 'Sous-catégorie au sein de la catégorie' },
     bouclierDEquipe: {
       label: 'Bouclier d’équipe',
       hint: 'Bouclier que tient l’allié au contact du tireur : Protectrice de ce bouclier aux deux, ni Course ni Fuite',
@@ -340,6 +336,7 @@ const doc = document(
       hint: 'Version grande taille d’une possession ordinaire (ex. équipement pour Ogre)',
     },
     reserveeA: { label: 'Réservée à', hint: 'Groupe seul à qui une arme au choix de carrière l’offre' },
+    groups: { label: 'Groupes de l’objet', hint: 'Groupes perçus lorsque l’objet est porté ou tenu en vue' },
     availability: { label: 'Disponibilité' },
     ammoRangeMod: {
       label: 'Modificateur de portée (munition)',
@@ -390,21 +387,25 @@ const doc = document(
       marqueurs: ['service'],
     },
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const e = v as EntreeDePossessionAAffiner;
-        if (e.subType && estGroupeDeSiege(e.subType.id)) {
-          ctx.addIssue({ code: 'custom', path: ['subType', 'id'], message: `${e.id} : un engin de siège a son propre catalogue` });
-        }
-        affinerLesQualites(e, e, ctx);
-        e.variants?.forEach((variante, i) => affinerLesQualites(e, {
-          qualities: variante.qualities ?? e.qualities,
-          qualitesAuChoix: variante.qualitesAuChoix ?? e.qualitesAuChoix,
-        }, ctx, ['variants', i]));
-        if (e.categorie !== 'armor') return;
-        const refus = refusDuTypeDArmure(e.subType);
-        if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });
-        // Le TYPE est la matière ; la SILHOUETTE est sa forme, racine du catalogue des apparences (#2948).
-        if (e.shape === undefined) ctx.addIssue({ code: 'custom', path: ['shape'], message: `${e.id} : une armure porte sa forme (\`shape\`, racine de apparences.json)` });
+      affinerAvecCatalogues(entree, (lire) => {
+        const estGroupeDeSiege = lireLesGroupesDeSiege(lire);
+        const { refusDeLEntree } = lire.catalogue('weaponGroup');
+        return (v, ctx) => {
+          const e = v as EntreeDePossessionAAffiner;
+          if (e.subType && estGroupeDeSiege(e.subType.id)) {
+            ctx.addIssue({ code: 'custom', path: ['subType', 'id'], message: `${e.id} : un engin de siège a son propre catalogue` });
+          }
+          affinerLesQualites(e, e, ctx);
+          e.variants?.forEach((variante, i) => affinerLesQualites(e, {
+            qualities: variante.qualities ?? e.qualities,
+            qualitesAuChoix: variante.qualitesAuChoix ?? e.qualitesAuChoix,
+          }, ctx, ['variants', i]));
+          if (e.categorie !== 'armor') return;
+          const refus = e.subType === null ? 'aucun type d’armure' : refusDeLEntree('armour', e.subType);
+          if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });
+          // Le TYPE est la matière ; la SILHOUETTE est sa forme, racine du catalogue des apparences (#2948).
+          if (e.shape === undefined) ctx.addIssue({ code: 'custom', path: ['shape'], message: `${e.id} : une armure porte sa forme (\`shape\`, racine de apparences.json)` });
+        };
       }),
   },
 );

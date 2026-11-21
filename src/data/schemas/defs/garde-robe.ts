@@ -20,11 +20,11 @@
  *
  * Les références internes (`emplacement` `{ id }`, `pieces`) résolvent au parse contre les sous-listes
  * discriminées de l'espace `garde-robe.json` (`ref`/`refs` à `sousListe`) ; l'`id` de chaque ligne, contre
- * `raceAppearance.json` (`idsDe('raceAppearance')`).
+ * `raceAppearance.json`.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { idsDe, ref, refMorte, refs, refTypee } from '../grammaire/ref';
+import { affinerAvecCatalogues, ref, refMorte, refs, refTypee } from '../grammaire/ref';
 import { enumNomme, hitLocationSchema } from '../grammaire/valeurs';
 import type { IdsParEspace } from '../_ids.generated';
 import { estObjet } from '../../../lib/objet.mjs';
@@ -167,49 +167,54 @@ const doc = document(
   {
     espace: { discriminant: 'kind', chargeParDiscriminant, requisesParDiscriminant },
     affinerEntree: (entree) =>
-      entree
-        .refine((e): e is HorsPiece | { localisations?: undefined } | { categorie: 'armure' } => e.kind !== 'piece' || !Array.isArray(e.localisations) || !e.localisations.length || e.categorie === 'armure', {
-          path: ['localisations'],
-          error: (iss) => `garde-robe : la pièce « ${idLu(iss.input)} » n’est pas une armure — elle ne couvre aucune localisation.`,
-        })
-        .refine(
-          (e): e is HorsPiece | { categorie: 'accessoire'; emplacement: object } | { categorie: Exclude<CategorieDePiece, 'accessoire'>; emplacement?: undefined } =>
-            e.kind !== 'piece' || (e.categorie === 'accessoire') === (e.emplacement !== undefined),
-          {
-            path: ['emplacement'],
-            error: (iss) =>
-              estObjet(iss.input) && iss.input.categorie === 'accessoire'
-                ? `garde-robe : la pièce d’accessoire « ${idLu(iss.input)} » EXIGE son emplacement.`
-                : `garde-robe : la pièce « ${idLu(iss.input)} » n’est pas un accessoire — elle ne porte aucun emplacement.`,
-          },
-        )
-        .superRefine((v, ctx) => {
-          const e = v as Record<string, unknown> & { id: string; kind: Kind };
-          if (e.kind === 'piece') {
-            const localisations = (e.localisations ?? []) as readonly string[];
-            const repetees = localisations.filter((l, i) => localisations.indexOf(l) !== i);
-            if (repetees.length) ctx.addIssue({ code: 'custom', path: ['localisations'], message: `garde-robe : la pièce « ${e.id} » répète ${repetees.join(', ')}.` });
-          }
-          if ((e.kind === 'tete') !== idsDe('raceAppearance').has(e.id))
-            ctx.addIssue({
-              code: 'custom',
-              path: ['id'],
-              message:
-                e.kind === 'tete'
-                  ? `garde-robe : la tête « ${e.id} » porte l’id de sa race de rendu — ${refMorte('raceAppearance', e.id)}`
-                  : `garde-robe : « ${e.id} » (kind « ${e.kind} ») porte l’id d’une race de rendu (raceAppearance.json), que seule une tête porte.`,
-            });
-          if (e.kind === 'embleme' && typeof e.svg === 'string') {
-            const refus = refusDeSvg(e.svg);
-            if (refus) ctx.addIssue({ code: 'custom', path: ['svg'], message: `garde-robe : l’emblème « ${e.id} » ${refus}.` });
-          }
-          if (e.kind === 'ensemble') {
-            const pieces = (e.pieces ?? []) as readonly string[];
-            const doublons = pieces.filter((p, i) => pieces.indexOf(p) !== i);
-            if (doublons.length)
-              ctx.addIssue({ code: 'custom', path: ['pieces'], message: `garde-robe : l’ensemble « ${e.id} » répète ${doublons.join(', ')}.` });
-          }
-        }),
+      affinerAvecCatalogues(
+        entree
+          .refine((e): e is HorsPiece | { localisations?: undefined } | { categorie: 'armure' } => e.kind !== 'piece' || !Array.isArray(e.localisations) || !e.localisations.length || e.categorie === 'armure', {
+            path: ['localisations'],
+            error: (iss) => `garde-robe : la pièce « ${idLu(iss.input)} » n’est pas une armure — elle ne couvre aucune localisation.`,
+          })
+          .refine(
+            (e): e is HorsPiece | { categorie: 'accessoire'; emplacement: object } | { categorie: Exclude<CategorieDePiece, 'accessoire'>; emplacement?: undefined } =>
+              e.kind !== 'piece' || (e.categorie === 'accessoire') === (e.emplacement !== undefined),
+            {
+              path: ['emplacement'],
+              error: (iss) =>
+                estObjet(iss.input) && iss.input.categorie === 'accessoire'
+                  ? `garde-robe : la pièce d’accessoire « ${idLu(iss.input)} » EXIGE son emplacement.`
+                  : `garde-robe : la pièce « ${idLu(iss.input)} » n’est pas un accessoire — elle ne porte aucun emplacement.`,
+            },
+          ),
+        (lire) => {
+          const { ids: idsDeRaceDeRendu } = lire.catalogue('raceAppearance');
+          return (v, ctx) => {
+            const e = v as Record<string, unknown> & { id: string; kind: Kind };
+            if (e.kind === 'piece') {
+              const localisations = (e.localisations ?? []) as readonly string[];
+              const repetees = localisations.filter((l, i) => localisations.indexOf(l) !== i);
+              if (repetees.length) ctx.addIssue({ code: 'custom', path: ['localisations'], message: `garde-robe : la pièce « ${e.id} » répète ${repetees.join(', ')}.` });
+            }
+            if ((e.kind === 'tete') !== idsDeRaceDeRendu().has(e.id))
+              ctx.addIssue({
+                code: 'custom',
+                path: ['id'],
+                message:
+                  e.kind === 'tete'
+                    ? `garde-robe : la tête « ${e.id} » porte l’id de sa race de rendu — ${refMorte('raceAppearance', e.id)}`
+                    : `garde-robe : « ${e.id} » (kind « ${e.kind} ») porte l’id d’une race de rendu (raceAppearance.json), que seule une tête porte.`,
+              });
+            if (e.kind === 'embleme' && typeof e.svg === 'string') {
+              const refus = refusDeSvg(e.svg);
+              if (refus) ctx.addIssue({ code: 'custom', path: ['svg'], message: `garde-robe : l’emblème « ${e.id} » ${refus}.` });
+            }
+            if (e.kind === 'ensemble') {
+              const pieces = (e.pieces ?? []) as readonly string[];
+              const doublons = pieces.filter((p, i) => pieces.indexOf(p) !== i);
+              if (doublons.length)
+                ctx.addIssue({ code: 'custom', path: ['pieces'], message: `garde-robe : l’ensemble « ${e.id} » répète ${doublons.join(', ')}.` });
+            }
+          };
+        },
+      ),
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         const vus = new Map<string, string>();

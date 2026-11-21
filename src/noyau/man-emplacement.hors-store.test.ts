@@ -69,7 +69,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.136-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[] = [], side?: FireArc): ShipPoste =>
-  hydratePoste({ trappingId: engineId, crewIds, side }, idsDeTest('it'));
+  hydratePoste({ engin: { id: engineId }, crewIds, side }, idsDeTest('it'));
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,

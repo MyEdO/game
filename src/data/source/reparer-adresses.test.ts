@@ -21,7 +21,7 @@ import {
   type ChapitreParse, type DescRef,
 } from './decoupe.ts';
 import { instanceDeDepot } from '../../../scripts/guards/lib/depotGabarit.mjs';
-// @ts-expect-error - outil ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - outil ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { optionsDe, reparerAdresses } from '../../../scripts/source/reparer-adresses.mjs';
 
 const LIVRE = 'livre-jouet';

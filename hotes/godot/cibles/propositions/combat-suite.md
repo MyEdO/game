@@ -83,6 +83,9 @@ exemple.
 - À valider : le cumul « 5 DR sur 7 » en losanges ; le Dôme (NI 7, `src/data/spells.json`) en exemple, alors que sa
   Durée se compte en Rounds ; le dôme dessiné sur le pion ; ruban « Dissipation » ; l'entrée est
   `dissipation-entree`, l'état avant le dé `dissipation-avant-le-de`.
+- À valider : tombé, le centre de tout jet (`combat.md`, « Bandeau du jet ») : « Réussite », le Sort et son NI au
+  sous-titre, aucune conséquence, le DR du jet et le cumul « 5 DR sur 7 » en losanges sur la ligne du DR ; avant le dé,
+  le Sort reste en grande ligne.
 
 ## dissipation-avant-le-de
 - Le même Test étendu avant le dé (LDB 46 l.160-162) : le dissipeur, son seuil, les deux dés et le sceau vides ; au
@@ -119,6 +122,8 @@ exemple.
 - À valider : la colonne de droite (libellés absents du jeu) ; « Focalisation » sans le Vent de sa spécialisation ;
   le Dôme d'Ilyanwe en exemple (`src/scenes/test-scenarios/22-dome.ts:30`) ; les autres
   temps sont `focalisation-avant-le-de`, `focalisation-atteinte` et `focalisation-critique`.
+- À valider : même centre que la Dissipation, ce que la Focalisation ouvre à droite ; le critique en « Critique » sur
+  marque d'or (`combat.md`, « Bandeau du jet »).
 
 ## focalisation-avant-le-de
 - La Focalisation avant le dé (LDB 46 l.128-136), nouvel état de la page `focalisation` : le lanceur, son seuil et
@@ -127,6 +132,11 @@ exemple.
 - Verbes : `jetLancer('focalisation')`, `jetForcerLaReussite('focalisation')`, `jetAnnuler('focalisation')`
   (`src/noyau/flowVerbs.ts:73`). Aucun réglage.
 - À valider : la colonne de droite affichée dès avant le dé.
+- À valider : avant le dé, `focalisation-avant-le-de` et `dissipation-avant-le-de` prennent la grille commune (`combat.md`,
+  grille d'avant le dé) : le Sort et son NI au sous-titre comme après le dé, « Test étendu » en grande ligne, le cumul
+  au rect du DR du jet tombé, la phrase à son rect ; à droite, ce que la Focalisation ouvre, le lanceur visé de la
+  Dissipation. `test-de-corruption` : la nature au sous-titre, « Test simple », les deux natures en cartes 1-2 (seuil
+  visible, le Test au survol), ce que le Test décide à droite.
 
 ## focalisation-atteinte, focalisation-critique
 - Les deux fins de la Focalisation. Atteinte : le cumul rejoint le Niveau d'incantation, tous les losanges pleins,
@@ -176,6 +186,9 @@ exemple.
   `jetValider` sur `'corruption'` (`src/noyau/flowVerbs.ts:84`).
 - À valider : la ligne tombée marquée dans la table ; « Résistance » en sixième plaque, à droite de « Résilience » ;
   la plaque ouverte est `test-de-corruption-resistance`.
+- À valider : la grande ligne dit « Échec », la conséquence `corruption` +2 dessous (aucune à la Résilience, qui dit
+  « Réussite »), le DR du héros en petit (`combat.md`, « Bandeau du jet ») ; `corruption` n'a pas de pictogramme : son
+  nom s'écrit.
 
 ## test-de-corruption-resistance
 - Le même Test tombé pour un héros doté du Talent Résistance (Corruption) : le Talent nommé à côté du nom, la plaque
@@ -238,8 +251,13 @@ exemple.
 - Verbes : `jetLancer('fuite', pid)` par rangée, `jetRelancer`, `jetAjouterUnDR`, `jetPactiser`, `jetForcerLaReussite`
   sur la rangée du héros, `jetValider('fuite')` applique le coup, les États et la course de fuite
   (`src/noyau/pendings.ts:1280-1300`, `src/noyau/flowVerbs.ts:59`). Pas d'« Annuler » : le flux n'en a pas.
-- À valider : un seul verdict au centre pour deux Tests non opposés ; les Dégâts du coup ne sont pas montrés ; l'état
+- À valider : au centre, le Test de Calme seul (Test simple, LDB 15 l.63-68), le coup de l'Orc à droite ; les Dégâts du coup ne sont pas montrés ; l'état
   avant le dé du Test de Calme et le coup qui manque (aucun Test de Calme) n'ont pas d'image ; chiffres d'exemple.
+- À valider : la grande ligne dit « Échec », en rouge de l'échec du Test de Calme, la conséquence `etat` Brisé +3
+  dessous et le DR −2 en petit (une liste : trois conséquences tiennent dans la ligne) ; l'utilisateur, 2026-11-20 :
+  « Pour fuite je prefere "Echec" », « Car si un jour la fuite donne des etats données sonnées et brisé on aura l'air
+  con ». Brisé et Sonné n'ont pas d'icône dans `PICTOS` : leur nom s'écrit (`combat.md`, « Bandeau du jet », table
+  des mots).
 
 ## sauvetage-par-le-destin
 - Le coup fatal arrête le jeu dans le bandeau : la victime et sa réserve de Destin à gauche, trois cartes, « Éviter le
@@ -265,6 +283,9 @@ exemple.
   tout le groupe s'y engageant ; le billet de la Scène visée ; « Libre · à poster » sur la carte du héros sans poste ;
   où chaque Scène se pose sur le champ (donnée absente du jeu) ; le facteur environnemental tiré (ADE II 08 l.307-322)
   n'a pas d'image à lui ; la pose d'un héros est `bataille-de-masse-poster`, la sortie `bataille-de-masse-issue`.
+- À valider (#4585) : la Puissance sur la grille commune des colonnes, sans tête : le premier geste au pied fixe, le
+  second au bas du corps qui défile ; la table de l'aperçu d'une Scène à hauteur fixe, ses valeurs sur deux lignes au
+  besoin.
 
 ## bataille-de-masse-poster
 - Poster et retirer un héros, nouvel état de la page `bataille-de-masse` : la Scène « Motivation » visée, son billet
@@ -310,6 +331,8 @@ exemple.
   défense ; ni Chance ni Résilience, le jet étant celui de l'armée ; les Scènes quittent le champ une fois le Round
   joué ; chiffres d'exemple (50 et 55 au départ, bonus de +10 au premier Round, 48 après les Scènes, dés 31 et 67) ;
   la Menace (`batailleEnVue.menace`) n'est pas montrée, l'exemple n'en ayant pas.
+- À valider (#4585) : le milieu du contenant a la largeur de celui de l'issue (360 px), les deux armées la même place
+  d'un état à l'autre.
 
 ## course-poursuite-en-mer
 - La traversée continue, sur l'écran du voyage en mer : la Cogue pirate dans le sillage, la Distance en frise de 0
@@ -321,6 +344,9 @@ exemple.
   le billet montre le Test tombé, son lancer est `course-poursuite-en-mer-test` ; la décision qui ouvre la poursuite est
   `course-poursuite-en-mer-sommation` ; l'abordage à Distance 0 (MDG 13 l.420) renvoie au combat naval
   (`voyage/combat-naval.jpg`) ; la pastille « Postes de bord » suit celle de `voyage/voyage-en-mer`.
+- À valider (#4585) : le panneau de la poursuite ne répète pas la Distance quand la frise la montre ; sinon, la Distance
+  et sa jauge sur une ligne ; les issues en une rangée (« semés à 100 · collision et abordage à 0 »), la condition de
+  chacune au survol. La sommation dit le navire hostile et ses forbans sur une ligne.
 
 ## course-poursuite-en-mer-test
 - Le Test d'équipage de Poursuite à lancer (MDG 14 l.67-71), rôle après rôle : le billet du Test donne une rangée par
@@ -334,6 +360,9 @@ exemple.
 - À valider : les gestes au pied du billet plutôt que dans un bandeau du jet, les héros gardant leur bandeau ;
   l'ordre des rangées ; seuils d'exemple ; l'état après le dé d'une rangée est
   `course-poursuite-en-mer-test-tombe` ; le Chansonnier (MDG 14 l.71) n'est pas tenu.
+- À valider (#4585) : le Test d'équipage et le Test de Mouvement de la fenêtre rangent chaque lanceur dans une case
+  fixe (cinq par rang) : son portrait, son seuil, son DR ou ce qu'il attend ; qui, son poste, son Test et le détail de
+  l'issue au survol ; la règle et la somme sous la rangée.
 
 ## course-poursuite-en-mer-test-tombe
 - Le Test d'équipage après le dé d'une rangée, nouvel état de la page du Test : la rangée de Mira tombée en échec,
@@ -374,6 +403,8 @@ exemple.
 - À valider : la frise de la mer reprise à l'échelle 0-10 ; « Tout lancer » à droite des gestes de la rangée ;
   « Abandonner la fuite » dans le panneau et non au pied ; les coureurs en silhouettes sur la route ; Distance 4 et
   seuils d'exemple.
+- À valider (#4585) : la poursuite et la sommation sur la grille commune des colonnes, sans tête ; « Abandonner la
+  fuite » en plaque pleine au pied fixe.
 
 ## poursuite-terrestre-rattrapes
 - La Distance tombée à 0 (LDB 15 l.102-108) : le bandeau « Rattrapés — que fait le groupe ? », celui qui décide, deux

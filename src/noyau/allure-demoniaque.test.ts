@@ -14,7 +14,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * Dé-stub d'« Allure démoniaque » (EDOC 13 l.270-280) : le Flow du sort sélectionne la colonne du Tableau
  * des aspects démoniaques (l.234-247) selon le Domaine du Chaos du lanceur (Condition `casterChaosDomain`),
  * tire sur la table `tables.json` (op `rollTable` `tableId`), octroie le Trait à la durée du Sort, et une
- * rangée « Mutation » attache une mutation PERMANENTE. RNG figé, sans store.
+ * rangée « Mutation » attache une mutation pour la durée du Sort. RNG figé, sans store.
  */
 const caster = (spec?: string): Combatant =>
   (blessuresSurLeProfil({
@@ -42,10 +42,9 @@ describe('Condition casterChaosDomain — 4 branches', () => {
   const ctxFor = (spec?: string): ConditionCtx => ({ flags: {}, gameTime: 0, caster: buildActorView(caster(spec)) });
   it('vraie SEULEMENT pour le Domaine du lanceur', () => {
     for (const dom of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible'] as const) {
-      const ctx = ctxFor(dom === 'indivisible' ? undefined : dom); // 'indivisible' n'est pas un dieu de données
+      const ctx = ctxFor(dom);
       for (const probe of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible']) {
-        const expected = dom !== 'indivisible' && probe === dom;
-        expect(evalCondition({ kind: 'casterChaosDomain', is: probe }, ctx)).toBe(expected);
+        expect(evalCondition({ kind: 'casterChaosDomain', is: probe }, ctx)).toBe(probe === dom);
       }
     }
   });
@@ -78,6 +77,13 @@ describe('Allure démoniaque — Flow end-to-end (RNG figé)', () => {
     expect(eff[0].grantedTrait!.id).toBe('souffle');
     expect(eff[0].grantedTrait!.value).toBe(9);
     expect(eff[0].grantedTrait!.arg).toBe('feu'); // EDOC 13 l.236 : le Type `feu` du registre du Souffle
+  });
+
+  it('Indivisible : un 1 confère Démoniaque (8), EDOC 13 l.236', () => {
+    const c = caster('indivisible');
+    runPureFlowLines(c, c, spellFlow(), { idNeuf: idsDeTest, rng: fixed(1), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
+    const traits = (c.activeEffects ?? []).flatMap((effet) => effet.grantedTrait ? [effet.grantedTrait] : []);
+    expect(traits).toEqual([expect.objectContaining({ id: 'demoniaque', value: 8 })]);
   });
 
   it('cast MINIMAL (0 pas alloué à la Durée) → 1 seul jet sur le Tableau, MÊME à SL positif (EDOC 13 l.270-276)', () => {

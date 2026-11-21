@@ -17,12 +17,12 @@
 import { Combatant, HitLocation, type EffectSource } from './types';
 import { RNG } from './dice';
 import { bonus, effectiveChar } from './characteristics';
-import { talentCorruptionThreshold } from './combatFeatures/dispatch';
+import { talentCorruptionThreshold } from './combatFeatures/talents';
 import { findTableEntry } from './tables';
 import { findRegleById, natureDeMutationDe, type MutationData } from '../data';
 import { followsCharacterRules } from './relations';
 import type { EntreeVivante } from '../data/datasets';
-import { acquerirTalent, retirerTalent } from './careerSlots';
+import { acquerirTalent, retirerTalent } from './acquisitionTalents';
 import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
 import { traitOctroye } from './psych/opsPsy';
@@ -156,7 +156,7 @@ function resoudrePlancher(c: Combatant, op: OpPassive): OpPassive {
  *  Un `charMod` à plancher (`min`) est FIGÉ sur l'instance en son delta (`resoudrePlancher`).
  *  `grantTrait` (résolution PARTAGÉE `traitsOctroyes`, le mutant pour lanceur) et `grantPsychTrait` (noyau
  *  PARTAGÉ `grantedTraits.ts`) : MÊME chemin que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect`
- *  porteur — une mutation n'expire jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les
+ *  porteur — une mutation n'expire jamais). `grantTalent` : `acquerirTalent` (engine/acquisitionTalents.ts), les
  *  passifs d'une mutation ne passant pas par `applyOps`. Rend l'instance attachée. */
 export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutation {
   const m = structuredClone(tiree); // #2097
@@ -258,12 +258,11 @@ export function nonDeviatableMutationAP(c: Combatant, loc: HitLocation): number 
 }
 
 /** 1 PA de mutation de moins à `loc` : l'`usure` à `loc` de la mutation qui porte encore un PA y croît de 1, une
- *  mutation à PA déviable d'abord. Rend false si aucune mutation n'a de PA à `loc`. L'appelant re-dérive l'armure.
- *  LDB 63 l.19 ; EDO App.2 l.196 */
-export function userLePADeMutation(c: Combatant, loc: HitLocation): boolean {
+ *  mutation à PA déviable d'abord. L'appelant re-dérive l'armure. LDB 63 l.19 ; EDO App.2 l.196 */
+export function userLePADeMutation(c: Combatant, loc: HitLocation, protection: 'deviable' | 'toute' = 'toute'): boolean {
   const mutations = c.mutations ?? [];
-  const source = mutations.find((m) => paDeLaMutation(m, loc).deviables > 0)
-    ?? mutations.find((m) => paDeLaMutation(m, loc).horsDeviation > 0);
+  const deviable = mutations.find((m) => paDeLaMutation(m, loc).deviables > 0);
+  const source = deviable ?? (protection === 'toute' ? mutations.find((m) => paDeLaMutation(m, loc).horsDeviation > 0) : undefined);
   if (!source) return false;
   source.usure = { ...source.usure, [loc]: (source.usure?.[loc] ?? 0) + 1 };
   return true;

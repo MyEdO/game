@@ -63,7 +63,7 @@ function mutationTableLabel(table: string): string {
 
 /** Libellé JOUEUR d'une table (rangée de tirage d'une étape, titre d'étape) : le libellé d'authoring
  *  SANS sa marque de provenance (projection PARTAGÉE `stripBookMarker` — même définition que la garde
- *  de charte), capitalisé (« physique » → « Physique »). `docs/charte-ui.md` : « JAMAIS de référence au
+ *  de charte), capitalisé (« physique » → « Physique »). `src/book-ref-guard.test.ts` : « JAMAIS de référence au
  *  livre dans un texte joueur ». La DONNÉE reste intacte (l'authoring garde sa provenance). */
 export function mutationTablePlayerLabel(table: string): PlayerText {
   const l = stripBookMarker(mutationTableLabel(table));
@@ -78,7 +78,7 @@ export function mutationTableRows(table: string): MutationTableRow[] {
   const cache = lignesParTable();
   const connu = cache.get(table);
   if (connu) return connu;
-  const rows = tableOf(table).entries.map((r) => ({ min: r.min, max: r.max, id: r.mutation, label: findMutationById(r.mutation)?.label }));
+  const rows = tableOf(table).entries.map((r) => ({ min: r.min, max: r.max, id: r.id, label: findMutationById(r.id)?.label }));
   cache.set(table, rows);
   return rows;
 }
@@ -97,9 +97,9 @@ export function mutationTableDie(table: string): DeDeTable {
   return deDeTirageDe<typeof tablesDeCorruption>(mutationTables, table);
 }
 
-function mutationOfRange(table: string, roll: number, range: { mutation: string } | undefined): Mutation {
+function mutationOfRange(table: string, roll: number, range: MutationTable['entries'][number] | undefined): Mutation {
   if (!range) throw new Error(`mutations : jet ${roll} hors table « ${table} »`);
-  return mutationOfRow(range.mutation, roll);
+  return mutationOfRow(range.id, roll);
 }
 
 /** LOOKUP d'une table par un jet DÉJÀ tiré : aucun dé consommé, aucune récursion — le site de

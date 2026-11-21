@@ -7,23 +7,19 @@
  *   node scripts/gen-registry.mjs            (`npm run gen`, écrit)
  *   node scripts/gen-registry.mjs --check    (ligne de `GENERATORS`, scripts/docs/build-all.mjs : compare sans écrire)
  *
- * `genAll` joue la PHASE 1 (ces registres) puis la PHASE 2 (`scripts/gen-espaces.mts`, l'INDEX DES
- * IDS, les CLÉS DE DATASET et les RACINES VIVANTES), pour `npm run gen`, `npm run build` et le plugin
- * Vite (`vite.config.ts`, donc chaque run Vitest). Ajouter une entrée = déposer un fichier dans le `defs/` correspondant, puis relancer.
+ * La production livre les registres avant de charger la phase 2 (`scripts/gen-espaces.mts`, l'INDEX
+ * DES IDS, les CLÉS DE DATASET et les RACINES VIVANTES). Ajouter une entrée = déposer un fichier
+ * dans le `defs/` correspondant, puis relancer.
  */
 import { readFileSync } from 'node:fs';
 import { listerArbre, listerDossier } from './guards/lib/lister.mjs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
 import { estFichierVitest, estKitDeTest } from './guards/lib/fichierVitest.mjs';
-import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
+import { lancerDepuisCLI } from './docs/lib/ecriture-derives.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
 
 import { REGISTRIES, SORTIE_VOCABULAIRES_D_ART } from './docs/lib/cibles-registres.mjs';
-export { REGISTRIES, SORTIES_DES_ESPACES, SORTIES } from './docs/lib/cibles-registres.mjs';
-
-
+export { REGISTRIES } from './docs/lib/cibles-registres.mjs';
 
 /**
  * FORME CANONIQUE de chaque export de premier niveau qu'un def porte et que CE générateur lit :
@@ -80,8 +76,8 @@ export function lireDefs(dir, noms) {
   return modulesDeDefs(dir).map((f) => ({ module: f, ...lireExports(readFileSync(join(dir, f), 'utf8'), noms, join(dir, f)) }));
 }
 
-/** Le rouge d'un registre périmé en `--check` : `genAll` résume lui-même le reste. */
-export const MESSAGES_DE = (out) => ({
+/** Le diagnostic d'une cible de registre périmée. */
+const messagesDe = (out) => ({
   staleMsg: `gen-registry — ${out} est PÉRIMÉ (un fichier de defs ou une donnée a changé).`,
   rerunMsg: '  → relancer `npm run gen` (cible de code jamais commitée, #2203 A2).',
 });
@@ -154,14 +150,8 @@ function renduDuRegistre(r) {
   return { body, files: files.length, union: aPart ? { out: r.idUnion.out, body: entete(r.dir) + unionDecl } : null };
 }
 
-function genOne(r, check) {
-  const c = renduDuRegistre(r);
-  if (!c) return { arrayName: r.arrayName, dir: r.dir, files: 0, changed: false, missing: true };
-  // `ecrireDoc` n'écrit que si le contenu change (évite de toucher le mtime → boucles de watch).
-  const ecrit = [{ out: c.body, path: r.out }, ...(c.union ? [{ out: c.union.body, path: c.union.out }] : [])]
-    .map(({ out, path }) => !ecrireOuVerifier({ out, path, check, ...MESSAGES_DE(path) }));
-  const changed = ecrit.some(Boolean);
-  return { arrayName: r.arrayName, dir: r.dir, files: c.files, changed, missing: false };
+function ciblesDuRegistre(registre, rendu) {
+  return [[registre.out, rendu.body], ...(rendu.union ? [[rendu.union.out, rendu.union.body]] : [])];
 }
 
 /**
@@ -234,99 +224,62 @@ function renduDesVocabulairesDArt() {
   );
 }
 
-/** Un processus enfant `node --import tsx <args>` à la racine du dépôt : la PHASE 2 (`scripts/gen-espaces.mts`)
- *  parse les documents par leurs schémas TypeScript. */
-const sousTsx = (args, options) =>
-  spawnSync(process.execPath, ['--import', 'tsx', ...args], { cwd: fileURLToPath(new URL('..', import.meta.url)), ...options });
-
-/** Les modules de la PHASE 2 rendus par `rendre()` de `scripts/gen-espaces.mts` (`sousTsx`), sans rien écrire. */
-function espacesRendus() {
-  const code = "const { rendre } = await import('./scripts/gen-espaces.mts'); process.stdout.write(JSON.stringify([...(await rendre())]));";
-  const r = sousTsx(['--input-type=module', '-e', code], { encoding: 'utf8', maxBuffer: 1 << 28 });
-  if (r.status !== 0) throw new Error(`gen-registry: rendu de la phase 2 (scripts/gen-espaces.mts) en échec (exit ${r.status ?? r.signal}) :\n${r.stderr}`);
-  return JSON.parse(r.stdout);
+/** La phase 2 charge les schémas TypeScript une fois les registres disponibles. */
+async function chargerEspaces() {
+  const { tsImport } = await import('tsx/esm/api');
+  return tsImport('./gen-espaces.mts', import.meta.url);
 }
 
-/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : chaque cible de `SORTIES` → son
- *  texte, sans écrire. */
-export function rendre() {
-  const rendu = new Map();
+/** Contrat `rendre()` de `GENERATORS` : chaque cible du registre → son texte, sans écrire. */
+export async function rendre() {
+  const cibles = new Map();
   for (const r of REGISTRIES) {
     const c = renduDuRegistre(r);
-    if (!c) continue;
-    rendu.set(r.out, c.body);
-    if (c.union) rendu.set(c.union.out, c.union.body);
+    if (c) for (const [chemin, texte] of ciblesDuRegistre(r, c)) cibles.set(chemin, texte);
   }
-  rendu.set(SORTIE_VOCABULAIRES_D_ART, renduDesVocabulairesDArt());
-  for (const [chemin, texte] of espacesRendus()) rendu.set(chemin, texte);
-  return rendu;
+  cibles.set(SORTIE_VOCABULAIRES_D_ART, renduDesVocabulairesDArt());
+  const espaces = await chargerEspaces();
+  for (const [chemin, texte] of await espaces.rendre()) cibles.set(chemin, texte);
+  return cibles;
 }
 
-/**
- * PHASE 2 : l'INDEX DES IDS, par `scripts/gen-espaces.mts` (`sousTsx`). Hors `--check`, lève si
- * l'enfant échoue ; en `--check`, son code de sortie (bit « corps périmé » compris) rejoint celui de
- * ce processus.
- */
-function genEspaces(verbose, check) {
-  const r = sousTsx(['scripts/gen-espaces.mts', ...(verbose ? [] : ['--silencieux']), ...(check ? ['--check'] : [])], { stdio: 'inherit' });
-  if (r.status === 0) return;
-  if (check && r.status !== null) {
-    process.exitCode = (Number(process.exitCode) || 0) | r.status;
-    return;
-  }
-  throw new Error(`gen-registry: phase 2 (scripts/gen-espaces.mts) en échec (exit ${r.status ?? r.signal}).`);
-}
-
-/**
- * Régénère TOUS les registres (phase 1), puis l'INDEX DES IDS
- * (phase 2). `verbose` (défaut `false`) : en mode silencieux (appel `buildStart` du plugin Vite de
- * `vite.config.ts`, que chaque run Vitest déclenche), n'imprime QUE les registres réellement RÉGÉNÉRÉS ou en erreur
- * (dossier absent), + UNE ligne agrégée pour le reste — évite les ~15 lignes « [inchangé] » qui
- * polluent chaque sortie de test et cassent le parseur pass/fail de l'outil `rtk`. En mode verbose
- * (exécution directe `npm run gen`), détail complet (usage : audit manuel de ce que le générateur a vu).
- */
-export function genAll(verbose = false, { check = false } = {}) {
-  // En `--check`, une validation qui LÈVE est un rouge (bit 1) parmi les autres : levée hors du
-  // processus, elle sortirait en 1 et effacerait le bit « corps périmé » d'un registre déjà jugé.
-  const jouer = (fn) => {
+export async function* produire({ check }) {
+  const calculer = (fn) => {
     if (!check) return fn();
     try {
       return fn();
     } catch (e) {
       console.error(e instanceof Error ? e.message : String(e));
       process.exitCode = (Number(process.exitCode) || 0) | 1;
-      return null;
+      return undefined;
     }
   };
   const libelle = (nom, detail, changed) =>
     check
       ? `gen-registry --check: ${nom} ${changed ? 'PÉRIMÉ' : 'à jour'} (${detail})`
       : `gen-registry: ${nom} ← ${detail}${changed ? '' : ' [inchangé]'}`;
-  const results = REGISTRIES.map((r) => jouer(() => genOne(r, check))).filter(Boolean);
-  let unchangedCount = 0;
-  for (const res of results) {
-    if (res.missing) {
-      console.log(`gen-registry: ${res.arrayName} ← dossier absent (${res.dir}) — ignoré`);
+  const journal = [];
+  for (const r of REGISTRIES) {
+    const c = calculer(() => renduDuRegistre(r));
+    if (!c) {
+      if (c === null) journal.push(`gen-registry: ${r.arrayName} ← dossier absent (${r.dir}) — ignoré`);
       continue;
     }
-    if (res.changed || verbose) {
-      console.log(libelle(res.arrayName, `${res.files} fichiers, ${res.dir}`, res.changed));
-    } else {
-      unchangedCount++;
+    let changed = false;
+    for (const [path, out] of ciblesDuRegistre(r, c)) {
+      const aJour = yield { path, out, ...messagesDe(path) };
+      changed = !aJour || changed;
     }
+    journal.push(libelle(r.arrayName, `${c.files} fichiers, ${r.dir}`, changed));
   }
-  if (!verbose && unchangedCount > 0) {
-    console.log(`gen-registry: ${unchangedCount} registre${unchangedCount > 1 ? 's' : ''} à jour`);
+  for (const ligne of journal) console.log(ligne);
+  const vocabulaire = calculer(renduDesVocabulairesDArt);
+  if (vocabulaire !== undefined) {
+    const aJour = yield { path: SORTIE_VOCABULAIRES_D_ART, out: vocabulaire, ...messagesDe(SORTIE_VOCABULAIRES_D_ART) };
+    console.log(libelle('VOCABULAIRES_D_ART', SORTIE_VOCABULAIRES_D_ART, !aJour));
   }
-  jouer(() => {
-    const changed = !ecrireOuVerifier({ out: renduDesVocabulairesDArt(), path: SORTIE_VOCABULAIRES_D_ART, check, ...MESSAGES_DE(SORTIE_VOCABULAIRES_D_ART) });
-    if (changed || verbose) console.log(libelle('VOCABULAIRES_D_ART', SORTIE_VOCABULAIRES_D_ART, changed));
-  });
-  genEspaces(verbose, check);
+  const espaces = await chargerEspaces();
+  yield* espaces.produire({ check }, messagesDe);
 }
 
-// Exécution directe (node scripts/gen-registry.mjs) : détail complet (audit manuel). Point d'entrée
-// seulement — l'importer (`vite.config.ts`, gardes, `scripts/gen-espaces.mts`) n'exécute rien.
-if (import.meta.main) {
-  genAll(true, { check: process.argv.includes('--check') });
-}
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire);

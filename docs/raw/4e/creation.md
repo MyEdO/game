@@ -19,6 +19,8 @@ Ce fichier couvre le **processus complet de création de Personnage** (étapes 1
 - [Étape 7 — Groupe](#étape-7--groupe)
 - [Étape 8 — Insuffler la Vie](#étape-8--insuffler-la-vie)
 - [Étape 9 — Progression (dépense des PX bonus)](#étape-9--progression)
+- [Noms gnomes — prénoms, clans et pseudonymes](#noms-gnomes--prénoms-clans-et-pseudonymes)
+- [Noms ogres — nom traditionnel ou reiklander](#noms-ogres--nom-traditionnel-ou-reiklander)
 - [Supplément Middenheim — 3 origines humaines](#supplément-middenheim--3-origines-humaines)
 - [Supplément ADE I — Nouvelles Carrières de départ](#supplément-ade-i--nouvelles-carrières-de-départ)
 - [Suppléments AA et VDM — Seconds jets de Carrière](#suppléments-aa-et-vdm--seconds-jets-de-carrière)
@@ -367,6 +369,10 @@ Voir le **Chapitre 3 : Classes et Carrières** pour les possessions spécifiques
 
 ## Étape 6 — Détails supplémentaires
 
+`LDB 05 l.703`
+
+> « En ce qui concerne les détails physiques cosmétiques (ces aspects de votre apparence qui n'ont pas d'influence directe sur la partie), vous pouvez soit effectuer des lancers pour les obtenir aléatoirement, soit les choisir parmi ceux proposés pour votre Race. »
+
 ### Âge
 
 `LDB 05 l.705-711`
@@ -395,9 +401,11 @@ Voir le **Chapitre 3 : Classes et Carrières** pour les possessions spécifiques
 
 ### Couleur des Yeux (verbatim)
 
-`LDB 05 l.742-754`
+`LDB 05 l.716`
 
-> Note : les elfes lancent **deux fois** (yeux bigarrés par leur nature magique).
+> « Bien que la plupart des races effectuent un seul lancer sur le tableau ci-dessous, les elfes en effectuent deux : leur nature intrinsèquement magique signifie qu'ils ont souvent des yeux de couleurs bigarrées, comme le bleu saphir moucheté d'or, ou un subtil marbré vert mousse et châtaigne. »
+
+`LDB 05 l.742-754`
 
 | 2d10 | Humain Reiklander | Nain | Halfling | Haut Elfe | Elfe Sylvain |
 |------|------------------|------|----------|-----------|--------------|
@@ -639,6 +647,25 @@ Possessions : arme simple, haillons, respect des autres Frères Loups.
 
 ---
 
+## Noms gnomes — prénoms, clans et pseudonymes
+
+- **Forme** — prénom et nom de clan, ou usage local pour un gnome intégré à une autre culture. Le nom de clan peut être remplacé par un pseudonyme. `NADJ 15 l.55-72`
+- **Banque de tirage** — les exemples de prénoms matrilinéaires et patronymiques, les clans de Glimdwarrow et les exemples de pseudonymes. [`names.json`](../../../src/data/names.json) · `NADJ 15 l.63`, `NADJ 15 l.66`, `NADJ 15 l.70-72`
+
+**Implémente :** [État calculé](../implemente.generated.md#4ecreationnoms-gnomes-prenoms-clans-et-pseudonymes)
+
+---
+
+## Noms ogres — nom traditionnel ou reiklander
+
+- **Nom reiklander** — « N'hésitez pas à suivre les directives pour un nom humain (Reiklander) » (`ADE II 02 l.327`). En création, ce choix tire dans la banque humaine au sexe du personnage.
+- **Nom traditionnel** — « Pour générer un nom d'ogre, utilisez les deux tableaux de la page suivante et combinez les deux composantes. » (`ADE II 02 l.331`) Deux tirages indépendants, une racine et une terminaison accolées. Les deux listes de `names.json` suivent les faces 01 à 99 puis 00. Les cellules manquantes dans l'extraction VF sont attestées par la transcription VO d’*Archives of the Empire — Vol II*, « Grabbing a Bite — Ogre Player Characters », ch. 04 l.276-325.
+- **Exemple** — Tergarthash Gutrend (`ADE II 02 l.323`). La racine 65 et la terminaison 19 donnent Tergarthash. Les titres et noms de clan relèvent de leur usage propre (`ADE II 02 l.337-343`).
+
+**Implémente :** [État calculé](../implemente.generated.md#4ecreationnoms-ogres-nom-traditionnel-ou-reiklander)
+
+---
+
 ## Supplément ADE I — Nouvelles Carrières de départ
 
 Source : **Les Archives de l'Empire vol. 1**, Annexe I, pages PDF 88–92 (`ADE I ANNEXE I l.1-80`).
@@ -744,6 +771,8 @@ Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493
 | `LDB 10 l.714` | Livre de Base VF corrigé, chapitre 10 — Magie mineure à la création |
 | `Middenheim ANNEXE II l.XX` | Middenheim la Cité du Loup Blanc, Annexe II |
 | `ADE I ANNEXE I l.XX` | Archives de l'Empire vol. 1, Annexe I |
+| `ADE II 02 l.XX` | Les Archives de l’Empire vol. 2, chapitre 02 — Les ogres |
+| `NADJ 15 l.XX` | Nuits agitées et dures journées, chapitre 15 — Gnomes |
 | `AA 02 l.XX` | Aux Armes, chapitre 02 — Introduction |
 | `AA 05 l.XX` | Aux Armes, chapitre 05 — La Tilée et les personnages tiléens |
 | `VDM 03 l.XX` | Les Vents de Magie, chapitre 03 — Travaux arcaniques |
@@ -777,7 +806,7 @@ Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493
 | Richesse initiale (Bronze/Argent/Or × Standing) | `src/engine/creation.ts l.11, 102` — `LDB 05 l.578-583` |
 | Âge par espèce (15+d10 / 15+10d10 / …) | `src/engine/creation.ts l.109` — `LDB 05 l.705-711` |
 | Taille par espèce (145+5d10 cm / …) | `src/engine/creation.ts l.114` — `LDB 05 l.728` |
-| Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.119` — `LDB 05 l.742-754` |
+| Couleur des yeux (choix ou 2d10, deux lancers chez les elfes) | `src/engine/creation.ts` · `src/noyau/creation/brouillon.ts` — `LDB 05 l.703, l.716, l.742-754` |
 | Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.124` — `LDB 05 l.756-768` |
 | 5 Augmentations gratuites sur 3 Caractéristiques de carrière | `src/engine/character.ts l.256, 263` — `LDB 05 l.459, 463` |
 | 40 Augmentations de Compétences de carrière (max 10 / Comp.) | `src/engine/character.ts` (`CAREER_SKILL_ADVANCES`) · `src/noyau/creation/brouillon.ts` |

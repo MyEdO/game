@@ -4,16 +4,16 @@
 // vérifie/répare le numéro de ligne (une ré-extraction Marker fait dériver les lignes). La réf est
 // attachée APRÈS la citation (`« … » LDB 6 l.5`) ou EN TÊTE (`(l.24) : « … »`, `citationsEnTete`, #2199).
 //   node scripts/raw/reanchor.mjs            → rapport + GATE (exit 1 sur dérive/ambigu/hausse ❌)
-//   node scripts/raw/reanchor.mjs --apply    → réécrit en place les dérives HIGH (citation unique)
-//   node scripts/raw/reanchor.mjs --check    → même GATE, puis `ecrireOuVerifier` sur le rapport
+//   node scripts/raw/reanchor.mjs --apply    → réécrit dans les fiches les dérives HIGH (citation unique)
+//   node scripts/raw/reanchor.mjs --check    → même GATE, puis comparaison du rapport au disque
 //     (refusé avec `--apply`/`--remap`, qui réécrivent les FICHES). Le rapport décrit les fiches TELLES
 //     QUE LE DISQUE LES PORTE : après `--apply`/`--remap`, il se rend d'un balayage de plus, sans mode.
 // ✅ ligne juste · 🔧 dérive HIGH (auto) · 🟡 ambigu (MEDIUM, manuel) · ❌ introuvable (LOW) ·
 // ➖ synthèse (réf sans citation).
 // GATE (#434, « une réf verte peut pointer sur le mauvais texte ») : le script BLOQUE sur ses propres
 // verdicts :
-//   - 🔧 DRIFT (hors --apply) : dérive réparable non appliquée → doc périmée, comme `docs:systemes
-//     --check` — zéro tolérance, il suffit de lancer --apply.
+//   - 🔧 DRIFT : une dérive de fiche se corrige avec --apply. Pour un catalogue, la correction se
+//     fait dans sa source. Toute dérive restante rend le rapport périmé.
 //   - 🟡 MEDIUM : zéro tolérance, jamais d'auto-résolution — le candidat le plus proche d'une
 //     citation ambiguë n'est pas forcément le texte cité.
 //   - ❌ LOW : la réf MENT (citation introuvable à la ligne annoncée) — cliquet NOMINATIF PAR SITE
@@ -27,7 +27,8 @@
 //   - ⛔ PAST-EOF (hors-fichier) : NE PAS doubler — déjà cliqueté par `check-refs.mjs`
 //     (`dead-refs-stock.json`), sur la borne HAUTE dépliée d'une plage (`span`), un sur-ensemble
 //     de la borne de départ vérifiée ici.
-import { ecrireDoc } from '../docs/lib/ecriture-derives.mjs'
+import { sousLEpoque } from '../docs/lib/ecrivain-derives.mjs'
+import { ecrireTexteAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,23 +38,23 @@ import { graphieDuFichier } from '../../src/data/source/decoupe.ts'
 import { sansBr } from '../../src/data/source/normalize.ts'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
-import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
-const APPLY = process.argv.includes('--apply')
 // --remap : ré-ancre les réfs de SYNTHÈSE (sans citation) et leurs CONTINUATIONS nues par la carte
 // de lignes EXACTE `git HEAD` → arbre de travail (`lib/carte-lignes.mjs`). Migration ONE-SHOT à
 // lancer AVANT de committer la Source (une fois committée, HEAD == arbre → carte identité → no-op).
 // Une réf dont la ligne est supprimée ou tombe dans un hunk ambigu est RAPPORTÉE, jamais réécrite.
-const REMAP = process.argv.includes('--remap')
-const CHECK = process.argv.includes('--check')
 const MIN_QUOTE_LEN = 24   // ancre verbatim < 24 car. → trop générique, on n'ancre pas
 export const RAWDIR = 'docs/raw'
 export const LOW_STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'reanchor-low-stock.json')
-// Sites LOW observés → sites du stock : la FICHE où la réf est lue (chemin depuis la racine du dépôt,
-// c'est lui que la porte de plage reconnaît) et la RÉF CITÉE telle qu'écrite (`full`).
-export const sitesLow = (lowRows) => lowRows.map((r) => ({ file: r.doc, ref: r.full }))
+/** Les sites LOW nomment la fiche depuis la racine du dépôt et la réf citée telle qu'écrite (`full`).
+ * @param {readonly (Pick<import('../guards/lib/stock.mjs').Site, 'fichier'> & { full: string })[]} lowRows
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
+ */
+export const sitesLow = (lowRows) => lowRows.map(({ fichier, full }) => ({ fichier, ref: full }))
 const QUOI =
   'Réfs FAUSSES (❌ LOW) de l’Atlas RAW (`scripts/raw/reanchor.mjs`, #434) : une citation verbatim ' +
   '« … » introuvable à la ligne que sa réf `<ABRÉV> NN l.X` annonce. Une ENTRÉE par SITE, clé ' +
@@ -289,11 +290,12 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
   const DOCS = pagesDeLAtlasRendues(rawDir, { classes }, catalogues)
   const tally = { OK: 0, DRIFT: 0, MEDIUM: 0, LOW: 0, RANGE: 0, 'PAST-EOF': 0, 'NO-SOURCE': 0 }
   let totalRefs = 0, totalQuotes = 0, appliedTotal = 0, remappedTotal = 0
-  const lowRows = []   // [{ doc: chemin de la FICHE, full, detail }] — un SITE = une unité du cliquet
+  const lowRows = []   // [{ fichier: chemin de la FICHE, full, detail }] — un SITE = une unité du cliquet
   const nonRemappees = []   // [{ doc, ligne, full, detail }] — réf sur une ligne supprimée ou ambiguë
-  const sections = []  // [{ file, rows }] pour le rapport
+  const sections = []  // [{ file, classe, rows }] pour le rapport
 
-  for (const { relatif: file, chemin: path, texte } of DOCS) {
+  for (const { relatif: file, chemin: path, classe, texte } of DOCS) {
+    const fiche = classe === 'fiche'
     const lines = texte.split('\n')
     const rows = []
     const edits = new Map()   // lineIdx -> [{start,end,replacement}]
@@ -303,10 +305,13 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
       const carte = carteDe(abbr, ch)
       const r = carte ? remapperRef(carte, depart, suffix || '')
         : { raison: chapterFile(abbr, ch) ? 'chapitre absent de HEAD' : 'chapitre introuvable' }
-      if (r.raison) {
-        rows.push({ full, status: 'NON-REMAP', detail: r.raison })
-        nonRemappees.push({ doc: path.split('\\').join('/'), ligne: i + 1, full, detail: r.raison })
-      } else if (r.change) {
+      const raison = r.raison ?? (r.change && !fiche ? 'référence à corriger dans la source de cette page' : null)
+      if (raison) {
+        rows.push({ full, status: 'NON-REMAP', detail: raison })
+        nonRemappees.push({ doc: path.split('\\').join('/'), ligne: i + 1, full, detail: raison })
+        return { raison }
+      }
+      if (r.change) {
         if (!edits.has(i)) edits.set(i, [])
         edits.get(i).push({ start: index, end: index + full.length, replacement: full.replace(/l\.\d+(?:[-+]\d+)*$/, r.texte) })
         remappedTotal++
@@ -348,7 +353,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
         tally[r.status]++
         if (r.status === 'DRIFT') {
           rows.push({ full: lu, status: 'DRIFT', cited: c.depart, found: r.foundStart, detail: `« ${snippet} » → l.${r.foundStart}` + (r.edited ? ' (ancre partielle)' : '') })
-          if (apply) {
+          if (apply && fiche) {
             const rg = c.suffix.match(/^-(\d+)/)
             const neuf = `l.${r.foundStart}` + (rg ? `-${r.foundStart + (Number(rg[1]) - c.depart)}` + c.suffix.slice(rg[0].length) : c.suffix)
             if (!edits.has(i)) edits.set(i, [])
@@ -362,7 +367,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
         } else if (r.status === 'LOW') {
           const detail = `« ${snippet} » — ${r.reason}`
           rows.push({ full: lu, status: 'LOW', cited: c.depart, detail })
-          lowRows.push({ doc: path.split('\\').join('/'), full: lu, detail })
+          lowRows.push({ fichier: path.split('\\').join('/'), full: lu, detail })
         } else {
           rows.push({ full: lu, status: 'NO-SOURCE', detail: 'chapitre source introuvable' })
           tally['NO-SOURCE']++
@@ -415,7 +420,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
         if (r.status === 'DRIFT') {
           const detail = `« ${snippet} » → l.${r.foundStart}` + (r.edited ? ' (ancre partielle)' : '')
           rows.push({ full, status: 'DRIFT', cited: citedStart, found: r.foundStart, detail })
-          if (apply) {
+          if (apply && fiche) {
             // réécrit l.X→l.found ; plage -Y : largeur préservée (translatée du même décalage)
             let newSuffix = suffix || ''
             const rg = (suffix || '').match(/^-(\d+)/)
@@ -430,7 +435,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
         } else if (r.status === 'LOW') {
           const detail = `« ${snippet} » — ${r.reason}`
           rows.push({ full, status: 'LOW', cited: citedStart, detail })
-          lowRows.push({ doc: path.split('\\').join('/'), full, detail })
+          lowRows.push({ fichier: path.split('\\').join('/'), full, detail })
         } else if (r.status === 'NO-SOURCE') {
           rows.push({ full, status: 'NO-SOURCE', detail: 'chapitre source introuvable' })
         }
@@ -439,24 +444,26 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
     }
 
     // applique les réécritures (droite→gauche par ligne pour ne pas décaler les offsets)
-    if ((apply || remap) && edits.size) {
+    if (fiche && edits.size) {
       for (const [li, es] of edits) {
         es.sort((a, b) => b.start - a.start)
         let s = lines[li]
         for (const e of es) s = s.slice(0, e.start) + e.replacement + s.slice(e.end)
         lines[li] = s
       }
-      ecrireDoc(path, lines.join('\n'))
+      sousLEpoque(path, () => ecrireTexteAtomique(path, lines.join('\n')))
     }
 
-    if (rows.length) sections.push({ file, rows })
+    if (rows.length) sections.push({ file, classe, rows })
   }
 
   return { DOCS, tally, sections, lowRows, nonRemappees, totalRefs, totalQuotes, appliedTotal, remappedTotal }
 }
 
 /** La RÉGÉNÉRATION du stock des réfs FAUSSES (`RegenerationDeStock`, `stockDeSites.mjs`), sur des
- *  sites LOW (par défaut, ceux du balayage de l'Atlas). */
+ *  sites LOW (par défaut, ceux du balayage de l'Atlas).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (lowRows = scan().lowRows) => [{
   chemin: LOW_STOCK_PATH,
   politique: SOUS_LOT,
@@ -464,24 +471,31 @@ export const regenerations = (lowRows = scan().lowRows) => [{
   collections: [{ nom: 'entrees', sites: sitesLow(lowRows) }],
 }]
 
-// ---------- rapport Markdown (aucun effet de bord de `scan` — écrit ici uniquement) ----------
+const remedeDeDerive = (classe) => classe === 'fiche'
+  ? 'corriger les fiches avec --apply'
+  : 'corriger les références de catalogue dans leur source'
+
+// ---------- rapport Markdown ----------
 function buildReport(result) {
   const { DOCS, tally, sections, totalRefs, totalQuotes } = result
   const out = ['# Atlas RAW — Ré-ancrage des citations', '',
-    '> Déterministe (`node scripts/raw/reanchor.mjs` ; `--apply` réécrit les dérives HIGH). GATE (#434) :',
+    '> Déterministe (`node scripts/raw/reanchor.mjs`). GATE (#434) :',
     '> exit 1 sur dérive non appliquée, ambiguïté, ou hausse de réf FAUSSE (❌) — voir en-tête du script.',
-    '> Pour chaque citation verbatim « … » d\'une fiche, on relocalise le texte dans le `.md` source',
-    '> courant et on vérifie le n° de ligne cité. ✅ juste · 🔧 dérive (HIGH, unique : `--apply` la corrige) · 🟡 ambigu',
-    '> (MEDIUM, manuel) · ❌ introuvable (LOW, paraphrase/mauvais chapitre) · ➖ synthèse (réf sans citation).', '']
+    '> Chaque citation verbatim « … » est relocalisée dans le `.md` source courant pour vérifier le n° de ligne cité.',
+    '> ✅ juste · 🔧 dérive (HIGH, citation unique) · 🟡 ambigu (MEDIUM, manuel)',
+    '> ❌ introuvable (LOW, paraphrase/mauvais chapitre) · ➖ synthèse (réf sans citation).', '']
   const MARK = { OK: '✅', DRIFT: '🔧', MEDIUM: '🟡', LOW: '❌', RANGE: '➖', 'PAST-EOF': '⛔', 'NO-SOURCE': '⚠️', 'NON-REMAP': '🧭' }
-  for (const { file, rows } of sections) {
+  for (const { file, classe, rows } of sections) {
     out.push(`## ${file}`, '', '| Réf | Statut | Détail |', '|---|---|---|')
-    for (const r of rows) out.push(`| \`${r.full}\` | ${MARK[r.status]} ${r.status} | ${r.detail} |`)
+    for (const r of rows) {
+      const remede = r.status === 'DRIFT' ? ` · ${remedeDeDerive(classe)}` : ''
+      out.push(`| \`${r.full}\` | ${MARK[r.status]} ${r.status} | ${r.detail}${remede} |`)
+    }
     out.push('')
   }
   out.splice(6, 0,
-    `**Bilan : ✅ ${tally.OK} · 🔧 ${tally.DRIFT} dérives (relancer --apply) · 🟡 ${tally.MEDIUM} ambigus · ❌ ${tally.LOW} introuvables · ➖ ${tally.RANGE} synthèses** ` +
-    `(⛔ ${tally['PAST-EOF']} hors-fichier · ⚠️ ${tally['NO-SOURCE']} sans source) sur ${totalRefs} réfs · ${totalQuotes} citations · ${DOCS.length} fiches.`, '')
+    `**Bilan : ✅ ${tally.OK} · 🔧 ${tally.DRIFT} dérives · 🟡 ${tally.MEDIUM} ambigus · ❌ ${tally.LOW} introuvables · ➖ ${tally.RANGE} synthèses** ` +
+    `(⛔ ${tally['PAST-EOF']} hors-fichier · ⚠️ ${tally['NO-SOURCE']} sans source) sur ${totalRefs} réfs · ${totalQuotes} citations · ${DOCS.length} pages.`, '')
   return out.join('\n')
 }
 
@@ -492,24 +506,31 @@ export function rendre(result = scan(RAWDIR)) {
   return new Map([[RAPPORT, buildReport(result)]])
 }
 
-function main() {
-  if (CHECK && (APPLY || REMAP)) {
+export function* produire({ check }) {
+  exigerRacineAtlas()
+  const apply = process.argv.includes('--apply')
+  const remap = process.argv.includes('--remap')
+  if (check && (apply || remap)) {
     console.error('raw:reanchor — REFUS : `--check` compare sans écrire, `--apply`/`--remap` réécrivent les fiches de l’Atlas — jamais les deux ensemble.')
     process.exitCode = 1
     return
   }
-  const result = scan(RAWDIR, { apply: APPLY, remap: REMAP })
-  const { tally, totalRefs, totalQuotes, appliedTotal, remappedTotal, DOCS, lowRows, nonRemappees } = result
+  const result = scan(RAWDIR, { apply, remap })
+  const { tally, totalRefs, totalQuotes, appliedTotal, remappedTotal, DOCS, sections, lowRows, nonRemappees } = result
 
-  const driftLabel = APPLY ? `🔧 ${appliedTotal} corrigées` : `🔧 ${tally.DRIFT} dérives (relancer --apply)`
-  const remapLabel = REMAP ? ` · 🧭 ${remappedTotal} synthèses ré-ancrées (diff), ${nonRemappees.length} non portées` : ''
+  const driftLabel = apply ? `🔧 ${appliedTotal} corrigées` : `🔧 ${tally.DRIFT} dérives`
+  const remapLabel = remap ? ` · 🧭 ${remappedTotal} synthèses ré-ancrées (diff), ${nonRemappees.length} non portées` : ''
   console.log(`ré-ancrage : ✅ ${tally.OK} · ${driftLabel} · 🟡 ${tally.MEDIUM} · ❌ ${tally.LOW} · ➖ ${tally.RANGE}${remapLabel} (⛔${tally['PAST-EOF']} ⚠️${tally['NO-SOURCE']})`)
-  console.log(`${totalQuotes} citations vérifiées sur ${totalRefs} réfs (${DOCS.length} fiches)` + (REMAP ? ` — ${remappedTotal} synthèses ré-ancrées par diff` : APPLY ? ` — ${appliedTotal} réécrites` : tally.DRIFT ? ` — relancer avec --apply pour corriger ${tally.DRIFT} dérives` : ''))
+  console.log(`${totalQuotes} citations vérifiées sur ${totalRefs} réfs (${DOCS.length} pages)` + (remap ? ` — ${remappedTotal} synthèses ré-ancrées par diff` : apply ? ` — ${appliedTotal} réécrites` : ''))
 
   // ---------- GATE (#434) ----------
   let fail = false
-  if (!APPLY && tally.DRIFT > 0) {
-    console.log(`RÉGRESSION — ${tally.DRIFT} dérive(s) 🔧 non appliquée(s) : relancer --apply avant de committer.`)
+  const derivesRestantes = tally.DRIFT - appliedTotal
+  if (derivesRestantes > 0) {
+    const remedes = new Set(sections
+      .filter(({ classe, rows }) => !(apply && classe === 'fiche') && rows.some((row) => row.status === 'DRIFT'))
+      .map(({ classe }) => remedeDeDerive(classe)))
+    console.log(`RÉGRESSION — ${derivesRestantes} dérive(s) 🔧 restante(s) : ${[...remedes].join(' et ')}.`)
     fail = true
   }
   if (tally['NO-SOURCE'] > 0) {
@@ -521,7 +542,7 @@ function main() {
     fail = true
   }
   if (nonRemappees.length) {
-    console.log(`RÉGRESSION — ${nonRemappees.length} réf(s) que la carte de lignes ne porte pas (ligne supprimée ou hunk ambigu) : à trancher à la main, au Source.`)
+    console.log(`RÉGRESSION — ${nonRemappees.length} réf(s) non ré-ancrée(s) : corriger les cas signalés dans leurs sources.`)
     for (const n of nonRemappees) console.log(`  ${n.doc}:${n.ligne} \`${n.full}\` — ${n.detail}`)
     fail = true
   }
@@ -540,13 +561,12 @@ function main() {
   }
   if (fail) process.exitCode = 1
 
-  ecrireOuVerifier({
-    out: rendre(APPLY || REMAP ? scan(RAWDIR) : result).get(RAPPORT),
+  yield {
+    out: rendre(apply || remap ? scan(RAWDIR) : result).get(RAPPORT),
     path: RAPPORT,
-    check: CHECK,
     staleMsg: `raw:reanchor — ${RAPPORT} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
     rerunMsg: '  → relancer `npm run raw:reanchor` (dérivé jamais commité, #2203).',
-  })
+  }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

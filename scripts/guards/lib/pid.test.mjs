@@ -138,3 +138,87 @@ test('VIE_SUR_PID_LU : un pid lu jugé nu hors du foyer est un site ; la sonde i
   assert.deepEqual(vu('const estVivant = (x) => x !== null\nestVivant(lu.pid)'), [])
   assert.deepEqual(scanConstructionsReservees({ rel: 'scripts/fixture.mjs', text: 'const estPidVivant = () => true\nestPidVivant(lu.pid)' }, [VIE]), [])
 })
+
+const IMPORT_DE_SONDE = "import { estPidVivant as sonde, estPidVivantDepuis } from './guards/lib/pid.mjs'\n"
+
+const sitesVie = (text) => scanConstructionsReservees({ rel: 'scripts/fixture.ts', text }, [VIE]).map(({ line }) => line)
+
+test('VIE_SUR_PID_LU : objet littéral, alias, rappel et déstructuration gardent la provenance de la sonde', () => {
+  const cas = [
+    'const g = { estVivant: sonde }; const gestes = g; gestes.estVivant(lu.pid)',
+    "const g = { sonde }; g['sonde'](lu.pid)",
+    'const { vivre } = { vivre: sonde }; vivre(lu.pid)',
+    'const g = { vivre: sonde }; pids.filter(g.vivre)',
+  ]
+  for (const usage of cas) assert.deepEqual(sitesVie(IMPORT_DE_SONDE + usage), [2], usage)
+  assert.deepEqual(sitesVie(IMPORT_DE_SONDE + 'const g = { estVivant: (pid) => false }; g.estVivant(lu.pid)'), [])
+  assert.deepEqual(sitesVie(IMPORT_DE_SONDE + 'const g = { estVivant: sonde, estVivant: () => false }; g.estVivant(lu.pid)'), [])
+  assert.deepEqual(sitesVie(IMPORT_DE_SONDE + 'const g = { estVivant: sonde }; runEnVol(lu, identite, { estVivant: g.estVivant })'), [])
+})
+
+test('VIE_SUR_PID_LU : la dernière affectation de la liaison avant chaque appel fait foi', () => {
+  const texte = `let juge = () => false
+juge(lu.pid)
+juge = sonde
+juge(lu.pid)
+{ const juge = () => false; juge(lu.pid) }
+juge = () => false
+juge(lu.pid)`
+  assert.deepEqual(sitesVie(IMPORT_DE_SONDE + texte), [5])
+})
+
+test('VIE_SUR_PID_LU : une affectation d’un membre nommé change la provenance de l’appel', () => {
+  const cas = [
+    ['const g = { estVivant: () => false }; g.estVivant = sonde; g.estVivant(lu.pid)', [2]],
+    ["const g = { estVivant: sonde }; g['estVivant'] = () => false; g.estVivant(lu.pid)", []],
+    ['const g = { autres: {}, estVivant: sonde }; g.autres.estVivant = () => false; g.estVivant(lu.pid)', [2]],
+    ['const g = { estVivant: sonde }; function ailleurs() { g.estVivant = () => false } g.estVivant(lu.pid)', [2]],
+  ]
+  for (const [usage, attendu] of cas) assert.deepEqual(sitesVie(IMPORT_DE_SONDE + usage), attendu, usage)
+})
+
+test('VIE_SUR_PID_LU : les blocs de suite appliquent l’écriture, les branches conservent les deux possibilités', () => {
+  const cas = [
+    ['let juge = () => false; { juge = sonde } juge(lu.pid)', [2]],
+    ['let juge = sonde; { juge = () => false } juge(lu.pid)', []],
+    ['let juge = sonde; if (cond) juge = () => false; juge(lu.pid)', [2]],
+    ['let juge = () => false; if (cond) { juge = sonde } juge(lu.pid)', [2]],
+    ['let juge = sonde; if (cond) { juge = () => false; juge(lu.pid) }', []],
+    ['let juge = () => false; function ailleurs() { juge = sonde } juge(lu.pid)', []],
+  ]
+  for (const [usage, attendu] of cas) assert.deepEqual(sitesVie(IMPORT_DE_SONDE + usage), attendu, usage)
+})
+
+test('VIE_SUR_PID_LU : le défaut déstructuré ne remplace qu’un membre absent ou inconnu', () => {
+  const cas = [
+    ['const g = { estVivant: () => false }; const { estVivant = sonde } = g; estVivant(lu.pid)', []],
+    ['const g = {}; const { estVivant = sonde } = g; estVivant(lu.pid)', [2]],
+    ['const g = source(); const { estVivant = sonde } = g; estVivant(lu.pid)', [2]],
+    ['const g = { estVivant: sonde }; const { estVivant = () => false } = g; estVivant(lu.pid)', [2]],
+    ['const g = { estVivant: sonde }; g.estVivant = () => false; const { estVivant = sonde } = g; estVivant(lu.pid)', []],
+  ]
+  for (const [usage, attendu] of cas) assert.deepEqual(sitesVie(IMPORT_DE_SONDE + usage), attendu, usage)
+})
+
+test('VIE_SUR_PID_LU : les réexports ESM de la sonde sont détectés même sans son nom dans le texte', () => {
+  const cas = [
+    IMPORT_DE_SONDE + 'export { sonde }',
+    IMPORT_DE_SONDE + 'const juge = sonde; export { juge as public }',
+    IMPORT_DE_SONDE + 'export const juge = sonde',
+    IMPORT_DE_SONDE + 'export default sonde',
+    "export { estPidVivant as public } from './guards/lib/pid.mjs'",
+    "export * from './guards/lib/pid.mjs'",
+    "export * as public from './guards/lib/pid.mjs'",
+    "import * as ns from './guards/lib/pid.mjs'\nexport { ns }",
+  ]
+  for (const texte of cas) assert.deepEqual(sitesVie(texte), [texte.split('\n').length], texte)
+  const sains = [
+    "export type { estPidVivant } from './guards/lib/pid.mjs'",
+    "export { type estPidVivant, estPidVivantDepuis } from './guards/lib/pid.mjs'",
+    "export type * as public from './guards/lib/pid.mjs'",
+    "import type { estPidVivant as sonde } from './guards/lib/pid.mjs'\nexport type { sonde }",
+    "import type { estPidVivant as sonde } from './guards/lib/pid.mjs'\nexport { sonde }",
+    IMPORT_DE_SONDE + 'export { estPidVivantDepuis }; export function autre(sonde) { sonde(lu.pid) }',
+  ]
+  for (const texte of sains) assert.deepEqual(sitesVie(texte), [], texte)
+})

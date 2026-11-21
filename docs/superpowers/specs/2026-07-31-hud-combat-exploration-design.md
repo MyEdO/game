@@ -148,7 +148,7 @@ Les routes existantes de ciblage de case et de désengagement gardent leur propr
 
 ## 10. Attaque — conformité au contrat Z0–Z15
 
-L’attaque ne possède aucun schéma local. Son rendu se conforme au tableau « Contrat d’affichage d’un jet (Z0–Z15) » de `docs/charte-ui.md` : `RollShell` possède les zones, `VsHeader` possède Z3, les lignes possèdent Z5, l’issue passe par Z12 et les verbes passent par Z15.
+L’attaque ne possède aucun schéma local. Son rendu se conforme au tableau « Contrat d’affichage d’un jet (Z0–Z15) » de la charte CSS de l’ancien hôte (historique Git) : `RollShell` possède les zones, `VsHeader` possède Z3, les lignes possèdent Z5, l’issue passe par Z12 et les verbes passent par Z15.
 
 Le lot ajoute un verrou de rendu du flux réel `useAttackJetProps` dans `RollShell` et corrige seulement la projection de props si une zone est non conforme. La mécanique d’attaque, les transitions de `pendingAttack`, les calculs, `AttackModal` et toute nouvelle modale sont hors périmètre. Le HUD ne prescrit plus un ordre ad hoc concurrent de Z0–Z15.
 

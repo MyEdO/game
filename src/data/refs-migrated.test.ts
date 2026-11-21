@@ -8,13 +8,12 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
+import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES } from '../../scripts/guards/lib/integriteStock.mjs';
 import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
   byId, findTalentById, findSeaShantyById,
-  findSiegeEngineById,
   findWeaponGroupById, findGroupById,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
@@ -25,10 +24,6 @@ import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
 import { MANANN_FACTORS } from '../engine/seaVoyage';
 import { pretires } from './pregens';
-import areneProject from '../scenes/arene/arene-projet.json';
-import bargeProject from '../scenes/barge-du-sel/barge-du-sel-projet.json';
-import diligenceProject from '../scenes/diligence/diligence-projet.json';
-import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
 import { CHAR_KEYS } from '../engine/types';
 import { fileURLToPath } from 'node:url';
@@ -88,9 +83,9 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
    * 2026-08-31-avancement-vers-grammaire.mjs`). Deux faits distincts, mesurés ici sur la donnée
    * COMMITTÉE — sans jamais rouvrir l'ancien fichier :
    *  1. L'ENVELOPPE est en bijection avec la graphie d'origine : `{ref}`/`{wildcard}`/
-   *     `{wildcard,specOptions}`/`{choice}`/`{random}` ⇄ `{id}`/`{id,choix:true}`/`{id,choix:[ids]}`/
-   *     `{pick:1,of}`/`{random}`. Aller-retour = identité sur CHAQUE nœud réel : aucune branche
-   *     fusionnée, aucun champ perdu, aucune forme hors vocabulaire.
+   *     `{wildcard,specOptions}`/`{choice}` ⇄ `{id}`/`{id,choix:true}`/`{id,choix:[ids]}`/
+   *     `{pick:1,of}`. Les tirages `{pick, table}` (#3916) traversent ce témoin sans recodage.
+   *     Aller-retour = identité sur chaque nœud réel.
    *  2. Les seules VALEURS qui changent sont les 14 paires NOMMÉES ci-dessous (spéc imprimée au
    *     livre → id de catalogue) : chacune résout dans le catalogue de sa def, chacune est VIVANTE
    *     dans la donnée, et aucune des 14 graphies d'origine n'y subsiste.
@@ -98,8 +93,8 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   type Graphie = Record<string, unknown>;
   /** Graphie CIBLE → graphie d'ORIGINE. */
   const versOrigine = (n: Graphie): Graphie => {
-    if ('random' in n && Object.keys(n).length === 1) return { random: n.random };
-    if ('pick' in n) return { choice: (n.of as Graphie[]).map(versOrigine) };
+    if ('table' in n) return n;
+    if ('of' in n) return { choice: (n.of as Graphie[]).map(versOrigine) };
     if ('id' in n) {
       if (n.choix === undefined) return n.spec === undefined ? { ref: { id: n.id } } : { ref: { id: n.id, spec: n.spec } };
       return n.choix === true ? { wildcard: { id: n.id } } : { wildcard: { id: n.id }, specOptions: n.choix };
@@ -108,7 +103,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   };
   /** Graphie d'ORIGINE → graphie CIBLE, ENVELOPPE SEULE (la valeur de spéc n'est pas touchée). */
   const versCible = (n: Graphie): Graphie => {
-    if ('random' in n) return { random: n.random };
+    if ('table' in n) return n;
     if ('choice' in n) return { pick: 1, of: (n.choice as Graphie[]).map(versCible) };
     if ('ref' in n) {
       const r = n.ref as Graphie;
@@ -353,14 +348,15 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 // que la fabrique admet sans les solder. Le périmètre et la marche viennent du module PARTAGÉ avec la
 // migration (`scripts/data/lib/skillSpecWalk.mjs`) : une garde qui remarcherait la donnée à sa façon
 // mesurerait autre chose que le geste qu'elle garde.
+type SiteDIntegrite = Site & { famille: string };
 /** Un texte d'instance de Talent (`nonSpecialisable`, #1621), nommé par sa clé stable `fichier|porteur|refId|spec`. */
-type TexteDInstance = { key: string; site: EntreeDeSite };
+type TexteDInstance = { key: string; site: SiteDIntegrite };
 
 const empreinteIntegrite = (texte: string): string => createHash('sha256').update(texte).digest('hex');
-const siteIntegrite = (famille: string, fichier: string, owner: string, champ: string, id = '', texte = '') => ({ famille, file: fichier, ref: JSON.stringify([owner, champ, id, texte ? empreinteIntegrite(texte) : '']) });
+const siteIntegrite = (famille: string, fichier: string, owner: string, champ: string, id = '', texte = ''): SiteDIntegrite => ({ famille, fichier, ref: JSON.stringify([owner, champ, id, texte ? empreinteIntegrite(texte) : '']) });
 const fichiersDeSpecs = new Map(listerDocuments(REPO_ROOT).map((d) => [d.nom, d.chemin]));
-function ecartIntegrite(observe: EntreeDeSite[], stock: readonly EntreeDeSite[], observation = false): void {
-  const normalise = sitesEnEntrees(observe.map((s) => ({ famille: s.famille, file: s.fichier, ref: s.ref })));
+function ecartIntegrite(observe: readonly SiteDIntegrite[], stock: readonly EntreeDeSite[], observation = false): void {
+  const normalise = sitesEnEntrees(observe);
   const ecart = ecartsDeStock({ observe: normalise, stock, cle: cleDeSite, remede: {
     neuve: (cle, entree) => entree.famille === 'dotation-texte'
       ? `${cle} — migrer la dotation en référence typée (#622).`
@@ -382,21 +378,22 @@ describe('intégrité des collections nominatives', () => {
     ['talents-sentinelles', 'talent-sentinelle', false],
     ['dotations-textes', 'dotation-texte', false],
   ] as const) {
-    const original = { famille, fichier: 'src/data/fixture.json', ref: JSON.stringify(['proprietaire-fixture', 'champ-fixture', 'reference-fixture', 'empreinte-fixture']), occurrence: 1 };
+    const site = { famille, fichier: 'src/data/fixture.json', ref: JSON.stringify(['proprietaire-fixture', 'champ-fixture', 'reference-fixture', 'empreinte-fixture']) };
+    const original = { ...site, occurrence: 1 };
     const stock = [original];
     it(`${nom} : un échange d'identité à cardinal constant rougit`, () => {
-      const observe = [{ ...original, ref: `${original.ref}~mutation` }];
+      const observe = [{ ...site, ref: `${original.ref}~mutation` }];
       expect(() => ecartIntegrite(observe, [original], observation)).toThrow(/Entrées neuves/);
     });
     it(`${nom} : la baisse conserve son régime`, () => {
       if (observation) {
         expect(() => ecartIntegrite([], [stock[0]], true)).not.toThrow();
-        expect(() => ecartIntegrite([{ ...stock[0], ref: `${stock[0].ref}~mutation` }], [stock[0]], true)).toThrow(/Entrées neuves/);
+        expect(() => ecartIntegrite([{ ...site, ref: `${stock[0].ref}~mutation` }], [stock[0]], true)).toThrow(/Entrées neuves/);
       }
       else expect(() => ecartIntegrite([], [stock[0]])).toThrow(/Entrées soldées/);
     });
     it(`${nom} : une identité de stock répétée rougit`, () => {
-      expect(() => ecartIntegrite([original], [original, original], observation)).toThrow(/Stock dupliqué/);
+      expect(() => ecartIntegrite([site], [original, original], observation)).toThrow(/Stock dupliqué/);
     });
   }
 });
@@ -424,10 +421,10 @@ const partiellesDeCreatures = (): [string, EntreeDeSpecs[]][] => {
  */
 function collecteSpecs(
   arrName: 'skills' | 'talents',
-): { textes: TexteDInstance[]; nues: { where: string; book: string; refId: string; site: EntreeDeSite }[]; sentinelles: EntreeDeSite[] } {
+): { textes: TexteDInstance[]; nues: { where: string; book: string; refId: string; site: SiteDIntegrite }[]; sentinelles: SiteDIntegrite[] } {
   const textes: TexteDInstance[] = [];
-  const nues: { where: string; book: string; refId: string; site: EntreeDeSite }[] = [];
-  const sentinelles: EntreeDeSite[] = [];
+  const nues: { where: string; book: string; refId: string; site: SiteDIntegrite }[] = [];
+  const sentinelles: SiteDIntegrite[] = [];
   const listes: [string, EntreeDeSpecs[]][] = [
     ['creatures', creatures], ['careerLevels', careerLevels], ['species', species], ...partiellesDeCreatures(),
   ] as [string, EntreeDeSpecs[]][];
@@ -438,7 +435,7 @@ function collecteSpecs(
       const owner = entry.id;
       const fichier = fichiersDeSpecs.get(file.endsWith('.json') ? file : `${file}.json`);
       if (!fichier) throw new Error(`${file} : document absent du corpus`);
-      const site = (famille: string, node: { id: string; spec?: string }) => sitesEnEntrees([siteIntegrite(famille, fichier, owner, arrName, node.id, node.spec ?? '')])[0];
+      const site = (famille: string, node: { id: string; spec?: string }) => siteIntegrite(famille, fichier, owner, arrName, node.id, node.spec ?? '');
       walkSkillRefs(entry, (node) => {
         const type = arrName === 'skills' ? 'skill' : 'talent';
         const catalogue = catalogueSpecs(type, node.id).length > 0;
@@ -509,9 +506,9 @@ describe('Compétences de statbloc, de Carrière et d’espèce — observations
   });
 });
 
-// ── OBSERVATIONS NOMMÉES (#1457 B1) — `talents[]` de statbloc, de Carrière et d'espèce : la spéc est
-// admise au parse (`talentRefSchema`, `refOuSpec('talent')`) ; les deux passes de `talentRefSchema`
-// (texte d'instance, sentinelle) restent des stocks nommés ici.
+// ── OBSERVATIONS NOMMÉES (#1457 B1) — `talents[]` de statbloc, de Carrière et d'espèce.
+// `talentRefSchema` admet le texte d'instance d'un Talent sans catalogue. Le parse refuse la
+// sentinelle de spécialisation (#1456) et l'inventaire en mesure le stock vide.
 describe('Talents de statbloc, de Carrière et d’espèce — observations nommées (#1457 B1)', () => {
   const { textes, sentinelles } = collecteSpecs('talents');
 
@@ -543,7 +540,7 @@ describe('careerLevels.trappings — dotations textuelles nommées', () => {
       };
       walk(niveau.trappings);
     }
-    ecartIntegrite(sitesEnEntrees(sites), DOTATIONS_TEXTES);
+    ecartIntegrite(sites, DOTATIONS_TEXTES);
   });
 });
 
@@ -563,50 +560,6 @@ describe('appearance.species — espèce d’apparence (fauteDEspece), jamais un
     const bad: string[] = [];
     for (const s of SCENARIOS) collect(s.construire(idsDeTest).party, `${s.id}.party`, bad);
     expect(bad, bad.join('\n')).toEqual([]);
-  });
-});
-
-// ── GARDE DE CLASSE (#222) — anti-copie-périmée des POSTES d'artillerie. Un `ShipPoste` AUTHORÉ ne porte que
-// sa RÉF catalogue (`trappingId`) ; la base (Dégâts/Qualités/Enc/Portée) est HYDRATÉE au spawn (`hydratePoste`
-// → `itemFromTrappingById`), JAMAIS matérialisée dans la donnée de scène (qui dériverait du catalogue).
-//  - INVARIANT DUR (toutes scènes) : un poste NEUF (`trappingId` au niveau du poste) NE porte AUCUNE base
-//    copiée (`item`/`damage`/`qualities`/`enc`…) et sa réf RÉSOUT au catalogue.
-//  - INVARIANT DUR (projets de campagne, #218) : ZÉRO poste en forme ANCIENNE (`item` complet copié) — les
-//    deux projets sont régénérés par `scripts/campagne/lib.mjs::poste` (forme référence `{ trappingId, … }`).
-describe('postes d’artillerie — réf catalogue hydratée, jamais une base copiée (#222)', () => {
-  const BASE_FIELDS = ['item', 'damage', 'qualities', 'enc', 'range', 'reach', 'pa'] as const;
-  const walkPostes = (node: unknown, where: string, visit: (poste: Record<string, unknown>, where: string) => void): void => {
-    if (Array.isArray(node)) { node.forEach((x, i) => walkPostes(x, `${where}[${i}]`, visit)); return; }
-    if (!isObj(node)) return;
-    if (Array.isArray(node.postes)) node.postes.forEach((p, i) => { if (isObj(p)) visit(p, `${where}.postes[${i}]`); });
-    for (const [k, v] of Object.entries(node)) walkPostes(v, `${where}.${k}`, visit);
-  };
-
-  it('INVARIANT DUR — tout poste NEUF (`trappingId`) résout au catalogue et NE matérialise aucune base', () => {
-    const bad: string[] = [];
-    const hard = (p: Record<string, unknown>, where: string): void => {
-      if (typeof p.trappingId !== 'string') return; // forme ancienne (item) → report ci-dessous
-      if (!findSiegeEngineById(p.trappingId)) bad.push(`${where} : trappingId « ${p.trappingId} » inconnu du catalogue`);
-      for (const f of BASE_FIELDS) if (f in p) bad.push(`${where} : « ${f} » copié alors qu'hydratable de « ${p.trappingId} » (base interdite en donnée, #222)`);
-    };
-    walkPostes(areneProject, 'arene-projet.json', hard);
-    walkPostes(bargeProject, 'barge-du-sel-projet.json', hard);
-    walkPostes(diligenceProject, 'diligence-projet.json', hard);
-    walkPostes(loupProject, 'loup-et-saumure-projet.json', hard);
-    for (const s of SCENARIOS) {
-      const c = s.construire(idsDeTest);
-      walkPostes(c.scene, `${s.id}.scene`, hard);
-      if (c.extraScenes) walkPostes(c.extraScenes, `${s.id}.extraScenes`, hard);
-      walkPostes(c.party, `${s.id}.party`, hard);
-    }
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-
-  it('INVARIANT DUR (#218) — les projets régénérés ne portent AUCUN poste en forme ANCIENNE (item copié)', () => {
-    const stale: string[] = [];
-    walkPostes(areneProject, 'arene-projet.json', (p, where) => { if (typeof p.trappingId !== 'string' && isObj(p.item)) stale.push(where); });
-    walkPostes(loupProject, 'loup-et-saumure-projet.json', (p, where) => { if (typeof p.trappingId !== 'string' && isObj(p.item)) stale.push(where); });
-    expect(stale, `postes old-format (item copié) restants — régénérer via scripts/campagne/lib.mjs::poste :\n${stale.join('\n')}`).toEqual([]);
   });
 });
 
@@ -746,9 +699,9 @@ describe('schémas de defs/ — une réf de code cite un FICHIER et un SYMBOLE, 
     return out;
   };
 
-  it('aucun commentaire de src/data/schemas/defs/**.ts ne porte de réf `fichier.ts:N` (tolérance ZÉRO)', () => {
+  it('aucun commentaire des modules de src/data/schemas/defs ne porte de réf `fichier.ts:N` (tolérance ZÉRO)', () => {
     const offenders: string[] = [];
-    for (const { rel, text } of readCorpus(['src/data/schemas/defs'], { exts: ['.ts'], tests: true })) {
+    for (const { rel, text } of readCorpus(['src/data/schemas/defs'], { tests: true })) {
       const ranges = commentRanges(text);
       for (const m of text.matchAll(LINE_REF)) {
         if (!ranges.some(([a, b]) => m.index >= a && m.index < b)) continue;

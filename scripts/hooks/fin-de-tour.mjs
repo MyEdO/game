@@ -1,20 +1,21 @@
 // Hook Stop (#3261) : la fin de tour d'une session Claude inscrite par `ops:session` devient une transition `inactif`
-// de son journal (`scripts/ops/session-transitions.mjs`), que `attendre` rend. Hors session inscrite, rien n'est lu
-// ni chargé au-delà de la porte de version ; un reçu SessionStart qui ne concorde pas est une autre session de
-// l'environnement.
+// de son journal (`scripts/ops/session-transitions.mjs`), que `attendre` rend.
 // Doc hooks : Stop ; jamais le code 2 (porte sous `DRAPEAU_REFUS_NON_BLOQUANT`, `scripts/node-requis.mjs`).
 import '../node-requis.mjs'
 import { dirname, join } from 'node:path'
 
 /** La transition écrite pour la fin de tour, `null` si ce processus n'est pas la session inscrite de `env`. */
-export async function finDeTour({ env = process.env, stdin } = {}) {
+export async function finDeTour({ env = process.env, stdin, worktree = env.CLAUDE_PROJECT_DIR || process.cwd() } = {}) {
   if (!env.WFRP_SESSION_START) return null
-  const { contexteDeSession, recuConcordant, entreeHookNative } = await import('../ops/session-start.mjs')
-  const { ajouterTransition, ANNEXES_CLAUDE } = await import('../ops/session-transitions.mjs')
+  const debut = performance.now()
+  const { contexteDeSession, recuConcordant, entreeHookNative, inscriptionDuHook, DELAI_PREUVE_HOOK_MS } = await import('../ops/session-start.mjs')
   const contexte = contexteDeSession(env)
   const native = JSON.parse(await entreeHookNative(env, stdin))
-  if (native?.hook_event_name !== 'Stop' || typeof native.session_id !== 'string' || !native.session_id || !recuConcordant(contexte, native.session_id)) return null
-  const journal = join(dirname(contexte.chemin), `${contexte.sessionId}.${ANNEXES_CLAUDE.journalClaude}`)
+  if (native?.hook_event_name !== 'Stop' || typeof native.session_id !== 'string' || !native.session_id) return null
+  const inscription = await inscriptionDuHook(contexte, { surface: 'claude', worktree, echeance: debut + DELAI_PREUVE_HOOK_MS })
+  if (!inscription || !recuConcordant({ ...contexte, chemin: inscription.chemin }, native.session_id)) return null
+  const { ajouterTransition, ANNEXES_CLAUDE } = await import('../ops/session-transitions.mjs')
+  const journal = join(dirname(inscription.chemin), `${contexte.sessionId}.${ANNEXES_CLAUDE.journalClaude}`)
   const transcript = typeof native.transcript_path === 'string' && native.transcript_path ? { transcript: native.transcript_path } : {}
   return ajouterTransition(journal, contexte.sessionId, 'inactif', { etat: 'inactif', ...transcript })
 }

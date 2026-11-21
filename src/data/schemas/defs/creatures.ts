@@ -16,8 +16,8 @@ import {
   moneySchema,
   profilChiffreSchema,
 } from '../grammaire/valeurs';
-import { optionalSwapSchema, possessionDeCreatureSchema, talentRefSchema, traitAdmet, traitInstanceSchema } from '../grammaire/reference';
-import { ref, refOuSpec, refs } from '../grammaire/ref';
+import { optionalSwapSchema, possessionDeCreatureSchema, talentRefSchema, lireLaCapaciteDuTrait, traitInstanceSchema } from '../grammaire/reference';
+import { affinerAvecCatalogues, ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { estObjet } from '../../../lib/objet.mjs';
 
@@ -109,15 +109,16 @@ const doc = document(
       label: 'Caractéristiques',
       hint: 'Table des 10 caractéristiques (CC/CT/F/E/I/Ag/Dex/Int/FM/Soc) — valeur ou vide si non imprimée',
     },
-    traits: { label: 'Traits', hint: 'Traits de créature structurés (identifiant + argument ou valeur)' },
+    traits: { label: 'Traits', inverseCodex: { type: 'trait', portee: 'directe' }, hint: 'Traits de créature structurés (identifiant + argument ou valeur)' },
     optionals: {
       label: 'Traits optionnels',
+      inverseCodex: { type: 'trait', portee: 'directe', detail: 'facultatif' },
       hint: 'Traits ou notes composées proposés au choix à l’apparition de la créature (LDB 76)',
     },
-    skills: { label: 'Compétences', hint: 'Compétences de la créature : identifiant + valeur de Test imprimée' },
-    talents: { label: 'Talents', hint: 'Talents de la créature : identifiant + spécialisation ou niveau' },
-    trappings: { label: 'Possessions', hint: 'Objets portés par la créature (référence catalogue ou texte narratif)' },
-    spells: { label: 'Sorts connus', hint: 'Sorts que la créature peut lancer' },
+    skills: { label: 'Compétences', inverseCodex: { type: 'skill', portee: 'directe' }, hint: 'Compétences de la créature : identifiant + valeur de Test imprimée' },
+    talents: { label: 'Talents', inverseCodex: { type: 'talent', portee: 'directe' }, hint: 'Talents de la créature : identifiant + spécialisation ou niveau' },
+    trappings: { label: 'Possessions', inverseCodex: { type: 'trapping', portee: 'directe' }, hint: 'Objets portés par la créature (référence catalogue ou texte narratif)' },
+    spells: { label: 'Sorts connus', inverseCodex: true, hint: 'Sorts que la créature peut lancer' },
     appearance: { label: 'Apparence', hint: 'Apparence par défaut de la créature (espèce, tenue, couleurs), affichée en jeu' },
     harvest: { label: 'Récolte', hint: 'Rareté, dangerosité et usages des organes récoltables sur cette créature' },
     followsCharacterRules: {
@@ -136,16 +137,22 @@ const doc = document(
     exiges: ['source'],
     /** #2993 */
     affinerEntree: (entree) =>
-      entree.refine((e): e is { appearance: { species: string } } => estObjet(e.appearance) && typeof e.appearance.species === 'string', {
+      affinerAvecCatalogues(entree.refine((e): e is { appearance: { species: string } } => estObjet(e.appearance) && typeof e.appearance.species === 'string', {
         path: ['appearance', 'species'],
         error: (iss) => `${estObjet(iss.input) ? String(iss.input.id) : ''} : statbloc sans \`appearance.species\` — son espèce range son corps au plan de bestiaire (planDeBestiaire.json).`,
-      }).refine((e) => {
-        const decritArmure = Array.isArray(e.trappings) && e.trappings.some((p: unknown) => estObjet(p) && p.decritLeTraitArmure === true);
-        return !decritArmure || Array.isArray(e.traits) && e.traits.some((t: unknown) =>
-          estObjet(t) && typeof t.id === 'string' && traitAdmet(t.id, 'matiere') && t.matiere !== 'peau');
-      }, {
-        path: ['trappings'],
-        error: 'Une pièce décrite par le Trait Armure exige un Trait Armure porté sur la fiche.',
+      }), (lire) => {
+        const admetLaMatiere = lireLaCapaciteDuTrait(lire, 'matiere');
+        return (e, ctx) => {
+          const decritArmure = Array.isArray(e.trappings) && e.trappings.some((p: unknown) => estObjet(p) && p.decritLeTraitArmure === true);
+          if (!decritArmure) return;
+          const porteUneArmure = Array.isArray(e.traits) && e.traits.some((t: unknown) =>
+            estObjet(t) && typeof t.id === 'string' && admetLaMatiere(t.id) && t.matiere !== 'peau');
+          if (!porteUneArmure) ctx.addIssue({
+            code: 'custom',
+            path: ['trappings'],
+            message: 'Une pièce décrite par le Trait Armure exige un Trait Armure porté sur la fiche.',
+          });
+        };
       }),
   },
 );

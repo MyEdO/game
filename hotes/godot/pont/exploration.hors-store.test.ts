@@ -10,7 +10,17 @@ import { drainer, erreurDe, table, enFocus, mondeDe, morceauxDe, vueDe } from '.
 import type { MorceauxDuPont } from './pont';
 import { hash32AuMillieme } from '../../../src/lib/hash';
 import { depuisBase64 } from '../../../src/lib/base64';
-import { CLIC_DU_CHAMP, type AreteDessinee, type RetraitDuMonde } from '../../../src/noyau/index';
+import {
+  CLIC_DU_CHAMP,
+  cotesDeMarchesDeLaScene,
+  faitieresDeLaScene,
+  type AreteDessinee,
+  type CoteDeMarches,
+  type Faitiere,
+  type RetraitDuMonde,
+} from '../../../src/noyau/index';
+import { testScenarios } from '../../../src/scenes/test-scenarios';
+import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -88,5 +98,21 @@ describe('l’exploration par le pont', () => {
     expect([retrait.largeur, retrait.rangees]).toEqual([plateau.w, 2 * monde.hauteurs.length * plateau.h]);
     expect(hash32AuMillieme(depuisBase64(retrait.masque)).toString(36), 'la clé du retrait est l’empreinte des octets de son masque').toBe(plateau.cleDuRetrait);
     expect(erreurDe(appel('retrait', { regard: 'plateau' })).message).toBe('retrait : regard hors de l’entrée (aucune clé)');
+  });
+
+  it('`aretes` sert aussi les côtés des cases de marches de la scène, sous la même clé de relecture (#4471)', () => {
+    appel('quitter');
+    drainer(appel, appel('demarrer', { scenario: 'fenetre-ecuries', graine: 7 }));
+    const servis = (appel('aretes') as unknown as { cotesDeMarches: CoteDeMarches[] }).cotesDeMarches;
+    expect(servis.length, 'la volée de la cour').toBeGreaterThan(0);
+    expect(servis).toEqual(cotesDeMarchesDeLaScene(testScenarios.find((s) => s.id === 'fenetre-ecuries')!.construire(idsDeTest).scene));
+  });
+
+  it('`aretes` sert aussi les faîtières des nappes de la scène, sous la même clé de relecture (#4471)', () => {
+    appel('quitter');
+    drainer(appel, appel('demarrer', { scenario: 'zones-pieces', graine: 7 }));
+    const servies = (appel('aretes') as unknown as { faitieres: Faitiere[] }).faitieres;
+    expect(servies.length, 'les faîtes des pièces').toBeGreaterThan(0);
+    expect(servies).toEqual(faitieresDeLaScene(testScenarios.find((s) => s.id === 'zones-pieces')!.construire(idsDeTest).scene));
   });
 });

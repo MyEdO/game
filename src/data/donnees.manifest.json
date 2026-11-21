@@ -467,7 +467,7 @@
           "files": [
             "merchantFamilies.json"
           ],
-          "desc": "Familles de PRÉSENTATION du stock marchand (onglets `ui/MerchantPanel.tsx`) — ordre d'affichage, règle de classement `match` (unit/shield/categorie/fallback) et `columns` de stats à afficher, ids du vocabulaire `colonnesDuMarchand` (`grammaire/vocabulaires.ts`)"
+          "desc": "Familles du stock marchand affichées dans l’étal Godot, dans l’ordre du registre et selon la règle de classement `match` (unité, bouclier, catégorie, repli)."
         }
       ]
     },
@@ -603,18 +603,6 @@
             "props.json"
           ],
           "desc": "Props de décor (leurs matières vivent dans `materials.json`)"
-        },
-        {
-          "files": [
-            "decorPalette.json"
-          ],
-          "desc": "Palette de couleurs de décor"
-        },
-        {
-          "files": [
-            "teintesJeu.json"
-          ],
-          "desc": "TEINTES DE JEU du terrain — surbrillances tactiques (portées, zones, bandes de tir, anneaux de cible, halos, télégraphes) et identité d'unité (anneaux réservés, équipes, une couleur par héros), `id → #rrggbb` groupé par préfixe ; servi aux peintres par `src/gameIso/highlightTints.ts` et `src/gameIso/teamColors.ts`"
         },
         {
           "files": [

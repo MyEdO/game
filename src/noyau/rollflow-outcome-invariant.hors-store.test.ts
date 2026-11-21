@@ -1,10 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished } from 'vitest';
+import { crewRoles, spells, type CrewRoleData, type SpellData } from '../data';
+import { setDataset } from '../data/overrides';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { evaluateTest } from '../engine/tests';
+import { resetRule, setRule } from '../engine/policy';
 import { seedBattleRng } from './battleRng';
 import { FLOWS } from './rollFlowSpecs';
-import { FLOW_VERBS, type FlowKey } from './flowVerbs';
+import { FLOW_VERBS, fluxAccepte, type FlowKey } from './flowVerbs';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from './cascade.testkit';
@@ -12,6 +16,25 @@ import { t } from '../i18n';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+
+const sort: SpellData = {
+  id: idDeFixture('spell', 'sort-fixture-resilience'), type: 'spells', label: 'Sort de test', ecole: 'sort', subType: null,
+  family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 },
+};
+const role: CrewRoleData = {
+  id: idDeFixture('crewRole', 'role-fixture-resilience'), type: 'crew-roles', label: 'Rôle de test', desc: '',
+  skills: [{ id: 'voile' }], profil: { id: idDeFixture('creature', 'profil-fixture-resilience') },
+};
+const sortsLivres = [...spells];
+const rolesLivres = [...crewRoles];
+beforeAll(() => {
+  setDataset('spells', [...sortsLivres, sort]);
+  setDataset('crewRoles', [...rolesLivres, role]);
+});
+afterAll(() => {
+  setDataset('spells', sortsLivres);
+  setDataset('crewRoles', rolesLivres);
+});
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -69,7 +92,24 @@ const fortuneOfA = (): number | undefined => {
  * seulement là, que « issue composée » et « d100 propre » peuvent DIVERGER : sans cet état, le volet
  * structurel ne mesure rien (mutation mesurée verte sur les seules fixtures nominales).
  */
-type Fix = { pid?: string; make: (win: boolean) => Record<string, unknown>; composite?: () => Record<string, unknown> };
+type ChiffresDuJet = { roll: number; target: number; sl: number };
+
+type Fix = {
+  pid?: string;
+  make: (win: boolean) => Record<string, unknown>;
+  composite?: () => Record<string, unknown>;
+  jetPropre?: (etat: ReturnType<Banc['getState']>) => ChiffresDuJet | null | undefined;
+  plancherOppose?: number;
+};
+
+const posteDEquipage = (win: boolean) => ({
+  id: 'A', roleId: role.id, essential: true, navigation: { id: 'voile' }, interactive: true,
+  result: win ? WIN : LOSE,
+});
+
+const areneDEquipage = () => ({
+  combatants: [hero({ skills: [{ id: 'voile', characteristic: 'agilite', advances: 5 }] }), foe()], log: [],
+});
 
 /**
  * Fixtures par flux (préfixe de `FLOW_VERBS`). `make(win)` pose une arène fraîche (A = 1 Chance) + le
@@ -82,7 +122,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
     battle: arena(), scene: testScene(), // resolveAttack (re-résolution) lit la scène (LdV/couvert) sans garde
     pendingAttack: { attackerId: 'A', targetId: 'B', location: null, result: { hit: win, attackerRoll: win ? 20 : 88, netSL: win ? 2 : -4, critical: false, advantageTo: win ? 'attaquant' : 'defenseur', defenderDefeated: false, log: '', attackerDetail: atkDetail(win) } },
   }) },
-  defense: { make: (win) => ({
+  defense: { plancherOppose: 2, make: (win) => ({
     battle: { combatants: [hero({ pos: { x: 1, y: 0 } }), foe({ pos: { x: 0, y: 0 } })], log: [] },
     pendingDefense: {
       attackerId: 'B', defenderId: 'A', weapon: { name: 'Gourdin', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] },
@@ -96,25 +136,25 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   incantation: {
     make: (win) => ({
       battle: arena(),
-      pendingCast: { casterId: 'A', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: win, roll: win ? 8 : 88, target: 45, sl: win ? 3 : -4, isCritical: false, isFumble: false, log: '' } },
+      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, focused: false, result: { cast: win, roll: win ? 8 : 88, target: 45, sl: win ? 3 : -4, isCritical: false, isFumble: false, log: '' } },
     }),
     // DR sous le NI (`LDB 46 l.22-24`) : le TEST est réussi (8 ≤ 45), le
     // sort n'est pas lancé (`cast: false`). L'issue canonique doit rester celle du TEST.
     composite: () => ({
       battle: arena(),
-      pendingCast: { casterId: 'A', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 8, target: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
+      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, focused: false, result: { cast: false, roll: 8, target: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
     }),
   },
   focalisation: { make: (win) => ({
     battle: arena(),
-    pendingFocus: { casterId: 'A', spellId: 'drain', result: { dr: win ? 2 : 0, isCritical: false, isFumble: false, roll: win ? 8 : 95, target: 40, sl: win ? 2 : -5, log: '' } },
+    pendingFocus: { casterId: 'A', spellId: sort.id, result: { dr: win ? 2 : 0, isCritical: false, isFumble: false, roll: win ? 8 : 95, target: 40, sl: win ? 2 : -5, log: '' } },
   }) },
   dissipation: { make: (win) => ({ battle: arena(), pendingDispel: { casterId: 'A', value: 40, result: win ? WIN : LOSE } }) },
   // ── Opposés BINAIRES (issue = jet de l'ACTEUR, foe figé) ──
-  desengagement: { make: (win) => ({ battle: arena(), pendingDisengage: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
-  auContact: { make: (win) => ({ battle: arena(), pendingAuContact: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
-  empoignade: { make: (win) => ({ battle: arena(), pendingGrapple: { actorId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
-  distraire: { make: (win) => ({ battle: arena(), pendingDistraire: { moverId: 'A', defRoll: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, atk: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  desengagement: { plancherOppose: 2, make: (win) => ({ battle: arena(), pendingDisengage: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  auContact: { plancherOppose: 2, make: (win) => ({ battle: arena(), pendingAuContact: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  empoignade: { plancherOppose: 2, make: (win) => ({ battle: arena(), pendingGrapple: { actorId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  distraire: { plancherOppose: 2, make: (win) => ({ battle: arena(), pendingDistraire: { moverId: 'A', defRoll: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, atk: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
   // ── Fuir (flux MULTI HÉTÉROGÈNE : slot `backstab` du frappeur 'B' — déjà résolu, il fait perdre des
   //    PB donc le Test `fuite` est dû — + slot `touche` du fuyard 'A', celui que la Chance influence) ──
   fuite: { pid: 'A', make: (win) => ({
@@ -150,17 +190,17 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   activite: { make: (win) => ({ battle: arena(), pendingActivity: { heroId: 'A', kind: 'catalog', label: 'x', skillLabel: 'x', skillValue: 40, difficulty: 'intermediaire', mod: 0, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   chansonDeMarin: { make: (win) => ({ battle: arena(), pendingShanty: { singerId: 'A', shantyId: 'x', result: win ? WIN : LOSE } }) },
   // ── Opposés « joueur vs figé » avec re-résolution dédiée (récupération / marchandage) ──
-  recuperation: { make: (win) => ({ battle: arena(), pendingStateRecovery: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
+  recuperation: { jetPropre: (etat) => etat.pendingStateRecovery?.roll, make: (win) => ({ battle: arena(), pendingStateRecovery: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
   marchandage: { make: (win) => ({ battle: arena(), pendingBargain: { playerId: 'A', playerSkill: 40, contrepartie: { kind: 'marchand', mode: 'achat', titre: t('out.bargainTitreAchat') }, opposant: { label: 'Marchand', valeur: 40 }, roll: win ? WIN : LOSE, merchantRoll: { roll: 50, target: 40, success: false, sl: -1, isDouble: false }, result: { winner: win ? 'attaquant' : 'defenseur', attackerWins: win, netSL: win ? 2 : -2 } } }) },
   // ── MULTI (participant/round/étape « A ») ──
-  contreSort: { pid: 'A', make: (win) => ({
+  contreSort: { pid: 'A', plancherOppose: 2, make: (win) => ({
     battle: arena(),
-    pendingCast: { casterId: 'B', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: true, roll: 20, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
+    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, focused: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
     pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { counter: win ? WIN : LOSE, dispelled: win, margin: win ? 1 : -1 } }] },
   }) },
-  opposition: { pid: 'A', make: (win) => ({
+  opposition: { pid: 'A', plancherOppose: 2, make: (win) => ({
     battle: arena(),
-    pendingCast: { casterId: 'B', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: true, roll: 20, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
+    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, focused: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
     pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: 'A', interactive: true, result: { oppose: win ? WIN : LOSE, resisted: win, margin: win ? 0 : 2 } }] },
   }) },
   cascade: { pid: 'st1', make: (win) => ({
@@ -175,11 +215,19 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
     battle: arena(),
     pendingForceDoor: { label: 'Porte', doorBE: 2, doorB: 6, doorBmax: 6, participants: [{ id: 'A', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, damage: win ? 4 : 0 } }] },
   }) },
+  manoeuvreDuNavire: { pid: 'A', make: (win) => ({
+    battle: areneDEquipage(),
+    pendingShipManeuver: { shipId: 'navire', turnSteps: 0, moraleScore: 0, participants: [posteDEquipage(win)] },
+  }) },
+  tirDeBatterie: { pid: 'A', make: (win) => ({
+    battle: areneDEquipage(),
+    pendingShipBattery: { shipId: 'navire', targetId: 'autre', side: 'babord', moraleScore: 0, participants: [posteDEquipage(win)] },
+  }) },
   // Rangée de BANDE (étape batch de cascade) : issue MULTI-VALEURS — le d100 propre et le verdict
   // divergent dès que l'étape est OPPOSÉE (`meta.opposed`), où `success` vient de `resolveOpposed`.
   // La fixture est donc opposante : le dé 8 est SOUS la cible et pourtant PERDANT (l'attaquant figé
   // l'emporte au DR), exactement le cas où une issue dérivée du d100 mentirait à la Chance.
-  cascadeEnBande: { pid: 'A', make: (win) => ({
+  cascadeEnBande: { pid: 'A', plancherOppose: 5, make: (win) => ({
     battle: arena(),
     pendingCascade: cascadeDeTest([{
       id: 'b1', kind: 'testDeclencheEnBande', aggregate: 'none',
@@ -194,8 +242,6 @@ const SKIP: Partial<Record<FlowKey, string>> = {
   etalLot: 'Lot de dés d’étal (#1426) — le flux n’a NI Chance NI Résilience (`verbs: [setForcedRoll]`) : il n’y a pas d’issue à gater. Un dé d’étal ne réussit ni n’échoue, il tombe ; son `outcome` est scellé neutre sur sa valeur, et `failed` n’a aucun consommateur.',
   cascadeTirage: 'Dé d’étape de cascade (table, dé nu) — le flux n’a NI Chance NI Résilience (`verbs: [roll, setForcedRoll]`) : un dé de table tombe sans réussir ni échouer, son `outcome` est scellé neutre sur sa valeur.',
   maladresse: 'Maladresse (LDB 14) — le flux n’a NI Chance NI Résilience (`verbs: [roll, confirm]`) : le tirage des Oups ! désigne une ligne de table, son `outcome` est scellé neutre.',
-  manoeuvreDuNavire: 'Test d’équipage par rôle (MDG 14) — fixture de rôle valide lourde ; `outcome` = `cleanRollOutcome` partagé (crewRoleFlowSpec), déjà exercé par la logique numérique de forceDoor',
-  tirDeBatterie: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
 };
 
 beforeEach(() => {
@@ -308,3 +354,147 @@ describe('#1318 V4 — l’issue canonique est COHÉRENTE avec les chiffres qu�
     });
   }
 });
+
+describe.each([{ rapide: true, mode: 'rapide' }, { rapide: false, mode: 'standard' }])(
+  '#2932 — Résilience, calcul $mode (LDB 12 l.92-94, l.102 ; LDB 17 l.68)',
+  ({ rapide }) => {
+    beforeEach(() => { setRule('test-dr-rapide', rapide); });
+    afterEach(() => { resetRule('test-dr-rapide'); });
+
+    const dizaines = (entier: number) => Math.floor(entier / 10);
+    const drDuDe = (de: number, cible: number) => rapide ? dizaines(de) : dizaines(cible) - dizaines(de);
+
+    for (const flux of Object.keys(FLOW_VERBS).filter((f) => fluxAccepte(f, 'forcerLaReussite'))) {
+      it(`${flux} : le DR suit le dé choisi`, () => {
+        const fx = FIXTURES[flux];
+        if (!fx) throw new Error(`Fixture de Résilience requise pour ${flux}`);
+        const { pid } = fx;
+        const h = FLOWS[flux];
+        const get = banc.getState;
+        const lire = () => (fx.jetPropre ? fx.jetPropre(get()) : h.outcomeOf(get, pid));
+
+        seedBattleRng(9);
+        banc.setState(fx.make(false) as never);
+        const avant = lire();
+        const binaire = typeof (h.slotOf(get, pid) as { result?: unknown } | null)?.result === 'string';
+        expect(h.actorOf(get, pid)?.resilience).toBe(1);
+        get().jetForcerLaReussite(flux, pid);
+        expect(h.actorOf(get, pid)?.resilience).toBe(0);
+        const slot = h.slotOf(get, pid);
+        if (!slot) throw new Error('Rangée forcée absente');
+        expect(slot.forcee).toBe(true);
+
+        if (binaire) {
+          expect(slot).toMatchObject({ result: 'reussite' });
+          expect(lire()).toEqual(avant);
+        }
+
+        if (!fluxAccepte(flux, 'imposerLeResultat')) throw new Error(`Choix du dé déclaré manquant pour ${flux}`);
+        expect(h.fermetures(get, pid).imposerLeResultat).toBeNull();
+        const proposition = h.picker?.(slot, h.actorOf(get, pid), get());
+        if (!proposition) throw new Error('Dé à choisir absent');
+        // LDB 12 l.102 : vérifier le DR de toute nouvelle valeur posée avant une éventuelle saisie.
+        if (!binaire && proposition.roll !== avant?.roll) {
+          expect(lire()?.roll).toBe(proposition.roll);
+          expect(lire()?.sl, 'DR du dé par défaut').toBe(drDuDe(proposition.roll, proposition.target));
+        }
+
+        const palier = dizaines(Math.min(proposition.target, 95)) * 10;
+        const de = proposition.roll === palier ? palier - 1 : palier;
+        get().jetImposerLeResultat(flux, de, pid);
+
+        const courant = h.slotOf(get, pid);
+        const lu = courant && h.picker?.(courant, h.actorOf(get, pid), get());
+        expect(lu?.roll, 'dé choisi effectivement posé').toBe(de);
+        expect(lu?.target).toBe(proposition.target);
+        const pose = lire();
+        expect(pose?.roll).toBe(de);
+        if (!pose) throw new Error('DR du dé posé absent');
+        const dr = drDuDe(pose.roll, proposition.target);
+        expect(pose.sl, 'DR issu du dé choisi').toBe(Math.max(dr, fx.plancherOppose ?? 1));
+        expect(h.actorOf(get, pid)?.resilience).toBe(0);
+      });
+    }
+
+    it('bande sans opposition : le DR de la rangée suit le dé choisi', () => {
+      banc.setState({
+        battle: arena() as never,
+        pendingCascade: cascadeDeTest([{
+          id: 'b1', kind: 'testDeclencheEnBande', aggregate: 'none',
+          participants: [{ id: 'A', interactive: true, base: 40, target: 40, result: LOSE }],
+        }], { purpose: 'combat' }),
+      });
+      banc.getState().jetForcerLaReussite('cascadeEnBande', 'A');
+      banc.getState().jetImposerLeResultat('cascadeEnBande', 31, 'A');
+      expect(FLOWS.cascadeEnBande.outcomeOf(banc.getState, 'A')).toMatchObject({
+        roll: 31, target: 40, sl: rapide ? 3 : 1, won: true,
+      });
+    });
+
+    it('focalisation avant le jet : la réussite est forcée sans dé à choisir', () => {
+      banc.setState({
+        battle: arena() as never,
+        pendingFocus: { casterId: 'A', spellId: sort.id, result: null } as never,
+      });
+      banc.getState().jetForcerLaReussite('focalisation');
+      expect(banc.getState().pendingFocus).toMatchObject({ forcee: true, result: { dr: 1 } });
+      expect(FLOWS.focalisation.fermetures(banc.getState).imposerLeResultat).toBe('jetNonLance');
+      banc.getState().jetImposerLeResultat('focalisation', 31);
+      expect(banc.getState().pendingFocus?.result).toMatchObject({ roll: 1, dr: 1 });
+    });
+
+    it('activité simple : le DR du dé par défaut est acquis avant toute saisie', () => {
+      banc.setState(FIXTURES.activite!.make(false) as never);
+      banc.getState().jetForcerLaReussite('activite');
+      expect(banc.getState().pendingActivity).toMatchObject({
+        forcee: true, success: true, target: 40, roll: rapide ? 40 : 1, sl: 4,
+      });
+    });
+
+    it('activité combinée : le dé par défaut et le dé choisi donnent les deux DR', () => {
+      const fixture = FIXTURES.activite!.make(false);
+      banc.setState({
+        ...fixture,
+        pendingActivity: {
+          ...fixture.pendingActivity as Record<string, unknown>,
+          target: 58,
+          target2: 36,
+          success2: false,
+          sl2: -6,
+          combinedLevel: 'fail',
+        },
+      } as never);
+      const resultat = () => banc.getState().pendingActivity;
+      const force = () => banc.getState().jetForcerLaReussite('activite');
+      const choisir = (de: number) => banc.getState().jetImposerLeResultat('activite', de);
+
+      force();
+      expect(resultat()).toMatchObject(rapide
+        ? { roll: 36, sl: 3, sl2: 3, combinedLevel: 'full' }
+        : { roll: 1, sl: 5, sl2: 3, combinedLevel: 'full' });
+
+      choisir(45);
+      expect(resultat()).toMatchObject({ roll: rapide ? 36 : 1, combinedLevel: 'full' });
+
+      choisir(26);
+      expect(resultat()).toMatchObject(rapide
+        ? { roll: 26, sl: 2, sl2: 2, combinedLevel: 'full' }
+        : { roll: 26, sl: 3, sl2: 1, combinedLevel: 'full' });
+
+      choisir(6);
+      expect(resultat()).toMatchObject(rapide
+        ? { roll: 6, sl: 1, sl2: 1, combinedLevel: 'full' }
+        : { roll: 6, sl: 5, sl2: 3, combinedLevel: 'full' });
+
+      choisir(36);
+      expect(resultat()).toMatchObject(rapide
+        ? { roll: 36, sl: 3, sl2: 3, combinedLevel: 'full' }
+        : { roll: 36, sl: 2, sl2: 1, combinedLevel: 'full' });
+
+      setRule('test-bandes-auto', 'inverted');
+      onTestFinished(() => resetRule('test-bandes-auto'));
+      choisir(3);
+      expect(resultat()).toMatchObject({ roll: 3, sl: -1, sl2: -1 });
+    });
+  },
+);

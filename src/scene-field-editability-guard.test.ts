@@ -4,10 +4,13 @@ import { describe, it, expect, vi } from 'vitest';
 import path from 'node:path';
 import fs from 'node:fs';
 import { tmpdir } from 'node:os';
+import { isDeepStrictEqual } from 'node:util';
 import * as ts from 'typescript/unstable/ast';
 import {
   ALLER_RETOUR,
+  type EcritureJouee,
   auditerLEditabilite,
+  cheminsCreditesJoues,
   documentDeclarations,
   orphanFields,
   perimetreDeLaRacine,
@@ -15,6 +18,7 @@ import {
 } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../scripts/guards/lib/tsProgram.mjs';
 import { ecrituresDesPorteursSeuls, ecrituresJouees, garderLaRacine } from './ecrituresJouees.testkit';
+import { auChemin, estObjet } from './lib/objet.mjs';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
@@ -24,7 +28,7 @@ import { ecrituresDesPorteursSeuls, ecrituresJouees, garderLaRacine } from './ec
  *
  * Le défaut que cette garde ferme n'est pas une liste de 22 champs — c'est la CLASSE : un champ peut
  * naître au modèle, être lu par le moteur, et n'avoir pour seul écrivain le compilateur d'authoring
- * (`mapSpec.ts`), un script ou l'interface web (`src/ui/**`). Rien ne casse ; l'auteur découvre le trou en
+ * (`mapSpec.ts`) ou un script. Rien ne casse ; l'auteur découvre le trou en
  * cherchant le contrôle qui n'existe pas.
  *
  * Deux propriétés font que cette garde MESURE quelque chose, et elles sont éprouvées ici :
@@ -91,7 +95,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   // 415 = mesure du 2026-11-15 (#4234 : un champ requis à un seul littéral qui ne discrimine aucune union sort par son
   // type, `CustomStatblock.type` ; `OptionalSwap.note`, discriminant de PRÉSENCE, reste).
   // L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`).
-  const { perimetre, ecritures, audit: auditReel } = garderLaRacine('scene', ecrituresJouees, { plancher: 415, delai: 100_000 });
+  const { perimetre, ecritures, audit: auditReel } = garderLaRacine('scene', ecrituresJouees, { plancher: 415, delai: 250_000 });
 
   it('l’aller-retour partagé crédite tout ce que crédite chaque porteur joué SEUL à ses branches', { timeout: 120_000 }, () => {
     // Un porteur rejoué ne s'ajoute pas à `out` aux empreintes déjà jouées (`ecrituresJouees.testkit.ts`) : une offre ainsi
@@ -122,6 +126,20 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
 
   it('crédite ce que l’éditeur Godot écrit en jouant `editer` — sonde réelle : le Test de traversée d’une zone d’effet', { timeout: 120_000 }, () => {
     expect(auditReel().find((r) => r.id === 'SceneEffectZone.crossTest')?.authors).toContain(ALLER_RETOUR);
+  });
+
+  it('retirer un poste réel ne crédite pas les munitions du poste décalé', { timeout: 120_000 }, () => {
+    const retrait = ecritures().find((e) => {
+      if (e.mouvement?.geste !== 'retirer' || e.chemin[e.chemin.length - 1] !== 'postes') return false;
+      const rang = e.mouvement.chemin[e.chemin.length];
+      const avant = auChemin(e.avant, e.chemin);
+      const apres = auChemin(e.apres, e.chemin);
+      return typeof rang === 'number' && Array.isArray(avant) && Array.isArray(apres) &&
+        apres.some((poste, i) => i >= rang && poste === avant[i + 1] && estObjet(poste) && poste.ammo !== undefined &&
+          !isDeepStrictEqual(poste.ammo, avant[i]?.ammo));
+    })!;
+    expect(retrait, 'le retrait décale un poste dont les munitions diffèrent à ce rang').toBeDefined();
+    expect(cheminsCreditesJoues([retrait]).map((e) => e.chemin)).toEqual([retrait.chemin]);
   });
 
   it('une racine est un argument : le programme partagé porte la carte du monde et le narratif, une racine introuvable lève en se nommant (#4234)', { timeout: 120_000 }, () => {
@@ -181,6 +199,12 @@ export interface Scene { id: string; routes: Route[] }\n`,
         { avant, apres, chemin: ['routes'], valeur: apres.routes, saisie: 'bouton' },
       ] });
       expect(seul.filter((r) => r.authors.length).map((r) => r.id)).toEqual(['Scene.routes']);
+      const insereeEnTete = { id: 's', routes: [{ id: 'b' }, { id: 'a', couvre: ['x'] }] };
+      const insertion = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant, apres: insereeEnTete, chemin: ['routes'], valeur: insereeEnTete.routes, saisie: 'bouton' },
+      ] });
+      expect(insertion.filter((r) => r.authors.length).map((r) => r.id)).toEqual(['Scene.routes']);
+      expect(ids(orphanFields(insertion))).toContain('Route.couvre');
     } finally { program.dispose(); }
   });
 
@@ -221,12 +245,19 @@ export interface Scene { id: string; parts: Cellule[]; reperes: Repere[]; valeur
       id: 's', parts: [{ kind: 'cellule', row: '1', sum: 'aaaa' }], reperes: [{ id: 'r' }],
       valeurs: [{ repere: 'r', valeur: 'x' }, { repere: 'autre', valeur: 'y' }], v: { kind: 'a', n: 5 }, ...plus,
     });
+    const modele: NonNullable<EcritureJouee['modele']> = {
+      cleDeListe: (_, chemin, element) => {
+        const cle = chemin[0] === 'reperes' ? 'id' : chemin[0] === 'valeurs' ? 'repere' : undefined;
+        return cle && (element as Record<string, unknown>)[cle];
+      },
+      forme: () => undefined,
+    };
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
         // L'adresse d'une prose change : le produit rescelle son empreinte.
         { avant: doc(), apres: doc({ parts: [{ kind: 'cellule', row: '2', sum: 'bbbb' }] }), chemin: ['parts', 0, 'row'], valeur: '2', saisie: 'saisieChoix' },
         // Un repère renommé : le produit réécrit chaque valeur qui le désignait.
-        { avant: doc(), apres: doc({ reperes: [{ id: 'q' }], valeurs: [{ repere: 'q', valeur: 'x' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 0, 'id'], valeur: 'q', saisie: 'saisieTexte' },
+        { avant: doc(), apres: doc({ reperes: [{ id: 'q' }], valeurs: [{ repere: 'q', valeur: 'x' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 0, 'id'], valeur: 'q', saisie: 'saisieTexte', modele, renommage: { avant: 'r', apres: 'q' } },
         // Un repère ajouté : le produit pose, hors du chemin écrit, un scalaire absent avant.
         { avant: doc(), apres: doc({ reperes: [{ id: 'r' }, { id: 'neuf' }], valeurs: [{ repere: 'r', valeur: 'x', note: '' }, { repere: 'autre', valeur: 'y' }] }), chemin: ['reperes', 1], valeur: { id: 'neuf' }, saisie: 'saisieChoix' },
         // Un Effet ajouté : son corps neuf pose des scalaires absents avant.
@@ -238,6 +269,123 @@ export interface Scene { id: string; parts: Cellule[]; reperes: Repere[]; valeur
       ] });
       expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['B.kind', 'Cellule.row', 'Cellule.sum', 'Repere.id', 'Scene.effects', 'Scene.valeurs', 'Valeur.repere']);
     } finally { program.dispose(); }
+  });
+
+  it('un champ de position scalaire exige son entrée de liste, de tuple ou de record', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': 'export interface Scene { label: string; noms: string[]; poids: Record<string, number>; couple: [string, number] }',
+    });
+    const avant = { label: 'avant', noms: ['un', 'deux'], poids: { nord: 3 }, couple: ['ouest', 2] };
+    const audit = (ecrituresJouees: EcritureJouee[]) => {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees });
+      return rows.filter((r) => r.authors.includes(ALLER_RETOUR)).map((r) => r.id).sort();
+    };
+    try {
+      const apres = { ...avant, label: 'après', noms: ['deux', 'un'], poids: { nord: 4 } };
+      expect(audit([
+        { avant, apres, chemin: ['label'], valeur: apres.label, saisie: 'saisieTexte' },
+        { avant, apres, chemin: ['noms'], valeur: apres.noms, saisie: 'bouton', mouvement: { geste: 'monter', chemin: ['noms', 1] } },
+      ])).toEqual(['Scene.label', 'Scene.noms']);
+      expect(audit([
+        { avant, apres: { ...avant, noms: ['neuf', ...avant.noms] }, chemin: ['noms', 0], valeur: 'neuf',
+          saisie: 'saisieChoix', mouvement: { geste: 'inserer', chemin: ['noms', 0] } },
+        { avant, apres: { ...avant, poids: { nord: 4 } }, chemin: ['poids', 'nord'], valeur: 4, saisie: 'saisieNombre' },
+        { avant, apres: { ...avant, couple: ['est', 2] }, chemin: ['couple', 0], valeur: 'est', saisie: 'saisieTexte' },
+      ])).toEqual(['Scene.couple[0]', 'Scene.noms[]', 'Scene.poids{}']);
+      expect(audit([
+        { avant, apres: { ...avant, poids: { ...avant.poids, sud: 1 } }, chemin: ['poids', 'sud'], valeur: 1, saisie: 'saisieNombre' },
+      ])).toEqual(['Scene.poids{}']);
+    } finally { program.dispose(); }
+  });
+
+  it('distingue les champs homonymes anonymes à travers une union imbriquée à présence et à littéraux numériques', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': 'export interface Scene { cadre: { note: "autre"; valeur: { n: number } } | { valeur: { phase: 1; n: number } | { phase: 2; n: number } | { phase: 3; n: number } } }',
+    });
+    const avant = { cadre: { valeur: { phase: 3, n: 0 } } };
+    const apres = { cadre: { valeur: { phase: 3, n: 1 } } };
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant, apres, chemin: ['cadre', 'valeur', 'n'], valeur: 1, saisie: 'saisieNombre' },
+      ] });
+      expect(rows.filter((r) => r.field === 'n')).toHaveLength(4);
+      const credites = rows.filter((r) => r.authors.includes(ALLER_RETOUR)).map((r) => r.id);
+      expect(credites).toEqual(['Scene.cadre.valeur<note=absent><phase=3>.n']);
+    } finally { program.dispose(); }
+  });
+
+  it('un scalaire direct dans la variante qui vient d’être remplacée attend son propre contrôle', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': 'export interface A { sorte: "a"; n: number } export interface B { sorte: "b"; n: number } export interface Scene { v: A | B }',
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        { avant: { v: { sorte: 'a', n: 0 } }, apres: { v: { sorte: 'b', n: 1 } }, chemin: ['v', 'n'], valeur: 1, saisie: 'saisieNombre' },
+      ] });
+      expect(rows.filter((r) => r.authors.length)).toEqual([]);
+    } finally { program.dispose(); }
+  });
+
+  it('une écriture statiquement atteinte ne crédite que la branche booléenne qu’elle produit', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': 'export interface Oui { actif: true; n: number } export interface Non { actif: false; n: number } export interface Scene { variante: Oui | Non }',
+      'hotes/godot/pont/pont.ts': "import type { Scene } from '../../../src/noyau/monde/scene'; export class Pont { editer(n: number): Scene { return { variante: { actif: true, n } }; } }",
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      expect(rows.filter((r) => r.authors.length).map((r) => r.id).sort()).toEqual(['Oui.actif', 'Oui.n', 'Scene.variante']);
+    } finally { program.dispose(); }
+  });
+
+  it('une union ambiguë prouve seulement les déclarations communes et les valeurs départagent les types compatibles', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': [
+        'export interface Commun { partage: number }',
+        'export interface A extends Commun { sorte?: "a"; n: number }',
+        'export interface B extends Commun { sorte?: "b"; n: number }',
+        'export interface C { sorte: "a" | "aa"; n: number }',
+        'export interface D { sorte: "b" | "bb"; n: number }',
+        'export interface E { n: number } export interface F { n: string }',
+        'export interface G { sorte: "a"; n: number } export interface H { sorte: "b"; n: number }',
+        'export interface Scene { option: A | B; finie: C | D; scalaire: E | F; mixte: G | H | string }',
+      ].join('\n'),
+    });
+    const avant = { option: { partage: 0, n: 0 }, finie: { sorte: 'bb', n: 0 }, scalaire: { n: 'avant' }, mixte: { sorte: 'b', n: 0 } };
+    const apres = { option: { partage: 1, n: 1 }, finie: { sorte: 'bb', n: 1 }, scalaire: { n: 'après' }, mixte: { sorte: 'b', n: 1 } };
+    const jouer = (cle: keyof typeof avant, champ: string, valeur: unknown): EcritureJouee => ({
+      avant, apres: { ...avant, [cle]: apres[cle] }, chemin: [cle, champ], valeur, saisie: 'saisieChoix',
+    });
+    try {
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene, ecrituresJouees: [
+        jouer('option', 'n', 1), jouer('option', 'partage', 1), jouer('finie', 'n', 1), jouer('scalaire', 'n', 'après'), jouer('mixte', 'n', 1),
+      ] });
+      expect(rows.filter((r) => r.authors.includes(ALLER_RETOUR)).map((r) => r.id).sort()).toEqual(['A.partage', 'D.n', 'F.n', 'H.n']);
+      expect(rows.find((r) => r.field === 'partage')?.at).toBe('src/noyau/monde/scene.ts:1');
+    } finally { program.dispose(); }
+  });
+
+  it('une valeur statique apporte à chaque branche les seules propriétés qu’elle porte', () => {
+    const programme = (valeur: string) => virtualProgram({
+      'src/noyau/monde/scene.ts': [
+        'export interface A { kind: "a"; p: number } export interface B { kind: "b"; p?: number; q: number }',
+        'export interface Oui { sorte: "oui"; n: number } export interface Non { sorte: "non"; n: number }',
+        'export interface Scene { v: A | B; mixte: Oui | Non | string }',
+      ].join('\n'),
+      'hotes/godot/pont/pont.ts': [
+        "import type { Scene } from '../../../src/noyau/monde/scene';",
+        'type Source = { kind: "a"; p: number } | { kind: "b"; q: number };',
+        'export class Pont { editer(raw: Source, n: number): Scene { return { v: ' + valeur + ', mixte: { sorte: "non", n } }; } }',
+      ].join('\n'),
+    });
+    for (const valeur of ['raw', '{ ...raw }']) {
+      const program = programme(valeur);
+      try {
+        const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+        expect(rows.filter((r) => r.authors.length && ['p', 'q', 'n'].includes(r.field)).map((r) => r.id).sort()).toEqual([
+          'A.p', 'B.q', 'Non.n',
+        ]);
+      } finally { program.dispose(); }
+    }
   });
 
   it('une propriété PRODUITE PAR UNE FABRIQUE est le champ de son TYPE produit : deux produits d’un même type sont un champ, deux de types distincts en sont deux', () => {
@@ -319,7 +467,7 @@ export const tracerCalque = () => {
     });
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual([]);
+      expect(ids(orphanFields(rows)), 'assembler les cases ne prouve pas une écriture au rang').toEqual(['SceneEffectZone.tiles[]']);
       for (const id of ['SceneEffectZone.id', 'SceneEffectZone.tiles']) {
         expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/noyau/edition/Zonage.ts']);
       }
@@ -520,12 +668,26 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
-    const scope: { id: string; decl: ts.Declaration }[] = perimetreDeLaRacine(perimetre(), ROOT, RACINES.scene);
+    const scope = perimetreDeLaRacine(perimetre(), ROOT, RACINES.scene);
     const horsDocument = scope.filter((r) => !DOC.includes(fichier(r)));
+    const champs = horsDocument.filter((r) => r.position === undefined);
+    for (const position of horsDocument.filter((r) => r.position !== undefined)) {
+      const porteur = champs.find((r) => r.id + position.position === position.id);
+      expect(position.decl, position.id).toBe(porteur?.decl);
+    }
     expect(
-      horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
+      champs.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
       'ce que la frontière par MODULE perdrait'
     ).toEqual([
+      'AjustementsDArme.ajusteeAuPorteur @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.allonge @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.groupesDeManiement @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.qualites @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.qualites.id @ src/data/schemas/grammaire/ref.ts',
+      'AjustementsDArme.qualites.value @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.retire @ src/data/schemas/grammaire/reference.ts',
+      'AjustementsDArme.sansSpecialisation @ src/data/schemas/grammaire/reference.ts',
+      'AuthoredShipPoste.engin.id @ src/data/schemas/grammaire/ref.ts',
       'AuthoredShipPoste.selectedAmmo.id @ src/data/schemas/grammaire/ref.ts',
       'Calage.x @ src/data/props.types.ts',
       'Calage.y @ src/data/props.types.ts',
@@ -545,26 +707,31 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CharStats.sociabilite @ src/data/schemas/defs-scenes/communs.ts',
       'Couleurs.accent @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.accent.id @ src/data/schemas/grammaire/ref.ts',
+      'Couleurs.barreau @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.bois @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.cheveux @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.corne @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.corps @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.cuir @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.fourrure @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.gravats @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.joint @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.metal @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.metal2 @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.peau @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.planche @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.plume @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.traverse @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.vegetal @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.vet1 @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.vet2 @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.vitre @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.yeux @ src/data/schemas/grammaire/valeurs.ts',
       'CustomStatblock.char @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.followsCharacterRules @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.groups @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.inert @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.label @ src/data/schemas/defs-scenes/communs.ts',
-      'CustomStatblock.randomChars @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.size @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.skills @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.skills.value @ src/data/index.ts',
@@ -583,6 +750,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.traits.natural @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.parLocalisation @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.plage @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.profilDArme @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.range @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
@@ -800,36 +968,6 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   const programAvec = (patch: Record<string, string>) =>
     repoProgram(ROOT, (fileNames) => fileNames.filter((f) => DOCUMENT.includes(path.relative(ROOT, f).split(path.sep).join('/'))), patch);
 
-  it('l’interface web ne crédite rien : un champ écrit par le seul `src/ui/**` est orphelin, le même écrit par une primitive atteinte depuis `editer` est crédité', () => {
-    const SCENE = { 'src/noyau/monde/scene.ts': `export interface Scene { id: string; notes: string }\n` };
-    const NOTES = `import type { Scene } from '../../noyau/monde/scene';
-export const saisirNotes = (s: Scene, v: string): Scene => ({ ...s, notes: v });\n`;
-    const RENOMMER = `import type { Scene } from '../../noyau/monde/scene';
-export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`;
-    const web = virtualProgram({
-      ...SCENE,
-      'src/ui/editor/Notes.tsx': NOTES,
-      'src/noyau/edition/renommer.ts': RENOMMER,
-      ...pontQuiEdite({ 'src/noyau/edition/renommer': ['renommer'] }),
-    });
-    try {
-      const rows = auditerLEditabilite(VIRTUAL_ROOT, web, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual(['Scene.notes']);
-      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/renommer.ts']);
-    } finally { web.dispose(); }
-    const godot = virtualProgram({
-      ...SCENE,
-      'src/noyau/edition/notes.ts': NOTES,
-      'src/noyau/edition/renommer.ts': RENOMMER,
-      ...pontQuiEdite({ 'src/noyau/edition/notes': ['saisirNotes'], 'src/noyau/edition/renommer': ['renommer'] }),
-    });
-    try {
-      const rows = auditerLEditabilite(VIRTUAL_ROOT, godot, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual([]);
-      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/edition/notes.ts']);
-    } finally { godot.dispose(); }
-  });
-
   it('NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Scene {
@@ -867,7 +1005,7 @@ export const visible = (flags: Record<string, boolean>, gameTime: number) =>
     });
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags', 'Scene.flags{}']);
       // …et le témoin positif du même fichier : `id` est bien crédité, la garde n'est pas aveugle.
       expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/Editeur.ts']);
 
@@ -942,7 +1080,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     });
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
-      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags', 'Scene.flags{}']);
       // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de la primitive atteinte aussi.
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/noyau/edition/inspecteur.ts']);
@@ -955,13 +1093,13 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...PRIMITIVES,
       // Même NOM, autre module (hors chemin de l'auteur) : la fermeture d'appels résout un SYMBOLE,
       // pas un nom — l'appel ci-dessous ne rend pas `sceneEdit.setSceneFlags` atteignable.
-      'src/state/runtimeFlags.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/lib/runtimeFlags.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: patch };
 }\n`,
       'src/noyau/edition/inspecteur.ts': `import type { Scene } from '../monde/scene';
 import { setNotes } from '../../hote/editorState';
-import { setSceneFlags } from '../../state/runtimeFlags';
+import { setSceneFlags } from '../../lib/runtimeFlags';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const basculer = (s: Scene, k: string) => setScene(setSceneFlags(s, { [k]: true }));
@@ -969,7 +1107,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'basculer', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual(['Scene.flags', 'Scene.flags{}']);
 
     } finally { program.dispose(); }
   });
@@ -993,7 +1131,9 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...pontQuiEdite({ 'src/noyau/edition/inspecteur': ['saisirNotes', 'renommer'] }),
     });
     try {
-      expect(ids(orphanFields(auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene })))).toEqual([]);
+      const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
+      expect(rows.find((r) => r.id === 'Scene.flags')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
+      expect(ids(orphanFields(rows)), 'le scan statique prouve le record, le rang d’écriture attend le geste').toEqual(['Scene.flags{}']);
 
     } finally { program.dispose(); }
   });
@@ -1016,7 +1156,7 @@ export function creerPont(s: Scene) {
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
-      expect(ids(orphanFields(rows)).sort()).toEqual(['Scene.flags', 'Scene.id']);
+      expect(ids(orphanFields(rows)).sort()).toEqual(['Scene.flags', 'Scene.flags{}', 'Scene.id']);
     } finally { program.dispose(); }
   });
 
@@ -1046,7 +1186,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     try {
       const rows = auditerLEditabilite(VIRTUAL_ROOT, program, { racine: RACINES.scene });
       expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
-      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags', 'Scene.flags{}']);
     } finally { program.dispose(); }
   });
 

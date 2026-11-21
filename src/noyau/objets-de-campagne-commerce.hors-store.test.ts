@@ -32,7 +32,7 @@ function jouer(...objets: (typeof bien)[]) {
   const { getState: get, setState: set } = banc;
   set({ party: [withBourseMoney(hero, fromBrass(960), idsDeTest)] });
   get().chargerLeProjet({ scenes: [scene], entryId: scene.id, narratif: { ...emptyNarratif(), objets }, projet: null });
-  applyEffects(get, set, objets.map(({ id }) => ({ type: 'giveTrapping', trappingId: id, heroId: hero.id })));
+  applyEffects(get, set, objets.map(({ id }) => ({ type: 'giveTrapping', objet: { id }, heroId: hero.id })));
   const item = (id: string) => get().party[0].items!.find((it) => it.trappingId === id)!;
   const bourse = () => toBrass(bourseOf(get().party[0]));
   const ouvrir = () => {
@@ -79,7 +79,7 @@ describe('lectures marchandes des possessions de campagne (#2967)', () => {
 
   it('le butin de campagne est évalué avec la même fiche avant son attribution', () => {
     const { get, set } = jouer(bien);
-    applyEffectsLoot(get, set, [{ type: 'giveTrapping', trappingId: bien.id, identified: false }], 'Coffre du relais');
+    applyEffectsLoot(get, set, [{ type: 'giveTrapping', objet: { id: bien.id }, identified: false }], 'Coffre du relais');
     const { uid } = get().pendingLoot!.gear![0];
     get().evaluerLObjet(uid);
     expect(get().pendingAppraise).toMatchObject({ gear: { scope: 'butin', uid }, truePriceBrass: 480, availability: 'commune' });

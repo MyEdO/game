@@ -31,9 +31,9 @@ test('#1739 : « à la naissance » — `naissanceDu` relit ce que `phraseDeNais
 
 test('sitesEnEntrees : deux sites de la MÊME réf dans le MÊME fichier se distinguent par leur OCCURRENCE', () => {
   const entrees = sitesEnEntrees([
-    { file: 'src/a.ts', ref: 'LDB 6 l.2' },
-    { file: 'src/a.ts', ref: 'LDB 6 l.2' },
-    { file: 'src/b.ts', ref: 'LDB 6 l.2' },
+    { fichier: 'src/a.ts', ref: 'LDB 6 l.2' },
+    { fichier: 'src/a.ts', ref: 'LDB 6 l.2' },
+    { fichier: 'src/b.ts', ref: 'LDB 6 l.2' },
   ])
   assert.deepEqual(entrees.map((e) => e.occurrence), [1, 2, 1])
   assert.equal(new Set(entrees.map(cleDeSite)).size, entrees.length, 'la clé doit distinguer chaque site')
@@ -41,11 +41,11 @@ test('sitesEnEntrees : deux sites de la MÊME réf dans le MÊME fichier se dist
 
 test('ecartDuVolet : un site dont le NOMBRE grandit rougit parmi les `neuves`, que lit tout appelant ; plus petit ou égal, il reste couvert', () => {
   const stock = [{ famille: 'f', fichier: 'Source/X/01 - A.md', ref: '<sup>', occurrence: 1, nombre: 3 }]
-  const ecart = (nombre) => ecartDuVolet({ sites: [{ famille: 'f', file: 'Source/X/01 - A.md', ref: '<sup>', nombre }], stock, ou: 'x-stock.json' })
+  const ecart = (nombre) => ecartDuVolet({ sites: [{ famille: 'f', fichier: 'Source/X/01 - A.md', ref: '<sup>', nombre }], stock, ou: 'x-stock.json' })
   const hausse = 'f :: Source/X/01 - A.md :: <sup> :: 1 — HAUSSE 4 > 3 : la dette GRANDIT. Corriger le site (x-stock.json). Aucune écriture ne relève ce nombre.'
   assert.deepEqual([ecart(4).neuves, ecart(4).accrues, ecart(4).perimees], [[hausse], [hausse], []])
   assert.deepEqual([ecart(3).accrues, ecart(2).accrues, ecart(2).neuves, ecart(2).perimees], [[], [], [], []])
-  assert.equal(survieDeLecheance(sitesEnEntrees([{ famille: 'f', file: 'Source/X/01 - A.md', ref: '<sup>', nombre: 2 }]), { lot: '#1', date: '2026-09-25', ancien: stock })[0].nombre, 2, 'plus petit : la régénération recale le stock')
+  assert.equal(survieDeLecheance(sitesEnEntrees([{ famille: 'f', fichier: 'Source/X/01 - A.md', ref: '<sup>', nombre: 2 }]), { lot: '#1', date: '2026-09-25', ancien: stock })[0].nombre, 2, 'plus petit : la régénération recale le stock')
 })
 
 // La LIGNE DU FICHIER PORTEUR n'entre pas dans la clé : deux sites de même (fichier, réf) écrits à
@@ -53,16 +53,16 @@ test('ecartDuVolet : un site dont le NOMBRE grandit rougit parmi les `neuves`, q
 // survivante à l'édition du fichier qui la porte. La ligne CITÉE (`l.2`, dans `Source/`), elle,
 // appartient à la réf, donc à la clé.
 test('cleDeSite : la ligne du fichier PORTEUR n’entre pas dans la clé — seule l’occurrence sépare deux homonymes', () => {
-  const enHaut = sitesEnEntrees([{ file: 'src/a.ts', ref: 'LDB 6 l.2', row: 12 }, { file: 'src/a.ts', ref: 'LDB 6 l.2', row: 300 }])
-  const deplaces = sitesEnEntrees([{ file: 'src/a.ts', ref: 'LDB 6 l.2', row: 480 }, { file: 'src/a.ts', ref: 'LDB 6 l.2', row: 902 }])
+  const enHaut = sitesEnEntrees([{ fichier: 'src/a.ts', ref: 'LDB 6 l.2', row: 12 }, { fichier: 'src/a.ts', ref: 'LDB 6 l.2', row: 300 }])
+  const deplaces = sitesEnEntrees([{ fichier: 'src/a.ts', ref: 'LDB 6 l.2', row: 480 }, { fichier: 'src/a.ts', ref: 'LDB 6 l.2', row: 902 }])
   assert.deepEqual(enHaut.map(cleDeSite), deplaces.map(cleDeSite), 'déplacer les deux sites dans leur fichier ne change aucune clé')
   assert.deepEqual(enHaut.map(cleDeSite), [' :: src/a.ts :: LDB 6 l.2 :: 1', ' :: src/a.ts :: LDB 6 l.2 :: 2'])
   assert.equal(
-    ecartDuVolet({ sites: [{ file: 'src/a.ts', ref: 'LDB 6 l.2', row: 902 }], stock: [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 }], ou: 'x-stock.json' }).neuves.length,
+    ecartDuVolet({ sites: [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2', row: 902 }], stock: [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 }], ou: 'x-stock.json' }).neuves.length,
     0, 'un site déplacé dans son fichier reste couvert par son entrée',
   )
   assert.equal(
-    ecartDuVolet({ sites: [{ file: 'src/a.ts', ref: 'LDB 6 l.3' }], stock: [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 }], ou: 'x-stock.json' }).neuves.length,
+    ecartDuVolet({ sites: [{ fichier: 'src/a.ts', ref: 'LDB 6 l.3' }], stock: [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 }], ou: 'x-stock.json' }).neuves.length,
     1, 'la ligne CITÉE, elle, appartient à la clé : l.2 → l.3 est un autre site',
   )
 })
@@ -85,7 +85,7 @@ test('cleDeSite : le FICHIER est dans la clé, avant la réf et l’occurrence',
 test('écart : un site hors du stock est NEUF, une entrée sans site est SOLDÉE, les deux nommés', () => {
   const stock = [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 }, { fichier: 'src/c.ts', ref: 'LDB 6 l.2', occurrence: 1 }]
   const { neuves, perimees } = ecartDuVolet({
-    sites: [{ file: 'src/a.ts', ref: 'LDB 6 l.2' }, { file: 'src/b.ts', ref: 'LDB 6 l.2' }],
+    sites: [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2' }, { fichier: 'src/b.ts', ref: 'LDB 6 l.2' }],
     stock, ou: 'x-stock.json',
   })
   assert.equal(neuves.length, 1)
@@ -98,7 +98,7 @@ test('écart : un site hors du stock est NEUF, une entrée sans site est SOLDÉE
 })
 
 test('ecartDuVolet : remède neuf optionnel reçoit clé intégrale et entrée, sans changer périmés ni accroissements', () => {
-  const sites = [{ file: 'src/fixture.ts', ref: 'flow — fixture' }]
+  const sites = [{ fichier: 'src/fixture.ts', ref: 'flow — fixture' }]
   const entree = sitesEnEntrees(sites)[0]
   const cle = cleDeSite(entree)
   const appele = []
@@ -137,7 +137,7 @@ test('écart : une entrée périmée qui ne NOMME rien est citée en JSON, jamai
 // CONSTANTE — une entrée du stock qui ne couvre plus rien pendant qu'un site mesuré se découvre :
 // les deux longueurs restent égales, et un refus qui compare des nombres écrirait le stock.
 test('refusDeCroissance : un ÉCHANGE à taille CONSTANTE est refusé, et le refus NOMME le site découvert', () => {
-  const mesurees = sitesEnEntrees([{ file: 'src/a.ts', ref: 'r1' }, { file: 'src/b.ts', ref: 'r2' }])
+  const mesurees = sitesEnEntrees([{ fichier: 'src/a.ts', ref: 'r1' }, { fichier: 'src/b.ts', ref: 'r2' }])
   const echange = [
     { fichier: 'src/a.ts', ref: 'r1', occurrence: 1 },
     { fichier: 'src/disparu.ts', ref: 'r9', occurrence: 1 },
@@ -151,7 +151,7 @@ test('refusDeCroissance : un ÉCHANGE à taille CONSTANTE est refusé, et le ref
 })
 
 test('refusDeCroissance : un stock PLUS GRAND que la mesure ne refuse rien — le solde est le geste servi', () => {
-  const mesurees = sitesEnEntrees([{ file: 'src/a.ts', ref: 'r1' }])
+  const mesurees = sitesEnEntrees([{ fichier: 'src/a.ts', ref: 'r1' }])
   const plusGrand = [
     { fichier: 'src/a.ts', ref: 'r1', occurrence: 1 },
     { fichier: 'src/a.ts', ref: 'r1', occurrence: 2 },
@@ -179,7 +179,7 @@ test('refusDeCroissance : le compte se lit par l’accesseur `nombre` (#2705)', 
 
 test('écart : un stock qui décrit EXACTEMENT les sites observés ne dit rien', () => {
   const { neuves, perimees } = ecartDuVolet({
-    sites: [{ file: 'src/a.ts', ref: 'LDB 6 l.2' }, { file: 'src/a.ts', ref: 'LDB 6 l.2' }],
+    sites: [{ fichier: 'src/a.ts', ref: 'LDB 6 l.2' }, { fichier: 'src/a.ts', ref: 'LDB 6 l.2' }],
     stock: [
       { fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 },
       { fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 2 },
@@ -192,8 +192,8 @@ test('écart : un stock qui décrit EXACTEMENT les sites observés ne dit rien',
 // SURVIE (#1820) : une régénération de stock ne rajeunit pas une dette. Contrat tenu ICI parce que
 // toute régénération le lit (`entreesRegenerees`, `stockDeSites.mjs`), sous toute politique.
 const MESUREES = () => sitesEnEntrees([
-  { famille: 'f', file: 'Source/L/01 - A.md', ref: 'r1' },
-  { famille: 'f', file: 'Source/L/02 - B.md', ref: 'r2' },
+  { famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'r1' },
+  { famille: 'f', fichier: 'Source/L/02 - B.md', ref: 'r2' },
 ])
 
 test('survie : une entrée CONNUE garde son lot, sa date et sa preuve ; une régénération ne la rajeunit pas', () => {
@@ -216,7 +216,7 @@ test('survie : un site NEUF prend le lot et la date DU RUN, et ne porte aucune p
 // est un site NEUF, et l'entrée voisine ne lui prête ni sa date ni sa preuve.
 test('survie : la clé SEULE apparie — une réf qui bouge redate l’entrée', () => {
   const ancien = survieDeLecheance(
-    sitesEnEntrees([{ famille: 'f', file: 'Source/L/01 - A.md', ref: 'AUTRE' }]),
+    sitesEnEntrees([{ famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'AUTRE' }]),
     { lot: '#1384 B2', date: '2026-09-14' },
   ).map((e) => ({ ...e, preuve: 'PDF p.7 : lu.' }))
   const rendu = survieDeLecheance(MESUREES().slice(0, 1), { lot: '#9999 Z', date: '2030-01-01', ancien })
@@ -240,7 +240,7 @@ test('estNeuveOuAccrue : sans entrée en place, ou un `nombre` mesuré plus gran
 })
 
 test('estEntreeDeSite : vrai sur chaque entrée que rend `sitesEnEntrees`, avec ou sans famille', () => {
-  const sites = [{ file: 'src/a.ts', ref: 'r' }, { file: 'src/a.ts', ref: 'r', line: 3 }]
+  const sites = [{ fichier: 'src/a.ts', ref: 'r' }, { fichier: 'src/a.ts', ref: 'r', line: 3 }]
   for (const e of [...sitesEnEntrees(sites), ...sitesEnEntrees(sites.map((s) => ({ famille: 'f', ...s })))]) assert.equal(estEntreeDeSite(e), true, JSON.stringify(e))
   assert.equal(estEntreeDeSite({ fichier: 'src/a.ts', ref: 'r', occurrence: 0 }), false, 'occurrence ≥ 1')
   assert.equal(estEntreeDeSite({ fichier: 'src/a.ts', ref: 'r', occurrence: 1, famille: 2 }), false, 'famille : chaîne ou absente')

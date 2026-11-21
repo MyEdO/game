@@ -37,6 +37,7 @@ import {
   sequenceScoreOf,
   closeSequenceRound,
   sequenceBoardOf,
+  sequenceAbandonEtatOf,
 } from './sequenceCore';
 import { SEQUENCE_HARD_MAX_ROUNDS, type EtatDeFamille, type MancheClose } from './sequenceContract';
 import { type SequenceThrowTurn, type SequenceVolleyRules } from '../engine/sequenceVocab';
@@ -47,6 +48,7 @@ import type { CascadeStep } from './pendings';
 import { pnjAuProfil } from './monde/sceneNpc';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { avanceEtapeCascade } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -330,6 +332,22 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
     const res = get().tavernGames!.result!;
     expect([res.winner, res.dr.joueur]).toEqual(['joueur', 501]);
     expect(get().sequence).toBeNull();
+  });
+
+  it('une fois le lancer joué, l’abandon reste fermé tant que le gain est dû', () => {
+    const a = seul();
+    get().jouerALaTaverne(a.id, { gameId: 'flechettes', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 0 });
+    for (let i = 0; i < 40 && get().pendingCascade; i++) {
+      const etape = courant();
+      if (etape?.kind === 'taverneLancerGain' && (etape.options || etape.quantity)) break;
+      avanceEtapeCascade(get, (_etape, rangee) => (rangee ? (i % 2 ? 11 : 24) : undefined));
+    }
+    const gain = courant();
+    expect(gain?.kind).toBe('taverneLancerGain');
+    expect(sequenceAbandonEtatOf(get)?.refus).toBe('Répondez d’abord au choix en cours.');
+    get().jetRegler('cascade', 'abandon', true);
+    expect(get().sequence?.abandon, 'aucune demande posée tant que le gain est dû').toBeUndefined();
+    expect(courant()?.id, 'la même étape reste ouverte').toBe(gain?.id);
   });
 
   it('un ÉCHEC CRITIQUE ne marque rien, là où un échec simple marque son dé des unités', () => {

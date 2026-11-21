@@ -257,6 +257,12 @@
       "markLoser": true,
       "stopCondition": "inconscient",
       "tours": 6,
+      "test": {
+        "skill": {
+          "id": "resistance-a-l-alcool"
+        },
+        "difficulty": "intermediaire"
+      },
       "ops": [
         {
           "op": "intoxicate"

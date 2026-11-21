@@ -10,14 +10,10 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 ## 1. Pipeline
 
 - **Paquet MANUSCRIT** `src/scenes/<campagne>/<campagne>-projet.json`, commité (fiche
-  `user-doctrine-campagne-jamais-generee-par-script`), édité à l'éditeur ou comme document JSON. « Ouvrir »
-  une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> ». L'aller-retour vers le
-  paquet est « Fichier → Exporter forme dépôt (dev) » (offert en DEV pour une campagne livrée,
-  `origineLivree`) : le fichier `BuiltinCampaign.fichier`, au format du dépôt (`projetVersDepot`, §10ter),
-  libellé d'origine tant que le projet n'est pas renommé, ordre des scènes et scène d'entrée conservés
-  (`src/ui/editor/Editor.tsx`, `exportDepot` ; garde `src/ui/editor/export-forme-depot.test.tsx`).
-  « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
-  copie de travail. Les deux passent la porte du document (`parseProject`). Tout paquet neuf se
+  `user-doctrine-campagne-jamais-generee-par-script`), édité dans Godot ou comme document JSON.
+  Avec `npm run godot:editeur`, ouvre le projet livré dans l’atelier et utilise « Enregistrer ».
+  Le geste valide le document par `parseProject`, produit sa forme dépôt par `texteDuDepot`
+  et transmet le texte au service local `depot/<id>`. L’atelier affiche le résultat de l’écriture. Tout paquet neuf se
   déclare dans `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` (volet couverture de
   `src/scenes/generateurs-byte-stables.test.ts`). Modèle :
   `src/scenes/diligence/`.
@@ -29,8 +25,8 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 - **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable
   (`src/scenes/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
   à l'octet) qui fait du script le propriétaire exclusif de son paquet ; leur `scene()` compile un `MapSpec` par
-  `buildScene()` (`src/noyau/mapSpec.ts`), comme les scénarios de test, et une option que `scene()` ne lit pas
-  LÈVE en se nommant. Régime réservé au contenu CALCULÉ
+  `buildScene()` (`src/noyau/mapSpec.ts`), comme les scénarios de test décrits dans `docs/test-scenarios.md`.
+  Une option que `scene()` ne lit pas LÈVE en se nommant. Régime réservé au contenu CALCULÉ
   non authorable à la main, jamais à un projet de campagne : `barge-du-sel` et `loup-et-saumure` sont la
   dette #1601 (« Campagnes possédées par un GÉNÉRATEUR … statuer la migration vers MANUSCRIT »), `arene`
   vit sous le même régime (#1601). Les validateurs id-only de la lib (`creatureId`/`skillId`/`spellId`/`speciesId`/
@@ -46,7 +42,7 @@ Câblé par des **Effects** (`src/data/schemas/defs-scenes/effets.ts`), jamais e
 - `adjustVessel` — patch INCRÉMENTAL (`name`/`morale`/`hullCurrent`/`saboteurDR`…) sans réinitialiser le
   reste (ex. `saboteurDR` remis à 0 quand un sabotage est levé, sans toucher la coque).
 - `ops` sur `on: 'navire'` — les ops de NAVIRE (`manann`, `shipMorale`, `shipCritical`, `OPS_DU_NAVIRE`,
-  `src/engine/ops.ts`) et les ops de coque (`wounds`) sur le navire de campagne (`src/noyau/navireOps.ts`).
+  `src/engine/faitsDOp.ts`) et les ops de coque (`wounds`) sur le navire de campagne (`src/noyau/navireOps.ts`).
   L'Humeur de Manann d'une campagne se décale par `{ op: 'manann', factorId }`, `factorId` RÉEL de
   `src/data/sea-events.json` (réf. de registre `seaManannFactors`), jamais un delta brut anonyme.
 - `saboteurDR` (dans `[-5,0]`) — malus discret aux Tests d'équipage de COMBAT ; s'authore SUR le
@@ -195,9 +191,8 @@ L'état narratif d'une partie se partitionne par la FORME de ce que le récit re
   (l'id d'un repère, une valeur par repère), chacune `{ repere, valeur, source | adapteDe }`, sans métacaractère Markdown ; `adapteDe` cite les passages adaptés, la
   prose qui porte le repère et la ligne de table de l'espèce). Chaque repère doit être EFFECTIVEMENT substitué
   quelque part dans le paquet : un repère toujours masqué par un plus long est refusé par la garde des paquets. La prose STOCKÉE reste verbatim :
-  à l'AFFICHAGE, chaque site de prose de paquet (`SITES_PROSE` › `paquet`, `src/ui/liage.ts` ; `<Prose
-  paquet>`, ou `mdToText(nommer(…))`) substitue chaque repère, en mot entier et en une passe, par la valeur
-  de la ligne du couple espèce (`refChar`) × sexe d'apparence FIGÉ au choix du héros (`GameState.identitesFigees`,
+  à l’affichage, la résolution des identités du noyau substitue chaque repère, en mot entier et en une passe, par la valeur
+  de la ligne du couple espèce (`refChar`) × sexe d'apparence FIGÉ au choix du héros (`Jeu.identitesFigees`,
   posé par le choix `designationHeros.heros`, EDO 02 l.114) : mort, remplacé ou réédité, le sosie garde son nom
   (`identitesResolues` / `nommer`, `src/noyau/monde/identites.ts`). Non désigné, sans sexe d'apparence, ou sans
   ligne : verbatim. Un
@@ -237,7 +232,7 @@ chaîne de nom dupliquée dans la donnée.
 - **Locuteur PAR NŒUD** — `DialogueNode.speakerId` (`{ id }` d'un personnage de la MÊME scène, `PERSONNAGES_DE_LA_SCENE`) surcharge le
   locuteur de session pour CE nœud seulement : permet d'ALTERNER les interlocuteurs dans une même
   conversation (ex. une tablée à plusieurs PNJ). Un nœud sans `speakerId` retombe sur la session.
-- Le nom affiché = le `label` de l'entité résolue (`DialogueBox`, `src/ui/DialogueBox.tsx`) — jamais un
+- Le nom affiché = le `label` de l'entité résolue — jamais un
   champ `speaker` de texte (supprimé, #669).
 - **Patron de reprise** — pas de mécanisme dédié : les `DialogueChoice.when` (algèbre `Condition`) gatent
   les choix d'un même nœud d'accueil sur un flag posé au premier passage (« premier contact » vs
@@ -300,14 +295,13 @@ scène, tout reste en l'état).
 ## 10. Objectifs courants (`setObjective` / `clearObjective`)
 
 Réponse à « je fais quoi maintenant ? » (#238, corollaire de « personne ne lit le journal ») : une PILE
-d'objectifs (`store.objectives`, `{ id, text }[]`) affichée par un bandeau discret mais TOUJOURS visible
-en exploration (`src/ui/ObjectiveBanner.tsx`, masqué en combat). Le plus RÉCENT est en tête ; plusieurs →
-dépliable.
+d’objectifs (`Jeu.objectives`, `{ id, text }[]`) que Godot reçoit avec la projection de la partie.
+Le plus récent est en tête.
 
 - `setObjective { id, desc } & ScheduleSpec` — pose OU met à jour (re-poser le même `id` STABLE remplace
   sa `desc` et le remonte en tête). `desc` = consigne joueur verbatim (`Prose`-safe : pas d'id de code ni
   de réf RAW brute). Une `ScheduleSpec` optionnelle (#668) pose `Objective.deadline` (minute absolue) →
-  compte à rebours affiché en puce par `ObjectiveBanner`.
+  échéance que la projection peut afficher.
 - `clearObjective { id? }` — retire l'objectif `id`, ou TOUS si `id` absent (fin d'acte).
 
 La pile TRAVERSE les scènes (persistée hors `stateFields`, comme `flags`) et n'est vidée qu'en nouvelle
@@ -325,8 +319,7 @@ en minute absolue par `scheduleAt(now, spec)` — priorité `atDate` > `afterDay
 - `afterDays` (+ `atHour`/`atMinute` optionnels, défaut minuit) — dans N jours, à l'heure dite.
 - `atDate: { year?, month, day, hour?, minute? }` — date impériale ABSOLUE ; `year` absent = année
   courante de la partie. ⚠ `month` est **0-based** (index de `IMPERIAL_MONTHS`, `src/engine/clock.ts`) —
-  l'ÉDITEUR (`ScheduleSpecFields`, `src/ui/editor/ScheduleSpecFields.tsx`) MASQUE ce détail derrière un
-  select de mois PAR NOM ; l'auteur ne saisit jamais l'index.
+  utiliser le formulaire de l’éditeur Godot pour la saisie.
 - `atHour`/`atMinute` seuls (aucun autre champ) — prochaine occurrence de cette heure du jour.
 
 Une échéance déjà passée à la pose (date antérieure, ou `afterDays:0` avec l'heure du jour déjà écoulée)
@@ -428,13 +421,9 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
   tous passent `parseProject` et `validateScene` en CI (`src/scenes/bundled-projects.test.ts`).
   Un Effect `document` désigne son entrée du registre `narratif.documents` par `{ documentId }` (#679).
-- **Éditeur.** Le bouton « Narratif » (`src/ui/editor/EditorToolbar.tsx`) ouvre le viewer
-  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets/Écarts). L'onglet
-  **Documents** liste `narratif.documents` ; un ajout pose `document-<n>` (id frais contre TOUS les
-  registres), le formulaire édite `titre`, le texte Markdown verbatim et la `source` (`SourceRefField`,
-  `src/ui/SourceRefField.tsx` : livre choisi dans `books`, page — le même éditeur sert la source d'un
-  stade, d'un PNJ et celles du Codex). Dans un stade d'indice, « Document croisé » choisit le
-  `documentId` ; la prose du stade devient alors facultative.
+- **Éditeur.** Dans Godot, ouvrir le narratif puis les documents. Le formulaire édite le titre,
+  le texte Markdown et la source. Dans un stade d’indice, le champ « Document croisé » choisit le
+  `documentId`. La prose du stade devient alors facultative.
 - **Renommer, retirer une entrée.** L'éditeur reçoit le PROJET entier (`ProjetEdite` : scènes, carte,
   narratif ; `Editor.poserProjet` ne repose que les racines changées). Renommer l'id d'une affaire, d'un
   indice, d'un stade, d'un document ou d'un PNJ le PROPAGE à toute référence du projet (`renommeRef`,
@@ -443,22 +432,11 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   l'ancien id. Retirer une entrée (ou un stade) que le projet désigne encore est
   REFUSÉ (`GatedAction`) ; la raison nomme les lieux qui la désignent (« Encore désigné par : scène
   « Le relais », indice « La lettre » — … »).
-- **Choisir une référence narrative.** Un seul sélecteur, `RefNarrativeField`
-  (`src/ui/compendium/refField/RefField.tsx`, mode `single` de `RefField` sur des entrées fournies) : il lit à
-  `REFERENCES_NARRATIVES` le registre que désigne la clé, affiche le libellé de l'entrée (`titre` ; pour
-  un preset, le nom de son profil ou de sa créature de base) et écrit l'id. Il sert `document.documentId`,
-  `revealClue.indiceId` (puis son `stade`, parmi les stades de l'indice choisi), `discreditClue.indiceId`,
-  le `documentId` d'un stade et le `presetId` d'une entité (Inspecteur). Le narratif entre au contexte des
-  Effects par `effectCtxOf` (`src/ui/editor/EffectList.tsx`), pour les trois racines de projet : l'Inspecteur,
-  le dock Logique et les périls de route de la carte du monde. Un Effect neuf naît avec un id vide :
-  le sélecteur affiche « choisir dans documents de la campagne » (`SOURCE_NARRATIVE`), le résumé
-  « ? », et la porte du projet refuse l'enregistrement tant qu'aucune entrée n'est choisie. Une racine de CATALOGUE (Compendium,
-  `ctxDeCatalogue`) n'a pas de narratif : ses menus d'Effets (`menuDEffets`) ne proposent aucun Effect
-  dont la fabrique pose une clé de `REFERENCES_NARRATIVES`.
-- **Relire au Carnet.** Le Carnet d'enquête (`src/ui/CarnetScreen.tsx`) rend, sous la prose d'un stade
-  révélé (absente permise), le document qu'il croise : `ParchmentCard` titrée par le `titre`, `Prose`
-  et badge de source — au stade courant comme dans « Lectures précédentes ». Un document n'atteint le
-  Carnet qu'à travers un stade d'indice.
+- **Choisir une référence narrative.** Le formulaire de l’éditeur Godot présente les entrées
+  du registre du projet, par exemple `documentId`, `indiceId` ou `presetId`. Les propositions
+  tiennent compte du contexte (`REFERENCES_NARRATIVES`). Une édition de catalogue ne propose que
+  les effets que son schéma autorise.
+- **Relire au Carnet.** Le carnet d’enquête rend le document croisé par le stade d’indice.
 - **Instancier un PNJ nommé dans une scène (`presetId`, #671).** Une `SceneEntity` (ou un `AuthoredEnemy`
   terse) porte `presetId` = l'id d'un `narratif.presetsPnj`. Présent, l'entité est INSTANCIÉE
   « base globale + surcharges du preset » (jamais depuis son corps ou `statblock`) : `resolvePresetCreature`
@@ -471,6 +449,11 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
   ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
   `source`, jamais le texte recopié.
+- **Tirer les Caractéristiques d'un personnage à la pose (LDB 77 l.108, #3710).** Dans l'inspecteur
+  Godot, ouvre l'onglet Combat et ajoute au besoin le rôle au combat. Le réglage « Caractéristiques aléatoires »
+  écrit `combat.randomChars` sur la pose, qu'elle porte une carrière, un préréglage ou un statbloc.
+  Pour convertir les réglages de pose d'un ancien export avant de le réimporter, joue
+  `node scripts/campagne/migrer-caracteristiques-de-pose.mjs < ancien-projet.json > projet-migre.json`.
 - **Porter un PNJ à une carrière (`carrieres`, #773, `EDO 11 l.17-21`).** Une `SceneEntity` personnage dont le corps
   est une créature du bestiaire (`creature`), sans `statblock`, `presetId` ni `appearance.tenue`, porte `carrieres`, un record
   ordonné carrière → Niveau atteint dont la dernière clé est la carrière actuelle. Elle porte aussi, par carrière,
@@ -493,10 +476,9 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`) matérialise son `desc` dans le
   module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`
   refuse la forme dépôt (cause `prose-non-materialisee`, chemins nommés) : un lecteur Node d'un projet
-  livré passe par `lireProjetLivre` (`scripts/source/projetLivre.mjs`), `dev-validate` lit le disque en
-  `?raw`. L'export portable garde `desc` ET `descRef` ; « Exporter forme dépôt » (§1) passe par
-  `projetVersDepot` (`src/noyau/worldMap.ts`) : prose ET ports par référence ramenés à leur forme
-  canonique.
+  livré passe par `lireProjetLivre` (`scripts/source/projetLivre.mjs`). Au moment d’enregistrer,
+  `texteDuDepot` appelle `projetVersDepot` (`src/noyau/worldMap.ts`) pour ramener la prose et les ports
+  par référence à leur forme canonique.
 
 ## 10quater. Cadre du chapitre : ouverture cérémonielle et clôture (`narratif.ouverture` / `.cloture`, #717)
 
@@ -535,16 +517,12 @@ Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `fic
   `Trigger`, `Dialogue`, `EncounterDef`, `MapPlace`, `MapRoute`, `PresetPnj`, `Indice`.
 - **`narratif.ecartes?: EcartDeFiche[]`** (`ecartSchema`, `src/data/schemas/defs-scenes/narratif.ts`) —
   `{ entree, motif }` : une entrée de fiche que l'adaptation écarte, une fois, motif non vide.
-- **Édition.** La primitive `CouvreField` (`src/ui/editor/CouvreField.tsx`) pose `couvre` dans chaque
-  inspecteur porteur : pli « Identité » de l'entité et de la scène, pli de la zone d'effet, panneau
-  Logique (déclencheur, dialogue, rencontre), panneaux de lieu et de route de la carte, formulaires
-  d'indice et de PNJ du `NarratifEditor`. Les écarts s'éditent à l'onglet « Écarts » du
-  `NarratifEditor`. Les entrées offertes sont celles des fiches commitées.
+- **Édition.** Dans l’éditeur Godot, remplir `couvre` sur l’élément porteur et les écarts dans
+  le narratif. Les entrées offertes viennent des fiches de dossier commitées.
 - **État des lieux.** `docs/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run docs:dossiers`) rend, par fiche et par
   famille, chaque entrée couverte (par quel élément de quel projet livré), écartée (motif) ou non couverte.
-  Il lit le paquet commité sous `src/scenes/` : un lien posé à l'éditeur ne l'atteint qu'après « Fichier →
-  Exporter forme dépôt (dev) » et le remplacement du fichier du paquet par l'export (§1) — « Enregistrer… »
-  n'écrit qu'une copie locale (localStorage).
+  Il lit le paquet sous `src/scenes/`. Le lien posé dans l’atelier Godot entre dans l’état des lieux
+  lors de la régénération qui suit « Enregistrer » (§1).
   Garde : `src/data/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
   entrée n'est couverte et écartée dans le même paquet ; une entrée non couverte n'est jamais rouge.
 
@@ -569,6 +547,10 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 - **Groupes du lieu** : `Scene.groups` (ids de `groups.json` qu'un porteur déclare, champ « Groupes du lieu » du
   pli Scène de l'Inspector) fait de la scène la source de ces Groupes pour tout Trait psy qui les vise, en combat
   comme hors combat (`etiquetteDeScene`, `src/noyau/monde/porteurs.ts`).
+- **Groupes d’une possession** : renseigner « Groupes de l’objet » sur sa fiche de catalogue ou dans les objets
+  du narratif (`narratif.objets[].groups`). Pour montrer une possession d’auteur sur un PNJ, la déclarer portée
+  dans son inventaire. Quand la possession est en vue, ses Groupes sont une source de Psychologie dont les
+  effets n’ajoutent aucun Groupe à son porteur (#3045, Q4).
 
 ## 11. Règles d'or
 
@@ -577,7 +559,7 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 - **Personne ne lit le journal** — tout dénouement pertinent est une surface VISIBLE au moment (dialogue,
   modale, effet à l'écran), le `journal` ne fait que rappeler.
 - **Aucun texte technique dans un texte joueur** — un `node.desc`/`journal` est rendu VERBATIM par
-  `Prose` (`src/ui/Prose.tsx`) : ni identifiant de code, ni tag d'auteur (`[INEXPRIMABLE]`), ni citation
+  l’hôte Godot. Écarter les identifiants de code et les tags d’auteur (`[INEXPRIMABLE]`), ni citation
   RAW brute (`MDG 14 l.45`). Les constats d'authoring vont dans un journal `docs/plans/`, jamais en jeu.
 - **Prose = verbatim source, Markdown** (AGENTS.md règle 5) — jamais de reformulation ni de HTML. Exception
   du paquet de campagne : une réplique absente du livre s'authore maison, et une description destinée au MJ

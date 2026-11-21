@@ -14,16 +14,16 @@
  *  - la classification `spellSupport` : ses issues lues au type de retour de `src/engine/spellspec.ts`.
  * La part ÉDITORIALE (ordre de la curation, pièges de vocabulaire, doctrine verbatim) vit ICI.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-sort.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import * as ts from 'typescript/unstable/ast'
 import { loadSource, indexerConstantes, renderFields, jsdocRole, noyauZod, estOptionnel } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-sort'
   const DEF = 'src/data/schemas/defs/spells.ts'
@@ -226,7 +226,6 @@ function rendu() {
     'src/noyau/spell-impure-ops.hors-store.test.ts',
     'src/data/vdm-spells-variantes.test.ts',
     'src/noyau/codex/codex-vdm-spells-variantes.test.ts',
-    'src/ui/compendium/no-json-fields.test.ts',
     'src/data/id-collisions.test.ts',
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
   const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
@@ -383,4 +382,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

@@ -2,6 +2,9 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { checkBattleOver } from './combatFlow';
+import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { armourPhysiqueAt } from '../engine/armourBypass';
+import { tableTotale } from '../lib/tableTotale';
 import { createHero } from '../engine/character';
 import { dotationsDuPnj } from '../engine/trappingChoices';
 import { testScene } from '../scenes/test-fixture';
@@ -223,7 +226,7 @@ describe('Barde authorée au cavalier : le couple pré-monté la passe à sa mon
 
     const monture = battle.combatants.find((c) => c.id === enc.entities[0].id)!;
     const cavalier = battle.combatants.find((c) => c.id === enc.entities[1].id)!;
-    expect(monture.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(tableTotale(LOCALISATIONS_DE_COUP, (loc) => armourPhysiqueAt(monture, loc))).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
     expect(monture.items?.map((i) => [i.trappingId, i.equipped])).toEqual([['barde', true]]);
     expect(cavalier.items).toEqual([]);
   });

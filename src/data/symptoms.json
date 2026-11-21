@@ -677,7 +677,9 @@
           }
         }
       },
-      "afterDays": 7
+      "afterDays": {
+        "semaines": 1
+      }
     },
     "capabilities": {
       "persistentActive": true

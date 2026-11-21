@@ -15,6 +15,8 @@ import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
+import { creditBourse } from '../bourseFlow';
+import { draineCascade } from '../cascade.testkit';
 
 let banc: Banc;
 // Le groupe qui part : un pré-tiré (un groupe vide ne se lance pas, `refusDeLancer`).
@@ -37,6 +39,7 @@ const AVAL = ['la-diligence', 'route-principale', 'auberge-des-sept-rayons', 'al
 const T1 = 'route-la-diligence-route-principale';
 const T2 = 'route-route-principale-sept-rayons';
 const T3 = 'route-sept-rayons-altdorf';
+const PORTE_DU_LOUP = 'altdorf-porte-du-loup';
 
 const ctx = (...flags: string[]): ConditionCtx => ({ flags: tableTotale(flags, () => true), gameTime: 0 });
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
@@ -100,7 +103,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(paquet.narratif?.cloture?.when).toEqual({ kind: 'flag', expr: CLOS });
   });
 
-  it('du relais à la porte sud, les gestes du groupe posent les drapeaux et la clôture solde les deux objectifs', () => {
+  it('du relais à la porte du Loup, les gestes du groupe posent les drapeaux et la clôture solde les deux objectifs', () => {
     const objectifs = () => get().objectives.map((o) => o.id);
     expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     banc.getState().fenetreValider('ouverture');
@@ -128,7 +131,24 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(get().flags[CORPS]).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
 
-    banc.getState().quitterLaScene('altdorf-porte-sud');
+    banc.setState({ lieu: 'auberge-des-sept-rayons' });
+    creditBourse(get, banc.setState, get().party[0].id, { gold: 1, silver: 0, brass: 0 });
+    get().partirEnVoyage(T3, 'diligence', { classeId: 'exterieur' });
+    draineCascade(get);
+    expect(get().pendingRest?.travelHalt).toBe(true);
+    get().fenetreChoisir('repos', 'couchage', 'dehors', get().party[0].id);
+    get().fenetreChoisir('repos', 'pitance', 'rien', get().party[0].id);
+    get().fenetreValider('repos');
+    expect(get().pendingRest).toBeNull();
+    draineCascade(get);
+    banc.reprendreTout();
+    draineCascade(get);
+    expect(get().travelPlan).toBeNull();
+    expect(get().lieu).toBe('altdorf');
+    if (get().travelRecap) get().fenetreFermer('recitDeVoyage');
+    expect(get().lieuOuvert).toBe(true);
+    get().fenetreFermer('ecranDuLieu');
+    expect(get().scene).toMatchObject({ id: PORTE_DU_LOUP, label: 'Altdorf — la porte du Loup' });
     expect(get().flags[CLOS]).toBeFalsy();
     expect(get().pendingChapterRecap).toBeNull();
 
@@ -187,7 +207,7 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
       expect(get().flags[p.flag]).toBe(true);
     });
 
-  const PAS = [{ scene: 'altdorf-porte-sud', trigger: 'edo-ch1-entree-altdorf', flag: CLOS, arriveeDedans: true }];
+  const PAS = [{ scene: PORTE_DU_LOUP, trigger: 'edo-ch1-entree-altdorf', flag: CLOS, arriveeDedans: true }];
 
   for (const p of PAS)
     it(`${p.scene} › ${p.trigger} pose \`${p.flag}\``, () => {

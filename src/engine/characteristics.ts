@@ -10,6 +10,7 @@ import { SizeCategory, woundsForSize, tailleCourante } from './size';
 import { findSpellById } from '../data';
 import type { ModLine } from './combat';
 import type { TraitList } from './statEntry';
+import { armourPhysiqueAt } from './armourBypass';
 
 /** Bonus de Caractéristique = chiffre des dizaines (ex. 37 → 3). */
 export function bonus(value: number): number {
@@ -122,16 +123,12 @@ export function volatileCharLines(c: Combatant, key: CharKey): ModLine[] {
   return volatileCharEntries(c, key).map((e) => ({ label: e.label, value: e.value, famille: 'jet', ref: e.ref }));
 }
 
-/**
- * Points d'Armure EFFECTIFS à une localisation : armure portée/naturelle (`c.armour`,
- * mutations comprises via recomputeLoadout) + PA TEMPORISÉS des effets magiques actifs
- * (Armure Aethyrique « +1 PA à toutes les Localisations » — additifs, LDB 47).
- */
+/** LDB 47 ; VDM 05 ; LDB 85 l.39. */
 export function effectiveArmourAt(c: Combatant, location: keyof Combatant['armour']): number {
-  let ap = c.armour[location] ?? 0;
+  let ap = armourPhysiqueAt(c, location);
   for (const e of c.activeEffects ?? []) ap += (e.apAll ?? 0) + (e.apAt?.[location] ?? 0);
   // Plancher 0 du TOTAL : un `apAll`/`apAt` NÉGATIF (op `ap` de retrait — VDM 05) érode l'armure portée
-  // sans jamais la rendre négative. SEUL point de clamp de la chaîne de PA.
+  // sans jamais la rendre négative.
   return Math.max(0, ap);
 }
 

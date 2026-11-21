@@ -1,9 +1,9 @@
 import * as ts from 'typescript/unstable/ast'
-import { readFileSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync'
-import { repoProgram } from './tsProgram.mjs'
+import { programmeDesChamps } from './fieldConsumers.mjs'
+import { estModule } from './importGraph.mjs'
 import { listerArbre } from './lister.mjs'
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { enfantsDe } from '../../../src/data/schemas/grammaire/descente.ts'
@@ -90,7 +90,9 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   // { … as … }` du Program, à point fixe. Un appel sous un autre nom ne la résout pas : le symbole n'est
   // demandé qu'aux appels qui portent l'un de ces noms.
   const nomsDeLaPorte = new Set(Object.keys(PORTES))
-  const renommages = program.getSourceFileNames().map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
+  const renommages = program.getSourceFileNames()
+    .filter(file => !/\.d\.[cm]?ts$/.test(file))
+    .map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
     .flatMap(n => (ts.isImportDeclaration(n) ? n.importClause?.namedBindings?.elements : ts.isExportDeclaration(n) ? n.exportClause?.elements : undefined) ?? [])
     .flatMap(e => e.propertyName ? [[e.propertyName.text, e.name.text]] : [])
   for (let taille = -1; taille !== nomsDeLaPorte.size;) {
@@ -194,8 +196,10 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
         }
       }
       if (ts.isParameterDeclaration(d)) {
-        const typed = typedOrigins.get(checker.getTypeAtLocation(node).id)
-        if (typed) return typed
+        if (typedOrigins.size > 0) {
+          const typed = typedOrigins.get(checker.getTypeAtLocation(node).id)
+          if (typed) return typed
+        }
         const fn = d.parent
         const name = fn.name ?? (ts.isVariableDeclaration(fn.parent) ? fn.parent.name : null)
         if (name && ts.isIdentifier(name)) {
@@ -214,8 +218,9 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
     }
     if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
       const o = origin(node.expression, seen)
+      if (!o) return null
       const key = ts.isPropertyAccessExpression(node) ? node.name.text : stringOf(node.argumentExpression) ?? finiteKeys(node.argumentExpression) ?? (ts.isNumericLiteral(node.argumentExpression) ? '[]' : '{}')
-      return o && { ...o, path: [...o.path, key] }
+      return { ...o, path: [...o.path, key] }
     }
     if (ts.isArrayLiteralExpression(node) && node.elements.length === 1 && ts.isSpreadElement(node.elements[0])) return origin(node.elements[0].expression, seen)
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
@@ -240,10 +245,10 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
       if (porte) return porte.rendJson ? { file: porte.file, path: porte.path } : null
       const fn = functionOf(node.expression)
       const body = fn?.body && (ts.isBlock(fn.body) ? fn.body.statements.find(ts.isReturnStatement)?.expression : fn.body)
-      const bindings = new Map((fn?.parameters ?? []).map((p, i) => [checker.getSymbolAtLocation(p.name), stringOf(node.arguments[i])]))
       if (body && ts.isCallExpression(body) && body.expression.getText() === 'JSON.parse') {
         const load = body.arguments[0]
         if (load && ts.isCallExpression(load) && isReadFile(load.expression)) {
+          const bindings = new Map(fn.parameters.map((p, i) => [checker.getSymbolAtLocation(p.name), stringOf(node.arguments[i])]))
           const file = datasetAt(stringOf(load.arguments[0], new Set(), bindings))
           if (file) return { file, path: [] }
         }
@@ -310,9 +315,11 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
 }
 
 export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, programme = null, fichiers = null } = {}) {
-  const files = fichiers ?? ['src', 'scripts', 'hotes'].flatMap(dir => listerArbre(join(root, dir), { filtre: rel => /\.(?:[cm]?ts|tsx|[cm]?js)$/.test(rel) && (!estFichierVitest(rel) || /-guard\./.test(rel)) && !estKitDeTest(rel) && !/(?:\/migrations\/|\/schemas\/|\/ops\/sondes\/|schemaFieldConsumers\.)/.test('/' + rel) }).map(rel => join(root, dir, rel)))
-  const config = programme ? null : JSON.parse(readFileSync(join(root, 'tsconfig.json'), 'utf8'))
-  const session = programme ?? repoProgram(root, () => files, { 'tsconfig.json': JSON.stringify({ ...config, compilerOptions: { ...config.compilerOptions, allowJs: true, checkJs: false } }) })
+  const files = fichiers ?? ['src', 'scripts', 'hotes'].flatMap(dir => listerArbre(join(root, dir), {
+    filtre: rel => estModule(rel) && (!estFichierVitest(rel) || /-guard\./.test(rel)) &&
+      !estKitDeTest(rel) && !/(?:\/migrations\/|\/schemas\/|\/ops\/sondes\/|schemaFieldConsumers\.)/.test('/' + rel),
+  }).map(rel => join(root, dir, rel)))
+  const session = programme ?? programmeDesChamps(root, files)
   const { program, checker } = session
   try {
     const { claims, reads, unresolved } = relierChargements(root, session, { files, definitions })
@@ -322,6 +329,29 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
       return decl && { type: checker.getTypeAtLocation(decl.name), node: decl }
     }
     const shared = new Map(LIENS_SCHEMA_TYPES.filter(t => t.schema).map(t => [t.schema, typeNomme(t.home, t.type)]).filter(([,t]) => t))
+    // Le registre relie le fichier à son schéma. Seule une annotation explicite de sa sortie fournit
+    // un contrat TypeScript ici, sans compter comme lecteur du document.
+    const contrats = new Map()
+    const registre = program.getSourceFile(norm(resolve(root, 'src/data/schemas/_registry.generated.ts')))
+    for (const item of registre?.statements ?? []) {
+      if (!ts.isImportDeclaration(item)) continue
+      const liens = item.importClause?.namedBindings
+      if (!liens || !ts.isNamedImports(liens)) continue
+      const declarationImportee = nom => {
+        const lien = liens.elements.find(lien => (lien.propertyName ?? lien.name).text === nom)
+        const symbole = lien && checker.getSymbolAtLocation(lien.name)
+        const decl = symbole && checker.getAliasedSymbol(symbole).declarations?.[0]?.resolve()
+        return decl && ts.isVariableDeclaration(decl) ? decl : undefined
+      }
+      const fichier = declarationImportee('file')?.initializer
+      const schema = declarationImportee('schema')
+      if (!fichier || !ts.isStringLiteral(fichier) || !schema) continue
+      const init = schema.initializer
+      const annotation = schema.type ?? (init && ts.isSatisfiesExpression(init) ? init.type : undefined)
+      if (!annotation) continue
+      const sortie = checker.getPropertyOfType(checker.getTypeAtLocation(annotation), '_output')
+      if (sortie) contrats.set(fichier.text, { path: [], type: checker.getTypeOfSymbolAtLocation(sortie, annotation), node: annotation })
+    }
     const envelope = typeNomme('src/data/schemas/grammaire/document.ts', 'EnveloppeDocument')
     const variant = typeNomme('src/data/schemas/grammaire/valeurs.ts', 'Variant')
     const absent = [], counts = []
@@ -342,6 +372,8 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
         }
       })
       const ofFile = claims.filter(c => c.file === d.file)
+      const contrat = contrats.get(d.file)
+      if (contrat) ofFile.push(contrat)
       ofFile.push(...common)
       const typePaths = new Map()
       const typesAt = (claim, path) => {

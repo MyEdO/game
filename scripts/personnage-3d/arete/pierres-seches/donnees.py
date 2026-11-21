@@ -9,7 +9,8 @@ sans chaîne ni mortier, l'ombre de leurs vides tenue par une âme en retrait, e
 chant. La porte y ouvre un passage que ferme un portillon de planches, qui tourne sur son gond vers le dedans. Un muret
 ne porte pas de fenêtre : ses deux pièces sont le mur plein. La brèche l'éboule jusqu'au pied.
 
-Matières : la pierre prend `pierre-atre`, l'âme `terre-battue`, le bois `bois-chene`, les ferrures `fer-noirci`.
+Matières : la pierre et ses gravats prennent `pierre-atre`, l'âme `terre-battue`, le bois `bois-chene`, les ferrures `fer-noirci`.
+L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import apparence, assises, hauteur
@@ -28,13 +29,16 @@ EPAISSEUR = 0.5
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {
     "moellons": ("corps", "pierre-atre"),
-    "ame": ("bois", "terre-battue"),
+    "joint": ("joint", "terre-battue"),
     "menuiserie": ("accent", "bois-chene"),
+    "barres": ("planche", "bois-chene"),
     "ferrure": ("metal", "fer-noirci"),
+    "echelle": ("accent", "bois-chene"),
+    "gravats": ("gravats", "pierre-atre"),
 }
 
 BUDGET_TRIANGLES = {"mur": 1500, "porte-fermee": 1200, "porte-ouverte": 1200,
-                    "fenetre": 1500, "fenetre-close": 1500, "breche": 1200}
+                    "fenetre": 1500, "fenetre-close": 1500, "breche": 1200, "echelle": 140}
 
 ANGLE_LISSE = 30
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le chanfrein d'une pierre s'y fond,

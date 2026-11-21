@@ -13,7 +13,7 @@ import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
  * parcours d'accolades (sinon un `${…}` fausse l'appariement). ABSOLUE : aucun site.
  */
 
-const RACINES = porteeDeGarde(['noyau'], ['state']);
+const RACINES = porteeDeGarde(['noyau']);
 
 /** Neutralise commentaires, chaînes et gabarits (contenu remplacé par des espaces, sauts conservés) —
  *  les accolades d'un `${…}` ne doivent JAMAIS compter dans l'appariement du littéral. */
@@ -78,7 +78,7 @@ export function stepsWithoutDifficulty(src: string): number[] {
 describe('une étape de cascade qui LANCE dit sa Difficulté (#1112)', () => {
   it('aucun site sans Difficulté', () => {
     const over: string[] = [];
-    for (const { rel, text } of readCorpus(RACINES, { exts: ['.ts'] })) {
+    for (const { rel, text } of readCorpus(RACINES)) {
       const found = stepsWithoutDifficulty(text);
       if (found.length) over.push(`${rel} : lignes ${found.join(', ')}`);
     }

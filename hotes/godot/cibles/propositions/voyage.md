@@ -1,6 +1,6 @@
 # Propositions : voyage (2026-11-17, #3935)
 
-Compte rendu des vingt et un états dessinés (neuf d'origine, douze ajoutés par l'audit des verbes, #4411) depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
+Compte rendu des vingt-trois états dessinés (neuf d'origine, douze ajoutés par l'audit des verbes, deux par les enceintes, #4411) depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
 l'arrivée), la doctrine `user-doctrine-la-cible-prime-sur-l-ancien-ecran` et les propositions déjà au dépôt
 (`exploration-et-recit/carte-du-monde.jpg`, `combat/`). Sources au dépôt : sept écrans de `sources/maquettes/`,
 chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html`
@@ -10,8 +10,12 @@ chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dess
 `mer-conseil-de-bord`, `mer-fuite-de-vapeur`), `le-bord` (`postes-de-bord`, `postes-de-bord-station`,
 `activites-en-mer`), `combat-naval` (`combat-naval`, `combat-naval-bordee`, `combat-naval-chanson`,
 `meuble-piece-de-bord`), `dossier` (`dossier-du-navire`, `dossier-du-navire-cargaison`, `dossier-de-la-bete`,
-`dossier-du-vehicule`) et `arrivee` (`arrivee`). La compagnie est celle de `sources/maquettes/compagnie.ts`.
+`dossier-du-vehicule`) et `arrivee` (`arrivee-aucune`, `arrivee-palissade`, `arrivee-rempart`). La compagnie est celle de `sources/maquettes/compagnie.ts`.
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : la table d'un aperçu garde la hauteur commune de 125 ; un aperçu plus court laisse 14 px de
+  blanc sous elle, le prix de la boîte fixe.
+- À valider (#4585) : l'état du navire (coque, Moral, eau douce, vivres) sur deux colonnes, toutes ses valeurs visibles
+  dans le panneau bas sans défiler ; « Vivres » au lieu de « Vivres de l'équipage ».
 
 La carte du monde n'est pas redessinée : elle existe (`exploration-et-recit/carte-du-monde.jpg`) et sert de modèle ;
 les états d'ici gardent ses lieux et ses distances (La Diligence, 75 km, Sept Rayons, 115 km, Altdorf).
@@ -46,6 +50,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   livre ne disant pas lequel teste (règle 7 : choix du joueur) ; ruban « Péripétie de la route » ; date impériale et
   « 2ᵉ jour de route » dans l'objet du temps ; la route coupée par un pont effondré comme lecture du texte du livre.
 
+- À valider : le centre est la grille commune d'avant le dé (`combat.md`) : ce qui pose le Test et le jour au
+  sous-titre, « Test simple » en grande ligne, la phrase à son rect ; la difficulté n'est pas dans la donnée du centre
+  (elle reste une influence du seuil), la grande ligne ne la porte donc pas ici.
 ## evenement-de-route-issue
 - Cible écrite : le résultat raconté par une phrase sur l'image, le jet en pastille sur la carte du héros, son
   détail (seuil, dé, degrés) ouvert en billet de parchemin ; la frise revient (nuit en croissant, un seul chiffre).
@@ -67,8 +74,10 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : le jour s'arrête sur un échec que son porteur peut encore influencer (audit M2), ce que le noyau ne
   fait pas : jour par jour il s'arrête avant le dé, sous ordres jamais (`attendUnVraiChoix`, à retoucher, verbes
   inchangés) ; « Appliquer » (charte) pour laisser l'échec ; dé d'exemple.
+- À valider : la grande ligne dit « Échec », les conséquences `retard` +1 j et `etat` Exténué +1 dessous, le DR en
+  petit (`combat.md`, « Bandeau du jet »).
 
-## arrivee
+## arrivee-aucune, arrivee-palissade, arrivee-rempart
 - Cible écrite `lieu.md` : l'arrivée est l'écran du lieu, sa première ligne est le récit du trajet (« Arrivée à
   Auberge des Sept Rayons · Voyage de 5 h. », `src/noyau/recitEnVue.ts`, `trm.titreArrivee`, `trm.dureeVoyage`) ;
   services mis en scène sur leurs bâtiments, pas de liste ; départs à droite sous la carte, un moyen par plaque.
@@ -86,10 +95,23 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   `fV('depart')`, ou « Rester », `fF('depart')`, `src/noyau/modalArbiter.ts:362`, valeur maison
   `voyage-heure-de-depart`) ; « Marchander » le billet (flux `marchandage`, `commerce/marchandage.jpg`). Classe de
   passage, heures par jour, allure et cadence ne se règlent que sur la carte (« Ouvrir la carte »).
+- Un état par enceinte du lieu (inspiration, non validée : image `lieu-enceintes` de `../maquettes/`) : l'enceinte est une donnée du lieu (`enceinte` de l'état), le
+  reste de l'écran ne change pas ; le cartouche la nomme (« sans enceinte », « palissade de bois », « rempart de
+  pierre ») et le décor de la cour la peint (`D.relais`, `sources/voyage/voyage.js`) : la route ouverte sur les
+  champs, la palissade de pieux sous sa tour de guet dans la forêt, le rempart crénelé et son portail.
+- Règle : « La majorité des auberges situées en dehors des grandes villes sont entourées d'un mur d'un type ou d'un
+  autre. Il est fait de bois ou de pierre selon les régions, et mesure en général 2 à 4 mètres de haut » (EDO 01
+  l.27).
 - À valider : Sept Rayons n'a aucun `services` en donnée : le cartouche « Auberge » (Entrer, Dormir, Recueillir des
   informations) et son boniment sont à écrire ; le texte de présentation du lieu est un exemple ; « billet en main »
   vers Altdorf est un exemple ; durées des départs (« 5 j », « 2 j ») en plaques ; « Ouvrir la carte » en pastille
-  sous la carte du trajet ; bourses affichées sur les cartes des héros ; sortie « Explorer ».
+  sous la carte du trajet ; bourses affichées sur les cartes des héros ; sortie « Explorer » ; le livre ne dit pas
+  l'enceinte des Sept Rayons (« La disposition de l'Auberge des Sept Rayons ressemble beaucoup à celle de l'auberge de
+  La Diligence », EDO 02 l.184), c'est une valeur d'adaptation ; aucun champ d'enceinte au schéma du lieu
+  (`src/noyau/monde/scene.ts`) ; services et départs identiques d'un état à l'autre, quand l'image varie aussi ceux
+  du lieu (hameau à pied, bourg et son forgeron).
+- À valider (#4585) : les départs dans le corps du panneau bas, qui défile ; le service d'accueil dans une case d'hôte
+  de 340 × 152, sa réplique qui défile, ses gestes au pied (`commerce.md`).
 
 ## voyage-fluvial
 - Cible écrite, « Ce que le joueur voit pendant le trajet » : décor en plans (ciel, lointain, berge, fleuve et
@@ -139,6 +161,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   `src/noyau/voyageEnVue.ts:56`, libellés `ecran.cadence.*`). À valider : la cadence dans l'objet du temps, et la
   même pièce sur la route (`evenement-de-route-issue`) et le fleuve (`voyage-fluvial`). Un arrêt (péripétie, péril,
   relâche, conseil, panne) ne la montre pas : rien n'avance.
+- À valider (#4585) : sous la carte, l'état du navire dans le corps qui défile et la cadence au pied fixe du panneau,
+  à la même place avec ou sans navire ; l'objet du temps sur la grille du cartouche du lieu : l'arche du ciel réduite
+  à la case de 56 px du médaillon, le texte à la place du nom du lieu, ses lignes depuis le haut.
 
 ## postes-de-bord
 - Doctrine : l'affectation suit la lignée des postes de la halte, aucun choix en liste ; chaque rôle est un poste
@@ -158,6 +183,12 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   rôle essentiel du Test de Progression, compte double (MDG 14 l.17-32, l.61-65) ; `src/noyau/shipCrew.ts:87`.
 - À valider : la place de chaque poste sur la silhouette ; les rôles tenus par les marins montrés en médaillon sans
   portrait ; le billet du rôle visé ; le rôle de chaque héros rappelé sur sa carte.
+- À valider (#4585) : chaque poste a 148 px de large au moins et une tête de la hauteur d'un portrait, que le poste
+  soit tenu ou vide : l'étiquette ne monte ni ne s'élargit quand un héros le prend, les tenants centrés sur la largeur
+  du poste (même gabarit aux postes de la nuit, `lieux-et-nuit.md`).
+- À valider (#4585) : le bord, la station et la semaine sur la grille commune des colonnes, sans tête : le corps sur
+  toute la hauteur, le geste au pied fixe ; le billet d'un poste à 300 de large, celui d'un Test étendu compris, ses
+  valeurs sur deux lignes au besoin ; la table de tout billet à hauteur fixe (125), qui défile si elle déborde.
 
 ## postes-de-bord-station
 - Même écran que `postes-de-bord`. Bjorn est au poste « Repos » (aucun rôle, `affecterAuRoleABord(crewId, null)`),
@@ -187,8 +218,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   (MDG 15 l.294-300) : écart à trancher, hors de ce lot.
 
 ## dossier-du-navire
-- Modèle : la fiche lue en combat (`combat/fiche-au-clic`), mêmes quatre panneaux : identité, profil, figure,
-  sections à onglets ; fermé par la croix. Atteignable depuis la traversée et les postes de bord (pastille
+- Modèle : la fiche du héros (`heros.md`, `fiche-possessions`), mêmes quatre panneaux aux mêmes places (#4585) :
+  identité (tête, mesures, réserves sous le filet), profil en douze colonnes fixes, figure, sections à onglets ;
+  fermé par la croix. Atteignable depuis la traversée et les postes de bord (pastille
   « Dossier du navire »), et, par la charte « Voir une fiche », d'un clic sur le pion ou le cartouche du navire
   en combat naval et au port (`commerce/port.jpg`, « Votre cogue »).
 - Le navire porte son nom : nom de l'instance en titre (`Possession.label`), modèle en sous-titre, « Renommer »
@@ -200,6 +232,11 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : onglets « État », « Équipage », « Cargaison », « Améliorations » ; Moral en barre d'or sous la Coque ;
   trois médaillons (Équipage, Aux voiles, Héros à un poste) ; les traits sur le gabarit des armes de la fiche ;
   « Salissures » et « Avaries » écrits « aucune » quand rien n'est à dire.
+- À valider (#4585) : le profil d'une possession prend les douze colonnes fixes de la fiche, chacune l'abréviation, le
+  nom entier au survol. Abréviations du livre : M, E, B, Man (Mer de Griffe 06 l.226), Enc (EDOC 07 l.233), la bête
+  celles de LDB (`docs/raw/4e/combat.md:2707`). Sans abréviation au livre, libellés courts à valider : « Éq »
+  (Équipage), « Cap » (Capacité ; le livre dit « Contenance »), « Ch » (Chargement), « Att » (Attelage, « 1 bête »
+  au survol).
 
 ## dossier-du-navire-cargaison
 - Même écran que `dossier-du-navire`, onglet « Cargaison » : la cale (130 / 300), ses lots
@@ -253,6 +290,10 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   manœuvre (plaques « Manœuvrer », « Bordée », « Attaque ») n'est plus l'image ; la Distance de course-poursuite
   (MDG 13 l.354-403) se joue pendant la traversée, son écran est `combat-suite/course-poursuite-en-mer.jpg`.
 
+- À valider : le Test d'équipage (DR additionnés, MDG 14 l.13) n'est ni simple, ni opposé, ni étendu : il garde la grille
+  commune d'avant le dé (`combat.md`) avec « Test d'équipage » en grande ligne, son réglage en ligne 1, ses notes à la
+  place de la phrase, les testeurs à droite ; écart porté au ticket #4574.
+
 ## combat-naval-bordee
 - Même écran que `combat-naval` : « Bordée » ouvre le bandeau « Tir de batterie », avant le dé. À
   gauche l'Artilleur, Bjorn, rôle essentiel compté double ; au centre la munition des pièces qui portent, en deux
@@ -274,6 +315,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : les chansons en cartes dans la colonne de droite du bandeau ; « une seule chanson par quart » en
   sous-titre.
 
+- À valider : les deux chansons passent de la droite au centre, en cartes 1-2 de la grille d'avant le dé (le Test
+  simple porte le choix) ; une carte ne montre que son nom, son effet au survol ; la droite reste vide.
 ## meuble-piece-de-bord
 - Même écran que `combat-naval` : le tour de Bjorn, qui sert le « Canon (petit) de bâbord ». Le meuble de l'actif
   (`combat/meuble-chef-de-piece`) : Blessures, « Chargé 1 / 1 », Action, Avantage et médaillon de Détermination
@@ -322,6 +365,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : la panne dans le contenant d'événement de la route ; le navire petit et hors du contenant, qui tient
   le centre.
 
+- À valider : le centre est la grille commune d'avant le dé (`combat.md`) : ce qui pose le Test et le jour au
+  sous-titre, « Test simple » en grande ligne, la phrase à son rect ; la difficulté n'est pas dans la donnée du centre
+  (elle reste une influence du seuil), la grande ligne ne la porte donc pas ici.
 ## Payer en mer
 Les gages sont dessinés (`mer-conseil-de-bord`). L'avitaillement (`avitaillerLeNavire`) reste à la page du port de
 la famille commerce : entreprise commune (#3004), `bourse({ parts, total })` de `sources/gestes.js`, jamais « Bourse

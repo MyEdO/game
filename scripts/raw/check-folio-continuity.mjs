@@ -31,6 +31,7 @@ import { BOOKS, readText } from './_lib.mjs'
 import { estNomDExtraction, numeroDExtraction, plageDeLigne1 } from '../../src/data/source/decoupe.ts'
 import { cleDeSite, ecartDuVolet, sitesEnEntrees } from '../guards/lib/stock.mjs'
 import { DECROISSANT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 export const STOCK_PATH = join(ICI, 'folio-gaps-stock.json')
@@ -77,8 +78,8 @@ export function chapterTexts(dir) {
   return new Map(files.map((f) => [f, readText(join(dir, f))]))
 }
 
-// Balaie un dossier de livre (fichiers `NN - *.md`) → `[{ abbr, nn, file, path, from, to, delta, kind, ref }]`.
-// `ref` = le chapitre cité (`ABBR NN`) ; `path` = le CHEMIN du chapitre extrait depuis la racine du
+// Balaie un dossier de livre (fichiers `NN - *.md`) → `[{ abbr, nn, file, fichier, from, to, delta, kind, ref }]`.
+// `ref` = le chapitre cité (`ABBR NN`) ; `fichier` = le CHEMIN du chapitre extrait depuis la racine du
 // dépôt (`Source/<livre>/NN - X.md`, POSIX), le seul nom que le stock et la porte de plage
 // partagent — le nom NU à espaces ne nomme aucun fichier pour `stocksNominatifs.mjs`. Deux familles :
 //   `kind:'saut'` — trou ENTRE deux ancres du fichier (`folioGapsInText`) ;
@@ -97,21 +98,24 @@ export function scanBookDir(abbr, dir) {
     const nn = numeroDExtraction(file)
     const text = texts.get(file)
     const ref = `${abbr} ${nn}`
-    const path = `${String(dir).split('\\').join('/').replace(/\/$/, '')}/${file}`
-    for (const gap of folioGapsInText(text)) out.push({ abbr, nn, file, path, ...gap, kind: 'saut', ref })
+    const fichier = `${String(dir).split('\\').join('/').replace(/\/$/, '')}/${file}`
+    for (const gap of folioGapsInText(text)) out.push({ abbr, nn, file, fichier, ...gap, kind: 'saut', ref })
     const span = chapterFolioSpan(text)
     if (!span) continue
     const orphans = []
     for (let f = span.last + 1; f <= span.expectedHi; f++) if (!bookFolios.has(f)) orphans.push(f)
-    if (orphans.length) out.push({ abbr, nn, file, path, from: span.last, to: orphans[orphans.length - 1], delta: orphans.length, kind: 'fin', ref })
+    if (orphans.length) out.push({ abbr, nn, file, fichier, from: span.last, to: orphans[orphans.length - 1], delta: orphans.length, kind: 'fin', ref })
   }
   return out
 }
 
 /** Sauts mesurés → sites du stock : le CHAPITRE EXTRAIT et le saut lui-même (`<ABBR NN> <from>→<to>`,
  *  des folios du PDF). Un chapitre porte souvent plusieurs sauts — c'est le saut, pas le chapitre,
- *  qui est l'unité du cliquet. */
-export const sitesDeSauts = (gaps) => gaps.map((g) => ({ file: g.path, ref: `${g.ref} ${g.from}→${g.to}` }))
+ *  qui est l'unité du cliquet.
+ * @param {readonly (import('../guards/lib/stock.mjs').Site & { from: number, to: number })[]} gaps
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
+ */
+export const sitesDeSauts = (gaps) => gaps.map((g) => ({ fichier: g.fichier, ref: `${g.ref} ${g.from}→${g.to}` }))
 
 /** Balaie tous les livres de `books` (BOOKS par défaut) → sauts de folios agrégés. */
 export function scanAllBooks(books = BOOKS) {
@@ -155,7 +159,7 @@ export function emptyFolioAnchorsInText(text) {
 
 /** Balaie un dossier de livre → `[{ abbr, nn, file, fichier, ref, folio, line }]`. `fichier` = le
  *  CHEMIN du chapitre extrait depuis la racine du dépôt (`Source/<livre>/NN - X.md`, POSIX) — même
- *  nom que `scanBookDir#path`, le seul que le stock et la porte de plage partagent. */
+ *  nom que `scanBookDir#fichier`, le seul que le stock et la porte de plage partagent. */
 export function scanEmptyFoliosInBook(abbr, dir) {
   const racine = String(dir).split('\\').join('/').replace(/\/$/, '')
   const out = []
@@ -189,7 +193,9 @@ const QUOI =
   "donc jamais lui-même ; scripts/raw/check-folio-continuity.test.mjs le vérifie."
 
 /** La RÉGÉNÉRATION du stock des sauts (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sauts (par
- *  défaut, ceux de tous les livres). */
+ *  défaut, ceux de tous les livres).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (gaps = scanAllBooks()) => [{
   chemin: STOCK_PATH,
   politique: DECROISSANT,
@@ -202,8 +208,11 @@ export const regenerations = (gaps = scanAllBooks()) => [{
 }]
 
 /** Le SITE d'une ancre sans contenu, seule écriture de sa réf : le LIEU est le chapitre extrait, le
- *  FAIT est le folio (`<ABBR NN> folio <F>`) — même partage que `sitesDeSauts`, où `ref` porte le saut. */
-export const siteDAncreVide = (ancre) => ({ file: ancre.fichier, ref: `${ancre.ref} folio ${ancre.folio}` })
+ *  FAIT est le folio (`<ABBR NN> folio <F>`) — même partage que `sitesDeSauts`, où `ref` porte le saut.
+ * @param {import('../guards/lib/stock.mjs').Site & { folio: number }} ancre
+ * @returns {import('../guards/lib/stock.mjs').Site}
+ */
+export const siteDAncreVide = (ancre) => ({ fichier: ancre.fichier, ref: `${ancre.ref} folio ${ancre.folio}` })
 
 /** Ancres sans contenu MESURÉES → entrées de site (`sitesEnEntrees`, définition unique de
  *  `guards/lib/stock.mjs`) : la clé `cleDeSite` se CALCULE, elle ne se grave pas. La `line` suit
@@ -337,4 +346,7 @@ function main() {
   if (koGaps || koEmpty) process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

@@ -5,7 +5,7 @@
 //   node --test scripts/docs/build-all-check.test.mjs  (chaîné dans `npm run test:docs`)
 //
 // Les cas de bout en bout jouent `executer` pour de vrai, `generateurs` injectés, sur un DÉPÔT
-// JETABLE et des générateurs RÉELS qui passent par `ecrireOuVerifier`.
+// JETABLE et des générateurs RÉELS qui rendent leurs cibles au lanceur.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -15,7 +15,8 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { sousGestesLourds, CODE_SOURCE_MODIFIEE, genererCode, issueDe, natureDuRouge } from './build-all.mjs'
+import { sousGestesLourds, genererCode, issueDe, natureDuRouge } from './build-all.mjs'
+import { CODE_SOURCE_MODIFIEE } from '../guards/lib/codesDeSortie.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
@@ -46,13 +47,12 @@ test('natureDuRouge : un processus tué ou coupé se nomme par son signal ou son
 
 // ── De bout en bout : `executer`, `generateurs` injectés, sur des générateurs RÉELS ─────────────
 
-const PRIMITIVE = pathToFileURL(path.join(ICI, 'lib', 'ecriture-derives.mjs')).href
 const BUILD_ALL = pathToFileURL(path.join(ICI, 'build-all.mjs')).href
 
 function copierOutillage(racine) {
   const origine = path.resolve(ICI, '../..')
   const copie = path.join(racine, 'outillage')
-  const racines = ['scripts/docs/build-all.mjs', 'scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
+  const racines = ['scripts/docs/build-all.mjs', 'scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs', 'scripts/docs/lib/jouer-generateur.mjs']
   for (const rel of clotureDImports(racines, { racine: origine })) {
     mkdirSync(path.dirname(path.join(copie, rel)), { recursive: true })
     copyFileSync(path.join(origine, rel), path.join(copie, rel))
@@ -67,13 +67,14 @@ function depotFermeture({ mutation = false, cycle = false, injections = false } 
     const cible = cycle ? `\`data/${nom}-\${noms.length}.generated.ts\`` : JSON.stringify(`data/${nom}.generated.ts`)
     return [`g/${nom}.mjs`, [
       "import { readFileSync, readdirSync, writeFileSync } from 'node:fs'",
-      `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
-      `const lu = readFileSync('inputs/${nom}.txt', 'utf8')`,
-      ...(nom === 'a' || cycle ? [`const noms = readdirSync('data').filter((n) => !n.startsWith('${nom}') || !n.endsWith('.generated.ts')).sort()`] : []),
-      `ecrireOuVerifier({ path: ${cible}, out: ${nom === 'a' || cycle ? 'JSON.stringify(noms)' : 'lu'}, check: process.argv.includes('--check'), staleMsg: 'froid périmé', rerunMsg: 'relancer' })`,
-      ...(!cycle && nom === 'b' ? ["if (lu === 'suivante') ecrireOuVerifier({ path: 'data/b-suivante.generated.ts', out: lu, check: process.argv.includes('--check'), staleMsg: 'glob périmé', rerunMsg: 'relancer' })"] : []),
-      ...(injections ? ["ecrireOuVerifier({ path: 'notes/mixte.md', out: lu, check: process.argv.includes('--check'), staleMsg: 'mixte périmé', rerunMsg: 'relancer' })"] : []),
-      ...(mutation && nom === 'b' ? ["if (!process.argv.includes('--check')) writeFileSync('inputs/a.txt', 'mutation externe')"] : []),
+      'export function* produire({ check }) {',
+      `  const lu = readFileSync('inputs/${nom}.txt', 'utf8')`,
+      ...(nom === 'a' || cycle ? [`  const noms = readdirSync('data').filter((n) => !n.startsWith('${nom}') || !n.endsWith('.generated.ts')).sort()`] : []),
+      `  yield { path: ${cible}, out: ${nom === 'a' || cycle ? 'JSON.stringify(noms)' : 'lu'}, staleMsg: 'froid périmé', rerunMsg: 'relancer' }`,
+      ...(!cycle && nom === 'b' ? ["  if (lu === 'suivante') yield { path: 'data/b-suivante.generated.ts', out: lu, staleMsg: 'glob périmé', rerunMsg: 'relancer' }"] : []),
+      ...(injections ? ["  yield { path: 'notes/mixte.md', out: lu, staleMsg: 'mixte périmé', rerunMsg: 'relancer' }"] : []),
+      ...(mutation && nom === 'b' ? ["  if (!check) writeFileSync('inputs/a.txt', 'mutation externe')"] : []),
+      '}',
     ].join('\n')]
   }))
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\ndocs/\n', 'data/source.txt': 'source', 'inputs/a.txt': 'a', 'inputs/b.txt': 'b', ...(injections ? { 'notes/mixte.md': 'initial' } : {}), ...scripts } })
@@ -172,9 +173,10 @@ test('lecture tardive : nouveau endpoint glob aval absent au dépliage initial r
     const premier = { runner: 'node', script: 'g/premier.mjs', targets: ['data/premier.generated.ts'], injecte: ['data/b-nouvelle.generated.ts'] }
     writeFileSync(path.join(racine, premier.script), [
       "import { readFileSync } from 'node:fs'",
-      `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
-      "const lu = readFileSync('inputs/a.txt', 'utf8')",
-      "for (const cible of ['data/premier.generated.ts', 'data/b-nouvelle.generated.ts']) ecrireOuVerifier({ path: cible, out: lu, check: process.argv.includes('--check'), staleMsg: 'premier périmé', rerunMsg: 'relancer' })",
+      'export function* produire() {',
+      "  const lu = readFileSync('inputs/a.txt', 'utf8')",
+      "  for (const cible of ['data/premier.generated.ts', 'data/b-nouvelle.generated.ts']) yield { path: cible, out: lu, staleMsg: 'premier périmé', rerunMsg: 'relancer' }",
+      '}',
     ].join('\n'))
     const script = path.join(racine, 'g/a.mjs')
     writeFileSync(script, readFileSync(script, 'utf8') + "\nreadFileSync('data/b-nouvelle.generated.ts', 'utf8')\n")
@@ -220,11 +222,12 @@ for (const glob of [false, true]) test(`build froid réel : listing propre ${glo
   const script = [
     "import { existsSync, readFileSync } from 'node:fs'",
     `import { listerDossier } from ${JSON.stringify(pathToFileURL(path.join(ICI, '../guards/lib/lister.mjs')).href)}`,
-    `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
-    `existsSync(${JSON.stringify(cible)})`,
-    ...(glob ? ["existsSync('data/futur.generated.ts')"] : []),
-    "const sources = listerDossier('data').filter(n => n.endsWith('.txt')).map(n => readFileSync('data/' + n, 'utf8')).join('')",
-    `ecrireOuVerifier({ path: ${JSON.stringify(cible)}, out: 'export const froid = ' + JSON.stringify(sources) + '\\n', check: process.argv.includes('--check'), staleMsg: 'froid périmé', rerunMsg: 'relancer' })`,
+    'export function* produire() {',
+    `  existsSync(${JSON.stringify(cible)})`,
+    ...(glob ? ["  existsSync('data/futur.generated.ts')"] : []),
+    "  const sources = listerDossier('data').filter(n => n.endsWith('.txt')).map(n => readFileSync('data/' + n, 'utf8')).join('')",
+    `  yield { path: ${JSON.stringify(cible)}, out: 'export const froid = ' + JSON.stringify(sources) + '\\n', staleMsg: 'froid périmé', rerunMsg: 'relancer' }`,
+    '}',
   ].join('\n')
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\ndocs/\n', 'data/source.txt': 'source', 'g/froid.mjs': script } })
   const generateurs = [{ runner: 'node', script: 'g/froid.mjs', targets: [glob ? 'data/*.generated.ts' : cible] }]
@@ -238,6 +241,30 @@ for (const glob of [false, true]) test(`build froid réel : listing propre ${glo
     const bytes = readFileSync(path.join(racine, cible))
     assert.equal(executer(racine, ['--check', '--code'], {}, [], generateurs).status, 0)
     assert.deepEqual(readFileSync(path.join(racine, cible)), bytes)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('build froid : créer le dossier de sortie ne périme pas les sources du producteur', () => {
+  const cible = 'hote/absent/rendu.ts'
+  const generateurs = [{ runner: 'node', script: 'g/a.mjs', targets: [cible] }]
+  const { racine } = instanceDeDepot({ fichiers: {
+    '.gitignore': '/hote/\n/docs/\n',
+    'source.txt': 'export const valeur = 1\n',
+    'g/a.mjs': [
+      "import { readFileSync } from 'node:fs'",
+      'export function* produire() {',
+      `  yield { path: ${JSON.stringify(cible)}, out: readFileSync('source.txt', 'utf8') }`,
+      '}',
+    ].join('\n'),
+  } })
+  try {
+    assert.equal(existsSync(path.join(racine, 'hote')), false)
+    const vu = executer(racine, ['--code'], {}, [], generateurs)
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.equal(readFileSync(path.join(racine, cible), 'utf8'), 'export const valeur = 1\n')
+    const preuve = chargerPreuve(racine)
+    assert.equal(preuve.generateurs['g/a.mjs'].mesure.sondes.some(({ chemin }) => chemin === 'hote' || chemin === 'hote/absent'), false)
+    assert.equal(preuveValide(racine, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }, preuve).ok, true)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
@@ -412,19 +439,19 @@ for (const identique of [true, false]) test(`--perimes mesure le lecteur au rang
 })
 
 /** Un générateur RÉEL : lit ses DEUX sources (`SEUIL_SOURCES`), rend un doc qui CITE un chemin, et
- *  passe par la primitive. `cliquet` : sous `BANC_SORTIE=<code>`, il pose ce code AVANT la
- *  primitive, comme `reconcile.mjs` — les deux rouges doivent alors se dire. */
+ *  livre une cible. `cliquet` : sous `BANC_SORTIE=<code>`, il pose ce code avant sa cible,
+ *  comme `reconcile.mjs` — les deux rouges doivent alors se dire. */
 const generateurReel = (nom, { cliquet = false } = {}) => [
   "import { readFileSync } from 'node:fs'",
-  `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
-  `const lu = readFileSync('src/${nom}.ts', 'utf8') + readFileSync('src/commun.ts', 'utf8')`,
-  cliquet ? "if (process.env.BANC_SORTIE) { console.log('CLIQUET ROUGE'); process.exitCode = Number(process.env.BANC_SORTIE) }" : '',
-  'ecrireOuVerifier({',
-  `  out: \`# ${nom}\\n\\nSource : \\\`src/${nom}.ts\\\` (\${lu.length} octets)\\n\`,`,
-  `  path: 'docs/${nom}.md',`,
-  "  check: process.argv.includes('--check'),",
-  `  staleMsg: 'docs/${nom}.md PÉRIMÉ', rerunMsg: 'relancer',`,
-  '})',
+  'export function* produire() {',
+  `  const lu = readFileSync('src/${nom}.ts', 'utf8') + readFileSync('src/commun.ts', 'utf8')`,
+  cliquet ? "  if (process.env.BANC_SORTIE) { console.log('CLIQUET ROUGE'); process.exitCode = Number(process.env.BANC_SORTIE) }" : '',
+  '  yield {',
+  `    out: \`# ${nom}\\n\\nSource : \\\`src/${nom}.ts\\\` (\${lu.length} octets)\\n\`,`,
+  `    path: 'docs/${nom}.md',`,
+  `    staleMsg: 'docs/${nom}.md PÉRIMÉ', rerunMsg: 'relancer',`,
+  '  }',
+  '}',
 ].join('\n')
 
 const GENERATEURS_REELS = [
@@ -516,7 +543,12 @@ test('une cible orpheline, ignorée par le bloc des cibles pures et qu’aucun g
     assert.equal(seul.status, 0, seul.sortie)
     assert.deepEqual([orpheline, path.join(racine, DOC_B)].map((f) => existsSync(f)), [false, true], '`--only` retire l’orpheline et garde la cible du générateur non choisi')
     poser()
-    writeFileSync(path.join(racine, 'g/c.mjs'), ["import { readFileSync } from 'node:fs'", `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`, "ecrireOuVerifier({ out: readFileSync('src/a.ts', 'utf8') + readFileSync('src/commun.ts', 'utf8'), path: 'src/c.generated.ts', check: process.argv.includes('--check'), staleMsg: 'c périmé', rerunMsg: 'relancer' })"].join('\n'))
+    writeFileSync(path.join(racine, 'g/c.mjs'), [
+      "import { readFileSync } from 'node:fs'",
+      'export function* produire() {',
+      "  yield { out: readFileSync('src/a.ts', 'utf8') + readFileSync('src/commun.ts', 'utf8'), path: 'src/c.generated.ts', staleMsg: 'c périmé', rerunMsg: 'relancer' }",
+      '}',
+    ].join('\n'))
     const code = executer(racine, ['--code'], {}, [], [...GENERATEURS_REELS, { runner: 'node', script: 'g/c.mjs', targets: ['src/c.generated.ts'] }])
     assert.equal(code.status, 0, code.sortie)
     assert.deepEqual([orpheline, 'src/c.generated.ts', DOC_A, DOC_B].map((f) => existsSync(path.resolve(racine, f))), [false, true, true, true], '`--code` retire l’orpheline et garde les docs des générateurs qu’il ne joue pas')
@@ -554,12 +586,12 @@ test('attestation : source app et module hors frontière d’outillage restent f
     const frais = jouer(['--perimes'])
     assert.equal(frais.status, 0, frais.sortie)
     assert.doesNotMatch(frais.sortie, /g\/a\.mjs — début|g\/b\.mjs — début/)
-    const horsFrontiere = path.join(copie, 'scripts/guards/lib/ecritureJsonAtomique.mjs')
+    const horsFrontiere = path.join(copie, 'scripts/etape-profilee.mjs')
     writeFileSync(horsFrontiere, readFileSync(horsFrontiere, 'utf8') + '\n')
     const toujoursFrais = jouer(['--perimes'])
     assert.equal(toujoursFrais.status, 0, toujoursFrais.sortie)
     assert.doesNotMatch(toujoursFrais.sortie, /g\/a\.mjs — début|g\/b\.mjs — début/)
-    for (const rel of ['scripts/docs/lib/enregistreur-hooks.mjs', 'src/lib/ordre.mjs']) {
+    for (const rel of ['scripts/docs/lib/enregistreur-hooks.mjs', 'src/lib/ordre.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs']) {
       const cible = path.join(copie, rel)
       writeFileSync(cible, readFileSync(cible, 'utf8') + '\n')
       const perime = jouer(['--perimes'])
@@ -762,9 +794,10 @@ test('premier baseline : CODE généré lu, requête Git et sonde stat sont rée
     'g/a.mjs': a, 'g/b.mjs': generateurReel('b'),
     'g/code.mjs': [
       "import { readFileSync } from 'node:fs'",
-      `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
-      "readFileSync('src/a.ts'); readFileSync('src/commun.ts')",
-      `ecrireOuVerifier({ out: 'export const valeur = 1\\n', path: ${JSON.stringify(code)}, check: process.argv.includes('--check') })`,
+      'export function* produire() {',
+      "  readFileSync('src/a.ts'); readFileSync('src/commun.ts')",
+      `  yield { out: 'export const valeur = 1\\n', path: ${JSON.stringify(code)} }`,
+      '}',
     ].join('\n'),
   } })
   try {

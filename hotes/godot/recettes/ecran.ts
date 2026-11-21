@@ -27,7 +27,7 @@
  * `projet/ecrans/` est montrée par une vue.
  * @contrat L'écran de Godot
  */
-import { clicDuCombattant, creerPont, type MondeDuPont, type Suite } from '../pont/pont';
+import { clicDuCombattant, creerPontFige, type MondeDuPont, type Suite } from '../pont/pont';
 import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
@@ -88,8 +88,7 @@ export interface ReponsesDeLaPlanche {
   aretes: unknown;
 }
 
-/** Les réponses du pont que partagent les planches d'un scénario, par méthode, déposées une fois
- *  (`<export>/planches/communes/<scenario>.json`). */
+/** Les réponses du pont par méthode, dédupliquées entre planches qui les partagent. */
 export interface ReponsesCommunes {
   /** Le manifeste du monde de sa scène. */
   monde: unknown;
@@ -182,7 +181,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
    *  repartent de zéro à chaque partie : seul le combat du dôme verse au journal des vues. `planche` rend la planche
    *  de la suite `s` de sa partie. */
   const unPont = (journal: Ligne[]) => {
-    const pont = creerPont(null, null);
+    const pont = creerPontFige();
     let scenario = '';
     const appeler = (methode: string, entree: unknown): Suite => {
       const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;

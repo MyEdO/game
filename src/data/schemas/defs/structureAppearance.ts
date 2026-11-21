@@ -14,13 +14,13 @@ export const file = 'structureAppearance.json';
 export const famille = 'entite';
 
 /** Parties SURCHARGEABLES par `relief.jut`/`relief.thick` : les 16 parties des familles `saillie` et
- *  `traversant`. Les 7 parties de la famille `matiere` (`face, poteau, couronnement, jambage, parapet,
- *  arase, merlon`) en sont ABSENTES : leur volume EST celui du mur (`wallPartDepthM` rend `wallM` sans
+ *  `traversant`. Les 8 parties de la famille `matiere` (`face, poteau, couronnement, jambage, parapet,
+ *  arase, merlon, joint`) en sont ABSENTES : leur volume EST celui du mur (`wallPartDepthM` rend `wallM` sans
  *  lire la surcharge) — c'est `relief.wallM` qui règle celui-là, pour toutes à la fois. Les y admettre
  *  au schéma promettait une surcharge qui n'agit sur rien. */
 export const RELIEF_PART_KEYS = WALL_PARTS.filter(
-  (k) => !(['face', 'poteau', 'couronnement', 'jambage', 'parapet', 'arase', 'merlon'] as readonly string[]).includes(k),
-) as Exclude<WallPart, 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon'>[];
+  (k) => !(['face', 'poteau', 'couronnement', 'jambage', 'parapet', 'arase', 'merlon', 'joint'] as readonly string[]).includes(k),
+) as Exclude<WallPart, 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon' | 'joint'>[];
 
 /** Profondeur (m) par partie, toutes optionnelles, AUCUNE clé étrangère (`strictObject`). */
 const reliefParPartie = nommerChamps(z.strictObject(
@@ -29,12 +29,20 @@ const reliefParPartie = nommerChamps(z.strictObject(
   ...tableTotale(RELIEF_PART_KEYS, (partie) => ({ label: { panneau: 'Panneau', moulure: 'Moulure', plinthe: 'Plinthe', chambranle: 'Chambranle', vantail: 'Vantail', 'vantail-planche': 'Planche de vantail', poignee: 'Poignée', vitre: 'Vitre', meneau: 'Meneau', bande: 'Bande', linteau: 'Linteau', 'herse-barreau': 'Barreau de herse', 'herse-traverse': 'Traverse de herse', seuil: 'Seuil', gravats: 'Gravats', 'gravats-tas': 'Tas de gravats' }[partie] })),
 });
 
-/** La famille du kit 3D d'une apparence : le modèle `arete--<famille>` dont l'hôte pose les pièces (#4471), sinon les
- *  pièces `<famille>--<pièce>` du kit des arêtes (`hotes/godot/asset/kit.ts`). */
+/** La famille du kit 3D d'une apparence : le modèle `arete--<famille>` dont l'hôte pose les pièces (#4471), sinon une
+ *  boîte. */
 export const kitSchema = enumNomme({
-  colombage: 'Pan de bois', pierre: 'Pierre', moellons: 'Moellons', 'pierres-seches': 'Pierres sèches',
-  porterie: 'Porterie', cloture: 'Clôture',
+  colombage: 'Pan de bois', moellons: 'Moellons', 'pierres-seches': 'Pierres sèches',
+  porterie: 'Porterie', cloture: 'Clôture', herse: 'Herse', terrassement: 'Terrassement',
 });
+
+/** La famille du kit 3D d'escalier d'un terrain bâti : le modèle `escalier--<famille>` dont l'hôte habille les côtés de
+ *  ses cases de marches (#4471, `terrains.json`). */
+export const kitDEscalierSchema = enumNomme({ bois: 'Bois', pierre: 'Pierre' });
+
+/** La famille du kit 3D de toit d'une couverture : le modèle `toit--<famille>` dont l'hôte pose la faîtière sur les
+ *  faîtes de ses nappes (#4471, `kit` de `materials.json`). */
+export const kitDeToitSchema = enumNomme({ ardoise: 'Ardoise', tuile: 'Tuile', chaume: 'Chaume' });
 
 const doc = document(
   'structureAppearance',
@@ -45,12 +53,10 @@ const doc = document(
     detail: detailRecipeSchema.optional(),
     face: z.string(),
     post: z.string(),
-    bayPanel: z.boolean().optional(),
     band: z.string().optional(),
     cap: z.string().optional(),
     rubble: z.string().optional(),
     rubbleHi: z.string().optional(),
-    recess: z.string().optional(),
     wood: nommerChamps(z
       .strictObject({
         inset: z.string(),
@@ -74,7 +80,6 @@ const doc = document(
         merlonCount: z.number(),
         merlonStep: z.number(),
         merlonHeightPx: z.number(),
-        bands: z.array(z.number()),
         bandThickPx: z.number(),
         parapetBandFrac: z.number(),
         arasePx: z.number(),
@@ -83,7 +88,6 @@ const doc = document(
       merlonCount: { label: 'Nombre de merlons' },
       merlonStep: { label: 'Espacement des merlons' },
       merlonHeightPx: { label: 'Hauteur des merlons (px)' },
-      bands: { label: 'Bandes' },
       bandThickPx: { label: 'Épaisseur des bandes (px)' },
       parapetBandFrac: { label: 'Bande de parapet (fraction)' },
       arasePx: { label: 'Arase (px)' },
@@ -92,9 +96,7 @@ const doc = document(
     door: nommerChamps(z
       .strictObject({
         openingFrac: z.number(),
-        lintelPx: z.number(),
         jamb: z.string().optional(),
-        jambCap: z.string().optional(),
         leaf: z.string().optional(),
         plank: z.string().optional(),
         handle: z.string().optional(),
@@ -113,9 +115,7 @@ const doc = document(
           .optional(),
       }), {
       openingFrac: { label: 'Ouverture (fraction)' },
-      lintelPx: { label: 'Linteau (px)' },
       jamb: { label: 'Jambage' },
-      jambCap: { label: 'Couronnement du jambage' },
       leaf: { label: 'Vantail' },
       plank: { label: 'Planche' },
       handle: { label: 'Poignée' },
@@ -124,14 +124,14 @@ const doc = document(
       .optional(),
     window: nommerChamps(z
       .strictObject({
-        glass: z.string(),
-        lit: z.string(),
-        frame: z.string(),
-        mullion: z.string(),
+        glass: z.string().optional(),
+        /** Le bois des vantaux (volets de la croisée, porte) d'une apparence sans `door.leaf` ni `wood.inset`
+         *  (`wallPartColor`, partie `vantail`). */
+        frame: z.string().optional(),
+        mullion: z.string().optional(),
       }), {
       glass: { label: 'Vitre' },
-      lit: { label: 'Éclairée' },
-      frame: { label: 'Cadre' },
+      frame: { label: 'Bois des vantaux' },
       mullion: { label: 'Meneau' },
     })
       .optional(),
@@ -154,19 +154,17 @@ const doc = document(
     detail: { label: 'Recette de détail' },
     face: { label: 'Couleur de face', hint: 'Teinte de base du pan de mur' },
     post: { label: 'Couleur de poteau', hint: 'Teinte des montants' },
-    bayPanel: { label: 'Panneau mouluré', hint: 'Ajoute le panneau et sa moulure de travée sur le pan plein' },
     band: { label: 'Couleur de bande', hint: 'Pierre : ferrure de courtine, barreaux de herse' },
     cap: { label: 'Couleur de couronnement' },
     rubble: { label: 'Couleur de gravats' },
     rubbleHi: { label: 'Couleur de gravats (clair)', hint: 'Reflet des gravats' },
-    recess: { label: 'Couleur de renfoncement', hint: 'Glyphe en creux de la vue de plan (corps de garde)' },
     wood: {
       label: 'Habillage bois',
       hint: 'Teintes de panneau, cadre/chambranle, couronnement, plinthe et gravats en bois',
     },
     parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet' },
     door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail, poignée et herse' },
-    window: { label: 'Fenêtre', hint: 'Vitre, cadre, meneau et teinte éclairée' },
+    window: { label: 'Fenêtre', hint: 'Vitre, bois des vantaux et meneau' },
     relief: {
       label: 'Relief de paroi',
       hint: 'Saillie et épaisseur en mètres par partie de mur, plus l’épaisseur de matière pleine (wallM)',
@@ -176,11 +174,12 @@ const doc = document(
     codex: {
       exempt: {
         kind: 'vocabulaire-app-interne',
-        raison: "presets d'apparence de structure (rendu iso), pas une fiche de contenu.",
+        raison: "apparences de structure utilisées par la géométrie du noyau et le rendu Godot.",
       },
     },
-    edit: { none: 'presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`' },
+    edit: { none: 'apparences de structure éditées au fichier' },
   },
+  { espace: { marqueurs: ['parapet'] } },
 );
 
 export const schema = doc.schema;

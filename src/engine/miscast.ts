@@ -169,7 +169,7 @@ export interface MiscastTableRow {
 }
 
 /** Les tables tirables TELLES QUE LA DONNÉE les déclare (les documents de `miscast.json`) : id
- *  d'étape, rangées portées, libellé JOUEUR — sans marque de livre (`docs/charte-ui.md`) : le jeu de
+ *  d'étape, rangées portées, libellé JOUEUR — sans marque de livre (`src/book-ref-guard.test.ts`) : le jeu de
  *  tables en vigueur est une RÈGLE, pas une information d'écran.
  *  Une table de plus est un DOCUMENT de plus dans le fichier, aucune ligne de code. */
 export const MISCAST_TABLES: MiscastTableDef[] = datasetDe<typeof miscastDef>(miscastJson);

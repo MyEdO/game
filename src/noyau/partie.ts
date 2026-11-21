@@ -62,6 +62,8 @@ export interface ResultatDeLAppel {
   issue: IssueDeLAppel;
   evenements: Evenement[];
   journal: LigneDuJournal[];
+  /** Verdict destiné au seul siège distant dont l'intention a été jugée. */
+  refus?: string;
 }
 
 export interface Partie {
@@ -185,17 +187,23 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
       ouvertePour('reprojeterLArmement');
       set(patchDeLArmement(get()) ?? {});
     },
-    envoyer: (intention) => appeler('envoyer', () => {
-      const refus = refusChezLInvite(get(), intention);
-      if (refus) {
-        refuserGeste(get, set, refus);
+    envoyer: (intention) => {
+      let refusDuSiege: string | undefined;
+      const resultat = appeler('envoyer', () => {
+        const refus = refusChezLInvite(get(), intention);
+        if (refus) {
+          refuserGeste(get, set, refus);
+          return 'appliquee';
+        }
+        if (LANCERS_DU_JOUEUR.has(verbeDeJetDe(intention.type))) bus.emit(EVT.DICE_ROLL);
+        if (intention.siege !== undefined) {
+          return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args, (texte) => { refusDuSiege = texte; });
+        }
+        (get()[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
         return 'appliquee';
-      }
-      if (LANCERS_DU_JOUEUR.has(verbeDeJetDe(intention.type))) bus.emit(EVT.DICE_ROLL);
-      if (intention.siege !== undefined) return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args);
-      (get()[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
-      return 'appliquee';
-    }),
+      });
+      return refusDuSiege === undefined ? resultat : { ...resultat, refus: refusDuSiege };
+    },
     lancer: (lancement) => appeler('lancer', () => {
       lancerLeScenario(get, set, lancement);
       return 'appliquee';

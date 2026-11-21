@@ -280,7 +280,8 @@ function combatSkillPick(c: Combatant, kind: 'melee' | 'distance', weapon?: Weap
   const skillId = weaponSkillId(kind);
   const matching = c.skills.filter((s) => s.id === skillId);
   if (matching.length === 0) return { charKey, advances: 0 };
-  if (!weapon || !weapon.subType) return { charKey, skill: { id: skillId }, advances: Math.max(0, ...matching.map((s) => s.advances)) };
+  if (!weapon || !weapon.subType || weapon.sansSpecialisation)
+    return { charKey, skill: { id: skillId }, advances: Math.max(0, ...matching.map((s) => s.advances)) };
   const m = matchGroupSpec(c, weapon, kind);
   return { charKey, skill: { id: skillId, ...(m?.spec ? { spec: m.spec } : {}) }, advances: m?.advances ?? 0 };
 }
@@ -448,8 +449,11 @@ export function defenseValueModParts(c: Combatant, mode: DefenseMode, weapon?: W
 export function defenseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialBase?: number): number {
   return defenseBaseValue(c, mode, weapon, socialBase) + defenseValueMods(c, mode, weapon);
 }
-/** Ids du Test de défense, MÊME sélection que `defenseBaseValue` : Parade = `attackTestOf` de mêlée à l'arme
- *  parante, Esquive, ou la Compétence substituée `socialSkillId` (LDB 13 l.161-167). */
+
+/**
+ * Sujet du Test de défense projeté avec la rangée (LDB 13 l.161-167). En Parade, la même arme
+ * que dans `defenseBaseValue` désigne le Test de mêlée et sa spécialité.
+ */
 export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): SujetDuJet {
   if (mode === 'parade') return attackTestOf(c, weapon ?? defaultParryWeapon(c), 'melee');
   if (mode === 'esquive') return { skill: { id: 'esquive' } };

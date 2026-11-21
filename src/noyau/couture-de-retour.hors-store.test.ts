@@ -74,8 +74,8 @@ describe('coutures du héros en combat (#2312)', () => {
     const id = combat();
     expect(partages(grp(id), cbt(id))).toEqual([]);
     const effets = [
-      { type: 'giveTrapping', trappingId: 'corde', heroId: id },
-      { type: 'learnSpell', spell: 'sommeil', heroId: id },
+      { type: 'giveTrapping', objet: { id: 'corde' }, heroId: id },
+      { type: 'learnSpell', sort: { id: 'sommeil' }, heroId: id },
       { type: 'inflictDisease', disease: 'vers-de-carie', heroId: id },
       { type: 'inflictTrauma', kind: 'fracture', severity: 'mineur', location: 'brasD', heroId: id },
       { type: 'giveSin', amount: 1, heroId: id },
@@ -259,11 +259,8 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/data/schemas/defs/spells.ts | xp: z.number(),': 'type',
     'src/noyau/monde/advancement.ts | xp: number;': 'type',
     'src/noyau/pendings.ts | xp: number;': 'type',
-    'src/ui/creator/CreatorDice.tsx | xp: number;': 'type',
     'src/engine/persistence.ts | xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,': 'type',
     'src/noyau/combatFlow.ts | xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),': 'lecture',
-    'src/state/devtools.ts | xp: (amount?: number) => {': 'lecture',
-    'src/state/devtools.ts | return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));': 'lecture',
     'src/engine/character.ts | xp: opts.xpBonus ?? 0,': 'creation',
     'src/engine/character.ts | xp: number;': 'type',
     'src/engine/character.ts | xp: r.xp,': 'creation',
@@ -288,7 +285,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
   it('les clés PX de métadonnées ne cachent aucune écriture exécutée', () => {
     const text = `import { nommerChamps as nommer } from '../data/schemas/grammaire/meta';
       nommer(schema, { xp: { label: 'PX' }, autre: { label: (hero.xp -= 2) }, exemple: donne({ xp: 3 }) });`;
-    const code = sansDeclarationsDeMetadonnees({ rel: 'src/state/probe.ts', text });
+    const code = sansDeclarationsDeMetadonnees({ rel: 'src/noyau/probe.ts', text });
     expect([...code.matchAll(/\.xp\s*[-+]?=(?!=)|\bxp:\s/g)].map((m) => m[0])).toEqual(['.xp -=', 'xp: ']);
   });
 
@@ -385,7 +382,7 @@ describe('la composition du groupe ne change pas en combat (#2312)', () => {
 });
 
 describe('markActed relit l’état vivant (ramasserLObjet, #2312)', () => {
-  for (const eff of [{ type: 'giveTrapping', trappingId: 'tromblon' }, { type: 'giveMoney', montant: { gold: 1 } }]) {
+  for (const eff of [{ type: 'giveTrapping', objet: { id: 'tromblon' } }, { type: 'giveMoney', montant: { gold: 1 } }]) {
     it(`${eff.type} : l’approche en attente est scellée sur l’objet vivant`, () => {
       const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
       hero.items = hero.items ?? [];

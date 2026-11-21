@@ -19,6 +19,11 @@ import { t } from '../i18n';
 import { setRule } from '../engine/policy';
 import type { Combatant, NavalTraitRef, ShipPoste } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { scenario as embuscadeFluviale } from '../scenes/test-scenarios/16-embuscade-fluviale';
+import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
+import { lancerLeScenario } from './lancementDeScenario';
+import { capEnCombat, naviresDeLaScene, provenanceDesNavires } from './planDeNavire';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -86,6 +91,29 @@ describe('virerLeNavire (action store) — vire le cap, branché aux arcs', () =
   });
 });
 
+it('la barge de l’embuscade garde le cap de ses ponts pendant un geste d’orientation ou de navigation (#3835)', () => {
+  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(embuscadeFluviale, idsDeTest));
+  const id = 'enemy-enc-fluvial-5';
+  const avant = banc.getState();
+  expect(avant.facing[id]).toBeUndefined();
+  expect(capEnCombat(avant, id)).toBe('E');
+  // Une orientation de combat d'une partie antérieure ne commande pas le plateau.
+  banc.setState({ facing: { ...avant.facing, [id]: 'N' } });
+  banc.getState().orienterVers(id, { x: 3, y: 6 }, { x: 3, y: 9 });
+  banc.getState().virerLeNavire(id, 2);
+  expect(banc.getState().avancerLeNavire(id, 4)).toBe(0);
+  const apres = banc.getState();
+  expect(capEnCombat(apres, id)).toBe('E');
+  expect(apres.facing[id]).toBe('N');
+  expect(apres.battle!.combatants.find((c) => c.id === id)?.pos).toMatchObject({ x: 3, y: 6 });
+  expect(naviresDeLaScene(apres.scene!)).toMatchObject([{ id, vehicule: { cap: 'E' }, centre: { x: 3.5, y: 7 } }]);
+  const { flottaison } = provenanceDesNavires(apres.scene!);
+  expect(flottaison.size).toBe(24);
+  expect([...flottaison.keys()].sort()).toEqual(
+    Array.from({ length: 8 }, (_, x) => [6, 7, 8].map((y) => `${x},${y},0`)).flat().sort(),
+  );
+});
+
 describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG 13)', () => {
   const helmsman = (): Combatant =>
     combattantDeTest({
@@ -123,7 +151,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
       km: 25, kmDone: 0, hoursPerDay: 6, interrupted: true, vehicle: barge,
       sea: {
         heading: 'ouest', weather: rollSeaWeather('ete', makeRNG(1)), windFrom: 'est',
-        daysToEvent: 4, daysAtSea: 1, lines: [], milesToday: 0, hullAtDayStart: barge.wounds.current,
+        daysAtSea: 1, lines: [], milesToday: 0, hullAtDayStart: barge.wounds.current,
       },
     };
     banc.setState({ travelPlan: mer });

@@ -52,7 +52,7 @@ export const projetDoc = document(
       min: { taille: 1, message: 'le projet ne porte aucune scène : il en faut au moins une pour l’ouvrir ou le jouer.' },
     }),
     worldMap: worldMapSchema.optional(),
-    /** Axes de forces/faiblesses ACTIFS de la campagne (#409) — absent = socle `coreAxisIds`. */
+    /** Axes de forces et faiblesses déclarés par le projet (#409). */
     activeAxes: refs('axe').optional(),
     narratif: narratifSchema,
   },

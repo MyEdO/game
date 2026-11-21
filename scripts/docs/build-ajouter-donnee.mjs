@@ -14,7 +14,7 @@
  * La part ÉDITORIALE (check-first, zéro invention, ordre des étapes) vit ICI, en dur — patron
  * « éditorial EN DUR dans le générateur » de `scripts/docs/build-sources-vf.mjs`.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-ajouter-donnee.mjs
  */
@@ -22,9 +22,9 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
 import { loadSource } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-ajouter-donnee'
   const DOC = 'src/data/schemas/grammaire/document.ts'
@@ -285,7 +285,7 @@ JAMAIS un choix d'agent silencieux enterré. Avant de conclure « le moteur ne s
 - Canonicaliser via \`serializeDataset\` (\`${SERIALIZE}\`) — jamais un reformatage manuel ni un
   \`JSON.stringify\` maison (le round-trip est byte-exact).
 - \`npm test\` + \`npm run typecheck\` verts.
-- Si l'élément est visible au Codex/éditeur → **recette navigateur** (\`docs/recette-navigateur.md\`).
+- Si l’élément est visible au Compendium ou dans l’éditeur Godot, jouer le geste correspondant avec \`npm run godot:recette\`.
 
 ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describe`)'], (g) => `| \`${g.p}\` | ${g.quoi} |`)}
 `
@@ -306,4 +306,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

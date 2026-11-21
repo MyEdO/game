@@ -258,6 +258,12 @@
     "label": "Épée de cour"
   },
   {
+    "id": "fauchard",
+    "type": "apparences",
+    "label": "Fauchard",
+    "formeFixeeALaNaissance": true
+  },
+  {
     "id": "filet_leste",
     "type": "apparences",
     "label": "Filet lesté"
@@ -455,6 +461,12 @@
     "id": "pertuisane",
     "type": "apparences",
     "label": "Pertuisane/Fauchard"
+  },
+  {
+    "id": "pertuisane_lance",
+    "type": "apparences",
+    "label": "Pertuisane",
+    "formeFixeeALaNaissance": true
   },
   {
     "id": "pioche_2m",

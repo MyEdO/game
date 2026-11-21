@@ -1,0 +1,51 @@
+{
+  "schema": 3,
+  "categorie": "arete",
+  "cle": {
+    "kit": "cloture"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "clayonnage",
+      "palette": "corps",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "pieux",
+      "palette": "bois",
+      "matiere": "prop--ecorce"
+    },
+    {
+      "nom": "menuiserie",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "barres",
+      "palette": "planche",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "echelle",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "gravats",
+      "palette": "gravats",
+      "matiere": "prop--bois-mort"
+    }
+  ],
+  "glb": {
+    "sha256": "bdb932d4676f79acf5af8556978387dee6e329f37f517413e5fe8392e0f6cdf0",
+    "octets": 308732
+  }
+}

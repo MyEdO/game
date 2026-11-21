@@ -40,6 +40,7 @@ import { tileKey, type Pt } from './monde/path';
 import { sceneMetresPerTile } from './monde/scene';
 import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { targetArc } from './monde/fireArc';
+import { capEnCombat } from './planDeNavire';
 import { bearingPostes } from './monde/shipBattery';
 import { serveTargetPoste, isPosteManned } from './monde/shipPostes';
 import { executerPoussee } from './pousseeDeCombat';
@@ -226,7 +227,7 @@ export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById
  * clic tirait hors de portée (aucun gate au commit) et l'arc ne se disait qu'au journal.
  */
 export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { reason: 'arc' | 'range'; detail: PlayerText } | null {
-  const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos!, target.pos!);
+  const side = targetArc(capEnCombat(get(), ship.id) ?? 'N', ship.pos!, target.pos!);
   const postes = bearingPostes(ship, side); // sur ce bord ET chargées (pas en cours de recharge, ch.12)
   if (!postes.length) return { reason: 'arc', detail: t('cs.bordeeNoArc', { ship: ship.label, side }) };
   // PORTÉE : les BANDES du socle (`rangeBandModifier`, rangées de `portee-d-une-arme`, LDB 62 l.198-206).
@@ -246,7 +247,7 @@ function batteryAffordance(get: Get, active: Combatant, target: Combatant): Hove
   if (target.kind === active.kind || isOutOfAction(target)) return { kind: 'none' };
   const block = batteryBlock(get, active, target);
   if (block) return { kind: 'invalid', reason: block.reason };
-  const side = targetArc(get().facing[active.id] ?? 'N', active.pos!, target.pos!);
+  const side = targetArc(capEnCombat(get(), active.id) ?? 'N', active.pos!, target.pos!);
   return { kind: 'ok', line: 'dashed', title: `Bordée ${side}`, skill: 'Tir de batterie', base: 0, mod: 0, dmg: null };
 }
 
@@ -865,12 +866,6 @@ export const TARGETING_MODES: readonly TargetingMode[] = Object.values(MODE_PAR_
 /** Nom d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans bandeau). */
 export const targetingModeLabel = (modeId: IdDeModeDeCiblage): string | undefined => MODE_PAR_ID[modeId].label;
 
-/** Consigne d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans consigne). */
-export const targetingModeConsigne = (modeId: IdDeModeDeCiblage): PlayerText | undefined => {
-  const cle = MODE_PAR_ID[modeId].consigne;
-  return cle ? t(cle) : undefined;
-};
-
 /**
  * Ennemis GRISÉS hors Ligne de Vue du héros actif (LDB 13 l.114 ; sort : LDB 46 l.121), la source unique
  * du grisage que lit le survol (`gameIso/stage/useHoverTargeting.ts`). Le mode incantation armé se lit au
@@ -917,22 +912,6 @@ export function currentTargetingMode(get: Get<Jeu>): TargetingMode {
 }
 
 /**
- * Un ciblage d'ENTITÉ est-il ARMÉ ? DÉRIVÉ du registre — jamais une liste d'ids recopiée : le mode
- * courant est un mode-COMBATTANT (il définit `commitCombatant`, donc son clic-token commet un geste
- * sur une entité) et ce n'est pas `ATTACK_MODE`, que l'aiguilleur rend AUSSI quand rien n'est armé —
- * il ne peut donc témoigner d'aucun armement. Les modes-CASE (téléportation, poussée) n'ont pas de
- * `commitCombatant` : ils en sortent d'eux-mêmes.
- * Consommé par les surfaces PORTRAIT (dock du groupe), pour router le clic vers `cliquerLaCase`
- * comme le clic-jeton au lieu d'ouvrir la fiche.
- */
-export function ciblageEntiteArme(get: Get): boolean {
-  const battle = get().battle;
-  if (!battle || battle.over) return false;
-  const mode = currentTargetingMode(get);
-  return mode !== ATTACK_MODE && !!mode.commitCombatant;
-}
-
-/**
  * GESTES CONSOMMÉS CHEZ L'ÉMETTEUR (coop) — jumelle de `INTENTION_JOINTE_AUX_ARGS` (`localIntent.ts`) :
  * une action de clic, la façon de savoir si CE clic-là n'est qu'un choix d'ÉCRAN. Table déclarative,
  * jamais un `if (action === …)` au fil de `emettreIntentInvite` ; les intents absents d'ici voyagent tous.
@@ -952,4 +931,6 @@ export function intentEluLocalement(get: Get, action: string, args: readonly unk
 
 /** Le cavalier et la monture du couple désigné en attente (`pendingMountTarget`, LDB 14 l.181) : les ids que
  *  le choix `cibleDeMonture.cible` accepte. */
-export const idsDuCoupleMonte = (s: Jeu): string[] => (s.pendingMountTarget ? [s.pendingMountTarget.riderId, s.pendingMountTarget.mountId] : []);
+export function idsDuCoupleMonte(s: Jeu): string[] {
+  return s.pendingMountTarget ? [s.pendingMountTarget.riderId, s.pendingMountTarget.mountId] : [];
+}

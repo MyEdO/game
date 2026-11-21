@@ -37,11 +37,13 @@ export const livreIndexe = (livre) => indexerLivre(livre.id, livre.language, cha
 /** RÉF d'un renvoi : section porteuse, folio visé, rang dans la section vers ce folio. */
 export const refDeRenvoi = (r) => `${r.slug}#${r.occ} :: p.${r.renvoi.folio} :: rang ${r.rang}`
 
-/** Sites d'UN livre indexé (PUR) : ses renvois non résolus. */
+/** Sites d'UN livre indexé (PUR) : ses renvois non résolus.
+ * @returns {(import('../guards/lib/stock.mjs').Site & { famille: string })[]}
+ */
 export const sitesDuLivre = (dir, livre) =>
   renvoisDuLivre(livre)
     .filter((r) => FAMILLES.includes(r.resolution.niveau))
-    .map((r) => ({ famille: r.resolution.niveau, file: `${dir}/${r.fichier}`, ref: refDeRenvoi(r) }))
+    .map((r) => ({ famille: r.resolution.niveau, fichier: `${dir}/${r.fichier}`, ref: refDeRenvoi(r) }))
 
 /** Sites de tous les livres couverts. */
 export const scanAll = (livres = livresCouverts()) => livres.flatMap((l) => sitesDuLivre(l.dir, livreIndexe(l)))
@@ -56,7 +58,9 @@ const QUOI =
   'ne fait que décroître : une entrée part quand son renvoi se résout.'
 
 /** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sites (par défaut, la
- *  mesure de tous les livres couverts). */
+ *  mesure de tous les livres couverts).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (sites = scanAll()) => [{
   chemin: STOCK_PATH,
   politique: SOUS_LOT,

@@ -16,7 +16,7 @@
  */
 import { terrains } from '../../../data/index';
 import { memoParVersion } from '../../../data/versionDataset';
-import type { TerrainDef } from '../../../data';
+import type { KitDEscalier, TerrainDef } from '../../../data';
 import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 import { hash32, seedStream } from '../../../lib/hash';
 import { DIR4_ORDER, type Dir4 } from '../../../geometry/dir8';
@@ -171,10 +171,14 @@ export function terrainSolidHeightM(id: string): number {
 export function terrainMatiere(id: string): string | undefined {
   return indexDesTerrains()[id]?.matiere?.id;
 }
+/** Famille du kit 3D d'escalier d'un terrain (#4471), lue par `noyau/monde/cotesDeMarches.ts`. `undefined` hors d'un
+ *  terrain bâti sans bloc plein : le schéma l'exige sur chacun, seuls à porter des marches. */
+export function terrainKitDEscalier(id: string): KitDEscalier | undefined {
+  return indexDesTerrains()[id]?.kitDEscalier;
+}
 /** Recette de détail d'un terrain, RESTREINTE aux sections d'ACCENT (touffes, mouchetis) — `null`
- *  quand l'entrée n'en porte aucune. Deux consommateurs la lisent : l'affine (`authoring/floorsSvg.ts`)
- *  et le volumique (`groundAccents.ts`) ; le POV lit la recette NON restreinte en direct monde
- *  volumique. Elle vit avec le dataset qu'elle interroge, au même titre que `decorDuTerrain`.
+ *  quand l'entrée n'en porte aucune. Elle vit avec le dataset qu'elle interroge, au même titre que
+ *  `decorDuTerrain`.
  *
  *  Type par ACCÈS INDEXÉ sur `TerrainDef`, déjà importé ici : `DetailRecipe` vit dans
  *  `src/data/materials.types.ts` ; l'accès indexé économise un second import. */

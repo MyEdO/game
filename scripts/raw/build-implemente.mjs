@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
 import { join, posix } from 'node:path'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
@@ -8,6 +8,7 @@ import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
 import { EXTS_IMPLEMENTANTES, RACINES_DU_CODE, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Manifests ÉDITORIAUX de `src/data/` : ils parlent DU dépôt (dette d'un topic, inventaire d'une
@@ -16,7 +17,7 @@ export const RAWDIR = 'docs/raw'
 export const MANIFEST_EDITORIAL_RE = /^src\/data\/[^/]+\.manifest\.json$/
 export const MANIFEST_PATH = 'src/data/raw.manifest.json'
 export const BOOKS_JSON_PATH = 'src/data/books.json'
-export const APP_ROOT_MODULE = 'src/main.tsx'
+export const APP_ROOT_MODULE = 'hotes/godot/pont/entree.ts'
 // Fenêtre de match en lignes : comble le décalage folio↔fiche (ex. `MSRC 16 l.109-111` contre la
 // plage folio `l.65-105`) ; `renderBlock` accepte `ctx.tol`. Le bruit des pages-catalogues denses
 // vient de la plage FOLIO, pas de TOL (#434).
@@ -730,20 +731,21 @@ export function rendre(ctx = buildContext()) {
   return new Map([[RAPPORT, lignes.join('\n')]])
 }
 
-function main() {
+export function* produire() {
+  exigerRacineAtlas()
   const ctx = buildContext()
   const all = etatsDesTopics(ctx)
   const orphans = orphelinsDeDette(ctx, all)
   const sansObjet = dettesDeFicheSansObjet(ctx, all)
-  if (!process.argv.includes('--dry')) for (const [path, out] of rendre(ctx)) ecrireOuVerifier({
-    path, out, check: process.argv.includes('--check'),
+  if (!process.argv.includes('--dry')) for (const [path, out] of rendre(ctx)) yield {
+    path, out,
     staleMsg: `raw:implemente — ${path} PÉRIMÉ`,
     rerunMsg: '→ npm run raw:implemente',
-  })
+  }
   printStats(ctx, all, 0)
   if (orphans.length) printOrphans(orphans)
   if (sansObjet.length) printSansObjet(sansObjet)
   if (orphans.length || sansObjet.length) process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

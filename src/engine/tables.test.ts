@@ -109,7 +109,7 @@ describe('facesDuDe — faces d’un dé de table (source unique)', () => {
   });
 });
 
-describe('bandeAuDe — bande précédée du libellé de son dé (docs/charte-ui.md, « Bande de table »)', () => {
+describe('bandeAuDe — bande précédée du libellé de son dé (docs/ajouter-un-flux-de-jet.md, « Bande de table »)', () => {
   it('libellé du schéma et faces du dé : « 1d100 01–35 », « 1d10 9–10 », bande ouverte « 1d100 96+ »', () => {
     const d100 = deDeLaTableTiree({ die: { n: 1, sides: 100 } });
     expect(bandeAuDe(d100, 1, 35)).toBe('1d100 01–35');

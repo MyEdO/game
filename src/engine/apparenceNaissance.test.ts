@@ -89,8 +89,8 @@ describe('apparence décidée à la naissance', () => {
   it('les refs d’auteur sont validées au parse pour l’effet et l’op', () => {
     poserVariantesDeNaissance(varianteDeNaissance());
     for (const [schema, payload] of [
-      [giveTrappingSchema, { type: 'giveTrapping', trappingId: 'arme-simple' }],
-      [gameOpSchema, { op: 'giveTrapping', trappingId: 'arme-simple' }],
+      [giveTrappingSchema, { type: 'giveTrapping', objet: { id: 'arme-simple' } }],
+      [gameOpSchema, { op: 'giveTrapping', objet: { id: 'arme-simple' } }],
     ] as const) {
       expect(schema.safeParse({ ...payload, apparence: { id: 'naissance-naine' } }).success).toBe(true);
       const refus = schema.safeParse({ ...payload, apparence: { id: 'inconnue-naissance' } });
@@ -111,7 +111,7 @@ describe('apparence décidée à la naissance', () => {
     poserVariantesDeNaissance(varianteDeNaissance());
     const hero = herosDeNaissance();
     hero.items = [];
-    applyOps(hero, [{ op: 'giveTrapping', trappingId: 'arme-simple' }], { idNeuf: idsDeTest, rng: makeRNG(1) });
+    applyOps(hero, [{ op: 'giveTrapping', objet: { id: 'arme-simple' } }], { idNeuf: idsDeTest, rng: makeRNG(1) });
     const objet = hero.items[0];
     expect(objet.apparence).toBe('naissance-naine');
     hero.species = 'humains-reiklander';

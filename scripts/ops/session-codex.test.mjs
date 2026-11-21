@@ -43,7 +43,7 @@ if(q.method==='turn/steer'){if(active===null){send({id:q.id,error:{code:78,messa
 if(q.method==='turn/interrupt'){if(!started||active===null)send({id:q.id,error:{code:1,message:'no active turn'}});else {send({id:q.id,result:{}});notify('turn/completed',{turn:{id:active,status:'interrupted',items:[]}});active=null;}}
 }).on('close',()=>{if(initial!=='EOF_LIVE')process.exit(0)});
 `
-async function banc(t, { consigne = 'BUSY', validation = () => {}, rejeu, echo, delaiDemarrageMs = 0, demarrageJusqua = Date.now() + 60_000, mesurerCreation = IDENTITE_MESUREE.lireCreation } = {}) {
+async function banc(t, { consigne = 'BUSY', validation = () => {}, rejeu, echo, inscription, delaiDemarrageMs = 0, demarrageJusqua = Date.now() + 60_000, mesurerCreation = IDENTITE_MESUREE.lireCreation } = {}) {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-pont-banc-'))
   const fixture = join(dossier, 'app-server.mjs')
   writeFileSync(fixture, FIXTURE)
@@ -66,7 +66,7 @@ async function banc(t, { consigne = 'BUSY', validation = () => {}, rejeu, echo, 
     pont = lancerPontCodex({
     plan: { executable: process.execPath, args: [fixture, String(delaiDemarrageMs)] },
     carte: { sessionId, worktree: dossier, demarrageJusqua, empreinteJeton: createHash('sha256').update(jeton).digest('hex') },
-    dossier, consigne, schema: { type: 'object' }, env: process.env, rejeu,
+    dossier, consigne, schema: { type: 'object' }, env: process.env, rejeu, inscription,
     echo: echo && typeof echo !== 'function' ? echo : (texte) => { affichage.push(texte); echo?.(texte) },
     notifier(p) {
       const resultat = validation(p)
@@ -310,6 +310,26 @@ test('thread/start avec échéance épuisée refuse avant toute émission native
   assert.match(b.pont.cause(), /thread\/start atteinte avant émission : échéance de démarrage épuisée/)
   await sousBorne(b.sortie, 3000)
   assert.ok(b.projections.some((p) => p.etat === 'fermee'))
+})
+
+test('#3295 : le pont n’active Codex qu’après inscription ; son refus termine sans thread', { timeout: 5000 }, async (t) => {
+  for (const inscrire of [true, false]) {
+    const inscription = Promise.withResolvers()
+    const b = await banc(t, { inscription: inscription.promise, consigne: 'AUTO' })
+    await new Promise((ok) => setTimeout(ok, 100))
+    assert.deepEqual(b.requetesEmises, [])
+    if (inscrire) {
+      inscription.resolve()
+      const resultat = await b.veille()
+      assert.equal(resultat.type, 'fin')
+      assert.ok(b.requetesEmises.some((q) => q.method === 'thread/start'))
+    } else {
+      inscription.reject(new Error('IDENTITÉ MESURÉE REFUSÉE'))
+      await sousBorne(b.sortie, 3000)
+      assert.match(b.pont.cause(), /IDENTITÉ MESURÉE REFUSÉE/)
+      assert.deepEqual(b.requetesEmises, [])
+    }
+  }
 })
 
 test('projection réelle : enfant natif, progression, outils, fin et journal unique', async (t) => {

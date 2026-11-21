@@ -47,16 +47,16 @@ describe('Commerce terrestre MSRC 13 — ACHAT (l.22-131)', () => {
   });
 
   it('prix de base par saison (l.84-91), en CO par point d’Enc : Métal = 8 CO les 10 Enc → 0,8 ; Vivres = 0,25 en automne → 0,025', () => {
-    expect(landCargoBasePrice(findCargoById('metal')!, 'automne', hameau, seq())).toBe(0.8);
-    expect(landCargoBasePrice(findCargoById('vivres')!, 'automne', hameau, seq())).toBe(0.025);
+    expect(landCargoBasePrice(findCargoById('metal')!, 'automne', hameau, seq()).basePrice).toBe(0.8);
+    expect(landCargoBasePrice(findCargoById('vivres')!, 'automne', hameau, seq()).basePrice).toBe(0.025);
   });
 
   it('qualité SECRÈTE du Vin (l.91, l.97-104) : d10 6 → Bon = 3 CO les 10 Enc → 0,3 par point d’Enc ; Kemperbad +2 échelons', () => {
-    expect(rollWineQuality(seq(6))).toEqual({ roll: 6, label: 'Bon', price: 0.3 });
+    expect(rollWineQuality(seq(6))).toMatchObject({ roll: 6, label: 'Bon', price: 0.3 });
     // Kemperbad : +2 échelons — d10 4 (Moyen, idx 2) → idx 4 = Excellent (6 CO les 10 Enc).
-    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', kemperbad, seq(4))).toBe(0.6);
+    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', kemperbad, seq(4)).basePrice).toBe(0.6);
     // Le Vin ne suit PAS la colonne saisonnière : le prix vient de la table de qualité.
-    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', grunburg, seq(6))).toBe(0.3);
+    expect(landCargoBasePrice(findCargoById('vin-eau-de-vie')!, 'printemps', grunburg, seq(6)).basePrice).toBe(0.3);
   });
 
   it('Test d’Évaluation du Vin : Intermédiaire, ou Accessible avec Résistance à l’alcool ≥ 50 (l.95)', () => {
@@ -65,12 +65,12 @@ describe('Commerce terrestre MSRC 13 — ACHAT (l.22-131)', () => {
   });
 
   it('Révélation de la qualité du Vin (l.95) : succès → vraie qualité ; échec → fausse indication décalée du DR', () => {
-    // Prix de base 0,3 CO par point d'Enc = 3 CO les 10 Enc = « Bon » (idx 3). Succès → la vraie qualité.
-    expect(wineEvalReveal(0.3, true, 2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Bon' });
+    const bon = rollWineQuality(seq(6)).qualite;
+    expect(wineEvalReveal(bon, true, 2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Bon' });
     // Échec DR −2 → décalé de 2 échelons vers le haut (idx 3+2=5) = « Supérieur » (fausse indication).
-    expect(wineEvalReveal(0.3, false, -2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Supérieur' });
-    // Échec au sommet (12 CO les 10 Enc = « Supérieur » idx 5) : le décalage haut est plafonné → on dévalue (idx 5−2=3).
-    expect(wineEvalReveal(1.2, false, -2)).toEqual({ trueLabel: 'Supérieur', shownLabel: 'Bon' });
+    expect(wineEvalReveal(bon, false, -2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Supérieur' });
+    const superieur = rollWineQuality(seq(10)).qualite;
+    expect(wineEvalReveal(superieur, false, -2)).toEqual({ trueLabel: 'Supérieur', shownLabel: 'Bon' });
   });
 
   it('Marchandage : marchand 2d10+30 (l.129) ; lot partiel +10 %, mini 10 Enc (l.131)', () => {
@@ -86,10 +86,10 @@ describe('Commerce terrestre MSRC 13 — VENTE (l.133-160)', () => {
     expect(sellDemandTarget(hameau)).toBe(10);    // 1×10, pas de commerce
   });
 
-  it('Mise à prix par Richesse (l.150-156) : Prospère(4→Animé) +5 % ; Misérable 50 % ; Moyen 100 %', () => {
-    expect(sellOfferPct(kemperbad)).toBe(105);  // Richesse 4 → Animé +5 % (exemple l.172)
-    expect(sellOfferPct(hameau)).toBe(50);      // Richesse 1 → Misérable 50 %
-    expect(sellOfferPct(grunburg)).toBe(80);    // Richesse 2 → Pauvre −20 %
+  it('Mise à prix par Indice de richesse — Kemperbad, Prospère (4), à 105 % du prix de base (MSRC 13 l.174, #1664)', () => {
+    expect(sellOfferPct(kemperbad)).toBe(105);
+    expect(sellOfferPct(hameau)).toBe(50);
+    expect(sellOfferPct(grunburg)).toBe(80);
   });
 
   it('bradage : moitié du prix de base à un Lieu « Commerce » (l.160), sinon impossible', () => {

@@ -59,6 +59,23 @@ class Lecture extends RefCounted:
 	var erreurs: Array[String] = []
 
 
+## L'instance détachée, libérée si son montage disparaît pendant la préparation de ses textures.
+class InstanceEnPreparation extends RefCounted:
+	var scene: Node3D
+
+	func _notification(quoi: int) -> void:
+		if quoi == NOTIFICATION_PREDELETE and scene != null:
+			scene.free()
+
+
+## Les textures de matière d'un maillage pendant son utilisation.
+class TexturesDuMaillage extends RefCounted:
+	var _textures: Dictionary
+
+	func _init(textures: Dictionary) -> void:
+		_textures = textures
+
+
 ## La réponse de `modeles` retenue.
 static var modeles: Dictionary = {}
 ## La `forme` du listage retenu : celui des fichiers de chaque modèle (`modeles.fichiers`) qui se demande.
@@ -96,6 +113,8 @@ var _emblemes_demandes: Dictionary = {}
 var _noeuds: Dictionary = {}
 ## Par id d'emplacement, le montage en vol (`monter`) : celui d'une autre demande, ou démonté, est jeté.
 var _demandes: Dictionary = {}
+## La durée de vie des lectures du montage, jusqu'à sa sortie de l'arbre.
+var _vie := RefCounted.new()
 ## Les meshes de la base posée, relevés avant tout montage.
 var _pieces_de_la_base: Array[MeshInstance3D] = []
 ## Les matières locales de ses pièces (`materiau_local`), qu'il tient au-delà de leur vie.
@@ -235,11 +254,15 @@ static func porte_un_blason(element: String) -> bool:
 ## ses meshes, ses skins, ses matériaux et ses clips : un porteur qui en change un en fait le sien (`materiau_local`,
 ## `cuire_les_formes`, `boucler`). `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et
 ## un fichier qui ne s'est pas téléchargé se redemande.
-func scene_du_modele(id: String, recueil: Array[String]) -> Node3D:
+func scene_du_modele(id: String, recueil: Array[String], grouper_sur_web := false) -> Node3D:
+	var vie := _vie
+	if vie == null:
+		return null
 	if not modeles.fichiers.has(id) or not modeles.fichiers[id].has(forme):
 		recueil.append("modele-absent : %s" % id)
 		return null
 	var fichier: String = modeles.fichiers[id][forme]
+	var surfaces: Array = modeles.get("surfaces", {}).get(id, [])
 	var lecture: Lecture = _lectures.get(fichier)
 	if lecture == null:
 		lecture = Lecture.new()
@@ -248,7 +271,56 @@ func scene_du_modele(id: String, recueil: Array[String]) -> Node3D:
 	elif lecture.en_vol:
 		await lecture.lue
 	recueil.append_array(lecture.erreurs)
-	return null if lecture.paquet == null else lecture.paquet.instantiate() as Node3D
+	if lecture.paquet == null or vie != _vie:
+		return null
+	var en_preparation := InstanceEnPreparation.new()
+	en_preparation.scene = lecture.paquet.instantiate() as Node3D
+	await preparer_les_textures(self, en_preparation.scene, surfaces, grouper_sur_web)
+	if vie != _vie:
+		return null
+	var scene := en_preparation.scene
+	en_preparation.scene = null
+	return scene
+
+
+## Les textures des matières que portent les maillages de cette instance, tenues par les maillages eux-mêmes.
+static func preparer_les_textures(hote: Node, scene: Node3D, surfaces: Array, grouper_sur_web := false) -> void:
+	var par_nom := {}
+	for surface: Dictionary in surfaces:
+		if not surface.get("matiere", "").is_empty():
+			par_nom[surface.nom] = surface
+	if par_nom.is_empty():
+		return
+	var maillages := scene.find_children("*", "MeshInstance3D", true, false)
+	if scene is MeshInstance3D:
+		maillages.append(scene)
+	var matieres := {}
+	var par_maillage := {}
+	for maillage: MeshInstance3D in maillages:
+		if maillage.mesh == null:
+			continue
+		for rang in maillage.mesh.get_surface_count():
+			var materiau := maillage.material_override
+			if materiau == null:
+				materiau = maillage.mesh.surface_get_material(rang)
+			if materiau == null or not par_nom.has(materiau.resource_name):
+				continue
+			var surface: Dictionary = par_nom[materiau.resource_name]
+			var neutre: bool = not surface.get("palette", "").is_empty()
+			matieres[surface.matiere] = neutre or matieres.get(surface.matiere, false)
+			var propres: Dictionary = par_maillage.get_or_add(maillage, {})
+			propres[surface.matiere] = neutre or propres.get(surface.matiere, false)
+	var textures := await TexturesDeMatiere.preparer(hote, matieres, grouper_sur_web)
+	if not is_instance_valid(scene):
+		return
+	for maillage: MeshInstance3D in par_maillage:
+		var propres := {}
+		for matiere: String in par_maillage[maillage]:
+			for chemin in TexturesDeMatiere.chemins_de(matiere, par_maillage[maillage][matiere]):
+				if textures.has(chemin):
+					propres[chemin] = textures[chemin]
+		if not propres.is_empty():
+			maillage.set_meta(&"textures_de_matiere", TexturesDuMaillage.new(propres))
 
 
 ## Le fichier `fichier` du modèle `id` téléchargé puis mis en scène empaquetée de `lecture`, chargé s'il est une scène
@@ -350,6 +422,7 @@ static func boucler(lecteur: AnimationPlayer, noms: Array) -> void:
 ## jeté (`_demandes`, `monter`), sa refonte demandée (`_refondre_la_demande`) et la pile qu'il attend du pont
 ## (`recevoir_la_pile`) aussi.
 func _exit_tree() -> void:
+	_vie = null
 	_demandes.clear()
 	_refonte_demandee = false
 	_pile_fondue = ""
@@ -1286,8 +1359,8 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 				piece.set_surface_override_material(rang, remplacants[surface.nom])
 			var couleur: Variant = palette.get(surface.palette)
 			var blason: bool = texture != null and surface.get("blason", false)
-			var matiere := _matiere_texturee(surface)
-			var texturee := not matiere.is_empty()
+			var albedo := _albedo_de(surface)
+			var texturee := albedo != null
 			var relief: float = reliefs.get(surface.nom, 1.0)
 			if couleur == null and not blason and not texturee and relief == 1.0:
 				continue
@@ -1295,9 +1368,11 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			if local == null:
 				continue
 			if texturee:
-				var neutre := VolumeDeScene.texture_neutre_de(matiere)
-				var albedo := neutre if couleur != null and ResourceLoader.exists(neutre) else VolumeDeScene.texture_de(matiere)
-				VolumeDeScene.texturer(local, matiere, albedo, surface.get("blason", false) or not par_uv, motif)
+				if couleur != null:
+					var neutre := TexturesDeMatiere.retenue(VolumeDeScene.texture_neutre_de(surface.matiere))
+					if neutre != null:
+						albedo = neutre
+				VolumeDeScene.texturer(local, surface.matiere, albedo, surface.get("blason", false) or not par_uv, motif)
 				local.albedo_color = Color.WHITE
 			elif couleur != null:
 				local.albedo_texture = null
@@ -1313,10 +1388,10 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 	return posee
 
 
-## La matière texturée d'une `surface` de `peindre`, ou "" : sa texture est au projet.
-static func _matiere_texturee(surface: Dictionary) -> String:
+## L'albédo de la matière d'une surface de `peindre`, quand le catalogue le porte.
+static func _albedo_de(surface: Dictionary) -> Texture2D:
 	var matiere: String = surface.get("matiere", "")
-	return matiere if not matiere.is_empty() and ResourceLoader.exists(VolumeDeScene.texture_de(matiere)) else ""
+	return null if matiere.is_empty() else TexturesDeMatiere.retenue(VolumeDeScene.texture_de(matiere))
 
 
 ## Le mesh de `piece` recopié (son mesh à shape keys s'il est cuit, recuit aux mêmes poids, `cuire_les_formes`), chaque
@@ -1328,7 +1403,7 @@ static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> voi
 	var rangs := range(source.get_surface_count()).filter(func(rang: int) -> bool:
 		var materiau := source.surface_get_material(rang)
 		var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
-		return surface.get("blason", false) and not _matiere_texturee(surface).is_empty() \
+		return surface.get("blason", false) and _albedo_de(surface) != null \
 			and source.surface_get_format(rang) & Mesh.ARRAY_FORMAT_TEX_UV2 == 0)
 	if rangs.is_empty():
 		return

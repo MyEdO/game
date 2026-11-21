@@ -167,12 +167,12 @@ describe('paquet de campagne — bloc narratif', () => {
   };
 
   // LDB 08 l.140
-  it('(l) preset PNJ : la spec d’un TALENT est jugée par le même prédicat que la Compétence ; la sentinelle passe (#1463 L3)', () =>
+  it('(l) preset PNJ : la spec d’un TALENT est jugée par le même prédicat que la Compétence ; le littéral « Au choix » est refusé', () =>
     avecLesEntreesDeSpecs(() => {
       expect(parseProject(doc(presetTalent(CREEE, OUVERTE))).narratif.presetsPnj.length).toBe(2);
       expect(() => parseProject(doc(presetTalent(LIBELLE, OUVERTE)))).toThrow(/est le LIBELLÉ d'une spécialisation/);
       expect(() => parseProject(doc(presetTalent(CREEE, FERMEE)))).toThrow(/est absente des spécialisations/);
-      expect(parseProject(doc(presetTalent('Au choix', FERMEE))).narratif.presetsPnj.length).toBe(2);
+      expect(() => parseProject(doc(presetTalent('Au choix', FERMEE)))).toThrow(/n'est pas une spécialisation mais un EMPLACEMENT non désigné/);
     }));
 
   it('(m) preset PNJ : un Talent SANS catalogue de spécs porte un texte d’instance, admis comme dans creatures.json (#1621)', () => {

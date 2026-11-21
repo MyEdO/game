@@ -31,7 +31,7 @@ import { cleDeSite, ecartsDeStock, type EntreeDeSite } from '../scripts/guards/l
  * d'étape de MODALE (surface UI distincte, Phase D) — leurs chaînes ne sont PAS du journal.
  */
 
-const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
+const SCAN_DIRS = ['src/engine', 'src/noyau'];
 
 /** Fichiers DISPENSÉS par NATURE (#1117) : leur sortie n'est pas une surface de JEU mais une sortie
  *  d'OUTIL de développement — la console de recette (`__wfrp.*`), lue par un développeur/recetteur,
@@ -40,7 +40,6 @@ const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
  *  ne s'étend pas d'elle-même : ajouter un fichier ici demande de justifier que sa surface est
  *  hors-jeu. */
 const DEV_ONLY = new Set([
-  'src/state/devtools.ts', // outillage `__wfrp` de la recette navigateur (docs/recette-navigateur.md)
   // #1318 V8c₅ : export ASCII d'une scène — ses surfaces sont la modale d'export de l'ÉDITEUR
   // (`ui/editor/Editor.tsx`) et la console de recette (`state/devtools.ts`), et sa sortie est un FICHIER SOURCE `.ts` commenté,
   // recollé à la main par l'auteur de map (« `bind` (marqueurs → poses) … non réémis »). Une 2ᵉ langue

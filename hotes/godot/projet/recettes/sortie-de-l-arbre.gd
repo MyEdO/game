@@ -23,7 +23,7 @@ const FIGE_DE_L_EDITEUR := "res://recettes/vues/editeur-navire.json"
 const CALQUES_DE_L_ARENE := "user://calques/arene.json"
 ## Les zones vides du Compendium (`ZonesDuCompendium`), que sa réponse figée montre.
 const ZONES_DU_COMPENDIUM := {"compendium.familles": [], "compendium.categories": [], "compendium.recherche": [], "compendium.liste": [], "compendium.fiche": [], "compendium.atelier": [], "compendium.etat": []}
-## Les images au plus qu'attend l'éditeur ouvert.
+## Les images au plus qu'attend le montage, la préparation ou l'ouverture d'un écran.
 const IMAGES_D_OUVERTURE := 600
 const BASE := "humanoide"
 const HALLEBARDE := "humanoide--rigide--hallebarde"
@@ -54,6 +54,7 @@ func _recetter() -> void:
 	await _sortir_les_navires_en_lecture(pont, lu)
 	await _sortir_les_decors_en_lecture(pont, lu)
 	await _sortir_les_aretes_en_lecture(pont, lu)
+	await _sortir_en_preparation(pont, lu)
 	await _sortir_l_editeur_en_ecriture()
 	await _sortir_le_compendium_en_ecriture()
 	for faute in _fautes:
@@ -81,6 +82,10 @@ func _sortir_en_lecture(pont: PontFige, lu: Dictionary, quoi: String) -> void:
 	combattant.vetir({base = BASE, montes = [{ligne = "main", element = HALLEBARDE}]})
 	if quoi == "élément":
 		pont.relache.emit()
+		for i in IMAGES_D_OUVERTURE:
+			if pont.retenues > 0:
+				break
+			await process_frame
 	await _sortir(pont, quoi, combattant, habilles)
 
 
@@ -104,6 +109,10 @@ func _sortir_les_navires_en_lecture(pont: PontFige, lu: Dictionary) -> void:
 	modeles.pose.connect(func() -> void: poses[0] += 1)
 	modeles.poser({navire = {corps = VEHICULE, centre = {x = 0, y = 0}}}, {}, {}, 1.0)
 	pont.relache.emit()
+	for i in IMAGES_D_OUVERTURE:
+		if modeles.poses() == ["navire"]:
+			break
+		await process_frame
 	if modeles.poses() != ["navire"]:
 		_fautes.append("navires : le navire n'est pas posé dans l'arbre (%s)" % [modeles.poses()])
 	modeles.poser({navire = {corps = VEHICULE.merged({postes = [{element = HALLEBARDE}]}, true), centre = {x = 2, y = 0}}}, {}, {}, 1.0)
@@ -137,7 +146,7 @@ func _sortir_les_aretes_en_lecture(pont: PontFige, lu: Dictionary) -> void:
 		rendue[0] = true
 	volume.poser_les_aretes([{cle = "mur", famille = "colombage", palette = {}, piece = Noyau.Piece.MUR,
 		position = Noyau.Position.SEULE, bloc = "0/0/0",
-		pied = 0.0, hauteurM = 4.0, milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, cases = []}])
+		pied = 0.0, hauteurM = 4.0, milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, cases = []}], [], [])
 	if not volume.aretes_en_lecture() or volume.ce_qui_est_pose().aretes != 0:
 		_fautes.append("arêtes : modèle en lecture %s, %d arêtes posées, attendu en lecture et aucune posée"
 			% [volume.aretes_en_lecture(), volume.ce_qui_est_pose().aretes])
@@ -145,6 +154,37 @@ func _sortir_les_aretes_en_lecture(pont: PontFige, lu: Dictionary) -> void:
 	await _sortir(pont, "arêtes", volume, posees)
 	if not rendue[0]:
 		_fautes.append("arêtes : qui attendait les arêtes attend encore après la sortie de l'arbre")
+
+
+## Le modèle de la hallebarde a été lu au pont et son albédo est demandé. Une sortie à ce moment libère le modèle
+## et ses textures, sans placer la scène du modèle.
+func _sortir_en_preparation(pont: PontFige, lu: Dictionary) -> void:
+	var chemin := VolumeDeScene.texture_de("prop--bois-chene")
+	if TexturesDeMatiere.retenue(chemin) != null:
+		_fautes.append("textures : l’albédo de la hallebarde est déjà retenu")
+		return
+	var montage := MontageDeComposition.new()
+	_scene_neuve(lu).add_child(montage)
+	var poses := [0]
+	var tirer := func() -> void:
+		var modele := await montage.scene_du_modele(HALLEBARDE, montage.erreurs)
+		if modele != null:
+			poses[0] += 1
+			modele.free()
+	tirer.call()
+	pont.relache.emit()
+	if ResourceLoader.load_threaded_get_status(chemin) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		_fautes.append("textures : aucune lecture de l’albédo de la hallebarde en cours")
+	change_scene_to_node(Node.new())
+	for i in IMAGES_D_OUVERTURE:
+		if ResourceLoader.load_threaded_get_status(chemin) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE and TexturesDeMatiere.retenue(chemin) == null:
+			break
+		await process_frame
+	if ResourceLoader.load_threaded_get_status(chemin) != ResourceLoader.THREAD_LOAD_INVALID_RESOURCE or TexturesDeMatiere.retenue(chemin) != null:
+		_fautes.append("textures : l’albédo de la hallebarde ne se libère pas après la sortie")
+	if poses[0] != 0:
+		_fautes.append("textures : la lecture rend une scène après la sortie")
+	print("[sortie-de-l-arbre] textures : scènes rendues après la sortie ", poses[0])
 
 
 ## Des modèles posés (`MontageDesModeles`) sur le volume d'un `Monde`, sous `scene`, avec leur chargeur

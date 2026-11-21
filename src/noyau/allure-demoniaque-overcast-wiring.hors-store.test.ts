@@ -15,11 +15,18 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { projeter } from '../hote/projection';
+import { resolvePlusExtension, tickDurations } from '../engine/conditions';
+import { sortsDisponibles } from '../engine/sortsDuPnj';
+import { withPreRollFixedDie } from './combatFlow';
+import { battleRng } from './battleRng';
+import { draineEtapes } from './cascade.testkit';
+import { chargerLaSave, exporterLaSauvegarde, lireSave, snapshotSave } from './persistance/save';
 
 let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); });
-
 describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerStep (feuille on:target, non-missile)', () => {
+  beforeEach(() => { banc = ouvrirLeBanc(); });
+
   it('2 pas alloués (modale, réglage `incantation.surincantationDuree`) → 3 octrois sur le Tableau ET durée ×3, « à la fois » (EDOC 13 l.276)', () => {
     const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     W.talents = [...(W.talents ?? []), { talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }];
@@ -93,5 +100,106 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     const octrois = (heroAfter.activeEffects ?? []).filter((e) => e.grantedTrait || e.grantedMutation);
     expect(octrois).toHaveLength(1);
     for (const e of octrois) expect(e.duration).toEqual({ scale: 'rounds', left: 12 });
+  });
+});
+
+describe('Allure démoniaque de Tzeentch — EDOC 13 l.245, l.276', () => {
+  const SORT = 'allure-demoniaque';
+  const SORT_DE_FEU = 'couronne-de-flammes';
+  const SORT_DE_VIE = 'ecorce';
+  const ORIGINE = { kind: 'sort', id: SORT };
+
+  function lancerAllure(graineDeTable: number) {
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+    h.talents = [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }];
+    h.spells = [SORT];
+    h.characteristics.intelligence = 90;
+    h.characteristics.sociabilite = 40;
+    h.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 5 }];
+    const banc = ouvrirLeBanc({
+      desFixes: true,
+      reglesMaison: { 'magie-vdm-incantation': false },
+      etat: { party: [h] },
+    });
+    const jeu = banc.getState;
+    const porteur = () => jeu().party[0];
+    const etape = () => {
+      const sequence = jeu().pendingCascade;
+      return sequence?.participants[sequence.cursor];
+    };
+    jeu().incanterLeSort(h.id, SORT_DE_FEU, h.id);
+    expect(jeu().pendingCast, 'le Domaine ne précède pas le choix').toBeNull();
+    jeu().incanterLeSort(h.id, SORT, h.id);
+    withPreRollFixedDie(jeu, banc.setState,
+      () => jeu().jetLancer('incantation'),
+      () => jeu().jetImposerLeResultat('incantation', 7));
+    expect(jeu().pendingCast?.result).toMatchObject({ roll: 7, cast: true });
+    jeu().ensemencerLeTirage(graineDeTable);
+    return { banc, jeu, porteur, etape };
+  }
+
+  it('fait choisir le Domaine avant tout octroi, puis ouvre ses sorts jusqu’à l’expiration', () => {
+    const { banc, jeu, porteur, etape } = lancerAllure(4);
+    jeu().jetValider('incantation');
+    const choix = etape()!;
+    const domaines = choix.options?.map(({ key }) => key);
+    expect(choix).toMatchObject({ kind: 'choixDeTrait', actorId: porteur().id, meta: { opsDeCtx: { gele: { rolled: 10 } } } });
+    expect(domaines).toEqual(expect.arrayContaining(['feu', 'vie', 'nurgle', 'slaanesh', 'tzeentch']));
+    expect(domaines).not.toEqual(expect.arrayContaining(['gueule']));
+    expect(domaines).not.toEqual(expect.arrayContaining(['indivisible']));
+    expect(porteur().traits?.some((trait) => trait.id === 'lanceur-de-sorts')).toBeFalsy();
+    expect(sortsDisponibles(porteur())).toEqual([SORT]);
+    const projection = projeter(jeu(), 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 });
+    expect(projection.fenetre?.etape).toEqual({ id: choix.id, genre: 'choixDeTrait', interaction: 'choix', choix: domaines });
+
+    const json = exporterLaSauvegarde(snapshotSave(jeu(), '2026-11-21T00:00:00.000Z'));
+    const lue = lireSave(json);
+    if (typeof lue === 'string') throw new Error(lue);
+    banc.setState(chargerLaSave(lue).etat);
+    jeu().jetRegler('cascade', 'choix', 'Feu', choix.id);
+    expect(etape()?.chosen).toBeUndefined();
+    jeu().jetRegler('cascade', 'choix', 'feu', choix.id);
+    expect(etape()?.chosen).toBe('feu');
+    expect(porteur().traits?.some((trait) => trait.id === 'lanceur-de-sorts')).toBeFalsy();
+    jeu().jetValider('cascade');
+    draineEtapes(jeu);
+
+    const effet = porteur().activeEffects?.find((e) => e.grantedTrait?.id === 'lanceur-de-sorts');
+    if (!effet) throw new Error('Le Domaine choisi doit produire un effet qui accorde le Trait.');
+    expect(effet).toMatchObject({ grantedTrait: { id: 'lanceur-de-sorts', arg: 'feu', src: ORIGINE }, duration: { scale: 'rounds', left: 4 } });
+    expect(porteur().spells).toEqual([SORT]);
+    expect(sortsDisponibles(porteur())).toContain(SORT_DE_FEU);
+    expect(sortsDisponibles(porteur())).not.toContain(SORT_DE_VIE);
+    expect(battleRng().int(1, 100), 'choisir le Domaine ne retire aucun dé').toBe(34);
+    jeu().incanterLeSort(porteur().id, SORT_DE_FEU, porteur().id);
+    expect(jeu().pendingCast?.spellId).toBe(SORT_DE_FEU);
+    jeu().jetAnnuler('incantation');
+    for (let round = 0; round < 4; round++) tickDurations(porteur());
+    expect(effet.awaitingExtension).toBe(true);
+    resolvePlusExtension(porteur(), effet, false);
+    expect(sortsDisponibles(porteur())).toEqual([SORT]);
+    jeu().incanterLeSort(porteur().id, SORT_DE_FEU, porteur().id);
+    expect(jeu().pendingCast).toBeNull();
+  });
+
+  it('deux rangées 10 font deux choix distincts sans relancer le Tableau', () => {
+    const { banc, jeu, porteur, etape } = lancerAllure(36);
+    const pending = jeu().pendingCast!;
+    banc.setState({ pendingCast: { ...pending, result: { ...pending.result!, sl: 10 } } });
+    jeu().jetRegler('incantation', 'surincantationDuree', 1);
+    jeu().jetValider('incantation');
+    const premier = etape()!;
+    jeu().jetRegler('cascade', 'choix', 'feu', premier.id);
+    jeu().jetValider('cascade');
+    const second = etape()!;
+    expect(second.kind).toBe('choixDeTrait');
+    expect(second.id).not.toBe(premier.id);
+    expect(second.chosen).toBeUndefined();
+    jeu().jetRegler('cascade', 'choix', 'mort', second.id);
+    jeu().jetValider('cascade');
+    const accordes = (porteur().activeEffects ?? []).filter((e) => e.grantedTrait?.id === 'lanceur-de-sorts');
+    expect(accordes.map((e) => e.grantedTrait!.arg)).toEqual(['feu', 'mort']);
+    expect(accordes.map((e) => e.duration)).toEqual([{ scale: 'rounds', left: 8 }, { scale: 'rounds', left: 8 }]);
+    expect(battleRng().int(1, 100)).toBe(26);
   });
 });

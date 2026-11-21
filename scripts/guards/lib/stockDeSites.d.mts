@@ -1,4 +1,4 @@
-import type { EntreeDeSite, Echeance, Site } from './stock.mjs';
+import type { EntreeDeSite, Echeance, EcheanceNullable, Site } from './stock.mjs';
 
 /** Une entrée telle qu'un fichier de stock de sites la porte : sa clé, la mesure de son site, son
  *  échéance et sa `preuve` quand elle en a. */
@@ -36,8 +36,8 @@ export function formatDe(chemin: string): FormatDeStock;
 
 export function entreesRegenerees<S extends Site & { famille?: string }>(
   sites: readonly S[],
-  p?: { lot?: string | null; date?: string | null; ancien?: Iterable<Record<string, unknown>> },
-): (EntreeDeSite & Partial<Echeance> & Omit<S, 'file' | 'ref' | 'famille'>)[];
+  p?: Partial<EcheanceNullable> & { ancien?: Iterable<Record<string, unknown>> },
+): (EntreeDeSite & Partial<Echeance> & Omit<S, keyof Site | 'famille'>)[];
 
 export function comptesParFamille<F extends string>(
   items: readonly { famille?: string }[],
@@ -97,7 +97,7 @@ export interface RegenerationDeStock {
 
 export function texteRegenere(
   regeneration: RegenerationDeStock,
-  p: { enPlace: string | null; lot?: string | null; date?: string | null; amorce?: boolean },
+  p: Partial<EcheanceNullable> & { enPlace: string | null; amorce?: boolean },
 ): { refus: string } | { texte: string | null; tailles: string };
 
 export function ecartDeRegeneration(regeneration: RegenerationDeStock, enPlace: string | null): string | null;

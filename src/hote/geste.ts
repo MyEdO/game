@@ -140,7 +140,7 @@ function laMain(etat: Jeu): string {
 }
 
 /** Envoie l'intention à la partie. L'issue de la partie fait foi : `hors-allowlist` est une erreur de validation,
- *  `refusee` une erreur de permission ; un verbe qui lève est une erreur de validation. */
+ *  `refusee` une erreur de permission, un refus de règle du siège une erreur de règle ; un verbe qui lève est une erreur de validation. */
 export function envoyerLIntention(partie: Partie, intention: Intention): ResultatDeLAppel {
   const avant = partie.etat();
   let resultat: ResultatDeLAppel;
@@ -151,5 +151,6 @@ export function envoyerLIntention(partie: Partie, intention: Intention): Resulta
   }
   if (resultat.issue === 'hors-allowlist') throw new ErreurDeGeste('validation', `${intention.type} hors de l’allowlist d’un siège`);
   if (resultat.issue === 'refusee') throw new ErreurDeGeste('permission', `${intention.type} refusée au siège ${intention.siege === undefined ? '—' : String(intention.siege)} : ${laMain(avant)}`);
+  if (resultat.refus !== undefined) throw new ErreurDeGeste('regle', resultat.refus);
   return resultat;
 }

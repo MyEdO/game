@@ -13,11 +13,12 @@ import {
 } from './registry';
 import { woundsForSize } from '../../engine/size';
 import { replier } from '../../lib/ordre.mjs';
-import { isEditableCategory } from '../../data/atelierDuCodex';
+import { enregistrerEntree, isEditableCategory } from '../../data/atelierDuCodex';
 import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE, massBattleWarMachines } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
-import { datasetObject, setDataset } from '../../data/overrides';
-import { sousLeDe } from '../../data/deDeLaTable.testkit';
+import { datasetArray, datasetObject, deDeLaTable, setDataset, setEnTete } from '../../data/overrides';
+import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
+import { tableTotale } from '../../lib/tableTotale';
 import { CHAR_KEYS } from '../../engine/types';
 import { deDeLaTableTiree, facesDuDe } from '../../engine/tables';
 import type { DiceSpec } from '../../engine/dice';
@@ -117,7 +118,7 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
   });
 
   it('un emplacement « A ou B » de race devient une rangée de choix qui porte SA structure, jamais un texte re-parsé (#1988)', () => {
-    const picks = species.flatMap((s) => s.talents.filter((a) => 'pick' in a).map((a) => ({ s, a })));
+    const picks = species.flatMap((s) => s.talents.filter((a) => 'of' in a).map((a) => ({ s, a })));
     expect(picks.length, 'la donnée ne porte plus aucun `{pick}` de race : choisir un autre gisement').toBeGreaterThan(0);
     for (const { s, a } of picks) {
       const choix = raceTalentSection(s)!.rows.filter((r) => r.t === 'choice');
@@ -718,9 +719,43 @@ describe('Codex — Tableaux de couleur des yeux et des cheveux (#3578)', () => 
     expect(gnome('brun-clair')).toMatchObject({ v: 'Auburn · 2d10 11' });
     expect(gnome('blond-blanc')).toMatchObject({ v: 'Noir' });
   });
-  it('la bande suit le dé posé sur la table par le seam', () => {
-    sousLeDe('eyes', { n: 1, sides: 10 }, () => {
-      expect(sousTitres('eyes').slice(0, 5)).toEqual(['1d10 1–2', '1d10 3', '1d10 4', '1d10 5–7', '1d10 8–11']);
-    });
+  it('la transaction d’atelier enregistre ensemble le dé et la bande, puis restitue les deux en cas de refus du disque', () => {
+    const imprimees = [...datasetArray('eyes')];
+    const deImprime = deDeLaTable('eyes');
+    const enTete = (sides: number) => [{ ancetre: '', champ: 'die', valeur: { n: 2, sides } }];
+    const couleur = { id: 'couleur-test', label: 'Une couleur', min: 2, max: 6, color: tableTotale(raceKeySchema.options, () => 'Gris') };
+    setDataset('eyes', [couleur]);
+    setEnTete('eyes', enTete(3));
+    try {
+      const trouve = () => codexLookupById('eyes', couleur.id)?.sub;
+      expect(trouve()).toBe('2d3 2–6');
+      const ecrit = enregistrerEntree('eyes', { ...couleur, max: 8 }, 0, enTete(4));
+      expect(ecrit.ok, JSON.stringify(ecrit)).toBe(true);
+      if (!ecrit.ok) return;
+      expect(JSON.parse(ecrit.texte)).toMatchObject({ die: { n: 2, sides: 4 }, entries: [{ id: couleur.id, min: 2, max: 8 }] });
+      expect(trouve()).toBe('2d4 2–8');
+
+      ecrit.reprendre();
+      expect(trouve()).toBe('2d3 2–6');
+    } finally {
+      setDataset('eyes', imprimees);
+      setEnTete('eyes', [{ ancetre: '', champ: 'die', valeur: deImprime }]);
+    }
+  });
+});
+
+describe('Codex — Demeures célestes', () => {
+  it('la bande authorée reste attachée à sa demeure lors d’une permutation', () => {
+    const imprimees = [...datasetArray('celestialHouses')];
+    const source = { book: 'archives-de-l-empire-2', page: 51 };
+    const premiere = { id: 'premiere', type: 'astrology', label: 'Première', desc: 'Une demeure.', source, min: 1, max: 3 } as const;
+    const suivante = { ...premiere, id: 'suivante', label: 'Suivante', min: 4, max: 10 };
+    setDataset('celestialHouses', [suivante, premiere]);
+    try {
+      expect(codexLookupById('celestialHouses', 'premiere')?.sub).toBe('1–3');
+      expect(codexLookupById('celestialHouses', 'suivante')?.sub).toBe('4–10');
+    } finally {
+      setDataset('celestialHouses', imprimees);
+    }
   });
 });

@@ -50,7 +50,7 @@ function litteraux(e) {
 
 /**
  * Sites `chemin:ligne` d'un fichier `.tsx` (chemin tel que fourni).
- * @param {{ rel: string, text: string }} f
+ * @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} f
  * @param {import('typescript/unstable/ast').SourceFile} [sourceFile]
  * @returns {string[]}
  */

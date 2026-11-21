@@ -32,7 +32,7 @@
 //   IMPRIMÉES et jamais assertées. Lecteur = `lireStockJson` (guards/lib/stockDeSites.mjs), écart = `ecartsDeStock`
 //   (guards/lib/stock.mjs) — jamais un troisième.
 // Sortie : docs/raw/reconciliation.md  ·  Re-run : node scripts/raw/reconcile.mjs  ·  `--check` :
-//   `ecrireOuVerifier`, APRÈS le cliquet — les deux rouges se disent.
+//   comparaison au disque APRÈS le cliquet ; les deux échecs sont signalés.
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -49,9 +49,10 @@ import {
   loadAbbrMap, folioCitationsFromJson, chargerDette, registresDeFiches, parseFiche,
   stemDeFiche, couvertureDe, stemDe, MANIFEST_PATH, etatsDuRapport, RAPPORT as RAPPORT_IMPLEMENTATION,
 } from './build-implemente.mjs'
-import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 import { rendreCible } from '../docs/build-all.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const TOL = 20 // tolérance en lignes : la synthèse Atlas pine un ancrage proche, pas la ligne exacte
 export const RAWDIR = 'docs/raw'
@@ -577,7 +578,8 @@ export async function rendre(data) {
   return new Map([[RAPPORT, renderReport(data)]])
 }
 
-async function main() {
+export async function* produire() {
+  exigerRacineAtlas()
   const data = computeReconciliation({ rapportImplementation: await rendreCible(RAPPORT_IMPLEMENTATION) })
   const noChapterCount = [...data.codeNoCh.values()].reduce((n, a) => n + a.length, 0)
   console.log(`Sens A : ${data.hardA.length} trou(s) dur(s) chapitre-livre · ${data.softA.length} chapitre(s)-livre à lignes non pinées · ${noChapterCount} réf(s) sans chapitre (hors mesure) · folios Atlas ignorés ${data.folioIgnored}`)
@@ -620,13 +622,12 @@ async function main() {
   }
   if (neuves.length || perimees.length || coeur.length || data.etrangers.length || data.fichesJugees === 0) process.exitCode = 1
   else console.log(`Cliquet des trous durs : ${entrees.length} trou(s) dur(s), tous au stock (${Object.keys(stock).length} entrée(s)) — aucun neuf, aucun périmé, aucun livre de cœur.`)
-  ecrireOuVerifier({
+  yield {
     out: (await rendre(data)).get(RAPPORT),
     path: RAPPORT,
-    check: process.argv.includes('--check'),
     staleMsg: `raw:reconcile — ${RAPPORT} est PÉRIMÉ (code ou Atlas changé).`,
     rerunMsg: '  → relancer `npm run raw:reconcile` (dérivé jamais commité, #2203).',
-  })
+  }
 }
 
-if (import.meta.main) main()
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

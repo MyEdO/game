@@ -5,7 +5,6 @@
 import {
   Combatant,
   Characteristics,
-  type Weapon,
   CHAR_KEYS,
   BodyShape,
   SkillInstance,
@@ -59,6 +58,7 @@ import {
   contexteDeNaissanceDObjet,
   deciderApparencesDesArmes,
   equipConflicts,
+  emptyArmour,
   ensureDefaultLoadout,
   hydratePoste,
   loadoutSetActive,
@@ -84,7 +84,7 @@ import { rollMutation, mutationById } from '../../data/mutations';
 import { makeRNG, type RNG } from '../../engine/dice';
 import { attachMutation, type Mutation } from '../../engine/corruption';
 import { groupsFor } from '../../engine/groups';
-import { weaponsFromTraits, armourFromTraits, ajusterTraitsDuProfil } from '../../engine/creatureEquip';
+import { weaponsFromTraits, ajusterTraitsDuProfil } from '../../engine/creatureEquip';
 import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
 import { estPoseParSesPonts } from '../planDeNavire';
@@ -193,13 +193,12 @@ function spawnMutations(traits: TraitList | undefined, rng: RNG): Mutation[] {
 
 /** Le porteur NÉ avec ses mutations les porte comme celui qui les a GAGNÉES en jeu : chaque instance est
  *  attachée par `attachMutation` (`engine/corruption.ts`), graine STABLE dérivée de l'id (déterministe,
- *  rejouable). Les armes se re-dérivent ensuite de `c.traits` par la dérivation `armes` du constructeur, et
- *  les Blessures se recalent (`blessuresReconciliees` : un porteur neuf reste à son maximum). LDB 85 l.245 ; #1853. */
-function attacherMutationsDeSpawn(c: Combatant, traits: TraitList | undefined, armes: (traits: TraitList) => Weapon[]): void {
+ *  rejouable). `weaponsFromTraits` et `blessuresReconciliees` lisent ce porteur. LDB 85 l.245 ; #1853. */
+function attacherMutationsDeSpawn(c: Combatant, traits: TraitList | undefined): void {
   const rng = makeRNG(hashSeed(`mut:${c.id}`));
   const mutations = spawnMutations(traits, rng);
   for (const m of mutations) attachMutation(c, m, rng);
-  c.weapons = armes(c.traits ?? []);
+  c.weapons = weaponsFromTraits(c.traits ?? []);
   c.wounds = blessuresReconciliees(c);
 }
 
@@ -266,7 +265,7 @@ export interface SpawnExtras {
   /** Caractéristiques aléatoires (LDB 77 l.108). */
   randomChars?: boolean;
   /** Override DIRECT des caractéristiques (tirage FIGÉ d'une Possession — `Possession.charsRolled`,
-   *  LDB 77 l.108 seedé sur l'`uid` d'instance, jamais relancé) — PRIME sur `randomChars`/`sb.randomChars`. */
+   *  LDB 77 l.108 seedé sur l'`uid` d'instance, jamais relancé) — PRIME sur `randomChars`. */
   charsRolled?: Characteristics;
   /** Traits APPRIS unis aux traits de base (dresse-* octroyés par un Test de Dressage réussi, LDB 23
    *  l.130 → LDB 85 l.100-118 — ex. « Dressé (Monture) » d'une bête possédée). Ids seuls (sans value/arg) :
@@ -380,7 +379,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos?: { 
     advantage: 0,
     conditions: [],
     weapons: [],
-    armour: armourFromTraits(traits),
+    armour: emptyArmour(),
     size,
     bodyShape: bodyShapeOf(creature.id), // Tableau de Localisation par forme du corps (LDB 76 l.15-29)
     ...(creature.followsCharacterRules ? { followsCharacterRules: true } : {}), // #152 : bestiaire HUMAIN rétro-flagué (CreatureData) — même prédicat unique que statblockToCombatant (#143)
@@ -400,7 +399,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos?: { 
   const imprime: Omit<Combatant, 'wounds'> = { ...sansBlessures, traits: imprimes, liveTraits: [] };
   const ne: Combatant = { ...sansBlessures, wounds: blessuresPosees(imprime, livre) };
   const combattant: Combatant = { ...ne, wounds: blessuresReconciliees(ne) };
-  attacherMutationsDeSpawn(combattant, traits, weaponsFromTraits);
+  attacherMutationsDeSpawn(combattant, traits);
   appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
   return combattant;
 }
@@ -412,7 +411,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x:
   // Compétences (refs `SkillRef` structurées, avances dérivées du profil SAISI) + talents du statbloc.
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);
   const talents = talentsFromBook(sb.talents);
-  const aleatoire = !!sb.randomChars || !!extras?.randomChars;
+  const aleatoire = extras?.randomChars;
   const rolled = !!extras?.charsRolled || aleatoire;
   const livre = !rolled && typeof sb.char.B === 'number' ? sb.char.B : undefined;
   chars = profilDeLIndividu(chars, id, extras?.charsRolled, aleatoire);
@@ -436,7 +435,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x:
     advantage: 0,
     conditions: [],
     weapons: [],
-    armour: armourFromTraits(traits),
+    armour: emptyArmour(),
     size,
     bodyShape: swarm ? 'humanoide' : bodyShapeForSpecies(appearance?.species), // Tableau de Localisation (LDB 76 l.15-29) — espèce AUTHORÉE (id, jamais sb.label), Nuée force 'humanoide' (#814 : divergence possible avec `bodyShapeOf` sur un preset de campagne fusionnant Nuée hors registre global)
     ...(sb.inert ? { inert: true } : {}), // affût inerte servi (AA/MDG 12) : ciblable, sans réaction de combat ni tour
@@ -455,7 +454,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x:
   const horsNuee = traits.filter((t) => !isSwarm([t]));
   const ne: Combatant = { ...sansBlessures, wounds: blessuresPosees({ ...sansBlessures, traits: horsNuee, liveTraits: horsNuee }, livre) };
   const combattant: Combatant = { ...ne, wounds: blessuresReconciliees(ne) };
-  attacherMutationsDeSpawn(combattant, traits, weaponsFromTraits);
+  attacherMutationsDeSpawn(combattant, traits);
   appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
   return combattant;
 }

@@ -12,8 +12,7 @@
       ]
     },
     "resaleRate": 0.5,
-    "bargainSkill": 45,
-    "boniment": "Acier trempé, fil qui ne rend jamais — regardez-moi cette allonge avant de partir vous battre à mains nues."
+    "bargainSkill": 45
   },
   {
     "id": "avitailleur",
@@ -36,8 +35,7 @@
       "ration-biscuits-de-mer",
       "ration-nourriture-preservee",
       "ration-soupe-chou-fermente"
-    ],
-    "boniment": "Eau douce, biscuits qui tiennent la traversée, cordages neufs — un navire mal avitaillé, c’est un navire qui coule."
+    ]
   },
   {
     "id": "herboriste",
@@ -50,8 +48,7 @@
       ]
     },
     "resaleRate": 0.5,
-    "bargainSkill": 40,
-    "boniment": "Racines fraîches, décoctions bien dosées — la forêt donne, il suffit de savoir cueillir."
+    "bargainSkill": 40
   },
   {
     "id": "maquignon",
@@ -64,7 +61,6 @@
     },
     "resaleRate": 0.5,
     "bargainSkill": 40,
-    "boniment": "Une bonne bête vaut mieux qu’une mauvaise charrette — et moi je vends les deux, l’ami.",
     "unitKinds": [
       "bete",
       "vehicule-terrestre"
@@ -90,8 +86,7 @@
       "oeil-de-verre",
       "crochet",
       "fausse-jambe"
-    ],
-    "boniment": "Approchez, on recoud, on rebouche, on répare — je n’ai encore perdu personne sur ma table, ou presque."
+    ]
   },
   {
     "id": "taverniere",
@@ -110,7 +105,6 @@
       "biere-pinte",
       "vin-bouteille",
       "nourriture-courses-journee"
-    ],
-    "boniment": "Un coin de table, une pinte qui mousse et de quoi caler l’estomac — installez-vous, la maison ne mord pas."
+    ]
   }
 ]

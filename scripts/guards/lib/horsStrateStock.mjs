@@ -1,4 +1,4 @@
-// STOCK DES STRUCTURES LOCALES (#1463, #3012 N1) : la dette de STRUCTURE des documents authorés, mesurée sur le
+// STOCK DES STRUCTURES LOCALES (#1463) : la dette de STRUCTURE des documents authorés, mesurée sur le
 // SCHÉMA par `noeudsDeStructure` (`scripts/guards/lib/structuresLocales.mts`) et régénérée par
 // `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/structuresLocales.mts` (politique `DECROISSANT`).
 // Volet `STRUCTURES_LOCALES` sous la porte des comptes (`occurrencesStock.mjs`) : aucun `CLIQUET:` n'y admet une entrée.
@@ -22,13 +22,8 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#activities', ref: '[].testMods[]', occurrence: 1 },
   { fichier: 'src/data#activities', ref: '[].threat', occurrence: 1 },
   { fichier: 'src/data#activities', ref: '[].worldRolls[]', occurrence: 1 },
-  { fichier: 'src/data#ambiance', ref: '.entreeEnScene', occurrence: 1 },
-  { fichier: 'src/data#ambiance', ref: '.faceShade', occurrence: 1 },
   { fichier: 'src/data#ambiance', ref: '.fogTint', occurrence: 1 },
   { fichier: 'src/data#ambiance', ref: '.iso', occurrence: 1 },
-  { fichier: 'src/data#ambiance', ref: '.iso.edgeDepth', occurrence: 1 },
-  { fichier: 'src/data#ambiance', ref: '.iso.lowerFloorDim', occurrence: 1 },
-  { fichier: 'src/data#ambiance', ref: '.iso.vignette', occurrence: 1 },
   { fichier: 'src/data#ambiance', ref: '.iso.weather', occurrence: 1 },
   { fichier: 'src/data#ambiance', ref: '.iso.weather.brouillard', occurrence: 1 },
   { fichier: 'src/data#ambiance', ref: '.iso.weather.brouillard.brume', occurrence: 1 },
@@ -38,7 +33,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#ambiance', ref: '.pov', occurrence: 1 },
   { fichier: 'src/data#ambiance', ref: '.pov.depth', occurrence: 1 },
   { fichier: 'src/data#ambiance', ref: '.pov.depth.indoor', occurrence: 1 },
-  { fichier: 'src/data#ambiance', ref: '.pov.depth.lod', occurrence: 1 },
   { fichier: 'src/data#arcane-phenomena', ref: '.phenomena[]', occurrence: 1 },
   { fichier: 'src/data#arcane-phenomena', ref: '.phenomena[].controlFlux', occurrence: 1 },
   { fichier: 'src/data#arcane-phenomena', ref: '.phenomena[].niMods[]', occurrence: 1 },
@@ -56,7 +50,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#arcane-phenomena', ref: '.windSaturationEffects[]', occurrence: 1 },
   { fichier: 'src/data#arcane-phenomena', ref: '.windSaturationEffects[].effects[]', occurrence: 1 },
   { fichier: 'src/data#buildings', ref: '[].features[]', occurrence: 1 },
-  { fichier: 'src/data#careerLevels', ref: '[].skills[]|{random}', occurrence: 1 },
   { fichier: 'src/data#characteristics', ref: '[].options[]', occurrence: 1 },
   { fichier: 'src/data#creatures', ref: '[].harvest', occurrence: 1 },
   { fichier: 'src/data#creatures', ref: '[].optionals[]|{label,note=all-traits}', occurrence: 1 },
@@ -124,7 +117,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#miscast', ref: '[].entries[]', occurrence: 1 },
   { fichier: 'src/data#miscast', ref: '[].entries[].test', occurrence: 1 },
   { fichier: 'src/data#miscast', ref: '[].entries[].test.onFailHard', occurrence: 1 },
-  { fichier: 'src/data#mutationTables', ref: '[].entries[]', occurrence: 1 },
   { fichier: 'src/data#names', ref: '[].lastNameSuffixes', occurrence: 1 },
   { fichier: 'src/data#naval-traits', ref: '[].install', occurrence: 1 },
   { fichier: 'src/data#naval-traits', ref: '[].install.installation|{bands,per=10m/5m/undefined/unite}', occurrence: 1 },
@@ -240,7 +232,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#skills', ref: '[].combatSubstitute', occurrence: 1 },
   { fichier: 'src/data#skills', ref: '[].tool', occurrence: 1 },
   { fichier: 'src/data#species', ref: '[].fate', occurrence: 1 },
-  { fichier: 'src/data#species', ref: '[].skills[]|{random}', occurrence: 1 },
   { fichier: 'src/data#spells', ref: '[].duration|kind=clock', occurrence: 1 },
   { fichier: 'src/data#spells', ref: '[].duration|kind=instant', occurrence: 1 },
   { fichier: 'src/data#spells', ref: '[].duration|kind=rounds', occurrence: 1 },

@@ -1,6 +1,6 @@
 /**
- * LES DOSSIERS ÉPINGLÉS DU PROJET GODOT (#3476) : les textures du sol (`projet/textures/`, lot E), le kit des arêtes
- * (`projet/kit/`, lot C) et les sons (`projet/sons/`, #3771) vivent, comme les modèles (`./release.ts`, #2948), dans la Release `TAG`, chaque fichier
+ * LES DOSSIERS ÉPINGLÉS DU PROJET GODOT (#3476) : les textures du sol (`projet/textures/`, lot E) et les sons
+ * (`projet/sons/`, #3771) vivent, comme les modèles (`./release.ts`, #2948), dans la Release `TAG`, chaque fichier
  * nommé par son SHA-256. Le dépôt commite la provenance de chaque dossier (`provenance.json`) : par fichier, son
  * empreinte (`sha256`), sa source et sa licence. `recupererEpingles` dépose au projet chaque fichier qui y manque, du
  * cache ou de la Release ; `epinglesAPublier` nomme ce que `publierAssets` y verse.
@@ -10,7 +10,6 @@ import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
-import { DOSSIER_DU_KIT } from './kit.ts';
 import {
   CACHE_DES_MODELES,
   EXTENSIONS_D_ASSET,
@@ -29,8 +28,8 @@ export const DOSSIER_DES_SONS = fileURLToPath(new URL('../projet/sons', import.m
 /** Le dossier épinglé des textures du projet Godot (`res://textures/`). */
 export const DOSSIER_DES_TEXTURES = fileURLToPath(new URL('../projet/textures', import.meta.url));
 
-/** Les dossiers épinglés du projet Godot : ses textures, son kit des arêtes (`res://kit/`) et ses sons. */
-const DOSSIERS_EPINGLES = [DOSSIER_DES_TEXTURES, DOSSIER_DU_KIT, DOSSIER_DES_SONS];
+/** Les dossiers épinglés du projet Godot : ses textures et ses sons. */
+const DOSSIERS_EPINGLES = [DOSSIER_DES_TEXTURES, DOSSIER_DES_SONS];
 
 /** L'entrée de provenance d'un fichier épinglé que le dépôt fabrique d'une source CC0 : un son (`son.ts`), une texture
  *  (`texture.ts`). */

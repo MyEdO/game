@@ -17,9 +17,10 @@ import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
 import { exigeProvenanceExclusive, type Provenance } from './grammaire/document';
 import { defDe, descendre, enfantsDe, estConteneur, ouverts, pasDeDonnee } from './grammaire/descente';
-import { lireCleDEspace } from './grammaire/cle-d-espace';
-import { espacesLusParRaffinement } from './grammaire/ref';
-import { atteindre, champDeCharge, collectionDe, noeudsDeLElement, type EspaceDeNoms } from './grammaire/collection-cle';
+import { cleDesLibelles, cleDesSpecs, lireCleDEspace } from './grammaire/cle-d-espace';
+import { dependancesDuRaffinement, lireLEspace } from './grammaire/ref';
+import { SOURCES_DE_SPECS } from './grammaire/sourcesDeSpecs';
+import { atteindre, champDeCharge, cleDesLibellesDeLaSource, collectionDe, noeudsDeLElement, type EspaceDeNoms } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, metaDesChamps, nomDeNoeud, type MetaChamp } from './grammaire/meta';
 import { proseNonMaterialisee, versDisque } from './grammaire/prose';
@@ -126,32 +127,82 @@ export function valeurDeProvenanceAuBrouillon(file: string, champ: string, valeu
   return champ === 'maison' && valeur === '' && exigeProvenanceExclusive(schemaForFile(file)) ? undefined : valeur;
 }
 
-let lecteursDesCatalogues: ReadonlyMap<string, ReadonlySet<string>> | undefined;
+type LecteursDesCatalogues = {
+  readonly directs: ReadonlyMap<string, ReadonlySet<string>>;
+  readonly specialisations: ReadonlyMap<string, ReadonlyMap<string | undefined, ReadonlySet<string>>>;
+};
 
-function indexerLecteursDesCatalogues(): ReadonlyMap<string, ReadonlySet<string>> {
+let lecteursDesCatalogues: LecteursDesCatalogues | undefined;
+
+function ajouterLecteur<K>(index: Map<K, Set<string>>, cle: K, fichier: string): void {
+  const lecteurs = index.get(cle) ?? new Set<string>();
+  lecteurs.add(fichier);
+  index.set(cle, lecteurs);
+}
+
+function indexerLecteursDesCatalogues(): LecteursDesCatalogues {
   const racinesVivantes = new Set(Object.values(DATASET_FICHIER_DERIVE));
-  const index = new Map<string, Set<string>>();
+  const directs = new Map<string, Set<string>>();
+  const specialisations = new Map<string, Map<string | undefined, Set<string>>>();
   for (const { file, schema } of SCHEMA_DEFS) {
     if (!racinesVivantes.has(file)) continue;
     descendre([schema], ({ def }) => {
       for (const controle of def.checks ?? []) {
-        for (const espace of espacesLusParRaffinement(controle) ?? []) {
+        const dependances = dependancesDuRaffinement(controle);
+        if (!dependances) continue;
+        for (const espace of dependances.espaces) {
           const catalogue = lireCleDEspace(espace).fichier;
-          if (catalogue === file) continue;
-          const lecteurs = index.get(catalogue) ?? new Set<string>();
-          lecteurs.add(file);
-          index.set(catalogue, lecteurs);
+          if (catalogue !== file) ajouterLecteur(directs, catalogue, file);
+        }
+        for (const { espace, id } of dependances.specialisations) {
+          const lecteurs = specialisations.get(espace) ?? new Map<string | undefined, Set<string>>();
+          ajouterLecteur(lecteurs, id, file);
+          specialisations.set(espace, lecteurs);
         }
       }
     });
   }
-  return index;
+  return { directs, specialisations };
 }
 
-/** Les autres fichiers vivants dont le schéma déclare une lecture du catalogue porté par `fichier`. */
-export function fichiersLisantLeCatalogue(fichier: string): ReadonlySet<string> | undefined {
+const FICHIERS_DES_UNIVERS_DE_SPECS = new Set(Object.values(SOURCES_DE_SPECS).flatMap((source) =>
+  [source.univers, cleDesLibellesDeLaSource(source)].map((espace) => lireCleDEspace(espace).fichier),
+));
+
+type LireRenvoi = (espace: string) => string | undefined;
+
+/** Les autres fichiers vivants dont un contrôle lit le catalogue ou un univers fourni par ce fichier. */
+export function fichiersLisantLeCatalogue(fichier: string, lireRenvoi: LireRenvoi): ReadonlySet<string> | undefined {
   lecteursDesCatalogues ??= indexerLecteursDesCatalogues();
-  return lecteursDesCatalogues.get(fichier);
+  const { directs, specialisations } = lecteursDesCatalogues;
+  if (!FICHIERS_DES_UNIVERS_DE_SPECS.has(fichier)) return directs.get(fichier);
+
+  const lecteurs = new Set(directs.get(fichier));
+  for (const [espace, lecteursParId] of specialisations) {
+    const fournis = new Map<string, boolean>();
+    const estFourniParLeFichier = (id: string): boolean => {
+      const dejaLu = fournis.get(id);
+      if (dejaLu !== undefined) return dejaLu;
+      const specs = cleDesSpecs(espace, id);
+      const fourni = [specs, cleDesLibelles(specs)].some((cle) => {
+        const renvoi = lireRenvoi(cle);
+        return renvoi !== undefined && lireCleDEspace(renvoi).fichier === fichier;
+      });
+      fournis.set(id, fourni);
+      return fourni;
+    };
+    for (const [id, candidats] of lecteursParId) {
+      const correspond = id === undefined
+        ? [...(lireLEspace(espace) ?? [])].some(estFourniParLeFichier)
+        : estFourniParLeFichier(id);
+      if (correspond) {
+        for (const candidat of candidats) {
+          if (candidat !== fichier) lecteurs.add(candidat);
+        }
+      }
+    }
+  }
+  return lecteurs;
 }
 
 /** Méta d'ÉDITION d'un document par nom de fichier — le canal registre est le SEUL chemin

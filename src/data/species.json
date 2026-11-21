@@ -85,7 +85,10 @@
         "id": "destinee"
       },
       {
-        "random": 3
+        "pick": 3,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -186,7 +189,10 @@
         ]
       },
       {
-        "random": 3
+        "pick": 3,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -289,12 +295,18 @@
             "id": "destinee"
           },
           {
-            "random": 1
+            "pick": 1,
+            "table": {
+              "id": "talents-aleatoires"
+            }
           }
         ]
       },
       {
-        "random": 3
+        "pick": 3,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -411,12 +423,18 @@
             "id": "destinee"
           },
           {
-            "random": 1
+            "pick": 1,
+            "table": {
+              "id": "talents-aleatoires"
+            }
           }
         ]
       },
       {
-        "random": 2
+        "pick": 2,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -640,7 +658,10 @@
         "spec": "chaos"
       },
       {
-        "random": 2
+        "pick": 2,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -759,7 +780,10 @@
         "spec": "corruption"
       },
       {
-        "random": 2
+        "pick": 2,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -878,7 +902,10 @@
         "spec": "chaos"
       },
       {
-        "random": 2
+        "pick": 2,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -977,7 +1004,10 @@
         "id": "vision-nocturne"
       },
       {
-        "random": 2
+        "pick": 2,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1087,7 +1117,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1195,7 +1228,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1304,7 +1340,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1412,7 +1451,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1521,7 +1563,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1628,7 +1673,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1734,7 +1782,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1845,7 +1896,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -1953,7 +2007,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -2061,7 +2118,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {
@@ -2173,7 +2233,10 @@
         ]
       },
       {
-        "random": 1
+        "pick": 1,
+        "table": {
+          "id": "talents-aleatoires"
+        }
       }
     ],
     "source": {

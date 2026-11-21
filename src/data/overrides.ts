@@ -44,7 +44,7 @@ import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, DATASETS_EDITABLES_DERIVE } from './schemas/exposition-derivee';
 import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
-import { atteindre, elementDeLaListe, idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
+import { atteindre, elementDeLaListe, idsDeLEspace, lectureDeLEspace, renvoiDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
 import { estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, suiteAvecPas } from './schemas/grammaire/cle-d-espace';
 import { lectureDuVocabulaire } from './schemas/grammaire/vocabulaires';
 import { SCHEMA_DEFS } from './schemas/_registry.generated';
@@ -364,6 +364,11 @@ function lectureVivante(cle: string): LectureVivante {
     LECTURES_VIVANTES.set(cle, lire);
   }
   return lire();
+}
+
+/** Le renvoi d'un espace vivant vers son univers, tel que le résout le registre d'ids. */
+export function renvoiDeLEspaceVivant(cle: string): string | undefined {
+  return renvoiDeLEspace(cle, accesVivant);
 }
 
 /** Lecture d'un VOCABULAIRE du moteur (`grammaire/vocabulaires.ts`), ids en ensemble : le code le fige,

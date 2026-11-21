@@ -37,7 +37,7 @@ import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
 import type { RegistreDuBord } from './etat';
-import type { IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
+import type { IdDeChoixDeCibles, IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -1385,6 +1385,8 @@ export interface PendingCast {
    *  `chooseForm`) — le lanceur sélectionne la Compétence de Corps à corps/profil d'arme. Défaut
    *  (absent) : sa meilleure Spé de Corps à corps. */
   conjureForm?: ConjureForm;
+  /** Option de ciblage retenue pour toute la Zone d'Effet. */
+  choixDeCibles?: IdDeChoixDeCibles;
   /** Surincantation : nombre de PAS alloués à chaque axe (chaque pas = +2 DR du surplus). L'effet
    *  d'UN pas est SOURCE-AWARE (`engine/overcast.ts`) — Sort/Miracle : +valeur initiale (×initial,
    *  LDB 47 l.13-17 / 42 l.7-13) ; Bénédiction : +6 m Portée / +1 Cible / +6 Rounds (FIXE, LDB 41
@@ -1750,6 +1752,8 @@ export interface CascadeStepMeta {
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses
    *  paramètres DÉJÀ chiffrés (le naval : bande de Moral + Manque de bras + sabotage, MDG 14). */
   aggregateFlatDR?: number;
+  /** MDG 13 l.148 */
+  foulingDay?: number;
   /** Lignes nommées appliquées en DR au total de la bande avant plafond. */
   aggregateDRMods?: ModLine[];
   /** Plafond CHIFFRÉ du total sommé, versé par le flux propriétaire (naval : « jamais mieux qu'un
@@ -2288,7 +2292,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
 export type CascadeStepBase = CascadeStepCore & LectureDuDe;
 
 /** Étape qui LANCE un dé : `target` (cible effective) et `rollLabel` (compétence lancée) vont
- *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/charte-ui.md`). */
+ *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/ajouter-un-flux-de-jet.md`). */
 export type CascadeRollStep = CascadeStepBase & { target: number; rollLabel: string };
 
 /** Étape qui lance un dé LU EN TEST (`LectureDuDe` `'test'`, LDB 12 l.28). */

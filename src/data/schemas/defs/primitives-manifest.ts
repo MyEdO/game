@@ -14,18 +14,12 @@ const doc = document(
   famille,
   {
     fichier: z.string(),
-    css: z.string().optional(),
-    poseurs: z.array(z.string()).optional(),
-    nature: z.literal('organisme').optional(),
     concept: z.string(),
     perimetre: z.string(),
     verrou: z.string(),
   },
   {
     fichier: { label: 'Fichier', hint: 'Chemin source de la primitive' },
-    css: { label: 'CSS possédé', hint: 'Module de src/ui/styles que la primitive POSSÈDE (#1800)' },
-    poseurs: { label: 'Poseurs déclarés', hint: 'Fichiers (ou préfixes finis par /) autorisés à poser une classe du module, hors `fichier` (#1806)' },
-    nature: { label: 'Nature', hint: 'ORGANISME de domaine (panneau, plateau) : entré au manifeste pour le module CSS qu’il possède, il assume ses imports de domaine (#1806)' },
     concept: { label: 'Concept', hint: 'Besoin couvert par la primitive' },
     perimetre: { label: 'Périmètre', hint: 'Ce que la primitive couvre' },
     verrou: { label: 'Verrou', hint: 'Ce qui empêche une réinvention concurrente' },

@@ -60,10 +60,10 @@ describe('Brèche au canon (breche-au-canon)', () => {
     const b = banc.getState().battle!;
     for (const affut of affuts) {
       const poste = affut.postes![0];
-      const requis = equipeDe(poste.trappingId);
+      const requis = equipeDe(poste.engin.id);
       expect(poste.crewIds?.length, `${affut.id} : équipe déclarée`).toBe(requis);
       const chef = b.combatants.find((c) => c.id === poste.crewIds![0])!;
-      expect(chef.mannedPoste?.item.trappingId, `${chef.id} sert la pièce`).toBe(poste.trappingId);
+      expect(chef.mannedPoste?.item.trappingId, `${chef.id} sert la pièce`).toBe(poste.engin.id);
       expect(servingCrewPresent(chef, b.combatants), `${affut.id} : servants qualifiés présents`).toBe(requis);
     }
   });

@@ -1,4 +1,5 @@
-import type { Site } from './stock.mjs';
+import type { EntreeDeSite, Site } from './stock.mjs';
+import type { CorpusFile } from './sourceCorpus.mjs';
 
 export const FEUILLES_PARTAGEES: readonly string[];
 export const RACINE_DES_MODULES: string;
@@ -26,7 +27,7 @@ export function physique(prop: string): string;
 export function valeurHorsEchelle(valeur: string): boolean;
 
 /** Un fichier lu (disque, image git) — ou une FIXTURE de même forme. */
-export interface Fichier { rel: string; text: string }
+export type Fichier = Pick<CorpusFile, 'rel' | 'text'>;
 /** Un site mesuré, forme d'entrée de `sitesEnEntrees` : le `Site` de `stock.mjs`. */
 export type { Site };
 /** Une entrée du manifeste des primitives, réduite à ce que la frontière CSS lit. */
@@ -55,9 +56,7 @@ export interface VoletVentile {
   retournes: Retour[];
 }
 /** Une clé (fichier, réf) rendue au stock, `n` fois. */
-export interface Retour { fichier: string; ref: string; n: number }
-/** Une entrée de stock réduite à sa clé. */
-export interface CleDeStock { fichier: string; ref: string }
+export interface Retour extends Site { n: number }
 /** Un module franchi, et son prix par volet ; `n` = identité + espacement. */
 export interface Franchissement { module: string; identite: number; espacement: number; n: number }
 
@@ -85,12 +84,12 @@ export function ventiler(
   commit: ImageCss,
   options?: {
     renommages?: ReadonlyMap<string, string>;
-    stockAvant?: Record<'identite' | 'espacement', Iterable<CleDeStock>>;
+    stockAvant?: Record<'identite' | 'espacement', Iterable<Site>>;
   },
 ): { identite: VoletVentile; espacement: VoletVentile; franchis: Franchissement[] };
 export function ligneDeVentilation(nom: string, v: VoletVentile): string;
-export function admisAuRetour<E extends CleDeStock & { occurrence: number }>(
+export function admisAuRetour<E extends EntreeDeSite>(
   mesurees: readonly E[],
-  stockDeTete: Iterable<CleDeStock>,
+  stockDeTete: Iterable<Site>,
   retournes: readonly Retour[],
 ): E[];

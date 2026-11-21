@@ -3,7 +3,7 @@
 
 /* le round */
 #round .fond{display:flex;align-items:center;gap:12px;padding:0 14px}
-#round .n{font-size:30px;line-height:30px;color:#f1e4c4;text-shadow:0 2px 3px #000}
+#round .n{width:96px;font-size:30px;line-height:30px;color:#f1e4c4;text-shadow:0 2px 3px #000}
 #round .t{font-size:13.5px;color:var(--creme-2);line-height:16px}
 
 /* l'ordre du tour : colonne du bord gauche, l'actif en bas */
@@ -49,13 +49,14 @@
 
 /* le journal : trois lignes dans un coin */
 #journal{position:absolute;text-align:right}
-#journal .tete{display:flex;justify-content:flex-end;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2;margin-bottom:7px}
+#journal .tete{height:34px;display:flex;justify-content:flex-end;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2;margin-bottom:7px}
+#journal .defile{height:115px;margin:-12px -24px;padding:12px 24px}
 #journal p{margin:0 0 5px;font-style:italic;font-size:14.5px;line-height:19px;color:#e6dabd}
 #journal p.vieux{color:#bdb096}
 #journal p.borne-j{font-family:"Fell SC";font-style:normal;font-size:12.5px;letter-spacing:1px;color:var(--creme-2)}
 
-/* l'aperçu de la cible survolée */
-.apercu .pv{display:flex;align-items:center;gap:9px;margin:6px 0 9px}
+/* l'aperçu du tour (`corpsDuTour`) : la ligne de jauge et la table à hauteur fixe */
+.apercu .pv{display:flex;align-items:center;gap:9px;height:20px;margin:6px 0 9px}
 .apercu .pv .jauge{flex:1}
 .apercu .pv b{font-family:"Fell SC";font-weight:400;font-size:13.5px}
 .apercu .titre{font-size:12.5px;color:#5a2a12;border-top:1px solid rgba(60,40,20,.45);padding-top:7px;margin-bottom:3px}
@@ -96,37 +97,23 @@
 .zone.touchee{fill:#9c2a1a;stroke:#4a0f08;stroke-width:1.5}
 
 /* le bandeau avant le dé : les réglages au centre, les sceaux encore vides */
-.reglages .rangee{display:flex;justify-content:center;align-items:center;gap:20px;text-align:left}
 #round .n,#round .t{white-space:nowrap}
-.choix .l{font-size:12px;color:#4a3420;margin-top:3px}
-.choix .v{display:flex;align-items:center;gap:10px}
-.choix .v .gothique{font-size:25px;line-height:27px;color:#3a1a10}
-.choix .v .modif{margin-top:0}
-.choix .bas{display:flex;align-items:center;gap:16px;margin-top:8px}
 
 /* l'incantation : un seul camp, le sort au centre, sa cible à droite */
 #verdict.sort .dr{font-size:32px}
-.visee .pv{display:flex;flex-direction:row-reverse;align-items:center;gap:9px;margin-top:16px}
-.visee .pv .jauge{width:132px}
+.visee .pv{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;height:100%}
 .visee .pv b{font-weight:400;font-size:13.5px;white-space:nowrap}
 
 /* le coup critique */
-#jet .fond.critique{grid-template-columns:392px 1fr}
-#jet .fond.critique.duel{grid-template-columns:auto 1fr auto;column-gap:20px}
-#jet .fond.critique.duel #critique{padding:0 28px;border-right:1px solid rgba(60,40,20,.4)}
-.camp.touche{align-items:flex-start}
-.camp.touche .silhouette{margin:0 2px}
 .camp.touche .c{color:#7c1f14}
-.camp.touche .des{margin-top:10px}
 #critique{height:104px;padding:0 0 0 28px;border-left:1px solid rgba(60,40,20,.4)}
 #critique .dr{font-size:31px;line-height:36px;color:#3a1a10}
 #critique p{margin:5px 0 0;max-width:640px;font-size:15.5px;line-height:21px;color:#2a1d12}
 
-/* le début du round : un choix, à la place du jet (`#jet .fond.debut`, `jet.css`) */
-.annonce{height:92px;margin-right:8px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
+/* le titre d'un choix, à la place du héros */
+.annonce{height:92px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
 .annonce .dr{font-size:34px;line-height:38px;color:#3a1a10}
 .annonce .sous{font-size:13.5px;color:#4a3420}
-#jet .fond.debut #suites .plaque.large{flex-basis:232px}
 
 /* le journal entier */
 #journal-entier h4{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-weight:400;font-size:13px;color:#5a2a12}
@@ -175,9 +162,7 @@
 .rang .etats{display:flex;gap:9px;margin-top:4px}
 /* le meuble étendu : trois rangs de mesures à gauche, deux rangs de plaques à droite */
 #ecran[data-etat^=meuble-] #etat{top:7px;row-gap:8px}
-.jetons,.portes{grid-column:1 / 3;display:flex;align-items:center}
-.jetons{justify-content:space-between}
-.jetons .jeton{margin-top:0;gap:8px}
+.portes{grid-column:1 / 3;display:flex;align-items:center}
 .portes{gap:12px;height:24px;font-size:12px;color:var(--creme-2)}
 .portes em{font-size:13px}
 #ecran[data-etat^=meuble-] #gestes{top:7px}
@@ -192,44 +177,32 @@
 .pastille-entite{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px}
 .pastille-entite span{font-size:12px;color:#f0e2c2;white-space:nowrap}
 
-/* avant le dé, les réglages en rangées : la défense, les armes de l'attaque */
-#verdict.reglages.haut{height:116px}
-.reactions{display:flex;gap:8px;margin:3px 0 5px}
-.plaque.carte.courte{flex:1;width:auto;height:31px}
-.plaque.carte.courte .qui{flex:1;display:flex;justify-content:space-between;align-items:baseline}
-.plaque.carte.courte .n{font-size:18px;line-height:20px}
-.plaque.carte.courte .c{font-family:"Grenze Gotisch";font-weight:600;font-size:18px;line-height:20px}
-/* trois réactions : la substitution sociale s'ajoute, les cartes se serrent à la mesure de leur nom */
-.reactions:has(.carte:nth-child(3)){gap:6px}
-.reactions:has(.carte:nth-child(3)) .plaque.carte.courte{flex:1 1 auto}
-.reactions:has(.carte:nth-child(3)) .plaque.carte.courte>div{gap:7px;padding:0 9px}
-.reactions:has(.carte:nth-child(3)) .plaque.carte.courte :is(.n,.c){font-size:16.5px;white-space:nowrap}
 .regle{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;text-align:left}
 .regle .l{font-size:12px;color:#4a3420;white-space:nowrap}
 #jet .regle .options{gap:6px}
 #jet .regle .options .plaque{min-width:0}
 #jet .regle .options .plaque>div{padding:0 9px;font-size:12.5px;letter-spacing:.6px}
-.fond.armes .rangee{gap:16px;align-items:flex-start;margin-top:3px}
-.fond.armes .choix{flex:1}
-.bascules{display:flex;gap:16px;margin-top:7px}
-.fond.armes .choix p{margin:5px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;white-space:nowrap}
+/* les lignes de réglage, chacune à sa place (`PLACES_DU_REGLAGE`, `../rendu.js`) */
+#jet .place>.regle{margin:0;height:100%}
+#jet .place>.regle.localisation{justify-content:flex-start;gap:8px}
+#jet .place>.regle.localisation>:not(.options){flex:none}
+#jet .place>.regle.localisation .gothique{margin-left:2px;font-size:22px;line-height:24px;color:#3a1a10}
+#jet .place>.regle.localisation .modif{margin-top:0}
+#jet .place>.regle.localisation .options{margin-left:auto}
+#jet .place>p[data-texte="note"]{margin:0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;text-align:left}
+.bascules{display:flex;gap:16px;align-items:center;height:100%}
+.bascules .bascule span{line-height:14px}
 
-/* le début du round à deux choix : agir en premier, préempter */
-#jet .fond.deux{padding-top:16px;gap:16px}
-#jet .fond.deux .annonce{margin-top:10px}
-/* les cartes d'un choix en groupe */
-.groupe .t{font-size:12.5px;color:#4a3420;margin-bottom:3px;text-align:left}
-.groupe .plaque.carte .modif{margin:0 0 0 6px}
-.groupe .plaque.carte br+.modif{margin:1px 0 0}
+/* la marque d'une carte de choix */
+#jet .place>.carte .modif{margin:0 0 0 6px}
+#jet .place>.carte br+.modif{margin:1px 0 0}
 
 /* une suite de frappe : la consigne tient la place du meuble, le champ reste à cliquer */
-#jet .fond.consigne{grid-template-columns:420px 1fr;padding-top:20px}
 p.consigne{margin:14px 0 0;padding-left:24px;border-left:1px solid rgba(60,40,20,.4);height:70px;font-style:italic;font-size:17px;line-height:23px;color:#2a1d12}
 
 /* la fin du combat : la conséquence sous le cartouche ; la victoire rend ses gains dans le bandeau du bas */
-#jet .fond.butin{grid-template-columns:230px 250px 1fr;column-gap:24px}
 .gains{display:flex;align-items:flex-start;gap:22px;padding-top:6px}
-.gains .en-reserve .res,.argent span{font-size:12px;line-height:17px;color:#2a1d12}
+.argent span{font-size:12px;line-height:17px;color:#2a1d12}
 .argent{display:flex;flex-direction:column;align-items:center}
 .argent b{height:46px;line-height:46px;font-size:30px;color:#3a1a10}
 .vaincus,.lignes-b{padding-left:22px;border-left:1px solid rgba(60,40,20,.4);height:108px}

@@ -13,7 +13,7 @@ import { findTraitById, findManeuverById, findBreathTypeById, findConditionById,
 import { t } from '../i18n';
 import { isEffectOp, reecrireFlow, spellEffectOps, type Condition, type EffectOp, type Flow } from './flowCore';
 import type { TraitInstance, TraitList } from './statEntry';
-import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from './types';
+import { DIFFICULTY_LABELS, type Combatant, type Difficulty, type Weapon } from './types';
 import type { GameOp } from './ops';
 
 /** Type d'attaque naturelle (geste + règle distincts). Sert UNIQUEMENT à l'anim/pose/icône. */
@@ -35,6 +35,7 @@ export interface CreatureAttack {
   /** Clé de l'attaque parmi celles du porteur (`clesDesAttaques`) : l'id de sa manœuvre, distingué par le
    *  rang quand deux Traits octroient la même (deux Souffles de Types différents). LDB 85 l.322 */
   cle: string;
+  traitUid?: string;
   kind: AttackKind;
   /** Libellé canonique du trait (« Morsure +10 », « Attaque caudale +9 »…). */
   label: string;
@@ -165,6 +166,7 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
       out.push({
         cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type: inst.arg, def,
         trigger: def.activation, avantage: def.coutEnAvantage,
+        ...(inst.uid != null ? { traitUid: inst.uid } : {}),
         ...(def.stat ? { stat: def.stat } : {}), ...(def.modeDAvantage ? { modeDAvantage: def.modeDAvantage } : {}),
         ...(inst.count != null ? { count: inst.count } : {}),
         ...(def.ciblage === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
@@ -211,6 +213,13 @@ export function attaquesNaturelles(traits: TraitList): CreatureAttack[] {
 /** L'attaque naturelle `kind` de la liste unique (`attaquesNaturelles`). */
 export const attaqueNaturelle = (traits: TraitList, kind: string): CreatureAttack | undefined =>
   attaquesNaturelles(traits).find((a) => a.kind === kind);
+
+/** LDB 85 l.405 ; #1765 */
+export function armeDesTentacules(c: Pick<Combatant, 'weapons'>, a: CreatureAttack): Weapon | undefined {
+  if (a.kind !== 'tentacules' || (a.traitUid == null && a.bfInclus)) return undefined;
+  return c.weapons.find((w) => w.natural && w.attackKind === a.kind && w.source?.kind === 'trait'
+    && (a.traitUid != null ? w.uid === a.traitUid : 'plusBF' in w.damage && w.damage.plusBF));
+}
 
 // ---------------------------------------------------------------------------
 // Capacités SUR SOI (ciblage:'soi') — transformation/mue/auto-buff octroyées par un trait

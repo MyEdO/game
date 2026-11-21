@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { blobsDe, comparer, empreinteDe, fichiersDe, rapportDEcart } from './empreinteRejeu.mjs'
-import { PERIMETRE, mesurerParGit } from '../replay.mjs'
+import { PERIMETRE, mesurerParGit, rejouer } from '../replay.mjs'
 import { RACINE_DES_EXPORTS, effacerExport, exportsDuProcessus, lierDependances, rejeuSurExport } from '../replay-head.mjs'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { efface } from './joue.mjs'
@@ -274,6 +274,16 @@ test('les modules de la porte, eux, sont HORS rejeu sans rougir', () => {
   } finally {
     efface(racine)
   }
+})
+
+test('le rejeu exécute les migrations datées dans l’ordre des unités de code', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'rejeu-ordre-'))
+  t.after(() => efface(racine))
+  const noms = ['2026-11-21-a-regle.mjs', '2026-11-21-B-regle.mjs']
+  for (const nom of noms) ecrire(racine, nom, '/** Entrées : aucune. */')
+  const lignes = []
+  assert.deepEqual(rejouer({ racine, dossier: racine, ecrire: (ligne) => lignes.push(ligne) }), { rouges: [], joues: 2 })
+  assert.deepEqual(lignes.slice(1).map((ligne) => ligne.split(' — ')[0]), noms.toReversed().map((nom) => '  ✓ ' + nom))
 })
 
 // Sonde D du juge de diff, PROMUE — deux rejeux du MÊME sha en même temps (un `pre-push` pendant un

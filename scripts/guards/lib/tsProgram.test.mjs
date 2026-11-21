@@ -234,6 +234,22 @@ test('repoProgram : config héritée, racines choisies, recouvrement et erreur p
   } finally { spy.mock.restore(); rmSync(root, { recursive: true, force: true }); }
 });
 
+test('repoProgram : des options d’analyse locales conservent le tsconfig JSONC et son héritage', (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'ts7-config-jsonc-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(path.join(root, 'base.json'), '{"compilerOptions": {"strict": true, "noLib": true, "types": []}}');
+  writeFileSync(path.join(root, 'tsconfig.json'), '{\n// Options du dépôt\n"extends": "./base.json",\n"files": ["a.ts",],\n}\n');
+  writeFileSync(path.join(root, 'a.ts'), 'export interface A { poids: number }');
+  const lecteur = path.join(root, 'lecteur.mjs');
+  writeFileSync(lecteur, "/** @param {import('./a.ts').A} a */\nexport const poids = a => a.poids;");
+  const session = repoProgram(root, files => [...files, lecteur], {}, { allowJs: true, checkJs: false, noEmit: false });
+  try {
+    const { strict, allowJs, checkJs, noEmit } = session.program.getCompilerOptions();
+    assert.deepEqual({ strict, allowJs, checkJs, noEmit }, { strict: true, allowJs: true, checkJs: false, noEmit: true });
+    assert.ok(session.program.getSourceFile(lecteur), lecteur);
+  } finally { session.dispose(); }
+});
+
 const diagnostics = program => [...program.getProgramDiagnostics(), ...program.getSyntacticDiagnostics(), ...program.getSemanticDiagnostics(), ...program.getGlobalDiagnostics()];
 function identifiers(source, nom) {
   const ts = typescript();

@@ -249,12 +249,17 @@ export interface SequenceDef<P = unknown> {
   tableau?: (get: Get, seq: SequenceState<P>) => SequenceBoard | undefined;
   /** ABANDON que la séquence OFFRE au joueur — libellé court, info-bulle, et l'ISSUE que `denouer`
    *  joue. Absent : la séquence ne s'abandonne pas. */
-  abandon?: (seq: SequenceState<P>) => SequenceAbandon;
+  abandon?: (seq: SequenceState<P>, manche: SequenceAbandonCtx) => SequenceAbandon;
+}
+
+interface SequenceAbandonCtx {
+  readonly participants: Readonly<PendingCascade['participants']>;
+  readonly entamee: boolean;
 }
 
 /** Ce qu'une séquence déclare de son abandon (`SequenceDef.abandon`) — servi par la fenêtre de toute
  *  étape de la séquence. `refus` : l'abandon est FERMÉ, pour la raison dite — posé par le domaine
- *  (ce que seule sa charge utile sait), ou par le socle (`sequenceAbandonEtatOf`). */
+ *  (en lisant sa charge utile et les étapes jouées), ou par le socle (`sequenceAbandonEtatOf`). */
 export interface SequenceAbandon {
   label: PlayerText;
   title: PlayerText;

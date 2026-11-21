@@ -1836,7 +1836,9 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
     opaques: { k: 'elementItere', de: { k: 'projection', de: lit, v: [] } }, descendre: { k: 'aplatir', de: lit, profondeur: un },
     niveau: { k: 'aplatir', de: { k: 'liste', v: [lit] }, profondeur: un } }
   for (const [nom, e] of Object.entries(paresseuses)) assert.doesNotThrow(() => evaluer(e), nom)
+  const cleChaude = () => ferme.cleDe({ objet: { a: 'texte réutilisé' } })
   for (const prototype of [Object.prototype, Array.prototype]) {
+    cleChaude()
     const avant = Object.getOwnPropertyDescriptor(prototype, 'toJSON')
     Object.defineProperty(prototype, 'toJSON', { configurable: true, value: () => undefined })
     try {
@@ -1846,6 +1848,12 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
         assert.throws(() => c.cleDesArgs([[{ texte: 'src/a' }]]), /CLE_DOMAINE_JSON/)
       }
       for (const mode of ['strict', 'cellules']) assert.equal(clesDuDepot().cle({ a: [1] }, mode), null)
+      const panne = new TypeError('projection du scalaire')
+      Object.defineProperty(prototype, 'toJSON', { configurable: true, value() {
+        if (Array.isArray(this) && this[0] === 'string' && this[1] === 'texte réutilisé') throw panne
+        return this
+      } })
+      assert.throws(cleChaude, (e) => nomme(e) && e.cause === panne)
     } finally {
       if (avant) Object.defineProperty(prototype, 'toJSON', avant)
       else delete prototype.toJSON
@@ -2544,6 +2552,24 @@ for (const { nom, toucher, touches } of touchesDeLaPlage()) test(`plage réelle 
   })
 })
 
+test('banc fs win32 : son contrat de namespace conserve les lectures dérivées', () => {
+  const rel = 'scripts/docs/lib/plateforme-win32-fs.test.mjs'
+  const texte = readFileSync(new URL('../../docs/lib/plateforme-win32-fs.test.mjs', import.meta.url), 'utf8')
+  const modules = { [rel]: texte }
+  const lecture = depotDe(modules).lecture(rel)
+  assert.deepEqual(lecture.fonctions.racineDuBanc.contrat, { namespace: '/depot' })
+  const sites = sitesDesDeuxRegimes(modules, rel).filter(([appel]) => appel === 'readFile')
+  const couvert = (raison) => ({ chemin: '', sous: `couverture corpus entier : ${rel}#racineDuBanc:/depot — ${raison}` })
+  const valeurs = sites.at(-1)?.[1]
+  const attendues = [
+    couvert('namespace externe recomposé'),
+    couvert('descente dans namespace susceptible de lien'),
+    { chemin: 'src/é.ts' },
+  ]
+  assert.equal(valeurs.length, attendues.length)
+  assert.deepEqual(new Set(valeurs.map((v) => JSON.stringify(v))), new Set(attendues.map((v) => JSON.stringify(v))))
+})
+
 test('namespace borné : fragments recomposés, parent et sortie couvrent le corpus, cible readlink opaque', () => {
   const texte = "import {readdirSync} from 'node:fs';import {join,dirname} from 'node:path'\nexport function base() {return opaque()}\nexport const CONTRATS_DE_DERIVATION=[{fonction:base,namespace:'/proc'}]\nconst b=base()\nfor(const nom of readdirSync(b)) {readFileSync(join(b,nom,'stat'));readFileSync(nom)}\nreadFileSync(dirname(b))\nreadFileSync(join(b,'..','src'))\nreadFileSync(readlinkSync(join(b,'1/cwd')))"
   const rendu = racinesDe({ 'banc.mjs': texte }, 'banc.mjs')
@@ -2590,6 +2616,120 @@ test('mkdtemp : le consommateur réel retient une lecture sous suffixe aléatoir
     writeFileSync(posix.join(racine, 'fixture-ABC/x.md'), 'touché')
     assert.ok((await perimetreDuDepot(racine, { base: sha })).retenus.has('scripts/banc.test.mjs'))
   } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+// #2586
+test('coupe de relais : une lecture de fichier exacte atteignable se replie au site coupé', () => {
+  const modules = {
+    'lectures.mjs': `
+      import { readFileSync } from 'node:fs'
+      function fichier(chemin) { readFileSync(chemin) }
+      export function imbrique(chemin) {
+        fichier(chemin)
+        imbrique('sous/' + chemin)
+      }
+      export function autre(chemin) {
+        readFileSync(chemin)
+        autre('sous/' + chemin)
+      }
+      export function calcul(texte) { return calcul('sous/' + texte) }
+      export const CONTRATS_DE_DERIVATION = [{ fonction: fichier, lectures: { chemin: 0 } }]
+    `,
+    'banc.mjs': `
+      import { imbrique, autre, calcul } from './lectures.mjs'
+      imbrique('package.json')
+      autre('document.md')
+      calcul('donnée')
+    `,
+  }
+  assert.deepEqual(sitesDesDeuxRegimes(modules, 'banc.mjs'), [
+    ['imbrique', [{ identite: 'package.json' }, { identite: 'sous/package.json' },
+      couvert('lectures.mjs#imbrique', "cycle d'appels imbrique")]],
+    ['autre', [{ chemin: 'document.md' }, { chemin: 'sous/document.md' }, { non: "cycle d'appels autre" }]],
+  ])
+})
+
+// #2586
+test('manifeste npm : la portée choisit le fichier lu, même absent, et respecte la table fournie', () => {
+  const modules = {
+    'portee.mjs': `
+      export function sousRacineNpm(dir, fn) { return portee.run(dir || null, fn) }
+      export function racineNpmCourante(repli = null) { return portee.getStore() ?? repli }
+      export const CONTRATS_DE_DERIVATION = [
+        { fonction: sousRacineNpm, portee: { nom: 'npm', valeur: 0, rappel: 1 } },
+        { fonction: racineNpmCourante, retour: { type: 'portee', nom: 'npm', repli: 0 } },
+      ]
+    `,
+    'shell.mjs': `
+      import { readFileSync } from 'node:fs'
+      import { resolve } from 'node:path'
+      import { racineNpmCourante } from './portee.mjs'
+      function lire(chemin) { return readFileSync(chemin, 'utf8') }
+      function scriptsNpm(dir = racineNpmCourante(import.meta.dirname)) { return lire(resolve(dir, 'package.json')) }
+      function scriptsDuFlux(scripts = scriptsNpm()) { return scripts }
+      export function pipelinesDeJetons(commande, profondeur, { scripts } = {}) { return scriptsDuFlux(scripts) }
+      export const CONTRATS_DE_DERIVATION = [{ fonction: lire, lectures: { chemin: 0 } }]
+    `,
+    'banc.mjs': `
+      import { sousRacineNpm as sous } from './portee.mjs'
+      import { pipelinesDeJetons as lancer } from './shell.mjs'
+      lancer('npm run test', 0, {})
+      sous('un', () => lancer('npm run test', 0, {}))
+      sous('sous/absent', () => lancer('npm run test', 0, { scripts: undefined }))
+      sous('fourni', () => lancer('npm run test', 0, { scripts: {} }))
+      sous('nul', () => lancer('npm run test', 0, { scripts: null }))
+      sous('extérieur', () => {
+        sous('intérieur', () => lancer('npm run test', 0, {}))
+        lancer('npm run test', 0, {})
+      })
+      sous(lieuInconnu(), () => lancer('npm run test', 0, {}))
+      sous('scripts', () => garde.evaluer())
+      sous('étalé', () => lancer('npm run test', 0, { scripts: {}, ...{ scripts: undefined } }))
+      sous('écrasé', () => lancer('npm run test', 0, { scripts: undefined, ...{ scripts: {} } }))
+      sous('opaque', () => lancer('npm run test', 0, { scripts: {}, ...garde.options }))
+      function autre() { garde.evaluer() }
+      function transmettre() { autre() }
+      sous('nommé', transmettre)
+      sous('nommé enveloppé', () => transmettre())
+      sous('paramètre inutile', (_) => garde.evaluer())
+      sous('homonyme', () => garde.map())
+      sous('calculé', () => fabrique().evaluer())
+      const injecte = { evaluer: lancer }
+      sous('membre connu', () => injecte.evaluer('npm run test'))
+      function passer(f) { f('npm run test') }
+      sous('fonction liée', () => passer(lancer))
+      sous('fonction indéterminée', () => passer(garde.evaluer))
+      function passerEncore(f) { passer(f) }
+      sous('fonction transmise', () => passerEncore(garde.evaluer))
+      sous('itérateur', () => [1].map(() => lancer('npm run test')))
+      sous('calcul pur', () => [1].map(n => n + 1))
+    `,
+  }
+  const sites = sitesDesDeuxRegimes(modules, 'banc.mjs')
+  const chemin = (identite) => ({ identite })
+  assert.deepEqual(sites.slice(0, 4), [
+    ['pipelinesDeJetons', [chemin('package.json')]],
+    ['sousRacineNpm', [chemin('un/package.json')]],
+    ['sousRacineNpm', [chemin('sous/absent/package.json')]],
+    ['sousRacineNpm', [chemin('intérieur/package.json'), chemin('extérieur/package.json')]],
+  ])
+  const opaque = ['sousRacineNpm', [couvert('portee.mjs#sousRacineNpm', 'rappel de portée indéterminé')]]
+  assert.deepEqual(sites.slice(4), [
+    ['sousRacineNpm', [couvert('shell.mjs#lire', 'appel lieuInconnu')]],
+    opaque,
+    ['sousRacineNpm', [chemin('étalé/package.json')]],
+    ['sousRacineNpm', [chemin('opaque/package.json')]],
+    opaque,
+    opaque,
+    opaque,
+    opaque,
+    opaque,
+    ['sousRacineNpm', [chemin('membre connu/package.json')]],
+    ['sousRacineNpm', [chemin('fonction liée/package.json')]],
+    opaque,
+    opaque,
+    ['sousRacineNpm', [chemin('itérateur/package.json')]],
+  ])
 })
 
 test('contrat sérialisé : la source est une dépendance des réponses mises en cache', () => {

@@ -12,6 +12,7 @@ import { testScene } from '../scenes/test-fixture';
 import { castSpell } from './combatFlow';
 import { resolveFormula } from '../engine/ops';
 import { desDuTest } from '../engine/dice.testkit';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { ciblePsy } from '../engine/psych/ciblage';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
@@ -47,6 +48,7 @@ const accordes = (c: Combatant) => ({
 describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l.324-330)', () => {
   function auCamp() {
     const [w, s, p] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat', 'pretre');
+    w.spells = [...(w.spells ?? []), SOURCE.id];
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
     banc.getState().incanterLeSort(w.id, 'colerique', s.id);
     const heros = (id: string) => banc.getState().party.find((c) => c.id === id)!;
@@ -96,7 +98,7 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
     reussirEtJouer(banc, 9, { haine: true, personne: p.id, calme: 100 });
     expect(accordes(heros(s.id))).toEqual({
       traits: [{ type: 'haine', cible: ciblePsy.individu(p.id), src: SOURCE }],
-      echeances: [maintenant + bfm(w) * 168 * HEURE],
+      echeances: [maintenant + bfm(w) * 8 * MINUTES_PER_DAY],
     });
   });
 

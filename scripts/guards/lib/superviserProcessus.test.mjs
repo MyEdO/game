@@ -28,6 +28,8 @@ test('une erreur de supervision refuse la sortie même après un enfant réussi'
   assert.equal(diagnostic, '[supervision] sans code\n')
   assert.equal(sortieDeSupervision({ status: 0 }, journal), 0)
   assert.equal(sortieDeSupervision({ status: 3 }, journal), 3)
+  assert.equal(sortieDeSupervision({ status: 0, signal: 'SIGTERM' }, journal), 1)
+  assert.equal(sortieDeSupervision({ status: null, signal: null }, journal), 1)
 })
 
 test('superviserProcessus : le rendu porte l’arrêt certifié de l’unique fin native', { timeout: 20000 }, async () => {

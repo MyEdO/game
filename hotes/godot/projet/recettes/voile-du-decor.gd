@@ -7,8 +7,8 @@ extends SceneTree
 ## part se lit en lumière linéaire), brouillard volumétrique coupé, MSAA coupé, le fondu avancé par la recette seule, sous
 ## la caméra tactique centrée sur le décor servi le plus proche du centre de la carte dont le modèle montre
 ## `INTERIEUR_LISIBLE` pixels intérieurs (le visé), dans une fenêtre de
-## `FENETRE`. Les décors servis puis non servis (`MontageDesModeles.poser` sans `decors`, leurs primitives repeintes par
-## le volume), sous la vision servie : l'image d'après, celle d'avant, écrites sous `--sortie=<dossier>` s'il est donné.
+## `FENETRE`. Les décors servis puis non servis (`modeles`, `monde` et `morceaux`, leurs primitives repeintes par le
+## volume), sous la vision servie : l'image d'après, celle d'avant, écrites sous `--sortie=<dossier>` s'il est donné.
 ## La part d'un pixel est sa luminance voilée sur celle de la même image sans vision, lue aux pixels intérieurs des
 ## modèles (que leurs meshes peints en noir changent, `PIXELS.masque`) : tout vu, l'image sans vision au pixel ; tout
 ## exploré, puis tout inconnu, chaque modèle à la part de son état (`PIXELS.borne_du_pilote` sous le pilote de
@@ -51,6 +51,12 @@ var _sortie := ""
 ## Le pont espion sur la partie de `SCENARIO`.
 class PontDuDecor extends PontEspion:
 	var scenario := ""
+	var entree_des_modeles := {}
+
+	func appeler(methode: String, entree: Variant = null) -> Dictionary:
+		if methode == "modeles":
+			entree_des_modeles = entree
+		return super(methode, entree)
 
 	func parametre(cle: String) -> String:
 		return scenario if cle == "scenario" else super(cle)
@@ -70,7 +76,7 @@ func _recetter() -> void:
 	var pont := PontDuDecor.new()
 	pont.scenario = SCENARIO
 	if await _demarrer(pont):
-		await _voiler()
+		await _voiler(pont)
 	_fautes.append_array(_signales)
 	for faute in _fautes:
 		push_error("[voile-du-decor] " + faute)
@@ -173,10 +179,11 @@ func _pixels_des(cles: Array, temoin: Image) -> Array[Vector2i]:
 
 ## Les images d'après et d'avant, les décors servis puis non servis, sous la vision servie, puis le voile des modèles
 ## sous les visions uniformes et sous le masque des cases.
-func _voiler() -> void:
+func _voiler(pont: PontDuDecor) -> void:
 	var visee: String = await _visee()
 	var pose: Dictionary = _poses()[visee]
-	await _avant_apres()
+	if not await _avant_apres(pont):
+		return
 	var temoin := await _voir(null)
 	var tous := await _pixels_des(_poses().keys(), temoin)
 	var vise := await _pixels_des([visee], temoin)
@@ -205,25 +212,61 @@ func _lire(vision: String, quoi: String, temoin: Image, voilee: Image, pixels: A
 	_verifier(lue >= teinte - TOLERANCE and lue <= haute + TOLERANCE, "%s : %s à la part %.3f, attendue de %.3f à %.3f" % [vision, quoi, lue, teinte - TOLERANCE, haute + TOLERANCE])
 
 
-## Sous la vision servie, l'image des décors servis (`apres`), puis, la vue servie sans ses décors, celle de leurs
-## primitives (`avant`), écrites sous `_sortie` si elle est donnée ; les décors servis de nouveau, chaque pose reposée.
-func _avant_apres() -> void:
+## Sous la vision servie, l'image des modèles (`apres`), puis celle des primitives (`avant`) sous l'index sans décor.
+## L'index initial et ses modèles rétablis, les images s'écrivent sous `_sortie` si elle est donnée.
+func _avant_apres(pont: PontDuDecor) -> bool:
 	var rendu := RenderingServer.get_current_rendering_method()
 	var apres := await _voir(_servi)
-	_modeles.poser(_vue.corps.navires, {}, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
-	_verifier(_modeles.poses().is_empty(), "sans décors servis, %d modèles encore posés" % _modeles.poses().size())
-	var avant := await _voir(_servi)
-	_verifier(avant.get_data() != apres.get_data(), "l'image des primitives est celle des modèles")
+	var triangles_servis: int = _monde.volume.ce_qui_est_pose().triangles
+	var entree := pont.entree_des_modeles
+	var manifestes: Dictionary = entree.manifestes.duplicate()
+	for id: String in manifestes.keys():
+		if manifestes[id].get("categorie") == "decor":
+			manifestes.erase(id)
+	var sans_decors := pont.appeler("modeles", {manifestes = manifestes, osDesRigides = entree.osDesRigides})
+	if not _verifier(sans_decors.get("ok") == true and sans_decors.decors.is_empty(), "l'index sans décors n'est pas servi"):
+		return false
+	var avant: Image
+	if await _poser_le_volume(pont):
+		_modeles.poser(_vue.corps.navires, {}, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
+		_verifier(_modeles.poses().is_empty(), "sans décors servis, %d modèles encore posés" % _modeles.poses().size())
+		var triangles_recette: int = _monde.volume.ce_qui_est_pose().triangles - triangles_servis
+		if _verifier(triangles_recette > 0, "sans décors servis, aucun triangle supplémentaire peint par les recettes"):
+			avant = await _voir(_servi)
+			_verifier(avant.get_data() != apres.get_data(), "l'image des primitives est celle des modèles")
+	if not _verifier(pont.appeler("modeles", entree).get("ok") == true, "l'index initial n'est pas rétabli"):
+		return false
+	if not await _poser_le_volume(pont):
+		return false
 	_modeles.poser(_vue.corps.navires, _vue.corps.decors, _vue.plateau.coupesDesNavires, _vue.plateau.metresParCase)
+	_verifier(_monde.volume.ce_qui_est_pose().triangles == triangles_servis, "les décors servis de nouveau, le volume n'a pas retrouvé ses %d triangles peints" % triangles_servis)
 	var limite := Time.get_ticks_msec() + int(ATTENTE_S * 1000.0)
 	while Time.get_ticks_msec() < limite and _modeles.poses().size() != _poses_servies():
 		await process_frame
-	_verifier(_modeles.poses().size() == _poses_servies(), "les décors servis de nouveau, %d poses posées sur %d" % [_modeles.poses().size(), _poses_servies()])
-	if not _sortie.is_empty():
+	if not _verifier(_modeles.poses().size() == _poses_servies(), "les décors servis de nouveau, %d poses posées sur %d" % [_modeles.poses().size(), _poses_servies()]):
+		return false
+	if avant != null and not _sortie.is_empty():
 		for image: Array in [["avant", avant], ["apres", apres]]:
 			var chemin := _sortie.path_join("foret-%s-%s.png" % [image[0], rendu])
 			(image[1] as Image).save_png(chemin)
 			print("[voile-du-decor] %s écrite : %s" % [image[0], chemin])
+	return true
+
+
+## Le volume de la publication courante du pont, sous le cadrage déjà posé.
+func _poser_le_volume(pont: PontDuDecor) -> bool:
+	var monde := pont.appeler("monde")
+	if not _verifier(monde.get("ok") == true and monde.monde != null, "le manifeste du monde n'est pas servi"):
+		return false
+	var manquants := _monde.volume.manquants(monde)
+	if manquants.values().all(func(cles: Array) -> bool: return cles.is_empty()):
+		return true
+	var recus := pont.appeler("morceaux", manquants.merged({source = "partie"}))
+	if not _verifier(recus.get("ok") == true, "les morceaux du monde ne sont pas servis"):
+		return false
+	var _textures_gardees := await TexturesDeMatiere.preparer(_monde, VolumeDeScene.matieres_des_morceaux(recus))
+	_monde.volume.poser(monde, recus)
+	return _verifier(_monde.volume.manquants(monde).values().all(func(cles: Array) -> bool: return cles.is_empty()), "des morceaux du monde restent à poser")
 
 
 ## `vrai`, sinon la faute `faute` comptée.

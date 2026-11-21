@@ -1,23 +1,23 @@
 /**
  * LES PLANCHES ET LEURS ÉTALONS (#3935, `planches.mjs`) : `deposerLesPlanches` écrit chaque planche sous
- * `<sortie>/planches/<nom>.json`, sans ses réponses communes, et celles de chaque scénario sous
- * `<sortie>/planches/communes/`, celles d'un dépôt précédent retirées ; deux jeux de réponses communes pour un scénario
- * sont refusés. `refusDuNavigateur` ne laisse passer que
+ * `<sortie>/planches/<nom>.json`, et chaque jeu distinct de réponses communes sous
+ * `<sortie>/planches/communes/`. Chaque planche désigne les réponses de son état par leur empreinte. `refusDuNavigateur` ne laisse passer que
  * le `Chrome/<version>` d'`EPINGLE` sous Linux x86-64, et nomme sinon ce qu'il a lu, ce qu'il attend et la commande
  * d'installation. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte. `coteACote` pose la maquette
  * déclarée, ramenée à la taille de la capture, au-dessus de la capture et de leur fondu, ou dit pourquoi il ne le peut.
  * La vue de base du projet est la vue de référence ramenée à 720 de haut : l'interface s'y dessine comme sur sa maquette
- * à toute fenêtre, plus large en ratio que la maquette ou non.
+ * à toute fenêtre, plus large en ratio que la maquette ou non. `ecart` compte les pixels qui diffèrent entre deux PNG et
+ * la boîte qui les contient ; d'une taille à l'autre, tous.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs';
 import VUES_RECETTE from '../../scripts/recette/vues-recette.json';
-import { coteACote, deposerLesPlanches, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur, VUE_DE_BASE } from './planches.mjs';
+import { coteACote, deposerLesPlanches, ecart, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur, VUE_DE_BASE } from './planches.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
 afterAll(() => rmSync(racine, { recursive: true, force: true }));
@@ -26,21 +26,23 @@ const planche = (nom: string, scenario: string, communes: unknown) => ({ nom, ti
 const LINUX = { plateforme: 'linux', architecture: 'x64' };
 
 describe('deposerLesPlanches', () => {
-  it('écrit les planches sans leurs réponses communes, celles de chaque scénario une fois, et retire celles d’avant', () => {
+  it('partage les réponses identiques et garde les réponses distinctes des planches du même scénario', () => {
     const sortie = join(racine, 'export');
-    mkdirSync(join(sortie, 'planches'), { recursive: true });
-    writeFileSync(join(sortie, 'planches', 'ancienne.json'), '{}');
-    deposerLesPlanches(sortie, [planche('a', 'dome', { m: 1 }), planche('b', 'dome', { m: 1 }), planche('c', 'magie', { m: 2 })]);
-    expect(listerDossier(join(sortie, 'planches'))).toEqual(['a.json', 'b.json', 'c.json', 'communes']);
-    expect(listerDossier(join(sortie, 'planches', 'communes'))).toEqual(['dome.json', 'magie.json']);
-    expect(JSON.parse(readFileSync(join(sortie, 'planches', 'a.json'), 'utf8'))).toEqual({ nom: 'a', titre: 'a', parametres: { scenario: 'dome' }, reponses: { demarrer: { ok: true } } });
-    expect(JSON.parse(readFileSync(join(sortie, 'planches', 'communes', 'magie.json'), 'utf8'))).toEqual({ m: 2 });
-  });
-
-  it('refuse deux jeux de réponses communes pour un scénario', () => {
-    const sortie = join(racine, 'deux-communes');
-    expect(() => deposerLesPlanches(sortie, [planche('a', 'dome', { m: 1 }), planche('b', 'dome', { m: 2 })])).toThrow('b : les réponses communes de dome ne sont pas celles de ses autres planches');
-    expect(existsSync(join(sortie, 'planches', 'communes', 'dome.json'))).toBe(false);
+    const dossier = join(sortie, 'planches');
+    mkdirSync(dossier, { recursive: true });
+    writeFileSync(join(dossier, 'ancienne.json'), '{}');
+    deposerLesPlanches(sortie, [planche('a', 'dome', { m: 1 }), planche('b', 'dome', { m: 1 }), planche('c', 'dome', { m: 2 })]);
+    expect(listerDossier(dossier)).toEqual(['a.json', 'b.json', 'c.json', 'communes']);
+    const lire = (chemin: string) => JSON.parse(readFileSync(join(dossier, chemin), 'utf8'));
+    const a = lire('a.json');
+    const b = lire('b.json');
+    const c = lire('c.json');
+    expect(a).toEqual({ nom: 'a', titre: 'a', parametres: { scenario: 'dome' }, reponses: { demarrer: { ok: true } }, communes: expect.stringMatching(/^[a-f0-9]{64}$/) });
+    expect(a.communes).toBe(b.communes);
+    expect(a.communes).not.toBe(c.communes);
+    expect(lire(`communes/${a.communes}.json`)).toEqual({ m: 1 });
+    expect(lire(`communes/${c.communes}.json`)).toEqual({ m: 2 });
+    expect(listerDossier(join(dossier, 'communes'))).toHaveLength(2);
   });
 });
 
@@ -115,5 +117,16 @@ describe('la vue de base du projet', () => {
     const hauteur = 720;
     const reference = VUES_RECETTE.find((v) => v.nom === 'bureau')!;
     expect(VUE_DE_BASE).toEqual({ largeur: Math.floor((reference.largeur * hauteur) / reference.hauteur), hauteur });
+  });
+});
+
+describe('ecart', () => {
+  const png = (w: number, h: number, autres: number[] = []) => encoderPng({ w, h, data: Buffer.from(Array.from({ length: w * h }, (_, k) => (autres.includes(k) ? [200, 10, 10, 255] : [10, 20, 30, 255])).flat()) });
+  it('compte les pixels qui diffèrent et leur boîte, aucun entre deux images égales', () => {
+    expect(ecart(png(4, 3), png(4, 3))).toEqual({ pixels: 0, boite: '' });
+    expect(ecart(png(4, 3, [5, 11]), png(4, 3))).toEqual({ pixels: 2, boite: 'de (1, 1) à (3, 2)' });
+  });
+  it('compte tous les pixels d’une taille à l’autre', () => {
+    expect(ecart(png(4, 3), png(2, 2))).toEqual({ pixels: 12, boite: 'étalon 2×2, rendu 4×3' });
   });
 });

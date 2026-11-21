@@ -18,13 +18,14 @@ import { contractDisease, contagiousDiseases, applyContraction } from '../engine
 import { deFixe } from '../engine/dice.testkit';
 import { findMoraleFactor } from '../engine/crewMorale';
 import { setRule, resetRule } from '../engine/policy';
+import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Navire de campagne PERSISTANT (MDG 14) : le Moral de l'équipage est recalculé une fois par SEMAINE
- * par l'entretien quotidien (`tickShipMorale`), avec la même garde anti-double-comptage que les rations.
+ * par l'entretien quotidien (`tickCampaignVesselWeek`), avec la même garde anti-double-comptage que les rations.
  */
 beforeEach(() => {
   banc.setState({
@@ -166,14 +167,26 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 }); // Mousse hebdo = 288 sc, largement couvert
-    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
-    const v = banc.getState().vessel!;
-    expect(v.morale.lastMoraleWeek).toBe(1);
-    expect(v.morale.score).toBeGreaterThan(75); // « La paie est régulière » = +1d10
-    expect(v.morale.factors).toEqual([]); // le facteur de paie est injecté pour le recalcul, jamais persisté
-    expect(v.wagesOwed).toBeUndefined();
-    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 }) - 288);
-    expect(banc.getState().journal.join('\n')).toMatch(/Solde hebdomadaire de l'équipage versée/);
+    const bourseInitiale = toBrass(partyMoneyTotal(banc.getState));
+    const mesure = () => ({
+      bourse: toBrass(partyMoneyTotal(banc.getState)),
+      moral: banc.getState().vessel!.morale,
+      paies: banc.getState().journal.filter((l) => l === t('crew.paid', { money: formatMoney(fromBrass(288)) })).length,
+    });
+    banc.getState().avancerLeTemps(7 * MINUTES_PER_DAY);
+    expect(mesure()).toEqual({ bourse: bourseInitiale, moral: { score: 75, lastMoraleWeek: 0, factors: [] }, paies: 0 });
+
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
+    const jourHuit = mesure();
+    expect(jourHuit).toEqual({ bourse: bourseInitiale - 288, moral: { score: expect.any(Number), lastMoraleWeek: 1, factors: [] }, paies: 1 });
+    expect(jourHuit.moral.score).toBeGreaterThan(75); // MDG 14 l.158
+    expect(banc.getState().vessel!.wagesOwed).toBeUndefined();
+
+    chargerSurLeBanc(banc, sauverLeBanc(banc));
+    banc.getState().avancerLeTemps(7 * MINUTES_PER_DAY);
+    expect(mesure()).toEqual(jourHuit);
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
+    expect(mesure()).toMatchObject({ bourse: bourseInitiale - 576, moral: { lastMoraleWeek: 2 }, paies: 2 });
   });
 
   it('bourse insuffisante → pas-de-paie (−3d10) + dette accumulée, bourse intacte', () => {
@@ -208,7 +221,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     // interne à `tickCampaignVesselWeek`), mais le texte apparaissait ×3 à l'écran.
     banc.setState({
       battle: null, mode: 'exploration', journal: [], travelPlan: null, pendingRest: null,
-      party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), gameTime: 7 * MINUTES_PER_DAY - 100, lastUpkeepDay: 6,
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), gameTime: 8 * MINUTES_PER_DAY - 100, lastUpkeepDay: 7,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });
@@ -318,7 +331,7 @@ describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque sema
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5000, silver: 0, brass: 0 });
     banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     expect(semainesDuConseil(banc.getState())).toBe(1);
-    banc.getState().avancerLeTemps(14 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(16 * MINUTES_PER_DAY);
     expect(semainesDuConseil(banc.getState())).toBe(3);
     banc.getState().fenetreChoisir('conseil', 'paie', 'paie-reguliere');
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(3);
@@ -345,7 +358,7 @@ describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque sema
   it('un navire posé par `setVessel` ne doit rien des semaines d’avant sa pose (MDG 14 l.143)', () => {
     setCadence('rapide');
     banc.setState({ gameTime: campaignStart(), lastUpkeepDay: dayIndex(campaignStart()) });
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', crew: [{ roleId: 'mousse', count: 2 }] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' }, crew: [{ roleId: 'mousse', count: 2 }] }]);
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5000, silver: 0, brass: 0 });
     const avant = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().avancerLeTemps(1 * MINUTES_PER_DAY);

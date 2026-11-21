@@ -1,40 +1,35 @@
 /* Les écrans d'ouverture (#3935, #4411) : l'écran titre, le menu de la partie, le carton du chapitre. Le grand titre libre
    en gothique dorée et ce qui le suit ; la colonne des entrées ; les outils de l'accueil ; la clôture du chapitre. */
-.titre-libre .sur{font-size:15.5px;letter-spacing:2.3px;color:var(--or);margin-left:4px}
+.titre-libre .place>*{margin:0}
+.titre-libre .sur{font-size:15.5px;letter-spacing:2.3px;color:var(--or)}
+.titre-libre .place>.nom{font-size:80px;line-height:124px;margin:-11px 0 -21px;letter-spacing:.5px}
 .titre-libre .nom{width:max-content;padding-right:8px;white-space:nowrap;background:linear-gradient(180deg,#fff4d4 12%,#f0d48a 52%,#b88a36 92%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 2px rgba(0,0,0,.85)) drop-shadow(0 0 22px rgba(0,0,0,.7))}
 .titre-libre .filet::before{flex:0 0 150px}
-.titre-libre p{margin:0 0 12px 4px;font-style:italic;font-size:17px;line-height:25px;color:#efe4c8}
-#blason .nom{font-size:96px;line-height:150px;margin:-27px 0 -29px;letter-spacing:.5px}
-#blason .filet{width:560px;margin:10px 0 6px 4px}
-#blason .campagne{font-size:34px;line-height:42px;color:#efe2c0;margin-left:4px;font-weight:500;letter-spacing:.6px}
-#pause .nom{font-size:64px;line-height:100px;margin:-18px 0 -20px}
-#pause .filet{width:470px;margin:10px 0 8px 4px}
-#pause .ou{font-style:italic;font-size:16px;color:#e6dabd;margin-left:4px}
-#pause .ou .rubrique{font-style:normal;color:#f0e2c2;font-size:17px}
+.titre-libre p{margin:0 0 12px;font-style:italic;font-size:17px;line-height:25px;color:#efe4c8}
+#blason .campagne{font-size:34px;line-height:42px;color:#efe2c0;font-weight:500;letter-spacing:.6px}
 
 /* la colonne des entrées : la principale en tête, ce qu'elle reprend dessous ; la sortie sous un trait */
-#entrees{display:flex;flex-direction:column;gap:12px}
-#entrees .plaque{flex:none}
+#entrees [data-place="entrees/autres"]{display:flex;flex-direction:column;gap:12px}
+#entrees .plaque{flex:none;width:100%}
 #entrees .plaque>div{justify-content:flex-start;padding:0 20px;gap:14px}
-#entrees .dernier{font-style:italic;font-size:14px;line-height:18px;color:#e6dabd;margin:-5px 0 6px 4px;white-space:nowrap}
-#entrees .dernier .rubrique{font-style:normal;color:#f0e2c2}
+#entrees :is(.reprise,.dernier){font-style:italic;font-size:14px;line-height:18px;color:#e6dabd;white-space:nowrap}
+#entrees .reprise .rubrique{font-style:normal;color:#f0e2c2}
 #entrees .trait{height:1px;background:linear-gradient(90deg,rgba(226,192,106,.55),rgba(226,192,106,0));margin:8px 0}
-#entrees .trait~.dernier{margin:2px 0 0 4px;color:#cfc2a4}
+#entrees .dernier{margin:2px 0 0 4px;color:#cfc2a4}
 #outils{display:flex;gap:6px}
 #outils .outil{gap:6px;width:92px}
 #outils .outil span{font-size:13px;color:var(--ivoire)}
 
 /* le carton du chapitre : le tome, le chapitre sur sa toile ; à la clôture, ses bandes et ses objectifs soldés */
-#carton .nom{font-size:80px;line-height:124px;margin:-22px 0 -28px}
-#carton .tome{font-size:28px;line-height:38px;font-weight:500;color:#efe2c0;margin-left:4px;letter-spacing:.5px}
-#carton .toile-ombre{margin:16px 0 16px -6px;width:max-content}
+#carton .tome{font-size:28px;line-height:38px;font-weight:500;color:#efe2c0;letter-spacing:.5px}
+#carton .toile-ombre{width:max-content}
 #carton .toile{width:600px;height:58px;clip-path:polygon(0 0,100% 0,calc(100% - 18px) 50%,100% 100%,0 100%,18px 50%)}
 #carton .toile::before{inset:6px 30px}
 #carton .toile span{font-size:24px;line-height:34px;letter-spacing:.5px}
-#carton .bande{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px 4px;padding-bottom:3px;border-bottom:1px solid rgba(226,192,106,.45);font-size:13.5px;letter-spacing:1.6px;color:var(--or)}
+#carton .bande{display:flex;justify-content:space-between;align-items:baseline;margin:11px 0 6px;padding-bottom:3px;border-bottom:1px solid rgba(226,192,106,.45);font-size:13.5px;letter-spacing:1.6px;color:var(--or)}
 #carton .bande b{font-weight:600;font-size:17px;letter-spacing:.2px;color:#f6e9c8}
 #carton .bande .px b{margin-left:8px}
-#carton>p{max-width:760px}
-#carton .solde{display:flex;align-items:center;gap:11px;height:29px;margin-left:4px;font-size:16px;color:#efe4c8;white-space:nowrap}
+#carton .place>p{max-width:760px}
+#carton .solde{display:flex;align-items:center;gap:11px;height:27px;font-size:16px;color:#efe4c8;white-space:nowrap}
 #carton .deux{display:grid;grid-template-columns:1fr 1fr;column-gap:30px}
-#carton .deux p{margin:0 0 0 4px;font-size:15px;line-height:21px}
+#carton .deux p{margin:0;font-size:15px;line-height:21px}

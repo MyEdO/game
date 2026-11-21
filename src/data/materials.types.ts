@@ -121,9 +121,9 @@ export type MatiereDe<D extends MaterialDomain> = Extract<MaterialEntry, { domai
  *  émission — une source lumineuse est un `light` de prop ou d'instance, jamais une matière. */
 export type PropMaterialData = MatiereDe<'prop'>;
 
-/** Apparence de RENDU des toits (matériau de couverture iso : teintes par orientation de PENTE +
- *  liseré/rangs de tuiles ; et « plan » vu du dessus en vue carrée). Le renderer ne porte aucun
- *  littéral de couleur — l'identité du matériau vient d'ici. */
+/** Apparence de RENDU des toits (matériau de couverture : teintes de PENTE, soffite, planche de rive ; et
+ *  l'entrée du « plan » vu du dessus, `vueDeDessus`). Le rendu ne porte aucun littéral de couleur —
+ *  l'identité du matériau vient d'ici. */
 export type RoofMaterialDef = MatiereDe<'roof'>;
 
 /** Apparence de RENDU du relief d'environnement (falaise/rampe/tablier/pilier, iso et POV) :

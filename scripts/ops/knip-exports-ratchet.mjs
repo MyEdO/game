@@ -1,44 +1,76 @@
 #!/usr/bin/env node
-// Cliquet des EXPORTS MORTS (knip, mode exports/types) — même patron que les cliquets de
-// `src/ui/ui-ratchets.test.ts` : le stock recensé est GELÉ NOMINATIVEMENT dans
+// Stock des exports sans importeur (knip, mode exports/types), recensé par nom dans
 // `knip-exports-baseline.json` (fichier → noms), toute APPARITION échoue, toute entrée assainie
 // doit être RETIRÉE de la baseline (`--sync` ne sait que retirer, jamais ajouter).
 //
-// Périmètre du gel (2026-08-16) : `src/gameIso/**` est EXCLU de la baseline — chantier de rendu en
-// cours (backends WebGL), son stock d'exports bouge d'heure en heure et gèlerait un
-// cliquet en faux rouge permanent. Il reste dans le GRAPHE knip (ses imports comptent, sinon un
-// export consommé par le seul `gameIso` passerait pour mort) : seule sa colonne de dette est hors gel.
-//
-// STOCK RÉSIDUEL (2026-08-17, #1318 E2 — 173 → 11) : chaque survivant est justifié NOMINATIVEMENT.
-//  - `src/i18n/index.ts : setLocale` — commutateur du seam i18n (plan évacué → #320), la seule
-//    entrée publique qui change de locale ; trois modules de moteur (`engine/mountTravel.ts`:40,
-//    `engine/shipCritical.ts`:28, `engine/spellRangeFormat.ts`:49) et un test
-//    (`src/player-text-ratchet.test.ts`:33) motivent leur forme (fonction plutôt que carte figée)
-//    par son existence. Sans consommateur tant que le catalogue est mono-FR.
-//  - `portFlow.PortState`, `landMarketFlow.LandMarketState` (`src/noyau/`) — ANGLE MORT de knip, pas
-//    des morts : `noyau/etat.ts` les lit en import de type INLINE (`import('./portFlow').PortState`), forme
-//    que knip ne compte pas comme consommation.
-//  - `src/ui/editor/**` (7) — hors périmètre de la passe E2 (chantier éditeur voisin).
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, extname, join, relative } from 'node:path'
+import { correspondGlob } from '../guards/lib/lister.mjs'
 
-export const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const SCRIPT = fileURLToPath(import.meta.url)
+export const REPO = join(dirname(SCRIPT), '..', '..')
 export const BASELINE = join(REPO, 'knip-exports-baseline.json')
-export const HORS_GEL = ['src/gameIso/']
 
-/** Aplatit le rapport JSON de knip en `{ fichier: [noms triés] }`, hors périmètre non gelé. */
-export function flatten(issues) {
-  const per = {}
-  for (const f of issues ?? []) {
-    if (HORS_GEL.some((p) => f.file.startsWith(p))) continue
-    const names = [...(f.exports ?? []), ...(f.types ?? []), ...(f.nsExports ?? []), ...(f.nsTypes ?? [])].map(
-      (x) => x.name,
-    )
-    if (names.length) per[f.file] = [...names].sort()
+const MESURER = '--mesurer'
+const TYPES_D_EXPORT = ['exports', 'types', 'nsExports', 'nsTypes']
+const MODULES_TYPESCRIPT = new Set(['.ts', '.tsx', '.mts', '.cts'])
+
+/** Aplatit les types d'alerte export de Knip par fichier relatif. */
+function flatten(issues, racine) {
+  const parFichier = {}
+  for (const type of TYPES_D_EXPORT) {
+    for (const issuesDuFichier of Object.values(issues[type])) {
+      for (const { filePath, symbol } of Object.values(issuesDuFichier)) {
+        const fichier = cheminRelatif(racine, filePath)
+        const noms = parFichier[fichier] ??= []
+        noms.push(symbol)
+      }
+    }
   }
-  return per
+  for (const noms of Object.values(parFichier)) noms.sort()
+  return parFichier
+}
+
+const cheminRelatif = (racine, fichier) => relative(racine, fichier).replaceAll('\\', '/')
+const retenu = (fichier, motifs) =>
+  motifs.some(m => !m.startsWith('!') && correspondGlob(fichier, m)) &&
+  !motifs.some(m => m.startsWith('!') && correspondGlob(fichier, m.slice(1)))
+
+/** Une seule analyse pour le rapport d'exports et ses modules TypeScript promus par une arête d'entrée. */
+export function mesurerExports(racine = REPO) {
+  const { error, status, signal, stdout, stderr } = spawnSync(process.execPath, [SCRIPT, MESURER], {
+    cwd: racine, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+  })
+  if (error) throw error
+  if (status !== 0) throw new Error(`Knip : ${stderr.trim() || signal || status}`)
+  return JSON.parse(stdout.trimEnd().split('\n').at(-1))
+}
+
+async function lireGrapheKnip() {
+  const { createOptions } = await import('knip/session')
+  // La façade knip/session ne livre ni les arêtes d'entrée ni leur ensemble résolu.
+  const { run } = await import(new URL('./run.js', import.meta.resolve('knip')).href)
+  const options = await createOptions({
+    cwd: realpathSync(process.cwd()),
+    includedIssueTypes: TYPES_D_EXPORT,
+    isSession: true,
+    isShowProgress: false,
+  })
+  const { results, session } = await run(options)
+  if (results.hasConfigLoadErrors) throw new Error('Knip : chargement de configuration en échec')
+  const { entry = [], project = [] } = options.parsedConfig
+  const entrees = session.getEntryPaths()
+  const aretes = []
+  for (const [fichier, { imports }] of session.getGraph()) {
+    for (const cible of imports.entryFiles) {
+      if (!entrees.has(cible) || !MODULES_TYPESCRIPT.has(extname(cible))) continue
+      const rel = cheminRelatif(options.cwd, cible)
+      if (retenu(rel, project) && !retenu(rel, entry)) aretes.push(`${cheminRelatif(options.cwd, fichier)} → ${rel}`)
+    }
+  }
+  return { counts: flatten(results.issues, options.cwd), entreesImplicites: aretes.sort() }
 }
 
 /** Compare mesure et baseline. `nouveaux` = régression (échec), `assainis` = baseline à abaisser. */
@@ -68,27 +100,12 @@ export function syncBaseline(counts, baseline) {
 }
 
 function main() {
-  // Binaire knip lancé par `node` directement (pas `npx`) : sur Windows un `spawnSync('npx.cmd')`
-  // sans `shell` rend un statut nul et une sortie VIDE — un faux vert silencieux.
-  const r = spawnSync(
-    process.execPath,
-    [
-      join(REPO, 'node_modules', 'knip', 'bin', 'knip.js'),
-      '--include',
-      'exports,types,nsExports,nsTypes',
-      '--no-progress',
-      '--reporter',
-      'json',
-    ],
-    { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
-  )
-  const stdout = (r.stdout ?? '').trim()
-  const start = stdout.indexOf('{')
-  if (start === -1) {
-    console.error('knip n’a produit aucun rapport JSON :\n' + (r.stderr ?? '').trim())
-    process.exit(1)
+  const { counts, entreesImplicites } = mesurerExports()
+  if (entreesImplicites.length) {
+    console.error('MODULES TYPESCRIPT SOUSTRAITS À LA MESURE DES EXPORTS :\n  ' + entreesImplicites.join('\n  '))
+    process.exitCode = 1
+    return
   }
-  const counts = flatten(JSON.parse(stdout.slice(start)).issues)
   const baseline = JSON.parse(readFileSync(BASELINE, 'utf8'))
 
   if (process.argv.includes('--sync')) {
@@ -118,4 +135,9 @@ function main() {
   console.log(`exports morts : ${total} (gelés, ${Object.keys(counts).length} fichiers) — aucun nouveau`)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  if (process.argv[2] === MESURER) {
+    process.env.JITI_FS_CACHE = 'false'
+    console.log(JSON.stringify(await lireGrapheKnip()))
+  } else main()
+}

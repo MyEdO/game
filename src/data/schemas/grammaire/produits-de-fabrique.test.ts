@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { ast } from '../../../../scripts/guards/lib/dialecte.mjs';
-import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus, type CorpusFile } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { classeDeProduit, empreinteDeNoeud } from './produits';
 import { ref, refOuSpec, refTypee, pick } from './ref';
@@ -59,7 +59,7 @@ function racineMarquee(n: ts.Expression): string | undefined {
 }
 
 /** Les fabriques DÉRIVANTES du corpus : nom → rangs des paramètres dont elles marquent une dérivation. */
-function derivantes(sources: readonly { rel: string; text: string }[]): Map<string, Set<number>> {
+function derivantes(sources: readonly Pick<CorpusFile, 'rel' | 'text'>[]): Map<string, Set<number>> {
   const table = new Map<string, Set<number>>();
   for (const { rel, text } of sources) {
     const sf = ast({ rel, text });
@@ -123,7 +123,7 @@ function constructionsNonMarquees(rel: string, texte: string, fabriquesDerivante
 }
 
 describe('GARDE — un objet construit par une fonction de la grammaire est un produit marqué', () => {
-  const grammaire = () => readCorpus(['src/data/schemas/grammaire'], { exts: ['.ts'] }).filter((s) => !s.rel.endsWith('.test.ts'));
+  const grammaire = () => readCorpus(['src/data/schemas/grammaire']);
 
   it('les fabriques dérivantes de la grammaire sont reconnues ; aucune construction d’objet de fabrique hors d’un marquage', () => {
     const sources = grammaire();

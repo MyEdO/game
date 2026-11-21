@@ -60,7 +60,8 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
   });
 
   it('la désignation ne s’annule pas : elle survit au changement de scène', () => {
-    get().quitterLaScene('altdorf-porte-sud');
+    get().quitterLaScene('altdorf-porte-du-loup');
+    expect(get().scene?.id).toBe('altdorf-porte-du-loup');
     expect(get().pendingDesignationHeros?.etat).toBe(SOSIE);
   });
 

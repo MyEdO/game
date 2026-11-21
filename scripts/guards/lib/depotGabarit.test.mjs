@@ -284,7 +284,7 @@ const IMPORTE_L_ENV = /import\s*\{[^}]*\benvDeDepotForge\b[^}]*\}\s*from\s*['"][
 
 /** Fichiers du corpus qui forgent un dépôt, hors la primitive. */
 function forgeurs() {
-  const corpus = readCorpus(['scripts', 'src'], { exts: ['.mjs', '.mts', '.js', '.ts', '.tsx'], tests: true })
+  const corpus = readCorpus(['scripts', 'src'], { tests: true })
   return corpus.filter((f) => f.rel !== PRIMITIVE && FORGE_UN_DEPOT.test(f.text) && SITE_GIT.test(f.text))
 }
 

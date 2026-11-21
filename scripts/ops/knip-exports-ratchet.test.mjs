@@ -4,10 +4,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { spawnSync } from 'node:child_process'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { join } from 'node:path'
-import { flatten, compare, syncBaseline, REPO, HORS_GEL } from './knip-exports-ratchet.mjs'
+import { mesurerExports, compare, syncBaseline, REPO } from './knip-exports-ratchet.mjs'
 
 const CONFIG = JSON.parse(readFileSync(join(REPO, 'knip.json'), 'utf8'))
 const retenu = (file, motifs) => motifs.some((m) => !m.startsWith('!') && correspondGlob(file, m)) && !motifs.some((m) => m.startsWith('!') && correspondGlob(file, m.slice(1)))
@@ -31,11 +30,7 @@ test('bibliothèque hors entry : export consommé vert, export mort rouge au cli
     writeFileSync(join(racine, 'knip.json'), JSON.stringify({ entry: CONFIG.entry, project: CONFIG.project, ignoreExportsUsedInFile: true }))
     writeFileSync(join(racine, 'scripts/consommateur.mjs'), "import { vivant } from './test/lib/banc.mjs'; console.log(vivant)")
     const source = join(racine, 'scripts/test/lib/banc.mjs')
-    const mesurer = () => {
-      const vu = spawnSync(process.execPath, [join(REPO, 'node_modules/knip/bin/knip.js'), '--include', 'exports,types,nsExports,nsTypes', '--no-progress', '--reporter', 'json'], { cwd: racine, encoding: 'utf8', timeout: 15_000 })
-      assert.ok(vu.stdout.includes('{'), vu.stderr)
-      return compare(flatten(JSON.parse(vu.stdout.slice(vu.stdout.indexOf('{')).trim()).issues), {})
-    }
+    const mesurer = () => compare(mesurerExports(racine).counts, {})
     writeFileSync(source, 'export const vivant = 1')
     assert.deepEqual(mesurer().nouveaux, [])
     writeFileSync(source, 'export const vivant = 1; export const mort = 2')
@@ -43,21 +38,38 @@ test('bibliothèque hors entry : export consommé vert, export mort rouge au cli
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-const issue = (file, exports = [], types = []) => ({
-  file,
-  exports: exports.map((name) => ({ name })),
-  types: types.map((name) => ({ name })),
-  nsExports: [],
-  nsTypes: [],
-})
+test('le graphe signale la lecture qui fait d’un module une entrée et accepte la commande déclarée', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'knip-lecture-'))
+  try {
+    mkdirSync(join(racine, 'src'))
+    mkdirSync(join(racine, 'node_modules'))
+    writeFileSync(join(racine, 'package.json'), JSON.stringify({ type: 'module' }))
+    writeFileSync(join(racine, 'knip.json'), JSON.stringify({ entry: [...CONFIG.entry, 'src/commande.ts'], project: CONFIG.project }))
+    writeFileSync(join(racine, 'src/module.ts'), 'export const vivant = 1; export const mort = 2; export type TypeMort = string')
+    writeFileSync(join(racine, 'src/commande.ts'), 'console.log("commande")')
+    const lecteur = join(racine, 'src/lecture.test.ts')
+    const lire = (adresse) => [
+      "import { readFileSync } from 'node:fs'",
+      "import { resolve } from 'node:path'",
+      "import { spawnSync } from 'node:child_process'",
+      "import { vivant } from './module.ts'",
+      "spawnSync(process.execPath, [new URL('./commande.ts', import.meta.url).pathname])",
+      `console.log(vivant, readFileSync(${adresse}, 'utf8'))`,
+    ].join('\n')
 
-test('flatten : exports et types fusionnés, triés, gameIso hors gel', () => {
-  const per = flatten([
-    issue('src/state/a.ts', ['b', 'a'], ['T']),
-    issue('src/gameIso/stage/x.ts', ['mort']),
-    issue('src/ui/vide.ts', []),
-  ])
-  assert.deepEqual(per, { 'src/state/a.ts': ['T', 'a', 'b'] })
+    writeFileSync(lecteur, lire("resolve(import.meta.dirname, 'module.ts')"))
+    assert.deepEqual(mesurerExports(racine), {
+      counts: { 'src/module.ts': ['TypeMort', 'mort'] },
+      entreesImplicites: [],
+    })
+
+    writeFileSync(lecteur, lire("new URL('./module.ts', import.meta.url)"))
+    assert.deepEqual(mesurerExports(racine), {
+      counts: {},
+      entreesImplicites: ['src/lecture.test.ts → src/module.ts'],
+    })
+    assert.equal(existsSync(join(racine, 'node_modules', '.cache', 'jiti')), false)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
 test('compare : un export mort NOUVEAU est une régression', () => {
@@ -87,14 +99,8 @@ test('syncBaseline ne sait que RETIRER — jamais ajouter un export mort neuf', 
   assert.deepEqual(next, { 'a.ts': ['x'] })
 })
 
-// ── Contrat du filtre gameIso : il vit dans le CLIQUET (après mesure), JAMAIS dans la config knip.
-//    L'y mettre couperait le graphe — un export consommé par le seul `src/gameIso` passerait pour
-//    mort et se ferait geler comme dette. Deux tests verrouillent le contrat : la config ne coupe rien
-//    (ci-dessous), et aucune entrée gelée n'est en réalité importée par gameIso
-//    (`scripts/corpus/ops/knip-exports-ratchet.test.mjs`).
-test('le filtre gameIso n’est PAS dans knip.json (sinon le graphe est coupé)', () => {
+test('knip.json ne recadre pas le graphe sur les anciens dossiers d’interface', () => {
   const knip = JSON.parse(readFileSync(join(REPO, 'knip.json'), 'utf8'))
   const motifs = [...(knip.ignore ?? []), ...(knip.entry ?? []), ...(knip.project ?? [])]
-  for (const m of motifs) assert.ok(!m.includes('gameIso'), `knip.json cite gameIso (${m}) : graphe coupé`)
-  assert.deepEqual(HORS_GEL, ['src/gameIso/'], 'le hors-gel est le seul endroit où gameIso se filtre')
+  for (const m of motifs) assert.ok(!m.includes('gameIso'), `knip.json cite gameIso (${m})`)
 })

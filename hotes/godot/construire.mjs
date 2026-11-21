@@ -11,7 +11,8 @@
 // `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
-// script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
+// script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, chacune
+// jugée hors des erreurs qu'elle attend (`const ERREURS_ATTENDUES`, `erreursDeLaRecette`), les vues
 // de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`), le véhicule, le repos et les échantillons de
 // l'atelier figés (`hotes/godot/recettes/vehicule.ts`, `hotes/godot/recettes/atelier.ts`,
 // `hotes/godot/recettes/decor.ts`), le chemin du groupe (`hotes/godot/recettes/chemin.ts`), l'éditeur du navire
@@ -29,10 +30,10 @@
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie jetable du projet sous le dossier temporaire, tirée de sa copie importée gardée hors de
 // l'arbre (`surUneCopie`, #3935) : l'arbre n'en reçoit rien, ni les modèles d'export du profil Godot
-// (`export_templates`). Chaque étape du démarrage écrit sa durée au journal (`[démarrage]`, `chronometrer`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--coop`, `--export` et `--bureau` déposent les GLB, les textures et le
-// kit des arêtes du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
+// (`export_templates`). Chaque étape du démarrage écrit sa durée au journal (`[démarrage]`, `chronometrer`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--coop`, `--export` et `--bureau` déposent les GLB, les textures et les
+// sons du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
 // (`recupererModeles`, #2948 ; `recupererEpingles`, #3476), et la copie reçoit le catalogue des dessins
-// (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, le kit et le catalogue des dessins, ce
+// (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, les sons et le catalogue des dessins, ce
 // dernier dans le projet en place, puis ouvre l'éditeur épinglé sur ce projet (#3945) : F5 y joue sur le noyau vivant
 // (`vivant.mjs`), qui partage `empaqueter` en développement. `--bureau --sortie <dossier>` y écrit l'exécutable de bureau de cette
 // plateforme (#3951, `BUREAU`) : sous `noyau/`, le bundle, le point d'entrée embarqué empaqueté en un fichier
@@ -352,7 +353,7 @@ const PRESETS = 'export_presets.cfg'
 
 /** Les dossiers du projet que l'export Web sert hors de `index.pck`, chacun en paquet `<dossier>.pck` à côté de la page
  *  (#4402), nommés dans `PAQUETS`, que la scène de démarrage de la page lit (`projet/scripts/demarrage.gd`). */
-const PAQUETS_DU_WEB = ['textures', 'kit']
+const PAQUETS_DU_WEB = ['textures']
 /** La liste des paquets écrite à côté de la page. */
 const PAQUETS = 'paquets.json'
 /** Le préréglage qui exporte chaque paquet (`export_presets.cfg`), son `include_filter` réécrit par paquet. */
@@ -436,8 +437,35 @@ function scriptsDe(dossier, sous = dossier) {
   })
 }
 
+/** La source du script `script` (chemin `res://`) de la copie du projet `copie`. */
+const sourceDe = (copie, script) => readFileSync(join(copie, script.slice('res://'.length)), 'utf8')
+
 /** Les erreurs que Godot écrit parmi `lignes`. */
 const erreursDe = (lignes) => lignes.filter((l) => /^(SCRIPT )?ERROR\b/.test(l.trim()))
+
+/** Les erreurs de la recette `recette`, de source `source`, parmi `lignes` (`erreursDe`), hors de celles qu'elle
+ *  attend : `const ERREURS_ATTENDUES := [<chaînes>]`, sur une ligne, chaque chaîne le texte d'une erreur (sans
+ *  `ERROR: `), autant de fois que Godot doit la dire. Une attendue dite autant de fois est retirée ; dite un autre
+ *  nombre de fois, ou une déclaration illisible, est une faute. */
+export function erreursDeLaRecette(recette, source, lignes) {
+  const erreurs = erreursDe(lignes)
+  const declaration = source.match(/^const ERREURS_ATTENDUES := (\[.*\])\s*$/m)?.[1]
+  if (!declaration) return erreurs
+  let liste
+  try {
+    liste = JSON.parse(declaration)
+  } catch {
+    liste = null
+  }
+  if (!Array.isArray(liste) || !liste.every((texte) => typeof texte === 'string')) return [...erreurs, `${recette} : ERREURS_ATTENDUES illisible : ${declaration}`]
+  const texteDe = (ligne) => ligne.trim().replace(/^(SCRIPT )?ERROR: /, '')
+  const fautes = [...new Set(liste)].flatMap((attendue) => {
+    const voulues = liste.filter((texte) => texte === attendue).length
+    const dites = erreurs.filter((ligne) => texteDe(ligne) === attendue).length
+    return dites === voulues ? [] : [`${recette} : erreur attendue ${voulues} fois, dite ${dites} fois : ${attendue}`]
+  })
+  return [...erreurs.filter((ligne) => !liste.includes(texteDe(ligne))), ...fautes]
+}
 
 /** Un journal neuf pour un lancement de `commande` sur `args`, qui y écrit sa sortie et sa sortie d'erreur (`fd`, le
  *  même fichier pour les deux). `bilan(r)`, `r` disant comment il finit (`{ error?, signal, status }`), rend les lignes
@@ -538,14 +566,14 @@ const argumentsDuPont = (donnees) => ['--', `--pont=${VIVANT}`, `--stockage=${jo
 
 /** Chaque recette de `recettes` jouée par l'éditeur `binaire` sans écran sur le projet importé `copie`, menées de
  *  front (`menerDeFront`), avec les arguments du pont (`argumentsDuPont`). Sa sortie s'imprime à sa fin, d'un bloc ;
- *  rend les erreurs de toutes. */
+ *  rend les erreurs de toutes, hors de celles que chacune attend (`erreursDeLaRecette`). */
 function jouerLesRecettes(binaire, copie, recettes) {
   return menerDeFront(copie, recettes.map((recette) => ({
     commande: binaire,
     args: (donnees) => ['--headless', '--path', copie, '--script', recette, ...argumentsDuPont(donnees)],
     juger: ({ lignes, echec }) => {
       console.log(`[godot] recette autonome : ${recette}\n${lignes.join('\n')}`)
-      return [...erreursDe(lignes), ...echec]
+      return [...erreursDeLaRecette(recette, sourceDe(copie, recette), lignes), ...echec]
     },
   })))
 }
@@ -776,7 +804,7 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
     if (erreurs.length) return erreurs
     console.log(`[godot] ${VERSION_IMPRIMEE} : projet importé, ${scripts.length} scripts contrôlés (${scripts.join(', ')})`)
     const recettes = scripts.filter((script) => script.startsWith('res://recettes/') &&
-      /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
+      /^const RECETTE_AUTONOME := true\s*$/m.test(sourceDe(copie, script)))
     erreurs.push(...await jouerLesRecettes(binaire, copie, recettes))
     if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) autonome(s) exécutée(s)`)
     return erreurs
@@ -805,13 +833,15 @@ export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_R
  *  `const RECETTE_RENDUE := true` jouée en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
  *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
- *  pas, et que Godot remplace, est une erreur. Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne
- *  de clôture (`erreurs=<n>`) ; ce que le moteur écrit ensuite en se fermant n'en est pas. */
+ *  pas, et que Godot remplace, est une erreur. La recette imprime sa ligne de clôture (`erreurs=<n>`) après ses
+ *  assertions et les libérations de scène qu'elle joue. Le code de sortie et les lignes `ERROR` ou `SCRIPT ERROR`
+ *  jusqu'à cette clôture entrent dans le verdict. Le journal intégral garde aussi les diagnostics que le moteur écrit
+ *  à l'arrêt du processus, après la clôture (#4215). */
 function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
     deposerLaVue(copie, 'decor', figerLeDecor(await listage(DOSSIER_DES_MODELES)))
     const recettes = scriptsDe(copie).filter((script) => script.startsWith('res://recettes/') &&
-      /^const RECETTE_RENDUE := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
+      /^const RECETTE_RENDUE := true\s*$/m.test(sourceDe(copie, script)))
     if (!recettes.length) return [`aucune recette rendue sous ${PROJET}`]
     const [commande, ...prefixe] = [...ECRAN_VIRTUEL, binaire]
     const erreurs = await menerDeFront(copie, recettes.flatMap((recette) => RENDUS.map((rendu) => ({
@@ -984,11 +1014,11 @@ function verdict(erreurs) {
   return 1
 }
 
-/** Les GLB, les textures et le kit du projet déposés (`recupererModeles`, `recupererEpingles`) avant d'ouvrir Godot : rend les assets. */
+/** Les GLB, les textures et les sons du projet déposés (`recupererModeles`, `recupererEpingles`) avant d'ouvrir Godot : rend les assets. */
 async function deposerLesAssets() {
   const a = await chronometrer('assets chargés (Vite)', assetsDeLHote)
   await chronometrer('modèles vérifiés', () => a.recupererModeles({ dossier: a.DOSSIER_DES_MODELES }))
-  await chronometrer('textures, kit et sons vérifiés', () => a.recupererEpingles({}))
+  await chronometrer('textures et sons vérifiés', () => a.recupererEpingles({}))
   return a
 }
 

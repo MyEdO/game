@@ -82,6 +82,7 @@ import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
 import { EXEMPTIONS_IMPERATIF_SOUDE, sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
 import { PORTEURS } from '../guards/lib/porteursDesComptes.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', PORTEURS.SOURCE_FORMAT)
 
@@ -229,14 +230,14 @@ export function liensDIndex(texte) {
  * `sansFolio` : le livre déclare n'imprimer aucun folio (`_lib.mjs#sansFolioDe`) — (2) se tait.
  * @param {string} dir @param {{ nom: string, texte: string }[]} fichiers
  * @param {object[] | null} [liste] @param {boolean} [sansFolio]
- * @returns {{ famille: string, file: string, ref: string, nombre?: number }[]}
+ * @returns {(import('../guards/lib/stock.mjs').Site & { famille: string, nombre?: number })[]}
  */
 export function sitesDuDossier(dir, fichiers, liste = null, sansFolio = false) {
   const out = []
   const noms = new Set(fichiers.map((f) => f.nom))
   const chapitres = fichiers.filter((f) => numeroDuFichier(f.nom) != null)
   const chemin = (nom) => `${dir}/${nom}`
-  const site = (famille, nom, ref, nombre = null) => out.push({ famille, file: chemin(nom), ref, ...(nombre == null ? {} : { nombre }) })
+  const site = (famille, nom, ref, nombre = null) => out.push({ famille, fichier: chemin(nom), ref, ...(nombre == null ? {} : { nombre }) })
 
   // (1) ligne 1 hors format — sa FORME.
   for (const { nom, texte } of chapitres) {
@@ -313,8 +314,8 @@ export function ecartsAuGrain(dir, fichiers, liste) {
   const servis = fichiers.filter((f) => numeroDuFichier(f.nom) != null).map((f) => f.nom)
   const enTrop = servis.filter((n) => !attendus.includes(n))
   const manquants = attendus.filter((n) => !parNom.has(n))
-  for (const n of manquants) out.push({ file: chemin(n), ref: 'déclaré par la liste de découpe, ABSENT du dossier' })
-  for (const n of enTrop) out.push({ file: chemin(n), ref: 'servi, ABSENT de la liste de découpe' })
+  for (const n of manquants) out.push({ fichier: chemin(n), ref: 'déclaré par la liste de découpe, ABSENT du dossier' })
+  for (const n of enTrop) out.push({ fichier: chemin(n), ref: 'servi, ABSENT de la liste de découpe' })
 
   liste.forEach((e, i) => {
     const nom = attendus[i]
@@ -322,21 +323,21 @@ export function ecartsAuGrain(dir, fichiers, liste) {
     if (texte == null) return
     const attendue = ligne1DePlage(e.page, e.pageFin)
     const l1 = (texte.split('\n')[0] ?? '').trim()
-    if (l1 !== attendue) out.push({ file: chemin(nom), ref: `ligne 1 « ${l1.slice(0, 40)} » pour ${attendue}` })
+    if (l1 !== attendue) out.push({ fichier: chemin(nom), ref: `ligne 1 « ${l1.slice(0, 40)} » pour ${attendue}` })
     if (e.ouverture == null) return
     const ligne = ligneDOuverture(texte)
     if (ligne == null || !ouvreSur(ligne, e.ouverture)) {
       const vue = ligne == null ? null : ligne.replace(/<\/?span[^>]*>/g, '').trim()
-      out.push({ file: chemin(nom), ref: `n'ouvre pas sur « ${e.ouverture} » (${vue == null ? 'aucune ligne de titre' : `l.1 de titre « ${vue.slice(0, 48)} »`})` })
+      out.push({ fichier: chemin(nom), ref: `n'ouvre pas sur « ${e.ouverture} » (${vue == null ? 'aucune ligne de titre' : `l.1 de titre « ${vue.slice(0, 48)} »`})` })
     }
   })
 
   const index = parNom.get(INDEX)
-  if (index == null) out.push({ file: chemin(INDEX), ref: 'index ABSENT d’un livre à liste de découpe' })
+  if (index == null) out.push({ fichier: chemin(INDEX), ref: 'index ABSENT d’un livre à liste de découpe' })
   else {
     const cibles = liensDIndex(index).filter((c) => c.endsWith('.md'))
     if (cibles.join('\u0000') !== attendus.join('\u0000')) {
-      out.push({ file: chemin(INDEX), ref: `${cibles.length} lien(s) pour ${attendus.length} fichier(s) déclaré(s), ou hors ordre` })
+      out.push({ fichier: chemin(INDEX), ref: `${cibles.length} lien(s) pour ${attendus.length} fichier(s) déclaré(s), ou hors ordre` })
     }
   }
   return out
@@ -384,11 +385,12 @@ export const grainAll = (dossiers = dossiersFR()) => dossiers.flatMap((d) => gra
 /**
  * Les ROUGES de la famille `mobilier` pour des sites mesurés (`lib/mobilier.mjs#mobilierDuDossier`) :
  * chaque site NON exempté, puis chaque exemption qui ne couvre pas exactement ses `jetons` sites —
- * `{ file, ref }`. PURE.
+ * `{ fichier, ref }`. PURE.
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
  */
 export const rougesAuSite = (sites, exemptions = EXEMPTIONS_MOBILIER) => [
-  ...sites.filter((s) => !s.exemption).map((s) => ({ file: s.fichier, ref: `l.${s.ligne} ${s.classe} « ${s.jeton} » : ${s.texte.trim().slice(0, 60)}` })),
-  ...exemptionsFausses(sites, exemptions).map(({ exemption: e, couverts }) => ({ file: e.fichier, ref: `exemption qui couvre ${couverts} site(s) pour ${e.jetons} déclaré(s) : ${e.motif}` })),
+  ...sites.filter((s) => !s.exemption).map((s) => ({ fichier: s.fichier, ref: `l.${s.ligne} ${s.classe} « ${s.jeton} » : ${s.texte.trim().slice(0, 60)}` })),
+  ...exemptionsFausses(sites, exemptions).map(({ exemption: e, couverts }) => ({ fichier: e.fichier, ref: `exemption qui couvre ${couverts} site(s) pour ${e.jetons} déclaré(s) : ${e.motif}` })),
 ]
 
 /**
@@ -418,9 +420,11 @@ export function imperatifsSoudesAll(dossiers = dossiersFR(), exemptions = EXEMPT
 }
 
 /** Les ROUGES de la famille `titre-soude` d'UN dossier de livre, fichier par fichier dans l'ordre de sa
- *  liste de découpe — PUR : `texteDe(nom)` rend le texte d'un fichier. `{ file, ref }`. */
+ *  liste de découpe — PUR : `texteDe(nom)` rend le texte d'un fichier. `{ fichier, ref }`.
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
+ */
 export const titresSoudesDuDossier = (dir, texteDe, liste) =>
-  nomsDeLaListe(liste).flatMap((nom) => sitesDeTitresSoudes(texteDe(nom)).map((s) => ({ file: `${dir}/${nom}`, ref: `l.${s.ligne} ${s.classe} : ${s.texte.trim().slice(0, 60)}` })))
+  nomsDeLaListe(liste).flatMap((nom) => sitesDeTitresSoudes(texteDe(nom)).map((s) => ({ fichier: `${dir}/${nom}`, ref: `l.${s.ligne} ${s.classe} : ${s.texte.trim().slice(0, 60)}` })))
 
 /** TITRES SOUDÉS de tous les dossiers FR dont le livre déclare un `gabaritTitre`. */
 export function titresSoudesAll(dossiers = dossiersFR(), aTitres = livresATitres()) {
@@ -469,12 +473,12 @@ export function scanAll(dossiers = dossiersFR()) {
 export const ecartDuStock = (sites, stock) =>
   ecartDuVolet({ sites, stock, ou: PORTEURS.SOURCE_FORMAT, remede: { neuve: remedeDeNaissance(SOURCE_FORMAT.cible) } })
 
-/** Compte par DOSSIER de livre — le `file` d'un site nomme un CHAPITRE, le dossier en est le
+/** Compte par DOSSIER de livre — le `fichier` d'un site nomme un CHAPITRE, le dossier en est le
  *  préfixe. C'est le grain du rapport : l'unité de réparation est le livre. */
 export const comptesParDossier = (sites) => {
   const out = new Map()
   for (const s of sites) {
-    const dossier = s.file.slice(0, s.file.lastIndexOf('/'))
+    const dossier = s.fichier.slice(0, s.fichier.lastIndexOf('/'))
     out.set(dossier, (out.get(dossier) ?? 0) + 1)
   }
   return out
@@ -505,7 +509,9 @@ const QUOI = (comptes) =>
 
 /** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sites (par défaut, la
  *  mesure de tous les dossiers FR). Son `quoi` ne lit que les comptes À LA NAISSANCE (par défaut, ceux
- *  du stock en place), ceux du run pour un stock qui naît. */
+ *  du stock en place), ceux du run pour un stock qui naît.
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (sites = scanAll(), naissance = naissanceEnPlace(STOCK_PATH, FAMILLES)) => [{
   chemin: STOCK_PATH,
   politique: SOUS_LOT,
@@ -533,28 +539,28 @@ function main() {
   const grain = grainAll(dossiers)
   if (grain.length) {
     console.log(`GRAIN — ${grain.length} écart(s) à la liste de découpe (geste : node scripts/raw/recouper-source.mjs <id>) :`)
-    for (const g of grain) console.log(`  ${g.file} — ${g.ref}`)
+    for (const g of grain) console.log(`  ${g.fichier} — ${g.ref}`)
   }
 
   // MOBILIER : rouge nommé, jamais stocké — son geste est `node scripts/raw/reparer-mobilier.mjs <id>`.
   const mobilier = mobilierAll(dossiers)
   if (mobilier.length) {
     console.log(`MOBILIER — ${mobilier.length} site(s) de mobilier de page (geste : node scripts/raw/reparer-mobilier.mjs <id>) :`)
-    for (const m of mobilier) console.log(`  ${m.file} — ${m.ref}`)
+    for (const m of mobilier) console.log(`  ${m.fichier} — ${m.ref}`)
   }
 
   // TITRES SOUDÉS : rouge nommé, jamais stocké — son geste est `node scripts/raw/reparer-titres.mjs <id>`.
   const soudes = titresSoudesAll(dossiers)
   if (soudes.length) {
     console.log(`TITRES SOUDÉS — ${soudes.length} ligne(s) (geste : node scripts/raw/reparer-titres.mjs <id>) :`)
-    for (const t of soudes) console.log(`  ${t.file} — ${t.ref}`)
+    for (const t of soudes) console.log(`  ${t.fichier} — ${t.ref}`)
   }
 
   // TRAIT D'UNION VERBE-PRONOM : rouge nommé, jamais stocké — son geste est de rendre le trait d'union au `.md`.
   const imperatifs = imperatifsSoudesAll(dossiers)
   if (imperatifs.length) {
     console.log(`TRAIT D'UNION VERBE-PRONOM — ${imperatifs.length} site(s) (geste : rendre le trait d'union au .md, puis npm run raw:reanchor) :`)
-    for (const t of imperatifs) console.log(`  ${t.file} — ${t.ref}`)
+    for (const t of imperatifs) console.log(`  ${t.fichier} — ${t.ref}`)
   }
 
   const { neuves, perimees } = ecartDuStock(sites, stock)
@@ -573,4 +579,7 @@ function main() {
   process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

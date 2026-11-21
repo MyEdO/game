@@ -688,6 +688,20 @@ test('#1739 : titre SUIVI d’un titre — une ligne SANS LETTRE entre eux (chif
   assert.deepEqual([lieu(r, 'Career Path'), lieu(r, 'Aide — Silver 1')[0]], [['ok', '018:1', '018:3'], 'ok'])
 })
 
+test('la régénération nomme le chapitre qui porte chaque titre mesuré', () => {
+  const dir = 'Source/Livre forgé'
+  const mesures = [{
+    dir,
+    fichiers: [{ nom: '018 - Forge.md', page: 9, pageFin: 10 }],
+    sites: [{ forme: 'place-non-prouvee', page: 10, titre: 'Carrière' }, { forme: 'colonne', page: 10, titre: 'En-tête' }],
+  }]
+  const [declaration] = regenerations({ mesures, manque: [] })
+  assert.deepEqual(declaration.collections[0].sites, [{
+    fichier: dir + '/018 - Forge.md',
+    ref: 'place-non-prouvee :: p.10 :: « Carrière »',
+  }])
+})
+
 test('une mesure incomplète refuse, rien n’est écrit', () => {
   const phrase = 'core-rulebook-5e — NON SONDABLE (PDF absent)'
   for (const r of regenerations({ mesures: [], manque: [phrase] })) {

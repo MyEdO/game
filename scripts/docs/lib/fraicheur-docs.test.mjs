@@ -112,35 +112,18 @@ test('préparation : sa vue garde le périmètre initial, le rang suivant recapt
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('certification : la politique tardive des parents admet un fichier ignoré pendant la dernière capture', () => {
-  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1' } })
-  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
-  const opts = { ...options, generateurs: [g] }
-  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: [], cibles: [doc('a')], git: [], sondes: [], incomplet: [] }
-  try {
-    poser(racine, 'docs/admis.txt', 'secret')
-    poser(racine, '.git/info/exclude', 'docs/admis.txt\n')
-    const preparation = preparerPreuves(racine, opts)
-    const avant = avantGenerateur(racine, g, opts, preparation)
-    poser(racine, doc('a'), 'sortie')
-    let captures = 0
-    const vu = certifierGenerateur(racine, g, entree, { ...opts, ciblesSurDisque: (motifs, cwd) => {
-      captures++
-      if (captures === 3) poser(racine, '.git/info/exclude', '')
-      return ciblesSurDisque(motifs, cwd)
-    } }, avant)
-    assert.ok(captures >= 3)
-    assert.equal(vu.ok, false, JSON.stringify(vu))
-    assert.equal(vu.raison, 'parent de sortie modifié ou non capturé : docs')
-  } finally { rmSync(racine, { recursive: true, force: true }) }
-})
-
-for (const parentModifie of [true, false]) test(`certification : plusieurs sélections, politique mutée au dernier callback final, ${parentModifie ? 'parent nouvellement admis' : 'parents inchangés'}`, () => {
+for (const [nom, nombreDeGenerateurs, parentModifie, premiere, raison] of [
+  ['cible unique, parent nouvellement admis', 1, true, false, 'parent de sortie modifié ou non capturé : docs'],
+  ['plusieurs sélections, parent nouvellement admis', 2, true, false, 'parent de sortie modifié ou non capturé : docs'],
+  ['plusieurs sélections, parents inchangés', 2, false, false, 'source modifiée pendant certification'],
+  ['politique modifiée à la première expansion', 2, false, true, 'outillage modifié pendant génération'],
+]) test(`certification : ${nom}`, () => {
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1', 'g/b.mjs': 'export const b = 1' } })
-  const generateurs = options.generateurs.slice(0, 2)
+  const generateurs = options.generateurs.slice(0, nombreDeGenerateurs)
   const g = generateurs[0]
   const opts = { ...options, generateurs }
   const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: [], cibles: [doc('a')], git: [], sondes: [], incomplet: [] }
+  const lire = fs.readFileSync
   try {
     if (parentModifie) poser(racine, 'docs/admis.txt', 'secret')
     poser(racine, '.git/info/exclude', 'docs/admis.txt\n')
@@ -148,23 +131,37 @@ for (const parentModifie of [true, false]) test(`certification : plusieurs séle
     const initial = { fichiers: new Map(preparation.fichiers), dossiers: structuredClone(preparation.dossiers), vue: preparation.vue, cache: structuredClone(preparation.cache) }
     const avant = avantGenerateur(racine, g, opts, preparation)
     poser(racine, doc('a'), 'sortie')
-    let capturesPropres = 0
+
+    const cible = path.join(racine, doc('a'))
+    let sortieLue = false
+    let politiqueChangee = false
+    fs.readFileSync = function (fichier, ...args) {
+      const contenu = lire.call(this, fichier, ...args)
+      if (fichier === cible) sortieLue = true
+      return contenu
+    }
+    syncBuiltinESMExports()
     const vu = certifierGenerateur(racine, g, entree, { ...opts, ciblesSurDisque: (motifs, cwd) => {
-      if (JSON.stringify(motifs) === JSON.stringify(g.targets)) {
-        capturesPropres++
-        if (capturesPropres === 2) poser(racine, '.git/info/exclude', '')
+      const selectionPropre = motifs.length === 1 && motifs[0] === doc('a')
+      if (!politiqueChangee && selectionPropre && (premiere || sortieLue)) {
+        politiqueChangee = true
+        poser(racine, '.git/info/exclude', '')
       }
       return ciblesSurDisque(motifs, cwd)
     } }, avant)
-    assert.equal(capturesPropres, 2)
+    assert.equal(politiqueChangee, true)
     assert.equal(vu.ok, false)
-    assert.equal(vu.raison, parentModifie ? 'parent de sortie modifié ou non capturé : docs' : 'source modifiée pendant certification')
+    assert.equal(vu.raison, raison)
     assert.equal(vu.sourceModifiee, !parentModifie)
     assert.deepEqual(preparation.fichiers, initial.fichiers)
     assert.deepEqual(preparation.dossiers, initial.dossiers)
     assert.equal(preparation.vue, initial.vue)
     assert.deepEqual(preparation.cache, initial.cache)
-  } finally { rmSync(racine, { recursive: true, force: true }) }
+  } finally {
+    fs.readFileSync = lire
+    syncBuiltinESMExports()
+    rmSync(racine, { recursive: true, force: true })
+  }
 })
 
 test('inventaire Git : lien inutilisé capturé par son parent ; lien effectivement lu reste refusé', () => {
@@ -241,15 +238,15 @@ test('préparation : une capture physique commune, null conservé, clés absente
     perimetreDeMesure(racine)
     const lectures = t.mock.method(fs, 'readFileSync')
     const listages = t.mock.method(fs, 'readdirSync')
-    const presences = t.mock.method(fs, 'existsSync')
+    const canonisations = t.mock.method(fs.realpathSync, 'native')
     syncBuiltinESMExports()
     perimetreDeMesure(racine)
     const parPerimetre = new Map(['data', 'data/sousdir'].map((rel) => [rel, compter(listages, rel, true)]))
-    for (const espion of [lectures, listages, presences]) espion.mock.resetCalls()
+    for (const espion of [lectures, listages, canonisations]) espion.mock.resetCalls()
     const preparation = preparerPreuves(racine, opts)
     assert.equal(compter(lectures, 'data/source.txt'), 1)
     assert.equal(compter(listages, 'data', true), 1 + parPerimetre.get('data'))
-    assert.equal(compter(presences, 'data/absent.txt'), 1)
+    assert.equal(compter(canonisations, 'data/absent.txt'), 1)
     assert.equal(preparation.vue.hashes.get('data/absent.txt'), null)
     assert.equal(preparation.fichiers.get('data/absent.txt'), null)
     assert.equal(preparation.vue.hashes.has('data/non-capture.txt'), false)
@@ -758,13 +755,17 @@ for (const [nom, changer] of [
 }
 
 test('certificat local divergent : doc local conservé et autre producteur copié', () => {
-  const primitive = new URL('./ecriture-derives.mjs', import.meta.url).href
   const generateurs = ['a', 'b'].map(nom => ({ runner: 'node', script: `g/${nom}.mjs`, targets: [doc(nom)] }))
   const { racine } = instanceDeDepot({ fichiers: {
     '.gitignore': 'docs/\n.wt-local/\n',
     ...Object.fromEntries(['a', 'b'].flatMap(nom => [
       [`data/${nom}.txt`, nom],
-      [`g/${nom}.mjs`, `import { readFileSync } from 'node:fs'\nimport { ecrireOuVerifier } from ${JSON.stringify(primitive)}\necrireOuVerifier({ out: readFileSync('data/${nom}.txt', 'utf8'), path: ${JSON.stringify(doc(nom))}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer' })\n`],
+      [`g/${nom}.mjs`, [
+        "import { readFileSync } from 'node:fs'",
+        'export function* produire() {',
+        `  yield { out: readFileSync('data/${nom}.txt', 'utf8'), path: ${JSON.stringify(doc(nom))}, staleMsg: 'périmé', rerunMsg: 'relancer' }`,
+        '}',
+      ].join('\n')],
     ])),
   } })
   const cible = path.join(racine, '.wt-local')

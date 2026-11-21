@@ -7,6 +7,7 @@ import { DOCUMENTAIRE, gatesSautables } from '../../gates/classerPush.mjs'
 import { gatesDeCi } from '../../gates/gatesDeCi.mjs'
 import { corpusParGate, inerte } from '../../gates/ecrivainsAtteints.mjs'
 import { ECRIT_LU } from '../../gates/toutes.mjs'
+import { estModule } from '../../guards/lib/importGraph.mjs'
 import { RACINES_PRESENTES } from '../../guards/lib/racinesPresentes.mjs'
 import { gitDeLArbreReel } from '../../test/gitDeBanc.mjs'
 import { jetonNomme } from '../../test/lib/bancClasserPush.mjs'
@@ -60,7 +61,7 @@ function sourcesDeProduction() {
   return gitDeLArbreReel(RACINE)('ls-files', '--', ...RACINES_PRESENTES, 'server/src')
     .split('\n')
     .map((l) => l.trim())
-    .filter((f) => /\.(ts|tsx|mts|js|jsx)$/.test(f) && !f.includes('.test.'))
+    .filter((f) => estModule(f) && !f.includes('.test.'))
 }
 
 /**

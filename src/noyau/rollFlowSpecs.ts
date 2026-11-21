@@ -213,6 +213,7 @@ import {
 } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
+import { difficulteDEntreeEnFrenesie } from '../engine/psychology';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
@@ -303,9 +304,6 @@ export function opposedForcingCancelled(p: PendingDefense, defenderForcing = fal
 function attaquantForce(p: PendingDefense): boolean {
   return p.suite.mode === 'pilotee' && !!p.suite.pa.forcee;
 }
-/** Ligne factuelle rendue au joueur qui dépense le SECOND Point (#1000) — l'annulation n'est jamais
- *  silencieuse. Consommateur : la fenêtre de défense (`useDefenseJetProps`). */
-export const OPPOSED_FORCING_CANCELLED_NOTE = 'Les deux Résiliences s’annulent — le Test se résout aux dés.';
 
 /** Plancher de DR du dé forcé en Test OPPOSÉ. Garantie ACTIVE (LDB 17 l.68 : « S'il s'agit d'un Test
  *  opposé, vous l'emportez avec au moins DR +1 ») → DR de l'opposant + 1, au minimum 1 : c'est la
@@ -557,10 +555,22 @@ function holdVerdict(p: PendingActivity & ActivityOppositionOn, jet: { roll: num
 /** Lecture du dé `tr` d'une Activité : COMBINÉ (LDB 12 l.206 : UN dé confronté à DEUX valeurs), OPPOSÉ de
  *  « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule), sinon simple —
  *  SOURCE UNIQUE du dé choisi/fixé et de l'inversion. */
-function lireDeDActivite(p: PendingActivity, tr: { roll: number; target: number; sl: number; success: boolean }): Partial<PendingActivityFields> {
+function lireDeDActivite(
+  p: PendingActivity,
+  tr: { roll: number; target: number; sl: number; success: boolean },
+  resilience = false,
+): Partial<PendingActivityFields> {
   if (p.target2 != null) {
     const c = evaluateCombinedTest(tr.roll, p.target, p.target2);
-    return { roll: c.roll, sl: c.a.sl, success: c.a.success, sl2: c.b.sl, success2: c.b.success, combinedLevel: c.level };
+    const plancherActif = resilience && c.level === 'full';
+    return {
+      roll: c.roll,
+      sl: plancherActif ? Math.max(c.a.sl, 1) : c.a.sl,
+      success: c.a.success,
+      sl2: plancherActif ? Math.max(c.b.sl, 1) : c.b.sl,
+      success2: c.b.success,
+      combinedLevel: c.level,
+    };
   }
   if (p.battle === 'round' && p.enemyValue != null) {
     const v = holdVerdict(p, { roll: tr.roll, sl: tr.sl, success: tr.success });
@@ -859,9 +869,9 @@ export function ligneDuTestNomme(actor: Combatant, test: TestNomme): RollLinePar
   return rollLine({ actor, test, difficulty: test.difficulty });
 }
 
-/** Ligne du Test de Force Mentale d'entrée en Frénésie, lue par le résolveur `frenzy` et par `FrenzyModal`. LDB 21 l.31 */
+/** LDB 21 l.31 */
 export function ligneDeFrenesie(actor: Combatant): RollLineParts {
-  return rollLine({ actor, test: { characteristic: 'force-mentale' }, difficulty: 'intermediaire' });
+  return rollLine({ actor, test: { characteristic: 'force-mentale' }, difficulty: difficulteDEntreeEnFrenesie() });
 }
 
 /** Le d100 du battle RNG contre la cible d'une ligne (`rollLine`) : la cible que la fenêtre annonce est celle du jet. */
@@ -1184,7 +1194,9 @@ export const FLOWS = paresseux({
         const target = actorIn(s, p.targetId);
         const spell = effectiveSpellOf(p);
         if (!target || !spell) return null;
-        return castRelance(s, p, rederiveCastSL(actor, target, spell, p.result!, p.missile, p.focused, 1));
+        const courant = p.result!;
+        const result = rederiveCastSL(actor, target, spell, courant, p.missile, p.focused, 1);
+        return castRelance(s, p, courant.slPropre == null ? result : { ...result, slPropre: courant.slPropre + 1 });
       },
     },
   }),
@@ -2152,8 +2164,13 @@ export const FLOWS = paresseux({
     // (LDB 12 l.206 : UN dé confronté à DEUX valeurs → les deux issues se re-dérivent) ou OPPOSÉ de
     // « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule).
     die: {
-      read: (p) => (p.roll != null && p.target != null ? { roll: p.roll, target: p.target, critable: false } : null),
+      read: (p) => p.roll == null || p.target == null ? null : {
+        roll: p.roll,
+        target: p.forcee && p.target2 != null ? Math.min(p.target, p.target2) : p.target,
+        critable: false,
+      },
       write: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr),
+      resilience: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr, true),
     },
     key: 'pendingActivity',
     rolled: (p) => p.roll != null,

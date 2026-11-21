@@ -13,18 +13,18 @@
  * case que ce modèle rogne s'y tient au centre de son emprise libre (`stationsDuNavire`, #3767).
  */
 import type { NavalTraitRef } from '../engine/types';
-import { findNavalTrait, findVehicleById } from '../data';
+import { findNavalTrait } from '../data';
+import { aLEchelleDesPonts, rectangleDansLaGrille, rectangleDesPonts } from '../data/poseDesPonts';
 import { nextEntityId } from '../lib/entityId';
-import { vehicleCombatant } from '../engine/vehicle';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { CAP_IDENTITE_PROP } from '../data/props.types';
-import { DIR4_ORDER, estCardinal, rotateDir8, type Dir4 } from '../geometry/dir8';
+import { DIR4_ORDER, rotateDir8, type Dir4, type Dir8 } from '../geometry/dir8';
 import { garanti } from '../lib/garanti';
 import type { Scene, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';
 import { edgeOf, heightAt, porteAuteur, sceneMetresPerTile, tileAt } from './monde/scene';
 import { edgeKey } from './monde/facades';
 import type { Pt } from './monde/path';
-import { footprintN, propFootTiles } from './monde/footprint';
+import { propFootTiles } from './monde/footprint';
 import { estAbsent } from './monde/terrain';
 import { vehiculeDuCombattant, type VehiculeDuCombattant } from './apparence/combattant';
 import { ficheDEntite } from './monde/sceneNpc';
@@ -58,10 +58,6 @@ export const TYPES_DE_NAVIRE: readonly { id: string; label: string }[] = PLANS_D
 
 /** Les caps où un navire se pose par ses ponts : les cardinaux (`poseDe`). */
 export const CAPS_DES_PONTS: readonly Dir4[] = DIR4_ORDER;
-
-/** `scene` est-elle à l'échelle du plan des ponts du type de navire `ref` ? Ses ponts ne s'y posent qu'alors. */
-export const aLEchelleDesPonts = (scene: Pick<Scene, 'metresPerTile'>, ref: string): boolean =>
-  sceneMetresPerTile(garanti(planDe(ref), ref, 'plan de navire').ponts) === sceneMetresPerTile(scene);
 
 /** Les ponts du type `ref` avec ce qu'y ajoutent les Améliorations `upgrades` ; une Amélioration qui ne change
  *  rien à bord (Bélier, Lissage…) n'y ajoute rien. */
@@ -102,44 +98,40 @@ function tournerLeVecteur(cap: Dir4, v: { x: number; y: number }): { x: number; 
   return { x, y };
 }
 
-/** Un navire posé : l'id de son entité, son type, ses Améliorations, son cap, la case hôte du coin nord-ouest de ses
- *  ponts et l'étage hôte de son pont le plus bas. */
-interface PoseDeNavire {
+/** Une pose associe l'entité et ses Améliorations à son rectangle de flottaison et à son pont le plus bas. */
+interface PoseDeNavire extends NonNullable<ReturnType<typeof rectangleDesPonts>> {
   id: string;
   ref: string;
   upgrades: readonly NavalTraitRef[];
-  cap: Dir4;
-  x: number;
-  y: number;
   z: number;
 }
 
-/** La pose des ponts du navire `ent` dans `scene`, `null` si `ent` n'est pas un navire à plan des ponts, si la scène
- *  n'est pas à l'échelle de son plan, ou s'il n'est pas à un cap cardinal, faute que le schéma de scène nomme
- *  (`refusDeLEntite`) : ses ponts ne se posent pas. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
- *  l'entier, au plus près quand leurs côtés n'ont pas la parité de l'empreinte. */
-function poseDe(scene: Pick<Scene, 'metresPerTile'>, ent: SceneEntity): PoseDeNavire | null {
-  const plan = planDe(ent.vehicule?.id);
-  if (!plan || !aLEchelleDesPonts(scene, plan.ponts.id)) return null;
-  const cap = ent.facing ?? 'N';
-  if (!estCardinal(cap)) return null;
-  const ref = plan.ponts.id;
-  const n = footprintN(garanti(vehicleCombatant(garanti(findVehicleById(ref), ref, 'véhicule')), ref, 'coque de navire'));
-  const [w, h] = plan.ponts.size;
-  const [cx, cy] = cap === 'E' || cap === 'O' ? [w, h] : [h, w];
-  const coin = (ancre: number, cote: number) => Math.floor(ancre + (n - 1) / 2 - (cote - 1) / 2 + 0.5);
-  return { id: ent.id, ref, upgrades: ent.upgrades ?? [], cap, x: coin(ent.pos.x, cx), y: coin(ent.pos.y, cy), z: ent.z ?? 0 };
+/** La pose effective d'un navire à ponts, contenue dans la carte. */
+function poseDe(scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, ent: SceneEntity): PoseDeNavire | null {
+  const ref = ent.kind === 'personnage' ? ent.vehicule?.id : undefined;
+  if (ref === undefined) return null;
+  const rectangle = rectangleDesPonts(scene, ent);
+  return rectangle && rectangleDansLaGrille(scene.dimensions, rectangle)
+    ? { ...rectangle, id: ent.id, ref, upgrades: ent.upgrades ?? [], z: ent.z ?? 0 }
+    : null;
 }
 
-/** Les poses des navires de `scene`. */
-const posesDe = (scene: Pick<Scene, 'entities' | 'metresPerTile'>): PoseDeNavire[] => scene.entities.flatMap((e) => poseDe(scene, e) ?? []);
+type SceneDesNavires = Pick<Scene, 'entities' | 'metresPerTile' | 'dimensions'>;
+const posesDe = (scene: SceneDesNavires): PoseDeNavire[] => scene.entities.flatMap((e) => poseDe(scene, e) ?? []);
 
-/** Les ids des navires posés par leurs ponts, par scène et version des datasets (`posesDe` lit les véhicules). */
-const idsDesNaviresPoses = memoByRef((scene: Scene): ReadonlySet<string> => new Set(posesDe(scene).map((pose) => pose.id)));
+const posesParId = memoByRef((scene: SceneDesNavires) => new Map(posesDe(scene).map((pose) => [pose.id, pose])));
+
+/** Le cap du navire dont les ponts constituent le plateau de la scène. */
+const capDuNavirePose = (scene: SceneDesNavires | null | undefined, id: string): Dir4 | undefined =>
+  scene ? posesParId(scene).get(id)?.cap : undefined;
 
 /** Le combattant `id` est-il un navire dont `scene` pose les ponts ? Ses ponts portent alors son corps. */
-export const estPoseParSesPonts = (scene: Scene, id: string): boolean =>
-  idsDesNaviresPoses(scene).has(id);
+export const estPoseParSesPonts = (scene: SceneDesNavires | null | undefined, id: string): boolean =>
+  capDuNavirePose(scene, id) !== undefined;
+
+/** Le cap du plateau pour une coque à ponts matérialisés, l'orientation en jeu pour les corps mobiles. */
+export const capEnCombat = (etat: { scene?: SceneDesNavires | null; facing?: Readonly<Record<string, Dir8>> }, id: string): Dir8 | undefined =>
+  capDuNavirePose(etat.scene, id) ?? etat.facing?.[id];
 
 /** La case hôte, en cases continues, de chaque point (x, y) des ponts `navire` posés selon `pose`. */
 function versLaScene(navire: Pick<Scene, 'dimensions'>, pose: PoseDeNavire): (x: number, y: number) => Pt {
@@ -185,8 +177,8 @@ function emprise(navire: Scene, pose: PoseDeNavire): { cases: (Pt & { z: number;
 /** Les poses des navires de `scene` (`posesDe`), chacune avec ses ponts compilés (`buildScene`) du type et des
  *  Améliorations de sa pose. Retenues par `scene` et la version des datasets qu'elles lisent (`memoByRef`) :
  *  tout lecteur des ponts d'une scène les lit ici. */
-const naviresPoses = memoByRef((scene: Pick<Scene, 'entities' | 'metresPerTile'>): readonly { pose: PoseDeNavire; navire: Scene }[] =>
-  posesDe(scene).map((pose) => ({ pose, navire: buildScene(pontsDuNavire(pose.ref, pose.upgrades)) })));
+const naviresPoses = memoByRef((scene: SceneDesNavires): readonly { pose: PoseDeNavire; navire: Scene }[] =>
+  [...posesParId(scene).values()].map((pose) => ({ pose, navire: buildScene(pontsDuNavire(pose.ref, pose.upgrades)) })));
 
 /** `hote` avec les ponts de `navire` (la scène compilée de `pontsDuNavire`) posés selon `pose` ; une pièce ou un décor
  *  déjà posé sous le même id est remplacé : poser deux fois la même pose rend la même scène. */
@@ -241,36 +233,36 @@ function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): Scene {
 export const poserLesNavires = memoByRef((scene: Scene): Scene =>
   naviresPoses(scene).reduce((s, { pose, navire }) => poserLeNavire(s, navire, pose), scene));
 
-/** `scene` où un navire du type `ref` se pose : l'entité de son véhicule, nommée de son type, à la case `p` de la couche
- *  `z`, au cap `cap`, et son id ; `null` si `scene` n'est pas à l'échelle de son plan (`aLEchelleDesPonts`), où ses
- *  ponts ne se poseraient pas. */
+/** Pose à la case demandée le navire et son cap, si toute sa flottaison tient dans la carte. */
 export function poserUnNavire(scene: Scene, ref: string, p: Pt, z: number, cap: Dir4): { scene: Scene; id: string } | null {
-  if (!aLEchelleDesPonts(scene, ref)) return null;
+  if (!aLEchelleDesPonts(scene)) return null;
   const id = nextEntityId('navire', scene.entities.map((e) => e.id));
   const { label } = garanti(planDe(ref), ref, 'plan de navire').ponts;
-  return { scene: addEntity(scene, { id, kind: 'personnage', vehicule: { id: ref }, pos: { x: p.x, y: p.y }, facing: cap, label }, z), id };
+  const entite: SceneEntity = { id, kind: 'personnage', vehicule: { id: ref }, pos: { x: p.x, y: p.y }, facing: cap, label };
+  return poseDe(scene, entite) ? { scene: addEntity(scene, entite, z), id } : null;
 }
 
-/** Les cases du rectangle de flottaison du plan dans la scène hôte. */
-function casesDeFlottaison(navire: Pick<Scene, 'dimensions'>, pose: PoseDeNavire): Pt[] {
-  const vers = versLaScene(navire, pose);
-  const { w, h } = navire.dimensions;
-  return Array.from({ length: w * h }, (_, i) => ({ ...vers(i % w, Math.floor(i / w)), z: pose.z }));
+function casesDeFlottaison({ x, y, w, h, cap }: NonNullable<ReturnType<typeof rectangleDesPonts>>, z: number): Pt[] {
+  const vertical = cap === 'N' || cap === 'S';
+  const [largeurDuPlan, hauteurDuPlan] = vertical ? [h, w] : [w, h];
+  const tourne = versLHote(cap, largeurDuPlan, hauteurDuPlan);
+  return Array.from({ length: w * h }, (_, i) => {
+    const caseTournee = tourne(i % largeurDuPlan, Math.floor(i / largeurDuPlan));
+    return { x: x + caseTournee.x, y: y + caseTournee.y, z };
+  });
 }
 
-/** L'empreinte de flottaison d'un navire qui pose ses ponts dans la scène. */
+/** L'empreinte de flottaison du type et du cap de l'entité, y compris pour chercher où la reposer dans l'éditeur. */
 export function flottaisonDuNavire(scene: Pick<Scene, 'metresPerTile'>, entite: SceneEntity): Pt[] | undefined {
-  const pose = poseDe(scene, entite);
-  if (!pose) return undefined;
-  const [w, h] = garanti(planDe(pose.ref), pose.ref, 'plan de navire').ponts.size;
-  return casesDeFlottaison({ dimensions: { w, h } }, pose);
+  const rectangle = rectangleDesPonts(scene, entite);
+  return rectangle ? casesDeFlottaison(rectangle, entite.z ?? 0) : undefined;
 }
 
 /** Ce que les ponts des navires de `scene` y posent, par l'id de leur entité : leurs cases (clés `x,y,z`) et leurs arêtes
  *  (`edgeKey`), qu'un hôte garde pour la marche et le pointage, le navire se montrant par son modèle 3D
  *  (`naviresDeLaScene`) ; et sa flottaison : les cases (clés `x,y,z`) du rectangle de ses ponts à l'étage de son pont le
  *  plus bas, la mer qui borde sa coque, sa flottaison étant à la hauteur 0 de la scène. */
-export function provenanceDesNavires(scene: Pick<Scene, 'entities' | 'metresPerTile'>): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string>; flottaison: ReadonlyMap<string, string> } {
+export function provenanceDesNavires(scene: SceneDesNavires): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string>; flottaison: ReadonlyMap<string, string> } {
   const cases = new Map<string, string>();
   const aretes = new Map<string, string>();
   const flottaison = new Map<string, string>();
@@ -278,13 +270,13 @@ export function provenanceDesNavires(scene: Pick<Scene, 'entities' | 'metresPerT
     const e = emprise(navire, pose);
     for (const c of e.cases) cases.set(`${c.x},${c.y},${c.z}`, pose.id);
     for (const { place } of e.aretes) aretes.set(edgeKey(place), pose.id);
-    for (const c of casesDeFlottaison(navire, pose)) flottaison.set(`${c.x},${c.y},${c.z}`, pose.id);
+    for (const c of casesDeFlottaison(pose, pose.z)) flottaison.set(`${c.x},${c.y},${c.z}`, pose.id);
   }
   return { cases, aretes, flottaison };
 }
 
 /** Les arêtes de `scene` hors de celles des ponts de ses navires (`provenanceDesNavires`) : celles qu'un hôte dessine. */
-export function aretesHorsDesNavires(scene: Pick<Scene, 'entities' | 'metresPerTile' | 'walls'>): WallSeg[] {
+export function aretesHorsDesNavires(scene: SceneDesNavires & Pick<Scene, 'walls'>): WallSeg[] {
   const { aretes } = provenanceDesNavires(scene);
   return (scene.walls ?? []).filter((seg) => !aretes.has(edgeKey(seg)));
 }

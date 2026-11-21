@@ -10,6 +10,7 @@ import {
   datasetObjectSerializeRoot,
   setObjectDataset,
   repriseDuDatasetObjet,
+  renvoiDeLEspaceVivant,
   datasetFile,
   datasetSerializeRoot,
   datasetObjectFile,
@@ -46,15 +47,8 @@ export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetK
 export const editableDataset = (categoryKey: string): DatasetKey | undefined => CATEGORY_DATASET[categoryKey];
 export const isEditableCategory = (categoryKey: string): boolean => !!CATEGORY_DATASET[categoryKey] || !!OBJECT_CATEGORY[categoryKey];
 
-/** Champs-réf NICHÉS (une valeur ou une liste, sous un sous-objet/sous-tableau) : garantie de
- *  résolvabilité, décrite par un accesseur PUR `entry → (id|undefined)[]`. #173 : `mutationTables.
- *  entries[].mutation` et `domains.castBonus.perCondition` en sont les 2 sites CONFIRMÉS (un éditeur par
- *  datalist-de-labels y écrivait un libellé, cassant `mutations.ts::rollMutation`/`noyau/combatFlow.ts::
- *  domainCastBonus` au runtime) — ajouter une réf nichée = ajouter SON accesseur ici. `weather.json`
- *  partage la forme `entries[]` mais sa clé est `.weather` (union fermée, pas une réf de dataset) :
- *  l'accesseur `mutation` y est simplement `undefined`, filtré plus bas — aucun faux positif. */
+/** Références non déclarées par la grammaire, lues sous un sous-objet ou un sous-tableau (#173). */
 const NESTED_REF_FIELDS: { key: string; ds: DatasetKey; get: (entry: Entry) => (string | undefined)[] }[] = [
-  { key: 'entries[].mutation', ds: 'mutations', get: (e) => ((e.entries as { mutation?: string }[] | undefined) ?? []).map((r) => r.mutation) },
   { key: 'castBonus.perCondition', ds: 'etats', get: (e) => [(e.castBonus as { perCondition?: string } | undefined)?.perCondition] },
   { key: 'prosthesis[].id', ds: 'trappings', get: (e) => ((e.prosthesis as { id?: string }[] | undefined) ?? []).map((p) => p.id) },
 ];
@@ -308,7 +302,7 @@ export function supprimerEntree(categoryKey: string, index: number, paquets: rea
 function validerMutation(fichier: string, racine: unknown): string | null {
   const refus = validateDataset(fichier, racine);
   if (refus) return refus;
-  for (const lecteur of fichiersLisantLeCatalogue(fichier) ?? []) {
+  for (const lecteur of fichiersLisantLeCatalogue(fichier, renvoiDeLEspaceVivant) ?? []) {
     const refusDuLecteur = validateDataset(lecteur, versDisque(RACINES_VIVANTES[lecteur]));
     if (refusDuLecteur) return refusDuLecteur;
   }

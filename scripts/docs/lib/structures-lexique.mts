@@ -43,13 +43,13 @@ export const DATASETS_DES_PROJETS: readonly string[] = listerProjetsLivres().map
 
 /**
  * Strate de la grammaire (#1463, design 2026-08-23) à laquelle une forme appartient.
- * QUATRE strates : la strate `Instance` du design v2 (SkillInstance, ItemInstance, snapshot de
+ * TROIS strates du lexique : la strate `Instance` du design v2 (SkillInstance, ItemInstance, snapshot de
  * sauvegarde) est HORS PÉRIMÈTRE PAR CONSTRUCTION — les deux racines mesurées ne portent que des
  * documents AUTHORÉS ; son dénominateur se mesurera sur le runtime et un snapshot de test
  * (#1463, commentaire « Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe
  * du commit 3a6017ebb) », point 1).
  */
-export type Strate = 'Référence' | 'Valeur' | 'Ops' | 'Document';
+export type Strate = 'Référence' | 'Valeur' | 'Document';
 
 /** Le dataset dont les références sont lotées L2 (les refs de Compétence) — #1463 design v2. */
 export const CIBLE_COMPETENCE = 'skills.json';
@@ -109,18 +109,18 @@ export const ANGLES_MORTS: readonly string[] = [
   'Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les projets livrés de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.',
   'Une valeur mesurée hors de sa forme propre est enregistrée sous sa PROJECTION sur le vocabulaire du concept, suffixée `+…` ; de même pour une référence (clés de graphie + clés qui résolvent, charge utile repliée).',
   'La candidature `plage` est STRUCTURELLE et non plus positionnelle : tout objet portant `min` ET `max` en BORNE (nombre, ou `null` d’une bande ouverte, une au moins écrite) est candidat, élément d’un TABLEAU comme porté par un CHAMP (#1659 — les `{min,max}` hors tableau des 2 racines entrent dans la mesure : 18 objets sur 6 sites mesurés le 2026-11-11 après #3578 L5, 90 sur 10 le 2026-11-09 avant que `cargoes › avail.<saison>` devienne les rangées de `cargaisons-aleatoires.json` ; dont `ship-construction › standard[].lengthM`, `stars › entries[].sub`, `tavernGames › pot.targetRange`, `water-exposure › modifiers[].auto` ; #1595 — le `null` de `plageOuverteSchema`). Ce qui reste hors candidature est le TYPE : une borne ni numérique ni `null` n’ouvre pas la plage. `bornes` reste borné au tableau — aucun `{min,max}` hors tableau ne porte `default`/`step`.',
-  'Une paire de bornes encodée en TUPLE `[min,max]` n’est mesurée par AUCUN concept : la mesure ne classe que des OBJETS, un tableau de deux nombres reste une valeur nue. 36 tuples à l’arbre sur 10 sites (2 racines, 2026-09-06 après l’entrée du dataset des terrains #1690 ; 7 sites au 2026-09-05 après la fusion des matières #1686 lot 2, 8 sites au 2026-09-01 après #1659 L-1659-3, 99 sur 18 à l’ouverture de la vague), et AUCUN n’est une plage — tous sont exclus nommément : 34 paramètres de recette de rendu (`detail.courses.blockWM` 15, `detail.speckle.rM` 17, `detail.tufts.hM` 2, sous `structureAppearance.json`/`materials.json`/`terrains.json`), `qualities.json › [].capabilities.fumbleDigits` (un ENSEMBLE de chiffres) et `structureAppearance.json › [].door.herse.traverseFracs` (des positions fractionnaires). SORTIES du stock parce que devenues des fourchettes `{min,max}` mesurées par le concept `plage` : les 72 disponibilités saisonnières (L-1659-2 ; rangées de `cargaisons-aleatoires.json` depuis #3578 L5), les 7 `ship-construction.json › standard[].lengthM` et les 4 `stars.json › [].sub` (L-1659-3). L’inventaire de ces 36 vit dans `src/data/plage-bornes-contrat.test.ts` (volet F) : il n’a plus à décroître, il a à ne pas repousser.',
+  'Une paire de bornes encodée en TUPLE `[min,max]` n’est mesurée par AUCUN concept : la mesure ne classe que des OBJETS, un tableau de deux nombres reste une valeur nue. 33 tuples à l’arbre sur 10 sites (2 racines ; 36 au 2026-11-21 avant la purge des recettes de toiture sans lecteur #4471, 2026-09-06 après l’entrée du dataset des terrains #1690 ; 7 sites au 2026-09-05 après la fusion des matières #1686 lot 2, 8 sites au 2026-09-01 après #1659 L-1659-3, 99 sur 18 à l’ouverture de la vague), et AUCUN n’est une plage — tous sont exclus nommément : 31 paramètres de recette de rendu (`detail.courses.blockWM` 13, `detail.speckle.rM` 17, `detail.tufts.hM` 1, sous `structureAppearance.json`/`materials.json`/`terrains.json`), `qualities.json › [].capabilities.fumbleDigits` (un ENSEMBLE de chiffres) et `structureAppearance.json › [].door.herse.traverseFracs` (des positions fractionnaires). SORTIES du stock parce que devenues des fourchettes `{min,max}` mesurées par le concept `plage` : les 72 disponibilités saisonnières (L-1659-2 ; rangées de `cargaisons-aleatoires.json` depuis #3578 L5), les 7 `ship-construction.json › standard[].lengthM` et les 4 `stars.json › [].sub` (L-1659-3). L’inventaire de ces 33 vit dans `src/data/plage-bornes-contrat.test.ts` (volet F) : il n’a plus à décroître, il a à ne pas repousser.',
   'Un concept exprimé en SCALAIRE hors liste (`species: "humain"`) est mesuré sous la forme `id-nu`, sans signature d’objet.',
   '`kind` est polysémique et n’est pas dédoublonné (Condition, Flow, pion de scène).',
+  'La mesure des GameOps et Conditions (§5) suit les nœuds locaux ouverts par `coDescendre` et leur validation. Les opérations valides sont couvertes par ce relevé, et leurs champs restent mesurés par les concepts de valeur et de référence.',
   'Le classement est ORDONNÉ : une VALEUR (reconnue à sa pose, sinon à son noyau) passe avant une RÉFÉRENCE ; un objet qui recoupe deux concepts n’est compté qu’une fois.',
-  'Deux comparateurs de `water-exposure.json` (`<=`/`>=` sous `woundsRemaining`/`woundsLost`) échappent à `conditionSchema` et restent comptés en op.',
-  'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` (et au 3ᵉ argument de `document()`) des modules de schéma des documents, lus aux dossiers des registres de `SchemaDef` (`DOSSIERS_DE_DEFS`, `scripts/docs/lib/cibles-registres.mjs`) et keyés par BASENAME (deux modules homonymes LÈVENT) : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni un littéral hors de ces dossiers. Le « schéma commun candidat » est apparié par SIGNATURE EXACTE.',
+  'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` (et au 3ᵉ argument de `document()`) des modules de schéma des documents, lus aux dossiers des registres de `SchemaDef` (`DOSSIERS_DE_DEFS`, `scripts/docs/lib/cibles-registres.mjs`) et keyés par BASENAME (deux modules homonymes LÈVENT) : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni un littéral hors de ces dossiers. Le « schéma commun candidat » est apparié par FORME EXACTE : même signature (valeurs comprises pour un objet réduit à ses étiquettes) et `kind` compatible. Deux `kind` littéraux textuels différents distinguent deux variantes. Un `kind` non résolu ou susceptible d’être écrasé reste candidat.',
   'SPREADS (`...X.shape` d’un schéma, `...X` d’un objet de shapes) : un littéral de def s’apparie et se classe sur ses seules clés PROPRES, une clé venue d’un spread étant composée, jamais re-tapée ; la grammaire, elle, les résout récursivement pour signer ses schémas communs (`jetSchema` = `characteristic,difficulty,skill`), et un spread qu’elle ne sait pas résoudre (`.pick(...)`, fabrique, paramètre) rend son littéral PARTIEL, exclu des communs. Angle mort : un re-tapage RÉPARTI entre spread et clés propres (`{ ...sujetDuJetSchema.shape, difficulty }` qui recompose `jetSchema`) n’est pas vu. Mesuré 2026-11-06 : 54 littéraux de def à spread, 7 littéraux de grammaire partiels ; le compte courant est au § 4 du doc (`angleMortDesSpreads`).',
-  '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `tirageSchema` (#1463 L-gram-3, #1652) à donnée, def et signature INCHANGÉS.',
+  '`schemasCommuns` recommande le PREMIER candidat COMPATIBLE (racines avant niches). Plusieurs schémas compatibles peuvent porter la même forme. La recommandation dépend alors de leur ordre, même si le def est identique.',
   'Les portes MOTEUR (`src/engine`, `src/noyau`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
   'Le concept `test` reconnaît un Test à son SUJET (`coPresence` : `skill` ou `characteristic`, les clés de `sujetDuJetSchema`, ou le type de Test d’équipage `crewTestType` qui les exclut), l’invariant de `flowTestSchema` (#1657 B3-3, #1652), et CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation`) : un porteur de `difficulty` sans sujet n’est pas un Test. Angle mort déclaré : la Difficulté d’un Test dont la RÈGLE fixe le sujet au code (`criticals › amputation`, `land-cargo › gossip`, `weather › resistanceTest`…) n’est pas classée `test` ; ces paramètres restent comptés en L à `STRUCTURES_LOCALES`, et le lecteur qui en fait un Test (`critical.ts`, `landMarketFlow.ts`, `travelPostes.ts`) échappe à la mesure, qui ne lit pas le code.',
   'Une ÉTIQUETTE (`clé: z.literal(v)`) nomme une VARIANTE : un littéral n’entre dans un concept POSÉ que si chacune de ses étiquettes est admise par un nœud posé du concept qu’atteignent les schémas du registre (`etiquettesDesPoses` : valeurs admises du nœud posé, ou d’un produit de la classe posée, plus tout type d’entité de `TYPES` pour un produit `refTypee`) — `{id, type: setObjective}` n’est pas une référence typée, `{indiceId, type: discreditClue}` n’est pas un effet narratif posé. Un concept SANS pose n’a pour nœuds que des littéraux : il n’est REdéclaré que s’il est déclaré PLUS D’UNE FOIS, grammaire et modules réunis — son littéral unique est sa DÉFINITION (`formeNarratif`, `src/data/schemas/defs-scenes/narratif.ts`, que la grammaire ne peut importer ; mesuré 2026-11-05, #3012, seul littéral de module d’un concept sans pose), et un concept sans pose qu’un seul module déclare n’est pas vu.',
-  'Le lexique FERMÉ est le PLAFOND de détection des redéclarations : un littéral dont le concept n’est pas au lexique n’est compté que s’il a un schéma commun de MÊME signature exacte — deux defs divergents sur un champ d’un concept absent restent invisibles aux occurrences, et seul le compte GLOBAL des littéraux (`totalLitteraux`) bouge.',
+  'Le lexique FERMÉ est le PLAFOND de détection des redéclarations : un littéral dont le concept n’est pas au lexique n’est compté que s’il a un schéma commun de même FORME à `kind` compatible. Deux defs divergents sur un champ d’un concept absent restent invisibles aux occurrences, et seul le compte GLOBAL des littéraux (`totalLitteraux`) bouge.',
 ];
 
 /**
@@ -216,6 +216,8 @@ export type Concept = {
   resolvables?: boolean;
   /** Concept exprimé en TABLEAU de chaînes (liste d'ids nus) : pas de signature d'objet. */
   listeIdsNus?: boolean;
+  /** Repli du scan des projets sur leur déclaration `PROSES_NOMMEES` pour les porteurs sans forme. */
+  reconnaitProseNommee?: true;
   /** Le concept est nommé par la CLÉ qui le porte — déclaré, jamais mesuré à un seuil — pour ce que sa
    *  pose ne reconnaît pas (`CONCEPT_DE_LA_POSE`) : un `{dice}` sous `price`, une `forme` d'état. */
   champs?: readonly string[];
@@ -289,7 +291,8 @@ export const GRAPHIES_ENVELOPPANTES = ['ref', 'wildcard', 'random'] as const;
 export const CONCEPTS: readonly Concept[] = [
   {
     id: 'prose-nommee',
-    label: 'porteur de prose nommée',
+    reconnaitProseNommee: true,
+    label: 'porteur de prose nommée (champ déclaré par `proseNommee` projeté en `texte`)',
     strate: 'Document',
     signatures: [
       { sig: 'texte', statut: 'cible' },
@@ -637,7 +640,7 @@ export const CONCEPTS: readonly Concept[] = [
   // pour le détecteur de la base de sa plage (`scripts/guards/lib/corpusDesComptes.mts`). #2533.
   {
     id: 'provenance-de-valeur',
-    label: 'provenance d’une valeur d’auteur de route (`ProvenanceDeValeur`)',
+    label: 'provenance d’une valeur d’auteur de route (`provenanceDeValeurSchema`)',
     strate: 'Valeur',
     signatures: [
       { sig: 'source', statut: 'cible' },

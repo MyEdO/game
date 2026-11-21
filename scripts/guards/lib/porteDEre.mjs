@@ -15,7 +15,6 @@
 // Une ère SANS la porte au chemin de `module` (base antérieure à la porte, porte déplacée), une porte qui
 // ne se charge pas, à qui manque un export, ou dont la sonde de VIE échoue : `juge` nul et une NOTE,
 // l'appelant juge par la porte actuelle et rend la note. Aucun commit n'échappe à toute porte.
-// #2586
 //
 // Limites (#2503) :
 // - une branche de base ancienne garde la sémantique de sa base jusqu'à sa prochaine fusion du tronc :
@@ -89,8 +88,11 @@ function fermetureDuDisque(racine, module) {
   return fermeturesDuDisque.get(cle)
 }
 
-/** La fermeture de `module` dans l'arbre `ere` de `depot` : `null` si `module` n'y est pas. Chaque texte se
- *  lit par `lireEnLot`, à la première question de la fermeture sur son chemin. */
+/**
+ * La fermeture de `module` dans l'arbre `ere` de `depot` : `null` si `listerImage` n'y trouve pas le
+ * chemin. La liste des chemins sert à résoudre les imports. `lireEnLot` ne lit que les textes demandés
+ * par la fermeture et chaque texte lu est mémorisé pour la suite du parcours (#2586).
+ */
 function fermetureDeLEre(depot, ere, racine, module) {
   const base = resolve(racine).split(sep).join('/')
   const rel = (abs) => (abs.startsWith(`${base}/`) ? abs.slice(base.length + 1) : null)

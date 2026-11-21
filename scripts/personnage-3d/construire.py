@@ -1,13 +1,14 @@
-"""Construction d'un élément sans base (#2987, #4335, #4471) : un véhicule, une Amélioration, un décor ou une arête.
-Lit `<famille>/<modele>/donnees.py` (`vehicule/caraque`, `decor/arbre`, `arete/colombage`), bâtit chaque élément que
-déclare `elements(D)` de `<famille>/<modele>/modele.py`, l'exporte en GLB et écrit, pour chaque clé de l'élément, son
-dossier de production `<sortie>/<id>/` :
+"""Construction d'un élément sans base (#2987, #4335, #4471) : un véhicule, une Amélioration, un décor, une arête, un
+escalier ou un toit. Lit `<famille>/<modele>/donnees.py` (`vehicule/caraque`, `decor/arbre`, `arete/colombage`,
+`escalier/bois`, `toit/ardoise`),
+bâtit chaque élément que déclare `elements(D)` de `<famille>/<modele>/modele.py`, l'exporte en GLB et écrit, pour chaque
+clé de l'élément, son dossier de production `<sortie>/<id>/` :
 
 - `<id>.glb` et `<id>.element.json`, le manifeste schéma 3 que valide `npm run godot:valider -- <element.json> <glb>` ;
 - `manifest.json` et `LICENSE-CC0-1.0.txt`, l'enveloppe que lit `node hotes/godot/importer.mjs <sortie>/<id> <id>`.
 
 L'id est `<categorie>--<valeur de la clé>` (`vehicule--caraque`, `amelioration--sabord`, `decor--arbre`,
-`arete--colombage`). Un élément est
+`arete--colombage`, `escalier--bois`, `toit--ardoise`). Un élément est
 un dict : `glb` (nom de la scène), `cles` [(categorie, cle)], `materiaux` (table `{nom: (emplacement, matière)}`,
 `habillage.py`), `blasons` (matériaux qui reçoivent l'emblème, exportés avec leurs UV), `construire` (bâtit la scène vide,
 rend les champs du manifeste propres à l'élément : `postes`, `selon`, `ancrages`, `montage`, `clips` (`vehicule/clips.py`)

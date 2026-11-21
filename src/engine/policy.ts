@@ -31,9 +31,6 @@ export type RegleOptionnelleId = IdsParEspace['reglesOptionnelles.json'];
  *  vue la résout génériquement sur le store (`HouseRulesModal`). */
 export type OptionalRule = EntreeDe<typeof reglesOptionnellesDef>;
 
-/** Le genre du contrôle d'une règle optionnelle (`FormeDeControle`). */
-export type RuleKind = OptionalRule['kind'];
-
 /** Valeur d'une règle optionnelle SANS sa règle — surcharges stockées, persistées ou saisies, que `valeurConforme`
  *  juge contre leur règle. La valeur d'UNE règle est `ValeurDeRegle[id]`. */
 export type RuleValue = OptionalRule['default'];

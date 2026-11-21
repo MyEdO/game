@@ -57,6 +57,7 @@ import type { QuantitesDeVivres } from '../engine/provisions';
 import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { setVesselSchema, adjustVesselSchema } from '../data/schemas/defs-scenes/effets';
 import { chargerLaSave, snapshotSave } from './persistance/save';
+import { capEnCombat, provenanceDesNavires } from './planDeNavire';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -467,23 +468,29 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     expect(gameOpSchema.safeParse({ op: 'provisions', jours: 2, vivre: { id: 'tonneau-d-eau-douce' } }).success).toBe(false);
     expect(gameOpSchema.safeParse({ op: 'provisions', rations: 2, vivre: { id: 'ration' } }).success).toBe(false);
     expect(gameOpSchema.safeParse({ op: 'provisions', rations: 2 }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 10 }).success).toBe(true);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: 'tonneau-d-eau-douce' }, provisions: 10 }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: 'biscuits-de-mre' }, provisions: 10 }).success).toBe(false);
+    for (const id of ['diligence', 'navire-inconnu']) {
+      const r = setVesselSchema.safeParse({ type: 'setVessel', navire: { id } });
+      expect(r.error?.issues).toEqual([expect.objectContaining({
+        path: ['navire', 'id'], message: expect.stringContaining('catalogue des navires'),
+      })]);
+    }
+    expect(setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: BISCUITS }, provisions: 10 }).success).toBe(true);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: 'tonneau-d-eau-douce' }, provisions: 10 }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: 'biscuits-de-mre' }, provisions: 10 }).success).toBe(false);
     expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', vivre: { id: 'tonneau-d-eau-douce' }, provisions: 10 }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: 'ration' }, provisions: 10 }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: 'ration' }, provisions: 10 }).success).toBe(false);
     expect(gameOpSchema.safeParse({ op: 'provisions', jours: 3, vivre: { id: 'nourriture-course-journee' } }).success).toBe(false);
   });
 
   it('un effet de navire pose un vivre ET ses rations : l’un sans l’autre est refusé et nomme le champ manquant (MDG 14 l.245-252)', () => {
-    const sansVivre = setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: 40 });
+    const sansVivre = setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, provisions: 40 });
     expect(sansVivre.success).toBe(false);
     expect(sansVivre.error!.issues.map((i) => i.message).join(' ')).toContain('« vivre »');
     const sansRations = adjustVesselSchema.safeParse({ type: 'adjustVessel', vivre: { id: FRAIS } });
     expect(sansRations.success).toBe(false);
     expect(sansRations.error!.issues.map((i) => i.message).join(' ')).toContain('« provisions »');
     expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: 3 }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS } }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: BISCUITS } }).success).toBe(false);
   });
 
   it('une op `provisions` hors de sa forme est refusée au parse, et `jours` sans `vivre` nomme le champ manquant', () => {
@@ -496,15 +503,15 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
   });
 
   it('les vivres posés par setVessel/adjustVessel sont des rations entières, jamais négatives (MDG 14 l.245-252)', () => {
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 0 }).success).toBe(true);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: -5 }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 2.5 }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: BISCUITS }, provisions: 0 }).success).toBe(true);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: BISCUITS }, provisions: -5 }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: BISCUITS }, provisions: 2.5 }).success).toBe(false);
     expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: -1 }).success).toBe(false);
   });
 
   it('setVessel pose un vivre, l’op `rations` en ajoute un autre, adjustVessel pose la valeur du seul vivre nommé', () => {
     applyEffects(get, set, [
-      { type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 40 } as never,
+      { type: 'setVessel', navire: { id: 'cogue' }, vivre: { id: BISCUITS }, provisions: 40 } as never,
       { type: 'ops', on: 'navire', ops: [{ op: 'provisions', rations: 12, vivre: { id: FRAIS } }] } as never,
     ]);
     expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 40, [FRAIS]: 12 });
@@ -515,7 +522,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
 
   it('setVessel au lieu portuaire du groupe pose le navire à quai : l’embauche y est acceptée (MDG 15 l.129)', () => {
     set({ vessel: null, lieu: 'B' });
-    applyEffects(get, set, [{ type: 'setVessel', vehicleId: 'cogue' } as never]);
+    applyEffects(get, set, [{ type: 'setVessel', navire: { id: 'cogue' } } as never]);
     expect(get().vessel!.escale).toBe('B');
     const role = rolesRecrutables()[0]!.id;
     recruterLEquipage(get, set, role);
@@ -524,7 +531,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
 
   it('setVessel hors d’un lieu portuaire pose le navire hors de tout quai (MDG 15 l.129)', () => {
     set({ vessel: null, lieu: 'A' });
-    applyEffects(get, set, [{ type: 'setVessel', vehicleId: 'cogue' } as never]);
+    applyEffects(get, set, [{ type: 'setVessel', navire: { id: 'cogue' } } as never]);
     expect(get().vessel).not.toHaveProperty('escale');
   });
 
@@ -1347,6 +1354,24 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     expect(ennemis().map((c) => c.creatureId)).toEqual(['triton']);
     expect(get().battle!.victoryCondition).toBeUndefined();
     expect(get().travelPlan!.interrupted).toBe(true);
+  });
+
+  it('la scène de combat générée contient le pont entier de la caraque sans changer l’écart aux adversaires (#3994, #3835)', () => {
+    set((etat) => ({ vessel: { ...etat.vessel!, vehicleId: 'caraque' } }));
+    enMer();
+    jouerFlowEntier(runFlow(get, set, consequence('triton')!, 'Triton !'));
+    const etat = get();
+    const scene = etat.scene!;
+    const coque = etat.battle!.combatants.find((c) => c.creatureId === 'caraque')!;
+    const triton = ennemis()[0];
+    expect(scene.dimensions).toEqual({ w: 18, h: 18 });
+    expect(coque.pos).toMatchObject({ x: 3, y: 7 });
+    expect({ x: triton.pos!.x - coque.pos!.x, y: triton.pos!.y - coque.pos!.y }).toEqual({ x: 9, y: -4 });
+    expect(capEnCombat(etat, coque.id)).toBe('N');
+    const { flottaison } = provenanceDesNavires(scene);
+    expect(flottaison.size).toBe(90);
+    const rangs = [...flottaison.keys()].map((c) => Number(c.split(',')[1]));
+    expect([Math.min(...rangs), Math.max(...rangs)]).toEqual([0, 17]);
   });
 
   it('Triton vaincu : 1d10, l’Humeur de Manann gagne ou perd 2d10 (l.137-139)', () => {

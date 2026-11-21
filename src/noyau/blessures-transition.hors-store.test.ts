@@ -37,7 +37,7 @@ describe('écriture du store : le maximum suit, à chaque chemin de combattant d
 describe('mutation de Corruption (LDB 19 l.76, l.83) : la transition réconcilie le porteur muté', () => {
   it('la dernière étape à table attache la mutation : le maximum et le courant du héros suivent', () => {
     setDataset('mutations', [...datasetArray('mutations'), { id: ID_DE_PORTEUR, type: 'mutations', label: 'Mutation de test', desc: '', kind: 'physique', passive: plus3() }]);
-    setDataset('mutationTables', datasetArray('mutationTables').map((t) => ({ ...t, entries: [{ min: 1, max: 100, mutation: ID_DE_PORTEUR }] })) as never);
+    setDataset('mutationTables', datasetArray('mutationTables').map((t) => ({ ...t, entries: [{ id: ID_DE_PORTEUR, min: 1, max: 100 }] })) as never);
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 4 });
     h.corruption = 6;
     banc.setState({ party: [h] });

@@ -32,13 +32,12 @@ import {
   pionsRetirables,
 } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
-import { MINUTES_PER_DAY } from './clock';
+import { MINUTES_PER_DAY, joursParSemaine, minutesParSemaine } from './clock';
 import { contractDiseaseOnce, exposerALaMaladie, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
 import { findTableEntry } from './tables';
 import { applyFall } from './movement';
-import { hullShipSize } from './shipBuild';
-import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
+import type { ShipCritKey } from '../data/shipCriticals';
 import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import type { CustomStatblock } from './statblock';
 import { ALL_MAGIC, type CastPenalty, type Difficulty, type Main } from './types';
@@ -48,8 +47,8 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedTrait, sameInstance, traitsAccordesPar } from './grantedTraits';
-import { caracDuCombattant, evaluer, slBonus, valeurSansTirage, type Referent } from './formule';
-import { traitsOctroyes } from './traitOctroye';
+import { caracDuCombattant, evaluer, resolveFormula, slBonus, valeurSansTirage } from './formule';
+import { choixDuTrait, traitsOctroyes, type ChoixDuTrait } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps, recoitLaCorruption } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
@@ -91,6 +90,7 @@ import {
   laisserTomber,
   armeNaturelleAccordee,
   estUneVraieArme,
+  ficheDObjetPorte,
   objetDeSlot,
   isWeaponActive,
   uidDArme,
@@ -117,7 +117,6 @@ import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } 
 // dispatché par `noyau/triggeredEffects` (pas ici).
 import type { TriggeredEffect, FlowTest, Flow } from './flowCore';
 import {
-  ActiveEffect,
   EffectSource,
   ArmourBypass,
   CHAR_LABELS,
@@ -138,7 +137,22 @@ import { woundsFromHit } from './woundsCalc';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { ChaosAlign, ExposureLevel } from './corruption';
 import { t, pluriel, deElide, type MsgKey } from '../i18n';
-import type { PlayerText } from '../i18n/playerText';
+import { applyActiveEffect } from './effetsActifs';
+import { cleDeDe, desDeclaresDe, hauteurDeChute, type DeDeclare } from './faitsDOp';
+
+export { applyActiveEffect } from './effetsActifs';
+export { resolveFormula } from './formule';
+export {
+  cleDeDe,
+  D10_CHUTE,
+  demandesDeDes,
+  estOpDAttaquesSubies,
+  estOpDeLaBourseDuGroupe,
+  estOpDuMarche,
+  estOpDuNavire,
+  type DemandeDe,
+  type OpDuNavire,
+} from './faitsDOp';
 
 // ---------------------------------------------------------------------------
 // Formules
@@ -222,18 +236,6 @@ export type Formula = FormuleDe<TermeDeJet>;
 /** Quantité LUE AVANT tout jet — portée, cibles et zone d'un Sort, bonus de DR, modificateur de Test
  *  affiché : aucun terme de jet n'y entre (#2817), son évaluation (`valeurSansTirage`) ne tire rien. */
 export type FormuleSansTirage = FormuleDe<never>;
-
-/** Résout une formule contre son référent (`ref`) — RNG seedable pour les dés. `rolled` = valeur du
- *  jet courant d'un `rollThreshold` (injectée par l'op ; 0 hors de ce contexte) ; `indice` = Indice
- *  de l'attaque naturelle d'une manœuvre (`{indiceOf}`, 0 hors contexte). */
-export function resolveFormula(f: Formula, ref: Combatant | Referent, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
-  return evaluer<TermeDeJet>(f, 'bonusDe' in ref ? ref : caracDuCombattant(ref), (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : 'tire' in t ? valeurNonLiee(t) : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
-}
-
-/** Une valeur liée atteint l'évaluation sans avoir été tirée : anomalie de portée, jamais un 0 muet. */
-export function valeurNonLiee(t: TermeLie): never {
-  throw new Error(`#1652 — valeur liée « ${t.tire} » évaluée hors de la portée d'un Flow qui la tire (lierLesTirages).`);
-}
 
 /** L'Avantage d'un CAMP SANS FICHE (habitué, figurants) après des ops DÉCLARÉES : seul le vocabulaire
  *  d'Avantage s'y lit (`gainAdvantage`, `spendAdvantage`), par les primitives d'`engine/advantage`. Toute
@@ -473,7 +475,6 @@ export type PairedSense = 'vue' | 'ouie';
 /** Mot RÉSERVÉ de `scheduleRespawn.ref` : la créature DÉFUNTE elle-même, lue par son `creatureId` à la
  *  programmation (`noyau/combatFlow › scheduleRespawnFromOp`). */
 export const SELF_REF = 'self';
-export type SelfRef = typeof SELF_REF;
 
 export type GameOp =
   /** Blessures subies DIRECTEMENT. Par DÉFAUT ignore BE ET PA (tables de contrecoup LDB 46/40 ;
@@ -670,7 +671,7 @@ export type GameOp =
    *  Compétence de magie, Tests interdits, ou DR de Prière plafonné à 0. Durée en
    *  Rounds (combat + entretien hors combat) OU en minutes/jours d'horloge.
    *  `skill` absent = TOUTE magie (même idiome d'absence que `grantReverseToken` ci-dessous). */
-  | { op: 'castPenalty'; skill?: RefDesignee; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula }
+  | { op: 'castPenalty'; skill?: RefDesignee; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula; weeks?: Formula }
   /** Modificateur TEMPORAIRE de Standing (LDB 23 l.228-234 « Réputation » : +1 sur succès, +2 sur Succès
    *  Stupéfiant, −1 sur Échec Stupéfiant) — durée `{scale:'adventure'}` (« pour la prochaine aventure »),
    *  composé par `actorStatus` (engine/social.ts), purgé à l'interlude SUIVANT (`purgeAdventureEffects`). */
@@ -690,7 +691,7 @@ export type GameOp =
    *  `condition` (résolue MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects`, dont le retrait
    *  `removeActiveEffects` dé-accorde le trait) : un Trait borné en JOURS le dit ici (Désespoir,
    *  VDM 09 l.280). Exclusif de `durationRounds` ; absent = durée du contexte (`durationFromCtx`). */
-  | { op: 'grantTrait'; trait: TraitPose; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
+  | { op: 'grantTrait'; trait: TraitPose; choix?: true; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
   /** RETRAIT d'un Trait de créature porté (`c.traits`) — l'INVERSE de `grantTrait`, même vocabulaire :
    *  retire ce que LA SOURCE COURANTE (`ctx.source`) a accordé, instances retrouvées par le registre
    *  `TraitInstance.src`. Une instance NATIVE, ou accordée par un TIERS (Haine d'une prière, LDB 226),
@@ -705,7 +706,7 @@ export type GameOp =
    *  par le noyau en `cible` d'individu AVANT `applyOps` (`noyau/personneChoisie.ts`) ; `resistanceSiAmis`, le
    *  Test qui permet à la cible de résister quand elle et la personne sont amies (VDM 10 l.327) ;
    *  `durationHours`, la durée d'HORLOGE du Trait, porté alors par un `ActiveEffect` (`grantedPsychTrait`). */
-  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible; envers?: 'personneChoisie'; resistanceSiAmis?: FlowTest; durationHours?: Formula }
+  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible; envers?: 'personneChoisie'; resistanceSiAmis?: FlowTest; durationHours?: Formula; durationWeeks?: Formula }
   /** Retire UN Trait psychologique de `c.psychTraits` (≠ `endPsych`, affliction de combat `psychState`) :
    *  `psychType` absent = le premier porté ; `psychType` seul = le premier de ce type ; `cible` = l'instance
    *  de ce type visant cette Cible (`identiteDeCiblage`). ADE II 09 l.33 */
@@ -736,6 +737,8 @@ export type GameOp =
   /** Le porteur doit effectuer des Tests de Prière pour son Action tant que l'effet dure
    *  (`prayerForActionBy`) ; le Mouvement reste libre. LDB 40 l.74 */
   | { op: 'prayerForAction'; durationRounds: Formula }
+  /** VDM 09 l.354 */
+  | { op: 'forbidFlee' }
   /** Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) —
    *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée :
    *  `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe.
@@ -892,11 +895,10 @@ export type GameOp =
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête) tant que le Sort dure — Peau de loup
    *  d'hiver (Ulric), Protection contre la pluie. Lu par `exposureNight` (engine/exposure). */
   | { op: 'weatherWard' }
-  /** Crée un objet (`trapping`) dans l'inventaire de la cible — nom RÉEL de la base → objet à stats,
-   *  nom inconnu → objet CUSTOM (misc). Même vocabulaire que l'Effet de scène `giveTrapping`.
+  /** Crée un objet catalogué ou personnalisé dans l'inventaire de la cible.
    *  Alimente tout sort qui DONNE du matériel : Rations (Générosité de Manann, Récolte de Rhya →
    *  système de provisions/Faim), etc. `count`/`perSL` : « +1 par +2 DR ». */
-  | { op: 'giveTrapping'; trappingId?: string; custom?: string; count?: number; perSL?: PerSL; apparence?: { id: string } }
+  | { op: 'giveTrapping'; objet?: { id: string }; custom?: string; count?: number; perSL?: PerSL; apparence?: { id: string } }
   /** Crédite (positif) ou débite (négatif) la bourse PERSONNELLE de la cible, en SOUS DE CUIVRE
    *  (`brass` — unité de compte unique, `engine/money.ts`). La Bourse est un trapping (doctrine
    *  utilisateur 2026-07-16 : « Pour la bourse, c'est personnel et par défaut ça doit être dans… la
@@ -1375,23 +1377,6 @@ export type GameOp =
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
 export interface AggravationMeteo { de: Formula; seuil: number; meteo: MeteoImposee }
 
-/** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
- *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer', 'commission', 'constructeurDEscale', 'rationsDEscale'] as const satisfies readonly GameOp['op'][];
-export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
-export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
-
-/** Op de la BOURSE DU GROUPE (`money` à `groupe`) : résolue une fois par la feuille de scène qui la porte
- *  (Effet `ops`, `noyau/combatEffects.ts`), inerte dans `applyOps`. */
-export const estOpDeLaBourseDuGroupe = (o: GameOp): o is Extract<GameOp, { op: 'money' }> => o.op === 'money' && o.groupe === true;
-
-/** Op du MARCHÉ D'UN PORT : résolue une fois par la feuille de scène qui la porte (Effet `ops`,
- *  `noyau/combatEffects.ts`), inerte dans `applyOps`. */
-export const estOpDuMarche = (o: GameOp): o is Extract<GameOp, { op: 'marcheDuPort' }> => o.op === 'marcheDuPort';
-/** L'op des ATTAQUES SUBIES : résolue une fois, sur la cible unique de la feuille `ops` qui la porte ; `applyOps` la
- *  laisse inerte. */
-export const estOpDAttaquesSubies = (o: GameOp): o is Extract<GameOp, { op: 'attaquesSubies' }> => o.op === 'attaquesSubies';
-
 /** Op d'une liste lue par le collecteur `passiveMods` : sans `auTotal` (#3060). */
 export type OpPassive = Exclude<GameOp, { op: 'attrMod'; attr: 'wounds' }> | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: never };
 
@@ -1523,6 +1508,8 @@ export interface OpsCtx {
   /** Jets sur le Tableau RÉELLEMENT choisis par le lanceur (EDOC 13 l.276 : « vous POUVEZ » — décidable,
    *  jamais forcé), borné à `overcastDurationSteps`. Absent = tous les pas alloués (défaut, IA). */
   chosenTableRolls?: number;
+  /** EDOC 13 l.245. */
+  onChoixDeTrait?: (cible: Combatant, op: Extract<GameOp, { op: 'grantTrait' }>, options: readonly ChoixDuTrait[], ctx: OpsCtx) => boolean;
   /** Marqueur de RÉ-ENTRANCE `onOwnTestFailed` : posé sur le flowCtx des effets déclenchés par ce trigger
    *  (MSRC 16 — Crampes). Threadé jusqu'à un nœud Flow `test` (le FM de palier 2) routé en cascade : son
    *  étape est tamponnée `meta.noOwnTestFailed` pour que sa résolution NE ré-émette JAMAIS le trigger
@@ -1627,19 +1614,20 @@ function libelleDHorloge(duree: Duration, ctx: OpsCtx): string {
 }
 
 /** Champs de DURÉE qu'une op peut porter — consommés à la pose par `durationFromOp`. */
-interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula }
+interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula; durationWeeks?: Formula }
 
-/** L'op porte-t-elle une durée d'HORLOGE intrinsèque (minutes, heures ou jours) ? */
+/** L'op porte-t-elle une durée d'HORLOGE intrinsèque ? */
 function aUneHorloge(o: OpDuree): boolean {
-  return o.durationMinutes != null || o.durationHours != null || o.durationDays != null;
+  return o.durationMinutes != null || o.durationHours != null || o.durationDays != null || o.durationWeeks != null;
 }
 
 /** Minutes d'HORLOGE intrinsèques de l'op, résolues UNE fois dans `ctx` ; `undefined` sans champ
- *  d'horloge. Résolution UNIQUE des trois unités (LDB 47). */
+ *  d'horloge. */
 function minutesDHorloge(o: OpDuree, ref: Combatant, ctx: OpsCtx): number | undefined {
   if (!aUneHorloge(o)) return undefined;
   return formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60
-    + formuleDuCtx(o.durationDays ?? 0, ref, ctx) * MINUTES_PER_DAY;
+    + formuleDuCtx(o.durationDays ?? 0, ref, ctx) * MINUTES_PER_DAY
+    + formuleDuCtx(o.durationWeeks ?? 0, ref, ctx) * minutesParSemaine();
 }
 
 /** Résout `f` dans le contexte `ctx` de l'op qui la porte : TOUS les termes de contexte (`rolled`, `indiceOf`,
@@ -1711,17 +1699,6 @@ function pushPerRound(target: Combatant, ops: GameOp[], ctx: OpsCtx, duration?: 
   });
 }
 
-/** Pose un effet actif ; un même Sort d'un même lanceur reste UNIQUE par Caractéristique (LDB 46 l.119).
- *  La combinaison (pools de non-cumul, somme) se lit à `effectiveChar`. */
-export function applyActiveEffect(target: Combatant, effect: ActiveEffect) {
-  target.activeEffects = target.activeEffects ?? [];
-  const sp = effect.spell;
-  const idx = sp ? target.activeEffects.findIndex((e) => e.characteristic === effect.characteristic && e.spell?.spellId === sp.spellId && e.spell.casterId === sp.casterId) : -1;
-  if (idx >= 0) target.activeEffects[idx] = effect;
-  else target.activeEffects.push(effect);
-  target.wounds = blessuresReconciliees(target);
-}
-
 /**
  * PROVENANCE d'effets déclenchés qu'une op FOND dans un objet (`augmentWeapon`/`grantWeapon` :
  * l'enchantement d'un sort, le poison d'un consommable, l'arme invoquée) — les effets gardent
@@ -1736,119 +1713,6 @@ export function applyActiveEffect(target: Combatant, effect: ActiveEffect) {
 function stampSource(effects: TriggeredEffect[], source?: EffectSource): TriggeredEffect[] {
   if (!source) return effects;
   return effects.map((e) => (e.source ? e : { ...e, source }));
-}
-
-/**
- * CLÉ d'un dé d'op (#1508) — rang de l'op dans SON tableau + champ qui le porte (`#3.hauteur`).
- * SOURCE UNIQUE de la clé, et personne ne l'écrit à la main : la DÉCLARATION de l'op (`DES_DUNE_OP`)
- * nomme ses champs, `demandesDeDes` en dérive les clés qu'elle annonce et le helper `de(…)` d'`applyOps`
- * en dérive les clés qu'il relit. Le rang suffit à l'unicité (deux ops d'un tableau ne partagent pas de
- * rang) et le champ nomme le dé, pour que l'étape ouverte dise ce qu'elle décide.
- */
-export function cleDeDe(rang: number, champ: string): string {
-  return `#${rang}.${champ}`;
-}
-
-/**
- * DÉ QU'UNE OP DEMANDE À LA PORTE (#1508) — ce que le moteur FABRIQUE pour que la couche `noyau`
- * OUVRE : quels dés (`spec`), sous quelle clé les reverser (`cle`, cf. `cleDeDe`), ce qu'ils décident
- * (`libelle`) et dans quelle unité se lit leur total (`unite` — « m », affichage pur).
- *
- * C'est la même forme qu'une déclaration d'étape à dé nu (`noyau/rollSeam.DieStepSpec`) privée de ce
- * que seul l'applier sait (le porteur, la séquence d'accueil) : le moteur ne connaît ni sièges ni
- * fenêtres, il dit le dé.
- */
-export interface DemandeDe {
-  cle: string;
-  spec: DiceSpec;
-  libelle: PlayerText;
-  unite?: string;
-}
-
-/**
- * LES DÉS que chaque op du canal déclare, PAR NOM (#1508) — la table qui donne au `champ` son type.
- * Les deux bouts du canal lisent la MÊME union : le nom demandé par le `case` se vérifie contre les
- * champs que l'op DÉCLARE, et un nom absent de la table ne compile pas.
- *
- * L'op N+1 coûte toujours UNE déclaration : une ligne ici (ses champs) et son entrée dans
- * `DES_DUNE_OP` — les deux au même endroit, impossibles à désaccorder (le registre est typé par cette
- * table, une entrée qui déclarerait un autre champ ne compile pas).
- */
-interface ChampsDOp {
-  fall: 'hauteur' | 'degats';
-  zone: 'duree';
-}
-
-/** UN dé DÉCLARÉ par une op, avant que son rang ne lui donne sa clé — la forme AUTEUR de `DemandeDe`. */
-interface DeDeclare<C extends string = string> {
-  champ: C;
-  spec: DiceSpec;
-  libelle: PlayerText;
-  unite?: string;
-}
-
-/** Le 1d10 de DÉGÂTS de toute chute (LDB 15 l.80) — une seule écriture, lue par la déclaration de l'op
- *  `fall`, par le repli headless de son `case`, et par la porte des chutes à hauteur CONNUE
- *  (`noyau/combatEffects.ouvrirChute`). */
-export const D10_CHUTE: DiceSpec = Object.freeze({ n: 1, sides: 10 }); // #2097
-
-/**
- * HAUTEUR déclarée d'une chute d'op `fall` — LECTURE UNIQUE de (table × Taille de coque × station du
- * tombant), MDG 13 l.684-688. Partagée par la DÉCLARATION (qui annonce le dé) et par le `case 'fall'`
- * (qui le consomme) : une seconde lecture ferait diverger ce qui est annoncé de ce qui est lu.
- *
- * Rend la `Formula` de hauteur ET le libellé de la table. Table inconnue, coque absente, Taille non
- * couverte, station sans colonne : anomalie NOMMÉE (une chute sans hauteur n'est pas une chute).
- */
-function hauteurDeChute(o: Extract<GameOp, { op: 'fall' }>, target: Combatant, ctx: OpsCtx): { hauteur: Formula; table: string } {
-  const table = findFallTable(o.hauteur.table.id);
-  if (!table) throw new Error(`op « fall » : table de hauteur inconnue « ${o.hauteur.table.id} » (tablesDeChute, ship-criticals.json).`);
-  const taille = ctx.hull ? hullShipSize(ctx.hull) : undefined;
-  if (!taille) throw new Error(`op « fall » (« ${table.label} ») : aucune Taille de coque au contexte (ctx.hull) — la hauteur se lit par la Taille du bateau (MDG 12 l.122-129).`);
-  const bande = table.bandes.find((b) => b.tailles.includes(taille));
-  if (!bande) throw new Error(`op « fall » (« ${table.label} ») : aucune bande ne couvre la Taille « ${taille} ».`);
-  const colonne = Object.entries(bande.hauteurs).find(([station]) => station === target.shipStation)?.[1];
-  const hauteur = colonne === undefined ? undefined : structuredClone(colonne); // #2097
-  if (hauteur === undefined) throw new Error(`op « fall » (« ${table.label} ») : ${target.label} n'a pas de colonne de hauteur pour la station « ${target.shipStation ?? '—'} ».`);
-  return { hauteur, table: table.label };
-}
-
-/**
- * DÉCLARATION UNIQUE « quels dés cette op demande à la porte » (#1508) — le registre par `op`, LU aux
- * DEUX bouts du canal : `demandesDeDes` l'énumère pour ouvrir les étapes, et le helper `de(…)`
- * d'`applyOps` le relit pour consommer ce qui est tombé. Une op qui rejoint le canal coûte UNE entrée
- * ici plus un `de(…)` à son `case` : la clé s'écrit à UN endroit, les deux bouts la dérivent.
- *
- * Une op ABSENTE d'ici tire encore ses dés sous `applyOps` : c'est la DETTE inventoriée par
- * `DES_HORS_PORTE_STOCK`, pas une classe de dé exemptée (doctrine utilisateur du 2026-09-04).
- */
-const DES_DUNE_OP: { [K in keyof ChampsDOp]: (o: Extract<GameOp, { op: K }>, target: Combatant, ctx: OpsCtx) => DeDeclare<ChampsDOp[K]>[] } = {
-  fall: (o, target, ctx): DeDeclare<ChampsDOp['fall']>[] => {
-    const { hauteur, table } = hauteurDeChute(o, target, ctx);
-    return [
-      // Une hauteur ENTIÈRE (nid-de-pie : 12 / 25 / 40 m, MDG 13 l.684) n'est pas un dé : rien à ouvrir.
-      ...(typeof hauteur === 'object' && 'dice' in hauteur
-        ? [{ champ: 'hauteur' as const, spec: hauteur.dice, libelle: t('op.chute.deHauteur', { table }), unite: 'm' }]
-        : []),
-      { champ: 'degats' as const, spec: D10_CHUTE, libelle: t('op.chute.deDegats') },
-    ];
-  },
-  // #4202
-  zone: (o): DeDeclare<ChampsDOp['zone']>[] => (typeof o.durationRounds === 'object' && 'dice' in o.durationRounds
-    ? [{ champ: 'duree' as const, spec: o.durationRounds.dice, libelle: t('op.zone.deDuree'), unite: 'Rounds' }]
-    : []),
-};
-
-/**
- * CETTE OP DEMANDE-T-ELLE UN DÉ À LA PORTE ? (#1508) — lecture du MÊME registre que `demandesDeDes`
- * (`DES_DUNE_OP`), donc jamais une seconde liste à tenir : une op qui rejoint le canal devient vraie
- * ici du seul fait de sa déclaration.
- *
- * PRÉDICAT PUR et TOTAL : il ne lit ni cible ni contexte, donc il ne LÈVE pas — c'est ce qui permet à
- * un appelant de DÉCIDER de son chemin (différable ou non) avant d'avoir de quoi annoncer.
- */
-export function opDemandeUnDe(op: GameOp): boolean {
-  return op.op in DES_DUNE_OP;
 }
 
 /**
@@ -1869,14 +1733,6 @@ function zoneDeGarde(ctx: OpsCtx, cible: Combatant, op: string): { rayonM: numbe
       + "ligne « Cible » du sort qui la pose (LDB 47 l.28), et ce contexte n'en porte pas.");
   }
   return { ...zde, porteur: ctx.caster?.id === cible.id };
-}
-
-/** Les dés DÉCLARÉS par une op à son rang — lecture unique du registre, vue ANONYME (l'énumération n'a
- *  pas besoin de savoir QUELS champs : elle en dérive les clés). Le `case` qui CONSOMME, lui, lit son
- *  entrée nominativement (`DES_DUNE_OP.fall`) et garde le type de ses champs. */
-function desDeclaresDe(o: GameOp, target: Combatant, ctx: OpsCtx): DeDeclare[] {
-  const decl = (DES_DUNE_OP as Partial<Record<GameOp['op'], (op: GameOp, t: Combatant, c: OpsCtx) => DeDeclare[]>>)[o.op];
-  return decl ? decl(o, target, ctx) : [];
 }
 
 /**
@@ -1903,7 +1759,7 @@ export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
  *  le résolveur d'objets et les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage
  *  et du sol, qui reçoivent leur cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
  *  sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'onChoixDeTrait', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
@@ -1951,31 +1807,6 @@ export function gelerOpsCtx(ctx: OpsCtx): OpsCtxGele {
   const out: Record<string, unknown> = {};
   for (const k of OPS_CTX_GELES) if (ctx[k] !== undefined) out[k] = ctx[k];
   return out as OpsCtxGele;
-}
-
-/**
- * DÉS QUE CES OPS DEMANDENT À LA PORTE (#1508) — ÉNUMÉRATION PURE, ni tirage ni mutation : ce que
- * l'applier doit OUVRIR en étapes de dé avant d'appeler `applyOps`, et ce qu'il lui reversera dans
- * `ctx.des`. Le canal op → applier tient dans ce couple : le moteur FABRIQUE, `noyau` OUVRE (patron
- * `shipCritical.applyCrewHit`, qui REND son `testFlow` au lieu de le jouer).
- *
- * LÈVE sur donnée malformée (table de chute inconnue, coque absente…) AVANT qu'aucune op de la feuille
- * ne s'applique : c'est voulu, et c'est le même fail-fast que le `case` correspondant — une feuille
- * dont un dé ne peut être annoncé ne s'applique pas À MOITIÉ.
- *
- * NIVEAU 1, et l'état des autres niveaux est MESURÉ, pas supposé : une op à dé IMBRIQUÉE (rangée de
- * `rollTable`, palier de `rollThreshold`, forme d'un échelon) n'est pas énumérée et ses dés tombent
- * sous `applyOps` (`imbrique` retire `ctx.des`) ; le walker PUR `noyau/combat/flowEval.runPureFlowLines`
- * appelle `applyOps` hors de la porte. Ces deux chemins sont au solde `DES_HORS_PORTE_STOCK` (comptés
- * à l'`applyOps` de leurs appelants), qui les porte jusqu'à zéro (#1508). Une récursion ici ne les
- * couvrirait pas : elle annoncerait des dés que la branche non prise ne tire jamais.
- *
- * PÉRIMÈTRE COURANT : seule l'op `fall` déclare ses dés (`DES_DUNE_OP`). Les 134 `{dice}` authored des
- * autres ops tirent encore sous `applyOps` — même dette, mêmes trains T3-T6.
- */
-export function demandesDeDes(ops: readonly GameOp[], target: Combatant, ctx: OpsCtx): DemandeDe[] {
-  return ops.flatMap((o, rang) => desDeclaresDe(o, target, ctx)
-    .map((d) => ({ cle: cleDeDe(rang, d.champ), spec: d.spec, libelle: d.libelle, ...(d.unite ? { unite: d.unite } : {}) })));
 }
 
 /** Rang dans `c.psychTraits` du Trait que retire `o` : l'instance visée (type et Cible), sinon le premier Trait
@@ -2353,7 +2184,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (o.envers) throw new Error(`grantPsychTrait « ${o.psychType.id} » : \`envers\` non résolu — le noyau le résout en Cible d'individu avant applyOps (noyau/personneChoisie.ts).`);
         const { type, cible } = traitOctroye(o);
         const pose = grantPsychTrait(target, type, cible, source);
-        if (o.durationHours != null) {
+        if (aUneHorloge(o)) {
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: durationFromOp(o, ctx, ref), grantedPsychTrait: pose });
         }
@@ -2498,9 +2329,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           const h = formuleDuCtx(o.hours, ref, ctx);
           cp.untilTime = (ctx.now ?? 0) + h * 60;
           dureeTxt = t('op.frag.heures', { n: h, s: h > 1 ? 's' : '' });
-        } else if (o.days != null) {
-          const d = formuleDuCtx(o.days, ref, ctx);
-          cp.untilTime = (ctx.now ?? 0) + d * 24 * 60;
+        } else if (o.days != null || o.weeks != null) {
+          const d = formuleDuCtx(o.days ?? 0, ref, ctx) + formuleDuCtx(o.weeks ?? 0, ref, ctx) * joursParSemaine();
+          cp.untilTime = (ctx.now ?? 0) + d * MINUTES_PER_DAY;
           dureeTxt = t('op.frag.jours', { n: d, s: d > 1 ? 's' : '' });
         }
         target.castPenalties = [...(target.castPenalties ?? []), cp];
@@ -2528,14 +2359,15 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantTrait': {
         if (!groupGate(o.onlyGroups)) break; // « les Mort-vivant/Démoniaque gagnent Instable » (Bannissement)
+        if (o.choix && ctx.onChoixDeTrait?.(target, o, choixDuTrait(o.trait.id, target), ctx)) break;
         const duree = durationFromOp(o, ctx, ref);
         for (const inst of traitsOctroyes(o, { lanceur: ref, porteur: target, rng, sl: ctx.sl, src: source })) {
-          grantTrait(target, inst);
+          const accorde = grantTrait(target, inst, ctx.idNeuf);
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({
             label: nomDeSource(ctx), bonus: 0,
             duration: { ...duree },
-            grantedTrait: inst,
+            grantedTrait: structuredClone(accorde),
           });
           lines.push(t('op.traitAccorde', { name: target.label, trait: traitLisible(inst), src: nomDeSource(ctx) }));
         }
@@ -2709,6 +2541,15 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, prayerForAction: true });
         const n = duree.scale === 'rounds' ? duree.left : 0;
         lines.push(t('op.prierePourAgir', { name: target.label, duree: t('op.frag.plafondDeRounds', { n, s: n > 1 ? 's' : '' }), src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'forbidFlee': {
+        const duration = durationFromCtx(ctx);
+        if (duration.scale === 'rounds' && duration.left <= 0) break;
+        const label = nomDeSource(ctx);
+        target.activeEffects ??= [];
+        target.activeEffects.push({ label, bonus: 0, duration, fleeForbidden: true });
+        lines.push(t('op.fuiteInterdite', { name: target.label, src: label }));
         break;
       }
       case 'reduceToZero': {
@@ -2923,7 +2764,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, ctx.idNeuf, source, ctx.resolveTrapping, contexteDeNaissanceDObjet(target));
+          const it = itemFromGive({ ...o, trappingId: o.objet?.id }, ctx.idNeuf, source, ctx.resolveTrapping, contexteDeNaissanceDObjet(target));
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }
@@ -3096,7 +2937,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Les DEUX dés de la chute (hauteur MDG 13 l.684, Dégâts LDB 15 l.80) passent par la porte quand
         // un applier les y a ouverts (`demandesDeDes` → étape à dé nu → `ctx.des`) : le dé POSÉ remplace
         // le tirage, sans consommer de rng. Sans canal (pilote headless), l'op tire aux mêmes points.
-        const declares = DES_DUNE_OP.fall(o, target, ctx);
+        const declares = desDeclaresDe(o, target, ctx);
         const de = lecteurDe(iOp, declares);
         // Hauteur ENTIÈRE (nid-de-pie) : aucun dé n'est DÉCLARÉ, la Formule donne le nombre telle quelle.
         const metres = declares.some((d) => d.champ === 'hauteur')
@@ -3121,7 +2962,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'zone': {
         // Zone d'un sort (sans `durationRounds`) : posée par `placeSpellZone`, à la durée du sort (LDB 47 l.15).
         if (o.durationRounds === undefined || !ctx.onZone) break;
-        const declares = DES_DUNE_OP.zone(o, target, ctx);
+        const declares = desDeclaresDe(o, target, ctx);
         const rounds = declares.length ? lecteurDe(iOp, declares)('duree') : formuleDuCtx(o.durationRounds, ref, ctx);
         lines.push(...ctx.onZone(o, rounds, target, ctx));
         break;
@@ -3304,9 +3145,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const hand: Main = ctx.location === 'brasG' ? 'secondaire' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'secondaire';
         const tenue = (target.weapons ?? []).find((w) => estUneVraieArme(w) && w.derivedFromItem == null
           && (w.hands === 2 || (w.hand === 'secondaire') === (hand === 'secondaire')));
-        const objet = tenue ? objetSourceDeLArme(target, tenue) : undefined;
+        const objet = tenue && (objetSourceDeLArme(target, tenue)
+          ?? ficheDObjetPorte(tenue, ctx.resolveTrapping ?? findTrappingById));
         if (objet && itemCapability(objet, 'disarmImmune')) {
-          // Poing de fer ogre (ADE II 02 l.694-698) : « solidement fixé... il ne pourra pas en être désarmé ».
+          // ADE II 02 l.695.
           lines.push(t('op.desarmementImmunise', { name: target.label, item: objet.label }));
         } else if (tenue) {
           if (!ctx.onLacher) lacherLArme(target, tenue);

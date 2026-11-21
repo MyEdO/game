@@ -98,8 +98,9 @@ export {
   type SurchargesDEmblemes,
 } from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
+export { aLEchelleDesPonts, rectangleDesPonts, refusDePoseDesPonts } from '../data/poseDesPonts';
 export {
-  aLEchelleDesPonts,
+  capEnCombat,
   CAPS_DES_PONTS,
   estPoseParSesPonts,
   naviresDeLaScene,
@@ -120,7 +121,7 @@ export { conversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
 export type { Combatant } from '../engine/types';
-export type { ModLine, RollBreakdown } from '../engine/combat';
+export type { ModLine } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
 export { quiTientLaMain } from './netOwnership';
@@ -139,6 +140,7 @@ export {
   aretesDeLaCouche,
   aretesDeLaScene,
   masqueDuRegard,
+  paletteDeLApparence,
   plateauDeLaScene,
   regardDuJeu,
   REGARDS,
@@ -146,6 +148,8 @@ export {
   type PlateauDeLaScene,
   type Regard,
 } from './monde/aretes';
+export { cotesDeMarchesDeLaCouche, cotesDeMarchesDeLaScene, type CoteDeMarches } from './monde/cotesDeMarches';
+export { faitieresDeLaScene, type Faitiere } from './monde/faitieres';
 export type { Scene } from './monde/scene';
 export type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
@@ -303,7 +307,7 @@ export {
   sameSel,
   segmentDeLaSelection,
   selRect,
-  structuresCrenelables,
+  apparencesCrenelables,
   structuresDeLArete,
   type Sel,
   type WallPaint,

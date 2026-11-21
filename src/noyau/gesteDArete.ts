@@ -15,7 +15,7 @@ import type { MsgKey } from '../i18n';
 import { capaciteDuPas, caseOpposee, type AreteUtilisable, type CapaciteArete } from './aretes';
 import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, tombantsNommes, mouvementDeLAllege } from './fallMove';
 import type { CloturesDuJet } from './rollFlowSpecs';
-import { sceneMetresPerTile, type Scene, isWalkable, heightAt } from './monde/scene';
+import { sceneMetresPerTile, type Scene, isWalkable, metresDEscalade } from './monde/scene';
 import { inBattleId, meneurDeboutDuMonde, estDebout } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { mobileDuTour, type RefusDuTour } from './combatFlow';
@@ -249,7 +249,7 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
       if (plan.kind === 'test') jouerFlowEntier(runFlow(get, set, plan.flow));
       return;
     }
-    const metres = Math.abs(heightAt(scene, to.x, to.y, to.z ?? 0) - heightAt(scene, from.x, from.y, from.z ?? 0));
+    const metres = metresDEscalade(scene, from, to);
     // Grimpant `climbFullSpeed` (LDB 85 l.162) : coût NORMAL (1 case), pas la ½ vitesse du Talent
     // Grimpeur joueur (LDB 15 l.55, `climbMovementCost`) — chemin joueur strictement inchangé.
     const cost = hasClimbFullSpeed(mover.traits) ? 1 : climbMovementCost(metres, sceneMetresPerTile(scene));

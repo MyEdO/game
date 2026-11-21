@@ -19,9 +19,59 @@ rectangle (x, y, largeur, hauteur), le même dans tous les états et sur tous le
 Ce qui n'y figure pas suit ce qu'il désigne et porte `data-mobile` (« Mobiles » plus bas). Le relevé `bouge` de
 `sources/rendre.mjs` compare chaque pièce fixe à sa ligne et signale toute pièce sans ligne.
 
+**La grille intérieure.** L'intérieur d'un cadre récurrent a ses places, chacune (`data-place="<rôle>/<place>"`) à
+UN rectangle dans le fond du cadre, le même dans tous les états et sur tous les écrans : la table `PLACES` de
+`sources/rendu.js`, sœur de `CADRES`, seule copie des nombres. Ce qui manque à un état laisse sa place vide, rien ne
+glisse ; le fond ne range rien d'autre, aucune règle de feuille propre à un état n'y redéfinit colonnes, marges ou
+écarts. Les grilles de `PLACES` : la fenêtre du bas ; le socle (quatre cases égales du bandeau, `socle/case-*`, qu'il
+y ait quatre héros ou moins ; à la barre de l'actif une place d'onglet par famille dans l'ordre Action, Situation,
+Gestes, Rapides, de même largeur active ou non, trois places de plaque et cinq de geste) ; l'actif au pied de l'ordre
+du tour (`ordre/actif`) ; les onglets des sections de la fiche, des dossiers et de la progression (cinq places, la
+fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; la colonne du choix de la création (quatre rangées, la haute des deuxième
+et troisième, la liste et son pied : `heros.md`, « Grille du choix ») ; le pied de
+l'identité qui progresse ; le grand titre libre de l'ouverture (sur-titre, nom, filet, suite, puis au chapitre la toile
+et le corps) et la colonne des entrées (la principale, l'instant qu'elle reprend, les autres) ; sous la bannière d'issue
+d'un combat, ce qu'elle laisse et sa sortie ; la grille des colonnes (`colonne`, `sources/gestes.js` : la tête, le corps qui défile sous
+elle, ou le plein, le corps sur la bande de la tête quand le panneau n'en a pas, ce qui décide au pied du corps
+(`pied`, une place fixe que le corps laisse dans tous les états : à la page d'un service, les bourses du groupe, la mise
+d'une partie, ce que le patient paie), le geste au pied, la note sous lui ;
+à gauche sous le cartouche, le corps prend la hauteur que la note laisse au plein du rail des services, dont la note
+se pose sous le dernier service que la colonne peut porter, quel qu'en soit le nombre, et au carnet les documents remis
+sous elle ; aux volets de l'outil d'édition, la liste au plein et ses gestes au pied ; à l'inspecteur, ce qui est
+choisi, ses propriétés, la validation ou « Supprimer » au pied) ; les hôtes d'une scène de commerce, chacun à la case de son genre (`commerce.md`) ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
+(portrait, identité, rangée des dés, issue). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
+`habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
+premier état du même rôle. Le relevé `contenu` (`sources/contenus.mjs`) compare d'un état à l'autre du même gabarit
+le rect de ce que chaque place porte, sous la clé porteur + rôle (le rôle : la pièce, la place, la première classe, le
+`data-texte` et le `data-cle`, l'id stable de ce qu'un élément désigne quand le markup en porte un, puis le rang parmi
+ceux du même rôle), et classe chaque écart : **A** une boîte déplacée (son coin bouge, ou la taille
+d'un contenu qui n'est pas un texte en ligne, ou le départ, les x ou les écarts des entrées d'une liste qui défile),
+**B** la seule longueur d'un texte dont le coin reste fixe, **C** le seul nombre des entrées d'une liste qui défile
+(une liste d'une seule entrée n'a pas d'écart à comparer).
+Un A fait échouer le rendu, quel que soit le gabarit, contre les autres écrans du gabarit déjà rendus sous
+`RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe) et les autres états de la même passe ; `node
+sources/contenus.mjs <dossier>` agrège la passe (code 1 sur un A).
+`npm run godot:maquettes` (`sources/passe.mjs`) joue la passe entière : tous les états de tous les écrans sous un
+`RELEVE_CONTENUS` neuf (`dist/maquettes-passe` par défaut), puis l'agrégat, et les planches du kit
+(`sources/kit/planche-*.html`) ; code 1 sur une erreur de page, un relevé non vide, un défilement de la page ou un A,
+d'un écran ou d'une planche. Playwright se résout comme pour `rendre.mjs` (`../images.md`). L'agrégat compte aussi, par
+gabarit, le relevé `brut`, sans effet sur son code : ce qu'un emplacement de primitive (`data-emplacement`) ou une
+illustration porte hors d'une primitive (`data-primitive`, écrite par le seul kit). `npm run
+godot:maquettes:reference` rend les 170 états dans les quatre formats sous `dist/maquettes-reference`, à la tête de
+départ d'un lot ; `npm run godot:maquettes:comparer` rend l'arbre et sort en 1 sur tout PNG qui en diffère
+(`scripts/maquettes/pixels.mjs`). `npm run godot:maquettes:page -- [<passe>]` tire de la passe la page de jugement
+(`scripts/maquettes/page.mjs`, sous `dist/maquettes-page`).
+
+- À valider (#4585) : le cartouche de titre (`#titre`, tout écran qui en porte un) range ses deux primitives (le
+  cartouche du lieu, l'objet du temps du voyage) sur une même grille : la figure dans une case de 56 de large, le
+  bloc du texte haut de 70.
+- À valider (#4585) : un corps qui défile ne cache rien de ce qu'un état montre quand une place visible peut le porter ;
+  à l'auberge, les avis de l'aubergiste (« méfiez-vous des voleurs ») tiennent au pied du corps de la colonne de
+  gauche, la grille des offres resserrée.
+
 **Le contenu s'adapte au cadre, jamais l'inverse.** Aucun panneau ne prend la hauteur de son contenu, aucune fenêtre
-ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile, se pagine ou passe en onglets
-(« Débordement »). L'action principale se pose au pied fixe de son cadre, le contenu part du haut.
+ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile ou passe en onglets ; seules la prose d'un
+document et les cartes de choix se paginent, une liste d'entrées défile (« Débordement »). L'action principale se pose au pied fixe de son cadre, le contenu part du haut.
 
 **Écran plus large ou plus haut que 16:9.** La hauteur logique reste 720 (ou la largeur 1280 si l'écran est plus
 haut) et la vue s'étend dans l'autre sens. Aucune pièce ne grandit (`placeDe`, `rendu.js`) : une ligne centrée sur
@@ -30,7 +80,7 @@ gagnée. La vue ne descend jamais sous 1280 × 720 logiques ; un écran plus pet
 
 **Quand la largeur manque**, dans cet ordre : une colonne de trop devient un onglet de sa voisine ; puis le détail
 d'une ligne se pose par-dessus (aperçu, écran posé) au lieu d'occuper une colonne. Une pièce du kit ne rétrécit jamais
-(seule la carte de choix s'étire, de 200 à 262 de large) et rien ne défile de côté.
+et rien ne défile de côté ; la carte de choix prend la largeur de son emplacement (`PLACES`).
 
 ## Les cadres, par rôle
 
@@ -38,7 +88,7 @@ Les rects sont ceux de `CADRES` ; cette table dit qui occupe chaque rôle.
 
 | Rôle | Ce qui l'occupe |
 |---|---|
-| `socle` | le bas de l'écran : bandeau du groupe (quatre cases de 240, y compris sur les écrans de héros) ou barre de l'actif en combat |
+| `socle` | le bas de l'écran : bandeau du groupe (quatre cases égales, `PLACES`, y compris sur les écrans de héros et les dossiers) ou barre de l'actif en combat |
 | `fenetre` | la fenêtre du bas (jet, choix, consigne, dialogue, butin) : une seule hauteur, même x, même largeur et même bas que le socle, qu'elle remplace ; seul son haut est plus haut |
 | `carton` | le carton d'un récit, d'un document, d'un arrêt de route ou d'un Test de Puissance, au-dessus du socle qui reste. Son bas est le haut de la fenêtre : 222 + 278 = 500. La grille de Fable donnait 328 de haut ; 278 est retenu pour qu'une fenêtre du bas qui s'ouvre sous un carton ne le couvre jamais |
 | `issue` | la bannière d'issue d'un combat et son action |
@@ -53,11 +103,14 @@ Les rects sont ceux de `CADRES` ; cette table dit qui occupe chaque rôle.
 | `fermer`, `colonne-gestion`, `registre`, `signets`, `affaire`, `emplacements`, `avis`, `feuillets-de-seance`, `groupe-de-seance`, `campagnes`, `tablee`, `volet-droit` | les écrans de gestion : croix, panneau de commande, registre et ses signets, affaire du carnet, sauvegardes, fin de séance, nouvelle partie, coop |
 | `titre-libre`, `entrees`, `outils`, `seance-du-chapitre` | l'ouverture : grand titre, colonne des entrées, outils de l'accueil, fin de séance d'un chapitre |
 | `barre-d-outils`, `volets`, `plan`, `pied`, `inspecteur` | l'outil d'édition |
+| `barre-du-compendium`, `liste-du-compendium`, `fiche-du-compendium`, `index-du-compendium` | la consultation : barre (16, 8, 1248 × 44), liste (16, 60, 300 × 644), fiche (328, 60, 936 × 644) ; l'Index posé par-dessus la liste et la fiche, sur leur rect commun (16, 60, 1248 × 644) |
 
 ## Débordement
 
 Rien ne se tronque ; le relevé de `rendre.mjs` refuse le texte coupé (`coupe`, `rogne`), ce qui sort du fond d'un
-cadre (`deborde`), une action principale cachée (`cache`) et une pièce du kit écrasée sous sa taille (`retrecit`).
+cadre (`deborde`), une action principale cachée (`cache`), ce qui défile et déborde sans être une liste longue par
+nature (`masque` : seule la liste que `defile(contenu, classe, { liste: true })` marque `data-defile="liste"` déborde)
+et une pièce du kit écrasée sous sa taille (`retrecit`).
 
 - **Défilement** (`defile()`, `kit.md`) : une colonne, une page ou une liste trop longue défile dans son cadre, sans
   barre. La suite cachée s'annonce par un fondu au pied, ce qui a défilé par un fondu en tête. `au-pied` : le journal
@@ -78,7 +131,10 @@ cadre (`deborde`), une action principale cachée (`cache`) et une pièce du kit 
 Ce qui suit ce qu'il désigne porte `data-mobile` et `data-ancre` (`mobile(ancre)`, `gestes.js`), jamais une liste de
 noms : `survol` (aperçu, bulle de refus), `scene` (marques, pastilles d'entité, chose signalée, postes, voyageurs),
 `ancre` (liste déroulée, fiche d'un combattant). Un mobile n'a pas de ligne dans `CADRES` ; tout autre `data-piece` en a
-une.
+une. Un aperçu (`survol`) se pose par-dessus le cadre de ce qu'il désigne : `croise` ne le compte pas, `recouvert` et
+`chevauche` le gardent. Une surcouche (`data-surcouche`, l'Index du Compendium) a sa ligne dans `CADRES` et se pose
+par-dessus d'autres cadres, qu'elle voile : `croise` ne la compte pas, ce qu'elle cache n'est ni `recouvert` ni
+`chevauche`.
 
 ## Bulle de refus
 
@@ -108,11 +164,10 @@ L'élément survolé est en vue : ce qui le fait défiler l'y amène.
 principale en tête) ; aux chapitres « Continuer » au-dessus de « Plus tard » en `action-de-coin` ; le groupe au
 `socle` ; à l'accueil les `outils`, « Options » au bout ; au menu le système dans `coins`.
 
-**2. Écran de gestion** (options, sauvegardes, nouvelle partie, fin de séance, compendium, salon en ligne, carnet) :
+**2. Écran de gestion** (options, sauvegardes, nouvelle partie, fin de séance, salon en ligne, carnet) :
 `cartouche`, `fermer`, pas de retour ni de pastille du système ; le panneau de commande en `colonne-gestion` ; le
 registre et ses `signets`, ses lignes défilent ; l'action principale au pied de l'objet qu'elle concerne, ou en
-`action-de-coin` si elle concerne tout l'écran. Le détail d'une entrée (compendium, sauvegarde choisie) se pose
-par-dessus le registre, fermé par sa croix.
+`action-de-coin` si elle concerne tout l'écran. Le détail d'une sauvegarde choisie se pose par-dessus le registre.
 
 **3. Fiche** (fiche du héros, progression, création, dossiers) : `identite`, `profil`, puis `figure` et `sections`, ou
 les deux panneaux de la progression ; le groupe réduit au `socle` (une case par héros autre que celui de la fiche) ;
@@ -130,11 +185,32 @@ et le journal ne se montrent pas ensemble là où ils partagent la colonne de dr
 l'actif au `socle` (valeurs à gauche, portrait au centre, actions à droite, une famille par onglet), `fin-du-tour`.
 Le journal passe par-dessus le champ, sans fond plein.
 
-**6. Fenêtre du bas** (jets et choix) : rôle `fenetre`, une seule hauteur ; ruban gothique centré ; le héros concerné
-toujours à gauche (portrait `grand`, nom à sa droite), l'adversaire ou l'interlocuteur à droite en miroir ; la rangée
-d'actions centrée au pied, la principale en premier, la réserve dépensée à sa gauche. La fenêtre remplace le socle.
-Les deux camps gardent leur place, le centre rétrécit ; ce qui ne tient pas suit « Débordement » (liste paginée par
-trois, défilement).
+**6. Fenêtre du bas** (jets et choix) : rôle `fenetre`, une seule hauteur ; ruban gothique centré ; ses places
+(`PLACES`) : `gauche` le héros concerné (portrait `grand`, nom à sa droite) ou le titre d'un choix, aligné à droite
+contre ses cartes, `centre` ; un jet tombé, quelle que soit sa situation, a un seul centre (`verdict`) piloté par la sorte
+du Test (`simple`, `oppose`, `etendu`) : le cadre du centre et cinq places fixes, `issue-sous` (ce sur quoi il porte),
+`issue-mot` (la grande ligne, Réussite, Échec ou Critique, du point de vue de celui qui agit), `issue-consequences`
+(une pièce par conséquence, vide quand le jet n'en porte pas), `issue-dr` (le DR, le DR net d'un Test opposé, le cumul
+d'un Test étendu sur le DR visé) et `issue-phrase` (deux lignes), les mêmes rects à chaque état ; `droite` suit la
+sorte du Test : l'adversaire en miroir pour un Test opposé, l'interlocuteur ou ce que le Test décide (`enjeu`) pour un
+Test simple ou étendu quand la donnée le porte ; avant le dé, tout jet a de même un seul centre (`reglage`), le même
+cadre et ses places fixes `reglage-*`, vides quand la nature manque : `sous` (au rect de `issue-sous`), `mot` (la sorte
+du Test et sa difficulté, 22 de haut), `figure` (la silhouette, colonne réservée), `ligne-1` à `ligne-3` (280 de
+large, à côté de la figure), `carte-1` à `carte-4` (deux par bande, sur la largeur du centre), `cumul` et `phrase` (aux
+rects de `issue-dr` et `issue-phrase`) ; trois emplacements de carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique
+(`rubrique-1` à `rubrique-3`), une carte seule dans le premier ; `cible`, ce que le choix vise, à la place du
+troisième emplacement, son portrait où se tient celui de l'autre camp ; `large`, à la place du centre, de la droite et
+des emplacements : la liste paginée par trois, le partage d'une fouille, la table tirée et la table de Tests, dont la
+tête reste et les lignes défilent ; au pied, `gestes`, la rangée, avec `reserve` à gauche (la réserve dépensée), les
+`plaques`, la principale en premier, et `testeurs` au bout (le testeur à désigner avant le dé, à la place des deux
+dernières plaques). Tout camp, testeur ou non (cible, lanceur visé, interlocuteur, touché), dans `gauche` ou `droite` (hautes de 124), a ses places, en miroir à droite
+(`gauche-*`, `droite-*`) : `portrait` (`grand`), `identite` (le nom seul sur sa ligne, le Test borné à deux
+lignes, `data-texte` au relevé `coupe`), `des` (une jauge, une réplique, la silhouette touchée hors dé ; le seuil dans une case de 52, deux dés et le sceau `grand`, à un y fixe
+quelle que soit la longueur du Test et à un x fixe quel que soit le seuil ; l'état du sceau double le verdict) et `issue` (le verdict écrit et le DR, sur une ligne de sa couleur, du pied du portrait sur la largeur du camp, à 10 px
+au-dessus de la rangée des gestes) ; un dé qui se règle porte son − et son + dessous. Les influences du jet
+(modificateurs) ne s'écrivent pas : le seuil survolé les montre dans la bulle à pointe, une ligne chacune. Les réserves de `reserve` : un jeton par réserve, son pictogramme et son disque, son
+nom et sa valeur au survol. La fenêtre remplace le socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois,
+défilement).
 
 **7. Récit, document et issue** : `carton` (son action centrée au pied, la prose d'un document paginée) ; `issue` pour
 la bannière d'un combat, action unique dessous, sans socle ; ce que l'issue rend se lit ensuite dans la fenêtre du bas.
@@ -143,6 +219,21 @@ Une issue qui porte un texte (bataille de masse) reste un carton.
 **8. Outil d'édition** : `barre-d-outils` (« Tester la scène » en dernier, contre la croix), `volets` en une colonne à
 onglets, `plan` et son `pied`, `inspecteur` ; les actions de la barre qui ne tiennent plus perdent leur libellé et
 gardent leur pictogramme.
+
+**9. Consultation** (le Compendium) : un plein écran à part, trois cadres fixes d'un état à l'autre. La
+`barre-du-compendium` : le titre, retour et suivant (les fiches vues), une seule recherche, dans tout le Compendium, le
+fil famille › catégorie › entrée (chaque maillon ouvre l'Index à son niveau), la bascule « Atelier », éteinte par
+défaut, la croix au bout, seule de l'écran. La `liste-du-compendium` : la tête (la catégorie et son compte, qui ouvre
+l'Index), le filtre de livre (les deux livres les plus fournis, les autres derrière leur nombre), les rangées de 23 px
+qui défilent, chacune sa source à droite, des séparateurs de groupe, le rail de lettres au bord droit ; la recherche y
+pose ses résultats, groupés par catégorie avec leur compte. La `fiche-du-compendium`, objet de l'écran (65 % de la
+vue) : la tête (nom, genre, source, « Épingler pour comparer ») ; le corps à gauche (puces, prose) ; tous les renvois à
+droite, un onglet par groupe avec son compte, la colonne défile, jamais « et N autres » ; le renvoi survolé ouvre son
+aperçu. « Modifier » et « Nouvelle entrée » n'existent qu'en mode Atelier ; l'atelier garde les rects : les champs à
+la place du corps, la description sur la hauteur qui reste, à droite les désignations qui ferment « Supprimer ».
+L'`index-du-compendium`, surcouche : les familles et leur nombre de catégories, celles de l'ouverte sur trois
+colonnes, sous-groupes en intertitres, compte par ligne. Pas de cartouche, de panneau de commande, de registre ni de
+signets.
 
 ## Les 25 arbitrages
 
@@ -153,6 +244,7 @@ gardent leur pictogramme.
    nouvelle partie (pastille retirée : un écran de gestion a déjà la croix). *Raison :* en combat le bas-droit est la
    fin du tour ; aucune autre raison ne justifie de la déplacer.
 2. **Croix.** 22 / 18 du coin haut-droit partout, 44 px. Dans une barre : centrée en hauteur, à 25 px du bout droit de la barre.
+   Une seule croix par écran (relevé `croix`, `rendre.mjs`) : le détail qui est l'objet de l'écran n'a pas la sienne.
    En combat : 22 / 76. *Changent :* options et compendium (5 pages, de 14 / 8 à 22 / 18) ; dossiers (4 pages,
    la croix remonte à 22 / 18 puisque le système descend) ; éditeur (4 pages, croix de 38 → 44 px, 37 / 19).
    La création garde 51 / 27. *Raison :* même geste, même endroit ; les deux exceptions ont une raison d'écran.
@@ -188,8 +280,8 @@ gardent leur pictogramme.
     le cadre du bas. Hors combat il se déplie par la pastille du journal, juste dessous ; en combat par le rond au-dessus du fil.
     *Changent :* les 4 pages d'exploration (« Chronique » renommée, 30 px plus étroite et recalée). *Raison :* même
     rôle, même colonne.
-12. **Cartouche des options et du compendium.** 24 / 20 du coin haut-gauche, hauteur 96, comme les autres ; le panneau
-    de gauche descend à 20 px sous le cartouche ; le registre ne bouge pas. *Changent :* options (3 pages), compendium (2). *Raison :* rien ne saute en
+12. **Cartouche des options.** 24 / 20 du coin haut-gauche, hauteur 96, comme les autres ; le panneau
+    de gauche descend à 20 px sous le cartouche ; le registre ne bouge pas. *Changent :* options (3 pages). *Raison :* rien ne saute en
     passant de « Sauvegardes » à « Options ».
 13. **Fenêtre du bas.** Centrée, largeur 960, même bas que le socle, une seule hauteur (rôle `fenetre`, choix du
     19/11 : « Bandeau 152 + fenêtre 212 ») : consigne, liste et dialogue y tiennent, ce qui déborde suit « Débordement ».
@@ -217,8 +309,11 @@ gardent leur pictogramme.
     d'un navire ou d'une bête.
 20. **Création : le héros à droite.** Gardé. *Change :* rien. *Raison :* la création se lit de gauche à droite (choix,
     détail, résultat) ; le héros en cours est le résultat, avec « Suivant » à son pied.
-21. **Onglets ou signets.** Les deux, selon le nombre : jusqu'à 6 sections, onglets horizontaux ; au-delà, signets
-    verticaux au bord droit. *Change :* rien. *Raison :* treize catégories ne tiennent pas sur une rangée.
+21. **Onglets ou signets.** Les deux, selon le nombre, pour une hiérarchie à un seul niveau : jusqu'à 6 sections,
+    onglets horizontaux ; au-delà, signets verticaux au bord droit. Une hiérarchie à deux niveaux ou plus (les 7
+    familles et 140 catégories du Compendium) passe par un index posé par-dessus (type 9). *Change :* le Compendium.
+    *Raison :* treize catégories ne tiennent pas sur une rangée ; le second niveau d'une hiérarchie n'a pas de cadre
+    dans les signets.
 22. **Bandeau à l'ouverture de chapitre.** Centré, 960 × 152, à 8 px du bas. *Change :* ouverture de chapitre. *Raison :* il ne
     bouge pas quand le chapitre s'ouvre sur le premier lieu.
 23. **Aperçu au survol.** 300 px de large, la hauteur suit le texte. *Changent :* exploration (236), cible au combat

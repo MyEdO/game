@@ -4,7 +4,7 @@
 // ou bundle (prod) est un DÉRIVÉ : le `transform` y injecte le `desc` que l'adresse résout, avant que
 // `vite:json` ne fabrique le module — donc les consommateurs de l'application lisent `entry.desc` comme
 // avant, et le navigateur ne résout RIEN sur le chemin joueur. Même classe que `registryGen()`
-// (`vite.config.ts`), qui régénère `src/_registry.generated.ts` au `buildStart`.
+// (`vitest.config.ts`), qui régénère `src/_registry.generated.ts` au `buildStart`.
 //
 // FAIL-CLOSED : toute adresse qui ne rend pas exactement son texte fait ÉCHOUER le module par
 // `this.error` — `vite build` rouge, overlay en dev, import rouge en vitest.

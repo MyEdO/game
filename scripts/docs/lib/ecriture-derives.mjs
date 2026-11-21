@@ -1,5 +1,4 @@
-// Primitives d'écriture des dérivés et de la MESURE de leurs sources (#1679) — socle partagé par
-// `scripts/docs/build-all.mjs` et chaque générateur de `GENERATORS`.
+// Lanceur des dérivés et primitives de la mesure de leurs sources (#1679).
 //
 // `ecrireOuVerifier` écrit une cible, ou la compare au disque sous `--check` ; `enregistreur-lectures.mjs`
 // MESURE ce que le générateur lit, et `fusionnerLectures` / `serialiserSourcesLues` en font le dérivé
@@ -7,9 +6,13 @@
 import { appendFileSync, readFileSync, statSync } from 'node:fs'
 import { ecrireTexteAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { sousLEpoque } from './ecrivain-derives.mjs'
-import { listerDossier } from '../../guards/lib/lister.mjs'
+import { correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+import { GENERATORS, SOURCES_LUES } from './cibles-generees.mjs'
+import { canoniser, relatifSousRacine } from './chemin-mesure.mjs'
+import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 
 /** Une cible est un doc MARKDOWN ; toute autre cible de `GENERATORS` est du CODE (`generateursDeCode`,
  *  build-all.mjs). */
@@ -20,15 +23,18 @@ export const estUnDocMarkdown = (cible) => cible.endsWith('.md')
  * la passe (`sousLEpoque`, #2603) : la suite lit les dérivés pendant que les gates tournent en LANES
  * parallèles (`scripts/gates/toutes.mjs`).
  */
-export function ecrireDoc(chemin, contenu) {
+function ecrireDoc(chemin, contenu) {
   let actuel
   try { actuel = readFileSync(chemin, 'utf8') } catch { actuel = null }
   if (actuel !== contenu) sousLEpoque(chemin, () => ecrireTexteAtomique(chemin, contenu))
 }
 
-/** Variable d'env posée par build-all.mjs : le fichier où `ecrireOuVerifier` APPEND chaque cible qu'il
- *  rend (chemin POSIX relatif au répertoire courant), une ligne par cible. */
-export const ENV_CIBLES_RENDUES = 'WFRP_CIBLES_RENDUES'
+export function ecrireSourcesLues(cwd, contenu) {
+  ecrireDoc(path.join(cwd, SOURCES_LUES), contenu)
+}
+
+export const LECTURES_DU_BUILD = path.posix.join(path.posix.dirname(CACHE_FRAICHEUR), 'lectures')
+export const ciblesRenduesDans = (dossier) => path.join(dossier, 'cibles-rendues')
 
 /**
  * LA primitive d'un dérivé : écrit `out` dans `path` (par `ecrireDoc`) — ou, sous `check`, le
@@ -39,9 +45,17 @@ export const ENV_CIBLES_RENDUES = 'WFRP_CIBLES_RENDUES'
  * `okMsg` / `writeMsg` sont facultatifs (un générateur qui résume lui-même ne les passe pas).
  * REND `true` quand le corps était déjà à jour.
  */
-export function ecrireOuVerifier({ out, path: chemin, check, staleMsg, rerunMsg, okMsg, writeMsg }) {
-  const consigne = process.env[ENV_CIBLES_RENDUES]
-  if (consigne) appendFileSync(consigne, `${path.relative(process.cwd(), path.resolve(chemin)).split(path.sep).join('/')}\n`)
+function ecrireOuVerifier({ out, staleMsg, rerunMsg, okMsg, writeMsg, amorce }, chemin, relatif, check) {
+  if (amorce) {
+    if (!check) {
+      ecrireDoc(chemin, out)
+      return true
+    }
+    console.error(staleMsg ?? `${relatif} ne se charge pas : amorce requise.`)
+    if (rerunMsg) console.error(rerunMsg)
+    process.exitCode = 1
+    return false
+  }
   const actuel = existeFichier(chemin) ? readFileSync(chemin, 'utf8') : null
   const aJour = actuel === out
   if (!check) {
@@ -53,11 +67,65 @@ export function ecrireOuVerifier({ out, path: chemin, check, staleMsg, rerunMsg,
     if (okMsg) console.log(okMsg)
     return true
   }
-  console.error(staleMsg)
+  console.error(staleMsg ?? `${relatif} est PÉRIMÉ.`)
   console.error(apercuDivergences(out, actuel))
-  console.error(rerunMsg)
+  if (rerunMsg) console.error(rerunMsg)
   process.exitCode = 1
   return false
+}
+
+async function piloter(g, produire, { racine, cwd = racine, check, journal }) {
+  const motifs = [...g.targets, ...(g.injecte ?? [])]
+  const racinePhysique = canoniser(racine)
+  const declare = (rel) => Boolean(rel) && motifs.some((motif) => correspondGlob(rel, motif))
+  const operations = produire({ check })
+  let operation = await operations.next()
+  while (!operation.done) {
+    const cible = operation.value
+    let aJour
+    try {
+      const chemin = path.resolve(cwd, cible.path)
+      const relatif = relatifSousRacine(racine, chemin, path.resolve)
+      // Une jonction peut rediriger une cible déclarée vers une autre sortie ou hors de l'arbre.
+      if (!declare(relatif) || !declare(relatifSousRacine(racinePhysique, chemin))) {
+        throw new Error(`${g.script} : cible hors de targets/injecte : ${cible.path}`)
+      }
+      if (journal && !cible.amorce) appendFileSync(journal, `${relatif}\n`)
+      aJour = ecrireOuVerifier(cible, chemin, relatif, check)
+    } catch (e) {
+      operation = await operations.throw(e)
+      continue
+    }
+    operation = await operations.next(aJour)
+  }
+}
+
+const RACINE_DU_DEPOT = fileURLToPath(new URL('../../../', import.meta.url))
+const DEPART_CLI = { cwd: process.cwd(), check: process.argv.includes('--check') }
+
+/** CLI individuelle : la déclaration du producteur vient du registre. */
+export async function lancerDepuisCLI(meta, produire) {
+  if (!meta.main) return
+  const script = fileURLToPath(meta.url)
+  const g = GENERATORS.find((g) => path.resolve(RACINE_DU_DEPOT, g.script) === script)
+  if (!g) throw new Error(`${script} : générateur absent de GENERATORS`)
+  await piloter(g, produire, { racine: RACINE_DU_DEPOT, ...DEPART_CLI })
+}
+
+/** Processus lancé par build-all pour un rang de sa sélection. */
+export async function lancerDepuisManifeste(meta, charger) {
+  const worker = new URL('./jouer-generateur.mjs', import.meta.url).href
+  if (!meta.main || meta.url !== worker) throw new Error('Le manifeste se joue par le lanceur des dérivés.')
+  const { lectures, ...g } = JSON.parse(process.argv[2])
+  const { cwd: racine, check } = DEPART_CLI
+  const journal = lectures && path.resolve(racine, ciblesRenduesDans(lectures))
+  if (journal && !relatifSousRacine(canoniser(racine), journal)?.startsWith(`${LECTURES_DU_BUILD}/`)) {
+    throw new Error(`Journal des cibles hors du dossier des mesures : ${journal}`)
+  }
+  const script = path.resolve(racine, g.script)
+  process.argv.splice(1, 2, script)
+  const produire = await charger(script)
+  await piloter(g, produire, { racine, check, journal })
 }
 
 /** Fusion des fichiers `<base>.<pid>.json` d'un dossier : le set du générateur, PID compris. */

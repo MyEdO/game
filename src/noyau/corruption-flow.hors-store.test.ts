@@ -202,7 +202,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     // La mutation obtenue est atteignable depuis une table EDOC « nurgle » (phys/mental/sous-table).
     const nurgleRefs = new Set(
       mutationTables
-        .filter((t) => t.id.includes('nurgle')).flatMap((t) => t.entries.map((r) => r.mutation)),
+        .filter((t) => t.id.includes('nurgle')).flatMap((t) => t.entries.map((r) => r.id)),
     );
     expect(nurgleRefs.has(after.mutations![0].id)).toBe(true);
   });
@@ -336,7 +336,7 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
     expect(after.mutations?.length).toBe(1);
     const nurgleRefs = new Set(
       mutationTables
-        .filter((t) => t.id.includes('nurgle')).flatMap((t) => t.entries.map((r) => r.mutation)),
+        .filter((t) => t.id.includes('nurgle')).flatMap((t) => t.entries.map((r) => r.id)),
     );
     expect(nurgleRefs.has(after.mutations![0].id)).toBe(true);
   });

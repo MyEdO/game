@@ -27,6 +27,7 @@ import { refRe, span, chapterFile, bookOf, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'dead-code-refs-stock.json')
 export const EMPTY_LINE_STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'empty-line-code-refs-stock.json')
@@ -57,24 +58,24 @@ function lineCount(path) {
 }
 
 /** Parcourt `racines` (`RACINES_CITANTES` par défaut) et retourne les réfs mortes du code :
- *  `{ file, row, ref, abbr, nn, hi, kind, chapterLines?, chapterFile? }`.
+ *  `{ fichier, row, ref, abbr, nn, hi, kind, chapterLines?, chapterFile? }`.
  *  `kind` ∈ `out-of-bounds` (chapitre résolu, ligne hors borne) | `chapter-not-found` (chapitre absent). */
-export function scanDeadCodeRefs(racines = RACINES_CITANTES) {
+export function scanDeadCodeRefs(racines = RACINES_CITANTES, chapitreDe = chapterFile) {
   const dead = []
   for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
     const lines = readFileSync(f, 'utf8').split('\n')
     lines.forEach((ln, i) => {
       for (const { abbr, nn, hi } of refsInLine(ln)) {
-        const cf = chapterFile(abbr, nn)
+        const cf = chapitreDe(abbr, nn)
         const ref = `${abbr} ${Number(nn)} l.${hi}`
         if (!cf) {
-          dead.push({ file: rel, row: i + 1, ref, abbr, nn, hi, kind: 'chapter-not-found' })
+          dead.push({ fichier: rel, row: i + 1, ref, abbr, nn, hi, kind: 'chapter-not-found' })
           continue
         }
         const chapterLines = lineCount(cf.path)
         if (hi > chapterLines) {
-          dead.push({ file: rel, row: i + 1, ref, abbr, nn, hi, kind: 'out-of-bounds', chapterLines, chapterFile: cf.file })
+          dead.push({ fichier: rel, row: i + 1, ref, abbr, nn, hi, kind: 'out-of-bounds', chapterLines, chapterFile: cf.file })
         }
       }
     })
@@ -83,17 +84,17 @@ export function scanDeadCodeRefs(racines = RACINES_CITANTES) {
 }
 
 /** Parcourt `racines` et retourne les réfs dont la ligne (ou TOUTE la plage) citée est VIDE dans le
- *  chapitre résolu : `{ file, row, ref, abbr, nn, lo, hi, chapterFile }`. Une réf dans les bornes qui
+ *  chapitre résolu : `{ fichier, row, ref, abbr, nn, lo, hi, chapterFile }`. Une réf dans les bornes qui
  *  tombe sur du blanc ne cite RIEN — symptôme d'une dérive de lignes (ré-extraction, restitution de
  *  folio). Les réfs hors borne / à chapitre introuvable sont l'affaire de `scanDeadCodeRefs`. */
-export function scanEmptyLineCodeRefs(racines = RACINES_CITANTES) {
+export function scanEmptyLineCodeRefs(racines = RACINES_CITANTES, chapitreDe = chapterFile) {
   const vides = []
   for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
     const lines = readFileSync(f, 'utf8').split('\n')
     lines.forEach((ln, i) => {
       for (const { abbr, nn, lo, hi } of refsInLine(ln)) {
-        const cf = chapterFile(abbr, nn)
+        const cf = chapitreDe(abbr, nn)
         if (!cf) continue
         const chap = chapterLinesOf(cf.path)
         if (hi > chap.length) continue
@@ -101,7 +102,7 @@ export function scanEmptyLineCodeRefs(racines = RACINES_CITANTES) {
         for (let n = lo; n <= hi && toutesVides; n++) if ((chap[n - 1] ?? '').trim() !== '') toutesVides = false
         if (!toutesVides) continue
         const ref = `${abbr} ${Number(nn)} l.${lo === hi ? lo : `${lo}-${hi}`}`
-        vides.push({ file: rel, row: i + 1, ref, abbr, nn, lo, hi, chapterFile: cf.file })
+        vides.push({ fichier: rel, row: i + 1, ref, abbr, nn, lo, hi, chapterFile: cf.file })
       }
     })
   }
@@ -109,8 +110,11 @@ export function scanEmptyLineCodeRefs(racines = RACINES_CITANTES) {
 }
 
 /** Les SITES de réfs du code : le fichier et la réf, rien d'autre (la mesure porte aussi la ligne, le
- *  livre, le chapitre et la cause, qui ne sont pas l'identité du site). */
-export const sitesDeCode = (refs) => refs.map(({ file, ref }) => ({ file, ref }))
+ *  livre, le chapitre et la cause, qui ne sont pas l'identité du site).
+ * @param {readonly import('../guards/lib/stock.mjs').Site[]} refs
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
+ */
+export const sitesDeCode = (refs) => refs.map(({ fichier, ref }) => ({ fichier, ref }))
 
 const QUOI = {
   mortes:
@@ -129,7 +133,9 @@ const QUOI = {
 }
 
 /** Les RÉGÉNÉRATIONS des deux stocks (`RegenerationDeStock`, `stockDeSites.mjs`), sur des réfs mortes
- *  et des réfs sur ligne vide (par défaut, celles des `RACINES_CITANTES`). */
+ *  et des réfs sur ligne vide (par défaut, celles des `RACINES_CITANTES`).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (mortes = scanDeadCodeRefs(), vides = scanEmptyLineCodeRefs()) => [
   { chemin: STOCK_PATH, politique: SOUS_LOT, horsCollections: QUOI.mortes, collections: [{ nom: 'entrees', sites: sitesDeCode(mortes) }] },
   { chemin: EMPTY_LINE_STOCK_PATH, politique: SOUS_LOT, horsCollections: QUOI.vides, collections: [{ nom: 'entrees', sites: sitesDeCode(vides) }] },
@@ -155,7 +161,7 @@ function main() {
     console.log('Détail (fichier:ligne — réf, cause) :')
     for (const d of dead) {
       const cause = d.kind === 'out-of-bounds' ? `${d.chapterFile} a ${d.chapterLines} lignes` : 'chapitre introuvable'
-      console.log(`${d.file}:${d.row} — ${d.ref} (${cause})`)
+      console.log(`${d.fichier}:${d.row} — ${d.ref} (${cause})`)
     }
     process.exitCode = 1
   }
@@ -176,11 +182,14 @@ function main() {
   }
   if (neuvesV.length || perimeesV.length) {
     console.log('Détail (fichier:ligne — réf, chapitre) :')
-    for (const v of vides) console.log(`${v.file}:${v.row} — ${v.ref} (${v.chapterFile} : ligne(s) blanche(s))`)
+    for (const v of vides) console.log(`${v.fichier}:${v.row} — ${v.ref} (${v.chapterFile} : ligne(s) blanche(s))`)
     process.exitCode = 1
   }
 
   if (!neuves.length && !perimees.length && !neuvesV.length && !perimeesV.length) console.log('OK — cliquets alignés, aucune régression.')
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

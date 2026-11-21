@@ -20,6 +20,7 @@ import { REGISTRE_LIVRES, allAbbrAlternation, bookOf, chapterBoundaryRiskFor, fo
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { EXTS_CITANTES, RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'graphy-stock.json')
@@ -207,7 +208,7 @@ export function detecteChapterBoundary(ln, registre = REGISTRE_LIVRES) {
 function fichesScannees(rawDir) {
   const prose = new Set(CLASSES_PROSE)
   return pagesDeLAtlas(rawDir, { classes: CLASSES, absent: 'vide' }).map((p) => ({
-    file: p.chemin.replace(/\\/g, '/'),
+    fichier: p.chemin.replace(/\\/g, '/'),
     prose: prose.has(p.classe),
     lignes: readText(p.chemin).split('\n'),
   }))
@@ -235,15 +236,15 @@ function passeSrc(racines, exts) {
   return memoise(JSON.stringify(['src', [racines].flat().map((r) => resolve(r)), exts]), () => {
     const out = vide()
     for (const f of fichiersCitants(racines, exts)) {
-      const file = f.replace(/\\/g, '/')
+      const fichier = f.replace(/\\/g, '/')
       readText(f).split('\n').forEach((ln, i) => {
         const row = i + 1
         const text = ln.trim().slice(0, 160)
-        if (detecteGraphy(ln)) out.graphy.push({ file, row, text })
-        for (let n = detecteChDot(ln); n > 0; n--) out.chDot.push({ file, row, text })
-        for (let n = detecteBookNoChapter(ln); n > 0; n--) out.bookNoChapterSrc.push({ file, row, text })
-        for (const abbr of detecteUnknownAbbr(ln)) out.unknownAbbr.push({ file, row, abbr, text })
-        for (const ref of detecteFolioSrc(ln)) out.folioSrc.push({ file, row, ref, text })
+        if (detecteGraphy(ln)) out.graphy.push({ fichier, row, text })
+        for (let n = detecteChDot(ln); n > 0; n--) out.chDot.push({ fichier, row, text })
+        for (let n = detecteBookNoChapter(ln); n > 0; n--) out.bookNoChapterSrc.push({ fichier, row, text })
+        for (const abbr of detecteUnknownAbbr(ln)) out.unknownAbbr.push({ fichier, row, abbr, text })
+        for (const ref of detecteFolioSrc(ln)) out.folioSrc.push({ fichier, row, ref, text })
       })
     }
     return geler(out)
@@ -255,19 +256,19 @@ function passeSrc(racines, exts) {
 function passeFiches(rawDir, registre = REGISTRE_LIVRES) {
   return memoise(JSON.stringify(['fiches', resolve(rawDir), registre.map((b) => [b.abbr, b.dir])]), () => {
     const out = vide()
-    for (const { file, prose, lignes } of fichesScannees(rawDir)) {
+    for (const { fichier, prose, lignes } of fichesScannees(rawDir)) {
       const inFieldBlock = prose ? fieldBlockMask(lignes).inFieldBlock : null
       lignes.forEach((ln, i) => {
         const row = i + 1
         const text = ln.trim().slice(0, 160)
-        for (const kind of detecteFiche(ln)) out.docsRaw.push({ file, row, kind, text })
-        if (prose && !inFieldBlock[i] && detecteImplProse(ln)) out.implProse.push({ file, row, text })
-        for (let n = detecteChDot(ln); n > 0; n--) out.chDot.push({ file, row, text })
-        for (let n = detecteBareFolio(ln); n > 0; n--) out.bareFolio.push({ file, row, text })
-        for (let n = detecteBookNoChapter(ln); n > 0; n--) out.bookNoChapterSrc.push({ file, row, text })
-        for (const abbr of detecteUnknownAbbr(ln)) out.unknownAbbr.push({ file, row, abbr, text })
-        for (const { folios } of detecteMultiFolioSplit(ln, registre)) out.multiFolioSplit.push({ file, row, folios, text })
-        for (const { abbr, ch, folio } of detecteChapterBoundary(ln, registre)) out.chapterBoundaryFolio.push({ file, row, abbr, ch, folio, text })
+        for (const kind of detecteFiche(ln)) out.docsRaw.push({ fichier, row, kind, text })
+        if (prose && !inFieldBlock[i] && detecteImplProse(ln)) out.implProse.push({ fichier, row, text })
+        for (let n = detecteChDot(ln); n > 0; n--) out.chDot.push({ fichier, row, text })
+        for (let n = detecteBareFolio(ln); n > 0; n--) out.bareFolio.push({ fichier, row, text })
+        for (let n = detecteBookNoChapter(ln); n > 0; n--) out.bookNoChapterSrc.push({ fichier, row, text })
+        for (const abbr of detecteUnknownAbbr(ln)) out.unknownAbbr.push({ fichier, row, abbr, text })
+        for (const { folios } of detecteMultiFolioSplit(ln, registre)) out.multiFolioSplit.push({ fichier, row, folios, text })
+        for (const { abbr, ch, folio } of detecteChapterBoundary(ln, registre)) out.chapterBoundaryFolio.push({ fichier, row, abbr, ch, folio, text })
       })
     }
     return geler(out)
@@ -283,7 +284,7 @@ export function scanTout(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDi
 }
 
 /** Scan (h) : multi-folios d'une fiche à cheval sur des chapitres différents (#522 juge
- *  adversarial), zéro tolérance. Retourne `{ file, row, folios, text }[]`. */
+ *  adversarial), zéro tolérance. Retourne `{ fichier, row, folios, text }[]`. */
 export function scanMultiFolioSplitViolations(rawDir = RAWDIR, registre = REGISTRE_LIVRES) {
   return passeFiches(rawDir, registre).multiFolioSplit
 }
@@ -291,18 +292,18 @@ export function scanMultiFolioSplitViolations(rawDir = RAWDIR, registre = REGIST
 /** Scan (i) : folio simple `<ABRÉV> N p.X` d'une fiche au DERNIER folio du chapitre N, chapitre
  *  N+1 s'ouvrant sur X/X+1 (#454 juge adversarial). AVERTISSEMENT cliqueté (non bloquant sur le stock
  *  EXISTANT, cf. `main()`) — un candidat structurel n'est PAS une preuve verbatim.
- *  Retourne `{ file, row, abbr, ch, folio, text }[]`. */
+ *  Retourne `{ fichier, row, abbr, ch, folio, text }[]`. */
 export function scanChapterBoundaryFolioViolations(rawDir = RAWDIR, registre = REGISTRE_LIVRES) {
   return passeFiches(rawDir, registre).chapterBoundaryFolio
 }
 
 /** Scan (j) : réfs au FOLIO de `racines` (défaut `RACINES_CITANTES`), toute ligne. Retourne
- *  `{ file, row, ref, text }[]`, UNE entrée par correspondance — `ref` = le texte de la réf. */
+ *  `{ fichier, row, ref, text }[]`, UNE entrée par correspondance — `ref` = le texte de la réf. */
 export function scanFolioSrcViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES) {
   return passeSrc(racines, exts).folioSrc
 }
 
-/** Scan (a′) : graphie chapitre-relative de `racines` (défaut `RACINES_CITANTES`). Retourne `{ file, row, text }[]`
+/** Scan (a′) : graphie chapitre-relative de `racines` (défaut `RACINES_CITANTES`). Retourne `{ fichier, row, text }[]`
  *  — `text` = la ligne tronquée (160c) pour le diagnostic. */
 export function scanGraphyViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES) {
   return passeSrc(racines, exts).graphy
@@ -310,37 +311,37 @@ export function scanGraphyViolations(racines = RACINES_CITANTES, exts = EXTS_CIT
 
 /** Scans (a)/(b)/(c) des fiches `docs/raw/*.md` (hors rapports/épreuves) : plage à tiret cadratin,
  *  réf de livre sans chapitre, nom de fichier de chapitre en backticks. Retourne
- *  `{ file, row, kind, text }[]` (`kind` ∈ `emdash-range` | `book-no-chapter` | `backtick-file`). */
+ *  `{ fichier, row, kind, text }[]` (`kind` ∈ `emdash-range` | `book-no-chapter` | `backtick-file`). */
 export function scanDocsRawViolations(rawDir = RAWDIR) {
   return passeFiches(rawDir).docsRaw
 }
 
 /** Scan (d) : prose d'état d'implémentation des fiches (hors rapports/épreuves, hors fiches
- *  d'auteur), HORS bloc de champ généré `**Implémente**`. Retourne `{ file, row, text }[]`. */
+ *  d'auteur), HORS bloc de champ généré `**Implémente**`. Retourne `{ fichier, row, text }[]`. */
 export function scanImplProseViolations(rawDir = RAWDIR) {
   return passeFiches(rawDir).implProse
 }
 
 /** Scan (e) : `ch.` cosmétique — les citants (`RACINES_CITANTES`) ET docs/raw/*.md (mêmes fiches que (b)/(c)).
- *  Retourne `{ file, row, text }[]`, UNE entrée par OCCURRENCE — cliquet par SITE (cf. `ecartDuVolet`). */
+ *  Retourne `{ fichier, row, text }[]`, UNE entrée par OCCURRENCE — cliquet par SITE (cf. `ecartDuVolet`). */
 export function scanChDotViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR) {
   return scanTout(racines, exts, rawDir).chDot
 }
 
 /** Scan (f) : folio NU `<ABRÉV> p.X` sans chapitre des fiches scannées, toute ligne.
- *  Retourne `{ file, row, text }[]`. */
+ *  Retourne `{ fichier, row, text }[]`. */
 export function scanBareFolioViolations(rawDir = RAWDIR) {
   return passeFiches(rawDir).bareFolio
 }
 
 /** Scan (b) étendu aux citants (`RACINES_CITANTES`) ET docs/raw/*.md (fiches scannées, patron `chDot`) — réf de livre sans
- *  chapitre `<ABRÉV> l.<n>` (`BOOK_NO_CHAPTER_RE`). Retourne `{ file, row, text }[]`. */
+ *  chapitre `<ABRÉV> l.<n>` (`BOOK_NO_CHAPTER_RE`). Retourne `{ fichier, row, text }[]`. */
 export function scanBookNoChapterSrcViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR) {
   return scanTout(racines, exts, rawDir).bookNoChapterSrc
 }
 
 /** Scan (g) : réf `ABRÉV NN l.X`/`ABRÉV NN p.X` dont l'abréviation est INCONNUE de `_lib.mjs`
- *  (`bookOf` retourne null). Zéro tolérance, PAS de baseline. Retourne `{ file, row, abbr, text }[]`. */
+ *  (`bookOf` retourne null). Zéro tolérance, PAS de baseline. Retourne `{ fichier, row, abbr, text }[]`. */
 export function scanUnknownAbbrViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR) {
   return scanTout(racines, exts, rawDir).unknownAbbr
 }
@@ -366,9 +367,11 @@ export const FAMILLES_CLIQUETEES = Object.freeze([
   { famille: 'chapterBoundaryFolio', label: 'folio en fin de chapitre (docs/raw, AVERTISSEMENT)', avertissement: true },
 ])
 
-/** Les SITES de toutes les familles cliquetées d'une passe (`scanTout`), chacun sous sa famille. */
+/** Les SITES de toutes les familles cliquetées d'une passe (`scanTout`), chacun sous sa famille.
+ * @returns {(import('../guards/lib/stock.mjs').Site & { famille: string })[]}
+ */
 export const sitesCliquetes = (passe) =>
-  FAMILLES_CLIQUETEES.flatMap(({ famille }) => passe[famille].map((v) => ({ famille, file: v.file, ref: REF_DU_SITE[famille](v) })))
+  FAMILLES_CLIQUETEES.flatMap(({ famille }) => passe[famille].map((v) => ({ famille, fichier: v.fichier, ref: REF_DU_SITE[famille](v) })))
 
 /** Les familles cliquetées d'une passe (`scanTout`), jugées en UN écart à un stock
  *  (`lireEntreesDeSite`) : `juges` par famille, et `neuves` et `perimees`, qui, non vides, font échouer
@@ -404,7 +407,9 @@ const QUOI =
   "même commit ne se déclarent pas ; la garde, elle, les voit toujours."
 
 /** La RÉGÉNÉRATION de `graphy-stock.json` (`RegenerationDeStock`, `stockDeSites.mjs`), sur une passe
- *  (par défaut, celle de tout le corpus). */
+ *  (par défaut, celle de tout le corpus).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (passe = scanTout()) => [{
   chemin: STOCK_PATH,
   politique: SOUS_LOT,
@@ -423,19 +428,19 @@ function main() {
 
   if (src.length) {
     console.log(`citation-graphy-guard : ${src.length} graphie(s) chapitre-relative(s) (citants) :`)
-    for (const { file, row, text } of src) console.log(`  ${file}:${row}  ${text}`)
+    for (const { fichier, row, text } of src) console.log(`  ${fichier}:${row}  ${text}`)
   } else {
     console.log('citation-graphy-guard : 0 graphie chapitre-relative (citants) — classe verrouillée à zéro.')
   }
   if (docs.length) {
     console.log(`citation-graphy-guard : ${docs.length} graphie(s) de fiche (docs/raw/) :`)
-    for (const { file, row, kind, text } of docs) console.log(`  ${file}:${row}  [${kind}]  ${text}`)
+    for (const { fichier, row, kind, text } of docs) console.log(`  ${fichier}:${row}  [${kind}]  ${text}`)
   } else {
     console.log('citation-graphy-guard : 0 graphie de fiche (docs/raw/) — deux classes verrouillées à zéro.')
   }
   if (implProse.length) {
     console.log(`citation-graphy-guard : ${implProse.length} prose(s) d'état d'implémentation (docs/raw/, hors champ généré) :`)
-    for (const { file, row, text } of implProse) console.log(`  ${file}:${row}  ${text}`)
+    for (const { fichier, row, text } of implProse) console.log(`  ${fichier}:${row}  ${text}`)
   } else {
     console.log('citation-graphy-guard : 0 prose d\'état d\'implémentation (docs/raw/) — classe verrouillée à zéro.')
   }
@@ -447,7 +452,7 @@ function main() {
   for (const { label, violations, avertissement } of juges) {
     console.log(`citation-graphy-guard : ${label} — ${violations.length} site(s) mesuré(s).`)
     if (avertissement) {
-      for (const { file, row, abbr, ch, folio } of violations) console.log(`  ${file}:${row}  [${abbr} ${ch} p.${folio}]`)
+      for (const { fichier, row, abbr, ch, folio } of violations) console.log(`  ${fichier}:${row}  [${abbr} ${ch} p.${folio}]`)
     }
   }
   if (neuves.length) {
@@ -462,16 +467,16 @@ function main() {
 
   if (unknownAbbr.length) {
     console.log(`citation-graphy-guard (#585) : ${unknownAbbr.length} abréviation(s) INCONNUE(S) (zéro tolérance) :`)
-    for (const { file, row, abbr, text } of unknownAbbr) console.log(`  ${file}:${row}  [${abbr}]  ${text}`)
+    for (const { fichier, row, abbr, text } of unknownAbbr) console.log(`  ${fichier}:${row}  [${abbr}]  ${text}`)
   } else {
     console.log('citation-graphy-guard (#585) : 0 abréviation inconnue — classe verrouillée à zéro.')
   }
 
   if (multiFolioSplit.length) {
     console.log(`citation-graphy-guard (#522) : ${multiFolioSplit.length} multi-folio(s) à cheval sur un AUTRE chapitre (docs/raw/, zéro tolérance) :`)
-    for (const { file, row, folios, text } of multiFolioSplit) {
+    for (const { fichier, row, folios, text } of multiFolioSplit) {
       const bad = folios.map((f) => `p.${f.folio}→ch${f.ch}`).join(', ')
-      console.log(`  ${file}:${row}  [${bad}]  ${text}`)
+      console.log(`  ${fichier}:${row}  [${bad}]  ${text}`)
     }
   } else {
     console.log('citation-graphy-guard (#522) : 0 multi-folio à cheval sur un autre chapitre (docs/raw/) — classe verrouillée à zéro.')
@@ -480,4 +485,7 @@ function main() {
   if (src.length || docs.length || implProse.length || stockFail || unknownAbbr.length || multiFolioSplit.length) process.exitCode = 1
 }
 
-if (import.meta.main) main()
+if (import.meta.main) {
+  exigerRacineAtlas()
+  main()
+}

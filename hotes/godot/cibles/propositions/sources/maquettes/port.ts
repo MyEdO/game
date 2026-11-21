@@ -23,9 +23,9 @@ const LUXE: OffreDeNegoce = { role: 'offre', denree: 'luxe', nom: 'Produits de l
 const cale = (o: Partial<Porteur> = {}): Porteur => ({ role: 'porteur', id: 'cale', nom: 'La cale', sous: 'Cogue du groupe', porte: 60, charge: 300, ...o });
 const CEREALES = { denree: 'cereales', nom: 'Céréales', enc: 60 };
 const COGUE: NavireAQuai = { role: 'navire', nom: 'Votre cogue', sous: 'Navire du groupe' };
-/** Les avoirs d'un groupe qui vient de vendre ses céréales, et la part `part` de chacun. */
+/** Les avoirs d'un groupe qui vient de vendre ses céréales, et la part `part` de chacun ; le joueur règle celle d'Aldric. */
 const AVOIRS: [string, Sous][] = [['bjorn', 7440], ['mira', 7308], ['aldric', 7752], ['greta', 7476]];
-const parts = (part: Sous): Part[] => AVOIRS.map(([heros, avoir]) => ({ heros, part, avoir }));
+const parts = (part: Sous): Part[] => AVOIRS.map(([heros, avoir]) => ({ heros, part, avoir, ...(heros === 'aldric' ? { reglee: true as const } : {}) }));
 
 export default {
   etats: [{
@@ -51,7 +51,7 @@ export default {
         { libelle: 'Prix d’offre', valeur: { texte: 'le prix de base' } },
         { libelle: 'Marchandage du vendeur', valeur: { dr: 2 } }] },
       { bloc: 'voies', voies: [
-        { id: 'balance', nom: 'Vendre', test: 'Recherche d’acheteur, puis Marchandage', texte: 'Un acheteur se trouve sur 80 ou moins au d100 ; sinon la moitié du lot se propose.', prix: 28800, prise: true },
+        { id: 'balance', nom: 'Vendre', test: 'Acheteur ≤ 80, puis Marchandage', texte: 'Un acheteur se trouve sur 80 ou moins au d100 ; sinon la moitié du lot se propose.', prix: 28800, prise: true },
         { id: 'moitie', nom: 'Brader', test: 'Sans Test', texte: 'Un port de commerce, ou qui demande la denrée, la reprend au quart de son prix de base.', prix: 7200 }] }],
     gestes: [{ libelle: 'Vendre', principal: true }],
     note: 'Au port, seule la cale du navire se négocie.',
@@ -105,8 +105,7 @@ export default {
       { bloc: 'lignes', reglable: true, lignes: [
         { nom: 'Biscuits de mer', sous: 'ration pour un jour', prix: 12, nombre: 120 },
         { nom: 'Nourriture préservée', sous: 'ration pour un jour', prix: 24, nombre: 60 },
-        { nom: 'Tonneau d’eau douce', sous: '9 Enc', prix: 102, nombre: 8 }] },
-      { bloc: 'texte', texte: 'Un tonneau contient 145 litres d’eau. Un membre d’équipage boit 2 à 3 litres d’eau par jour.' },
+        { nom: 'Tonneau d’eau douce', sous: '9 Enc · 145 litres', prix: 102, nombre: 8, aide: 'Un tonneau contient 145 litres d’eau. Un membre d’équipage boit 2 à 3 litres d’eau par jour.' }] },
       { bloc: 'compte', lignes: [
         { libelle: 'Biscuits de mer', detail: { nombre: 120, a: 12 }, valeur: { prix: 1440 } },
         { libelle: 'Nourriture préservée', detail: { nombre: 60, a: 24 }, valeur: { prix: 1440 } },

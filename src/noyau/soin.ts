@@ -1,7 +1,7 @@
 /**
  * LE SOIN DÉCLARÉ (`pendingHeal`) : le Test que le soigneur jette et les Bandages qu'il engage (LDB 09 l.255-261 ;
  * LDB 74 l.41), lus à l'identique par l'ouverture, les réglages `soins.test`/`soins.bandages`, le résolveur
- * (`FLOWS.soins`, `jetValider('soins')`), l'annonce (`describeHeal`, `enjeuDuSoin`) et la fenêtre (`fenetreDuSoin`). PUR.
+ * (`FLOWS.soins`, `jetValider('soins')`), l'annonce (`describeHeal`) et la fenêtre (`fenetreDuSoin`). PUR.
  */
 import type { Combatant } from '../engine/types';
 import type { SupportDetail } from '../engine/skills';
@@ -10,7 +10,6 @@ import {
   actePanse, difficulteDuSoin, HEAL_MODES, IDS_DU_TEST_DE_SOIN, porteDesBandages, raisonDeModeDeSoinEnCombat, refusDuTestDeSoin, TESTS_DE_SOIN,
   type HealMode, type ParametresDeSoin, type TestDeSoin,
 } from '../engine/healing';
-import { flowStakeRef, type StakeRef } from '../data';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 import type { PendingHeal } from './pendings';
@@ -20,7 +19,7 @@ import { actorIn } from './monde/combatants';
 import { libelleDeTest } from './jetsEnVue';
 import { libelleDuReglage } from './libelles';
 import { garanti } from '../lib/garanti';
-import { cibleDeLOperation, estOperation, HEAL_STAKE, refusDeLActeALInfirmerie } from './acteDeSoin';
+import { refusDeLActeALInfirmerie } from './acteDeSoin';
 
 /** Les paramètres déclarés du soin `ph`, que l'annonce et le résolveur lisent tous deux. */
 export const parametresDuSoin = (ph: Pick<PendingHeal, 'test' | 'bandagesDe'>): ParametresDeSoin => ({ test: ph.test, bandages: ph.bandagesDe != null });
@@ -63,15 +62,6 @@ export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'pendingSurgery' 
   if (!s.battle) return refusDeLActeALInfirmerie(s, mode);
   const patient = garanti(actorIn(s as Jeu, ph.targetId), ph.targetId, 'patient du soin');
   return raisonDeModeDeSoinEnCombat(patient, mode) ?? refusDuTestDeSoin(actorIn(s as Jeu, ph.healerId) ?? null, mode, parametresDuSoin(ph));
-}
-
-/** L'enjeu annoncé du soin `ph` : celui de son acte, décliné par Test et Bandages pour l'Hémorragie et les Blessures ;
- *  le brouillon d'une opération, celui de l'opération qu'il arme, à sa cible de DR (`cibleDeLOperation`). */
-export function enjeuDuSoin(s: Pick<Jeu, 'party'>, ph: Pick<PendingHeal, 'mode' | 'test' | 'bandagesDe' | 'targetId' | 'plaie'>): StakeRef {
-  if (estOperation(ph.mode)) return flowStakeRef(HEAL_STAKE[ph.mode], { values: { drCible: cibleDeLOperation(s, ph, ph.mode) } });
-  if (ph.mode === 'hemorragie') return flowStakeRef(ph.test === 'dexterite' ? 'soin-hemorragie-dexterite' : ph.bandagesDe ? 'soin-hemorragie-bandages' : 'soin-hemorragie');
-  if (ph.mode === 'blessures') return flowStakeRef(ph.bandagesDe ? 'soin-blessures-bandages' : 'soin-blessures');
-  return flowStakeRef(HEAL_STAKE[ph.mode]);
 }
 
 /** La fenêtre du soin en données : le patient, l'acte, le Test et les Bandages engagés (réglages

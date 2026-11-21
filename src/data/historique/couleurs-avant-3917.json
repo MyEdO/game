@@ -1,0 +1,246 @@
+{
+  "eyes": [
+    {
+      "id": "au-choix",
+      "color": {
+        "humain": "Au choix",
+        "halfling": "Gris clair",
+        "nain": "Houille",
+        "haut-elfe": "Jais",
+        "elfe-sylvain": "Ivoire",
+        "gnome": "Bleu pâle",
+        "ogre": "Gris"
+      }
+    },
+    {
+      "id": "vert",
+      "color": {
+        "humain": "Vert",
+        "halfling": "Gris",
+        "nain": "Plomb",
+        "haut-elfe": "Améthyste",
+        "elfe-sylvain": "Anthracite",
+        "gnome": "Bleu",
+        "ogre": "Vert"
+      }
+    },
+    {
+      "id": "bleu-pale",
+      "color": {
+        "humain": "Bleu pâle",
+        "halfling": "Bleu pâle",
+        "nain": "Acier",
+        "haut-elfe": "Aigue-marine",
+        "elfe-sylvain": "Vert lierre",
+        "gnome": "Bleu profond",
+        "ogre": "Ambre"
+      }
+    },
+    {
+      "id": "bleu",
+      "color": {
+        "humain": "Bleu",
+        "halfling": "Bleu",
+        "nain": "Bleu",
+        "haut-elfe": "Saphir",
+        "elfe-sylvain": "Vert mousse",
+        "gnome": "Turquoise",
+        "ogre": "Noisette"
+      }
+    },
+    {
+      "id": "gris-pale",
+      "color": {
+        "humain": "Gris pâle",
+        "halfling": "Vert",
+        "nain": "Brun terre",
+        "haut-elfe": "Turquoise",
+        "elfe-sylvain": "Châtaigne",
+        "gnome": "Vert pâle",
+        "ogre": "Marron"
+      }
+    },
+    {
+      "id": "gris",
+      "color": {
+        "humain": "Gris",
+        "halfling": "Noisette",
+        "nain": "Marron foncé",
+        "haut-elfe": "Émeraude",
+        "elfe-sylvain": "Châtaigne",
+        "gnome": "Noisette",
+        "ogre": "Marron foncé"
+      }
+    },
+    {
+      "id": "marron",
+      "color": {
+        "humain": "Marron",
+        "halfling": "Marron",
+        "nain": "Noisette",
+        "haut-elfe": "Ambre",
+        "elfe-sylvain": "Marron foncé",
+        "gnome": "Brun pâle",
+        "ogre": "Ocre"
+      }
+    },
+    {
+      "id": "noisette",
+      "color": {
+        "humain": "Noisette",
+        "halfling": "Cuivre",
+        "nain": "Vert",
+        "haut-elfe": "Cuivre",
+        "elfe-sylvain": "Ocre",
+        "gnome": "Brun",
+        "ogre": "Noir"
+      }
+    },
+    {
+      "id": "marron-fonce",
+      "color": {
+        "humain": "Marron foncé",
+        "halfling": "Marron foncé",
+        "nain": "Cuivre",
+        "haut-elfe": "Citrine",
+        "elfe-sylvain": "Châtain clair",
+        "gnome": "Brun foncé",
+        "ogre": "Mauve"
+      }
+    },
+    {
+      "id": "noir",
+      "color": {
+        "humain": "Noir",
+        "halfling": "Marron foncé",
+        "nain": "Or",
+        "haut-elfe": "Or",
+        "elfe-sylvain": "Violet",
+        "gnome": "Violet",
+        "ogre": "Bleu nuit"
+      }
+    }
+  ],
+  "hairs": [
+    {
+      "id": "blond-blanc",
+      "color": {
+        "humain": "Blond blanc",
+        "halfling": "Gris",
+        "nain": "Blanc",
+        "haut-elfe": "Argent",
+        "elfe-sylvain": "Bouleau argenté",
+        "gnome": "Noir",
+        "ogre": "Marron"
+      }
+    },
+    {
+      "id": "blond-dore",
+      "color": {
+        "humain": "Blond doré",
+        "halfling": "Paille",
+        "nain": "Gris",
+        "haut-elfe": "Blanc",
+        "elfe-sylvain": "Blond cendré",
+        "gnome": "Brun foncé",
+        "ogre": "Acajou"
+      }
+    },
+    {
+      "id": "blond-roux",
+      "color": {
+        "humain": "Blond roux",
+        "halfling": "Roussâtre",
+        "nain": "Blond pâle",
+        "haut-elfe": "Blond pâle",
+        "elfe-sylvain": "Or rose",
+        "gnome": "Brun",
+        "ogre": "Blond cendré"
+      }
+    },
+    {
+      "id": "brun-dore",
+      "color": {
+        "humain": "Brun doré",
+        "halfling": "Miel",
+        "nain": "Doré",
+        "haut-elfe": "Blond",
+        "elfe-sylvain": "Blond miel",
+        "gnome": "Brun pâle",
+        "ogre": "Marron clair"
+      }
+    },
+    {
+      "id": "brun-clair",
+      "color": {
+        "humain": "Brun clair",
+        "halfling": "Châtaigne",
+        "nain": "Cuivre",
+        "haut-elfe": "Blond intense",
+        "elfe-sylvain": "Brun",
+        "gnome": "Auburn",
+        "ogre": "Lie de vin"
+      }
+    },
+    {
+      "id": "brun-fonce",
+      "color": {
+        "humain": "Brun foncé",
+        "halfling": "Gingembre",
+        "nain": "Bronze",
+        "haut-elfe": "Blond cuivré",
+        "elfe-sylvain": "Brun acajou",
+        "gnome": "Roux",
+        "ogre": "Marron foncé"
+      }
+    },
+    {
+      "id": "noir",
+      "color": {
+        "humain": "Noir",
+        "halfling": "Moutarde",
+        "nain": "Brun",
+        "haut-elfe": "Blond ambré",
+        "elfe-sylvain": "Brun foncé",
+        "gnome": "Blond roux",
+        "ogre": "Noir"
+      }
+    },
+    {
+      "id": "auburn",
+      "color": {
+        "humain": "Auburn",
+        "halfling": "Amande",
+        "nain": "Brun foncé",
+        "haut-elfe": "Auburn",
+        "elfe-sylvain": "Brun clair",
+        "gnome": "Bond doré",
+        "ogre": "Charbon"
+      }
+    },
+    {
+      "id": "roux",
+      "color": {
+        "humain": "Roux",
+        "halfling": "Chocolat",
+        "nain": "Brun roux",
+        "haut-elfe": "Roux",
+        "elfe-sylvain": "Ébène",
+        "gnome": "Blond platine",
+        "ogre": "Noir de jais"
+      }
+    },
+    {
+      "id": "gris",
+      "color": {
+        "humain": "Gris",
+        "halfling": "Réglisse",
+        "nain": "Noir",
+        "haut-elfe": "Noir",
+        "elfe-sylvain": "Noir bleuté",
+        "gnome": "Blanc",
+        "ogre": "Bleu nuit"
+      }
+    }
+  ]
+}

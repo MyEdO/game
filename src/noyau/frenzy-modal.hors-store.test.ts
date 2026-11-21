@@ -1,6 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { isFrenzied } from '../engine/psychology';
+import { resetRule } from '../engine/policy';
+import { jouerUnReglage } from '../hote/reglages';
+import { jetsEnVue } from './jetsEnVue';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 
@@ -11,6 +14,7 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
   beforeEach(() => {
     banc.setState({ pendingFrenzy: null, battle: null });
   });
+  afterEach(() => resetRule('frenesie-difficulte'));
 
   it('entrerEnFrenesie ouvre pendingFrenzy (héros capable, pas déjà frenzied, pas acted)', () => {
     const { H } = heroFaceAUnEnnemi(banc, testScene());
@@ -20,6 +24,26 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
     expect(pf).toBeTruthy();
     expect(pf!.combatantId).toBe(H.id);
     expect(pf!.result).toBeNull();
+  });
+
+  it.each([
+    { difficulte: 'intermediaire', geste: 'jetLancer', cible: 55 },
+    { difficulte: 'difficile', geste: 'jetLancer', cible: 35 },
+    { difficulte: 'difficile', geste: 'jetForcerLaReussite', cible: 35 },
+  ] as const)('Frénésie $difficulte : $geste utilise la cible annoncée', ({ difficulte, geste, cible }) => {
+    const regler = (valeur: string) => jouerUnReglage(null, banc.getState(), { type: 'regle', args: ['frenesie-difficulte', valeur] });
+    if (difficulte !== 'intermediaire') regler(difficulte);
+    expect(() => regler('Difficile')).toThrow();
+
+    const { H } = heroFaceAUnEnnemi(banc, testScene());
+    H.traits = [{ id: 'frenesie' }];
+    H.characteristics['force-mentale'] = 55;
+    H.resilience = 1;
+    banc.getState().entrerEnFrenesie();
+    const ligne = jetsEnVue(banc.getState()).find((jet) => jet.flux === 'frenesie')?.lignes[0];
+    expect(ligne).toMatchObject({ genre: 'test', cible });
+    banc.getState()[geste]('frenesie');
+    expect(banc.getState().pendingFrenzy?.result?.target).toBe(cible);
   });
 
   it('héros NON capable → entrerEnFrenesie n’ouvre rien', () => {

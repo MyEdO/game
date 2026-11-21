@@ -22,11 +22,11 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 }
 
 describe('casterTalents — extraction des specs', () => {
-  it('« Invocation (Sigmar) » → invocation/sigmar ; « (Au choix) » → joker', () => {
+  it('rend les spécialisations désignées et conserve une spécialisation absente', () => {
     const c = hero({ talents: [
       { talentId: 'invocation', spec: 'sigmar', times: 1 },
       { talentId: 'magie-des-arcanes', spec: 'feu', times: 1 },
-      { talentId: 'beni', spec: 'Au choix', times: 1 },
+      { talentId: 'beni', times: 1 },
       { talentId: 'magie-mineure', times: 1 },
     ] });
     expect(casterTalents(c)).toEqual([

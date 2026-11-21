@@ -1,7 +1,7 @@
 /**
  * Génère hotes/godot/pont/CONTRAT.md — le contrat du pont `wfrpPont` entre Godot et le noyau (#3816). Tout son texte
  * vit dans les commentaires du code qui produit ce qu'il décrit, sous les racines `RACINES` :
- *  - une JSDoc d'un `.ts` ou d'un `.mjs` dont une ligne est `@contrat <Titre>` : bloc de DÉCLARATION quand elle précède
+ *  - une JSDoc d'un script JS ou TS dont une ligne est `@contrat <Titre>` : bloc de DÉCLARATION quand elle précède
  *    immédiatement une `interface` ou un `type` (son texte, la déclaration sans ses commentaires, puis une puce par
  *    membre, ou par variante d'une union nommée par son discriminant, dont la JSDoc est exigée), bloc LIBRE sinon (son
  *    texte, en Markdown tel quel) ;
@@ -13,21 +13,21 @@
  * interface, ni littéral d'objet, ni union, membre, variante ou méthode sans JSDoc, méthode sans `@returns`, ligne de
  * commentaire extraite de plus de `LARGEUR_MAX` caractères.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-contrat-du-pont.mjs
  */
 import { readFileSync } from 'node:fs'
-import { analyserCorpus, typescript } from '../guards/lib/dialecte.mjs'
+import { analyserCorpus, EXTENSIONS_DE_SCRIPT, typescript } from '../guards/lib/dialecte.mjs'
 import { listerArbre, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { codeSeul, commentairesDe } from '../guards/lib/commentPoison.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
 const OUTIL = 'build-contrat-du-pont'
 const OUT = 'hotes/godot/pont/CONTRAT.md'
 const PONT = 'hotes/godot/pont/pont.ts'
 const RACINES = ['hotes/godot', 'src/hote', 'src/noyau']
-const EXTENSIONS = ['.ts', '.mjs', '.gd']
+const EXTENSIONS = [...EXTENSIONS_DE_SCRIPT, '.gd']
 const LARGEUR_MAX = 160
 const METHODES = 'Méthodes'
 
@@ -129,7 +129,7 @@ function blocDeDeclaration(rel, texte, sf, noeud, lignes) {
   return [texteDe(lignes), declaration, puces.join('\n')].filter(Boolean).join('\n\n')
 }
 
-/** Les blocs `@contrat` d'un `.ts` ou d'un `.mjs`, et, pour `PONT`, ses méthodes. */
+/** Les blocs `@contrat` d'un script JS ou TS, et, pour `PONT`, ses méthodes. */
 function lireScript(rel, texte, sf, blocs, methodes) {
   const ts = typescript()
   const declarations = new Map()
@@ -205,7 +205,7 @@ function lireGdscript(rel, texte, blocs) {
 
 /**
  * Le contrat rendu depuis `fichiers` (`{ rel, text }`, chemins relatifs POSIX), sans rien lire ni écrire.
- * @param {{ rel: string, text: string }[]} fichiers @returns {string}
+ * @param {Pick<import('../guards/lib/sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers @returns {string}
  */
 export function contratDe(fichiers) {
   const blocs = new Map([...SECTIONS.keys()].map((titre) => [titre, []]))
@@ -226,7 +226,7 @@ export function contratDe(fichiers) {
   return `${out.trimEnd()}\n`
 }
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const fichiers = RACINES.flatMap((racine) =>
     listerArbre(racine, { filtre: (rel) => EXTENSIONS.some((ext) => rel.endsWith(ext)) }).map((rel) => {
@@ -251,4 +251,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

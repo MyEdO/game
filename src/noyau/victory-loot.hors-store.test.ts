@@ -31,7 +31,7 @@ describe('sortie de la victoire — fermeture de l’écran de victoire', () => 
 describe('le butin de victoire (`victoire.ligne`) — équipement attribuable, qualités conservées', () => {
   const gearEntry = () => ({
     uid: 'L1', label: 'Dague', magic: true,
-    effect: { type: 'giveTrapping', trappingId: 'dague', qualities: ['devastatrice'], identified: false },
+    effect: { type: 'giveTrapping', objet: { id: 'dague' }, qualities: ['devastatrice'], identified: false },
   });
   beforeEach(() => {
     banc.setState({

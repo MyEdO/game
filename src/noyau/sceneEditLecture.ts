@@ -79,7 +79,7 @@ import { collectionDe, entreesDeLaPortee, porteesOuvertes } from '../data/schema
 import { libelleDeLElement } from '../data/schemas/grammaire/cle-d-espace';
 import { LIBELLE_AU_LABEL } from '../data/schemas/grammaire/sourcesDeSpecs';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
-import { declarationDeFeuilleDId, estRefEmboitee, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
+import { declarationDeFeuilleDId, estRefEmboitee, idsDe, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
 import { entreeEmbarquee as trappingEntree } from '../data/schemas/defs/trappings';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
 import { champsDeclares, choixDuNoeud, formeAuPoint, recordDuNoeud, type ChoixDuContexte, type FieldDesc } from './codex/editFields';
@@ -168,7 +168,7 @@ export type Tool =
   // de l'étage `toZ` (invariant PARTAGÉ avec le compilateur ASCII — `noyau/stairFlight.ts`). L'outil ne
   // pose AUCUN décor : une volée est du relief, la traversée s'en dérive comme pour toute surface.
   | { mode: 'escalier'; toZ: number }
-  // Emplacement de siège : pose une SceneEntity portant un poste d'artillerie (`trappingId` = engin du
+  // Emplacement de siège : pose une SceneEntity portant un poste d'artillerie (`engin.id` = engin du
   // catalogue `siege-engines.json`). Le créneau (arc) et l'équipage s'éditent ensuite dans l'inspecteur.
   | { mode: 'emplacement'; trappingId: string }
   // Crénelage (#841 FU-H) : marque le pourtour peint comme portant un PARAPET crénelé (décoration de
@@ -197,9 +197,10 @@ export type WallPaint = 'wall' | 'door' | 'diagBack' | 'diagFwd';
 /** Les faces d'où se découvre une porte secrète, `[valeur, libellé]` (`faceDAreteSchema`, EDO 07 l.263). */
 export const FACES_D_ARETE = optionsDuNoeud(faceDAreteSchema) as [FaceDArete, string][];
 
-/** Les structures de mur dont l'apparence porte un parapet : celles que l'outil crénelage pose (#841). */
-export function structuresCrenelables(): StructureData[] {
-  return structures.filter((s) => isWallEdgeStructure(s) && !!structureAppearances.find((a) => a.id === s.id)?.parapet);
+/** Les apparences à parapet que le pinceau de crénelage peut poser. */
+export function apparencesCrenelables() {
+  const admises = idsDe('apparenceCrenelee');
+  return structureAppearances.filter((apparence) => admises.has(apparence.id));
 }
 
 /** Les structures que l'outil murs pose au sous-mode `paint` : un mur sur une cloison, une fermeture sur une porte,
@@ -557,7 +558,7 @@ export interface DocumentDuProjet<T> {
 
 /** Les documents du projet édité : la scène montrée, sous son identifiant, la carte du monde et le narratif, chacun seul
  *  de sa sorte au projet, sous elle, et ses réglages (`ReglagesDuProjet`), sous `projet`, lus et écrits au projet, sous
- *  son schéma : ses axes actifs absents valent le socle (`resolveActiveAxes`). La carte absente du projet en reçoit une vide (`emptyWorldMap`), sous un identifiant
+ *  son schéma, où les axes actifs sont facultatifs. La carte absente du projet en reçoit une vide (`emptyWorldMap`), sous un identifiant
  *  qu'aucune de ses scènes ne porte : la validation range ses avertissements sous lui (`Warning.sceneId`). #3606 */
 export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<TypesDesDocuments[K]> } = {
   scene: {
@@ -742,11 +743,11 @@ function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, pr
   const [rang, cle, element, ...plus] = reste;
   if (typeof rang !== 'number' || plus.length) return undefined;
   const engins = (valeur: (id: string) => unknown) => siegeEngines().map((e) => ({ valeur: valeur(e.id), libelle: libelleDAuteur(e), refus: null }));
-  if (cle === undefined) return rang === postes.length ? engins((trappingId) => ({ trappingId })) : undefined;
+  if (cle === undefined) return rang === postes.length ? engins((id) => ({ engin: { id } })) : undefined;
   const poste = postes[rang];
   if (!poste) return undefined;
-  if (cle === 'trappingId' && element === undefined) return engins((id) => id);
-  if (cle === 'ammo' && element === undefined) return munitionsDeLaPiece(poste.trappingId);
+  if (cle === 'engin' && (element === undefined || element === 'id')) return engins((id) => element === undefined ? { id } : id);
+  if (cle === 'ammo' && element === undefined) return munitionsDeLaPiece(poste.engin.id);
   if (cle === 'selectedAmmo' && (element === undefined || element === 'id')) {
     return Object.keys(poste.ammo ?? {}).map((id) => ({ valeur: element === undefined ? { id } : id, libelle: findTrappingById(id)?.label ?? id, refus: null }));
   }

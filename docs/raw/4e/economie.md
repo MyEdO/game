@@ -350,11 +350,13 @@ Test opposé de **Marchandage** vs. le vendeur : ±10 %, « jusqu'à 20 % si le 
 
 | Richesse | Offre par rapport au prix de base |
 |---|---|
-| 1 — Misérable | 50 % du prix de base |
-| 2 — Pauvre | −20 % |
-| 3 — Moyen | Prix de base |
-| 4 — Animé | +5 % |
-| 5 — Prospère | +10 % |
+| 1 — Pauvre | 50 % du prix de base |
+| 2 — Moyen | −20 % |
+| 3 — Animé | Prix de base |
+| 4 — Prospère | +5 % |
+| 5 — Florissant | +10 % |
+
+La colonne « Description » est décalée d’un rang dans la table de Mise à prix (MSRC 13 l.150-156), et l’exemple de Kemperbad (Prospère, indice 4, +5 %, MSRC 13 l.174) confirme la lecture par indice avec les libellés de la table d’Indice de richesse (MSRC 13 l.52-60). [#1664](https://github.com/MyEdO/game/issues/1664)
 
 Puis Test opposé de **Marchandage** pour ajuster (comme à l'achat : ±10 %, +10 % au Succès Stupéfiant, +10 % avec Négociateur).
 
@@ -396,7 +398,7 @@ Couverture confirmée des refs `LDB XX l.YY` dans le code :
 
 **Orchestration store** : `src/noyau/merchantFlow.ts`, `src/noyau/rollFlowSpecs.ts` (flows `bargain`/`appraise`), archétypes indexés par `findMerchantArchetypeById` (`src/data/index.ts`), typés par `src/data/merchants.types.ts`
 
-**UI** : `src/ui/MerchantPanel.tsx`, `src/ui/BargainModal.tsx`, `src/ui/AppraiseModal.tsx`
+**Affichage** : les interactions du marchand passent par la projection du jeu Godot.
 
 **Règle optionnelle** : `src/engine/policy.ts` (mode marché `simplifie` → pas de Tests de Disponibilité)
 

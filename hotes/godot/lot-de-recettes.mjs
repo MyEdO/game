@@ -50,7 +50,10 @@ export const JEUX_DU_PARCOURS = {
   regards: { regards: ['--scenario', 'fenetre-ecuries'] },
   meteo: { meteo: ['--scenario', 'voyage'] },
   vehicule: { vehicule: ['--scenario', 'caraque'] },
-  cadrages: { cadrages: ['--scenario', 'a-bord-de-la-caraque', '--vues', 'hotes/godot/cadrages/a-bord-de-la-caraque.json'] },
+  cadrages: {
+    cadrages: ['--scenario', 'a-bord-de-la-caraque', '--vues', 'hotes/godot/cadrages/a-bord-de-la-caraque.json'],
+    'cadrages-diligence': ['--scenario', 'diligence', '--vues', 'hotes/godot/cadrages/la-diligence.json'],
+  },
   bord: { bord: ['--scenario', 'a-bord-de-la-caraque', '--route', `${DOSSIER}/a-bord-de-la-caraque.json`] },
   brume: { brume: ['--scenario', 'brouillard'] },
   vision: { vision: ['--scenario', 'grimpant'] },
@@ -74,7 +77,7 @@ const HORS_NATIF = {
   'combat-statique': '`--statique` sert l’export tel que le site le publie, sans objet hors d’une page',
 }
 
-/** Les jeux qu'une recette native joue toujours en rendu réel, sous le rendu de la page, les autres sans écran hors `--rendu` :
+/** Les parcours qu'une recette native joue toujours en rendu réel, sous le rendu de la page, les autres sans écran hors `--rendu` :
  *  `vision` et `murs` lisent les pixels de leurs captures, `wfrpCadrer` (`cadrages`) attend l'image dessinée de la
  *  caméra posée, et l'atelier (`preset`) mesure ses meshes skinnés aux os que le serveur de rendu leur pourvoit. */
 const RENDUS_EN_NATIF = new Set(['vision', 'murs', 'cadrages', 'preset'])
@@ -86,7 +89,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Ce qu'un jeu attend dans son dossier avant d'être joué, `{ nom du jeu: (dossier, sortie) => code }`. */
 const PREPARER = {
   bord: (dossier, sortie) =>
-    spawnSync(process.execPath, ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', 'vitest.noyau.config.ts', 'hotes/godot/recettes/route-a-bord.hors-store.test.ts'], { cwd: RACINE, env: { ...process.env, ROUTE: dossier }, stdio: ['ignore', sortie, sortie] }).status,
+    spawnSync(process.execPath, ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', 'hotes/godot/recettes/route-a-bord.hors-store.test.ts'], { cwd: RACINE, env: { ...process.env, ROUTE: dossier }, stdio: ['ignore', sortie, sortie] }).status,
 }
 /** Le délai d'un jeu ; au-delà, `recette.mjs` reçoit SIGTERM et sort en éteignant son Chrome (`scripts/recette/lib.mjs`). */
 const DELAI_MS = 90 * 60 * 1000
@@ -121,7 +124,7 @@ const QUEUE = 15
 if (import.meta.main) {
   const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, rendu: { type: 'boolean' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
   if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif [--rendu]) --captures <dossier> [--jeux <nom>,<nom>]')
-  const lieu = (nom) => (!o.natif ? ['--web', resolve(o.web)] : o.rendu || RENDUS_EN_NATIF.has(nom) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
+  const lieu = (parcours) => (!o.natif ? ['--web', resolve(o.web)] : o.rendu || RENDUS_EN_NATIF.has(parcours) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
   const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args, dossier: nom, journal: 'journal.txt' })))
   const voulus = o.jeux?.split(',') ?? jeux.map((j) => j.nom)
   for (const nom of voulus.filter((v) => v.startsWith(PLANCHE) && v.length > PLANCHE.length)) {
@@ -146,7 +149,7 @@ if (import.meta.main) {
     let status = 1
     try {
       if (!PREPARER[nom] || PREPARER[nom](dossier, sortie) === 0) {
-        status = await jouer([RECETTE, ...lieu(nom), ...preparation, '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], sortie)
+        status = await jouer([RECETTE, ...lieu(parcours), ...preparation, '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], sortie)
       }
     } finally {
       closeSync(sortie)

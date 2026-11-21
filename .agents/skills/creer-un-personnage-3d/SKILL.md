@@ -17,7 +17,9 @@ Un élément sur base se construit dans le dépôt, `scripts/personnage-3d/eleme
 (`donnees.py`, `modele.py`), par le constructeur commun `element/construire.py` : section 3 de la procédure.
 Un véhicule (navire, engin de siège) se construit par `scripts/personnage-3d/construire.py vehicule/<type>` : chapitre 9
 de la procédure ; un décor de `src/data/props.json`, par `construire.py decor/<modele>`, dans le gabarit de sa recette :
-chapitre 10 ; les pièces d'arête d'un kit (mur, porte, fenêtre, brèche), par `construire.py arete/<kit>` : chapitre 11.
+chapitre 10 ; les pièces d'arête d'un kit (mur, porte, fenêtre, brèche, échelle), par `construire.py arete/<kit>` :
+chapitre 11 ; les pièces d'escalier d'un kit (limon, rampe), par `construire.py escalier/<famille>` : chapitre 12 ;
+la faîtière d'un kit de toit, par `construire.py toit/<couverture>` : chapitre 13.
 Mesurer la tenue montée par **`npm run godot:evaluer -- <element.glb>... --base <base.glb> --manifeste <base.json>`**,
 chaque GLB à côté de son manifeste d'élément, pour que la traversée des couches se mesure ;
 utiliser `--facteurs sl=1,legs=1,arms=1,head=1,st=1` et `--silhouettes feminin=1,corpulence=1`

@@ -2,7 +2,7 @@ import { test, mock } from 'node:test'
 import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import assert from 'node:assert/strict'
-import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, statSync, rmSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, statSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,6 +32,7 @@ import { encoderLecture, evaluerLotDuDepot } from '../guards/lib/racinesBalayees
 import { analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots } from '../guards/lib/importGraph.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { gitDe } from './gitDeBanc.mjs'
 
 const dossierDe = (t) => {
   const d = mkdtempSync(join(tmpdir(), 'derivation-contrat-'))
@@ -118,6 +119,292 @@ test('signature native : EOF, JSDoc, tokens complets, LF et texte JSX', () => {
     assert.ok(analyse.diagnostics.length > 0)
     assert.deepEqual(signature(analyse.fichier.text, analyse), { signature: 'const =', persistable: false })
   }
+})
+
+test('sondes d’identité : changement au chemin ou de ses préfixes, et conservation des vraies lectures', (t) => {
+  const racine = dossierDe(t)
+  const ancetre = 'scripts/ancetre.test.mjs'
+  const canon = 'scripts/canon.test.mjs'
+  const memo = 'scripts/canon-memo.test.mjs'
+  const controle = 'scripts/controle.test.mjs'
+  const opaque = 'scripts/opaque.test.mjs'
+  const lecteur = 'scripts/lecteur.test.mjs'
+  const balayeur = 'scripts/balayeur.test.mjs'
+  const testVitest = 'src/jeu.test.ts'
+  const canonisation = 'scripts/docs/lib/chemin-mesure.mjs'
+  const cible = 'donnees/actif/fiche.data'
+  const alias = 'donnees/actif'
+  const lu = 'donnees/lues/fiche.data'
+  const modifier = (touche, operation = 'modifie') => {
+    const fichiers = [...textes.keys(), 'donnees/compagnon.data', 'inventaire/connu.data', 'metier/connu.data']
+    const avant = operation === 'ajout' ? fichiers : [...fichiers, touche]
+    const post = operation === 'retrait' ? fichiers : [...fichiers, touche]
+    return deriverPerimetre({
+      racine, touches: [touche], avant: [...new Set(avant)], post: [...new Set(post)],
+      lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])),
+    }).retenus
+  }
+  const textes = new Map([
+    [canonisation, readFileSync(new URL('../docs/lib/chemin-mesure.mjs', import.meta.url), 'utf8')],
+    ['scripts/guards/lib/lister.mjs', `
+      import { readdirSync } from 'node:fs'
+      export const cheminAbsent = () => true
+      export function listerDossier(dossier) { return readdirSync(dossier) }
+    `],
+    ['scripts/docs/lib/cache-fraicheur.mjs', "export const CACHE_FRAICHEUR = 'cache'"],
+    [memo, `
+      import { canoniserParDossier, memoireDeCanonisation } from './docs/lib/chemin-mesure.mjs'
+      canoniserParDossier('donnees/compagnon.data', memoireDeCanonisation())
+    `],
+    [ancetre, `import { ancetreExistant } from './docs/lib/chemin-mesure.mjs'; ancetreExistant('${cible}')`],
+    [canon, `import { canoniser } from './docs/lib/chemin-mesure.mjs'; canoniser('${cible}')`],
+    [opaque, "import { canoniser } from './docs/lib/chemin-mesure.mjs'; canoniser(process.env.CIBLE)"],
+    ['vitest.config.ts', "export default { test: { setupFiles: ['src/setup.ts'] } }"],
+    ['src/setup.ts', "import { canoniser } from '../scripts/docs/lib/chemin-mesure.mjs'; canoniser(process.cwd())"],
+    [testVitest, 'export {}'],
+    [balayeur, "import { readdirSync } from 'node:fs'; readdirSync(process.cwd())"],
+    [lecteur, `import { readFileSync } from 'node:fs'; import { canoniser } from './docs/lib/chemin-mesure.mjs'; readFileSync(canoniser('${lu}'))`],
+    [controle, "import { controler } from './controle.mjs'; controler('donnees/autre.data')"],
+    ['scripts/controle.mjs', `
+      import fs from 'node:fs'
+      export function controler(chemin) {
+        const estFichier = fs.statSync('metier/connu.data').isFile()
+        fs.readdirSync('inventaire')
+        if (fs.existsSync('metier/drapeau.data') && estFichier) return null
+        const special = 'metier/special.data'
+        if (fs.existsSync(special)) return special
+        const strict = 'metier/strict.data'
+        try { fs.statSync(strict); return strict } catch {}
+        if (fs.existsSync(chemin)) return chemin
+        return null
+      }
+      export const CONTRATS_DE_DERIVATION = [{ fonction: controler, identite: 0 }]
+    `],
+  ])
+
+  const solde = modifier('.claude/soldes/999.md', 'ajout')
+  for (const seulSonde of [ancetre, canon, memo, opaque, testVitest]) assert.equal(solde.has(seulSonde), false, seulSonde)
+  assert.equal(solde.get(balayeur)?.racine, '.', 'un vrai listage de la racine lit aussi le solde')
+  assert.equal(solde.get(balayeur)?.identite, undefined)
+  assert.equal(solde.get(lecteur)?.racine, '.', 'une lecture du chemin physique conserve son repli')
+  const voisin = modifier('donnees/etranger.data', 'ajout').get(memo)
+  assert.equal(voisin?.racine, 'donnees', 'le listage mémoïsé retient un nouveau voisin du chemin canonisé')
+  assert.equal(voisin?.identite, undefined, 'la racine lue et la sonde du même préfixe restent distinctes')
+  for (const banc of [ancetre, canon]) {
+    assert.equal(modifier('donnees/etranger.data', 'ajout').has(banc), false, 'dossier déjà présent')
+    for (const [touche, operation] of [[cible, 'ajout'], [alias, 'modifie'], ['donnees/actif/sibling.data', 'ajout'], ['donnees/actif/sibling.data', 'retrait']]) {
+      const lien = modifier(touche, operation).get(banc)
+      assert.deepEqual([lien?.racine, lien?.identite, lien?.touche], [cible, true, touche], banc)
+    }
+  }
+  assert.equal(modifier(lu, 'ajout').has(lecteur), true)
+  for (const [touche, operation] of [['inventaire/ajoute.data', 'ajout'], ['metier/connu.data', 'modifie'],
+    ['metier/drapeau.data', 'ajout'], ['metier/special.data', 'ajout'], ['metier/strict.data', 'ajout']]) {
+    const lien = modifier(touche, operation).get(controle)
+    assert.equal(lien?.nature, 'racine balayée', touche)
+    assert.equal(lien?.identite, undefined, touche)
+  }
+  assert.equal(modifier(canon).get(canon)?.nature, 'touché')
+})
+
+test('manifestes npm du shell : chaque portée suit ses candidats sans rattacher le setup au corpus', (t) => {
+  const racine = dossierDe(t)
+  const memos = memosDeDerivation(racine, 'manifestes-npm')
+  const premier = 'scripts/lecture-npm-a.test.mjs'
+  const second = 'scripts/lecture-npm-b.test.mjs'
+  const explicite = 'scripts/lecture-npm-fournie.test.mjs'
+  const opaque = 'scripts/lecture-npm-opaque.test.mjs'
+  const vitest = 'src/jeu.test.ts'
+  const manifesteA = 'ateliers/a/package.json'
+  const manifesteB = 'ateliers/b/package.json'
+  const imports = `
+    import { fileURLToPath } from 'node:url'
+    import { pipelinesDeJetons } from './guards/lib/commandeShell.mjs'
+    import { sousRacineNpm } from './guards/lib/racineNpm.mjs'
+  `
+  const textes = new Map([
+    ...['commandeShell.mjs', 'racineNpm.mjs', 'natureDuChemin.mjs', 'appelsRunners.mjs', 'invocation.mjs']
+      .map((f) => [`scripts/guards/lib/${f}`, readFileSync(new URL(`../guards/lib/${f}`, import.meta.url), 'utf8')]),
+    ['vitest.config.ts', "export default { test: { setupFiles: ['src/setup.ts'] } }"],
+    ['src/setup.ts', `
+      import { versCheminNatif } from '../scripts/guards/lib/commandeShell.mjs'
+      versCheminNatif('/c/arbre', 'win32', '/tmp')
+    `],
+    [vitest, 'export {}'],
+    [premier, `${imports}
+      const base = fileURLToPath(new URL('../ateliers/a', import.meta.url))
+      sousRacineNpm(base, () => pipelinesDeJetons('sh -c "npm run jouer"'))
+    `],
+    [second, `${imports}
+      const base = fileURLToPath(new URL('../ateliers/b', import.meta.url))
+      sousRacineNpm(base, () => pipelinesDeJetons('npm run jouer', 0, { scripts: undefined }))
+    `],
+    [explicite, `${imports}
+      const base = fileURLToPath(new URL('../ateliers/a', import.meta.url))
+      sousRacineNpm(base, () => pipelinesDeJetons('npm run jouer', 0, { scripts: { jouer: 'echo fourni' } }))
+      sousRacineNpm(process.env.CWD_NPM, () => pipelinesDeJetons('npm run jouer', 0, { scripts: null }))
+    `],
+    [opaque, `${imports}
+      sousRacineNpm(process.env.CWD_NPM, () => pipelinesDeJetons('npm run jouer'))
+    `],
+    ['ateliers/b/existant.txt', 'témoin'],
+  ])
+  const mesurer = (touche, operation = 'modification', intacts = []) => {
+    const stables = [...textes.keys(), ...intacts]
+    return deriverPerimetre({
+      racine,
+      touches: [touche],
+      avant: operation === 'ajout' ? stables : [...stables, touche],
+      post: operation === 'retrait' ? stables : [...stables, touche],
+      lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])),
+      memos,
+    }).retenus
+  }
+  const verifier = (retenus, attendus) => assert.deepEqual(
+    [...retenus].map(([test, lien]) => [test, lien.racine]).sort(([a], [b]) => a.localeCompare(b)),
+    attendus,
+  )
+
+  verifier(mesurer('.claude/soldes/temoin.md', 'ajout'), [[opaque, '.']])
+  for (const operation of ['ajout', 'modification', 'retrait']) {
+    const retenus = mesurer(manifesteA, operation)
+    verifier(retenus, [[premier, manifesteA], [opaque, '.']])
+    assert.equal(retenus.get(premier)?.touche, manifesteA, operation)
+  }
+  verifier(mesurer(manifesteB), [[second, manifesteB], [opaque, '.']])
+  verifier(mesurer('ateliers/a/premier-descendant.txt', 'ajout'), [[premier, manifesteA], [opaque, '.']])
+  verifier(mesurer('ateliers/a/voisin.md', 'ajout', [manifesteA]), [[opaque, '.']])
+})
+
+test('sondes d’identité : un lien versionné ou une jonction inchangée peut masquer la cible touchée', (t) => {
+  const alias = 'donnees/alias'
+  const jonction = 'donnees/jonction'
+  const bancGit = 'scripts/git.test.mjs'
+  const bancDisque = 'scripts/disque.test.mjs'
+  const cible = 'cible/neuf.data'
+  const fonction = `import { canoniser } from './docs/lib/chemin-mesure.mjs'; canoniser`
+  const { racine } = instanceDeDepot({ fichiers: {
+    '.gitignore': `/${jonction}\n`,
+    [alias]: '../cible',
+    'cible/temoin.data': 'témoin',
+    'scripts/docs/lib/chemin-mesure.mjs': readFileSync(new URL('../docs/lib/chemin-mesure.mjs', import.meta.url), 'utf8'),
+    'scripts/guards/lib/lister.mjs': 'export const cheminAbsent = () => true; export const listerDossier = () => []',
+    'scripts/docs/lib/cache-fraicheur.mjs': "export const CACHE_FRAICHEUR = 'cache'",
+    [bancGit]: `${fonction}('${alias}/neuf.data')`,
+    [bancDisque]: `${fonction}('${jonction}/neuf.data')`,
+  } })
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const git = gitDe(racine, { net: true })
+  const blob = git('rev-parse', `HEAD:${alias}`)
+  git('update-index', '--cacheinfo', `120000,${blob},${alias}`)
+  git('commit', '-qm', 'Alias versionné')
+  const base = git('rev-parse', 'HEAD')
+  symlinkSync(join(racine, 'cible'), join(racine, jonction), 'junction')
+  writeFileSync(join(racine, cible), 'ajout')
+  git('add', '--', cible)
+  git('commit', '-qm', 'Ajout sous la cible de l’alias')
+  const tete = git('rev-parse', 'HEAD')
+  const dossierDesMemos = join(dossierDe(t), 'memos')
+
+  const commis = depuisDTO(produireDTO({ racine, base, tete, dossierDesMemos }))
+  assert.deepEqual(commis.touches, [cible])
+  assert.equal(commis.retenus.get(bancGit)?.identite, true)
+  assert.equal(commis.retenus.get(bancGit)?.touche, cible)
+  assert.equal(commis.retenus.has(bancDisque), false, 'le cliché Git ne lit pas la jonction du disque')
+
+  writeFileSync(join(racine, cible), 'modification locale')
+  const travail = depuisDTO(produireDTO({ racine, base: tete, dossierDesMemos }))
+  assert.equal(travail.retenus.get(bancDisque)?.identite, true)
+  assert.equal(travail.retenus.get(bancDisque)?.touche, cible)
+})
+
+test('acquisition déclarée : cible précise, clôture transitive et invalidation par un module importé (#3400)', (t) => {
+  const racine = dossierDe(t)
+  const appelant = 'scripts/lecteur.test.mjs'
+  const origine = 'scripts/choix.mjs'
+  const a = 'scripts/generateur-a.mjs'
+  const b = 'scripts/generateur-b.mjs'
+  const masque = 'scripts/generateur-masque.mjs'
+  const descendant = 'scripts/descendant.mjs'
+  const rendre = (registre) => `
+    import { GENERATORS } from './${registre}'
+    export function rendreCible(cible) { return cible }
+    export const CONTRATS_DE_DERIVATION = [{ fonction: rendreCible, acquisition: { argument: 0, registre: GENERATORS } }]
+  `
+  const textes = new Map([
+    [appelant, "import { rendreCible as rendre } from './rendu.mjs'; import { CIBLE } from './choix.mjs'; rendre(CIBLE)"],
+    [origine, "export const CIBLE = 'cibles/a-choisi.txt'"],
+    ['scripts/rendu.mjs', rendre('registre.mjs')],
+    ['scripts/registre.mjs', `
+      export const GENERATORS = Object.freeze([
+        {script: '${a}', targets: ['cibles/a-*.txt']},
+        {script: '${b}', targets: ['cibles/b.txt']},
+        {script: '${masque}', targets: ['cibles/a-choisi.txt']},
+        {script: '${descendant}', targets: ['cibles/descendant.txt']},
+      ].map(Object.freeze))
+    `],
+    [a, "import { rendreCible } from './rendu.mjs'; rendreCible('cibles/descendant.txt')"],
+    [b, 'export const b = 1'],
+    [masque, 'export const masque = 1'],
+    [descendant, 'export const descendant = 1'],
+    ['scripts/homonyme.test.mjs', "import { rendreCible } from './homonyme.mjs'; rendreCible('cibles/a-choisi.txt')"],
+    ['scripts/homonyme.mjs', 'export function rendreCible(cible) { return cible }'],
+    ['scripts/inconnu.test.mjs', "import { rendreCible } from './rendu.mjs'; rendreCible(process.env.CIBLE)"],
+    ['scripts/masque-catch.test.mjs', `
+      import { rendreCible } from './rendu.mjs'
+      try { throw () => '' } catch (rendreCible) { rendreCible('cibles/a-choisi.txt') }
+    `],
+    ['scripts/masque-registre.test.mjs', "import { rendreCible } from './rendu-masque.mjs'; rendreCible('cibles/a-choisi.txt')"],
+    ['scripts/rendu-masque.mjs', rendre('registre-masque.mjs')],
+    ['scripts/registre-masque.mjs', `
+      class Object { static freeze() { return [] } }
+      export const GENERATORS = Object.freeze([{script: '${a}', targets: ['cibles/a-choisi.txt']}].map(Object.freeze))
+    `],
+    ['scripts/masque-var.test.mjs', "import { rendreCible } from './rendu-var.mjs'; rendreCible('cibles/a-choisi.txt')"],
+    ['scripts/rendu-var.mjs', rendre('registre-var.mjs')],
+    ['scripts/registre-var.mjs', `
+      if (true) { var Object = { freeze(x) { return Array.isArray(x) ? x.slice(1) : x } } }
+      export const GENERATORS = Object.freeze([
+        {script: '${a}', targets: ['cibles/a-choisi.txt']},
+        {script: '${b}', targets: ['cibles/a-choisi.txt']},
+      ].map(Object.freeze))
+    `],
+  ])
+  const empreinte = () => createHash('sha256').update(textes.get(appelant)).digest('hex')
+  const initiale = empreinte()
+  const stades = []
+  const mesurer = (touche) => deriverPerimetre({
+    racine, touches: [touche], post: [...textes.keys()], avant: [],
+    lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])),
+    memos: memosDeDerivation(racine, 'acquisition'),
+    stade: (stade) => stades.push(stade),
+  })
+
+  const froid = mesurer(a)
+  assert.deepEqual([...froid.retenus.keys()], [appelant])
+  assert.deepEqual(froid.retenus.get(appelant).chaine, [appelant, a])
+  assert.ok(stades.includes('acquisitionsDe'))
+  stades.length = 0
+  const chaud = mesurer(a)
+  assert.deepEqual(chaud, froid)
+  assert.ok(!stades.includes('acquisitionsDe'), 'le mémo chaud porte aussi l’arc calculé')
+  assert.equal(mesurer(b).retenus.size, 0)
+  assert.equal(mesurer(masque).retenus.size, 0, 'le premier motif correspondant gagne')
+  assert.deepEqual(mesurer(descendant).retenus.get(appelant).chaine, [appelant, a, descendant])
+
+  textes.set(origine, "export const CIBLE = 'cibles/b.txt'")
+  assert.equal(empreinte(), initiale)
+  stades.length = 0
+  assert.equal(mesurer(a).retenus.size, 0)
+  assert.ok(stades.includes('acquisitionsDe'), 'seul le module qui donne l’argument a changé')
+  const bascule = mesurer(b)
+  assert.deepEqual([...bascule.retenus.keys()], [appelant])
+  assert.deepEqual(bascule.retenus.get(appelant).chaine, [appelant, b])
+
+  textes.set(origine, "export const CIBLE = 'cibles/a-choisi.txt'")
+  stades.length = 0
+  assert.deepEqual(mesurer(a), froid)
+  assert.ok(!stades.includes('acquisitionsDe'), 'l’ancienne variante reste valable pour la même image')
 })
 
 test('lots privés : frontière supérieure à un lot, nouveaux lecteurs et variantes chaudes conservent les tests', (t) => {

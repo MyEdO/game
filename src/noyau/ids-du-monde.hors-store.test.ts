@@ -5,6 +5,7 @@
  * porteur, et la désignation d'objet ne masque pas un doublon.
  */
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { describe, expect, it } from 'vitest';
@@ -130,12 +131,12 @@ describe('un uid du monde n’a qu’un porteur (#2907)', () => {
   }, 120_000);
 
   it('sur chaque partie committée de l’hôte texte rejouée jusqu’au bout, chaque uid lu une fois par la désignation d’objet ou de poste', () => {
-    const dossier = new URL('../hoteTexte/', import.meta.url);
-    const fichiers = listerDossier(fileURLToPath(dossier)).filter((f) => f.endsWith('.jsonl'));
+    const dossier = fileURLToPath(new URL('../hoteTexte/', import.meta.url));
+    const fichiers = listerDossier(dossier).filter((f) => f.endsWith('.jsonl'));
     expect(fichiers.length).toBeGreaterThan(0);
     const doublons: string[] = [];
     for (const f of fichiers) {
-      const { entete, gestes } = lireLeFichier(readFileSync(new URL(f, dossier), 'utf8'));
+      const { entete, gestes } = lireLeFichier(readFileSync(join(dossier, f), 'utf8'));
       const r = rejouer(entete, gestes);
       try {
         const etat = r.partie.etat();

@@ -7,7 +7,7 @@ import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
 /** Les lectures de la donnée qui jugent le porteur, chargées une fois par processus. */
 let donnee
 const chargerDonnee = () =>
-  (donnee ??= chargerAssets(["export { planDeBestiaire, gabarits, taillesDeLaRace } from '/src/data/index.ts';"]))
+  (donnee ??= chargerAssets(["export * from '/scripts/personnage-3d/base/donneeDeDeclaration.ts';"]))
 
 /** La part déclarée du manifeste de base (`manifeste.mjs`) : `base`, `porteur`, `bornesArticulaires`, `clips` et,
  *  déclarées, `clipsDeuxMains`, `prisesOccupees` et `surfaces`. */

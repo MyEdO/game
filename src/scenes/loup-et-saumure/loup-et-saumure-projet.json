@@ -486,7 +486,9 @@
             "kind": "effet",
             "effet": {
              "type": "setVessel",
-             "vehicleId": "loup-imperial",
+             "navire": {
+              "id": "loup-imperial"
+             },
              "label": "Le Grimm",
              "morale": 75,
              "hullCurrent": 180,
@@ -1468,7 +1470,9 @@
      ],
      "postes": [
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "tribord",
        "crewIds": [],
        "ammo": {
@@ -1480,7 +1484,9 @@
        }
       },
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "babord",
        "crewIds": [],
        "ammo": {
@@ -1492,7 +1498,9 @@
        }
       },
       {
-       "trappingId": "pierrier",
+       "engin": {
+        "id": "pierrier"
+       },
        "side": "proue",
        "crewIds": [],
        "ammo": {
@@ -1604,7 +1612,9 @@
      ],
      "postes": [
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "tribord",
        "crewIds": [],
        "ammo": {
@@ -1615,7 +1625,9 @@
        }
       },
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "babord",
        "crewIds": [],
        "ammo": {
@@ -1626,7 +1638,9 @@
        }
       },
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "proue",
        "crewIds": [],
        "ammo": {
@@ -2770,7 +2784,9 @@
      ],
      "postes": [
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "tribord",
        "crewIds": [],
        "ammo": {
@@ -2782,7 +2798,9 @@
        }
       },
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "babord",
        "crewIds": [],
        "ammo": {
@@ -2794,7 +2812,9 @@
        }
       },
       {
-       "trappingId": "pierrier",
+       "engin": {
+        "id": "pierrier"
+       },
        "side": "poupe",
        "crewIds": [],
        "ammo": {
@@ -2906,7 +2926,9 @@
      ],
      "postes": [
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "tribord",
        "crewIds": [],
        "ammo": {
@@ -2917,7 +2939,9 @@
        }
       },
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "babord",
        "crewIds": [],
        "ammo": {
@@ -2928,7 +2952,9 @@
        }
       },
       {
-       "trappingId": "canon-moyen",
+       "engin": {
+        "id": "canon-moyen"
+       },
        "side": "proue",
        "crewIds": [],
        "ammo": {

@@ -98,7 +98,7 @@ describe('apparence des objets de campagne', () => {
   const coffre = (surface: Surface, apparence: string): Jouet => {
     const lieu = { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 } };
     if (surface === 'apparencesObjets') return { ...lieu, appearance: { apparencesObjets: { [objet.id]: { id: apparence } } } };
-    const don = { trappingId: objet.id, apparence: { id: apparence } };
+    const don = { objet: { id: objet.id }, apparence: { id: apparence } };
     const effect = surface === 'action' ? { type: 'giveTrapping', ...don } : { type: 'ops', ops: [{ op: 'giveTrapping', ...don }] };
     return { ...lieu, usable: { actions: [{ id: 'fouiller', flow: { kind: 'effet', effet: effect } }] } };
   };
@@ -136,15 +136,15 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
     narratif: { ...emptyNarratif(), objets: [objet], presetsPnj: [{ id: 'pnj-de-sonde', base: { id: 'gobelin' }, apparence: { apparencesObjets: { [id]: { id: 'epee' } } } }] },
     scenes: [sceneMinimale({ entities: [
       { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 }, usable: { actions: [
-        { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: id } } },
-        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: id }] } } },
+        { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', objet: { id: id } } } },
+        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: id } }] } } },
       ] } },
       { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { apparencesObjets: { [id]: { id: 'epee' } } } },
     ] })],
   });
   const POSITIONS = [
-    ['scenes.0.entities.0.usable.actions.0.flow.effet.trappingId', false],
-    ['scenes.0.entities.0.usable.actions.1.flow.effet.ops.0.trappingId', false],
+    ['scenes.0.entities.0.usable.actions.0.flow.effet.objet.id', false],
+    ['scenes.0.entities.0.usable.actions.1.flow.effet.ops.0.objet.id', false],
     [`scenes.0.entities.1.appearance.apparencesObjets.${'@'}`, true],
     [`narratif.presetsPnj.0.apparence.apparencesObjets.${'@'}`, true],
   ] as const;
@@ -166,10 +166,10 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
   });
 
   it('un id ni au catalogue ni dans la campagne est refusé au parse, à son chemin', () => {
-    const doc = document(objet.id) as { scenes: { entities: { usable?: { actions: { flow: { effet: { trappingId?: string } } }[] } }[] }[] };
-    doc.scenes[0].entities[0].usable!.actions[0].flow.effet.trappingId = 'objet-fantome';
+    const doc = document(objet.id) as { scenes: { entities: { usable?: { actions: { flow: { effet: { objet: { id: string } } } }[] } }[] }[] };
+    doc.scenes[0].entities[0].usable!.actions[0].flow.effet.objet.id = 'objet-fantome';
     expect(fautes(doc)).toEqual([
-      'scène « scene-1 » › entité « coffre » › utilisable › actions « fouiller » › effet Donner un objet › objet :: « objet-fantome » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).',
+      'scène « scene-1 » › entité « coffre » › utilisable › actions « fouiller » › effet Donner un objet › objet › identifiant :: « objet-fantome » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).',
     ]);
   });
 
@@ -196,7 +196,7 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
     ['apparencesObjets null', { appearance: { apparencesObjets: null } }, 'scenes.0.entities.1.appearance.apparencesObjets :: Entrée invalide : record attendu, null reçu'],
     ['apparencesObjets valeur chaîne', { appearance: { apparencesObjets: { [objet.id]: 'epee' } } }, `scenes.0.entities.1.appearance.apparencesObjets.${objet.id} :: Entrée invalide : objet attendu, chaîne de caractères reçu`],
     ['apparencesObjets valeur null', { appearance: { apparencesObjets: { [objet.id]: null } } }, `scenes.0.entities.1.appearance.apparencesObjets.${objet.id} :: Entrée invalide : objet attendu, null reçu`],
-    ['Effet giveTrapping apparence chaîne', { effet: { type: 'giveTrapping', trappingId: objet.id, apparence: 'cape' } }, 'scenes.0.entities.0.usable.actions.0.flow.effet.apparence :: Entrée invalide : objet attendu, chaîne de caractères reçu'],
+    ['Effet giveTrapping apparence chaîne', { effet: { type: 'giveTrapping', objet: { id: objet.id }, apparence: 'cape' } }, 'scenes.0.entities.0.usable.actions.0.flow.effet.apparence :: Entrée invalide : objet attendu, chaîne de caractères reçu'],
   ] as const)('%s : le contrôle sous portée se tait, seule la faute de forme du nœud sort', (_cas, malforme, attendue) => {
     const doc = document(objet.id) as { scenes: { entities: Record<string, unknown>[] }[] };
     const [coffre, pnj] = doc.scenes[0].entities as [{ usable: { actions: { flow: Record<string, unknown> }[] } }, Record<string, unknown>];
@@ -262,11 +262,11 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
     ['un id inconnu', 'objet-fantome'],
   ])('sous un objet de la campagne, l’ouvreur intérieur juge seul (%s) : aucun site, une faute, celle du catalogue', (_cas, vise) => {
     const doc = structuredClone(document(objet.id)) as unknown as Doc;
-    doc.narratif.objets = [{ ...objet, passive: [{ op: 'giveTrapping', trappingId: vise }] }, objetDeCampagne({ id: 'autre-objet' })];
+    doc.narratif.objets = [{ ...objet, passive: [{ op: 'giveTrapping', objet: { id: vise } }] }, objetDeCampagne({ id: 'autre-objet' })];
     expect(sitesDe(doc)).toEqual(SITES_DE_L_OBJET);
     const r = projetSchema.safeParse(doc);
     expect(r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} :: ${i.message}`)).toEqual([
-      `narratif.objets.0.passive.0.trappingId :: « ${vise} » est absent du catalogue des objets (trappings.json).`,
+      `narratif.objets.0.passive.0.objet.id :: « ${vise} » est absent du catalogue des objets (trappings.json).`,
     ]);
   });
 
@@ -281,7 +281,7 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
 describe('références de campagne dans la scène, les dotations et les objets embarqués', () => {
   const objet = objetDeCampagne();
   const arme = objetDeCampagne({ id: 'arme-enchantee' });
-  const don = (id: string) => ({ op: 'giveTrapping', trappingId: id });
+  const don = (id: string) => ({ op: 'giveTrapping', objet: { id: id } });
   const feuille = (effet: Jouet) => ({ kind: 'effet', effet });
   const ops = (...operations: Jouet[]) => ({ type: 'ops', ops: operations });
   const touche = (op: Jouet) => ({ trigger: 'onHit', on: 'victime', flow: feuille(ops(op)) });
@@ -300,7 +300,7 @@ describe('références de campagne dans la scène, les dotations et les objets e
     scenes: [sceneMinimale({ entities: [pnj({ presetId: 'preset', inventaire: { [id]: true } }), action(ops(invocation(id)))] })],
   });
   const sites = (id: string) => [
-    { chemin: ['narratif', 'objets', 1, 'onHitEffects', 0, 'flow', 'effet', 'ops', 0, 'trappingId'], id, parCle: false },
+    { chemin: ['narratif', 'objets', 1, 'onHitEffects', 0, 'flow', 'effet', 'ops', 0, 'objet', 'id'], id, parCle: false },
     { chemin: ['narratif', 'presetsPnj', 0, 'profil', 'trappings', 0, 'id'], id, parCle: false },
     { chemin: ['scenes', 0, 'entities', 0, 'inventaire', id], id, parCle: true },
     { chemin: ['scenes', 0, 'entities', 1, 'usable', 'actions', 0, 'flow', 'effet', 'ops', 0, 'form', 'id'], id, parCle: false },
@@ -364,7 +364,7 @@ describe('références de campagne dans la scène, les dotations et les objets e
     expect(catalogueDesObjets.safeParse([global]).success).toBe(true);
     const r = catalogueDesObjets.safeParse([local, objet]);
     expect(r.success).toBe(false);
-    expect(r.success ? [] : r.error.issues.map((i) => i.path)).toEqual([[0, 'onHitEffects', 0, 'flow', 'effet', 'ops', 0, 'trappingId']]);
+    expect(r.success ? [] : r.error.issues.map((i) => i.path)).toEqual([[0, 'onHitEffects', 0, 'flow', 'effet', 'ops', 0, 'objet', 'id']]);
   });
 
   it.each([
@@ -385,8 +385,8 @@ describe('références de campagne dans la scène, les dotations et les objets e
     const positions = (doc: unknown) => sitesDeLaPortee(projetSchema, doc, OBJETS_DU_PROJET)
       .map(({ chemin, id }) => ({ chemin: chemin.join('.'), id })).sort((a, b) => a.chemin.localeCompare(b.chemin));
     const sites = (id: string) => [
-      { chemin: 'narratif.objets.1.consumable.effet.ops.0.trappingId', id },
-      { chemin: 'narratif.objets.1.effects.0.flow.effet.ops.0.trappingId', id },
+      { chemin: 'narratif.objets.1.consumable.effet.ops.0.objet.id', id },
+      { chemin: 'narratif.objets.1.effects.0.flow.effet.ops.0.objet.id', id },
     ];
     expect(positions(edite)).toEqual(sites(objet.id));
     expect(retireDuProjet(edite, { registre: 'objets', id: objet.id })).toBe(edite);
@@ -397,7 +397,7 @@ describe('références de campagne dans la scène, les dotations et les objets e
 
     const catalogue = catalogueDesObjets.safeParse([porteuse, objet]);
     expect(catalogue.success ? [] : catalogue.error.issues.map((issue) => issue.path.join('.')).sort()).toEqual([
-      '0.consumable.effet.ops.0.trappingId', '0.effects.0.flow.effet.ops.0.trappingId',
+      '0.consumable.effet.ops.0.objet.id', '0.effects.0.flow.effet.ops.0.objet.id',
     ]);
   });
 
@@ -433,7 +433,7 @@ describe('références de campagne dans la scène, les dotations et les objets e
     expect(projetSchema.safeParse(withRoundEnd(test)).success).toBe(true);
     const r = projetSchema.safeParse(withRoundEnd({ kind: 'sequence', etapes: [test] }));
     expect(r.success ? [] : r.error.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([
-      ['narratif.objets.1.effects.0.flow.etapes.0.reussite.effet.ops.0.trappingId', expect.stringContaining('Test à la racine')],
+      ['narratif.objets.1.effects.0.flow.etapes.0.reussite.effet.ops.0.objet.id', expect.stringContaining('Test à la racine')],
     ]);
   });
 
@@ -454,7 +454,7 @@ describe('références de campagne dans la scène, les dotations et les objets e
     ] as const)('%s refuse la référence sans chemin de jeu (facultatif=%s, gratuite=%s)', (trigger, optional, gratuite, motif) => {
       const r = projetSchema.safeParse(documentPorteur(avecDon(trigger, objet.id, optional, gratuite)));
       expect(r.success ? [] : r.error.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([
-        ['narratif.objets.1.effects.0.flow.effet.ops.0.trappingId', expect.stringContaining(motif)],
+        ['narratif.objets.1.effects.0.flow.effet.ops.0.objet.id', expect.stringContaining(motif)],
       ]);
       const global = avecDon(trigger, 'arme-simple', optional, gratuite);
       expect(projetSchema.safeParse(documentPorteur(global)).success).toBe(true);
@@ -513,7 +513,7 @@ describe('références de campagne dans la scène, les dotations et les objets e
     expect(projetSchema.safeParse(projetAvecDon('arme-simple')).success).toBe(true);
     const r = projetSchema.safeParse(projetAvecDon(objet.id));
     expect(r.success ? [] : r.error.issues.map((i) => [i.path.slice(-1)[0], i.message])).toEqual([
-      ['trappingId', expect.stringContaining(cause)],
+      ['id', expect.stringContaining(cause)],
     ]);
   });
 
@@ -542,11 +542,11 @@ describe('références de campagne dans la scène, les dotations et les objets e
   });
 
   it.each([
-    [pnj({ creature: { id: 'humain' }, postes: [{ trappingId: objet.id }] }), 'postes.0.trappingId', 'siege-engines.json'],
-    [pnj({ creature: { id: 'humain' }, postes: [{ trappingId: 'baliste', ammo: { [objet.id]: 1 } }] }), 'postes.0.ammo.' + objet.id, 'ammunition'],
-    [pnj({ creature: { id: 'humain' }, postes: [{ trappingId: 'baliste', ammo: { 'carreau-de-baliste': 1 }, selectedAmmo: { id: objet.id } }] }), 'postes.0.selectedAmmo.id', 'ammunition'],
+    [pnj({ creature: { id: 'humain' }, postes: [{ engin: { id: objet.id } }] }), 'postes.0.engin.id', 'siege-engines.json'],
+    [pnj({ creature: { id: 'humain' }, postes: [{ engin: { id: 'baliste' }, ammo: { [objet.id]: 1 } }] }), 'postes.0.ammo.' + objet.id, 'ammunition'],
+    [pnj({ creature: { id: 'humain' }, postes: [{ engin: { id: 'baliste' }, ammo: { 'carreau-de-baliste': 1 }, selectedAmmo: { id: objet.id } }] }), 'postes.0.selectedAmmo.id', 'ammunition'],
     [pnj({ engin: { id: objet.id } }), 'engin.id', 'siege-engines.json'],
-    [action({ type: 'setVessel', provisions: 1, vivre: { id: objet.id } }), 'usable.actions.0.flow.effet.vivre.id', 'trappings.json'],
+    [action({ type: 'setVessel', navire: { id: 'cogue' }, provisions: 1, vivre: { id: objet.id } }), 'usable.actions.0.flow.effet.vivre.id', 'trappings.json'],
     [action({ type: 'adjustVessel', provisions: 1, vivre: { id: objet.id } }), 'usable.actions.0.flow.effet.vivre.id', 'trappings.json'],
     [action(ops({ op: 'provisions', rations: 1, vivre: { id: objet.id } })), 'usable.actions.0.flow.effet.ops.0.vivre.id', 'trappings.json'],
     [action(ops({ op: 'provisions', jours: 1, vivre: { id: objet.id } })), 'usable.actions.0.flow.effet.ops.0.vivre.id', 'trappings.json'],
@@ -558,6 +558,65 @@ describe('références de campagne dans la scène, les dotations et les objets e
     expect(r.success).toBe(false);
     expect(r.success ? [] : r.error.issues.map((i) => [i.path.join('.'), i.message]))
       .toContainEqual([`scenes.0.entities.0.${suffixe}`, expect.stringContaining(catalogue)]);
+  });
+});
+
+describe('références des bâtiments et des ancres de bataille', () => {
+  const salle = { id: 'salle', label: 'Salle', area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 } };
+  const avecUnePiece = (roomZoneIds: string[]) => projet({
+    scenes: [sceneMinimale({
+      effectZones: [{ ...salle, presentation: 'interior' }, { ...salle, id: 'cour', presentation: 'exterior' }],
+      architecture: [{
+        id: 'maison', masses: [],
+        storeys: [{ id: 'rdc', z: 0, parts: [], roomZoneIds }],
+        facades: [{ id: 'face', z: 0, edges: [], appearance: 'crepi', roomZoneIds }],
+      }],
+    })],
+  });
+
+  it('l’étage et la façade désignent les pièces intérieures de leur scène', () => {
+    const doc = avecUnePiece(['salle']);
+    expect(projetSchema.safeParse(doc).success).toBe(true);
+    const paths = mesureDuParse(projetSchema, doc).reperes
+      .filter((repere) => repere.type === 'local:effectZones').map((repere) => repere.path.join('.')).sort();
+    expect(paths).toEqual([
+      'scenes.0.architecture.0.facades.0.roomZoneIds.0',
+      'scenes.0.architecture.0.storeys.0.roomZoneIds.0',
+    ]);
+  });
+
+  it.each(['inconnue-1615', 'cour'])('refuse la référence de pièce %s sur ses deux porteurs', (id) => {
+    const r = projetSchema.safeParse(avecUnePiece([id]));
+    expect(r.error?.issues).toEqual([
+      expect.objectContaining({ path: ['scenes', 0, 'architecture', 0, 'storeys', 0, 'roomZoneIds', 0], message: expect.stringContaining(id) }),
+      expect.objectContaining({ path: ['scenes', 0, 'architecture', 0, 'facades', 0, 'roomZoneIds', 0], message: expect.stringContaining(id) }),
+    ]);
+  });
+
+  it('une bataille résout chaque scène du pool, de la situation et des clés de rencontre', () => {
+    const avecBataille = (bataille: Jouet) => projet({ scenes: [sceneMinimale({
+      triggers: [{
+        id: 'bataille', rect: { x: 0, y: 0, w: 1, h: 1 },
+        flow: { kind: 'effet', effet: { type: 'startMassBattle', battle: { puissanceAlliee: 30, puissanceEnnemie: 40, ...bataille } } },
+      }],
+    })] });
+    const doc = avecBataille({ scenes: ['charge'], situations: [['motivation']] });
+    expect(projetSchema.safeParse(doc).success).toBe(true);
+    const r = projetSchema.safeParse(avecBataille({
+      scenes: ['planification'], situations: [['inconnue-1615']], sceneEncounters: { planification: { id: 'milice' } },
+    }));
+    expect(r.error?.issues.map((issue) => issue.path.slice(-3).join('.'))).toEqual(
+      expect.arrayContaining(['battle.scenes.0', 'situations.0.0', 'battle.sceneEncounters.planification']),
+    );
+  });
+
+  it('une ancre résout une Scène de Round, pas une autre activité', () => {
+    const avecAncre = (sceneId: string) => projet({ scenes: [sceneMinimale({ stations: [{ sceneId, pos: { x: 0, y: 0 } }] })] });
+    expect(projetSchema.safeParse(avecAncre('charge')).success).toBe(true);
+    const r = projetSchema.safeParse(avecAncre('planification'));
+    expect(r.error?.issues).toEqual([
+      expect.objectContaining({ path: ['scenes', 0, 'stations', 0, 'sceneId'], message: expect.stringContaining('activities.json?sceneKind') }),
+    ]);
   });
 });
 
@@ -731,6 +790,17 @@ describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEM
       'scène « scene-1 » › couches « 0 » › créneaux :: `crenellated` porte 4 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
     expect(projetSchema.safeParse(avecCouches([{ z: 0, tiles: pleine(16), height: Array.from({ length: 16 }, () => 0), crenellated: Array.from({ length: 16 }, () => null) }])).success).toBe(true);
+  });
+
+  it('une cellule crénelée désigne une apparence à parapet et conserve les autres cellules nulles', () => {
+    const avecCrete = (id: string) => avecCouches([{ z: 0, tiles: pleine(16), crenellated: [id, ...Array<null>(15).fill(null)] }]);
+    expect(projetSchema.safeParse(avecCrete('mur-en-pierre')).success).toBe(true);
+    for (const id of ['inconnue-1615', 'cloison-bois']) {
+      const r = projetSchema.safeParse(avecCrete(id));
+      expect(r.error?.issues).toEqual([
+        expect.objectContaining({ path: ['scenes', 0, 'layers', 0, 'crenellated', 0], message: expect.stringContaining('structureAppearance.json?parapet') }),
+      ]);
+    }
   });
 
   it('les couches EXACTES passent, et une scène sans couche du tout n’invente rien', () => {

@@ -14,6 +14,7 @@ import type { optionalEntrySchema } from '../data/schemas/defs/creatures';
 import type { MatiereDArmure } from '../data/schemas/grammaire/valeurs';
 import { hashSeed, makeRNG } from './dice';
 import { lirePlage, type ParLocalisation, type Plage } from './classementDeTrait';
+import type { WeaponLoadState } from './weaponLoad';
 import type { FormuleSansTirage } from './ops';
 
 export interface StatEntry {
@@ -149,14 +150,22 @@ export interface TraitInstance extends SansFourchette {
    *  porté nativement ou accordé par un tiers (Haine d'une prière, LDB 226) n'est pas touché.
    *  Absent = instance NATIVE (statbloc/authoring). */
   src?: EffectSource;
-  /** Indice par Localisation (AA 09 l.184), lu par `armourFromTraits`. */
+  /** Identité de l'instance qui porte un état d'équipement. #3693 */
+  uid?: string;
+  /** État du Trait qui tient lieu d'arme. LDB 62 l.135, l.280, l.335 */
+  etatDArme?: WeaponLoadState & { damageTaken?: number; lachee?: true };
+  /** AA 09 l.184 */
   parLocalisation?: ParLocalisation;
+  /** LDB 63 l.19 */
+  usure?: Partial<ParLocalisation>;
   /** Matière de l'armure du Trait, lue par `sourcesDArmureA` (`engine/armourBypass`). LDB 62 l.270 ; LDB 85 l.39 */
   matiere?: MatiereDArmure;
   /** Difficulté des Tests qui éliminent l'État que le Trait inflige. MDG 16 l.226 ; LDB 16 l.70 */
   difficulte?: Difficulty;
   /** Traits conférés aux touches de ce Trait d'attaque, lus par l'arme qui en naît. ZI 03 l.75, l.77 */
   confere?: TraitInstance[];
+  /** ZI 13 l.224, l.240, l.242 ; Guide de Frenchy, chap. 26, ligne 882 */
+  profilDArme?: TraitPose['profilDArme'];
 }
 
 /**
@@ -240,11 +249,3 @@ export const isOptionalNote = (e: OptionalEntry): e is OptionalNote => 'note' in
 
 /** Nom canonique seul (raccourci pour les lookups Codex/registre). */
 export const statName = (raw: string): string => parseStatEntry(raw).name;
-
-/** Décompose un libellé concret « Nom (Spec) » → { name, spec } via le parseur unifié (compte/
- *  bonus/indice/portée éventuels écartés). Source UNIQUE du split nom↔spécialisation (carrières,
- *  compétences/talents de statbloc). */
-export function splitLabel(raw: string): { name: string; spec?: string } {
-  const p = parseStatEntry(raw);
-  return p.arg ? { name: p.name, spec: p.arg } : { name: p.name };
-}

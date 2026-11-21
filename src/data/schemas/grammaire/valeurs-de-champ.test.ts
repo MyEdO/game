@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { DEFS_DE_DOCUMENT } from '../validate';
-import { OP_DEFS } from './mecanique';
+import { capaciteDeCombatSchema, domaineDuChaosSchema, OP_DEFS } from './mecanique';
 import { descendre, noeudsAuChemin } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
@@ -98,7 +98,11 @@ const NOMMES = [
   // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
-  'colombage|pierre|moellons|pierres-seches|porterie|cloture',
+  'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement',
+  // `kitDEscalierSchema` (#4471) : la famille du kit 3D d'escalier d'un terrain bâti (`terrains.json`).
+  'bois|pierre',
+  // `kitDeToitSchema` (#4471) : la famille du kit 3D de toit d'une couverture (`materials.json`).
+  'ardoise|tuile|chaume',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
@@ -149,7 +153,7 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal|planche|joint|gravats|barreau|traverse|vitre',
   'physique|mentale',
   // `offreDAubergeSchema` (#4277) : les offres d'auberge d'un hébergement (LDB 66 l.12-16, l.28).
   'commune|chambre|grande|repas',
@@ -218,6 +222,7 @@ const NOMMES = [
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
+  'weeks|days|hours|minutes',
   // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
   'reussite|echec',
   'reussite|echec|maladresse',
@@ -277,6 +282,9 @@ const NOMMES = [
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
   // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
   Object.keys(itemCapabilitiesSchema.shape).join('|'),
+  // Conditions de combat (#3067) : capacités admises par CombatFeature et Domaines du Chaos du lanceur.
+  capaciteDeCombatSchema.unwrap().options.join('|'),
+  domaineDuChaosSchema.options.join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
   'personne|bete|vehicule|immeuble|titre|intangible',
   // `topUpAdvantage.amount` (`grammaire/mecanique.ts`, `ouReserve`) : le gabarit d'instance `INDICE_TEMPLATE`
@@ -320,7 +328,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'complet|partiel',
   'current|ever',
   'dangereuse|tresDangereuse|extreme',
-  'days|hours|minutes',
   'dechirure|fracture',
   'dechirure|fracture|amputation',
   'declare|tirage',
@@ -365,7 +372,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'groupe|ennemis',
   'groupe|heros',
   'pas|trot|galop',
-  'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',
   'remplace|ajoute',

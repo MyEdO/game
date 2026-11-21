@@ -11,14 +11,19 @@ import { createHero } from '../engine/character';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity } from './monde/scene';
 import { type CustomStatblock } from '../engine/statblock';
 import { emptyNarratif } from './monde/campaignNarratif';
-import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { initialNet } from './etat';
 import { ligneDe } from '../engine/modLine.testkit';
-import { psychTest, sansPeurLabel } from '../engine/psychology';
+import { ciblesDePulsion, psychTest, sansPeurLabel } from '../engine/psychology';
+import { groupesDe, groupesPercus } from '../engine/groups';
+import { itemFromTrappingById } from '../engine/items';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { parsePsychTraits } from '../engine/psych/registry';
-import { refLabel } from '../data';
+import { groupLabel, psychologyLabel, refLabel } from '../data';
 import { t } from '../i18n';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';
+import { idDEtiquetteDObjet } from '../lib/entityId';
 
 /**
  * Flux de Psychologie À LA RENCONTRE, hors combat (couture C). Depuis 2026-06-10 : la Peur/Terreur de
@@ -118,6 +123,11 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(step.kind).toBe('psychologieDeRencontre');
     expect(step.psychologieDeRencontre?.kind).toBe('animosite');
     expect(step.psychologieDeRencontre?.cible).toBe(ciblePsy.groupe('elfe'));
+    const psych = psychologyLabel('animosite');
+    const groupe = groupLabel('elfe');
+    expect(psych).not.toBe('animosite');
+    expect(groupe).not.toBe('elfe');
+    expect(step.label).toBe(t('step.sujetPrecision', { sujet: psych, precision: groupe }));
     // BANDE : le jet vit sur la RANGÉE, jamais sur l'étape (contrat `aggregate:'none'`).
     expect(step.aggregate).toBe('none');
     expect(step.target).toBeUndefined();
@@ -125,7 +135,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(step.participants?.[0].result).toBeNull();
   });
 
-  it('Animosité ratée + Continuer → affliction active en psychState ; cascade close (1 héros)', () => {
+  it('Animosité ratée + Continuer → affliction active, verdict libellé au journal et cascade close', () => {
     const h = animosite('H');
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
@@ -133,6 +143,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.getState().jetValider('cascade');
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('elfe') && p.active === true)).toBe(true);
+    expect(banc.getState().journal).toContain(t('out.cibleGrip', { name: h.label, psych: psychologyLabel('animosite') }));
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -146,6 +157,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.active === true)).toBe(false);
     expect(hero.resilience).toBe(0);
+    expect(banc.getState().journal).toContain(t('out.cibleMaster', { name: h.label, psych: psychologyLabel('animosite') }));
   });
 
   it('Détermination = immunité temporaire (LDB 17 l.59) : psychImmuneRoundsLeft posé, animosité inerte (≈ succès one-shot), -1 Détermination', () => {
@@ -452,5 +464,92 @@ describe('encounterPsychFlow — l’étiquette de la scène, source sans PNJ (#
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(etiquetee());
     expect(banc.getState().pendingCascade).toBeNull();
+  });
+});
+
+
+describe('encounterPsychFlow — l’objet porté comme source de rencontre (#3045)', () => {
+  const groupe = 'figures-symboles-religieux';
+  const cible = ciblePsy.groupe(groupe);
+  const symbole = objetDeCampagne({
+    id: 'symbole-de-test',
+    label: 'Sceau rayonnant',
+    categorie: 'trapping',
+    subType: { id: 'vetements-et-accessoires' },
+    groups: [groupe],
+  });
+  const narratif = { ...emptyNarratif(), objets: [symbole] };
+  const adversite = () => {
+    const h = timoreux('H');
+    h.psychTraits = [{ type: 'haine', cible }];
+    return h;
+  };
+
+  it('la vraie entrée de scène ouvre le Test sur le symbole porté du PNJ, sans lui attribuer le Groupe', () => {
+    const h = adversite();
+    const s = scene([ent({ id: 'voyageur', creature: { id: 'humain' }, inventaire: { [symbole.id]: true } })]);
+    banc.setState({ party: [h] });
+    banc.getState().ensemencerLeTirage(2);
+    banc.getState().lancerLaScene(s, narratif);
+    const bande = banc.getState().pendingCascade?.participants[0];
+    expect(bande?.psychologieDeRencontre).toMatchObject({ kind: 'haine', cible, sourceName: symbole.label });
+    expect(bande?.psychologieDeRencontre?.sourceId).not.toBe('voyageur');
+    expect(bande?.participants?.map((p) => p.id)).toEqual([h.id]);
+
+    const porteurs = sceneFearSources(s, presetPnjById, objetDuNarratif(narratif));
+    expect(groupesDe(porteurs[0])).not.toContain(groupe);
+    expect(groupesPercus(porteurs[0])).not.toContain(groupe);
+    banc.getState().jetLancer('cascadeEnBande', h.id);
+    banc.getState().jetValider('cascade');
+    const haineux = banc.getState().party[0];
+    expect(haineux.psychState).toContainEqual(expect.objectContaining({ type: 'haine', cible, active: true }));
+    expect(ciblesDePulsion(haineux, porteurs)).toEqual([]);
+  });
+
+  it('le parse autorise une ancienne graphie libre et réserve la nouvelle identité de l’objet', () => {
+    const h = adversite();
+    const voyageur = ent({ id: 'p', creature: { id: 'humain' }, inventaire: { [symbole.id]: true } });
+    const uid = `p-objet-${symbole.id}`;
+    const autre = ent({ id: `objet:p:${uid}`, label: 'Un autre voyageur', creature: { id: 'humain' } });
+    expect(sceneEntitySchema.safeParse(autre).success).toBe(true);
+    expect(sceneEntitySchema.safeParse({ ...autre, id: idDEtiquetteDObjet(voyageur.id, uid) }).success).toBe(false);
+    expect(idDEtiquetteDObjet('p:q', 'r')).not.toBe(idDEtiquetteDObjet('p', 'q:r'));
+
+    banc.setState({ party: [h] });
+    banc.getState().lancerLaScene(scene([autre, voyageur]), narratif);
+    expect(banc.getState().pendingCascade?.participants[0].psychologieDeRencontre)
+      .toMatchObject({ kind: 'haine', cible, sourceId: idDEtiquetteDObjet(voyageur.id, uid), sourceName: symbole.label });
+  });
+
+  it.each(['absent', 'à soi', 'non équipé', 'dans un sac', 'détruit', 'sans fiche'] as const)(
+    'un symbole %s ne suscite aucun Test',
+    (cas) => {
+      const h = adversite();
+      const compagnon = timoreux('Compagnon');
+      const item = itemFromTrappingById(symbole.id, idsDeTest, objetDuNarratif(narratif))!;
+      if (cas !== 'absent') {
+        (cas === 'à soi' ? h : compagnon).items = [{
+          ...item,
+          equipped: cas !== 'non équipé',
+          ...(cas === 'dans un sac' ? { inside: 'sac-de-test' } : {}),
+          ...(cas === 'détruit' ? { destroyed: true } : {}),
+          ...(cas === 'sans fiche' ? { trappingId: 'symbole-inconnu' } : {}),
+        }];
+      }
+      banc.setState({ party: [h, compagnon] });
+      banc.getState().lancerLaScene(scene([]), narratif);
+      expect(banc.getState().pendingCascade).toBeNull();
+    },
+  );
+
+  it('un compagnon qui montre son propre symbole déclenche le Test de l’autre héros', () => {
+    const h = adversite();
+    const compagnon = adversite();
+    compagnon.items = [{ ...itemFromTrappingById(symbole.id, idsDeTest, objetDuNarratif(narratif))!, equipped: true }];
+    banc.setState({ party: [h, compagnon] });
+    banc.getState().lancerLaScene(scene([]), narratif);
+    const bande = banc.getState().pendingCascade?.participants[0];
+    expect(bande?.psychologieDeRencontre).toMatchObject({ kind: 'haine', cible, sourceName: symbole.label });
+    expect(bande?.participants?.map((p) => p.id)).toEqual([h.id]);
   });
 });

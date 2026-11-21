@@ -4,7 +4,7 @@
  * jamais par catégorie.
  */
 import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findPropById, findTeteById, libelleDAuteur } from '../../data';
-import { kitSchema } from '../../data/schemas/defs/structureAppearance';
+import { kitDEscalierSchema, kitDeToitSchema, kitSchema } from '../../data/schemas/defs/structureAppearance';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { pieceOuVariante } from './gardeRobe';
 
@@ -34,10 +34,14 @@ const CHAMPS = {
   prop: { find: findPropById, quoi: 'décor de `props.json`' },
   kit: {
     find: (id: string) => {
-      const label = valeursDe(kitSchema)?.[id];
-      return label === undefined ? undefined : { label };
+      const familles = [['arete', kitSchema], ['escalier', kitDEscalierSchema], ['toit', kitDeToitSchema]] as const;
+      for (const [categorie, schema] of familles) {
+        const label = valeursDe(schema)?.[id];
+        if (label !== undefined) return { label, categorie };
+      }
+      return undefined;
     },
-    quoi: 'famille de kit de `structureAppearance.json`',
+    quoi: 'famille de kit d’arête (`kitSchema`), d’escalier (`kitDEscalierSchema`) ni de toit (`kitDeToitSchema`)',
   },
 } as const satisfies Readonly<Record<string, ChampDeCle>>;
 

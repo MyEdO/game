@@ -562,7 +562,7 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 | Points de Corruption sur `Combatant.corruption` | `Combatant.corruption` (engine/types.ts) | **OK** |
 | `corruptionGain(level, success, dr)` → points selon niveau/DR | `corruptionGain` | **OK** |
 | Seuil `corruption > BFM + BE` → Test Résistance Intermédiaire | `corruptionThresholdExceeded` | **OK** |
-| Talent Âme Pure → seuil + niveau | `talentCorruptionThreshold(c)` (dispatch) | **OK** |
+| Talent Âme Pure → seuil + niveau | `talentCorruptionThreshold(c)` (`src/engine/combatFeatures/talents.ts`) | **OK** |
 | Dissolution : -BFM Points, d100 corps/esprit par espèce | `applyMutation` → `mutationKindFor` | **OK** |
 | Table corps/esprit par race (Elfe/Halfling/Humain/Nain, Ogre, Gnome) | `natureDeMutationDe` → `mutationKindFor` | **OK** |
 | Tirage sur table physique/mentale | `rollMutation(kind, rng)` (data/mutations) | **OK** |
@@ -575,7 +575,7 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 | Traits psychologiques via mutation (Frénésie) | `attachMutation` → `grantPsychTrait` de `m.passive` | **OK** |
 | Pulsions de haine : Animosité envers « tous ceux qui ne sont pas de votre race » (LDB 19 l.152 ; EDOC 12 l.219) | `grantPsychTrait` `animosite` sur le Groupe relatif `autres-races` (`relatif: autresRacesQueLePorteur`, `vise`) ; les Races sont les Groupes à marqueur `race` (`racesDe`, `src/engine/groups.ts`) | **OK** |
 | Sombres Murmures (LDB 19 l.95-105 — choix OPTIONNEL, refuser garde le PC) | `DialogueChoice.flow` porte `{ op: 'corruption', amount: -1 }` (`src/engine/ops.ts`) ; le choix EST le dialogue d'auteur (accepter/refuser), rien de plus au moteur | **OK** |
-| Absolution (LDB 19 l.167-178 ; l.171 : « Les limites précises de ce qui peut être nécessaire pour perdre de la Corruption sont laissées à l'appréciation du MJ ») | quantité AUTHORABLE : `{ op: 'corruption', amount: -n }` (`applyOps`, `src/engine/ops.ts`) décrémente `corruption`, plancher 0, sans passer par `ctx.onCorruption` (pas de seuil/mutation sur un retrait) ; éditable au GameOpEditor (`src/ui/editor/GameOpEditor.tsx`) | **OK** |
+| Absolution (LDB 19 l.167-178 ; l.171 : « Les limites précises de ce qui peut être nécessaire pour perdre de la Corruption sont laissées à l'appréciation du MJ ») | quantité AUTHORABLE : `{ op: 'corruption', amount: -n }` (`applyOps`, `src/engine/ops.ts`) décrémente `corruption`, plancher 0, sans passer par `ctx.onCorruption` (pas de seuil/mutation sur un retrait) ; éditable au Compendium Godot | **OK** |
 
 ### Lectures de Pulsions de haine, recommandées, révisables
 

@@ -5,11 +5,7 @@
     "label": "Armes de mêlée",
     "match": {
       "categorie": "melee"
-    },
-    "columns": [
-      "damage",
-      "reach"
-    ]
+    }
   },
   {
     "id": "ranged",
@@ -17,11 +13,7 @@
     "label": "Armes à distance",
     "match": {
       "categorie": "distance"
-    },
-    "columns": [
-      "damage",
-      "range"
-    ]
+    }
   },
   {
     "id": "ammo",
@@ -29,10 +21,7 @@
     "label": "Munitions",
     "match": {
       "categorie": "ammunition"
-    },
-    "columns": [
-      "damage"
-    ]
+    }
   },
   {
     "id": "boucliers",
@@ -40,10 +29,7 @@
     "label": "Boucliers",
     "match": {
       "shield": true
-    },
-    "columns": [
-      "protection"
-    ]
+    }
   },
   {
     "id": "armor",
@@ -51,10 +37,7 @@
     "label": "Armures",
     "match": {
       "categorie": "armor"
-    },
-    "columns": [
-      "pa"
-    ]
+    }
   },
   {
     "id": "unites",
@@ -62,17 +45,12 @@
     "label": "Montures & véhicules",
     "match": {
       "unit": true
-    },
-    "columns": [
-      "availability",
-      "capacity"
-    ]
+    }
   },
   {
     "id": "divers",
     "type": "merchantFamilies",
     "label": "Divers",
-    "match": {},
-    "columns": []
+    "match": {}
   }
 ]

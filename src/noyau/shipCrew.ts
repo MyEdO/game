@@ -40,8 +40,8 @@ import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { partyBest, peutTenter, testValue } from '../engine/skills';
-import { rollLine, type RollLineParts } from './ligneDeJet';
 import { maxBy } from '../engine/pick';
+import { semainesCompletes } from '../engine/clock';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
@@ -356,11 +356,6 @@ export function valeurDeChanson(singer: Combatant): number {
   return testValue(singer, TEST_DE_CHANSON);
 }
 
-/** Ligne du Test de Chanson de marin (`rollLine`) — MDG 09 l.34-36. */
-export function ligneDeChanson(singer: Combatant): RollLineParts {
-  return rollLine({ actor: singer, test: TEST_DE_CHANSON, difficulty: 'intermediaire' });
-}
-
 /** Durée en minutes de l'effet d'une Chanson de marin au DR `sl` — MDG 09 l.38. */
 export function dureeDeChanson(sl: number): number {
   return 3 + Math.max(0, sl);
@@ -590,7 +585,7 @@ function defaultPayDecision(wageBrass: number): string | null {
 
 /**
  * Entretien HEBDOMADAIRE du navire de campagne (MDG 14) — appelé par `upkeep.ts` (site UNIQUE) à chaque entretien,
- * règle les semaines calendaires franchies depuis `lastMoraleWeek`. CADENCE-AWARE (#229) : quand un humain est à la barre
+ * règle les semaines franchies depuis `lastMoraleWeek`. CADENCE-AWARE (#229) : quand un humain est à la barre
  * (cadence MANUELLE) et qu'un vrai choix de paie existe (équipage salarié), la décision REMONTE en CONSEIL DE
  * BORD (modale `pendingCouncil`) — aucune mutation ici, le recalcul se joue à la validation du joueur. Il n'y
  * a pas de combattant « navire » à piloter → le prédicat de contrôle canonique se réduit à la cadence
@@ -603,7 +598,7 @@ function defaultPayDecision(wageBrass: number): string | null {
 export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng: RNG): string[] {
   const vessel = get().vessel;
   if (!vessel) return [];
-  const week = semaineDuJour(today);
+  const week = semainesCompletes(today);
   if (week <= vessel.morale.lastMoraleWeek) return [];
   const conseil = get().pendingCouncil;
   if (conseil) {
@@ -618,15 +613,10 @@ export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng:
   return reglerLesSemaines(get, set, defaultPayDecision(wageBrass), week, rng).lines;
 }
 
-/** Semaine calendaire d'un jour de campagne (`lastMoraleWeek`, `PendingCouncil.today`). */
-export function semaineDuJour(jour: number): number {
-  return Math.floor(jour / 7);
-}
-
 /** Semaines que le Conseil de bord en phase `choix` règle d'une décision : de `lastMoraleWeek + 1` à sa semaine. */
 export function semainesDuConseil(s: Jeu): number {
   const p = s.pendingCouncil;
-  return p && s.vessel ? semaineDuJour(p.today) - s.vessel.morale.lastMoraleWeek : 0;
+  return p && s.vessel ? semainesCompletes(p.today) - s.vessel.morale.lastMoraleWeek : 0;
 }
 
 /** Règle chaque semaine franchie, de `lastMoraleWeek + 1` à `week` (MDG 14 l.143, l.293-302) : une solde et un
@@ -673,7 +663,7 @@ function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
   const p = garanti(get().pendingCouncil, decision, 'Conseil de bord');
   if (!get().vessel) return;
   const semaines = semainesDuConseil(get());
-  const bloc = reglerLesSemaines(get, set, decision, semaineDuJour(p.today), battleRng());
+  const bloc = reglerLesSemaines(get, set, decision, semainesCompletes(p.today), battleRng());
   set({ pendingCouncil: { ...p, phase: 'bilan', decision, semaines, results: factorLedger(bloc.factorRolls), delta: bloc.delta, before: bloc.before, after: bloc.after } });
   get().ecrireAuJournal(bloc.lines);
 }

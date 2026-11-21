@@ -9,22 +9,14 @@
 // Lancé par `npm run test:docs`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { resultatDeGit } from '../test/gitDeBanc.mjs'
 
-const ICI = dirname(fileURLToPath(import.meta.url))
-const GARDE = join(ICI, 'check-plans-anchors.mjs')
-/** Libs que la garde importe en RELATIF : le dépôt jetable doit les porter au même chemin. */
-const LIBS = [['scripts', 'guards', 'lib', 'lister.mjs'], ['src', 'lib', 'ordre.mjs']]
-/** La garde et ses libs, LUES : le dépôt jetable les porte aux mêmes chemins relatifs. */
-const CODE_DE_LA_GARDE = {
-  'scripts/docs/check-plans-anchors.mjs': readFileSync(GARDE, 'utf8'),
-  ...Object.fromEntries(LIBS.map((parts) => [parts.join('/'), readFileSync(join(ICI, '..', '..', ...parts), 'utf8')])),
-}
+const GARDE = fileURLToPath(new URL('./check-plans-anchors.mjs', import.meta.url))
 
 const git = (base, ...args) => {
   const r = resultatDeGit(args, { cwd: base })
@@ -37,12 +29,9 @@ const ecrire = (base, rel, texte) => {
   writeFileSync(join(base, rel), texte, 'utf8')
 }
 
-/** Dépôt jetable : la garde y est COPIÉE (elle se résout par `git rev-parse --show-toplevel`, donc
- *  elle juge le dépôt courant, pas celui d'où elle vient). */
+/** Dépôt jetable jugé par la CLI depuis son `cwd` (`git rev-parse --show-toplevel`). */
 function depot(fichiers = {}) {
-  // Le gabarit ne porte que le code de la garde (INVARIANT, donc partagé par tous les cas) ; les
-  // fichiers du cas entrent dans le MÊME et unique commit `socle` que l'histoire jugée attend.
-  const { racine: base } = instanceDeDepot({ fichiers: CODE_DE_LA_GARDE, commit: false })
+  const { racine: base } = instanceDeDepot({ commit: false })
   for (const [rel, texte] of Object.entries(fichiers)) ecrire(base, rel, texte)
   git(base, 'add', '-A')
   git(base, 'commit', '-q', '-m', 'socle')
@@ -56,7 +45,7 @@ function tuerLePlan(base, rel) {
 }
 
 function lancer(base, ...args) {
-  const r = spawnSync(process.execPath, [join(base, 'scripts', 'docs', 'check-plans-anchors.mjs'), ...args], {
+  const r = spawnSync(process.execPath, [GARDE, ...args], {
     cwd: base,
     encoding: 'utf8',
   })

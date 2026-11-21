@@ -4,10 +4,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { RACINES, calculerFormats, defsDeSequence } from '../../gen-formats.mjs'
-import { readCorpus } from '../../guards/lib/sourceCorpus.mjs'
+import { entreeDe, readCorpus } from '../../guards/lib/sourceCorpus.mjs'
 import { parConstante } from '../../test/lib/bancFormats.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -24,24 +24,24 @@ test('stable entre deux processus', () => {
 test('stable entre deux racines de programme qui chargent les fichiers dans des ordres différents', () => {
   const autreOrdre = calculerFormats({
     racines: [...RACINES].reverse(),
-    avant: ['src/state/traceLayer.ts', 'src/noyau/creation/brouillon.ts', 'src/engine/types.ts', 'src/state/store.ts'],
+    avant: ['src/noyau/edition/calque.ts', 'src/noyau/creation/brouillon.ts', 'src/engine/types.ts', 'src/noyau/persistance/save.ts'],
   })
   assert.deepEqual(parConstante(autreOrdre), BASE)
 })
 
 test('sensible : un champ optionnel ajouté, un type de champ changé', () => {
-  const types = readFileSync(new URL('../../../src/engine/types.ts', import.meta.url), 'utf8')
+  const types = entreeDe(resolve(RACINE, 'src/engine/types.ts')).text
   assert.ok(types.includes('export interface Combatant {'))
   const avecChamp = parConstante(calculerFormats({
     recouvrement: { 'src/engine/types.ts': types.replace('export interface Combatant {', 'export interface Combatant {\n  zzNouveau?: number;') },
   }))
   for (const c of ['FORMAT_SAVE', 'FORMAT_ROSTER', 'FORMAT_EXPORT_HEROS']) assert.notEqual(avecChamp[c], BASE[c], c)
-  assert.equal(avecChamp.FORMAT_CALQUE, BASE.FORMAT_CALQUE)
+  assert.equal(avecChamp.FORMAT_CALQUES, BASE.FORMAT_CALQUES)
 
-  const calque = readFileSync(new URL('../../../src/state/traceLayer.ts', import.meta.url), 'utf8')
-  assert.ok(calque.includes('  opacity: number;'))
-  const autreType = parConstante(calculerFormats({ recouvrement: { 'src/state/traceLayer.ts': calque.replace('  opacity: number;', '  opacity: string;') } }))
-  assert.notEqual(autreType.FORMAT_CALQUE, BASE.FORMAT_CALQUE)
+  const calque = entreeDe(resolve(RACINE, 'src/noyau/edition/calque.ts')).text
+  assert.ok(calque.includes('  opacite: z.number().min(0).max(1),'))
+  const autreType = parConstante(calculerFormats({ recouvrement: { 'src/noyau/edition/calque.ts': calque.replace('  opacite: z.number().min(0).max(1),', '  opacite: z.string(),') } }))
+  assert.notEqual(autreType.FORMAT_CALQUES, BASE.FORMAT_CALQUES)
   assert.equal(autreType.FORMAT_SAVE, BASE.FORMAT_SAVE)
 })
 

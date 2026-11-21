@@ -146,16 +146,16 @@ export function bootstrap(env = process.env, racine = process.cwd(), run = lance
   return mettreEnConformite({ racine, run, gestes, pannes, depot: depotDe(racine, { enPanne: (raison) => pannes.push(raison) }) })
 }
 
-export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), depot = RACINE_DU_DEPOT, entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
+export async function bootstrapSessionStart({ env = process.env, racine = process.cwd(), depot = RACINE_DU_DEPOT, entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
   const lignes = bootstrap(env, racine, run, gestes)
   if (lignes.length) output.write(`${lignes.join('\n')}\n`)
   const memoire = memoireDuConteneur(env, depot)
   if (memoire) output.write(memoire)
-  produireRecuSessionStart({ surface: 'claude', entree, env, worktree: racine })
+  await produireRecuSessionStart({ surface: 'claude', entree, env, worktree: racine })
   return lignes
 }
 
 if (import.meta.main) {
-  try { bootstrapSessionStart({ racine: process.env.CLAUDE_PROJECT_DIR || process.cwd(), entree: await entreeHookNative() }) }
+  try { await bootstrapSessionStart({ racine: process.env.CLAUDE_PROJECT_DIR || process.cwd(), entree: await entreeHookNative() }) }
   catch (e) { process.stderr.write(`${e.message}\n`); process.exitCode = 1 }
 }

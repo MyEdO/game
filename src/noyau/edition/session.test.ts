@@ -314,13 +314,13 @@ describe('session d’édition', () => {
     const pnjs = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(0, 0) }, { geste: 'appui', point: point(0, 1) });
     const [a, b] = sceneEditee(pnjs).entities.map((e) => e.id);
     const pose = jouer(pnjs, { geste: 'outil', outil: { mode: 'emplacement', trappingId: 'baliste' } }, { geste: 'appui', point: point(2, 2) });
-    expect(ent(pose)?.postes?.[0]).toMatchObject({ trappingId: 'baliste' });
+    expect(ent(pose)?.postes?.[0]).toMatchObject({ engin: { id: 'baliste' } });
     const reglee = jouer(pose,
       { geste: 'poste', patch: { engin: 'catapulte-petite' } },
       { geste: 'poste', patch: { arc: 'tribord' } },
       { geste: 'poste', patch: { servants: [a, b] } },
       { geste: 'poste', patch: { servants: [b, a] } });
-    expect(ent(reglee)).toMatchObject({ engin: { id: 'catapulte-petite' }, postes: [{ trappingId: 'catapulte-petite', side: 'tribord', crewIds: [b, a] }] });
+    expect(ent(reglee)).toMatchObject({ engin: { id: 'catapulte-petite' }, postes: [{ engin: { id: 'catapulte-petite' }, side: 'tribord', crewIds: [b, a] }] });
     expect(ent(jouer(reglee, { geste: 'poste', patch: { arc: null } }))?.postes?.[0].side, 'omni').toBeUndefined();
     const equipage = jouer(pose, { geste: 'entite', patch: { crewIds: [a] } });
     expect(ent(equipage)?.crewIds).toEqual([a]);
@@ -762,6 +762,27 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     expect(offerts({ type: 'openMerchant', entityId: { id: 'medecin' } }, 'entityId')).toEqual(personnages.filter((e) => e.merchant).map((e) => e.id));
   });
 
+  it.each([
+    [{ type: 'setVessel', navire: { id: 'cogue' } }, 'navire', 'loup-imperial', ['diligence', 'navire-inconnu']],
+    [{ type: 'castSpell', casterId: 'lanceur', sort: { id: 'chute' } }, 'sort', 'flechette', ['sort-inconnu']],
+    [{ type: 'learnSpell', sort: { id: 'chute' } }, 'sort', 'flechette', ['sort-inconnu']],
+  ] as const satisfies readonly (readonly [Effect, string, string, readonly string[]])[])(
+    'la référence de l’effet %j se choisit et s’écrit dans son catalogue',
+    (effet, champ, cible, refuses) => {
+      const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet } } as const;
+      const chemin = ['flow', 'effet', champ, 'id'];
+      const porteur = { sorte: 'declencheur', id: declencheur.id } as const;
+      const s = jouer(ouverteSur({ ...emptyScene('effet', 4, 4), triggers: [declencheur] }), { geste: 'selectionner', porteur });
+      const zones = { 'editeur.inspecteur': inspecteurDeLaSession(s) };
+      const jeu = (valeur: string) => ({ type: 'valeur', args: [porteur, chemin, valeur] });
+      const geste = gesteDuFormulaire(zones, jeu(cible));
+      expect(geste?.geste).toBe('valeur');
+      const ecrite = jouer(s, geste!);
+      expect(sceneEditee(ecrite).triggers[0].flow).toEqual({ kind: 'effet', effet: { ...effet, [champ]: { id: cible } } });
+      for (const id of refuses) expect(gesteDuFormulaire(zones, jeu(id))).toBeUndefined();
+    },
+  );
+
   it('un profil personnalisé s’ajoute neuf au nom du personnage ou copié de sa créature du Bestiaire, puis s’écrit champ par champ, l’identifiant d’un Talent au catalogue ; une autre valeur entière est refusée (#3606 M1b)', () => {
     const ombre = poser('l-ombre-du-fleuve', 1);
     const id = idDe(ombre);
@@ -858,7 +879,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
 });
 
 describe('le navire de la scène éditée (#3772)', () => {
-  const bassin = (metresPerTile = 2) => ({ ...emptyScene('bassin', 24, 16), metresPerTile });
+  const bassin = (metresPerTile = 2) => ({ ...emptyScene('bassin', 24, 24), metresPerTile });
   const poserLaCaraque = (s: SessionDEdition, cap: 'N' | 'E' | 'S' | 'O' = 'E') =>
     [{ geste: 'outil', outil: { mode: 'navire', ref: 'caraque', cap } }, { geste: 'appui', point: point(10, 6) }].reduce<SessionDEdition>((t, g) => editer(t, g as GesteDEdition), s);
   const caraque: Scene['entities'][number] = { id: 'navire-0', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 6 }, facing: 'E', label: 'Caraque' };
@@ -925,8 +946,14 @@ describe('le navire de la scène éditée (#3772)', () => {
 
   it('le cap change à l’inspecteur : ses ponts tournent avec lui, la scène éditée ne porte toujours que son entité', () => {
     const s = poserLaCaraque(ouverteSur(bassin()));
-    const tourne = editer(s, { geste: 'entite', patch: { facing: 'N' } });
-    expect(sceneEditee(tourne)).toEqual({ ...bassin(), entities: [{ ...caraque, facing: 'N' }] });
+    expect(editer(s, { geste: 'entite', patch: { facing: 'N' } })).toBe(s);
+    const selection = editer(s, { geste: 'outil', outil: { mode: 'selection' } });
+    const prise = editer(selection, { geste: 'appui', point: point(10, 6) });
+    expect(editer(prise, { geste: 'glisse', point: point(6, 7) })).toBe(prise);
+    const glisse = editer(prise, { geste: 'glisse', point: point(10, 7) });
+    const fin = editer(glisse, { geste: 'relache', point: point(10, 7) });
+    const tourne = editer(fin, { geste: 'entite', patch: { facing: 'N' } });
+    expect(sceneEditee(tourne)).toEqual({ ...bassin(), entities: [{ ...caraque, pos: { x: 10, y: 7 }, facing: 'N' }] });
     const empriseDe = (t: SessionDEdition) => [...provenanceDesNavires(vueDeLaScene(t)).cases.keys()].map((cle) => cle.split(',').map(Number));
     const etendue = (cases: number[][], axe: 0 | 1) => Math.max(...cases.map((c) => c[axe])) - Math.min(...cases.map((c) => c[axe])) + 1;
     expect([etendue(empriseDe(s), 0), etendue(empriseDe(s), 1)]).toEqual([18, 5]);
@@ -1055,11 +1082,11 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
   it('un poste s’ajoute par son engin de siège, sa pièce se choisit parmi eux, ses servants parmi les personnages de la scène sans coque ni autre poste, son coffre parmi les munitions de sa pièce, sa munition dans son coffre, qu’elle ne quitte pas', () => {
     const postes = coque(cogue).postes!;
     expect(formulaireDe('entite', coque(cogue), cadreDeLaSession(cogue)).map((f) => f.key)).toContain('postes');
-    expect(choix(cogue, ['postes', postes.length])).toEqual(engins.map((trappingId) => ({ trappingId })));
-    const ajoute = jouer(cogue, valeur(['postes'], [...postes, { trappingId: engins[0] }]), valeur(['postes', postes.length, 'trappingId'], engins[1]));
-    expect(coque(ajoute).postes?.[postes.length]).toEqual({ trappingId: engins[1] });
-    expect(choix(ajoute, ['postes', postes.length, 'trappingId'])).toEqual(engins);
-    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'dague')), 'un objet existant hors catalogue des engins').toEqual({ regle: '« dague » est absent du catalogue des engins de siège (siege-engines.json).' });
+    expect(choix(cogue, ['postes', postes.length])).toEqual(engins.map((id) => ({ engin: { id } })));
+    const ajoute = jouer(cogue, valeur(['postes'], [...postes, { engin: { id: engins[0] } }]), valeur(['postes', postes.length, 'engin', 'id'], engins[1]));
+    expect(coque(ajoute).postes?.[postes.length]).toEqual({ engin: { id: engins[1] } });
+    expect(choix(ajoute, ['postes', postes.length, 'engin', 'id'])).toEqual(engins);
+    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'engin', 'id'], 'dague')), 'un objet existant hors catalogue des engins').toEqual({ regle: '« dague » est absent du catalogue des engins de siège (siege-engines.json).' });
     const entites = sceneEditee(cogue).entities;
     expect(entites.some((e) => e.vehicule && e.id !== coque(cogue).id), 'la scène pose une autre coque').toBe(true);
     const equipage = entites.filter((e) => e.kind === 'personnage' && !e.vehicule).map((e) => e.id);
@@ -1069,11 +1096,11 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     expect(choix(servi, ['postes', postes.length, 'crewIds', 1]), 'un servant ne sert qu’une fois le poste').toEqual(equipage.slice(1));
     expect(choix(servi, ['postes', 0, 'crewIds', 0]), 'ni un autre poste de la coque').toEqual(equipage.slice(1));
     expect(choix(servi, ['postes', postes.length, 'crewIds', 0]), 'le servant courant reste offert').toEqual(equipage);
-    expect(coque(cogue).postes![0].trappingId).toBe('canon-moyen');
+    expect(coque(cogue).postes![0].engin.id).toBe('canon-moyen');
     expect([...(choix(cogue, ['postes', 0, 'ammo']) as string[])].sort(), 'canon → boulet et mitraille seulement').toEqual(['boulet-et-poudre', 'mitraille-et-poudre']);
-    expect(choix(jouer(ajoute, valeur(['postes', postes.length, 'trappingId'], 'belier-ade2')), ['postes', postes.length, 'ammo']), 'bélier → aucune').toEqual([]);
+    expect(choix(jouer(ajoute, valeur(['postes', postes.length, 'engin', 'id'], 'belier-ade2')), ['postes', postes.length, 'ammo']), 'bélier → aucune').toEqual([]);
     expect(refusDeLaValeur(cogue, valeur(['postes', 0, 'ammo', 'carreau-de-baliste'], 2)), 'un carreau n’est pas offert au coffre d’un canon').toBe('nonOffert');
-    const canonACarreaux = { ...coque(cogue), postes: [{ trappingId: 'canon-moyen', ammo: { 'carreau-de-baliste': 2, 'boulet-et-poudre': 4 } }] };
+    const canonACarreaux = { ...coque(cogue), postes: [{ engin: { id: 'canon-moyen' }, ammo: { 'carreau-de-baliste': 2, 'boulet-et-poudre': 4 } }] };
     expect(refusDeLEntite(canonACarreaux as Parameters<typeof refusDeLEntite>[0]), 'le parse refuse un carreau au coffre d’un canon')
       .toEqual([{ chemin: ['postes', 0, 'ammo', 'carreau-de-baliste'], message: expect.stringContaining('ne charge pas') }]);
     const dote = jouer(cogue, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 3));
@@ -1089,7 +1116,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
   it('seule une coque offre ses postes', () => {
     const pnj = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'griffon-zoo-imperial' } }, { geste: 'appui', point: point(1, 1) }, { geste: 'relache', point: point(1, 1) });
     const id = entiteDeLaSelection(sceneEditee(pnj), pnj.sel)!.id;
-    expect(refusDeLaValeur(pnj, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['postes'], valeur: [{ trappingId: engins[0] }] })).toBe('nonOffert');
+    expect(refusDeLaValeur(pnj, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['postes'], valeur: [{ engin: { id: engins[0] } }] })).toBe('nonOffert');
   });
 });
 
@@ -1475,7 +1502,7 @@ describe('les renommages de scène, d’entrée et de dialogue du projet (#3483)
   const dialogue = (id: string) => ({ id, start: { id: 'debut' }, nodes: [{ id: 'debut', desc: 'Bienvenue sur les deux rives.', choices: [] }] });
   const objet = objetDeCampagne();
   const bourg: Scene = {
-    ...emptyScene('bourg', 4, 4),
+    ...emptyScene('charge', 4, 4),
     entryPoints: { quai: { x: 1, y: 1 }, porte: { x: 1, y: 2 } },
     encounters: [{ id: 'embuscade', members: [] }],
     dialogues: [dialogue('accueil'), dialogue('adieu')],
@@ -1483,7 +1510,7 @@ describe('les renommages de scène, d’entrée et de dialogue du projet (#3483)
     triggers: [
       { id: 'accueil', rect: { x: 1, y: 1, w: 1, h: 1 }, flow: flowFromEffects([
         { type: 'startDialogue', dialogue: { id: 'accueil' } },
-        { type: 'giveTrapping', trappingId: objet.id },
+        { type: 'giveTrapping', objet: { id: objet.id } },
       ]) },
       { id: 'adieu', rect: { x: 1, y: 3, w: 1, h: 1 }, flow: flowFromEffects([
         { type: 'startDialogue', dialogue: { id: 'adieu' } },
@@ -1493,23 +1520,23 @@ describe('les renommages de scène, d’entrée et de dialogue du projet (#3483)
   const val: Scene = {
     ...emptyScene('val', 4, 4),
     entryPoints: { quai: { x: 1, y: 1 } },
-    stations: [{ sceneId: 'bourg', pos: { x: 2, y: 2 } }],
+    stations: [{ sceneId: 'charge', pos: { x: 2, y: 2 } }],
     dialogues: [dialogue('accueil')],
     triggers: [{ id: 'passage', rect: { x: 1, y: 2, w: 1, h: 1 }, flow: flowFromEffects([
-      transition('bourg'), transition('val'), { type: 'startDialogue', dialogue: { id: 'accueil' } },
+      transition('charge'), transition('val'), { type: 'startDialogue', dialogue: { id: 'accueil' } },
     ]) }],
   };
   const monde: WorldMap = {
     ...emptyWorldMap('monde'),
     places: [
-      { id: 'lieu-bourg', label: 'Bourg', pos: { x: 20, y: 20 }, scene: { id: 'bourg' }, entry: 'quai' },
+      { id: 'lieu-bourg', label: 'Bourg', pos: { x: 20, y: 20 }, scene: { id: 'charge' }, entry: 'quai' },
       { id: 'lieu-val', label: 'Val', pos: { x: 60, y: 20 }, scene: { id: 'val' }, entry: 'quai',
-        poi: [{ id: 'pont', label: 'Pont', pos: { x: 30, y: 25 }, sceneId: { id: 'bourg' } }] },
+        poi: [{ id: 'pont', label: 'Pont', pos: { x: 30, y: 25 }, sceneId: { id: 'charge' } }] },
     ],
     routes: [{
       id: 'route', a: { id: 'lieu-bourg' }, b: { id: 'lieu-val' }, km: 12, modes: ['pied'],
-      ambush: { scene: { id: 'bourg' }, entry: 'quai', encounter: 'embuscade' },
-      perils: [{ label: 'Détour', chancePct: 10, effects: [transition('bourg')] }],
+      ambush: { scene: { id: 'charge' }, entry: 'quai', encounter: 'embuscade' },
+      perils: [{ label: 'Détour', chancePct: 10, effects: [transition('charge')] }],
     }],
   };
   const campagne = {
@@ -1559,7 +1586,7 @@ describe('les renommages de scène, d’entrée et de dialogue du projet (#3483)
     references(annulee, 'relais', 'quai');
     valider(annulee);
     references(editer(annulee, { geste: 'retablir' }), 'relais', 'quai');
-    references(avant, 'bourg', 'quai');
+    references(avant, 'charge', 'quai');
   });
 
   it('nommer l’entrée propage seulement les références à cette scène, en un cran annulable', () => {
@@ -1571,7 +1598,7 @@ describe('les renommages de scène, d’entrée et de dialogue du projet (#3483)
     expect(editer(selection, collision)).toBe(selection);
     const renommee = editer(selection, formulaire(selection, 'nommer', ' débarcadère '));
     expect(renommee.sel).toEqual({ type: 'entry', id: 'débarcadère' });
-    references(renommee, 'bourg', 'débarcadère');
+    references(renommee, 'charge', 'débarcadère');
     expect(refusDuRenommage(selection, collision)).toContain('porte');
     expect(sceneEditee(renommee).entryPoints).toEqual({ débarcadère: { x: 1, y: 1 }, porte: { x: 1, y: 2 } });
     expect(renommee.historique.passe).toHaveLength(selection.historique.passe.length + 1);
@@ -1587,7 +1614,7 @@ describe('les renommages de scène, d’entrée et de dialogue du projet (#3483)
     expect(editer(selection, collision)).toBe(selection);
     const renommee = editer(selection, formulaire(selection, 'nommer', 'arrivée'));
     expect(sceneEditee(renommee).triggers[0].flow).toEqual(flowFromEffects([
-      { type: 'startDialogue', dialogue: { id: 'arrivée' } }, { type: 'giveTrapping', trappingId: objet.id },
+      { type: 'startDialogue', dialogue: { id: 'arrivée' } }, { type: 'giveTrapping', objet: { id: objet.id } },
     ]));
     expect(refusDuRenommage(selection, collision)).toContain('adieu');
     expect(renommee.historique.passe).toHaveLength(selection.historique.passe.length + 1);
@@ -2240,8 +2267,8 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     },
     scenes: [{ ...emptyScene('relais', 4, 4), label: 'Le relais', entities: [
       { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 }, usable: { actions: [
-        { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: OBJET.id } } },
-        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: OBJET.id }] } } },
+        { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', objet: { id: OBJET.id } } } },
+        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: OBJET.id } }] } } },
       ] } },
       { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { apparencesObjets: apparencesVers(OBJET.id) } },
     ] }],
@@ -2255,12 +2282,12 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
   /** Les quatre positions de l'objet dans le projet de `s` : deux valeurs, puis les clés des deux records d'apparence. */
   const positions = (s: SessionDEdition) => {
     const [coffre, pnj] = projetEdite(s).scenes[0].entities as unknown as [
-      { usable: { actions: { flow: { effet: { trappingId?: string; ops?: { trappingId: string }[] } } }[] } },
+      { usable: { actions: { flow: { effet: { objet?: { id: string }; ops?: { objet: { id: string } }[] } } }[] } },
       { appearance: { apparencesObjets: Record<string, unknown> } },
     ];
     const [fouiller, ouvrir] = coffre.usable.actions.map((a) => a.flow.effet);
     const preset = narratif(s).presetsPnj[0] as { apparence: { apparencesObjets: Record<string, unknown> } };
-    return [fouiller.trappingId, ouvrir.ops![0].trappingId, pnj.appearance.apparencesObjets, preset.apparence.apparencesObjets];
+    return [fouiller.objet?.id, ouvrir.ops![0].objet.id, pnj.appearance.apparencesObjets, preset.apparence.apparencesObjets];
   };
 
   it('un objet de campagne référencé aux quatre positions (#4171) : le retrait est refusé, ses lieux nommés ; le renommage réécrit les deux valeurs et les deux clés sur un cran, le projet fautif, sans autre faute que la sienne ; annuler le rend', () => {
@@ -2286,12 +2313,12 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     expect([refusDeLaValeur(cree, valeur('objets', 'objet-2', ['id'], 'x')), refusDeLaValeur(cree, valeur('objets', 'objet-2', ['type'], 'trappings'))]).toEqual(['nonOffert', 'nonOffert']);
   });
 
-  it('le `trappingId` d’un Effet `giveTrapping` d’un déclencheur offre le catalogue des possessions puis les objets de la campagne, chacun sous son libellé, sinon son id (#4171)', () => {
+  it('le sélecteur d’objet d’un Effet `giveTrapping` d’un déclencheur offre le catalogue des possessions puis les objets de la campagne, chacun sous son libellé, sinon son id (#4171)', () => {
     const SANS_NOM = { ...OBJET, id: 'objet-sans-nom', label: '' };
     const avecSansNom = { ...CAMPAGNE, narratif: { ...CAMPAGNE.narratif, objets: [OBJET, SANS_NOM] } };
     const s = jouer(ouvrirLEdition(structuredClone(avecSansNom) as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'scene' });
-    const declencheur = { id: 'don', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: OBJET.id } } } as Scene['triggers'][number];
-    const offerts = choixDuChamp('declencheur', declencheur, ['flow', 'effet', 'trappingId'], cadreDeLaSession(s))!;
+    const declencheur = { id: 'don', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'giveTrapping', objet: { id: OBJET.id } } } } as Scene['triggers'][number];
+    const offerts = choixDuChamp('declencheur', declencheur, ['flow', 'effet', 'objet', 'id'], cadreDeLaSession(s))!;
     expect(offerts.find((c) => c.valeur === 'arme-simple')?.libelle, 'une entrée du catalogue, sous son libellé').toBe('Arme simple');
     expect(offerts.slice(-2)).toEqual([
       { valeur: OBJET.id, libelle: 'Arme de campagne', refus: null },

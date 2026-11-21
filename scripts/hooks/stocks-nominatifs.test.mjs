@@ -18,7 +18,9 @@ import {
 import { croissancesDeLaPlage, lectureDeLaPlage, raisonDeRefusDePlage, refusDeLaPlage, SHA_NUL } from '../guards/lib/plageStock.mjs'
 import { SOUS_LA_PORTE } from '../guards/lib/occurrencesStock.mjs'
 import { PORTEURS_SOUS_LA_PORTE } from '../guards/lib/porteursDesComptes.mjs'
-import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { TRONC, depotDe, estAncetre, estShaComplet, refusDeGit } from '../guards/lib/gitPorte.mjs'
+import { gitDe, gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 import { estObjet } from '../../src/lib/objet.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -38,10 +40,10 @@ function exigerHistoireComplete() {
  *  `origin/main` n'y a PAS de reflog, il ne peut donc pas servir de début. Sans événement lisible, le
  *  début reste nul : `croissancesDeLaPlage` n'exclut alors que le tronc ; sans tronc lisible, elle juge
  *  toute l'ascendance de HEAD et le DIT dans ses notes (jamais un silence). */
-function debutDeLaPlage(env = process.env) {
+function debutDeLaPlage(env, lire) {
   if (!env.GITHUB_EVENT_PATH) return SHA_NUL
   try {
-    const debut = String(JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, 'utf8'))?.before ?? '')
+    const debut = String(JSON.parse(lire(env.GITHUB_EVENT_PATH, 'utf8'))?.before ?? '')
     return /^[0-9a-f]{40}$/.test(debut) && debut !== SHA_NUL ? debut : SHA_NUL
   } catch { return SHA_NUL }
 }
@@ -52,6 +54,83 @@ function refPoussee(env = process.env) {
   if (env.GITHUB_REF) return env.GITHUB_REF
   try { return git('symbolic-ref', '-q', 'HEAD').trim() } catch { return null }
 }
+
+function bornesDeLaPlage({ cwd, fin, env = process.env, lire = readFileSync }) {
+  if (env.GITHUB_EVENT_NAME !== 'merge_group') {
+    return { debut: debutDeLaPlage(env, lire), vers: refPoussee(env) }
+  }
+
+  const champ = 'Porte des stocks : base de file merge_group.base_sha'
+  if (!env.GITHUB_EVENT_PATH) throw new Error(`${champ} illisible : GITHUB_EVENT_PATH absent.`)
+  let debut
+  try {
+    debut = JSON.parse(lire(env.GITHUB_EVENT_PATH, 'utf8'))?.merge_group?.base_sha
+  } catch (e) {
+    throw new Error(`${champ} illisible : ${e.message}`, { cause: e })
+  }
+  if (typeof debut !== 'string' || !estShaComplet(debut) || /^0+$/.test(debut) || debut === fin) {
+    throw new Error(`${champ} invalide : ${JSON.stringify(debut)}.`)
+  }
+
+  const ancetre = estAncetre(depotDe(cwd), debut, fin)
+  if (!ancetre.disponible) throw new Error(`${champ} ${debut} illisible : ${refusDeGit(ancetre)}`)
+  if ('absent' in ancetre) throw new Error(`${champ} ${debut} illisible : commit absent du dépôt.`)
+  if (!ancetre.valeur) throw new Error(`${champ} ${debut} invalide : elle n’est pas ancêtre de ${fin}.`)
+  return { debut, vers: TRONC.branche }
+}
+
+test('#3050 file : la plage commence sur l’entrée précédente encore hors du tronc', (t) => {
+  const { racine, sha: socle } = instanceDeDepot()
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const gitDuBanc = gitDe(racine)
+  gitDuBanc('update-ref', 'refs/remotes/origin/main', socle)
+  const arbre = gitDuBanc('rev-parse', `${socle}^{tree}`).trim()
+  const precedent = gitDuBanc('commit-tree', arbre, '-p', socle, '-m', 'premier chantier').trim()
+  const base = gitDuBanc('commit-tree', arbre, '-p', socle, '-p', precedent, '-m', 'première entrée de file').trim()
+  const chantier = gitDuBanc('commit-tree', arbre, '-p', socle, '-m', 'second chantier').trim()
+  const fin = gitDuBanc('commit-tree', arbre, '-p', base, '-p', chantier, '-m', 'seconde entrée de file').trim()
+  const lu = lectureDeLaPlage({
+    cwd: racine,
+    fin,
+    ...bornesDeLaPlage({
+      cwd: racine,
+      fin,
+      env: {
+        GITHUB_EVENT_NAME: 'merge_group',
+        GITHUB_EVENT_PATH: 'event.json',
+        GITHUB_REF: 'refs/heads/gh-readonly-queue/main/pr-2',
+      },
+      lire: () => JSON.stringify({ merge_group: { base_sha: base } }),
+    }),
+  })
+  assert.equal(lu.troncDesEres, base)
+  assert.deepEqual(lu.commits.map(({ sha }) => sha), [chantier, fin])
+  assert.equal(lu.commits.at(-1).fusion.tronc, 0)
+})
+
+test('#3050 file : un événement sans base lisible est refusé', () => {
+  const fin = git('rev-parse', 'HEAD').trim()
+  const env = { GITHUB_EVENT_NAME: 'merge_group', GITHUB_EVENT_PATH: 'event.json' }
+  const bornes = (lire, environnement = env) => bornesDeLaPlage({ cwd: RACINE, fin, env: environnement, lire })
+  assert.throws(() => bornes(() => '{}', { GITHUB_EVENT_NAME: 'merge_group' }), /base de file.*illisible.*GITHUB_EVENT_PATH/)
+  assert.throws(() => bornes(() => '{'), /base de file.*illisible/)
+  for (const base of [undefined, SHA_NUL, 'origin/main', fin]) {
+    assert.throws(() => bornes(() => JSON.stringify({ merge_group: { base_sha: base } })), /base de file.*invalide/)
+  }
+  const inexistant = '1'.repeat(40)
+  assert.throws(() => bornes(() => JSON.stringify({ merge_group: { base_sha: inexistant } })), /base de file.*illisible/)
+})
+
+test('#3050 plage hors file : un push garde before et la ref poussée, la lecture locale garde son repli', () => {
+  const fin = git('rev-parse', 'HEAD').trim()
+  const debut = '1'.repeat(40)
+  const vers = 'refs/heads/chantier/3050'
+  const env = { GITHUB_EVENT_NAME: 'push', GITHUB_EVENT_PATH: 'event.json', GITHUB_REF: vers }
+  const bornes = (env, lire) => bornesDeLaPlage({ cwd: RACINE, fin, env, lire })
+  assert.deepEqual(bornes(env, () => JSON.stringify({ before: debut })), { debut, vers })
+  assert.deepEqual(bornes(env, () => '{'), { debut: SHA_NUL, vers })
+  assert.equal(bornes({}, () => assert.fail('aucun événement local à lire')).debut, SHA_NUL)
+})
 
 // ── La règle, sur des diffs FABRIQUÉS (ce que la porte voit, et ce qu'elle ne voit pas) ──────────
 
@@ -941,9 +1020,8 @@ test('image — une extension hors de `DIALECTE` n’a pas d’image : `entreesN
 
 test('porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne', (t) => {
   const porteurs = [
-    'scripts/guards/lib/structuresStock.mjs',
     'scripts/guards/lib/legacyVocabStock.mjs',
-    'scripts/hooks/ecrans-ui.json',
+    'scripts/guards/balayages-non-resolus-stock.json',
   ]
   for (const rel of porteurs) {
     const contenu = readFileSync(join(RACINE, rel), 'utf8')
@@ -1158,10 +1236,12 @@ test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence'
   exigerHistoireComplete()
   const dossierDesMemos = mkdtempSync(join(tmpdir(), 'stocks-memos-'))
   t.after(() => rmSync(dossierDesMemos, { recursive: true, force: true }))
-  const { refus, notes, commits } = await croissancesDeLaPlage({
-    cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(), vers: refPoussee(), dossierDesMemos,
+  const fin = git('rev-parse', 'HEAD').trim()
+  const { refus, notes, commits, indisponible } = await croissancesDeLaPlage({
+    cwd: RACINE, fin, ...bornesDeLaPlage({ cwd: RACINE, fin }), dossierDesMemos,
   })
   for (const n of notes) t.diagnostic(n)
+  assert.equal(indisponible, null, indisponible)
   if (commits !== undefined) t.diagnostic(`${commits} commit(s) jugé(s)`)
   assert.deepEqual(
     refus.map((r) => `${r.sha.slice(0, 9)} ${r.fichier} +${r.net}`), [],

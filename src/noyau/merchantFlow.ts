@@ -25,7 +25,6 @@ import {
   fullStock,
   availabilitySearchBonus,
   barterRatio,
-  availabilityAfterHalvings,
   priceAfterHalvings,
   isTradable,
   outOfTradeReason,
@@ -238,11 +237,6 @@ export function contexteDAchat(s: Jeu, m: MerchantState): ContexteDAchat {
 export function remiseMaximaleDeMarchandage(party: Combatant[]): number {
   const best = partyAssisted(party, { skill: { id: 'marchandage' } });
   return best ? bargainPct(true, SL_ASTOUNDING, hasBargainBonus(best.actor)) : 0;
-}
-
-/** Remise d'achat obtenue au Marchandage de la visite, en % (LDB 59 l.43) : 0 sans Marchandage. */
-export function remiseDAchatPct(m: MerchantState): number {
-  return m.bargainBuy ? bargainPct(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 0;
 }
 
 /** Prix d'achat UNITAIRE d'une ligne de stock (LDB 59 l.9-11 ; LDB 59 l.43). SOURCE UNIQUE lue par
@@ -625,17 +619,6 @@ export function sellRefusal(item: ItemInstance, resolveTrapping: TrappingResolve
   return outOfTradeReason(t.label);
 }
 
-/** Disponibilité d'un ACHETEUR pour un objet vendu (LDB 59 l.52-62) : sa Disponibilité catalogue montée
- *  d'un cran par baisse de prix consentie (`halvings`). Sert d'affichage au vendeur (plus le cran est
- *  bon, plus un acheteur se trouve vite). `null` = objet sans Disponibilité : aucun cran à afficher,
- *  aucune classe inventée — le refus se lit par `sellRefusal`. */
-export function sellBuyerAvailability(item: ItemInstance, halvings: number, resolveTrapping: TrappingResolver): Availability | null {
-  const t = ficheDObjetPorte(item, resolveTrapping);
-  const av = t?.availability;
-  if (!isTradable(av)) return null;
-  return availabilityAfterHalvings(av, halvings);
-}
-
 /** Le plus de divisions par deux du prix de vente d'une instance (LDB 59 l.60). */
 export const BAISSES_DE_PRIX_MAX = 4;
 
@@ -994,7 +977,7 @@ function openAppraise(
   } });
 }
 
-/** Jour de jeu courant (verrou « pas de re-tentative d'Évaluation le même jour »). */
+/** Indice du jour depuis l'origine de l'horloge de jeu. */
 export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
   return Math.floor(s.gameTime / MINUTES_PER_DAY);
 }
@@ -1009,7 +992,7 @@ function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openApp
   for (const scope of ['butin', 'victoire'] as const) {
     const ligne = ligneDuButin(s, scope, uid);
     if (ligne) {
-      const id = ligne.effect.trappingId;
+      const id = ligne.effect.objet?.id;
       return { target: { gear: { scope, uid } }, cible: { ...ligne.effect, label: ligne.label }, fiche: id ? resolveTrapping(id) : undefined };
     }
   }
@@ -1112,8 +1095,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     return;
   }
   if (!pa.success) {
-    // Un échec à DR 0 offre un nouvel essai (LDB 12 l.94) ; à DR négatif, le délai de la règle maison
-    // `marche-evaluation-delai-jours` court.
+    // LDB 12 l.94
     if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
     get().ecrireAuJournal(t('mf.evaluationRatee', { item: pa.itemName }));
     return;

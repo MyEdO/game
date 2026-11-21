@@ -7,7 +7,15 @@ import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { entreesNominatives, croissanceDesStocks, bilanDesStocks, croissanceDesCles, croissancesNonCouvertes, raisonDeRefus } from './stocksNominatifs.mjs';
+import {
+  apportDeFusion,
+  entreesNominatives,
+  croissanceDesStocks,
+  bilanDesStocks,
+  croissanceDesCles,
+  croissancesNonCouvertes,
+  raisonDeRefus,
+} from './stocksNominatifs.mjs';
 import { PORTE_DE_PLAGE, bilanDuCommit, refusDeLaPlage } from './plageStock.mjs';
 import { depotDe } from './gitPorte.mjs';
 import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs';
@@ -15,6 +23,47 @@ import { parUnitesDeCode } from './lister.mjs';
 
 const PORTEUR = 'scripts/guards/lib/temoin.mjs';
 const compter = (source, chemin = PORTEUR) => entreesNominatives(source, chemin).length;
+
+test('#3050 : la dette reportée et la copie introduite dans la fusion gardent leur multiplicité', () => {
+  const entree = (cle) => ({ cle, texte: cle });
+  const deuxCopies = [entree('k2'), entree('k2')];
+  for (const seconde of [entree('k4'), deuxCopies[1]]) {
+    const { nees, mortes, clesDuSolde } = apportDeFusion({
+      base: [entree('k3')], parents: [[entree('k2')], []], fusion: [deuxCopies[0], seconde], tronc: 1,
+    });
+    assert.deepEqual(nees, [seconde, deuxCopies[0]]);
+    assert.deepEqual(mortes, []);
+    assert.deepEqual(clesDuSolde, new Set(['k2']));
+  }
+});
+
+test('#3050 : le journal garde la provenance des occurrences et des soldes transférés', () => {
+  const entree = (cle, texte = cle) => ({ cle, texte });
+  const a = entree('k2', 'a');
+  const b = entree('k2', 'b');
+  const ancien = entree('k3');
+  const neuve = entree('k4');
+  const solde = entree('k5');
+  const transaction = (retenues, perdues, autorisees = 0) => ({ retenues, perdues, autorisees });
+  const couts = (base, tronc, chantier, fusion, journal) => apportDeFusion({
+    base, parents: [tronc, chantier], fusion, tronc: 0, journal: () => journal,
+  }).nees;
+  const remplacement = transaction([a], [ancien]);
+  const cliquetDeB = transaction([b], [], 1);
+  assert.deepEqual(couts([ancien], [], [a, b], [a], [remplacement, cliquetDeB]), [a]);
+  assert.deepEqual(couts([ancien], [], [a, b], [b], [remplacement, cliquetDeB]), []);
+  assert.deepEqual(couts([ancien], [], [neuve], [neuve], [remplacement, transaction([neuve], [a])]), [neuve]);
+  assert.deepEqual(couts([ancien], [], [neuve], [neuve], [
+    transaction([a], [], 1), transaction([neuve], [a]), transaction([], [ancien]),
+  ]), []);
+  assert.deepEqual(couts([ancien], [], [a], [a], [
+    remplacement, transaction([ancien], [], 1), transaction([], [ancien]),
+  ]), [a]);
+  assert.deepEqual(couts([ancien, solde], [solde], [b], [b], [
+    transaction([a, b], [ancien, solde]), transaction([], [a]),
+  ]), []);
+});
+
 test('les mêmes formes sont classées par structure dans chaque dialecte et hors test', () => {
   for (const chemin of [PORTEUR, 'scripts/outils.test.mjs', 'src/fixture.test.ts']) {
     assert.equal(compter("readCorpus({ racines: ['src/noyau'] })", chemin), 0);

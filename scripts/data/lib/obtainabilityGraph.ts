@@ -16,8 +16,9 @@
 import { readFileSync } from 'node:fs';
 import { listerProjetsLivres, PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { join } from 'node:path';
+import { auChemin } from '../../../src/lib/objet.mjs';
 import {
-  talents, rangeesDesTalentsAleatoires, spells, careerLevels, species, creatures, mutations, stars, trappingsInstanciables, gods, effectTables,
+  talents, tableDeTalents, spells, careerLevels, species, creatures, mutations, stars, trappingsInstanciables, gods, effectTables,
   findTalentById, specPoolOf,
   type AdvancementRef, type SpellData, type TalentData,
 } from '../../../src/data/index';
@@ -48,12 +49,12 @@ export function computeObtainability(root: string): ObtainabilityResult {
     talentSources.get(id)!.add(src);
   };
 
-  let sawRandomEntry = false;
   const walkAdvancement = (entries: AdvancementRef[], srcTag: string) => {
     for (const e of entries) {
-      if ('pick' in e) walkAdvancement(e.of, srcTag);
-      else if ('random' in e) sawRandomEntry = true;
-      else addTalentSource(e.id, srcTag);
+      if ('of' in e) walkAdvancement(e.of, srcTag);
+      else if ('table' in e) {
+        for (const r of tableDeTalents(e.table).entries) addTalentSource(r.id, `table:${e.table.id}`);
+      } else addTalentSource(e.id, srcTag);
     }
   };
   for (const sp of species) walkAdvancement(sp.talents, `espece:${sp.id}`);
@@ -66,8 +67,6 @@ export function computeObtainability(root: string): ObtainabilityResult {
   for (const sp of spells) walkNode(sp, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `sort:${sp.id}`); });
   for (const t of effectTables) walkNode(t, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `table:${t.id}`); });
 
-  if (sawRandomEntry) for (const r of rangeesDesTalentsAleatoires()) addTalentSource(r.id, 'table-talents-aleatoires');
-
   const learnSpellIds = new Set<string>();
   for (const f of listerProjetsLivres(root).map((rel) => `${PROJETS_LIVRES.dossier}/${rel}`)) {
     const text = readFileSync(join(root, f), 'utf8');
@@ -76,7 +75,10 @@ export function computeObtainability(root: string): ObtainabilityResult {
     try { json = JSON.parse(text); } catch { continue; }
     walkNode(json, (n) => {
       if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `scene:${f}`);
-      if (n.type === 'learnSpell' && typeof n.spell === 'string') learnSpellIds.add(n.spell);
+      if (n.type === 'learnSpell') {
+        const id = auChemin(n, ['sort', 'id']);
+        if (typeof id === 'string') learnSpellIds.add(id);
+      }
     });
   }
 
@@ -94,7 +96,7 @@ export function computeObtainability(root: string): ObtainabilityResult {
     let anyUnspecialized = false;
     const scanAdvancement = (entries: AdvancementRef[]) => {
       for (const e of entries) {
-        if ('pick' in e) { scanAdvancement(e.of); continue; }
+        if ('of' in e) { scanAdvancement(e.of); continue; }
         if (!('id' in e) || e.id !== talentId) continue;
         if (Array.isArray(e.choix)) for (const s of e.choix) specs.add(s);
         else if (e.choix == null && e.spec) specs.add(e.spec);

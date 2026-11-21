@@ -232,7 +232,15 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   traitement modifié et inscrit leurs sommes. Une texture couvre 2 m (`MiseEnPage.METRES_PAR_MOTIF`), soit 2 mm par
   pixel à 1024 px : une trame réelle tombe sous le pixel. Elle se réduit puis se tuile dans son traitement jusqu'à la
   plus petite période encore lisible, environ 4 px de la texture finale, soit environ 8 mm (#4527). Un relief fait
-  512 px ; celui d'une trame que 512 px effacent (`toile-ecrue`, `corde`) en fait 1024.
+  512 px ; celui d'une trame que 512 px effacent (`toile-ecrue`, `corde`) en fait 1024. Une couverture de toit
+  (`roof--<id>`, domaine `roof`) ne porte que sa neutre et son relief : une nappe de toit ou une couronne lit la neutre,
+  projetée sur le plan de chaque face, ses rangs le long de l'égout, et teinte par la couleur de ses sommets, celle de
+  `materials.json` (`VolumeDeScene._matiere`, `nappe` de `art/monde.gdshader`, recette `recettes/nappe-texturee.gd`).
+  Le bardage d'un pignon (`structure--<apparence>` du mur qu'il prolonge, face de sa nappe) ne porte de même que sa
+  neutre et son relief, ses planches le long de l'horizontale de la face, teinte par la couleur du mur : sans `.jpg`,
+  un morceau de cette apparence garde la couleur de ses sommets (#4471).
+  Ses rangs se lisent sur une ligne horizontale de la source, au pas de `detail.courses.hM` : une source au pas plus fin
+  se recadre sur un nombre entier de rangs, d'un joint au suivant, là où ses bords se raccordent (`-crop`).
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
   tout autre matériau reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; pour un rigide,
   `PRISE` (une prise de la base) ou `EMPLACEMENT` (un emplacement de l'élément `OFFRANT`, importé avant lui) ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
@@ -423,7 +431,9 @@ revoir les interfaces de même classe et les tenues concernées dans le périmè
 
 ### Commandes utilisables
 
-Depuis la racine du dépôt, vers un dossier neuf hors du dépôt (refusé sinon) :
+Depuis la racine du dépôt, exécuter `node hotes/godot/asset/recuperer-modeles.mjs` pour alimenter le
+cache avec les GLB publiés que le checkout épingle. Lancer ensuite le constructeur vers un dossier
+neuf hors du dépôt (refusé sinon).
 
 ```sh
 node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton --sortie /atelier/baton
@@ -431,7 +441,7 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/const
 
 Le constructeur lit les GLB dans le cache des modèles (`~/.cache/wfrp-modeles-3d/`, `--cache` pour un autre), chacun
 sous l'empreinte que le dépôt épingle dans `hotes/godot/projet/modeles/<id>.manifeste.json` : la base et les éléments
-contournés ; `npm run godot:sonde` y tire ceux qui manquent. Il écrit `/atelier/baton/<id>/` : `<id>.glb`,
+contournés. Il écrit `/atelier/baton/<id>/` : `<id>.glb`,
 `<id>.element.json` (le manifeste schéma 3, empreinte et taille du GLB comprises), `manifest.json` (l'enveloppe de
 l'import) et les licences des packs de la base, et imprime l'empreinte et les triangles. Deux constructions donnent les
 mêmes octets. `--local <id>=<glb>` (répétable) lit une voisine du lot pas encore importée, que l'élément contourne, à son
@@ -474,8 +484,8 @@ Cette validation ne remplace pas l'évaluation géométrique du GLB.
 celui d'élément. Chaque GLB d'élément porte son manifeste voisin (`<id>.element.json` du dossier de production, ou
 `<id>.manifeste.json` d'un import), d'où l'évaluateur lit sa couche et ses zones ; plusieurs GLB s'évaluent ensemble,
 et c'est ainsi que la traversée des couches se mesure : évaluer la tenue (tête, coiffure, vêtements, rigides), pas la
-pièce seule. Les GLB publiés sous `hotes/godot/projet/modeles/` y sont déposés par `npm run godot:sonde`. Le dossier du
-rapport doit déjà exister :
+pièce seule. Depuis la racine du dépôt, `node hotes/godot/asset/recuperer-modeles.mjs` dépose les GLB
+publiés du checkout sous `hotes/godot/projet/modeles/`. Le dossier du rapport doit déjà exister :
 
 ```sh
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
@@ -789,14 +799,19 @@ apparence de `src/data/structureAppearance.json`) se construisent depuis le dép
 `scripts/personnage-3d/construire.py`, un dossier par kit, `scripts/personnage-3d/arete/<kit>/` : `donnees.py`
 (`MATERIAUX`, `BUDGET_TRIANGLES` par pièce, chaque cote nommée, les illustrations directrices) et `modele.py`
 (`elements(D)`, par `arete/geometrie.py`). Un kit est un GLB, `arete--<kit>`, un nœud racine à mesh par pièce
-(`PieceDArete`, `src/noyau/monde/aretes.ts`) : `mur`, `porte-fermee`, `porte-ouverte`, `fenetre`, `fenetre-close`,
-`breche`.
+(`PIECES_D_ARETE`, `src/noyau/monde/piecesDArete.ts`).
 
 **Repère et taille.** Chaque pièce est à l'origine de l'arête, à sa taille réelle : X le long d'elle, centrée, sur la
 longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son épaisseur, centrée, le dehors vers +Z
 (`arete/geometrie.py`). Un demi-poteau ou une chaîne de pierres à chaque bout se complète de celui de la pièce voisine.
 L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du
 plateau (`MiseEnPage.echelle_d_arete_servie`).
+
+**Échelle.** La pièce `echelle` habille une arête qu'on franchit par une échelle : deux montants et des barreaux de
+bois (`menuiserie.echelle`, ses cotes dans `ECHELLE_DE_MEUNIER`), du pied à la `HAUTEUR` du kit, centrés sur l'arête,
+le dos sur son plan (Z = 0), vers le dehors. Elle ne tient ni la longueur ni l'épaisseur de l'arête, et reste dans la
+boîte du kit, dont l'hôte tire l'étirement de toute pièce : il l'étire en Y au dénivelé qu'elle franchit, ses barreaux
+avec elle. Chaque kit la pose dans son `BATIR`, avec son matériau `echelle` et son budget (`test_arete.py`).
 
 **Ouverture de plusieurs arêtes.** Une suite d'arêtes adjacentes et alignées de même couche, de même nature (porte,
 porte de ville) et de même apparence est une seule ouverture (`ouverturesDeLaScene`, `src/noyau/monde/aretes.ts`). Chaque arête y reçoit le nœud `<pièce>--<position>`, de position `gauche`, `milieu` ou
@@ -806,26 +821,49 @@ l'arête au bout -X de l'ouverture dans le repère de la pièce (X le long du se
 `droite` ; celui de `milieu`, brisé sur son voisin de gauche, clôt sa baie fermé et la laisse libre ouvert. L'état
 d'un vantail reste celui de son arête. Un kit ne bâtit que les positions qu'une scène
 pose (`geometrie.noeud`) : le budget d'un nœud est celui de sa pièce, et `arete/revue.py` montre chaque ouverture
-d'un seul tenant, ses nœuds bout à bout. Un kit dont toutes les arêtes sont une Structure qui s'abat sans s'ouvrir
-(`porterie`) ne bâtit que `mur` et `breche`. Une porte posée dans un mur prend le kit, la hauteur et les teintes de
-mur (`corps`, `bois`) de son mur porteur, celui du bout -X sinon du bout +X, et garde les teintes de menuiserie
-(`accent`, `vet1`, `metal`) de sa propre apparence (`paletteDeLApparence`) : chaque kit bâtit donc ses portes.
+d'un seul tenant, ses nœuds bout à bout. Une porte posée dans un mur prend le kit, la hauteur et les teintes de
+mur (`corps`, `bois`, `joint`, `gravats`) de son mur porteur, celui du bout -X sinon du bout +X, et garde les teintes
+de menuiserie (`accent`, `planche`, `vet1`, `vitre`, `metal`, `barreau`, `traverse`) de sa propre apparence
+(`paletteDeLApparence`) : chaque kit bâtit donc ses portes.
 
 **Famille neuve.** Ajouter d'abord la famille au `kitSchema` (`src/data/schemas/defs/structureAppearance.ts`), puis
 une apparence de `structureAppearance.json` qui la porte (le jeu de données s'édite au fichier). L'hôte pose une
-arête par le modèle `arete--<kit>` s'il est servi, sinon par le pack `projet/kit/kit.glb` (familles `pierre` et
-`cloture`, `hotes/godot/asset/kit.ts`), sinon par une boîte.
+arête par le modèle `arete--<kit>` s'il est servi, sinon par une boîte, comme une arête dont le modèle est
+illisible ou n'a pas la pièce (`VolumeDeScene._groupe`). Un kit bâtit donc les pièces de `PIECES_D_ARETE`
+(`src/noyau/monde/piecesDArete.ts`, `test_arete.py`) : une pièce sans objet pour lui reprend la forme d'une autre (le talus
+plein pour la fenêtre d'un terrassement, la grille baissée pour la porte d'une herse).
 
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
-la couleur de l'apparence posée. Une baie est percée de part en part.
+la couleur de l'apparence posée (`paletteDeLApparence`, par `wallPartColor`), et `MATERIAUX` ne déclare que les
+matériaux que les pièces du kit posent. Une partie qu'une apparence teint à part a son emplacement, qui prend la
+couleur d'une partie de mur (`PARTIES_DU_MUR`, `PARTIES_DE_LA_MENUISERIE`, `src/noyau/monde/aretes.ts`) ; le champ de
+l'apparence qui la donne et ses replis se lisent dans `wallPartColor` (`src/noyau/monde/volume/structures.ts`) :
+
+| Emplacement | Ce qu'il porte | Partie de mur |
+|---|---|---|
+| `corps` | le parement du mur : pierres, torchis, claie, terre | `face` |
+| `bois` | le bois du mur : ossature, pieux, clayonnage, boisage | `poteau` |
+| `joint` | l'âme d'un mur de pierre, vue dans ses joints et dans sa brèche | `joint` |
+| `gravats` | les gravats au pied d'une brèche (`geometrie.eboulis`) | `gravats` |
+| `accent` | les planches d'un vantail, porte ou volet ; les montants et les barreaux d'une échelle | `vantail` |
+| `planche` | les barres et l'écharpe au dos d'un vantail | `vantail-planche` |
+| `vet1` | les bois d'une croisée | `meneau` |
+| `vitre` | la vitre d'une croisée | `vitre` |
+| `metal` | pentures, poignée, loquet, rivets et pointes | `poignee` |
+| `barreau` | les barreaux et les montants d'une herse | `herse-barreau` |
+| `traverse` | les traverses d'une herse | `herse-traverse` |
+
+Une baie est percée de part en part ; sa croisée porte sa vitre (`menuiserie.vitre`), que la garde de jour ôte
+(`test_arete.py`) : les volets d'une `fenetre-close` ferment seuls la baie.
 
 **Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
-`menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
-des kits de pierre (assises, chaînes, couronnement, porche voûté, brèche). Un kit les pose, il ne les recopie pas.
+`menuiserie.py` porte le vantail de planches, la croisée, sa vitre, les volets et l'échelle, avec leurs cotes ; `maconnerie.py` l'appareil
+des kits de pierre (assises, chaînes, couronnement, porche voûté, porte cintrée sous son porche, brèche). Un kit les pose, il ne les recopie pas.
 La forme d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit
 reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
-(`test_arete.py`).
+(`test_arete.py`). Un kit qu'on voit à travers (la grille d'une herse) le déclare dans son `donnees.py` par
+`CLAIRE_VOIE = True` : la garde de jour le saute.
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
@@ -840,14 +878,121 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 
 `arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
-chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
-reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque
-`arete--*` publié.
+chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour ; les gardes
+communes aux kits d'escalier vivent dans `banc_des_kits.py`),
+reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié, exige un kit pour chaque
+`arete--*` publié et un modèle pour chaque famille qu'une apparence porte. Les pièces qu'il exige sont celles de `PIECES_D_ARETE`, lues
+du noyau par `arete/pieces.mjs`.
 Regarder le kit dans Godot comme tout modèle sans base (chapitre 7) : l'atelier en montre chaque pièce par
 l'échantillon « Mur et ouverture », et la capture `cadrages` le montre posé dans une scène, au regard d'un joueur.
 Une illustration de façade se compare à cette capture, jamais à une pièce seule. Recettes Godot des arêtes
 (`godot:sonde`) : `arete-au-pied.gd` (pied, échelle, nœuds par position), `aretes-en-instances.gd`,
 `atelier-du-decor.gd`. Publier comme un véhicule (chapitre 9, « Publier »).
+
+## 12. Escalier
+
+Les pièces qu'un hôte pose sur les côtés d'une case de marches (catégorie `escalier`, clé `{ "kit": <famille> }`, le
+`kitDEscalier` d'un terrain bâti de `src/data/terrains.json`) se construisent comme un kit d'arête (chapitre 11), par
+`scripts/personnage-3d/construire.py`, un dossier par famille, `scripts/personnage-3d/escalier/<famille>/`
+(`donnees.py`, `modele.py`), et leurs communs dans `escalier/volee.py`, qui met ceux des arêtes au chemin
+(`geometrie.py`, `menuiserie.py`, `maconnerie.py`). Un kit est un GLB, `escalier--<famille>`, un nœud racine à mesh par
+pièce de `PIECES_D_ESCALIER` (`src/noyau/monde/piecesDArete.ts`) : `limon`, sur un côté que borde une
+case rejointe à pied ou le vide, et `rampe`, sur un côté que borde le vide (`cotesDeMarchesDeLaScene`,
+`src/noyau/monde/cotesDeMarches.ts`), plus un nœud `rampe--<position>` par bout d'une suite de rampes (`volee.BOUTS`),
+et aucun autre : `rampe--gauche` termine la suite d'un poteau à son bout -X, `rampe--droite` à son bout +X,
+`rampe--seule` aux deux ; `rampe` est la pièce du milieu, que l'hôte pose aussi faute du nœud de la position. Les
+marches restent celles du noyau. Familles livrées : `bois` (limon de planche à chapeau, balustres tournés sous une main
+courante, éclisses de fer, poteau tourné coiffé d'une pointe) et `pierre` (assise de pierres de taille, mur d'échiffre
+à chaperon de dalles, pilier de pierres de taille couronné). Chaque famille qu'un terrain nomme a son kit :
+`test_chaque_kit_d_escalier_d_un_terrain_a_son_modele` (`test_escalier.py`) lit le `kitDEscalier` de chaque terrain de
+`src/data/terrains.json`.
+
+**Repère, à plat.** X le long de l'axe montant, de -L/2 à +L/2 (une case, 2 m) ; Y depuis le pied de la pièce ; Z vers
+le dehors, 0 au plan du bord de la case, que rien ne passe. Une pièce se modèle sans pente : l'hôte la cisaille, Y
+selon X, de la cote lisse du bord à son entrée à celle de sa sortie ; ce qui est d'aplomb le reste. Les deux pièces
+partagent leur pied, la cote lisse du bord (`CoteDeMarches.pied`) : le limon y pose son pied (Y = 0), le parement du
+dedans au plan du bord (Z = 0) ; la rampe, qui ne se pose qu'avec lui, se dresse sur son dessus, sans rien sous lui,
+pour qu'aucune de leurs faces ne se double au bout d'une volée.
+
+**Raccord.** Deux cases voisines se raccordent bout à bout, quelle que soit la pente de chacune : la section d'une
+pièce est la même à ses deux bouts, et celle d'une rampe de bout est celle de `rampe` au bout qu'elle raccorde ; rien n'y est tiré au sort (les pierres des bouts sont des pierres de taille de
+façon constante, `maconnerie.Appareil.rang`) ; ce qui se répète (balustres, dalles du chaperon) va à un pas qui divise
+la case, à un demi-pas des bouts, ou par moitiés que la case voisine complète (demi-dalle, demi-éclisse). Un poteau tient dans sa case, au bout, d'aplomb comme le reste : l'hôte cisaille son
+couronnement avec la pièce. `test_escalier.py` le mesure : section de chaque bout raccordé, même poteau à chaque
+position, vides de même largeur d'une case à l'autre hors celui que borde un poteau, rampe sur le dessus du limon.
+
+**Couleur.** Chaque surface nomme un emplacement de palette et sa matière du domaine `prop` ; l'hôte ne lui impose
+aucune couleur : elle garde la texture de sa matière.
+
+**Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py escalier/<famille> --sortie /atelier/<famille>
+npm run godot:valider -- /atelier/<famille>/escalier--<famille>/escalier--<famille>.element.json \
+  /atelier/<famille>/escalier--<famille>/escalier--<famille>.glb
+npm run personnage-3d:integrer -- escalier/<famille>
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/escalier/revue.py <famille> \
+  --modeles /atelier/<famille> --sortie /atelier/revue-<famille>
+```
+
+`escalier/revue.py` rend chaque nœud seul, à plat, de face, de trois-quarts et de dessus, puis la ligne `volee` : trois
+cases bout à bout, chacune son limon et sa rampe à sa position (`gauche`, milieu, `droite`), cisaillée à sa pente, pour
+voir le raccord et les poteaux. `npm run
+personnage-3d:tests` (`test_escalier.py`) bâtit chaque kit deux fois aux mêmes octets, mesure ses pièces (nœuds, repère,
+budget, coques closes, raccord) et compare chaque manifeste au publié. Une famille neuve entre d'abord au
+`kitDEscalierSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
+« Publier »).
+
+## 13. Toit
+
+La faîtière qu'un hôte pose sur le faîte d'un toit (catégorie `toit`, clé `{ "kit": <couverture> }`, le `kit` d'une
+couverture de `src/data/materials.json`) se construit comme
+un kit d'escalier (chapitre 12), par `scripts/personnage-3d/construire.py`, un dossier par couverture,
+`scripts/personnage-3d/toit/<couverture>/` (`donnees.py`, `modele.py`), et ses communs dans `toit/faitage.py`, qui met
+ceux des escaliers et des arêtes au chemin (`volee.py`, `geometrie.py`). Un kit est un GLB, `toit--<couverture>`, un
+nœud racine à mesh par pièce de `PIECES_DE_TOIT` (`src/noyau/monde/piecesDArete.ts`, lues du noyau par
+`toit/pieces.mjs`) : la seule `faitiere`. Les pans restent ceux du noyau. Couvertures livrées : `ardoise` (une ardoise par
+bras, chaque paire recouvrant la suivante, coins de queue abattus, crochets de fer), `tuile` (tuiles demi-rondes à
+bourrelet, scellées d'un solin de mortier de chaque côté) et `chaume` (selle de paille épaisse au bord en dents, tresse
+à trois brins sur son dos, baguettes de noisetier filées et croisées).
+
+**Repère, sur le toit d'école.** X le long du faîte, de -L/2 à +L/2 (une case, 2 m) ; Y la hauteur, 0 sur l'arête du
+faîte ; Z en travers. La pièce se modèle sur deux pans qui descendent du faîte d'une pente de 1 (`faitage.pan`) : l'hôte
+étire Y, sans la cisailler, à la pente des deux pans qu'elle coiffe. Rien n'y suppose donc une pente : le dessous
+de la pièce suit les pans, rien ne descend sous eux, et une épaisseur se porte en hauteur (`faitage.plaque`, par sa
+levée au-dessus du pan), jamais d'équerre au pan.
+
+**Raccord.** Deux cases voisines se raccordent bout à bout : rien ne passe les bouts, et la section de la pièce est la
+même aux deux. Ce qui se recouvre le long du faîte (ardoises, tuiles) va à un pas qui divise la case, qui coupe un
+élément en son milieu à chaque bout (`faitage.recouvrants`) : la moitié de queue d'un bout se complète de la moitié de
+tête de la case voisine, sans joint ni élément doublé. Ce qui se file (solin, selle, brins, baguettes) va à une période
+qui divise la case, ses sections dans des plans d'abscisse constante (`faitage.file`, `volee.profil`). Rien n'y est tiré
+au sort. Un lissage (`ANGLE_LISSE`) reste sous l'angle droit : lissés, les bouts d'une pièce marquent le joint de deux
+cases.
+
+**Couleur.** La surface principale nomme l'emplacement `corps`, que l'hôte teint de la couleur de faîtière de la
+couverture (`ridgeCap`, `src/data/materials.json`) ; les autres (`metal`, `joint`, `accent`, `bois`) gardent la texture
+de leur matière du domaine `prop`, sans couleur imposée.
+
+**Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py toit/<couverture> --sortie /atelier/<couverture>
+npm run godot:valider -- /atelier/<couverture>/toit--<couverture>/toit--<couverture>.element.json \
+  /atelier/<couverture>/toit--<couverture>/toit--<couverture>.glb
+npm run personnage-3d:integrer -- toit/<couverture>
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/toit/revue.py <couverture> --couverture <id> \
+  --modeles /atelier/<couverture> --sortie /atelier/revue-<couverture>
+```
+
+`toit/revue.py` rend la faîtière seule sur le toit d'école, teinte du `ridgeCap` de la couverture `--couverture` dont
+elle est le kit (`tuile`, `chaume`, `toit-ardoise`), de face, de trois-quarts et de dessus, puis une ligne par faîte de `revue.FAITES` :
+trois cases bout à bout sur deux pans de même pente, un toit raide puis un toit plat, la pièce étirée en hauteur
+comme l'hôte la pose, pour voir son raccord et son assise. `npm run personnage-3d:tests` (`test_toit.py`) bâtit chaque
+kit deux fois aux mêmes octets, mesure sa pièce (nœud, repère, budget, coques closes, assise sur les pans, raccord) et
+compare chaque manifeste au publié ; chaque kit qu'une couverture nomme y a son modèle. Une couverture neuve entre
+d'abord au `kitDeToitSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
+« Publier »).
 
 ## Disponibilité à sonder avant chaque production
 
