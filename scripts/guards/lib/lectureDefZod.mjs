@@ -92,6 +92,8 @@ function apresDefDe(code) {
  * @returns {{ ligne: number, extrait: string }[]}
  */
 export function lecturesDefZod(contenu, champs) {
+  // Tout accès contient `def`, y compris une lecture d’alias dont l’assignation contient `defDe`.
+  if (!contenu.includes('def')) return [];
   const code = codeSeul(contenu);
   const alias = [...new Set(aliasDeDef(code).filter((n) => n !== 'def'))];
   const champ = motifDeChampDEnfants(champs, alias);
