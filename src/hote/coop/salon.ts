@@ -16,8 +16,10 @@
  * Le refus rendu par `appliquer` est livré au rappel `refuserLIntention` de l'invité auteur.
  * Une ouverture à la fois (`heberger` avant sa session posée, `rejoindre` avant `seated`), que `quitter` achève.
  */
-import { buildDeLaCoop, fermerLeSiege, initialNet, instantaneDeLaCoop, type Get } from '../../noyau/index';
+import { buildDeLaCoop, fermerLeSiege, GUEST_INTENTS, initialNet, instantaneDeLaCoop, withActingSeat, type Get } from '../../noyau/index';
 import { t } from '../../i18n';
+import { gesteDuVerbe, SANS_PISTE, type Geste } from '../geste';
+import { ErreurDeGeste } from '../partie';
 import { RoomGuest, RoomHost, type PortsDuRelais } from './relay';
 import { GuestSession, HostSession } from './session';
 
@@ -75,8 +77,8 @@ interface Ouverture {
 /** Un salon : au plus une session à la fois, hôte ou invité. Ses objets réseau vivants (sessions, sockets) restent
  *  dans sa fermeture, jamais dans l'état (non sérialisables, jamais dans les instantanés). */
 export interface Salon {
-  /** Devient HÔTE : crée la room sur le Worker → code court, attend les invités, applique leurs intentions par
-   *  `appliquer`. Résout null s'il héberge, sinon le message d'erreur ; une levée en chemin va aussi à `panne`. */
+  /** Devient HÔTE : crée la room sur le Worker → code court, attend les invités et lit leurs arguments par
+   *  `gesteDuVerbe` avant `appliquer`. Résout null s'il héberge, sinon le message d'erreur ; une levée en chemin va aussi à `panne`. */
   heberger(get: Get, appliquer: AppliquerLIntention, name: string): Promise<string | null>;
   /** INVITÉ : rejoint une room par son code. Résout null si connecté, sinon le message d'erreur ; une levée en chemin
    *  va aussi à `panne`. Un token stocké (reload) reprend le MÊME siège tant que la room vit. */
@@ -198,7 +200,17 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
     roomHost = rh;
     host = new HostSession({
       build: buildDeLaCoop(),
-      applyIntent: appliquer,
+      applyIntent: (action, args, siege) => {
+        if (!GUEST_INTENTS.has(action)) return;
+        let geste: Geste;
+        try {
+          geste = withActingSeat(siege, () => gesteDuVerbe(get(), { type: action, args }, SANS_PISTE));
+        } catch (erreur) {
+          if (erreur instanceof ErreurDeGeste && erreur.categorie === 'validation') return t('coop.intentRefused');
+          throw erreur;
+        }
+        return appliquer(geste.type, geste.args, siege);
+      },
       getSnapshot: () => instantaneDeLaCoop(get()),
       onSeatClosed: (seat) => siegeFerme(get, seat),
     });

@@ -618,8 +618,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             attente et les refus au geste), `coop/` (la coop sur le `Transport` que l'hôte fournit :
                             `protocol.ts`, les messages et leur validation, `session.ts`, `HostSession`/`GuestSession`
                             hôte-autoritaires, l'instantané pour seul état diffusé, scènes de la campagne comprises
-                            (`campaignDoc`, `appliquerLInstantane`) ; `transport.ts`, le port
-                            `Transport`, et sa paire en mémoire de test `transport.testkit.ts`),
+                            (`campaignDoc`, `appliquerLInstantane`). `salon.ts` lit les arguments des intentions
+                            admises par `gesteDuVerbe` sur l'état de l'hôte au nom du siège du transport, avant de
+                            les transmettre au noyau. `transport.ts`, le port `Transport`, et sa paire en mémoire
+                            de test `transport.testkit.ts`),
                             `stockageWeb.ts` (accès protégé au `localStorage` et au `sessionStorage`, `stockageWeb`,
                             pour la page de l’hôte Godot ; un dictionnaire persisté s'y relit par
                             `lireDictionnaire` de `lib/stockage.ts`, chaque VALEUR validée par son lecteur contre son
