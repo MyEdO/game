@@ -1836,7 +1836,9 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
     opaques: { k: 'elementItere', de: { k: 'projection', de: lit, v: [] } }, descendre: { k: 'aplatir', de: lit, profondeur: un },
     niveau: { k: 'aplatir', de: { k: 'liste', v: [lit] }, profondeur: un } }
   for (const [nom, e] of Object.entries(paresseuses)) assert.doesNotThrow(() => evaluer(e), nom)
+  const cleChaude = () => ferme.cleDe({ objet: { a: 'texte réutilisé' } })
   for (const prototype of [Object.prototype, Array.prototype]) {
+    cleChaude()
     const avant = Object.getOwnPropertyDescriptor(prototype, 'toJSON')
     Object.defineProperty(prototype, 'toJSON', { configurable: true, value: () => undefined })
     try {
@@ -1846,6 +1848,12 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
         assert.throws(() => c.cleDesArgs([[{ texte: 'src/a' }]]), /CLE_DOMAINE_JSON/)
       }
       for (const mode of ['strict', 'cellules']) assert.equal(clesDuDepot().cle({ a: [1] }, mode), null)
+      const panne = new TypeError('projection du scalaire')
+      Object.defineProperty(prototype, 'toJSON', { configurable: true, value() {
+        if (Array.isArray(this) && this[0] === 'string' && this[1] === 'texte réutilisé') throw panne
+        return this
+      } })
+      assert.throws(cleChaude, (e) => nomme(e) && e.cause === panne)
     } finally {
       if (avant) Object.defineProperty(prototype, 'toJSON', avant)
       else delete prototype.toJSON
