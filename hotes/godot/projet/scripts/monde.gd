@@ -634,9 +634,11 @@ func _zoomer(sens: float) -> void:
 ## jouables d'une même colonne, la plus haute retirée, le clic rend la plus haute, qui se dessine par-dessus (recette
 ## `projet/recettes/jouable-sur-couche-retiree.gd`).
 ##
-## Le shader de monde rend chaque surface vue d'un morceau et d'une nappe de sa texture, `projet/textures/<matiere>.jpg`,
-## et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une
-## matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
+## Le shader de monde rend chaque surface vue d'un morceau de sa texture, `projet/textures/<matiere>.jpg`, et de son
+## relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; celle d'une
+## nappe de toit ou d'une couronne, de sa texture neutre, `<matiere>.neutre.jpg`, teinte par la couleur de ses sommets,
+## et de son relief, projetés sur le plan de chaque face, les rangs le long de son horizontale (recette
+## `projet/recettes/nappe-texturee.gd`) ; une matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
 ## `projet/textures/provenance.json` (dossier épinglé, `asset/epingles.ts`).
 ##
 ## Le monde pose chaque nappe de toit et chaque couronne crénelée sous le volume comme un morceau : une instance vue
