@@ -158,6 +158,7 @@ export const fr = {
   'jet.ferme.choixCritiqueDu': 'Choisis l’effet de ton Incantation Critique.',
   'jet.ferme.actionEngagee': 'L’action est engagée, elle se joue jusqu’au bout.',
   'jet.ferme.choixDu': 'Le choix n’est pas encore fait.',
+  'jet.ferme.etapeHoteEnAttente': 'Termine l’étape en cours avant de tout résoudre.',
   'jet.ferme.etapesDues': 'Des étapes restent à jouer.',
   'jet.ferme.etapesJouees': 'Toutes les étapes sont jouées.',
   'jet.ferme.rienADeclarer': 'Aucune rangée à déclarer.',
