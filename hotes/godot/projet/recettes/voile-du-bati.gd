@@ -1,8 +1,9 @@
 extends SceneTree
 
 ## Le voile de la vision sur le bâti (#3950) : sur le monde (`Monde`) d'un volume de deux couches, le sol de la
-## première, sous l'éclairage du jeu (`scenes/Lumiere.tscn`, soleil compris), une nappe de toit à la seconde, colorée par
-## ses sommets, une couronne texturée, la boîte du mur d'une famille sans modèle servi et celle d'une arête sans famille.
+## première, sous l'éclairage du jeu (`scenes/Lumiere.tscn`, soleil compris), une nappe de toit à la seconde, texturée et
+## teinte par ses sommets, une couronne colorée par ses sommets (sa matière n'a pas de texture neutre), la boîte du mur
+## d'une famille sans modèle servi et celle d'une arête sans famille.
 ## Sous chacun des trois
 ## regards, contre le témoin sans vision (`VolumeDeScene.voir(null)`), lu aux pixels de chacun (ceux que son instance vue
 ## peint) : la vision toute vue rend chaque pixel du témoin ; toute explorée, chacun à la part de lumière de l'explorée,
@@ -120,15 +121,15 @@ func _recetter() -> void:
 
 
 ## Le monde de la recette posé sous `racine`, en tonemap linéaire, de deux couches : le sol de toutes les cases de la première, une nappe de
-## toit à 3 m sur les cases (1, 1) à (2, 2) de la seconde, colorée par ses sommets, une couronne à 2,5 m sur (5, 1) et
-## (6, 1) de la première, texturée, puis le mur et la boîte.
+## toit à 3 m sur les cases (1, 1) à (2, 2) de la seconde, texturée et teinte par ses sommets, une couronne à 2,5 m sur
+## (5, 1) et (6, 1) de la première, colorée par ses sommets, puis le mur et la boîte.
 static func monde_du_bati(racine: Node) -> Monde:
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	racine.add_child(monde)
 	(monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	var sol := _dalles("sol/0/0/0", Rect2i(0, 0, LARGEUR, HAUTEUR), 0, 0.0, "terrain--sol-d-essai", 0.5).merged({rangee = 0})
-	var toits := [_dalles("maison", Rect2i(1, 1, 2, 2), 1, 3.0, "roof--tuile", 0.6)]
-	var couronnes := [_dalles("rempart", Rect2i(5, 1, 2, 1), 0, 2.5, "terrain--pierre", 1.0)]
+	var toits := [_dalles("maison", Rect2i(1, 1, 2, 2), 1, 3.0, "roof--tuile", 0.8)]
+	var couronnes := [_dalles("rempart", Rect2i(5, 1, 2, 1), 0, 2.5, "terrain--pierre", 0.6)]
 	var plat := []
 	for y in HAUTEUR:
 		var rangee := []
@@ -140,7 +141,7 @@ static func monde_du_bati(racine: Node) -> Monde:
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [sol]}, toits = toits, couronnes = couronnes}, recus)
 	monde.volume.poser_les_aretes([MUR, BOITE].map(func(a: Dictionary) -> Dictionary:
 		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, palette = {}, piece = Noyau.Piece.MUR,
-			position = Noyau.Position.SEULE, bloc = "0/0/0"})))
+			position = Noyau.Position.SEULE, bloc = "0/0/0"})), [])
 	return monde
 
 

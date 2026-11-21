@@ -106,7 +106,7 @@ export function slotOptionsFromRef(category: string, a: AdvancementRef): SlotOpt
     if (a.choix == null) return [{ label, optionId: a.id, ...(a.spec ? { spec: a.spec } : {}), wildcard: false }];
     return [{ label, optionId: a.id, wildcard: true, ...(Array.isArray(a.choix) ? { specOptions: a.choix } : {}) }];
   }
-  if ('pick' in a) return a.of.flatMap((x) => slotOptionsFromRef(category, x));
+  if ('of' in a) return a.of.flatMap((x) => slotOptionsFromRef(category, x));
   return [{ label: advancementLabel(category, a), wildcard: false }]; // tirage aléatoire (« N Talent aléatoire »)
 }
 

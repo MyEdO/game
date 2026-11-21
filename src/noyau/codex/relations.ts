@@ -78,11 +78,11 @@ interface ReverseGraph {
 }
 
 /** ids de base d'une liste d'`AdvancementRef` (référence, régime de spécialisation compris ;
- *  `{pick}` → chaque branche de son `of`). */
+ *  `{pick, of}` → chaque branche de son `of`). */
 function advancementIds(list: AdvancementRef[] | undefined): string[] {
   const out: string[] = [];
   for (const a of list ?? []) {
-    if ('pick' in a) out.push(...advancementIds(a.of));
+    if ('of' in a) out.push(...advancementIds(a.of));
     else { const id = advancementBaseId(a); if (id) out.push(id); }
   }
   return out;

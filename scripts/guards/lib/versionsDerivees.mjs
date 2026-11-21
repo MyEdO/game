@@ -33,7 +33,7 @@ export const relevePerimetre = (rel) =>
 
 /**
  * Les sites fautifs des trois prédicats, par prédicat : `chemin:ligne — motif`.
- * @param {readonly { rel: string, text: string }[]} fichiers
+ * @param {readonly Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers
  * @returns {{ P1: string[], P2: string[], P3: string[] }}
  */
 export function versionsNonDerivees(fichiers) {

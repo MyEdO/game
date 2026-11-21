@@ -1180,7 +1180,8 @@ export function comparaisonDAppel({ nom, fonctions }) {
  * (`sAppliqueA` : hors de leur foyer, dans leur domaine) et dont l'indice, s'il existe, est vrai sur
  * son texte ; sans aucune, rend `[]` sans parser. Sinon parse le fichier (`ast`), parcourt ses nœuds
  * UNE fois et interroge sur chacun le prédicat de chaque construction retenue : une trouvaille par
- * ligne et par construction, la première du parcours.
+ * ligne et par construction, la première du parcours. Les nœuds JSDoc ne sont lus que par les
+ * constructions qui les demandent (`avecJSDoc`).
  * @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} fichier
  * @param {readonly import('./canonUnique.mjs').ConstructionGardee[]} constructions
  * @returns {{ line: number, construction: string, detail: string }[]}
@@ -1188,6 +1189,7 @@ export function comparaisonDAppel({ nom, fonctions }) {
 export function scanConstructionsReservees(fichier, constructions, sourceFile, checker) {
   const retenues = constructions.filter((c) => sAppliqueA(fichier, c) && (!c.indice || c.indice(fichier.text)));
   if (!retenues.length) return [];
+  const retenuesDansJSDoc = retenues.filter((c) => c.avecJSDoc);
   return avecAnalyse(fichier, sourceFile, checker, (sf, checker) => {
     const contexte = contexteImports(sf, checker);
     /** @type {{ line: number, construction: string, detail: string }[]} */
@@ -1195,8 +1197,9 @@ export function scanConstructionsReservees(fichier, constructions, sourceFile, c
     const vues = new Set();
     /** @param {ts.Node} n */
     const walk = (n) => {
-      if (ts.isJSDocNodeKind(n.kind) || (n.flags & ts.NodeFlags.JSDoc)) return;
-      for (const c of retenues) {
+      const actives = ts.isJSDocNodeKind(n.kind) || (n.flags & ts.NodeFlags.JSDoc) ? retenuesDansJSDoc : retenues;
+      if (!actives.length) return;
+      for (const c of actives) {
         const detail = c.reconnait(n, sf, contexte);
         if (detail == null) continue;
         const line = lineOf(sf, n);

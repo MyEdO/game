@@ -5,7 +5,7 @@ pièce est semé de son nom : deux constructions rendent les mêmes octets."""
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, X, Repere, noeud
 from maconnerie import PIERRE, Appareil
-from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, vitre, volets
+from menuiserie import PORTE_DE_PLANCHES, croisee, echelle, vantail, vitre, volets
 
 
 def mur(D, m, alea):
@@ -78,7 +78,8 @@ BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True),
          "fenetre-close": fenetre(True), "breche": breche,
          **{noeud(piece, position): portail(ouverte, cote)
             for piece, ouverte in (("porte-fermee", False), ("porte-ouverte", True))
-            for position, cote in ((GAUCHE, -1), (DROITE, 1))}}
+            for position, cote in ((GAUCHE, -1), (DROITE, 1))},
+         "echelle": echelle}
 
 
 def elements(D):

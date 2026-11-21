@@ -1,6 +1,6 @@
 // PORTE DE RÔLE du corpus source (#1709) — la lib LIT UNE FOIS PAR CLÉ, et ce qu'elle rend est
-// IMMUABLE. Onze propriétés, mesurées sur une fixture de `os.tmpdir()` (jamais le `src/` réel) sauf
-// (f), sur l'arbre, et (k), sur des chemins :
+// IMMUABLE. Les propriétés de lecture se mesurent sur une fixture de `os.tmpdir()` sauf (f), sur
+// l’arbre, et (k), sur des chemins. L’unicité du type (l) se vérifie sur l’arbre et des témoins.
 //  (a) MÉMO      : même clé = MÊME tableau (identité), et le disque n'est pas retouché — une écriture
 //      faite APRÈS la première lecture reste invisible jusqu'à `viderCorpus()`.
 //  (b) CLÉ       : dossiers, extensions et `tests` font partie de la clé — trois corpus distincts.
@@ -32,6 +32,7 @@
 //  (k) PÉRIMÈTRE D'UNE DÉCLARATION : `sAppliqueA` applique une déclaration gardée à un fichier hors de
 //      son `foyer` (chemin ou liste) et dans son `domaine` ; les deux champs absents, elle s'applique
 //      partout.
+//  (l) TYPE UNIQUE : une projection de CorpusFile dérive du canon, en TypeScript comme en JSDoc.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 // eslint-disable-next-line murs/ordre-total-imports -- ORACLE du cas (f) : marche naïve TÉMOIN, indépendante de `listerArbre` par construction (sinon le test ne prouverait rien) ; son rendu est trié par unités de code avant comparaison, l’ordre du système de fichiers n’en sort jamais.
@@ -39,6 +40,8 @@ import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { constructionsReserveesDuCorpus, recopieDeCanon } from './canonUnique.mjs'
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 import { readCorpus, sAppliqueA, viderCorpus } from './sourceCorpus.mjs'
 
 /** La même racine que celle contre laquelle `sourceCorpus.mjs` normalise ses clés. */
@@ -340,4 +343,34 @@ test('PÉRIMÈTRE D’UNE DÉCLARATION : hors du foyer et dans le domaine, `sApp
   assert.equal(sAppliqueA(f, { domaine: (rel) => rel.startsWith('scripts/') }), false, 'hors du domaine')
   assert.equal(sAppliqueA(f, { domaine: (rel) => rel.startsWith('src/'), foyer: 'src/a.ts' }), false, 'dans le domaine mais foyer')
   assert.equal(sAppliqueA(f, { domaine: (rel) => rel.startsWith('src/'), foyer: 'src/b.ts' }), true, 'dans le domaine, hors du foyer')
+})
+
+const FOYER_CORPUS_FILE = 'scripts/guards/lib/sourceCorpus.d.mts'
+const RECOPIES_DE_CORPUS_FILE = [{
+  ...recopieDeCanon({ nom: 'CorpusFile', membres: ['rel', 'text'], complet: true, formes: ['membres de type'] }),
+  foyer: FOYER_CORPUS_FILE,
+  avecJSDoc: true,
+}]
+
+test('les types des fichiers de corpus dérivent de CorpusFile', () => {
+  const fichiers = readCorpus(['src', 'hotes', 'scripts'], { exts: [...EXTENSIONS_DE_SCRIPT], tests: true })
+  assert.deepEqual(constructionsReserveesDuCorpus(fichiers, RECOPIES_DE_CORPUS_FILE), [])
+})
+
+test('la recopie de CorpusFile est repérée en TS, déclaration .d.mts et JSDoc', () => {
+  const litteral = 'type Copie = { rel: string; text: string };'
+  const fichiers = [
+    { rel: 'src/fixture.test.ts', text: litteral },
+    { rel: 'scripts/fixture.d.mts', text: 'interface Copie {\n  readonly text : string\n  readonly rel : string\n}' },
+    { rel: 'hotes/fixture.mjs', text: '/** @typedef {{ rel: string, text: string }} Copie */\nexport {};' },
+    { rel: FOYER_CORPUS_FILE, text: litteral },
+    { rel: 'src/projection.ts', text: "type Projection = Pick<CorpusFile, 'rel' | 'text'>;" },
+    { rel: 'src/valeur.ts', text: "const fichier = { rel: 'exemple.ts', text: 'export {}' };" },
+  ]
+  const trouvees = constructionsReserveesDuCorpus(fichiers, RECOPIES_DE_CORPUS_FILE)
+  assert.deepEqual(trouvees.map(({ rel, line }) => [rel, line]), [
+    ['src/fixture.test.ts', 1],
+    ['scripts/fixture.d.mts', 1],
+    ['hotes/fixture.mjs', 1],
+  ])
 })

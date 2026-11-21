@@ -70,6 +70,8 @@ import { analyserCorpus } from './dialecte.mjs';
 import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
 
+/** @typedef {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} FichierLu */
+
 // Liaison LOCALE de l'API du compilateur — même FAIT mesuré qu'en tête de `rollSeamExclusivity.mjs`
 // (2026-08-23) : sous Vitest, un `ts.x` de visiteur AST se relit sur l'objet d'import de vite-node.
 const ts = tsModule;
@@ -171,7 +173,7 @@ function bodyReadsThroughTest(body) {
 /**
  * Déclarations de fonctions de `src/engine/**` : lecture de nœud, roulage direct, appels sortants,
  * et sites (roulages bruts + appels) pour le rapport.
- * @param {{ rel: string, text: string }[]} engineFiles
+ * @param {FichierLu[]} engineFiles
  */
 function collectDecls(engineFiles) {
   /** @type {{ name, file, line, reads, rollsDirectly, calls: Set<string>, rollSites, callSites }[]} */
@@ -249,7 +251,7 @@ function rollingNames(decls) {
  * `fnLine` = ligne de DÉCLARATION de `fn` : un doc généré qui NOMME le résolveur doit citer la ligne
  * où ce nom se lit (le symbole backtiqué se trouve à ±2 lignes du site cité), tandis que le CLIQUET reste sur
  * `line`, le site du dé. Les deux voyagent donc ensemble.
- * @param {{ rel: string, text: string }[]} engineFiles corpus `src/engine/**` (hors tests)
+ * @param {FichierLu[]} engineFiles corpus `src/engine/**` (hors tests)
  * @returns {{ file: string, line: number, fn: string, fnLine: number, famille: 'lecteur'|'appelant', name: string, detail: string }[]}
  */
 export function scanFlowTestEngineRoll(engineFiles) {

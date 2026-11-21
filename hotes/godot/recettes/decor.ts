@@ -12,7 +12,9 @@
  * plein (`coiffeUnBloc`), son volume, ses décors servis, et le retrait que rend le noyau sous sa couche
  * (`retraitDuMonde`), qui retire le plan `pose` de chaque case et laisse montré son plan `sol` (`capsSolid`) ; et
  * `luminaire` : l'échantillon de `LUMINEUX`, son volume et ses décors servis, dont chaque pose éclaire ; et
- * `paletteDesAretes` : la palette que les recettes des arêtes donnent à leurs arêtes servies (`paletteDeLApparence`).
+ * `paletteDesAretes` : la palette que les recettes des arêtes donnent à leurs arêtes servies (`paletteDeLApparence`) ;
+ * et `volee` : la réponse de `echantillon` sur le sol `SOL_A_MARCHES`, dont la recette des côtés de marches pose les
+ * côtés (`projet/recettes/cotes-de-marches.gd`, #4471). L'atelier garde aussi chaque élément `escalier` du dossier.
  */
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
@@ -57,6 +59,10 @@ const CAPS: readonly Dir4[] = ['S', 'E'];
 
 /** Le décor qui éclaire de la recette de la coïncidence : sa pose porte `luminaire`. */
 const LUMINEUX = 'lampadaire';
+
+/** Le sol bâti dont l'échantillon porte une volée (`sceneDuSol`, `src/noyau/monde/echantillons.ts`), que pose la
+ *  recette des côtés de marches (`projet/recettes/cotes-de-marches.gd`, #4471). */
+const SOL_A_MARCHES = 'plancher';
 
 /** Les apparences de la palette des arêtes servies des recettes : la porte, et le mur qui la porte
  *  (`paletteDeLApparence`), choisies pour que chaque emplacement y ait sa couleur (`paletteDistincte`). */
@@ -103,14 +109,16 @@ function coiffeUnBloc(scene: Scene): Scene {
   };
 }
 
-/** Les échantillons figés : l'atelier figé sur la base humanoïde et les éléments `decor` et `arete` de `listage`, la
+/** Les échantillons figés : l'atelier figé sur la base humanoïde et les éléments `decor`, `arete` et `escalier` de
+ *  `listage`, la
  *  réponse de `echantillons` sous la clé de l'entrée absente, par clé d'entrée (`cleDEntree`), la réponse de
  *  `echantillon` à chacune de `entreesDeLaRecette`, par cap de `CAPS`, l'échantillon de `ASYMETRIQUE` tourné à ce
  *  cap (`caps`), cet échantillon sur un bloc plein avec le retrait sous sa couche (`coiffe`), et l'échantillon de
- *  `LUMINEUX` (`luminaire`), et la palette des arêtes servies (`paletteDesAretes`). */
+ *  `LUMINEUX` (`luminaire`), la palette des arêtes servies (`paletteDesAretes`), et l'échantillon de
+ *  `SOL_A_MARCHES` (`volee`). */
 export function figerLeDecor(listage: Listage) {
   const { fige, appel } = figerLAtelier(listage,
-    (id, { categorie }) => id === 'humanoide' || categorie === 'decor' || categorie === 'arete');
+    (id, { categorie }) => id === 'humanoide' || categorie === 'decor' || categorie === 'arete' || categorie === 'escalier');
   /** Le volume de `scene` et le décor `id` tel que l'échantillon le sert, aux poses de `scene`. */
   const figee = (id: string, scene: Scene) => {
     type Servis = { decors: Record<string, Record<string, unknown>> };
@@ -133,5 +141,6 @@ export function figerLeDecor(listage: Listage) {
     coiffe,
     luminaire: figee(LUMINEUX, sceneDEchantillon('decor', LUMINEUX)),
     paletteDesAretes: paletteDistincte(),
+    volee: appel('echantillon', { famille: 'sol', id: SOL_A_MARCHES }),
   };
 }

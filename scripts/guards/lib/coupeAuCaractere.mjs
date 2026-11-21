@@ -31,7 +31,7 @@ const DECLARATION = { foyer: 'src/lib/coupeAuMot.mjs' }
 /**
  * Sites d'un préfixe `x.slice|substring|substr(0, n)` dont l'expression de texte qui l'emporte porte
  * une ellipse (voir PORTÉE, en-tête).
- * @param {readonly { rel: string, text: string }[]} fichiers
+ * @param {readonly Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers
  * @returns {string[]} `chemin:ligne`
  */
 export function coupesAuCaractere(fichiers) {

@@ -19,7 +19,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_MODIFIERS, DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus, type CorpusFile } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { propulsionDuNavire } from '../engine/shipBuild';
@@ -657,8 +657,8 @@ describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dé
     .map((m) => m[1] ?? m[2] ?? m[3] ?? '');
   const motifDe = (rel: string): RegExp =>
     COUCHES_SANS_PROSE.some((c) => rel.startsWith(c)) ? /combin[ée]e/i : /combinee|Combin[ée]e|COMBIN[ÉE]E/;
-  const porteLeMot = (f: { rel: string; text: string }): boolean => litteraux(f.text).some((s) => motifDe(f.rel).test(s));
-  const fuit = (f: { rel: string; text: string }): boolean => f.rel !== MAISON && f.rel !== CATALOGUE && porteLeMot(f);
+  const porteLeMot = (f: Pick<CorpusFile, 'rel' | 'text'>): boolean => litteraux(f.text).some((s) => motifDe(f.rel).test(s));
+  const fuit = (f: Pick<CorpusFile, 'rel' | 'text'>): boolean => f.rel !== MAISON && f.rel !== CATALOGUE && porteLeMot(f);
 
   it('le mot ne se MANIPULE que dans sa maison, `noyau/difficultyText.ts`, et le catalogue i18n', () => {
     const fichiers = readCorpus(['src']);

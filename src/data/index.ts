@@ -51,6 +51,7 @@ import type { IdsParEspace } from './schemas/_ids.generated';
 import {
   charKeySchema,
   natureDeMentionSchema,
+  raceKeySchema,
   symptomSeveritySchema,
   type NatureDeMention,
   type harvestRaritySchema,
@@ -74,7 +75,7 @@ import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
 import { garanti } from '../lib/garanti';
 import { effectiveEntry } from '../engine/variants';
-import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type EffectSource } from '../engine/types';
+import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type CouleurDePersonnage, type EffectSource } from '../engine/types';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
 import speciesRaceJson from './speciesRace.json';
@@ -100,7 +101,7 @@ import type * as stakesDef from './schemas/defs/stakes';
 import type * as careersDef from './schemas/defs/careers';
 import type * as careerLevelsDef from './schemas/defs/careerLevels';
 import type * as speciesDef from './schemas/defs/species';
-import type { Avancement } from './schemas/grammaire/avancement';
+import type { Avancement, TirageDeTalents } from './schemas/grammaire/avancement';
 import type * as disponibiliteDef from './schemas/defs/disponibilite';
 import type * as navalPortsDef from './schemas/defs/naval-ports';
 import type * as navalTraitsDef from './schemas/defs/naval-traits';
@@ -219,6 +220,7 @@ import lightLevelsJson from './lightLevels.json';
 import lightTonesJson from './lightTones.json';
 import rendusJson from './rendus.json';
 import propsJson from './props.json';
+import { COLONNES_AVANT_REFERENCES_DE_CREATION, COULEURS_AVANT_REFERENCES_DE_CREATION } from './couleursAvantReferencesDeCreation';
 import eyesJson from './eyes.json';
 import hairsJson from './hairs.json';
 import calendarMonthsJson from './calendarMonths.json';
@@ -1311,6 +1313,8 @@ export const materials = datasetDe<typeof materialsDef>(materialsJson);
 export const terrains = datasetDe<typeof terrainsDef>(terrainsJson);
 /** Un terrain, au type de son schéma (`schemas/defs/terrains.ts`). */
 export type TerrainDef = EntreeDe<typeof terrainsDef>;
+/** Les familles de kit 3D d'escalier, une par modèle `escalier--<famille>` (`kitDEscalierSchema`). */
+export type KitDEscalier = NonNullable<TerrainDef['kitDEscalier']>;
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade
@@ -1566,6 +1570,61 @@ export const eyes = rangeesDe<typeof couleurDesYeux>(tableDesYeux);
 /** Les rangées du Tableau de couleur des cheveux. */
 type CouleurDeCheveux = RangeeDe<typeof couleurDesCheveux>;
 export const hairs: CouleurDeCheveux[] = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux);
+
+type TableDeCouleur = 'eyes' | 'hairs';
+const rangeeDeCouleur = { eyes: indexParId('eyes', eyes), hairs: indexParId('hairs', hairs) };
+const tablesDeCouleur = { eyes, hairs };
+
+const celluleDeCouleur = (color: Readonly<Partial<Record<RaceKey, string>>>, colonne: RaceKey): string =>
+  color[colonne] ?? color.humain ?? '';
+
+/** Libellé de la cellule de couleur au Codex. L'ancien libellé non résolu est déjà du texte d'affichage. */
+export function libelleDeCouleur(table: TableDeCouleur, choix: CouleurDePersonnage | undefined): PlayerText | null {
+  if (!choix) return null;
+  if ('label' in choix) return dataLabel(choix.label);
+  const rangee = rangeeDeCouleur[table](choix.id);
+  return rangee ? dataLabel(celluleDeCouleur(rangee.color, choix.colonne)) : null;
+}
+
+function couleurHistorique(table: TableDeCouleur, label: string | undefined, colonne: RaceKey | undefined): CouleurDePersonnage | undefined {
+  if (label === undefined) return undefined;
+  if (colonne === undefined) return { label };
+  const candidates = COULEURS_AVANT_REFERENCES_DE_CREATION[table].filter((r) => celluleDeCouleur(r.color, colonne) === label);
+  if (candidates.length !== 1) return { label };
+  const [{ id }] = candidates;
+  if (!rangeeDeCouleur[table](id)) return { label };
+  const contradictoire = tablesDeCouleur[table].some((r) => r.id !== id && celluleDeCouleur(r.color, colonne) === label);
+  return contradictoire ? { label } : { id, colonne };
+}
+
+function couleurPossible(table: TableDeCouleur, label: string | undefined, colonne: RaceKey): boolean {
+  return label === undefined
+    || COULEURS_AVANT_REFERENCES_DE_CREATION[table].some((r) => celluleDeCouleur(r.color, colonne) === label)
+    || tablesDeCouleur[table].some((r) => celluleDeCouleur(r.color, colonne) === label);
+}
+
+/** Un héros peut garder son physique en changeant d'espèce. Sa colonne doit aussi être établie par les anciennes couleurs. */
+export function couleursHistoriques(
+  libelles: { eyes: string | undefined; hair: string | undefined },
+  espece: unknown,
+  colonneAttestee: boolean,
+): { eyes: CouleurDePersonnage | undefined; hair: CouleurDePersonnage | undefined } {
+  let colonne: RaceKey | undefined;
+  if (typeof espece === 'string') {
+    const avant = COLONNES_AVANT_REFERENCES_DE_CREATION.get(espece) ?? raceKeySchema.safeParse(espece).data;
+    const courante = findSpeciesById(espece)?.refChar;
+    if (avant && (!courante || courante === avant)) colonne = avant;
+  }
+  if (!colonneAttestee && colonne !== undefined) {
+    const possibles = raceKeySchema.options.filter((c) => couleurPossible('eyes', libelles.eyes, c) && couleurPossible('hairs', libelles.hair, c));
+    if (possibles.length !== 1 || possibles[0] !== colonne) colonne = undefined;
+  }
+  return {
+    eyes: couleurHistorique('eyes', libelles.eyes, colonne),
+    hair: couleurHistorique('hairs', libelles.hair, colonne),
+  };
+}
+
 /** Le dé du Tableau de couleur des yeux, lu à l'appel. */
 export const eyesDie = (): DeDeTable => deDeTirageDe<typeof couleurDesYeux>(tableDesYeux);
 /** Le dé du Tableau de couleur des cheveux, lu à l'appel. */
@@ -1713,11 +1772,12 @@ export const oups = rangeesDe<typeof tableauDesOups>(oupsJson);
 /** Les documents du Tableau des Talents aléatoires (LDB 05 l.514-531), patron `mutationTables` : le dé est
  *  un champ de l'entrée-document — app-owned éditable au Codex (`setDataset`), même référence. */
 export const talentsAleatoires = datasetDe<typeof tableDesTalentsAleatoires>(talentsAleatoiresJson);
-/** Les rangées du Tableau des Talents aléatoires, lues à l'appel : tirées par `rollRandomTalent` (`engine/character.ts`). */
-export const rangeesDesTalentsAleatoires = (): RangeeDe<typeof tableDesTalentsAleatoires>[] =>
-  rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
-/** Le dé du Tableau des Talents aléatoires, lu à l'appel. */
-export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
+const tableDeTalentsParId = indexParId('talentsAleatoires', talentsAleatoires);
+/** Le document vivant que désigne le tirage d'une espèce. */
+export const tableDeTalents = ({ id }: TirageDeTalents['table']) => {
+  const table = garanti(tableDeTalentsParId(id), id, 'table de Talents aléatoires');
+  return { entries: table.entries, die: deDeLaTableTiree(table) };
+};
 /** Les documents du Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299), par `kind` : une colonne
  *  par colonne imprimée, les portions (MDG 09 l.9) et les variantes (AA 02 l.109-128) — app-owned éditable au
  *  Codex (`setDataset`), même référence. */
@@ -1883,8 +1943,7 @@ export function tailleDuProfil(p: {
   return p.size ?? sizeFromProfile(p.traits, p.talents, tailleDuTalent) ?? 'moyenne';
 }
 
-/** Taille CONFÉRÉE par les talents d'espèce FIXES (une référence ARRÊTÉE, jamais un `{pick}`, un
- *  `{random}` ni un `choix` résiduels — chip décoratif du créateur avant résolution complète, #572) :
+/** Taille CONFÉRÉE par les talents d'espèce FIXES (une référence ARRÊTÉE, sans sélection, tirage ni choix résiduels — chip décoratif du créateur avant résolution complète, #572) :
  *  `sizeFromTalents` (engine/size.ts), sinon Moyenne. */
 export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCategory {
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
@@ -2530,12 +2589,12 @@ function libelleDuParmi(pick: number, options: PlayerText[]): PlayerText {
  *  aléatoires », « Magie des Arcanes (Bête) ». SOURCE UNIQUE (Codex + résolution création). */
 export function advancementLabel(category: string, a: AdvancementRef): PlayerText {
   if ('id' in a) return refLabel(category, a);
-  if ('pick' in a) return libelleDuParmi(a.pick, a.of.map((x) => advancementLabel(category, x)));
-  return a.random === 1 ? t('ref.talentAleatoire') : t('ref.talentsAleatoires', { n: a.random });
+  if ('of' in a) return libelleDuParmi(a.pick, a.of.map((x) => advancementLabel(category, x)));
+  return a.pick === 1 ? t('ref.talentAleatoire') : t('ref.talentsAleatoires', { n: a.pick });
 }
 /** id de base d'un `AdvancementRef` SIMPLE (référence, avec ou sans régime de spécialisation) — pour
  *  matcher par id une compétence/un talent POSSÉDÉ (ex. compétence de revenus). undefined pour un
- *  `{pick}`/`{random}` (pas un id unique). */
+ *  choix ou un tirage de table. */
 export function advancementBaseId(a: AdvancementRef): string | undefined {
   return 'id' in a ? a.id : undefined;
 }

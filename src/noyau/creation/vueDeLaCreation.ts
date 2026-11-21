@@ -10,7 +10,7 @@ import {
   charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftPorteur, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
-  speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomCount, speciesTalentRandomDrawn, speciesXp, starXp, stepIds, tirerLaVariante,
+  speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomTables, speciesTalentRandomDrawn, speciesXp, starXp, stepIds, tirerLaVariante,
   valeurDuCompteur, bornesDuCompteur, validateStep, withAssignment, withCareer, withCareerSkillSpec, withCareerTalent, withCharMode,
   withCoastalSwap, withCompteur, withEvenCareerSkillAdvances, withIgnoreRestrictions, withPettySpellToggled,
   withRandomTalentSpec, withSexe, withSpecies, withSpeciesSkillDefaults, withSpeciesSkillSpec, withSpeciesSkillTier, withSpeciesTalentChoice,
@@ -18,8 +18,8 @@ import {
   type CharMode, type Compteur, type CreatorDraft, type SkillsSub, type StepId,
 } from './brouillon';
 import {
-  advancementLabel, careerLabelFor, charAbr, classes,
-  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars, tableDeCarrieres, talentsAleatoiresDie, varianteDe,
+  advancementLabel, careerLabelFor, charAbr, classes, libelleDeCouleur,
+  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars, tableDeCarrieres, tableDeTalents, varianteDe,
   trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
@@ -304,7 +304,7 @@ const memeRef = (a: RefDesignee | undefined, b: RefDesignee): boolean => !!a && 
 /** 4c) Les Talents (LDB 05 l.484, l.535 ; LDB 10 l.714) : ceux de race (acquis, « A ou B », tirés, leur
  *  relance et leur utilisation), le Talent de carrière, les sorts de Magie mineure qu'un Talent inclut. */
 function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
-  const n = speciesTalentRandomCount(d);
+  const tirages = speciesTalentRandomTables(d);
   const probe = probeHero(d, false);
   const quota = pettySpellQuota(d);
   return [
@@ -313,7 +313,12 @@ function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
       const retenue = d.speciesTalentChoices[e.adresse];
       return choix(`option/${e.adresse}`, advancementLabel('talents', e.ref), e.options.map((o) => option(advancementLabel('talents', o), geste('talentDEspece', e.adresse, o), !!retenue && cleDOption(retenue) === cleDOption(o))));
     }),
-    ...(n && !d.talentsRolled ? [gesteDe('tirage', t('crea.vue.tirerTalents', { n, die: formatDice(talentsAleatoiresDie()) }), geste('tirerLesTalents'))] : []),
+    ...(tirages.length && !d.talentsRolled
+      ? [gesteDe('tirage', t('crea.vue.tirerTalents', {
+          n: tirages.reduce((n, a) => n + a.pick, 0),
+          die: listeEt([...new Set(tirages.map((a) => formatDice(tableDeTalents(a.table).die)))]),
+        }), geste('tirerLesTalents'))]
+      : []),
     ...speciesTalentRandomDrawn(d).flatMap((x) => {
       const nom = refLabel('talents', { id: x.ref.id });
       return [
@@ -382,8 +387,8 @@ function pageDeLIdentite(d: CreatorDraft): RubriqueDeCreation[] {
       : [
           valeur('age', t('crea.vue.age'), String(d.age)),
           valeur('taille', t('crea.vue.taille'), t('crea.vue.centimetres', { n: d.height ?? 0 })),
-          valeur('yeux', t('crea.vue.yeux'), d.eyes ?? null),
-          valeur('cheveux', t('crea.vue.cheveux'), d.hair ?? null),
+          valeur('yeux', t('crea.vue.yeux'), libelleDeCouleur('eyes', d.eyes)),
+          valeur('cheveux', t('crea.vue.cheveux'), libelleDeCouleur('hairs', d.hair)),
         ]),
   ];
 }

@@ -187,7 +187,7 @@ func _poser_la_reponse(plan: Dictionary) -> void:
 		if not plan.recus.is_empty():
 			_monde.poser(plan.monde, plan.recus)
 			_monde.volume.retirer(reponse.retrait)
-		_monde.volume.poser_les_aretes(reponse.aretes)
+		_monde.volume.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches)
 		_modeles.poser(reponse.navires, reponse.decors, {}, reponse.monde.metresParCase)
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche

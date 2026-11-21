@@ -20,7 +20,7 @@
  */
 import { fabriqueLocale, type FabriqueDId } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
-import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
+import { CharKey, CHAR_KEYS, Characteristics, Combatant, type HeroDetails } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
 import type { Status } from '../../engine/money';
 import {
@@ -57,6 +57,7 @@ import {
   poolDuJoker,
   fluxDeCreation,
   cleDOption,
+  optionsDesTalentsDEspece,
   baseDEspece,
   type ChoixDeCreation,
   type CompetenceDeCarriere,
@@ -94,6 +95,7 @@ import {
   type JetDeCarriere,
 } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
+import type { TirageDeTalents } from '../../data/schemas/grammaire/avancement';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
 import { makeRNG } from '../../engine/dice';
@@ -112,7 +114,8 @@ export const CAREER_CHAR_ADVANCES = 5;
 /** Le brouillon = les choix de création (`ChoixDeCreation`, en ids) + l'état de l'assistant. */
 export interface CreatorDraft
   extends Required<Pick<ChoixDeCreation, 'seed' | 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'talentRerolls' | 'skillAdvances' | 'pettySpells'>>,
-    Pick<ChoixDeCreation, 'careerTalent' | 'trappingChoices' | 'talentsRolled'> {
+    Pick<ChoixDeCreation, 'careerTalent' | 'trappingChoices' | 'talentsRolled'>,
+    Pick<HeroDetails, 'age' | 'height' | 'eyes' | 'hair'> {
   // 1) Espèce
   /** `id` STABLE de l'espèce (`SpeciesData.id`) — ≠ libellé. */
   speciesId: string;
@@ -160,10 +163,6 @@ export interface CreatorDraft
   motivation: string;
   ambitionShort: string;
   ambitionLong: string;
-  age?: number;
-  height?: number;
-  eyes?: string;
-  hair?: string;
   // 3bis) Signe astral (ADE II 3 — étape optionnelle, gated par la règle creation-signes-astraux)
   /** Signe astral choisi — `id` STABLE (≠ libellé) ; son `effect` est appliqué aux attributs de départ. */
   star?: string;
@@ -535,17 +534,22 @@ export function withSpeciesTalentChoice(d: CreatorDraft, adresse: AdresseDeCreat
 
 /** Talents d'espèce en TROIS lots (LDB 05 l.484, écran Talents — 5c), dérivés de la DONNÉE
  *  (`sp.talents`) : FIXES (acquis d'office) / À CHOISIR (« A ou B », par adresse) / ALÉATOIRES
- *  (nombre de tirages d100). */
+ *  (nombre de tirages sur les tables désignées). */
 export function speciesTalentFixedEntries(d: CreatorDraft): RefDesignee[] {
   return (draftSpecies(d)?.talents ?? []).flatMap((a) => ('id' in a ? [designer('talent', a)] : []));
 }
 export function speciesTalentChoiceEntries(d: CreatorDraft): { adresse: AdresseDeCreation; ref: AdvancementRef; options: AdvancementRef[] }[] {
-  return (draftSpecies(d)?.talents ?? []).flatMap((a, i) => ('pick' in a ? [{ adresse: adresseDeCreation.especeTalent(i), ref: a, options: a.of }] : []));
+  return (draftSpecies(d)?.talents ?? []).flatMap((a, i) => ('of' in a ? [{ adresse: adresseDeCreation.especeTalent(i), ref: a, options: a.of }] : []));
 }
+export function speciesTalentRandomTables(d: CreatorDraft): TirageDeTalents[] {
+  const sp = draftSpecies(d);
+  return sp ? optionsDesTalentsDEspece(sp, d.speciesTalentChoices).filter((option) => 'table' in option) : [];
+}
+
 export function speciesTalentRandomCount(d: CreatorDraft): number {
-  return (draftSpecies(d)?.talents ?? []).reduce((n, a) => n + ('random' in a ? a.random : 0), 0);
+  return speciesTalentRandomTables(d).reduce((n, a) => n + a.pick, 0);
 }
-/** Un Talent tiré au d100 (`TalentDEspece.tirage`) ; `auMaxi` : doublon dont le Maxi est déjà atteint
+/** Un Talent tiré (`TalentDEspece.tirage`) ; `auMaxi` : doublon dont le Maxi est déjà atteint
  *  (LDB 10 l.18), sans effet s'il est gardé ; `utilisations` : le pool de `rollRandomTalent`
  *  (`specPoolOf`, LDB 10 l.17) ; `utilisationChoisie` : `randomSpecPicks[adresse]` s'il est de ce pool. */
 export interface TirageDeTalent {
@@ -557,7 +561,7 @@ export interface TirageDeTalent {
   utilisations: string[];
   utilisationChoisie: string | null;
 }
-/** Les N talents TIRÉS au d100 (LDB 05 l.484, table l.514-531), tels que le geste 5c les découvre — VIDE tant que le
+/** Les Talents tirés (LDB 05 l.484, l.514-531), tels que le geste 5c les découvre — VIDE tant que le
  *  joueur n'a pas tiré (#393 agentivité). Utilisation : `withRandomTalentSpec` ; relance : `rerollDraftTalent`. */
 export function speciesTalentRandomDrawn(d: CreatorDraft): TirageDeTalent[] {
   const sp = draftSpecies(d);
@@ -802,14 +806,10 @@ export function rollDraftName(d: CreatorDraft, graine: number): CreatorDraft {
   const label = sp ? generateName(sp.refChar, d.apparence.sex, makeRNG(graine)) : null;
   return label ? withEtatCivil(d, { label }) : d;
 }
-/** Geste « Aux dés » du physique (`rolledDetails`) ; sans espèce, le brouillon est INCHANGÉ. */
+/** Geste « Aux dés » du physique ; sans espèce, le brouillon est INCHANGÉ. */
 export function rollDraftDetails(d: CreatorDraft): CreatorDraft {
-  return draftSpecies(d) ? withEtatCivil(d, rolledDetails(d)) : d;
-}
-export function rolledDetails(d: CreatorDraft): { age: number; height: number; eyes: string; hair: string } {
   const sp = draftSpecies(d);
-  if (!sp) return { age: 0, height: 0, eyes: '', hair: '' };
-  return tirerLesDetails(sp.refChar, fluxDeCreation(d.seed, 'details'));
+  return sp ? withEtatCivil(d, tirerLesDetails(sp.refChar, fluxDeCreation(d.seed, 'details'))) : d;
 }
 
 export type StepId = 'species' | 'career' | 'chars' | 'star' | 'skills' | 'trappings' | 'details' | 'presentation';

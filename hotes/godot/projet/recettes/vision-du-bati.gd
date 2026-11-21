@@ -49,7 +49,7 @@ func _recetter() -> void:
 		_arete("p", Noyau.Piece.PORTE_FERMEE, Vector2(4.0, 1.5), [Vector3i(4, 2, 0), Vector3i(4, 1, 0)]),
 	]
 	var etats := {Vector3i(1, 1, 0): VUE, Vector3i(2, 2, 1): EXPLOREE, Vector3i(2, 1, 1): INCONNUE, Vector3i(4, 1, 0): EXPLOREE, Vector3i(4, 2, 0): INCONNUE}
-	volume.poser_les_aretes(aretes)
+	volume.poser_les_aretes(aretes, [])
 	volume.voir(_vision(LARGEUR, HAUTEUR, 2, etats))
 	RenderingServer.frame_pre_draw.emit()
 	_nappes(monde)
@@ -72,7 +72,7 @@ func _recetter() -> void:
 	var etats_neufs := {Vector3i(0, 1, 0): EXPLOREE}
 	volume.voir(null)
 	volume.voir(_vision(PETITE, PETITE, 1, etats_neufs))
-	volume.poser_les_aretes([_arete("n", Noyau.Piece.MUR, Vector2(0.0, 0.5), [Vector3i(0, 1, 0), Vector3i(0, 0, 0)])])
+	volume.poser_les_aretes([_arete("n", Noyau.Piece.MUR, Vector2(0.0, 0.5), [Vector3i(0, 1, 0), Vector3i(0, 0, 0)])], [])
 	RenderingServer.frame_pre_draw.emit()
 	_teintes(monde, "autre scène", [], etats_neufs)
 	for faute in _fautes:

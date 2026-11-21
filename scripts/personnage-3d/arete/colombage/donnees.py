@@ -19,6 +19,7 @@ du pan autour d'une déchirure du torchis, ses bois rompus, les éclisses de son
 
 Matières : le bois d'ossature et de menuiserie prend `bois-chene`, les ferrures `fer-noirci`, la vitre `verre`,
 le torchis et les gravats `terre-battue`.
+L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import apparence, hauteur
@@ -49,11 +50,12 @@ MATERIAUX = {
     "croisee": ("vet1", "bois-chene"),
     "vitre": ("vitre", "verre"),
     "ferrure": ("metal", "fer-noirci"),
+    "echelle": ("accent", "bois-chene"),
     "gravats": ("gravats", "terre-battue"),
 }
 
 BUDGET_TRIANGLES = {"mur": 300, "porte-fermee": 450, "porte-ouverte": 450, "fenetre": 620, "fenetre-close": 620,
-                    "breche": 700}
+                    "breche": 700, "echelle": 400}
 
 ANGLE_LISSE = 30
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : une pièce équarrie garde ses arêtes."""
