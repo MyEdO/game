@@ -14,7 +14,8 @@
  * contribution du trait accordé) car des entrées peuvent venir d'ailleurs (mutations).
  */
 import { Combatant, type EffectSource } from './types';
-import { parsePsychTraits, type PsychTrait } from './psychology';
+import type { PsychTrait } from './psychology';
+import { parsePsychTraits } from './psych/registry';
 import { identiteDeCiblage, type CiblePsy } from './psych/ciblage';
 import type { TraitInstance } from './statEntry';
 

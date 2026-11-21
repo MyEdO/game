@@ -212,6 +212,7 @@ import {
   syncDerivedConditions,
   isConditionLocked,
   soinDeDetermination,
+  poseDeterminationCanceller,
   isActionLocked,
 } from '../engine/conditions';
 import {
@@ -232,7 +233,7 @@ import {
 import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
 import { soinDeLActe } from './acteDeSoin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
-import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
+import { treatTrauma, receiveMedicalAid } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
 import { entreeEnRencontre } from '../engine/persistence';
 import { testValue, actorHasSkill, soutienDetail, type SupportDetail } from '../engine/skills';

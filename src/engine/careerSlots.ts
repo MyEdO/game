@@ -17,26 +17,33 @@
  * `slotsOfLevel` construit ses `SlotOption[]` depuis l'`AdvancementRef` structuré (`slotOptionsFromRef`) ;
  * les désignations sont keyées par `refKey(id, spec)`, jamais par un libellé.
  */
-import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
+import { CHAR_LABELS, type CharKey, type Combatant } from './types';
 import { bonus } from './characteristics';
-import { baseWithTalents } from './talentEffects';
 import {
   byId,
   specPoolOf,
   levelsForCareer,
   findTalentById,
   findDomainById,
-  chaosSpellsOf,
   findSpeciesById,
   advancementLabel,
   refLabel,
   CareerLevelData,
   type AdvancementRef,
 } from '../data';
-import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { entreeOuverte, refusDeSpec, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
-import { effectiveEntry } from './variants';
 import { t } from '../i18n';
+
+export {
+  acquerirTalent,
+  estLInstanceDe,
+  retirerTalent,
+  talentAcquisitions,
+  talentMaxById,
+  talentMaxReached,
+  type PorteurDeTalents,
+} from './acquisitionTalents';
 
 /** Une possibilité concrète ou ouverte couverte par un slot. */
 export interface SlotOption {
@@ -297,73 +304,11 @@ export function designateSlot(
   return { ok: true };
 }
 
-/**
- * Maxi d'un Talent par son `id` STABLE (LDB 10 l.18) : 1, Bonus de Caractéristique (LDB 05 l.406),
- * Sorts du Domaine de sa spécialisation `spec` (LDB 10 l.704 ; illimité tant qu'elle n'est pas choisie)
- * ou illimité (absent). Lu sur l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts` ;
- * AA 13 l.54-59, l.70-74).
- */
-export function talentMaxById(hero: PorteurDeTalents, talentId: string, spec?: string): number | null {
-  const max = effectiveEntry(findTalentById(talentId))?.max;
-  if (max == null) return null;
-  if (typeof max === 'number') return max;
-  if (max === 'sortsDuDomaine') return spec ? chaosSpellsOf(spec).length : null;
-  return bonus(baseWithTalents(hero, max.bonusOf)); // LDB 10 l.17 ; Caractéristique stockée (Augmentations, LDB 07 l.47) + `charMod` permanents des Talents, sans effets temporaires
-}
-
 /** Affichage FR du Maxi d'un talent (Compendium), DÉRIVÉ de la donnée structurée, jamais stocké en chaîne. */
 export function talentMaxLabel(max: number | { bonusOf: CharKey } | 'sortsDuDomaine' | null): string {
   if (max == null) return t('slot.maxNone');
   if (typeof max === 'number') return String(max);
   return max === 'sortsDuDomaine' ? t('slot.maxSortsDuDomaine') : t('slot.maxBonusOf', { char: CHAR_LABELS[max.bonusOf] });
-}
-
-/** Acquisitions déjà faites du Talent, TOUTES utilisations confondues (LDB 10 l.17-18, l.548) — lues par
- *  le Maxi (LDB 10 l.18) et le coût (LDB 07 l.105, l.156). `spec` ne sert qu'à un Talent `grantsArcaneDomain` :
- *  chaque Domaine est un Talent (LDB 46 l.177), le nombre de Domaines relevant de `arcaneDomainGate`. */
-export function talentAcquisitions(hero: Pick<PorteurDeTalents, 'talents'>, talentId: string, spec?: string): number {
-  const parDomaine = findTalentById(talentId)?.grantsArcaneDomain === true;
-  return (hero.talents ?? [])
-    .filter((t) => t.talentId === talentId && (!parDomaine || memeSpecialisation(t.spec, spec)))
-    .reduce((n, t) => n + t.times, 0);
-}
-
-/** Le héros a-t-il atteint le Maxi de ce Talent (`talentAcquisitions`). */
-export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?: string): boolean {
-  const max = talentMaxById(hero, talentId, spec);
-  return max != null && talentAcquisitions(hero, talentId, spec) >= max;
-}
-
-/** Ce que l'acquisition d'un Talent lit et écrit sur son porteur. */
-export type PorteurDeTalents = Pick<Combatant, 'characteristics'> & { talents?: TalentInstance[] };
-
-/** L'instance `x` est-elle le Talent `ref` (id et spécialisation) ? */
-export const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && memeSpecialisation(x.spec, ref.spec);
-
-/**
- * ACQUISITION d'une instance de Talent — seule couture qui écrit `talents` : le Maxi borne (`LDB 10
- * l.18`, `talentMaxReached`), puis l'instance existante gagne un `times`, ou une instance neuve est
- * posée. Rend `false`, sans rien écrire, quand le Maxi est atteint.
- */
-export function acquerirTalent(porteur: PorteurDeTalents, ref: RefDesignee): boolean {
-  if (talentMaxReached(porteur, ref.id, ref.spec)) return false;
-  const talents = porteur.talents ?? [];
-  const meme = estLInstanceDe(ref);
-  porteur.talents = talents.some(meme)
-    ? talents.map((x) => (meme(x) ? { ...x, times: x.times + 1 } : x))
-    : [...talents, { talentId: ref.id, ...(ref.spec ? { spec: ref.spec } : {}), times: 1 }];
-  return true;
-}
-
-/** INVERSE d'`acquerirTalent` : l'instance perd un `times`, et disparaît au dernier. */
-export function retirerTalent(porteur: PorteurDeTalents, ref: RefDesignee): void {
-  const talents = porteur.talents ?? [];
-  const meme = estLInstanceDe(ref);
-  const instance = talents.find(meme);
-  if (!instance) return;
-  porteur.talents = instance.times > 1
-    ? talents.map((x) => (meme(x) ? { ...x, times: x.times - 1 } : x))
-    : talents.filter((x) => !meme(x));
 }
 
 /** `VDM 02 l.190-192` (texte identique `LDB 46 l.177`). Voir `arcaneDomainCap`/`arcaneDomainGate`. */

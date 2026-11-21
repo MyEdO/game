@@ -92,9 +92,8 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/seaNavigation.ts': 1,
   // Les trois `o.skill === 'esquive'` de `downgradeTornMuscle`/`traumaDodgePenalty`/`traumaSkillPenalty`
   // (référence de Compétence EMBOÎTÉE, accès par `.id`) : l'Esquive y est NOMMÉE par le RAW (LDB 18).
-  // Le poseur UNIQUE de l'annulateur `determination` (`poseDeterminationCanceller`), dans le module qui
-  // POSSÈDE la table `PASSIVE_CANCELLERS`. Le reste : pénalité de combat PAR MAIN (doigts/main) + crochet
-  // entraîné — axes NON couverts par `cumul`.
+  // L'identité de l'annulateur de Détermination. Le reste concerne la pénalité de combat
+  // par main (doigts/main) et le crochet entraîné.
   'src/engine/trauma.ts': 7,
   'src/engine/weaponDamage.ts': 1,
   'src/engine/windsOfMagic.ts': 1,

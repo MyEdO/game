@@ -10,13 +10,16 @@ import { canStrikeFirst } from '../qualities/dispatch';
 import { effectiveEntry } from '../variants';
 import { weaponLoaded } from '../weaponLoad';
 import { groupeAPoudre, weaponGroup } from '../weaponGroup';
-import type { CombatFeature, CombatFeatureCtx, CastingKind } from './types';
+import type { CombatFeature, CastingKind } from './types';
 import { refCouvre } from '../../data/schemas/grammaire/ref';
 import { effectiveTalents } from '../talentEffects';
+import { featuresOf, levelSum } from './talents';
+
+export { featuresOf, talentCorruptionThreshold } from './talents';
 
 /** Famille d'incantation d'un Talent par son `id` STABLE (« magie-mineure », « beni ») via sa DONNÉE
  *  EFFECTIVE (`effectiveEntry`, #563/#564 — `combat` est republiable par variante réglée, comme pour
- *  `featuresOf` l.59/64), ou undefined. Pour les consommateurs qui ont un id, pas un Combattant. */
+ *  `featuresOf`), ou undefined. Pour les consommateurs qui ont un id, pas un Combattant. */
 export function castingKindOf(talentId: string): CastingKind | undefined {
   return effectiveEntry(findTalentById(talentId))?.combat?.castingKind;
 }
@@ -44,25 +47,6 @@ export function arcaneDomainIdOf(c: Combatant): string | undefined {
 export function chaosDomainOf(c: Combatant): string | undefined {
   for (const t of effectiveTalents(c)) if (castingKindOf(t.talentId) === 'chaos') return t.spec;
   return undefined;
-}
-
-/** Capacités de combat présentes sur le combattant, lues de la DONNÉE (`TalentData.combat`) des talents
- *  POSSÉDÉS (`effectiveTalents` : niveau = times ; un talent ACCORDÉ par un effet actif, op `grantTalent`,
- *  au niveau 1 tant que l'effet dure ; un talent SUSPENDU, op `suppressTalents`, absent).
- *  La DONNÉE lue est l'entrée EFFECTIVE (`effectiveEntry`, #563/#564) : la variante réglée active
- *  remplace le `combat` de base ; aucun code ne nomme un Talent. */
-export function featuresOf(c: Combatant): { def: CombatFeature; ctx: CombatFeatureCtx }[] {
-  const out: { def: CombatFeature; ctx: CombatFeatureCtx }[] = [];
-  for (const t of effectiveTalents(c)) {
-    const def = effectiveEntry(findTalentById(t.talentId))?.combat;
-    if (def) out.push({ def, ctx: { combatant: c, level: t.times ?? 1, spec: t.spec } });
-  }
-  return out;
-}
-
-/** Somme des niveaux des capacités vérifiant `pred` (0 si aucune). */
-function levelSum(c: Combatant, pred: (d: CombatFeature) => boolean): number {
-  return featuresOf(c).reduce((s, { def, ctx }) => s + (pred(def) ? ctx.level : 0), 0);
 }
 
 /** Pénalité de main secondaire `base` (LDB 14 l.78), transformée par les capacités (Ambidextre, LDB 10).
@@ -375,11 +359,6 @@ export function maxEncumbranceFactor(capabilities: { encumbranceFactor?: number 
  *  `items.maxEncumbrance`. 1 = aucune capacité de ce type (aucun effet sur `maxEncumbrance`). */
 export function traitEncumbranceFactor(c: Combatant): number {
   return maxEncumbranceFactor((c.traits ?? []).map((t) => ({ encumbranceFactor: findTraitById(t.id)?.capabilities?.encumbranceFactor })));
-}
-
-/** Âme pure (LDB 10) : seuil de Corruption relevé de niveau. Remplace le check `talentId === 'ame-pure'`. */
-export function talentCorruptionThreshold(c: Combatant): number {
-  return levelSum(c, (d) => !!d.corruptionThreshold);
 }
 
 /** Chirurgie (LDB 10) : le combattant peut opérer (mode de soin chirurgical). Remplace `talentId === 'chirurgie'`. */

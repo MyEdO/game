@@ -251,9 +251,9 @@ function rendu() {
 `
   out += `  - \`test\` — \`talentTestSLBonus\`, \`${citeLigne('src/engine/magic.ts', 'export function talentTestSLBonus(')}\`
 `
-  out += `  - \`max\` — \`talentMaxById\`, \`${citeLigne('src/engine/careerSlots.ts', 'export function talentMaxById(')}\`
+  out += `  - \`max\` — \`talentMaxById\`, \`${citeLigne('src/engine/acquisitionTalents.ts', 'export function talentMaxById(')}\`
 `
-  out += `  - \`combat\` — \`featuresOf\`, \`${citeLigne('src/engine/combatFeatures/dispatch.ts', 'export function featuresOf(')}\`
+  out += `  - \`combat\` — \`featuresOf\`, \`${citeLigne('src/engine/combatFeatures/talents.ts', 'export function featuresOf(')}\`
 `
   out += `  - \`combat\` — \`castingKindOf\`, \`${citeLigne('src/engine/combatFeatures/dispatch.ts', 'export function castingKindOf(')}\`
 `
@@ -269,7 +269,7 @@ function rendu() {
 `
   out += `  \`passive\` et \`effects\` en sont EXCLUS — le moteur les lit sur
 `
-  out += `  l'entrée brute (\`src/engine/talentEffects.ts\`, \`src/engine/traits/dispatch.ts\`) ; un champ n'entre\n`
+  out += `  l'entrée brute (\`src/engine/talentsPossedes.ts\`, \`src/engine/traits/dispatch.ts\`) ; un champ n'entre\n`
   out += `  dans la liste qu'une fois son consommateur routé par \`effectiveEntry\`. \`careers\`/\`skills\`/\`spells\`\n`
   out += `  n'admettent aucune variante (aucun consommateur \`effectiveEntry\`). Champ posé sur \`talents.json\` —\n`
   out += `  11 talents d'Aux Armes Annexe III.\n`
