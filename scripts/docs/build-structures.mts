@@ -5,12 +5,12 @@
 //   lexique  → scripts/docs/lib/structures-lexique.mts (concepts FERMÉS, une entrée = un concept)
 // Sortie : docs/structures-donnees.md. Re-run : npx tsx scripts/docs/build-structures.mts
 // (npm run docs:structures).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 //
 // Le doc est la carte de PILOTAGE du chantier #1463 : il rend l'INVENTAIRE de la dette que la donnée révèle
 // (scripts/guards/lib/inventaireDeDette.mts, §7), hors de la porte des comptes et sans stock commis (#3021).
 import { execFileSync } from 'node:child_process';
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs';
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs';
 import {
   scanDuCorpus,
   scannerRedeclarations,
@@ -40,7 +40,7 @@ import { collectionsDesDocuments } from '../../src/data/schemas/grammaire/collec
 import { effectSchema } from '../../src/data/schemas/defs-scenes/effets';
 import { defDe, descendre, enfantsDe } from '../../src/data/schemas/grammaire/descente';
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUT = 'docs/structures-donnees.md';
   const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
@@ -685,4 +685,8 @@ export function rendre() {
   return new Map([[path, out]]);
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') });
+export function* produire() {
+  yield rendu();
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire);

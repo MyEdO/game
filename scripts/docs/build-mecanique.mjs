@@ -17,7 +17,7 @@
  *  - le site de `CombatHook`, la forme sous laquelle la machinerie se déclare (table `crochetsDeCombat`).
  * La part ÉDITORIALE (critère de décision, frontière donnée/machinerie, recettes) vit ICI.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-mecanique.mjs
  */
@@ -25,10 +25,10 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
 import { loadSource, firstSentence, jsdocBody, readSchemaUnionMembers } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { champsDuSchemaObjet, schemaInfere } from './lib/canauxMecaniques.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-mecanique'
   const FLOWCORE = 'src/engine/flowCore.ts'
@@ -469,4 +469,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

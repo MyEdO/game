@@ -11,13 +11,13 @@
  * « éditorial en donnée » (build-donnees.mjs) — il n'existe aucun manifeste de reprise à froid, et
  * en fabriquer un pour six phrases de motivation créerait une source de vérité de plus.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-reprise.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { PLAFOND_PAQUET_NODE_MS, maxWorkersMono } from '../test/partition.mjs'
 import { ECRIT_LU, lanesDeCi } from '../gates/toutes.mjs'
 import { gatesDeCi } from '../gates/gatesDeCi.mjs'
@@ -41,7 +41,7 @@ function chemin(p) {
   return p
 }
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   // ── Sources FACTUELLES ───────────────────────────────────────────────────────────────────────────
 
@@ -654,4 +654,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

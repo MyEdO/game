@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 // @ts-expect-error - plugin ESM JS (pas de types)
@@ -40,7 +41,7 @@ export default defineConfig({
     testTimeout: DELAI_DE_TEST_MS,
     setupFiles: [
       fileURLToPath(new URL('./scripts/gates/vitestSansEcriture.mjs', import.meta.url)),
-      fileURLToPath(new URL('./src/test-setup-noyau.ts', import.meta.url)),
+      resolve(racine, 'src/test-setup-noyau.ts'),
     ],
   },
 });

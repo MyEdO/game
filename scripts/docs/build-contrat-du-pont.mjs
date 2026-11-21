@@ -13,7 +13,7 @@
  * interface, ni littéral d'objet, ni union, membre, variante ou méthode sans JSDoc, méthode sans `@returns`, ligne de
  * commentaire extraite de plus de `LARGEUR_MAX` caractères.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-contrat-du-pont.mjs
  */
@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs'
 import { analyserCorpus, typescript } from '../guards/lib/dialecte.mjs'
 import { listerArbre, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { codeSeul, commentairesDe } from '../guards/lib/commentPoison.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
 const OUTIL = 'build-contrat-du-pont'
 const OUT = 'hotes/godot/pont/CONTRAT.md'
@@ -226,7 +226,7 @@ export function contratDe(fichiers) {
   return `${out.trimEnd()}\n`
 }
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const fichiers = RACINES.flatMap((racine) =>
     listerArbre(racine, { filtre: (rel) => EXTENSIONS.some((ext) => rel.endsWith(ext)) }).map((rel) => {
@@ -251,4 +251,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

@@ -160,10 +160,6 @@ export type TestedAvailability = Extract<Availability, 'limitee' | 'rare'>;
  *  renommé ou retiré ne compile plus. Consommé par `engine/appraisal`. */
 export const APPRAISED_AVAILABILITIES = ['rare', 'exotique'] as const satisfies readonly Availability[];
 
-/** Propulsion d'un véhicule/embarcation — pilote la table de localisation des dégâts (terre : roues/
- *  attelage ; fleuve/mer : voiles/avirons/coque). EDOC 7 (terrestre), MoR ch.5 (fluvial), MDG 13 (maritime). */
-export type Propulsion = 'terrestre' | 'fluvial' | 'maritime';
-
 /**
  * Véhicule / embarcation à coque — FOYER UNIQUE de la donnée (`src/data/vehicles.json`), data-driven.
  * Le même enregistrement porte TROIS facettes indépendantes (fin des doublons transports/trappings) :
@@ -214,12 +210,14 @@ export interface ReferenceDeCouleur {
 
 export type CouleurDePersonnage = ReferenceDeCouleur | { label: string };
 
+export type CouleursDesYeux = readonly [CouleurDePersonnage] | readonly [ReferenceDeCouleur, ReferenceDeCouleur];
+
 /** Détails supplémentaires d'un héros (LDB 05 étape 6 — cosmétique, aucune règle). */
 export interface HeroDetails {
   age?: number;
   /** Taille en cm. */
   height?: number;
-  eyes?: CouleurDePersonnage;
+  eyes?: CouleursDesYeux;
   hair?: CouleurDePersonnage;
   /** Ambitions à court / long terme (LDB 05 l.730-736). */
   ambitionShort?: string;

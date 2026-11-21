@@ -16,6 +16,7 @@ export interface Registre {
   readonly constFields?: Readonly<Record<string, string>>;
 }
 
+export const RACINE_DES_CATALOGUES: 'src/data';
 export const REGISTRIES: readonly Registre[];
 export const SORTIES_DES_ESPACES: { readonly ids: string; readonly cles: string; readonly racines: string; readonly atelier: string };
 export const SORTIE_VOCABULAIRES_D_ART: string;

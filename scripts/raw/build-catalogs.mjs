@@ -7,13 +7,13 @@
 // n'en transcrivent qu'une PLAGE DE SOUS-SECTION (ancres `chapterFile`, cf. `_lib.mjs`) — même
 // mécanisme, pour un chapitre trop large pour son catalogue.
 // Re-run après toute ré-extraction.
-// node scripts/raw/build-catalogs.mjs [--check]   (`--check` : `ecrireOuVerifier` par catalogue)
+// node scripts/raw/build-catalogs.mjs [--check]   (`--check` : compare chaque catalogue au disque)
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, chapterFile as chapterFileLib, coeursDuRegistre, livresDeCatalogue, pagesDeLAtlas, readText, classeDePage } from './_lib.mjs'
 import { titreDuFichier } from '../../src/data/source/decoupe.ts'
-import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const RAWDIR = 'docs/raw'
@@ -116,8 +116,8 @@ export function pagesDeLAtlasRendues(rawDir, options, catalogues = cataloguesRen
   return pages.sort((a, b) => (a.relatif < b.relatif ? -1 : a.relatif > b.relatif ? 1 : 0))
 }
 
-function main() {
-  const check = process.argv.includes('--check')
+export function* produire() {
+  exigerRacineAtlas()
   let catalogues
   try {
     catalogues = rendu()
@@ -126,17 +126,13 @@ function main() {
     process.exit(1)
   }
   for (const { path, body } of catalogues)
-    ecrireOuVerifier({
+    yield {
       out: body,
       path,
-      check,
       staleMsg: `build-catalogs — ${path} est PÉRIMÉ (chapitre source ou registre des catalogues changé).`,
       rerunMsg: '  → relancer `npm run raw:catalogs` (dérivé jamais commité, #2203).',
-    })
+    }
   console.log(catalogues.map((c) => c.log).join('\n'))
 }
 
-if (import.meta.main) {
-  exigerRacineAtlas()
-  main()
-}
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

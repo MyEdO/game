@@ -1,4 +1,5 @@
 import { ast } from '../../../../scripts/guards/lib/dialecte.mjs';
+import { entreeDe } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 /**
  * VERROU D'UNION de `Condition` (#1466 L1a T3-c, sonde du juge promue en garde).
  *
@@ -16,18 +17,17 @@ import { ast } from '../../../../scripts/guards/lib/dialecte.mjs';
  * Manquants et en-trop sont NOMMÉS dans les deux sens.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import * as ts from 'typescript/unstable/ast';
 import { conditionSchema } from './mecanique';
 import { defDe, enfantsDe, ouverts } from './descente';
 
-const FLOW_CORE = fileURLToPath(new URL('../../../engine/flowCore.ts', import.meta.url));
+const FLOW_CORE = resolve(__dirname, '../../../engine/flowCore.ts');
 
 /** Les `kind` de l'union manuscrite `Condition`, lus à l'AST. Un membre sans littéral `kind` sort
  *  sous une clé `<…>` PARLANTE : il ferait rougir l'égalité au lieu de disparaître en silence. */
 function kindsDuType(): string[] {
-  const sf = ast({ rel: FLOW_CORE, text: readFileSync(FLOW_CORE, 'utf8') })!;
+  const sf = ast({ rel: FLOW_CORE, text: entreeDe(FLOW_CORE).text })!;
   const kinds: string[] = [];
   sf.forEachChild((n) => {
     if (!ts.isTypeAliasDeclaration(n) || n.name.text !== 'Condition') return;

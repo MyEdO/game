@@ -78,7 +78,7 @@ export function empreinteDesSources(entree: string): string {
 
 /** L'empreinte du validateur des modèles (`validerModele`, `./modeles.ts`), calculée une fois par processus. */
 let empreinteDuValidateur: string | undefined;
-const validateur = (): string => (empreinteDuValidateur ??= empreinteDesSources(fileURLToPath(new URL('./modeles.ts', import.meta.url))));
+const validateur = (): string => (empreinteDuValidateur ??= empreinteDesSources(resolve(dirname(fileURLToPath(import.meta.url)), 'modeles.ts')));
 
 /** Ce que le marqueur garde d'un manifeste accepté contre son GLB : la clé de ce verdict (`verdictsDuDossier`), et les
  *  os qui portent les meshes rigides du GLB (`osDesRigides`). */

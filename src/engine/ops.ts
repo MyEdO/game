@@ -473,7 +473,6 @@ export type PairedSense = 'vue' | 'ouie';
 /** Mot RÉSERVÉ de `scheduleRespawn.ref` : la créature DÉFUNTE elle-même, lue par son `creatureId` à la
  *  programmation (`noyau/combatFlow › scheduleRespawnFromOp`). */
 export const SELF_REF = 'self';
-export type SelfRef = typeof SELF_REF;
 
 export type GameOp =
   /** Blessures subies DIRECTEMENT. Par DÉFAUT ignore BE ET PA (tables de contrecoup LDB 46/40 ;

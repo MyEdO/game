@@ -76,7 +76,7 @@ describe('lireSave — format courant', () => {
     const porteur = combattantDeTest({
       kind: 'heros',
       items: [arme],
-      details: { age: 24, eyes: { id: 'bleu', colonne: 'humain' }, hair: { label: 'Brun clair' } },
+      details: { age: 24, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { label: 'Brun clair' } },
     });
     const courante = snapshotSave({ ...etatInitialDuJeu(), party: [porteur] }, '2026-11-21T06:30:00.000Z');
     const migrerLesReferences = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesReferences');
@@ -117,10 +117,10 @@ describe('migrerLaSaveAvantLesReferences — résolution des anciennes couleurs'
     };
     referencesDeCreation.migrerLaSaveAvantLesReferences(data);
     expect(data.party[0].details).toEqual({
-      age: 24, eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' },
+      age: 24, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' },
     });
     expect(data.battle.combatants[0].details).toEqual({
-      age: 35, eyes: { label: 'Marron foncé' }, hair: { id: 'noir', colonne: 'halfling' },
+      age: 35, eyes: [{ label: 'Marron foncé' }], hair: { id: 'noir', colonne: 'halfling' },
     });
   });
 
@@ -133,7 +133,7 @@ describe('migrerLaSaveAvantLesReferences — résolution des anciennes couleurs'
     try {
       const data = { ...save.data, party: [{ ...heros('halfling'), species: espece, details: { eyes: 'Marron foncé', hair: 'Moutarde' } }] };
       referencesDeCreation.migrerLaSaveAvantLesReferences(data);
-      expect(data.party[0].details?.eyes).toEqual({ label: 'Marron foncé' });
+      expect(data.party[0].details?.eyes).toEqual([{ label: 'Marron foncé' }]);
     } finally {
       transaction.reprendre();
     }
@@ -148,7 +148,7 @@ describe('migrerLaSaveAvantLesReferences — résolution des anciennes couleurs'
     try {
       const data = { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Bleu', hair: 'Brun clair' } }] };
       referencesDeCreation.migrerLaSaveAvantLesReferences(data);
-      expect(data.party[0].details?.eyes).toEqual({ label: 'Bleu' });
+      expect(data.party[0].details?.eyes).toEqual([{ label: 'Bleu' }]);
     } finally {
       transaction.reprendre();
     }
@@ -170,7 +170,7 @@ describe('migrerLaSaveAvantLesReferences — résolution des anciennes couleurs'
       expect(eyes.some((e) => e.color.humain === 'Gris')).toBe(false);
       const data = { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Gris', hair: 'Brun clair' } }] };
       referencesDeCreation.migrerLaSaveAvantLesReferences(data);
-      expect(data.party[0].details).toEqual({ eyes: { label: 'Gris' }, hair: { id: 'brun-clair', colonne: 'humain' } });
+      expect(data.party[0].details).toEqual({ eyes: [{ label: 'Gris' }], hair: { id: 'brun-clair', colonne: 'humain' } });
     } finally {
       transaction.reprendre();
     }
@@ -179,6 +179,24 @@ describe('migrerLaSaveAvantLesReferences — résolution des anciennes couleurs'
 });
 
 describe('lireSave — reprise ou refus', () => {
+  it('resérialise deux couleurs d’yeux dans leur ordre et garde une rangée répétée', () => {
+    const hautElfe = combattantDeTest({
+      id: 'haut-elfe',
+      kind: 'heros',
+      details: { eyes: [{ id: 'bleu', colonne: 'haut-elfe' }, { id: 'noir', colonne: 'haut-elfe' }] },
+    });
+    const elfeSylvain = combattantDeTest({
+      id: 'elfe-sylvain',
+      kind: 'heros',
+      details: { eyes: [{ id: 'gris-pale', colonne: 'elfe-sylvain' }, { id: 'gris-pale', colonne: 'elfe-sylvain' }] },
+    });
+    const save = snapshotSave({ ...etatInitialDuJeu(), party: [hautElfe, elfeSylvain] }, '2026-11-21T06:30:00.000Z');
+    const lue = lireSave(exporterLaSauvegarde(save));
+    if (typeof lue === 'string') throw new Error(lue);
+    const { etat } = chargerLaSave(lue);
+    expect(etat.party.map((h) => h.details?.eyes)).toEqual([hautElfe.details?.eyes, elfeSylvain.details?.eyes]);
+  });
+
   it('une save écrite par `snapshotSave` se relit telle quelle ; d’un autre format, refusée', () => {
     const save = JSON.parse(JSON.stringify(snapshotSave(etatInitialDuJeu(), 'x'))) as SaveGame;
     expect(lireSave(JSON.stringify(save))).toEqual(save);

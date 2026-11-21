@@ -17,7 +17,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { sortieOutilLocal } from '../lancer-local.mjs'
 import * as ts from 'typescript/unstable/ast'
 import { loadSource, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
@@ -373,4 +373,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

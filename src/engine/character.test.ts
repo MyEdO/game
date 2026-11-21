@@ -285,7 +285,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
       seed: 3,
       xpBonus: 95,
       details: {
-        age: 22, height: 178, eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' },
+        age: 22, height: 178, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' },
         ambitionShort: 'X', ambitionLong: 'Y',
       },
     });
