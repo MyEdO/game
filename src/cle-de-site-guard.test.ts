@@ -5,10 +5,9 @@
  * Le lexique des structures date l’inscription d’un peuplement attendu.
  *
  * Ce que cette garde ne voit pas. Une paire d'affichage `fichier :: ref`, sans occurrence ni séparateur
- * final, n'est pas une clé. Une clé de groupe écrite sur les champs d'un site observé (`Site`, champ
- * `file`, avant `sitesEnEntrees`) : ses champs ne sont pas ceux de l'entrée. Une clé bâtie sans
- * séparateur littéral (concaténation de variables). Une clé calculée concaténée à son remède
- * (`cleDeSite(x) + ' — …'`) : la règle « clé calculée suivie de son remède » de `cleEnLigne` ne lit que
+ * final, n'est pas une clé. Une clé bâtie sans séparateur littéral (concaténation de variables).
+ * Une clé calculée concaténée à son remède (`cleDeSite(x) + ' — …'`) : la règle « clé calculée suivie
+ * de son remède » de `cleEnLigne` ne lit que
  * les gabarits. Une fonction de clé atteinte par une réexportation, une affectation
  * (`const k = cleDeSite`) ou un appel indirect : la même règle ne lit que l'appel d'une liaison importée
  * de son module déclaré (`estAppelDeclare`). La concordance des tuples de `stock.d.mts` avec les valeurs
@@ -40,6 +39,10 @@ function domaineDesStocks(rel: string): boolean {
     || rel.startsWith('scripts/raw/') || rel.startsWith('scripts/hooks/');
 }
 
+function domaineDuSite(rel: string): boolean {
+  return domaineDesStocks(rel) || rel.startsWith('scripts/data/') || rel.startsWith('scripts/git-hooks/');
+}
+
 const CONSTRUCTIONS_DE_STOCK = [
   {
     ...cleEnLigne({
@@ -50,7 +53,12 @@ const CONSTRUCTIONS_DE_STOCK = [
     foyer: FOYER_DE_LA_CLE,
   },
   { ...recopieDeCanon({ nom: 'clé de site', membres: CHAMPS_REQUIS, complet: true, formes: ['tableau', 'membres de type'] }), foyer: FOYER_DE_LA_CLE },
-  { ...recopieDeCanon({ nom: 'Site', membres: CHAMPS_DE_SITE_OBSERVE, complet: true, formes: ['membres de type'] }), foyer: STOCK },
+  {
+    ...recopieDeCanon({ nom: 'Site', membres: CHAMPS_DE_SITE_OBSERVE, complet: true, formes: ['membres de type'] }),
+    foyer: STOCK,
+    domaine: domaineDuSite,
+  },
+  { ...recopieDeCanon({ nom: 'Site', membres: ['file', 'ref'], complet: true, formes: ['membres de type'] }), foyer: STOCK },
   {
     ...recopieDeCanon({
       nom: 'échéance de stock', membres: CHAMPS_D_ECHEANCE, complet: true, formes: ['tableau', 'membres de type'],
@@ -108,7 +116,7 @@ describe('clé de site (#1903)', () => {
 
   it('les champs requis de l’entrée de site, en tableau ou en membres de type', () => {
     expect(fixture("const c = ['fichier', 'ref', 'occurrence'];")).toEqual(['clé de site']);
-    expect(fixture('interface X { fichier: string; ref: string; occurrence: number; lot?: string }')).toEqual(['clé de site']);
+    expect(fixture('interface X { fichier: string; ref: string; occurrence: number; lot?: string }')).toEqual(['clé de site', 'Site']);
     expect(fixture("const c = ['famille', 'ref'];"), 'sous-ensemble d’un autre vocabulaire').toEqual([]);
   });
 
@@ -119,7 +127,10 @@ describe('clé de site (#1903)', () => {
   });
 
   it('les champs du site observé, en membres de type', () => {
+    expect(fixture('type Y = { fichier: string; ref: string; row: number };')).toEqual(['Site']);
     expect(fixture('type Y = { file: string; ref: string; row: number };')).toEqual(['Site']);
+    expect(fixture('type Y = { file: string; row: number };')).toEqual([]);
+    expect(fixture('type Adresse = { fichier: string; ref: unknown };', 'scripts/source/adresses.d.mts')).toEqual([]);
   });
 
   it('le foyer', () => {
@@ -146,7 +157,7 @@ describe('clé de site (#1903)', () => {
     expect(typesDocumentaires).toHaveLength(3);
     expect(typesDocumentaires.every((n) => (n.flags & ts.NodeFlags.JSDoc) !== 0)).toBe(true);
     expect(fixture(jsdoc, 'src/fixture.mjs')).toEqual([]);
-    expect(fixture(jsdoc + '\n/** Entrée du code. */\ninterface Entree { fichier: string; ref: string; occurrence: number }\n/** Site du code. */\ntype Observe = { file: string; ref: string; row: number };')).toEqual(['clé de site', 'Site']);
+    expect(fixture(jsdoc + '\n/** Entrée du code. */\ninterface Entree { fichier: string; ref: string; occurrence: number }\n/** Site du code. */\ntype Observe = { file: string; ref: string; row: number };')).toEqual(['clé de site', 'Site', 'Site']);
   });
 
   it('le corpus exclut les sous-arbres JSDoc des tags @typedef, @param et @satisfies', () => {

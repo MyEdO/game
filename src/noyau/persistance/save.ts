@@ -8,7 +8,7 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : l'écriture prend
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). La lecture admet les empreintes
- * de la transition #4649 pour un même contenu et convertit la forme précédant les références de création (#3917). Une save
+ * des transitions #4649, #4574 et #4674 ainsi que la forme précédant les références de création (#3917). Une save
  * qui nomme une règle, un État ou la Cible d'un Trait psychologique hors du registre courant se charge
  * élaguée de ces ids (`elaguerSave`, #1463 LD.1).
  */
@@ -27,7 +27,7 @@ import { rencontreEngagee } from '../monde/combatants';
 import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
-import { formatAvantLesReferences, migrerLaSaveAvantLesReferences } from './referencesDeCreation';
+import { formatAvantLesReferences, formatDeLaCouleurUnique, migrerLaSaveAvantLesDeuxCouleurs, migrerLaSaveAvantLesReferences } from './referencesDeCreation';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { EVT } from '../bus';
@@ -120,8 +120,9 @@ const TRANSITION_DU_DR_PROPRE = {
   avant: TRANSITION_DES_FORMES_D_APPARENCE.apres,
   apres: '6567d83e466bf816',
 };
-const FORMAT_AVANT_LE_DR_PROPRE = FORMAT_SAVE === TRANSITION_DU_DR_PROPRE.apres
-  ? TRANSITION_DU_DR_PROPRE.avant : FORMAT_SAVE;
+const FORMAT_A_UNE_COULEUR = formatDeLaCouleurUnique('save', FORMAT_SAVE);
+const FORMAT_AVANT_LE_DR_PROPRE = FORMAT_A_UNE_COULEUR === TRANSITION_DU_DR_PROPRE.apres
+  ? TRANSITION_DU_DR_PROPRE.avant : FORMAT_A_UNE_COULEUR;
 const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_D_APPARENCE.apres
   ? TRANSITION_DES_FORMES_D_APPARENCE.avant : FORMAT_AVANT_LE_DR_PROPRE;
 
@@ -129,7 +130,7 @@ const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
+  return (version === FORMAT_SAVE || version === FORMAT_A_UNE_COULEUR || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
       || formatAvantLesReferences('save', version, FORMAT_DE_REFERENCE))
     && typeof savedAt === 'string'
     && !!data && typeof data === 'object';
@@ -159,6 +160,8 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   if (parsed.version !== FORMAT_SAVE) {
     if (formatAvantLesReferences('save', parsed.version, FORMAT_DE_REFERENCE)) {
       migrerLaSaveAvantLesReferences(parsed.data);
+    } else {
+      migrerLaSaveAvantLesDeuxCouleurs(parsed.data);
     }
     parsed.version = FORMAT_SAVE;
   }

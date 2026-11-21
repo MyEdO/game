@@ -76,17 +76,19 @@ describe('lireSave — format courant et références de création historiques',
     const porteur = combattantDeTest({
       kind: 'heros',
       items: [arme],
-      details: { age: 24, eyes: { id: 'bleu', colonne: 'humain' }, hair: { label: 'Brun clair' } },
+      details: { age: 24, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { label: 'Brun clair' } },
     });
     const courante = snapshotSave({ ...etatInitialDuJeu(), party: [porteur] }, '2026-11-21T06:30:00.000Z');
     const migrerLesReferences = vi.spyOn(referencesDeCreation, 'migrerLaSaveAvantLesReferences');
     onTestFinished(() => migrerLesReferences.mockRestore());
 
-    const relire = (version: string) => lireSave(exporterLaSauvegarde({ ...courante, version }));
-    expect(relire(FORMAT_SAVE)).toEqual(courante);
-    expect(relire('173a6a2589cee962')).toEqual(courante);
-    expect(relire('e5b0e479130fc5d7')).toEqual(courante);
-    expect(relire('autre-format')).toBe('autreFormat');
+    const ancienPorteur = { ...porteur, details: { ...porteur.details, eyes: { id: 'bleu', colonne: 'humain' } } };
+    const ancienne = { ...courante, data: { ...courante.data, party: [ancienPorteur] } };
+    expect(lireSave(exporterLaSauvegarde(courante))).toEqual(courante);
+    for (const version of ['6567d83e466bf816', '173a6a2589cee962', 'e5b0e479130fc5d7']) {
+      expect(lireSave(JSON.stringify({ ...ancienne, version })), version).toEqual(courante);
+    }
+    expect(lireSave(JSON.stringify({ ...ancienne, version: 'autre-format' }))).toBe('autreFormat');
     expect(migrerLesReferences).not.toHaveBeenCalled();
   });
 
@@ -112,10 +114,10 @@ describe('lireSave — format courant et références de création historiques',
     expect(lue.version).toBe(FORMAT_SAVE);
     const { etat } = chargerLaSave(lue);
     expect(etat.party[0].details).toEqual({
-      age: 24, eyes: { id: 'bleu', colonne: 'humain' }, hair: { id: 'brun-clair', colonne: 'humain' },
+      age: 24, eyes: [{ id: 'bleu', colonne: 'humain' }], hair: { id: 'brun-clair', colonne: 'humain' },
     });
     expect(etat.battle?.combatants[0].details).toEqual({
-      age: 35, eyes: { label: 'Marron foncé' }, hair: { id: 'noir', colonne: 'halfling' },
+      age: 35, eyes: [{ label: 'Marron foncé' }], hair: { id: 'noir', colonne: 'halfling' },
     });
     expect(lireSave(exporterLaSauvegarde(lue))).toEqual(lue);
   });
@@ -132,7 +134,7 @@ describe('lireSave — format courant et références de création historiques',
         data: { ...save.data, party: [{ ...heros('halfling'), species: espece, details: { eyes: 'Marron foncé', hair: 'Moutarde' } }] },
       }));
       if (typeof lue === 'string') throw new Error(lue);
-      expect(lue.data.party[0].details?.eyes).toEqual({ label: 'Marron foncé' });
+      expect(lue.data.party[0].details?.eyes).toEqual([{ label: 'Marron foncé' }]);
     } finally {
       transaction.reprendre();
     }
@@ -150,7 +152,7 @@ describe('lireSave — format courant et références de création historiques',
         data: { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Bleu', hair: 'Brun clair' } }] },
       }));
       if (typeof lue === 'string') throw new Error(lue);
-      expect(lue.data.party[0].details?.eyes).toEqual({ label: 'Bleu' });
+      expect(lue.data.party[0].details?.eyes).toEqual([{ label: 'Bleu' }]);
     } finally {
       transaction.reprendre();
     }
@@ -175,11 +177,29 @@ describe('lireSave — format courant et références de création historiques',
         data: { ...save.data, party: [{ ...heros('reiklander'), species: 'humain', details: { eyes: 'Gris', hair: 'Brun clair' } }] },
       }));
       if (typeof lue === 'string') throw new Error(lue);
-      expect(lue.data.party[0].details).toEqual({ eyes: { label: 'Gris' }, hair: { id: 'brun-clair', colonne: 'humain' } });
+      expect(lue.data.party[0].details).toEqual({ eyes: [{ label: 'Gris' }], hair: { id: 'brun-clair', colonne: 'humain' } });
     } finally {
       transaction.reprendre();
     }
     expect(eyes[index]).toEqual(rangee);
+  });
+
+  it('resérialise deux couleurs d’yeux dans leur ordre et garde une rangée répétée', () => {
+    const hautElfe = combattantDeTest({
+      id: 'haut-elfe',
+      kind: 'heros',
+      details: { eyes: [{ id: 'bleu', colonne: 'haut-elfe' }, { id: 'noir', colonne: 'haut-elfe' }] },
+    });
+    const elfeSylvain = combattantDeTest({
+      id: 'elfe-sylvain',
+      kind: 'heros',
+      details: { eyes: [{ id: 'gris-pale', colonne: 'elfe-sylvain' }, { id: 'gris-pale', colonne: 'elfe-sylvain' }] },
+    });
+    const save = snapshotSave({ ...etatInitialDuJeu(), party: [hautElfe, elfeSylvain] }, '2026-11-21T06:30:00.000Z');
+    const lue = lireSave(exporterLaSauvegarde(save));
+    if (typeof lue === 'string') throw new Error(lue);
+    const { etat } = chargerLaSave(lue);
+    expect(etat.party.map((h) => h.details?.eyes)).toEqual([hautElfe.details?.eyes, elfeSylvain.details?.eyes]);
   });
 
   it('une save écrite par `snapshotSave` se relit telle quelle ; d’un autre format, refusée', () => {

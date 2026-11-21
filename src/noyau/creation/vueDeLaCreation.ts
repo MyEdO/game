@@ -6,13 +6,13 @@
  * qu'un geste tant que le joueur ne l'a pas fait ; son résultat ne se dit qu'après.
  */
 import {
-  apercuDuHeros, careerCharKeys, careerSkillEntries, carrieresOffertes, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp,
+  apercuDuHeros, careerCharKeys, careerSkillEntries, carrieresOffertes, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp, choixDesYeux,
   charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftPorteur, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
   speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomTables, speciesTalentRandomDrawn, speciesXp, starXp, stepIds, tirerLaVariante,
   valeurDuCompteur, bornesDuCompteur, validateStep, withAssignment, withCareer, withCareerSkillSpec, withCareerTalent, withCharMode,
-  withCoastalSwap, withCompteur, withEvenCareerSkillAdvances, withIgnoreRestrictions, withPettySpellToggled,
+  withCoastalSwap, withCompteur, withCouleurDesYeux, withEvenCareerSkillAdvances, withIgnoreRestrictions, withPettySpellToggled,
   withRandomTalentSpec, withSexe, withSpecies, withSpeciesSkillDefaults, withSpeciesSkillSpec, withSpeciesSkillTier, withSpeciesTalentChoice,
   withStar, withTrappingChoice, xpTotal,
   type CharMode, type Compteur, type CreatorDraft, type SkillsSub, type StepId,
@@ -81,6 +81,7 @@ const GESTES_DU_BROUILLON = {
   sexe: (d: CreatorDraft, sexe: Sexe) => withSexe(d, sexe),
   tirerUnNom: (d: CreatorDraft, graine: number) => rollDraftName(d, graine),
   tirerLePhysique: (d: CreatorDraft) => rollDraftDetails(d),
+  couleurDesYeux: (d: CreatorDraft, rang: 0 | 1, id: string | null) => withCouleurDesYeux(d, rang, id),
 } satisfies Record<string, (d: CreatorDraft, ...args: never[]) => CreatorDraft>;
 
 type Gestes = typeof GESTES_DU_BROUILLON;
@@ -376,8 +377,29 @@ function pageDesPossessions(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** 6) L'identité : le sexe, le nom, le physique tiré aux dés. */
+function choixDeCouleurDesYeux(d: CreatorDraft): RubriqueDeCreation[] {
+  const { couleurs, premierePourUnePaire } = choixDesYeux(d);
+  if (!couleurs.length) return [];
+  const optionsDeCouleur = (rang: 0 | 1): OptionDeCreation[] => {
+    const actuelle = d.eyes?.[rang];
+    return couleurs.map((c) => option(
+      libelleDeCouleur('eyes', c)!,
+      geste('couleurDesYeux', rang, c.id),
+      !!actuelle && 'id' in actuelle && actuelle.id === c.id && actuelle.colonne === c.colonne,
+    ));
+  };
+  return [
+    choix('choixYeux', t('crea.vue.choisirYeux'), optionsDeCouleur(0)),
+    ...(premierePourUnePaire ? [choix('choixSecondeCouleur', t('crea.vue.secondeCouleurDesYeux'), [
+      option(t('crea.vue.uneSeuleCouleurDesYeux'), geste('couleurDesYeux', 1, null), !d.eyes?.[1]),
+      ...optionsDeCouleur(1),
+    ])] : []),
+  ];
+}
+
+/** 6) L'identité. LDB 05 l.701-768 */
 function pageDeLIdentite(d: CreatorDraft): RubriqueDeCreation[] {
+  const couleurs = d.eyes?.flatMap((c) => libelleDeCouleur('eyes', c) ?? []) ?? [];
   return [
     choix('sexe', t('crea.vue.sexe'), sexeSchema.options.map((s) => option(libelleDeValeur(sexeSchema, s), geste('sexe', s), s === d.apparence.sex))),
     gesteDe('nom', t('crea.vue.tirerNom'), geste('tirerUnNom', hashSeed(`nom/${d.seed}/${d.label}`))),
@@ -387,9 +409,10 @@ function pageDeLIdentite(d: CreatorDraft): RubriqueDeCreation[] {
       : [
           valeur('age', t('crea.vue.age'), String(d.age)),
           valeur('taille', t('crea.vue.taille'), t('crea.vue.centimetres', { n: d.height ?? 0 })),
-          valeur('yeux', t('crea.vue.yeux'), libelleDeCouleur('eyes', d.eyes)),
-          valeur('cheveux', t('crea.vue.cheveux'), libelleDeCouleur('hairs', d.hair)),
         ]),
+    ...(d.age !== undefined || d.eyes ? [valeur('yeux', t('crea.vue.yeux'), couleurs.length ? listeEt(couleurs) : null)] : []),
+    ...(d.age === undefined ? [] : [valeur('cheveux', t('crea.vue.cheveux'), libelleDeCouleur('hairs', d.hair))]),
+    ...choixDeCouleurDesYeux(d),
   ];
 }
 

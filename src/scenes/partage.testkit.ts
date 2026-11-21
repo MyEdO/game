@@ -3,7 +3,7 @@
  * SOURCES de donnée (catalogue `src/data`, scènes, narratif de campagne), et le verdict de la garde
  * de résultat posée après chaque test par `src/test-setup-noyau.ts`.
  */
-import * as donnees from '../data';
+import { SPEC_SOURCES, SYMPTOM_SEVERITIES } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
 import { estUneDonneeGelee } from '../lib/gelerProfond';
 
@@ -21,21 +21,21 @@ export function atteignables(racine: unknown, chemin: string, vus = new Map<obje
   return vus;
 }
 
-/** Chaque module JSON de `src/data` et de `src/scenes`, y compris ce que l'index ne réexporte pas. */
-const MODULES_JSON: readonly unknown[] = Object.values({
-  ...import.meta.glob('/src/data/**/*.json', { eager: true, import: 'default' }),
-  ...import.meta.glob('/src/scenes/**/*.json', { eager: true, import: 'default' }),
-});
+/** Les documents du catalogue et des scènes, avec les registres de données construits en TypeScript. */
+const SOURCES_DU_CATALOGUE: readonly unknown[] = [
+  ...Object.values(import.meta.glob('/src/data/**/*.json', { eager: true, import: 'default' })),
+  ...Object.values(import.meta.glob('/src/scenes/**/*.json', { eager: true, import: 'default' })),
+  SPEC_SOURCES,
+  SYMPTOM_SEVERITIES,
+];
 
-let objetsDesJson: Map<object, string> | undefined;
 let catalogue: { version: number; objets: Set<object> } | undefined;
 
-/** Les objets atteignables depuis les modules JSON et les exports de `src/data`, ceux-ci relus à chaque écriture au seam. */
+/** Les objets du catalogue, revisités à chaque version des documents vivants. */
 export function objetsDuCatalogue(): Set<object> {
   const version = versionDesDatasets();
   if (catalogue?.version !== version) {
-    objetsDesJson ??= atteignables(MODULES_JSON, 'json');
-    catalogue = { version, objets: new Set(atteignables(Object.values(donnees), 'données', new Map(objetsDesJson)).keys()) };
+    catalogue = { version, objets: new Set(atteignables(SOURCES_DU_CATALOGUE, 'catalogue').keys()) };
   }
   return catalogue.objets;
 }

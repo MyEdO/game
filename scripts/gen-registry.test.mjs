@@ -11,7 +11,7 @@ import { join } from 'node:path'
 const RACINE = fileURLToPath(new URL('..', import.meta.url))
 const MODULE = pathToFileURL(fileURLToPath(new URL('./gen-registry.mjs', import.meta.url))).href
 
-test("un import depuis la racine du dépôt ne lance pas genAll", () => {
+test("un import depuis la racine du dépôt ne lance pas la production", () => {
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', `await import(${JSON.stringify(MODULE)})`], {
     cwd: RACINE,
     encoding: 'utf8',

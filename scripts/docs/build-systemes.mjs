@@ -3,14 +3,14 @@
 // d'adoption primitive×système est GÉNÉRÉE du graphe d'imports réel (closure transitive des
 // modules porteurs déclarés par système). Sortie : docs/systemes.md.
 // Re-run : node scripts/docs/build-systemes.mjs (npm run docs:systemes).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerArbre, listerDossier } from '../guards/lib/lister.mjs'
 import { resolve } from 'node:path'
 import { closureOf } from '../guards/lib/importGraph.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const PRIMITIVES = JSON.parse(readFileSync('src/data/primitives.manifest.json', 'utf8'))
   const SYSTEMES = JSON.parse(readFileSync('src/data/systemes.manifest.json', 'utf8'))
@@ -124,4 +124,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

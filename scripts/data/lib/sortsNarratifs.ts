@@ -17,8 +17,8 @@ export const FICHIER_DES_SORTS = 'src/data/spells.json';
 /** Les sorts narratifs, dans l'ordre de `spells.json`. */
 export const sortsNarratifs = () => spells.filter((s) => spellSupportOf(s) === 'narratif');
 
-/** Les sorts narratifs en SITES (`{ file, ref }`, `scripts/guards/lib/stock.d.mts`) : `ref` = l'id. */
-export const sitesNarratifs = (): Site[] => sortsNarratifs().map((s) => ({ file: FICHIER_DES_SORTS, ref: s.id }));
+/** Les sorts narratifs en SITES (`{ fichier, ref }`, `src/lib/stock.d.mts`) : `ref` = l'id. */
+export const sitesNarratifs = (): Site[] => sortsNarratifs().map((s) => ({ fichier: FICHIER_DES_SORTS, ref: s.id }));
 
 /** `text` d'une op `narrative` réduit à ce qui doit se lire dans la `desc` : blancs ramenés à une
  *  espace, préfixe de journal `« <label> : »` retiré (il nomme le sort, il ne cite pas la `desc`). */
@@ -37,7 +37,7 @@ export const sitesNarratifsParaphrases = (): Site[] => spells.flatMap((s) => [
   const desc = (porteur.desc ?? s.desc ?? '').replace(/\s+/g, ' ');
   return spellEffectOps(porteur.effects)
     .filter((o) => o.op === 'narrative' && !desc.includes(corpsNarratif(o.text, s.label)))
-    .map(() => ({ file: FICHIER_DES_SORTS, ref: s.id }));
+    .map(() => ({ fichier: FICHIER_DES_SORTS, ref: s.id }));
 }));
 
 /** La RÉGÉNÉRATION de `spellNarratifStock.mjs`, sur des sites (par défaut, la mesure du dépôt). Commande :

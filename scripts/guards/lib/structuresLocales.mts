@@ -66,12 +66,8 @@ import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 export type ClasseDeStructure = 'D5' | 'G' | 'G1' | 'L';
 
 /** Un nœud de site, classé : le nom de son document (`nomDuDocument`), sa clé de schéma, sa classe et son empreinte. */
-export interface NoeudDeStructure {
-  readonly fichier: string;
-  readonly ref: string;
+export interface NoeudDeStructure extends Readonly<Site>, ChampsDeStructure {
   readonly noeud: object;
-  readonly classe: ClasseDeStructure;
-  readonly empreinte: string;
 }
 
 /** Ce qu'un site de structure porte HORS de sa clé : sa classe et son empreinte. */
@@ -487,14 +483,14 @@ export function cheminsDeDocument(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
         parPoint.set(point(n), [...(parPoint.get(point(n)) ?? []), e.noeud]);
         parChemin.set(ref, parPoint);
       }
-    for (const [ref, parPoint] of parChemin) out.push({ file: fichier, ref, etat: etatDuChemin(parPoint.values()) });
+    for (const [ref, parPoint] of parChemin) out.push({ fichier, ref, etat: etatDuChemin(parPoint.values()) });
   }
-  return out.sort((a, b) => parUnitesDeCode(a.file, b.file) || parUnitesDeCode(a.ref, b.ref));
+  return out.sort((a, b) => parUnitesDeCode(a.fichier, b.fichier) || parUnitesDeCode(a.ref, b.ref));
 }
 
-/** Les sites du stock des structures locales : D5, G1 et L, en `{ file, ref }` avec classe et empreinte. */
+/** Les sites du stock des structures locales : D5, G1 et L, avec classe et empreinte. */
 export const sitesDeStructure = (noeuds: readonly NoeudDeStructure[] = noeudsDeStructure()): SiteDeStructure[] =>
-  noeuds.filter((n) => AU_STOCK.has(n.classe)).map(({ fichier, ref, classe, empreinte }) => ({ file: fichier, ref, classe, empreinte }));
+  noeuds.filter((n) => AU_STOCK.has(n.classe)).map(({ fichier, ref, classe, empreinte }) => ({ fichier, ref, classe, empreinte }));
 
 /** Le MOTIF du stock, dernière phrase du refus de sa régénération. */
 export const MOTIF_STRUCTURES_LOCALES =
@@ -505,5 +501,5 @@ export const MOTIF_STRUCTURES_LOCALES =
 export const regenerations = (noeuds: readonly NoeudDeStructure[] = noeudsDeStructure()): RegenerationDeStock[] => [{
   chemin: fileURLToPath(new URL(`../../../${PORTEURS.STRUCTURES_LOCALES}`, import.meta.url)),
   politique: DECROISSANT,
-  collections: [{ nom: 'STRUCTURES_LOCALES', sites: sitesDeStructure(noeuds).map(({ file, ref }) => ({ file, ref })), motif: MOTIF_STRUCTURES_LOCALES }],
+  collections: [{ nom: 'STRUCTURES_LOCALES', sites: sitesDeStructure(noeuds).map(({ fichier, ref }) => ({ fichier, ref })), motif: MOTIF_STRUCTURES_LOCALES }],
 }];

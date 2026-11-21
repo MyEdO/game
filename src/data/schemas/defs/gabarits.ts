@@ -66,6 +66,3 @@ const facteurDeCarrureSchema = enumNomme(
 
 /** Surcharge PARTIELLE des facteurs d'une carrure, clés fermées (`raceAppearance.json › gabaritOverride`). */
 export const surchargeDeGabaritSchema = z.partialRecord(facteurDeCarrureSchema, facteur);
-
-/** Surcharge partielle des facteurs d'une carrure. */
-export type SurchargeDeGabarit = z.output<typeof surchargeDeGabaritSchema>;

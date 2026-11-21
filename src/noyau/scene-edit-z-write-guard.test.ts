@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { entreeDe } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { scanSceneEditZWrites } from '../../scripts/guards/lib/sceneEditZWrite.mjs';
 
 /**
@@ -13,11 +13,11 @@ import { scanSceneEditZWrites } from '../../scripts/guards/lib/sceneEditZWrite.m
  * DOIT déclarer un paramètre `z`.
  */
 
-const SCENE_EDIT_PATH = fileURLToPath(new URL('./sceneEdit.ts', import.meta.url));
+const SCENE_EDIT_PATH = resolve(__dirname, 'sceneEdit.ts');
 
 describe('garde-fou « écriture du z sur sceneEdit.ts » (AST, tolérance zéro)', () => {
   it('aucune primitive exportée de sceneEdit.ts ne pousse dans une collection z-portante sans paramètre `z`', () => {
-    const findings = scanSceneEditZWrites(readFileSync(SCENE_EDIT_PATH, 'utf8'));
+    const findings = scanSceneEditZWrites(entreeDe(SCENE_EDIT_PATH).text);
     expect(
       findings,
       'Primitive qui pousse dans une collection z-portante (entities/triggers/restZones/effectZones) ' +

@@ -1,3 +1,6 @@
+/** Dossier des catalogues dont les schémas composent SCHEMA_DEFS. */
+export const RACINE_DES_CATALOGUES = 'src/data';
+
 /**
  * `importDir` : chemin (relatif au fichier `out`) d'où importer chaque entrée. Défaut `./defs`
  * (les entrées vivent dans un sous-dossier `defs/`). Mettre `.` quand les fichiers sont à plat
@@ -92,7 +95,7 @@ export const REGISTRIES = [
     typeFrom: './types',
     fields: ['file', 'schema', 'famille', 'exposition'],
     optionalFields: ['meta'],
-    constFields: { root: "'src/data'" },
+    constFields: { root: `'${RACINE_DES_CATALOGUES}'` },
   },
   {
     // Schémas zod des documents de la 2ᵉ racine (`src/scenes`) : 1 projet de campagne = 1 fichier

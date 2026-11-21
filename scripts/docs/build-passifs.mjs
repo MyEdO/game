@@ -12,7 +12,7 @@
  *    d'entrées qui l'exercent RÉELLEMENT dans le `.json`.
  * La part ÉDITORIALE (frontières, doctrine « un seul format », recettes) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-passifs.mjs
  */
@@ -25,9 +25,9 @@ import { loadSource, firstSentence, jsdocRole } from './lib/jsdocUnion.mjs'
 import { contexteImports, liaisonImportee } from '../guards/lib/canonUnique.mjs'
 import { resolveImport, estModule } from '../guards/lib/importGraph.mjs'
 import { virtualProgram, libererSessions } from '../guards/lib/tsProgram.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const sources = Object.fromEntries(listerArbre(resolve('src'), { filtre: estModule })
     .map((rel) => {
@@ -483,4 +483,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

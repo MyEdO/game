@@ -394,12 +394,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   PlanDEspece: ['corps', 'echelle', 'famille', 'omis'],
   PsychologyData: ['stakeForm'],
   QualityData: ['aspect'],
-  ReseauRoutierData: [
-    'effectifMax', 'effectifMin', 'effectifRouteReculeeMax', 'effectifRouteReculeeMin', 'espacementKm',
-    'espacementKmMax', 'espacementKmMin', 'etapeChevalJours', 'etapeDiligenceJours', 'etapePiedJours',
-    'facteurGrandsTroublesMax', 'facteurGrandsTroublesMin', 'facteurZoneDangereuse', 'kind', 'largeurMaxM',
-    'largeurMinM', 'prixSurcotePct', 'tarifBrassMax', 'tarifBrassMin',
-  ],
   SeaPerilsData: ['tourbillonSwim'],
   SeaWeatherData: ['encalmine'],
   SecondaryRef: ['quote'],

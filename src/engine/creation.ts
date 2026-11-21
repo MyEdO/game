@@ -16,7 +16,7 @@
  */
 import { RNG, roll, rollDice } from './dice';
 import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, type DeDeTable } from './tables';
-import { CharKey, CHAR_KEYS, Characteristics, Combatant, type ReferenceDeCouleur } from './types';
+import { CharKey, CHAR_KEYS, Characteristics, Combatant, type CouleursDesYeux, type ReferenceDeCouleur } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
 import {
   SpeciesData,
@@ -142,6 +142,11 @@ export function rollEyes(race: RaceKey, rng: RNG): ReferenceDeCouleur {
   return rollDetail(eyesTable, rollDice(eyesDie(), rng), race, 'tableau de couleur des yeux');
 }
 
+/** LDB 05 l.716 */
+export function nombreDeTiragesDesYeux(race: RaceKey): 1 | 2 {
+  return race === 'haut-elfe' || race === 'elfe-sylvain' ? 2 : 1;
+}
+
 /** Couleur des cheveux, colonne de la race `race`. LDB 05 l.756-768 */
 export function rollHair(race: RaceKey, rng: RNG): ReferenceDeCouleur {
   return rollDetail(hairsTable, rollDice(hairsDie(), rng), race, 'tableau de couleur des cheveux');
@@ -149,7 +154,13 @@ export function rollHair(race: RaceKey, rng: RNG): ReferenceDeCouleur {
 
 /** Âge, taille, yeux et cheveux de la race `race`, tirés dans cet ordre sur `rng`. LDB 05 l.701-768 */
 export function tirerLesDetails(race: RaceKey, rng: RNG) {
-  return { age: rollAge(race, rng), height: rollHeight(race, rng), eyes: rollEyes(race, rng), hair: rollHair(race, rng) };
+  const age = rollAge(race, rng);
+  const height = rollHeight(race, rng);
+  const premiereCouleur = rollEyes(race, rng);
+  const eyes: CouleursDesYeux = nombreDeTiragesDesYeux(race) === 2
+    ? [premiereCouleur, rollEyes(race, rng)]
+    : [premiereCouleur];
+  return { age, height, eyes, hair: rollHair(race, rng) };
 }
 
 function rollDetail(table: DetailColorData[], r: number, race: RaceKey, nom: string): ReferenceDeCouleur {

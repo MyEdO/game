@@ -12,8 +12,8 @@ export type TrappingResolver = (id: string) => TrappingData | undefined;
 
 /** Catalogues et lecteurs partagés par le parse et la résolution d’apparence (#2948). */
 export const trappings: TrappingData[] = datasetDe<typeof trappingsDef>(trappingsJson);
-export type SiegeEngineData = EntreeDe<typeof siegeEnginesDef>;
-export const catalogueDesEngins = datasetDe<typeof siegeEnginesDef>(siegeEnginesJson);
+type SiegeEngineData = EntreeDe<typeof siegeEnginesDef>;
+export const catalogueDesEngins: SiegeEngineData[] = datasetDe<typeof siegeEnginesDef>(siegeEnginesJson);
 export const findSiegeEngineById = indexParId('siegeEngines', catalogueDesEngins);
 export type ApparenceData = EntreeDe<typeof apparencesDef>;
 export const apparences = datasetDe<typeof apparencesDef>(apparencesJson);

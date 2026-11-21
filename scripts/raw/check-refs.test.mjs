@@ -18,7 +18,7 @@ test('clone sans catalogue : les références du rendu sont vérifiées en mémo
     const catalogue = `${coeur}/catalogue-fixture.md`
     const dead = scanDeadRefs(rawDir, ['fiche', 'catalogue'], () => new Map([[catalogue, 'LDB 06 l.999999\n']]))
     assert.equal(dead.length, 1)
-    assert.equal(dead[0].doc, catalogue)
+    assert.equal(dead[0].fichier, `${rawDir}/${catalogue}`)
   })
 })
 
@@ -78,15 +78,15 @@ test('rapport GÉNÉRÉ de la racine de l’Atlas → jamais scanné (acceptatio
 })
 
 test('sitesMorts : un site NOMME sa fiche et la réf citée, borne HAUTE comprise — jamais sa ligne', () => {
-  const sites = sitesMorts([{ doc: FICHE, row: 12, ref: 'LDB 6', hi: 999 }])
-  assert.deepEqual(sites, [{ file: `docs/raw/${FICHE}`, ref: 'LDB 6 l.999' }])
-  assert.equal(/:\d+$/.test(sites[0].file), false, 'la fiche se nomme sans numéro de ligne')
-  assert.ok(sites[0].file.split('/').length > 3, 'le site PORTE le cœur de sa fiche')
+  const sites = sitesMorts([{ fichier: `docs/raw/${FICHE}`, row: 12, ref: 'LDB 6', hi: 999 }])
+  assert.deepEqual(sites, [{ fichier: `docs/raw/${FICHE}`, ref: 'LDB 6 l.999' }])
+  assert.equal(/:\d+$/.test(sites[0].fichier), false, 'la fiche se nomme sans numéro de ligne')
+  assert.ok(sites[0].fichier.split('/').length > 3, 'le site PORTE le cœur de sa fiche')
 })
 
 test('écart : un site hors du stock est NEUF, une entrée sans site est SOLDÉE', () => {
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesMorts([{ doc: FICHE, ref: 'LDB 6', hi: 999 }]),
+    sites: sitesMorts([{ fichier: `docs/raw/${FICHE}`, ref: 'LDB 6', hi: 999 }]),
     stock: [{ fichier: `docs/raw/${AUTRE_FICHE}`, ref: 'AA 1 l.42', occurrence: 1 }],
     ou: 'dead-refs-stock.json',
   })

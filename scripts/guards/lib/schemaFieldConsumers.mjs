@@ -327,6 +327,29 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
       return decl && { type: checker.getTypeAtLocation(decl.name), node: decl }
     }
     const shared = new Map(LIENS_SCHEMA_TYPES.filter(t => t.schema).map(t => [t.schema, typeNomme(t.home, t.type)]).filter(([,t]) => t))
+    // Le registre relie le fichier à son schéma. Seule une annotation explicite de sa sortie fournit
+    // un contrat TypeScript ici, sans compter comme lecteur du document.
+    const contrats = new Map()
+    const registre = program.getSourceFile(norm(resolve(root, 'src/data/schemas/_registry.generated.ts')))
+    for (const item of registre?.statements ?? []) {
+      if (!ts.isImportDeclaration(item)) continue
+      const liens = item.importClause?.namedBindings
+      if (!liens || !ts.isNamedImports(liens)) continue
+      const declarationImportee = nom => {
+        const lien = liens.elements.find(lien => (lien.propertyName ?? lien.name).text === nom)
+        const symbole = lien && checker.getSymbolAtLocation(lien.name)
+        const decl = symbole && checker.getAliasedSymbol(symbole).declarations?.[0]?.resolve()
+        return decl && ts.isVariableDeclaration(decl) ? decl : undefined
+      }
+      const fichier = declarationImportee('file')?.initializer
+      const schema = declarationImportee('schema')
+      if (!fichier || !ts.isStringLiteral(fichier) || !schema) continue
+      const init = schema.initializer
+      const annotation = schema.type ?? (init && ts.isSatisfiesExpression(init) ? init.type : undefined)
+      if (!annotation) continue
+      const sortie = checker.getPropertyOfType(checker.getTypeAtLocation(annotation), '_output')
+      if (sortie) contrats.set(fichier.text, { path: [], type: checker.getTypeOfSymbolAtLocation(sortie, annotation), node: annotation })
+    }
     const envelope = typeNomme('src/data/schemas/grammaire/document.ts', 'EnveloppeDocument')
     const variant = typeNomme('src/data/schemas/grammaire/valeurs.ts', 'Variant')
     const absent = [], counts = []
@@ -347,6 +370,8 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
         }
       })
       const ofFile = claims.filter(c => c.file === d.file)
+      const contrat = contrats.get(d.file)
+      if (contrat) ofFile.push(contrat)
       ofFile.push(...common)
       const typePaths = new Map()
       const typesAt = (claim, path) => {
