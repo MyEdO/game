@@ -1,4 +1,4 @@
-import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
+import { ElementFlags, SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // Mécanique de scan du garde-fou « tout champ d'un document édité a un chemin d'écriture d'auteur » (#841, #4234) :
 // pour chaque racine de `RACINES` (scène, carte du monde, narratif), l'éditeur Godot, méthode `editer` du pont
 // (`hotes/godot/pont/CONTRAT.md`, #3508 décision 8), est la seule interface d'auteur.
@@ -37,16 +37,17 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //  4. CRÉDIT PAR ALLER-RETOUR. Une écriture qu'un aller-retour a JOUÉE en jouant `editer` (le geste `valeur` du
 //     formulaire tiré du schéma, à clé calculée, que le scan ne voit pas ; `ecrituresJouees` d'`auditerLEditabilite`)
 //     ne crédite que si le document a changé à son chemin, que la valeur relue est la valeur jouée et que la saisie
-//     n'est pas du JSON (`ecritureCreditee`). Elle crédite alors le dernier pas de chacun de ces chemins
-//     (`cheminsCredites`) :
-//     (a) son chemin, si la valeur jouée est un scalaire ;
-//     (b) chaque objet et chaque liste que la valeur jouée pose, elle comprise, de proche en proche, que le geste a
-//         CHANGÉS : la valeur au même chemin diffère dans le document d'avant (`cheminsEcrits`) ;
-//     (c) chaque scalaire que le document portait déjà, hors de son chemin, et que le geste change (`scalairesChanges`).
-//     Le choix d'une VARIANTE (`variante`, la clé de son discriminant) crédite (b) et, de (a), son seul discriminant,
-//     posé à son chemin ou juste sous lui ; jamais (c). Un scalaire du corps d'un objet ou d'une liste écrits entiers, ou
-//     absent avant, n'est crédité que par le contrôle qui l'écrit. Le chemin se joint au périmètre en marchant le type
-//     de la racine (`idsDuChemin`, par `idsOf`) : aucun second nommage.
+//     n'est pas du JSON. Le dernier pas de chaque chemin prouvé par `cheminsCreditesJoues` reçoit le crédit :
+//     (a) le chemin saisi, dont la valeur relue prouve l'écriture, y compris une position scalaire de liste,
+//         tuple ou record, distincte du champ qui porte son conteneur ;
+//     (b) les structures que le geste pose, chacune comparée sur le même porteur. Monter, insérer ou retirer peut
+//         écrire la collection, sans écrire ce que portaient déjà les éléments déplacés ;
+//     (c) les scalaires incidents présents avant et après sous un porteur apparié dans la même variante.
+//     Le banc conserve le rang du geste et lit les clés du schéma. Le choix d'une VARIANTE crédite son discriminant
+//     et les structures qu'il pose. Le chemin correspondant dans chaque document est joint au type de sa racine
+//     (idsDuChemin) ; deux déclarations qui ne coïncident pas avant et après ne prouvent pas une écriture incidente.
+//     Les champs calculés restent dans la mesure (#4289) : l'empreinte de fragment reçoit son crédit du rescellement,
+//     le repère de la propagation du renommage. La garde exige un changement relu dans le porteur identifié.
 //
 // FRONTIÈRE DU PÉRIMÈTRE — par PROPRIÉTÉ, et l'appartenance se juge par IDENTITÉ, jamais par
 // module. L'ENSEMBLE D'IDENTITÉS du document se construit en marchant les schémas depuis
@@ -63,7 +64,9 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // `PropertySignature`, comme ceux qu'annotent les types MANUSCRITS du document (`SceneEntity.calage` : `Calage`).
 // Aucun nœud listé ne l'arrête ; `z.custom<T>()` est une frontière STRUCTURELLE (aucun shape à marcher), détectée et
 // jamais listée, et un type du MOTEUR (`Condition`, `Flow`, `GameOp`, `FlowTest`, `src/engine/`) n'est pas de la couche
-// donnée : son intérieur reste hors du périmètre tant qu'il n'est pas la sortie de son schéma (#3606 M2f2).
+// donnée : son intérieur reste hors du périmètre tant qu'il n'est pas la sortie de son schéma (#1468).
+// Mesure au tronc 64465aeb0 : 462 champs en scène, 484 en carte et 392 en narratif, zéro issu du moteur.
+// La mesure des positions et des déclarations de variantes (#4289) porte ces comptes à 497, 507 et 407.
 // Le niveau importe : le SYMBOLE d'un type inféré d'un schéma zod est anonyme et déclaré dans
 // `zod/v4/core/util.d.cts`, alors que ses PROPRIÉTÉS pointent la ligne exacte du shape. Une
 // frontière posée sur le type lâcherait donc en silence dès qu'un corps manuscrit passe en
@@ -95,12 +98,14 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // Module ESM pur — consommé par les gardes des trois racines (`garderLaRacine`, `src/ecrituresJouees.testkit.ts`) et
 // par les preuves virtuelles de `src/scene-field-editability-guard.test.ts`.
 import path from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
 import * as ts from 'typescript/unstable/ast';
 import { repoProgram, libererSessions } from './tsProgram.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { dossierDe, porteeDeGarde } from './couches.mjs';
-import { auChemin } from '../../../src/lib/objet.mjs';
+import { auChemin, estObjet } from '../../../src/lib/objet.mjs';
+import { cheminsCreditesJoues } from './editabiliteEcritures.mjs';
+
+export { cheminsCreditesJoues };
 
 /** `rel` (relatif à la racine, séparateurs quelconques) est-il sous le dossier `dossier` ? */
 const sous = (dossier) => (rel) => norm(rel).startsWith(`${dossier}/`);
@@ -316,20 +321,7 @@ export function perimetreDeLaRacine(program, root, racine) {
 
   const out = [];
   const seenTypes = new Set();
-  const seenIds = new Set();
-  /** Un champ est la déclaration de son type (`cleDuChamp`) : la propriété héritée (`RefASpecialisation.id`, déclarée par
-   *  `RefDesignee`) est le champ de sa déclaration, nommé au premier type qui l'atteint. */
   const seenCles = new Set();
-  const noter = (champ) => {
-    const cle = cleDuChamp(champ);
-    if (seenIds.has(champ.id) || seenCles.has(cle)) return;
-    seenIds.add(champ.id);
-    seenCles.add(cle);
-    out.push(champ);
-  };
-
-  /** Le type de la propriété `p`, lu dans son porteur. */
-  const typeDansLePorteur = (p) => (p.declarations?.length ? checker.getTypeOfSymbolAtLocation(p, p.declarations[0].resolve()) : checker.getTypeOfSymbol(p));
 
   /** Les membres de chaque union par laquelle un type est atteint, sur TOUS les chemins de la marche : un type
    *  se visite une fois (`seenTypes`), ses unions s'inscrivent à chaque rencontre. */
@@ -343,26 +335,28 @@ export function perimetreDeLaRacine(program, root, racine) {
 
   /** `alternatives` : les membres, hors `undefined` et `null`, de l'union dont `type` est une branche, pour juger un
    *  discriminant. */
-  const visit = (type, ownerPath, parentDecl, alternatives = []) => {
+  const visit = (type, ownerPath, parentDecl, alternatives = [], contexte = []) => {
     if (!type) return;
     if (alternatives.length) inscrire(type, alternatives);
     if (seenTypes.has(type)) return;
     seenTypes.add(type);
 
     if ((type.isUnionType() || type.isIntersectionType())) {
-      const membresDirects = type.getTypes();
-      const branches = type.isUnionType() ? membresDirects.filter((b) => !(b.flags & (TypeFlags.Undefined | TypeFlags.Null))) : alternatives;
-      for (const m of membresDirects) visit(m, ownerPath, parentDecl, branches);
+      const membresDirects = membresDe(type);
+      const branches = type.isUnionType() ? branchesSansVide(type) : alternatives;
+      for (const m of membresDirects) visit(m, ownerPath, parentDecl, branches,
+        type.isUnionType() && branches.length > 1 ? [...contexte, qualifierBranche(checker, branches, m)] : contexte);
       return;
     }
-    if (checker.isArrayType(type) || checker.isTupleType(type)) {
-      for (const arg of checker.getTypeArguments(type)) visit(arg, ownerPath, parentDecl);
+    const positions = positionsDeListe(checker, type);
+    if (positions.length || checker.isTupleType(type)) {
+      for (const [position, arg] of positions) visit(arg, ownerPath, parentDecl, [], position === '[]' ? contexte : [...contexte, position]);
       return;
     }
     if (!(type.flags & TypeFlags.Object)) return;
 
-    const idx = checker.getIndexInfosOfType(type).find((info) => info.keyType.flags & TypeFlags.String);
-    if (idx) visit(idx.valueType, ownerPath, parentDecl);
+    const idx = indexTexte(checker, type);
+    if (idx) visit(idx.valueType, ownerPath, parentDecl, [], contexte);
 
     // Un objet dont aucune propriété n'est déclarée par le document (un type MANUSCRIT du moteur, cf. FRONTIÈRE en
     // tête) : on ne descend pas.
@@ -374,8 +368,10 @@ export function perimetreDeLaRacine(program, root, racine) {
     for (const prop of synthetiques) {
       const owner = schemaCompose(parentDecl) ?? ownerPath;
       const id = `${owner}.${prop.name}`;
-      candidats.push({ champ: { id, owner, field: prop.name, decl: parentDecl, porteur: type.id } });
-      visit(checker.getTypeOfSymbolAtLocation(prop, parentDecl), id, parentDecl);
+      const t = typeDuChamp(checker, prop);
+      if (sansValeur(t)) continue;
+      candidats.push({ champ: { id, owner, field: prop.name, decl: parentDecl, porteur: type.id }, t, contexte, ownerPath });
+      visit(t, id, parentDecl, [], contexte);
     }
     if (duType.length === 0) return;
 
@@ -387,9 +383,11 @@ export function perimetreDeLaRacine(program, root, racine) {
     for (const prop of duType) {
       const decl = prop.declarations[0].resolve();
       const id = `${owner}.${prop.name}`;
-      const t = typeDansLePorteur(prop);
-      candidats.push({ champ: { id, owner, field: prop.name, decl, ...(produitDeFabrique(decl) ? { porteur: type.id } : {}) }, ...(t.flags & TypeFlags.Literal ? { litteral: { porteur: type, prop, t } } : {}) });
-      visit(checker.getTypeOfSymbolAtLocation(prop, decl), id, decl);
+      const t = typeDuChamp(checker, prop);
+      if (sansValeur(t)) continue;
+      candidats.push({ champ: { id, owner, field: prop.name, decl, ...(produitDeFabrique(decl) ? { porteur: type.id } : {}) }, t, contexte, ownerPath,
+        ...(estLitteral(t) && !(prop.flags & SymbolFlags.Optional) ? { litteral: { porteur: type, prop, t } } : {}) });
+      visit(t, id, decl, [], contexte);
     }
   };
 
@@ -409,16 +407,38 @@ export function perimetreDeLaRacine(program, root, racine) {
   const portesDe = (branches, nom) => branches.map((a) => (objet(a) ? checker.getPropertyOfType(a, nom) : undefined));
   const dePresence = (branches, nom) => {
     const portes = portesDe(branches, nom);
-    return portes.filter((autre) => !autre).length === 1 && portes.every((autre) => !autre || typeDansLePorteur(autre).isStringLiteralType());
+    return portes.filter((autre) => !autre).length === 1 && portes.every((autre) => !autre || typeDuChamp(checker, autre).isStringLiteralType());
   };
   const discrimine = ({ porteur, prop, t }) =>
     (unionsDe.get(porteur) ?? []).some((branches) => {
-      if (portesDe(branches, prop.name).some((autre, i) => !!autre && branches[i] !== porteur && typeDansLePorteur(autre) !== t)) return true;
+      if (portesDe(branches, prop.name).some((autre, i) => !!autre && branches[i] !== porteur && typeDuChamp(checker, autre) !== t)) return true;
       if (!branches.every(objet)) return false;
       const candidates = new Set(branches.flatMap((a) => checker.getPropertiesOfType(a).map((p) => p.name).filter((nom) => dePresence(branches, nom))));
       return candidates.size === 1 && candidates.has(prop.name);
     });
-  for (const { champ, litteral } of candidats) if (!litteral || discrimine(litteral)) noter(champ);
+  const distincts = candidats.filter(({ champ, litteral }) => {
+    const cle = cleDuChamp(champ);
+    if (seenCles.has(cle) || (litteral && !discrimine(litteral))) return false;
+    seenCles.add(cle);
+    return true;
+  });
+  const comptes = new Map();
+  for (const { champ } of distincts) comptes.set(champ.id, (comptes.get(champ.id) ?? 0) + 1);
+  const noms = new Map();
+  for (const { champ, t, contexte, ownerPath } of distincts) {
+    const { owner, field, decl } = champ;
+    const variante = contexte.filter(Boolean).join('');
+    const qualifie = comptes.get(champ.id) > 1 ? (ownerPath ?? owner) + variante : owner;
+    const id = qualifie + '.' + field;
+    const occurrence = (noms.get(id) ?? 0) + 1;
+    noms.set(id, occurrence);
+    champ.owner = occurrence > 1 ? qualifie + '~' + occurrence : qualifie;
+    champ.id = champ.owner + '.' + field;
+    out.push(champ);
+    for (const position of positionsScalaires(checker, t)) {
+      out.push({ id: champ.id + position, owner: champ.owner, field: field + position, decl, position });
+    }
+  }
   return out;
 }
 
@@ -426,16 +446,192 @@ export function perimetreDeLaRacine(program, root, racine) {
  *  client ne met pas en cache (`typescript/dist/api/sync/api.js`, `fetchTypes` sans poignées) ; un type est un objet
  *  stable de sa session, ses membres se lisent donc une fois. */
 const membres = new WeakMap();
+const membresDe = (type) => membres.get(type) ?? membres.set(type, type.getTypes()).get(type);
+
 function flatten(type, acc = []) {
   if (!type) return acc;
   if (!type.isUnionType() && !type.isIntersectionType()) {
     acc.push(type);
     return acc;
   }
-  let lus = membres.get(type);
-  if (!lus) membres.set(type, (lus = type.getTypes()));
-  for (const m of lus) flatten(m, acc);
+  for (const m of membresDe(type)) flatten(m, acc);
   return acc;
+}
+
+const typeDuChamp = (checker, p) => (p.declarations?.length
+  ? checker.getTypeOfSymbolAtLocation(p, p.declarations[0].resolve())
+  : checker.getTypeOfSymbol(p));
+
+const sansValeur = (t) => !!(t.flags & (TypeFlags.Undefined | TypeFlags.Never));
+const estLitteral = (t) => t.isStringLiteralType() || t.isNumberLiteralType() || t.isBooleanLiteralType();
+const estObjetType = (t) => !!(t.flags & (TypeFlags.Object | TypeFlags.Intersection));
+const indexTexte = (checker, t) => checker.getIndexInfosOfType(t).find((i) => i.keyType.flags & (TypeFlags.StringLike | TypeFlags.NumberLike));
+const scalaireType = (t) => !!(t.flags & (TypeFlags.StringLike | TypeFlags.NumberLike | TypeFlags.BooleanLike | TypeFlags.Null));
+
+/** Les positions d'un tuple ont chacune leur type. Une liste ordinaire et le reste d'un tuple sont homogènes. */
+function positionsDeListe(checker, type) {
+  if (!type.isObjectType()) return [];
+  if (checker.isArrayType(type)) return checker.getTypeArguments(type).map((t) => ['[]', t]);
+  if (!checker.isTupleType(type)) return [];
+  const args = checker.getTypeArguments(type);
+  const repos = type.getTarget().elementFlags.findIndex((f) => f & ElementFlags.Variable);
+  return args.map((t, rang) => {
+    if (rang === repos) return ['[]', t];
+    const position = repos >= 0 && rang > repos ? rang - args.length : rang;
+    return ['[' + position + ']', t];
+  });
+}
+
+function positionsScalaires(checker, type) {
+  const out = new Set();
+  const vus = new Set();
+  const descendre = (t, chemin) => {
+    if (vus.has(t)) return;
+    vus.add(t);
+    for (const forme of flatten(t)) {
+      const liste = positionsDeListe(checker, forme);
+      const record = !liste.length && estObjetType(forme) ? indexTexte(checker, forme) : undefined;
+      for (const [position, entree] of record ? [['{}', record.valueType]] : liste) {
+        const ici = chemin + position;
+        if (flatten(entree).some(scalaireType)) out.add(ici);
+        descendre(entree, ici);
+      }
+    }
+    vus.delete(t);
+  };
+  descendre(type, '');
+  return out;
+}
+
+const nonVides = new WeakMap();
+const branchesSansVide = (type) => nonVides.get(type) ?? nonVides.set(type,
+  membresDe(type).filter((b) => !(b.flags & (TypeFlags.Undefined | TypeFlags.Null)))).get(type);
+
+const signaturesDUnion = new WeakMap();
+const naturesScalaires = new WeakMap();
+const ABSENT = { nom: 'absent', optionnel: true, natures: [] };
+const jetonLitteral = (v) => '=' + JSON.stringify(v);
+
+/** Les valeurs scalaires dont le type suffit à distinguer une variante. */
+function naturesDuType(type) {
+  if (naturesScalaires.has(type)) return naturesScalaires.get(type);
+  const membres = flatten(type).filter((t) => !sansValeur(t));
+  const jetons = membres.map((t) => {
+    if (estLitteral(t)) return jetonLitteral(t.value);
+    if (t.flags & TypeFlags.StringLike) return 'string';
+    if (t.flags & TypeFlags.NumberLike) return 'number';
+    if (t.flags & TypeFlags.BooleanLike) return 'boolean';
+    if (t.flags & TypeFlags.Null) return jetonLitteral(null);
+    return undefined;
+  });
+  const natures = jetons.includes(undefined) ? undefined : [...new Set(jetons)].sort();
+  naturesScalaires.set(type, natures);
+  return natures;
+}
+
+function contrainteDuChamp(checker, prop, index) {
+  if (!prop && !index) return ABSENT;
+  const t = prop ? typeDuChamp(checker, prop) : index.valueType;
+  if (sansValeur(t)) return ABSENT;
+  const optionnel = !prop || !!(prop.flags & SymbolFlags.Optional);
+  const natures = naturesDuType(t);
+  const nom = natures?.map((n) => n.startsWith('=') ? n.slice(1) : n).join('|') || 'présent';
+  return { nom: optionnel ? nom + '?' : nom, optionnel, natures };
+}
+
+/** Les seules propriétés qui permettent de distinguer les branches objets de l'union. */
+function signaturesDe(checker, branches) {
+  const memorisees = signaturesDUnion.get(branches);
+  if (memorisees !== undefined) return memorisees;
+  const objets = branches.filter((t) => estObjetType(t) && !positionsDeListe(checker, t).length);
+  if (objets.length < 2) {
+    signaturesDUnion.set(branches, []);
+    return [];
+  }
+  const proprietes = objets.map((t) => new Map(checker.getPropertiesOfType(t).map((p) => [p.name, p])));
+  const indexes = objets.map((t) => indexTexte(checker, t));
+  const noms = new Set(proprietes.flatMap((ps) => [...ps.keys()]));
+  const discriminants = [];
+  for (const nom of noms) {
+    const contraintes = proprietes.map((ps, i) => contrainteDuChamp(checker, ps.get(nom), indexes[i]));
+    if (new Set(contraintes.map((c) => c.nom)).size > 1) discriminants.push([nom, contraintes]);
+  }
+  // Un discriminant littéral commun nomme la branche sans y encoder les autres champs.
+  const litteraux = discriminants.filter(([, cs]) => cs.some((c) => c.natures?.some((n) => n.startsWith('='))));
+  const presences = discriminants.filter(([, cs]) => cs.includes(ABSENT) && cs.some((c) => !c.optionnel));
+  const nomment = litteraux.length ? litteraux : presences.length ? presences : discriminants;
+  const signatures = objets.map((type, i) => ({
+    type,
+    tests: discriminants.map(([nom, cs]) => [nom, cs[i]]),
+    nomment: nomment.map(([nom, cs]) => [nom, cs[i].nom]),
+  }));
+  signaturesDUnion.set(branches, signatures);
+  return signatures;
+}
+
+function qualifierBranche(checker, branches, type) {
+  const cas = signaturesDe(checker, branches).find((b) => b.type === type)?.nomment;
+  return cas?.length ? '<' + cas.map(([nom, valeur]) => nom + '=' + valeur).join(',') + '>' : '';
+}
+
+function convientAuScalaire(natures, valeur) {
+  if (natures === undefined) return true;
+  if (valeur !== null && (estObjet(valeur) || Array.isArray(valeur))) return false;
+  return natures.includes(typeof valeur) || natures.includes(jetonLitteral(valeur));
+}
+
+/** Les branches dont la forme peut porter la valeur relue. Plusieurs peuvent rester compatibles. */
+function branchesDeLaValeur(checker, type, valeur) {
+  const branches = membresDe(type);
+  const signatures = signaturesDe(checker, branches);
+  return branches.filter((t) => {
+    if (valeur === undefined) return !sansValeur(t);
+    if (Array.isArray(valeur)) return positionsDeListe(checker, t).length > 0;
+    if (estObjet(valeur)) {
+      if (!estObjetType(t) || positionsDeListe(checker, t).length) return false;
+      const signature = signatures.find((b) => b.type === t);
+      return !signature || signature.tests.every(([nom, { optionnel, natures }]) => {
+        const lue = Object.hasOwn(valeur, nom) ? valeur[nom] : undefined;
+        return lue === undefined ? optionnel : convientAuScalaire(natures, lue);
+      });
+    }
+    return !estObjetType(t) && convientAuScalaire(naturesDuType(t), valeur);
+  });
+}
+
+const branchesOuType = (type) => type.isUnionType() ? membresDe(type) : [type];
+
+/** Les branches du type cible compatibles avec un porteur source. */
+function branchesDeLaSource(checker, type, source) {
+  if (!type.isUnionType()) return [type];
+  if (source.isUnionType()) {
+    return [...new Set(membresDe(source).flatMap((t) => branchesDeLaSource(checker, type, t)))];
+  }
+  const compatibles = [];
+  const signatures = signaturesDe(checker, membresDe(type));
+  for (const { type: t, tests } of signatures) {
+    if (tests.every(([nom, contrainte]) => {
+      const prop = checker.getPropertyOfType(source, nom);
+      if (!prop || (prop.flags & SymbolFlags.Optional)) return true;
+      const valeur = naturesDuType(typeDuChamp(checker, prop));
+      if (valeur?.length === 0) return contrainte.optionnel;
+      if (contrainte === ABSENT) return false;
+      if (!valeur || !contrainte.natures) return true;
+      return valeur.some((n) => contrainte.natures.includes(n) ||
+        (n.startsWith('=') && contrainte.natures.includes(typeof JSON.parse(n.slice(1)))) ||
+        contrainte.natures.some((c) => c.startsWith('=') && n === typeof JSON.parse(c.slice(1))));
+    })) compatibles.push(t);
+  }
+  const objets = membresDe(type).filter(estObjetType);
+  const candidats = signatures.length ? compatibles : objets;
+  // Une écriture partielle ne possède pas forcément tous les champs requis.
+  const assignees = candidats.filter((t) => checker.isTypeAssignableTo(source, t));
+  return assignees.length ? assignees : candidats;
+}
+
+function idsCommuns(ensembles) {
+  const [premier, ...autres] = ensembles;
+  return new Set(premier ? [...premier].filter((id) => autres.every((ids) => ids.has(id))) : []);
 }
 
 /** Ids de champ du périmètre (`cles`, par `cleDuChamp`) auxquels la propriété `name` de `type` se rattache : sa
@@ -457,99 +653,41 @@ function idsOf(checker, cles, type, name) {
   return ids;
 }
 
-/** Ids de champ du périmètre que le DERNIER pas du chemin `chemin` écrit dans le document `doc`, marché sur le type
- *  `typeRacine` : un rang mène à l'élément d'un tableau, une clé à la propriété (`idsOf`) ou à la valeur d'un index ; un
- *  membre d'union dont un discriminant littéral contredit la valeur du document est écarté. */
-function idsDuChemin(checker, cles, typeRacine, doc, chemin) {
-  let types = [typeRacine];
-  let valeur = doc;
-  let ids = new Set();
-  for (const pas of chemin) {
-    const suivants = [];
-    ids = new Set();
-    for (const t of types.flatMap((x) => flatten(x))) {
-      if (typeof pas === 'number') {
-        if (checker.isArrayType(t) || checker.isTupleType(t)) suivants.push(...checker.getTypeArguments(t));
-        continue;
-      }
-      const contredit = valeur !== null && typeof valeur === 'object' && checker.getPropertiesOfType(t).some((p) => {
-        const d = p.declarations?.[0]?.resolve();
-        const lt = d && checker.getTypeOfSymbolAtLocation(p, d);
-        return !!lt && lt.isStringLiteralType() && p.name in valeur && valeur[p.name] !== lt.value;
-      });
-      if (contredit) continue;
-      const prop = checker.getPropertyOfType(t, pas);
-      if (prop) {
-        for (const id of idsOf(checker, cles, t, pas)) ids.add(id);
-        const decls = prop.declarations ?? [];
-        // Une clé synthétique d'un type mappé n'a pas de déclaration où lire son type : le symbole le porte.
-        if (decls.length === 0) suivants.push(checker.getTypeOfSymbol(prop));
-        for (const d of decls) suivants.push(checker.getTypeOfSymbolAtLocation(prop, d.resolve()));
-        continue;
-      }
-      const idx = checker.getIndexInfosOfType(t).find((i) => i.keyType.flags & TypeFlags.String);
-      if (idx) suivants.push(idx.valueType);
+/** Identités du dernier pas, communes à toutes les branches compatibles quand la valeur n'en départage aucune. */
+function idsDuChemin(checker, cles, slots, typeRacine, doc, chemin, crediterSlot = true) {
+  function descendre(type, valeur, rang, adresses) {
+    if (rang === chemin.length) return new Set(adresses);
+    if (type.isUnionType()) {
+      return idsCommuns(branchesDeLaValeur(checker, type, valeur)
+        .map((branche) => descendre(branche, valeur, rang, adresses)));
     }
-    types = suivants;
-    valeur = valeur?.[pas];
+    const pas = chemin[rang];
+    const relue = auChemin(valeur, [pas]);
+    function poursuivre(position, enfant) {
+      const sous = adresses.map((id) => id + position);
+      if (rang + 1 < chemin.length) return descendre(enfant, relue, rang + 1, sous);
+      return new Set(crediterSlot && !estObjet(relue) && !Array.isArray(relue) ? sous.filter((id) => slots.has(id)) : []);
+    }
+    if (typeof pas === 'number') {
+      const positions = positionsDeListe(checker, type);
+      const position = positions.find(([p]) => p === '[' + pas + ']')
+        ?? (Array.isArray(valeur) ? positions.find(([p]) => p === '[' + (pas - valeur.length) + ']') : undefined)
+        ?? positions.find(([p]) => p === '[]');
+      return position ? poursuivre(position[0], position[1]) : new Set();
+    }
+    const prop = checker.getPropertyOfType(type, pas);
+    if (prop) {
+      const ids = idsOf(checker, cles, type, pas);
+      return rang + 1 === chemin.length ? ids : descendre(typeDuChamp(checker, prop), relue, rang + 1, [...ids]);
+    }
+    const index = indexTexte(checker, type);
+    return index ? poursuivre('{}', index.valueType) : new Set();
   }
-  return ids;
+  return descendre(typeRacine, doc, 0, []);
 }
 
 /** La marque d'un crédit par aller-retour dans la colonne `authors`. */
 export const ALLER_RETOUR = 'editer (aller-retour)';
-
-/** Les chemins qu'écrit la valeur `valeur` posée au chemin `chemin`, chacun avec sa valeur : le sien, et, d'un objet ou
- *  d'une liste, celui de chaque clé ou rang qu'elle porte, de proche en proche. */
-const cheminsPoses = (chemin, valeur) =>
-  valeur !== null && typeof valeur === 'object'
-    ? [[chemin, valeur], ...Object.entries(valeur).flatMap(([cle, v]) => cheminsPoses([...chemin, Array.isArray(valeur) ? Number(cle) : cle], v))]
-    : [[chemin, valeur]];
-
-/** Les chemins que crédite l'écriture `{ avant, apres, chemin, valeur, variante }` (`cheminsPoses`) : chaque objet et
- *  liste qu'elle pose et que le geste a changé, différent au même chemin (par rang) de `avant` à `apres` ; un scalaire,
- *  s'il est la valeur jouée elle-même, à son chemin, ou, issue du choix d'une variante (`variante`, la clé de son
- *  discriminant), s'il est ce discriminant, posé à son chemin ou juste sous lui. Un scalaire du corps d'un objet ou
- *  d'une liste écrits entiers n'est crédité que par le contrôle qui l'écrit. */
-const cheminsEcrits = ({ avant, apres, chemin, valeur, variante }) =>
-  cheminsPoses(chemin, valeur)
-    .filter(([c, v]) =>
-      v !== null && typeof v === 'object'
-        ? !isDeepStrictEqual(auChemin(avant, c), auChemin(apres, c))
-        : variante === undefined ? c.length === chemin.length : c.length - chemin.length <= 1 && c[c.length - 1] === variante)
-    .map(([c]) => c);
-
-/** Les chemins des scalaires que le document change de `avant` à `apres` hors du chemin `chemin` : présents au même
- *  chemin des deux, de valeur différente. */
-const scalairesChanges = (avant, apres, chemin) => {
-  const out = [];
-  const objet = (v) => v !== null && typeof v === 'object';
-  const marcher = (a, b, at) => {
-    if (a === b || (at.length === chemin.length && at.every((pas, i) => pas === chemin[i]))) return;
-    if (!objet(a) && !objet(b)) { if (a !== undefined && b !== undefined) out.push(at); return; }
-    if (!objet(a) || !objet(b) || Array.isArray(a) !== Array.isArray(b)) return;
-    for (const cle of Object.keys(a)) if (cle in b) marcher(a[cle], b[cle], [...at, Array.isArray(a) ? Number(cle) : cle]);
-  };
-  marcher(avant, apres, []);
-  return out;
-};
-
-/** Les chemins que crédite l'écriture `e` : ceux qu'elle écrit (`cheminsEcrits`) et, hors du choix d'une variante, chaque
- *  scalaire qu'elle change ailleurs (`scalairesChanges`). */
-const cheminsCredites = (e) => [...cheminsEcrits(e), ...(e.variante === undefined ? scalairesChanges(e.avant, e.apres, e.chemin) : [])];
-
-/** Une écriture jouée crédite-t-elle son dernier pas ? Le document a changé à son chemin, la valeur relue est la valeur
- *  jouée, et la saisie n'est pas du JSON (`saisieJson`). */
-const ecritureCreditee = ({ avant, apres, chemin, valeur, saisie }) =>
-  saisie !== 'saisieJson' && valeur !== undefined && isDeepStrictEqual(auChemin(apres, chemin), valeur) && !isDeepStrictEqual(auChemin(avant, chemin), auChemin(apres, chemin));
-
-/** Les chemins que créditent les écritures jouées `ecrituresJouees`, chacun avec le document d'après où il se lit :
- *  ceux de chaque écriture créditée (`ecritureCreditee`, `cheminsCredites`), sur le document de tout porteur.
- * @param {{ avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string, variante?: string }[]} ecrituresJouees
- * @returns {{ apres: unknown, chemin: (string | number)[] }[]}
- */
-export const cheminsCreditesJoues = (ecrituresJouees) =>
-  ecrituresJouees.filter(ecritureCreditee).flatMap((e) => cheminsCredites(e).map((chemin) => ({ apres: e.apres, chemin })));
 
 /** Noms écrits par une propriété de littéral d'objet. Une clé CALCULÉE (`{ [k]: v }` piloté par un
  *  tuple `as const` — l'idiome des rangées de cases à cocher de l'inspecteur) rend les littéraux de
@@ -586,12 +724,15 @@ function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditable = () 
   /** Ce qu'une valeur de type `source` APPORTE au porteur `cible` : les champs de `cible` homonymes d'un champ de
    *  `source` qui n'en viennent pas déjà (l'étalement du porteur lui-même ne fait que recopier). */
   const apporte = (cible, source) => {
-    for (const prop of flatten(source).flatMap((t) => checker.getPropertiesOfType(t))) {
-      if (!fieldNames.has(prop.name)) continue;
-      const target = idsDe(cible, prop.name);
-      if (target.size === 0) continue;
-      const origin = idsDe(source, prop.name);
-      for (const id of target) if (!origin.has(id)) out.add(id);
+    for (const origine of branchesOuType(source)) {
+      if (!estObjetType(origine)) continue;
+      const porteurs = branchesDeLaSource(checker, cible, origine);
+      for (const prop of checker.getPropertiesOfType(origine)) {
+        if (!fieldNames.has(prop.name)) continue;
+        const idsOrigine = idsDe(origine, prop.name);
+        const communs = idsCommuns(porteurs.map((porteur) => idsDe(porteur, prop.name)));
+        for (const id of communs) if (!idsOrigine.has(id)) out.add(id);
+      }
     }
   };
 
@@ -685,8 +826,9 @@ function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditable = () 
 
     if (ts.isPropertyAssignment(parent) && parent.initializer === node) {
       const names = writtenNames(checker, parent);
+      const source = checker.getTypeAtLocation(parent.parent);
       return positionTypes(parent.parent, depth + 1).flatMap((t) =>
-        flatten(t).flatMap((f) =>
+        branchesDeLaSource(checker, t, source).flatMap((f) =>
           names.flatMap((n) => {
             const prop = checker.getPropertyOfType(f, n);
             const d = prop?.declarations?.[0]?.resolve();
@@ -696,7 +838,12 @@ function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditable = () 
       );
     }
 
-    if (ts.isArrayLiteralExpression(parent)) return elementsOf(positionTypes(parent, depth + 1));
+    if (ts.isArrayLiteralExpression(parent)) {
+      const rang = parent.elements.indexOf(node);
+      if (parent.elements.slice(0, rang).some((e) => ts.isSpreadElement(e))) return [];
+      return positionTypes(parent, depth + 1).flatMap((t) => flatten(t).flatMap((f) =>
+        positionsDeListe(checker, f).filter(([p]) => p === '[]' || p === '[' + rang + ']').map(([, type]) => type)));
+    }
 
     if (ts.isSpreadElement(parent)) {
       if (ts.isArrayLiteralExpression(parent.parent)) return positionTypes(parent.parent, depth + 1);
@@ -753,22 +900,23 @@ function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditable = () 
       // de type d'un `map`/`flatMap`/`reduce` (freshness perdue, `getContextualType` muet).
       const annotated = positionTypes(node);
       const bearers = ctx ? [ctx, ...spreads, ...joined, ...annotated] : [...spreads, ...joined, ...annotated];
-      for (const b of bearers) {
-        for (const p of node.properties) for (const n of writtenNames(checker, p)) credit(b, n);
-        // Un étalement d'une valeur d'un AUTRE type (`{ ...rectTiréAuPointeur }`) APPORTE ses
-        // champs au porteur ; l'étalement du porteur lui-même (`{ ...trigger, … }`) les recopie.
-        for (const s of spreads) apporte(b, s);
+      const source = bearers.some((t) => t.isUnionType()) ? checker.getTypeAtLocation(node) : undefined;
+      const groupes = [...new Set(bearers)].map((t) => source ? branchesDeLaSource(checker, t, source) : [t]);
+      for (const groupe of groupes) for (const p of node.properties) for (const n of writtenNames(checker, p)) {
+        for (const id of idsCommuns(groupe.map((b) => idsDe(b, n)))) out.add(id);
+      }
+      // Un étalement d'une autre forme apporte ses champs dans la branche que porte sa source.
+      for (const cible of new Set(bearers)) for (const spread of spreads) apporte(cible, spread);
+      for (const b of new Set(groupes.flat())) {
         // De même, la valeur d'un AUTRE type affectée à un champ (`{ ...part, foot: rectTiréAuPointeur }`) apporte ses
         // champs à celui du champ ; un littéral d'objet affecté se scanne de lui-même.
         for (const p of node.properties) {
           if (!ts.isPropertyAssignment(p) || ts.isObjectLiteralExpression(p.initializer)) continue;
           const valeur = checker.getTypeAtLocation(p.initializer);
-          for (const n of writtenNames(checker, p))
-            for (const f of flatten(b)) {
-              const prop = checker.getPropertyOfType(f, n);
-              const d = prop?.declarations?.[0]?.resolve();
-              if (prop && d) apporte(checker.getTypeOfSymbolAtLocation(prop, d), valeur);
-            }
+          for (const n of writtenNames(checker, p)) {
+            const prop = checker.getPropertyOfType(b, n);
+            if (prop) apporte(typeDuChamp(checker, prop), valeur);
+          }
         }
       }
     } else if (ts.isCallExpression(node) && node.arguments.some((a) => ts.isStringLiteral(a) && fieldNames.has(a.text)) && creditable(node)) {
@@ -884,11 +1032,11 @@ function auteurReachableScopes(checker, program, root) {
 /**
  * Audite le dépôt : pour chaque champ du document de la `racine` (`RACINES`), qui l'écrit et par quel chemin. Une écriture jouée par
  * l'éditeur (`ecrituresJouees`, un aller-retour qui joue `editer` : le document avant et après, le chemin écrit depuis
- * la racine du document, la valeur jouée et sa saisie) crédite, quand `ecritureCreditee`, le dernier pas de chacun des chemins qu'elle
+ * la racine du document, la valeur jouée et sa saisie) crédite le dernier pas de chacun des chemins qu'elle
  * crédite (`cheminsCreditesJoues`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
  * @param {string} root racine du dépôt
  * @param {import('./tsProgram.mjs').SessionProgramme} [program] programme déjà construit — absent, bâti pour CET appel
- * @param {{ racine: { fichierSchema: string, schema: string, fichierType: string, type: string }, ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string, variante?: string }[] }} options
+ * @param {{ racine: import('./editabiliteDesChamps.mjs').Racine, ecrituresJouees?: readonly import('./editabiliteDesChamps.mjs').EcritureJouee[] }} options
  * @returns {{ id: string, owner: string, field: string, at: string, authors: string[], pipeline: string[] }[]}
  */
 export function auditerLEditabilite(root, program, { racine, ecrituresJouees = [] }) {
@@ -901,8 +1049,10 @@ export function auditerLEditabilite(root, program, { racine, ecrituresJouees = [
   }
   const checker = program.checker;
   const scope = perimetreDeLaRacine(program, root, racine);
-  const cles = new Map(scope.map((e) => [cleDuChamp(e), e.id]));
-  const fieldNames = new Set(scope.map((e) => e.field));
+  const champs = scope.filter((e) => !e.position);
+  const cles = new Map(champs.map((e) => [cleDuChamp(e), e.id]));
+  const slots = new Set(scope.filter((e) => e.position).map((e) => e.id));
+  const fieldNames = new Set(champs.map((e) => e.field));
   const rows = new Map(
     scope.map((e) => {
       const sf = e.decl.getSourceFile();
@@ -941,11 +1091,14 @@ export function auditerLEditabilite(root, program, { racine, ecrituresJouees = [
     }
   }
   const typeRacine = typeDeRacine(program, root, racine);
-  for (const { apres, chemin } of cheminsCreditesJoues(ecrituresJouees))
-    for (const id of idsDuChemin(checker, cles, typeRacine, apres, chemin)) {
+  for (const { apres, chemin, temoin, incident } of cheminsCreditesJoues(ecrituresJouees)) {
+    const avant = temoin && idsDuChemin(checker, cles, slots, typeRacine, temoin.avant, temoin.chemin, !incident);
+    for (const id of idsDuChemin(checker, cles, slots, typeRacine, apres, chemin, !incident)) {
+      if (avant && !avant.has(id)) continue;
       const row = rows.get(id);
       if (row && !row.authors.includes(ALLER_RETOUR)) row.authors.push(ALLER_RETOUR);
     }
+  }
   return [...rows.values()];
 }
 
