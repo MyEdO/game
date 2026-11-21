@@ -33,6 +33,7 @@ import {
   empreinteDesSources, verdictsDuDossier,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
+import { avecModelesCommites } from './modelesCommites.testkit.ts';
 import { epinglesAPublier, recupererEpingles } from './epingles.ts';
 
 /** Les constructions d'essai des éléments sur base qu'importent ces tests : un `modele.py` par clé (`constructionManquante`,
@@ -1044,13 +1045,38 @@ describe('publierAssets', () => {
 });
 
 describe('les modèles commités', () => {
-  // Le cache des modèles de la machine (`CACHE_DES_MODELES`, restauré par la CI avant cette suite) : un cache neuf
-  // tirerait de la Release les GLB épinglés, ~45 Mo, à chaque passage. Le délai couvre ce tirage quand l'empreinte
-  // épinglée change et que le cache ne l'a pas encore.
-  it('valident chacun leur manifeste contre le GLB épinglé', async () => {
-    const modeles = await recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: muet });
-    expect(modeles.length).toBeGreaterThan(0);
+  const photoDesGlb = (dossier: string) => listerDossier(dossier)
+    .filter((nom) => nom.endsWith(fichiersDuModele('').glb))
+    .map((nom) => [nom, sha256(readFileSync(join(dossier, nom)))]);
+
+  // La CI restaure le cache partagé. Le délai couvre le tirage des GLB absents du cache.
+  it('valident chaque manifeste contre son GLB épinglé sans écrire dans le projet', async () => {
+    const avant = photoDesGlb(DOSSIER_DES_MODELES);
+    const { modeles: epingles } = modelesEpingles(DOSSIER_DES_MODELES);
+    expect(epingles.length).toBeGreaterThan(0);
+    const temporaire = await avecModelesCommites((dossier, modeles) => {
+      expect(modeles).toEqual(epingles);
+      expect(photoDesGlb(dossier)).toEqual(epingles.map(({ model, empreinte }) => [model, empreinte]));
+      return dossier;
+    });
+    expect(existsSync(temporaire)).toBe(false);
+    expect(photoDesGlb(DOSSIER_DES_MODELES)).toEqual(avant);
   }, 180_000);
+  it.each([
+    ['publié', {}],
+    ['hors Release', { hors_release: 'essai sur le poste' }],
+  ] as const)('valident le GLB %s déjà présent et le gardent dans le cache', async (_, provenance) => {
+    const source = dossierDeModeles({ model: 'Essai.glb', model_sha256: EMPREINTE, ...provenance });
+    const cache = temporaire();
+    writeFileSync(join(source, 'Essai.glb'), GLB_DE_BASE);
+    writeFileSync(join(source, 'orphelin.glb'), GLB_DE_BASE);
+    const avant = photo(source);
+    await avecModelesCommites((dossier) => {
+      expect(photoDesGlb(dossier)).toEqual([['Essai.glb', EMPREINTE]]);
+    }, { source, cache });
+    expect(readFileSync(join(cache, nomDAsset(EMPREINTE, 'glb')))).toEqual(Buffer.from(GLB_DE_BASE));
+    expect(photo(source)).toEqual(avant);
+  });
   it('sont épinglés chacun par sa provenance', () => {
     const { modeles, erreurs } = modelesEpingles(DOSSIER_DES_MODELES);
     expect(erreurs).toEqual([]);

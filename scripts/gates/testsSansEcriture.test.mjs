@@ -191,7 +191,45 @@ test('un arbre initialement sale mais inchangé est accepté ; le code enfant es
 test('la photographie refuse un enfant persistant hors interception Node', () => avecDepot((racine) => {
   const resultat = joue(racine, "require('node:fs').writeFileSync('nouveau', 'pollution')".replace("require('node:fs')", "(await import('node:fs'))"), { intercepter: false })
   assert.equal(resultat.code, 1, GARDE.question)
-  assert.match(resultat.messages.join('\n'), /arbre modifié/)
+  assert.match(resultat.messages.join('\n'), /arbre modifié.*ajoutés \(1\).*"nouveau"/)
+}))
+
+test('la photographie nomme les fichiers retirés, y compris un suivi auparavant propre', () => avecDepot((racine) => {
+  writeFileSync(join(racine, 'ignore.log'), 'présent')
+  const resultat = joue(racine, "import { unlinkSync } from 'node:fs'; unlinkSync('ignore.log'); unlinkSync('suivi');", { intercepter: false })
+  assert.equal(resultat.code, 1)
+  assert.match(resultat.messages.join('\n'), /retirés \(2\).*"ignore\.log".*"suivi"/)
+}))
+
+test('la photographie nomme un changement du statut Git à octets identiques', () => avecDepot((racine) => {
+  writeFileSync(join(racine, 'suivi'), 'déjà sale\n')
+  const resultat = joue(racine, `import { execFileSync } from 'node:child_process'; execFileSync('git', ['add', 'suivi']);`, { intercepter: false })
+  assert.equal(resultat.code, 1, resultat.brut)
+  assert.match(resultat.messages.join('\n'), /modifiés \(1\).*"suivi"/)
+}))
+
+test('la photographie borne chaque groupe d’écarts et en indique le total', () => avecDepot((racine) => {
+  writeFileSync(join(racine, '.gitignore'), 'ignore.log\n*.glb\n')
+  writeFileSync(join(racine, 'suivi'), 'déjà sale\n')
+  writeFileSync(join(racine, 'ignore.log'), 'à retirer')
+  const resultat = joue(racine, `
+    import { appendFileSync, unlinkSync, writeFileSync } from 'node:fs';
+    for (let i = 299; i >= 0; i--) writeFileSync('modele-' + String(i).padStart(3, '0') + '.glb', 'GLB');
+    appendFileSync('suivi', 'modifié'); unlinkSync('ignore.log');
+  `, { intercepter: false })
+  assert.equal(resultat.code, 1, resultat.brut)
+  const message = resultat.messages.join('\n')
+  assert.match(message, /ajoutés \(300\).*"modele-000\.glb"/)
+  assert.doesNotMatch(message, /modele-299\.glb/)
+  assert.match(message, /modifiés \(1\).*"suivi"/)
+  assert.match(message, /retirés \(1\).*"ignore\.log"/)
+  assert.ok(message.length < 600, message)
+}))
+
+test('une photo finale impossible refuse en nommant sa cause', () => avecDepot((racine) => {
+  const resultat = joue(racine, "import { renameSync } from 'node:fs'; renameSync('.git', '.git-injoignable');", { intercepter: false })
+  assert.equal(resultat.code, 1, resultat.brut)
+  assert.match(resultat.messages.join('\n'), /\[tests\] REFUS photo impossible : git refusé/)
 }))
 
 test('append sur un ignoré préexistant est refusé même si le test attrape le refus', () => avecDepot((racine, lire) => {
@@ -209,7 +247,9 @@ test('le contenu persistant modifié sans interception reste refusé avec le mê
     writeFileSync(join(racine, fichier), 'déjà sale\n')
     const resultat = joue(racine, `import { appendFileSync } from 'node:fs'; appendFileSync(${JSON.stringify(fichier)}, 'pollution')`, { intercepter: false })
     assert.equal(resultat.code, 1)
-    assert.match(resultat.messages.join('\n'), /arbre modifié/)
+    const message = resultat.messages.join('\n')
+    assert.match(message, /arbre modifié.*modifiés \(1\)/)
+    assert.ok(message.includes(JSON.stringify(fichier)), message)
   }
 }))
 

@@ -136,9 +136,51 @@ export function ouvrirControleEcritures(racine, env = process.env) {
       try {
         const apres = photoArbre(racine)
         const refus = listerDossier(dossier).flatMap((f) => readFileSync(join(dossier, f), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)))
-        if (apres.erreur || apres.texte !== avant.texte) refus.push(`[tests] REFUS arbre modifié ou photo impossible : ${apres.erreur ?? apres.texte}`)
+        if (apres.erreur) refus.push(`[tests] REFUS photo impossible : ${borner(apres.erreur.trim(), 240)}`)
+        else if (apres.texte !== avant.texte) refus.push(`[tests] REFUS arbre modifié : ${decrireEcarts(avant.texte, apres.texte)}`)
         return refus
       } finally { rmSync(dossier, { recursive: true, force: true }) }
     },
   }
+}
+
+const MAX_CHEMINS = 8
+const borner = (texte, max) => texte.length <= max ? texte : `${texte.slice(0, max / 2)}…${texte.slice(1 - max / 2)}`
+
+function vueParChemin(texte) {
+  const { etat, empreintes } = JSON.parse(texte)
+  const vue = new Map(Object.entries(empreintes).map(([chemin, empreinte]) => [chemin, { empreinte, etats: [] }]))
+  for (const entree of etat) for (const chemin of entree.chemins) {
+    if (!vue.has(chemin)) vue.set(chemin, { etats: [] })
+    vue.get(chemin).etats.push(entree.etat)
+  }
+  return vue
+}
+
+function present(entree, autre) {
+  if (entree?.empreinte !== undefined) return true
+  if (entree) return entree.etats.some((etat) => etat[1] !== 'D' && etat !== 'D ')
+  // Une photo omet les fichiers suivis propres, même si l'autre les voit modifiés ou supprimés.
+  return autre.etats.some((etat) => etat !== '??' && etat !== '!!' && !etat.includes('A'))
+}
+
+function decrireEcarts(avant, apres) {
+  const anciens = vueParChemin(avant)
+  const nouveaux = vueParChemin(apres)
+  const groupes = { ajoutés: [], modifiés: [], retirés: [] }
+  for (const chemin of [...new Set([...anciens.keys(), ...nouveaux.keys()])].sort()) {
+    const ancien = anciens.get(chemin)
+    const nouveau = nouveaux.get(chemin)
+    if (ancien?.empreinte === nouveau?.empreinte && ancien?.etats.join() === nouveau?.etats.join()) continue
+    const existait = present(ancien, nouveau)
+    const existe = present(nouveau, ancien)
+    if (!existait && existe) groupes.ajoutés.push(chemin)
+    else if (existait && !existe) groupes.retirés.push(chemin)
+    else groupes.modifiés.push(chemin)
+  }
+  const descriptions = Object.entries(groupes).filter(([, chemins]) => chemins.length).map(([libelle, chemins]) => {
+    const exemples = chemins.slice(0, MAX_CHEMINS).map((chemin) => borner(JSON.stringify(chemin), 160)).join(', ')
+    return `${libelle} (${chemins.length}) : ${exemples}${chemins.length > MAX_CHEMINS ? ', …' : ''}`
+  })
+  return descriptions.join(' ; ') || 'ordre des entrées différent'
 }
