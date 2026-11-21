@@ -3,9 +3,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../battleRng';
-import { addCondition, stacks, hasCondition, combatTestPenalty, COND } from '../../engine/conditions';
+import { addCondition, addTimedCondition, addClockCondition, stacks, hasCondition, combatTestPenalty, COND } from '../../engine/conditions';
 import { rawCombatTestBase, skillBaseValue } from '../../engine/skills';
 import { inexplique } from '../cascade.testkit';
+import { initialNet } from '../etat';
+import { intentAllowedFor } from '../netOwnership';
+import { modalOwnerOf } from '../modalArbiter';
+import { appliquerLIntentionDUnSiege } from '../intentionsDeSiege';
+import { TIME_COST } from '../../engine/timeCost';
 import { DIFFICULTY_MODIFIERS } from '../../engine/types';
 
 import { testScene } from '../../scenes/test-fixture';
@@ -41,7 +46,15 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     return { H, E };
   }
 
-  it('héros MANUEL gagne Sonné → étape de cascade testDeclenche (non lancée, influençable)', () => {
+  function choisir(reponse: 'oui' | 'non') {
+    const cascade = banc.getState().pendingCascade!;
+    const choix = cascade.participants[cascade.cursor];
+    expect(choix.kind).toBe('choixDeclenche');
+    banc.getState().jetRegler('cascade', 'choix', reponse, choix.id);
+    banc.getState().jetValider('cascade');
+  }
+
+  it('héros MANUEL gagne Sonné → choix, puis Test de Résistance influençable', () => {
     seedBattleRng(7);
     const { H } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'machoires-d-acier', times: 1 }];
@@ -52,7 +65,9 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     expect(c).toBeTruthy();
     expect(c.purpose).toBe('combat');
     expect(c.participants).toHaveLength(1);
-    const step = c.participants[0];
+    expect(c.participants[0]).toMatchObject({ kind: 'choixDeclenche', actorId: H.id });
+    choisir('oui');
+    const step = banc.getState().pendingCascade!.participants[1];
     expect(step.kind).toBe('testDeclenche');
     expect(step.actorId).toBe(H.id);
     expect(step.result).toBeFalsy(); // pas encore lancé → Chance/Résilience possibles
@@ -68,6 +83,7 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     // lui, `base` vaudrait `rawCombatTestBase` par coïncidence et l'assert ne discriminerait rien.
     H.activeEffects = [...(H.activeEffects ?? []), { id: 'fx-e', label: 'Mystracine', testModChar: 'endurance', testMod: -10 } as never];
     addCondition(H, COND.sonne, 2); // H porte Sonné AU MOMENT du Test → sa pénalité ne compte qu'UNE fois
+    choisir('oui');
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     const nue = skillBaseValue(H, { skill: { id: 'resistance' } });
     expect(nue, 'sonde inerte : sans écart nue/valeur testée, l’assert passerait par coïncidence').not.toBe(rawCombatTestBase(H, { skill: { id: 'resistance' } }));
@@ -86,6 +102,7 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     H.talents = [...(H.talents ?? []), { talentId: 'machoires-d-acier', times: 1 }];
 
     addCondition(H, COND.sonne, 2);
+    choisir('oui');
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
 
@@ -93,6 +110,61 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(stacks(h, COND.sonne)).toBeLessThan(2); // au moins 1 Sonné retiré (1 + DR)
+  });
+
+  it('le porteur peut renoncer et conserver les deux États', () => {
+    const { H } = setup();
+    H.talents = [{ talentId: 'machoires-d-acier', times: 1 }];
+    addCondition(H, COND.sonne, 2);
+
+    choisir('non');
+
+    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche')).toBeFalsy();
+    expect(stacks(H, COND.sonne)).toBe(2);
+  });
+
+  it('un réserviste reste porteur de sa réaction au siège invité pendant la bataille', () => {
+    setup();
+    const get = banc.getState;
+    const reserve = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'R', seed: 2 });
+    reserve.talents = [{ talentId: 'machoires-d-acier', times: 1 }];
+    reserve.characteristics.endurance = 90;
+    banc.setState({
+      party: [...get().party, reserve],
+      net: { ...initialNet(), mode: 'hote', mySeat: 0, ownership: { [reserve.id]: 1 }, slots: [0, 1, 0, 0] },
+    });
+    expect(get().battle?.combatants.some((c) => c.id === reserve.id)).toBe(false);
+
+    const porteur = () => get().party.find((c) => c.id === reserve.id)!;
+    addCondition(porteur(), COND.sonne, 1);
+
+    const choix = get().pendingCascade!.participants[0];
+    const args = ['cascade', 'choix', 'oui', choix.id];
+    expect(modalOwnerOf(get())).toBe(reserve.id);
+    expect(intentAllowedFor(get(), 0, 'jetRegler', args)).toBe(false);
+    expect(intentAllowedFor(get(), 1, 'jetRegler', args)).toBe(true);
+    banc.setState({ net: { ...get().net, mySeat: 1 } });
+    choisir('oui');
+    const jet = get().pendingCascade!.participants[1];
+    expect(jet).toMatchObject({ kind: 'testDeclenche', actorId: reserve.id });
+    seedBattleRng(8);
+    get().jetLancer('cascade', jet.id);
+    expect(get().pendingCascade!.participants[1].result?.success).toBe(true);
+    get().jetValider('cascade');
+    expect(stacks(porteur(), COND.sonne)).toBe(0);
+  });
+
+  it.each([addTimedCondition, addClockCondition])('la cadence automatique peut retirer un Sonné temporisé dès son gain (%#)', (ajouter) => {
+    const { H } = setup();
+    setCadence('auto');
+    seedBattleRng(8);
+    H.characteristics.endurance = 90;
+    H.talents = [{ talentId: 'machoires-d-acier', times: 1 }];
+
+    ajouter(H, COND.sonne, 1, 5);
+
+    expect(stacks(H, COND.sonne)).toBe(0);
+    expect(banc.getState().pendingCascade).toBeNull();
   });
 
   it('ENNEMI avec Mâchoires gagne Sonné → résolu INLINE (jamais d’étape de cascade)', () => {
@@ -134,4 +206,33 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(stacks(h, COND.sonne)).toBeLessThan(2); // retrait inline
   });
+});
+
+
+it('« Tout résoudre » du siège invité s’arrête devant le Test d’entretien du siège hôte', () => {
+  const get = banc.getState;
+  const invite = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'I', seed: 1 });
+  const hote = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
+  for (const c of [invite, hote]) {
+    c.characteristics.endurance = 90;
+    addCondition(c, COND.sonne);
+  }
+  banc.setState({
+    party: [invite, hote],
+    net: { ...initialNet(), mode: 'hote', mySeat: 0, ownership: { [invite.id]: 1, [hote.id]: 0 }, slots: [0, 1, 0, 0] },
+  });
+
+  seedBattleRng(8);
+  get().avancerLeTemps(TIME_COST.combatRound);
+  expect(modalOwnerOf(get())).toBe(invite.id);
+  expect(appliquerLIntentionDUnSiege(get, 1, 'jetLancer', ['cascade'])).toBe('appliquee');
+
+  const cascade = get().pendingCascade!;
+  const restant = cascade.participants[cascade.cursor];
+  expect(restant).toMatchObject({ kind: 'testDeclenche', actorId: hote.id, result: null });
+  expect(restant.committed).toBeFalsy();
+  expect(get().party.map((c) => stacks(c, COND.sonne))).toEqual([0, 1]);
+  expect(modalOwnerOf(get())).toBe(hote.id);
+  expect(appliquerLIntentionDUnSiege(get, 0, 'jetLancer', ['cascade'])).toBe('appliquee');
+  expect(get().party.map((c) => stacks(c, COND.sonne))).toEqual([0, 0]);
 });

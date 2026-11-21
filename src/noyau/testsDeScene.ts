@@ -1,8 +1,9 @@
 /** Tests de scène hors combat : Test simple, Test étendu (LDB 12), enfoncer une porte (EDO Appendice 2). */
-import { reprendreLaSuite, runFlow, cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
+import { reprendreLaSuite, runFlow, cloturer, comptePasDifferes, drainPendingLog, OPS_DIFFEREES } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { battleRng } from './battleRng';
 import { touchActors } from './combatOrParty';
+import { journaliser } from './combatLog';
 import type { BuiltCascadeStep } from './stepBrand';
 import { pousseSi, hostStep, idDansLaSequence, openSequence, resultLine } from './rollSeam';
 import { evaluateTest, extendedTestStep } from '../engine/tests';
@@ -113,10 +114,11 @@ export const TABLES = {
     /** SEAM `onOwnTestFailed` d'un Test RATÉ — verbe de CLÔTURE (#1508) : il APPLIQUE des ops (Crampes
      *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
     testRateDeLActeur: (get, set, c) => {
-      const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
-      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
-      if (fired.length) fired.forEach((l) => get().ecrireAuJournal(l));
-      set({ ...touchActors(get()) });
+      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set });
+      const extra = drainPendingLog(get, set);
+      if (get().battle) journaliser(get, set, fired, 'etat', { actorId: c.actorId, extra });
+      else journaliser(get, set, [...fired, ...extra.map((e) => e.text)], 'etat');
+      set(touchActors(get()));
     },
   },
 } satisfies FragmentDeTables;

@@ -57,7 +57,7 @@ import type { RecapEvent } from './recapLine';
 import { findSeaHazard } from '../engine/seaPerils';
 import { overspeedRow, foulingEffects } from '../engine/seaNavigation';
 import { rule, setRule, resetRule } from '../engine/policy';
-import { isOutOfAction } from '../engine/conditions';
+import { isOutOfAction, stacks } from '../engine/conditions';
 import { WORLD_STEP_OWNER } from './pendings';
 import { poserLeSiegeMJ, seatOwns } from './sieges';
 import type { NetState } from './etat';
@@ -1726,17 +1726,52 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     const t0 = get().gameTime;
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
-    expect(get().travelPlan).toBeNull(); // arrivée
-    expect(get().pendingShoreLeave).toBeTruthy(); // événement de port (port B a un profil)
+    expect(get().pendingCascade?.purpose).toBe('seaHealth');
+    expect(get().pendingShoreLeave).toBeNull();
+    const entretien = draineEtapes(get);
+    expect(entretien.some((step) => step.kind === 'equipage-voyage-rapide')).toBe(false);
+    expect(get().travelPlan).toBeNull();
+    expect(get().pendingShoreLeave).toBeTruthy();
     expect(get().vessel!.lastVoyageMilles).toBe(550);
-    // 550 milles / (18×5) = ~7 jours → l’horloge a franchi ~7 jours (couture unique avancerLeTemps).
-    expect(get().gameTime - t0).toBe(7 * 24 * 60);
+    expect(get().gameTime - t0).toBe(7 * MINUTES_PER_DAY);
+    expect(get().lastUpkeepDay).toBe(7);
     expect(get().vessel!.waterLitres).toBeLessThan(1000); // eau des tonneaux consommée (comme le détaillé)
   });
 
   // Manann élevé → palier de voyage rapide BÉNIN (aucune perte d’équipage) : la population de consommation
   // reste l’effectif nominal, sans bruit d’un crewLost aléatoire du palier.
   const benign = { manann: { score: 1000, applied: [] } };
+
+  it.each(['jourParJour', 'commande'] as const)('la traversée rapide reprend après Résistance au poison (%s)', (cadence) => {
+    const [h, ...reste] = get().party;
+    const blesse = blessuresSurLeProfil({ ...h, characteristics: { ...h.characteristics, endurance: 65 }, conditions: [{ id: 'empoisonne', value: 1 }] });
+    const porteur = () => get().party.find((c) => c.id === h.id)!;
+    set({ party: [blesse, ...reste], vessel: { ...get().vessel!, ...benign, waterLitres: 1000 } });
+    const debut = get().gameTime;
+    const blessures = porteur().wounds.current;
+    get().partirEnVoyage('r1', 'mer', { fast: true, cadence });
+    driveFast();
+
+    const cascade = get().pendingCascade!;
+    expect(cascade.participants[cascade.cursor]).toMatchObject({ kind: 'testDeclenche', actorId: h.id });
+    expect(cascade.participants[cascade.cursor].result).toBeFalsy();
+    expect(get().lastUpkeepDay).toBe(0);
+    expect(get().pendingShoreLeave).toBeNull();
+    expect(porteur().wounds.current).toBe(blessures - 1);
+    expect(get().travelPlan?.sea?.tempsEnMer?.repriseApresEffet).toBe(get().gameTime);
+
+    imposerLesD100(5);
+    stepCascade();
+    const autresEtapes = draineEtapes(get);
+    expect(autresEtapes.filter((step) => step.kind === 'testDeclenche')).toEqual([]);
+    expect(get().gameTime - debut).toBe(7 * MINUTES_PER_DAY);
+    expect(get().lastUpkeepDay).toBe(7);
+    expect(get().vessel!.waterLitres).toBe(1000 - 18 * 3 * 7);
+    expect(get().travelPlan).toBeNull();
+    expect(get().pendingShoreLeave).toBeTruthy();
+    expect(porteur().wounds.current).toBe(blessures - 1);
+    expect(stacks(porteur(), 'empoisonne')).toBe(0);
+  });
 
   it('#245 — l’eau se consomme sur TOUTE la population (3 héros + 15 PNJ de la cogue) sur 7 jours', () => {
     set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000 } }); // party = 3 héros, cogue = 15 PNJ nominaux → 18 âmes
@@ -1934,10 +1969,12 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     // Combat gagné → reprise : la traversée s’achève en rapide (arrivée), sans rejouer l’embuscade.
     set({ battle: null });
     get().reprendreLeVoyage();
-    expect(get().travelPlan).toBeNull(); // accosté
+    expect(get().pendingCascade?.purpose).toBe('seaHealth');
+    expect(get().pendingShoreLeave).toBeNull();
+    draineEtapes(get);
+    expect(get().travelPlan).toBeNull();
     expect(get().pendingShoreLeave).toBeTruthy();
-    // Post-combat : la narration du palier part ENFIN, avec son application (même geste).
-    expect(get().journal.some((l) => l.startsWith('Voyage rapide —'))).toBe(true);
+    expect(get().journal.filter((l) => l.startsWith('Voyage rapide —'))).toHaveLength(1);
   });
 
   it.each([0, 23])('rapide interrompu : les 121 min contagieuses commencent à H+%i, après l’abordage', (heuresAvantSymptomes) => {

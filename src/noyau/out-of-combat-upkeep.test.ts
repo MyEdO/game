@@ -1,19 +1,19 @@
-import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { outOfCombatUpkeep } from './outOfCombatUpkeep';
-import { hasCondition } from '../engine/conditions';
+import { hasCondition, stacks } from '../engine/conditions';
 import { applyStopBleed } from '../engine/healing';
+import { resolveCritique } from '../engine/critical';
+import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
+import { TIME_COST } from '../engine/timeCost';
 import type { Combatant } from '../engine/types';
-import { deFixe } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { ouvrirLeBanc, type Banc, type EntreesDuBanc } from './banc.testkit';
+import { avanceEtapeCascade, draineEtapes } from './cascade.testkit';
+import { initialNet } from './etat';
+import { modalOwnerOf } from './modalArbiter';
+import { seatOwns } from './sieges';
+import { applyCriticalToTarget } from './combatFlow';
+import { battleRng } from './battleRng';
 
-/**
- * COMPTEUR de TOURS DE BOUCLE : l'entretien est SILENCIEUX pour un porteur sans péril (ni journal, ni
- * mutation d'état), donc « la boucle a tourné » ne se lit qu'au nombre de LECTURES de ses effets
- * actifs — `outOfCombatUpkeep` en lit un par Round. Sonde par accesseur sur le combattant lui-même
- * (le graphe de modules est PARTAGÉ, `isolate: false` : aucun mock de module ici, cf.
- * `src/vi-mock-isolate-guard.test.ts`).
- */
 function espionneEffets(c: Combatant, effets: unknown[]): { lectures: number } {
   const sonde = { lectures: 0 };
   let valeur = effets;
@@ -25,132 +25,250 @@ function espionneEffets(c: Combatant, effets: unknown[]): { lectures: number } {
   return sonde;
 }
 
-const fixed = deFixe;
-
-function mk(opts: { current?: number; conditions?: { id: string; value: number }[]; fate?: number; advantage?: number }): Combatant {
+function mk(opts: { id?: string; current?: number; conditions?: Combatant['conditions']; fate?: number; advantage?: number; endurance?: number } = {}): Combatant {
   return combattantDeTest({
-    label: 'X', kind: 'heros',
+    id: opts.id ?? 'h1', label: opts.id ?? 'Héroïne', kind: 'heros',
+    characteristics: opts.endurance === undefined ? undefined : { endurance: opts.endurance },
     wounds: blessuresDeBase(10, opts.current ?? 10),
     advantage: opts.advantage ?? 0,
     conditions: opts.conditions ?? [],
-    skills: [], // requis par le Test de Résistance d'Empoisonné, résolu INLINE hors combat (RAW l.66-72)
     fate: opts.fate ?? 0,
   });
 }
 
-describe('outOfCombatUpkeep — États qui tickent HORS COMBAT (couture A, LDB 13 l.49-50)', () => {
-  it('Empoisonné : perte de PB chaque Round écoulé (et perte d’Avantage via loseWounds)', () => {
+function decor(party: Combatant[], options: EntreesDuBanc = {}): Banc {
+  return ouvrirLeBanc({ graine: 1, desFixes: true, ...options, etat: { ...options.etat, party } });
+}
+
+const avancer = (banc: Banc, rounds = 1) => banc.getState().avancerLeTemps(rounds * TIME_COST.combatRound);
+const jouer = (banc: Banc, de: number) => avanceEtapeCascade(banc.getState, () => de);
+const porteur = (banc: Banc, c: Combatant) => banc.getState().party.find((x) => x.id === c.id)!;
+
+function testOuvert(banc: Banc, c: Combatant, skill: string) {
+  const sequence = banc.getState().pendingCascade;
+  expect(sequence, 'le Test doit s’ouvrir après le geste d’horloge').toBeTruthy();
+  const etape = sequence!.participants[sequence!.cursor];
+  expect(etape).toMatchObject({ kind: 'testDeclenche', actorId: c.id, skill: { id: skill } });
+  expect(etape.result, 'le dé appartient encore au joueur').toBeFalsy();
+  return etape;
+}
+
+describe('Entretien des États à l’horloge (LDB 13 l.45–47)', () => {
+  it('Empoisonné : perd un PB et tout Avantage avant le Test, puis reprend chaque Round après validation', () => {
     const c = mk({ current: 8, advantage: 2, conditions: [{ id: 'empoisonne', value: 1 }] });
-    outOfCombatUpkeep([c], 3, fixed(50), idsDeTest); // 3 Rounds ; jet 50 = pas de mort par hémorragie
-    expect(c.wounds.current).toBe(5); // 8 − 3×1
-    expect(c.advantage).toBe(0); // perdre des PB → perte de tout l'Avantage (LDB 14 l.219)
+    const banc = decor([c]);
+    avancer(banc, 3);
+    for (const blessures of [7, 6, 5]) {
+      testOuvert(banc, c, 'resistance');
+      expect(porteur(banc, c).wounds.current).toBe(blessures);
+      expect(porteur(banc, c).advantage).toBe(0);
+      jouer(banc, 98);
+    }
+    expect(stacks(porteur(banc, c), 'empoisonne')).toBe(1);
   });
 
-  it('Empoisonné : le Test de Résistance se résout AUSSI hors combat (RAW l.66-72) — succès → poison retiré + Exténué', () => {
-    const c = mk({ current: 8, conditions: [{ id: 'empoisonne', value: 1 }] });
-    outOfCombatUpkeep([c], 1, fixed(5), idsDeTest); // jet 5 ≤ cible (E 30 −10 État = 20) → Résistance réussie
-    expect(c.wounds.current).toBe(7);              // 1 dégât périodique appliqué AVANT le Test
-    expect(hasCondition(c, 'empoisonne')).toBe(false); // poison vaincu (branche success : retire 1+DR)
-    expect(hasCondition(c, 'extenue')).toBe(true);     // vidé → 1 Exténué
+  it('Empoisonné : le Test prend la difficulté du poison et DR 1 retire deux pions avant de donner Exténué (LDB 16 l.70–78)', () => {
+    const c = mk({ current: 8, endurance: 65, conditions: [{ id: 'empoisonne', value: 2, difficulte: 'difficile' }] });
+    const banc = decor([c]);
+    avancer(banc);
+    expect(porteur(banc, c).wounds.current).toBe(6);
+    expect(testOuvert(banc, c, 'resistance')).toMatchObject({ difficulty: 'difficile', target: 25 });
+    jouer(banc, 15);
+    expect(stacks(porteur(banc, c), 'empoisonne')).toBe(0);
+    expect(stacks(porteur(banc, c), 'extenue')).toBe(1);
   });
 
-  it('Inconscient ET Empoisonné : le Test de Résistance SUBI se lance toujours (LDB 16 l.74)', () => {
+  it('Inconscient et Empoisonné : le Test de récupération est porté par le héros (LDB 16 l.76)', () => {
     const c = mk({ current: 8, conditions: [{ id: 'empoisonne', value: 1 }, { id: 'inconscient', value: 1 }] });
-    outOfCombatUpkeep([c], 1, fixed(5), idsDeTest);
-    expect(hasCondition(c, 'empoisonne')).toBe(false);
-    expect(hasCondition(c, 'extenue')).toBe(true);
+    const banc = decor([c]);
+    avancer(banc);
+    testOuvert(banc, c, 'resistance');
+    jouer(banc, 5);
+    expect(hasCondition(porteur(banc, c), 'empoisonne')).toBe(false);
+    expect(hasCondition(porteur(banc, c), 'extenue')).toBe(true);
   });
 
-  it('aucun effet périodique ni 0 PB → no-op (rien ne ticke)', () => {
+  it('Sonné isolé : la récupération ouvre Résistance, retire deux États et donne Exténué (LDB 16 l.127–129)', () => {
+    const c = mk({ conditions: [{ id: 'sonne', value: 2 }] });
+    const banc = decor([c]);
+    avancer(banc);
+    expect(testOuvert(banc, c, 'resistance').difficulty).toBe('intermediaire');
+    jouer(banc, 5);
+    expect(stacks(porteur(banc, c), 'sonne')).toBe(0);
+    expect(stacks(porteur(banc, c), 'extenue')).toBe(1);
+  });
+
+  it('Épaule luxée : le Sonné d’Aide Médicale n’ouvre aucun Test à l’horloge (LDB 18 l.120)', () => {
+    const c = mk({ endurance: 90 });
+    const banc = decor([c]);
+    const get = banc.getState;
+    const h = porteur(banc, c);
+    const prerolled = resolveCritique('ldb', h, 'brasG', battleRng(), { forcedRoll: 77 });
+    expect(prerolled.entryId).toBe('epaule-luxee');
+    applyCriticalToTarget(h, 'brasG', 0, [], banc.setState, { get, prerolled, suppressReveal: true });
+    get().jetLancer('test');
+    get().jetImposerLeResultat('test', 1);
+    expect(get().pendingTest?.success).toBe(true);
+    get().jetValider('test');
+
+    const debut = get().gameTime;
+    avancer(banc, 480);
+
+    expect(get().gameTime).toBe(debut + 480 * TIME_COST.combatRound);
+    expect(get().pendingTest).toBeNull();
+    expect(get().pendingCascade).toBeNull();
+    expect(porteur(banc, c).conditions).toContainEqual({ id: 'sonne', value: 1, unlockBy: 'medicalAid' });
+  });
+
+  it('Brisé isolé : hors de vue sans dissimulation, Calme est Intermédiaire et vide Brisé avant Exténué (LDB 16 l.54–58)', () => {
+    const c = mk({ conditions: [{ id: 'brise', value: 1 }] });
+    const banc = decor([c]);
+    avancer(banc);
+    expect(testOuvert(banc, c, 'calme').difficulty).toBe('intermediaire');
+    jouer(banc, 5);
+    expect(stacks(porteur(banc, c), 'brise')).toBe(0);
+    expect(stacks(porteur(banc, c), 'extenue')).toBe(1);
+  });
+
+  it('reprend après sérialisation, dans l’ordre des États et des porteurs, avant le Round suivant', () => {
+    const a = mk({ id: 'Alma', current: 8, conditions: [{ id: 'empoisonne', value: 1 }, { id: 'sonne', value: 1 }] });
+    const b = mk({ id: 'Bruna', conditions: [{ id: 'brise', value: 1 }] });
+    const banc = decor([a, b]);
+    avancer(banc, 2);
+
+    testOuvert(banc, a, 'resistance');
+    expect(porteur(banc, a).wounds.current).toBe(7);
+    banc.setState({ pendingCascade: JSON.parse(JSON.stringify(banc.getState().pendingCascade)) });
+    jouer(banc, 98);
+    expect(testOuvert(banc, a, 'resistance').label).toBe('Résistance au Sonné');
+    expect(porteur(banc, a).wounds.current).toBe(7);
+    jouer(banc, 5);
+    testOuvert(banc, b, 'calme');
+    expect(stacks(porteur(banc, a), 'sonne')).toBe(0);
+    expect(stacks(porteur(banc, b), 'brise')).toBe(1);
+    jouer(banc, 5);
+    testOuvert(banc, a, 'resistance');
+    expect(porteur(banc, a).wounds.current).toBe(6);
+    expect(stacks(porteur(banc, b), 'brise')).toBe(0);
+    jouer(banc, 5);
+    expect(stacks(porteur(banc, a), 'empoisonne')).toBe(0);
+    expect(porteur(banc, a).wounds.current).toBe(6);
+  });
+
+  it('le siège qui tient le héros reçoit la fenêtre d’entretien', () => {
+    const c = mk({ conditions: [{ id: 'sonne', value: 1 }] });
+    const net = { ...initialNet(), mode: 'hote' as const, mySeat: 0, ownership: { [c.id]: 1 }, slots: [0, 1, 0, 0] };
+    const banc = decor([c], { etat: { net } });
+    avancer(banc);
+    testOuvert(banc, c, 'resistance');
+    expect(modalOwnerOf(banc.getState())).toBe(c.id);
+    expect(seatOwns(banc.getState(), 0, c.id)).toBe(false);
+    expect(seatOwns(banc.getState(), 1, c.id)).toBe(true);
+  });
+
+  it('le changement de jour attend la résolution du Round et ne se rejoue pas', () => {
+    const c = mk({ conditions: [{ id: 'empoisonne', value: 1 }] });
+    const minuteAvant = MINUTES_PER_DAY - TIME_COST.combatRound;
+    const banc = decor([c], { etat: { gameTime: minuteAvant, lastUpkeepDay: dayIndex(minuteAvant) } });
+    avancer(banc);
+    testOuvert(banc, c, 'resistance');
+    expect(banc.getState().lastUpkeepDay).toBe(dayIndex(minuteAvant));
+    jouer(banc, 5);
+    expect(banc.getState().lastUpkeepDay).toBe(dayIndex(minuteAvant) + 1);
+    draineEtapes(banc.getState, 10, () => 5);
+    expect(banc.getState().lastUpkeepDay).toBe(dayIndex(minuteAvant) + 1);
+  });
+
+  it('sans État périodique ni 0 PB, le héros garde ses Blessures', () => {
     const c = mk({ current: 8 });
-    expect(outOfCombatUpkeep([c], 10, fixed(50), idsDeTest)).toEqual([]);
-    expect(c.wounds.current).toBe(8);
+    const banc = decor([c]);
+    avancer(banc, 10);
+    expect(porteur(banc, c).wounds.current).toBe(8);
+    expect(banc.getState().pendingCascade).toBeNull();
   });
 
-  it('En flammes sur un immunisé à ses Dégâts (Immunité (Feu)) : rien à entretenir, la boucle ne s’allume pas (LDB 85 l.174)', () => {
-    const immunise = mk({ current: 8, conditions: [{ id: 'en-flammes', value: 1 }] });
+  it('Immunité (Feu) dispense de la boucle de dégâts périodiques (LDB 85 l.174)', () => {
+    const immunise = mk({ id: 'Immune', conditions: [{ id: 'en-flammes', value: 1 }] });
     immunise.traits = [{ id: 'immunite', arg: 'feu' }];
     const sonde = espionneEffets(immunise, []);
-    expect(outOfCombatUpkeep([immunise], 480, fixed(5), idsDeTest)).toEqual([]);
-    expect(immunise.wounds.current).toBe(8);
-    expect(sonde.lectures, 'quelques lectures de contrôle, jamais un tour par Round de la fenêtre').toBeLessThan(10);
-    // CONTRÔLE : le même État sans l'Immunité fait tourner la boucle et brûle.
-    const brule = mk({ current: 8, conditions: [{ id: 'en-flammes', value: 1 }] });
+    const banc = decor([immunise]);
+    avancer(banc, 480);
+    expect(porteur(banc, immunise).wounds.current).toBe(10);
+    expect(sonde.lectures).toBeLessThan(10);
+
+    const brule = mk({ id: 'Brûlé', conditions: [{ id: 'en-flammes', value: 1 }] });
     const sondeBrule = espionneEffets(brule, []);
-    outOfCombatUpkeep([brule], 3, fixed(5), idsDeTest);
+    banc.setState({ party: [brule] });
+    avancer(banc, 3);
     expect(sondeBrule.lectures).toBeGreaterThan(sonde.lectures);
-    expect(brule.wounds.current).toBeLessThan(8);
+    expect(porteur(banc, brule).wounds.current).toBeLessThan(10);
   });
 
-  it('un buff en Rounds SANS RAPPORT ne déclenche PAS l’entretien du porteur en péril : même sort pour le Sonné et l’Aveuglé avec et sans buff', () => {
-    const etats = () => [{ id: 'sonne', value: 2 }, { id: 'aveugle', value: 1 }];
-    const sansBuff = mk({ current: 8, conditions: etats() });
-    const avecBuff = mk({ current: 8, conditions: etats() });
-    avecBuff.activeEffects = [{ label: 'Bénédiction', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } }];
-    const sans = outOfCombatUpkeep([sansBuff], 3, fixed(5), idsDeTest); // jet 5 : la Résistance PASSERAIT si le Test avait lieu
-    const avec = outOfCombatUpkeep([avecBuff], 3, fixed(5), idsDeTest);
-    expect(sans).toEqual([]);
-    expect(avec.filter((l) => /Sonné|Aveuglé/.test(l)), 'le buff n’ouvre aucun Test ni dissipation d’État').toEqual([]);
-    for (const c of [sansBuff, avecBuff]) {
-      expect(c.conditions.find((x) => x.id === 'sonne')!.value).toBe(2);
-      expect(hasCondition(c, 'aveugle')).toBe(true);
-      expect(c.wounds.current).toBe(8);
-    }
+  it('la présence d’un Test d’État ne déclenche pas la dissipation d’un autre État sur un héros sans péril', () => {
+    const c = mk({ conditions: [{ id: 'sonne', value: 2 }, { id: 'aveugle', value: 1 }] });
+    const banc = decor([c]);
+    avancer(banc);
+    testOuvert(banc, c, 'resistance');
+    jouer(banc, 5);
+    expect(stacks(porteur(banc, c), 'aveugle')).toBe(1);
+    expect(porteur(banc, c).wounds.current).toBe(10);
   });
 
-  /** Effet GELÉ en attente de prolongation (`awaitingExtension`, durée « + » `LDB 47 l.311`) : sa durée
-   *  ne s'écoule plus et ses ops ne se rejouent plus — il ne doit donc PAS faire tourner la boucle. */
-  it('un effet GELÉ (attente de prolongation) ne fait jouer AUCUN Round, même sur un grand saut d’horloge', () => {
+  it('un effet en attente de prolongation ignore les Rounds (LDB 47 l.311)', () => {
     const gele = { label: 'Bénédiction', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 0 }, awaitingExtension: true };
     const c = mk({ current: 8 });
     const sonde = espionneEffets(c, [{ ...gele }]);
-    expect(outOfCombatUpkeep([c], 480, fixed(5), idsDeTest)).toEqual([]);
-    expect(sonde.lectures, 'la boucle ne s’allume pas pour un effet qui n’avance plus — quelques lectures de\n      contrôle, jamais un tour par Round de la fenêtre').toBeLessThan(10);
-    expect(c.activeEffects, 'l’effet gelé est intact').toEqual([gele]);
-    // CONTRÔLE de la sonde : le MÊME effet NON gelé fait bien tourner la boucle — sans lui, la borne
-    // ci-dessus serait satisfaite par une sonde qui ne mesure rien.
-    const vif = mk({ current: 8 });
+    const banc = decor([c]);
+    sonde.lectures = 0;
+    avancer(banc);
+    const lecturesEnUnRound = sonde.lectures;
+    sonde.lectures = 0;
+    avancer(banc, 480);
+    expect(sonde.lectures).toBe(lecturesEnUnRound);
+    expect(porteur(banc, c).activeEffects).toEqual([gele]);
+
+    const vif = mk({ id: 'Vif', current: 8 });
     const sondeVive = espionneEffets(vif, [{ ...gele, awaitingExtension: undefined, duration: { scale: 'rounds', left: 6 } }]);
-    outOfCombatUpkeep([vif], 480, fixed(5), idsDeTest);
-    expect(sondeVive.lectures, 'la sonde compte bien les tours').toBeGreaterThan(sonde.lectures);
+    banc.setState({ party: [vif] });
+    avancer(banc, 480);
+    expect(sondeVive.lectures).toBeGreaterThan(sonde.lectures);
   });
 
-  it('un effet de 6 Rounds EXPIRE hors combat (sa durée s’écoule à l’horloge) sans toucher aux États', () => {
-    const c = mk({ current: 8, conditions: [{ id: 'sonne', value: 2 }] });
+  it('un effet de 6 Rounds expire à l’horloge sans dissiper un Aveuglé sans rapport', () => {
+    const c = mk({ conditions: [{ id: 'aveugle', value: 2 }] });
     c.activeEffects = [{ label: 'Bénédiction', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } }];
-    const log = outOfCombatUpkeep([c], 6, fixed(5), idsDeTest);
-    expect(c.activeEffects).toHaveLength(0);
-    expect(log.filter((l) => l.includes('Bénédiction'))).toHaveLength(1);
-    expect(c.conditions.find((x) => x.id === 'sonne')!.value).toBe(2);
+    const banc = decor([c]);
+    avancer(banc, 6);
+    expect(porteur(banc, c).activeEffects).toHaveLength(0);
+    expect(banc.getState().journal.filter((ligne) => ligne.includes('Bénédiction'))).toHaveLength(1);
+    expect(stacks(porteur(banc, c), 'aveugle')).toBe(2);
   });
 
-  it('tombe à 0 PB par poison → À Terre + progression d’agonie', () => {
+  it('tombe à 0 PB par poison, puis progresse vers l’Inconscience (LDB 18 l.15)', () => {
     const c = mk({ current: 2, conditions: [{ id: 'empoisonne', value: 1 }] });
-    outOfCombatUpkeep([c], 5, fixed(50), idsDeTest);
-    expect(c.wounds.current).toBe(0);
-    expect(hasCondition(c, 'a-terre')).toBe(true);
+    const banc = decor([c]);
+    avancer(banc, 5);
+    draineEtapes(banc.getState, 12, () => 98);
+    expect(porteur(banc, c).wounds.current).toBe(0);
+    expect(hasCondition(porteur(banc, c), 'a-terre')).toBe(true);
   });
 
-  it('Hémorragique mortel hors combat : un héros à Destin est sauvé (Point consommé)', () => {
-    const c = mk({ current: 3, conditions: [{ id: 'hemorragique', value: 3 }], fate: 1 });
-    outOfCombatUpkeep([c], 1, fixed(5), idsDeTest); // jet 5 (non-double) ≤ 30 → mort, sauf Destin
-    expect(c.dead).toBeFalsy();
-    expect(c.fate).toBe(0);
-    expect(c.wounds.current).toBeGreaterThanOrEqual(1);
+  it.each([1, 0])('hémorragie mortelle : le sort du héros dépend de sa réserve de Destin (%s)', (fate) => {
+    const c = mk({ current: 3, conditions: [{ id: 'hemorragique', value: 3 }], fate });
+    const banc = decor([c], { graine: 7 });
+    avancer(banc);
+    const apres = porteur(banc, c);
+    expect(Boolean(apres.dead)).toBe(fate === 0);
+    expect(apres.fate).toBe(0);
+    if (fate) expect(apres.wounds.current).toBeGreaterThanOrEqual(1);
   });
 
-  it('Hémorragique mortel sans Destin → mort', () => {
-    const c = mk({ current: 3, conditions: [{ id: 'hemorragique', value: 3 }], fate: 0 });
-    outOfCombatUpkeep([c], 1, fixed(5), idsDeTest);
-    expect(c.dead).toBe(true);
-  });
-
-  it('Premiers Secours hors combat (infirmerie, Test de Guérison réussi retire l’État, LDB 09 l.261 / LDB 16 l.107-109) évite la mort SANS consommer de Destin', () => {
-    const c = mk({ current: 3, conditions: [{ id: 'hemorragique', value: 3 }], fate: 0 });
-    applyStopBleed(c, 2, { test: 'guerison', bandages: false }); // panse : Test de Guérison réussi, DR 2 → retire 1+2 = 3 pions (tous)
-    expect(hasCondition(c, 'hemorragique')).toBe(false);
-    outOfCombatUpkeep([c], 1, fixed(5), idsDeTest); // même jet qui, non traité, tue le cas précédent
-    expect(c.dead).toBeFalsy();
-    expect(c.fate).toBe(0); // aucun Destin consommé : le soin a suffi
+  it('des Premiers Secours retirent Hémorragique, évitant la mort (LDB 09 l.261 ; LDB 16 l.107–109)', () => {
+    const c = mk({ current: 3, conditions: [{ id: 'hemorragique', value: 3 }] });
+    applyStopBleed(c, 2, { test: 'guerison', bandages: false });
+    const banc = decor([c], { graine: 7 });
+    avancer(banc);
+    expect(porteur(banc, c).dead).toBeFalsy();
+    expect(porteur(banc, c).fate).toBe(0);
   });
 });
