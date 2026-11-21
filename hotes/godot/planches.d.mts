@@ -14,4 +14,6 @@ export const MAQUETTES: string;
 
 export function encoderPng(image: { w: number; h: number; data: Buffer }): Buffer;
 
+export function ecart(a: Buffer, b: Buffer): { pixels: number; boite: string };
+
 export function coteACote(nom: string, capture: Buffer, maquettes: Record<string, { chemin: string; sha256: string; facteur: number; date: string }>): { image: Buffer } | { avis: string } | null;

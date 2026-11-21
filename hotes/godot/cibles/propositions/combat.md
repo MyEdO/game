@@ -145,6 +145,9 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - À valider : cartouche « Round 2 · le round débute » ; personne d'agrandi dans l'ordre ; fin du tour fermée ;
   aucune marque au sol.
 
+## fin-du-combat
+- À valider (#4585) : sous la bannière d'issue d'un combat, la sortie a une largeur (254) pour toutes les issues.
+
 ## fin-victoire (F1)
 - Le cartouche « Victoire » remonte ; le bandeau du bas, ruban « Butin », rend ce que porte `PendingVictory`
   (`src/noyau/pendings.ts:84-99`) : « Expérience » et « Argent » (`ecran.victoire.*`), les vaincus groupés, le butin

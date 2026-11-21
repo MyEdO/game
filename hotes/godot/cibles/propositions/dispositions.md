@@ -52,13 +52,19 @@ Un A fait échouer le rendu, quel que soit le gabarit, contre les autres écrans
 `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe) et les autres états de la même passe ; `node
 sources/contenus.mjs <dossier>` agrège la passe (code 1 sur un A).
 `npm run godot:maquettes` (`sources/passe.mjs`) joue la passe entière : tous les états de tous les écrans sous un
-`RELEVE_CONTENUS` neuf (`dist/maquettes-passe` par défaut), puis l'agrégat ; code 1 sur une erreur de page, un relevé
-non vide, un défilement de la page ou un A. Playwright se résout comme pour `rendre.mjs` (`../images.md`).
+`RELEVE_CONTENUS` neuf (`dist/maquettes-passe` par défaut), puis l'agrégat, et les planches du kit
+(`sources/kit/planche-*.html`) ; code 1 sur une erreur de page, un relevé non vide, un défilement de la page ou un A,
+d'un écran ou d'une planche. Playwright se résout comme pour `rendre.mjs` (`../images.md`). L'agrégat compte aussi, par
+gabarit, le relevé `brut`, sans effet sur son code : ce qu'un emplacement de primitive (`data-emplacement`) ou une
+illustration porte hors d'une primitive (`data-primitive`, écrite par le seul kit). `npm run
+godot:maquettes:reference` rend les 170 états dans les quatre formats sous `dist/maquettes-reference`, à la tête de
+départ d'un lot ; `npm run godot:maquettes:comparer` rend l'arbre et sort en 1 sur tout PNG qui en diffère
+(`scripts/maquettes/pixels.mjs`). `npm run godot:maquettes:page -- [<passe>]` tire de la passe la page de jugement
+(`scripts/maquettes/page.mjs`, sous `dist/maquettes-page`).
 
 - À valider (#4585) : le cartouche de titre (`#titre`, tout écran qui en porte un) range ses deux primitives (le
   cartouche du lieu, l'objet du temps du voyage) sur une même grille : la figure dans une case de 56 de large, le
   bloc du texte haut de 70.
-- À valider (#4585) : sous la bannière d'issue d'un combat, la sortie a une largeur (254) pour toutes les issues.
 - À valider (#4585) : un corps qui défile ne cache rien de ce qu'un état montre quand une place visible peut le porter ;
   à l'auberge, les avis de l'aubergiste (« méfiez-vous des voleurs ») tiennent au pied du corps de la colonne de
   gauche, la grille des offres resserrée.

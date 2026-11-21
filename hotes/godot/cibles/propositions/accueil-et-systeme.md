@@ -8,8 +8,6 @@ Compte rendu des huit écrans, sans cible écrite. Contenu lu au code, pas le de
 porte l'instant et la séance qu'ils partagent. Les décors (la crête au couchant, la salle commune, l'auberge-relais,
 Altdorf au matin, le jeu assombri) et les feuilles de la famille vivent dans `sources/accueil-et-systeme/`.
 Premières maquettes : chaque « À valider » attend l'utilisateur.
-- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
-  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 - À valider (#4585) : le grand titre libre a une taille (80) et une grille pour l'accueil, le menu de la partie et le
   chapitre (sur-titre, nom, filet, suite ; au chapitre la toile et le corps), monté de 20 ; la fin de chapitre porte le
   nom de la campagne et son tome comme l'ouverture ; la colonne des entrées pose sous la principale l'instant qu'elle

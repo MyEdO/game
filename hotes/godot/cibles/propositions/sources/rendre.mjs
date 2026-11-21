@@ -25,9 +25,12 @@
 // l'autre du même gabarit (`classe`, `contenus.mjs` : A boîte déplacée, B longueur de texte, C contenu de liste). Un A
 // est BLOQUANT, quel que soit le gabarit, contre les états déjà rendus de la passe et, sous
 // `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
-// `<écran>--<état>.json`, que `contenus.mjs <dossier>` agrège. Le rendu sort en code 1 si une page a une erreur, un
+// `<écran>--<état>.json`, que `contenus.mjs <dossier>` agrège. Le relevé `brut` (ce qu'un emplacement de primitive ou une
+// illustration porte hors d'une primitive, `data-primitive`) n'entre pas au rapport : il va au même fichier, que
+// l'agrégat compte par gabarit. Le rendu sort en code 1 si une page a une erreur, un
 // relevé non vide ou du défilement de la page ; `passe.mjs` rend tous les écrans et agrège :
 //   node rendre.mjs --ecrans                                    les écrans de `maquettes/` qui portent des états, un par ligne
+//   node rendre.mjs --formats                                   les formats (`FORMATS`), un par ligne
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
@@ -65,8 +68,12 @@ async function chargerLEcran(nom, etat) {
   return etats
 }
 
+/** Les illustrations sous `#ui` (règle 5 de `docs/plans/2026-11-21-maquettes-en-donnees.md`) : un dessin tracé par un
+ *  peintre, que le relevé `brut` lit à part. */
+const ILLUSTRATIONS = ['#plan', '#carte', '#reikland', '#trajet', '#frise']
+
 /** Le relevé des pièces de la page dans la fenêtre `largeur` × `hauteur`. */
-const releve = ([largeur, hauteur]) => {
+const releve = ([largeur, hauteur, ILLUSTRATIONS]) => {
   const pieces = [...document.querySelectorAll('[data-piece]')].map((e) => ({ n: e.dataset.piece, r: e.getBoundingClientRect(), pose: e.matches('[data-surcouche], [data-ancre="survol"]') }))
   const hors = pieces.filter(({ r }) => r.left < 0 || r.top < 0 || r.right > largeur || r.bottom > hauteur).map((x) => x.n)
   const croise = []
@@ -268,10 +275,29 @@ const releve = ([largeur, hauteur]) => {
       })
     }
   }
-  return { pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, masque, retrecit, contenus, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  /* le relevé `brut` (règle 2 de `docs/plans/2026-11-21-maquettes-en-donnees.md`) : ce qu'un emplacement de primitive
+     (`data-emplacement` : contenu d'un cadre, place, corps qui défile) porte au premier niveau hors d'une racine émise par
+     une primitive (`data-primitive`), un élément ou un texte ; dans une illustration sous `#ui` (`ILLUSTRATIONS`), chaque
+     texte et chaque contrôle hors d'une racine marquée qu'elle porte. Chaque entrée : où (pièce, place), quoi */
+  const ou = (e) => `${e.closest('[data-piece]')?.dataset.piece ?? '-'}${e.closest('[data-place]') ? ' > ' + e.closest('[data-place]').dataset.place : ''}`
+  const quoi = (n) => (n.nodeType === 3 ? `« ${n.textContent.trim().replace(/\s+/g, ' ').slice(0, 30)} »` : `${n.tagName.toLowerCase()}${n.classList?.[0] ? '.' + n.classList[0] : ''}`)
+  const emplacement = [...document.querySelectorAll('#ui [data-emplacement]')].flatMap((e) => [...e.childNodes]
+    .filter((n) => (n.nodeType === 3 ? n.textContent.trim() !== '' : n.nodeType === 1 && !n.hasAttribute('data-primitive')))
+    .map((n) => `${ou(e)} : ${quoi(n)}`))
+  const marquee = (n, illustration) => { const r = (n.nodeType === 3 ? n.parentElement : n).closest('[data-primitive]'); return !!r && r !== illustration && illustration.contains(r) }
+  const illustration = [...document.querySelectorAll(ILLUSTRATIONS.map((i) => `#ui ${i}`).join(', '))].flatMap((il) => {
+    const textes = [], parcours = document.createTreeWalker(il, NodeFilter.SHOW_TEXT)
+    for (let n = parcours.nextNode(); n; n = parcours.nextNode()) if (n.textContent.trim() && !marquee(n, il)) textes.push(n)
+    return [...textes, ...[...il.querySelectorAll(CONTROLE)].filter((c) => !marquee(c, il))].map((n) => `#${il.id} : ${quoi(n)}`)
+  })
+  return { brut: { emplacement, illustration }, pieces: pieces.length, hors, croix, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, masque, retrecit, contenus, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv
+if (cible === '--formats') {
+  console.log(Object.keys(FORMATS).join('\n'))
+  process.exit(0)
+}
 if (cible === '--ecrans') {
   const modules = await Promise.all(listerEntrees(MAQUETTES).entrees.filter((f) => f.nom.endsWith('.ts'))
     .map((f) => import(pathToFileURL(join(MAQUETTES, f.nom)).href).then((m) => [f.nom.slice(0, -3), m.default])))
@@ -318,8 +344,8 @@ async function capturer(maquette, sortie) {
   const rendu = page ? null : await p.waitForFunction(() => globalThis.RAPPORT_DU_RENDU, null, { timeout: 30000 }).then((h) => h.jsonValue())
   await p.evaluate(() => document.fonts.ready)
   await p.waitForTimeout(400)
-  const { habillage, contenus, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur])
-  if (CONTENUS && maquette) writeFileSync(join(CONTENUS, `${cible}--${maquette.nom}.json`), JSON.stringify({ ecran: cible, etat: maquette.nom, gabarit: maquette.gabarit, contenus }))
+  const { habillage, contenus, brut, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur, ILLUSTRATIONS])
+  if (CONTENUS && maquette) writeFileSync(join(CONTENUS, `${cible}--${maquette.nom}.json`), JSON.stringify({ ecran: cible, etat: maquette.nom, gabarit: maquette.gabarit, contenus, brut }))
   rapport.contenu = maquette ? Object.entries(contenus).flatMap(([cle, valeur]) => {
     const ref = REFERENCES.get(`${maquette.gabarit} | ${cle}`)
     return ref && classe(ref.valeur, valeur) === 'A' ? [`${cle} : autre qu'à ${ref.etat}`] : []
