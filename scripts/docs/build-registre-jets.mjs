@@ -14,6 +14,7 @@
 // population avant que les lots de re-routage la fassent bouger.
 import { readFileSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
@@ -39,7 +40,7 @@ function rendu() {
   /** Fichiers de PRODUCTION (hors tests) d'un jeu de dossiers, en chemin relatif POSIX, en ORDRE TOTAL. */
   function prodFiles(...dirs) {
     return dirs.flatMap((d) =>
-      listerArbre(join(ROOT, d), { filtre: (rel) => /\.tsx?$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
+      listerArbre(join(ROOT, d), { filtre: (rel) => estModule(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
         .map((rel) => ({ rel: `${d}/${rel}`, text: readFileSync(join(ROOT, d, rel), 'utf8') })),
     )
   }

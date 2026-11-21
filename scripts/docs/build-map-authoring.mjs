@@ -16,6 +16,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
 import * as ts from 'typescript/unstable/ast'
 import {
   loadSource,
@@ -288,7 +289,7 @@ function rendu() {
 
   // ── Exemples VIVANTS : quel scénario emploie quel champ ──────────────────────────────────────────
 
-  const SCENES_SRC = listerArbre(SCENES, { filtre: (rel) => rel.endsWith('.ts') && !rel.includes('.test.') })
+  const SCENES_SRC = listerArbre(SCENES, { filtre: (rel) => estModule(rel) && !rel.includes('.test.') })
     .map((rel) => `${SCENES}/${rel}`)
     .map((f) => ({ f, t: readFileSync(f, 'utf8') }))
     .filter(({ t }) => /\bbuildScene\s*\(|\bMapSpec\b/.test(t))

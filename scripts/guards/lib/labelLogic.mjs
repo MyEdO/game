@@ -260,16 +260,12 @@ function holdsFieldValue(node, scopes) {
   return readsEntityField(n);
 }
 
-/** Table dont les clés sont des LIBELLÉS (`{ Tête: […], Bras: […] }`, `{ 'Très longue': 2 }`) : ce
- *  n'est pas un `Record` keyé par id, c'est un INDEX DE LIBELLÉS — il fige une langue dans la logique
- *  et se casse à la première traduction. Deux clés minimum (une table d'une entrée ne démontre aucun
- *  vocabulaire), TOUTES à majuscule initiale, et AU MOINS UNE portant un ACCENT ou une ESPACE — ce
- *  qu'aucun identifiant TypeScript ne peut porter. Sans cette dernière condition, MESURÉ : trois
- *  tables légitimes remontent à tort sur src/engine+state (un espace de noms d'ids `{ Flexible:
- *  'flexible' }`, un registre d'événements `{ TILE_CLICK: … }`, une table de codes clavier DOM) —
- *  leurs clés sont des NOMS TS en ASCII, pas les libellés eux-mêmes. Faux négatif assumé en retour :
- *  un vocabulaire de libellés entièrement sans accent ni espace (`{ Bronze: 0, Argent: 1 }`) reste
- *  indiscernable d'un espace de noms — la garde s'abstient plutôt que d'accuser à tort. */
+/** Table de LIBELLÉS : au moins deux clés, chacune à majuscule initiale ou portant un accent
+ *  ou une espace, avec au moins une clé de plusieurs points de code. Les tables indexées par
+ *  caractères seuls servent notamment à la normalisation du texte.
+ *  Le signal exige un accent ou une espace sur au moins une clé pour écarter les espaces de noms
+ *  ASCII comme `{ Bronze: 0, Argent: 1 }`. Un identifiant TypeScript peut lui-même porter un
+ *  accent : ce critère décrit la forme de la clé. */
 function isLabelKeyedRecord(node) {
   const n = unwrap(node);
   if (!ts.isObjectLiteralExpression(n) || n.properties.length < 2) return false;
@@ -282,7 +278,8 @@ function isLabelKeyedRecord(node) {
     names.push(name);
   }
   return names.every((s) => /^\p{Lu}/u.test(s) || /[À-ɏ]/.test(s) || /\s/.test(s))
-    && names.some((s) => /[À-ɏ]/.test(s) || /\s/.test(s));
+    && names.some((s) => /[À-ɏ]/.test(s) || /\s/.test(s))
+    && names.some((s) => [...s].length > 1);
 }
 
 /** Méthodes qui prennent une DÉCISION sur un texte via une expression régulière (le résultat pilote
@@ -951,8 +948,8 @@ function rangsDuCorpus(corpus) {
 
 
 /** Le CORPUS de la garde, tous volets confondus (lignes, stock, face) — défini ICI seulement : tout
- *  `src/` `.ts`/`.tsx` hors instruments Vitest et hors déclarations `.d.ts` — les deux exclusions de
- *  `readCorpus` (`sourceCorpus.mjs`), par son prédicat `estRetenu`. Le statut d'un site ne dépend jamais de son dossier :
+ *  `src/` selon le défaut de `readCorpus` (`sourceCorpus.mjs`), par son prédicat `estRetenu` :
+ *  tous les dialectes de script, hors instruments Vitest, kits de test et déclarations `.d.ts`. Le statut d'un site ne dépend jamais de son dossier :
  *  couture légitime (`RATCHET_EXCEPTIONS`), dette au stock (`DETTES_DE_LIBELLE`), ou faute. */
 export const CORPUS_RACINE = 'src';
 

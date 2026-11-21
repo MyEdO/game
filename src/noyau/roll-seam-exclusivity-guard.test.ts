@@ -61,7 +61,7 @@ const SCAN_DIRS = [RACINE_DU_SEAM];
 
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel) || rollSeamExcluded(rel);
 
-/** Corpus SOURCE de tous les scans de ce fichier : `src/**` en `.ts(x)`, TESTS COMPRIS (les vues
+/** Corpus SOURCE de tous les scans de ce fichier : les scripts de `SCAN_DIRS`, TESTS COMPRIS (les vues
  *  `prodFiles`/`EXCLUDED` filtrent ensuite), chemin RELATIF POSIX + texte. Marche, lecture et
  *  MÉMOÏSATION par clé dans `scripts/guards/lib/sourceCorpus.mjs` : les 13 assertions de corpus de
  *  ce fichier — et les autres fichiers de test du même worker — partagent une seule lecture, payée

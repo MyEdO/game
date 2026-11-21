@@ -748,9 +748,9 @@ describe('schémas de defs/ — une réf de code cite un FICHIER et un SYMBOLE, 
     return out;
   };
 
-  it('aucun commentaire de src/data/schemas/defs/**.ts ne porte de réf `fichier.ts:N` (tolérance ZÉRO)', () => {
+  it('aucun commentaire des modules de src/data/schemas/defs ne porte de réf `fichier.ts:N` (tolérance ZÉRO)', () => {
     const offenders: string[] = [];
-    for (const { rel, text } of readCorpus(['src/data/schemas/defs'], { exts: ['.ts'], tests: true })) {
+    for (const { rel, text } of readCorpus(['src/data/schemas/defs'], { tests: true })) {
       const ranges = commentRanges(text);
       for (const m of text.matchAll(LINE_REF)) {
         if (!ranges.some(([a, b]) => m.index >= a && m.index < b)) continue;

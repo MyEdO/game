@@ -24,6 +24,7 @@ import { OUTILS_SHELL, commandeDe, sousAgent, verdictDe } from '../guards/lib/co
 import {
   APPEL_ESLINT, APPEL_VITEST, DRAPEAUX_D_INFORMATION, DRAPEAUX_NODE, appelDe, appelleTscNu, appelleUnRunner, appelleVitestNu, LECTEURS, sousNode,
 } from '../guards/lib/appelsRunners.mjs'
+import { EXTENSIONS_DE_SCRIPT } from '../guards/lib/dialecte.mjs'
 import { lireArguments } from '../test/argumentsPerimetre.mjs'
 import {
   CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, passeParLeLanceurLocal, pipelinesDeJetons, sansRedirections,
@@ -134,9 +135,11 @@ function argumentsPositionnels(segment, appel) {
 /** `true` si ce mot est un dossier dont l'analyse ENTIÈRE est la gate (slash final indifférent). */
 const estCibleDeGate = (mot) => CIBLES_DE_GATE.has(mot.replace(/[\\/]+$/, ''))
 
+const EXTENSIONS_DE_CIBLE = [...EXTENSIONS_DE_SCRIPT, '.json']
+
 /** `true` si ce mot DÉSIGNE un chemin de fichier ou de sous-dossier (≠ un dossier-gate, ≠ un motif). */
 const designeUnChemin = (mot) =>
-  !estCibleDeGate(mot) && (/[\\/]/.test(mot) || /\.(?:ts|tsx|mts|mjs|cjs|js|jsx|json)$/.test(mot))
+  !estCibleDeGate(mot) && (/[\\/]/.test(mot) || EXTENSIONS_DE_CIBLE.some((ext) => mot.endsWith(ext)))
 
 /**
  * Nom du script npm qu'un segment lance (`npm run <x>`, `npm <raccourci>`, `node --run <x>`), ou `null`. Le segment

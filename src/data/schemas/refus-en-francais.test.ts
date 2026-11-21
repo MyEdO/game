@@ -15,11 +15,9 @@
  * appauvrir.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { clotureDImports, sourceALExecution, type Arc } from '../../../scripts/guards/lib/importGraph.mjs';
-import { estFichierVitest, estKitDeTest } from '../../../scripts/guards/lib/fichierVitest.mjs';
-import { listerArbre } from '../../../scripts/guards/lib/lister.mjs';
+import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { validateDataset } from './validate';
 import { lireBlocsAvances } from './blocsAvances';
 import weatherJson from '../weather.json';
@@ -69,15 +67,11 @@ describe('les refus de schéma parlent français (#1588)', () => {
     const LOCALE = 'src/lib/zodEnFrancais.ts';
     const ZOD_EN_VALEUR = /\bfrom\s*['"]zod['"]|\bimport\s*['"]zod['"]/;
 
-    const porteurs = listerArbre('src', {
-      filtre: (rel) => /\.tsx?$/.test(rel) && !rel.endsWith('.d.ts') && !estFichierVitest(rel) && !estKitDeTest(rel),
-    })
-      .map((rel) => `src/${rel}`)
-      .filter((f) => f !== LOCALE)
+    const porteurs = readCorpus(['src'])
+      .filter(({ rel }) => rel !== LOCALE)
       // Un source dont le TEXTE ne nomme pas zod n'en importe rien : seul le reste passe par l'oracle.
-      .map((f) => ({ f, texte: readFileSync(resolve(f), 'utf8') }))
-      .filter(({ f, texte }) => ZOD_EN_VALEUR.test(texte) && ZOD_EN_VALEUR.test(sourceALExecution(f, texte)))
-      .map(({ f }) => f);
+      .filter(({ rel, text }) => ZOD_EN_VALEUR.test(text) && ZOD_EN_VALEUR.test(sourceALExecution(rel, text)))
+      .map(({ rel }) => rel);
 
     // Plancher anti-faux-vert : un porteur TÉMOIN dans `schemas/**` et un hors, que le périmètre doit voir.
     expect(porteurs, 'périmètre sans ses témoins = faux vert : la garde ne mesurerait rien')

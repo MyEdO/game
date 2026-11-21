@@ -22,14 +22,11 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, listerImage } from './gitPorte.mjs'
-import { arcsDe } from './importGraph.mjs'
+import { arcsDe, estModule } from './importGraph.mjs'
 import { analyserCorpus } from './dialecte.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
 export const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
-
-/** Extensions de MODULE que ce dépôt écrit : ce sont les fichiers qui peuvent porter un import. */
-const EXTS_SOURCE = /\.(?:mjs|cjs|mts|cts|ts|tsx|js|jsx)$/
 
 /**
  * Les feuilles déclarées. `module` est le chemin POSIX relatif à la racine ; `bancs` liste les
@@ -52,7 +49,7 @@ export const FEUILLES = Object.freeze([
  *  La source est GIT, pas le disque : ce que la CI joue, c'est ce qui est suivi. */
 export function sourcesSuivies(racine = RACINE) {
   return listerImage(depotDe(racine), INDEX)
-    .filter((f) => EXTS_SOURCE.test(f))
+    .filter(estModule)
     .sort()
 }
 

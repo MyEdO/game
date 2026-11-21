@@ -16,9 +16,9 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { estModule } from '../guards/lib/importGraph.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const EXTENSIONS = /\.(mjs|mts)$/
 const ATTEINT_LA_DONNEE = /src[\\/]data\b/
 /** La FAÇADE (`src/data/index.ts`, sous `tsx`) : la donnée y arrive déjà assemblée. */
 const PAR_LA_FACADE = /from '[^']*src[\\/]data'/
@@ -31,7 +31,7 @@ function scripts(dossier) {
     if (nom === 'node_modules') continue
     const chemin = join(dossier, nom)
     if (statSync(chemin).isDirectory()) out.push(...scripts(chemin))
-    else if (EXTENSIONS.test(nom)) out.push(chemin)
+    else if (estModule(nom)) out.push(chemin)
   }
   return out
 }

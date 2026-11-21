@@ -3,6 +3,10 @@
 //   node --test scripts/docs/build-contrat-du-pont.test.mjs
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
 import { contratDe } from './build-contrat-du-pont.mjs'
 
 const PONT = 'hotes/godot/pont/pont.ts'
@@ -20,6 +24,30 @@ const rendre = ({ methode = AVEC_RETOUR, titres = TITRES, autres = [] } = {}) =>
 
 test('témoin : les fixtures rendent un contrat', () => {
   assert.match(rendre(), /^# Contrat du pont `wfrpPont`\n/)
+})
+
+test('le rendu depuis un arbre lit le module .mts et les commentaires GDScript', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'contrat-du-pont-'))
+  try {
+    const fichiers = {
+      [PONT]: pont(AVEC_RETOUR),
+      [GD]: gd(TITRES.filter((titre) => titre !== 'Suite' && titre !== 'Vue')) + '## @contrat Vue\n## La vue GDScript.\n',
+      'src/hote/suite.mts': '/**\n * @contrat Suite\n * La suite ESM.\n */\nexport const suite = true\n',
+      'src/noyau/leurre.txt': '/** @contrat Titre impossible */\n',
+    }
+    for (const [rel, text] of Object.entries(fichiers)) {
+      const chemin = join(racine, rel)
+      mkdirSync(dirname(chemin), { recursive: true })
+      writeFileSync(chemin, text)
+    }
+    const generateur = new URL('./build-contrat-du-pont.mjs', import.meta.url).href
+    const programme = `import { rendre } from ${JSON.stringify(generateur)}; process.stdout.write([...rendre().values()][0]);`
+    const texte = execFileSync(process.execPath, ['--input-type=module', '-e', programme], { cwd: racine, encoding: 'utf8' })
+    assert.match(texte, /## Suite\n\nLa suite ESM\./)
+    assert.match(texte, /## Vue\n\nLa vue GDScript\./)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })
 
 test('un membre d’une déclaration `@contrat` sans JSDoc abandonne, nommé', () => {

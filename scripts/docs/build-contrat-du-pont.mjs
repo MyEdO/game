@@ -1,7 +1,7 @@
 /**
  * Génère hotes/godot/pont/CONTRAT.md — le contrat du pont `wfrpPont` entre Godot et le noyau (#3816). Tout son texte
  * vit dans les commentaires du code qui produit ce qu'il décrit, sous les racines `RACINES` :
- *  - une JSDoc d'un `.ts` ou d'un `.mjs` dont une ligne est `@contrat <Titre>` : bloc de DÉCLARATION quand elle précède
+ *  - une JSDoc d'un script JS ou TS dont une ligne est `@contrat <Titre>` : bloc de DÉCLARATION quand elle précède
  *    immédiatement une `interface` ou un `type` (son texte, la déclaration sans ses commentaires, puis une puce par
  *    membre, ou par variante d'une union nommée par son discriminant, dont la JSDoc est exigée), bloc LIBRE sinon (son
  *    texte, en Markdown tel quel) ;
@@ -18,7 +18,7 @@
  *   node scripts/docs/build-contrat-du-pont.mjs
  */
 import { readFileSync } from 'node:fs'
-import { analyserCorpus, typescript } from '../guards/lib/dialecte.mjs'
+import { analyserCorpus, EXTENSIONS_DE_SCRIPT, typescript } from '../guards/lib/dialecte.mjs'
 import { listerArbre, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { codeSeul, commentairesDe } from '../guards/lib/commentPoison.mjs'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
@@ -27,7 +27,7 @@ const OUTIL = 'build-contrat-du-pont'
 const OUT = 'hotes/godot/pont/CONTRAT.md'
 const PONT = 'hotes/godot/pont/pont.ts'
 const RACINES = ['hotes/godot', 'src/hote', 'src/noyau']
-const EXTENSIONS = ['.ts', '.mjs', '.gd']
+const EXTENSIONS = [...EXTENSIONS_DE_SCRIPT, '.gd']
 const LARGEUR_MAX = 160
 const METHODES = 'Méthodes'
 
@@ -129,7 +129,7 @@ function blocDeDeclaration(rel, texte, sf, noeud, lignes) {
   return [texteDe(lignes), declaration, puces.join('\n')].filter(Boolean).join('\n\n')
 }
 
-/** Les blocs `@contrat` d'un `.ts` ou d'un `.mjs`, et, pour `PONT`, ses méthodes. */
+/** Les blocs `@contrat` d'un script JS ou TS, et, pour `PONT`, ses méthodes. */
 function lireScript(rel, texte, sf, blocs, methodes) {
   const ts = typescript()
   const declarations = new Map()

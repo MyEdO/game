@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as lib from './_lib.mjs'
 import { coeursDeDomaines, coeursDuRegistre, domainesDe, pagesDeLAtlas, readText } from './_lib.mjs'
+import { estModule } from '../guards/lib/importGraph.mjs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import { enTeteDeFiche } from './assemble-domain.mjs'
 import { RAWDIR } from './build-atlas-index.mjs'
@@ -147,7 +148,6 @@ test('#1825 : la première H1 d’une fiche est EXACTEMENT l’en-tête de son t
 // connaît ni `cle` ni `coeur`, et ne peut rien joindre — il n'est pas un lecteur de la table. C'est
 // la DONNÉE qui le lui désigne, et le détecteur ci-dessous ne scanne que du CODE : un module qui
 // nommerait le registre, lui, rougit toujours (le banc du détecteur le mesure).
-const EXTENSIONS_DE_CODE = /\.(mjs|js|cjs|mts|ts|tsx)$/
 /** Les fichiers de DONNÉE — hors corpus du détecteur, par construction : ils ne s'exécutent pas. */
 const EXTENSION_DE_DONNEE = /\.json$/
 const LECTEUR_UNIQUE = 'scripts/raw/_lib.mjs'
@@ -164,7 +164,7 @@ const nommeLeRegistre = (src) => sansCommentaires(src).includes(NOM_REGISTRE)
 
 test(`#1825 : \`${NOM_REGISTRE}\` n’a qu’UN lecteur — \`_lib.mjs\``, () => {
   const lecteurs = ['scripts', 'src']
-    .flatMap((racine) => listerArbre(racine, { filtre: (rel) => EXTENSIONS_DE_CODE.test(rel) }).map((rel) => `${racine}/${rel}`))
+    .flatMap((racine) => listerArbre(racine, { filtre: estModule }).map((rel) => `${racine}/${rel}`))
     .filter((chemin) => chemin !== LECTEUR_UNIQUE && nommeLeRegistre(readFileSync(chemin, 'utf8')))
   assert.deepEqual(
     lecteurs,
@@ -200,10 +200,10 @@ const LISTE_DES_PORTEURS = 'scripts/hooks/registres-porteurs.json'
 test('#1825 : la liste des registres PORTEURS désigne le registre en DONNÉE — hors du corpus scanné', () => {
   const brut = readFileSync(LISTE_DES_PORTEURS, 'utf8')
   assert.ok(brut.includes(NOM_REGISTRE), `${LISTE_DES_PORTEURS} doit désigner le registre des domaines`)
-  assert.equal(EXTENSIONS_DE_CODE.test(LISTE_DES_PORTEURS), false, 'un JSON n’est pas du code scanné')
+  assert.equal(estModule(LISTE_DES_PORTEURS), false, 'un JSON n’est pas du code scanné')
   assert.equal(EXTENSION_DE_DONNEE.test(LISTE_DES_PORTEURS), true)
   const scannes = ['scripts', 'src']
-    .flatMap((racine) => listerArbre(racine, { filtre: (rel) => EXTENSIONS_DE_CODE.test(rel) }).map((rel) => `${racine}/${rel}`))
+    .flatMap((racine) => listerArbre(racine, { filtre: estModule }).map((rel) => `${racine}/${rel}`))
   assert.equal(scannes.includes(LISTE_DES_PORTEURS), false, 'la donnée ne doit pas entrer au corpus du détecteur')
   // La garde N'EST PAS affaiblie : le MÊME chemin écrit dans du CODE reste vu.
   assert.equal(nommeLeRegistre(`const CHEMIN = 'scripts/raw/${NOM_REGISTRE}'`), true)

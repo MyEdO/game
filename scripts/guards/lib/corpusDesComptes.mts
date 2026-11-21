@@ -54,6 +54,7 @@ import {
 } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { cheminsDeDocument, sitesDeStructure } from './structuresLocales.mts';
 
 /** Les clés de PREMIER niveau du payload de chaque op de `opDefs` dont le schéma, ouvert de ses enveloppes
@@ -130,7 +131,7 @@ const DE_L_IMAGE = ['src', 'Source', 'docs/dossiers', ...LUS_PAR_LES_GENERATEURS
  *  dit ce que SES chapitres de `Source/` impriment (#3884). Elles se posent de l'image PAR-DESSUS le détecteur. */
 const DECLARATIONS_DE_L_IMAGE = ['scripts/raw/decoupes'];
 /** Les fichiers TEXTE que la mesure lit ; un fichier binaire ne se pose pas. */
-const TEXTE = /\.(?:md|json|ts|tsx|mts|mjs|js|cjs|css|snap)$/;
+const EXTENSIONS_DE_TEXTE = [...EXTENSIONS_DE_SCRIPT, '.md', '.json', '.css', '.snap'];
 /** Le point d'entrée de la mesure, dans le code d'un détecteur. */
 const POINT_D_ENTREE = 'scripts/guards/lib/corpusDesComptes.mts';
 
@@ -147,7 +148,7 @@ function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: 
 
 /** Les chemins et textes effectivement posés, dans l'ordre de l'image git. */
 function fichiersDeLImage(depot: Depot, arbre: string, dossiers: readonly string[], retenir: (rel: string, texte: string) => boolean): [string, string][] {
-  const chemins = listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c));
+  const chemins = listerImage(depot, arbre, ...dossiers).filter((c) => EXTENSIONS_DE_TEXTE.some((ext) => c.endsWith(ext)));
   return [...lireEnLot(depot, arbre, chemins)].flatMap(([rel, texte]) =>
     texte !== null && retenir(rel, texte) ? [[rel, texte]] : []);
 }

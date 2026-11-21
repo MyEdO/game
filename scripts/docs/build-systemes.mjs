@@ -7,7 +7,8 @@
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerArbre, listerDossier } from '../guards/lib/lister.mjs'
 import { resolve } from 'node:path'
-import { closureOf } from '../guards/lib/importGraph.mjs'
+import { closureOf, estModule } from '../guards/lib/importGraph.mjs'
+import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages du lanceur, sans rien écrire. */
@@ -48,13 +49,13 @@ function rendu() {
   // --- modules non rattachés à un système (scope : src/engine top-level et src/noyau entier, hors tests) ---
   function topLevelSourceFiles(dir) {
     return listerDossier(dir)
-      .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+      .filter((f) => estModule(f) && !estSuiteVitest(f))
       .map((f) => `${dir}/${f}`)
       .filter((f) => statSync(f).isFile())
   }
   const ALL_UNIONS = new Set()
   for (const c of closures.values()) for (const f of c) ALL_UNIONS.add(f)
-  const noyauSourceFiles = () => listerArbre('src/noyau', { filtre: (f) => f.endsWith('.ts') && !f.endsWith('.test.ts') }).map((f) => `src/noyau/${f}`)
+  const noyauSourceFiles = () => listerArbre('src/noyau', { filtre: (f) => estModule(f) && !estSuiteVitest(f) }).map((f) => `src/noyau/${f}`)
   const INVENTORY = [...noyauSourceFiles(), ...topLevelSourceFiles('src/engine')]
   const uncovered = INVENTORY.filter((f) => !ALL_UNIONS.has(f)).sort()
 
@@ -69,8 +70,8 @@ function rendu() {
   out += `parcours AST des spécificateurs de module, RÉSOLUS s'ils sont RELATIFS (\`./\`, \`../\`) ou sous un alias\n`
   out += `de \`tsconfig.json\` (\`@/…\`) — un paquet npm n'est jamais suivi (\`resolveImport\` renvoie \`null\`), donc invisible ici sans\n`
   out += `que la primitive soit hors d'usage. L'inventaire « modules non rattachés » est lui-même borné : SURFACE de\n`
-  out += `\`src/engine\` (\`listerDossier\` non récursif) et \`src/noyau\` entier, \`*.test.ts\` exclus — un fichier niché dans un\n`
-  out += `sous-dossier, ou situé ailleurs (\`src/data\`, \`hotes\`…), n'y apparaît jamais, rattaché ou non.\n\n`
+  out += `\`src/engine\` (\`listerDossier\` non récursif) et \`src/noyau\` entier, hors suites de test dans tous les dialectes.\n`
+  out += `Les sous-dossiers de \`src/engine\` et les autres racines (\`src/data\`, \`hotes\`…) sont hors inventaire.\n\n`
 
   out += `## Sommaire des systèmes\n\n`
   out += `| Système | État | Modules racines | Ticket |\n|---|---|---|---|\n`
@@ -97,7 +98,7 @@ function rendu() {
     : '- (aucune)\n'
 
   out += `\n## Modules \`src/noyau\`/\`src/engine\` non rattachés à un système déclaré\n\n`
-  out += `Portée : fichiers top-level (hors \`*.test.ts\`) non atteints par la closure d'import d'AUCUN système du\n`
+  out += `Portée : modules de ces deux périmètres (hors suites de test) non atteints par la closure d'import d'AUCUN système du\n`
   out += `manifeste. Informatif — inclut les infra partagées (store, types, helpers transverses) qu'aucun système\n`
   out += `unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec bloquant de ce script.\n\n`
   out += `${uncovered.length} fichier(s) :\n\n`

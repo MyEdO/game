@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, posix } from 'node:path';
 import * as ts from 'typescript/unstable/ast';
+import { estModule } from './importGraph.mjs';
 import { listerArbre } from './lister.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 
@@ -708,10 +709,10 @@ export function ecrituresHorsSeam(chemin, src, parBinding, resolveurs = resolveu
   return out;
 }
 
-/** Tous les `.ts`/`.tsx` de `src/`, chemins relatifs à la racine du dépôt, à ORDRE TOTAL
+/** Tous les scripts de `src/`, chemins relatifs à la racine du dépôt, à ORDRE TOTAL
  *  (`listerArbre`, #1679 L3b : un listing brut suit l'ordre du système de fichiers). */
 export function fichiersSources() {
-  return listerArbre(join(RACINE, 'src'), { filtre: (rel) => /\.tsx?$/.test(rel) }).map((rel) => `src/${rel}`);
+  return listerArbre(join(RACINE, 'src'), { filtre: estModule }).map((rel) => `src/${rel}`);
 }
 
 /** Le SEAM lui-même, DÉRIVÉ de ce que les fichiers DÉCLARENT — jamais une liste de chemins. Un

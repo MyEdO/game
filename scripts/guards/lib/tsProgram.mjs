@@ -94,7 +94,8 @@ function ouvrir(root, fs, configurer, choisirProjet = (snapshot, plan) => snapsh
   } catch (error) { libererSessions([{ dispose }], [error]); }
 }
 
-export function repoProgram(root, choisirRootNames, recouvrement = {}) {
+/** Ouvre un projet d'analyse qui hérite du tsconfig du dépôt et surcharge ses options localement. */
+export function repoProgram(root, choisirRootNames, recouvrement = {}, compilerOptions = {}) {
   const key = norm(path.resolve(root));
   const config = `${key}/tsconfig.json`;
   const temporaire = `${key}/tsconfig.analyse-virtuelle.json`;
@@ -105,7 +106,13 @@ export function repoProgram(root, choisirRootNames, recouvrement = {}) {
   };
   return ouvrir(key, fs, api => {
     const parsed = api.parseConfigFile(config);
-    files.set(temporaire, JSON.stringify({ extends: './tsconfig.json', compilerOptions: { noEmit: true }, files: choisirRootNames(parsed.fileNames, key), include: [], references: [] }));
+    files.set(temporaire, JSON.stringify({
+      extends: './tsconfig.json',
+      compilerOptions: { ...compilerOptions, noEmit: true },
+      files: choisirRootNames(parsed.fileNames, key),
+      include: [],
+      references: [],
+    }));
     return { openProjects: [temporaire] };
   });
 }
