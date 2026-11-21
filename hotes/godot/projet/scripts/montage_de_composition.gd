@@ -43,6 +43,10 @@ const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
 ## Les canaux libres d'un mesh (`Mesh.ARRAY_CUSTOM0` à `3`), qu'aucun `BaseMaterial3D` ne lit : une pièce fondue les
 ## laisse.
 const CANAUX_LIBRES := [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]
+## L'angle de fusion des normales en degrés de la génération des niveaux de détail (`poser_les_niveaux`) : celui de
+## l'import de scène de l'éditeur, `lods/normal_merge_angle` à son défaut (`editor/import/3d/resource_importer_scene.cpp`
+## l.2273, Godot 4.7-stable).
+const ANGLE_DE_FUSION_DES_NORMALES := 20.0
 
 ## La fusion porte la pile des couches reçue (`recevoir_la_pile`).
 signal empilee
@@ -369,7 +373,7 @@ static func _paquet_lu(id: String, octets: PackedByteArray, recueil: Array[Strin
 
 
 ## Les `octets` du GLB du modèle `id` en scène, `MATERIAUX` posé à sa racine, `null` (et une erreur à `recueil`) s'ils ne
-## se lisent pas. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
+## se lisent pas. Chaque mesh y porte ses niveaux de détail (`poser_les_niveaux`). Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
 ## `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`, `modules/gltf/gltf_document.cpp` `_create_skins`,
 ## `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`, Godot 4.7-stable).
 static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String]) -> Node3D:
@@ -380,6 +384,8 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 	if code != OK:
 		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
 		return null
+	for maillage in etat.get_meshes():
+		poser_les_niveaux(maillage.mesh)
 	var scene := document.generate_scene(etat) as Node3D
 	if scene == null:
 		recueil.append("glb-illisible : %s (scène vide)" % id)
@@ -389,6 +395,16 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 		par_nom[materiau.resource_name] = materiau
 	scene.set_meta(MATERIAUX, par_nom)
 	return scene
+
+
+## Les niveaux de détail de `maillage` générés (`ImporterMesh.generate_lods`, #4413) : son mesh rendu
+## (`ImporterMesh.get_mesh`) porte, par surface, des index simplifiés que le rendu choisit selon la taille du mesh à
+## l'écran (`Viewport.mesh_lod_threshold`) ; ses sommets, ses os, ses poids et ses shape keys restent, et le niveau 0
+## est le mesh entier. Seule couture des niveaux de détail : la lecture d'un GLB (`scene_lue`), la cuisson des formes
+## (`cuire_les_formes`) et la fusion (`refondre`) y passent.
+static func poser_les_niveaux(maillage: ImporterMesh) -> void:
+	# normal_split_angle : ignoré par Godot 4.7 (doc de `ImporterMesh.generate_lods`).
+	maillage.generate_lods(ANGLE_DE_FUSION_DES_NORMALES, 0.0, [])
 
 
 ## Chaque clip de `noms` que porte `lecteur` mis en boucle pour ce lecteur seul : les instances d'un même modèle partagent
@@ -1402,7 +1418,8 @@ func poser_les_morphes() -> void:
 ## absente, `MeshInstance3D.bake_mesh_from_current_blend_shape_mix`). Le rendu de compatibilité met à jour une surface à
 ## shape keys en une passe de base et une passe par clé non nulle, en plus de celle du squelette, à chaque image où le
 ## squelette bouge (`drivers/gles3/storage/mesh_storage.cpp`, `update_mesh_instances`, Godot 4.7-stable) : cuite, seule
-## celle du squelette reste. Le mesh à shape keys est gardé en métadonnée `FORMES` et les poids cuits en `POIDS` ;
+## celle du squelette reste. Le mesh cuit porte ses niveaux de détail (`poser_les_niveaux`). Le mesh à shape keys est
+## gardé en métadonnée `FORMES` et les poids cuits en `POIDS` ;
 ## des poids inchangés ne recuisent rien. Un mesh sans shape key garde son mesh.
 static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 	var formes := (mesh.get_meta(FORMES) if mesh.has_meta(FORMES) else mesh.mesh) as ArrayMesh
@@ -1421,9 +1438,11 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 	for rang in formes.get_surface_count():
 		cuit.surface_set_material(rang, formes.surface_get_material(rang))
 		cuit.surface_set_name(rang, formes.surface_get_name(rang))
+	var detaille := ImporterMesh.from_mesh(cuit)
+	poser_les_niveaux(detaille)
 	mesh.set_meta(FORMES, formes)
 	mesh.set_meta(POIDS, poids)
-	mesh.mesh = cuit
+	mesh.mesh = detaille.get_mesh()
 
 
 ## @contrat Atelier 3D
@@ -1443,6 +1462,11 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## `top_level` (un objet rangé qui suit des `poids`, `_suivre_les_poids`) ou dont un matériau projette ses UV dans le
 ## repère du mesh (`uv1_triplanar` ou `uv2_triplanar` hors du monde), une surface qui n'est pas en triangles ou qui
 ## porte huit poids par sommet. La recette autonome `projet/recettes/fusion-des-pieces.gd` le vérifie.
+## Chaque mesh dessiné porte ses niveaux de détail, générés à l'exécution par `MontageDeComposition.poser_les_niveaux`
+## (`ImporterMesh.generate_lods`, #4413) : à la lecture du GLB (`scene_lue`), donc aussi dans la scène fabriquée
+## (`FabriqueDeModeles`), à la cuisson des formes et à la fusion. Le rendu en choisit un selon la taille du mesh à
+## l'écran ; le niveau 0 est le mesh entier, que compte le plafond assemblé de l'évaluateur. La recette autonome
+## `projet/recettes/niveaux-de-detail.gd` le vérifie.
 
 ## @contrat Pile des couches
 ## Dans une tenue fondue, la couche du dessous cède à celle qui la couvre (#3842) : à chaque refonte,
@@ -1479,7 +1503,7 @@ func _refondre_la_demande() -> void:
 
 ## L'ancienne `fusion` libérée, puis, la composition réglée (aucun montage en vol dans `_demandes`, aucune pile attendue
 ## pour ce qui est fondu, `_empiler`), les meshes visibles du modèle fondus en `fusion`, une surface par matériau
-## équivalent (`_signature`), chaque pièce fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque
+## équivalent (`_signature`), à ses niveaux de détail (`poser_les_niveaux`), chaque pièce fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque
 ## maillage que la pile résout fondu tel qu'elle le rend ; aucune sans squelette ou sans pièce à fondre. Non réglée,
 ## aucune fusion : chaque pièce rendue seule à son calque. Chaque
 ## liaison d'une pièce skinnée, fondue ou gagnée par la pile, est compensée (`_liaison_compensee`) ; une pièce skinnée
@@ -1520,6 +1544,7 @@ func refondre() -> void:
 	if not reglee:
 		return
 	var outils := {}
+	var materiaux := {}
 	for piece: MeshInstance3D in fondues:
 		for surface in piece.mesh.get_surface_count():
 			var resolu: Dictionary = resolus.get([piece, surface], {})
@@ -1534,16 +1559,17 @@ func refondre() -> void:
 			var cle := _signature(materiau)
 			if not outils.has(cle):
 				outils[cle] = SurfaceTool.new()
-				(outils[cle] as SurfaceTool).set_material(materiau)
+				materiaux[cle] = materiau
 			(outils[cle] as SurfaceTool).append_from(_surface_liee(piece, surface, renvois, resolu), 0, Transform3D.IDENTITY)
 	if outils.is_empty():
 		return
-	var mesh := ArrayMesh.new()
-	for outil: SurfaceTool in outils.values():
-		outil.commit(mesh)
+	var mesh := ImporterMesh.new()
+	for cle in outils:
+		mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, (outils[cle] as SurfaceTool).commit_to_arrays(), [], {}, materiaux[cle])
+	poser_les_niveaux(mesh)
 	fusion = MeshInstance3D.new()
 	fusion.name = "Fusion"
-	fusion.mesh = mesh
+	fusion.mesh = mesh.get_mesh()
 	fusion.skin = skin
 	fusion.layers = CALQUE
 	squelette.add_child(fusion)

@@ -33,7 +33,7 @@ MATERIAUX = {
 même drap teint par la palette."""
 
 BUDGET_TRIANGLES = 1200
-"""Sous les 2 500 d'un vêtement (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 2 500 d'un vêtement (procédure, section 7)."""
 
 # --- Maillage ---
 SEGMENTS_CORPS = 12                # HYPOTHÈSE de maillage : le corps est caché sous le plastron

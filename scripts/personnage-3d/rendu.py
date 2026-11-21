@@ -254,12 +254,16 @@ def colorer(objets, surfaces, palette):
     """Pose sur la couleur de base de chaque matériau des `objets` d'un modèle (la base ou un élément) la couleur de
     `palette` à l'emplacement que lui donnent les `surfaces` de ce modèle (`{nom du matériau: emplacement}`), car deux
     éléments peuvent nommer pareil des matériaux d'emplacements différents ; un matériau sans emplacement ou dont la palette ne colore pas
-    l'emplacement garde la sienne."""
+    l'emplacement garde la sienne. La couleur remplace la texture de couleur du matériau, comme dans le jeu
+    (`MontageDeComposition.peindre`) : la peau de la base, texturée, et celle d'une tête, en aplat, y ont la même."""
     for obj in objets:
         for slot in obj.material_slots if obj.type == 'MESH' else []:
             couleur = palette.get(surfaces.get(slot.material.name.split('.')[0])) if slot.material else None
             principled = next((n for n in slot.material.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None) if couleur else None
             if principled:
+                arbre = slot.material.node_tree
+                for lien in [l for l in arbre.links if l.to_socket == principled.inputs['Base Color']]:
+                    arbre.links.remove(lien)
                 principled.inputs['Base Color'].default_value = (*couleur, 1)
 
 

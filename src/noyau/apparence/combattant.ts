@@ -16,6 +16,7 @@ import {
   findFicheDeVehicule,
   findNavalTrait,
   findGroupeDArmureById,
+  findMutationById,
   findPlanDEspeceById,
   findSpeciesById,
   findTenueDeCarriere,
@@ -110,9 +111,20 @@ function couleursDuCombattant(c: Combatant, race?: RaceAppearanceData): Pick<Ent
   return Object.keys(couleurs).length ? { couleurs } : {};
 }
 
+/** Les formes de la tête de `c` : celles de chacune de ses Mutations, lues au catalogue par son id (#4413), au plus fort
+ *  des poids qui nomment une même forme ; absentes si aucune n'en donne. */
+function formesDeTeteDuCombattant(c: Combatant): Pick<PorteeDeComposition, 'formesDeTete'> {
+  const formes: NonNullable<PorteeDeComposition['formesDeTete']> = {};
+  for (const m of c.mutations ?? []) {
+    for (const [nom, poids] of Object.entries(findMutationById(m.id)?.formesDeTete ?? {}) as [keyof typeof formes, number][]) formes[nom] = Math.max(formes[nom] ?? 0, poids);
+  }
+  return Object.keys(formes).length ? { formesDeTete: formes } : {};
+}
+
 /** Ce que porte `c`, `null` si son espèce n'a aucune race de rendu (#2993) : sa tête, ses armes tenues puis rangées,
  *  ses objets équipés qui revêtent des pièces (`piecesDeLObjet`), son armure (`armuresDuCombattant`), puis la tenue de
- *  sa carrière (`findTenueDeCarriere`) ; une pièce n'est portée qu'une fois, par le premier qui la revêt. */
+ *  sa carrière (`findTenueDeCarriere`) ; une pièce n'est portée qu'une fois, par le premier qui la revêt ; et les formes de
+ *  sa tête (`formesDeTeteDuCombattant`). */
 export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
   const race = raceDeRendu(c.species);
   if (!race) return null;
@@ -135,6 +147,7 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
     rapport,
     ...(embleme ? { embleme } : {}),
     ...couleursDuCombattant(c, race),
+    ...formesDeTeteDuCombattant(c),
     facteurs: facteursDeComposition(undefined, race),
     // #3253
     sex: sexeDuPorteur(c) ?? 'M',

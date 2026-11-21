@@ -2,7 +2,7 @@ import { emplacementsNonOfferts, estSansBase, validerElement, type ManifesteDEle
 import { lireGlb } from './glb.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { cheminsAbsolus, ligneDErreur } from './manifeste.ts';
-import { validerManifesteDeBase, type ManifesteDeBase, type VerdictDeBase } from './manifesteDeBase.ts';
+import { PREFIXE_DES_CLES_DU_GABARIT, validerManifesteDeBase, type ManifesteDeBase, type VerdictDeBase } from './manifesteDeBase.ts';
 import { ecartsDeClips, ecartsDesPrisesOccupees, ecartsDesTablesDeuxMains } from './clips.ts';
 
 export type ManifesteDeModele = ManifesteDeBase | ManifesteDElement;
@@ -91,7 +91,8 @@ export function validerModele(brut: unknown, octets: Uint8Array, bases: Readonly
     if (!base) return { ok: false, refus: [`[base-absente] ${String(nom)}`] };
     const vBase = validerBase(base.brut, base.octets);
     if (!vBase.ok) return { ok: false, refus: vBase.ecarts.map(e => `[${e.code}] base ${e.ou} : ${e.detail}`) };
-    return verdictDElement(validerElement(brut, vBase.manifeste, octets, lireGlb(octets)), octets);
+    const clesDuGabarit = [...lireGlb(base.octets).formes].filter((nom) => nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT));
+    return verdictDElement(validerElement(brut, { ...vBase.manifeste, clesDuGabarit }, octets, lireGlb(octets)), octets);
   } catch (e) {
     return { ok: false, refus: [`[glb-illisible] ${e instanceof Error ? e.message : String(e)}`] };
   }

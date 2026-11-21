@@ -1,5 +1,8 @@
-"""Données de `humanoide--tete--humain`, repris de son GLB publié (`element/publie.py`, #3761) : champs du manifeste
-publié, matériaux lus dans le GLB publié, budget à son compte de triangles."""
+"""Données de `humanoide--tete--humain` (#4413), lues par `element/tete_makehuman.py` : la tête `humain` de la garde-robe.
+
+Aucune cible cuite : l'homme jeune moyen de MakeHuman, à la taille de la tête humaine publiée (#3761), à laquelle sont
+bâties les coiffures et les couvre-chefs.
+"""
 
 MANIFESTE = {
     'categorie': 'tete',
@@ -8,9 +11,11 @@ MANIFESTE = {
     'couche': 'peau',
     'couvre': ['tete', 'visage', 'nez', 'oeil_g', 'oeil_d'],
 }
-MATERIAUX = {
-    'peau': ('peau', ((0.62, 0.62, 0.62), 0.0, 0.87)),
-    'cheveux': ('cheveux', ((0.18, 0.18, 0.18), 0.0, 0.87)),
-    'yeux': ('yeux', ((0.35, 0.35, 0.35), 0.0, 0.87)),
+MATERIAUX = {                            # gris de construction, sans couleur cuite
+    'peau': ('peau', ((0.62, 0.62, 0.62), 0.0, 0.8)),
+    'yeux': ('yeux', ((0.35, 0.35, 0.35), 0.0, 0.3)),
+    'cheveux': ('cheveux', ((0.6, 0.6, 0.6), 0.0, 0.95)),   # les sourcils
 }
-BUDGET_TRIANGLES = 1788
+BUDGET_TRIANGLES = 6600                  # procédure, section 7 : tête humanoïde MakeHuman
+NOM = 'tete_humain'
+CUITES = ()

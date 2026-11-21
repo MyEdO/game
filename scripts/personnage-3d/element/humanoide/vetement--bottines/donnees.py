@@ -28,7 +28,7 @@ MATERIAUX = {'cuir': ('cuir', 'cuir-tanne')}
 """Illustration : cuir fauve (`cuir`, fauve au preset `soldat`)."""
 
 BUDGET_TRIANGLES = 1200
-"""Sous les 2 500 d'un vêtement (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
+"""Sous les 2 500 d'un vêtement (procédure, section 7)."""
 
 PORTEUSES = {c: [f'pied_{c}', f'mollet_{c}'] for c in 'gd'}
 """Par pied, les zones que la bottine entoure : ses poids et ses clés en viennent."""

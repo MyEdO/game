@@ -186,11 +186,12 @@ class Base:
 
     def matieres_publiees(self, id_, matieres):
         """Positions monde au repos, triangles des faces de `matieres` et poids (par os de la base) de l'élément publié
-        `id_`, que la pièce contourne ; ses objets sont retirés de la scène ensuite."""
+        `id_`, que la pièce contourne ; ses objets sont retirés de la scène ensuite. Une matière de `matieres` dont
+        l'élément n'a aucune face arrête la construction."""
         avant = set(bpy.data.objects)
         bpy.ops.import_scene.gltf(filepath=str(self.publies(id_)))
         nouveaux = [o for o in bpy.data.objects if o not in avant]
-        P, T, W, n = [], [], [], 0
+        P, T, W, n, portees = [], [], [], 0, set()
         for o in nouveaux:
             if o.type != 'MESH' or not o.data.materials:
                 continue
@@ -198,6 +199,7 @@ class Base:
             M = np.array(o.matrix_world)
             co = np.array([v.co[:] for v in o.data.vertices]) @ M[:3, :3].T + M[:3, 3]
             o.data.calc_loop_triangles()
+            portees.update(noms[lt.material_index] for lt in o.data.loop_triangles)
             t = np.array([lt.vertices[:] for lt in o.data.loop_triangles if noms[lt.material_index] in matieres],
                          int).reshape(-1, 3)
             groupes = {g.index: self.indice_os[g.name] for g in o.vertex_groups if g.name in self.indice_os}
@@ -212,8 +214,9 @@ class Base:
             n += len(co)
         for o in nouveaux:
             bpy.data.objects.remove(o, do_unlink=True)
-        if not n:
-            raise ValueError(f'{id_} : aucune face de {matieres}')
+        absentes = [m for m in matieres if m not in portees]
+        if absentes:
+            raise ValueError(f'{id_} : aucune face de {absentes}, il porte {sorted(portees)}')
         return np.concatenate(P), np.concatenate(T), np.concatenate(W)
 
     def coupe(self, zones, origine, normale, u, v, minimum=4):

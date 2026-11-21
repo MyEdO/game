@@ -210,6 +210,36 @@ describe('resoudreLaPile', () => {
     expect(['bras', 'epaule', 'torse', 'manche'].reduce((t, nom) => t + poidsSur(pres, 40, nom), 0)).toBeCloseTo(1, 6);
   });
 
+  it('une couverture cousue au bord d’une pièce ne masque pas les triangles de ce bord ; sous une couverture de même contour, tous (#4413)', () => {
+    /** Un maillage plan sur l'os `cou`, tourné vers +Z, de sommets (x, y) et de triangles `triangles`. */
+    const plan = (sommets: readonly (readonly [number, number])[], triangles: readonly number[]): MaillageDePile => ({
+      positions: Float32Array.from(sommets.flatMap(([x, y]) => [x, y, 0])), indices: Uint32Array.from(triangles),
+      os: new Uint16Array(sommets.length * 4), poids: Float32Array.from(sommets.flatMap(() => [1, 0, 0, 0])), noms: ['cou'],
+    });
+    const dents = 4, pas = 0.025;
+    /** La couture en zigzag : creux k en (2k × pas, 0), pointe k en ((2k + 1) × pas, pas / 2). */
+    const couture = Array.from({ length: 2 * dents + 1 }, (_, i) => [i * pas, i % 2 ? pas / 2 : 0] as const);
+    const creux = (k: number) => 2 * k, pointe = (k: number) => 2 * k + 1;
+    /** Sous la couture, une rangée en y = −2 pas ; chaque pointe ferme une dent, aux trois sommets sur la couture. */
+    const bas = couture.length;
+    const cou = plan([...couture, ...Array.from({ length: dents + 1 }, (_, k) => [2 * k * pas, -2 * pas] as const)], Array.from({ length: dents }, (_, k) => [
+      bas + k, bas + k + 1, creux(k + 1), bas + k, creux(k + 1), creux(k),
+      creux(k), creux(k + 1), pointe(k),
+    ]).flat());
+    /** Au-dessus de la couture, la pièce qui la partage, jusqu'à une rangée en y = 2 pas. */
+    const haut = couture.length;
+    const tete = plan([...couture, ...Array.from({ length: dents + 1 }, (_, k) => [2 * k * pas, 2 * pas] as const)], Array.from({ length: dents }, (_, k) => [
+      creux(k), pointe(k), haut + k, pointe(k), haut + k + 1, haut + k, pointe(k), creux(k + 1), haut + k + 1,
+    ]).flat());
+    /** Sous une couverture de même contour, tout point du bord l'est aussi au bord d'elle, chaque triangle sous elle. */
+    const temoin = nappe(0, 'cou', 0.1, 4, 0.5);
+    const bilan = empiler([piece(cou, temoin), piece(tete, nappe(SERRAGE_M, 'cou', 0.1, 4, 0.5))]);
+    expect(bilan.couverts).toBe(couture.length + 25);
+    expect(cou.indices).toHaveLength(dents * 9);
+    expect(temoin.indices).toHaveLength(0);
+    expect(bilan.masques).toBe(4 * 4 * 2);
+  });
+
   it('les sommets confondus de deux maillages d’une pièce restent liés pareil', () => {
     const gauche = nappe(0, 'bras', 0.1, 8, -0.05), droite = nappe(0, 'torse', 0.1, 8, 0.05), dessus = nappe(SERRAGE_M, 'manche', 0.1, 8, -0.05);
     empiler([piece(gauche, droite), piece(dessus)]);

@@ -14,6 +14,8 @@
  * - `apparencesObjets` : l'apparence d'un objet porté, comme `EntityAppearance.apparencesObjets`.
  * - `couleurs` : la palette du personnage, une couleur du nuancier (`materials.json`, domaine `couleur`) par emplacement
  *   de palette ; chaque surface d'un élément monté prend celle de son emplacement.
+ * - `formesDeTete` : par forme de la tête (`NOMS_DES_FORMES_DE_TETE`, #4413), son poids, que l'hôte pose sur la shape key
+ *   de ce nom de chaque élément monté qui la porte.
  * - `variantesPieces` : l'apparence d'une pièce portée, une de ses variantes de la garde-robe (#3446) ; absente, la pièce
  *   elle-même (`varierSesPieces`).
  * - Rien n'est porté deux fois, ni une pièce ni un objet tenu ; un objet porté peut l'être en plusieurs exemplaires, rangés
@@ -30,7 +32,7 @@ import { document } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
 import { recordDIds, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { apparencesDObjetsSchema, couleursSchema, emblemeSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
+import { apparencesDObjetsSchema, couleursSchema, emblemeSchema, formesDeTeteSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
 import { findEnsembleParHabille, findVarianteById, piecesDeLObjet } from '../../index';
 import type { HabilleDEnsemble } from './garde-robe';
 
@@ -53,6 +55,7 @@ const champs = {
   apparencesObjets: apparencesDObjetsSchema.optional(),
   embleme: emblemeSchema.optional(),
   couleurs: couleursSchema.optional(),
+  formesDeTete: formesDeTeteSchema.optional(),
 };
 
 const metaDesChampsDuPreset = {
@@ -71,6 +74,7 @@ const metaDesChampsDuPreset = {
   prises: { label: 'Objets tenus', hint: 'Objet tenu par chaque main' },
   apparencesObjets: { label: 'Apparences des objets', hint: 'Apparence d’un objet porté ; absente, sa forme' },
   couleurs: { label: 'Couleurs', hint: 'Couleur du nuancier par emplacement de palette ; absente, la matière du modèle' },
+  formesDeTete: { label: 'Formes de la tête', hint: 'Poids de 0 à 1 par forme de la tête ; absente, 0' },
 };
 
 type Chemin = (string | number)[];

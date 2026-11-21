@@ -15,6 +15,7 @@ import {
   creatures,
   findCreatureById,
   findGroupeDArmureById,
+  findMutationById,
   findPlanDEspeceById,
   findSpeciesById,
   findTenueDeCarriere,
@@ -26,6 +27,8 @@ import {
   type GroupeDArmure,
 } from '../../data';
 import { findTierEntry } from '../../engine/tables';
+import { attachMutation, type Mutation } from '../../engine/corruption';
+import { makeRNG } from '../../engine/dice';
 import { resetData, setDataset } from '../../data/overrides';
 import { localisationsDeLoc } from '../../engine/classementDeTrait';
 import { spawnEnemy } from '../monde/spawn';
@@ -84,6 +87,18 @@ describe('porteeDuCombattant', () => {
     const portee = porteeDuCombattant(heros())!;
     expect(portee.portees[0].cle).toEqual({ champ: 'tete', id: race.id });
     expect(portee.facteurs).toEqual(facteursDeComposition(undefined, race));
+  });
+
+  it('les formes de la tête sont celles de ses Mutations, lues au catalogue par leur id (#4413)', () => {
+    expect(porteeDuCombattant(heros())!.formesDeTete).toBeUndefined();
+    const { formesDeTete, ...avantLeChamp } = findMutationById('visage-inverse')!;
+    expect(formesDeTete).toBeDefined();
+    const mute = heros();
+    attachMutation(mute, { ...findMutationById('visage-inverse')!, roll: 53 } as Mutation, makeRNG(3));
+    expect(porteeDuCombattant(mute)!.formesDeTete).toEqual(formesDeTete);
+    const sauveAvantLeChamp = heros();
+    attachMutation(sauveAvantLeChamp, { ...avantLeChamp, roll: 53 } as Mutation, makeRNG(3));
+    expect(porteeDuCombattant(sauveAvantLeChamp)!.formesDeTete).toEqual(formesDeTete);
   });
 
   it('une créature de race porte la tête de sa race', () => {
