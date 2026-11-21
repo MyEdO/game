@@ -4,8 +4,7 @@
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses
 ## pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
-## appui sur ce qui est porté, de couche en couche depuis l'emplacement, et sa place à côté des autres objets du même
-## point ou sur eux, le coin d'une bulle au-dessus
+## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
 ## d'un point, les deux faces d'un d100, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du
 ## tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de
 ## bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
@@ -845,36 +844,6 @@ static func case_de_contact(sommet: Vector3) -> Vector2i:
 ## Le point d'un repère de rangement au centre de la case `case`, à la cote `cote` sur la normale sortante.
 static func centre_de_contact(case: Vector2i, cote: float) -> Vector3:
 	return Vector3((case.x + DEMI_CASE) * CASE_DE_CONTACT, (case.y + DEMI_CASE) * CASE_DE_CONTACT, cote)
-
-
-## La cote, sur la normale sortante d'un repère de rangement, d'où reprend vers le dedans la visée d'une case qui a
-## touché une surface à `cote` (`MontageDeComposition._appuyer`) : `PAS_AU_DELA_M` plus bas.
-static func cote_au_dela(cote: float) -> float:
-	return cote - PAS_AU_DELA_M
-
-
-## Les rangs des trois coins de la face `face` dans les faces d'un `TriangleMesh` (`TriangleMesh.get_faces`).
-static func coins_de_la_face(face: int) -> Vector3i:
-	return Vector3i(face * 3, face * 3 + 1, face * 3 + 2)
-
-
-## Le sens, sur la normale sortante d'un repère de rangement, de la face de coins `coins` (ses axes, dans ce repère,
-## sens horaire de face comme Godot, `core/math/face3.h` `get_plane`) : positif si elle regarde le dehors, négatif si elle
-## regarde le corps. `TriangleMesh.intersect_segment` rend une normale tournée vers l'origine du segment, pas celle de
-## la face (Godot 4.7).
-static func sens_de_la_face(coins: Basis) -> float:
-	return (coins.x - coins.z).cross(coins.x - coins.y).z
-
-
-## L'appui d'un objet rangé sous une case, sa cote en `x` (`-INF` sans surface) et le sens de la surface qui le donne en
-## `y` (`sens_de_la_face`), `etat`, une fois lue la surface suivante vers le dehors, à `cote` et de sens `sens`
-## (`MontageDeComposition._appuyer`) : sous l'emplacement (cote 0), elle le porte ; au-dessus, elle ne le porte que si
-## elle suit la dernière qui le porte, ou l'emplacement, à `portee` au plus, ou si elle clôt la matière où cette
-## dernière fait entrer (une surface qui regarde le corps, puis celle qui regarde le dehors). Au premier vide plus grand,
-## rien de plus loin ne le porte.
-static func appui_contigu(etat: Vector2, cote: float, sens: float, portee: float) -> Vector2:
-	var dans_la_matiere := etat.y < 0.0 and not is_inf(etat.x)
-	return Vector2(cote, sens) if cote <= 0.0 or dans_la_matiere or cote - maxf(etat.x, 0.0) <= portee else etat
 
 
 ## Le recul `recul`, sur la normale sortante, d'un objet rangé attaché à `haut` sur Y (vers le bas, `_appuyer`),

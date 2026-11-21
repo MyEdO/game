@@ -776,10 +776,7 @@ func _offrant_du_point(point: Dictionary) -> String:
 ## de l'axe de l'os pour que ses sommets posés passent à 2 cm, ramenés à la distance de l'emplacement à l'axe, de ceux du
 ## précédent (sur l'axe de l'os, décalé de 2 cm entre leurs boîtes le long de l'axe X du rangement). Chacun s'appuie sur
 ## ce qui est porté dessous, la base et les éléments skinnés montés au repos, que vise, par case de 2 cm de l'objet, une
-## visée le long de la normale sortante ; de l'emplacement vers le dehors, une surface le porte tant qu'elle suit la
-## précédente à la portée de couverture de la pile des couches au plus (`porteeDeCouverture` de `modeles`) ou qu'elle
-## clôt une matière, et rien de plus loin ne le porte (la pointe d'une manche large devant la hanche, #4351) : reculé
-## sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
+## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
 ## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
 ## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
 ## rien dessous, sa face arrière à 5 mm de l'emplacement. À un emplacement qu'offre une pièce, qui le pose elle-même
@@ -864,7 +861,7 @@ func _ranger() -> void:
 				sommets = _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension).rotated(Vector3.BACK, biais))
 			var boite := _boite_de(sommets)
 			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, biais = biais, sommets = sommets, portes = portes,
-				offrant = offrant, portee = modeles.porteeDeCouverture}
+				offrant = offrant}
 			if id != ids[0]:
 				var pas := MiseEnPage.decalage_a_cote(0.0, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
 				decalage = MiseEnPage.decalage_a_cote(decalage, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
@@ -918,13 +915,12 @@ func _suivre_les_poids() -> void:
 ## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`
 ## qui le monte à son point de suspension (`_suspension`), `biais`, son tour autour de la normale sortante en
 ## bandoulière, ses `sommets` à plat, suspendus et tournés dans son repère de rangement,
-## ce qui est porté `portes`, l'élément `offrant` qui offre l'emplacement, la `portee` de couverture), tourné de `tour` autour de l'axe de l'os ou
+## ce qui est porté `portes`, l'élément `offrant` qui offre l'emplacement), tourné de `tour` autour de l'axe de l'os ou
 ## décalé de `decalage` sur cet axe (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
 static func _poser_range(rangement: Dictionary, tour: float, decalage: float) -> Transform3D:
 	var repere_ := _repere_de_rangement(rangement.attache, tour, decalage)
 	var os: Transform3D = rangement.os
-	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes, rangement.offrant,
-		rangement.portee)
+	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes, rangement.offrant)
 	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).rotated_local(Vector3.BACK, rangement.biais).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
 
 
@@ -971,17 +967,13 @@ static func _repere_de_rangement(attache: Dictionary, tour: float, decalage: flo
 ## de sommets `sommets` dans son repère de rangement, sur ce qui est porté au repos `portes` (`_portes_au_repos`) ;
 ## `vers_le_squelette` et `depuis_le_squelette` passent de ce repère à celui du squelette au repos et retour (`_par`).
 ## Par case de `CASE_DE_CONTACT` où l'objet a des sommets, une visée le long de la normale sortante, de
-## `PORTEE_DE_CONTACT` à son opposé, relève chaque surface de ce qui est porté ; de l'emplacement vers le dehors, une
-## surface porte l'objet tant qu'elle suit la précédente à `portee` au plus, celle de la pile des couches
-## (`porteeDeCouverture` de `modeles`), ou qu'elle clôt une matière (`MiseEnPage.appui_contigu`) : un pan passé plus
-## loin devant l'emplacement, la pointe d'une manche large devant la hanche, ne le porte pas (#4351). L'objet recule pour que sa face
+## `PORTEE_DE_CONTACT` à son opposé, touche d'abord ce qui est porté le plus en dehors ; l'objet recule pour que sa face
 ## arrière passe à `JEU_DE_RANGEMENT` au-dessus de son haut à `APPUI_DE_RANGEMENT` sous son attache (l'origine du repère
 ## de rangement, ou son haut s'il est plus bas), puis pivote pour passer de même plus bas
 ## (`MiseEnPage.recul_sur_la_case`, `recul_d_appui`, `pivot_sur_la_case`). Un emplacement qu'offre une pièce de
 ## l'élément `offrant` (vide si la base l'offre) est posé par elle : la visée de ses pièces part de l'emplacement, et
 ## l'objet n'y recule pas sous sa place sans rien dessous.
-static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary], offrant: String,
-		portee: float) -> Vector2:
+static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary], offrant: String) -> Vector2:
 	var boite := _boite_de(sommets)
 	var arriere := {}
 	for v in sommets:
@@ -989,29 +981,19 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 		arriere[case_] = MiseEnPage.plus_bas(arriere.get(case_, INF), v.z)
 	var dessus := {}
 	for case_: Vector2i in arriere:
+		var dehors := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, MiseEnPage.PORTEE_DE_CONTACT))
+		var sous_l_emplacement := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, 0.0))
 		var fin := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, -MiseEnPage.PORTEE_DE_CONTACT))
-		var surfaces: Array[Vector2] = []
 		for porte in portes:
-			var depuis := 0.0 if offrant != "" and porte.element == offrant else MiseEnPage.PORTEE_DE_CONTACT
+			var debut := sous_l_emplacement if offrant != "" and porte.element == offrant else dehors
+			var a := _par(porte.vers_le_mesh, debut)
 			var b := _par(porte.vers_le_mesh, fin)
-			while true:
-				var a := _par(porte.vers_le_mesh, _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, depuis)))
-				var touche: Dictionary = (porte.maille as TriangleMesh).intersect_segment(a, b) if (porte.boite as AABB).intersects_segment(a, b) else {}
-				if touche.is_empty():
-					break
-				var vers_le_rangement: Array = porte.vers_le_squelette.duplicate()
-				vers_le_rangement.append_array(depuis_le_squelette)
-				var cote := _par(vers_le_rangement, touche.position).z
-				var coins := MiseEnPage.coins_de_la_face(touche.face_index)
-				surfaces.append(Vector2(cote, MiseEnPage.sens_de_la_face(Basis(_par(vers_le_rangement, porte.faces[coins.x]),
-					_par(vers_le_rangement, porte.faces[coins.y]), _par(vers_le_rangement, porte.faces[coins.z])))))
-				depuis = MiseEnPage.cote_au_dela(cote)
-		surfaces.sort()
-		var appui := Vector2(-INF, 0.0)
-		for surface in surfaces:
-			appui = MiseEnPage.appui_contigu(appui, surface.x, surface.y, portee)
-		if not surfaces.is_empty():
-			dessus[case_] = appui.x
+			if not (porte.boite as AABB).intersects_segment(a, b):
+				continue
+			var touche: Dictionary = (porte.maille as TriangleMesh).intersect_segment(a, b)
+			if not touche.is_empty():
+				var cote := _par(depuis_le_squelette, _par(porte.vers_le_squelette, touche.position)).z
+				dessus[case_] = MiseEnPage.plus_haut(dessus.get(case_, -INF), cote)
 	var attache := MiseEnPage.plus_haut(boite.position.y, 0.0)
 	var recul := -INF
 	for case_: Vector2i in dessus:
@@ -1025,8 +1007,8 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 	return Vector2(recul, angle)
 
 
-## Ce qui est porté, au repos : par mesh skinné de la base et des éléments montés, ses triangles (`maille`, et leurs
-## coins `faces`) et sa boîte (`boite`) dans son repère, l'élément monté qui le porte (`element`, vide pour la base), et les transformations
+## Ce qui est porté, au repos : par mesh skinné de la base et des éléments montés, ses triangles (`maille`) et sa boîte
+## (`boite`) dans son repère, l'élément monté qui le porte (`element`, vide pour la base), et les transformations
 ## (`_par`) du repère du squelette au sien (`vers_le_mesh`) et retour (`vers_le_squelette`), par le premier os du skin de son auteur (`_skin_de_l_auteur`) à son repos.
 func _portes_au_repos() -> Array[Dictionary]:
 	var meshes: Array = _pieces_de_la_base.map(func(mesh: MeshInstance3D) -> Array: return [mesh, ""])
@@ -1040,20 +1022,18 @@ func _portes_au_repos() -> Array[Dictionary]:
 			continue
 		var os := squelette.get_bone_global_rest(squelette.find_bone(skin.get_bind_name(0)))
 		var liaison := skin.get_bind_pose(0)
-		var maille := mesh.mesh.generate_triangle_mesh()
-		portes.append({maille = maille, faces = maille.get_faces(), boite = mesh.mesh.get_aabb(), element = paire[1],
+		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(), element = paire[1],
 			vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
 	return portes
 
 
 ## Ce que porte un objet rangé de mesh `rangee` (`_rangements`), posé par `pose` dans l'os de repos `os`, comme ce qui
-## est porté au repos (`_portes_au_repos`) : ses triangles, leurs coins et sa boîte dans le repère du mesh, et les transformations de
+## est porté au repos (`_portes_au_repos`) : ses triangles et sa boîte dans le repère du mesh, et les transformations de
 ## ce repère à celui du squelette et retour (`_par`).
 static func _porte_range(rangee: Dictionary, pose: Transform3D, os: Transform3D) -> Dictionary:
 	var piece: MeshInstance3D = rangee.piece
 	var noeud: Node3D = rangee.noeud
-	var maille := piece.mesh.generate_triangle_mesh()
-	return {maille = maille, faces = maille.get_faces(), boite = piece.mesh.get_aabb(), element = "",
+	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(), element = "",
 		vers_le_mesh = [os.affine_inverse(), pose.affine_inverse(), noeud.global_transform, piece.global_transform.affine_inverse()],
 		vers_le_squelette = [piece.global_transform, noeud.global_transform.affine_inverse(), pose, os]}
 

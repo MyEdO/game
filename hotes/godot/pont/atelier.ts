@@ -18,7 +18,6 @@
 import { rangDeCase, type Attache, type EmplacementOffert, type Repere } from '../asset/attache';
 import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement, type Saison } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
-import { PORTEE_DE_COUVERTURE_M } from '../asset/pile';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
 import {
@@ -156,10 +155,6 @@ export interface ModelesDeLAtelier {
    *  nomme (#4471) : un nœud racine par pièce (`Noyau.Piece`), d'où le volume pose les arêtes de cette famille
    *  (méthode `aretes`). Un élément `arete` n'a pas de base. */
   aretes: Record<string, string>;
-  /** la distance, en mètres, au-delà de laquelle une couche n'en couvre plus une autre (`PORTEE_DE_COUVERTURE_M`,
-   *  `asset/pile.ts`) : un objet rangé ne s'appuie, de couche en couche depuis son emplacement, que sur une surface qui
-   *  suit la précédente à cette distance au plus (`MontageDeComposition._appuyer`, #4351). */
-  porteeDeCouverture: number;
 }
 
 /**
@@ -382,7 +377,6 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes,
     vehicules, ameliorations: parCle('amelioration', 'amelioration'), decors: parCle('decor', 'prop'),
     aretes: parCle('arete', 'kit'),
-    porteeDeCouverture: PORTEE_DE_COUVERTURE_M,
   };
 }
 

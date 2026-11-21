@@ -1562,7 +1562,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * listage (`GET modeles/listage.json`, section « Atelier 3D »)
      *
      * @returns `{ bases, fichiers, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
-     * ameliorations, decors, aretes, porteeDeCouverture }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
+     * ameliorations, decors, aretes }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
      * état du pont, que
      * lisent `composer` et le corps de chaque combattant de la vue (section « Corps d'un combattant ») ; avant ou après
      * `demarrer`
