@@ -55,7 +55,8 @@ chaque version est lue par le format de son extension (`FORMATS`, `scripts/guard
 et la fusion se fait au niveau du GROUPE de site, donc deux soldes de groupes disjoints d'un même stock
 ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un fichier sans collection
 de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, utilisée par le pilote. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
-mesure>`.
+mesure>`. Le type `Site` de `src/lib/stock.d.mts` porte `fichier` et `ref` du balayage à l’entrée.
+`sitesEnEntrees` ajoute l’occurrence dans l’ordre du balayage, avec les mesures du site.
 
 **Fusion des imports** (`.gitattributes`, `merge=imports` sur `.ts`, `.tsx`, `.mts`, `.mjs`, pilote
 `scripts/git-hooks/merge-imports.mjs` déclaré par `npm run postinstall`, #4178) : la fusion 3-voies

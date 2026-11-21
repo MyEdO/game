@@ -21,7 +21,7 @@ test('SITES : famille = niveau non résolu, fichier POSIX sous Source/, réf `sl
   assert.ok(sites.length > 0)
   for (const s of sites) {
     assert.ok(FAMILLES.includes(s.famille), s.famille)
-    assert.match(s.file, /^Source\/[^\\]+\/[^\\]+\.md$/)
+    assert.match(s.fichier, /^Source\/[^\\]+\/[^\\]+\.md$/)
     assert.match(s.ref, /^[a-z0-9-]*#\d+ :: p\.\d+ :: rang \d+$/)
   }
 })
@@ -48,10 +48,10 @@ test('la CLÉ observe tout ce qui localise une entrée — aucun champ aveugle',
 test('REFUS DE CROISSANCE : un renvoi non résolu NEUF est rouge, et la régénération sans lot n’écrit rien', () => {
   const [livre] = livresCouverts()
   const sites = sitesDuLivre(livre.dir, livreIndexe(livre))
-  const neuf = { famille: 'ambigu', file: `${livre.dir}/999 - Fixture.md`, ref: 'fixture#1 :: p.1 :: rang 1' }
+  const neuf = { famille: 'ambigu', fichier: `${livre.dir}/999 - Fixture.md`, ref: 'fixture#1 :: p.1 :: rang 1' }
   const { neuves } = ecartDuVolet({ sites: [...sites, neuf], stock: lireEntreesDeSite(STOCK_PATH), ou: 'renvois-stock.json' })
   assert.equal(neuves.length, 1)
-  assert.ok(neuves[0].startsWith(cleDeSite({ famille: neuf.famille, fichier: neuf.file, ref: neuf.ref, occurrence: 1 })), neuves[0])
+  assert.ok(neuves[0].startsWith(cleDeSite({ famille: neuf.famille, fichier: neuf.fichier, ref: neuf.ref, occurrence: 1 })), neuves[0])
   assert.match(neuves[0], /site NEUF/)
 
   const [r] = regenerations([...sites, neuf])

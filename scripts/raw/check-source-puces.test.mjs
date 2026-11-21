@@ -119,7 +119,7 @@ test('scanBookDir : le `fichier` d’un site est le chapitre extrait, en POSIX d
   let sites = []
   for (const [, dir] of BOOKS) { sites = scanBookDir(dir); if (sites.length) break }
   assert.ok(sites.length > 0, 'le corpus `Source/` porte au moins un site mesuré')
-  for (const s of sites.slice(0, 20)) assert.match(s.file, /^Source\/[^\\]+\/[^\\]+\.md$/)
+  for (const s of sites.slice(0, 20)) assert.match(s.fichier, /^Source\/[^\\]+\/[^\\]+\.md$/)
 })
 
 test('COUVERTURE : le balayage voit TOUT le registre — chaque livre est classé, aucun site orphelin', () => {

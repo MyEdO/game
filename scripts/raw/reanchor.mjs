@@ -52,9 +52,11 @@ const CHECK = process.argv.includes('--check')
 const MIN_QUOTE_LEN = 24   // ancre verbatim < 24 car. → trop générique, on n'ancre pas
 export const RAWDIR = 'docs/raw'
 export const LOW_STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'reanchor-low-stock.json')
-// Sites LOW observés → sites du stock : la FICHE où la réf est lue (chemin depuis la racine du dépôt,
-// c'est lui que la porte de plage reconnaît) et la RÉF CITÉE telle qu'écrite (`full`).
-export const sitesLow = (lowRows) => lowRows.map((r) => ({ file: r.doc, ref: r.full }))
+/** Les sites LOW nomment la fiche depuis la racine du dépôt et la réf citée telle qu'écrite (`full`).
+ * @param {readonly (Pick<import('../guards/lib/stock.mjs').Site, 'fichier'> & { full: string })[]} lowRows
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
+ */
+export const sitesLow = (lowRows) => lowRows.map(({ fichier, full }) => ({ fichier, ref: full }))
 const QUOI =
   'Réfs FAUSSES (❌ LOW) de l’Atlas RAW (`scripts/raw/reanchor.mjs`, #434) : une citation verbatim ' +
   '« … » introuvable à la ligne que sa réf `<ABRÉV> NN l.X` annonce. Une ENTRÉE par SITE, clé ' +
@@ -290,7 +292,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
   const DOCS = pagesDeLAtlasRendues(rawDir, { classes }, catalogues)
   const tally = { OK: 0, DRIFT: 0, MEDIUM: 0, LOW: 0, RANGE: 0, 'PAST-EOF': 0, 'NO-SOURCE': 0 }
   let totalRefs = 0, totalQuotes = 0, appliedTotal = 0, remappedTotal = 0
-  const lowRows = []   // [{ doc: chemin de la FICHE, full, detail }] — un SITE = une unité du cliquet
+  const lowRows = []   // [{ fichier: chemin de la FICHE, full, detail }] — un SITE = une unité du cliquet
   const nonRemappees = []   // [{ doc, ligne, full, detail }] — réf sur une ligne supprimée ou ambiguë
   const sections = []  // [{ file, rows }] pour le rapport
 
@@ -363,7 +365,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
         } else if (r.status === 'LOW') {
           const detail = `« ${snippet} » — ${r.reason}`
           rows.push({ full: lu, status: 'LOW', cited: c.depart, detail })
-          lowRows.push({ doc: path.split('\\').join('/'), full: lu, detail })
+          lowRows.push({ fichier: path.split('\\').join('/'), full: lu, detail })
         } else {
           rows.push({ full: lu, status: 'NO-SOURCE', detail: 'chapitre source introuvable' })
           tally['NO-SOURCE']++
@@ -431,7 +433,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
         } else if (r.status === 'LOW') {
           const detail = `« ${snippet} » — ${r.reason}`
           rows.push({ full, status: 'LOW', cited: citedStart, detail })
-          lowRows.push({ doc: path.split('\\').join('/'), full, detail })
+          lowRows.push({ fichier: path.split('\\').join('/'), full, detail })
         } else if (r.status === 'NO-SOURCE') {
           rows.push({ full, status: 'NO-SOURCE', detail: 'chapitre source introuvable' })
         }
@@ -457,7 +459,9 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
 }
 
 /** La RÉGÉNÉRATION du stock des réfs FAUSSES (`RegenerationDeStock`, `stockDeSites.mjs`), sur des
- *  sites LOW (par défaut, ceux du balayage de l'Atlas). */
+ *  sites LOW (par défaut, ceux du balayage de l'Atlas).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (lowRows = scan().lowRows) => [{
   chemin: LOW_STOCK_PATH,
   politique: SOUS_LOT,

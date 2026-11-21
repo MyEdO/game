@@ -8,7 +8,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
+import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES } from '../../scripts/guards/lib/integriteStock.mjs';
 import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
@@ -353,14 +353,15 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 // que la fabrique admet sans les solder. Le périmètre et la marche viennent du module PARTAGÉ avec la
 // migration (`scripts/data/lib/skillSpecWalk.mjs`) : une garde qui remarcherait la donnée à sa façon
 // mesurerait autre chose que le geste qu'elle garde.
+type SiteDIntegrite = Site & { famille: string };
 /** Un texte d'instance de Talent (`nonSpecialisable`, #1621), nommé par sa clé stable `fichier|porteur|refId|spec`. */
-type TexteDInstance = { key: string; site: EntreeDeSite };
+type TexteDInstance = { key: string; site: SiteDIntegrite };
 
 const empreinteIntegrite = (texte: string): string => createHash('sha256').update(texte).digest('hex');
-const siteIntegrite = (famille: string, fichier: string, owner: string, champ: string, id = '', texte = '') => ({ famille, file: fichier, ref: JSON.stringify([owner, champ, id, texte ? empreinteIntegrite(texte) : '']) });
+const siteIntegrite = (famille: string, fichier: string, owner: string, champ: string, id = '', texte = ''): SiteDIntegrite => ({ famille, fichier, ref: JSON.stringify([owner, champ, id, texte ? empreinteIntegrite(texte) : '']) });
 const fichiersDeSpecs = new Map(listerDocuments(REPO_ROOT).map((d) => [d.nom, d.chemin]));
-function ecartIntegrite(observe: EntreeDeSite[], stock: readonly EntreeDeSite[], observation = false): void {
-  const normalise = sitesEnEntrees(observe.map((s) => ({ famille: s.famille, file: s.fichier, ref: s.ref })));
+function ecartIntegrite(observe: readonly SiteDIntegrite[], stock: readonly EntreeDeSite[], observation = false): void {
+  const normalise = sitesEnEntrees(observe);
   const ecart = ecartsDeStock({ observe: normalise, stock, cle: cleDeSite, remede: {
     neuve: (cle, entree) => entree.famille === 'dotation-texte'
       ? `${cle} — migrer la dotation en référence typée (#622).`
@@ -382,21 +383,22 @@ describe('intégrité des collections nominatives', () => {
     ['talents-sentinelles', 'talent-sentinelle', false],
     ['dotations-textes', 'dotation-texte', false],
   ] as const) {
-    const original = { famille, fichier: 'src/data/fixture.json', ref: JSON.stringify(['proprietaire-fixture', 'champ-fixture', 'reference-fixture', 'empreinte-fixture']), occurrence: 1 };
+    const site = { famille, fichier: 'src/data/fixture.json', ref: JSON.stringify(['proprietaire-fixture', 'champ-fixture', 'reference-fixture', 'empreinte-fixture']) };
+    const original = { ...site, occurrence: 1 };
     const stock = [original];
     it(`${nom} : un échange d'identité à cardinal constant rougit`, () => {
-      const observe = [{ ...original, ref: `${original.ref}~mutation` }];
+      const observe = [{ ...site, ref: `${original.ref}~mutation` }];
       expect(() => ecartIntegrite(observe, [original], observation)).toThrow(/Entrées neuves/);
     });
     it(`${nom} : la baisse conserve son régime`, () => {
       if (observation) {
         expect(() => ecartIntegrite([], [stock[0]], true)).not.toThrow();
-        expect(() => ecartIntegrite([{ ...stock[0], ref: `${stock[0].ref}~mutation` }], [stock[0]], true)).toThrow(/Entrées neuves/);
+        expect(() => ecartIntegrite([{ ...site, ref: `${stock[0].ref}~mutation` }], [stock[0]], true)).toThrow(/Entrées neuves/);
       }
       else expect(() => ecartIntegrite([], [stock[0]])).toThrow(/Entrées soldées/);
     });
     it(`${nom} : une identité de stock répétée rougit`, () => {
-      expect(() => ecartIntegrite([original], [original, original], observation)).toThrow(/Stock dupliqué/);
+      expect(() => ecartIntegrite([site], [original, original], observation)).toThrow(/Stock dupliqué/);
     });
   }
 });
@@ -424,10 +426,10 @@ const partiellesDeCreatures = (): [string, EntreeDeSpecs[]][] => {
  */
 function collecteSpecs(
   arrName: 'skills' | 'talents',
-): { textes: TexteDInstance[]; nues: { where: string; book: string; refId: string; site: EntreeDeSite }[]; sentinelles: EntreeDeSite[] } {
+): { textes: TexteDInstance[]; nues: { where: string; book: string; refId: string; site: SiteDIntegrite }[]; sentinelles: SiteDIntegrite[] } {
   const textes: TexteDInstance[] = [];
-  const nues: { where: string; book: string; refId: string; site: EntreeDeSite }[] = [];
-  const sentinelles: EntreeDeSite[] = [];
+  const nues: { where: string; book: string; refId: string; site: SiteDIntegrite }[] = [];
+  const sentinelles: SiteDIntegrite[] = [];
   const listes: [string, EntreeDeSpecs[]][] = [
     ['creatures', creatures], ['careerLevels', careerLevels], ['species', species], ...partiellesDeCreatures(),
   ] as [string, EntreeDeSpecs[]][];
@@ -438,7 +440,7 @@ function collecteSpecs(
       const owner = entry.id;
       const fichier = fichiersDeSpecs.get(file.endsWith('.json') ? file : `${file}.json`);
       if (!fichier) throw new Error(`${file} : document absent du corpus`);
-      const site = (famille: string, node: { id: string; spec?: string }) => sitesEnEntrees([siteIntegrite(famille, fichier, owner, arrName, node.id, node.spec ?? '')])[0];
+      const site = (famille: string, node: { id: string; spec?: string }) => siteIntegrite(famille, fichier, owner, arrName, node.id, node.spec ?? '');
       walkSkillRefs(entry, (node) => {
         const type = arrName === 'skills' ? 'skill' : 'talent';
         const catalogue = catalogueSpecs(type, node.id).length > 0;
@@ -543,7 +545,7 @@ describe('careerLevels.trappings — dotations textuelles nommées', () => {
       };
       walk(niveau.trappings);
     }
-    ecartIntegrite(sitesEnEntrees(sites), DOTATIONS_TEXTES);
+    ecartIntegrite(sites, DOTATIONS_TEXTES);
   });
 });
 

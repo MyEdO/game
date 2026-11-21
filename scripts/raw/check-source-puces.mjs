@@ -76,13 +76,13 @@ export const refDeSuite = (jeton, contenu) => `« ${jeton} » :: ${normText(cont
  * Sites d'UN chapitre (PUR : aucun accès disque) : les suites d'au moins DEUX items consécutifs
  * partageant le même jeton. Une ligne VIDE ne rompt pas la suite (l'extraction sépare souvent les
  * items par un blanc) ; toute autre ligne la rompt.
- * @param {string} texte @param {string} file @returns {import('../guards/lib/stock.mjs').Site[]}
+ * @param {string} texte @param {string} fichier @returns {import('../guards/lib/stock.mjs').Site[]}
  */
-export function sitesDuChapitre(texte, file) {
+export function sitesDuChapitre(texte, fichier) {
   const out = []
   let suite = null
   const solder = () => {
-    if (suite && suite.items.length >= 2) out.push({ file, ref: refDeSuite(suite.jeton, suite.items[0]) })
+    if (suite && suite.items.length >= 2) out.push({ fichier, ref: refDeSuite(suite.jeton, suite.items[0]) })
     suite = null
   }
   for (const ligne of String(texte).split('\n')) {
@@ -122,7 +122,7 @@ export function comptesParLivre(sites, books = BOOKS) {
   const parDir = new Map(books.map(([abbr, dir]) => [`${String(dir).split('\\').join('/').replace(/\/$/, '')}/`, abbr]))
   const out = new Map(books.map(([abbr]) => [abbr, 0]))
   for (const s of sites) {
-    for (const [prefixe, abbr] of parDir) if (s.file.startsWith(prefixe)) { out.set(abbr, out.get(abbr) + 1); break }
+    for (const [prefixe, abbr] of parDir) if (s.fichier.startsWith(prefixe)) { out.set(abbr, out.get(abbr) + 1); break }
   }
   return out
 }
@@ -140,7 +140,9 @@ const QUOI =
 
 /** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sites (par défaut, la
  *  mesure de tous les livres). L'ordre du BALAYAGE n'entre pas dans le fichier : réordonner
- *  `src/data/books.json` ne le réécrit pas (#1825). */
+ *  `src/data/books.json` ne le réécrit pas (#1825).
+ * @returns {import('../guards/lib/stockDeSites.mjs').RegenerationDeStock[]}
+ */
 export const regenerations = (sites = scanAllBooks()) => [{
   chemin: STOCK_PATH,
   politique: SOUS_LOT,
@@ -154,7 +156,7 @@ function main() {
 
   const parLivre = [...comptesParLivre(sites)].filter(([, n]) => n > 0).map(([a, n]) => `${a} ${n}`)
   console.log(
-    `puces lues comme un jeton : ${sites.length} site(s) sur ${new Set(sites.map((s) => s.file)).size} chapitre(s)` +
+    `puces lues comme un jeton : ${sites.length} site(s) sur ${new Set(sites.map((s) => s.fichier)).size} chapitre(s)` +
       ` — ${parLivre.join(', ') || 'aucun livre porteur'}`,
   )
   const { neuves, perimees } = ecartDuVolet({ sites, stock, ou: 'source-puces-stock.json' })

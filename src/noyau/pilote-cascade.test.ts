@@ -64,7 +64,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   });
   /** Les sites du corpus, la suite `cible` remesurée sur `texte`. */
   const avec = (texte: string): Site[] => [
-    ...mesure().sites.filter((s) => s.file !== cible().rel),
+    ...mesure().sites.filter((s) => s.fichier !== cible().rel),
     ...sitesPiloteCascade([{ rel: cible().rel, text: texte }]),
   ];
   /** `cible`, précédée de déclarations de MODULE, suivie d'un `it('morsure')` qui porte `corps`. */

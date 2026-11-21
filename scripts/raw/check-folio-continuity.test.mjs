@@ -144,17 +144,17 @@ test('sitesDeSauts : un site = le CHAPITRE EXTRAIT et le saut lui-même, jamais 
     assert.equal(gaps.length, 2, 'deux sauts dans le MÊME chapitre')
     const sites = sitesDeSauts(gaps)
     assert.deepEqual(sites.map((s) => s.ref), ['TEST 1 1→4', 'TEST 1 4→8'], 'chaque saut a sa propre clé')
-    for (const s of sites) assert.equal(s.file, `${dir.split('\\').join('/')}/01 - Chapitre.md`, 'le site nomme le chapitre par son CHEMIN')
+    for (const s of sites) assert.equal(s.fichier, `${dir.split('\\').join('/')}/01 - Chapitre.md`, 'le site nomme le chapitre par son CHEMIN')
   })
 })
 
-test('scanBookDir : `path` est le chemin POSIX du chapitre, celui que la porte de plage reconnaît', () => {
+test('scanBookDir : `fichier` est le chemin POSIX du chapitre, celui que la porte de plage reconnaît', () => {
   // Le corpus RENVOIE le livre : le premier saut mesuré fait foi — aucun sigle ni rang écrit ici.
   let gap, dir
   for (const [a, d] of BOOKS) { gap = scanBookDir(a, d)[0]; dir = d; if (gap) break }
   assert.ok(gap, 'le corpus `Source/` porte au moins un saut de folio mesuré')
-  assert.equal(gap.path, `${dir}/${gap.file}`)
-  assert.match(gap.path, /^Source\/[^\\]+\.md$/, 'racine `Source/`, séparateurs POSIX, extension `.md`')
+  assert.equal(gap.fichier, `${dir}/${gap.file}`)
+  assert.match(gap.fichier, /^Source\/[^\\]+\.md$/, 'racine `Source/`, séparateurs POSIX, extension `.md`')
 })
 
 test('stock COMMITTÉ : chaque saut mesuré y a son entrée, et aucune entrée n’est soldée', () => {
@@ -218,7 +218,7 @@ test('régénérateur : ré-écrire le stock en place rend le MÊME octet', () =
 // un livre ailleurs qu'à la fin) forcerait à réécrire un artefact, et le critère « un livre de plus =
 // UNE entrée de books.json » tomberait. Registre INJECTÉ (`scanAllBooks(books)`), jamais le fichier.
 test('#1825 le rendu du stock est INDIFFÉRENT à l’ordre du registre (registre inversé)', () => {
-  const sitesDe = (books) => sitesDeSauts(scanAllBooks(books)).map((s) => `${s.file} :: ${s.ref}`)
+  const sitesDe = (books) => sitesDeSauts(scanAllBooks(books)).map((s) => `${s.fichier} :: ${s.ref}`)
   const rendu = (books) => texteRegenere(regenerations(scanAllBooks(books))[0], { enPlace: texteEnPlace(STOCK_PATH) }).texte
   const inverse = [...BOOKS].reverse()
   assert.notDeepEqual(sitesDe(inverse), sitesDe(BOOKS), 'le balayage rend le même ordre : sonde inerte')
