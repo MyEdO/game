@@ -17,8 +17,6 @@ import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 // (aucune de ces entrées ne porte de joker).
 const GARDES_NOMMEES = new Set([
   'label-logic-guard.test.ts',
-  'ui-ratchets.test.ts',
-  'component-conformance.test.ts',
   'no-emoji-affordance.test.ts',
   'comment-poison-guard.test.ts',
 ])

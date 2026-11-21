@@ -326,15 +326,11 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
   it('un document SCELLÉ par `document()` déclare ses clés — jamais zéro', () => {
     const scelles = DECLARES.filter((d) => d.racine.startsWith('pipe<'));
     expect(scelles.length, 'aucun document scellé au registre : le contrat ci-dessous ne mesurerait rien.').toBeGreaterThan(40);
-    // Les SEULS documents scellés sans clé à rendre sont les deux records de valeur SCALAIRE :
-    // `decorPalette.ts:18,31` et `teintesJeu.ts:140` déclarent `{}` champs et une `valeurRecord`
-    // chaîne (palettes hex). La liste est NOMINATIVE, pas un filtre : un muet de plus sort par son
-    // nom — c'est ainsi que se voit un relevé qui lirait la SORTIE du pipe (un `transform` sans clé)
-    // au lieu de son nœud PORTEUR.
+    // Chaque document scellé du corpus porte des clés sur le nœud porteur du pipe.
     expect(
       scelles.filter((d) => Object.keys(d.cles).length === 0).map((d) => `${d.file} (${d.note})`).sort(),
       'document(s) scellé(s) rendant ZÉRO clé déclarée — `introspecterDefs` (`scripts/docs/lib/zod-introspect.mts`) doit lire le nœud PORTEUR du pipe.',
-    ).toEqual(['decorPalette.json (non-objet(string))', 'teintesJeu.json (non-objet(string))']);
+    ).toEqual([]);
     // Nominatif : un `config` (`crew-morale.ts:18-48`) et un `record` enveloppé rendent LEURS clés,
     // pas seulement celles que la fabrique pose d'office.
     expect(Object.keys(DECLARES.find((d) => d.file === 'crew-morale.json')!.cles).sort()).toEqual(
@@ -1155,7 +1151,7 @@ describe('marcheur du scan : le champ porteur d’un objet (`parcourir`)', () =>
 });
 
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
-  it('une façade et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', () => {
+  it('une façade et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -1251,23 +1247,23 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
  */
 describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVELOPPÉ', () => {
   const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
-  it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', { timeout: 60_000 }, () => {
+  it('une collision entre deux clés d’`entries` remonte à l’index ; leurs enveloppes en restent hors', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-record-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      // Record ENVELOPPÉ sonde : sa seule clé de charge est celle d'une teinte réelle — le scan doit
-      // donc voir une COLLISION d'id entre les deux documents.
-      writeFileSync(
-        join(copie, 'src/data/sonde-record.json'),
-        JSON.stringify({ id: 'sonde-record', type: 'sondeRecord', label: 'Sonde record', maison: 'sonde', entries: { 'zone-marche': '#123456' } }),
-        'utf8',
-      );
       const sonde = document('sondeRecord', 'record', {}, {}, expositionDeSonde, { valeurRecord: z.string() });
-      const apres = scannerDonnees(copie, [...DEFS, { file: 'sonde-record.json', root: 'src/data', famille: 'record', schema: sonde.schema }], CHOIX, CHOIX_OPS);
-      const collision = apres.index.collisions.find((c) => c.id === 'zone-marche');
-      expect(collision?.datasets, 'la clé d’`entries` n’est pas indexée : le régime `valeurs` n’est pas descendu sous l’enveloppe.').toEqual([
-        'sonde-record.json',
-        'teintesJeu.json',
+      const fixtures = ['sonde-record-a', 'sonde-record-b'].map((id) => {
+        const file = `${id}.json`;
+        writeFileSync(join(copie, 'src/data', file), JSON.stringify({
+          id, type: 'sondeRecord', label: id, maison: 'sonde', entries: { 'cle-de-charge': '#123456' },
+        }), 'utf8');
+        return { file, root: 'src/data' as const, famille: 'record' as const, schema: sonde.schema };
+      });
+      const apres = scannerDonnees(copie, [...DEFS, ...fixtures], CHOIX, CHOIX_OPS);
+      const collision = apres.index.collisions.find((c) => c.id === 'cle-de-charge');
+      expect(collision?.datasets, 'la clé d’`entries` doit être indexée dans chaque record enveloppé.').toEqual([
+        'sonde-record-a.json',
+        'sonde-record-b.json',
       ]);
       expect(
         apres.index.collisions.filter((c) => ['entries', 'label', 'type'].includes(c.id)).map((c) => c.id),

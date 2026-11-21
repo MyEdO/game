@@ -81,10 +81,6 @@ function formaterTrait(t: TraitPose, lireArg: (id: string, def: TraitData | unde
   return isAttack ? `${head}${val}${rel}${arg}${range}${conferes}` : `${head}${arg}${rel}${val}${range}`;
 }
 
-/** `TraitList` → libellés affichables (UI/Codex) : chaque `TraitInstance` par `traitLisible`. */
-export const traitLabels = (traits: readonly TraitPose[] | undefined): string[] =>
-  (traits ?? []).map((t) => traitLisible(t));
-
 /** Libellé d'un OPTIONNEL (LDB 76) : un `TraitInstance` ordinaire est dit par `traitLisible` ; une
  *  NOTE composée (joker « Tous les traits », variante « swap ») affiche son `label` source VERBATIM.
  *  SOURCE UNIQUE d'affichage des `optionals` — jamais `traitLisible` sur une note (sinon libellé `undefined`). */

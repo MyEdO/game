@@ -133,12 +133,3 @@ export function optionsDuNoeud(noeud: unknown): [string, string][] {
 export function libelleDeValeur(noeud: unknown, valeur: string): string {
   return valeursDe(noeud)?.[valeur] ?? valeur;
 }
-
-/**
- * HINT MÉCANIQUE d'une VALEUR d'un nœud énuméré — ce que la règle FAIT quand cette valeur est choisie,
- * tel que `enumNomme` l'a posé SUR LE NŒUD ; `undefined` quand la valeur n'en porte pas (une option
- * sans conséquence mécanique n'invente pas d'infobulle).
- */
-export function hintDeValeur(noeud: unknown, valeur: string): string | undefined {
-  return (noyauEnum(noeud)?.meta?.() as { hints?: Readonly<Record<string, string>> } | undefined)?.hints?.[valeur];
-}

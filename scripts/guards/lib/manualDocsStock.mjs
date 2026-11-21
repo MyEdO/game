@@ -26,7 +26,5 @@ export const MANUAL_DOCS_STOCK = new Set([
   'docs/ajouter-un-livre-source.md', // recette : ajouter un livre source (pipeline complet)
   'docs/architecture.md', // carte d'architecture — où trouver quoi
   'docs/campagne-authoring.md', // carte des coutures d'auteur de campagne
-  'docs/charte-ui.md', // charte UI
   'docs/combat-events-coherence.md', // doctrine des événements de combat
-  'docs/recette-navigateur.md', // recette de validation navigateur (Playwright MCP)
 ])

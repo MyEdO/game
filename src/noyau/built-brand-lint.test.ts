@@ -14,7 +14,7 @@ import { virtualProgram, libererSessions } from '../../scripts/guards/lib/tsProg
 import { readFileSync } from 'node:fs';
 
 /** Fichier de test SOUS le périmètre de la règle (jamais un minteur, qui est exempté). */
-const SOUS_LA_REGLE = 'src/state/__sonde-verrou-marque.ts';
+const SOUS_LA_REGLE = 'src/noyau/__sonde-verrou-marque.ts';
 
 const eslint = creerBancLint();
 
@@ -45,11 +45,6 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     expect(await messagesDeVerrou(`${ENTETE}export const d = [] as unknown as readonly BuiltCascadeStep[];\n`)).toHaveLength(1);
   });
 
-  it('la marque JUMELLE (`BuiltRollRow`, monteur de rangée) est murée par la même règle', async () => {
-    const code = "import type { BuiltRollRow } from '../ui/rollRowBuild';\ndeclare const o: unknown;\nexport const e = o as BuiltRollRow;\n";
-    expect(await messagesDeVerrou(code)).toHaveLength(1);
-  });
-
   it('LIMITE ASSUMÉE : annoter une valeur déjà élargie passe — aucun nœud de cast à interdire', async () => {
     const code = "import type { BuiltCascadeStep } from '../noyau/stepBrand';\ndeclare const brut: any;\nexport const f: BuiltCascadeStep = brut;\n";
     expect(await messagesDeVerrou(code), 'documentée au JSDoc de `stepBrand.ts` — jamais un oubli').toHaveLength(0);
@@ -57,17 +52,17 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
 
   /**
    * LA ROUTE DE L'ALIAS (#1262 V3 Lf) — les sélecteurs de cast filtrent par NOM d'identifiant : une
-   * seule ligne (`type A = BuiltRollRow`) suffisait à sortir du radar, et le cast passait alors tsc ET
+   * seule ligne (`type A = BuiltCascadeStep`) suffisait à sortir du radar, et le cast passait alors tsc ET
    * eslint (mesuré EXIT 0 avant fermeture). L'alias est donc refusé À SA DÉCLARATION — mais seulement
    * quand le type ALIASÉ EST la marque : « aucun alias légitime n'existe » est FAUX, mesuré (4 sites,
    * `nightBands.ts` l.104/115/116 + `cascade.ts` l.57, types de CALLBACK qui exigent des étapes
    * mintées). Employer la marque dans une signature n'est pas la déguiser — les deux cas sont ici.
    */
-  it('`type A = BuiltRollRow` — l’ALIAS est refusé à sa DÉCLARATION (sinon le cast repasse par un autre nom)', async () => {
+  it('`type A = BuiltCascadeStep` — l’ALIAS est refusé à sa DÉCLARATION (sinon le cast repasse par un autre nom)', async () => {
     const code = [
-      "import type { BuiltRollRow } from '../ui/rollRowBuild';",
+      "import type { BuiltCascadeStep } from './stepBrand';",
       'declare const o: unknown;',
-      'type AliasSonde = BuiltRollRow;',
+      'type AliasSonde = BuiltCascadeStep;',
       'export const i = o as AliasSonde;',
     ].join('\n');
     expect(await messagesDeVerrou(code), 'la route alias doit être MURÉE, pas seulement dite').toHaveLength(1);
@@ -99,7 +94,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
 
   it('LIMITE ASSUMÉE : le RENOMMAGE À L’IMPORT échappe encore — dit au JSDoc de `stepBrand.ts`, jamais un oubli', async () => {
     const code = [
-      "import type { BuiltRollRow as S } from '../ui/rollRowBuild';",
+      "import type { BuiltCascadeStep as S } from './stepBrand';",
       'declare const o: unknown;',
       'export const k = o as S;',
     ].join('\n');
@@ -110,7 +105,6 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
   it.each([
     ['src/noyau/rollSeam.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
     ['src/noyau/revealStep.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
-    ['src/ui/rollRowBuild.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltRollRow;'],
     ['src/i18n/index.ts', "export const forge = 'sonde' as PlayerText;"],
   ])('le minteur `%s` lint propre, et un SECOND cast y rougit', async (fichier, second) => {
     const [res] = await eslint.lintFiles([fichier]);
@@ -394,35 +388,6 @@ describe('#1262 V2 L6d — la sonde du murage de l’ENJEU des étapes MONO est 
 });
 
 /**
- * LA RANGÉE DE JET EST MURÉE AU TYPE (#1262 V3 Lf) — jumelle de la marque d'étape : `BuiltRollRow`
- * porte une propriété REQUISE et `RollShell.rows` l'exige (`readonly BuiltRollRow[]`), donc
- * un littéral monté à la main ne compile plus. C'est ce requis qui a REMPLACÉ le cliquet de comptage
- * `ui/roll-row-mount-ratchet.test.ts` (mort au même lot) : sans cette sonde, plus rien ne mesurerait
- * la porte au type, et un retour à la propriété optionnelle passerait en silence.
- *
- * Deux signatures rejouées sur un programme TypeScript réel : requise, la directive est consommée ;
- * optionnelle (l'état d'avant), le littéral nu passe et la directive devient INUTILISÉE (TS2578).
- */
-const SONDE_RANGEE = (marque: 'readonly [BRAND]: true' | 'readonly [BRAND]?: true') => `
-declare const BRAND: unique symbol;
-type RollRowData = { row: { d?: { roll: number } }; rolled?: boolean; onRoll?: () => void };
-type BuiltRollRow = RollRowData & { ${marque} };
-declare function RollShell(props: { rows: readonly BuiltRollRow[] }): void;
-// @ts-expect-error — rangée montée À LA MAIN : la marque de la porte est absente
-RollShell({ rows: [{ row: {}, rolled: false }] });
-`;
-
-describe('#1262 V3 Lf — le murage de la RANGÉE de jet est TUEUR', () => {
-  it('marque REQUISE : la directive est CONSOMMÉE — zéro diagnostic', () => {
-    expect(codesDeDiagnostic(SONDE_RANGEE('readonly [BRAND]: true'))).toEqual([]);
-  });
-
-  it('marque OPTIONNELLE (l’état d’avant) : le littéral nu passe, la directive devient INUTILISÉE (TS2578)', () => {
-    expect(codesDeDiagnostic(SONDE_RANGEE('readonly [BRAND]?: true')), 'sans ce rouge, la mort du cliquet laisserait un trou').toContain(2578);
-  });
-});
-
-/**
  * UN CHOIX N'EST JAMAIS DE GROUPE — MURÉ AU TYPE (#1262 V4 M2). `groupOwner` fait rendre l'owner `'*'`
  * par l'arbitre ; le choix, lui, se pose au niveau de l'ÉTAPE (`setCascadeChoice`) et n'a pas de
  * porteur — n'importe quel siège trancherait la voie d'autrui. La garde RUNTIME qui le vérifiait
@@ -606,13 +571,13 @@ describe('#1318 V8a₀ T1/T2 — le lint mure les CONTENEURS qui blanchissent le
 
   it('T2 : `x as CascadeStep` est REFUSÉ dans un fichier de flux', async () => {
     const code = "import type { CascadeStep } from '../noyau/pendings';\ndeclare const o: unknown;\nexport const a = o as CascadeStep;\n";
-    const [res] = await eslint.lintText(code, { filePath: 'src/state/__sonde-conteneur.ts' });
+    const [res] = await eslint.lintText(code, { filePath: 'src/noyau/__sonde-conteneur.ts' });
     expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(1);
   });
 
   it('T2 : le même cast dans un fichier de TEST passe — le stock y est GELÉ au cliquet, pas muré', async () => {
     const code = "import type { CascadeStep } from '../noyau/pendings';\ndeclare const o: unknown;\nexport const b = o as CascadeStep;\n";
-    const [res] = await eslint.lintText(code, { filePath: 'src/state/__sonde-conteneur.test.ts' });
+    const [res] = await eslint.lintText(code, { filePath: 'src/noyau/__sonde-conteneur.test.ts' });
     expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'la portée du sélecteur est un CHOIX mesuré, pas un oubli').toHaveLength(0);
   });
 

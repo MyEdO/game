@@ -1,7 +1,7 @@
 /**
  * KIT DE TEST du PARTAGE par identité (#2097) : ce qu'une racine de l'état atteint, les objets des
  * SOURCES de donnée (catalogue `src/data`, scènes, narratif de campagne), et le verdict de la garde
- * de résultat posée après chaque test par `src/test-setup.ts` et `src/test-setup-noyau.ts`.
+ * de résultat posée après chaque test par `src/test-setup-noyau.ts`.
  */
 import * as donnees from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
@@ -95,7 +95,7 @@ export function partagesDeLEtat(etat: object, autresSources: readonly unknown[] 
     .map(([chemin, ou]) => `${chemin} → ${ou}`);
 }
 
-/** Verdict de la garde de partage, jouée après chaque test (`src/test-setup.ts` §5, `src/test-setup-noyau.ts`) : les chemins de l'état vers une donnée, ou `null`. */
+/** Verdict de la garde de partage, jouée après chaque test (`src/test-setup-noyau.ts`) : les chemins de l'état vers une donnée, ou `null`. */
 export function messagePartage(partages: readonly string[]): string | null {
   if (!partages.length) return null;
   return (

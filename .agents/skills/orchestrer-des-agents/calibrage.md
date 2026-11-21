@@ -14,7 +14,7 @@ Annexe du skill `orchestrer-des-agents` (`.agents/skills/orchestrer-des-agents/S
 | Élément 3D (GLB et manifeste schéma 3) | `modeleur` | fable | medium |
 | Conception de maquette d'interface (fiche `user-doctrine-fable-reserve-au-design`) | `general-purpose` | fable | medium |
 | Écran de l'hôte Godot depuis sa maquette | `ecraniste` | opus | medium |
-| Recette navigateur en joueur | `recetteur` | sonnet | medium |
+| Recette Godot en joueur | `recetteur` | sonnet | medium |
 | Joueur cloisonné de table simulée | `joueur` | sonnet | low |
 | MJ de table simulée | `mj-de-table` | sonnet | medium |
 | Juge de workflow contre le `Source/` (complétude, fidélité, analyse) | `juge-de-source` | opus | high |

@@ -10,12 +10,8 @@
  * i18n (garde `noyau/roll-line-combat.hors-store.test.ts`).
  */
 import { avecSigne, DIFFICULTY_LABELS, type Difficulty } from '../engine/types';
-import type { DifficultyShown, ModLine } from '../engine/combat';
+import type { DifficultyShown } from '../engine/combat';
 import { t } from '../i18n';
-
-/** Un modificateur TEL QU'IL SE LIT (« +10 Soutien », « −20 Localisation visée ») — source UNIQUE : la chip du web le
- *  rend, le popover du palier dérivé énumère sa composition avec la MÊME écriture, et tout hôte l'écrit ainsi. */
-export const texteDuMod = (m: ModLine): string => `${avecSigne(m.value)} ${m.label}`;
 
 export function difficultyText(difficulty: Difficulty, combined?: number): string {
   return combined != null

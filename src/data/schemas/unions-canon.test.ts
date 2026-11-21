@@ -87,8 +87,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
    *
    * PÉRIMÈTRE MESURÉ (2026-08-26, scan sur 3438 fichiers) : la recopie que cette garde
    * ferme est celle de l'union COMPLÈTE — les 4 membres re-tapés ensemble, `recopieDeCanon({ nom:
-   * 'WALL_SIDES', membres, complet: true })`. Il en reste 2 : le canon lui-même, son foyer
-   * (`defs-scenes/communs.ts`), et `AXIS_OF` d'`authoring/detailSvg.ts` (exempté ci-dessous).
+   * 'WALL_SIDES', membres, complet: true })`. Le foyer du canon est `defs-scenes/communs.ts`.
    *
    * Le seuil GÉNÉRIQUE de `recopieDeCanon` (≥2 membres) ne convient PAS ici : il rapporte 102 sites, dont
    * 100 ne re-déclarent PAS l'union. Trois familles y coexistent : les SOUS-ENSEMBLES cardinaux `'N','E'`
@@ -99,11 +98,6 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
    * au foyer et étendre le canon au seuil ≥2 : dette #1515.
    */
   it('l’arête de mur : l’union COMPLÈTE n’est re-tapée NULLE PART hors du canon', () => {
-    /** Le SEUL site qui re-tape les 4 membres hors canon, et pourquoi il n'en est pas une recopie :
-     *  `AXIS_OF` mappe les SIX orientations d'arête de la planche (N/S/E/O + les 2 diagonales) vers
-     *  ses 4 axes de motif — un vocabulaire de dessin plus large que l'arête de mur, dont l'union
-     *  n'est pas le canon (il porte `S` et `O`, que `wallSideSchema` n'a pas). */
-    const EXEMPTIONS = ['src/gameIso/authoring/detailSvg.ts#AXIS_OF'];
     const arete = {
       ...recopieDeCanon({ nom: 'WALL_SIDES', membres: wallSideSchema.options, complet: true }),
       foyer: ['src/data/schemas/defs-scenes/communs.ts', ICI],
@@ -112,11 +106,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
     /** Un site = `fichier#déclaration` de premier niveau qui le porte (`declarationQuiPorte`, #2200). */
     const sites = constructionsReserveesDuCorpus(corpus, [arete])
       .map(({ rel, line }) => `${rel}#${declarationQuiPorte(ast(corpus.find((f) => f.rel === rel)!)!, line)}`);
-    const porteurs = (cle: string) => sites.filter((s) => s === cle).length;
-    expect(EXEMPTIONS.filter((cle) => cle.endsWith('#')), 'exemption sans DÉCLARATION nommée : la clé vaudrait clé de fichier').toEqual([]);
-    expect(EXEMPTIONS.filter((cle) => porteurs(cle) === 0), 'exemption PÉRIMÉE : la déclaration ne re-tape plus l’union').toEqual([]);
-    expect(EXEMPTIONS.filter((cle) => porteurs(cle) > 1), 'exemption AMBIGUË : la déclaration porte plusieurs recopies').toEqual([]);
-    expect(sites.filter((s) => !EXEMPTIONS.includes(s)), 'dériver du canon : `z.infer<typeof wallSideSchema>` / `wallSideSchema.options`').toEqual([]);
+    expect(sites, 'dériver du canon : `z.infer<typeof wallSideSchema>` / `wallSideSchema.options`').toEqual([]);
   });
 
   /**

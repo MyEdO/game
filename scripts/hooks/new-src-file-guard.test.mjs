@@ -87,9 +87,10 @@ test('un .tsx NEUF de src/gameIso est BLOQUÉ au même titre (32 .tsx mesurés, 
   assert.equal(estComposantUI('src/gameIso/builders/mur.ts'), false)
 })
 
-test('un composant qui EXISTE déjà (édition, pas création) ne déclenche rien', () => {
-  const inscrit = cheminEntree(JSON.parse(readFileSync(REGISTRE_DEFAUT, 'utf8')).ecrans[0])
-  const r = lance(join(REPO, inscrit))
+test('un module qui EXISTE déjà (édition, pas création) ne déclenche rien', () => {
+  const fichier = join(REPO, 'src/lib/ordre.mjs')
+  assert.ok(existsSync(fichier))
+  const r = lance(fichier)
   assert.equal(r.code, 0)
   assert.equal(r.out.trim(), '')
   assert.equal(r.err.trim(), '')
@@ -98,15 +99,17 @@ test('un composant qui EXISTE déjà (édition, pas création) ne déclenche rie
 test('primitive du MANIFESTE et écran du stock sont tous deux « déclarés »', () => {
   const manifeste = readFileSync(MANIFESTE_PRIMITIVES, 'utf8')
   const registre = JSON.parse(readFileSync(REGISTRE_DEFAUT, 'utf8'))
-  assert.ok(estDeclare('src/ui/NumberField.tsx', manifeste, registre), 'primitive du manifeste')
-  assert.ok(estDeclare(cheminEntree(registre.ecrans[0]), manifeste, registre, true), 'écran du stock, déjà dans l’arbre')
+  const primitive = JSON.parse(manifeste).find((e) => e.fichier && existsSync(join(REPO, e.fichier)))
+  assert.ok(primitive, 'aucune primitive déclarée et présente')
+  assert.ok(estDeclare(primitive.fichier, manifeste, registre), 'primitive du manifeste')
+  assert.ok(estDeclare(FANTOME, manifeste, { ecrans: [FANTOME] }, true), 'écran du stock, avec présence injectée')
   assert.ok(!estDeclare(FANTOME, manifeste, registre))
 })
 
 test('DISJONCTION (#1806 L3) : aucun `fichier` du manifeste des primitives n’est inscrit au registre des écrans', () => {
   const primitives = new Set(JSON.parse(readFileSync(MANIFESTE_PRIMITIVES, 'utf8')).map((e) => e.fichier))
   const registre = JSON.parse(readFileSync(REGISTRE_DEFAUT, 'utf8'))
-  assert.ok(primitives.size > 0 && registre.ecrans.length > 0, 'témoin : les deux listes sont lues')
+  assert.ok(primitives.size > 0 && Array.isArray(registre.ecrans), 'les deux registres sont lus')
   assert.deepEqual(registre.ecrans.map(cheminEntree).filter((f) => primitives.has(f)), [],
     'un composant est une primitive OU un écran : le retirer du registre des écrans')
 })

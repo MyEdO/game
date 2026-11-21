@@ -45,7 +45,7 @@ import { soldeDuRole, weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
   sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc,
-  cargoOverload, overloadMaxEnc, overloadHardCapPct, alterationsDuPort, profilDuMarche,
+  cargoOverload, overloadMaxEnc, alterationsDuPort, profilDuMarche,
   type PortProfile, type CargoLot, type AlterationDuMarche,
 } from '../engine/seaVoyage';
 import type { Formula, GameOp } from '../engine/ops';
@@ -167,12 +167,6 @@ export function vesselMaxLoadEnc(get: Get): number {
 /** Prix d'un lot de l'offre `offre` en CO (MDG 15 l.319-349, l.256) : sa remise, puis `pct`, l'effet du Marchandage. */
 function prixDuLotEnPort(enc: number, offre: Pick<PortOffer, 'basePrice' | 'remisePct'>, pct: number): number {
   return Math.max(0, Math.round(enc * offre.basePrice * (1 - (offre.remisePct ?? 0) / 100) * (1 + pct / 100)));
-}
-
-/** Cale du navire à l'escale : place libre nominale, Enc embarquable jusqu'au plafond dur, et ce plafond en %
- *  de la Contenance (MDG 12 l.70-75, donnée `hardCapPct`). Lue par l'écran du port. PUR. */
-export function caleALEscale(vessel: Jeu['vessel']): { libre: number; embarquable: number; plafondPct: number } {
-  return { libre: encLibreNominale(vessel), embarquable: encEmbarquable(vessel), plafondPct: overloadHardCapPct() };
 }
 
 /** Devis d'achat d'une cargaison à l'escale, AVANT Marchandage : Enc retenu (défaut : l'offre dans la place

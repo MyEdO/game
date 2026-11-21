@@ -11,7 +11,11 @@ import { stockageDuProcessus } from './stockage.mjs';
 let dossier: string | null = null;
 afterEach(() => { if (dossier) rmSync(dossier, { recursive: true, force: true }); dossier = null; });
 /** Un fichier de stockage sous un dossier neuf, que rien ne porte au disque. */
-const fichierNeuf = (): string => join((dossier = mkdtempSync(join(tmpdir(), 'wfrp-stockage-'))), 'sous', 'stockage.json');
+const fichierNeuf = (): string => {
+  const temporaire = mkdtempSync(join(tmpdir(), 'wfrp-stockage-'));
+  dossier = temporaire;
+  return join(temporaire, 'sous', 'stockage.json');
+};
 
 describe('stockageDuProcessus', () => {
   it('sans fichier, ses clés vivent en mémoire', () => {

@@ -81,30 +81,3 @@ export const DAY_PHASE_CATALOG: DayPhaseDef[] = [
 export function phaseOfKind(kind: string): string | undefined {
   return DAY_PHASE_CATALOG.find((p) => p.match(kind))?.key;
 }
-
-/** Groupe de lignes de récap PARTAGEANT une phase (rendu sectionné d'un jour CLOS). */
-export interface RecapLineGroup {
-  key: string;
-  /** Absent pour le groupe des lignes HORS agenda (météo, entretien…) — pas de titre de section. */
-  label?: string;
-  lines: RecapLine[];
-}
-
-/** Sectionne les lignes d'un jour CLOS par PHASE (dette 3, #349) — GRATUIT dès que les lignes portent
- *  `phase` (posé à l'émission, `travelFlow.stepRecapLines`) : même catalogue que l'agenda du jour EN
- *  COURS (`DAY_PHASE_CATALOG`), donc le MÊME regroupement, jamais une 2ᵉ mécanique. Les lignes SANS
- *  phase (météo, entretien, soins d'arrivée…) forment un groupe de tête sans titre — un jour mer/fleuve
- *  (aucune ligne phasée) retombe sur UN SEUL groupe, comportement inchangé. */
-export function groupRecapLinesByPhase(lines: RecapLine[]): RecapLineGroup[] {
-  const byKey = new Map<string, RecapLine[]>();
-  for (const l of lines) {
-    const key = l.phase ?? '';
-    if (!byKey.has(key)) byKey.set(key, []);
-    byKey.get(key)!.push(l);
-  }
-  const unphased = byKey.get('');
-  const phased = DAY_PHASE_CATALOG
-    .filter((p) => byKey.has(p.key))
-    .map((p): RecapLineGroup => ({ key: p.key, label: p.label, lines: byKey.get(p.key)! }));
-  return unphased?.length ? [{ key: '', lines: unphased }, ...phased] : phased;
-}

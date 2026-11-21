@@ -9,6 +9,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { activeCombatant, distanceDeCombat, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
@@ -26,7 +28,7 @@ function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...g
 
 /** La partie committée `nom`, rejouée jusqu'à sa ligne `lignes` (toutes par défaut) ; fermée après `faire`. */
 function aLaFixture(nom: string, faire: (r: PartieRejouee) => void, lignes?: number) {
-  const texte = readFileSync(new URL(`./${nom}`, import.meta.url), 'utf8');
+  const texte = readFileSync(join(fileURLToPath(new URL('.', import.meta.url)), nom), 'utf8');
   const { entete, gestes } = lireLeFichier(lignes === undefined ? texte : `${texte.split('\n').slice(0, lignes).join('\n')}\n`);
   enPartie(rejouer(entete, gestes), faire);
 }

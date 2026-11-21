@@ -70,7 +70,7 @@ import { editableDataset, editableObjectDataset } from './data/atelierDuCodex';
 import { allBuiltinCampaigns } from './scenes/campaign';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { cheminsCreditesJoues, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
-// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/prose-source-plugin.mjs';
 
 /** Les PANNES de la catégorie mesurée : chaque geste que la session lève, au lieu de l'écrire ou de le refuser, dit

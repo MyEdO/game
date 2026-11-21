@@ -50,12 +50,10 @@
  * LIMITES admises, chacune avec son COMPTE au corpus mesuré (2173 fichiers, 39 sites dont 3 exemptés) et
  * sa SONDE, collée au ticket : #1765 issuecomment-6195158339, références L-A à L-D :
  *  - un helper à DEUX niveaux : un helper qui n'atteint `pendingCascade` (ou un verbe) que par l'appel d'un
- *    autre helper n'est ni lecteur ni joueur, et ne prête rien à qui l'appelle — 4 occurrences, non
+ *    autre helper n'est ni lecteur ni joueur, et ne prête rien à qui l'appelle — 2 occurrences, non
  *    pilotes : `cascade-parite-porteur.test.ts` (`it:CONTRÔLE POSITIF — les trois politiques rendent TROIS
  *    conduites DISTINCTES (la sonde discrimine)`), `miscast-step.hors-store.test.ts` (`it:SONDE F — hors Colère, AUCUN
- *    modificateur n’est déclaré (le moteur n’en applique aucun)`), `scripts/recette/lib.test.mjs`
- *    (`test:tournerCamera : zéro sans événement, non fini et active refusés avant entrée`, `test:tournerCamera :
- *    angle immense et délai invalide refusés sans entrée`) (sonde : #1765 issuecomment-6195158339 L-B,
+ *    modificateur n’est déclaré (le moteur n’en applique aucun)`) (sonde : #1765 issuecomment-6195158339 L-B,
  *    variante `deuxNiveaux`) ;
  *  - une fonction dont une itération lit ou joue directement ne prête RIEN, pas même ce que sa LIGNE DROITE
  *    lit ou joue : une boucle qui lit et appelle une telle fonction dont la ligne droite joue n'est pas un
@@ -136,7 +134,6 @@ export const EXEMPTIONS: readonly ExemptionPilote[] = [
   { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade')\`)` },
   { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade', id)\`)` },
   { fichier: 'src/noyau/tavern-al-zahr.hors-store.test.ts', motif: /^it:ABANDON en cours de manche \(l\.17\) : FERMÉ « entre deux manches »/, raison: RAISON_ABANDON_REFUSE },
-  { fichier: 'src/ui/SequencePanel.test.tsx', motif: /^it:Fléchettes : un CHOIX dû après le jet — fermé, la raison nomme le choix/, raison: RAISON_ABANDON_REFUSE },
 ];
 
 /** Une itération-site repérée : son fichier, sa ligne (1-based), son contexte nommé, l'exemption qui la couvre. */

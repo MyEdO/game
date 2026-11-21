@@ -144,8 +144,8 @@ incrémentant `target.criticalWounds` (`noyau/combatFlow.ts`), **sans mourir** t
 - Un héros à Destin : `finalizeHeroDeath` pose `pendingFateSave` et **suspend** sans tuer.
 - Or Inconscient ⇒ `isOutOfAction` ⇒ devrait être filtré du ciblage. **S'ils continuent**, un invariant
   casse (gate IA vs `pendingFateSave` vs désync d'objet combattant).
-- **À pin par repro déterministe** (`__wfrp.scenario`/`fight` seedé + `__wfrp.battle()`/`log()` round par
-  round) avant tout correctif — ne pas deviner la ligne.
+- Épingler une reproduction à graine fixe avec le banc du noyau (`src/noyau/banc.testkit.ts`).
+  Relever l’état de combat et le journal à chaque round avant de corriger.
 
 ### 4c. Le maximum des Blessures suit ses porteurs, à toute écriture (#1463)
 

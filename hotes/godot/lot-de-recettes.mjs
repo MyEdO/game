@@ -89,7 +89,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Ce qu'un jeu attend dans son dossier avant d'être joué, `{ nom du jeu: (dossier, sortie) => code }`. */
 const PREPARER = {
   bord: (dossier, sortie) =>
-    spawnSync(process.execPath, ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', 'vitest.noyau.config.ts', 'hotes/godot/recettes/route-a-bord.hors-store.test.ts'], { cwd: RACINE, env: { ...process.env, ROUTE: dossier }, stdio: ['ignore', sortie, sortie] }).status,
+    spawnSync(process.execPath, ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', 'hotes/godot/recettes/route-a-bord.hors-store.test.ts'], { cwd: RACINE, env: { ...process.env, ROUTE: dossier }, stdio: ['ignore', sortie, sortie] }).status,
 }
 /** Le délai d'un jeu ; au-delà, `recette.mjs` reçoit SIGTERM et sort en éteignant son Chrome (`scripts/recette/lib.mjs`). */
 const DELAI_MS = 90 * 60 * 1000

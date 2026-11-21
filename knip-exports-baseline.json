@@ -7,9 +7,5 @@
   ],
   "src/noyau/portFlow.ts": [
     "PortState"
-  ],
-  "src/ui/editor/lowerLayerGabarit.ts": [
-    "lowerLayerMode",
-    "lowerLayerOpacity"
   ]
 }

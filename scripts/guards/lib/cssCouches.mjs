@@ -2,7 +2,7 @@
 // règles, des déclarations, deux prédicats, et les sites d'IDENTITÉ et d'ESPACEMENT d'une IMAGE
 // `{ fichiers, manifeste, partagees, reutilises }` — partitionnée en STOCK (modules d'écran et
 // `layout.css`) et zone EXEMPTE (`modulesExemptes`, #1806 L1), puis VENTILÉE d'un parent à son commit
-// (`ventiler`, #1806 D6″). Le VERDICT appartient aux gardes (`src/ui/ui-ratchets.test.ts`,
+// (`ventiler`, #1806 D6″). Le verdict de reclassement appartient aux lecteurs d’images Git (
 // `reclassementCss.mjs`) ; la LECTURE des images (disque, ref git, index) et des imports qui fixent
 // `reutilises` à `cssImages.mjs`. Pur `.mjs` parce que les hooks de commit et de push le chargent sous
 // `node` nu (#1806).
@@ -43,7 +43,9 @@ export function moduleHorsCouche(fichier, css) {
   if (!String(css).endsWith('.css')) return true;
   if (String(css).startsWith(RACINE_DES_MODULES)) return false;
   const z = zoneDe(String(fichier));
-  const zone = estZone(z) && z !== 'racine' ? `${dossierDe(z)}/` : null;
+  // Une image ancienne peut porter un dossier source absent de COUCHES aujourd’hui.
+  const zone = estZone(z) && z !== 'racine' ? `${dossierDe(z)}/`
+    : z?.startsWith('src/') ? `${z}/` : null;
   return zone === null || zone === 'src/ui/' || !String(css).startsWith(zone);
 }
 
@@ -167,7 +169,7 @@ export function declarations(corps) {
 
 /**
  * Corps INTERNE de la tranche `@media` dont le prélude est `requete`, accolades appariées.
- * Source UNIQUE des lectures par tranche (`src/ui/ui-ratchets.test.ts`, `src/ui/console/CombatConsole.test.tsx`).
+ * Source unique des lectures par tranche.
  * Une tranche ABSENTE lève : rendre `''` laissait passer au vert tout contrat qui l'interroge.
  * @param {string} css @param {string} requete @returns {string}
  */
@@ -203,7 +205,7 @@ export function baseSection(css) {
   }
 }
 
-/** Propriétés de PLACEMENT nommées une à une (docs/charte-ui.md § « Architecture CSS »), sous leur
+/** Propriétés de PLACEMENT nommées une à une, sous leur
  *  nom PHYSIQUE (`physique`) ; avec les familles à préfixe ci-dessous, elles forment TOUT le
  *  placement : elles PLACENT, bornent, ferrent ou retirent une puce — elles ne PEIGNENT pas. Tout le
  *  reste est de l'IDENTITÉ et appartient à une primitive. `cursor` est de l'identité : l'affordance est
@@ -335,7 +337,7 @@ export function valeurHorsEchelle(valeur) {
 }
 
 /** La couche LAYOUT : feuille partagée des primitives de PLACEMENT, mesurée comme un module d'écran —
- *  identité et espacement au stock (docs/charte-ui.md § « Architecture CSS »). */
+ *  identité et espacement au stock. */
 export const FEUILLE_LAYOUT = 'src/ui/styles/layout.css';
 
 /** Le manifeste des primitives, chemin UNIQUE : la frontière primitive / écran s'y lit. */

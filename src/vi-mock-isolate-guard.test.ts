@@ -4,11 +4,10 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
 import { estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
-import { RACINES_DE_LA_SUITE, SUITES_VITEST_DE_CI, estDeLaSuiteDuNoyau, estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
+import { RACINES_DE_LA_SUITE, estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 
 /**
- * Garde-fou `isolate: false` × mock de MODULE — les DEUX suites Vitest tournent avec `test.isolate: false` : la suite
- * principale (`vite.config.ts`) et celle du noyau (`vitest.noyau.config.ts`, #3412). Le graphe de modules est PARTAGÉ
+ * Garde-fou `isolate: false` × mock de MODULE — Vitest tourne avec `test.isolate: false` (`vitest.config.ts`, #3412). Le graphe de modules est PARTAGÉ
  * par worker. Un mock de module posé par un fichier de test n'atteint donc pas un module déjà évalué par un fichier
  * précédent du même worker : la liaison dépend de l'ordre des fichiers, lui-même fonction du nombre de cœurs — vert en
  * local, rouge en CI (repro 2026-07-28, 5 seeds `--sequence.shuffle` sur 5).
@@ -40,14 +39,14 @@ export function moduleMockHits(source: string, label: string): string[] {
   return out;
 }
 
-/** Les configs à graphe partagé : la suite principale et chaque suite Vitest de la CI (`SUITES_VITEST_DE_CI`), LUES. */
-const CONFIGS = ['vite.config.ts', ...Object.values(SUITES_VITEST_DE_CI).map((s) => s.config as string)]
+/** La configuration du graphe partagé par les tests locaux et la CI. */
+const CONFIGS = ['vitest.config.ts']
   .map((config) => ({ config, texte: readFileSync(join(ROOT, config), 'utf8') }));
 
 /** Ce que ces suites chargent dans le graphe partagé : leurs fichiers de test, leurs kits (`estKitDeTest`) et leurs
  *  setups — un mock posé par un kit lie au même ordre que celui d'un fichier de test qui l'importe. */
 const chargeParLesSuites = (rel: string): boolean =>
-  estDeLaSuiteVitest(rel) || estDeLaSuiteDuNoyau(rel) || estKitDeTest(rel) || /^src\/test-setup[^/]*\.ts$/.test(rel);
+  estDeLaSuiteVitest(rel) || estKitDeTest(rel) || /^src\/test-setup[^/]*\.ts$/.test(rel);
 
 describe.each(CONFIGS)('garde-fou — $config partage son graphe de modules', ({ config, texte }) => {
   it('la garde s\'arme sur l\'état RÉEL de la config (`isolate: false` lu, jamais supposé)', () => {

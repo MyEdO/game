@@ -557,7 +557,7 @@ export interface DocumentDuProjet<T> {
 
 /** Les documents du projet édité : la scène montrée, sous son identifiant, la carte du monde et le narratif, chacun seul
  *  de sa sorte au projet, sous elle, et ses réglages (`ReglagesDuProjet`), sous `projet`, lus et écrits au projet, sous
- *  son schéma : ses axes actifs absents valent le socle (`resolveActiveAxes`). La carte absente du projet en reçoit une vide (`emptyWorldMap`), sous un identifiant
+ *  son schéma, où les axes actifs sont facultatifs. La carte absente du projet en reçoit une vide (`emptyWorldMap`), sous un identifiant
  *  qu'aucune de ses scènes ne porte : la validation range ses avertissements sous lui (`Warning.sceneId`). #3606 */
 export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<TypesDesDocuments[K]> } = {
   scene: {

@@ -21,6 +21,7 @@ import { campaignStart, dayIndex } from '../engine/clock';
 import type { NavalPossessionState, Possession } from '../engine/possession';
 import type { MerchantState, MerchantStocks } from './merchantFlow';
 import type { FinDeSeance } from './partyFlow';
+import type { PendingShoreLeave } from './seaVoyageFlow';
 import type * as tavernFlow from './tavernFlow';
 import type {
   PendingVictory,
@@ -788,7 +789,7 @@ export interface EtatDeJeu {
   pendingSeaActivities: import('./seaActivities').PendingSeaActivities | null;
   /** Permission de RELÂCHE À TERRE en attente de CHOIX, posée à l'accostage AVANT l'événement de
    *  port (MDG 15 l.245). */
-  pendingShoreLeave: import('./seaVoyageFlow').PendingShoreLeave | null;
+  pendingShoreLeave: PendingShoreLeave | null;
 }
 
 /** L'état et les actions du jeu (#2817 D5) : ce que reçoivent les flux du noyau. */

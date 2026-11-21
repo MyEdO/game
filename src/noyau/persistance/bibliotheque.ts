@@ -49,9 +49,6 @@ export type EntreeRefusee = Omit<SavedProject, 'project' | 'refus'> & {
 /** Une entrée LISTÉE de la bibliothèque. */
 export type EntreeListee = SavedProject | EntreeRefusee;
 
-/** L'entrée que l'application ÉCRIT : son projet est un `ProjectDoc` entier. */
-export type EntreeEcrite = SavedProject & { project: ProjectDoc };
-
 /** La campagne LANCÉE (`setPendingCampaign`). */
 export type CampagneLancee = NonNullable<EtatDeJeu['pendingCampaign']>;
 
@@ -124,18 +121,6 @@ export function campagneDUneEntree(p: EntreeListee): CampagneLancee {
     projet: { id },
   };
 }
-
-/** Repli d'AFFICHAGE du nom d'un projet : une entrée dont le nom est vide (entrée fabriquée hors
- *  éditeur) se rend NOMMÉE « (sans nom) » plutôt qu'en rangée muette — le geste de
- *  suppression/ouverture reste ainsi désignable. SOURCE UNIQUE des deux écrans qui listent des
- *  projets (« Ouvrir » de l'éditeur, bibliothèque de campagnes). */
-export const NOM_DE_PROJET_ABSENT = '(sans nom)';
-export function nomDeProjet(label: string | undefined | null): string {
-  return label?.trim() || NOM_DE_PROJET_ABSENT;
-}
-
-/** La marque, dans une liste, d'une entrée dont le projet est refusé. */
-export const MARQUE_AUTRE_FORMAT = 'Autre format';
 
 /** Ce qu'un refus `prose-non-materialisee` dit à qui importe : le fichier est la forme DÉPÔT d'une
  *  campagne livrée, pas son export. SOURCE UNIQUE de l'import joueur et de l'import de l'éditeur. */

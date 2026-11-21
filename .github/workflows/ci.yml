@@ -20,8 +20,7 @@ on:
 #
 # DEUX COURSES (#3412, arbitrage du 2026-11-05 au ticket) : la course de FILE (`merge_group`) joue TOUTES
 # les gates, celle de BRANCHE (`push`) n'en joue qu'un sous-ensemble — le job `branche` : `typecheck`,
-# puis `test:perimetre` (scripts/test/perimetre.mjs : le lint des fichiers touchés, la suite du noyau
-# dès qu'un fichier de `src/` l'est, les tests dérivés du diff sous son budget ; le reste à la file). Le
+# puis `test:perimetre` : lint des fichiers touchés et tests dérivés du diff sous son budget. Le
 # partage se fait au niveau du STEP : le checkout et le prologue de chaque job portent la condition
 # d'événement de sa course (`SI_DE_COURSE`, scripts/gates/gatesDeCi.mjs), et chaque gate attend
 # `steps.prologue.outcome == 'success'` ; hors de sa course, un job saute tous ses steps et rend
@@ -98,8 +97,7 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # Les LECTEURS de docs/ et docs/raw/, et `build` (`gen && vite build`, qui n'écrit ni docs/ ni
-  # docs/raw/).
+  # Les LECTEURS de docs/ et docs/raw/.
   # `comptes:plage` (#2705, scripts/guards/comptes-plage.mts) : la porte des volets SOUS LA PORTE sur la plage
   # `merge-base origin/main..HEAD` — aucun compte ne monte, aucun site n'y naît, aucun plancher ne cède, à détecteur
   # constant ; puis l'inventaire de la dette que la donnée révèle (#3021), hors de la porte, au résumé du job ; sautée
@@ -120,8 +118,6 @@ jobs:
         run: npm run docs:build
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run agents:check
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run build
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:raw
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
@@ -179,7 +175,7 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # Lectures du graphe TypeScript et du noyau : suites hors store, typecheck, pont, lint.
+  # Lectures du graphe TypeScript : typecheck, pont Godot et lint.
   types:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -193,12 +189,6 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
-      # Les caches de la chaîne 3D précèdent `test:noyau`, dont « les modèles commités » (`asset.hors-store.test.ts`)
-      # lit les GLB épinglés (`CACHE_DES_MODELES`).
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        uses: ./.github/actions/caches-3d
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run test:noyau
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run deps:unused
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
@@ -241,6 +231,9 @@ jobs:
       - name: Godot — scripts et recettes autonomes
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
+      - name: Export Web Godot
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run godot:web
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm --prefix server ci
       - name: Godot — coop à deux processus
@@ -375,13 +368,15 @@ jobs:
         if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm test
       # Pas de step `test:map` : `scripts/map/**/*.test.ts` est dans le `test.include` de
-      # `vite.config.ts`, donc `npm test` joue déjà `scripts/map/check.test.ts`. Les gardes qui
+      # `vitest.config.ts`, donc `npm test` joue déjà `scripts/map/check.test.ts`. Les gardes qui
       # scannent les suites jouées lisent les racines à la source de ce `test.include`
       # (`scripts/guards/lib/racinesDeLaSuite.mjs`, `fichiersDeLaSuite` de `suiteVitest.mjs`). Le
       # script `test:map` reste dans package.json : il sert à jouer CE dossier seul.
-      # Filet des écrivains par nature (`genererCode` du `buildStart` de vite.config.ts).
+      # Filet des écrivains par nature (`genererCode` du `buildStart` de vitest.config.ts).
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

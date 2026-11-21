@@ -1,14 +1,8 @@
 // Garde PreToolUse anti-réinvention à la création d'un fichier sous `src/`.
 //
-// Deux régimes (#1318 V5, 2026-08-16 ; périmètre étendu #1679 L1a) :
-//   - `src/ui/**/*.tsx` ET `src/gameIso/**/*.tsx` NEUFS (hors `*.test.tsx`) : BLOQUANT. Un composant
-//     d'UI ou de rendu est soit une PRIMITIVE partagée (déclarée dans
-//     `src/data/primitives.manifest.json`, rendue par `docs/primitives.md`), soit un
-//     ÉCRAN/panneau/surcouche inscrit au registre `scripts/hooks/ecrans-ui.json`. Ni l'un ni l'autre
-//     → sortie non-zéro : la déclaration se fait AVANT le code. (`src/gameIso` porte 32 `.tsx` hors
-//     tests, mesurés le 2026-09-02 ; `authoring/` et `builders/` n'en portent aucun — le périmètre
-//     n'a pas d'exception à ménager.)
-//   - tout autre fichier neuf sous `src/` : injection de contexte (rappel anti-réinvention).
+// Création sous `src/` : injection du rappel anti-réinvention.
+// Le régime historique de déclaration bloque les écritures de composants dans les zones React retirées.
+// Le lint de zone applique aujourd'hui la fermeture structurelle à tous les fichiers de ces zones.
 //
 // DEUX FORMES d'entrée au registre, une seule règle :
 //   - chaîne `"src/ui/X.tsx"` = STOCK des écrans déjà en place le 2026-08-16 (207 mesurés) ; elle ne
@@ -25,8 +19,7 @@
 // anchored pipeline », toute autre op lit la préimage).
 // LIMITE RÉSIDUELLE assumée : tout chemin d'écriture qui ne passe pas par un outil matché échappe à
 // la garde — redirection shell (`... > src/ui/X.tsx`, `tee`, `cp`), script Node lancé par un runner,
-// éditeur externe. Le cliquet (xvii)/(x) de `src/ui/ui-ratchets.test.ts` et la revue restent la
-// deuxième ligne ; ce hook est un rappel au geste, pas un mur étanche.
+// éditeur externe. La revue complète le rappel au geste.
 //
 // Échappement documenté : `SKIP_NEW_SRC_GUARD=1` laisse passer et TRACE la dérogation (stderr +
 // `.claude/logs/new-src-guard-skips.log`, gitignoré).
@@ -64,7 +57,7 @@ export function relPath(fp, repo = REPO) {
 
 /** Un composant soumis au régime bloquant (un harnais `.test.tsx` n'en est pas un). */
 export function estComposantUI(rel) {
-  return (rel.startsWith('src/ui/') || rel.startsWith('src/gameIso/')) &&
+  return /^src\/(?:ui|gameIso)\//.test(rel) &&
     rel.endsWith('.tsx') && !rel.endsWith('.test.tsx')
 }
 
@@ -119,7 +112,7 @@ export function messageRefus(rel) {
   return [
     `REFUS — composant NON DÉCLARÉ : ${rel}`,
     '',
-    "Un nouveau .tsx de src/ui ou src/gameIso se déclare AVANT d'être écrit (#1318 V5) :",
+    "Le composant vise une ancienne zone React. Déplacer le travail vers une zone actuelle de COUCHES (#3556).",
     '  • PRIMITIVE partagée (réutilisable par N écrans) → ajouter son entrée à',
     '    src/data/primitives.manifest.json (id, type, label, fichier, concept, perimetre,',
     '    verrou), relancer `npm run docs:primitives`, puis relancer.',
@@ -129,7 +122,7 @@ export function messageRefus(rel) {
     '    quand la maquette a été validée>" } (ordre alphabétique), puis relancer.',
     '',
     "AVANT d'inscrire : vérifier qu'aucune primitive existante ne couvre le besoin",
-    "(docs/primitives.md + 2-3 variantes du concept grepées dans src/ui) — la réutiliser ou",
+    "(docs/primitives.md + 2-3 variantes du concept dans les zones actuelles) — la réutiliser ou",
     "l'ÉTENDRE coûte moins que la Nᵉ copie.",
     '',
     'Dérogation pressée et TRACÉE : relancer avec SKIP_NEW_SRC_GUARD=1 (la dérogation est',

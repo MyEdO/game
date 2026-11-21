@@ -396,7 +396,7 @@ Couverture confirmée des refs `LDB XX l.YY` dans le code :
 
 **Orchestration store** : `src/noyau/merchantFlow.ts`, `src/noyau/rollFlowSpecs.ts` (flows `bargain`/`appraise`), archétypes indexés par `findMerchantArchetypeById` (`src/data/index.ts`), typés par `src/data/merchants.types.ts`
 
-**UI** : `src/ui/MerchantPanel.tsx`, `src/ui/BargainModal.tsx`, `src/ui/AppraiseModal.tsx`
+**Affichage** : les interactions du marchand passent par la projection du jeu Godot.
 
 **Règle optionnelle** : `src/engine/policy.ts` (mode marché `simplifie` → pas de Tests de Disponibilité)
 

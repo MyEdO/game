@@ -6,10 +6,6 @@ import { findPropById, props } from '../../../data';
 import { empriseLocaleM, placeAssiseDe, type PropPrimitive } from '../../../data/props.types';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../scene';
 
-/** Une ref de décor que le catalogue ne résout pas : la seule qui se serve encore en billboard, celui
- *  d'ERREUR (#877) — chaque type du catalogue porte sa recette (#3198). */
-export const REF_HORS_CATALOGUE = 'decor-hors-catalogue';
-
 /** Les refs du catalogue, chacune à recette (#3198) : une recette de plus entre sous contrat par sa seule déclaration. */
 export const IDS = props.map((p) => p.id);
 

@@ -35,7 +35,7 @@ import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVit
  */
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const SCAN_DIRS = porteeDeGarde(['engine', 'noyau'], ['state']);
+const SCAN_DIRS = porteeDeGarde(['engine', 'noyau']);
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel);
 
 /** Baseline gelée par fichier (recensement Lot 8, 2026-07-06 — total 12 sites sur 7 fichiers ;

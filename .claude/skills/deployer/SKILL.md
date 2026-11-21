@@ -9,10 +9,12 @@ description: Déployer le jeu en test (« déploie en test », /dev) ou en prod 
 
 | Cible | Adresse | Ce qui part |
 |---|---|---|
-| `jeu` | https://cgauche.github.io/jeu/ | la prod : le jeu web (`npm run build`), dossier `jeu/` du dépôt `cgauche/cgauche.github.io` |
-| `dev` (défaut) | https://cgauche.github.io/dev/ | le test : l'export Web de l'hôte Godot et ses modèles (`construire.mjs --export`), dépôt `cgauche/dev`, dont chaque déploiement remplace l'historique par un seul commit |
+| `jeu` | https://cgauche.github.io/jeu/ | la production : l’export Web Godot et ses modèles, dans le dossier `jeu/` du dépôt `cgauche/cgauche.github.io` |
+| `dev` (défaut) | https://cgauche.github.io/dev/ | la version de développement : l’export Web Godot et ses modèles, à la racine du dépôt `cgauche/dev` |
 
-Le workflow build le commit DISTANT de la ref lancée, pas l'arbre local : ce qui n'est pas poussé ne part pas.
+Les deux cibles construisent l’export Godot par `npm run godot:web`.
+Le workflow se déclenche manuellement et construit le commit distant de la ref demandée.
+La commande produit `dist/godot/index.html`, `dist/godot/index.pck` et les ressources de l’export. Elle permet de les vérifier sans lancer le workflow.
 
 ## Prod (`jeu`)
 
@@ -26,7 +28,7 @@ gh workflow run deploy.yml -f cible=jeu
 gh run list --workflow=deploy.yml -L 1   # l'id du run lancé
 ```
 
-## Test (`dev`)
+## Développement (`dev`)
 
 Ne touche pas `jeu/`. Se lance depuis `main`, ou depuis une branche poussée par `--ref <branche>`, pour tester
 l'hôte Godot :
@@ -66,4 +68,4 @@ Les secrets Actions de `MyEdO/game` `PROD_DEPLOY_KEY` et `DEV_DEPLOY_KEY` sont l
 publiques sont des deploy keys en écriture sur `cgauche/cgauche.github.io` et `cgauche/dev` — un run qui échoue sur
 l'authentification vient de celle de sa cible. GitHub refuse un fichier poussé de plus de 100 Mo : le pck de Godot ne porte
 ni `modeles/` (`exclude_filter` de `hotes/godot/projet/export_presets.cfg`), ni les dossiers de `PAQUETS_DU_WEB`
-(`hotes/godot/construire.mjs`, #4402), servis à côté ; l'export échoue sur tout fichier de sa sortie au-delà.
+(`hotes/godot/construire.mjs`, #4402), servis à côté. Mesurer les fichiers de sortie après l’export pour vérifier la limite avant publication.

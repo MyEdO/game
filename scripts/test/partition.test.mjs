@@ -1,8 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { basename, join, posix } from 'node:path'
+import { posix } from 'node:path'
 import { analyserTexte } from '../guards/lib/dialecte.mjs'
 import { evaluateurDuDepot, lectureDeModule } from '../guards/lib/racinesBalayees.mjs'
 import { admissionNode, grouperParEnvironnement, memoireDisponibleOctets } from './partition.mjs'
@@ -91,23 +90,4 @@ test('grouperParEnvironnement (#3412) : groupes dans l’ordre de première appa
   assert.deepEqual(grouperParEnvironnement([], environnement), [])
   const seul = [['z', 'node'], ['a', 'node'], ['m', 'node']]
   assert.deepEqual(grouperParEnvironnement(seul, environnement), seul)
-})
-
-test('séquenceur de vite.config.ts (#3412) : l’ordre de BaseSequencer groupé par environnement, docblock sinon celui du projet', async () => {
-  const { default: config } = await import('../../vite.config.ts')
-  const racine = mkdtempSync(join(tmpdir(), 'sequenceur-'))
-  try {
-    const fixtures = { 'a.test.ts': '// @vitest-environment jsdom\n', 'b.test.ts': '', 'c.test.ts': '// @vitest-environment jsdom\n', 'd.test.ts': '' }
-    for (const [nom, code] of Object.entries(fixtures)) writeFileSync(join(racine, nom), code)
-    const Sequenceur = config.test.sequence.sequencer
-    const sequenceur = new Sequenceur({ cache: { getFileTestResults: () => undefined, getFileStats: () => undefined }, config: { root: racine } })
-    const ordre = async (environment) => {
-      const project = { name: '', config: { sequence: { groupOrder: 0 }, isolate: false, environment } }
-      return (await sequenceur.sort(Object.keys(fixtures).map((nom) => ({ moduleId: join(racine, nom), project })))).map((s) => basename(s.moduleId))
-    }
-    assert.deepEqual(await ordre('node'), ['a.test.ts', 'c.test.ts', 'b.test.ts', 'd.test.ts'])
-    assert.deepEqual(await ordre('jsdom'), ['a.test.ts', 'b.test.ts', 'c.test.ts', 'd.test.ts'], 'sans docblock : l’environnement du projet')
-  } finally {
-    rmSync(racine, { recursive: true, force: true })
-  }
 })

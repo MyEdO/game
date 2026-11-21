@@ -3,7 +3,7 @@ import { registerScene, sceneDuRegistre } from './noyau/monde/registreDesScenes'
 import { emptyScene } from './noyau/monde/scene';
 
 /**
- * CONTRAT de la sentinelle `resetSceneRegistry()` de l'`afterEach` global (`src/test-setup.ts`) —
+ * CONTRAT de la sentinelle `resetSceneRegistry()` de l'`afterEach` global (`src/test-setup-noyau.ts`) —
  * garde POSITIVE, à lire avant d'écrire un test qui enregistre une scène.
  *
  * Le `sceneRegistry` (`noyau/monde/registreDesScenes`) est un singleton de module partagé par tous les fichiers d'un

@@ -57,14 +57,6 @@ export function interludeDrawPending(s: Pick<Jeu, 'interlude'>): boolean {
   return s.interlude?.phase === 'tirage';
 }
 
-/** Les héros dont le dé d'Événement reste à poser pendant le tirage, dans l'ordre du groupe ; vide hors
- *  tirage. Le tirage peut rester ouvert sans dé en attente : le dénouement de groupe reste alors à valider. */
-export function desEnAttente(s: EtatDInterlude): Combatant[] {
-  const itl = s.interlude;
-  if (!itl || !interludeDrawPending(s)) return [];
-  return s.party.filter((h) => itl.perHero[h.id] && itl.perHero[h.id].eventRoll == null);
-}
-
 const nomDuHeros = (s: EtatDInterlude, heroId: string): string =>
   libelleOuAbsence(s.party.find((h) => h.id === heroId), 'heros', heroId);
 

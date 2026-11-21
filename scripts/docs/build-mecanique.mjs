@@ -261,7 +261,6 @@ function rendu() {
     return plat(m[2])
   }
   const GARDES = [
-    'src/ui/compendium/no-json-fields.test.ts',
     'src/data/defs-migrated.test.ts',
     'src/data/data-wellformed.test.ts',
     'src/engine/trauma.test.ts',

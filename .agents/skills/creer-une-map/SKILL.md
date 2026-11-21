@@ -47,7 +47,7 @@ bout ; « le format le permet déjà » n'est pas un résultat.
   scène : dimensions + murs/portes témoins ; `unreachableDescriptiveZones(scene, startOf(scene))` **vide**
   (chaque pièce nommée atteignable, BFS `reachableCells`/`walkNeighbors`) ; `reachedFloors` couvre tous les
   étages habités (connexité verticale par `stair`).
-- **Jugement visuel** : capture de jeu (patron `scripts/qc/capture-jeu.mjs`) → planche par étage aux
+- **Jugement visuel** : capture Godot avec `hotes/godot/recette.mjs --scenario … --vues … --captures …` → planche par étage aux
   **4 rotations**, plan source en regard, jugée en RÉFUTATION — jamais une auto-certification. Les
   EMPRISES des meubles (pixels du plan → cases, contre les dimensions authorées) se recalent avant leurs
   positions : ½ case d'écart de position se tolère, une emprise à 50 % non. Aucun verdict « calé » sans

@@ -149,24 +149,6 @@ export function partyCargoTotalEnc(s: CarrierStateSlice): number {
   return bulkCarriers(s).reduce((sum, c) => sum + cargoTotalEnc(c.cargo), 0);
 }
 
-/** Possessions terrestres AVEC-LE-GROUPE d'un propriétaire vivant du groupe — variante PURE (sans lieu). */
-function landPossessions(party: Combatant[], possessions: Possession[]): Possession[] {
-  const ownerIds = new Set(party.filter(heroInParty).map((h) => h.id));
-  return possessions.filter((p) => !p.destroyed && ownerIds.has(p.ownerId) && p.location.kind === 'avec-le-groupe');
-}
-
-/** Enc de vrac porté par les BÊTES/VÉHICULES du groupe (hors navire) — tuile Chargement terre/fleuve. PUR. */
-export function partyItemsCargoEnc(party: Combatant[], possessions: Possession[]): number {
-  return landPossessions(party, possessions)
-    .reduce((s, p) => s + (possessionCarrierCapacity(p) != null ? cargoTotalEnc(p.cargo ?? []) : 0), 0);
-}
-
-/** Contenance CUMULÉE des bêtes/véhicules du groupe (hors navire) — dénominateur de la tuile Chargement. PUR. */
-export function partyLandCapacity(party: Combatant[], possessions: Possession[]): number {
-  return landPossessions(party, possessions)
-    .reduce((s, p) => s + (possessionCarrierCapacity(p) ?? 0), 0);
-}
-
 /** Choix d'un transfert de vrac : ids absents = premier choix offert ; `enc` absent = tout ce qui passe. */
 export interface ChoixDeTransfert { fromId?: string; toId?: string; lotId?: string; enc?: number | null }
 

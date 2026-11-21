@@ -18,8 +18,6 @@ import {
   SURCOUTS,
   apprendre,
   lignesDeDelegation,
-  argumentsDuNoyau,
-  suiteDuNoyauALancer,
   executerLancements,
   principal,
   ligneDeRelance,
@@ -448,7 +446,7 @@ test('import.meta.glob à motif littéral : arc vers chaque fichier visé', asyn
 
 test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance propagée par eux', async (t) => {
   const racine = forger(t, {
-    'vite.config.ts': "import { fileURLToPath } from 'node:url'\nexport default { test: { setupFiles: [fileURLToPath(new URL('./src/setup.ts', import.meta.url))] } }\n",
+    'vitest.config.ts': "import { fileURLToPath } from 'node:url'\nexport default { test: { setupFiles: [fileURLToPath(new URL('./src/setup.ts', import.meta.url))] } }\n",
     'src/setup.ts': "import './store'\n",
     'src/store.ts': 'export const s = 1\n',
     'src/g.test.ts': 'export const g = 1\n',
@@ -467,7 +465,7 @@ test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance 
 // #2586
 test('setupFiles : une lambda locale de configuration conserve son lexique autonome', async (t) => {
   const racine = forger(t, {
-    'vite.config.ts': "const holder={rappel:(nom='src/setup.ts')=>nom};const rappel=holder.rappel;export default {test:{setupFiles:[rappel()]}}",
+    'vitest.config.ts': "const holder={rappel:(nom='src/setup.ts')=>nom};const rappel=holder.rappel;export default {test:{setupFiles:[rappel()]}}",
     'src/setup.ts': "import './store'",
     'src/store.ts': 'export const s = 1',
     'src/g.test.ts': 'export const g = 1',
@@ -478,7 +476,7 @@ test('setupFiles : une lambda locale de configuration conserve son lexique auton
 
 test('racine balayée dont le site n’est atteint que par les setupFiles : rang `setup`', async (t) => {
   const racine = forger(t, {
-    'vite.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
+    'vitest.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
     'src/setup.ts': "import { readdirSync } from 'node:fs'\nreaddirSync('donnees')\n",
     'donnees/x.json': '{}',
     'src/g.test.ts': 'export const g = 1\n',
@@ -489,7 +487,7 @@ test('racine balayée dont le site n’est atteint que par les setupFiles : rang
 
 test('relais de la clôture des setupFiles appelé par un test : la racine s’attribue au site où elle devient concrète, rang racine balayée', async (t) => {
   const racine = forger(t, {
-    'vite.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
+    'vitest.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
     'src/setup.ts': "import '../scripts/lib/corpus.mjs'\n",
     'scripts/lib/corpus.mjs': "import { readdirSync } from 'node:fs'\nimport { join } from 'node:path'\n" +
       "export function lireCorpus(dirs) {\n  const bases = dirs.map((d) => join('.', d))\n  return bases.flatMap((b) => readdirSync(b))\n}\n",
@@ -522,8 +520,8 @@ test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide
 })
 
 test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suite que la CI joue est retenue, la même pour la dérivation, les parties de run.mjs et les gardes (#2651)', async (t) => {
-  // Dedans : `src` en .ts/.tsx, suivi ou non suivi, sous un dossier pointé. Dehors : extension hors racine (`server/src`
-  // en .tsx), bench, hors racine (`docs`), ignoré, suivi mais supprimé du disque, suivi sous un `node_modules`.
+  // Dedans : `src` en .ts, suivi ou non suivi, sous un dossier pointé. Dehors : .tsx, bench,
+  // hors racine (`docs`), ignoré, suivi mais supprimé du disque, suivi sous un `node_modules`.
   const racine = forger(t, {
     '.gitignore': '/node_modules/\nsrc/ign/\n', 'tsconfig.json': '{}', 'server/package.json': '{}',
     'src/noyau/voyage-cadence.test.ts': 'export {}\n', 'src/b.test.tsx': 'export {}\n', 'server/src/c.test.tsx': 'export {}\n',
@@ -534,7 +532,7 @@ test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suit
     'src/f.test.ts': 'export {}\n', 'src/ign/g.test.ts': 'export {}\n',
   }, { commiter: false })
   rmSync(join(racine, 'src/z.test.ts'))
-  const suite = ['src/.x/h.test.ts', 'src/b.test.tsx', 'src/f.test.ts', 'src/noyau/voyage-cadence.test.ts']
+  const suite = ['src/.x/h.test.ts', 'src/f.test.ts', 'src/noyau/voyage-cadence.test.ts']
 
   const perimetre = await deriver(racine, { base: 'HEAD' })
   assert.deepEqual(perimetre.toolchain, ['server/package.json', 'tsconfig.json'])
@@ -1086,19 +1084,6 @@ test('gates déléguées (#3145) : un fichier sous le `lit` d’une gate marqué
   assert.match(reelles[0],
     /^→ CI gate personnage-3d:tests : déléguée \(.+\), désignée par hotes\/godot\/asset\/evaluateur\/gardes\/seuils\.json$/,
     'le `lit` d’`ECRIT_LU` désigne la gate déléguée')
-})
-
-test('suite du noyau (#2817, #2928) : un fichier d’une racine des zones touché la lance ENTIÈRE par `test:noyau`, et un rouge se relance sur elle', () => {
-  const post = ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'src/data/x.hors-store.test.ts', 'src/noyau/partie.ts', 'scripts/a.mjs']
-  assert.deepEqual(suiteDuNoyauALancer(['src/noyau/partie.ts'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier du noyau qui n’est pas un test lance la suite')
-  assert.deepEqual(suiteDuNoyauALancer(['src/data/supprime.json'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier de src/ supprimé compte')
-  assert.deepEqual(suiteDuNoyauALancer(['scripts/a.mjs'], post), [], 'hors de src/, la suite ne se lance pas')
-  assert.deepEqual(suiteDuNoyauALancer(['hotes/godot/pont/pont.ts'], [...post, 'hotes/godot/pont/pont.hors-store.test.ts']),
-    ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'hotes/godot/pont/pont.hors-store.test.ts'], 'un fichier d’un hôte externe (`hotes/`) la lance, ses tests compris')
-  const args = argumentsDuNoyau(['src/noyau/partie.hors-store.test.ts'])
-  assert.deepEqual(args, ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', 'vitest.noyau.config.ts', 'src/noyau/partie.hors-store.test.ts'])
-  assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'noyau', code: 1, echecs: [], args }], lint: { code: 0, defauts: [] }, appelLint: () => ['oxlint'] }),
-    'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : npm run test:noyau -- src/noyau/partie.hors-store.test.ts')
 })
 
 /** Le lancement `principal` du dépôt `racine` sur son dernier commit, sous la plateforme `platform` (celle du

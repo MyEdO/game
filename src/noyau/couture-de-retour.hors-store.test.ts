@@ -259,11 +259,8 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/data/schemas/defs/spells.ts | xp: z.number(),': 'type',
     'src/noyau/monde/advancement.ts | xp: number;': 'type',
     'src/noyau/pendings.ts | xp: number;': 'type',
-    'src/ui/creator/CreatorDice.tsx | xp: number;': 'type',
     'src/engine/persistence.ts | xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,': 'type',
     'src/noyau/combatFlow.ts | xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),': 'lecture',
-    'src/state/devtools.ts | xp: (amount?: number) => {': 'lecture',
-    'src/state/devtools.ts | return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));': 'lecture',
     'src/engine/character.ts | xp: opts.xpBonus ?? 0,': 'creation',
     'src/engine/character.ts | xp: number;': 'type',
     'src/engine/character.ts | xp: r.xp,': 'creation',
@@ -288,7 +285,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
   it('les clés PX de métadonnées ne cachent aucune écriture exécutée', () => {
     const text = `import { nommerChamps as nommer } from '../data/schemas/grammaire/meta';
       nommer(schema, { xp: { label: 'PX' }, autre: { label: (hero.xp -= 2) }, exemple: donne({ xp: 3 }) });`;
-    const code = sansDeclarationsDeMetadonnees({ rel: 'src/state/probe.ts', text });
+    const code = sansDeclarationsDeMetadonnees({ rel: 'src/noyau/probe.ts', text });
     expect([...code.matchAll(/\.xp\s*[-+]?=(?!=)|\bxp:\s/g)].map((m) => m[0])).toEqual(['.xp -=', 'xp: ']);
   });
 

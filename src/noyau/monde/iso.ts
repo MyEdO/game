@@ -33,8 +33,3 @@ export function hauteurDeLOeil(scene: Scene, p: Pt): number {
   const sol = heightAt(scene, p.x, p.y, p.z ?? 0);
   return Math.min(EYE_H, ...[p, ...walkNeighbors(scene, p)].map((q) => plafondDe(scene, q) - MARGE_SOUS_PLAFOND_M - sol));
 }
-/** CADENCE VERTICALE de la projection : pixels d'ÉCRAN par mètre d'élévation — l'inverse de
- *  `isoPxToM`, et la SEULE définition de cette grandeur dans le dépôt. Elle sert au backend affine
- *  (transformée de motif, épaisseurs de trait, hauteurs de brin), aux caméras du backend volumique
- *  (échelle verticale de la matrice de projection) et à la taille monde d'un billboard héroïque. */
-export const ISO_PX_PER_M = LEVEL_H / METRES_PER_LEVEL;

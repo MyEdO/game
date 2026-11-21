@@ -103,8 +103,8 @@ final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une 
 - **Un brief de juge ne prescrit JAMAIS de mutation** : elle est au codeur, le juge la vérifie.
 - **Code de règle : jamais de « parité de comportement »** : le codeur rouvre `Source/`, migre la version
   CORRIGÉE ; un commentaire qui avoue une interprétation se re-vérifie.
-- **UI** : nommer AUSSI la couche atomique — aucun élément nu (`<button>` → `.btn`/`.chip`, conteneur →
-  `.panel`, focusable custom → focus maison) ; citer `docs/primitives.md` + `docs/charte-ui.md`.
+- **Écran Godot** : nommer la maquette et les primitives en jeu. Citer `docs/primitives.md` et
+  `.claude/rules/ecrans-godot.md`.
 - **Mise aux normes** : ce que le geste traverse sort aux normes (un concept = un terme, duplication
   mutualisée, morts purgés) ; l'adjacent qu'il ne traverse pas va au ticket ; tout juge de cumul porte aussi la lentille de la
   LANGUE. Un lot qui touche un CHAMP embarque TOUTES ses conventions.
@@ -159,7 +159,7 @@ status` ; le brief de relance porte l'état VÉRIFIÉ et dit « si le livrable e
   principal, `commande-piege` refuse toute attente en fond et au premier plan celle sans borne (#2603).
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et `npm run
-test:perimetre` avant commit, revue du diff, UI → tests DOM, sans recette ni capture (fiche `user-doctrine-recette-web-suspendue-migration-godot`).
+test:perimetre` avant commit et relire le diff. Pour un écran Godot, suivre `.claude/rules/ecrans-godot.md`.
 - **Effets à distance qu'un agent ne voit pas** : ses tests ciblés n'en disent rien, le brief exige la
   preuve.
   - Dataset ou champ retiré : rejouer chaque migration de `scripts/migrations/` qui le nomme (sortie 0,

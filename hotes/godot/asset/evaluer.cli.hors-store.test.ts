@@ -26,7 +26,9 @@ test('--etats-gabarit évalue chaque état de `etatsDuGabarit` sous ses facteurs
   const manifeste = { ...manifesteDe(octets, ['racine', 'pelvis']), silhouettes: ['feminin'] };
   const dossier = mkdtempSync(join(tmpdir(), 'etats-gabarit-'));
   try {
-    const [glb, json, sortie] = ['base.glb', 'manifeste.json', 'sortie.json'].map((f) => join(dossier, f));
+    const glb = join(dossier, 'base.glb');
+    const json = join(dossier, 'manifeste.json');
+    const sortie = join(dossier, 'sortie.json');
     writeFileSync(glb, octets);
     writeFileSync(json, JSON.stringify(manifeste));
     const resultat = spawnSync(process.execPath, [script, glb, '--manifeste', json, '--etats-gabarit', '--json', sortie], { cwd: racine, encoding: 'utf8', windowsHide: true });
@@ -78,7 +80,10 @@ test('--temoin refuse --porte et --etats-gabarit', () => {
 test('--temoin ne liste que les écarts absents du rapport témoin, sort en 1 seulement s’il y en a, et --json écrit le rapport complet', () => {
   const dossier = mkdtempSync(join(tmpdir(), 'evaluer-temoin-'));
   try {
-    const [glb, temoin, vide, sortie] = ['base.glb', 'temoin.json', 'vide.json', 'sortie.json'].map((f) => join(dossier, f));
+    const glb = join(dossier, 'base.glb');
+    const temoin = join(dossier, 'temoin.json');
+    const vide = join(dossier, 'vide.json');
+    const sortie = join(dossier, 'sortie.json');
     writeFileSync(glb, glbFabrique({ clips: { Descend: [0, -0.2] } }));
     writeFileSync(vide, JSON.stringify({ ecarts: [] }));
     const evaluer = (...options: string[]) => spawnSync(process.execPath, [script, glb, '--pas', '0.5', ...options], { cwd: racine, encoding: 'utf8', windowsHide: true });

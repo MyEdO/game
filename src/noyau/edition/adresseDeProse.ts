@@ -45,9 +45,6 @@ export const PHRASE_REFUS = {
   'montage-hors-plafond': `Une adresse monte ${MAX_FRAGMENTS} fragments au plus — retirez-en un.`,
 } satisfies Record<CodeErreur, string>;
 
-/** `ligne-ambigue` quand la rangée PROPOSE le choix de la table : le remède est ce choix. */
-export const PHRASE_LIGNE_AMBIGUE_TABLE = 'Plusieurs tables de la section portent cette clé — choisissez sa table dans la liste « table ».';
-
 /** Adresse d'une section : c'est `slug#occ` que le fragment STOCKE, le titre n'est qu'un guide. */
 export const cleSection = (slug: string, occ: number) => `${slug}#${occ}`;
 

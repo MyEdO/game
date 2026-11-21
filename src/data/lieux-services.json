@@ -9,7 +9,6 @@
       "id": "taverne-commune"
     },
     "hebergement": true,
-    "editorNote": "Dérive aussi de l’offre de repos de la scène liée (onglet Scène)",
     "offres": [
       {
         "id": "commune",

@@ -95,7 +95,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
       expect(def.rows.map((r) => r.id)).toEqual(rows.map((r) => r.id));
       expect(def.die).toEqual({ n: 1, sides: 100 });
       expect(def.label).toBe(label);
-      // Surface JOUEUR : aucun libellé ne porte de référence de livre (`docs/charte-ui.md`).
+      // Surface JOUEUR : aucun libellé ne porte de référence de livre (`src/book-ref-guard.test.ts`).
       expect(hasBookMarker(def.label), `provenance dans « ${def.label} »`).toBe(false);
       const row = def.rows[0];
       expect(def.lines(row.min)[0]).toBe(miscastRowAt(id, row.min).label);

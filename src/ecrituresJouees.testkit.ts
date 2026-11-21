@@ -28,7 +28,7 @@ import { ENTREES_DE_DOSSIER } from './data/dossiers';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { auditerLEditabilite, orphanFields, programmeDuPerimetre, RACINES, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { detenteur } from './lib/detenteur.testkit';
-// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/prose-source-plugin.mjs';
 
 /** La session `s` où le geste `geste` est joué, puis le chapitre qu'elle attend chargé du `Source/` versionné, comme
