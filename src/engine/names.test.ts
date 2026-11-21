@@ -1,11 +1,6 @@
-/**
- * Génération de noms à la création (Jalon 3). Pools : `src/data/names.json` (banque de noms par
- * race et par sexe, projet WarhammerV2 de l'utilisateur). Structure par espèce : « Prénom + Nom »
- * pour tous, SAUF les Nains dont le nom de famille est GÉNÉRÉ selon le canon — parent + suffixe
- * sexué (LDB 05 l.620-624 : « –sson » fils de…, « –sdottir » fille de…, « –snev »/« –sniz »).
- */
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 import { generateName } from './names';
 import { names as N, species } from '../data';
 import { sexeSchema, type RaceKey } from '../data/schemas/grammaire/valeurs';
@@ -16,7 +11,7 @@ const banque = (id: RaceKey) => N.find((n) => n.id === id)!;
 
 // generateName est keyé par `species.refChar` (`RaceKey`, #313) et le document de banque porte le
 // MÊME id (#1467 L1b) : la résolution est directe, sans conversion (cf. `engine/names.ts`).
-describe('generateName — banque names.json + canon nain (LDB 05 l.627-633)', () => {
+describe('generateName — banques de noms', () => {
   it('Humain : « Prénom Famille », prénom du pool du SEXE', () => {
     for (let s = 1; s <= 25; s++) {
       const m = generateName('humain', 'M', makeRNG(s))!;
@@ -55,6 +50,35 @@ describe('generateName — banque names.json + canon nain (LDB 05 l.627-633)', (
     expect(endsWithOne(es, banque('elfe-sylvain').lastNames), es).toBe(true);
   });
 
+  it('Gnome : prénom du sexe et clan ou pseudonyme de sa banque (NADJ 15 l.55-72)', () => {
+    for (const sex of sexeSchema.options) {
+      const gnome = banque('gnome');
+      const nom = generateName('gnome', sex, makeRNG(42))!;
+      expect(startsWithOne(nom, sex === 'F' ? gnome.femaleFirstNames : gnome.maleFirstNames)).toBe(true);
+      expect(endsWithOne(nom, gnome.lastNames)).toBe(true);
+    }
+  });
+
+  it.each([
+    [1, 1, 'Arabba'],
+    [65, 19, 'Tergarthash'],
+    [67, 24, 'Thagelg'],
+    [68, 27, 'Thazelg'],
+    [69, 1, 'Thegizabba'],
+    [70, 1, 'Therabba'],
+    [71, 1, 'Thugabba'],
+    [100, 100, 'Zoyogg'],
+  ] as const)('Ogre traditionnel : les faces %i et %i donnent %s', (racine, terminaison, attendu) => {
+    expect(generateName('ogre', 'F', desEnSuite([racine - 1, terminaison - 1]))).toBe(attendu);
+  });
+
+  it('Ogre : parcours humain et déterminisme à graine égale (ADE II 02 l.325-334)', () => {
+    for (const sex of sexeSchema.options) {
+      expect(generateName('ogre', sex, makeRNG(42), 'humain')).toBe(generateName('humain', sex, makeRNG(42)));
+      expect(generateName('ogre', sex, makeRNG(42))).toBe(generateName('ogre', sex, makeRNG(42)));
+    }
+  });
+
   it('CHAQUE species de species.json résout son pool (par refChar) et produit un nom (M et F)', () => {
     // Preuve du routage par refChar : on parcourt les VRAIES espèces (les 20 variantes régionales
     // partagent la banque de leur race — `humain`, `halfling`, `nain`…).
@@ -63,7 +87,11 @@ describe('generateName — banque names.json + canon nain (LDB 05 l.627-633)', (
       for (const sex of sexeSchema.options) {
         const n = generateName(sp.refChar, sex, makeRNG(11));
         expect(n, `${sp.label} (${sp.refChar}) ${sex}`).toBeTruthy();
-        expect(n!.split(' ').length).toBeGreaterThanOrEqual(2);
+        if (sp.refChar === 'ogre') {
+          expect(n).toMatch(/^\S+$/);
+        } else {
+          expect(n!.split(' ').length).toBeGreaterThanOrEqual(2);
+        }
       }
     }
   });
