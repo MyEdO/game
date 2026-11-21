@@ -547,6 +547,10 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 - **Groupes du lieu** : `Scene.groups` (ids de `groups.json` qu'un porteur déclare, champ « Groupes du lieu » du
   pli Scène de l'Inspector) fait de la scène la source de ces Groupes pour tout Trait psy qui les vise, en combat
   comme hors combat (`etiquetteDeScene`, `src/noyau/monde/porteurs.ts`).
+- **Groupes d’une possession** : renseigner « Groupes de l’objet » sur sa fiche de catalogue ou dans les objets
+  du narratif (`narratif.objets[].groups`). Pour montrer une possession d’auteur sur un PNJ, la déclarer portée
+  dans son inventaire. Quand la possession est en vue, ses Groupes sont une source de Psychologie dont les
+  effets n’ajoutent aucun Groupe à son porteur (#3045, Q4).
 
 ## 11. Règles d'or
 

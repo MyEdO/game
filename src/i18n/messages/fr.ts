@@ -1298,6 +1298,7 @@ export const fr = {
   'party.seat.host': 'Hôte',
   'absent.heros': 'un héros qui a quitté le groupe',
   'absent.combattant': 'un combattant qui a quitté le combat',
+  'absent.objet': 'un objet qui a disparu',
   'absent.lieu': 'un lieu effacé de la carte',
   'absent.navire': 'un navire retiré du catalogue',
   'absent.saison': 'saison « {id} » (sans fiche)',

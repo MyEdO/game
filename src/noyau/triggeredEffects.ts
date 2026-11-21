@@ -445,9 +445,9 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
 /** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne
  *  de Vue, étiquette de la scène) ; `undefined` hors combat, sans instance ou sans Cible. */
 function mesurerCibleEnVue(get: Get, actor: Combatant, affliction: PsychAffliction | undefined): CibleEnVue | undefined {
-  const { battle, scene } = get();
+  const { battle, scene, campaignNarratif } = get();
   if (!battle || !scene || affliction?.cible === undefined) return undefined;
-  return cibleEnVue(actor, affliction, sourcesPsyEnVue(battle, scene, actor, (s) => !s.dead));
+  return cibleEnVue(actor, affliction, sourcesPsyEnVue(battle, scene, actor, (s) => !s.dead, objetDuNarratif(campaignNarratif)));
 }
 
 /** ENVELOPPE d'un effet déclenché : les combattants où `eff` s'exerce pour `trigger` dans `ctx` — vide

@@ -19,6 +19,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
  * l'effet `transition: { scene }` et `worldMap.places[].scene`.
  */
 import { tableTotale } from '../../../lib/tableTotale';
+import { estIdDEtiquetteDObjet } from '../../../lib/entityId';
 import { z } from 'zod';
 import { OBJETS_DU_PROJET, ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
 import {
@@ -223,7 +224,7 @@ export type OptionalDeScene = z.output<typeof optionalDeSceneSchema>;
 
 /** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le corps, lui, est propre à chaque branche. */
 const baseDEntiteSchema = nommerChamps(z.strictObject({
-  id: z.string(),
+  id: z.string().refine((id) => !estIdDEtiquetteDObjet(id), 'Identifiant réservé aux sources de Psychologie des objets.'),
   pos: cell2Schema,
   /** Couche d'empilement (cf. `layers`) : 0/absent = couche de base. */
   z: z.number().optional(),

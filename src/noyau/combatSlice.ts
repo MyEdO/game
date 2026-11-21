@@ -301,6 +301,7 @@ import { refusDImmunite } from './determinationDuJet';
 import { porteurDeLObjet } from './monde/carrier';
 import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
+import { sourcePsyAuCombat } from './monde/porteurs';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat, refuserAuSiegeAgissant } from './netOwnership';
@@ -2944,14 +2945,14 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!battle || !pa) return;
       const lance = garanti(pa.result, pa.combatantId, 'jet de l’Approche');
       const c = inBattleId(battle, pa.combatantId);
-      const src = inBattleId(battle, pa.sourceId);
+      const src = sourcePsyAuCombat(battle, pa.sourceId);
       set({ pendingApproach: null });
       if (!c) return;
       const ok = lance.success;
-      const nomDeLaSource = garanti(nomEnVue(get(), pa.sourceId), pa.sourceId, 'source de l’Approche');
+      const nomDeLaSource = src.genre === 'objet' ? src.nom : garanti(nomEnVue(get(), pa.sourceId), pa.sourceId, 'source de l’Approche');
       const log = [...battle.log, ev('peur', ok
         ? t('cs.courageYes', { name: c.label, src: nomDeLaSource })
-        : t('cs.courageNo', { name: c.label, src: nomDeLaSource }), c.id, src?.id)];
+        : t('cs.courageNo', { name: c.label, src: nomDeLaSource }), c.id, src.genre === 'combattant' ? src.ancre?.id : undefined)];
       set({ battle: { ...get().battle!, fearGate: ok ? 'passed' : 'failed', log } });
       if (ok) {
         // Relance le geste différé (le gate est 'passed') AVEC l'intention de son clic d'origine, que ce clic a dissoute.

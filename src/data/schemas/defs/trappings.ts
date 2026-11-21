@@ -265,6 +265,8 @@ const doc = document(
     sizeFor: sizeCategorySchema.optional(),
     /** Arbitrage #4110 (2026-11-16) */
     reserveeA: ref('groupe', undefined, DECLARABLE_PAR_UN_PORTEUR).optional(),
+    /** #3045 Q4 ; EDOC 12 l.170-197 */
+    groups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 69 l.9 ; LDB 59 l.15 ; LDB 62 l.31 ; LDB 44 l.113-119 ; MDG 10 l.112 */
     availability: z.union([availabilitySchema, z.literal('ND')]).nullable(),
     ammoRangeMod: ammoRangeModSchema.nullable().optional(),
@@ -334,6 +336,7 @@ const doc = document(
       hint: 'Version grande taille d’une possession ordinaire (ex. équipement pour Ogre)',
     },
     reserveeA: { label: 'Réservée à', hint: 'Groupe seul à qui une arme au choix de carrière l’offre' },
+    groups: { label: 'Groupes de l’objet', hint: 'Groupes perçus lorsque l’objet est porté ou tenu en vue' },
     availability: { label: 'Disponibilité' },
     ammoRangeMod: {
       label: 'Modificateur de portée (munition)',
