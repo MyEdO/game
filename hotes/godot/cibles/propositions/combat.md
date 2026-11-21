@@ -78,6 +78,18 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
   ligne), le carton de la bataille de masse, le Coup Critique et la table tirée (un nom de table), l'annonce d'un
   choix, la nature d'une Influence, la Surincantation, la consigne et le dialogue.
 
+## Contenu fixe d'un état à l'autre (#4585)
+
+- À valider : le numéro du round dans une case de 96 px, « tour 1 sur 4 » ou « le round débute » toujours au même x
+  (`#round .n`, `sources/combat/combat.css`).
+- À valider : les lignes du journal dans une liste de hauteur fixe sous sa tête de 34 px, qui défile au pied
+  (`defile(…, 'au-pied')`, `sources/rendu.js`) ; la tête garde sa hauteur quand le journal est vide.
+- À valider : la liste d'un meuble a une seule largeur, 300 px, qu'elle porte des prix (pièces de bord) ou non (sorts)
+  (`#liste`, `sources/rendu.css`).
+- À valider : l'actif de l'ordre remplit sa place de 158 px, avec ou sans état porté (`#ordre .rang.actif`).
+- À valider : les rangées d'un Test d'équipage et l'enjeu remplissent la colonne de droite de la fenêtre, quel qu'en
+  soit le nombre de lignes (`#jet .rangees`, `#jet .enjeu`).
+
 ## tour-adverse (A1, A2, T3)
 - Le meuble garde sa place et montre l'adversaire : portrait de fer, nom, arme (« Hache »), Blessures.
 - Plaques et fin du tour fermées.
@@ -175,6 +187,8 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 ## cible-survolee (T14, T15, T16)
 - Case cernée de cire rouge, infobulle de parchemin, zone atteignable à liseré, trajet en pointillé, socles de camp,
   barre de vie fine ; « Attaque » armée ; barre des six emplacements rapides validée.
+- À valider (#4585) : l'aperçu d'une cible et celui d'un sort partagent une grille fixe (`corpsDuTour`) : la ligne
+  de jauge reste vide dans l'aperçu d'un sort, la table tient 125 de haut et défile au-delà.
 
 # Écrans neufs (2026-11-17, #4411)
 

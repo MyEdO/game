@@ -22,7 +22,8 @@ export default {
       gestes: [{ libelle: 'Commencer', principal: true }],
     },
     {
-      nom: 'fin', gabarit: 'ouverture', decor: 'altdorf', sur: 'L’Ennemi Intérieur · Fin de chapitre', chapitre: 'Chapitre 1 — la route d’Altdorf',
+      nom: 'fin', gabarit: 'ouverture', decor: 'altdorf', sur: 'Fin de chapitre',
+      campagne: { nom: 'L’Ennemi Intérieur', tome: 'Tome 1 — L’Ennemi dans l’Ombre' }, chapitre: 'Chapitre 1 — la route d’Altdorf',
       cloture: {
         sous: 'Le reste du trajet n’a rien de remarquable : la compagnie arrive à Altdorf.', px: 140,
         objectifs: ['Trouver une place à bord d’une diligence pour Altdorf.', 'Examiner les lieux de l’embuscade.', 'Se rendre à Altdorf.'],

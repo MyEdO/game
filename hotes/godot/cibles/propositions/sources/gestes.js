@@ -318,6 +318,12 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le contenu de chaque place d'un cadre (`cadre/place`), que `rendu.js` pose au rect de sa ligne (`PLACES`) ; une
      place sans contenu n'est pas posée */
   const places = (cadre, contenus) => Object.entries(contenus).filter(([, html]) => html).map(([nom, html]) => `<div class="place" data-place="${cadre}/${nom}">${html}</div>`).join('');
+  /* la grille d'une colonne (`cadre` : son rôle) : sa tête, son corps qui défile, ses entrées à écarts uniformes, ce
+     qui décide au pied du corps (`pied` : une place fixe entre le corps et le geste, que le corps laisse dans tous les
+     états), son geste au pied fixe et la note sous lui, chacun à sa place (`cadre/tete`, `cadre/corps`, `cadre/pied`,
+     `cadre/geste`, `cadre/note`) ; sans tête, le corps prend aussi sa bande (`cadre/plein`, qu'aucun état ne porte avec
+     la tête) ; `liste` : le corps est une liste longue par nature (`defile`) */
+  const colonne = (cadre, { tete = '', corps = '', pied = '', geste = '', note = '', liste = false }) => `<div class="colonne">${places(cadre, { tete, [tete ? 'corps' : 'plein']: corps && defile(corps, 'corps', { liste }), pied, geste, note })}</div>`;
   /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques ; `cadre` :
      chaque onglet à sa place `cadre/onglet-k`, de même largeur, une section absente (`null`) laisse la sienne vide */
   const onglets = (noms, active, cadre = '') => {
@@ -332,9 +338,12 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const mobile = (ancre) => ` data-mobile data-ancre="${ancre}"`;
   /* l'aperçu au survol : son nom, à droite ce qu'il est, son corps ; `vers` : le bord dont la pointe montre l'élément
      survolé (gauche, droite, haut, bas) ; `style` le place */
+  /* la table d'un aperçu, à hauteur fixe, qui défile si elle déborde */
+  const tableDApercu = (lignes) => defile(`<table>${lignes}</table>`, 'table');
   const apercu = ({ nom, sous = '', corps = '', vers = 'gauche', style = '' }) => `<div class="apercu parchemin vers-${vers}" data-piece="apercu"${mobile('survol')} style="${style}"><div class="tete"><span class="n gothique">${nom}</span>${sous ? `<span class="c rubrique">${sous}</span>` : ''}</div>${corps}</div>`;
-  /* la bannière d'issue d'un combat, et sous elle sa sortie, une plaque d'appel ; `suite` : ce que l'issue laisse */
-  const issue = (texte, { action = '', suite = '' } = {}) => `<div class="issue-du-combat" data-piece="issue"><div class="banniere"><span class="gothique" data-texte="issue">${texte}</span></div>${suite ? `<p class="ombre" data-texte="suite de l'issue">${suite}</p>` : ''}${action ? plaque(action, { armee: true, taille: 'appel' }) : ''}</div>`;
+  /* la bannière d'issue d'un combat, et sous elle, chacun à sa place (`issue/suite`, `issue/geste`), ce que l'issue
+     laisse (`suite`) et sa sortie, une plaque d'appel */
+  const issue = (texte, { action = '', suite = '' } = {}) => `<div class="issue-du-combat" data-piece="issue"><div class="banniere"><span class="gothique" data-texte="issue">${texte}</span></div>${places('issue', { suite: suite && `<p class="ombre" data-texte="suite de l'issue">${suite}</p>`, geste: action && plaque(action, { armee: true, taille: 'appel' }) })}</div>`;
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
   const filet = ({ fondu = false, losange = false, or = false } = {}) => `<div class="filet${fondu ? ' fondu' : ''}${or ? ' or' : ''}">${losange ? '<i class="losange"></i>' : ''}</div>`;
   /* un choix parmi quelques valeurs nommées : la valeur tenue est dorée ; `egaux` : cases de même largeur */
@@ -349,8 +358,9 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const rangDePas = (pleins, total, classe = '') => `<div class="pas ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
   /* ce qui défile dans son cadre, qui garde sa taille : `data-defile` au relevé du rendu ; la suite cachée s'annonce
      par un fondu au pied, ce qui a défilé par un fondu en tête (`suites`), hors ce qui se pagine ; `au-pied` : il montre
-     sa fin ; sinon, sa dernière action principale (plaque armée, étape en cours) vient au-dessus du fondu du pied */
-  const defile = (contenu, classe = '') => `<div class="defile ${classe}" data-defile>${contenu}</div>`;
+     sa fin ; sinon, sa dernière action principale (plaque armée, étape en cours) vient au-dessus du fondu du pied ;
+     `liste` : une liste longue par nature (`data-defile="liste"`), la seule que le relevé `masque` laisse déborder */
+  const defile = (contenu, classe = '', { liste = false } = {}) => `<div class="defile ${classe}" data-defile${liste ? '="liste"' : ''}>${contenu}</div>`;
   const suites = () => document.querySelectorAll('.defile:not(.pages)').forEach((d) => {
     const action = [...d.querySelectorAll('.plaque.armee, .en-cours')].at(-1);
     if (d.classList.contains('au-pied')) d.scrollTop = d.scrollHeight;
@@ -396,6 +406,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const bourse = ({ heros, avoir, parts, total, reglable = true }) => `<div class="qui-paie${parts ? ' parts' : ''}">${medaillon('bourse', { taille: 'moyen' })}<div class="q">${parts
     ? `<span class="rubrique">Bourses du groupe</span>${parts.map(([nom, part, reste]) => `<div class="part"><span>${nom}</span>${reglable ? moinsPlus({ entre: `<b class="chiffres">${part}</b>` }) : `<b class="chiffres">${part}</b>`}<i>sur ${reste}</i></div>`).join('')}<div class="total"><span class="rubrique">Total</span><b class="chiffres">${total}</b></div>`
     : `<span class="rubrique">Bourse ${de(heros)}</span><b class="chiffres">${avoir}</b>`}</div></div>`;
+  /* les bourses du groupe au pied d'une page : une case fixe par héros, son portrait et sa part, puis le total ; le −/+
+     de la part réglée (`reglee`) autour du portrait, ce que la bourse contient dans la bulle du survol (fiche
+     `user-doctrine-icone-identifie-survol-detaille`) ; `reglable: false` comme `bourse` */
+  const rangeeDeBourses = ({ parts, total, reglable = true }) => `<div class="bourses">${parts.map(({ id, nom, part, avoir, reglee }) => `<div class="case-bourse" title="${nom} : ${part} sur ${avoir}">${reglable && reglee ? moinsPlus({ entre: portrait(id, { taille: 'menu' }) }) : portrait(id, { taille: 'menu' })}<b class="chiffres" data-texte="part ${nom}">${part}</b></div>`).join('')}<div class="case-bourse total" title="Total des parts">${medaillon('bourse', { taille: 'petit' })}<b class="chiffres" data-texte="total">${total}</b></div></div>`;
   /* « de » devant un nom, élidé devant une voyelle (« Bourse d’Ilyanwe », « Test d’Intuition ») */
   const de = (nom) => (/^[aeiouàâäéèêëîïôöùûüœæ]/i.test(String(nom)) ? `d’${nom}` : `de ${nom}`);
   /* saisir un texte : le libellé de rubrique s'il y en a un, la valeur et son curseur, ou l'attente d'un champ vide ;
@@ -404,7 +418,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, places, onglets, signets, apercu, issue,
-    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ, mobile, defile, de,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, places, colonne, onglets, signets, apercu, tableDApercu, issue,
+    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, rangeeDeBourses, champ, mobile, defile, de,
   });
 }

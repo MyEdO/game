@@ -27,12 +27,41 @@ glisse ; le fond ne range rien d'autre, aucune règle de feuille propre à un é
 y ait quatre héros ou moins ; à la barre de l'actif une place d'onglet par famille dans l'ordre Action, Situation,
 Gestes, Rapides, de même largeur active ou non, trois places de plaque et cinq de geste) ; l'actif au pied de l'ordre
 du tour (`ordre/actif`) ; les onglets des sections de la fiche, des dossiers et de la progression (cinq places, la
-fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; le pied de
-l'identité qui progresse ; le pied du rail des services, sous le dernier service que la colonne peut porter, quel qu'en
-soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
+fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; la colonne du choix de la création (quatre rangées, la haute des deuxième
+et troisième, la liste et son pied : `heros.md`, « Grille du choix ») ; le pied de
+l'identité qui progresse ; le grand titre libre de l'ouverture (sur-titre, nom, filet, suite, puis au chapitre la toile
+et le corps) et la colonne des entrées (la principale, l'instant qu'elle reprend, les autres) ; sous la bannière d'issue
+d'un combat, ce qu'elle laisse et sa sortie ; la grille des colonnes (`colonne`, `sources/gestes.js` : la tête, le corps qui défile sous
+elle, ou le plein, le corps sur la bande de la tête quand le panneau n'en a pas, ce qui décide au pied du corps
+(`pied`, une place fixe que le corps laisse dans tous les états : à la page d'un service, les bourses du groupe, la mise
+d'une partie, ce que le patient paie), le geste au pied, la note sous lui ;
+à gauche sous le cartouche, le corps prend la hauteur que la note laisse au plein du rail des services, dont la note
+se pose sous le dernier service que la colonne peut porter, quel qu'en soit le nombre, et au carnet les documents remis
+sous elle ; aux volets de l'outil d'édition, la liste au plein et ses gestes au pied ; à l'inspecteur, ce qui est
+choisi, ses propriétés, la validation ou « Supprimer » au pied) ; les hôtes d'une scène de commerce, chacun à la case de son genre (`commerce.md`) ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
 (portrait, identité, rangée des dés, issue). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
 `habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
-premier état du même rôle.
+premier état du même rôle. Le relevé `contenu` (`sources/contenus.mjs`) compare d'un état à l'autre du même gabarit
+le rect de ce que chaque place porte, sous la clé porteur + rôle (le rôle : la pièce, la place, la première classe, le
+`data-texte` et le `data-cle`, l'id stable de ce qu'un élément désigne quand le markup en porte un, puis le rang parmi
+ceux du même rôle), et classe chaque écart : **A** une boîte déplacée (son coin bouge, ou la taille
+d'un contenu qui n'est pas un texte en ligne, ou le départ, les x ou les écarts des entrées d'une liste qui défile),
+**B** la seule longueur d'un texte dont le coin reste fixe, **C** le seul nombre des entrées d'une liste qui défile
+(une liste d'une seule entrée n'a pas d'écart à comparer).
+Un A fait échouer le rendu, quel que soit le gabarit, contre les autres écrans du gabarit déjà rendus sous
+`RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe) et les autres états de la même passe ; `node
+sources/contenus.mjs <dossier>` agrège la passe (code 1 sur un A).
+`npm run godot:maquettes` (`sources/passe.mjs`) joue la passe entière : tous les états de tous les écrans sous un
+`RELEVE_CONTENUS` neuf (`dist/maquettes-passe` par défaut), puis l'agrégat ; code 1 sur une erreur de page, un relevé
+non vide, un défilement de la page ou un A. Playwright se résout comme pour `rendre.mjs` (`../images.md`).
+
+- À valider (#4585) : le cartouche de titre (`#titre`, tout écran qui en porte un) range ses deux primitives (le
+  cartouche du lieu, l'objet du temps du voyage) sur une même grille : la figure dans une case de 56 de large, le
+  bloc du texte haut de 70.
+- À valider (#4585) : sous la bannière d'issue d'un combat, la sortie a une largeur (254) pour toutes les issues.
+- À valider (#4585) : un corps qui défile ne cache rien de ce qu'un état montre quand une place visible peut le porter ;
+  à l'auberge, les avis de l'aubergiste (« méfiez-vous des voleurs ») tiennent au pied du corps de la colonne de
+  gauche, la grille des offres resserrée.
 
 **Le contenu s'adapte au cadre, jamais l'inverse.** Aucun panneau ne prend la hauteur de son contenu, aucune fenêtre
 ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile ou passe en onglets ; seules la prose d'un
@@ -73,7 +102,9 @@ Les rects sont ceux de `CADRES` ; cette table dit qui occupe chaque rôle.
 ## Débordement
 
 Rien ne se tronque ; le relevé de `rendre.mjs` refuse le texte coupé (`coupe`, `rogne`), ce qui sort du fond d'un
-cadre (`deborde`), une action principale cachée (`cache`) et une pièce du kit écrasée sous sa taille (`retrecit`).
+cadre (`deborde`), une action principale cachée (`cache`), ce qui défile et déborde sans être une liste longue par
+nature (`masque` : seule la liste que `defile(contenu, classe, { liste: true })` marque `data-defile="liste"` déborde)
+et une pièce du kit écrasée sous sa taille (`retrecit`).
 
 - **Défilement** (`defile()`, `kit.md`) : une colonne, une page ou une liste trop longue défile dans son cadre, sans
   barre. La suite cachée s'annonce par un fondu au pied, ce qui a défilé par un fondu en tête. `au-pied` : le journal

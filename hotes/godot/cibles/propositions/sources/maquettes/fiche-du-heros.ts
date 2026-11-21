@@ -5,12 +5,12 @@
  * `partyFlow.ts:580-647` (LDB 46 l.107-113), prothèse `partyFlow.ts:718-745` (LDB 73 l.19, l.23), Faveur
  * `src/noyau/favorFlow.ts` (LDB 23 l.141-151).
  */
-import type { Carac, Ecran, FicheDuHeros, HerosDuGroupe, IdentiteDuHeros, ObjetDuHeros, ObjetOuvert } from './maquette.ts';
+import type { Carac, Ecran, FicheDuHeros, HerosDuGroupe, IdentiteDuHeros, ObjetDuHeros, ObjetOuvert, Reserve } from './maquette.ts';
 
 const CARACS: Carac[] = ['M', 'CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc', 'B'];
 const profil = (valeurs: number[]) => valeurs.map((valeur, k) => ({ carac: CARACS[k], valeur }));
-const reserves = (destin: number, chance: number, resilience: number, determination: number) => [
-  { nom: 'Destin', valeur: destin }, { nom: 'Chance', valeur: chance }, { nom: 'Résilience', valeur: resilience }, { nom: 'Détermination', valeur: determination }];
+const reserves = (destin: number, chance: number, resilience: number, determination: number): Reserve[] => [
+  { id: 'destin', nom: 'Destin', valeur: destin }, { id: 'chance', nom: 'Chance', valeur: chance }, { id: 'resilience', nom: 'Résilience', valeur: resilience }, { id: 'determination', nom: 'Détermination', valeur: determination }];
 const ILYANWE: IdentiteDuHeros = { id: 'ilyanwe', nom: 'Ilyanwe la Voilée', espece: 'Hauts elfes', carriere: 'Sorcière', blessures: { n: 17, sur: 17 }, reserves: reserves(4, 4, 3, 3) };
 /** Le profil d'Ilyanwe, que le tour de combat lit aussi (la portée de ses Sorts). */
 export const PROFIL_D_ILYANWE = profil([5, 33, 30, 26, 45, 62, 58, 52, 80, 70, 29, 17]);

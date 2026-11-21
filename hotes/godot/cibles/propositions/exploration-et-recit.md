@@ -11,6 +11,8 @@ format de `sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html`
 ses trois regards et la route d'Altdorf (`scene.js`), le Reikland (`carte.js`) ; les pièces propres à la famille dans
 `recit.css` et `carte.css`. Les valeurs affichées sont des exemples non relus au livre. Premières maquettes : rien
 n'est validé.
+- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
+  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 
 Pièces : la fenêtre du bas du kit pour le dialogue, le jet, le butin, la désignation et le départ de nuit ; le
 journal au bord droit ; les gestes du groupe en colonne au bord gauche, les écrans à ouvrir au bord droit ; le
@@ -66,6 +68,8 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - RAW : LDB 12 l.200 ; LDB 15 l.55 ; LDB 18 l.296-298.
 - À valider : les gestes du groupe en pastilles empilées, absentes quand la situation les ferme ; le ramassage par
   le héros qui mène ; l'arête franchissable dite sur la scène, pas dans une liste.
+- À valider (#4585) : le poste d'une chose signalée a 148 px de large au moins et une tête de la hauteur d'un
+  portrait, comme les postes de la nuit et du bord (`lieux-et-nuit.md`, `voyage.md`).
 
 ## exploration-dessus (2026-11-17, #4411)
 - La salle de `exploration-gestes`, vue du dessus. Seule la caméra change : mêmes pions (anneau des héros, halo de
@@ -157,3 +161,5 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
   pied) et « Prendre la route » ; bandeau des héros et leur bourse ; « Revenir à l'auberge ».
 - À valider : distances, durées et tarifs d'exemple, non relus au livre ; seuls les lieux connus du groupe montrés ;
   la carte ouverte depuis le lieu, pas depuis la route ; « Reprendre le voyage » (`carteEnVue.reprendre`) non dessiné.
+- À valider (#4585) : la destination sur la grille commune des colonnes : son nom et sa route en tête ; la prose, les
+  étapes et les moyens dans le corps qui défile ; « Partir » au pied fixe.

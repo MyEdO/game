@@ -247,10 +247,9 @@ Aucune cible écrite. Le contenu vient de `src/hote/salon.ts`, `src/hote/coop/sa
 
 Chaque proposition a sa source HTML, CSS et JS sous `propositions/sources/<famille>/`, polices communes sous
 `propositions/sources/polices/` (OFL). Une image se refait depuis sa source, jamais à la main :
-`node propositions/sources/rendre.mjs <chemin absolu du .html> <sortie.png> [échelle]`, Playwright résolu depuis le
-script (il n'est pas une dépendance du dépôt : `npm i --no-save playwright`, ou dans le conteneur cloud un lien
-`node_modules/playwright` vers `/opt/node-tools/node_modules/playwright`) (vue 1707 × 780, rapport des pièces qui
-débordent ou se chevauchent). Rien ne se copie d'une famille à l'autre : une page lie par chemin relatif le socle
+`node propositions/sources/rendre.mjs <chemin absolu du .html> <sortie.png> [échelle]`, sous Playwright, dépendance de
+développement du dépôt, dans le Chromium épinglé des planches (`EPINGLE`, `refusDuNavigateur` de `hotes/godot/planches.mjs`),
+que pose `npx playwright install chromium` (vue 1707 × 780, rapport des pièces qui débordent ou se chevauchent). Rien ne se copie d'une famille à l'autre : une page lie par chemin relatif le socle
 qu'elle prolonge, et une pièce neuve s'ajoute à ce socle plutôt que dans une page. Deux socles : le commun
 (`lieux-et-nuit/commun.css`, `commun.js`, `bustes.js`), que lient `heros`, `exploration-et-recit`, `voyage`,
 `commerce` et les écrans hors champ de `combat-suite` ; celui du combat (`combat/combat.css`, `socle.js`), que lient
