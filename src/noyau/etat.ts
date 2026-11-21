@@ -310,6 +310,8 @@ export interface CampaignVessel {
   reparationTemporaire?: true;
   /** Humeur de Manann (MDG 15 l.83-125) — par navire, registre des facteurs déjà appliqués. */
   manann?: import('../engine/seaVoyage').ManannMood;
+  /** MDG 15 l.15, l.19 */
+  daysToEvent?: number;
   /** SABOTAGE authoré sur cette coque (MDG 14 l.45-47) — clampé [-5,0] par `shipSaboteurDR`,
    *  recopié sur la coque de trajet (`voyageShip`) comme `upgrades`/`wounds`. */
   saboteurDR?: number;
