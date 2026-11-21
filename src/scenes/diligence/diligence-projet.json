@@ -25775,8 +25775,8 @@
   },
   {
    "type": "scene",
-   "id": "altdorf-porte-sud",
-   "label": "Altdorf — la porte sud",
+   "id": "altdorf-porte-du-loup",
+   "label": "Altdorf — la porte du Loup",
    "dimensions": {
     "w": 16,
     "h": 12
@@ -46505,7 +46505,7 @@
      "y": 26
     },
     "scene": {
-     "id": "altdorf-porte-sud"
+     "id": "altdorf-porte-du-loup"
     },
     "icon": "scenario/village",
     "prose": "Les murs blancs d’Altdorf, capitale de l’Empire, la plus grande et la plus riche de ses cités. Le Palais Impérial se dresse près du Reik et domine toute la ville. Dans les rues, on repeint une façade tandis que sa voisine tombe en ruine, et des agitateurs réclament par dizaines la venue d’un ordre nouveau. Tout le monde a quelque part où aller, et personne n’y arrive assez vite.",

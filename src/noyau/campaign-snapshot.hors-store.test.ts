@@ -23,6 +23,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
 import { applyEffects } from './combatEffects';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
+import { arriverAuLieu } from './lieuFlow';
 
 /** Scène minimale (heroStart) chargeable par le chemin RÉEL (`chargerLeProjet`/`quitterLaScene`). */
 function scene(id: string): Scene {
@@ -101,6 +102,32 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     // La preuve : scene-b, absente du registre reparti de zéro, l'est de nouveau → la transition réussit.
     banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene?.id).toBe('scene-b');
+  });
+
+  it('un lieu de la sauvegarde mène à la scène embarquée, même si le projet a renommé son id', () => {
+    const lancerAvecPorte = (porteId: string) => {
+      const ville = { id: 'ville', label: 'Ville', pos: { x: 1, y: 0 }, scene: { id: porteId } };
+      banc.getState().chargerLeProjet({
+        scenes: [scene('scene-a'), scene(porteId)],
+        entryId: 'scene-a',
+        worldMap: { ...worldMap, places: [...worldMap.places, ville] },
+        projet: { id: 'snap-projet' },
+      });
+      arriverAuLieu(banc.setState, ville);
+    };
+
+    lancerAvecPorte('scene-ancienne-porte');
+    const save = sauverLeBanc(banc);
+
+    resetSceneRegistry();
+    lancerAvecPorte('scene-porte-renommee');
+    banc.getState().fenetreFermer('ecranDuLieu');
+    expect(banc.getState().scene?.id).toBe('scene-porte-renommee');
+
+    chargerSurLeBanc(banc, save);
+    expect(banc.getState().scene?.id).toBe('scene-a');
+    banc.getState().fenetreFermer('ecranDuLieu');
+    expect(banc.getState().scene?.id).toBe('scene-ancienne-porte');
   });
 
   it('l’Arène lancée sans choix (#1692) : sa save porte son paquet, et ses zones résolvent au rechargement', () => {
