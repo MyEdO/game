@@ -169,6 +169,7 @@ export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
   onHitEffects: { label: 'Effets à la touche', hint: 'Effets déclenchés au moment où l’arme touche sa cible' },
   munitions: {
     label: 'Munitions',
+    inverseCodex: true,
     hint: 'Seules munitions que charge cette arme, la représentative en tête ; vide : celles de sa famille qu’aucune arme ne nomme',
   },
   reach: { label: 'Allonge', hint: 'Porté par les armes de mêlée ; absent des objets sans profil d’arme' },
@@ -293,7 +294,7 @@ const doc = document(
       label: 'Catégorie',
       hint: 'Catégorie de catalogue : arme de mêlée, arme à distance, munition, armure ou possession',
     },
-    subType: { label: 'Sous-type', hint: 'Sous-catégorie au sein de la catégorie' },
+    subType: { label: 'Sous-type', inverseCodex: true, hint: 'Sous-catégorie au sein de la catégorie' },
     bouclierDEquipe: {
       label: 'Bouclier d’équipe',
       hint: 'Bouclier que tient l’allié au contact du tireur : Protectrice de ce bouclier aux deux, ni Course ni Fuite',

@@ -28,7 +28,7 @@ const doc = document(
       label: 'Type de Mutation',
       hint: 'Physique ou mentale',
     },
-    passive: { label: 'Effets passifs' },
+    passive: { label: 'Effets passifs', inverseCodex: { operations: { grantTrait: 'trait' } } },
     effects: { label: 'Effets déclenchés' },
     note: { label: 'Note', hint: 'Note mécanique de l’entrée — ex. bonus de Perception' },
     subTable: { label: 'Sous-table de tirage', hint: 'Entrée dont la sous-table est tirée en cascade' },

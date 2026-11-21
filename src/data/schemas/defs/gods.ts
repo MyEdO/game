@@ -31,9 +31,9 @@ const doc = document(
   {
     grantGroups: { label: 'Groupes accordés' },
     title: { label: 'Épithète', hint: 'Sous-titre affiché sous le nom du dieu' },
-    blessings: { label: 'Bénédictions' },
-    miracles: { label: 'Miracles' },
-    chaosSpells: { label: 'Sorts du Chaos accordés' },
+    blessings: { label: 'Bénédictions', inverseCodex: { detail: 'Bénédiction' } },
+    miracles: { label: 'Miracles', inverseCodex: { detail: 'Miracle' } },
+    chaosSpells: { label: 'Sorts du Chaos accordés', inverseCodex: { detail: 'Sort du Chaos' } },
     sinLocks: {
       label: 'Verrou de Péché',
       hint: 'Seuil de Points de Péché à partir duquel le dieu retire l’usage d’un Talent de Prière',

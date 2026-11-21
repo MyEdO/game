@@ -51,6 +51,95 @@ describe('compendium', () => {
     expect(erreurDe(appel('compendium', { compendium: { geste: 'montrer', id: 'nulle-part' } })).categorie).toBe('validation');
   });
 
+  it('une Compétence montre ses Races et ses Carrières par rang dans les deux séries de sections, à jour dès la première relecture après édition', async () => {
+    const { idDe, ref } = await import('../../../src/data/schemas/grammaire/ref');
+    const source = { book: 'codex-test-livre-renvois', page: 1 };
+    const desc = 'Entrée de recette du pont.';
+    setDataset('books', [...datasetArray('books'), { id: source.book, label: 'Livre de test', type: 'books', abbr: 'CTR', language: null, folder: null }]);
+    const competence = {
+      id: 'codex-test-competence-renvois', label: 'Cartographie des brumes', type: 'skills' as const,
+      characteristic: 'intelligence' as const, acces: 'base' as const, source, desc,
+    };
+    setDataset('skills', [...datasetArray('skills'), competence]);
+    const classe = { id: 'codex-test-classe-renvois', label: 'Explorateurs des brumes', type: 'classes' as const, trappings: [], source, desc };
+    setDataset('classes', [...datasetArray('classes'), classe]);
+    const carriere = {
+      id: 'codex-test-carriere-renvois', label: 'Traceur des brumes', type: 'careers' as const,
+      class: ref('classe').parse({ id: classe.id }), source, desc,
+    };
+    setDataset('careers', [...datasetArray('careers'), carriere]);
+    const referenceDeCarriere = ref('career').parse({ id: carriere.id });
+    const marques = [['capacite-de-combat', 'capacite-de-tir', 'force'], ['endurance'], ['initiative'], ['agilite']] as const;
+    const niveaux = marques.map((characteristics, index) => {
+      const level = index + 1;
+      return {
+        id: `${carriere.id}-${level}`, label: `Traceur au rang ${level}`, type: 'careerLevels' as const,
+        career: referenceDeCarriere, level, characteristics: [...characteristics],
+        skills: level === 1 || level === 4 ? [{ id: competence.id }] : [], talents: [], trappings: [],
+        status: { tier: 'bronze' as const, standing: 1 }, source,
+      };
+    });
+    setDataset('careerLevels', [...datasetArray('careerLevels'), ...niveaux]);
+    const colonne = {
+      id: 'codex-test-colonne-renvois', label: 'Colonne de test', type: 'carrieres-aleatoires' as const, kind: 'colonne' as const,
+      die: { n: 1, sides: 10 }, entries: [{ ...referenceDeCarriere, min: 1, max: 10 }], source,
+    };
+    setDataset('carrieresAleatoires', [...datasetArray('carrieresAleatoires'), colonne]);
+    const baseDEspece = {
+      type: 'species' as const, family: 'Peuples des brumes', refChar: 'humain' as const,
+      refCareer: idDe('carrieresAleatoires', 'colonne').parse(colonne.id),
+      movement: 3, fate: { fate: 1, resilience: 1, extra: 1 },
+      baseChar: {
+        'capacite-de-combat': 20, 'capacite-de-tir': 20, force: 20, endurance: 20, initiative: 20,
+        agilite: 20, dexterite: 20, intelligence: 20, 'force-mentale': 20, sociabilite: 20,
+      },
+      skills: [{ id: competence.id }], talents: [], grantGroups: [], source,
+    };
+    const zephyrs = { ...baseDEspece, id: 'codex-test-espece-zephyrs', label: 'Zéphyrs des brumes' };
+    const alizes = { ...baseDEspece, id: 'codex-test-espece-alizes', label: 'Alizés des brumes' };
+    setDataset('species', [...datasetArray('species'), zephyrs, alizes]);
+
+    const { appel } = table();
+    const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'skills', id: competence.id }));
+    expect(ouvert['compendium.fiche'][0].nom).toBe(competence.label);
+    const ids = ['section/0/0', 'section/1/0', 'renvoi/races', 'renvoi/careers'];
+    const sections = (zones: ZonesDuCompendium) => zones['compendium.fiche'].filter((e) => ids.includes(e.id));
+    const attendues = [
+      ['section/0/0', 'Races'],
+      ['section/1/0', 'Carrières (par rang)'],
+      ['renvoi/races', 'Races'],
+      ['renvoi/careers', 'Carrières (par rang)'],
+    ];
+    const [races, carrieres, renvoiRaces, renvoiCarrieres] = sections(ouvert);
+    expect(sections(ouvert).map(({ id, nom }) => [id, nom])).toEqual(attendues);
+    const liens = (section: Entite) => section.elements
+      .filter((e): e is Bouton => e.type === 'bouton')
+      .map(({ libelle, jeu }) => ({ libelle, jeu }));
+    const lien = (categorie: string, id: string, libelle: string) => ({ libelle, jeu: { compendium: { geste: 'suivre', categorie, id } } });
+    expect(liens(races)).toEqual([lien('races', alizes.id, alizes.label), lien('races', zephyrs.id, zephyrs.label)]);
+    expect(liens(renvoiRaces)).toEqual(liens(races));
+    expect(liens(carrieres)).toEqual([lien('careers', carriere.id, `${carriere.label} (N1, N4)`)]);
+    expect(liens(renvoiCarrieres)).toEqual(liens(carrieres));
+    const suivie = zonesDe(appel('compendium', boutonDe(ouvert, `careers/${carriere.id}`).jeu));
+    expect(suivie['compendium.fiche'][0].nom).toBe(carriere.label);
+
+    const ficheDuNiveau = zonesDe(appel('compendium', { ouvrir: true, categorie: 'careerLevels', id: niveaux[0].id }));
+    const atelier = zonesDe(appel('compendium', boutonDe(ficheDuNiveau, 'modifier').jeu));
+    const modifie = zonesDe(appel('compendium', boutonDe(atelier, 'valeur/skills/0/retirer').jeu));
+    const enregistre = appel('compendium', boutonDe(modifie, 'enregistrer').jeu);
+    expect(enregistre).toMatchObject({ ok: true, donnees: { fichier: 'careerLevels.json' } });
+    const ferme = zonesDe(appel('compendium', { compendium: { geste: 'enregistrement', reussi: true } }));
+    const famille = zonesDe(appel('compendium', boutonDe(ferme, 'competences').jeu));
+    const competences = zonesDe(appel('compendium', boutonDe(famille, 'skills').jeu));
+    const relu = zonesDe(appel('compendium', boutonDe(competences, competence.id).jeu));
+    const relues = sections(relu);
+    expect(relues.map(({ id, nom }) => [id, nom])).toEqual(attendues);
+    const [, carrieresRelues, , renvoiCarrieresRelues] = relues;
+    for (const section of [carrieresRelues, renvoiCarrieresRelues]) {
+      expect(liens(section)).toEqual([lien('careers', carriere.id, `${carriere.label} (N4)`)]);
+    }
+  });
+
   it('la liste de bataille de masse ouvre la baliste ADE II dans l’atelier du catalogue d’engins', () => {
     const { appel } = table();
     const bataille = zonesDe(appel('compendium', { ouvrir: true, categorie: 'massBattleWarMachines', id: 'mass-battle' }));

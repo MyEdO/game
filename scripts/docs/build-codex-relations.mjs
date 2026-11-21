@@ -1,13 +1,10 @@
 /**
  * Génère docs/codex-relations.md — la couche RELATIONNELLE du Codex (références inverses, index,
  * auto-liage) et l'origine DÉCLARÉE de ses entrées.
- * La part FACTUELLE est DÉRIVÉE : arêtes inverses lues aux appels `addReverse(...)` de
- * `src/noyau/codex/relations.ts`, API publique du module (AST + JSDoc, via
- * `scripts/docs/lib/engineExports.mjs`), catégories/familles/sous-groupes du registre VIVANT
- * (`CODEX`, `src/noyau/codex/registry.ts`) dumpés par `scripts/docs/lib/dump-codex.mts`, et exposition
- * DÉCLARÉE aux defs, dumpée par `scripts/docs/lib/dump-exposition.mts` (`npx tsx` — un générateur Node
- * nu ne peut pas importer `src/data/schemas/_registry.generated.ts`). La part ÉDITORIALE (les deux principes, comment
- * étendre) vit ICI, en dur.
+ * La part FACTUELLE vient du registre vivant (familles, catégories, sous-groupes) et des groupes
+ * de renvois rendus par `reverseGroups` sur ses fiches (`scripts/docs/lib/dump-codex.mts`), de l'API
+ * publique du module (AST + JSDoc) et de l'exposition déclarée aux defs (`dump-exposition.mts`).
+ * La part ÉDITORIALE (principes, mode d'emploi) vit ici.
  *
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs),
  * avec la passerelle TS de `scripts/docs/build-donnees.mjs` pour l'exposition.
@@ -85,7 +82,7 @@ function rendu() {
   // ── Catégories, familles et sous-groupes : le registre VIVANT (`CODEX`) ─────────────────────────
 
   const REGISTRY_SRC = lire(REGISTRY)
-  const { familles: FAMILLES, categories: SPECS } = JSON.parse(
+  const { familles: FAMILLES, categories: SPECS, relations } = JSON.parse(
     sortieOutilLocal(process.cwd(), 'tsx', 'tsx', ['scripts/docs/lib/dump-codex.mts']),
   )
   if (!SPECS.length) abandon(`aucune catégorie au registre \`CODEX\` (${REGISTRY})`)
@@ -100,44 +97,7 @@ function rendu() {
     return { groupe: g.label, total: dedans.length, plat: dedans.filter((x) => !x.cluster).length, parCluster }
   })
 
-  // ── Arêtes inverses : les appels `addReverse` du module ──────────────────────────────────────────
-
-  const RELATIONS_SRC = lire(RELATIONS)
-  const LIGNES = RELATIONS_SRC.split('\n')
-
-  /** Catégorie du référant en portée à la ligne `i` : le dernier `const by: Referrer = { category: … }`. */
-  function referantAvant(i) {
-    for (let j = i; j >= 0; j -= 1) {
-      const m = LIGNES[j].match(/const by(?:: Referrer)? = \{ category: '([^']+)'/)
-      if (m) return m[1]
-    }
-    return null
-  }
-
-  const ARETES = []
-  for (let i = 0; i < LIGNES.length; i += 1) {
-    const appel = LIGNES[i].match(/addReverse\('([^']+)',\s*([^,]+),\s*([\s\S]*)$/)
-    if (!appel) continue
-    const cible = appel[1]
-    const reste = appel[3]
-    const inline = reste.match(/\{\s*(?:\.\.\.by,\s*)?category: '([^']+)'/)
-    const source = inline ? inline[1] : referantAvant(i)
-    if (!source) abandon(`appel addReverse ligne ${i + 1} de ${RELATIONS} : catégorie du référant indéterminable`)
-    const litteraux = [...reste.matchAll(/'([^']*)'/g)].map((m) => m[1])
-    const titre = litteraux.length && !inline ? litteraux[litteraux.length - 1] : litteraux.slice(1).pop() ?? null
-    const declencheur = appel[2].trim()
-    ARETES.push({ source, cible, titre: titre && titre !== source ? titre : null, ligne: i + 1, declencheur })
-  }
-  if (!ARETES.length) abandon(`aucun appel \`addReverse\` lu dans ${RELATIONS} — le motif a dérivé`)
-
-  const PAR_SOURCE = new Map()
-  for (const a of ARETES) {
-    const cle = `${a.source}→${a.cible}`
-    if (!PAR_SOURCE.has(cle)) PAR_SOURCE.set(cle, { ...a, lignes: [] })
-    PAR_SOURCE.get(cle).lignes.push(a.ligne)
-    if (!PAR_SOURCE.get(cle).titre && a.titre) PAR_SOURCE.get(cle).titre = a.titre
-  }
-  const ARETES_FUSIONNEES = [...PAR_SOURCE.values()].sort(
+  const RELATIONS_OBSERVEES = relations.sort(
     (a, b) => parUnitesDeCode(a.source, b.source) || parUnitesDeCode(a.cible, b.cible),
   )
 
@@ -209,6 +169,8 @@ function rendu() {
   // en cours d'écriture dans un arbre partagé ferait diverger le .md sans qu'aucune règle ne bouge.
   const TESTS = [
     'src/noyau/codex/relations.test.ts',
+    'src/noyau/codex/projectionInverse.test.ts',
+    'hotes/godot/pont/compendium.hors-store.test.ts',
     'src/noyau/codex/registry.test.ts',
     'src/noyau/codex/humanize.test.ts',
     ...CONTRATS,
@@ -220,11 +182,8 @@ function rendu() {
 
   // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
 
-  const lignesAretes = ARETES_FUSIONNEES.map(
-    (a) =>
-      `| ${nomCat(a.source)} | ${nomCat(a.cible)} | ${a.titre ? `« ${a.titre} »` : '— (titre de repli)'} | ${a.lignes
-        .map((l) => `\`${RELATIONS}:${l}\``)
-        .join(' ')} |`,
+  const lignesRelations = RELATIONS_OBSERVEES.map(
+    (r) => `| ${nomCat(r.source)} | ${nomCat(r.cible)} | ${r.titre.replaceAll('|', '\\|')} | ${r.renvois} |`,
   ).join('\n')
 
   const lignesApi = API.map(
@@ -262,19 +221,18 @@ function rendu() {
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-codex-relations.mjs\` (\`npm run docs:codex-relations\`) — NE PAS ÉDITER À LA MAIN.
 
-**Périmètre mesuré / angles morts** — sont LUS aux fichiers réels : les ${ARETES.length} appels
-\`addReverse(...)\` de \`${RELATIONS}\` (catégorie référante, catégorie cible, titre FR de section,
-\`fichier:ligne\`), l'API publique du même module (AST + 1re phrase de JSDoc), le registre
-vivant \`CODEX\` de \`${REGISTRY}\` (${SPECS.length} catégories, leurs familles et sous-groupes
-\`cluster\`, dumpés par \`scripts/docs/lib/dump-codex.mts\`), et l'\`exposition\` DÉCLARÉE par les ${NB_DEFS} defs de \`src/data/schemas/defs/\`
-(dumpée par \`scripts/docs/lib/dump-exposition.mts\`), les cas NOMMÉS par ${CONTRATS_CITES}, les fonctions
-exportées de \`${DESCRIBE}\` et \`${HUMANIZE}\`. **Angles morts** : la catégorie RÉFÉRANTE
-est lue au \`const by\` en portée ou au littéral inline — une arête posée autrement (helper, boucle
-sur une variable calculée) casserait le script plutôt que de mentir, mais aucune n'existe
-aujourd'hui ; le CONTENU réel de chaque relation (combien de créatures portent tel trait) dépend de
-la donnée à l'exécution et n'est pas compté ici ; l'auto-liage de prose (\`tokenizeLinks\`) est
-LOCALE-SCOPED et son index se construit au runtime — seules ses portes sont documentées ; les deux
-principes et le mode d'emploi « Étendre » sont de l'ÉDITORIAL fixé dans le script.
+**Périmètre mesuré / angles morts** — le relevé parcourt les fiches du registre vivant \`CODEX\` de \`${REGISTRY}\` et lit les renvois
+que \`reverseGroups\` produit avec les données livrées et les règles optionnelles par défaut.
+La passerelle \`scripts/docs/lib/dump-codex.mts\` rapporte aussi les ${SPECS.length} catégories,
+familles et sous-groupes. L'API publique vient de l'AST et du JSDoc. Les ${NB_DEFS} defs de
+\`src/data/schemas/defs/\` fournissent leur exposition déclarée par
+\`scripts/docs/lib/dump-exposition.mts\`. Les cas de contrat viennent de ${CONTRATS_CITES}
+et la liste des fonctions d'affichage des exports de \`${DESCRIBE}\` et \`${HUMANIZE}\`.
+Le tableau couvre les couples qui produisent au moins un renvoi vers une fiche présente.
+Les correspondances sans occurrence et celles qui nécessitent une règle optionnelle inactive
+restent hors du relevé. Ce document rapporte l'API de l'auto-liage de prose, dont l'index
+dépend de la locale à l'exécution. Les principes et le mode d'emploi « Étendre » sont écrits
+dans le générateur.
 
 Le Compendium Godot lit la projection de \`src/hote/compendium.ts\`. Les fiches du Codex dérivent de \`src/data\`.
 Au-delà des faits-clés et des références AVANT (déjà projetées par \`${REGISTRY}\`), la richesse
@@ -282,8 +240,8 @@ vient d'une **couche relationnelle** : \`${RELATIONS}\`.
 
 ## Deux principes (non négociables)
 
-1. **Data-driven** — la sémantique vit dans le JSON ; \`relations.ts\` ne fait qu'**inverser** des
-   références DÉJÀ structurées. Aucune regex, aucune table en dur.
+1. **Relations structurées**. Les données fournissent les références. Les defs en déclarent la
+   portée inverse et les projections calculées relisent les données actives.
 2. **Multilingue (possibilité)** — toute relation est **id-based** (clé STABLE), jamais un libellé.
    Les \`label\` portés par les \`Referrer\` ne servent qu'à l'affichage (= \`CodexItem.label\`) ; une
    fiche se résout par id (\`codexLookupById\`). Seule brique langue-dépendante : l'**auto-liage** de prose, *locale-scoped*
@@ -333,12 +291,25 @@ ${lignesCategories}
 
 ## \`relations.ts\` — les arêtes inverses
 
-Construites UNE fois par version du Codex, en inversant les références de \`src/data\`. Chaque
-ligne = une arête \`addReverse(cible, id, référant, titre?)\` réellement présente dans le module.
+La méta \`inverseCodex\` ouvre la portée d'un champ de def à l'index inverse. Le parse de cette
+portée retient les repères des branches qui correspondent à l'entrée vivante. La déclaration
+peut préciser un type, une portée directe (par exemple pour les possessions), ou le type
+d'identifiant porté directement par le payload d'une opération. Un champ de caractéristique peut publier sa clé de
+vocabulaire fermé. Les références globales se résolvent par espace d'identifiants. Les slots
+locaux restent liés à leur ouvreur.
 
-| Référant (source de la ref AVANT) | Cible (fiche qui reçoit la section inverse) | Titre de section | Site |
-|---|---|---|---|
-${lignesAretes}
+Le graphe combine ces références avec les calculs du Codex, dont les carrières accessibles à une
+espèce, les qualités effectives des objets et les états infligés par les effets actifs. Un
+niveau de carrière désigne sa carrière et porte son rang en détail. L'index suit la version
+des données et se reconstruit à la première lecture qui suit une édition ou un changement de
+règle optionnelle.
+
+Le tableau compte, pour chaque couple de catégories observé, les renvois retournés par
+\`reverseGroups\`, une fois par fiche cible et identifiant de référant.
+
+| Catégorie du référant | Catégorie de la fiche cible | Titre de section | Renvois |
+|---|---|---|---:|
+${lignesRelations}
 
 ## \`relations.ts\` — API publique
 
@@ -369,8 +340,10 @@ Regrouper une catégorie = poser \`cluster\` (clé de catalogue) sur son entrée
 
 ## Étendre
 
-- **Nouvelle relation inverse** : ajouter l'arête dans \`${RELATIONS}\` (\`addReverse(targetCat, id, by)\`),
-  un titre dans \`REVERSE_TITLE\` si besoin, et \`...reverseSections(cat, id)\` dans la catégorie du registre.
+- **Nouvelle relation inverse**. Poser \`inverseCodex\` sur le champ de la collection dans
+  son def et préciser la portée si nécessaire. Le titre d'affichage du couple peut se déclarer
+  dans \`TITRES_INVERSES\` de \`${RELATIONS}\`. Les groupes sont disponibles dans les renvois de
+  la fiche du Compendium.
 - **Nouveau champ de fiche** : enrichir l'\`item\` dans \`${REGISTRY}\` (méta \`fact(...)\` ou section via les
   helpers de \`${DESCRIBE}\` : ${HELPERS_DESCRIBE.map((n) => `\`${n}\``).join(', ')}).
 - **Riders / effets / formules de sort en clair** : les sections rendent d'abord la phrase JOUEUR
@@ -387,10 +360,10 @@ ${TESTS.map((t) => `- \`npm test -- ${t}\``).join('\n')}
     out,
     path: 'docs/codex-relations.md',
     staleMsg:
-      'docs:codex-relations — docs/codex-relations.md est PÉRIMÉ (diverge de relations.ts, registry.ts, de l’exposition déclarée aux defs, ou du script).',
+      'docs:codex-relations — docs/codex-relations.md est PÉRIMÉ (diverge du relevé des renvois, du registre, de l’exposition déclarée aux defs ou du script).',
     rerunMsg: '  → relancer `npm run docs:codex-relations` (dérivé jamais commité, #2203).',
     okMsg: 'docs:codex-relations — OK (docs/codex-relations.md à jour)',
-    writeMsg: `docs/codex-relations.md — ${ARETES_FUSIONNEES.length} arêtes inverses, ${SPECS.length} catégories, ${PAR_CATEGORIE.size} clés déclarées.`,
+    writeMsg: `docs/codex-relations.md — ${RELATIONS_OBSERVEES.length} couples de catégories avec des renvois inverses, ${SPECS.length} catégories, ${PAR_CATEGORIE.size} clés déclarées.`,
   }
 }
 

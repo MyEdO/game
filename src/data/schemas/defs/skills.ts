@@ -50,7 +50,7 @@ const doc = document(
     tool: nommerChamps(z.strictObject({ capability: capaciteDObjetSchema, withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
   },
   {
-    characteristic: { label: 'Caractéristique' },
+    characteristic: { label: 'Caractéristique', inverseCodex: { cle: 'characteristic' } },
     acces: {
       label: 'Accès',
       hint: 'De base (testable sans formation) ou Avancée : sans Augmentation, aucun Test n’est possible',

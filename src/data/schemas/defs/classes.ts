@@ -26,7 +26,7 @@ const doc = document(
   },
   {
     grantGroups: { label: 'Groupes accordés', hint: 'Groupes d’appartenance accordés à tout titulaire d’une carrière de cette Classe' },
-    trappings: { label: 'Possessions de départ', hint: 'Équipement de départ commun aux carrières de cette Classe' },
+    trappings: { label: 'Possessions de départ', inverseCodex: { type: 'trapping', portee: 'directe' }, hint: 'Équipement de départ commun aux carrières de cette Classe' },
   },
   {
     codex: { keys: ['classes'] },

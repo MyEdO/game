@@ -174,7 +174,7 @@ const doc = document(
       hint: 'Libellé d’école hérité, non normalisé (18 valeurs, casse double) — la famille de logique vit sur Famille de sort et Domaine',
     },
     subType: { label: 'Sous-type' },
-    domainId: { label: 'Domaine', hint: 'Domaine arcanique ou de culte auquel le sort appartient' },
+    domainId: { label: 'Domaine', inverseCodex: true, hint: 'Domaine arcanique ou de culte auquel le sort appartient' },
     isRitual: { label: 'Est un Rituel' },
     ritual: {
       label: 'Rubriques de Rituel',

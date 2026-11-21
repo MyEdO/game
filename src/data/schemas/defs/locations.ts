@@ -23,7 +23,7 @@ const doc = document(
     suffix: z.string().nullable(),
   },
   {
-    parent: { label: 'Lieu parent', hint: 'Lieu englobant dans la hiérarchie de la carte ; absent = racine' },
+    parent: { label: 'Lieu parent', inverseCodex: true, hint: 'Lieu englobant dans la hiérarchie de la carte ; absent = racine' },
     prefix: { label: 'Préfixe du nom', hint: 'Aucun consommateur mesuré, valeur nulle sur toutes les entrées' },
     suffix: { label: 'Suffixe du nom', hint: 'Aucun consommateur mesuré hors de ce document' },
   },
