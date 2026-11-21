@@ -14,10 +14,11 @@ import { perimeterWallSegs, type PlanRect } from '../../sceneEdit.testkit';
  * surplombs (`isOverhang`, fantôme vs surplomb PLEIN) et clés stables.
  */
 
-/** Scène 4×4 « plancher » avec un tableau de hauteurs métriques à 0 partout (édité par test). */
-function withHeight(): Scene {
+/** Scène 4×4 du terrain `terrain` (« plancher », bâti, par défaut) avec un tableau de hauteurs métriques à 0 partout
+ *  (édité par test). */
+function withHeight(terrain = 'plancher'): Scene {
   const s = emptyScene('scene-test', 4, 4);
-  s.layers[0].tiles = new Array(16).fill('plancher');
+  s.layers[0].tiles = new Array(16).fill(terrain);
   s.layers[0].height = new Array(16).fill(0);
   return s;
 }
@@ -76,8 +77,8 @@ describe('gradeBetween — rampe (≤ STEP_MAX) vs falaise (>STEP_MAX)', () => {
 });
 
 describe('buildFloors — parois de relief auto-dérivées du dénivelé métrique', () => {
-  it('un plateau surélevé de +4 m porte 4 FALAISES verticales (terre en z0), en unités de grille+mètres', () => {
-    const s = withHeight();
+  it('un plateau de terre surélevé de +4 m porte 4 FALAISES verticales (terre en z0), en unités de grille+mètres', () => {
+    const s = withHeight('terre');
     setH(s, 1, 1, 4);
     const faces = reliefParts(elAt(buildFloors(s), 1, 1));
     expect(faces).toHaveLength(4);
@@ -159,7 +160,7 @@ describe('buildFloors — parois de relief auto-dérivées du dénivelé métriq
   });
 
   it('plateau (2 cases à même hauteur) → pas de paroi sur l’arête PARTAGÉE, mais bien sur les bords', () => {
-    const s = withHeight();
+    const s = withHeight('terre');
     setH(s, 1, 1, 4);
     setH(s, 2, 1, 4); // voisin E à la même hauteur
     const dirs = reliefParts(elAt(buildFloors(s), 1, 1)).map((f) => f.side);
@@ -168,7 +169,7 @@ describe('buildFloors — parois de relief auto-dérivées du dénivelé métriq
   });
 
   it('la case BASSE ne porte pas la paroi : c’est le RIM (haut) qui descend vers la fosse', () => {
-    const s = withHeight();
+    const s = withHeight('terre');
     setH(s, 1, 2, -2); // fosse en (1,2), Δ2 m = falaise
     const els = buildFloors(s);
     expect(reliefParts(elAt(els, 1, 2))).toEqual([]);                       // la fosse (plus basse) ne dessine rien
@@ -229,8 +230,8 @@ describe('buildFloors — bloc PLEIN d’un terrain (solidHeightM, ex. mur) : RE
  * défaut : un id réécrit en dur dans `floors.ts` rendrait ces cas rouges.
  */
 describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)', () => {
-  it('falaise : la matière est celle que la SCÈNE pose pour `cliff`', () => {
-    const s = withHeight();
+  it('falaise d’un sol naturel : la matière est celle que la SCÈNE pose pour `cliff`', () => {
+    const s = withHeight('terre');
     s.reliefDefaults = { ...s.reliefDefaults, cliff: { id: 'pierre' } }; // ≠ le défaut `terre` d'une scène neuve
     setH(s, 1, 1, 4);
     const faces = reliefParts(elAt(buildFloors(s), 1, 1));
@@ -253,7 +254,7 @@ describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)'
     s.layers[0].tiles = new Array(16).fill('plancher');
     s.layers[0].height = new Array(16).fill(0);
     s.layers.push({ z: 1, tiles: new Array(16).fill('vide'), height: new Array(16).fill(0) });
-    s.layers[1].tiles[1 * 4 + 1] = 'planches';
+    s.layers[1].tiles[1 * 4 + 1] = 'terre';
     s.layers[1].height![1 * 4 + 1] = 4;
     s.reliefDefaults = { ...s.reliefDefaults, deck: { id: 'terre' }, pilier: { id: 'terre' } }; // ≠ défauts `pierre`/`pilier`
     const el = elAt(buildFloors(s, undefined, { activeZ: 1 }), 1, 1, 1)!;
@@ -263,6 +264,16 @@ describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)'
     expect(piliers.length).toBeGreaterThan(0);
     expect(decks.every((f) => f.material.id === s.reliefDefaults.deck.id)).toBe(true);
     expect(piliers.every((f) => f.material.id === s.reliefDefaults.pilier.id)).toBe(true);
+  });
+
+  it('falaise d’un sol bâti : un plancher surélevé à côté d’un vide est un coffrage de son terrain, une terre surélevée garde la falaise de la scène (#4471)', () => {
+    const paroisDe = (terrain: string) => {
+      const s = withHeight(terrain);
+      setH(s, 1, 1, 4);
+      return elAt(buildFloors(s), 1, 1)!.faces.filter(estVerticale).map((f) => f.material);
+    };
+    expect(paroisDe('plancher')).toEqual(new Array(4).fill({ domain: 'terrain', id: 'plancher' }));
+    expect(paroisDe('terre')).toEqual(new Array(4).fill({ domain: 'relief', id: emptyScene('t', 1, 1).reliefDefaults.cliff.id, part: 'cliff' }));
   });
 
   it('flanc d’un BLOC PLEIN : la matière est celle de son TERRAIN, pas celle de la scène', () => {
@@ -375,13 +386,13 @@ describe('buildFloors — wedges de raccord de terrain', () => {
 });
 
 describe('buildFloors — surplomb (tablier au-dessus d’une surface marchable)', () => {
-  /** z0 praticable partout ; tablier 1×1 en (1,1) à z1, 4 m, cerné de vide. */
-  function deckScene(): Scene {
+  /** z0 praticable partout ; tablier 1×1 du terrain `terrain` en (1,1) à z1, 4 m, cerné de vide. */
+  function deckScene(terrain = 'terre'): Scene {
     const s = emptyScene('scene-test', 4, 4);
     s.layers[0].tiles = new Array(16).fill('plancher');
     s.layers[0].height = new Array(16).fill(0);
     s.layers.push({ z: 1, tiles: new Array(16).fill('vide'), height: new Array(16).fill(0) });
-    s.layers[1].tiles[1 * 4 + 1] = 'planches';
+    s.layers[1].tiles[1 * 4 + 1] = terrain;
     s.layers[1].height![1 * 4 + 1] = 4;
     return s;
   }
@@ -408,6 +419,13 @@ describe('buildFloors — surplomb (tablier au-dessus d’une surface marchable)
     expect(pillars.every((f) => f.poly.length === 2 && f.poly[1].h === 0)).toBe(true); // jusqu'à la surface inférieure
     // Ordre de peinture : piliers (les plus en arrière) AVANT les parois, base ensuite, wedges à la fin.
     expect(el.faces.findIndex((f) => f.material.part === 'pilier')).toBe(0);
+  });
+
+  it('tranche d’un tablier bâti : la matière de son terrain, en dalle fine (#4471)', () => {
+    const el = elAt(buildFloors(deckScene('planches'), undefined, { activeZ: 1 }), 1, 1, 1)!;
+    const tranches = el.faces.filter((f) => f.poly.length > 2 && estVerticale(f));
+    expect(tranches.map((f) => f.material)).toEqual(new Array(4).fill({ domain: 'terrain', id: 'planches' }));
+    expect(tranches[0].poly.map((p) => p.h)).toEqual([4, 4, 4 - 0.3, 4 - 0.3]);
   });
 
   it('fantôme au-dessus de la zone active : SEULS les surplombs sont émis', () => {

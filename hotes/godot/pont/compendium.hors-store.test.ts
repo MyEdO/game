@@ -263,4 +263,15 @@ describe('compendium', () => {
     const r = appel('compendium', boutonDe(retiree, 'enregistrer').jeu) as unknown as { donnees: { texte: string } };
     expect((JSON.parse(r.donnees.texte) as { id: string; stops: Record<string, string> }[]).find((t) => t.id === 'bois')!.stops).toEqual({ '0%': '#4d7a38', '50%': '#808080' });
   });
+
+  it('la famille du kit d’escalier d’un terrain bâti se choisit parmi celles de son énumération, puis s’enregistre (#4471)', () => {
+    const { appel } = table();
+    const atelier = zonesDe(appel('compendium', boutonDe(zonesDe(appel('compendium', { ouvrir: true, categorie: 'terrains', id: 'plancher' })), 'modifier').jeu));
+    const familles = atelier['compendium.atelier'].find((e): e is Choix => e.type === 'choix' && e.id === 'valeur/kitDEscalier');
+    expect(familles?.valeurs.map((v) => [v.libelle, v.presse])).toEqual([['Bois', true], ['Pierre', false]]);
+    const ecrite = zonesDe(appel('compendium', familles!.valeurs.find((v) => v.libelle === 'Pierre')!.jeu));
+    const r = appel('compendium', boutonDe(ecrite, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
+    expect(r.donnees.fichier).toBe('terrains.json');
+    expect((JSON.parse(r.donnees.texte) as { id: string; kitDEscalier?: string }[]).find((t) => t.id === 'plancher')!.kitDEscalier).toBe('pierre');
+  });
 });

@@ -196,7 +196,7 @@ export const senseSchema = enumNomme({ vue: 'la vue', ouie: "l'ouïe" });
  *  EDOC 12 l.170. */
 export const tablesDeCiblesSchema = enumNomme({ obsessions: 'le Tableau des Obsessions' });
 export type TableDeCibles = z.infer<typeof tablesDeCiblesSchema>;
-const tableDeCiblesSchema = nommerChamps(z.strictObject({ id: tablesDeCiblesSchema }), { id: { label: 'table' } });
+const tableDeCiblesSchema = nommerChamps(ref(tablesDeCiblesSchema), { id: { label: 'table' } });
 /** Tirage d'une Cible (`grantTrait.cible`) : `pick` tirages sur une table de Cibles. */
 const tirageDeCibleSchema = tirageSurTable(tableDeCiblesSchema);
 export type TirageDeCible = z.infer<typeof tirageDeCibleSchema>;

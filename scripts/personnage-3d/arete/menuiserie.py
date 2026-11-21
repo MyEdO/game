@@ -1,13 +1,17 @@
 """La menuiserie commune aux kits d'arêtes (#4471) : le vantail de planches d'une porte ou d'un volet (`vantail`), la
-croisée d'une fenêtre (`croisee`), sa vitre (`vitre`) et ses deux volets (`volets`), bâtis dans le repère que le kit
-leur donne (`geometrie.Repere`), et leurs cotes d'adaptation, en mètres ou en fractions nommées. Un kit déclare les
-matériaux de ce qu'il pose : `MENUISERIE` (les planches), `BARRES` (les barres et l'écharpe) et `FER` pour un vantail,
-`CROISEE` pour une croisée, `VITRE` pour sa vitre."""
+croisée d'une fenêtre (`croisee`), sa vitre (`vitre`), ses deux volets (`volets`) et l'échelle dressée contre une arête
+(`echelle`), bâtis dans le repère que le kit leur donne (`geometrie.Repere`), et leurs cotes d'adaptation, en mètres ou
+en fractions nommées. Un kit déclare les matériaux de ce qu'il pose : `MENUISERIE` (les planches), `BARRES` (les barres
+et l'écharpe) et `FER` pour un vantail, `CROISEE` pour une croisée, `VITRE` pour sa vitre, `ECHELLE` pour l'échelle."""
+import math
+
 from mathutils import Vector
 
 from geometrie import DEHORS, X, Repere
+from maille import cylindre
 
 MENUISERIE, BARRES, CROISEE, VITRE, FER = "menuiserie", "barres", "croisee", "vitre", "ferrure"
+ECHELLE = "echelle"
 
 # Vantail de planches (`vantail`) : `planches` jointives, épaisses de `epaisseur` (m), une sur deux en retrait de
 # `relief` (m) au parement ; `barres` : hauteur de l'axe de chaque barre au dos (fractions de la hauteur du vantail),
@@ -40,6 +44,14 @@ CROISEE_A_PETITS_BOIS = {
     "dormant": (0.05, (0.0, 0.075)), "meneau": 0.045, "croisillon": 0.64,
     "petits_bois": {"section": 0.016, "traverses": (2, 1)},
     "vitre": (0.004, 0.01),
+}
+
+# Échelle : sa `largeur` hors tout (m) ; `montant` : la section d'un montant, le long de l'arête puis vers le dehors
+# (m) ; `barreau` : le rayon d'un barreau (m), le nombre de ses `cotes`, ce dont chaque bout entre dans son montant
+# (`prise`, m) ; `pas` : le plus grand écart (m) entre deux barreaux.
+ECHELLE_DE_MEUNIER = {
+    "largeur": 0.46, "montant": (0.045, 0.075),
+    "barreau": {"rayon": 0.017, "cotes": 6, "prise": 0.03}, "pas": 0.3,
 }
 
 
@@ -121,3 +133,18 @@ def volets(m, R, baie, h, nu, close):
         else:
             gond = Repere(R.point(s * baie, 0, nu + VOLET["epaisseur"]), s * X, -DEHORS)
         vantail(m, gond, baie - JEU_DES_VOLETS / 2, h, VOLET)
+
+
+def echelle(D, m, _):
+    """L'échelle (`ECHELLE_DE_MEUNIER`) de l'arête de `D`, la pièce `echelle` d'un kit : deux montants du pied à
+    `D["HAUTEUR"]`, le dos sur le plan de l'arête, vers le dehors, centrés sur elle, et des barreaux ronds à pas
+    régulier, un demi-pas sous le premier et sur le dernier."""
+    E, R, haut = ECHELLE_DE_MEUNIER, Repere((0, 0, 0), X, DEHORS), D["HAUTEUR"]
+    demi, (large, profond), B = E["largeur"] / 2, E["montant"], E["barreau"]
+    for s in (-1, 1):
+        R.boite(m, tuple(sorted((s * demi, s * (demi - large)))), (0.0, haut), (0.0, profond), ECHELLE)
+    barreaux = math.ceil(haut / E["pas"])
+    bout = demi - large + B["prise"]
+    for k in range(barreaux):
+        h = (k + 0.5) * haut / barreaux
+        cylindre(m, -bout, bout, B["rayon"], "x", R.point(0, h, profond / 2), B["cotes"], ECHELLE)

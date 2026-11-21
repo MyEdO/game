@@ -788,6 +788,12 @@ longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son �
 L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du
 plateau (`MiseEnPage.echelle_d_arete_servie`).
 
+**Échelle.** La pièce `echelle` habille une arête qu'on franchit par une échelle : deux montants et des barreaux de
+bois (`menuiserie.echelle`, ses cotes dans `ECHELLE_DE_MEUNIER`), du pied à la `HAUTEUR` du kit, centrés sur l'arête,
+le dos sur son plan (Z = 0), vers le dehors. Elle ne tient ni la longueur ni l'épaisseur de l'arête, et reste dans la
+boîte du kit, dont l'hôte tire l'étirement de toute pièce : il l'étire en Y au dénivelé qu'elle franchit, ses barreaux
+avec elle. Chaque kit la pose dans son `BATIR`, avec son matériau `echelle` et son budget (`test_arete.py`).
+
 **Ouverture de plusieurs arêtes.** Une suite d'arêtes adjacentes et alignées de même couche, de même nature (porte,
 porte de ville) et de même apparence est une seule ouverture (`ouverturesDeLaScene`, `src/noyau/monde/aretes.ts`). Chaque arête y reçoit le nœud `<pièce>--<position>`, de position `gauche`, `milieu` ou
 `droite` ; l'hôte se replie sur `<pièce>`, qui est aussi le nœud d'une ouverture d'une seule arête. `gauche` est
@@ -821,7 +827,7 @@ l'apparence qui la donne et ses replis se lisent dans `wallPartColor` (`src/noya
 | `bois` | le bois du mur : ossature, pieux, clayonnage, boisage | `poteau` |
 | `joint` | l'âme d'un mur de pierre, vue dans ses joints et dans sa brèche | `joint` |
 | `gravats` | les gravats au pied d'une brèche (`geometrie.eboulis`) | `gravats` |
-| `accent` | les planches d'un vantail, porte ou volet | `vantail` |
+| `accent` | les planches d'un vantail, porte ou volet ; les montants et les barreaux d'une échelle | `vantail` |
 | `planche` | les barres et l'écharpe au dos d'un vantail | `vantail-planche` |
 | `vet1` | les bois d'une croisée | `meneau` |
 | `vitre` | la vitre d'une croisée | `vitre` |
@@ -833,7 +839,7 @@ Une baie est percée de part en part ; sa croisée porte sa vitre (`menuiserie.v
 (`test_arete.py`) : les volets d'une `fenetre-close` ferment seuls la baie.
 
 **Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
-`menuiserie.py` porte le vantail de planches, la croisée, sa vitre et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
+`menuiserie.py` porte le vantail de planches, la croisée, sa vitre, les volets et l'échelle, avec leurs cotes ; `maconnerie.py` l'appareil
 des kits de pierre (assises, chaînes, couronnement, porche voûté, porte cintrée sous son porche, brèche). Un kit les pose, il ne les recopie pas.
 La forme d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit
 reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
@@ -853,7 +859,8 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 
 `arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
-chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
+chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour ; les gardes
+communes aux kits d'escalier vivent dans `banc_des_kits.py`),
 reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié, exige un kit pour chaque
 `arete--*` publié et un modèle pour chaque famille qu'une apparence porte. Les pièces qu'il exige sont celles de `PIECES_D_ARETE`, lues
 du noyau par `arete/pieces.mjs`.
@@ -862,6 +869,60 @@ l'échantillon « Mur et ouverture », et la capture `cadrages` le montre posé 
 Une illustration de façade se compare à cette capture, jamais à une pièce seule. Recettes Godot des arêtes
 (`godot:sonde`) : `arete-au-pied.gd` (pied, échelle, nœuds par position), `aretes-en-instances.gd`,
 `atelier-du-decor.gd`. Publier comme un véhicule (chapitre 9, « Publier »).
+
+## 12. Escalier
+
+Les pièces qu'un hôte pose sur les côtés d'une case de marches (catégorie `escalier`, clé `{ "kit": <famille> }`, le
+`kitDEscalier` d'un terrain bâti de `src/data/terrains.json`) se construisent comme un kit d'arête (chapitre 11), par
+`scripts/personnage-3d/construire.py`, un dossier par famille, `scripts/personnage-3d/escalier/<famille>/`
+(`donnees.py`, `modele.py`), et leurs communs dans `escalier/volee.py`, qui met ceux des arêtes au chemin
+(`geometrie.py`, `menuiserie.py`, `maconnerie.py`). Un kit est un GLB, `escalier--<famille>`, un nœud racine à mesh par
+pièce de `PIECES_D_ESCALIER` (`src/noyau/monde/piecesDArete.ts`) : `limon`, sur un côté que borde une
+case rejointe à pied ou le vide, et `rampe`, sur un côté que borde le vide (`cotesDeMarchesDeLaScene`,
+`src/noyau/monde/cotesDeMarches.ts`), plus un nœud `rampe--<position>` par bout d'une suite de rampes (`volee.BOUTS`),
+et aucun autre : `rampe--gauche` termine la suite d'un poteau à son bout -X, `rampe--droite` à son bout +X,
+`rampe--seule` aux deux ; `rampe` est la pièce du milieu, que l'hôte pose aussi faute du nœud de la position. Les
+marches restent celles du noyau. Familles livrées : `bois` (limon de planche à chapeau, balustres tournés sous une main
+courante, éclisses de fer, poteau tourné coiffé d'une pointe) et `pierre` (assise de pierres de taille, mur d'échiffre
+à chaperon de dalles, pilier de pierres de taille couronné). Chaque famille qu'un terrain nomme a son kit :
+`test_chaque_kit_d_escalier_d_un_terrain_a_son_modele` (`test_escalier.py`) lit le `kitDEscalier` de chaque terrain de
+`src/data/terrains.json`.
+
+**Repère, à plat.** X le long de l'axe montant, de -L/2 à +L/2 (une case, 2 m) ; Y depuis le pied de la pièce ; Z vers
+le dehors, 0 au plan du bord de la case, que rien ne passe. Une pièce se modèle sans pente : l'hôte la cisaille, Y
+selon X, de la cote lisse du bord à son entrée à celle de sa sortie ; ce qui est d'aplomb le reste. Les deux pièces
+partagent leur pied, la cote lisse du bord (`CoteDeMarches.pied`) : le limon y pose son pied (Y = 0), le parement du
+dedans au plan du bord (Z = 0) ; la rampe, qui ne se pose qu'avec lui, se dresse sur son dessus, sans rien sous lui,
+pour qu'aucune de leurs faces ne se double au bout d'une volée.
+
+**Raccord.** Deux cases voisines se raccordent bout à bout, quelle que soit la pente de chacune : la section d'une
+pièce est la même à ses deux bouts, et celle d'une rampe de bout est celle de `rampe` au bout qu'elle raccorde ; rien n'y est tiré au sort (les pierres des bouts sont des pierres de taille de
+façon constante, `maconnerie.Appareil.rang`) ; ce qui se répète (balustres, dalles du chaperon) va à un pas qui divise
+la case, à un demi-pas des bouts, ou par moitiés que la case voisine complète (demi-dalle, demi-éclisse). Un poteau tient dans sa case, au bout, d'aplomb comme le reste : l'hôte cisaille son
+couronnement avec la pièce. `test_escalier.py` le mesure : section de chaque bout raccordé, même poteau à chaque
+position, vides de même largeur d'une case à l'autre hors celui que borde un poteau, rampe sur le dessus du limon.
+
+**Couleur.** Chaque surface nomme un emplacement de palette et sa matière du domaine `prop` ; l'hôte ne lui impose
+aucune couleur : elle garde la texture de sa matière.
+
+**Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py escalier/<famille> --sortie /atelier/<famille>
+npm run godot:valider -- /atelier/<famille>/escalier--<famille>/escalier--<famille>.element.json \
+  /atelier/<famille>/escalier--<famille>/escalier--<famille>.glb
+npm run personnage-3d:integrer -- escalier/<famille>
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/escalier/revue.py <famille> \
+  --modeles /atelier/<famille> --sortie /atelier/revue-<famille>
+```
+
+`escalier/revue.py` rend chaque nœud seul, à plat, de face, de trois-quarts et de dessus, puis la ligne `volee` : trois
+cases bout à bout, chacune son limon et sa rampe à sa position (`gauche`, milieu, `droite`), cisaillée à sa pente, pour
+voir le raccord et les poteaux. `npm run
+personnage-3d:tests` (`test_escalier.py`) bâtit chaque kit deux fois aux mêmes octets, mesure ses pièces (nœuds, repère,
+budget, coques closes, raccord) et compare chaque manifeste au publié. Une famille neuve entre d'abord au
+`kitDEscalierSchema` (`src/data/schemas/defs/structureAppearance.ts`). Publier comme un véhicule (chapitre 9,
+« Publier »).
 
 ## Disponibilité à sonder avant chaque production
 

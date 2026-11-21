@@ -8,6 +8,7 @@ import random
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, X, Repere, noeud
 from maille import lineaire, tube
+from menuiserie import echelle
 
 CLAIE, PIEUX, MENUISERIE, BARRES, FER = "clayonnage", "pieux", "menuiserie", "barres", "ferrure"
 
@@ -194,7 +195,8 @@ BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True),
          "breche": breche,
          **{noeud(piece, position): porte(ouverte, position)
             for piece, ouverte in (("porte-fermee", False), ("porte-ouverte", True))
-            for position in (GAUCHE, DROITE)}}
+            for position in (GAUCHE, DROITE)},
+         "echelle": echelle}
 
 
 def elements(D):

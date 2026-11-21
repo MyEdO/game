@@ -1,3 +1,5 @@
+import type { CorpusFile } from '../guards/lib/sourceCorpus.mjs';
+
 export interface Lien {
   nature: 'touché' | 'toolchain' | 'import' | 'racine balayée' | 'setup';
   distance: number;
@@ -53,7 +55,10 @@ export function deriverPerimetre(entree: {
   memos?: Memos;
   stade?: (nom: string, module: string | null) => void;
   tailleLot?: number;
-  analyser?: (entrees: { rel: string; text: string }[], tailleLot?: number) => Iterable<{ fichier: { rel: string; text: string }; sourceFile: unknown; diagnostics: unknown[] }>;
+  analyser?: (
+    entrees: Pick<CorpusFile, 'rel' | 'text'>[],
+    tailleLot?: number,
+  ) => Iterable<{ fichier: Pick<CorpusFile, 'rel' | 'text'>; sourceFile: unknown; diagnostics: unknown[] }>;
   evaluerLot?: (lot: { lectures: [string, unknown][]; resolutions: [string, string, string | null][]; lecteurs: string[]; questions: { nature: string; f: string }[] }, stade?: (nom: string, module: string | null) => void) => { nature: string; f: string; resultat: unknown; requetes: string[] }[];
   limiteIR?: number;
 }): Derivation;

@@ -1,4 +1,6 @@
-export function cheminsProseNommee(fichiers: readonly { rel: string; text: string }[]): string[];
+import type { CorpusFile } from './sourceCorpus.mjs';
+
+export function cheminsProseNommee(fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[]): string[];
 export interface ClassificationProseLocale {
   fichier: string;
   ligne: number;
@@ -10,7 +12,11 @@ export interface ClassificationProseLocale {
   composition?: string;
   opacite?: { nature: string; raison: string };
 }
-export function classificationsProseLocale(root: string, fichiers: readonly { rel: string; text: string }[], options?: { sourcesAdditionnelles: readonly { rel: string; text: string }[] }): { champs: ClassificationProseLocale[]; fautes: string[]; opaquesImportes: ClassificationProseLocale[]; importsSchemas: { module: string; nom: string }[] };
+export function classificationsProseLocale(
+  root: string,
+  fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[],
+  options?: { sourcesAdditionnelles: readonly Pick<CorpusFile, 'rel' | 'text'>[] },
+): { champs: ClassificationProseLocale[]; fautes: string[]; opaquesImportes: ClassificationProseLocale[]; importsSchemas: { module: string; nom: string }[] };
 export function fautesProseFinale(racines: readonly unknown[], primitives: {
   descendre: (racines: readonly unknown[], visite: (v: { noeud: object; path: string }) => void | 'elaguer') => void;
   enfantsDe: (noeud: unknown) => readonly { cle?: string; segment: string; noeud: unknown }[];

@@ -538,7 +538,7 @@ func _poser_l_echantillon() -> void:
 	_echantillon_en_vol = null
 	var scene := _scene_de_l_echantillon
 	scene.poser(reponse, recus)
-	scene.poser_les_aretes(reponse.aretes)
+	scene.poser_les_aretes(reponse.aretes, reponse.cotesDeMarches)
 	scene.retirer_les_couronnes(reponse.couronnesAbattues)
 	_modeles_de_l_echantillon.poser({}, reponse.decors, {}, reponse.monde.metresParCase)
 	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)

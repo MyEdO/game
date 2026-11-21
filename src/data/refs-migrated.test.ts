@@ -88,9 +88,9 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
    * 2026-08-31-avancement-vers-grammaire.mjs`). Deux faits distincts, mesurés ici sur la donnée
    * COMMITTÉE — sans jamais rouvrir l'ancien fichier :
    *  1. L'ENVELOPPE est en bijection avec la graphie d'origine : `{ref}`/`{wildcard}`/
-   *     `{wildcard,specOptions}`/`{choice}`/`{random}` ⇄ `{id}`/`{id,choix:true}`/`{id,choix:[ids]}`/
-   *     `{pick:1,of}`/`{random}`. Aller-retour = identité sur CHAQUE nœud réel : aucune branche
-   *     fusionnée, aucun champ perdu, aucune forme hors vocabulaire.
+   *     `{wildcard,specOptions}`/`{choice}` ⇄ `{id}`/`{id,choix:true}`/`{id,choix:[ids]}`/
+   *     `{pick:1,of}`. Les tirages `{pick, table}` (#3916) traversent ce témoin sans recodage.
+   *     Aller-retour = identité sur chaque nœud réel.
    *  2. Les seules VALEURS qui changent sont les 14 paires NOMMÉES ci-dessous (spéc imprimée au
    *     livre → id de catalogue) : chacune résout dans le catalogue de sa def, chacune est VIVANTE
    *     dans la donnée, et aucune des 14 graphies d'origine n'y subsiste.
@@ -98,8 +98,8 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   type Graphie = Record<string, unknown>;
   /** Graphie CIBLE → graphie d'ORIGINE. */
   const versOrigine = (n: Graphie): Graphie => {
-    if ('random' in n && Object.keys(n).length === 1) return { random: n.random };
-    if ('pick' in n) return { choice: (n.of as Graphie[]).map(versOrigine) };
+    if ('table' in n) return n;
+    if ('of' in n) return { choice: (n.of as Graphie[]).map(versOrigine) };
     if ('id' in n) {
       if (n.choix === undefined) return n.spec === undefined ? { ref: { id: n.id } } : { ref: { id: n.id, spec: n.spec } };
       return n.choix === true ? { wildcard: { id: n.id } } : { wildcard: { id: n.id }, specOptions: n.choix };
@@ -108,7 +108,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   };
   /** Graphie d'ORIGINE → graphie CIBLE, ENVELOPPE SEULE (la valeur de spéc n'est pas touchée). */
   const versCible = (n: Graphie): Graphie => {
-    if ('random' in n) return { random: n.random };
+    if ('table' in n) return n;
     if ('choice' in n) return { pick: 1, of: (n.choice as Graphie[]).map(versCible) };
     if ('ref' in n) {
       const r = n.ref as Graphie;

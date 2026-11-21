@@ -155,6 +155,11 @@ export interface ModelesDeLAtelier {
    *  nomme (#4471) : un nœud racine par pièce (`Noyau.Piece`), d'où le volume pose les arêtes de cette famille
    *  (méthode `aretes`). Un élément `arete` n'a pas de base. */
   aretes: Record<string, string>;
+  /** par famille de kit d'escalier (`kitDEscalier` de `terrains.json`), l'id de l'élément `escalier` servi dont la
+   *  `cle.kit` la nomme (#4471) : un nœud racine par pièce (`Noyau.PieceDEscalier`), d'où le volume habille les côtés
+   *  de marches des terrains de cette famille (`cotesDeMarches` de la méthode `aretes`). Un élément `escalier` n'a pas
+   *  de base. */
+  escaliers: Record<string, string>;
 }
 
 /**
@@ -366,7 +371,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   const couches = Object.fromEntries(Object.entries(rangs).map(([id, couche]): [string, CoucheDeLAtelier] =>
     [id, { ...couche, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < couche.rang) }]));
-  type Categorie = 'vehicule' | 'amelioration' | 'decor' | 'arete';
+  type Categorie = 'vehicule' | 'amelioration' | 'decor' | 'arete' | 'escalier';
   const parCle = (categorie: Categorie, champ: 'definition' | 'amelioration' | 'prop' | 'kit') =>
     Object.fromEntries(elements.flatMap((e) => {
       const m = e.brut as ManifesteDElement;
@@ -376,7 +381,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   return {
     bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes,
     vehicules, ameliorations: parCle('amelioration', 'amelioration'), decors: parCle('decor', 'prop'),
-    aretes: parCle('arete', 'kit'),
+    aretes: parCle('arete', 'kit'), escaliers: parCle('escalier', 'kit'),
   };
 }
 

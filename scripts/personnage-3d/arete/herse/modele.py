@@ -9,6 +9,7 @@ from mathutils import Vector
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, HAUT, X, Repere, noeud
 from maille import poutre, tour
+from menuiserie import echelle
 
 BARREAU, TRAVERSE, FERRURE = "barreau", "traverse", "ferrure"
 
@@ -97,6 +98,7 @@ BATIR = {
     **{noeud(piece, position): grille(abattue, position)
        for piece, abattue in (("mur", False), ("breche", True)) for position in (None, GAUCHE, DROITE)},
     **{piece: grille(False) for piece in ("porte-fermee", "porte-ouverte", "fenetre", "fenetre-close")},
+    "echelle": echelle,
 }
 
 

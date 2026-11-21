@@ -14,6 +14,7 @@ pied, le passage libre.
 
 Matières : les baguettes et les gravats prennent `bois-mort`, les pieux `ecorce`, la barrière `bois-chene`, ses ferrures
 `fer-noirci`.
+L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import apparence, hauteur
@@ -40,11 +41,12 @@ MATERIAUX = {
     "menuiserie": ("accent", "bois-chene"),
     "barres": ("planche", "bois-chene"),
     "ferrure": ("metal", "fer-noirci"),
+    "echelle": ("accent", "bois-chene"),
     "gravats": ("gravats", "bois-mort"),
 }
 
 BUDGET_TRIANGLES = {"mur": 1300, "porte-fermee": 1200, "porte-ouverte": 1200,
-                    "fenetre": 1300, "fenetre-close": 1300, "breche": 1000}
+                    "fenetre": 1300, "fenetre-close": 1300, "breche": 1000, "echelle": 160}
 
 ANGLE_LISSE = 50
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le dos d'une baguette et le fût d'un

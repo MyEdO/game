@@ -32,6 +32,7 @@ export const CONSTRUCTEURS = {
   vehicule: { script: 'scripts/personnage-3d/construire.py', argument: (nom) => `vehicule/${nom}` },
   decor: { script: 'scripts/personnage-3d/construire.py', argument: (nom) => `decor/${nom}` },
   arete: { script: 'scripts/personnage-3d/construire.py', argument: (nom) => `arete/${nom}` },
+  escalier: { script: 'scripts/personnage-3d/construire.py', argument: (nom) => `escalier/${nom}` },
 }
 
 /** La construction de l'élément `<base>/<nom>` : la commande qui l'écrit sous `sortie`, et son `donnees.py`, relatifs au

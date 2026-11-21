@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scanMarcheursDeFlow, marcheurLabel } from '../scripts/guards/lib/marcheursDeFlow.mjs';
-import { readCorpus, sAppliqueA } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus, sAppliqueA, type CorpusFile } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
  * UN SEUL MARCHEUR DE FLOW (#1874 DoD 4). Exécuter un Flow, c'est `executerFlow` : la marche décide `sequence`
@@ -13,7 +13,7 @@ const FOYER = 'src/engine/flowCore.ts';
 const MARCHE = { foyer: FOYER };
 
 const corpus = () => readCorpus(['src']).map(({ rel, text }) => ({ rel, text }));
-const horsFoyer = (fichiers: { rel: string; text: string }[]) =>
+const horsFoyer = (fichiers: Pick<CorpusFile, 'rel' | 'text'>[]) =>
   scanMarcheursDeFlow(fichiers.filter((f) => sAppliqueA(f, MARCHE))).map(marcheurLabel);
 
 describe('marcheurs-de-flow-guard — un seul marcheur de Flow (#1874)', () => {

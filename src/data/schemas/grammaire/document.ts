@@ -738,7 +738,10 @@ export function document<T extends string, F extends FamilleDocument, C extends 
     refineProse({ type, exigeProse: false, porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const { id: _identite, ...nomsDuPatch } = noms;
-  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, nomsDuPatch).pipe(z.transform((v) => v));
+  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, {
+    ...nomsDuPatch,
+    label: { ...nomsDuPatch.label, texte: { regime: 'designation' } },
+  }).pipe(z.transform((v) => v));
   const clesEntree: readonly string[] = Object.keys(corps.shape);
   // Un MARQUEUR d'espace est un champ de l'entrée : un nom hors de ses clés ouvrirait une sous-liste
   // qu'aucune donnée ne saurait jamais remplir (`gen-espaces` admet une sous-liste marquée VIDE).

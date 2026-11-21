@@ -103,6 +103,14 @@ export function dessusDe(scene: SceneDuVolume, x: number, y: number, z: number):
   return { x, y, h, quarts, pente, marches, divisions: marches ? DIVISIONS_MARCHES : pente ? DIVISIONS_PENTE : 1 };
 }
 
+/** L'axe le long duquel le dessus `d` monte : `x` si seules ses voisines d'arête est/ouest le raccordent, `y` si seules
+ *  celles du nord/sud, sinon aucun (dessus plat, ou raccordé sur les deux axes). */
+export function axeDuDessus(d: Dessus): 'x' | 'y' | null {
+  const monte = (v: number) => Math.abs(v - d.h) > 1e-6;
+  const [enX, enY] = [d.quarts.some((q) => monte(q.ex)), d.quarts.some((q) => monte(q.ny))];
+  return enX === enY ? null : enX ? 'x' : 'y';
+}
+
 /** Hauteur lisse du dessus au point local (u,v) ∈ [−½, ½]², centre de la case en (0,0). */
 export function hauteurLisse(d: Dessus, u: number, v: number): number {
   const q = d.quarts[indiceDuQuart(u, v)];

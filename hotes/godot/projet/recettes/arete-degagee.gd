@@ -27,7 +27,7 @@ func _recetter() -> void:
 	root.add_child(monde)
 	monde.volume.poser_les_aretes([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary:
 		return {cle = a.cle, milieu = a.milieu, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 2.0, palette = {},
-			piece = Noyau.Piece.MUR, position = Noyau.Position.SEULE, famille = null, bloc = a.bloc}))
+			piece = Noyau.Piece.MUR, position = Noyau.Position.SEULE, famille = null, bloc = a.bloc}), [])
 	var couronne := {cle = "dessus", empreinte = "dessus", positions = [], normales = [], couleurs = [], cases = [], surfaces = []}
 	monde.volume.poser({monde = {metresParCase = 1.0, hauteurs = [{z = 0, rangees = [[0.0]]}], morceaux = []}, toits = [], couronnes = [couronne]}, {volume = [], toits = [], couronnes = [couronne]})
 	monde.cacher_le_bati([], [], JSON.parse_string(JSON.stringify([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, abattueSous = a.abattueSous}))))

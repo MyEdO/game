@@ -1,3 +1,5 @@
+import type { CorpusFile } from './sourceCorpus.mjs';
+
 export interface MarcheurDeFlow {
   /** Chemin POSIX depuis la racine du dépôt. */
   file: string;
@@ -7,5 +9,5 @@ export interface MarcheurDeFlow {
   fn: string;
 }
 
-export function scanMarcheursDeFlow(files: { rel: string; text: string }[]): MarcheurDeFlow[];
+export function scanMarcheursDeFlow(files: Pick<CorpusFile, 'rel' | 'text'>[]): MarcheurDeFlow[];
 export function marcheurLabel(s: { file: string; fn: string }): string;

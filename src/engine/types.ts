@@ -15,7 +15,7 @@ import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { CibleEtendue, NatureDeMention } from '../data/schemas/grammaire/valeurs';
+import type { CibleEtendue, NatureDeMention, RaceKey } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 import type { RegimeDeBord } from './disease';
 import type { ActionId, NightStakeId } from '../data/index';
@@ -207,13 +207,20 @@ export interface TalentInstance {
   times: number;
 }
 
+export interface ReferenceDeCouleur {
+  id: string;
+  colonne: RaceKey;
+}
+
+export type CouleurDePersonnage = ReferenceDeCouleur | { label: string };
+
 /** Détails supplémentaires d'un héros (LDB 05 étape 6 — cosmétique, aucune règle). */
 export interface HeroDetails {
   age?: number;
   /** Taille en cm. */
   height?: number;
-  eyes?: string;
-  hair?: string;
+  eyes?: CouleurDePersonnage;
+  hair?: CouleurDePersonnage;
   /** Ambitions à court / long terme (LDB 05 l.730-736). */
   ambitionShort?: string;
   ambitionLong?: string;

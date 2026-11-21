@@ -1,4 +1,5 @@
 import type { Site } from './stock.mjs';
+import type { CorpusFile } from './sourceCorpus.mjs';
 
 export const FEUILLES_PARTAGEES: readonly string[];
 export const RACINE_DES_MODULES: string;
@@ -26,7 +27,7 @@ export function physique(prop: string): string;
 export function valeurHorsEchelle(valeur: string): boolean;
 
 /** Un fichier lu (disque, image git) — ou une FIXTURE de même forme. */
-export interface Fichier { rel: string; text: string }
+export type Fichier = Pick<CorpusFile, 'rel' | 'text'>;
 /** Un site mesuré, forme d'entrée de `sitesEnEntrees` : le `Site` de `stock.mjs`. */
 export type { Site };
 /** Une entrée du manifeste des primitives, réduite à ce que la frontière CSS lit. */
