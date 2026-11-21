@@ -351,12 +351,18 @@ export const cheminsDeJournal = (racine, branche) => {
 }
 
 
-/** Journal lu sur disque, ou neuf. */
-export function lireJournal(chemin, branche) {
+/** Journal lu sur disque, ou neuf. Sous `strict`, seule l'absence du fichier donne un journal neuf.
+ * @param {string} chemin @param {string|null} branche @param {{ strict?: boolean }} [options]
+ */
+export function lireJournal(chemin, branche, { strict = false } = {}) {
   try {
     const lu = JSON.parse(readFileSync(chemin, 'utf8'))
+    if (strict && (!lu || typeof lu !== 'object' || Array.isArray(lu)))
+      throw new TypeError('un objet JSON est attendu')
     return { ...journalVide(branche), ...lu, etapes: lu.etapes ?? {} }
-  } catch {
+  } catch (e) {
+    if (strict && e?.code !== 'ENOENT')
+      throw new Error(`journal illisible ${chemin} — ${raisonDeLErreur(e)}`, { cause: e })
     return journalVide(branche)
   }
 }
