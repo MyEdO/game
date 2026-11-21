@@ -236,7 +236,7 @@ const doc = document(
     },
     nonTransferable: { label: 'Non transférable', hint: 'Exclu d’un octroi en masse de Traits de créature' },
     effects: { label: 'Effets déclenchés' },
-    grantsManeuvers: { label: 'Manœuvres accordées' },
+    grantsManeuvers: { label: 'Manœuvres accordées', inverseCodex: true },
     passive: { label: 'Effets passifs' },
     capabilities: {
       label: 'Capacités mécaniques (liste fermée)',

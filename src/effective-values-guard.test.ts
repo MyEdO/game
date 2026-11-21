@@ -36,12 +36,6 @@ const CHAR_ACCESS_EXEMPT: { file: string; match: string; count: number; reason: 
     reason: "champ `characteristics: CharKey[]` d'un NIVEAU de carrière (CareerLevel), pas un Combatant.",
   },
   {
-    file: 'src/noyau/codex/relations.ts',
-    match: 'lv.characteristics',
-    count: 1,
-    reason: "champ `characteristics: CharKey[]` d'un NIVEAU de carrière (CareerLevel), pas un Combatant.",
-  },
-  {
     file: 'src/noyau/creation/brouillon.ts',
     match: 'draftLevel(d)?.characteristics',
     count: 1,

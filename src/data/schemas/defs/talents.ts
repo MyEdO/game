@@ -100,7 +100,10 @@ const doc = document(
     specsOpen: { label: 'Spécialisation ouverte' },
     confereTrait: { label: 'Trait conféré', hint: 'Trait de créature que le Talent confère, sa spécialisation en argument' },
     effects: { label: 'Effets déclenchés' },
-    passive: { label: 'Effets passifs' },
+    passive: {
+      label: 'Effets passifs',
+      inverseCodex: { operations: { grantCareerSkill: 'skill', grantCareerTalent: 'talent' } },
+    },
     combat: {
       label: 'Fonction de combat',
       hint: 'Capacité de combat à laquelle le Talent se rattache (parade, initiative, avantage de groupe…)',

@@ -64,8 +64,8 @@ const doc = document(
     movement: { label: 'Mouvement' },
     fate: { label: 'Destin / Résilience' },
     baseChar: { label: 'Caractéristiques de base' },
-    skills: { label: 'Compétences d’espèce' },
-    talents: { label: 'Talents d’espèce' },
+    skills: { label: 'Compétences d’espèce', inverseCodex: true },
+    talents: { label: 'Talents d’espèce', inverseCodex: { type: 'talent' } },
     grantGroups: { label: 'Groupes accordés' },
     profilStandard: {
       label: 'Profil standard',

@@ -5,7 +5,14 @@
  */
 import { defDe, enfantsDe } from './descente';
 import { z } from 'zod';
+import type { TypeEntite } from './ref';
 import '../../../lib/zodEnFrancais';
+
+type InverseCodex =
+  | true
+  | { type?: TypeEntite; portee?: 'directe'; detail?: string }
+  | { cle: 'characteristic' }
+  | { operations: Readonly<Partial<Record<string, TypeEntite>>> };
 
 /** Méta d'édition d'UN champ de premier niveau d'un document. */
 export interface MetaChamp {
@@ -23,6 +30,8 @@ export interface MetaChamp {
   widget?: string;
   /** Rang d'affichage dans le formulaire ; à défaut, l'ordre de déclaration des `champs`. */
   ordre?: number;
+  /** Références de ce champ publiées dans les sections inverses du Codex. */
+  inverseCodex?: InverseCodex;
 }
 
 /** Méta EXIGÉE pour chaque clé de `champs` d'un document — une clé de moins = erreur de type. */
