@@ -34,7 +34,7 @@ import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { estLeNavireDeCampagne, estUneCoqueNavale, lierLaCoqueDeCampagne, uidDeCampagnePourLaCoque } from './monde/coqueDeCampagne';
 import { ouvrirLeRepos } from './restFlow';
-import { preparerLEntretienApresAvance } from './horloge';
+import { jouerLEntretienDesRoundsEcoules, preparerLEntretienQuotidien } from './horloge';
 import { calculerLePasDExposition } from './expositionAMaladie';
 import { bandesDeContagion } from './contagion';
 import { arriverAuLieu } from './lieuFlow';
@@ -182,7 +182,7 @@ import {
   revealPurpose,
   runFlow,
   indiceDeMembreDuBord,
-  comptePasDifferes,
+  comptePasDifferes, OPS_DIFFEREES,
   confierLaSuite,
   fireScheduledEffects,
 } from './combatEffects';
@@ -1428,18 +1428,13 @@ function finalizeFastVoyage(get: Get, set: Set): void {
   // Vivres de l'équipage PNJ sur toute la traversée rapide (MÊME couture que le détaillé).
   log(get, set, consumeCrewProvisions(get, set, fast.days));
   const minutes = fast.days * MINUTES_PER_DAY;
-  if (!contagionPossibleABord(porteursABord(get, set)) && prochaineEcheance(get(), minutes) > minutes) {
-    accosterApresLeVoyageRapide(get, set, plan, fast.days, minutes);
-    return;
-  }
   patchSea(get, set, { tempsEnMer: { fin: get().gameTime + minutes } });
   continuerLeTempsEnMer(get, set);
 }
 
-function accosterApresLeVoyageRapide(get: Get, set: Set, plan: TravelPlan, jours: number, minutesRestantes = 0): void {
+function accosterApresLeVoyageRapide(get: Get, set: Set, plan: TravelPlan, jours: number): void {
   const to = get().worldMap ? placeById(get().worldMap!, plan.toPlaceId) : undefined;
   set({ travelPlan: null });
-  if (minutesRestantes > 0) get().avancerLeTemps(minutesRestantes);
   log(get, set, [t('sv.arriveFast', { to: libelleOuAbsence(to, 'lieu', plan.toPlaceId), days: jours })]);
   if (to) openPortAt(get, set, to);
 }
@@ -1485,9 +1480,20 @@ function jouerLesBandesDeSanteEnMer(
     : openSequence(get, set, { ...sequence, icon: purpose === 'seaExposure' ? 'repos/froid' : 'medical/infection', steps });
 }
 
-function terminerLePasEnMer(get: Get, set: Set, minutes: number): boolean {
+function suspendreLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: number, apresLesRounds?: true): void {
+  const temps = get().travelPlan?.sea?.tempsEnMer;
+  if (!temps) return;
+  patchSea(get, set, { tempsEnMer: { fin: temps.fin, repriseApresEffet: borneDuPas } });
+  confierLaSuite(set, [{ verbe: 'reprendreLeTempsEnMer', borneDuPas, minutes, apresLesRounds }]);
+}
+
+function terminerLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: number, apresLesRounds?: true): boolean {
   if (get().travelPlan?.sea?.fast && minutes > 0) {
-    const entretien = preparerLEntretienApresAvance(get, set, minutes);
+    if (!apresLesRounds && jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
+      suspendreLePasEnMer(get, set, borneDuPas, minutes, true);
+      return false;
+    }
+    const entretien = preparerLEntretienQuotidien(get, set, minutes);
     if (entretien.steps.length
       && !jouerLesBandesDeSanteEnMer(get, set, entretien.steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
   }
@@ -1536,19 +1542,18 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
     if (minutes > 0) get().avancerLHorloge(minutes);
     else fireScheduledEffects(get, set);
     if (comptePasDifferes(get()) > avant) {
-      patchSea(get, set, { tempsEnMer: { fin: temps.fin, repriseApresEffet: fin } });
-      confierLaSuite(set, [{ verbe: 'reprendreLeTempsEnMer', borneDuPas: fin, minutes }]);
+      suspendreLePasEnMer(get, set, fin, minutes);
       return;
     }
-    if (!terminerLePasEnMer(get, set, minutes)) return;
+    if (!terminerLePasEnMer(get, set, fin, minutes)) return;
   }
 }
 
-function reprendreLeTempsEnMerApresEffet(get: Get, set: Set, borneDuPas: number, minutes: number): void {
+function reprendreLeTempsEnMerApresEffet(get: Get, set: Set, borneDuPas: number, minutes: number, apresLesRounds?: true): void {
   const temps = get().travelPlan?.sea?.tempsEnMer;
   if (temps?.repriseApresEffet !== borneDuPas) return;
   patchSea(get, set, { tempsEnMer: { fin: temps.fin } });
-  if (terminerLePasEnMer(get, set, minutes)) continuerLeTempsEnMer(get, set);
+  if (terminerLePasEnMer(get, set, borneDuPas, minutes, apresLesRounds)) continuerLeTempsEnMer(get, set);
 }
 
 // ── Boucle jour par jour (#275 Ronde 2 cran 3 — pipeline cascade) ───────────────────────────────
@@ -2963,7 +2968,7 @@ export const INTERRUPTIONS_DE_PERIL = [SEA_PERIL_INTERRUPT] as const;
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   clotures: {
-    reprendreLeTempsEnMer: (get, set, { borneDuPas, minutes }) => reprendreLeTempsEnMerApresEffet(get, set, borneDuPas, minutes),
+    reprendreLeTempsEnMer: (get, set, { borneDuPas, minutes, apresLesRounds }) => reprendreLeTempsEnMerApresEffet(get, set, borneDuPas, minutes, apresLesRounds),
   },
   appliers: {
     [SEA_BOARD_EVENT_KIND]: (get, set, step) => {

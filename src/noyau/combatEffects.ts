@@ -597,6 +597,7 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
   }
   const avant = comptePasDifferes(get());
   const lignes = applyOps(c, rest, ctx);
+  if (!get().battle) lignes.push(...drainPendingLog(get, set).map((e) => e.text));
   if (comptePasDifferes(get()) <= avant) return lignes;
   set(touchActors(get()));
   journaliser(get, set, lignes, 'etat', { actorId: c.id });

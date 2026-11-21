@@ -12,6 +12,7 @@ import { d10, d100, roll, rollDice } from '../engine/dice';
 import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventDie, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
+import { drainPendingLog } from './combatEffects';
 import { freeCons } from './rollSeam';
 import { type RollLineParts } from './ligneDeJet';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
@@ -1048,7 +1049,10 @@ function appliquerLActivite(get: Get, set: Set): void {
   // CADENCE-AWARE : `set` threadé → le sous-Test de FM (palier 2) d'un héros s'ouvre en MODALE de jet scène
   // (`routeTriggeredTest` hors combat), jamais inline (« un jet = une modale » vaut hors combat) ; la modale
   // ouverte ici SURVIT à l'écriture interlude/party finale (clés disjointes). PNJ/auto → inline (early-out sinon).
-  if (!pa.success) lines.push(...fireOwnTestFailed(get, pa.heroId, { sl: pa.sl, rng: battleRng(), set }));
+  if (!pa.success) {
+    lines.push(...fireOwnTestFailed(get, pa.heroId, { sl: pa.sl, rng: battleRng(), set }));
+    lines.push(...drainPendingLog(get, set).map((e) => e.text));
+  }
   // Écriture UNIQUE : consomme l'Activité + fusionne closeOps différés + patch des résolveurs.
   itl.perHero[pa.heroId] = {
     ...st,
