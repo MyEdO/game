@@ -550,18 +550,29 @@ const argumentsNode = (sortie) => ['--test', '--test-reporter=spec', '--test-rep
 /** Le LANCEMENT du périmètre du dépôt de `racine` sous les arguments `args` (`lireArguments`) : dérivation, journal, lint,
  *  tests au plan, ligne de relance (`ligneDeRelance`) ; rend le code de sortie. `platform` va à `lancerNodeMesure`. */
 export async function principal(args, racine, { env = process.env, verrou, signal, platform } = {}) {
+  const options = lireArguments(args)
   const configuration = verrou ?? verrouGestesLourds(racine)
+  const attente = configuration.attente && {
+    ...configuration.attente,
+    annoncer: (tenant) => console.error('[verrou] ' + tenantEnUneLigne(tenant)),
+  }
+  if (options.liste && attente) attente.plafondMs = Math.min(attente.echeanceMs, attente.plafondMs ?? Infinity)
   const prise = await prendreVerrouAsync({
-    ...configuration, env, signal, cwd: racine, commande: 'test:perimetre',
-    attente: { ...configuration.attente, annoncer: (tenant) => console.error('[verrou] ' + tenantEnUneLigne(tenant)) },
+    ...configuration, env, signal, cwd: racine, commande: 'test:perimetre', attente,
+  }).catch((erreur) => {
+    if (!options.liste || !['EROFS', 'EACCES', 'EPERM'].includes(erreur?.code)) throw erreur
+    return {
+      etat: 'refus',
+      message: `[verrou] --liste différé — accès à ${configuration.chemin} indisponible (${erreur.code}) — ${texteDeLEchec(erreur)}\n`
+        + '[verrou] Relancer avec un dossier Git inscriptible ou avec le jeton transmis par le détenteur qui garde la prise pendant la consultation.',
+    }
   })
   if (prise.etat !== 'pris') { console.error(prise.message); return CODE_DIFFERE }
   let retraitPermis = true
-  try { return await executerPerimetre(args, racine, { env: { ...env, ...prise.env }, signal, platform, retenir: () => { retraitPermis = false } }) }
+  try { return await executerPerimetre(options, racine, { env: { ...env, ...prise.env }, signal, platform, retenir: () => { retraitPermis = false } }) }
   finally { if (retraitPermis) prise.liberer() }
 }
-async function executerPerimetre(args, racine, { env, signal, retenir, platform }) {
-  const options = lireArguments(args)
+async function executerPerimetre(options, racine, { env, signal, retenir, platform }) {
   const debut = performance.now()
   const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux, lire } = await perimetreDuDepot(racine, options, { lectureSeule: options.liste, env, signal, retenir })
   const duree = Math.round(performance.now() - debut)
@@ -594,7 +605,7 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   const sources = [...estimations.values()].reduce((n, { source }) => ({ ...n, [source]: (n[source] ?? 0) + 1 }), {})
   journal(`estimations : ${Object.entries(sources).map(([s, n]) => `${s} ${n}`).join(' | ') || 'aucune'} ; durées CI : ${ci.run ? `course ${ci.run} du ${ci.date} (${ci.sha.slice(0, 9)})` : 'aucune mémorisée'}`)
   journal(`facteurs CI : ${Object.entries(facteurs).map(([p, f]) => `${p} ${f.valeur.toFixed(2)} (${f.origine === 'paires' ? `${f.paires} paires` : `repli de banc, ${f.paires} paire(s)`})`).join(' | ')}`)
-  journal(rapatriement === null ? 'CI non rapatriée — --liste n’écrit rien'
+  journal(rapatriement === null ? 'CI non rapatriée — durées inchangées sous --liste'
     : !rapatriement.disponible ? `CI non rapatriée — ${rapatriement.raison}`
       : rapatriement.valeur.etat === 'refus' ? `CI non rapatriée — ${rapatriement.valeur.raison}`
         : `CI ${rapatriement.valeur.etat === 'deja' ? 'déjà mémorisée' : 'rapatriée'} : course ${rapatriement.valeur.memo.run}`)
