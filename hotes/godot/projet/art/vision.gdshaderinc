@@ -1,7 +1,7 @@
 // La vision du groupe (`VisionDuMonde`, `VolumeDeScene.voir`) que le shader de monde (`art/monde.gdshader`), le voile
 // d'un navire (`art/voile.gdshader`) et la brume de la vision (`art/brume-de-la-vision.gdshader`) lisent, liée par
-// `VolumeDeScene._lier_la_vision_a` : la texture d'un octet par case, un plan de `vision_rangees_par_plan` rangées par
-// couche, celle d'où le fondu part, la part du fondu et les teintes (inconnue, explorée, vue) ; l'état fondu depuis
+// `VolumeDeScene._lier_la_vision_a` : la texture d'un octet par case, un plan `sol` de `vision_rangees_par_plan`
+// rangées par couche puis un plan `toit` par couche (`VisionDuMonde`), celle d'où le fondu part, la part du fondu et les teintes (inconnue, explorée, vue) ; l'état fondu depuis
 // celui d'avant (`etat_du_fondu`), la part de lumière linéaire d'un état (`part_de_lumiere`), le décodage et l'encodage
 // sRGB (`en_lineaire`, `en_srgb`). Sans vision liée, la texture blanche et les teintes à 1 : la part vaut 1. Pour un point de la carte
 // (`etat_regarde`, le voile et la brume), le sol de chaque case (`sols`, `VolumeDeScene._batir_les_sols`, en unités de

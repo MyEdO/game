@@ -20,6 +20,7 @@ import { discTiles } from './monde/zones';
 import { dansLaZoneJouable, wallOnSight, type Scene, type SceneEntity } from './monde/scene';
 import { memoByRefDeps } from './monde/sceneMemo';
 import { spaceCellKey } from './monde/volume/architectureVisibility';
+import { resolveNappes } from './monde/volume/toits';
 import { visibilityOf } from './visibility';
 import { computeStateVisible, type VisionInput } from './visionState';
 
@@ -122,12 +123,16 @@ const OCTET: Record<Visibility, number> = { unknown: 0, explored: 128, visible: 
  * @contrat Monde
  */
 export interface VisionDuMonde {
-  /** en base64, `h` rangées de `w` octets par couche, dans l'ordre de `scene.layers` : la couche d'indice `i` aux
-   *  rangées `i·h` à `i·h + h − 1` ; un octet par case, 0 inconnue, 128 explorée, 255 vue. */
+  /** en base64, deux suites de plans de `h` rangées de `w` octets, un plan par couche dans l'ordre de
+   *  `scene.layers`, un octet par case, 0 inconnue, 128 explorée, 255 vue. D'abord le plan `sol` de chaque couche :
+   *  la couche d'indice `i` aux rangées `i·h` à `i·h + h − 1`, l'état de chaque case. Puis, `n` étant le nombre de
+   *  couches, le plan `toit` de chaque couche, aux rangées `(n + i)·h` à `(n + i)·h + h − 1`, celui que lit une
+   *  nappe de toit ou une couronne : sur l'emprise d'une nappe de cette couche, l'état de son pied (`etatDuPied`),
+   *  ailleurs celui du plan `sol`. */
   masque: string;
   /** `w`, les cases d'une rangée. */
   largeur: number;
-  /** `h` × le nombre de couches. */
+  /** `2 × h` × le nombre de couches : les plans `sol`, puis les plans `toit`. */
   rangees: number;
   /** `h`, les rangées d'un plan. */
   rangeesParPlan: number;
@@ -147,10 +152,25 @@ function masqueDe(etat: AvecScene): { masque: string; cle: string } {
   return masqueDeLaScene(scene, [computeStateVisible(etat), etat.explored[scene.id]], () => {
     const { w, h } = scene.dimensions;
     const connue = connaissanceDuGroupe(etat);
-    const octets = new Uint8Array(scene.layers.length * h * w);
+    const n = scene.layers.length;
+    const octets = new Uint8Array(2 * n * h * w);
     scene.layers.forEach(({ z }, i) => {
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) octets[(i * h + y) * w + x] = OCTET[connue(spaceCellKey(x, y, z))];
     });
+    octets.copyWithin(n * h * w, 0, n * h * w);
+    const toits = new Map<number, number>();
+    for (const { mass, cells } of resolveNappes(scene).values()) {
+      const i = scene.layers.findIndex((l) => l.z === mass.z);
+      if (i < 0) continue;
+      const octet = OCTET[etatDuPied(mass.z, cells, connue)];
+      for (const key of cells) {
+        const [x, y] = key.split(',').map(Number);
+        if (x < 0 || y < 0 || x >= w || y >= h) continue;
+        const rang = ((n + i) * h + y) * w + x;
+        toits.set(rang, Math.max(toits.get(rang) ?? 0, octet));
+      }
+    }
+    for (const [rang, octet] of toits) octets[rang] = octet;
     return { masque: enBase64(octets), cle: hash32AuMillieme(octets).toString(36) };
   });
 }
@@ -158,7 +178,25 @@ function masqueDe(etat: AvecScene): { masque: string; cle: string } {
 /** La vision du monde de la scène de `etat` (`VisionDuMonde`). PUR. */
 export function visionDuMonde(etat: AvecScene): VisionDuMonde {
   const { w, h } = etat.scene.dimensions;
-  return { masque: masqueDe(etat).masque, largeur: w, rangees: h * etat.scene.layers.length, rangeesParPlan: h, teintes: ambiance.fogTint };
+  return { masque: masqueDe(etat).masque, largeur: w, rangees: 2 * h * etat.scene.layers.length, rangeesParPlan: h, teintes: ambiance.fogTint };
+}
+
+/** L'état du PIED d'une masse de niveau `z` et d'emprise `cells` (#950) : le meilleur des cases de son emprise élargie
+ *  d'1 (on voit un bâtiment quand on voit le sol à son pied, l'intérieur restant derrière ses murs), aux niveaux 0 à
+ *  `z`. */
+function etatDuPied(z: number, cells: ReadonlySet<string>, connue: (cle: string) => Visibility): Visibility {
+  let explore = false;
+  for (const key of cells) {
+    const [x, y] = key.split(',').map(Number);
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        for (let lvl = 0; lvl <= z; lvl++) {
+          const etat = connue(spaceCellKey(x + dx, y + dy, lvl));
+          if (etat === 'visible') return 'visible';
+          explore ||= etat === 'explored';
+        }
+  }
+  return explore ? 'explored' : 'unknown';
 }
 
 /** L'empreinte des octets du masque de la vision de `etat` (`hash32AuMillieme`, base 36). PUR. */

@@ -108,7 +108,8 @@ var _vision_avant: ImageTexture = null
 var _vision_neuve: ImageTexture = null
 var _part_du_fondu := 1.0
 var _teintes := Vector3.ONE
-## Les rangées d'un plan de la vision posée (`rangeesParPlan`), un plan par couche : la hauteur `h`, en cases.
+## Les rangées d'un plan de la vision posée (`rangeesParPlan`), un plan `sol` puis un plan `toit` par couche : la
+## hauteur `h`, en cases.
 var _rangees_par_plan := 1
 var _vision_en_attente: Variant = null
 ## Le sol de chaque case du volume posé (`_batir_les_sols`), et, par clé de modèle posé, la matière de son voile (`voile`),
@@ -376,13 +377,17 @@ func _mesurer_le_fondu() -> void:
 ## (`voir`).
 func _change_d_etat(groupe: Node3D) -> bool:
 	return groupe.get_meta("aretes").any(func(a: Dictionary) -> bool: return a.cases.any(func(c: Dictionary) -> bool:
-		var texel := _texel_de_vision(c)
+		var texel := _texel_de_vision(a, c)
 		return _vision_d_avant.get_pixelv(texel).r8 != _vision.get_pixelv(texel).r8))
 
 
-## Le texel de la case `c` (`{ x, y, z }`) dans la vision posée (`voir`), au plan de sa couche.
-func _texel_de_vision(c: Dictionary) -> Vector2i:
-	return MiseEnPage.texel_de_vision(Vector2i(int(c.x), int(c.y)), _couches[int(c.z)], _rangees_par_plan)
+## Le texel de la case `c` (`{ x, y, z }`) de l'arête `a` dans la vision posée (`voir`), au plan de sa couche : le plan
+## `toit` pour une pièce posée sur une nappe (`nappe`, une faîtière), le plan `sol` sinon.
+func _texel_de_vision(a: Dictionary, c: Dictionary) -> Vector2i:
+	var case := Vector2i(int(c.x), int(c.y))
+	if a.has("nappe"):
+		return MiseEnPage.texel_de_toit(case, _couches[int(c.z)], _rangees_par_plan, _couches.size())
+	return MiseEnPage.texel_de_vision(case, _couches[int(c.z)], _rangees_par_plan)
 
 
 ## La vision posée (`voir`) liée à la matière `matiere` du shader de monde, à l'échelle du volume posé (`poser`).
@@ -737,7 +742,8 @@ static func _retenir_les_textures_du_remaillage(noeud: Node3D, geometrie: Dictio
 
 
 ## Le maillage de la nappe `nappe` (`_maillage_de`, chaque case au plan `sol` de sa couche, `MiseEnPage.texel_de_nappe`,
-## dans des matières que le masque ne lie jamais) posé sur les deux instances du nœud `noeud`.
+## dans des matières que le masque ne lie jamais, et dont la vision se lit au plan `toit`, `art/monde.gdshader`) posé
+## sur les deux instances du nœud `noeud`.
 func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 	var maillage := _maillage_de(nappe, func(c: Vector3) -> Vector2i: return MiseEnPage.texel_de_nappe(Vector2i(int(c.x), int(c.y)), _couches[int(c.z)], _rangees_d_une_couche), false)
 	(noeud.get_node("Vu") as MeshInstance3D).mesh = maillage
@@ -1275,7 +1281,7 @@ func _teinte_d_arete(a: Dictionary) -> Color:
 		return Color.WHITE
 	var etat := 0.0
 	for c: Dictionary in a.cases:
-		var texel := _texel_de_vision(c)
+		var texel := _texel_de_vision(a, c)
 		etat = MiseEnPage.plus_grand_etat(etat, MiseEnPage.etat_fondu(_vision_d_avant.get_pixelv(texel).r8, _vision.get_pixelv(texel).r8, _part_du_fondu))
 	var teinte := MiseEnPage.teinte_d_instance(etat, _teintes)
 	return Color(teinte, teinte, teinte)

@@ -329,10 +329,16 @@ static func rangee_de_pose(couche: int, rangees_par_plan: int) -> float:
 	return (2 * couche + 1) * rangees_par_plan
 
 
-## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan de `rangees_par_plan` rangées par couche), de la case
-## `case` de la couche d'indice `couche`.
+## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan `sol` de `rangees_par_plan` rangées par couche, puis
+## un plan `toit` par couche), de la case `case` de la couche d'indice `couche`, au plan `sol`.
 static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
 	return Vector2i(case.x, case.y + couche * rangees_par_plan)
+
+
+## Le texel, dans le masque de la vision (`texel_de_vision`) de `couches` couches, de la case `case` de la couche d'indice
+## `couche`, au plan `toit` : celui qu'une pièce posée sur une nappe de toit lit.
+static func texel_de_toit(case: Vector2i, couche: int, rangees_par_plan: int, couches: int) -> Vector2i:
+	return texel_de_vision(case, couches + couche, rangees_par_plan)
 
 
 ## La taille d'une image rangée comme le masque de la vision (`texel_de_vision`) : `largeur` cases de large, `couches`
