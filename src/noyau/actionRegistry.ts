@@ -63,6 +63,7 @@ import {
   refusSansMouvement,
 } from './refusDuTour';
 import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde/shipPostes';
+import { estPoseParSesPonts } from './planDeNavire';
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ItemInstance, type ShipPoste, type Weapon, type WeaponLoadout } from '../engine/types';
 import { pushSlot } from './siegePush';
@@ -326,8 +327,11 @@ export const ACTION_GATES: Record<GateDAction, (ctx: ActionCtx) => ActionGate> =
   monte: ({ active }) => (active.mountId ? ok : no(t('agate.notMounted'))),
   'poste-servi': ({ active }) => (active.mannedPoste ? ok : no(t('agate.noPosteManned'))),
   /** La barre : le BARREUR la tient (`shipOfCrew`), et la COQUE elle-même (`manoeuvrerLeNavire` accepte l'un ou l'autre). */
-  'a-la-barre': ({ active, battle }) =>
-    (estNavire(active) || shipOfCrew(battle.combatants, active.id) ? ok : no(t('agate.notAtHelm'))),
+  'a-la-barre': ({ active, battle, scene }) => {
+    const navire = estNavire(active) ? active : shipOfCrew(battle.combatants, active.id);
+    if (!navire) return no(t('agate.notAtHelm'));
+    return estPoseParSesPonts(scene, navire.id) ? no(t('agate.navireAncre')) : ok;
+  },
   navire: ({ active }) => (estNavire(active) ? ok : no(t('agate.notAVessel'))),
   vehicule: ({ active }) => (isVehicle(active) ? ok : no(t('agate.notAVehicle'))),
   /** La pause de début de Round (`LDB 17 l.25`) : personne n'agit encore (`turn: -1`, `enterRoundStartPause`). */
@@ -363,19 +367,6 @@ function setDeMelee(active: Combatant): boolean {
 
 /** Les entrées de REMÈDE du registre — celles que la donnée porte au gate `etat-porte`. */
 export const REMEDES = ACTIONS.filter((a) => [a.gate].flat().includes(GATE_ETAT_PORTE));
-
-/** LE GESTE QUI REMÈDE À CET ÉTAT — source unique de son libellé pour les surfaces qui le nomment
- *  (fenêtre du Test de récupération). */
-export function remedeDeLEtat(stateId: string): ActionDef | undefined {
-  return REMEDES.find((a) => a.rule?.type === 'etat' && a.rule.id === stateId);
-}
-
-/** Les remèdes PERTINENTS pour ce porteur : ceux dont l'État est porté (le verdict du gate, pris une
- *  fois). Lecture UNIQUE des surfaces — elles n'indexent pas `ACTION_GATES`. L'ordre est celui de la
- *  donnée. */
-export function remedesPertinents(ctx: ActionCtx): ActionDef[] {
-  return REMEDES.filter((def) => ACTION_GATES[GATE_ETAT_PORTE]({ ...ctx, def }).ok);
-}
 
 /** Verdict d'offre d'une action, par son id — porte de lecture UNIQUE pour les surfaces.
  *  Le champ `gate` de l'entrée peut nommer PLUSIEURS prédicats : ils se composent par l'ET séquentiel
@@ -1070,13 +1061,6 @@ export function offresDeLActif(ctx: ActionSelectorCtx & { state: Jeu }): Offre[]
       return p ? [offre(def, p.args, p)] : [];
     });
   });
-}
-
-/** L'offre que des ARGUMENTS de geste désignent : celle de l'entrée `actionId` dont chaque argument est repris par
- *  `args`. Une offre par candidat se reconnaît à ses arguments (le sort, l'arme, l'attaque) ; une offre unique, sans
- *  argument, à son seul id. La console y reconnaît ses cases, l'hôte texte le geste qu'il joue. */
-export function offreDesignee(offres: readonly Offre[], actionId: string, args: ContexteDOffre = {}): Offre | undefined {
-  return offres.find((o) => o.actionId === actionId && designe(o.args, args));
 }
 
 /** Les offres d'une SURFACE qui offre par candidat (pastilles du champ, gestes secondaires d'une alvéole),

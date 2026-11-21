@@ -21,7 +21,7 @@ import { especeDApparence } from '../../data';
  *    le nid, la hauteur est un ENTIER (25 m) — UNE seule étape, celle des Dégâts.
  * Deux matelots, un par station, pour voir les deux formes dans la même partie.
  *
- * Les trois gestes de recette (console `__wfrp`) sont documentés dans `docs/test-scenarios.md`.
+ * Les deux branches de la chute sont jouées dans `src/noyau/chute-du-greement-porte.hors-store.test.ts`.
  */
 
 /**
@@ -74,13 +74,11 @@ function construireScene(): Scene {
     heroStart: [3, 6],
     startMessage:
       { texte: 'Deux matelots dans la mâture : Ott dans le gréement, Nissa au nid-de-pie. Un boulet dans le gréement, '
-      + 'et il faudra tenir bon — sinon la hauteur se tire, puis les Dégâts. Console : __wfrp.shipCrit("greement").' },
+      + 'et il faudra tenir bon — sinon la hauteur se tire, puis les Dégâts.' },
     entities: [
       // La coque des HÉROS : c'est elle que le Critique frappe, et ses `crewIds` sont les deux postés.
       cogueDEssai,
-      // Une coque ADVERSE : sans rencontre, le scénario était INERTE — aucun combat, aucun plan de voyage,
-      // donc `__wfrp.shipCrit` n'avait pas de coque en jeu et refusait. La route JOUABLE d'un Critique de
-      // navire est le combat naval (patron « Duel naval ») : l'ennemi ouvre la rencontre, le Critique suit.
+      // La coque adverse ouvre la rencontre. Le Critique se joue dans le combat naval, comme dans « Duel naval ».
       coguePirate,
     ],
     encounters: [

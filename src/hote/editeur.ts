@@ -158,6 +158,8 @@ import {
   listesDeSorts,
   sortsImprimes,
   aLEchelleDesPonts,
+  rectangleDesPonts,
+  refusDePoseDesPonts,
   CAPS_DES_PONTS,
   TYPES_DE_NAVIRE,
   vueDeLaScene,
@@ -796,7 +798,7 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
     const scene = sceneEditee(s);
     return [
       choix('navires', t('ecran.editeur.navires'), TYPES_DE_NAVIRE.map(({ id, label }) =>
-        boutonDEdition(`navire/${id}`, label, { geste: 'outil', outil: { ...outil, ref: id } }, outil.ref === id, refusDuNavire(scene, id))), 'liste'),
+        boutonDEdition(`navire/${id}`, label, { geste: 'outil', outil: { ...outil, ref: id } }, outil.ref === id, refusDuNavire(scene))), 'liste'),
       choix('navire/cap', t('ecran.editeur.entite.cap'), CAPS_DES_PONTS.map((cap) =>
         boutonDEdition(`navire/cap/${cap}`, t(`ecran.editeur.cap.${cap}`), { geste: 'outil', outil: { ...outil, cap } }, outil.cap === cap))),
     ];
@@ -952,10 +954,10 @@ function listeDIds(id: string, famille: 'zone.couvre' | 'scene.groupes', poses: 
 const couverture = (id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] =>
   listeDIds(id, 'zone.couvre', couvre, COURT_DE_L_ENTREE, jeu);
 
-/** Pourquoi le navire du type `ref` ne se pose pas dans `scene` : elle n'est pas à l'échelle de ses ponts
+/** Pourquoi l'outil ne pose pas de navire dans `scene` : elle n'est pas à l'échelle des ponts
  *  (`aLEchelleDesPonts`) ; `null` s'il s'y pose. */
-const refusDuNavire = (scene: Scene, ref: string): string | null =>
-  aLEchelleDesPonts(scene, ref) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
+const refusDuNavire = (scene: Scene): string | null =>
+  aLEchelleDesPonts(scene) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
 
 /** Les couches de la vue de la scène éditée de `s` (`vueDeLaScene`), dans l'ordre. */
 const couchesDeLaVue = (s: SessionDEdition): number[] => vueDeLaScene(s).layers.map((l) => l.z).sort((a, b) => a - b);
@@ -974,12 +976,17 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
-  const cap = capDeLEntite(ent);
+  const scene = sceneEditee(s);
+  const cap = rectangleDesPonts(scene, ent)?.cap ?? capDeLEntite(ent);
+  const caps = capsOfferts(ent).map((c) => boutonDEdition(
+    `entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } },
+    c === cap, refusDePoseDesPonts(scene, { ...ent, facing: c }) ?? null,
+  ));
   return [
     formulaireDuNom(ent.label, true),
     ...(types.length ? [choix('entite/type', t(ent.kind === 'prop' ? 'ecran.editeur.entite.type' : 'ecran.editeur.entite.fiche'),
       types.map((o) => boutonDEdition(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, idDuCorps(ent) === o.id)), 'liste')] : []),
-    choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => boutonDEdition(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
+    choix('entite/cap', t('ecran.editeur.entite.cap'), caps),
     choixDeLaCouche(s, 'entite/couche', ent.z ?? 0, (z) => ({ geste: 'entite', patch: { z } })),
     ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent), ...identifiantsDesActions(ent)] : []),
     ...(ent.postes?.length ? poste(s, ent, ent.postes[0]) : []),
@@ -1679,17 +1686,25 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  qui le nomme, de son identifiant, quand sa sorte se renomme par la table (`ECRITURES_DES_PORTEURS`, `renommer`), au
  *  choix parmi le sien et ceux qu'elle offre à la création (`avecs`) quand elle en offre ; ses
  *  éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer, refusé avec la raison
- *  du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 */
-function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sorte: SorteDePorteur; id: string }, propres: (Choix | Ligne | Bouton | Formulaire)[]): (Choix | Ligne | Bouton | Formulaire)[] {
+ *  du retrait (`refusDeRetrait`) quand sa sorte se retire par la table et que le retrait du porteur est demandé. #3606 */
+function inspecteurDuPorteur(
+  s: SessionDEdition,
+  prefixe: string,
+  porteur: { sorte: SorteDePorteur; id: string },
+  propres: (Choix | Ligne | Bouton | Formulaire)[],
+  avecRetrait = true,
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const donnee = porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee;
   const { renommer, retirer, avecs } = ECRITURES_DES_PORTEURS[porteur.sorte];
-  const refus = retirer ? refusDeRetrait(s) : null;
+  const retrait = avecRetrait
+    ? [boutonDEdition(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, retirer ? refusDeRetrait(s) : null)]
+    : [];
   const noms = avecs && [porteur.id, ...avecs(projetEdite(s), idDeLaSceneEditee(s), s.sel, s.entreesDeFiche)];
   return [
     ...(renommer ? [formulaireDuNom(porteur.id, false, noms)] : []),
     ...propres,
     ...formulaireDuPorteur(s, porteur, donnee),
-    boutonDEdition(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus),
+    ...retrait,
   ];
 }
 
@@ -1834,9 +1849,14 @@ const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdit
 
 /** L'inspecteur du porteur de sorte `sorte` et de donnée `donnee` de la session `s` qui se liste à la zone Logique
  *  (`inspecteurDuPorteur`, ses éléments d'id `<sorte>/…`), ses éléments propres (`PROPRES_DE_LA_LOGIQUE`). */
-function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sorte: S, donnee: DonneeDuPorteur[S]): (Choix | Ligne | Bouton | Formulaire)[] {
+function inspecteurDeLaLogique<S extends SorteDePorteur>(
+  s: SessionDEdition,
+  sorte: S,
+  donnee: DonneeDuPorteur[S],
+  avecRetrait: boolean,
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const propres: ((s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[]) | undefined = PROPRES_DE_LA_LOGIQUE[sorte];
-  return inspecteurDuPorteur(s, sorte, { sorte, id: idDuPorteur(accesDe(sorte), donnee, idDeLaSceneEditee(s)) }, propres?.(s, donnee) ?? []);
+  return inspecteurDuPorteur(s, sorte, { sorte, id: idDuPorteur(accesDe(sorte), donnee, idDeLaSceneEditee(s)) }, propres?.(s, donnee) ?? [], avecRetrait);
 }
 
 /** Les documents dont l'inspecteur de la carte du monde, sans sélection, montre le porteur singulier : la carte, puis le
@@ -1861,8 +1881,11 @@ const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Form
  *  son formulaire tiré du schéma (`formulaireDuPorteur`), puis, quand sa sorte se retire par la table (la carte du
  *  monde), le bouton qui le retire du projet, refusé avec sa raison (`refusDeRetrait`) ; rien sans lui. Chaque
  *  inspecteur propre s'appelle par son nom dans la table : la fermeture d'appels de la garde #841 le suit depuis
- *  `editer`. */
-export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
+ *  `editer`. `retraitDuPorteurLogique` inclut le bouton de retrait du porteur entier dans l'inspecteur de la zone Logique. */
+export function inspecteurDeLaSession(
+  s: SessionDEdition,
+  { retraitDuPorteurLogique = true }: { retraitDuPorteurLogique?: boolean } = {},
+): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const ent = entiteDeLaSelection(scene, s.sel);
   const entree = entreeDeLaSelection(s);
@@ -1872,7 +1895,7 @@ export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bout
   if (ent) return inspecteurDEntite(s, ent);
   if (entree) return inspecteurDEntree(s, entree);
   if (zone) return inspecteurDeZone(s, zone);
-  if (s.sel && porteur && donnee) return inspecteurDeLaLogique(s, porteur.sorte, donnee);
+  if (s.sel && porteur && donnee) return inspecteurDeLaLogique(s, porteur.sorte, donnee, retraitDuPorteurLogique);
   const architecture = inspecteurDArchitecture(s);
   if (architecture.length) return architecture;
   if (s.sel) return inspecteurDArete(s);
@@ -2092,8 +2115,9 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * z, nom, choisi }` (plusieurs peuvent tenir dans une case : deux décors calés, un objet posé sur une table ; l'hôte y
  * montre la plaque de la sélection et joint leurs noms) (`prop`, `personnage`, `heroStart` ou `entree`, son nom comme à
  * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée hors des ponts des
- * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), rendues avec `monde`, comme `navires`, les navires de la
- * scène sous la forme de `corps.navires`, et `decors`, ses décors servis sous celle de `corps.decors` (section « Corps
+ * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), `cotesDeMarches` les côtés des cases de
+ * marches de la couche éditée (`cotesDeMarchesDeLaCouche`, chacun comme la méthode `aretes` le sert), rendues avec
+ * `monde`, comme `navires`, les navires de la scène sous la forme de `corps.navires`, et `decors`, ses décors servis sous celle de `corps.decors` (section « Corps
  * d'un combattant »). `monde` porte le manifeste du volume du monde de
  * la vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), comme `monde.monde` (section « Monde ») ;
  * `morceaux`, source `edition`, en sert la géométrie. `retrait` porte le masque des couches au-dessus de la couche
@@ -2141,7 +2165,7 @@ function zonesDeLaScene(s: SessionDEdition): Partial<ZonesDeLEditeur> {
     boutonDEdition('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenelage', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenelage'),
     boutonDEdition('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entite', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
     boutonDEdition('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
-    boutonDEdition('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene, navire.ref)),
+    boutonDEdition('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene)),
     boutonDEdition('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     boutonDEdition('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entite', kind: 'heroStart' } }, s.outil.mode === 'entite' && s.outil.kind === 'heroStart'),
     boutonDEdition('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entree' } }, s.outil.mode === 'entree'),

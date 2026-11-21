@@ -9,6 +9,24 @@
 class_name MontageDeVehicule
 extends Node3D
 
+## Les instances détachées d'un corps jusqu'à leur transfert dans l'arbre.
+class InstancesEnPreparation extends RefCounted:
+	var _instances: Array[Node3D] = []
+
+	func retenir(instance: Node3D) -> Node3D:
+		if instance != null:
+			_instances.append(instance)
+		return instance
+
+	func ceder(instance: Node3D) -> void:
+		_instances.erase(instance)
+
+	func _notification(quoi: int) -> void:
+		if quoi == NOTIFICATION_PREDELETE:
+			for instance in _instances:
+				instance.free()
+
+
 ## L'id de l'élément posé (`null` : aucun).
 var element: Variant = null
 ## L'id de l'emblème posé sur les surfaces `blason` de l'élément (`null` : aucun).
@@ -37,7 +55,7 @@ var _coupees: Array[MeshInstance3D] = []
 var _seuil := 0.0
 ## Le voile de sa scène (`voiler`), un seul pour toutes ses pièces, `null` : aucun.
 var _voile: ShaderMaterial = null
-## Les matières locales de sa scène (`MontageDeComposition.materiau_local`), qu'il tient au-delà de leur vie.
+## Les matières locales de la scène posée (`MontageDeComposition.materiau_local`).
 var _locaux: Dictionary = {}
 
 
@@ -56,19 +74,16 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	_recu = recu
 	var chargement := RefCounted.new()
 	_chargement = chargement
-	var posee: Node3D = null if vehicule == null else await montage.scene_du_modele(vehicule.element, montage.erreurs)
+	var en_preparation := InstancesEnPreparation.new()
+	var posee: Node3D = null if vehicule == null else en_preparation.retenir(await montage.scene_du_modele(vehicule.element, montage.erreurs))
 	var pieces: Array[Node3D] = []
 	var montees: Array[Node3D] = []
 	if posee != null:
 		for poste in vehicule.postes:
-			pieces.append(await montage.scene_du_modele(poste.element, montage.erreurs))
+			pieces.append(en_preparation.retenir(await montage.scene_du_modele(poste.element, montage.erreurs)))
 		for montee in vehicule.ameliorations:
-			montees.append(await montage.scene_du_modele(montee.element, montage.erreurs))
+			montees.append(en_preparation.retenir(await montage.scene_du_modele(montee.element, montage.erreurs)))
 	if chargement != _chargement:
-		for lot in [pieces, montees, [posee]]:
-			for piece in lot:
-				if piece != null:
-					piece.free()
 		return false
 	_retirer()
 	if posee == null:
@@ -79,6 +94,7 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	elif texture != null:
 		montage.erreurs.append("blason-sans-surface : %s" % vehicule.element)
 	add_child(posee)
+	en_preparation.ceder(posee)
 	scene = posee
 	_meshes.assign(posee.find_children("*", "MeshInstance3D", true, false))
 	for candidat in posee.find_children("*", "AnimationPlayer", true, false):
@@ -90,11 +106,13 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 		if pieces[i] != null:
 			peindre_l_element(pieces[i], vehicule.postes[i].element, vehicule.postes[i].palette, null, _locaux)
 			monter_au_poste(posee, pieces[i], vehicule.postes[i])
+			en_preparation.ceder(pieces[i])
 			postes.append(vehicule.postes[i].element)
 	for i in montees.size():
 		if montees[i] != null:
 			peindre_l_element(montees[i], vehicule.ameliorations[i].element, vehicule.palette, null, _locaux)
 			monter_l_amelioration(posee, montees[i], vehicule.ameliorations[i])
+			en_preparation.ceder(montees[i])
 			ameliorations.append(vehicule.ameliorations[i].element)
 	cacher_selon(posee, vehicule.caches)
 	element = vehicule.element
@@ -143,10 +161,20 @@ func _retirer() -> void:
 	lecteur = null
 	clips = {}
 	_meshes.clear()
+	if not _locaux.is_empty():
+		_lacher_les_matieres_apres_les_pieces(get_tree(), _locaux)
+		_locaux = {}
 	element = null
 	embleme = null
 	postes.clear()
 	ameliorations.clear()
+
+
+## Les matériaux restent tenus jusqu'à la libération des pièces mises en file de suppression (`MontageDeComposition.materiau_local`).
+static func _lacher_les_matieres_apres_les_pieces(arbre: SceneTree, locaux: Dictionary) -> void:
+	while locaux.keys().any(func(id: int) -> bool: return is_instance_id_valid(id)):
+		await arbre.process_frame
+	locaux.clear()
 
 
 ## Sa scène coupée à la hauteur `hauteur` de son repère : aucun fragment n'en est montré au-dessus, et son ombre reste

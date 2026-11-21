@@ -8,7 +8,7 @@ import {
 import { parseProject, texteDuDepot, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import { allAxes } from '../data';
 import { campagnesLivrees as livrees } from './projetsLivres.testkit';
-// @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { materialiser } from '../../scripts/source/resoudre.mjs';
 import areneProjet from './arene/arene-projet.json';
 

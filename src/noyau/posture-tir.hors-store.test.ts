@@ -10,7 +10,11 @@ import type { Combatant } from '../engine/types';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const DOSSIER = dirname(fileURLToPath(import.meta.url));
+const lire = (rel: string) => readFileSync(join(DOSSIER, rel), 'utf8');
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -284,7 +288,6 @@ describe('G5 — posture « Dans le tas » (`dansLeTas`)', () => {
  */
 describe('G5 — le prédicat de posture n’est recodé nulle part', () => {
   it('aucune surface ne re-dérive le Mouvement de la posture (`STANCE_BLOCK` seul)', () => {
-    const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
     // Périmètre = la SURFACE de la posture au noyau (le registre des actions) : c'est là qu'un
     // second prédicat naît. `combatSlice` porte le même motif pour l'économie du Mouvement elle-même
     // (Maladresse, annulation de segment), qui n'a rien d'une posture.

@@ -6,6 +6,7 @@
  * (`toitsDuMonde`) et les couronnes crénelées (`couronnesDuMonde`).
  */
 import { findPropById, matieresDe, props, structureAppearances, terrains, semencesDeScene } from '../../data';
+import { versionDesDatasets } from '../../data/versionDataset';
 import { structureAppearance } from './volume/structures';
 import { empreinteDuProp } from '../../data/props.types';
 import { parLibelle } from '../../lib/ordre.mjs';
@@ -25,9 +26,11 @@ import {
   setReliefDefault,
 } from '../sceneEdit';
 import { emptyScene, setStructureDown, type Scene, type WallSeg, type WallSide } from './scene';
+import { memoByDeps } from './sceneMemo';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
-import { estAbsent, terrainBuilt, terrainSolidHeightM } from './terrain';
+import { estAbsent, terrainBuilt, terrainKitDEscalier, terrainSolidHeightM } from './terrain';
 import { aretesDeLaScene, plateauDeLaScene, type AreteDessinee } from './aretes';
+import { cotesDeMarchesDeLaScene, type CoteDeMarches } from './cotesDeMarches';
 import { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type NappeDuMonde, type VolumeDuMonde } from './volume/volume';
 
 /** Une famille d'échantillons : les décors (`props.json`), les sols (`terrains.json`, hors de l'absence de sol,
@@ -43,11 +46,12 @@ export interface FamilleDEchantillons {
   entrees: { id: string; libelle: string }[];
 }
 
-/** Un échantillon dessiné : ce que le jeu sert à son hôte pour une scène, son volume, ses arêtes, ses nappes de toit,
- *  ses couronnes crénelées et celles qui tombent avec leur mur. */
+/** Un échantillon dessiné : ce que le jeu sert à son hôte pour une scène, son volume, ses arêtes, ses côtés de
+ *  marches, ses nappes de toit, ses couronnes crénelées et celles qui tombent avec leur mur. */
 export interface EchantillonDessine {
   monde: VolumeDuMonde;
   aretes: AreteDessinee[];
+  cotesDeMarches: CoteDeMarches[];
   toits: NappeDuMonde[];
   couronnes: NappeDuMonde[];
   couronnesAbattues: string[];
@@ -69,9 +73,18 @@ function sceneDuDecor(id: string): Scene {
   return placeEntity(taillee, { mode: 'entite', kind: 'prop', ref: id }, { x: BORD, y: BORD }, 0, centre).scene;
 }
 
-/** Une scène de `COTE_DU_SOL` cases de côté couverte du terrain `id`. */
+/** Les cases de la volée d'un sol à marches, montant d'un cran franchissable (`STEP_MAX_M`) chacune vers le nord, du
+ *  pied de la volée à son palier. */
+const VOLEE_DU_SOL = { x: 2, marches: 3 };
+
+/** Une scène de `COTE_DU_SOL` cases de côté couverte du terrain `id` ; pour un terrain à marches (`terrainKitDEscalier`),
+ *  une volée (`VOLEE_DU_SOL`) dont la case du haut affleure le palier au bord nord, dont les côtés bordent le sol. */
 function sceneDuSol(id: string): Scene {
-  return fillTerrainRect(sceneVide(COTE_DU_SOL, COTE_DU_SOL), { x: 0, y: 0, w: COTE_DU_SOL, h: COTE_DU_SOL }, id);
+  const couverte = fillTerrainRect(sceneVide(COTE_DU_SOL, COTE_DU_SOL), { x: 0, y: 0, w: COTE_DU_SOL, h: COTE_DU_SOL }, id);
+  if (!terrainKitDEscalier(id)) return couverte;
+  const { x, marches } = VOLEE_DU_SOL;
+  const crans = Array.from({ length: marches }, (_, i) => ({ y: marches - i, h: (i + 1) * STEP_MAX_M }));
+  return [...crans, { y: 0, h: marches * STEP_MAX_M }].reduce((s, { y, h }) => paintHeight(s, { x, y }, h, 1), couverte);
 }
 
 /** Le premier sol bâti de `terrains.json` sans bloc plein (`terrainBuilt`, `terrainSolidHeightM`) : celui qui ne se
@@ -111,11 +124,14 @@ interface PanDeLEnclos {
   arete: 'wall' | 'door';
   patch: Partial<WallSeg>;
   abattu?: true;
+  /** sa case `(x, y)` haussée d'un étage (`METRES_PER_LEVEL`). */
+  hausse?: true;
 }
 
 /** L'enclos de deux cases d'un mur : un mur, une porte fermée, une porte ouverte, une fenêtre, une fenêtre close et une
  *  brèche (la structure de la semence, `semences-de-scene.json › facade`, abattue) ; au sud, une porte double fermée
- *  entre deux murs (`ouverturesDeLaScene`, `src/noyau/monde/aretes.ts`). */
+ *  entre deux murs (`ouverturesDeLaScene`, `src/noyau/monde/aretes.ts`) ; à l'est, une échelle (LDB 15 l.55) contre
+ *  une case haussée. */
 const ENCLOS: readonly PanDeLEnclos[] = [
   { x: 1, y: 1, side: 'N', arete: 'wall', patch: {} },
   { x: 2, y: 1, side: 'N', arete: 'door', patch: { closed: true } },
@@ -127,6 +143,7 @@ const ENCLOS: readonly PanDeLEnclos[] = [
   { x: 1, y: 3, side: 'N', arete: 'door', patch: { closed: true } },
   { x: 2, y: 3, side: 'N', arete: 'door', patch: { closed: true } },
   { x: 3, y: 3, side: 'N', arete: 'wall', patch: {} },
+  { x: 3, y: 2, side: 'N', arete: 'wall', patch: { climb: { kind: 'ladder' } }, hausse: true },
 ];
 
 /** La case crénelée d'une apparence à couronne (`parapet`), à l'écart de l'enclos : haussée d'un étage au-dessus de ses
@@ -137,9 +154,10 @@ const CRENELEE = { x: 4, y: 1 };
  *  (`CRENELEE`) de cette apparence. */
 function sceneDuMur(id: string): Scene {
   const crenelee = structureAppearance(id).parapet !== undefined;
-  const enclos = ENCLOS.reduce((s, { x, y, side, arete, patch, abattu }) => {
+  const enclos = ENCLOS.reduce((s, { x, y, side, arete, patch, abattu, hausse }) => {
     const pose = patchWall(setEdgeWall(s, x, y, side, 0, arete, abattu ? semencesDeScene.facade.id : undefined), x, y, side, 0, { ...patch, appearance: id });
-    return abattu ? setStructureDown(pose, x, y, side, 0, true) : pose;
+    const haussee = hausse ? paintHeight(pose, { x, y }, METRES_PER_LEVEL, 1) : pose;
+    return abattu ? setStructureDown(haussee, x, y, side, 0, true) : haussee;
   }, sceneVide(crenelee ? CRENELEE.x + 1 + BORD : 4, 4));
   return crenelee ? paintCrenellated(paintHeight(enclos, CRENELEE, METRES_PER_LEVEL, 1), CRENELEE, id, 1) : enclos;
 }
@@ -162,15 +180,21 @@ export function famillesDEchantillons(): FamilleDEchantillons[] {
   }));
 }
 
-/** La scène qui montre l'entrée `id` de la famille `famille`. PUR. */
+const sceneRetenue = memoByDeps<Scene>();
+
+/** La scène qui montre l'entrée `id` de la famille `famille`, retenue par famille, id et version des datasets. PUR. */
 export function sceneDEchantillon(famille: FamilleDEchantillon, id: string): Scene {
-  return FAMILLES[famille].scene(id);
+  return sceneRetenue([versionDesDatasets(), famille, id], () => FAMILLES[famille].scene(id));
 }
 
-/** L'échantillon de l'entrée `id` de la famille `famille`, dessiné comme le jeu dessine une scène pour son hôte, sous un
- *  regard qui ne retire rien (`immersion`). PUR. */
-export function echantillonDessine(famille: FamilleDEchantillon, id: string): EchantillonDessine {
-  const scene = sceneDEchantillon(famille, id);
+/** La scène de l'échantillon, sous un regard qui ne retire rien (`immersion`), avec les types de décor servis par
+ *  un modèle dans `decorsServis`. PUR. */
+export function echantillonDessine(scene: Scene, decorsServis?: ReadonlySet<string>): EchantillonDessine;
+/** L'échantillon de l'entrée `id` de la famille `famille`, sous un regard qui ne retire rien (`immersion`). PUR. */
+export function echantillonDessine(famille: FamilleDEchantillon, id: string): EchantillonDessine;
+export function echantillonDessine(familleOuScene: FamilleDEchantillon | Scene, idOuDecors?: string | ReadonlySet<string>): EchantillonDessine {
+  const scene = typeof familleOuScene === 'string' ? sceneDEchantillon(familleOuScene, idOuDecors as string) : familleOuScene;
+  const decorsServis = typeof idOuDecors === 'string' ? undefined : idOuDecors;
   const { couronnesAbattues } = plateauDeLaScene(scene, [], 'immersion');
-  return { monde: volumeDuMonde(scene), aretes: aretesDeLaScene(scene), toits: toitsDuMonde(scene), couronnes: couronnesDuMonde(scene), couronnesAbattues };
+  return { monde: volumeDuMonde(scene, decorsServis), aretes: aretesDeLaScene(scene), cotesDeMarches: cotesDeMarchesDeLaScene(scene), toits: toitsDuMonde(scene, decorsServis), couronnes: couronnesDuMonde(scene), couronnesAbattues };
 }

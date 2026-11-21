@@ -94,6 +94,7 @@ var cadre := Rect2():
 
 
 func _ready() -> void:
+	volume.empreintes_retablies.connect(_retenir_les_empreintes)
 	_lacet = _pivot.rotation.y
 	var lumiere := $Lumiere as Lumiere
 	if lumiere.brume != null:
@@ -113,6 +114,13 @@ func poser(monde: Dictionary, recus: Dictionary, zone := Rect2i()) -> void:
 		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.monde.metresParCase)))
 	_pivot.position = MiseEnPage.centre_de_la_zone(zone.position.x, zone.position.y, zone.size.x, zone.size.y) if zone.has_area() else MiseEnPage.centre_du_plateau(taille())
 
+
+## Les formes du rayon gardent leurs triangles quand le volume rétablit un décor (`VolumeDeScene.retablir_le_decor`).
+func _retenir_les_empreintes(empreintes: Dictionary) -> void:
+	for forme: CollisionShape3D in _corps.get_children():
+		var cle: String = forme.get_meta("cle")
+		if empreintes.has(cle):
+			forme.set_meta("empreinte", empreintes[cle])
 
 ## La forme du morceau `morceau` (`MorceauDuMonde`) que le rayon du pointeur touche des deux côtés, hors des mers des
 ## navires (`flottaison`), avec la case de chacun de ses triangles (`cases`, un `Vector3` par triangle, dans leur ordre,
@@ -573,10 +581,14 @@ func _zoomer(sens: float) -> void:
 ## @contrat Vue
 ## Le volume de la scène (`VolumeDeScene.poser_les_aretes`) dessine les arêtes du plateau (méthode `aretes`), chacune
 ## debout à son pied : la pièce que l'arête nomme du modèle `arete--<kit>` servi pour sa famille
-## (`VolumeDeScene.modele_d_arete`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans modèle servi, d'un
+## (`VolumeDeScene.modele_servi`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans modèle servi, d'un
 ## modèle illisible ou sans cette pièce au modèle, une boîte : un mur, une porte fermée, le seuil d'une porte ouverte ou
-## d'une brèche. Les
-## arêtes de même bloc (`bloc`), même pièce, même sens et même hauteur sont dessinées en un groupe d'instances.
+## d'une brèche. Il habille de même chaque côté de marches (`cotesDeMarches`) de chacune de ses pièces, celle du modèle
+## `escalier--<kit>` servi pour sa famille (`escaliers` de `modeles`), étirée à la longueur du côté, à la hauteur du
+## modèle, son milieu à la cote du milieu du côté, cisaillée de `entree` à `sortie` le long de son sens, ses montants
+## verticaux (`MiseEnPage.pente_d_arete`) ; sans modèle servi, illisible ou sans cette pièce, rien. Les arêtes
+## et les pièces des côtés de même bloc (`bloc`), même pièce, même sens et même hauteur sont dessinées en un groupe
+## d'instances, retirées par leur clé (`plateau.aretesDegagees`).
 
 ## @contrat Vue
 ## Les nappes retirées (`plateau.toitsLeves`), les arêtes retirées (`plateau.aretesDegagees`) et les couronnes crénelées
@@ -622,9 +634,11 @@ func _zoomer(sens: float) -> void:
 ## jouables d'une même colonne, la plus haute retirée, le clic rend la plus haute, qui se dessine par-dessus (recette
 ## `projet/recettes/jouable-sur-couche-retiree.gd`).
 ##
-## Le shader de monde rend chaque surface vue d'un morceau et d'une nappe de sa texture, `projet/textures/<matiere>.jpg`,
-## et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une
-## matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
+## Le shader de monde rend chaque surface vue d'un morceau de sa texture, `projet/textures/<matiere>.jpg`, et de son
+## relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; celle d'une
+## nappe de toit ou d'une couronne, de sa texture neutre, `<matiere>.neutre.jpg`, teinte par la couleur de ses sommets,
+## et de son relief, projetés sur le plan de chaque face, les rangs le long de son horizontale (recette
+## `projet/recettes/nappe-texturee.gd`) ; une matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
 ## `projet/textures/provenance.json` (dossier épinglé, `asset/epingles.ts`).
 ##
 ## Le monde pose chaque nappe de toit et chaque couronne crénelée sous le volume comme un morceau : une instance vue

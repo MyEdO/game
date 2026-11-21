@@ -8,12 +8,14 @@ import type * as structuresDef from '../data/schemas/defs/structures';
 import type * as vehiclesDef from '../data/schemas/defs/vehicles';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
+import type { ConsumableDuration } from './consumables';
+import type { CritTestNode } from '../data/criticals';
 import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { CibleEtendue, NatureDeMention } from '../data/schemas/grammaire/valeurs';
+import type { CibleEtendue, NatureDeMention, RaceKey } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 import type { RegimeDeBord } from './disease';
 import type { ActionId, NightStakeId } from '../data/index';
@@ -205,13 +207,20 @@ export interface TalentInstance {
   times: number;
 }
 
+export interface ReferenceDeCouleur {
+  id: string;
+  colonne: RaceKey;
+}
+
+export type CouleurDePersonnage = ReferenceDeCouleur | { label: string };
+
 /** Détails supplémentaires d'un héros (LDB 05 étape 6 — cosmétique, aucune règle). */
 export interface HeroDetails {
   age?: number;
   /** Taille en cm. */
   height?: number;
-  eyes?: string;
-  hair?: string;
+  eyes?: CouleurDePersonnage;
+  hair?: CouleurDePersonnage;
   /** Ambitions à court / long terme (LDB 05 l.730-736). */
   ambitionShort?: string;
   ambitionLong?: string;
@@ -380,6 +389,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  ≠ `natural` — exempte SEULEMENT du
    *  mismatch de Taille (`attackModifiers`), n'étant pas une POSSESSION manufacturée réelle. */
   sizeless?: boolean;
+  /** Guide de Frenchy, chap. 26, lignes 827, 832 ; Guide de Frenchy, chap. 51, lignes 350, 354 */
+  sansSpecialisation?: true;
   /** Uid de l'objet PORTÉ dont l'arme est DÉRIVÉE (`TrappingData.derivedWeapon`, prothèse-arme : Crochet),
    *  posé par `recomputeLoadout` : une arme dérivée n'est pas une arme tenue que l'on lâche. */
   derivedFromItem?: string;
@@ -883,6 +894,8 @@ export interface ActiveEffect {
   /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
    *  `prayerForActionBy`). LDB 40 l.74 */
   prayerForAction?: true;
+  /** VDM 09 l.354 */
+  fleeForbidden?: true;
   /** Divinité (id de `gods.json`) dont les Bénédictions et Miracles échouent sur le porteur (op `deityBan`,
    *  lu par `prayerBannedOn`). LDB 40 l.64 */
   deityBan?: string;
@@ -1000,7 +1013,7 @@ export interface Trauma {
    *  personnage porte l'État `whileCondition`, tout critique SUBSÉQUENT à `location` (ou toute Localisation si
    *  absente) impose le nœud `test` de sauvegarde (la branche empruntée porte ses ops). Stampé par
    *  `stampCriticalEscalation`, lu par `fireCritTriggers` au point unique de résolution des critiques. */
-  critTrigger?: { location?: HitLocation; whileCondition: string; test: import('../data/criticals').CritTestNode };
+  critTrigger?: { location?: HitLocation; whileCondition: string; test: CritTestNode };
   /** Amputation DIFFÉRÉE à la fin de la rencontre (LDB 18, « Coupure à l'orteil » l.171 : « Une fois la
    *  rencontre terminée… ») : le/les Test(s) FABRIQUÉS par `resolveCritique` pour un
    *  `amputation.timing === 'postEncounter'`, ENJEU POSÉ — ARMÉS ici (même patron de nœud persisté que
@@ -1088,7 +1101,7 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   desc?: string;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — copiée du trapping,
    *  résolue AU BOIRE (`consumableUntilTime`) → `ctx.defaultUntilTime` des ops appliquées. */
-  consumableDuration?: import('./consumables').ConsumableDuration;
+  consumableDuration?: ConsumableDuration;
   /** `id` du Groupe/famille (`WeaponGroupData.id`) — munition : famille compatible (arc/arbalete/
    *  poudre-noire) ; armure : type (plate/mailles/cuir-souple…). Correspond à `Weapon.subType`. */
   subType?: string;
@@ -1238,7 +1251,7 @@ export type ZoneBarre = 'arsenal' | 'accesRapide' | 'capacites';
 
 /** UNE case posée : l'action du registre (`src/data/actions.json`) et la CLÉ DÉCLARÉE de la case,
  *  qui distingue les N alvéoles d'une même action (`sort-<spellId>`, `avantage-<skillId>`,
- *  `q-objet-<trappingId>`, `attaque-<attackId>`, `soi-<maneuverId>`, ou `ActionDef.keys[0]`).
+ *  `q-objet-<trappingId>`, `attaque-<attackId>`, `soi-<maneuverId>`).
  *  Cette clé est une identité de MODÈLE, déclarée au site de la case — jamais un uid d'INSTANCE
  *  (boire une potion changerait l'uid et tuerait l'adresse), jamais un libellé. */
 export interface EntreeBarre {

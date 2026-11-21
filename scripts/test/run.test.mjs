@@ -4,22 +4,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import os from 'node:os'
-import { spawnSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
 import {
-  argumentsEnfant,
   bornesWorkers,
   maxWorkersMono,
   cheminsGlobSuspects,
-  codeAgrege,
-  cotesRequis,
   enteteCapture,
   environnementDe,
   envEnfant,
-  filtrerFichiers,
-  partitionner,
   porteBilan,
-  repartitionWorkers,
   resumeLancement,
   separerArguments,
   fichiersNommes,
@@ -45,9 +37,6 @@ import {
 
 // `filterFiles` de Vitest résout ses filtres relatifs contre le CWD (`relative(dir, f)`) : la
 // racine du cas doit donc être celle d'où tourne le runner, comme en conditions réelles.
-const RACINE = process.cwd()
-const abs = (r) => `${RACINE}/${r}`
-
 test('docblock : présent, absent, au-delà de 4 000 caractères, dans une chaîne', () => {
   assert.equal(environnementDe('/** @vitest-environment jsdom */\nexport {}'), 'jsdom')
   assert.equal(environnementDe('export {}'), 'node')
@@ -58,60 +47,8 @@ test('docblock : présent, absent, au-delà de 4 000 caractères, dans une chaî
   assert.equal(environnementDe('const s = "@vitest-environment jsdom"'), 'jsdom')
   // Le préfixe `jest-` est reconnu, et l'environnement retenu est celui du docblock.
   assert.equal(environnementDe('// @jest-environment happy-dom'), 'happy-dom')
-  // `test.environment` de vite.config.ts fait le défaut.
+  // `test.environment` de vitest.config.ts fait le défaut.
   assert.equal(environnementDe('export {}', 'jsdom'), 'jsdom')
-})
-
-test('partition : jsdom d’un côté, tout le reste (y compris happy-dom) de l’autre', () => {
-  const codes = {
-    'a.test.ts': 'export {}',
-    'b.test.tsx': '/** @vitest-environment jsdom */',
-    'c.test.ts': '// @vitest-environment happy-dom',
-  }
-  assert.deepEqual(partitionner(Object.keys(codes), (f) => codes[f]), {
-    node: ['a.test.ts', 'c.test.ts'],
-    jsdom: ['b.test.tsx'],
-  })
-})
-
-test('workers : partage à partir de 7 cœurs (n − 1 ≥ 6), 2/3 node · 1/3 jsdom sur n − 1', () => {
-  assert.deepEqual(repartitionWorkers(2), { split: false, node: 2, jsdom: 0 })
-  assert.deepEqual(repartitionWorkers(3), { split: false, node: 3, jsdom: 0 })
-  assert.deepEqual(repartitionWorkers(4), { split: false, node: 4, jsdom: 0 })
-  assert.deepEqual(repartitionWorkers(6), { split: false, node: 6, jsdom: 0 })
-  assert.deepEqual(repartitionWorkers(7), { split: true, node: 4, jsdom: 2 })
-  assert.deepEqual(repartitionWorkers(16), { split: true, node: 10, jsdom: 5 })
-})
-
-const partition = {
-  node: [abs('src/i18n/labels.test.ts'), abs('src/engine/combat.test.ts')],
-  jsdom: [abs('src/ui/console/CombatConsole.test.tsx')],
-}
-
-test('filtrage des fichiers : sous-chaîne relative, dossier, chemin absolu, casse', () => {
-  const tous = [...partition.node, ...partition.jsdom]
-  assert.deepEqual(filtrerFichiers(tous, [], RACINE, 'win32'), tous)
-  assert.deepEqual(filtrerFichiers(tous, ['src/engine'], RACINE, 'win32'), [abs('src/engine/combat.test.ts')])
-  assert.deepEqual(filtrerFichiers(tous, ['src\\ui'], RACINE, 'win32'), [abs('src/ui/console/CombatConsole.test.tsx')])
-  assert.deepEqual(filtrerFichiers(tous, [abs('src/ui')], RACINE, 'linux'), [abs('src/ui/console/CombatConsole.test.tsx')])
-  assert.deepEqual(filtrerFichiers(tous, ['SRC/I18N'], RACINE, 'win32'), [abs('src/i18n/labels.test.ts')])
-  assert.deepEqual(filtrerFichiers(tous, ['src/inexistant'], RACINE, 'win32'), [])
-})
-
-test('routage : un filtre-fichier ne lance que le processus qui porte ce fichier', () => {
-  assert.deepEqual(cotesRequis(['src/ui/console/CombatConsole.test.tsx'], partition, RACINE, 'win32'), ['jsdom'])
-  assert.deepEqual(cotesRequis(['src/i18n'], partition, RACINE, 'win32'), ['node'])
-  assert.deepEqual(
-    cotesRequis(['src/ui/console/CombatConsole.test.tsx', 'src/i18n'], partition, RACINE, 'win32'),
-    ['node', 'jsdom'],
-  )
-  assert.deepEqual(cotesRequis([], partition, RACINE, 'win32'), ['node', 'jsdom'])
-  // Filtre qui ne touche rien : un seul côté est rendu, et `run.mjs` retombe alors sur le
-  // lancement mono-processus (cotes.length < 2), qui rend le verdict de Vitest sur ce filtre.
-  assert.deepEqual(cotesRequis(['src/inexistant'], partition, RACINE, 'win32'), ['node'])
-  // Chemin absolu (préfixe) et casse, comme `filterFiles`.
-  assert.deepEqual(cotesRequis([abs('src/ui')], partition, RACINE, 'linux'), ['jsdom'])
-  assert.deepEqual(cotesRequis(['SRC/I18N'], partition, RACINE, 'win32'), ['node'])
 })
 
 test('chemins à métacaractère de glob : repérés, sinon liste vide', () => {
@@ -153,19 +90,6 @@ test('arguments : un positionnel ne route que s’il est un chemin existant ; dr
   })
 })
 
-test('argv de l’enfant : les arguments hors workers ressortent tels quels, en queue', () => {
-  const tete = ['/v.mjs', 'run', '--config', '/atelier/vitest.node.config.ts', '--maxWorkers', '10', '--passWithNoTests']
-  for (const argv of [
-    ['src/i18n', '--retry', '2'],
-    ['src/i18n/i18n.test.ts', 'src/ui/console/CombatConsole.test.tsx', '--bail', '1'],
-    ['-t', 'Sort de feu', '--no-file-parallelism'],
-    [],
-  ]) {
-    const ligne = argumentsEnfant('/v.mjs', '/atelier/vitest.node.config.ts', 10, argv)
-    assert.deepEqual(ligne.slice(0, tete.length), tete)
-    assert.deepEqual(ligne.slice(tete.length), argv)
-  }
-})
 
 test('plafond de charge : une borne canonique conserve les demandes inférieures', () => {
   assert.deepEqual(bornesWorkers([], 16), ['--maxWorkers=4'])
@@ -180,19 +104,6 @@ test('plafond de charge : une borne canonique conserve les demandes inférieures
   ])
 })
 
-test('enfants partagés : max caller 4 conserve 4+2 et passe le parseur Vitest', () => {
-  const vitest = fileURLToPath(new URL('../../node_modules/vitest/vitest.mjs', import.meta.url))
-  for (const option of [['--maxWorkers', '4'], ['--maxWorkers=4'], ['--max-workers', '4'], ['--max-workers=4']]) {
-    const demandes = [4, 2].map((allocation) => argumentsEnfant(vitest, 'fixture.ts', allocation, ['-t', 'Sort de feu', ...option]))
-    assert.deepEqual(demandes.map((a) => Number(a[a.indexOf('--maxWorkers') + 1])), [4, 2])
-    for (const args of demandes) {
-      assert.equal(args.filter((a) => /^--max-?workers/i.test(a)).length, 1)
-      assert.deepEqual(args.slice(-2), ['-t', 'Sort de feu'])
-      const resultat = spawnSync(process.execPath, [...args, '--help'], { encoding: 'utf8' })
-      assert.equal(resultat.status, 0, resultat.stderr)
-    }
-  }
-})
 
 test('plafond mono : min(4, cœurs − 1), plancher 1 — la CI 4 vCPU sert 3 workers', () => {
   assert.equal(maxWorkersMono(4), 3)
@@ -203,11 +114,7 @@ test('plafond mono : min(4, cœurs − 1), plancher 1 — la CI 4 vCPU sert 3 wo
   assert.equal(maxWorkersMono(1), 1)
 })
 
-/** Workers TOTAUX servis sur `cpus` cœurs : mono `maxWorkersMono`, partagé `node + jsdom`. */
-const workersServis = (cpus) => {
-  const r = repartitionWorkers(cpus)
-  return r.split ? r.node + r.jsdom : maxWorkersMono(cpus)
-}
+const workersServis = maxWorkersMono
 
 test('machine vue : entier > 0 forcé par l’environnement, sinon la mesure', () => {
   const mesure = () => 42
@@ -325,20 +232,8 @@ test('capacité : cas choisis, attendus écrits à la main', () => {
   // Conteneur de 4 cœurs, 15 424 Mo disponibles : ⌊(15424 − 1462) / 2340⌋ = 5 portés, les cœurs bornent, mono à 3 workers.
   assert.deepEqual(capacite(4, 15424, 'suite'), { cpus: 4, memoireMo: 15424, ...suite, servis: 4, portes: 5, parents: 1, borne: 'cœurs' })
   assert.equal(workersServis(4), 3)
-  // 16 cœurs, 16 000 Mo : un parent partagerait (⌊14538 / 2340⌋ = 6, 7 cœurs servis), deux retombent sous le seuil
-  // (⌊(16000 − 2924) / 2340⌋ = 5).
-  assert.deepEqual(capacite(16, 16000, 'suite'), { cpus: 16, memoireMo: 16000, ...suite, servis: 6, portes: 5, parents: 1, borne: 'mémoire' })
-  assert.equal(workersServis(6), 4)
-  // 16 cœurs, 17 000 Mo : ⌊14076 / 2340⌋ = 6 à deux parents, la mémoire borne, partage à node 4 + jsdom 2.
-  assert.deepEqual(capacite(16, 17000, 'suite'), { cpus: 16, memoireMo: 17000, ...suite, servis: 7, portes: 6, parents: 2, borne: 'mémoire' })
-  assert.deepEqual(repartitionWorkers(7), { split: true, node: 4, jsdom: 2 })
-  // Poste de 31,2 Go : ⌊29024 / 2340⌋ = 12, node 8 + jsdom 4 ; la borne de 10 cœurs des lanes mord à 2924 + 9 × 2340 = 23 984 Mo.
-  assert.deepEqual(capacite(16, 31948, 'suite'), { cpus: 16, memoireMo: 31948, ...suite, servis: 13, portes: 12, parents: 2, borne: 'mémoire' })
-  assert.deepEqual(repartitionWorkers(13), { split: true, node: 8, jsdom: 4 })
-  assert.deepEqual(capacite(10, 23983, 'suite'), { cpus: 10, memoireMo: 23983, ...suite, servis: 9, portes: 8, parents: 2, borne: 'mémoire' })
-  assert.deepEqual(capacite(10, 23984, 'suite'), { cpus: 10, memoireMo: 23984, ...suite, servis: 10, portes: 9, parents: 2, borne: 'cœurs' })
-  // Mémoire riche : ⌊62612 / 2340⌋ = 26, les cœurs bornent, node 10 + jsdom 5.
-  assert.deepEqual(capacite(16, 65536, 'suite'), { cpus: 16, memoireMo: 65536, ...suite, servis: 16, portes: 26, parents: 2, borne: 'cœurs' })
+  assert.deepEqual(capacite(16, 16000, 'suite'), { cpus: 16, memoireMo: 16000, ...suite, servis: 7, portes: 6, parents: 1, borne: 'mémoire' })
+  assert.deepEqual(capacite(16, 65536, 'suite'), { cpus: 16, memoireMo: 65536, ...suite, servis: 16, portes: 27, parents: 1, borne: 'cœurs' })
   // 16 cœurs, 9 011 Mo : lot ⌊7549 / 1973⌋ = 3, suite ⌊7549 / 2340⌋ = 3 → 3 workers chacun.
   assert.deepEqual(capacite(16, 9011, 'lot'), { cpus: 16, memoireMo: 9011, ...lot, servis: 4, portes: 3, parents: 1, borne: 'mémoire' })
   assert.deepEqual(capacite(16, 9011, 'suite'), { cpus: 16, memoireMo: 9011, ...suite, servis: 4, portes: 3, parents: 1, borne: 'mémoire' })
@@ -414,25 +309,12 @@ test('résumé : un échec SANS bilan rend la cause brute et l’exit ; le chemi
   )
 })
 
-test('verdict du lanceur : les deux côtés doivent réussir', () => {
-  assert.equal(codeAgrege([0, 0]), 0)
-  assert.equal(codeAgrege([0, 1]), 1)
-  assert.equal(codeAgrege([1, 0]), 1)
-  assert.equal(codeAgrege([0]), 0)
-})
 
 // Une ligne CANONIQUE par sentinelle, copiée du message de son émetteur (références aux sources
 // dans `SENTINELLES`), préfixée comme la console la rend. Une sentinelle qui cesse de mordre —
 // message d'amont réécrit, regex retouchée — rend un compte à zéro indiscernable d'un run sain :
 // c'est ce silence-là que la table interdit.
 const ECHANTILLONS = {
-  'act hors act':
-    'Warning: An update to CombatConsole inside a test was not wrapped in act(...).',
-  'act chevauchants':
-    'Warning: You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one. ',
-  'unmount pendant rendu':
-    'Warning: Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.',
-  'React coincé': 'Warning: Should not already be working.',
   'test expiré': ' FAIL  src/ui/x.test.tsx > cas > Error: Test timed out in 5000ms.',
   'worker perdu': 'Error: Worker exited unexpectedly',
 }
@@ -458,24 +340,17 @@ test('sentinelles : chacune MORD sa ligne canonique, et elle seule', () => {
 
 test('comptage : cumul par libellé sur un mélange, zéros sur une sortie saine', () => {
   const melange = [
-    ECHANTILLONS['act hors act'],
-    ECHANTILLONS['act hors act'],
-    '[jsdom] ' + ECHANTILLONS['React coincé'],
     ECHANTILLONS['test expiré'],
     ' Tests  3 passed (3)',
   ]
   assert.deepEqual(compterSentinelles(melange), {
-    'act hors act': 2,
-    'act chevauchants': 0,
-    'unmount pendant rendu': 0,
-    'React coincé': 1,
     'test expiré': 1,
     'worker perdu': 0,
   })
   assert.deepEqual(
     compterSentinelles([]),
     Object.fromEntries(SENTINELLES.map(([l]) => [l, 0])),
-    'le compte vide doit porter les six libellés à zéro',
+    'le compte vide doit porter les deux libellés à zéro',
   )
 })
 
@@ -489,12 +364,12 @@ test('bloc [diag] : quatre lignes, mode et bornes RENDUS (jamais déduits des c�
     secondes: 97.83,
     tasMaxMo: 2043,
   }
-  const mono = bilanDiagnostic(compte, { ...mesure, partage: false, maxWorkers: '4' })
+  const mono = bilanDiagnostic(compte, { ...mesure, maxWorkers: '4' })
   const lignes = mono.trimEnd().split('\n')
   assert.equal(lignes.length, 4)
   assert.equal(
     lignes[0],
-    '[diag] machine : 16 cœurs · 31.9 Go · disponible 64.0 Go → régime suite (2340 Mo par worker) · 26 workers portés · réserve de 2 parents · borné par cœurs · mono (seuil 7) · maxWorkers=4',
+    '[diag] machine : 16 cœurs · 31.9 Go · disponible 64.0 Go → régime suite (2340 Mo par worker) · 27 workers portés · réserve de 1 parent · borné par cœurs · maxWorkers=4',
   )
   assert.equal(
     lignes[1],
@@ -502,27 +377,24 @@ test('bloc [diag] : quatre lignes, mode et bornes RENDUS (jamais déduits des c�
   )
   assert.equal(
     lignes[2],
-    '[diag] sentinelles : act hors act 0 · act chevauchants 0 · unmount pendant rendu 0 · React coincé 0 · test expiré 1 · worker perdu 0',
+    '[diag] sentinelles : test expiré 1 · worker perdu 0',
   )
   assert.equal(lignes[3], `[diag] tas max d'un worker : 2043 Mo / ${TAS_WORKER_MO} Mo (67 %)`)
-  // À cœurs IDENTIQUES, le mode dépend du run (`--coverage` impose le mono à 16 cœurs).
-  const partage = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'node 10+jsdom 5' })
-  assert.match(partage, /^\[diag\] machine : 16 cœurs · .* · partagé \(seuil 7\) · maxWorkers=node 10\+jsdom 5$/m)
   assert.ok(mono.endsWith('\n'), 'le bloc doit clore sa dernière ligne')
 })
 
 test('bloc [diag] : la capacité et le refus mémoire sont dits, le tas alerte à 85 % et se dit non relevé', () => {
   const compte = compterSentinelles([])
   const mesure = { capacite: capacite(16, 25000, 'lot'), memGo: 31.2, memMaxGo: 20, rssMaxMo: 60, secondes: 10 }
-  const borne = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'node 4+jsdom 2', tasMaxMo: 2612 })
+  const borne = bilanDiagnostic(compte, { ...mesure, maxWorkers: '4', tasMaxMo: 2612 })
   const [machine, , , tas] = borne.trimEnd().split('\n')
-  assert.match(machine, / · disponible 24\.4 Go → régime lot \(1973 Mo par worker\) · 11 workers portés · réserve de 2 parents · borné par mémoire \(12 cœurs servis\) · partagé /)
+  assert.match(machine, / · disponible 24\.4 Go → régime lot \(1973 Mo par worker\) · 11 workers portés · réserve de 1 parent · borné par mémoire \(12 cœurs servis\) · maxWorkers=4$/)
   assert.equal(tas, `[diag] tas max d'un worker : 2612 Mo / ${TAS_WORKER_MO} Mo (85 %) · ALERTE ≥ 85 %`)
-  const sousSeuil = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: 2611 })
+  const sousSeuil = bilanDiagnostic(compte, { ...mesure, maxWorkers: 'x', tasMaxMo: 2611 })
   assert.ok(!sousSeuil.includes('ALERTE'), sousSeuil)
-  const pauvre = bilanDiagnostic(compte, { ...mesure, capacite: capacite(16, 5000, 'suite'), partage: false, maxWorkers: '2', tasMaxMo: null })
-  assert.match(pauvre, / · disponible 4\.9 Go → régime suite \(2340 Mo par worker\) · refus MEMOIRE_INSUFFISANTE \(minimum 6142 Mo\) · réserve de 1 parent · borné par mémoire \(2 cœurs servis\) · mono /)
-  const muet = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: null })
+  const pauvre = bilanDiagnostic(compte, { ...mesure, capacite: capacite(16, 5000, 'suite'), maxWorkers: '2', tasMaxMo: null })
+  assert.match(pauvre, / · disponible 4\.9 Go → régime suite \(2340 Mo par worker\) · refus MEMOIRE_INSUFFISANTE \(minimum 6142 Mo\) · réserve de 1 parent · borné par mémoire \(2 cœurs servis\) · maxWorkers=2$/m)
+  const muet = bilanDiagnostic(compte, { ...mesure, maxWorkers: 'x', tasMaxMo: null })
   assert.match(muet, new RegExp(`^\\[diag\\] tas max d'un worker : non relevé / ${TAS_WORKER_MO} Mo$`, 'm'))
 })
 

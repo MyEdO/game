@@ -25,6 +25,7 @@ import {
   porteesDuTour,
   tileFromKey,
   estPoseParSesPonts,
+  capEnCombat,
   fermeturesDeLaFenetre,
   libelleDeLaFermeture,
   combattantEnVue,
@@ -204,7 +205,7 @@ function combattant(etat: Jeu, c: Combatant, actif: Combatant | undefined): Comb
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: horsCombat(c),
     portee: porteeDuCombattant(c),
-    vehicule: vehiculeDuCombattant(c, etat.facing[c.id]),
+    vehicule: vehiculeDuCombattant(c, capEnCombat(etat, c.id)),
   };
 }
 

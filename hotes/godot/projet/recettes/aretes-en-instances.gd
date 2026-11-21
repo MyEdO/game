@@ -23,7 +23,7 @@ extends SceneTree
 ## l'analyse.
 
 const RECETTE_RENDUE := true
-## La recette des arêtes au pied : son figé servi (`servir_le_fige`), ses volumes (`volume_neuf`) et sa palette.
+## La recette des arêtes au pied : son figé servi (`servir_le_fige`) et ses volumes (`volume_neuf`).
 const ARETE := preload("res://recettes/arete-au-pied.gd")
 const EPSILON := 1e-4
 const METRES_PAR_CASE := 2.0
@@ -53,6 +53,8 @@ var _fautes: Array[String] = []
 ## La famille dont le modèle d'arête est servi, et ce modèle.
 var _servie := ""
 var _modele := ""
+## La palette des arêtes servies, figée avec le décor (`paletteDesAretes`, `hotes/godot/recettes/decor.ts`).
+var _palette := {}
 var _comparaisons := 0
 var _ecart_origine := 0.0
 var _ecart_base := 0.0
@@ -74,6 +76,7 @@ func _recetter() -> void:
 		return
 	_servie = decor.modeles.aretes.keys()[0]
 	_modele = decor.modeles.aretes[_servie]
+	_palette = decor.paletteDesAretes
 	await _poses_d_avant(scene)
 	await _foyers(scene, camera)
 	for faute in _fautes:
@@ -91,7 +94,7 @@ func _poses_d_avant(scene: Node3D) -> void:
 	rangee.resize(COLONNES)
 	rangee.fill(0.0)
 	volume.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = [rangee]}], morceaux = []}, toits = [], couronnes = []}, {volume = [], toits = [], couronnes = []})
-	volume.poser_les_aretes(aretes)
+	volume.poser_les_aretes(aretes, [])
 	await volume.attendre_les_aretes()
 	var octets := PackedByteArray()
 	for colonne in COLONNES:
@@ -149,7 +152,7 @@ func _teinte_attendue(a: Dictionary) -> Color:
 func _arete(cle: String, bloc: String, famille: Variant, piece: String, sens: Vector2, hauteur: float, pied: float, milieu: Vector2) -> Dictionary:
 	return {cle = cle, bloc = bloc, famille = famille, piece = piece,
 		position = Noyau.Position.SEULE, sens = {x = sens.x, y = sens.y}, hauteurM = hauteur,
-		pied = pied, milieu = {x = milieu.x, y = milieu.y}, palette = ARETE.PALETTE if famille == _servie else {}}
+		pied = pied, milieu = {x = milieu.x, y = milieu.y}, palette = _palette if famille == _servie else {}}
 
 
 ## Chaque groupe posé, ses comptes d'instances, et chacune de ses instances à son rang (les montrées puis les cachées
@@ -274,7 +277,7 @@ func _foyers(scene: Node3D, camera: Camera3D) -> void:
 			murs.append(_arete("mur%d" % rang, "0/%d/0" % rang if essai[1] else "0/0/0", _servie, Noyau.Piece.MUR,
 				Vector2(1, 0), 4.0, 0.0, Vector2(rang * ECART_DES_MURS, -0.5)))
 		var volume := ARETE.volume_neuf(scene, 1.0)
-		volume.poser_les_aretes(murs)
+		volume.poser_les_aretes(murs, [])
 		await volume.attendre_les_aretes()
 		var image := await _image()
 		var lus := []

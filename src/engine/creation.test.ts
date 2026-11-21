@@ -1,9 +1,10 @@
 import { tableTotale } from '../lib/tableTotale';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
+import { desEnSuite } from './dice.testkit';
 import { makeRNG, roll } from './dice';
 import { findTableEntry } from './tables';
-import { setRule } from './policy';
+import { loadRuleOverrides, ruleOverrides, setRule } from './policy';
 import type { EntreeVivante } from '../data/datasets';
 import { CHAR_KEYS, CharKey } from './types';
 import {
@@ -27,7 +28,7 @@ import {
   XP_CHARS_REASSIGNED,
   XP_STAR_ROLLED,
 } from './creation';
-import { careersForSpecies, findSpeciesById, offreDuJet, species, stars, type SpeciesData } from '../data';
+import { careersForSpecies, findSpeciesById, libelleDeCouleur, offreDuJet, species, stars, type SpeciesData } from '../data';
 import { setDataset } from '../data/overrides';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 
@@ -116,6 +117,9 @@ describe('applyStarOps — effet d\'un signe aux ATTRIBUTS DE DÉPART (ADE II 3 
 describe('Tableau des Races aléatoires (LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE II 02 l.112-121)', () => {
   const GNOME = 'creation-gnome-jouable';
   const OGRE = 'creation-ogre-jouable';
+  let reglesInitiales: ReturnType<typeof ruleOverrides>;
+  beforeEach(() => { reglesInitiales = ruleOverrides(); });
+  afterEach(() => { loadRuleOverrides(reglesInitiales); });
   /** Les espèces que le jet `n` offre au joueur, sur la table qui s'applique. */
   const auJet = (n: number) => findTableEntry(randomSpeciesTable().entries, n).ids;
   /** Les espèces ouvertes de la race `race`, l'espèce nominale `nominale` en tête (LDB 04 l.91 ; ADE I 02 l.257). */
@@ -243,11 +247,12 @@ describe('Détails (LDB 05 l.701-768)', () => {
     expect(Math.max(...tailles)).toBe(125);
     expect([...tailles].every((t) => (t - 100) % 2.5 === 0)).toBe(true);
   });
-  it('yeux/cheveux : libellé non vide tiré des tables, déterministe', () => {
-    const elf = findSpeciesById('hauts-elfes')!;
-    expect(rollEyes(elf.refChar, makeRNG(3))).toBe(rollEyes(elf.refChar, makeRNG(3)));
-    expect(rollEyes(elf.refChar, makeRNG(3)).length).toBeGreaterThan(0);
-    expect(rollHair(elf.refChar, makeRNG(3)).length).toBeGreaterThan(0);
+  it('deux bandes de même couleur gardent chacune leur identité', () => {
+    const a = rollEyes('elfe-sylvain', desEnSuite([4, 4]));
+    const b = rollEyes('elfe-sylvain', desEnSuite([6, 6]));
+    expect(a).toEqual({ id: 'gris-pale', colonne: 'elfe-sylvain' });
+    expect(b).toEqual({ id: 'gris', colonne: 'elfe-sylvain' });
+    expect([libelleDeCouleur('eyes', a), libelleDeCouleur('eyes', b)]).toEqual(['Châtaigne', 'Châtaigne']);
   });
 });
 
@@ -273,30 +278,31 @@ describe('Couleur des cheveux — bornes 2d10 PAR RACE (rollHair, #420)', () => 
   it('Gnome : chaque 2d10 rend la couleur NADJ — décalée du LDB pour 5,6,8,9,10 (rouge avant #420)', () => {
     for (let seed = 0; seed < 400; seed++) {
       const d2 = roll(2, 10, makeRNG(seed)); // même 1er tirage que rollHair(makeRNG(seed))
-      expect(rollHair(gnome.refChar, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(gnomeHair(d2));
+      expect(libelleDeCouleur('hairs', rollHair(gnome.refChar, makeRNG(seed))), `seed=${seed} 2d10=${d2}`).toBe(gnomeHair(d2));
     }
   });
   it('Les races LDB gardent les bornes LDB (override race-scopé) — humain reiklander', () => {
     for (let seed = 0; seed < 400; seed++) {
       const d2 = roll(2, 10, makeRNG(seed));
-      expect(rollHair(humain.refChar, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(humainHair(d2));
+      expect(libelleDeCouleur('hairs', rollHair(humain.refChar, makeRNG(seed))), `seed=${seed} 2d10=${d2}`).toBe(humainHair(d2));
     }
   });
   it('Ogre : chaque 2d10 rend la couleur ADE II — motif LDB confirmé au livre (#423)', () => {
     for (let seed = 0; seed < 400; seed++) {
       const d2 = roll(2, 10, makeRNG(seed));
-      expect(rollHair(ogre.refChar, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(ogreHair(d2));
+      expect(libelleDeCouleur('hairs', rollHair(ogre.refChar, makeRNG(seed))), `seed=${seed} 2d10=${d2}`).toBe(ogreHair(d2));
     }
   });
 });
 
 describe('Couleur des yeux / des cheveux — le tirage suit le dé de sa table (#3578)', () => {
   const humain = findSpeciesById('humains-reiklander')!;
-  const tirages = (tirer: typeof rollEyes) => new Set(Array.from({ length: 300 }, (_, seed) => tirer(humain.refChar, makeRNG(seed))));
+  const tirages = (table: 'eyes' | 'hairs', tirer: typeof rollEyes) =>
+    new Set(Array.from({ length: 300 }, (_, seed) => libelleDeCouleur(table, tirer(humain.refChar, makeRNG(seed)))));
   it('à 1d10 posé par le seam, aucune couleur au-delà du seuil 10 (LDB 05 l.745-749, l.759-763)', () => {
     sousLeDe('eyes', { n: 1, sides: 10 }, () => sousLeDe('hairs', { n: 1, sides: 10 }, () => {
-      expect(tirages(rollEyes)).toEqual(new Set(['Au choix', 'Vert', 'Bleu pâle', 'Bleu', 'Gris pâle']));
-      expect(tirages(rollHair)).toEqual(new Set(['Blond blanc', 'Blond doré', 'Blond roux', 'Brun doré', 'Brun clair']));
+      expect(tirages('eyes', rollEyes)).toEqual(new Set(['Au choix', 'Vert', 'Bleu pâle', 'Bleu', 'Gris pâle']));
+      expect(tirages('hairs', rollHair)).toEqual(new Set(['Blond blanc', 'Blond doré', 'Blond roux', 'Brun doré', 'Brun clair']));
     }));
   });
 });

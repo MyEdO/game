@@ -25,7 +25,7 @@
 import { execFileSync } from 'node:child_process'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { etapeHeritee } from '../git-hooks/journal.mjs'
-import { mkdirSync, mkdtempSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmdirSync, rmSync, writeFileSync, writeSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -456,6 +456,16 @@ function executerLesGenerateurs({
   generateurs = GENERATORS,
   verificateurs = NON_GENERATOR_CHECKS,
 }) {
+  const conflitDeSource = (generateur, raison) => {
+    if (argv.includes(DIAGNOSTIC_RECONSTRUCTION)) {
+      try {
+        writeSync(3, JSON.stringify({ generateur, raison }))
+      } catch {
+        // Le journal porte déjà la cause ; une panne du canal ne change pas le code 79.
+      }
+    }
+    return CODE_SOURCE_MODIFIEE
+  }
   const quiet = argv.includes('--quiet')
   const check = argv.includes('--check')
   const perimes = argv.includes('--perimes') && !check
@@ -541,7 +551,7 @@ function executerLesGenerateurs({
         let avant
         try { avant = preparation && avantGenerateur(cwd, g, fraicheur, preparation) } catch (e) {
           console.error(`docs:build — ARRÊT : ${g.script} non certifiable : ${e.message}`)
-          return e instanceof SourceModifiee ? CODE_SOURCE_MODIFIEE : 1
+          return e instanceof SourceModifiee ? conflitDeSource(g.script, e.message) : 1
         }
         writeFileSync(ignoresLectures, JSON.stringify([...(avant ? avant.baseline.ignores : perimetreDeMesure(cwd).ignores)]))
         writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
@@ -609,7 +619,7 @@ function executerLesGenerateurs({
           records.set(g.script, certification.ok ? certification.record : null)
           if (!certification.ok) {
             console.error(`docs:build — ARRÊT : ${g.script} non certifié : ${certification.raison}`)
-            return certification.sourceModifiee ? CODE_SOURCE_MODIFIEE : 1
+            return certification.sourceModifiee ? conflitDeSource(g.script, certification.raison) : 1
           }
           preparation.mesure[g.script] = entree
           if (perimes) {
@@ -689,6 +699,9 @@ function executerLesGenerateurs({
 /** Code de sortie « SOURCE MODIFIÉE » : une source du générateur a changé pendant sa passe (`SourceModifiee`),
  *  préemption transitoire que l'appelant rejoue (#2603). Valeur maison, hors de la plage sysexits.h. */
 export const CODE_SOURCE_MODIFIEE = 79
+
+/** Drapeau privé du détaché : le diagnostic du code 79 s'écrit sur son descripteur 3. */
+export const DIAGNOSTIC_RECONSTRUCTION = '--diagnostic-reconstruction'
 
 /**
  * `geste()` joué sous le verrou des gestes lourds de `cwd` (`verrouGestesLourds`), pris sous `attente` : REND son

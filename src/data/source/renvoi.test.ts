@@ -1,7 +1,7 @@
 // Banc du résolveur de renvois (#1393) sur le CRB RÉEL (`core-rulebook-5e`), lu par le lecteur fs.
 // Chaque cas se désigne par son CHAPITRE et un fragment de sa PHRASE, jamais par un numéro de ligne.
 import { describe, it, expect } from 'vitest';
-// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { chapitresParses } from '../../../scripts/source/lecteur-fs.mjs';
 import { parseChapitre, resoudreAdresse } from './decoupe.ts';
 import { indexerLivre, renvoisDe, renvoisDuLivre, resoudreRenvoi, type RenvoiDuLivre } from './renvoi.ts';

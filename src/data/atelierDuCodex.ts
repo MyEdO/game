@@ -10,6 +10,7 @@ import {
   datasetObjectSerializeRoot,
   setObjectDataset,
   repriseDuDatasetObjet,
+  renvoiDeLEspaceVivant,
   datasetFile,
   datasetSerializeRoot,
   datasetObjectFile,
@@ -301,7 +302,7 @@ export function supprimerEntree(categoryKey: string, index: number, paquets: rea
 function validerMutation(fichier: string, racine: unknown): string | null {
   const refus = validateDataset(fichier, racine);
   if (refus) return refus;
-  for (const lecteur of fichiersLisantLeCatalogue(fichier) ?? []) {
+  for (const lecteur of fichiersLisantLeCatalogue(fichier, renvoiDeLEspaceVivant) ?? []) {
     const refusDuLecteur = validateDataset(lecteur, versDisque(RACINES_VIVANTES[lecteur]));
     if (refusDuLecteur) return refusDuLecteur;
   }

@@ -12,6 +12,7 @@ import type { ZonesDuCompendium } from '../../../src/hote/compendium';
 import { datasetArray, datasetObject, resetData, setDataset } from '../../../src/data/overrides';
 import { hash32 } from '../../../src/lib/hash';
 import { rangee } from '../../../src/data/schemas/defs/mutationTables';
+import { traitCapabilitiesSchema } from '../../../src/data/schemas/defs/traits';
 import { validateDataset } from '../../../src/data/schemas/validate';
 import { categoryByKey } from '../../../src/noyau/index';
 
@@ -121,6 +122,53 @@ describe('compendium', () => {
     });
   });
 
+  it('offre les psychologies qualifiées d’un Trait, enregistre le choix et peut le vider', () => {
+    const source = { book: 'codex-test-livre-psychologie', page: 1 };
+    setDataset('books', [...datasetArray('books'), { id: source.book, label: 'Livre de test', type: 'books', abbr: 'CTP', language: null, folder: null }]);
+    const initiale = { id: 'codex-test-psychologie-initiale', label: 'Psychologie initiale', type: 'psychology' as const, desc: 'Psychologie de test.', source };
+    const autre = { ...initiale, id: 'codex-test-psychologie-remplacement', label: 'Psychologie de remplacement' };
+    const exclue = { ...initiale, id: 'codex-test-psychologie-exclue', label: 'Immunité de test', psychImmune: true };
+    setDataset('psychologies', [...datasetArray('psychologies'), initiale, autre, exclue]);
+    const porteur = {
+      id: 'codex-test-trait-psychologique', label: 'Trait de test', type: 'traits' as const, desc: 'Trait de test.', source,
+      capabilities: { psychType: traitCapabilitiesSchema.shape.psychType.parse(initiale.id) },
+    };
+    setDataset('traits', [...datasetArray('traits'), porteur]);
+    const { appel } = table();
+    const ouvrir = () => {
+      const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'traits', id: porteur.id }));
+      return zonesDe(appel('compendium', boutonDe(ouvert, 'modifier').jeu));
+    };
+    const enregistrer = (zones: ZonesDuCompendium) => {
+      const r = appel('compendium', boutonDe(zones, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
+      expect(r.donnees.fichier).toBe('traits.json');
+      const entrees = JSON.parse(r.donnees.texte) as typeof porteur[];
+      expect(validateDataset(r.donnees.fichier, entrees)).toBeNull();
+      const entree = entrees.find((e) => e.id === porteur.id);
+      expect(entree).toBeDefined();
+      return entree?.capabilities;
+    };
+    const atelier = ouvrir();
+    const champ = 'valeur/capabilities/psychType';
+    const choix = atelier['compendium.atelier'].find((e): e is Choix => (e.type === 'choix' || e.type === 'liste') && e.id === champ)!;
+    const option = (id: string) => `${champ}/${JSON.stringify(id)}`;
+    expect(choix.libelle).toBe('Type psychologique');
+    expect(new Map(choix.valeurs.map((b) => [b.id, b.libelle]))).toEqual(new Map(
+      datasetArray('psychologies').filter((e) => !e.psychImmune).map((e) => [option(e.id), e.label]),
+    ));
+    expect(boutonDe(atelier, option(initiale.id)).presse).toBe(true);
+    expect(traitCapabilitiesSchema.shape.psychType.safeParse(exclue.id).success).toBe(false);
+    expect(traitCapabilitiesSchema.shape.psychType.safeParse('psychologie-inexistante').success).toBe(false);
+
+    const choisie = zonesDe(appel('compendium', boutonDe(atelier, option(autre.id)).jeu));
+    expect(enregistrer(choisie)).toMatchObject({ psychType: autre.id });
+    appel('compendium', { compendium: { geste: 'enregistrement', reussi: true } });
+    const rouverte = ouvrir();
+    expect(boutonDe(rouverte, option(autre.id)).presse).toBe(true);
+    const retiree = zonesDe(appel('compendium', boutonDe(rouverte, `${champ}/aucune`).jeu));
+    expect(enregistrer(retiree) ?? {}).not.toHaveProperty('psychType');
+  });
+
   it('un nombre que le schéma veut entier se saisit au pas de 1 : la page d’une source', () => {
     const { appel } = table();
     const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'talents', id: TALENT }));
@@ -214,5 +262,16 @@ describe('compendium', () => {
     const retiree = zonesDe(appel('compendium', boutonDe(ecrite, 'valeur/stops/100%/retirer').jeu));
     const r = appel('compendium', boutonDe(retiree, 'enregistrer').jeu) as unknown as { donnees: { texte: string } };
     expect((JSON.parse(r.donnees.texte) as { id: string; stops: Record<string, string> }[]).find((t) => t.id === 'bois')!.stops).toEqual({ '0%': '#4d7a38', '50%': '#808080' });
+  });
+
+  it('la famille du kit d’escalier d’un terrain bâti se choisit parmi celles de son énumération, puis s’enregistre (#4471)', () => {
+    const { appel } = table();
+    const atelier = zonesDe(appel('compendium', boutonDe(zonesDe(appel('compendium', { ouvrir: true, categorie: 'terrains', id: 'plancher' })), 'modifier').jeu));
+    const familles = atelier['compendium.atelier'].find((e): e is Choix => e.type === 'choix' && e.id === 'valeur/kitDEscalier');
+    expect(familles?.valeurs.map((v) => [v.libelle, v.presse])).toEqual([['Bois', true], ['Pierre', false]]);
+    const ecrite = zonesDe(appel('compendium', familles!.valeurs.find((v) => v.libelle === 'Pierre')!.jeu));
+    const r = appel('compendium', boutonDe(ecrite, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
+    expect(r.donnees.fichier).toBe('terrains.json');
+    expect((JSON.parse(r.donnees.texte) as { id: string; kitDEscalier?: string }[]).find((t) => t.id === 'plancher')!.kitDEscalier).toBe('pierre');
   });
 });

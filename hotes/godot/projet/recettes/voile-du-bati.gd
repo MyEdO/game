@@ -1,8 +1,9 @@
 extends SceneTree
 
 ## Le voile de la vision sur le bâti (#3950) : sur le monde (`Monde`) d'un volume de deux couches, le sol de la
-## première, sous l'éclairage du jeu (`scenes/Lumiere.tscn`, soleil compris), une nappe de toit à la seconde, colorée par
-## ses sommets, une couronne texturée, la boîte du mur d'une famille sans modèle servi et celle d'une arête sans famille.
+## première, sous l'éclairage du jeu (`scenes/Lumiere.tscn`, soleil compris), une nappe de toit à la seconde, texturée et
+## teinte par ses sommets, une couronne colorée par ses sommets (sa matière n'a pas de texture neutre), la boîte du mur
+## d'une famille sans modèle servi et celle d'une arête sans famille.
 ## Sous chacun des trois
 ## regards, contre le témoin sans vision (`VolumeDeScene.voir(null)`), lu aux pixels de chacun (ceux que son instance vue
 ## peint) : la vision toute vue rend chaque pixel du témoin ; toute explorée, chacun à la part de lumière de l'explorée,
@@ -53,7 +54,7 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[voile-du-bati] version=", Engine.get_version_info().string, " rendu=", RenderingServer.get_current_rendering_method())
-	var monde := monde_du_bati(root)
+	var monde := await monde_du_bati(root)
 	var volume := monde.volume
 	volume.set_process(false)
 	var objets := _objets(monde)
@@ -120,26 +121,27 @@ func _recetter() -> void:
 
 
 ## Le monde de la recette posé sous `racine`, en tonemap linéaire, de deux couches : le sol de toutes les cases de la première, une nappe de
-## toit à 3 m sur les cases (1, 1) à (2, 2) de la seconde, colorée par ses sommets, une couronne à 2,5 m sur (5, 1) et
-## (6, 1) de la première, texturée, puis le mur et la boîte.
+## toit à 3 m sur les cases (1, 1) à (2, 2) de la seconde, texturée et teinte par ses sommets, une couronne à 2,5 m sur
+## (5, 1) et (6, 1) de la première, colorée par ses sommets, puis le mur et la boîte.
 static func monde_du_bati(racine: Node) -> Monde:
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	racine.add_child(monde)
 	(monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	var sol := _dalles("sol/0/0/0", Rect2i(0, 0, LARGEUR, HAUTEUR), 0, 0.0, "terrain--sol-d-essai", 0.5).merged({rangee = 0})
-	var toits := [_dalles("maison", Rect2i(1, 1, 2, 2), 1, 3.0, "roof--tuile", 0.6)]
-	var couronnes := [_dalles("rempart", Rect2i(5, 1, 2, 1), 0, 2.5, "terrain--pierre", 1.0)]
+	var toits := [_dalles("maison", Rect2i(1, 1, 2, 2), 1, 3.0, "roof--tuile", 0.8)]
+	var couronnes := [_dalles("rempart", Rect2i(5, 1, 2, 1), 0, 2.5, "terrain--pierre", 0.6)]
 	var plat := []
 	for y in HAUTEUR:
 		var rangee := []
 		rangee.resize(LARGEUR)
 		rangee.fill(0.0)
 		plat.append(rangee)
-	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [sol]}, toits = toits, couronnes = couronnes},
-		{volume = [sol], toits = toits, couronnes = couronnes})
+	var recus := {volume = [sol], toits = toits, couronnes = couronnes}
+	var _textures_gardees := await TexturesDeMatiere.preparer(monde, VolumeDeScene.matieres_des_morceaux(recus))
+	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [sol]}, toits = toits, couronnes = couronnes}, recus)
 	monde.volume.poser_les_aretes([MUR, BOITE].map(func(a: Dictionary) -> Dictionary:
 		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, palette = {}, piece = Noyau.Piece.MUR,
-			position = Noyau.Position.SEULE, bloc = "0/0/0"})))
+			position = Noyau.Position.SEULE, bloc = "0/0/0"})), [])
 	return monde
 
 
@@ -191,7 +193,10 @@ func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 	var creux := 0.0 if Lumiere.rendu_complet() else CREUX_DU_PILOTE
 	for camera in ["en plongée", "au ras du sol"]:
 		var regard := "tactique" if camera == "en plongée" else "immersion"
-		(monde.get_node("Lumiere") as Lumiere).eclairer(PIXELS.LUMIERE_DU_JEU[regard], PLATEAU)
+		var lumiere: Dictionary = PIXELS.LUMIERE_DU_JEU[regard]
+		var matiere: String = lumiere.horsCarte.sol.matiere
+		var _textures_gardees := await TexturesDeMatiere.preparer(monde, {matiere: false})
+		(monde.get_node("Lumiere") as Lumiere).eclairer(lumiere, PLATEAU)
 		monde.regarder(regard)
 		if camera == "en plongée":
 			monde.cadrer(Vector3(3.5, 0.0, 3.5), MiseEnPage.lacet_de_l_azimut(180.0), 10.0)

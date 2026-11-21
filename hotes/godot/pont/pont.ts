@@ -68,7 +68,10 @@ import {
   meteoDuRegard,
   aretesDeLaCouche,
   aretesDeLaScene,
+  cotesDeMarchesDeLaCouche,
+  cotesDeMarchesDeLaScene,
   type AreteDessinee,
+  type CoteDeMarches,
   type Combatant,
   naviresDeLaScene,
   stationsDuNavire,
@@ -277,8 +280,8 @@ export interface CorpsDuCombat {
   /**
    * par type de décor (`props.json`) posé dans la scène dont le dernier `modeles` sert un élément `decor` de même
    * `cle.prop` (`decors` de sa réponse, section « Atelier 3D ») : ce modèle et ses poses, en la saison de l'horloge du
-   * jeu (`currentSeason`), l'éditeur en aucune (`DecorServi`). Le monde ne peint pas les surfaces dont `decor` est une
-   * de ses clés (section « Monde ») ; un décor sans modèle reste peint.
+   * jeu (`currentSeason`), l'éditeur en aucune (`DecorServi`). Le pont choisit ensemble ces modèles et les surfaces
+   * que le noyau compile pour leur seule prise. Un décor sans modèle reste peint par le volume.
    */
   decors: Record<string, DecorServi>;
 }
@@ -506,7 +509,10 @@ export interface VueDuPont {
    * tour.
    */
   cases: CaseAtteignable[];
-  /** le plateau de la scène (`plateauDeLaScene`, `src/noyau/monde/aretes.ts`) ; `null` sans scène. */
+  /**
+   * le plateau de la scène (`plateauDeLaScene`, `src/noyau/monde/aretes.ts`) ; `null` sans scène. Sa `cleDuMonde`
+   * inclut aussi la révision d'un index de décors dans le pont vivant. Un repli local garde la même clé.
+   */
   plateau: PlateauDeLaScene | null;
   /**
    * la lumière de la scène (`lumiereDeLaScene`, `src/noyau/lumiereDeLaScene.ts`) : section « Lumière » ; `null` sans
@@ -626,12 +632,58 @@ interface ManifesteDuVolume {
   metresParCase: number;
   /** La hauteur (m) de la surface de chaque case, par couche (`VolumeDuMonde.hauteurs`). */
   hauteurs: VolumeDuMonde['hauteurs'];
+  /** La source et la révision à rendre à `retablirDecors` si un modèle de décor échoue à la pose. */
+  secoursDecors?: SecoursDecors;
   /** Chaque morceau du volume, sa clé et son empreinte, dans l'ordre du volume. */
   morceaux: EmpreinteDuMonde[];
 }
 
-/** Le manifeste du volume `v`. */
-const manifesteDe = ({ metresParCase, hauteurs, morceaux }: VolumeDuMonde): ManifesteDuVolume => ({ metresParCase, hauteurs, morceaux: empreintesDe(morceaux) });
+/** La source d'un monde que le pont a publié. */
+type SourceDuMonde = 'partie' | 'edition' | 'atelier';
+
+/**
+ * @contrat Monde
+ * L'identité du monde publié que `retablirDecors` répare.
+ */
+interface SecoursDecors {
+  /** Le monde du jeu (`partie`), de l'éditeur (`edition`) ou de l'échantillon (`atelier`). */
+  source: SourceDuMonde;
+  /** Le numéro de sa publication, valable pour tous ses replis. */
+  revision: number;
+}
+
+/** Les modèles indexés ensemble par un appel de `modeles`. */
+interface ModelesServis {
+  manifestes: Record<string, unknown>;
+  modeles: ModelesDeLAtelier;
+  revision: number;
+  indisponibles: Set<string>;
+}
+
+/** La sélection du pont, par identifiant de type de décor posé. */
+interface SelectionDeDecors {
+  index: ModelesServis | null;
+  servies: ReadonlySet<string>;
+}
+
+/** Le dernier monde rendu à une source, avec la sélection dont il a reçu la géométrie. */
+interface MondePublie {
+  scene: Scene;
+  selection: SelectionDeDecors;
+  secours?: SecoursDecors;
+}
+
+const sansDecorsServis: ReadonlySet<string> = new Set();
+
+const memeSelection = (a: SelectionDeDecors, b: SelectionDeDecors): boolean =>
+  a.index === b.index && a.servies.size === b.servies.size && [...a.servies].every((id) => b.servies.has(id));
+
+const secoursDe = (publication: MondePublie): Pick<ManifesteDuVolume, 'secoursDecors'> =>
+  publication.secours && publication.selection.servies.size ? { secoursDecors: publication.secours } : {};
+
+/** Le manifeste du volume publié. */
+const manifesteDe = ({ metresParCase, hauteurs, morceaux }: VolumeDuMonde, publication: MondePublie): ManifesteDuVolume =>
+  ({ metresParCase, hauteurs, morceaux: empreintesDe(morceaux), ...secoursDe(publication) });
 
 /** La clé et l'empreinte de chacun de `contenus`. */
 const empreintesDe = (contenus: readonly EmpreinteDuMonde[]): EmpreinteDuMonde[] => contenus.map(({ cle, empreinte }) => ({ cle, empreinte }));
@@ -643,6 +695,12 @@ const parCles = <T extends EmpreinteDuMonde>(contenus: () => readonly T[], cles:
   const voulues = new Set(cles);
   return contenus().filter(({ cle }) => voulues.has(cle));
 };
+
+/** Les géométries de `apres` dont l'empreinte diffère de celle par clé dans `avant`. */
+function geometriesChangees<T extends EmpreinteDuMonde>(avant: readonly T[], apres: readonly T[]): T[] {
+  const empreintes = new Map(avant.map(({ cle, empreinte }) => [cle, empreinte]));
+  return apres.filter(({ cle, empreinte }) => empreintes.get(cle) !== empreinte);
+}
 
 /**
  * @contrat Monde
@@ -678,7 +736,10 @@ export interface MondeDuPont {
 
 /**
  * @contrat Monde
- * La réponse de `morceaux` : la géométrie de chaque clé demandée, une clé absente de la scène omise.
+ * La réponse de `morceaux` : la géométrie de chaque clé demandée, une clé absente de la scène omise. Les surfaces
+ * `priseSeulement` gardent leurs positions et leurs cases, les normales et couleurs étant réservées au dessin.
+ * Les ornements servis sur une nappe de toit reposent sur leur modèle. Les planches et échantillons obtenus par
+ * `creerPontFige` gardent l'intégralité des recettes pour le repli local de Godot.
  * Par `appeler`, ses tableaux en nombres.
  * Par `appelerEnOctets`, l'en-tête d'`enOctets` (`EnteteDesMorceaux`, `pont/octets.ts`) : ses tableaux en bornes.
  */
@@ -813,9 +874,14 @@ function manifesteServi(texte: unknown): NonNullable<SessionDEdition['source']['
   return lu as NonNullable<SessionDEdition['source']['manifeste']>;
 }
 
+/** Le pont des planches et recettes figées, avec la géométrie de chaque décor disponible localement. */
+export function creerPontFige() {
+  return creerPont(null, null, false);
+}
+
 /** Le pont sur le stockage `stockage` de son hôte (`null` : aucun, rien ne se sauvegarde) et sur son réseau `reseau`
  *  (`null` : aucun, aucun salon) : ses méthodes, chacune appelée par `appeler`. */
-export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null) {
+export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null, secoursDesDecors = true) {
   /** Les réglages du joueur reposés : ses préférences et ses règles maison persistées, que le scénario de test d'un
    *  `demarrer` ou la sauvegarde d'un `charger` remplacent en mémoire. */
   const reposerLesReglages = (): void => {
@@ -880,9 +946,12 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     if (ouverte) ouverte.aDire = true;
   };
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
-  let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
-  /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
-  let edition: { session: SessionDEdition; monde: { vue: Scene; z: number } } | null = null;
+  let modeles: ModelesServis | null = null;
+  /** Les mondes rendus et leur révision, tenue par source le temps d'une publication et de ses replis. */
+  const mondesPublies: Partial<Record<SourceDuMonde, MondePublie>> = {};
+  let revisionDuMonde = 0;
+  /** La session de l'éditeur de carte (`editer`) et la couche du dernier monde qu'elle a rendu. */
+  let edition: { session: SessionDEdition; coucheRendue: number } | null = null;
   /** La session du Compendium (`compendium`), `null` avant qu'il s'ouvre. */
   let codex: SessionDuCompendium | null = null;
   /** La reprise de la dernière transaction du Compendium jouée en mémoire, dont l'hôte n'a pas rendu l'issue. */
@@ -911,30 +980,53 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     return [[id, { corps, centre, stations: stationsDuNavire(scene, id, emprises) }]];
   }));
 
-  /** Par type de décor, chaque décor posé de `scene` (`posesDesDecors`) dont un élément `decor` est servi
-   *  (`DecorServi`), en la saison `saison` (`null` : aucune, le modèle tel que bâti) : le jeu, l'éditeur et l'atelier
-   *  les montrent tous trois. */
-  const decorsServis = (scene: Scene, saison: Saison | null): Record<string, DecorServi> => {
-    const servis: Record<string, DecorServi> = {};
+  /** Les types de décor posés que sert l'index courant, lus aussi par le volume et les nappes. */
+  const selectionDe = (scene: Scene): SelectionDeDecors => {
+    const index = modeles;
+    if (!index || !Object.keys(index.modeles.decors).length) return { index, servies: sansDecorsServis };
+    const servies = new Set<string>();
+    for (const { prop } of posesDesDecors(scene)) {
+      if (Object.prototype.hasOwnProperty.call(index.modeles.decors, prop) && !index.indisponibles.has(prop)) servies.add(prop);
+    }
+    return { index, servies };
+  };
+
+  /** Les décors réservés à la prise quand l'hôte sait demander leur recette à nouveau. */
+  const decorsDePrise = (selection: SelectionDeDecors): ReadonlySet<string> | undefined =>
+    secoursDesDecors ? selection.servies : undefined;
+
+  /** Retient la scène et la sélection effectivement publiées, pour les demandes de géométrie et le secours. */
+  const publierLeMonde = (source: SourceDuMonde, scene: Scene, selection: SelectionDeDecors): MondePublie => {
+    const avant = mondesPublies[source];
+    if (avant?.scene === scene && memeSelection(avant.selection, selection)) return avant;
+    const secours = secoursDesDecors ? { source, revision: ++revisionDuMonde } : undefined;
+    return (mondesPublies[source] = { scene, selection, secours });
+  };
+
+  /** Par type de décor sélectionné, le modèle et ses poses (`posesDesDecors`), en la saison `saison`
+   *  (`null` : aucune, le modèle tel que bâti). */
+  const decorsServis = (scene: Scene, { index, servies }: SelectionDeDecors, saison: Saison | null): Record<string, DecorServi> => {
+    const servis: Record<string, DecorServi> = Object.create(null);
+    if (!index || !servies.size) return servis;
     for (const pose of posesDesDecors(scene)) {
-      const element = modeles?.modeles.decors[pose.prop];
-      if (!element) continue;
-      const manifeste = modeles!.manifestes[element];
+      if (!servies.has(pose.prop)) continue;
+      const element = index.modeles.decors[pose.prop];
+      const manifeste = index.manifestes[element];
       (servis[pose.prop] ??= { element, poses: [], palette: paletteSelon(manifeste, saison), caches: noeudsCaches(manifeste, saison ? [saison] : [], [], {}) }).poses.push(pose);
     }
     return servis;
   };
 
   /** Chaque saison de `SAISONS`, à son libellé, dès que le `selon` d'un décor de `decors` en nomme une ; aucune sinon. */
-  const saisonsOffertes = (decors: Record<string, DecorServi>): SaisonOfferte[] =>
-    Object.values(decors).some(({ element }) => Object.keys((modeles!.manifestes[element] as { selon?: object }).selon ?? {}).length)
+  const saisonsOffertes = (decors: Record<string, DecorServi>, index: ModelesServis | null): SaisonOfferte[] =>
+    index && Object.values(decors).some(({ element }) => Object.keys((index.manifestes[element] as { selon?: object }).selon ?? {}).length)
       ? SAISONS.map((id) => ({ id, libelle: seasonLabel(id) }))
       : [];
 
   /** Les corps des combattants dessinés de `projection`, puis des héros du groupe de `etat` qu'elle ne dessine pas, chacun
    *  sa portée composée sur l'unique base servie, leurs véhicules servis, hors des navires de la scène, et les navires
    *  servis de la scène. */
-  const corpsDe = (projection: Projection, etat: Jeu): CorpsDuCombat => {
+  const corpsDe = (projection: Projection, etat: Jeu, selection: SelectionDeDecors | null): CorpsDuCombat => {
     const { scene } = etat;
     const dessines = projection.combat?.voisins.liste ?? projection.exploration?.heros ?? [];
     const portees = [
@@ -955,7 +1047,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         return corps ? [[id, corps]] : [];
       })),
       navires: scene ? naviresServis(scene) : {},
-      decors: scene ? decorsServis(scene, currentSeason(etat.gameTime)) : {},
+      decors: scene && selection ? decorsServis(scene, selection, currentSeason(etat.gameTime)) : {},
     };
   };
 
@@ -964,14 +1056,20 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
     const combat = projection.combat;
     const fenetre = fenetreADessiner(etat);
+    const regard = regardDuJeu(o.regard, !!etat.battle);
+    const selection = etat.scene ? selectionDe(etat.scene) : null;
+    const plateau = etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regard) : null;
+    const index = selection?.index;
+    const cleDesDecors = secoursDesDecors && index && Object.keys(index.modeles.decors).length
+      ? index.revision.toString(36) : null;
     return {
       projection,
-      corps: corpsDe(projection, etat),
+      corps: corpsDe(projection, etat, selection),
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.panneau, o.roster),
       cases: casesAtteignables(etat),
-      plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
-      lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
+      plateau: plateau && cleDesDecors ? { ...plateau, cleDuMonde: `${plateau.cleDuMonde}/${cleDesDecors}` } : plateau,
+      lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regard) : null,
       musique: musiqueDeLaPartie(etat),
       zonesQuiDurent: zonesQuiDurentEnVue(etat),
       marques: Object.fromEntries((combat?.voisins.liste ?? projection.exploration?.heros ?? []).map((c) => [c.id, marquesDesEtats(c.etats)])),
@@ -1059,7 +1157,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   const fermerLaPartie = (o: Tenue): void => {
     premierJeton = o.jetons.suivant();
     o.partie.fermer();
-    if (ouverte === o) ouverte = null;
+    if (ouverte === o) {
+      ouverte = null;
+      delete mondesPublies.partie;
+    }
     if (jonction === o) jonction = null;
   };
 
@@ -1301,13 +1402,22 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const o = demarree();
       const etat = o.partie.etat();
       const scene = etat.scene;
-      if (!scene) return { monde: null, toits: [], couronnes: [], meteo: null };
-      return { monde: manifesteDe(volumeDuMonde(scene)), toits: empreintesDe(toitsDuMonde(scene)), couronnes: empreintesDe(couronnesDuMonde(scene)), meteo: meteoDuRegard(scene, regardDuJeu(o.regard, !!etat.battle)) };
+      if (!scene) {
+        delete mondesPublies.partie;
+        return { monde: null, toits: [], couronnes: [], meteo: null };
+      }
+      const selection = selectionDe(scene);
+      const prises = decorsDePrise(selection);
+      const volume = volumeDuMonde(scene, prises);
+      const toits = empreintesDe(toitsDuMonde(scene, prises));
+      const couronnes = empreintesDe(couronnesDuMonde(scene));
+      return { monde: manifesteDe(volume, publierLeMonde('partie', scene, selection)), toits, couronnes, meteo: meteoDuRegard(scene, regardDuJeu(o.regard, !!etat.battle)) };
     },
     /**
      * `{ source, volume, toits, couronnes }` : `partie` (la scène de la partie) ou `edition` (celle du dernier
      * manifeste que `editer` a rendu, ses navires posés), puis les clés demandées des morceaux du volume, des nappes de
-     * toit et des couronnes crénelées
+     * toit et des couronnes crénelées. La sélection est celle publiée pour cette scène, ou la sélection courante
+     * sans publication.
      *
      * @returns `{ volume, toits, couronnes }` (`MorceauxDuPont`) : la géométrie de chaque clé demandée, dans l'ordre du
      * manifeste, une clé absente de la scène omise ; une liste de clés vide rend un tableau vide sans rien calculer ;
@@ -1318,18 +1428,47 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const e = entreeDe('morceaux', json, ['source', 'volume', 'toits', 'couronnes']);
       valider(e.source === 'partie' || e.source === 'edition', 'morceaux : source, partie ou edition');
       for (const champ of ['volume', 'toits', 'couronnes']) valider(estListeDeChaines(e[champ]), `morceaux : ${champ}, une liste de clés`);
-      let scene: Scene | null;
-      if (e.source === 'partie') scene = demarree().partie.etat().scene;
-      else {
-        valider(edition !== null, 'morceaux : aucune carte ouverte, editer { ouvrir } d’abord');
-        scene = edition!.monde.vue;
-      }
-      valider(scene, 'morceaux : aucune scène');
+      const publication = mondesPublies[e.source as 'partie' | 'edition'];
+      const courante = e.source === 'partie' ? demarree().partie.etat().scene : publication?.scene;
+      if (e.source === 'edition') valider(courante, 'morceaux : aucune carte ouverte, editer { ouvrir } d’abord');
+      valider(courante, 'morceaux : aucune scène');
+      const publiee = publication?.scene.id === courante!.id ? publication : undefined;
+      const scene = publiee?.scene ?? courante!;
+      let selection = publiee?.selection;
+      const selectionDemandee = (): ReadonlySet<string> | undefined => decorsDePrise(selection ??= selectionDe(scene));
       return {
-        volume: parCles(() => volumeDuMonde(scene!).morceaux, e.volume as string[]),
-        toits: parCles(() => toitsDuMonde(scene!), e.toits as string[]),
-        couronnes: parCles(() => couronnesDuMonde(scene!), e.couronnes as string[]),
+        volume: parCles(() => volumeDuMonde(scene, selectionDemandee()).morceaux, e.volume as string[]),
+        toits: parCles(() => toitsDuMonde(scene, selectionDemandee()), e.toits as string[]),
+        couronnes: parCles(() => couronnesDuMonde(scene), e.couronnes as string[]),
       };
+    },
+    /**
+     * `{ source, revision, prop }` : `monde.secoursDecors` de la dernière publication de `partie`, `edition` ou
+     * `atelier`, et l'id du type de décor que Godot n'a pas pu poser. Une révision périmée se refuse.
+     *
+     * @returns `{ volume, toits }` : les géométries dont l'empreinte a changé en rétablissant les surfaces de ce type,
+     * avec les mêmes prises de collision. L'éditeur ne pose que le volume. La révision reste valide pour les autres
+     * types de cette publication. Un type déjà rétabli ou non servi rend deux listes vides. Le modèle reste indisponible
+     * pour les publications suivantes jusqu'à `modeles`.
+     */
+    retablirDecors(json): Pick<MorceauxDuPont, 'volume' | 'toits'> {
+      const e = entreeDe('retablirDecors', json, ['source', 'revision', 'prop']);
+      valider(e.source === 'partie' || e.source === 'edition' || e.source === 'atelier', 'retablirDecors : source, partie, edition ou atelier');
+      valider(Number.isSafeInteger(e.revision), 'retablirDecors : revision, le numéro du monde publié');
+      valider(typeof e.prop === 'string', 'retablirDecors : prop, l’id du type de décor');
+      const publication = mondesPublies[e.source as SourceDuMonde];
+      valider(publication?.secours?.revision === e.revision, 'retablirDecors : révision périmée');
+      const { scene, selection } = publication!;
+      const { index, servies } = selection;
+      const prop = e.prop as string;
+      if (!index || !servies.has(prop)) return { volume: [], toits: [] };
+      const retablies = new Set(servies);
+      retablies.delete(prop);
+      const volume = geometriesChangees(volumeDuMonde(scene, servies).morceaux, volumeDuMonde(scene, retablies).morceaux);
+      const toits = e.source === 'edition' ? [] : geometriesChangees(toitsDuMonde(scene, servies), toitsDuMonde(scene, retablies));
+      index.indisponibles.add(prop);
+      publication!.selection = { index, servies: retablies };
+      return { volume, toits };
     },
     /**
      * aucune
@@ -1367,7 +1506,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * pied, piece, position, famille, palette, hauteurM, bloc }`, sa clé `edgeKey`, les cases `{ x, y, z }` qu'elle
      * sépare, dans la carte, à sa couche (`casesDeFace`, une ou deux : celle dont elle borde un côté, puis sa voisine),
      * son milieu et le sens où elle court, en coins de grille (`wallEnds`), celui de son ouverture, son dehors
-     * (`outwardSide`, `src/noyau/monde/volume/ornements.ts`), s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en
+     * (`outwardSide`, `src/noyau/monde/volume/ornements.ts` ; pour une échelle, la plus basse des cases qu'elle sépare),
+     * s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en
      * mètres d'où elle se dresse, celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`,
      * `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou ouverte, la brèche d'une structure abattue,
      * une fenêtre aux volets ouverts ou clos, sinon un mur ; sa place dans son ouverture, la suite d'arêtes alignées
@@ -1376,15 +1516,31 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée qui
      * régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), celle du mur qui prolonge
      * son ouverture pour une porte en jeu, `null` pour une apparence hors du catalogue ; par emplacement de palette, la
-     * couleur `#rrggbb` de sa partie de mur dans cette apparence, celles du mur (`corps`, `bois`) dans celle du mur qui
-     * la porte (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la hauteur de son mur en
-     * mètres, `wallHeightM` sinon un étage ; son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`,
-     * `src/noyau/monde/volume/volume.ts`)
+     * couleur `#rrggbb` de sa partie de mur dans cette apparence, celles du mur (`corps`, `bois`, `joint`, `gravats`)
+     * dans celle du mur qui la porte (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la
+     * hauteur de son mur en mètres, `wallHeightM` sinon un étage, le dénivelé des cases qu'elle sépare pour une échelle ;
+     * son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`, `src/noyau/monde/volume/volume.ts`).
+     * `{ cotesDeMarches }` : les côtés des cases de marches de la scène (`cotesDeMarchesDeLaScene`,
+     * `src/noyau/monde/cotesDeMarches.ts`), vides sans scène, sous la même clé de relecture. Chacun : `{ cle, case,
+     * cote, classe, pieces, entree, sortie, famille, position, cases, milieu, sens, pied, bloc }`, sa clé
+     * `marches|x,y,z|côté`, sa case `{ x, y, z }`, son côté (`N`, `E`, `S`, `O`), de travers à l'axe où monte la case ;
+     * sa classe, `rejointe` (une voisine rejointe à pied, plus basse ou égale, à au plus `STEP_MAX_M` sous chaque bout
+     * du bord) ou `vide` (une falaise, une case absente, une voisine plus basse), et ses pièces (`limon`, puis `rampe`
+     * pour le vide, `Noyau.PieceDEscalier`) ; les cotes en mètres du bord du dessus de la case à son premier bout
+     * (`entree`) et à son second (`sortie`) dans son sens, que partage la case voisine sur l'axe ; la famille du kit
+     * d'escalier de son terrain (`kitDEscalier` de `terrains.json`) ; la place de sa rampe dans la suite des côtés à
+     * rampe bout à bout de même côté de case, de même couche et de même famille (`Noyau.Position`), rangée dans leur
+     * sens : `gauche` au premier, dont le bout -X de la pièce, X le long du sens, est l'`entree`, `droite` au dernier,
+     * dont le bout +X est la `sortie`, `milieu` entre eux, `seule` pour une rampe sans voisine et pour un côté sans
+     * rampe ; l'hôte pose chaque pièce au nœud `<pièce>--<position>` de son kit s'il en est un, sinon `<pièce>` ;
+     * comme une arête, les cases qu'il
+     * sépare (la sienne, puis sa voisine), son milieu et son sens, son dehors, vers la voisine, à `(-sens.y, sens.x)`,
+     * son pied, la cote de son milieu, et le bloc de sa case
      */
-    aretes(json): { aretes: AreteDessinee[] } {
+    aretes(json): { aretes: AreteDessinee[]; cotesDeMarches: CoteDeMarches[] } {
       entreeDe('aretes', json, []);
       const scene = demarree().partie.etat().scene;
-      return { aretes: scene ? aretesDeLaScene(scene) : [] };
+      return { aretes: scene ? aretesDeLaScene(scene) : [], cotesDeMarches: scene ? cotesDeMarchesDeLaScene(scene) : [] };
     },
     /**
      * un geste : `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue ; une offre se
@@ -1562,17 +1718,21 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * listage (`GET modeles/listage.json`, section « Atelier 3D »)
      *
      * @returns `{ bases, fichiers, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
-     * ameliorations, decors, aretes }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
-     * état du pont, que
-     * lisent `composer` et le corps de chaque combattant de la vue (section « Corps d'un combattant ») ; avant ou après
-     * `demarrer`
+     * ameliorations, decors, aretes, escaliers }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
+     * état du pont, que lisent `composer`, le corps de chaque combattant et la sélection des décors. Chaque appel
+     * rétablit la disponibilité des modèles écartés par `retablirDecors`. Avant ou après `demarrer`.
      */
     modeles(json) {
       const e = entreeDe('modeles', json, ['manifestes', 'osDesRigides']);
       valider(estObjet(e.manifestes), 'modeles : manifestes, un objet id de modèle → manifeste');
       valider(estObjet(e.osDesRigides) && Object.values(e.osDesRigides).every(estListeDeChaines), 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides');
       const manifestes = e.manifestes as Record<string, unknown>;
-      modeles = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>) };
+      modeles = {
+        manifestes,
+        modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>),
+        revision: (modeles?.revision ?? 0) + 1,
+        indisponibles: new Set(),
+      };
       return modeles.modeles;
     },
     /**
@@ -1796,24 +1956,28 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
      * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène d'échantillon que le
-     * noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie (`echantillonDessine`,
-     * surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard
-     * `immersion` (`aretes`, section « Vue »), ses nappes de toit, ses couronnes, les clés des couronnes que sa brèche
-     * abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
+     * @returns `{ monde, aretes, cotesDeMarches, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène
+     * d'échantillon que le noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie
+     * (`echantillonDessine`, surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son
+     * plateau au regard `immersion` et ses côtés de marches (`aretes`, section « Vue »), ses nappes de toit, ses
+     * couronnes, les clés des couronnes que sa brèche abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
      * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
      * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme
      * la famille) et sur une saison inconnue (le message les nomme) ; avant ou après `demarrer`
      */
-    echantillon(json): EchantillonDessine & { decors: Record<string, DecorServi>; saisons: SaisonOfferte[] } {
+    echantillon(json): EchantillonDessine & { monde: Pick<ManifesteDuVolume, 'secoursDecors'>; decors: Record<string, DecorServi>; saisons: SaisonOfferte[] } {
       const e = entreeDe('echantillon', json, ['famille', 'id', 'saison']);
       const familles = famillesDEchantillons();
       const famille = familles.find((f) => f.id === e.famille);
       valider(famille !== undefined, `echantillon : famille, l’id d’une famille d’échantillons (${familles.map((f) => f.id).join(', ')})`);
       valider(famille!.entrees.some((entree) => entree.id === e.id), `echantillon : id, l’id d’une entrée de la famille ${famille!.id}`);
       valider(e.saison === undefined || SAISONS.includes(e.saison as Saison), `echantillon : saison, l’une de ${SAISONS.join(', ')}`);
-      const decors = decorsServis(sceneDEchantillon(famille!.id, e.id as string), (e.saison as Saison | undefined) ?? null);
-      return { ...echantillonDessine(famille!.id, e.id as string), decors, saisons: saisonsOffertes(decors) };
+      const scene = sceneDEchantillon(famille!.id, e.id as string);
+      const selection = selectionDe(scene);
+      const decors = decorsServis(scene, selection, (e.saison as Saison | undefined) ?? null);
+      const dessine = echantillonDessine(scene, decorsDePrise(selection));
+      const publication = publierLeMonde('atelier', scene, selection);
+      return { ...dessine, monde: { ...dessine.monde, ...secoursDe(publication) }, decors, saisons: saisonsOffertes(decors, selection.index) };
     },
     /**
      * `{ composition, preset? }` : une composition (section « Composition d'un personnage ») et l'id d'un preset de
@@ -1848,9 +2012,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ, ou, d'un retrait déclaré de son porteur, l'objet ou l'élément entier (section « Éditeur »)
      *
-     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, decors?, depot?, essai?,
-     * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
-     * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, cotesDeMarches?, navires?,
+     * decors?, depot?, essai?, planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du
+     * chapitre que la session se met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
      * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
      * embuscade de route de la carte du monde), comme un formulaire refusé et un enregistrement que la porte refuse ;
      * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade ; ouvrir la carte du
@@ -1912,8 +2076,11 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         session = editer(s, geste);
       }
       const vue = vueDeLaScene(session);
-      const neuf = !edition || 'ouvrir' in e || (session.geste === null && (vue !== edition.monde.vue || session.z !== edition.monde.z));
-      edition = { session, monde: neuf ? { vue, z: session.z } : edition!.monde };
+      const publiee = mondesPublies.edition;
+      const selection = session.geste === null ? selectionDe(vue) : null;
+      const neuf = selection && (!edition || !publiee || 'ouvrir' in e || vue !== publiee.scene
+        || session.z !== edition.coucheRendue || !memeSelection(publiee.selection, selection));
+      edition = { session, coucheRendue: neuf ? session.z : edition!.coucheRendue };
       const memoire = memoireDesCalques(avant, session);
       const charge = session.chargement && !avant?.chargement ? session.chargement : null;
       const attendu = session.source.chapitreEnAttente;
@@ -1922,7 +2089,14 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
         calque: calqueAffiche(session),
-        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue), decors: decorsServis(vue, null) } : {}),
+        ...(neuf ? {
+          monde: manifesteDe(volumeDuMonde(vue, decorsDePrise(selection)), publierLeMonde('edition', vue, selection)),
+          retrait: retraitDuMonde(vue, session.z),
+          aretes: aretesDeLaCouche(vue, session.z),
+          cotesDeMarches: cotesDeMarchesDeLaCouche(vue, session.z),
+          navires: naviresServis(vue),
+          decors: decorsServis(vue, selection, null),
+        } : {}),
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(projetEdite(session).id, charge.sceneId, charge.z) } } : {}),

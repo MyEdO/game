@@ -2,6 +2,7 @@
 // sous le `.git` commun (`npm ci` efface `node_modules/.cache`). Preneurs : `PRENEURS`, et `scripts/gates/toutes.mjs`.
 import { join } from 'node:path'
 import { depotDe, dossierGitCommun } from '../guards/lib/gitPorte.mjs'
+import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 
 /** Vrai si `argv` est un geste LOURD de `scripts/docs/build-all.mjs` (#2603) : tout mode, hors `--code` et `--check --only`. */
@@ -37,17 +38,30 @@ export function lanceUnGesteLourd(script) {
 export const ATTENTE_GESTES_LOURDS = Object.freeze({ echeanceMs: 30 * 60 * 1000, pasMs: 10_000, parTenant: true })
 
 /**
- * Le verrou machine des gestes lourds du dépôt de `racine` : `{ chemin, libelle, attente, identite }`, à
- * passer à `prendreVerrou`. LÈVE si le `.git` commun est introuvable (`dossierGitCommun`).
+ * La configuration du verrou machine des gestes lourds, à passer à `prendreVerrou`. Un PID présent
+ * ne retient plus le verrou si la mesure Linux prouve qu’il est zombie (#4614).
+ * LÈVE si le `.git` commun est introuvable (`dossierGitCommun`).
  * @param {string} racine
+ * @param {{ mesurer?: typeof mesurerProcessusWorktrees, plateforme?: NodeJS.Platform }} [injections]
  */
-export function verrouGestesLourds(racine) {
+export function verrouGestesLourds(racine, { mesurer = mesurerProcessusWorktrees, plateforme = process.platform } = {}) {
   const commun = dossierGitCommun(depotDe(racine))
   if (!commun.disponible) throw new Error(commun.raison)
+  const estZombie = (pid) => {
+    if (plateforme !== 'linux') return false
+    try {
+      const vue = mesurer({ pids: [pid], identites: true, timeout: DELAI_MESURE_PROCESSUS_MS })
+      if (vue.indeterminee || vue.erreurs?.length) return false
+      const tenant = vue.processus.find((processus) => processus.pid === pid)
+      return tenant?.etat === 'Z' && tenant.erreurs?.length === 0
+    } catch {
+      return false
+    }
+  }
   return {
     chemin: join(commun.valeur, 'gestes-lourds.verrou'),
     libelle: 'un geste lourd tient la machine',
     attente: ATTENTE_GESTES_LOURDS,
-    identite: { ...IDENTITE_MESUREE, pasMs: ATTENTE_GESTES_LOURDS.pasMs },
+    identite: { ...IDENTITE_MESUREE, pasMs: ATTENTE_GESTES_LOURDS.pasMs, estZombie },
   }
 }

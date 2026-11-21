@@ -3,7 +3,7 @@
 // Les tests retenus se DÉRIVENT des fichiers touchés : le test touché, le test dont la clôture d'imports
 // (`clotureDImports`, `typesEffaces`, `import.meta.glob` compris) atteint un fichier touché, le test dont
 // une RACINE BALAYÉE (`racinesBalayees.mjs`) est un ancêtre d'un fichier touché (`ancetresDe`,
-// `scripts/git-hooks/docs-rebuild.mjs`), M, A, D et R. Les `setupFiles` de `vite.config.ts` sont une
+// `scripts/git-hooks/docs-rebuild.mjs`), M, A, D et R. Les `setupFiles` de `vitest.config.ts` sont une
 // racine de chaque test Vitest, au rang `setup` ; la toolchain touchée (`TOOLCHAIN`) retient la suite entière.
 // Exécution : le lint des fichiers touchés (`lancerLint`), puis les tests sous `BUDGET_LOCAL_S` de MUR estimé,
 // ordonnés par rang, spécificité de racine et signal (`planDExecution`, `signalDe`), estimés (`estimationsDe`,
@@ -13,8 +13,6 @@
 // lanceur les démarre, sur ses workers, plus le surcoût de lancement appris (`murSimule`, `ordreDuLanceur`,
 // `SURCOUTS`) ; le reste à la CI. Le mur nomme sa part estimée depuis la CI (`texteDuMur`).
 // Docs dérivés : `selectionDesGenerateurs`, joués en `--check` sous `--docs` seulement.
-// Suite du noyau (#2817) : la dérivation ne la voit pas (la suite principale l'exclut) ; dès qu'un fichier de `src/` est
-// touché, elle se joue ENTIÈRE par `npm run test:noyau` (`suiteDuNoyauALancer`, `MOTIF_HORS_STORE`).
 // Le graphe résout contre la post-image ∪ la base : l'importeur pendu vers un fichier SUPPRIMÉ reste lié.
 // Les spécificateurs non résolus, les lectures de module, leurs liaisons et leurs déclarations exportées se
 // mémoïsent par blob sous `CACHE` ; l'évaluation de chaque module, avec les réponses des requêtes qu'elle a
@@ -53,8 +51,6 @@ import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from '.
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { CACHE, lireDuDisque, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
-import { estDeLaSuiteDuNoyau, SUITES_VITEST_DE_CI } from '../guards/lib/racinesDeLaSuite.mjs'
-import { RACINES_DES_ZONES } from '../guards/lib/couches.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -139,7 +135,7 @@ const FAMILLES = Object.freeze(['vitest', 'node'])
  *   `createTestFileList` → `ArrayPrototypeSort` des chemins du glob).
  * - vitest : durée décroissante (`BaseSequencer.sort`, node_modules/vitest/dist/chunks/index.DpLw24bj.js:13385-13414),
  *   puis groupée par environnement (`environnementDe(test)`, `null` s'il ne se lit pas) comme le séquenceur de
- *   `vite.config.ts` (`grouperParEnvironnement`, #3412) ; les autres clés de `BaseSequencer.sort` — échec au run
+ *   `vitest.config.ts` (`grouperParEnvironnement`, #3412) ; les autres clés de `BaseSequencer.sort` — échec au run
  *   précédent d'abord, fichier sans résultat en cache d'abord, puis par taille — lisent le cache de Vitest, absent des
  *   mesures : non reproduites.
  */
@@ -415,16 +411,6 @@ export function workersDuLancement(env, regime) {
   return { vitest: maxWorkersMono(capaciteDuLanceur(env, regime).servis), node: Math.max(1, availableParallelism() - 1) }
 }
 
-/** Les arguments `node` du lancement de la suite du noyau (`npm run test:noyau`, `vitest.noyau.config.ts`) sur ses
- *  `fichiers`. PURE. */
-export const argumentsDuNoyau = (fichiers) =>
-  ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', SUITES_VITEST_DE_CI['test:noyau'].config, ...fichiers]
-
-/** La suite du noyau à lancer (#2817) : ENTIÈRE, les tests du noyau et de ses hôtes de la post-image `post`, dès qu'un
- *  des fichiers `touches` est sous une racine des zones (`RACINES_DES_ZONES` : leur fermeture y vit) ; rien sinon. La
- *  dérivation ne la voit pas. PURE. */
-export const suiteDuNoyauALancer = (touches, post) => (touches.some((t) => RACINES_DES_ZONES.some((r) => t.startsWith(`${r}/`))) ? post.filter((t) => estDeLaSuiteDuNoyau(t)) : [])
-
 /** Les arguments `node` du lancement Vitest d'un paquet de tests : `run.mjs` sous le régime `regime` (`DRAPEAU_REGIME`),
  *  les reporters écrivant le rapport `sortie` (`reportersVitest`). PURE. */
 export const argumentsVitest = (paquet, sortie, regime) =>
@@ -461,8 +447,8 @@ export function bilanDuLancement(famille, murMs, { appris, workers: servis }, pl
 const fichierDuSite = (site) => /^(.+):\d+:\d+$/.exec(site)?.[1] ?? null
 
 /** La ligne de fin d'un run ROUGE (`code` non nul), `null` sur un run vert. Elle nomme la commande qui ne relance QUE
- *  les fichiers en échec des `lancements` (`{ famille: 'vitest' | 'node' | 'noyau' | 'docs', code, echecs, args, refus? }`, chemins
- *  POSIX relatifs rapportés par `apprendre`) — `npm test -- <vitest>`, `node --test <node>`, `npm run test:noyau -- <noyau>` —, et l'appel du lint (`appelLint()`,
+ *  les fichiers en échec des `lancements` (`{ famille: 'vitest' | 'node' | 'docs', code, echecs, args, refus? }`, chemins
+ *  POSIX relatifs rapportés par `apprendre`) — `npm test -- <vitest>` et `node --test <node>` —, et l'appel du lint (`appelLint()`,
  *  `appelDuLint`) sur les seuls fichiers que nomment les défauts du lint `lint` (`lintDesTouches`) ; et elle NOMME chaque
  *  refus d'admission (`refus`, posé sur `CODE_DIFFERE`) avec sa raison, puis chaque rouge sans fichier : lancement
  *  rouge muet, défaut de lint sans site (panne d'outillage), lint rouge sans défaut, docs dérivés rouges (leur
@@ -483,7 +469,6 @@ export function ligneDeRelance({ code, lancements, lint, appelLint }) {
   if (lintes.length) commandes.push(`${appelLint().join(' ')} ${liste(lintes)}`)
   for (const { site, message } of lint.defauts) if (fichierDuSite(site) === null) muets.push(`lint ${site} : ${message}`)
   if (lint.code !== 0 && !lint.defauts.length) muets.push('lint rouge, son rapport ne nomme aucun défaut')
-  for (const { args } of lancements.filter((l) => l.famille === 'noyau' && l.code !== 0 && !l.refus)) commandes.push(`npm run test:noyau -- ${liste(args.filter((a) => estDeLaSuiteDuNoyau(a)))}`)
   for (const { args } of lancements.filter((l) => l.famille === 'docs' && l.code !== 0 && !l.refus)) muets.push(`docs dérivés rouges : node ${args.map(citeArgument).join(' ')}`)
   const relancer = commandes.length ? [`relancer les SEULS fichiers en échec, puis un dernier test:perimetre : ${commandes.join(' ; ')}`] : []
   const nommer = muets.length ? [`rouge sans fichier nommé : ${muets.join(' ; ')}`] : []
@@ -565,18 +550,29 @@ const argumentsNode = (sortie) => ['--test', '--test-reporter=spec', '--test-rep
 /** Le LANCEMENT du périmètre du dépôt de `racine` sous les arguments `args` (`lireArguments`) : dérivation, journal, lint,
  *  tests au plan, ligne de relance (`ligneDeRelance`) ; rend le code de sortie. `platform` va à `lancerNodeMesure`. */
 export async function principal(args, racine, { env = process.env, verrou, signal, platform } = {}) {
+  const options = lireArguments(args)
   const configuration = verrou ?? verrouGestesLourds(racine)
+  const attente = configuration.attente && {
+    ...configuration.attente,
+    annoncer: (tenant) => console.error('[verrou] ' + tenantEnUneLigne(tenant)),
+  }
+  if (options.liste && attente) attente.plafondMs = Math.min(attente.echeanceMs, attente.plafondMs ?? Infinity)
   const prise = await prendreVerrouAsync({
-    ...configuration, env, signal, cwd: racine, commande: 'test:perimetre',
-    attente: { ...configuration.attente, annoncer: (tenant) => console.error('[verrou] ' + tenantEnUneLigne(tenant)) },
+    ...configuration, env, signal, cwd: racine, commande: 'test:perimetre', attente,
+  }).catch((erreur) => {
+    if (!options.liste || !['EROFS', 'EACCES', 'EPERM'].includes(erreur?.code)) throw erreur
+    return {
+      etat: 'refus',
+      message: `[verrou] --liste différé — accès à ${configuration.chemin} indisponible (${erreur.code}) — ${texteDeLEchec(erreur)}\n`
+        + '[verrou] Relancer avec un dossier Git inscriptible ou avec le jeton transmis par le détenteur qui garde la prise pendant la consultation.',
+    }
   })
   if (prise.etat !== 'pris') { console.error(prise.message); return CODE_DIFFERE }
   let retraitPermis = true
-  try { return await executerPerimetre(args, racine, { env: { ...env, ...prise.env }, signal, platform, retenir: () => { retraitPermis = false } }) }
+  try { return await executerPerimetre(options, racine, { env: { ...env, ...prise.env }, signal, platform, retenir: () => { retraitPermis = false } }) }
   finally { if (retraitPermis) prise.liberer() }
 }
-async function executerPerimetre(args, racine, { env, signal, retenir, platform }) {
-  const options = lireArguments(args)
+async function executerPerimetre(options, racine, { env, signal, retenir, platform }) {
   const debut = performance.now()
   const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux, lire } = await perimetreDuDepot(racine, options, { lectureSeule: options.liste, env, signal, retenir })
   const duree = Math.round(performance.now() - debut)
@@ -609,7 +605,7 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   const sources = [...estimations.values()].reduce((n, { source }) => ({ ...n, [source]: (n[source] ?? 0) + 1 }), {})
   journal(`estimations : ${Object.entries(sources).map(([s, n]) => `${s} ${n}`).join(' | ') || 'aucune'} ; durées CI : ${ci.run ? `course ${ci.run} du ${ci.date} (${ci.sha.slice(0, 9)})` : 'aucune mémorisée'}`)
   journal(`facteurs CI : ${Object.entries(facteurs).map(([p, f]) => `${p} ${f.valeur.toFixed(2)} (${f.origine === 'paires' ? `${f.paires} paires` : `repli de banc, ${f.paires} paire(s)`})`).join(' | ')}`)
-  journal(rapatriement === null ? 'CI non rapatriée — --liste n’écrit rien'
+  journal(rapatriement === null ? 'CI non rapatriée — durées inchangées sous --liste'
     : !rapatriement.disponible ? `CI non rapatriée — ${rapatriement.raison}`
       : rapatriement.valeur.etat === 'refus' ? `CI non rapatriée — ${rapatriement.valeur.raison}`
         : `CI ${rapatriement.valeur.etat === 'deja' ? 'déjà mémorisée' : 'rapatriée'} : course ${rapatriement.valeur.memo.run}`)
@@ -621,8 +617,6 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
     journal(`→ CI ${t} : audit du dépôt réel, gate ${gateDe(t)} (${texteDuLien(retenus.get(t))})`)
   for (const ligne of lignesDeDelegation(touches)) journal(ligne)
   journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
-  const noyau = suiteDuNoyauALancer(touches, post)
-  journal(`suite du noyau : ${noyau.length ? `entière (un fichier de src/ touché), ${noyau.length} fichier(s)` : 'aucun fichier de src/ touché'}${noyau.length ? ` : ${noyau.join(', ')}` : ''}${options.liste && noyau.length ? ' (non joué sous --liste)' : ''}`)
   const bilan = (joues, liste) => journal(ligneDeBilan({ joues, retenus, vitest, node, causes: plan.causes, liste }))
   if (options.liste) {
     bilan(new Set(plan.lances), true)
@@ -641,7 +635,6 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
       return { famille, sortie, args: famille === 'vitest' ? argumentsVitest(p, sortie, regime)
         : [...argumentsNode(sortie), ...p] }
     }),
-    ...(noyau.length ? [{ famille: null, nom: 'noyau', sortie: null, args: argumentsDuNoyau(noyau) }] : []),
     ...(jouerDocs ? [{ famille: null, nom: 'docs', sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
   ]
   const { code, reels, joues, fichiersJoues } = await executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire, platform, environnementDe: environnementDuTest })

@@ -17,6 +17,8 @@ import { alcoholFailures, soberUpDissipate } from '../engine/drunkenness';
 import { testValue } from '../engine/skills';
 import { hasTrait } from '../engine/traits/dispatch';
 import { applierDe } from './cascade';
+import { editableEntries, enregistrerEntree } from '../data/atelierDuCodex';
+import { findTrappingById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
 
@@ -175,37 +177,118 @@ describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (test
   });
 });
 
+function buveur(id: string, endurance = 55): Combatant {
+  const h = hero(id, { skills: [] });
+  h.characteristics.endurance = endurance;
+  return h;
+}
+
+describe('difficulté de consommation (LDB 09 l.475, MDG 16 l.411)', () => {
+  it.each([
+    ['biere-pinte', 'intermediaire', 55, 'Intermédiaire', 'livre-de-base'],
+    ['vin-spiritueux-verre', 'difficile', 35, 'Difficile', 'livre-de-base'],
+    ['rhum-tord-boyaux', 'intermediaire', 55, 'Intermédiaire', 'mer-des-griffes'],
+  ])('%s documente sa difficulté maison et la joue', (id, difficulty, target, libelle, livre) => {
+    const fiche = findTrappingById(id);
+    expect(fiche?.source?.book).toBe(livre);
+    expect(fiche?.maison).toContain('LDB 09 l.475');
+    expect(fiche?.maison).toContain(`Difficulté de consommation ${libelle}`);
+    expect(fiche?.consumable).toMatchObject({ kind: 'test', test: { difficulty } });
+
+    const h = buveur('h1');
+    giveItem(h, id, 'boisson');
+    banc.setState({ party: [h] });
+    banc.getState().utiliserLObjet('boisson');
+
+    expect(banc.getState().pendingTest).toMatchObject({
+      actorId: h.id,
+      sujet: { skill: { id: 'resistance-a-l-alcool' } },
+      base: 55,
+      difficulty,
+      target,
+    });
+  });
+
+  it('joue la difficulté éditée au Compendium sur un verre déjà dans le sac', () => {
+    const id = 'vin-spiritueux-verre';
+    const fiche = findTrappingById(id);
+    const flow = fiche?.consumable;
+    if (flow?.kind !== 'test') throw new Error(`Test de consommation absent pour ${id}`);
+
+    const h = buveur('h1');
+    const autre = buveur('h2');
+    giveItem(h, id, 'verre');
+    giveItem(autre, id, 'verre-edite');
+    banc.setState({ party: [h, autre] });
+
+    banc.getState().utiliserLObjet('verre');
+    seedBattleRng(14);
+    banc.getState().jetLancer('test');
+    expect(banc.getState().pendingTest).toMatchObject({ difficulty: 'difficile', target: 35, roll: 45, success: false });
+    banc.getState().jetValider('test');
+    expect(alcoholFailures(banc.getState().party[0])).toBe(1);
+
+    const entrees = editableEntries('trappings');
+    const index = entrees.findIndex((entree) => entree.id === id);
+    const resultat = enregistrerEntree('trappings', {
+      ...entrees[index],
+      consumable: { ...flow, test: { ...flow.test, difficulty: 'intermediaire' } },
+    }, index);
+    if (!resultat.ok) throw new Error(resultat.erreurs.join('\n'));
+    try {
+      banc.getState().utiliserLObjet('verre-edite');
+      seedBattleRng(14);
+      banc.getState().jetLancer('test');
+      expect(banc.getState().pendingTest).toMatchObject({ difficulty: 'intermediaire', target: 55, roll: 45, success: true });
+      banc.getState().jetValider('test');
+      expect(alcoholFailures(banc.getState().party[1])).toBe(0);
+    } finally {
+      resultat.reprendre();
+    }
+  });
+});
+
 describe('rhum tord-boyaux (MDG 16 l.411) — un Test, l’échec vaut deux verres (arbitrage 2026-11-16, #4202)', () => {
-  function boire(success: boolean): Combatant {
-    const h = hero('h1');
+  function boire(graine: number, roll: number, success: boolean): Combatant {
+    const h = buveur('h1', 25);
     giveItem(h, 'rhum-tord-boyaux', 'rhum1');
     banc.setState({ party: [h] });
     banc.getState().utiliserLObjet('rhum1');
-    const pt = banc.getState().pendingTest!;
-    expect(pt.actorId).toBe('h1');
-    banc.setState({ pendingTest: { ...pt, roll: success ? 1 : 99, success, sl: success ? 3 : -3 } });
+    expect(banc.getState().pendingCascade?.participants).toEqual([
+      expect.objectContaining({ jet: 'test', actorId: h.id }),
+    ]);
+    expect(banc.getState().pendingTest).toMatchObject({ actorId: h.id, roll: null });
+
+    seedBattleRng(graine);
+    banc.getState().jetLancer('test');
+    expect(banc.getState().pendingTest).toMatchObject({ roll, success });
     banc.getState().jetValider('test');
-    return banc.getState().party.find((c) => c.id === 'h1')!;
+    expect(banc.getState().pendingTest).toBeNull();
+    expect(banc.getState().pendingCascade).toBeNull();
+    return banc.getState().party.find((c) => c.id === h.id)!;
   }
 
   const charme = (c: Combatant): number => testValue(c, { skill: { id: 'charme' } });
 
-  it('Test raté : deux crans d’ivresse, −20 en Charme, Trait Perturbant ; le dessoûlage les retire', () => {
-    const sobre = charme(hero('h1'));
-    const h = boire(false);
+  it('Test raté : deux crans, résultat Ivre, −20 en Charme et Trait Perturbant jusqu’au dessoûlage', () => {
+    const sobre = charme(buveur('h1'));
+    const h = boire(4, 93, false);
     expect(alcoholFailures(h)).toBe(2);
+    expect(h.drunk).toMatchObject({ drunk: true, result: 'meilleur-ami' });
+    expect(h.activeEffects?.some((effet) => effet.ignoreAnimosity)).toBe(true);
     expect(charme(h)).toBe(sobre - 20);
     expect(hasTrait(h.traits, 'perturbant')).toBe(true);
 
     soberUpDissipate(h, 0);
-    expect(alcoholFailures(h)).toBe(0);
+    expect(h.drunk).toBeUndefined();
+    expect(h.activeEffects?.some((effet) => effet.ignoreAnimosity)).toBe(false);
     expect(charme(h)).toBe(sobre);
     expect(hasTrait(h.traits, 'perturbant')).toBe(false);
   });
 
   it('Test réussi : ni ivresse, ni Charme, ni Trait', () => {
-    const sobre = charme(hero('h1'));
-    const h = boire(true);
+    const sobre = charme(buveur('h1'));
+    const h = boire(7, 2, true);
     expect(alcoholFailures(h)).toBe(0);
     expect(charme(h)).toBe(sobre);
     expect(hasTrait(h.traits, 'perturbant')).toBe(false);

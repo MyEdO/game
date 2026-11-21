@@ -871,7 +871,6 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     // La rencontre d'une activité est une référence locale à la scène : même saisie que celle d'un `startCombat`.
     expect(saisies.get(`${rencontres}/${choixDeLaFeuilleDId({ type: 'activity' })[0].id}/id`)).toBe(saisies.get('declencheur/flow<kind=effet>/effet<type=startCombat>/encounter/id'));
     expect(choixDuNoeud(idDe('son'))).toEqual(Object.entries(VOCABULAIRES.sons).map(([valeur, libelle]) => ({ valeur, libelle })));
-    expect(choixDuNoeud(idDe('colonneDuMarchand'))).toEqual(Object.entries(VOCABULAIRES.colonnesDuMarchand).map(([valeur, libelle]) => ({ valeur, libelle })));
   });
 
   it('la carrière et l’espèce d’une Condition se choisissent à leur catalogue (#4234)', () => {

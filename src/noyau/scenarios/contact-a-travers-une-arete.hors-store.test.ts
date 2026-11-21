@@ -64,11 +64,11 @@ function diagonaleCherchee(s: Scene, n: 1 | 2): { a: Case; b: Case } | undefined
 }
 
 describe('#4105 — la coque de la barge d’embuscade-fluviale', () => {
-  it('cale (3,7,0) et dehors (3,8,0) : ni contact, ni mêlée, ni Charge, ni Engagement, ni Surnombre', () => {
+  it('cale (3,6,0) et dehors (2,6,0) : ni contact, ni mêlée, ni Charge, ni Engagement, ni Surnombre', () => {
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
-    poser(H, { x: 3, y: 7, z: 0 });
-    poser(E, { x: 3, y: 8, z: 0 });
-    expect(wallBetween(banc.getState().scene!, 3, 7, 3, 8, 0), 'la coque sépare les deux cases').toBe(true);
+    poser(H, { x: 3, y: 6, z: 0 });
+    poser(E, { x: 2, y: 6, z: 0 });
+    expect(wallBetween(banc.getState().scene!, 3, 6, 2, 6, 0), 'la coque sépare les deux cases').toBe(true);
     expect(contact(H, E)).toBe(Infinity);
     expect(attackPlan(banc.getState, H, E).kind).toBe('bloque');
     expect(attackPlan(banc.getState, E, H).kind).toBe('bloque');
@@ -86,26 +86,26 @@ describe('#4105 — la coque de la barge d’embuscade-fluviale', () => {
     H.skills = [...H.skills, { id: 'guerison', characteristic: 'intelligence', advances: 5 }];
     H.wounds = { ...H.wounds, current: 1 };
     H2.wounds = { ...H2.wounds, current: 1 };
-    poser(H, { x: 3, y: 7, z: 0 });
-    poser(H2, { x: 3, y: 8, z: 0 });
-    expect(wallBetween(banc.getState().scene!, 3, 7, 3, 8, 0), 'la coque sépare les deux cases').toBe(true);
+    poser(H, { x: 3, y: 6, z: 0 });
+    poser(H2, { x: 2, y: 6, z: 0 });
+    expect(wallBetween(banc.getState().scene!, 3, 6, 2, 6, 0), 'la coque sépare les deux cases').toBe(true);
     banc.jouerLaCase('soins');
     expect(banc.getState().battle!.action, 'le Soin armé par sa case').toBe('soins');
     banc.getState().ouvrirLaGuerison(H2.id);
     expect(banc.getState().pendingHeal).toBeFalsy();
     expect(banc.getState().refus?.texte).toBe(t('cf.horsDePortee'));
     expect(banc.getState().battle!.action, 'le refus laisse le Soin armé').toBe('soins');
-    poser(H2, { x: 3, y: 6, z: 0 });
+    poser(H2, { x: 4, y: 6, z: 0 });
     expect(contact(H, H2), 'la case voisine de la cale est au contact').toBe(1);
     banc.getState().ouvrirLaGuerison(H2.id);
     expect(banc.getState().pendingHeal?.targetId).toBe(H2.id);
   });
 
-  it('pont (4,4,1) et cale voisine (3,4,0) : l’arête se lit à la couche la plus haute, le contact tient', () => {
+  it('pont (6,7,1) et cale voisine (6,6,0) : l’arête se lit à la couche la plus haute, le contact tient', () => {
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
-    poser(H, { x: 4, y: 4, z: 1 });
-    poser(E, { x: 3, y: 4, z: 0 });
-    expect(wallOnSight(banc.getState().scene!, { x: 3, y: 4 }, { x: 4, y: 4 }, 0), 'une arête à la couche basse').toBe(true);
+    poser(H, { x: 6, y: 7, z: 1 });
+    poser(E, { x: 6, y: 6, z: 0 });
+    expect(wallOnSight(banc.getState().scene!, { x: 6, y: 6 }, { x: 6, y: 7 }, 0), 'une arête à la couche basse').toBe(true);
     expect(contact(H, E)).toBe(1);
   });
 

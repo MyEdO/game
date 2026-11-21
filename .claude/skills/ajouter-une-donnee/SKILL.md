@@ -8,4 +8,4 @@ description: À utiliser quand on ajoute ou cure une entrée dans un src/data/*.
 Lire **`docs/ajouter-une-donnee.md`** (déroulé) et **`docs/donnees.md`** (carte + conventions + pièges
 d'homonymes). Check-first, routage vers un skill de domaine, champ = Source RAW ⊕ convention voisine,
 forme selon l'intention du RAW et canonicalisation : `.claude/rules/donnees.md`, chargée dès qu'un
-`src/data/*.json` est lu ou écrit. Une donnée visible au Codex passe aussi la recette navigateur.
+`src/data/*.json` est lu ou écrit. Pour une donnée visible au Compendium, jouer le geste correspondant dans Godot.

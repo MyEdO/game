@@ -1,13 +1,10 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `merchantFamilies.json` — familles de PRÉSENTATION du stock marchand, miroir de
- * `MerchantFamilyData` (`src/data/index.ts`). Consommé par le panneau du marchand —
- * ordre du tableau = ordre d'affichage des onglets.
+ * Familles du stock marchand dans l'ordre d'affichage de l'étal Godot (`marchandEnVue.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { trappingCategorieSchema } from './trappings';
-import { refs } from '../grammaire/ref';
 
 export const file = 'merchantFamilies.json';
 export const famille = 'entite';
@@ -26,18 +23,16 @@ const doc = document(
       shield: { label: 'bouclier' },
       unit: { label: 'unité' },
     }),
-    columns: refs('colonneDuMarchand'),
   },
   {
     match: { label: 'Critère de rattachement', hint: 'Condition qui range un objet dans cette famille de présentation' },
-    columns: { label: 'Colonnes affichées', hint: 'Colonnes de statistiques affichées pour cette famille, dans l’ordre' },
   },
   {
     codex: {
       exempt: {
         kind: 'vocabulaire-app-interne',
         raison:
-          "config de PRÉSENTATION du stock marchand (familles d'onglets, colonnes) — vocabulaire app-interne, pas une fiche de contenu.",
+          "classement des articles dans l'étal marchand par famille — vocabulaire d'application.",
       },
     },
     edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },

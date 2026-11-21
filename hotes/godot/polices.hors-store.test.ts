@@ -8,12 +8,14 @@
  * fichier de `projet/polices/` a l'empreinte que sa provenance déclare.
  */
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { fr } from '../../src/i18n/messages/fr';
 
-const PROJET = new URL('./projet/', import.meta.url);
-const lire = (chemin: string): Buffer => readFileSync(new URL(chemin.replace(/^res:\/\//, ''), PROJET));
+const PROJET = fileURLToPath(new URL('./projet/', import.meta.url));
+const lire = (chemin: string): Buffer => readFileSync(join(PROJET, chemin.replace(/^res:\/\//, '')));
 
 /** Le décalage de la table `etiquette` d'une police (OpenType, « Table Directory »). */
 function table(police: Buffer, etiquette: string): number {

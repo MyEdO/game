@@ -28,7 +28,7 @@
 import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type DiseaseExposure, type ModLine, type TestIds } from './types';
 import type { Duration } from './duration';
 import { RNG, roll, rollDice, formatDice } from './dice';
-import { MINUTES_PER_DAY } from './clock';
+import { MINUTES_PER_DAY, dureeEnJours, minutesParSemaine } from './clock';
 import { findTableEntry } from './tables';
 import { spellOps, type FlowTestNode } from './flowCore';
 // Table de Localisation CANONIQUE (`tablesDeLocalisation`, humanoïde) via la primitive `findTableEntry` — MÊME
@@ -58,23 +58,20 @@ import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies'
 import type { SujetContextualise } from './skills';
 
 /** Unité d'un temps de maladie (incubation/durée). La base de calcul/stockage reste la MINUTE (`clock.ts`). */
-const UNIT_MINUTES: Record<DiseaseTime['unit'], number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };
+const UNITES_DE_DUREE = {
+  weeks: { get minutes() { return minutesParSemaine(); }, label: 'dz.unitWeeks' },
+  days: { minutes: MINUTES_PER_DAY, label: 'dz.unitDays' },
+  hours: { minutes: 60, label: 'dz.unitHours' },
+  minutes: { minutes: 1, label: 'dz.unitMinutes' },
+} as const satisfies Record<DiseaseTime['unit'], { minutes: number; label: string }>;
 
 /** Tire un `DiseaseTime` → MINUTES (jet × facteur d'unité). PUR (RNG injecté). */
-export const rollDiseaseTime = (t: DiseaseTime, rng: RNG): number => rollDice(t.dice, rng) * UNIT_MINUTES[t.unit];
+export const rollDiseaseTime = (t: DiseaseTime, rng: RNG): number => rollDice(t.dice, rng) * UNITES_DE_DUREE[t.unit].minutes;
 /** Écriture d'affichage : « 1d10 heures », « 3d10+10 jours », « 2 heures » (valeur fixe). */
 export function formatDiseaseTime(time: DiseaseTime): string {
-  const label = t(time.unit === 'days' ? 'dz.unitDays' : time.unit === 'hours' ? 'dz.unitHours' : 'dz.unitMinutes');
+  const label = t(UNITES_DE_DUREE[time.unit].label);
   const fixed = time.dice.n === 0 || time.dice.sides === 0; // pas de dé → valeur fixe (le seul `plus`)
   return `${fixed ? String(time.dice.plus ?? 0) : formatDice(time.dice)} ${label}`;
-}
-
-/** Restant d'une instance (base MINUTES) → libellé humain à l'échelle la plus parlante (j / h / min). */
-export function formatRemaining(minutes: number): string {
-  const m = Math.max(0, minutes);
-  if (m >= MINUTES_PER_DAY) return t('dz.remainDays', { n: Math.round(m / MINUTES_PER_DAY) });
-  if (m >= 60) return t('dz.remainHours', { n: Math.round(m / 60) });
-  return t('dz.remainMinutes', { n: Math.round(m) });
 }
 
 /** La maladie est-elle DÉCLARÉE : sortie d'incubation, ses symptômes actifs ? LDB 20 l.12-13 */
@@ -320,7 +317,7 @@ export function symptomOnTick(inst: DiseaseSymptom, severite: 'moderee' | 'grave
   const tick = structuredClone(findSymptomById(inst.symptomId)?.onTick); // #2097
   if (!tick) return undefined;
   const cadence = {
-    ...(tick.afterDays !== undefined ? { afterDays: tick.afterDays } : {}),
+    ...(tick.afterDays !== undefined ? { afterDays: dureeEnJours(tick.afterDays) } : {}),
     ...(tick.once !== undefined ? { once: tick.once } : {}),
   };
   if (!tick.test) return { onFail: tick.ops ?? [], ...cadence };

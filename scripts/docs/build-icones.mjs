@@ -1,7 +1,7 @@
 /**
  * Génère docs/ajouter-une-icone.md — recette d'ajout d'une icône + état du registre.
  * La part FACTUELLE (familles et ids du registre, charte de dessin lue au fichier étalon,
- * signatures des 3 rendus, entrée `ICON_FAMILIES` de lib/cibles-registres.mjs, données JSON porteuses
+ * entrée `ICON_FAMILIES` de lib/cibles-registres.mjs, données JSON porteuses
  * d'une icône, périmètre et glyphes tolérés du garde anti-emoji) est DÉRIVÉE des fichiers réels,
  * fail-fast si l'un disparaît ; la part ÉDITORIALE (pourquoi passer par le registre, quoi vérifier
  * avant de committer) vit ICI, en dur.
@@ -56,7 +56,7 @@ function rendu(entree) {
   const UNION = CHAMPS_ENTREE.idUnion?.typeName
   if (typeof UNION !== 'string' || !UNION.trim()) abandon("le `typeName` de l'union d'ids ICON_FAMILIES est absent de scripts/docs/lib/cibles-registres.mjs")
   const UNION_OUT = CHAMPS_ENTREE.idUnion.out
-  if (typeof UNION_OUT !== 'string' || !UNION_OUT.trim()) abandon("l'union d'ids ICON_FAMILIES n'a plus de module à part (`idUnion.out`) dans scripts/docs/lib/cibles-registres.mjs : `src/state` l'importe de `src/data`, hors de `ui`")
+  if (typeof UNION_OUT !== 'string' || !UNION_OUT.trim()) abandon("l'union d'ids ICON_FAMILIES n'a plus de module à part (`idUnion.out`) dans scripts/docs/lib/cibles-registres.mjs")
 
   // ── Registre : familles et ids ───────────────────────────────────────────────────────────────────
 
@@ -111,40 +111,6 @@ function rendu(entree) {
   const COULEUR = capture(ICONS_TEST, /const couleur = (\/[^\n]+\/);/, 'la regex des couleurs admises `couleur`', 'src/data/icons/icons.test.ts')
 
   const TITRES_ICONS_TEST = [...ICONS_TEST.matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
-  const TITRES_RENDU_TEST = [...lire('src/ui/Icon.test.ts').matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
-
-  // ── Les 3 rendus ─────────────────────────────────────────────────────────────────────────────────
-
-  const ICON_TSX = lire('src/ui/Icon.tsx')
-  const SIZES = capture(ICON_TSX, /const SIZES = \{([^}]+)\}/, 'la table `SIZES`', 'src/ui/Icon.tsx')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-
-  function signature(nom) {
-    const m = ICON_TSX.match(new RegExp(`export function ${nom}\\(([\\s\\S]*?)\\)\\s*(?::[^{]+)?\\{`))
-    if (!m) abandon(`export « ${nom} » introuvable dans src/ui/Icon.tsx`)
-    return m[1].replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
-  }
-
-  const RENDUS = [
-    {
-      contexte: 'Composant React HTML',
-      primitive: `\`Icon(${signature('Icon')})\``,
-      detail: `\`<svg viewBox="0 0 24 24">\`, tailles nommées ${SIZES.map((s) => `\`${s}\``).join(' / ')} px`,
-    },
-    {
-      contexte: 'Contexte SVG existant (pion iso, carte du monde, FX)',
-      primitive: `\`IconG(${signature('IconG')})\``,
-      detail: '`<g transform="translate(x,y) scale(size/24)">`, couleur via `currentColor` posé sur un ancêtre',
-    },
-    {
-      contexte: 'Fragment brut (scripts SSR/galeries)',
-      primitive: `\`iconSvg(${signature('iconSvg')}): string\``,
-      detail: 'retourne le fragment `svg` de la def, seul',
-    },
-  ]
-
   const TYPES_TS = lire('src/data/icons/types.ts')
   const ALIAS_ID = capture(TYPES_TS, /export type (IconId) =/, "l'alias `IconId`", 'src/data/icons/types.ts')
 
@@ -240,7 +206,6 @@ function rendu(entree) {
         .join(', ')}${PAR_FAMILLE.get(f).length > 3 ? ' …' : ''} |`,
   ).join('\n')
 
-  const lignesRendus = RENDUS.map((r) => `| ${r.contexte} | ${r.primitive} | ${r.detail} |`).join('\n')
 
   const lignesData = DATA_ICONES.map(
     (d) =>
@@ -258,7 +223,7 @@ function rendu(entree) {
 **Périmètre mesuré / angles morts** — sont LUS aux fichiers réels : l'union \`${UNION}\` de
 \`${UNION_OUT}\` (familles, ids, comptes), la charte de dessin et les
 constantes de trait de \`src/data/icons/defs/action.ts\`, la regex de nommage et les couleurs admises
-de \`src/data/icons/icons.test.ts\`, les signatures des trois rendus de \`src/ui/Icon.tsx\`, l'entrée
+de \`src/data/icons/icons.test.ts\`, l'entrée
 \`ICON_FAMILIES\` de \`scripts/docs/lib/cibles-registres.mjs\`, les valeurs \`"icon"\` des \`src/data/*.json\`, et le
 périmètre + les glyphes tolérés du garde anti-emoji
 (\`scripts/guards/lib/emojiAffordance.mjs\`, \`src/no-emoji-affordance.test.ts\`) — dont l'ABSENCE de
@@ -266,12 +231,12 @@ stock d'exceptions, contrôlée aux identifiants déclarés/importés par cette 
 le comptage d'icônes en DONNÉE est textuel (clé \`"icon"\` d'un JSON de \`src/data/\`) — une icône
 référencée sous un AUTRE nom de champ, ou depuis du TS, n'est pas comptée ici (la garde de
 \`src/data/data-wellformed.test.ts\`, elle, résout vraiment) ; la QUALITÉ d'un dessin (lisibilité à
-14 px, unicité de métaphore) ne se mesure pas — elle se juge à la galerie QC ; les conseils de
+14 px, unicité de métaphore) ne se mesure pas — elle se juge dans Godot, sur un écran qui l’utilise ; les conseils de
 geste sont de l'ÉDITORIAL fixé dans le script.
 
 Toute AFFORDANCE de l'UI (bouton, badge, libellé d'action, icône de donnée JSON) passe par le
 **registre auto-collecté** \`src/data/icons/\` : 1 famille d'icônes = 1 fichier dans
-\`${CHAMPS_ENTREE.dir}/<famille>.ts\`, ramassé par \`npm run gen\` (câblé dans \`npm run build\`).
+\`${CHAMPS_ENTREE.dir}/<famille>.ts\`, ramassé par \`npm run gen\`.
 **Aucune table centrale à éditer.** Plus jamais d'emoji dans le code ou la donnée — garde
 \`src/no-emoji-affordance.test.ts\`.
 
@@ -322,26 +287,19 @@ npm run gen
 
 Réécrit \`${CHAMPS_ENTREE.out}\` (import explicite de chaque fichier de \`${CHAMPS_ENTREE.dir}\` et, dans \`${UNION_OUT}\`, son
 union de littéraux \`${UNION}\`, dérivée des champs \`id: '…'\` — script générique
-\`scripts/gen-registry.mjs\`, entrée \`${CHAMPS_ENTREE.arrayName}\` de \`scripts/docs/lib/cibles-registres.mjs\`). Auto en dev (plugin Vite) et
-câblé dans \`npm run build\` — mais lancer la commande à la main après un ajout pour vérifier le
+\`scripts/gen-registry.mjs\`, entrée \`${CHAMPS_ENTREE.arrayName}\` de \`scripts/docs/lib/cibles-registres.mjs\`). Lancer la commande après un ajout pour vérifier le
 compteur de fichiers (\`${CHAMPS_ENTREE.arrayName} ← N fichiers\`) ; le fichier généré ne se committe pas (#2203).
 
 Le nouvel id devient un littéral du type fermé \`${ALIAS_ID}\` (\`src/data/icons/types.ts\`) — un id
 inventé côté TS ne compile pas.
 
-## 4. Les 3 rendus (\`src/ui/Icon.tsx\`)
+## 4. Rendu Godot
 
-| Contexte | Primitive | Détail |
-|---|---|---|
-${lignesRendus}
-
-Les trois throw en DEV sur un id inconnu (\`import.meta.env?.DEV\` — \`?.\` car \`import.meta.env\`
-n'existe pas sous \`tsx\`), en nommant le geste : déposer une def dans \`${CHAMPS_ENTREE.dir}/\` puis
-\`npm run gen\`. Pas de repli muet ; en prod (non-DEV), \`Icon\`/\`IconG\` rendent \`null\`/\`''\`.
-
-Les 3 primitives prennent un \`${ALIAS_ID}\` : un id porté par la DONNÉE se refuse au parse par le nœud
-\`idDIconeSchema\` (\`src/data/schemas/grammaire/valeurs.ts\`), un id de saisie passe par \`estIdDIcone\`
-(\`src/data/icons/index.ts\`).
+Le registre fournit le fragment SVG par identifiant. Dans Godot, \`IconeDuCatalogue\`
+(\`hotes/godot/projet/scripts/icone_du_catalogue.gd\`) le rend par le catalogue des dessins
+aux couleurs du thème. La donnée valide l’identifiant par \`idDIconeSchema\`
+(\`src/data/schemas/grammaire/valeurs.ts\`). À la frontière de saisie, \`estIdDIcone\` teste
+l’identifiant dans \`src/data/icons/index.ts\`.
 
 ## 5. Icône portée par une DONNÉE (JSON)
 
@@ -363,15 +321,10 @@ Gardes correspondantes dans \`src/data/data-wellformed.test.ts\` (chaque \`icon\
 
 ${CAS_ICONE.map((t) => `- « ${t} »`).join('\n')}
 
-## 6. QC visuel
+## 6. Vérification visuelle
 
-\`\`\`
-npx tsx scripts/gen-icon-gallery.mts
-\`\`\`
-
-Génère une galerie HTML (dans \`npm run galleries\`) : chaque icône rendue aux tailles canon
-(${SIZES.map((s) => s.split(':')[1].trim()).join('/')}) + loupe, groupée par famille — vérifier la
-lisibilité à la plus petite taille et l'absence de couleur en dur AVANT de committer.
+Jouer dans Godot le parcours qui ouvre l’écran consommateur. Vérifier à la taille du contrôle
+que le tracé reste lisible et qu’il prend sa couleur du thème.
 
 ## 7. Bannir les émojis (garde \`src/no-emoji-affordance.test.ts\`)
 
@@ -392,13 +345,11 @@ Glyphes TEXTE tolérés partout (\`ALLOWED_CHARS\`, ${ALLOWED_CHARS.size} entré
 ${[...ALLOWED_CHARS].map((c) => `\`${c}\``).join(' ')} — coches/croix de résultat, fermeture,
 ornement, burger de menu, symboles de sexe, particules FX en \`<text>\` SVG.
 
-Pour ajouter une AFFORDANCE : utiliser \`<Icon id>\` / \`<IconG id>\` dès l'écriture — jamais un
-emoji, même « juste pour l'instant ».
+Déclarer l’identifiant d’icône dans le modèle du contrôle.
 
 ## Gardes
 
 - \`npm test -- src/data/icons/icons.test.ts\` — ${TITRES_ICONS_TEST.map((t) => `${t}`).join(' ; ')}.
-- \`npm test -- src/ui/Icon.test.ts\` — ${TITRES_RENDU_TEST.join(' ; ')}.
 - \`npm test -- src/no-emoji-affordance.test.ts\` — zéro emoji dans tout \`${RACINE_SCAN}/\`,
   hors exclusions par nature.
 - \`npm test -- src/data/data-wellformed.test.ts\` — ${CAS_ICONE.length} cas résolvent une icône
@@ -412,7 +363,7 @@ emoji, même « juste pour l'instant ».
     out,
     path: 'docs/ajouter-une-icone.md',
     staleMsg:
-      'docs:icones — docs/ajouter-une-icone.md est PÉRIMÉ (diverge du registre d’icônes, de Icon.tsx, des gardes ou du script).',
+      'docs:icones — docs/ajouter-une-icone.md est PÉRIMÉ (diverge du registre d’icônes, des gardes ou du script).',
     rerunMsg: '  → relancer `npm run docs:icones` (dérivé jamais commité, #2203).',
     okMsg: 'docs:icones — OK (docs/ajouter-une-icone.md à jour)',
     writeMsg: `docs/ajouter-une-icone.md — ${FAMILLES.length} familles, ${IDS.length} icônes, ${DATA_ICONES.length} fichiers de données porteurs.`,

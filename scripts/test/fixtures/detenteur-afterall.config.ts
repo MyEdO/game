@@ -1,9 +1,9 @@
-import base from '../../../vite.config';
+import base from '../../../vitest.config';
 import { fileURLToPath } from 'node:url';
 
 const reporters = base.test?.reporters ?? ['default'];
 
-/* Le régime de test de la base (pool, isolation, séquenceur), sans ses plugins ni ses `setupFiles` :
+/* Le régime de test de la base (pool, isolation), sans ses plugins ni ses `setupFiles` :
  * la fixture n'importe que `src/lib/detenteur.testkit.ts`. #4314 */
 export default {
   test: {

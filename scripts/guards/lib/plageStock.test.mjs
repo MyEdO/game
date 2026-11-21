@@ -192,6 +192,12 @@ test('#2302 lectureDeLaPlage : une ascendance pour un ou cinq commits, différen
   assert.equal(horsDiffs[1], horsDiffs[0], `processus hors diff-tree : ${horsDiffs.join(' pour 1, ')} pour 5`)
 })
 
+async function lireEtJugerLaPlage(options) {
+  let lue
+  const verdict = await croissancesDeLaPlage(options, (lecture) => { lue = lecture })
+  return { lue, verdict }
+}
+
 test('#2626 : seuls les commits nouveaux sont jugés, le cumul reste celui des états de la plage', async () => {
   const { repo, shas, git } = depotJetable([
     { contenu: sourceStock([]), message: 'socle' },
@@ -204,9 +210,8 @@ test('#2626 : seuls les commits nouveaux sont jugés, le cumul reste celui des �
     const ancien = await croissancesDeLaPlage({ ...options, fin: shas[1] })
     assert.equal(ancien.commits, 0)
     assert.deepEqual(ancien.refus, [])
-    const fautif = await croissancesDeLaPlage({ ...options, fin: shas[2] })
+    const { lue: lu, verdict: fautif } = await lireEtJugerLaPlage({ ...options, fin: shas[2] })
     assert.deepEqual(fautif.refus.map((r) => r.sha), [shas[2]])
-    const lu = lectureDeLaPlage({ ...options, fin: shas[2] })
     assert.deepEqual(lu.commits.map((c) => c.sha), [shas[2]])
     const ci = lectureDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: shas[2], vers: 'refs/heads/chantier/neuve' })
     assert.deepEqual(lu.cumul, ci.cumul)
@@ -225,11 +230,11 @@ test('#2626 : un ajout puis retrait neufs ne refuse rien après un commit publi�
   try {
     git('update-ref', 'refs/remotes/origin/main', shas[0])
     const options = { cwd: repo, debut: SHA_NUL, fin: shas[3], vers: 'refs/heads/chantier/neuve' }
-    const lu = lectureDeLaPlage({ ...options, origineConfirmee: [shas[1]] })
+    const { lue: lu, verdict } = await lireEtJugerLaPlage({ ...options, origineConfirmee: [shas[1]] })
     assert.deepEqual(lu.commits.map((c) => c.sha), shas.slice(2))
     assert.deepEqual(lu.cumul, lectureDeLaPlage(options).cumul)
     assert.ok(lu.cumul.every(({ parCle }) => [...parCle.values()].every((n) => n === 0)))
-    assert.deepEqual((await croissancesDeLaPlage({ ...options, origineConfirmee: [shas[1]] })).refus, [])
+    assert.deepEqual(verdict.refus, [])
   } finally { rmSync(repo, { recursive: true, force: true }) }
 })
 
@@ -263,11 +268,10 @@ for (const tronc of ['absent', 'disjoint']) test(`#2626 sans borne : A publié, 
       git('update-ref', 'refs/remotes/origin/main', autre)
     }
     const options = { cwd: repo, debut: SHA_NUL, fin: shas[2], origineConfirmee: [shas[0]] }
-    const lu = lectureDeLaPlage(options)
+    const { lue: lu, verdict: vu } = await lireEtJugerLaPlage(options)
     assert.deepEqual(lu.commits.map((c) => c.sha), shas.slice(1))
     assert.equal(lu.commits.some((c) => c.sha === shas[0]), false)
     assert.deepEqual(refusDeLaPlage(lu).map((r) => [r.sha, r.net]), [[shas[1], 1]])
-    const vu = await croissancesDeLaPlage(options)
     assert.deepEqual(vu.refus.map((r) => [r.sha, r.net]), [[shas[1], 1]])
   } finally { rmSync(repo, { recursive: true, force: true }) }
 })
@@ -1025,7 +1029,8 @@ function depotDeChantier(fichiers) {
     git('commit', '-q', '--no-verify', '--allow-empty', '-m', message)
     return git('rev-parse', 'HEAD').trim()
   }
-  return { repo, debut, git, poser, plage: (fin) => croissancesDeLaPlage({ cwd: repo, debut, fin, vers: CHANTIER }) }
+  const optionsDePlage = (fin) => ({ cwd: repo, debut, fin, vers: CHANTIER })
+  return { repo, debut, git, poser, optionsDePlage, plage: (fin) => croissancesDeLaPlage(optionsDePlage(fin)) }
 }
 
 /** Branche latérale `x` partie de `debut` qui commet `aPoser`, fusionnée proprement dans `chantier`. */
@@ -1036,15 +1041,12 @@ function fusionLaterale(d, aPoser) {
   d.git('merge', '-q', '--no-ff', '--no-verify', '-m', 'fusion latérale', 'x')
 }
 
-const verifierCumulAvecOrigine = (d, fin, publie) => {
-  const options = { cwd: d.repo, debut: d.debut, fin, vers: CHANTIER }
-  const historique = lectureDeLaPlage(options)
-  for (const origineConfirmee of [[], [publie]]) {
-    const lu = lectureDeLaPlage({ ...options, origineConfirmee })
-    assert.deepEqual(lu.cumul, historique.cumul)
-    assert.deepEqual(lu.commits.map((c) => c.sha), historique.commits.filter((c) => !origineConfirmee.includes(c.sha)).map((c) => c.sha))
-    assert.deepEqual(refusDeLaPlage(lu), refusDeLaPlage(historique).filter((r) => !origineConfirmee.includes(r.sha)))
-  }
+const verifierCumulAvecOrigine = (options, historique, publie) => {
+  assert.ok(historique.commits.some(({ sha }) => sha === publie), 'la lecture sans exclusion garde le commit publié')
+  const lu = lectureDeLaPlage({ ...options, origineConfirmee: [publie] })
+  assert.deepEqual(lu.cumul, historique.cumul)
+  assert.deepEqual(lu.commits.map((c) => c.sha), historique.commits.filter((c) => c.sha !== publie).map((c) => c.sha))
+  assert.deepEqual(refusDeLaPlage(lu), refusDeLaPlage(historique).filter((r) => r.sha !== publie))
 }
 
 test('CUMUL (E) : un retrait porté par les DEUX parents d’une fusion ne paie pas deux ajouts non déclarés', async () => {
@@ -1053,8 +1055,10 @@ test('CUMUL (E) : un retrait porté par les DEUX parents d’une fusion ne paie 
     const publie = d.poser({ [PORTEUR]: sourceStock([B]) }, 'retire A')
     fusionLaterale(d, { [PORTEUR]: sourceStock([B]) })
     const fin = d.poser({ [PORTEUR]: sourceStock([B, A_BIS, "  'src/a.ts', // ter"]) }, 'deux sous a, sans cliquet')
-    assert.deepEqual(refusDe(await d.plage(fin)), [[fin, PORTEUR, 2]])
-    verifierCumulAvecOrigine(d, fin, publie)
+    const options = d.optionsDePlage(fin)
+    const { lue, verdict } = await lireEtJugerLaPlage(options)
+    assert.deepEqual(refusDe(verdict), [[fin, PORTEUR, 2]])
+    verifierCumulAvecOrigine(options, lue, publie)
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
   }
@@ -1066,8 +1070,10 @@ test('CUMUL (E2) : un ajout porté par les DEUX parents puis retiré une fois ne
     const publie = d.poser({ [PORTEUR]: sourceStock([A, B]) }, 'ajoute A')
     fusionLaterale(d, { [PORTEUR]: sourceStock([A, B]) })
     const fin = d.poser({ [PORTEUR]: sourceStock([B]) }, 'retire A')
-    assert.deepEqual((await d.plage(fin)).refus, [])
-    verifierCumulAvecOrigine(d, fin, publie)
+    const options = { ...d.optionsDePlage(fin), origineConfirmee: [] }
+    const { lue, verdict } = await lireEtJugerLaPlage(options)
+    assert.deepEqual(verdict.refus, [])
+    verifierCumulAvecOrigine(options, lue, publie)
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
   }
@@ -1079,8 +1085,10 @@ test('CUMUL (B) : une clé renommée sur deux commits (`git mv`, puis le stock s
     d.git('mv', 'src/a.ts', 'src/z.ts')
     const publie = d.poser({}, 'git mv a -> z')
     const fin = d.poser({ [PORTEUR]: sourceStock(["  'src/z.ts',"]) }, 'le stock suit')
-    assert.deepEqual((await d.plage(fin)).refus, [])
-    verifierCumulAvecOrigine(d, fin, publie)
+    const options = d.optionsDePlage(fin)
+    const { lue, verdict } = await lireEtJugerLaPlage(options)
+    assert.deepEqual(verdict.refus, [])
+    verifierCumulAvecOrigine(options, lue, publie)
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
   }
@@ -1092,8 +1100,10 @@ test('CUMUL (C) : un stock DÉPLACÉ d’un porteur à un autre sur deux commits
   try {
     const publie = d.poser({ [PORTEUR]: null }, 'supprime le porteur')
     const fin = d.poser({ [P2]: sourceStock([A, B]) }, 'recrée le porteur ailleurs')
-    assert.deepEqual((await d.plage(fin)).refus, [])
-    verifierCumulAvecOrigine(d, fin, publie)
+    const options = d.optionsDePlage(fin)
+    const { lue, verdict } = await lireEtJugerLaPlage(options)
+    assert.deepEqual(verdict.refus, [])
+    verifierCumulAvecOrigine(options, lue, publie)
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
   }
@@ -1112,11 +1122,12 @@ test('#2626 CUMUL : une migration prouvée conserve son bilan avec exclusions', 
     try {
       const publie = d.poser({ 'anodin.txt': 'publié\n' }, 'publié anodin')
       const fin = d.poser({ [PORTEUR]: stock(nouveau, neuf), [ancien]: null, [nouveau]: titre }, 'migration prouvée')
-      assert.deepEqual(refusDe(await d.plage(fin)), neuf ? [[fin, PORTEUR, 1]] : [])
-      const lu = lectureDeLaPlage({ cwd: d.repo, debut: d.debut, fin, vers: CHANTIER })
-      const bilan = lu.cumul.find(({ fichier }) => fichier === PORTEUR)
+      const options = d.optionsDePlage(fin)
+      const { lue, verdict } = await lireEtJugerLaPlage(options)
+      assert.deepEqual(refusDe(verdict), neuf ? [[fin, PORTEUR, 1]] : [])
+      const bilan = lue.cumul.find(({ fichier }) => fichier === PORTEUR)
       assert.deepEqual([...bilan.parCle.values()].filter((n) => n !== 0), neuf ? [1] : [])
-      verifierCumulAvecOrigine(d, fin, publie)
+      verifierCumulAvecOrigine(options, lue, publie)
     } finally { rmSync(d.repo, { recursive: true, force: true }) }
   }
 })
@@ -1402,9 +1413,9 @@ test('#1463 #3023 FUSION d’une branche PÉRIMÉE que le tronc a déjà fusionn
     git('add', PORTEUR)
     git('commit', '-q', '--no-verify', '-m', 'fusion de la branche, x ressuscité')
     const fin = git('rev-parse', 'HEAD').trim()
-    assert.deepEqual(refusDe(await croissancesDeLaPlage({ cwd: repo, debut: tronc, fin, vers: CHANTIER })), [[fin, PORTEUR, 1]], 'pre-push')
+    const { lue, verdict } = await lireEtJugerLaPlage({ cwd: repo, debut: tronc, fin, vers: CHANTIER })
+    assert.deepEqual(refusDe(verdict), [[fin, PORTEUR, 1]], 'pre-push')
     assert.deepEqual(refusDe(await croissancesDeLaPlage({ cwd: repo, fin })), [[fin, PORTEUR, 1]], 'fenêtre de la CI')
-    const lue = lectureDeLaPlage({ cwd: repo, debut: tronc, fin, vers: CHANTIER })
     assert.ok([...lue.cumul.find((b) => b.fichier === PORTEUR).parCle.values()].every((n) => n > 0), 'le cumul part de l’arbre vide')
     assert.match(lue.notes.join('\n'), /sans état unique .*fusion croisée.*ne filtre aucun refus/)
   } finally {
@@ -1822,8 +1833,9 @@ for (const { nom, socle, amont, avant, branche, resolution, apres, projection, n
       const prePush = { cwd: repo, debut: tronc, fin, vers: CHANTIER }
       const projeter = (bilan) => Object.fromEntries(bilan.find((b) => b.fichier === porteurFinal)?.parCle ?? [])
       const clesAttendues = Object.fromEntries(Object.entries(projection).map(([cle, n]) => [`src/${cle}.ts`, n]))
-      assert.deepEqual(projeter(lectureDeLaPlage(prePush).projectionDuTronc), clesAttendues, 'projection des clés réelles depuis le tronc')
-      const refusPrePush = refusDe(await croissancesDeLaPlage(prePush))
+      const { lue: luePrePush, verdict: verdictPrePush } = await lireEtJugerLaPlage(prePush)
+      assert.deepEqual(projeter(luePrePush.projectionDuTronc), clesAttendues, 'projection des clés réelles depuis le tronc')
+      const refusPrePush = refusDe(verdictPrePush)
       const refusCI = refusDe(await croissancesDeLaPlage({ cwd: repo, fin }))
       const attendu = net && !soldeEteint ? [[fusion, porteurDansLaFusion, net]] : []
       assert.deepEqual({
@@ -1833,12 +1845,14 @@ for (const { nom, socle, amont, avant, branche, resolution, apres, projection, n
       }, { commit: net || null, prePush: attendu, ci: attendu })
       if (incrementale) {
         const options = { ...prePush, debut: cote }
-        const lue = lectureDeLaPlage(options)
+        const { lue, verdict } = await lireEtJugerLaPlage(options)
         if (!renomme) assert.deepEqual(projeter(lue.cumul), { 'src/k3.ts': 1 }, 'témoin du filtre incrémental par différence')
         assert.deepEqual(projeter(lue.projectionDuTronc), clesAttendues)
-        assert.deepEqual(refusDe(await croissancesDeLaPlage(options)), attendu)
+        assert.deepEqual(refusDe(verdict), attendu)
         if (journalIllisible) {
-          const avecPanne = (feinte) => () => sousGitFeint([feinte], () => refusDeLaPlage(lue))
+          // Les feintes sondent la première lecture du journal de la fusion.
+          const lueSansJugement = lectureDeLaPlage(options)
+          const avecPanne = (feinte) => () => sousGitFeint([feinte], () => refusDeLaPlage(lueSansJugement))
           assert.throws(
             avecPanne({ si: ['--format=%H %T %P'], absent: true }),
             { name: 'GitIndisponible', message: /journal des stocks.*graphe illisible/ },

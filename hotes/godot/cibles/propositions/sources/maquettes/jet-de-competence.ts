@@ -16,7 +16,7 @@ export default {
     fenetre: {
       titre: 'Test de Charme',
       heros: { role: 'testeur', qui: 'mira', test: 'Charme', seuil: 43, jet: { des: [20, 7], dr: 2, reussite: true } },
-      centre: { role: 'simple', sur: 'Test de Charme', difficulte: { nom: 'Intermédiaire', valeur: 0 }, dr: 2, phrase: 'Gustav se laisse amadouer et baisse la voix.' },
+      centre: { role: 'issue', sorte: 'simple', sur: 'Test de Charme · Intermédiaire (+0)', verdict: 'reussite', dr: 2, consequences: [], phrase: 'Gustav se laisse amadouer et baisse la voix.' },
       autre: { role: 'interlocuteur', qui: 'gustav', comme: 'Interlocuteur', dit: '« À quel prix cèdent-ils leurs places, entre nous ? »' },
       gestes: apresLeDe(RESERVES.mira), reserves: reserves(RESERVES.mira),
     },

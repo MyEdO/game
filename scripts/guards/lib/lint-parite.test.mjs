@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -389,7 +389,6 @@ test('murs/clavier-global : un écouteur clavier ne se pose, sur aucun receveur,
     ['src/ui/parite-cg-bind.ts',"const poser = document.addEventListener.bind(document);\nposer('keydown', f);",2],
     ['src/ui/parite-cg-destructure.ts',"const { addEventListener: poser } = window;\nposer('keydown', f);",2],
     ['src/ui/parite-cg-jsx.tsx','export const A = () => <b onKeyDown={f} />;',0],
-    ['src/ui/hud/parite-cg-primitive-copiee.ts',readFileSync(join(RACINE,'src/ui/clavier/interne/ecouterClavier.ts'),'utf8'),'>0'],
     ['src/ui/parite-cg-commentaire.ts',"// window.addEventListener('keydown', f)\nexport const mot = 'clavier';",0],
     ['src/ui/parite-cg-type-ecrit.ts',"export const mot = 'keydown';",1],
     ['src/ui/hud/parite-cg-cle-gabarit.ts',"window[`addEventListener`]('keydown', f);",1],

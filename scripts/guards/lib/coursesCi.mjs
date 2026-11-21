@@ -379,8 +379,14 @@ export function derniereTentativeDe({ cwd = process.cwd(), id, spawn = spawnSync
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  * @throws {TypeError} `echecsSeuls` n'est pas un booléen : la question n'est pas posée.
  */
-export function journalDe({ cwd = process.cwd(), id, attempt = null, echecsSeuls, spawn = spawnSync }) {
+export function journalDe({ echecsSeuls, ...parametres }) {
   if (typeof echecsSeuls !== 'boolean') throw new TypeError('journalDe : `echecsSeuls` est la question')
+  const essai = essaiDe(parametres)
+  return essai.disponible ? essai.valeur.journal({ echecsSeuls }) : essai
+}
+
+/** Les jobs d'un essai terminé et son journal à la demande, épinglés au même essai. */
+export function essaiDe({ cwd = process.cwd(), id, attempt = null, spawn = spawnSync }) {
   if (!identifiantPositif(id)) return indisponible('identifiant de course invalide')
   const essai = attempt === null ? derniereTentativeDe({ cwd, id, spawn }) : fait(attempt)
   if (!essai.disponible) return essai
@@ -392,18 +398,22 @@ export function journalDe({ cwd = process.cwd(), id, attempt = null, echecsSeuls
   const { jobs, startedAt, status } = vue.valeur ?? {}
   if (status !== 'completed' || !Array.isArray(jobs))
     return indisponible(`${libelle} : jobs illisibles ou tentative non terminée`)
-  if (echecsSeuls && !jobs.some((job) => estEchecDuJournal(job?.conclusion))) return fait('')
 
-  const chemin = `${cheminDeCourse(id)}/attempts/${essai.valeur}/logs`
-  const archive = sortieGh(spawn, ['api', chemin], cwd, { binaire: true })
-  if (!archive.disponible) {
-    const raison = archive.raison.replace(/(https?:\/\/[^\s"'?]+)\?[^\s"']+/g, '$1?[masqué]')
-    return indisponible(raison, { issue: archive.issue })
+  function journal({ echecsSeuls }) {
+    if (echecsSeuls && !jobs.some((job) => estEchecDuJournal(job?.conclusion))) return fait('')
+
+    const chemin = `${cheminDeCourse(id)}/attempts/${essai.valeur}/logs`
+    const archive = sortieGh(spawn, ['api', chemin], cwd, { binaire: true })
+    if (!archive.disponible) {
+      const raison = archive.raison.replace(/(https?:\/\/[^\s"'?]+)\?[^\s"']+/g, '$1?[masqué]')
+      return indisponible(raison, { issue: archive.issue })
+    }
+    try {
+      const debutEssai = essai.valeur > 1 ? Date.parse(startedAt) : NaN
+      return fait(projeterJournal(archive.valeur, jobs, { echecsSeuls, estRouge: estEchecDuJournal, debutEssai }))
+    } catch (e) {
+      return indisponible(`${libelle} : journal illisible — ${e.message}`)
+    }
   }
-  try {
-    const debutEssai = essai.valeur > 1 ? Date.parse(startedAt) : NaN
-    return fait(projeterJournal(archive.valeur, jobs, { echecsSeuls, estRouge: estEchecDuJournal, debutEssai }))
-  } catch (e) {
-    return indisponible(`${libelle} : journal illisible — ${e.message}`)
-  }
+  return fait({ jobs, journal })
 }

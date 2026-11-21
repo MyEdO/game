@@ -29,13 +29,28 @@
       "matiere": "prop--bois-chene"
     },
     {
+      "nom": "barres",
+      "palette": "planche",
+      "matiere": "prop--bois-chene"
+    },
+    {
       "nom": "ferrure",
       "palette": "metal",
       "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "echelle",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "gravats",
+      "palette": "gravats",
+      "matiere": "prop--terre-battue"
     }
   ],
   "glb": {
-    "sha256": "d2021f4807f564e0eba09c3a3eb079237eb450b81f9a770484e225dcdd73028e",
-    "octets": 444892
+    "sha256": "bf5f8454926577d1f89ac0ca58353356fc251da53503c9c29fbfc06d687136f6",
+    "octets": 463356
   }
 }

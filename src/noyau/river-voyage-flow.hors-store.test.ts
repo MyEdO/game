@@ -618,7 +618,7 @@ describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage
 });
 
 /**
- * #1078 LOT C1 / #1109 — le LIBELLÉ DE LIGNE (Z5, `docs/charte-ui.md`) du Test d'évitement d'un péril
+ * #1078 LOT C1 / #1109 — le LIBELLÉ DE LIGNE (Z5, `docs/ajouter-un-flux-de-jet.md`) du Test d'évitement d'un péril
  * est la COMPÉTENCE du barreur, RÉSOLUE par la couture id→label du catalogue (`refLabel`) et portée en
  * DONNÉE jusqu'à l'applier. Avant, l'étape insérée recopiait le `rollLabel` d'un pas `fleuveTestDePeril`
  * qui n'en a jamais → la ligne s'affichait sans nom de Compétence.

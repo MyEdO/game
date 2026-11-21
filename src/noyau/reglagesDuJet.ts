@@ -22,6 +22,7 @@ import type {
   IdDAdversaireDuBattement,
   IdDAtoutOptionnel,
   IdDeChanson,
+  IdDeChoixDeCibles,
   IdDeCombattant,
   IdDeFormeConjuree,
   IdDeHeros,
@@ -70,6 +71,8 @@ export interface ReglagesDuJet {
     effetCritique: 'critique' | 'puissance' | 'ineluctable';
     /** LDB 47 */
     formeConjuree: IdDeFormeConjuree;
+    /** VDM 09 l.346–354 */
+    choixDeCibles: IdDeChoixDeCibles;
     /** LDB 40 l.42 */
     discret: boolean;
     /** EDOC 13 l.276 */
@@ -208,6 +211,7 @@ export const REGLAGES_DU_JET = {
   defense: { reaction: avant, armeDeParade: avant, porteBouclier: avant, riposte: avant },
   incantation: {
     effetCritique: offertDuSort(apres, 'effetCritique'), formeConjuree: offertDuSort(horsDuJet, 'formeConjuree'),
+    choixDeCibles: offertDuSort(avant, 'choixDeCibles'),
     discret: offertDuSort(avant, 'discret'), jetsDeTable: offertDuSort(apres, 'jetsDeTable'),
     surincantationPortee: apres, surincantationZone: apres, surincantationDuree: apres, surincantationCibles: apres, surincantationDegats: apres,
     ciblesSupplementaires: apres,

@@ -203,7 +203,7 @@ export function passeDeLOperation(s: Pick<Jeu, 'medic' | 'party'>): PendingSurge
 }
 
 /** La cible de DR cumulé de l'opération que le brouillon `p` arme : Chirurgie, 7 (LDB 10) ; récupération d'usage,
- *  celle de la séquelle visée (LDB 18 l.120/179). Lue par l'armement et par l'enjeu du brouillon (`enjeuDuSoin`). */
+ *  celle de la séquelle visée (LDB 18 l.120/179). Lue par l'armement. */
 export function cibleDeLOperation(s: Pick<Jeu, 'party'>, p: Pick<PendingHeal, 'targetId' | 'plaie'>, kind: ActeOperatoire): number {
   if (kind === 'chirurgie') return 7;
   const patient = garanti(s.party.find((h) => h.id === p.targetId), p.targetId, 'patient de l’opération');

@@ -18,8 +18,6 @@ import {
   SURCOUTS,
   apprendre,
   lignesDeDelegation,
-  argumentsDuNoyau,
-  suiteDuNoyauALancer,
   executerLancements,
   principal,
   ligneDeRelance,
@@ -58,6 +56,8 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { fichiersDeLaSuite } from '../guards/lib/suiteVitest.mjs'
 import { lancerTests } from './run.mjs'
+import { prendreVerrou } from './verrou.mjs'
+import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 
 // #2586
 function bancDeCloture(t, fichier, familles) {
@@ -274,6 +274,72 @@ test('principal : annonce le propriétaire du verrou pendant son attente', async
   assert.ok(journal.some((texte) => texte.startsWith('[verrou] PID ' + tenant.pid + ' · ') && texte.includes(tenant.commande) && texte.includes(tenant.cwd) && texte.includes(tenant.date)))
 })
 
+test('#4621 --liste diffère la consultation si la prise est inaccessible', async (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-admission-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const chemin = join(racine, 'gestes-lourds.verrou')
+  const erreurs = []
+  const sortie = []
+  t.mock.method(console, 'error', (texte) => erreurs.push(texte))
+  t.mock.method(console, 'log', (texte) => sortie.push(texte))
+  const lancer = (args, code) => principal(args, racine, {
+    env: {},
+    verrou: {
+      chemin,
+      libelle: 'banc',
+      fs: { mkdirSync() { throw Object.assign(new Error('accès au dossier Git refusé'), { code }) } },
+    },
+  })
+  for (const code of ['EROFS', 'EACCES', 'EPERM']) {
+    assert.equal(await lancer(['--liste'], code), CODE_DIFFERE)
+    const diagnostic = erreurs.at(-1)
+    assert.match(diagnostic, /\[verrou\].*jeton.*détenteur/)
+    assert.ok(diagnostic.includes(chemin) && diagnostic.includes(code), diagnostic)
+  }
+  await assert.rejects(lancer(['--liste'], 'EIO'), { code: 'EIO' })
+  await assert.rejects(lancer([], 'EROFS'), { code: 'EROFS' })
+  assert.deepEqual(sortie, [])
+})
+
+test('#4621 --liste borne l’attente malgré un changement de génération vivante', async (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-rotation-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const chemin = join(racine, 'gestes-lourds.verrou')
+  const erreurs = []
+  const sortie = []
+  t.mock.method(console, 'error', (texte) => erreurs.push(texte))
+  t.mock.method(console, 'log', (texte) => sortie.push(texte))
+  const detenir = (commande) => {
+    const prise = prendreVerrou({ chemin, libelle: 'banc', commande })
+    assert.equal(prise.etat, 'pris')
+    return prise
+  }
+  let tenant = detenir('premier détenteur')
+  let instant = 0
+  try {
+    const code = await principal(['--liste'], racine, {
+      env: {},
+      verrou: {
+        chemin, libelle: 'banc',
+        attente: { echeanceMs: 30, pasMs: 10, parTenant: true },
+        horloge: () => instant,
+        dormir: async (ms) => {
+          instant += ms
+          if (instant === 10) {
+            tenant.liberer()
+            tenant = detenir('second détenteur')
+          }
+        },
+      },
+    })
+    assert.equal(code, CODE_DIFFERE)
+    assert.equal(instant, 30)
+    assert.match(erreurs.join('\n'), /premier détenteur[\s\S]*second détenteur/)
+    assert.equal(JSON.parse(readFileSync(chemin, 'utf8')).commande, 'second détenteur')
+    assert.deepEqual(sortie, [])
+  } finally { tenant.liberer() }
+})
+
 test('dérivation échouée : diagnostic depuis la sortie bornée sans relire le journal', async () => {
   const erreur = Object.assign(new Error('capture supérieure à 5 octets'), { code: 'ENOBUFS' })
   let traces
@@ -448,7 +514,7 @@ test('import.meta.glob à motif littéral : arc vers chaque fichier visé', asyn
 
 test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance propagée par eux', async (t) => {
   const racine = forger(t, {
-    'vite.config.ts': "import { fileURLToPath } from 'node:url'\nexport default { test: { setupFiles: [fileURLToPath(new URL('./src/setup.ts', import.meta.url))] } }\n",
+    'vitest.config.ts': "import { fileURLToPath } from 'node:url'\nexport default { test: { setupFiles: [fileURLToPath(new URL('./src/setup.ts', import.meta.url))] } }\n",
     'src/setup.ts': "import './store'\n",
     'src/store.ts': 'export const s = 1\n',
     'src/g.test.ts': 'export const g = 1\n',
@@ -467,7 +533,7 @@ test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance 
 // #2586
 test('setupFiles : une lambda locale de configuration conserve son lexique autonome', async (t) => {
   const racine = forger(t, {
-    'vite.config.ts': "const holder={rappel:(nom='src/setup.ts')=>nom};const rappel=holder.rappel;export default {test:{setupFiles:[rappel()]}}",
+    'vitest.config.ts': "const holder={rappel:(nom='src/setup.ts')=>nom};const rappel=holder.rappel;export default {test:{setupFiles:[rappel()]}}",
     'src/setup.ts': "import './store'",
     'src/store.ts': 'export const s = 1',
     'src/g.test.ts': 'export const g = 1',
@@ -478,7 +544,7 @@ test('setupFiles : une lambda locale de configuration conserve son lexique auton
 
 test('racine balayée dont le site n’est atteint que par les setupFiles : rang `setup`', async (t) => {
   const racine = forger(t, {
-    'vite.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
+    'vitest.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
     'src/setup.ts': "import { readdirSync } from 'node:fs'\nreaddirSync('donnees')\n",
     'donnees/x.json': '{}',
     'src/g.test.ts': 'export const g = 1\n',
@@ -489,7 +555,7 @@ test('racine balayée dont le site n’est atteint que par les setupFiles : rang
 
 test('relais de la clôture des setupFiles appelé par un test : la racine s’attribue au site où elle devient concrète, rang racine balayée', async (t) => {
   const racine = forger(t, {
-    'vite.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
+    'vitest.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
     'src/setup.ts': "import '../scripts/lib/corpus.mjs'\n",
     'scripts/lib/corpus.mjs': "import { readdirSync } from 'node:fs'\nimport { join } from 'node:path'\n" +
       "export function lireCorpus(dirs) {\n  const bases = dirs.map((d) => join('.', d))\n  return bases.flatMap((b) => readdirSync(b))\n}\n",
@@ -522,8 +588,8 @@ test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide
 })
 
 test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suite que la CI joue est retenue, la même pour la dérivation, les parties de run.mjs et les gardes (#2651)', async (t) => {
-  // Dedans : `src` en .ts/.tsx, suivi ou non suivi, sous un dossier pointé. Dehors : extension hors racine (`server/src`
-  // en .tsx), bench, hors racine (`docs`), ignoré, suivi mais supprimé du disque, suivi sous un `node_modules`.
+  // Dedans : `src` en .ts, suivi ou non suivi, sous un dossier pointé. Dehors : .tsx, bench,
+  // hors racine (`docs`), ignoré, suivi mais supprimé du disque, suivi sous un `node_modules`.
   const racine = forger(t, {
     '.gitignore': '/node_modules/\nsrc/ign/\n', 'tsconfig.json': '{}', 'server/package.json': '{}',
     'src/noyau/voyage-cadence.test.ts': 'export {}\n', 'src/b.test.tsx': 'export {}\n', 'server/src/c.test.tsx': 'export {}\n',
@@ -534,7 +600,7 @@ test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suit
     'src/f.test.ts': 'export {}\n', 'src/ign/g.test.ts': 'export {}\n',
   }, { commiter: false })
   rmSync(join(racine, 'src/z.test.ts'))
-  const suite = ['src/.x/h.test.ts', 'src/b.test.tsx', 'src/f.test.ts', 'src/noyau/voyage-cadence.test.ts']
+  const suite = ['src/.x/h.test.ts', 'src/f.test.ts', 'src/noyau/voyage-cadence.test.ts']
 
   const perimetre = await deriver(racine, { base: 'HEAD' })
   assert.deepEqual(perimetre.toolchain, ['server/package.json', 'tsconfig.json'])
@@ -1088,19 +1154,6 @@ test('gates déléguées (#3145) : un fichier sous le `lit` d’une gate marqué
     'le `lit` d’`ECRIT_LU` désigne la gate déléguée')
 })
 
-test('suite du noyau (#2817, #2928) : un fichier d’une racine des zones touché la lance ENTIÈRE par `test:noyau`, et un rouge se relance sur elle', () => {
-  const post = ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'src/data/x.hors-store.test.ts', 'src/noyau/partie.ts', 'scripts/a.mjs']
-  assert.deepEqual(suiteDuNoyauALancer(['src/noyau/partie.ts'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier du noyau qui n’est pas un test lance la suite')
-  assert.deepEqual(suiteDuNoyauALancer(['src/data/supprime.json'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier de src/ supprimé compte')
-  assert.deepEqual(suiteDuNoyauALancer(['scripts/a.mjs'], post), [], 'hors de src/, la suite ne se lance pas')
-  assert.deepEqual(suiteDuNoyauALancer(['hotes/godot/pont/pont.ts'], [...post, 'hotes/godot/pont/pont.hors-store.test.ts']),
-    ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'hotes/godot/pont/pont.hors-store.test.ts'], 'un fichier d’un hôte externe (`hotes/`) la lance, ses tests compris')
-  const args = argumentsDuNoyau(['src/noyau/partie.hors-store.test.ts'])
-  assert.deepEqual(args, ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', 'vitest.noyau.config.ts', 'src/noyau/partie.hors-store.test.ts'])
-  assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'noyau', code: 1, echecs: [], args }], lint: { code: 0, defauts: [] }, appelLint: () => ['oxlint'] }),
-    'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : npm run test:noyau -- src/noyau/partie.hors-store.test.ts')
-})
-
 /** Le lancement `principal` du dépôt `racine` sur son dernier commit, sous la plateforme `platform` (celle du
  *  processus par défaut), en sous-processus HORS du contexte de ce test (`NODE_TEST_CONTEXT` retiré : ses `node --test`
  *  lancent leurs fichiers) : sa sortie et son code. */
@@ -1374,17 +1427,55 @@ test('part CI NÉGATIVE (anomalie d’ordonnancement) : « non séparable », ja
   assert.equal(texteDuMur(180_000, { murCiMs: -1702, nCi: 54 }), '180.0 s, part CI non séparable (54 test(s) estimés depuis la CI)')
 })
 
-test('--liste : empreinte intégrale du dépôt conserve fichiers, mémos et mesures après deux passages', (t) => {
-  const racine = forger(t, { 'scripts/a.test.mjs': "import {readFileSync} from 'node:fs';readFileSync('donnees/a.json')", 'donnees/a.json': '{}' }, { 'donnees/a.json': '{"a":1}' })
+test('#4621 --liste produit le même plan avec une prise propre ou empruntée en lecture seule', async (t) => {
+  const testDuBalayage = 'scripts/a.test.mjs'
+  const testNonSuivi = 'scripts/neuf.test.mjs'
+  const racine = forger(t, {
+    [testDuBalayage]: "import {readFileSync} from 'node:fs';readFileSync('donnees/a.json')",
+    'donnees/a.json': '{}',
+  }, {
+    'donnees/a.json': '{"a":1}',
+    [testNonSuivi]: "throw new Error('la liste ne joue pas ce témoin')\n",
+  }, { commiter: false })
   const empreintes = () => new Map(readdirSync(racine, { recursive: true }).filter((r) => statSync(join(racine, r)).isFile())
     .sort().map((r) => [r, createHash('sha256').update(readFileSync(join(racine, r))).digest('hex')]))
+  const sortie = []
+  const erreurs = []
+  t.mock.method(console, 'log', (texte) => sortie.push(texte))
+  t.mock.method(console, 'error', (texte) => erreurs.push(texte))
+  const args = ['--base', 'HEAD', '--liste', '--budget', '45']
+  const env = envDeDepotForge()
+  const verrou = verrouGestesLourds(racine)
+  const plan = () => sortie.filter((ligne) => /^( {2}scripts\/|\[perimetre\] (base |sélection |budget |bilan ))/.test(ligne))
   const avant = empreintes()
-  for (let i = 0; i < 2; i++) {
-    const vu = lancerPrincipal(racine, ['--liste'])
-    assert.equal(vu.status, 0, vu.stdout + vu.stderr)
-    assert.match(vu.stdout, /CI non rapatriée — --liste n’écrit rien/)
-    assert.deepEqual(empreintes(), avant)
-  }
+  assert.equal(await principal(args, racine, { env, verrou }), 0, erreurs.join('\n'))
+  const planPropre = plan()
+  const journalDuPlan = planPropre.join('\n')
+  assert.match(journalDuPlan, /sélection : 2 fichier\(s\) retenu\(s\) sur 3/)
+  assert.ok(planPropre.some((ligne) => ligne.startsWith('  ' + testDuBalayage + ' ← racine balayée')), journalDuPlan)
+  assert.ok(planPropre.some((ligne) => ligne.startsWith('  ' + testNonSuivi + ' ← touché') && ligne.endsWith('→ lancé')), journalDuPlan)
+  assert.match(journalDuPlan, /budget 45 s de mur/)
+  assert.deepEqual(empreintes(), avant)
+
+  const prise = prendreVerrou({ ...verrou, attente: undefined, env })
+  assert.equal(prise.etat, 'pris')
+  try {
+    const avantEmprunt = empreintes()
+    const ecrire = () => assert.fail('la consultation empruntée tente une écriture du verrou')
+    const fs = { readFileSync, mkdirSync: ecrire, writeFileSync: ecrire, linkSync: ecrire, rmSync: ecrire }
+    sortie.length = 0
+    assert.equal(await principal(args, racine, { env: { ...env, ...prise.env }, verrou: { ...verrou, fs } }), 0, erreurs.join('\n'))
+    assert.deepEqual(plan(), planPropre)
+    assert.deepEqual(empreintes(), avantEmprunt)
+
+    const [cle] = Object.keys(prise.env)
+    sortie.length = 0
+    assert.equal(await principal(args, racine, { env: { ...env, [cle]: '{}' }, verrou: { ...verrou, fs } }), CODE_DIFFERE)
+    assert.match(erreurs.at(-1), /jeton d'emprunt invalide/)
+    assert.deepEqual(sortie, [])
+    assert.deepEqual(empreintes(), avantEmprunt)
+  } finally { prise.liberer() }
+  assert.deepEqual(empreintes(), avant)
 })
 
 test('bilan en fichiers : joués / retenus / suite par famille, renvois à la CI par cause ; « suite entière » quand tout est joué (#2651)', (t) => {

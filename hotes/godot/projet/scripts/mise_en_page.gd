@@ -177,6 +177,13 @@ static func longueur_d_arete(sens: Vector2) -> float:
 	return sens.length()
 
 
+## La pente, dans le plan du plateau, d'une pièce posée sur une arête qui court selon `sens`, de la cote `entree`
+## (mètres) à son premier bout à la cote `sortie` à son second, sur un plateau de `par_case` mètres par case (#4471) :
+## en X et en Z du plateau, ce dont monte un point de la pièce par unité de plateau, ses montants gardés verticaux.
+static func pente_d_arete(sens: Vector2, entree: float, sortie: float, par_case: float) -> Vector2:
+	return sens.normalized() * hauteur_au_plateau(sortie - entree, par_case) / longueur_d_arete(sens)
+
+
 ## L'échelle d'une pièce d'un modèle d'arête long de `long` mètres et haut de `haut` mètres posée sur une arête qui
 ## court selon `sens`, haute de `hauteur` mètres, sur un plateau de `par_case` mètres par case (#4471) : en longueur
 ## celle qui le porte à la longueur de l'arête (`longueur_d_arete`), en hauteur celle qui porte son sommet à celle de
@@ -284,6 +291,16 @@ static func triangles(sommets: int) -> float:
 ## Le compte de `triangles` triangles, plus ceux que portent `sommets` sommets (`triangles`).
 static func triangles_de_plus(triangles: int, sommets: int) -> float:
 	return triangles + sommets / 3.0
+
+
+## La plage de rangs `plage`, de même longueur, reportée à partir de `debut`.
+static func plage_reportee(plage: Vector2i, debut: int) -> Vector2i:
+	return Vector2i(debut, debut + plage.y - plage.x)
+
+
+## Les bornes de `plage` dans un tableau qui range `composantes` valeurs par rang.
+static func plage_des_composantes(plage: Vector2i, composantes: int) -> Vector2i:
+	return plage * composantes
 
 
 ## Le texel, dans le masque du retrait (`RetraitDuMonde`), de la case `case` du plan de première rangée `rangee`.

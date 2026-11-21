@@ -551,12 +551,12 @@ describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia 
   });
 
   // #614 — un PNJ/bête custom (`LivingRef.custom`) porte la MÊME overlay de spawn qu'une créature du bestiaire.
-  it('statblockToCombatant : extras.charsRolled REMPLACE le profil saisi ; deux projections = mêmes stats', () => {
+  it('statblockToCombatant : charsRolled prime sur le profil saisi et sur le tirage de la pose', () => {
     const sb = { label: 'Bête custom', char: { M: 4, 'capacite-de-combat': 30, force: 30, endurance: 30 } } as any;
     const rolled = { ...sb.char, force: 41, endurance: 37 } as any;
     for (const k of CHAR_KEYS) if (typeof rolled[k] !== 'number') rolled[k] = 0;
     const a = statblockToCombatant(sb, 'p1', at, undefined, { charsRolled: rolled });
-    const b = statblockToCombatant(sb, 'p2', at, undefined, { charsRolled: rolled });
+    const b = statblockToCombatant(sb, 'p2', at, undefined, { charsRolled: rolled, randomChars: true });
     expect(a.characteristics).toEqual(b.characteristics);
     expect(a.characteristics.force).toBe(41);
     expect(a.wounds.max).toBe(b.wounds.max);
@@ -705,9 +705,13 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
     expect(details?.age).toBeLessThanOrEqual(25);
     expect(details?.height).toBeGreaterThanOrEqual(150); // 145 + 5d10 cm, LDB 05 l.724
     expect(details?.height).toBeLessThanOrEqual(195);
-    expect(details?.eyes).toBeTruthy();
-    expect(details?.hair).toBeTruthy();
+    expect(details?.eyes).toMatchObject({ colonne: 'humain' });
+    expect(details?.hair).toMatchObject({ colonne: 'humain' });
     expect(ficheDEntite(humain('garde-1'), sansPreset).details).toEqual(details);
+    expect(ficheDEntite(humain('garde-1', { appearance: { species: 'halflings' } }), sansPreset).details).toMatchObject({
+      eyes: { id: 'gris-pale', colonne: 'halfling' },
+      hair: { id: 'noir', colonne: 'halfling' },
+    });
   });
 
   it('ce que l’auteur pose prime : son nom, un statbloc, un individu nommé du bestiaire', () => {

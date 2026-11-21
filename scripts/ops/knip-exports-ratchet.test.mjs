@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { join } from 'node:path'
-import { flatten, compare, syncBaseline, REPO, HORS_GEL } from './knip-exports-ratchet.mjs'
+import { flatten, compare, syncBaseline, REPO } from './knip-exports-ratchet.mjs'
 
 const CONFIG = JSON.parse(readFileSync(join(REPO, 'knip.json'), 'utf8'))
 const retenu = (file, motifs) => motifs.some((m) => !m.startsWith('!') && correspondGlob(file, m)) && !motifs.some((m) => m.startsWith('!') && correspondGlob(file, m.slice(1)))
@@ -51,13 +51,13 @@ const issue = (file, exports = [], types = []) => ({
   nsTypes: [],
 })
 
-test('flatten : exports et types fusionnés, triés, gameIso hors gel', () => {
+test('flatten : exports et types fusionnés et triés dans chaque fichier du rapport', () => {
   const per = flatten([
-    issue('src/state/a.ts', ['b', 'a'], ['T']),
-    issue('src/gameIso/stage/x.ts', ['mort']),
-    issue('src/ui/vide.ts', []),
+    issue('src/noyau/a.ts', ['b', 'a'], ['T']),
+    issue('hotes/godot/pont/x.ts', ['exportSansLecteur']),
+    issue('src/data/vide.ts', []),
   ])
-  assert.deepEqual(per, { 'src/state/a.ts': ['T', 'a', 'b'] })
+  assert.deepEqual(per, { 'src/noyau/a.ts': ['T', 'a', 'b'], 'hotes/godot/pont/x.ts': ['exportSansLecteur'] })
 })
 
 test('compare : un export mort NOUVEAU est une régression', () => {
@@ -87,14 +87,8 @@ test('syncBaseline ne sait que RETIRER — jamais ajouter un export mort neuf', 
   assert.deepEqual(next, { 'a.ts': ['x'] })
 })
 
-// ── Contrat du filtre gameIso : il vit dans le CLIQUET (après mesure), JAMAIS dans la config knip.
-//    L'y mettre couperait le graphe — un export consommé par le seul `src/gameIso` passerait pour
-//    mort et se ferait geler comme dette. Deux tests verrouillent le contrat : la config ne coupe rien
-//    (ci-dessous), et aucune entrée gelée n'est en réalité importée par gameIso
-//    (`scripts/corpus/ops/knip-exports-ratchet.test.mjs`).
-test('le filtre gameIso n’est PAS dans knip.json (sinon le graphe est coupé)', () => {
+test('knip.json ne recadre pas le graphe sur les anciens dossiers d’interface', () => {
   const knip = JSON.parse(readFileSync(join(REPO, 'knip.json'), 'utf8'))
   const motifs = [...(knip.ignore ?? []), ...(knip.entry ?? []), ...(knip.project ?? [])]
-  for (const m of motifs) assert.ok(!m.includes('gameIso'), `knip.json cite gameIso (${m}) : graphe coupé`)
-  assert.deepEqual(HORS_GEL, ['src/gameIso/'], 'le hors-gel est le seul endroit où gameIso se filtre')
+  for (const m of motifs) assert.ok(!m.includes('gameIso'), `knip.json cite gameIso (${m})`)
 })

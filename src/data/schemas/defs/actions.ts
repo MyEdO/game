@@ -123,7 +123,6 @@ const champs = {
   /** FOYER de la règle : l'entrée Codex qui la porte (jamais une phrase recomposée). */
   rule: foyerDeRegleSchema.optional(),
 
-  keys: z.array(z.string()).optional(),
   /** Dette BLOQUANTE : l'action est déclarée mais aucun verbe ne la joue encore. */
   blocked: blocageDeLivraison.optional(),
   /** SORTIE D'INTERLUDE ATTEIGNABLE À ÉCHAP (`surface: 'interlude'` uniquement) : `false` = son
@@ -140,9 +139,6 @@ const champs = {
   /** ENTRÉE HÔTE d'un geste secondaire (`surface: 'geste-secondaire'` uniquement, requis) : l'action
    *  dont l'alvéole porte le geste. Déclaré ICI pour qu'aucune console ne teste un id. */
   hote: ref('action').optional(),
-  /** L'action FAIT NAÎTRE un panneau-paramètre (`PanneauParametre`) de SON alvéole : la surface qui
-   *  la rend y pose l'ANCRE du panneau. Déclaré ICI pour qu'aucune console ne teste un id. */
-  panneau: z.boolean().optional(),
 };
 
 /** L'entrée que les deux raffinements lisent, au type de ses champs. */
@@ -172,15 +168,10 @@ const doc = document(
     },
     coutAction: { label: 'Coût en Action', hint: 'Ce que l’acte consomme dans l’économie du Tour (Action/Mouvement/gratuit/aucun)' },
     rule: { label: 'Règle associée', hint: 'Entrée Codex qui porte la règle' },
-    keys: {
-      label: 'Clés historiques de surface',
-      hint: 'Anciennes clés de case couvertes par cette action (liste décroissante, en transition)',
-    },
     blocked: { label: 'Dette bloquante', hint: 'Action déclarée sans verbe qui la joue' },
     exitSafe: { label: 'Sortie sans perte', hint: 'La touche d’annulation peut déclencher cette sortie sans rien commettre' },
     role: { label: 'Rôle de la sortie', hint: 'Valide le geste, ou y renonce — la proéminence du bouton s’en déduit' },
     hote: { label: 'Action hôte', hint: 'Action dont l’alvéole porte ce geste secondaire' },
-    panneau: { label: 'Ouvre un panneau-paramètre', hint: 'L’action fait naître un panneau ancré à sa propre alvéole' },
   },
   {
     codex: {

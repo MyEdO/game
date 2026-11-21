@@ -7,6 +7,7 @@ import { RACINE, sourcesSuivies } from '../scripts/guards/lib/modulesFeuilles.mj
 import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { lecturesDHote } from '../scripts/guards/lib/graphiesDHote.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
+import type { CorpusFile } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
  * Garde de classe #1801 — le rendu sous win32 (`scripts/docs/lib/plateforme-win32.mjs`) ne simule
@@ -220,7 +221,7 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
     const suivies: string[] = sourcesSuivies().filter((rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel));
     expect(suivies.length, 'le listage des sources suivies est vide').toBeGreaterThan(1000);
     const offenders: string[] = [];
-    const fichiers: { rel: string; text: string }[] = [];
+    const fichiers: Pick<CorpusFile, 'rel' | 'text'>[] = [];
     for (const rel of suivies) {
       let texte: string;
       try {

@@ -13,13 +13,13 @@ import { tmpdir } from 'node:os';
 import { join, dirname, relative, resolve } from 'node:path';
 import { createServer } from 'vite';
 import { parseChapitre, fragmentBlocs, type ChapitreParse, type FragmentBlocs } from './decoupe.ts';
-// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { proseSource, titreDeChapitre } from '../../../scripts/source/prose-source-plugin.mjs';
-// @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { materialiser, resoudreProse } from '../../../scripts/source/resoudre.mjs';
-// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { chapitresDe, cheminChapitre } from '../../../scripts/source/lecteur-fs.mjs';
-// @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { readText } from '../../../scripts/raw/_lib.mjs';
 // Inventaire des adresses du dépôt : la DÉFINITION unique du walk (`adresses.mjs`, qui liste par la
 // primitive d'ORDRE TOTAL `listerArbre`) — jamais un second balayage ici.

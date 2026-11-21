@@ -28,7 +28,7 @@ import type {
 import type { refusDAccesSchema } from '../data/schemas/grammaire/acces';
 import type { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
-import type { provenanceDeValeurSchema, routeBilletSchema } from '../data/schemas/grammaire/route';
+import type { routeBilletSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
 import { tableTotale } from '../lib/tableTotale';
 import { normalizeScene } from './monde/scene';
@@ -38,7 +38,7 @@ import { type LandMarketProfile } from '../engine/landCargo';
 import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
-import { findNavalPortById, findLieuServiceById, coreAxisIds, semencesDeScene } from '../data';
+import { findNavalPortById, findLieuServiceById, semencesDeScene } from '../data';
 import { colonneDeLaTaille } from '../engine/disponibilite';
 import type { Settlement } from '../data/schemas/grammaire/valeurs';
 
@@ -153,9 +153,6 @@ export function refusDAcces(acces: Acces, ctx: ConditionCtx): string | null {
 /** Billet d'auteur d'un passage payant (EDO 01 l.142) : un forfait par place, payé une fois, d'avance,
  *  au départ de la route qui le porte, valable pour elle et pour sa `suite`. */
 export type RouteBillet = z.output<typeof routeBilletSchema>;
-
-/** Provenance d'une valeur d'auteur de route : `source` ou `maison`. */
-export type ProvenanceDeValeur = z.infer<typeof provenanceDeValeurSchema>;
 
 /** Clé d'un billet : sa première route, son véhicule et son lieu de départ — un billet se marchande
  *  UNE fois (EDO 01 l.142). */
@@ -356,21 +353,6 @@ export function serviceIcon(s: ResolvedPlaceService): IconId {
   return s.icon ?? 'navigation/point-d-entree';
 }
 
-/** Résolution GÉNÉRALE de l'icône d'un marqueur de plan (#371) : l'`icon` authoré du POI PRIME (surcharge
- *  d'auteur) ; sinon l'icône se DÉRIVE de la cible — `service` → icône du service résolu (`serviceIcon`),
- *  `sceneId` → porte. Défaut ultime `navigation/point-d-entree`. Aucun backfill de donnée : la résolution couvre tout
- *  lieu présent et futur. PUR, source unique des marqueurs du hub, du panneau de détail et de l'éditeur. */
-export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): IconId {
-  if (poi.icon) return poi.icon;
-  const service = poi.service;
-  if (service) {
-    const svc = services.find((s) => s.id === service.id);
-    if (svc) return serviceIcon(svc);
-  }
-  if (poi.sceneId) return 'outil-de-carte/porte';
-  return 'navigation/point-d-entree';
-}
-
 /** Le nom d'un point d'intérêt : son `label` s'il mène à une scène, le nom du service résolu qu'il vise sinon
  *  (`services`, sortie de `placeServices`), son id à défaut. PUR, source unique du nom d'un point d'intérêt. */
 export function nomDuPoi(poi: PlacePoi, services: readonly ResolvedPlaceService[]): string {
@@ -449,11 +431,6 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
     }
   }
   return out;
-}
-
-/** Le lieu a-t-il un plan à montrer : au moins un POI (#345 phase 5). PUR. */
-export function lieuAUnPlan(place: MapPlace): boolean {
-  return (place.poi ?? []).length > 0;
 }
 
 /** Colonne Produits/Production d'un profil commercial, TERRESTRE ou MARITIME (MSRC 13 ; MDG 15 l.321) :
@@ -634,20 +611,12 @@ export interface ProjectIdentite {
 export interface ProjectDoc extends ProjectIdentite {
   scenes: Scene[];
   worldMap?: WorldMap;
-  /** Axes de forces/faiblesses ACTIFS de la campagne (#409, ids de `src/data/axes.json`) — un
-   *  scénario marchand active `negoce`, un siège `ingenierie`. Absent = socle de base (`coreAxisIds`,
-   *  cf. `resolveActiveAxes`). Placement en jeu (rail de composition, mini-radar) hors périmètre de
-   *  ce lot (#417). */
+  /** Axes de forces et faiblesses déclarés par le projet (#409, ids de `src/data/axes.json`).
+   *  La lecture de projets existants garde le champ facultatif. */
   activeAxes?: string[];
   /** Bloc NARRATIF embarqué (#765) : affaires, indices, presets de PNJ, objets de la campagne —
    *  référence la règle globale PAR ID, jamais réinjecté dans `src/data` (`data/schemas/defs-scenes/narratif.ts`). */
   narratif: NarratifBlock;
-}
-
-/** Axes RÉELLEMENT actifs d'un projet — `activeAxes` déclaré (validé) sinon le socle de base. SOURCE
- *  UNIQUE de ce défaut (jamais un `?? []` dispersé côté consommateur, cf. #417). */
-export function resolveActiveAxes(doc: { activeAxes?: string[] }): string[] {
-  return doc.activeAxes && doc.activeAxes.length > 0 ? doc.activeAxes : coreAxisIds();
 }
 
 /**

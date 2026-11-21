@@ -1,7 +1,7 @@
 // Ce que la SUITE Vitest joue (#2651) — définition UNIQUE : les shards de la CI (`scripts/test/run.mjs`) et les gardes
 // qui scannent les suites la consomment ; le périmètre (`scripts/test/perimetreDerivation.mjs`) en partage le prédicat.
-// Le prédicat est `estDeLaSuiteVitest` (`racinesDeLaSuite.mjs`, d'où `vite.config.ts` tire `test.include` et
-// `test.exclude`) ; celui de la suite du noyau (`vitest.noyau.config.ts`), `estDeLaSuiteDuNoyau`, se passe en `suite`.
+// Le prédicat est `estDeLaSuiteVitest` (`racinesDeLaSuite.mjs`, d'où `vitest.config.ts` tire `test.include` et
+// `test.exclude`).
 // La LISTE vient de git (`TRAVAIL`) : ce que la CI joue, c'est l'arbre du commit, jamais un fichier
 // ignoré — que le glob de Vitest, lui, prend s'il est présent sur le disque.
 import { join } from 'node:path'
@@ -24,7 +24,7 @@ export function suiteVitestDuDepot(racine = RACINE, { env, suite: estDeLaSuite =
 
 /** Les fichiers de la suite `suite` du dépôt de `racine` (`suiteVitestDuDepot`, git sous `env`), avec leur chemin
  *  absolu et leur texte, lu une fois par worker (`entreeDe`, mémo de `sourceCorpus.mjs`).
- *  @returns {{ abs: string, rel: string, text: string }[]} */
+ *  @returns {import('./suiteVitest.mjs').FichierDeSuite[]} */
 export function fichiersDeLaSuite(racine = RACINE, { env, suite } = {}) {
   return suiteVitestDuDepot(racine, { env, suite }).map((rel) => {
     const abs = join(racine, rel)

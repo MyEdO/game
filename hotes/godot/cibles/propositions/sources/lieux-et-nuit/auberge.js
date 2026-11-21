@@ -1,7 +1,9 @@
 /* Le décor de l'auberge : la salle de la Fin du Voyage, sa galerie des chambres, l'âtre, le comptoir, les tables et le
-   box du barbier (`../rendu.js`, écran `nuit`). Peint à 1707 × 780, rogné à la vue (`toile`, `commun.js`). */
+   box du barbier (`../rendu.js`, écran `nuit`). La salle suit la qualité de l'établissement (`qualite` de l'état) : la
+   piètre enfumée, ses paillasses au mur ; la grande, son tapis et son lustre. Peint à 1707 × 780, rogné à la vue
+   (`toile`, `commun.js`). */
 {
-  const S = toile(), W = 1707, H = 780;
+  const S = toile(), W = 1707, H = 780, { qualite } = globalThis.MAQUETTE.etat;
   rims('#f0a850', '#0c0705');
   grad('mur', [[0, '#1d120a'], [.5, '#3a2413'], [1, '#4a2e17']]);
   grad('plancher', [[0, '#4a2e18'], [.4, '#2c1a0e'], [1, '#0c0705']]);
@@ -22,6 +24,8 @@
     el(S, 'rect', { y: SOL - 3, width: W, height: 6, fill: '#0f0805' });
   }
   el(S, 'ellipse', { cx: 880, cy: 520, rx: 700, ry: 300, fill: 'url(#lueur)', style: 'mix-blend-mode:screen', opacity: .75 });
+  // le tapis de la grande qualité, sous les tables
+  if (qualite === 'grande') el(S, 'path', { d: `M760,${SOL + 20}H1560L1707,${H}H560Z`, fill: '#5a1712', opacity: .8 });
   const G = el(S, 'g');
   // la galerie des chambres, à l'étage
   {
@@ -105,6 +109,18 @@
     for (const [x, y] of [[1318, 562], [1326, 566], [1244, 568]]) el(g, 'ellipse', { cx: x, cy: y, rx: 5, ry: 2, fill: '#e2c06a' });
     el(G, 'path', { d: 'M1262,632h56v7h-8l4,40h-6l-5,-34h-26l-5,34h-6l4,-40h-8z', fill: '#0c0705' });
     el(G, 'ellipse', { cx: 1290, cy: 632, rx: 30, ry: 7, fill: '#ffe2a6', opacity: .5, filter: 'url(#f4)' });
+  }
+  // la piètre qualité : les paillasses au pied du mur, la fumée sous le plafond bas
+  if (qualite === 'pietre') {
+    for (const x of [1060, 1240, 1420]) { el(G, 'ellipse', { cx: x, cy: SOL + 8, rx: 74, ry: 12, fill: '#4a3a1c' }); el(G, 'path', { d: `M${x - 70},${SOL + 6}q70,-14 140,0`, stroke: '#7a6436', 'stroke-width': 2, fill: 'none' }); }
+    el(S, 'rect', { width: W, height: H, fill: '#2b2a28', opacity: .42 });
+    el(S, 'ellipse', { cx: 880, cy: 160, rx: 900, ry: 200, fill: '#3a3835', opacity: .5, filter: 'url(#f4)' });
+  }
+  // la grande qualité : le lustre au-dessus des tables
+  if (qualite === 'grande') {
+    el(G, 'path', { d: 'M1060,46v70', stroke: '#0c0604', 'stroke-width': 2 });
+    el(G, 'path', { d: 'M980,124q80,26 160,0', stroke: '#c9a44c', 'stroke-width': 4, fill: 'none' });
+    for (const x of [980, 1020, 1060, 1100, 1140]) { el(G, 'path', { d: `M${x},${x === 1060 ? 134 : 128}v-14`, stroke: '#f3ecd4', 'stroke-width': 3 }); el(G, 'circle', { cx: x, cy: 110, r: 30, fill: 'url(#chandelle)', style: 'mix-blend-mode:screen' }); }
   }
 }
 fermer();

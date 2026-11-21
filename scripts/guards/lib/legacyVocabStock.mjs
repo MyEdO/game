@@ -11,11 +11,11 @@
 // y entre par la seule EXTENSION DE COUVERTURE du détecteur, mesurée et datée dans le commit qui étend
 // la famille (lot `L7`, 2026-09-26, #1486 #1509) ; un site neuf se corrige au geste.
 //
-// Périmètre : `src/**` + `scripts/**` (`.ts`, `.tsx`, `.mts`, `.mjs`, tests compris). Mesures :
+// Périmètre : `src/**` + `scripts/**` (`.ts`, `.mts`, `.mjs`, tests compris). Mesures :
 // 2026-08-23 ; 2026-09-26 (lot `L7`).
 
 /**
- * @typedef {{ fichier: string, motif: string, ancre: string, lot: string, date: string }} SiteVocab
+ * @typedef {import('./stock.mjs').Echeance & { fichier: string, motif: string, ancre: string }} SiteVocab
  */
 
 /** @type {SiteVocab[]} */
@@ -81,27 +81,6 @@ export const LEGACY_VOCAB_SITES = [
     motif: "legacy",
     ancre: "MDG 13 l.674 « corps et biens ») ; sans correspondance, la purge legacy `vessel:null` ci-dessus reste",
     lot: "L1b #1467 / L5",
-    date: "2026-08-23",
-  },
-  {
-    fichier: "src/ui/editor/Editor.tsx",
-    motif: "legacy",
-    ancre: "/** Identité de campagne (#765/#766) — préservée au round-trip, absente d'un projet legacy sans identité. */",
-    lot: "L1b #1467 / L5",
-    date: "2026-08-23",
-  },
-  {
-    fichier: "src/ui/HeroSheet.tsx",
-    motif: "rétro-compat",
-    ancre: "/** Champs de la rubrique `derived` — TOUS par défaut (rétro-compatible). Un appelant qui porte déjà",
-    lot: "L6",
-    date: "2026-08-23",
-  },
-  {
-    fichier: "src/ui/HeroSheet.tsx",
-    motif: "rétro-compat",
-    ancre: "/** Rubriques rendues — TOUTES par défaut (rétro-compatible). Un appelant qui porte déjà une partie",
-    lot: "L6",
     date: "2026-08-23",
   },
   {
@@ -350,97 +329,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/gameIso/authoring/wallsSvg.ts",
-    motif: "désormais",
-    ancre: "depuis la palette unifiée du JSON) est désormais ombrée comme le bois : sa face N recule dans l'ombre,",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/backends/webgl/sceneCutaway.test.ts",
-    motif: "désormais",
-    ancre: "des faces par groupe. Elle ignore les POSITIONS — le rang coplanaire se calcule désormais sur la",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/MondeDeCampagne.tsx",
-    motif: "désormais",
-    ancre: "recevaient ; la masse est désormais CUITE en bloc (`bakeWorldGeometry` prend la scène entière),",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/MoveOverlays.test.tsx",
-    motif: "désormais",
-    ancre: "// `order`/`turn`/`movementUsed` : le badge dit désormais ce que le geste fait du Mouvement du Tour",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/escalade-et-chute-par-l-arete.test.tsx",
-    motif: "désormais",
-    ancre: "même, le geste appelé est le même, et la GÉOMÉTRIE est désormais celle du lift MÉTRIQUE — mesurée",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/escalade-et-chute-par-l-arete.test.tsx",
-    motif: "désormais",
-    ancre: "que la projection unique corrige : ils suivent désormais le sol qu'on voit.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/marques-parite.test.tsx",
-    motif: "désormais",
-    ancre: "CHEMIN qui est désormais celui du jeu.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/modele-forme.test.ts",
-    motif: "désormais",
-    ancre: "a désormais un producteur ailleurs : le DESSOUS d'un décor volumique, qui porte son propre dehors.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/pick-parity.test.tsx",
-    motif: "désormais",
-    ancre: "manque : elle rapporte désormais les DEUX, et par la MÊME fonction que le hook.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/pov-brume.test.tsx",
-    motif: "désormais",
-    ancre: "prennent désormais le MÊME scalaire que les lampes (`ambianceLum`) — c'est le CÂBLAGE de bout en",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/projection.ts",
-    motif: "désormais",
-    ancre: "`Dims.yawDeg` → `tileCenter`, qui partage désormais SA rotation et SA cadence).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/redessin-pilote.test.tsx",
-    motif: "désormais",
-    ancre: "désormais quelque chose de peint là où il n'y avait rien.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/weather-boucle.test.tsx",
-    motif: "désormais",
-    ancre: "que l'averse TIENT tant qu'elle tombe (#1378) — c'est par là que la boucle de chute passe désormais.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/i18n/messages/fr.ts",
     motif: "désormais",
     ancre: "(Les Résistances Empoisonné/Sonné sont désormais data-driven — leur journal vient des ops",
@@ -535,13 +423,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/noyau/crit-test-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "ignorait les États du jeteur — donc sans Chance, sans Pacte, sans Résilience. Ils naissent désormais",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/state/devtools.ts",
-    motif: "désormais",
-    ancre: "'combat' — #345, la victoire est désormais différée tant qu'UNE cascade est ouverte). Recette : on",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
@@ -686,100 +567,9 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/ShipStationsPanel.tsx",
-    motif: "désormais",
-    ancre: "suit désormais cette règle (arbitrage user 2026-09-04) : les stations n'y sont plus l'exception.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/StateChips.test.tsx",
-    motif: "désormais",
-    ancre: "désormais (`chipNom`, source unique), et la MÊME forme sert la fiche (« Effets actifs ») : une",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/TravelRecapModal.test.tsx",
-    motif: "désormais",
-    ancre: "depuis le cas arrivée, désormais amincie).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/active-modal.test.ts",
-    motif: "désormais",
-    ancre: "Arbitre de modales (R2, désormais REGISTRE noyau/modalArbiter) : une seule modale de combat à",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/active-modal.test.ts",
-    motif: "désormais",
-    ancre: "La SITUATION est désormais portée par la cascade-hôte ouverte à l'incantation (CascadeModal → CastModal).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/compendium/codex-edit-charge-discriminee.test.tsx",
-    motif: "désormais",
-    ancre: "// #1686 tenait à `materials` : le stock NOMME désormais ses clés, si bien qu'une reprise de champs",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/compendium/codex-edit-save-transaction.test.tsx",
-    motif: "désormais",
-    ancre: "silence. La pose est désormais TRANSACTIONNELLE — le refus REPREND l'état d'avant.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/noyau/codex/registry.ts",
     motif: "désormais",
     ancre: "// PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/coop-surfaces-combat.test.tsx",
-    motif: "désormais",
-    ancre: "// La modale s'ouvre ENSUITE (jet du héros distant) : c'est elle qui parle désormais.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/echap-intention-consomme.test.tsx",
-    motif: "désormais",
-    ancre: "désarme, et les suivants — l'intention désormais nulle — retombent sur `menu-ouvrir`.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/forcedDieRow.pre-roll.test.tsx",
-    motif: "désormais",
-    ancre: "porte désormais SA ligne ; le libellé VISIBLE reste l'état du champ (offre / marque).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/forcedDieRow.pre-roll.test.tsx",
-    motif: "désormais",
-    ancre: "rangée détient sa poignée LOCALE. La coquille tient désormais un REGISTRE de poignées et applique",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/forcedDieRow.ts",
-    motif: "désormais",
-    ancre: "le dos/piétinement — ne le font plus), et une modale qui n'en avait jamais l'offre désormais.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/useRollFrisson.ts",
-    motif: "désormais",
-    ancre: "@param opts.frisson  Anime avant de résoudre (défaut : TRUE — #396, tout jet roule désormais ;",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
@@ -794,13 +584,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "scripts/gen-sorts-doc.mts",
     motif: "désormais",
     ancre: "Migration #5 : les métadonnées de résolution (durée, ZdE, etc.) vivent désormais",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "scripts/guards/lib/cssConservation.mjs",
-    motif: "désormais",
-    ancre: "plus, ou l'emporte désormais, sur une déclaration CONSERVÉE visant une classe",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

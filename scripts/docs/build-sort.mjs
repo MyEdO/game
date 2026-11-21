@@ -226,7 +226,6 @@ function rendu() {
     'src/noyau/spell-impure-ops.hors-store.test.ts',
     'src/data/vdm-spells-variantes.test.ts',
     'src/noyau/codex/codex-vdm-spells-variantes.test.ts',
-    'src/ui/compendium/no-json-fields.test.ts',
     'src/data/id-collisions.test.ts',
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
   const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))

@@ -1,6 +1,6 @@
 // L'ENTRÉE D'UN HÔTE DU NOYAU (#2928) : un module virtuel qui
 // charge le gel du catalogue (`src/data/overrides.ts`) PUIS les modules de l'hôte (ordre d'évaluation des imports), et
-// les greffons de Vite qui le servent, `proseSource()` compris : la même porte que la suite du noyau (`vitest.noyau.config.ts`).
+// les greffons de Vite qui le servent, `proseSource()` compris : la même porte que la suite du noyau (`vitest.config.ts`).
 // Le lanceur de l'hôte texte (`scripts/hote-texte.mjs`) la charge par le module runner de Vite, le bundle du pont de
 // Godot (`hotes/godot/construire.mjs`) la bâtit par `vite build`, qui la nomme par `entree`.
 import { proseSource } from './source/prose-source-plugin.mjs'

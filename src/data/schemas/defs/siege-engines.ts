@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { metaDesChamps } from '../grammaire/meta';
-import { ref } from '../grammaire/ref';
+import { affinerAvecCatalogues, ref } from '../grammaire/ref';
 import { availabilitySchema, moneySchema } from '../grammaire/valeurs';
-import { categorieDArmeSchema, estGroupeDeSiege, profilDArmeDeCatalogueSchema } from './trappings';
+import { categorieDArmeSchema, lireLesGroupesDeSiege, profilDArmeDeCatalogueSchema } from './trappings';
 
 export const file = 'siege-engines.json';
 export const famille = 'entite';
@@ -36,16 +36,19 @@ const doc = document(
   {
     exiges: ['source'],
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const { subType, qualities } = v as z.output<typeof profilDArmeDeCatalogueSchema> & { subType: { id: string } };
-        if (!estGroupeDeSiege(subType.id)) {
-          ctx.addIssue({ code: 'custom', path: ['subType', 'id'], message: 'Un engin de siège appartient à un Groupe de siège' });
-        }
-        qualities.forEach((qualite, i) => {
-          if ('majoration' in qualite) {
-            ctx.addIssue({ code: 'custom', path: ['qualities', i, 'majoration'], message: 'Seule une munition majore la qualité d’une arme' });
+      affinerAvecCatalogues(entree, (lire) => {
+        const estGroupeDeSiege = lireLesGroupesDeSiege(lire);
+        return (v, ctx) => {
+          const { subType, qualities } = v as z.output<typeof profilDArmeDeCatalogueSchema> & { subType: { id: string } };
+          if (!estGroupeDeSiege(subType.id)) {
+            ctx.addIssue({ code: 'custom', path: ['subType', 'id'], message: 'Un engin de siège appartient à un Groupe de siège' });
           }
-        });
+          qualities.forEach((qualite, i) => {
+            if ('majoration' in qualite) {
+              ctx.addIssue({ code: 'custom', path: ['qualities', i, 'majoration'], message: 'Seule une munition majore la qualité d’une arme' });
+            }
+          });
+        };
       }),
   },
 );

@@ -284,7 +284,7 @@ import {
   type VainqueurOppose,
 } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
-import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
+import { testValue, soutienDetail, type TestDesigne } from '../engine/skills';
 import {
   findManeuverById,
   findDomainById,
@@ -307,6 +307,7 @@ import { structureCriticalsDie } from '../data/structureCriticals';
 import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
 import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
+import { choixDeCiblesDuSort, filtreDeCiblesDuSort } from './reglagesDIncantation';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
 import { progresDeRecharge } from './progresEtendu';
@@ -493,6 +494,8 @@ import {
 } from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
 import { targetArc, headingToBear } from './monde/fireArc';
+import { avecLesCapsDuGeste } from './orientation';
+import { capEnCombat } from './planDeNavire';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
@@ -882,13 +885,13 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
       return { reason: 'portee-min', detail: `${w.label} ne peut pas tirer d'aussi près (${rangeBandName(distanceTiles, rangeM, sceneMetresPerTile(get().scene)) ?? 'trop proche'}).` };
   }
   // Pièce d'artillerie à ARC (poste) : ne porte que dans son arc. NAVAL = relatif au cap de la coque support
-  // (`shipOfCrew` → `facing[ship.id]`, `ship.pos`). EMPLACEMENT AU SOL (siège) : pas de coque (`shipOfCrew`
+  // (`shipOfCrew` → `capEnCombat`, `ship.pos`). EMPLACEMENT AU SOL (siège) : pas de coque (`shipOfCrew`
   // → undefined) → l'arc pivote avec l'orientation-monde ET la position DU CHEF lui-même. KIND-AGNOSTIQUE.
   // `mountSide` absent (arme non montée / pivot libre) → aucune contrainte. NB : l'IA aura le MÊME prédicat.
   if (w.mountSide && target.pos) {
     const battle = get().battle;
     const ship = battle ? shipOfCrew(battle.combatants, active.id) : undefined;
-    const heading = ship ? get().facing[ship.id] : get().facing[active.id];
+    const heading = capEnCombat(get(), ship?.id ?? active.id);
     const pos = ship?.pos ?? active.pos;
     if (!mountedWeaponBears(w, heading, pos, target.pos))
       return { reason: 'arc', detail: `${w.label} ne porte pas dans cet arc (${w.mountSide}).` };
@@ -1220,7 +1223,7 @@ export function attackEnv(
   // pour l'attaque, la défense et les activités (#341).
   // Flanc/dos (LDB 14 l.62) : attaquer un adversaire ENGAGÉ dans le dos ou sur les côtés —
   // orientation du défenseur AVANT cette attaque (il se retourne vers l'attaquant ENSUITE, applyAttackResult).
-  const tFacing = get().facing?.[target.id]; // `facing` peut être absent (état épars / contexte sans orientation)
+  const tFacing = capEnCombat(get(), target.id);
   const flankRear = !!(tFacing && isEngaged(target) && attacker.pos && target.pos && isFlankOrRear(tFacing, facingToward(target.pos, attacker.pos)));
   if (flankRear) env.push(ligneDeRegle('attaque-de-flanc-ou-de-dos', 'flanc-ou-dos'));
   // En contrebas : LDB 14 l.67 ; seuil `STEP_MAX_M` (relief.ts) sur `pos.h`.
@@ -3149,7 +3152,7 @@ function appliquerLaTouche(
     finalizeHeroDeath(get, set, target, avantLeCoup, attacker); // Destin possible (héros) ; sinon mort directe
     delierLeHorsDeCombat(get, target);
     if (attacker.pos && target.pos) {
-      set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
+      set((s: Jeu) => avecLesCapsDuGeste(s, { [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) }));
     }
     bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind: 'melee', defense: 'aucune', weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
     const b = get().battle ? markActed(get, set) : null; // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
@@ -3321,7 +3324,7 @@ function appliquerLaTouche(
   const defense = weapon.type === 'distance' ? 'aucune' : bestDefenseMode(target);
   // Orientation : l'attaquant se tourne vers la cible, le défenseur vers l'attaquant (frappe offensive).
   if (attacker.pos && target.pos) {
-    set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
+    set((s: Jeu) => avecLesCapsDuGeste(s, { [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) }));
   }
   // `weapon`/`parryWeapon` voyagent dans l'événement : le geste est celui de l'arme EMPLOYÉE
   // (2e frappe de dague gauche, tentacule…) et la parade de l'arme QUI A PARÉ (main-gauche,
@@ -5694,15 +5697,6 @@ export function counterspellSoutienFor(s: Jeu, pcs: PendingCounterspell | null |
   return grp && grp.leader.id === id ? grp.bonus : 0;
 }
 
-/** MÊME Soutien que `counterspellSoutienFor`, en DÉTAIL affichable : les contre-lanceurs unis QUI
- *  soutiennent ce meneur (`ids`), pour que la ligne de mod porte sa provenance. `undefined` hors
- *  meneur ou sans Soutien. */
-export function counterspellSupportFor(s: Jeu, pcs: PendingCounterspell | null | undefined, id: string): SupportDetail | undefined {
-  const grp = counterspellSoutenu(s, pcs);
-  if (!grp || grp.leader.id !== id || grp.bonus <= 0) return undefined;
-  return { count: grp.bonus / 10, bonus: grp.bonus, ids: grp.unis.filter((c) => c.id !== grp.leader.id).map((c) => c.id) };
-}
-
 /** Cette rangée LANCE-t-elle le dé de la fenêtre ? — déclarée `solo`, ou MENEUR du groupe uni (le
  *  Soutenu n'a qu'un jet, `LDB 12 l.189`). `passer` ne lance jamais. Prédicat UNIQUE, lu par la garde
  *  du jet (`counterspellEngage`) ET par l'affordance de la rangée (`CastModal`). */
@@ -6082,7 +6076,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const excludesCaster = spell.target?.kind === 'area' && spell.target.excludesCaster === true;
   // `affects` (src/engine/spellRange.ts:34) : Condition évaluée PAR CANDIDAT (`target` = le candidat,
   // `caster` = le lanceur). Absente → LDB 47 l.28.
-  const affects = spell.target?.kind === 'area' ? spell.target.affects : undefined;
+  const affects = filtreDeCiblesDuSort(spell.target, pc.choixDeCibles);
   // Le DR confronté par la Condition est celui que SUBIT le candidat (Résistance à la Magie, LDB 85
   // l.302 / LDB 10 l.1026). C'est ce filtre qui CONSTITUE la zone : chaque candidat est donc sa zone.
   const affected = (c: Combatant): boolean =>
@@ -6507,6 +6501,11 @@ function ctxDuLancer(get: Get, set: SetFn, caster: Combatant, spell: SortJoue, p
   };
 }
 
+/** Un lancement sans pose de Zone ne reçoit que l'option de ciblage par défaut. */
+function filtreHorsPoseDuSort(spell: SortJoue) {
+  return choixDeCiblesDuSort(spell.target).length ? filtreDeCiblesDuSort(spell.target) : undefined;
+}
+
 /** Lancer GARANTI de l'Effet d'auteur `castSpell` `mode:'forcerLaReussite'` (#98) : aucun jet, DR = NI ; le
  *  Flow se joue par le walker (`runCastFlow`), une passe par côté (`spellFlowFor`). */
 function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Combatant, spellId: string): string[] {
@@ -6514,8 +6513,12 @@ function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Co
   if (!spell) return [];
   const sl = spell.cn ?? 0;
   const sourceSpell = sourceDissipableDe(spell, caster);
-  const lignes = runCastFlow(get, set, target, caster, spellFlowFor(spell.effects, 'target'),
-    ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }));
+  const affects = filtreHorsPoseDuSort(spell);
+  const cibleAdmise = !affects || evalCondition(affects, combatConditionCtx(target, { caster, now: get().gameTime, sl }));
+  const lignes = cibleAdmise
+    ? runCastFlow(get, set, target, caster, spellFlowFor(spell.effects, 'target'),
+      ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }))
+    : [];
   if (spellOps(spell.effects, 'caster').length) {
     lignes.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'),
       ctxDuLancer(get, set, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell })));
@@ -6773,7 +6776,7 @@ export function applyCast(
   get: Get,
   set: SetFn,
   caster: Combatant,
-  targets: readonly Combatant[],
+  ciblesDuLancer: readonly Combatant[],
   spell: NonNullable<ReturnType<typeof findSpell>>,
   res: CastResult & Partial<MissileResult>,
   missile: boolean,
@@ -6792,6 +6795,10 @@ export function applyCast(
   },
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
+  const affects = extras?.pose ? undefined : filtreHorsPoseDuSort(spell);
+  const targets = affects
+    ? ciblesDuLancer.filter((c) => evalCondition(affects, combatConditionCtx(c, { caster, now: get().gameTime, sl: spellSLFor(res.sl, c) })))
+    : ciblesDuLancer;
   // Durée surincantée DÉCOMPOSÉE (engine/overcast) : `rounds = base × mult + bonus`. Arcane/Miracle :
   // mult = 1+pas, bonus = 0 (×initial, joue aussi sur une durée d'horloge). Bénédiction : mult = 1,
   // bonus = 6 Rounds × pas (FIXE, rounds-only — pas de Bénédiction à durée d'horloge).
@@ -6939,7 +6946,7 @@ export function applyCast(
       : undefined;
     // Sort offensif : lanceur vers la cible, cible vers le lanceur.
     if (ancre && caster.pos && ancre.pos && caster.id !== ancre.id) {
-      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, ancre.pos!), [ancre.id]: facingToward(ancre.pos!, caster.pos!) } }));
+      set((s: Jeu) => avecLesCapsDuGeste(s, { [caster.id]: facingToward(caster.pos!, ancre.pos!), [ancre.id]: facingToward(ancre.pos!, caster.pos!) }));
     }
     const toucheInitiale = ancre ? toucheDe(ancre, res, rebond) : undefined;
     const initiale = ancre && toucheInitiale ? appliquerTouchePourCible(get, set, ancre, toucheInitiale) : undefined;
@@ -7082,7 +7089,7 @@ export function applyCast(
     // Soutien : le lanceur se tourne vers la cible ; pas de réaction de la cible (ce n'est pas une frappe).
     // Hors combat (pas de file/token tactique), on n'anime pas le geste iso.
     if (battle && ancre && caster.pos && ancre.pos && caster.id !== ancre.id) {
-      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, ancre.pos!) } }));
+      set((s: Jeu) => avecLesCapsDuGeste(s, { [caster.id]: facingToward(caster.pos!, ancre.pos!) }));
     }
     if (battle && ancre) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: ancre.id, result: res, kind: 'spell', projectile: false, spell: spell.id, defense: 'aucune' });
   }
@@ -9156,7 +9163,7 @@ function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
   const target = targets.reduce((a, b) => (chebyshev(shipPos, b.pos!) < chebyshev(shipPos, a.pos!) ? b : a));
   const targetPos = target.pos!;
   const mpt = sceneMetresPerTile(scene);
-  const heading = get().facing[ship.id] ?? 'N';
+  const heading = capEnCombat(get(), ship.id) ?? 'N';
   const bearing = facingToward(shipPos, targetPos);
   const distMetres = chebyshev(shipPos, targetPos) * mpt;
   // 1) Le bord qui porte (cap courant) est-il armé ET la cible à portée de ses pièces ? → FEU.

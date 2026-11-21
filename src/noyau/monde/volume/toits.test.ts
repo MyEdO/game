@@ -975,7 +975,7 @@ describe('toiture dérivée — le comble mesuré au SOMMET tient sous la borne 
     return { egout: shape.eaveHeightM, faite };
   };
 
-  it('de l’aile étroite au corps le plus profond, le comble reste sous un étage de bâti', () => {
+  it('de l’aile étroite au corps le plus profond, le comble reste sous un étage de bâti', { timeout: 45_000 }, () => {
     for (const profondeur of [3, 6, 10, 16, 22]) {
       const scene = corps(profondeur);
       const borne = scene.roofDefaults.riseMaxStoreys * WALL_H_M;

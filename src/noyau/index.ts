@@ -98,8 +98,9 @@ export {
   type SurchargesDEmblemes,
 } from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
+export { aLEchelleDesPonts, rectangleDesPonts, refusDePoseDesPonts } from '../data/poseDesPonts';
 export {
-  aLEchelleDesPonts,
+  capEnCombat,
   CAPS_DES_PONTS,
   estPoseParSesPonts,
   naviresDeLaScene,
@@ -139,6 +140,7 @@ export {
   aretesDeLaCouche,
   aretesDeLaScene,
   masqueDuRegard,
+  paletteDeLApparence,
   plateauDeLaScene,
   regardDuJeu,
   REGARDS,
@@ -146,6 +148,7 @@ export {
   type PlateauDeLaScene,
   type Regard,
 } from './monde/aretes';
+export { cotesDeMarchesDeLaCouche, cotesDeMarchesDeLaScene, type CoteDeMarches } from './monde/cotesDeMarches';
 export type { Scene } from './monde/scene';
 export type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';

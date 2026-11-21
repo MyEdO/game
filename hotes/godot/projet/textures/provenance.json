@@ -544,5 +544,41 @@
     "source": "https://polyhaven.com/a/clay_plaster (clay_plaster_nor_gl_1k.jpg, Amal Kumar)",
     "licence": "CC0-1.0 (https://polyhaven.com/license)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "roof--toit-ardoise.neutre.jpg": {
+    "sha256": "943163c0b956d5798f0b28e448f6644387f7d1e3ca080d3740be3f04dea50234",
+    "source": "https://polyhaven.com/a/grey_roof_tiles_02 (grey_roof_tiles_02_diff_1k.jpg, Rob Tuytel)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -crop 720x742+177+100 +repage -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "roof--toit-ardoise.normale.jpg": {
+    "sha256": "7582bb5814678588e5a4c0e55daf10763977cf04c40eb90723d7165e3d0f7af6",
+    "source": "https://polyhaven.com/a/grey_roof_tiles_02 (grey_roof_tiles_02_nor_gl_1k.jpg, Rob Tuytel)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -crop 720x742+177+100 +repage -resize 512x512! -strip -quality 90"
+  },
+  "roof--tuile.neutre.jpg": {
+    "sha256": "a361c30b04d475ac4249869397cf5b6125e21559fca864112e628aaabd44d42d",
+    "source": "https://polyhaven.com/a/roof_3 (roof_3_diff_1k.jpg, Rob Tuytel)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -crop 723x745+181+92 +repage -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "roof--tuile.normale.jpg": {
+    "sha256": "15c6a54fc91d2b31643388b6aff4f0701744ae0444d7aefe274253bc6c264383",
+    "source": "https://polyhaven.com/a/roof_3 (roof_3_nor_gl_1k.jpg, Rob Tuytel)",
+    "licence": "CC0-1.0 (https://polyhaven.com/license)",
+    "traitement": "ImageMagick : -crop 723x745+181+92 +repage -resize 512x512! -strip -quality 90"
+  },
+  "roof--chaume.neutre.jpg": {
+    "sha256": "98bb5f4fbcbdc7eccb96ca9be8558f0f81fea8bbf1c2bf858302428863c55a00",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof001A (ThatchedRoof001A_1K-JPG.zip : ThatchedRoof001A_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "roof--chaume.normale.jpg": {
+    "sha256": "ec594a31a6534a6a046584d6a63a7d874e9a99552625193dd032ed8bac60f253",
+    "source": "https://ambientcg.com/view?id=ThatchedRoof001A (ThatchedRoof001A_1K-JPG.zip : ThatchedRoof001A_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   }
 }

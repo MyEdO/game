@@ -12,8 +12,9 @@ talus ne porte pas de fenêtre : ses deux pièces sont le talus plein. La brèch
 tranchés par la trouée, plus large à chaque lit vers la crête ; la terre tombée fait un tas au pied de chaque face, sur
 le lit qui reste, le clayonnage rompu.
 
-Matières : la terre prend `terre-battue`, le clayonnage `bois-mort`, les joues, le linteau, le plancher et la barrière
+Matières : la terre et les gravats prennent `terre-battue`, le clayonnage `bois-mort`, les joues, le linteau, le plancher et la barrière
 `bois-chene`, les ferrures `fer-noirci`.
+L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import apparence, hauteur
@@ -35,11 +36,14 @@ MATERIAUX = {
     "clayonnage": ("bois", "bois-mort"),
     "boisage": ("bois", "bois-chene"),
     "menuiserie": ("accent", "bois-chene"),
+    "barres": ("planche", "bois-chene"),
     "ferrure": ("metal", "fer-noirci"),
+    "echelle": ("accent", "bois-chene"),
+    "gravats": ("gravats", "terre-battue"),
 }
 
 BUDGET_TRIANGLES = {"mur": 2400, "porte-fermee": 2400, "porte-ouverte": 2400,
-                    "fenetre": 2400, "fenetre-close": 2400, "breche": 2400}
+                    "fenetre": 2400, "fenetre-close": 2400, "breche": 2400, "echelle": 400}
 
 ANGLE_LISSE = 40
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : la terre s'y fond, le bois garde ses
@@ -93,7 +97,7 @@ PORTE = {
 # l'axe de l'arête (m), ses `anneaux` (part de sa hauteur, part de ses rayons), leurs `cotes` et ce dont chaque rayon
 # s'écarte (`ecart`, fraction tirée jusqu'à cette borne) ; `rompu` : l'abscisse (fraction de la demi-longueur) où
 # s'arrête le clayonnage de chaque bout ; `pieux` : les pieux arrachés de chaque face, leur rang depuis le bout gauche
-# et leur dévers vers le dehors du talus (m en tête) ; `gravats` (`geometrie.eboulis`), la part de bois parmi eux.
+# et leur dévers vers le dehors du talus (m en tête) ; `gravats` (`geometrie.eboulis`).
 BRECHE = {
     "assise": 1,
     "trouee": (((0.14, -0.3), (0.45, -0.46), (0.75, -0.66), (1.0, -0.92)),
@@ -103,5 +107,5 @@ BRECHE = {
             "anneaux": ((0.0, 1.0), (0.32, 0.86), (0.66, 0.62), (0.9, 0.32)), "cotes": 10, "ecart": 0.12},
     "rompu": 0.5,
     "pieux": ((1, 0.3), (2, 0.22)),
-    "gravats": {"nombre": 14, "etendue": (0.85, 1.2), "cote": (0.12, 0.3), "ecart": 0.3, "bois": 0.25},
+    "gravats": {"nombre": 14, "etendue": (0.85, 1.2), "cote": (0.12, 0.3), "ecart": 0.3},
 }

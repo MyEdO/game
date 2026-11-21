@@ -21,6 +21,7 @@ const CALIBRAGE: Record<WallPart, WallPartRelief> = {
   arase: { famille: 'matiere' },
   merlon: { famille: 'matiere' },
   jambage: { famille: 'matiere' },
+  joint: { famille: 'matiere' },
   panneau: { famille: 'saillie', jutM: 0.26 },
   plinthe: { famille: 'saillie', jutM: 0.26 },
   bande: { famille: 'saillie', jutM: 0.26 },
@@ -47,8 +48,8 @@ function thickDe(part: WallPart): number {
 }
 
 describe('RELIEF MINCE — le CALIBRAGE des profondeurs, épinglé valeur par valeur', () => {
-  it('les 23 parties de mur portent EXACTEMENT les profondeurs du catalogue', () => {
-    expect(WALL_PARTS.length).toBe(23);
+  it('les 24 parties de mur portent EXACTEMENT les profondeurs du catalogue', () => {
+    expect(WALL_PARTS.length).toBe(24);
     expect(tableTotale(WALL_PARTS, (p) => wallPartRelief(p))).toEqual(CALIBRAGE);
   });
 

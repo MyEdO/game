@@ -35,13 +35,8 @@ import {
 } from '../data';
 import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
-import { splitLabel } from './statEntry';
 import { effectiveEntry } from './variants';
 import { t } from '../i18n';
-
-// `splitLabel` (split nom↔spécialisation) est la primitive UNIQUE de `statEntry` — ré-exportée ici
-// pour ses nombreux importeurs historiques (advancement/talentEffects/draft…) : aucune copie locale.
-export { splitLabel };
 
 /** Une possibilité concrète ou ouverte couverte par un slot. */
 export interface SlotOption {
@@ -97,7 +92,7 @@ export function refKey(id: string, spec?: string): string {
   return spec ? `${id}|${spec}` : id;
 }
 
-/** Décode une clé produite par `refKey`. Ne JAMAIS l'utiliser sur un libellé d'affichage (cf. `splitLabel`). */
+/** Décode une clé produite par `refKey`. Ne JAMAIS l'utiliser sur un libellé d'affichage (cf. `parseStatEntry` dans `statEntry`). */
 export function parseRefKey(key: string): { id: string; spec?: string } {
   const i = key.indexOf('|');
   return i < 0 ? { id: key } : { id: key.slice(0, i), spec: key.slice(i + 1) };
@@ -111,7 +106,7 @@ export function slotOptionsFromRef(category: string, a: AdvancementRef): SlotOpt
     if (a.choix == null) return [{ label, optionId: a.id, ...(a.spec ? { spec: a.spec } : {}), wildcard: false }];
     return [{ label, optionId: a.id, wildcard: true, ...(Array.isArray(a.choix) ? { specOptions: a.choix } : {}) }];
   }
-  if ('pick' in a) return a.of.flatMap((x) => slotOptionsFromRef(category, x));
+  if ('of' in a) return a.of.flatMap((x) => slotOptionsFromRef(category, x));
   return [{ label: advancementLabel(category, a), wildcard: false }]; // tirage aléatoire (« N Talent aléatoire »)
 }
 

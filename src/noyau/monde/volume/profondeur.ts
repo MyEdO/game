@@ -5,8 +5,8 @@
  * (`roofFasciaThickM`). Pendant GÉOMÉTRIQUE de la couleur : aucune épaisseur n'est écrite ici, elles
  * vivent toutes en DONNÉE d'apparence, authorées en MÈTRES.
  *
- * `./worldTris` reste PUR et sans catalogue : il reçoit cette profondeur en paramètre (`FaceDepth`) et ne décide que
- * de la FORME du volume (boîte centrée sur le plan médian, croix d'un montant).
+ * `faceQuadsOriented` (`./worldTris`) reçoit cette profondeur en paramètre et décide de la forme du volume
+ * (boîte centrée sur le plan médian, croix d'un montant).
  */
 import { facadeStructureAppearance, wallPartDepthM } from './structures';
 import { largeurDUnMontant, wallMatterM } from './montants';

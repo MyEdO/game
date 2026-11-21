@@ -99,6 +99,8 @@ const NOMMES = [
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
   'colombage|moellons|pierres-seches|porterie|cloture|herse|terrassement',
+  // `kitDEscalierSchema` (#4471) : la famille du kit 3D d'escalier d'un terrain bâti (`terrains.json`).
+  'bois|pierre',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
@@ -149,7 +151,7 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal|planche|joint|gravats|barreau|traverse|vitre',
   'physique|mentale',
   // `offreDAubergeSchema` (#4277) : les offres d'auberge d'un hébergement (LDB 66 l.12-16, l.28).
   'commune|chambre|grande|repas',
@@ -218,6 +220,7 @@ const NOMMES = [
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
+  'weeks|days|hours|minutes',
   // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
   'reussite|echec',
   'reussite|echec|maladresse',
@@ -320,7 +323,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'complet|partiel',
   'current|ever',
   'dangereuse|tresDangereuse|extreme',
-  'days|hours|minutes',
   'dechirure|fracture',
   'dechirure|fracture|amputation',
   'declare|tirage',
@@ -365,7 +367,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'groupe|ennemis',
   'groupe|heros',
   'pas|trot|galop',
-  'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',
   'remplace|ajoute',

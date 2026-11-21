@@ -36,7 +36,7 @@ import { memosDe, PAQUETS_VERSIONNANTS, texteSiPresent } from '../guards/lib/mem
 import { empreinteDe, fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Les fichiers dont un changement invalide toute dérivation : la suite entière est retenue. */
-const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vite.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
+const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vitest.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
 
 /** Le RANG d'un lien, du plus proche au plus lointain : touché, racine balayée (à rang égal, la plus
  *  SPÉCIFIQUE : `specificite`), import par distance, puis `setup` (le fichier n'est atteint que par les
@@ -46,7 +46,7 @@ export const RANG_TOOLCHAIN = RANG_SETUP + 1
 const rangDe = (lien) => lien.nature === 'touché' ? 0 : lien.nature === 'racine balayée' ? 1
   : lien.nature === 'import' ? 1 + lien.distance : lien.nature === 'setup' ? RANG_SETUP : RANG_TOOLCHAIN
 /** La config Vitest d'où se lisent les `setupFiles`. */
-const CONFIG_VITEST = 'vite.config.ts'
+const CONFIG_VITEST = 'vitest.config.ts'
 
 /** Les VARIANTES gardées par évaluation de module (`evaluations`) : une par jeu de réponses, les tours du
  *  point fixe des lecteurs en posant plusieurs. */

@@ -39,9 +39,6 @@ const doc = document(
     opensScreen: z.enum(['port']).optional(),
     /** Libellé du bouton d'entrée du service qui porte un `opensScreen` (texte d'auteur, saveur maison). */
     enterLabel: z.string().optional(),
-    /** Note d'infobulle sur la case à cocher du service dans l'éditeur (`WorldMapPlacePanel`) —
-     *  ce qui dérive déjà ce service ailleurs, jamais un branchement d'id (#834). */
-    editorNote: z.string().optional(),
   },
   {
     hostLine: { label: 'Réplique d’accueil', hint: 'Phrase dite par l’interlocuteur statique du service' },
@@ -51,10 +48,6 @@ const doc = document(
     offres: { label: 'Offres d’auberge', hint: 'Offres vendues par défaut par un établissement de ce type' },
     opensScreen: { label: 'Écran ouvert', hint: 'Écran plein-champ existant vers lequel ce service mène' },
     enterLabel: { label: 'Libellé du bouton d’entrée', hint: 'Texte du bouton qui ouvre l’écran du service' },
-    editorNote: {
-      label: 'Note d’éditeur',
-      hint: 'Note d’infobulle sur la case du service dans l’éditeur : ce qui dérive déjà ce service ailleurs',
-    },
   },
   {
     codex: {

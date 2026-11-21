@@ -276,6 +276,13 @@ describe('traumaSkillPenalty — Surdité restreinte aux Tests auditifs (LDB 18 
   });
 });
 
+it.each([[7, true], [8, false]] as const)('une fracture de %i jours peut encore être réduite : %s (LDB 18 l.204)', (ecoules, ouverte) => {
+  const fracture = { ...tk('fracture', 'mineur', 'jambeD'), recoveryTotal: 35, recoveryDays: 35 - ecoules };
+  const patient = c([fracture]);
+  treatTrauma(patient, 0);
+  expect(patient.traumas![0].fractureSet ?? false).toBe(ouverte);
+});
+
 describe('treatTrauma — rôle d’INFORMATION de la Guérison sur la déchirure MAJEURE (LDB 18)', () => {
   function tornMajor(recoveryDays = 40): SequelleNeuve {
     return { ...tk('dechirure', 'majeur', 'jambeD'), recoveryDays, recoveryTotal: recoveryDays };

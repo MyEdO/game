@@ -10,7 +10,8 @@ montants ; dans une ouverture de deux arêtes, chaque arête de bout porte le si
 La grille est à jour : aucune pièce n'en est pleine. La brèche garde la tête et les montants : ses barreaux sont rompus
 sous la tête, un pan de grille couché au sol devant elle, le passage libre.
 
-Matières : les barreaux, les montants et les traverses prennent `fer-noirci`, les rivets et les pointes `acier-battu`.
+Matières : les barreaux, les montants, les traverses et les gravats prennent `fer-noirci`, les rivets et les pointes `acier-battu`.
+L'échelle dressée contre l'arête (`menuiserie.echelle`) prend `bois-chene`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import apparence, hauteur
@@ -30,13 +31,15 @@ CLAIRE_VOIE = True
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {
-    "barreau": ("corps", "fer-noirci"),
-    "traverse": ("bois", "fer-noirci"),
+    "barreau": ("barreau", "fer-noirci"),
+    "traverse": ("traverse", "fer-noirci"),
     "ferrure": ("metal", "acier-battu"),
+    "echelle": ("accent", "bois-chene"),
+    "gravats": ("gravats", "fer-noirci"),
 }
 
 BUDGET_TRIANGLES = {"mur": 2400, "porte-fermee": 2400, "porte-ouverte": 2400,
-                    "fenetre": 2400, "fenetre-close": 2400, "breche": 2400}
+                    "fenetre": 2400, "fenetre-close": 2400, "breche": 2400, "echelle": 400}
 
 ANGLE_LISSE = 30
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : chaque fer garde ses arêtes."""

@@ -2,6 +2,8 @@
  * Schéma de `classes.json` — dérivé du contenu RÉEL et de `ClassData`
  * (`src/data/index.ts`). `trappings` : `dotationSansTexteSchema` (`grammaire/reference.ts`). #4053
  * L'`id` est le slug du libellé — cible de `CareerData.class`.
+ * « Classes » est le titre du folio 46 (LDB 06 l.3). Le texte du même folio décrit le
+ * classement des carrières et leur dotation par classe (LDB 07 l.13).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

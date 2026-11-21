@@ -27,117 +27,6 @@
     "verrou": "scripts/guards/lib/superviserProcessus.test.mjs, scripts/guards/lib/domaineNatif.test.mjs"
   },
   {
-    "id": "screenShell",
-    "type": "primitives.manifest",
-    "label": "ScreenShell",
-    "fichier": "src/ui/ScreenShell.tsx",
-    "css": "src/ui/styles/screen-shell.css",
-    "concept": "coquille d'écran plein-champ (voile + en-tête avec croix `CadreFermer` + corps ; un corps borné défile dans le rail `.screen-scroll`, et sa colonne `.screen-colonne` porte le pied `footer` sous le rail, `CadrePied`), a11y dialogue",
-    "perimetre": "carte du monde, port/escale, marché, dossier de navire, négoce",
-    "verrou": "aucune modale/écran bespoke (existant)"
-  },
-  {
-    "id": "cadre",
-    "type": "primitives.manifest",
-    "label": "CadrePied / CadreFermer",
-    "fichier": "src/ui/Cadre.tsx",
-    "css": "src/ui/styles/cadre.css",
-    "concept": "gestes des trois cadres (`Modal`, `EmbeddedShell`, `ScreenShell`) : pied `CadrePied` (gestes de sortie hors du défileur, à la largeur du corps) et croix `CadreFermer`",
-    "perimetre": "pied et croix de toute modale, étape embarquée et écran plein-champ",
-    "verrou": "primitive-owners-guard.test.ts — aucune classe posée hors de `Cadre.tsx` ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise"
-  },
-  {
-    "id": "planche",
-    "type": "primitives.manifest",
-    "label": "Planche",
-    "fichier": "src/ui/Planche.tsx",
-    "css": "src/ui/styles/planche.css",
-    "concept": "lecteur passif en deux colonnes dans la boîte `planche` de `Modal` (voile de référence, croix) : `nom` du dialogue, posé en titre visible (`.planche-nom`) en tête de la colonne `aside` (permanente), onglets `tabs` au-dessus du corps d'onglet ; un défileur par colonne au-delà de 700px, la planche entière en dessous",
-    "perimetre": "fiche de personnage, feuille de navire ou de batterie de siège",
-    "verrou": "primitive-owners-guard.test.ts — `sheet-layout`, `sheet-aside`, `sheet-main`, `sheet-tabbody`, `planche-nom` posées par `Planche.tsx` seul ; planche.test.tsx — structure et défileurs"
-  },
-  {
-    "id": "modal",
-    "type": "primitives.manifest",
-    "label": "Modal",
-    "fichier": "src/ui/Modal.tsx",
-    "css": "src/ui/styles/modal.css",
-    "poseurs": [
-      "src/ui/ModalSubject.tsx"
-    ],
-    "concept": "cadre de modale (voile + boîte en colonne : tête avec croix `croix`, bandeau sujet, corps défilant, pied `footer`) ; états `data-*` (voile, champ lisible, plein écran, taille, gangrène), a11y dialogue (focus initial `focusTarget`, piège Tab, congédiement) ; son emprunt du focus passe par `useFocusEmprunte` (`src/ui/focus.ts`)",
-    "perimetre": "toute fenêtre de dialogue : jet, décision, récapitulatif, planche de fiche, Codex en jeu",
-    "verrou": "primitive-owners-guard.test.ts — aucune classe du cadre posée hors de lui ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise"
-  },
-  {
-    "id": "boite-ancree",
-    "type": "primitives.manifest",
-    "label": "BoiteAncree / usePlacementAncre / placerAncre",
-    "fichier": "src/ui/BoiteAncree.tsx",
-    "css": "src/ui/styles/boite-ancree.css",
-    "concept": "surface `position: fixed` en portail, placée contre le rectangle de son ANCRAGE : côté qui a le plus de place, ancrée par le haut ou par le bas, hauteur et largeur bornées au viewport, alignée sur le bord gauche de l'ancrage, sinon sur son bord droit, sinon sur la marge de la fenêtre ; placement né au rendu qui reçoit l'ancrage (le commit d'ouverture porte la boîte), recalculé au défilement et au redimensionnement ; ancrage détaché = aucune boîte ; style = variables `--ancre-*` seules, écrites par le seul littéral de `style=` ; champs du placement listés par `CHAMPS`, complet par le type ; complétude du littéral non prouvée par le type (garde (xxii))",
-    "perimetre": "couche d'infobulle (`Infobulle`), `PanneauParametre`, menu d'ajout de l'atelier (`AddMenu`)",
-    "verrou": "BoiteAncree.test.tsx — placement, naissance au commit d'ouverture, ancrage détaché, les cinq variables qu'il nomme"
-  },
-  {
-    "id": "infobulle",
-    "type": "primitives.manifest",
-    "label": "useInfobulle",
-    "fichier": "src/ui/Infobulle.tsx",
-    "css": "src/ui/styles/infobulle.css",
-    "concept": "couche d'infobulle, UNE par ancrage : ancrage déclaré au balisage (`data-infobulle`), déclenchement par délégation au document, un seul jeu d'écouteurs pour toute la couche (survol, focus, toucher, ↓), pont de survol, épinglage, sourdine, Échap et clic hors boîte (état `congediee` jusqu'au prochain `quitte`), `aria-describedby`, portail (`BoiteAncree`), marqueur d'arrêt à la racine de la boîte ; emprunt du focus par `useFocusEmprunte`, origine = le contrôle de l'ancrage. Le contenu (texte, rôle, activation, nom accessible) reste à l'appelant, qui ne passe que des booléens",
-    "perimetre": "`CodexRef` (fiche, refus, instance, provenances)",
-    "verrou": "Infobulle.test.tsx — congédiement, origine du focus, délégation ; CodexRef.hooks.test.tsx — Échap ne rouvre pas, ↓ épingle et le focus entre"
-  },
-  {
-    "id": "codex-ref",
-    "type": "primitives.manifest",
-    "label": "CodexRef / CodexTitre",
-    "fichier": "src/ui/compendium/CodexRef.tsx",
-    "css": "src/ui/styles/codex-ref.css",
-    "concept": "référence contextuelle au Codex : un libellé d'entité ancre une infobulle (`useInfobulle`) dont `CodexRef` fournit le CONTENU (raison d'un refus, titre `CodexTitre`, méta et corps coupés au mot (`coupeAuMot`), provenances, source, porte « Ouvrir la fiche ») ; le clic ouvre la fiche (`openCodex`), `tooltipOnly` bascule la bulle, `wrap` enveloppe un contrôle déjà actif (↓ épingle), `sourdine` la tait",
-    "perimetre": "chips d'entité, cases et pastilles de la console de combat, ressources (`ResilienceButton`, `DeterminationButton`), lignes de jet, fiches, plaques de nom (`CodexTitre`)",
-    "verrou": "CodexRef.hooks.test.tsx — Échap, épinglage, refus au survol/focus/tap ; CodexRef.test.tsx — affordance, nom accessible, coupe au mot"
-  },
-  {
-    "id": "focus",
-    "type": "primitives.manifest",
-    "label": "useFocusEmprunte / SURFACE / focusSansIntention / poserFocus / visibleFocusables",
-    "fichier": "src/ui/focus.ts",
-    "concept": "coutures de focus partagées : `useFocusEmprunte` est le SEUL retour du focus à l'origine d'une surface qui l'emprunte (son invocateur : par défaut le nœud qui l'avait à CETTE ouverture, pour une infobulle le contrôle de son ancrage ; une origine sortie du document cède la place à celle de la surface qui la contenait), s'il est encore dans le document et qu'aucun dialogue du dessus ne le couvre ; `SURFACE` nomme les rôles qui empruntent (dialogue, infobulle) ; `poserFocus` pose un focus sans intention du joueur, que `focusSansIntention` signale à un `onFocus` qui ne doit répondre qu'au joueur ; `visibleFocusables` liste les contrôles atteignables d'un conteneur",
-    "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), `EmbeddedShell` (`cibleEmbarquee`), couche d'infobulle (`useInfobulle`), propriété des touches (`useGameKeyboard`), manette (`useGamepad`)",
-    "verrou": "cadre-focus-initial.test.tsx — une ouverture, un invocateur ; Infobulle.test.tsx — origine d'une infobulle, origine morte ; CodexRef.hooks.test.tsx — le retour du focus n'ouvre pas la bulle"
-  },
-  {
-    "id": "dismissLayer",
-    "type": "primitives.manifest",
-    "label": "useDismissLayer / dialogueDuDessus / surfaceFocalisee",
-    "fichier": "src/ui/useDismissLayer.ts",
-    "concept": "couche de congédiement de la pile (`src/state/dismissStack.ts`) : `useDismissLayer` empile une COUCHE le temps de son ouverture, déclarée en entier (identifiant stable, nature `modale`/`popover`, plan `scene`/`application`, boîte) ; `dialogueDuDessus` rend la boîte de la modale du dessus (`coucheDuDessus` : plan le plus haut, puis la dernière ouverte), la même couche que lisent Échap (`resoudreEchap`), les touches (`bindingApplies`) et la marche — lue par l'emprunt, le sauvetage et la restitution du focus, le piège Tab et la manette ; `surfaceFocalisee` rend la surface où navigue la manette (bulle épinglée qui tient le focus, sinon le dialogue du dessus)",
-    "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), bulle de `CodexRef`, panneaux et menus qui se congédient, `useGameKeyboard`, `useGamepad`",
-    "verrou": "dialogue-du-dessus.test.tsx — l'ordre des ouvertures, jamais celui du document ; la conversation, peinte sous une fiche, attend ; echap-pile-lifo.test.tsx — Échap congédie la couche du dessus ; dismissStack.test.ts — le plan d'abord"
-  },
-  {
-    "id": "rollShell",
-    "type": "primitives.manifest",
-    "label": "RollShell",
-    "fichier": "src/ui/RollShell.tsx",
-    "css": "src/ui/styles/roll-shell.css",
-    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte ; une action qui joue un verbe du cycle le nomme (`RollAction.verbe`) et ne se montre que tant que le noyau le laisse ouvert (`fermeturesDuFlux`)",
-    "perimetre": "toute modale de jet, mono (N=1) et multi (N contributeurs)",
-    "verrou": "roll-modal-invariant.hors-store.test.ts"
-  },
-  {
-    "id": "rollRow",
-    "type": "primitives.manifest",
-    "label": "RollRow",
-    "fichier": "src/ui/RollRow.tsx",
-    "css": "src/ui/styles/roll-row.css",
-    "concept": "ligne de jet d'un participant (RollShell multi)",
-    "perimetre": "toute modale de jet multi-contributeurs",
-    "verrou": "—"
-  },
-  {
     "id": "makeRollFlow",
     "type": "primitives.manifest",
     "label": "makeRollFlow/FLOWS",
@@ -172,75 +61,6 @@
     "concept": "issue d'un Test que son porteur ne peut pas tenter (LDB 09 l.30 ; #2588 Q1) : ÉCHEC, DR 0, sans dé, refus nommé sur la ligne ; `estJete` sépare un dé tombé de cette issue, `jete` (`src/engine/tests.testkit.ts`) l'exige en test",
     "perimetre": "`rollStep` (`refus`), rangées d'équipage (`crewRoleValue`, `rollCrewRole`, `openCrewTestPending`), barre sans barreur (`rollShipManeuver`, voyage fluvial), rangée témoin de `buildParticipantRows`",
     "verrou": "sea-voyage-flow.hors-store.test.ts, ship-maneuver.hors-store.test.ts, peut-tenter.test.ts"
-  },
-  {
-    "id": "optionChooser",
-    "type": "primitives.manifest",
-    "label": "OptionChooser/ChoiceButtons",
-    "fichier": "src/ui/OptionChooser.tsx",
-    "css": "src/ui/styles/option-chooser.css",
-    "poseurs": [
-      "src/ui/CastModal.tsx",
-      "src/ui/console/PortraitPicker.tsx",
-      "src/ui/jetProps/useAttackJetProps.tsx",
-      "src/ui/jetProps/useDefenseJetProps.tsx"
-    ],
-    "concept": "choix d'options de jet (seg/grid ; l'option retenue se marque `selected` → `aria-pressed`, jamais `primary` ; une grille dont une option porte sa `note` passe en rangées verbe | conséquence, la note de rangée sans icône) et gestes de décision posés au pied d'un cadre (ChoiceButtons)",
-    "perimetre": "tout choix d'options + paire/triplet de boutons de décision",
-    "verrou": "—"
-  },
-  {
-    "id": "breakdown",
-    "type": "primitives.manifest",
-    "label": "optionValue/optionPending/testPending",
-    "fichier": "src/ui/breakdown.ts",
-    "concept": "valeur effective d'une option (base+mods plafonné) + ligne pré-jet",
-    "perimetre": "tout affichage de composition de test avant lancer",
-    "verrou": "—"
-  },
-  {
-    "id": "influenceRow",
-    "type": "primitives.manifest",
-    "label": "InfluenceRow",
-    "fichier": "src/ui/InfluenceRow.tsx",
-    "concept": "rangée d'influence Chance/Pacte/Résilience/Détermination",
-    "perimetre": "toute modale de jet influençable ; porte aussi ResilienceButton et DeterminationButton",
-    "verrou": "—"
-  },
-  {
-    "id": "vsHeader",
-    "type": "primitives.manifest",
-    "label": "VsHeader",
-    "fichier": "src/ui/VsHeader.tsx",
-    "css": "src/ui/styles/vs-header.css",
-    "poseurs": [
-      "src/ui/HandGateModal.tsx"
-    ],
-    "concept": "en-tête A→B d'une modale de combat/opposition",
-    "perimetre": "toute confrontation à 2 camps",
-    "verrou": "—"
-  },
-  {
-    "id": "portraitTile",
-    "type": "primitives.manifest",
-    "label": "PortraitTile/CharFrame",
-    "fichier": "src/ui/PortraitTile.tsx",
-    "css": "src/ui/styles/portrait-tile.css",
-    "poseurs": [
-      "src/ui/StateChips.tsx"
-    ],
-    "concept": "identité d'un combattant : repère de sol partagé, nom visible, jauge et États selon variante ; decoratif dans un contrôle déjà nommé",
-    "perimetre": "toute vignette de combattant (HUD, modale, picker, écrans) ; CharFrame résout la décoration dans la population courante",
-    "verrou": "src/ui/PortraitTile.test.tsx, src/ui/CharFrame.test.tsx"
-  },
-  {
-    "id": "searchFilterField",
-    "type": "primitives.manifest",
-    "label": "SearchFilterField",
-    "fichier": "src/ui/SearchFilterField.tsx",
-    "concept": "champ de filtre/recherche de liste : le widget, avec useFilteredList (état) et filterByLabel (pur)",
-    "perimetre": "catalogue, palette, sélecteur",
-    "verrou": "—"
   },
   {
     "id": "findTableEntry",
@@ -329,7 +149,7 @@
     "label": "fourchette",
     "fichier": "src/engine/tables.ts",
     "concept": "graphie d'une bande de table (« 01–50 », « 96+ », « ≤50 », « −4 à −3 »)",
-    "perimetre": "toute bande de table affichée dans src/ui : tuile d'étape à table, Codex, création de personnage",
+    "perimetre": "bandes de table du Compendium et autres lecteurs de src/engine/tables.ts",
     "verrou": "src/noyau/codex/bande-en-ligne-guard.test.ts (scripts/guards/lib/bandeEnLigne.mjs)"
   },
   {
@@ -374,7 +194,7 @@
     "label": "estDebout/meneurDuMonde/meneurDeboutDuMonde/poserCapDuGroupe",
     "fichier": "src/noyau/monde/combatants.ts",
     "concept": "le MENEUR du groupe hors combat, et le CAP du groupe — un seul id pour le jeton dessiné, le regard, l'assise, la lampe et l'escalade, et une seule valeur de regard que le changement de meneur ne fait pas sauter",
-    "perimetre": "toute lecture du meneur et toute écriture du cap d'exploration dans src/state, src/gameIso, src/ui",
+    "perimetre": "meneur et cap du groupe en exploration, dont les gestes de déplacement du noyau et la projection Godot",
     "verrou": "hero-debout-guard.test.ts"
   },
   {
@@ -394,15 +214,6 @@
     "concept": "tout effet mécanique (soin/état/dégâts/corruption/octroi)",
     "perimetre": "toute conséquence appliquée à une cible",
     "verrou": "applyOps unique (aucun effet ad hoc)"
-  },
-  {
-    "id": "gameOpEditor",
-    "type": "primitives.manifest",
-    "label": "GameOpEditor",
-    "fichier": "src/ui/editor/GameOpEditor.tsx",
-    "concept": "édition d'une liste de GameOp[]",
-    "perimetre": "sorts, effets déclenchés, passifs, consommables, activités ; repris par EffectList et FlowEditor",
-    "verrou": "no-json-fields.test.ts"
   },
   {
     "id": "passiveMods",
@@ -477,15 +288,6 @@
     "verrou": "netOwnership.test.ts"
   },
   {
-    "id": "refField",
-    "type": "primitives.manifest",
-    "label": "RefField/refusDuNoeud/cfgDeLaFeuille/cfgDeLaListe/cfgDuNoeudASpec/ListeDIds/ChoixDeSpec/ChoixDeSpecs/SpecSelect/reposerLId/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
-    "fichier": "src/ui/compendium/refField/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id) ; son mode `liste` stocke des ids NUS quand l'élément du nœud est une feuille `idDe` (`refs`) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `cfgDeLaFeuille` nomme le catalogue que désigne la feuille `idDe` fermée d'un nœud, et le champ générique du Codex (`Field`) s'y rend en sélecteur `single` ; `cfgDeLaListe` nomme celui de l'élément d'une liste `refs`, et le même champ s'y rend en mode `liste`, ses rangées nommées par sa position (`sujet`) ; `cfgDuNoeudASpec` nomme celui d'une référence à spécialisation (`refOuSpec`, `specRef`, lue par `declarationDeRefASpecialisation`), et le même champ, objet seul ou rangée d'une liste, s'y rend en mode `single` à `spec`, ses deux contrôles nommés par sa position (`sujet`), ses autres clés gardées ; le mode `liste` à `spec` offre la spécialisation de chaque rangée ; `ListeDIds` = son mode `liste` sur le catalogue que désigne le nœud d'un champ `refs`, liste vidée rendue absente ; `ChoixDeSpec` = la spécialisation d'une entrée, choisie dans son catalogue (`SpecSelect`) quand l'entrée est fermée, saisie quand elle est ouverte, absente quand elle n'est pas spécialisable — le mode `spec` la compose ; `ChoixDeSpecs` = les spécialisations restreintes d'un emplacement `choix`, cochées dans le catalogue sans réordonner la valeur, celles hors catalogue d'une entrée ouverte cochées à la suite et complétées par saisie libre ; `reposerLId` = poser un autre id sur une référence en retirant la spécialisation de l'entrée quittée, lu par tout sélecteur d'id à spécialisation (modes `single` et `liste`, éditeurs dédiés) ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
-    "perimetre": "toute ref id statique du Compendium (champ générique d'une feuille `idDe` compris, à toute profondeur), champ objet de l'Effet `giveTrapping`, champs de Groupe de l'atelier (statbloc, Test, barrière, Condition `has`, op `banish`, listes du Codex) ; toute spécialisation de Compétence ou de Talent saisie à l'atelier et au créateur, toute référence à spécialisation du champ générique du Codex (objet ou rangée, à toute profondeur), les Compétences ajoutées d'une entité de scène ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
-    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx, groupes-au-clic.test.tsx, ConditionEditor.test.tsx, combat-field-reverse-failed.test.tsx, RefField.test.tsx, spec-au-changement-d-id.test.tsx, Inspector.test.tsx"
-  },
-  {
     "id": "optionsDuNoeud",
     "type": "primitives.manifest",
     "label": "optionsDuNoeud",
@@ -493,33 +295,6 @@
     "concept": "options `[valeur, libellé]` d'un `<select>` sur un enum NOMMÉ (`enumNomme`, `valeursDe`), dans l'ordre de sa déclaration",
     "perimetre": "tout `<select>` de l'atelier (Conditions, ops, Effets, Codex, inspecteur de scène) dont les options sont celles d'un enum nommé",
     "verrou": "enums-nommes-grammaire.test.ts"
-  },
-  {
-    "id": "saisieEnBrouillon",
-    "type": "primitives.manifest",
-    "label": "SaisieEnBrouillon",
-    "fichier": "src/ui/compendium/refField/SaisieEnBrouillon.tsx",
-    "concept": "saisie EN CHAÎNE d'une valeur structurée tenue en brouillon local : `afficher` rend la valeur en texte, `relire` relit le brouillon UNE fois à la fin de la saisie (blur, Entrée hors `lignes`) contre la valeur courante ; la frappe n'est jamais réécrite ni émise ; le brouillon ne déclare PAS de saisie en cours au porteur du geste d'enregistrement (il se pose toujours, au blur que ce geste provoque) ; une valeur affichée qui change sous le brouillon le fait tomber ; `SaisieSuggeree` sur une ligne, `<textarea>` à `lignes`",
-    "perimetre": "chaîne d'un Trait posé (rangée de TraitListField/OptionalsListField, OptionalTraitsPicker), Traits ajoutés d'une invocation (GameOpEditor `summon.addTraits`), refs au format livre une par ligne du Codex (Compétences, Talents d'une créature), renommage d'un id stable de l'éditeur (`EntryRename`, `src/ui/editor/EntryRename.tsx` : inspecteur et LogicDock)",
-    "verrou": "saisie-suggeree.test.tsx, codex-edit-competences-au-clic.test.tsx, renommage-garde-la-saisie.test.tsx"
-  },
-  {
-    "id": "sourceBadge",
-    "type": "primitives.manifest",
-    "label": "SourceBadge",
-    "fichier": "src/ui/SourceBadge.tsx",
-    "concept": "badge de lecture d'une source (« abréviation du livre p.page ») ; une `SourceRef` de donnée passe par `sourceAffichee` (abréviation du livre, jamais son id)",
-    "perimetre": "fiche et infobulle du Codex, catégorie du Compendium, stade d'indice du Carnet, modale de document",
-    "verrou": "DocumentModal.test.tsx"
-  },
-  {
-    "id": "proseField",
-    "type": "primitives.manifest",
-    "label": "ProseField",
-    "fichier": "src/ui/ProseField.tsx",
-    "concept": "saisie d'une prose verbatim multi-paragraphes (zone haute, agrandissable), ou sa LECTURE (`lecture` : prose rendue sous le même libellé, à la même place que la zone)",
-    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène, description du terrain de bataille ; en zone basse (`courte`) : la raison maison d'une valeur (`ProvenanceDeValeur`)",
-    "verrou": "ui-ratchets.test.ts"
   },
   {
     "id": "proseNommee",
@@ -531,51 +306,13 @@
     "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, src/scenes/bundled-projects.test.ts"
   },
   {
-    "id": "prose",
-    "type": "primitives.manifest",
-    "label": "Prose",
-    "fichier": "src/ui/Prose.tsx",
-    "css": "src/ui/styles/team-segments.css",
-    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée ; `paquet` : prose de paquet nommée par les identités en vigueur (`nommer`), exclusive des annotations",
-    "perimetre": "tout champ de prose RAW",
-    "verrou": "no-html-in-prose.test.ts, src/ui/prose-sites.test.ts"
-  },
-  {
     "id": "identites",
     "type": "primitives.manifest",
-    "label": "nommer/identitesResolues/useIdentites",
+    "label": "nommer/identitesResolues",
     "fichier": "src/noyau/monde/identites.ts",
-    "concept": "identité d'un état `heros` à l'affichage : les repères d'une prose de paquet substitués en mot entier, en une passe, par la ligne du couple espèce × sexe figé à la désignation ; prose stockée intacte ; lue au rendu par `useIdentites` (`src/ui/useIdentites.ts`), mémoïsée sur une clé primitive",
-    "perimetre": "tout site de prose de paquet déclaré `paquet` dans `SITES_PROSE` (`<Prose paquet>`, `mdToText(nommer(…))`)",
-    "verrou": "src/noyau/monde/identites.hors-store.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
-  },
-  {
-    "id": "masterDetail",
-    "type": "primitives.manifest",
-    "label": "MasterDetail",
-    "fichier": "src/ui/MasterDetail.tsx",
-    "concept": "gabarit maître-détail (liste gauche + détail centre), layout pur sans état",
-    "perimetre": "tout écran à sélection dans une liste + détail (interlude, Codex, palettes, pickers)",
-    "verrou": "—"
-  },
-  {
-    "id": "itemIcon",
-    "type": "primitives.manifest",
-    "label": "ItemIcon",
-    "fichier": "src/ui/ItemIcon.tsx",
-    "concept": "icône d'OBJET (glyphe de catégorie)",
-    "perimetre": "sac, onglet Combat de la fiche, pickers MediaSelect, hotbar de combat",
-    "verrou": "src/no-emoji-affordance.test.ts"
-  },
-  {
-    "id": "mediaSelect",
-    "type": "primitives.manifest",
-    "label": "MediaSelect",
-    "fichier": "src/ui/MediaSelect.tsx",
-    "css": "src/ui/styles/media-select.css",
-    "concept": "sélecteur visuel (déclencheur + popover de rangées média + texte) là où un <select> natif ne peut pas porter d'icône ; le popover ouvert est une couche `popover` de la pile (`useDismissLayer`), ouverture et focus par `useBoutonAPopup`",
-    "perimetre": "sélecteurs d'arme/armure de la fiche, menu « Donner »",
-    "verrou": "echap-pile-lifo.test.tsx — Échap referme la liste avant la modale qui la porte"
+    "concept": "Identité de l’état du héros à l’affichage. Les repères d’une prose de paquet sont substitués en une passe, par mot entier, selon le couple espèce × sexe figé à la désignation. La prose stockée reste intacte.",
+    "perimetre": "Prose de paquet projetée par le noyau, lue par les hôtes Godot et texte.",
+    "verrou": "src/noyau/monde/identites.hors-store.test.ts"
   },
   {
     "id": "genRegistry",
@@ -628,7 +365,7 @@
     "label": "inferFields/FieldDesc/choixDuNoeud/champsDeclares/bornesDuNoeud/unionDuNoeud/elementDuNoeud",
     "fichier": "src/noyau/codex/editFields.ts",
     "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`, figée si le code la déclare, `identiteFigee`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste, spécialisation d'une entrée fermée à son catalogue, `choixDeLaSpec`, le `spec` d'une référence à spécialisation lu au point de son `id`, `noeudDuChampAuPoint`), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste, et celui de chaque position d'un tuple, liste de longueur fixe (`elementDuNoeud`, `ariteDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui ajoute, retire ou monte un élément de liste à son rang, retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `ecritureAuFormulaire`, `monteeAuFormulaire`, `src/noyau/edition/formulaire.ts`)",
-    "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en éléments par `src/hote/formulaire.ts` (`elementsDuFormulaireTire`, `valeurDuFormulaire`) et joué par le geste `valeur` de la session d'édition",
+    "perimetre": "Compendium et éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en éléments par `src/hote/formulaire.ts` (`elementsDuFormulaireTire`, `valeurDuFormulaire`) et joué par le geste `valeur` de la session d'édition",
     "verrou": "src/noyau/edition/formulaire.test.ts"
   },
   {
@@ -674,7 +411,7 @@
     "fichier": "src/data/schemas/grammaire/ref.ts",
     "concept": "une sous-liste de feuille `idDe` jugée partout par la même définition : sur l'ENTRÉE résolue (`dansLaSousListe`, `refusDeLEntree`, via `marqueurPorte`), en ids admis du registre (`idsDeLaSousListe`), en déclaration d'une feuille (`declarationDeFeuilleDId`)",
     "perimetre": "producteurs d'ids qui énumèrent une sous-liste (Sorts mineurs de la création), instanciation d'un trapping, sélecteurs du Codex et de l'éditeur",
-    "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/refField/ref-field-sous-liste.test.tsx"
+    "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts"
   },
   {
     "id": "refTypee",
@@ -682,8 +419,8 @@
     "label": "refTypee/declarationDeRefTypee",
     "fichier": "src/data/schemas/grammaire/ref.ts",
     "concept": "une référence TYPÉE `{ id, type }` dont le `type` choisit l'espace d'ids où l'`id` doit résoudre (`refTypee`), et sa déclaration lue par l'éditeur et le scan (`declarationDeRefTypee`)",
-    "perimetre": "foyer de règle des enjeux, des Activités et des Tests d'équipage (`foyerDeRegleSchema`), champ polymorphe de l'éditeur (`RefField`), ouverture au Codex (`cibleCodex`), résolution du scan des structures (`espaceNomme`)",
-    "verrou": "src/data/schemas/grammaire/ref-typee.test.ts, src/ui/compendium/refField/ref-field-polymorphe.test.tsx"
+    "perimetre": "Foyers de règle, enjeux, activités, tests d’équipage, ouverture au Codex et résolution du scan des structures.",
+    "verrou": "src/data/schemas/grammaire/ref-typee.test.ts"
   },
   {
     "id": "porteeLocale",
@@ -794,208 +531,6 @@
     "verrou": "src/data/regles-adresses-prouvees.test.ts ; src/data/source/aligner-oracle.test.ts"
   },
   {
-    "id": "menuCard",
-    "type": "primitives.manifest",
-    "label": "MenuCard/MenuSection/MenuButton/MenuToggle",
-    "fichier": "src/ui/MenuCard.tsx",
-    "concept": "carte de menu : sections de grands boutons pleine largeur icône+libellé, séparateurs titrés, interrupteur",
-    "perimetre": "menu principal hors partie et menu système en jeu (Coopération, Options)",
-    "verrou": "réflexe avant tout bouton ou carte de menu recodé"
-  },
-  {
-    "id": "screenMeta",
-    "type": "primitives.manifest",
-    "label": "ScreenMeta",
-    "fichier": "src/ui/ScreenMeta.tsx",
-    "concept": "méta d'en-tête date + bourse",
-    "perimetre": "en-tête d'écran plein-champ et en-tête du menu système (date seule)",
-    "verrou": "—"
-  },
-  {
-    "id": "tabs",
-    "type": "primitives.manifest",
-    "label": "Tabs",
-    "fichier": "src/ui/composites/Tabs.tsx",
-    "concept": "onglets (flat/pill/sub/dock) : role tablist, aria-selected, roving tabindex",
-    "perimetre": "fiche, écran plein-champ, dock repliable, sous-onglets ; styles src/ui/styles/tabs.css",
-    "verrou": "réflexe avant toute liste d’onglets recodée"
-  },
-  {
-    "id": "rovingFocus",
-    "type": "primitives.manifest",
-    "label": "rovingKeyDown",
-    "fichier": "src/ui/composites/rovingFocus.ts",
-    "concept": "navigation clavier flèches + Home/End d’un groupe, fonction pure sans hook (sites HTML et SVG) ; la sélection suit le focus, ou le focus seul se déplace (`suivi: 'focus'`) ; la touche consommée ne se propage pas au roving générique d’une modale",
-    "perimetre": "tablist, listbox, radiogroup, menu",
-    "verrou": "réflexe avant tout clavier de navigation par flèches recodé"
-  },
-  {
-    "id": "useGesteDeJet",
-    "type": "primitives.manifest",
-    "label": "useGesteDeJet",
-    "fichier": "src/ui/useGesteDeJet.ts",
-    "concept": "le geste d'un bouton de modale de jet : un verbe de jet du noyau (`jet<Verbe>(flux, …)`, `VerbesDeJet`) lié au flux de la modale, qui ne prend plus que la rangée `pid` et le dé posé",
-    "perimetre": "modales de jet (`CastModal`, `DisengageModal`, `FallModal`, `CascadeModal`…) et lentilles `jetProps/`",
-    "verrou": "`verrouDuLexique` (`src/noyau/fabriquesDuNoyau.ts`) : aucun verbe `<flux><Verbe>` ni `jet<Verbe>` hors des verbes de jet ; `rollFlowWiring.test.ts` — aucun handler de verbe appelé hors des verbes de jet"
-  },
-  {
-    "id": "useRamenerEnVue",
-    "type": "primitives.manifest",
-    "label": "useRamenerEnVue / ramenerEnVue",
-    "fichier": "src/ui/useRamenerEnVue.ts",
-    "concept": "ramener un élément en vue dans son conteneur défilant : 'nearest' par défaut, 'smooth' seulement hors prefers-reduced-motion, appel protégé (scrollIntoView absent en jsdom)",
-    "perimetre": "rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche, pastille de `ChipDeRefus` (portée par la primitive, aucun site ne l’appelle)",
-    "verrou": "aucun `scrollIntoView` écrit à la main : le geste, ses défauts et la préférence système vivent en UN point"
-  },
-  {
-    "id": "useLongPress",
-    "type": "primitives.manifest",
-    "label": "useLongPress",
-    "fichier": "src/ui/useLongPress.ts",
-    "concept": "appui long 450 ms au doigt et au stylet (la souris a le clic droit : son clic gauche lent reste le geste primaire), geste secondaire d’une alvéole, d’un portrait ou d’un jeton",
-    "perimetre": "alvéoles de la console de combat, portraits (`PortraitTile.onInspect`), jetons du plateau (`useStagePointer`)",
-    "verrou": "réflexe avant tout minuteur de pression recodé"
-  },
-  {
-    "id": "useClesDeRangees",
-    "type": "primitives.manifest",
-    "label": "useClesDeRangees",
-    "fichier": "src/ui/useClesDeRangees.ts",
-    "concept": "clé STABLE de chaque rangée d'une liste éditable contrôlée : elle suit la rangée à travers retrait, déplacement et édition (reconnaissance par référence), une rangée neuve en reçoit une jamais servie ; sert de `key` React ET de segment d'`identite`/`chemin`, jamais l'index",
-    "perimetre": "toute rangée qui compose un champ à état : variantes, tableaux génériques, effets déclenchés, modificateurs d'exposition, bandes d'issues et clés de record (RecordTextField) du Codex ; GameOpEditor et ses rangées de table (RollTableRowsField), FlowEditor, EffectList ; zones d'effet et actions de décor de l'inspecteur, triggers et dialogues du panneau Logique, nœuds et choix de dialogue (DialogueDetail), péripéties de route ; porteurs narratifs (indice, stade, PNJ) à travers leur renommage",
-    "verrou": "src/ui/useClesDeRangees.test.tsx"
-  },
-  {
-    "id": "coopPanels",
-    "type": "primitives.manifest",
-    "label": "CoopInvite / CoopCodeInput / SeatList / CoopAssignRow / CoopBanner",
-    "fichier": "src/ui/CoopPanels.tsx",
-    "css": "src/ui/styles/coop-panels.css",
-    "concept": "briques de salon coop : plaque et champ du code de room, sièges avec présence, ligne d'attribution, bandeau de liaison",
-    "perimetre": "salon « Jouer en ligne » et sous-écran Coopération du menu ☰",
-    "verrou": "aucune recopie de ligne siège/attribution : la même brique sert le lobby et le menu"
-  },
-  {
-    "id": "readyRow",
-    "type": "primitives.manifest",
-    "label": "ReadyRow",
-    "fichier": "src/ui/ReadyRow.tsx",
-    "css": "src/ui/styles/ready-row.css",
-    "concept": "rangée de ready-check coop : sièges requis seuls, siège nommé, état prêt/attendu",
-    "perimetre": "pause de Round, écran de Victoire, nuit de repos",
-    "verrou": "quorum = siegesRequis (src/noyau/netOwnership.ts), source unique"
-  },
-  {
-    "id": "panneauParametre",
-    "type": "primitives.manifest",
-    "label": "PanneauParametre",
-    "fichier": "src/ui/PanneauParametre.tsx",
-    "css": "src/ui/styles/panneau-parametre.css",
-    "concept": "panneau-paramètre borné ancré à son déclencheur : un clic commit et ferme, Échap annule",
-    "perimetre": "munition d’une arme, localisation, objets d’une pastille, sort à dissiper",
-    "verrou": "réflexe avant tout tiroir de console recodé ; jamais pour un choix exhaustif"
-  },
-  {
-    "id": "lifeBar",
-    "type": "primitives.manifest",
-    "label": "LifeBar",
-    "fichier": "src/ui/LifeBar.tsx",
-    "css": "src/ui/styles/gauges.css",
-    "concept": "barre de remplissage lisse : ton par palier ou teinte continue, dépassement explicite",
-    "perimetre": "vie du portrait, Blessures et Encombrement de la fiche",
-    "verrou": "réflexe avant toute jauge crantée réutilisée en barre de vie : JAMAIS NotchGauge, réservée aux ressources à PALIERS DISCRETS (Coque, Moral, Soute)"
-  },
-  {
-    "id": "tradeTable",
-    "type": "primitives.manifest",
-    "label": "TradeTable",
-    "fichier": "src/ui/TradeTable.tsx",
-    "concept": "table de négoce : colonnes de stats, prix, action par rangée, groupes de rubrique",
-    "perimetre": "marchand, port, marché terrestre",
-    "verrou": "réflexe avant tout tableau d’achat/vente recodé"
-  },
-  {
-    "id": "parchmentCard",
-    "type": "primitives.manifest",
-    "label": "ParchmentCard",
-    "fichier": "src/ui/ParchmentCard.tsx",
-    "concept": "carte-parchemin narrative adossée à un tirage : sceau d100, titre, ton",
-    "perimetre": "interlude, événement de bord en mer, révélation de scène, document d'un stade d'indice au Carnet",
-    "verrou": "réflexe avant tout parchemin à sceau recodé"
-  },
-  {
-    "id": "activityPane",
-    "type": "primitives.manifest",
-    "label": "ActivityPane",
-    "fichier": "src/ui/ActivityPane.tsx",
-    "concept": "panneau d’activité ou de service : en-tête, corps défilable, pied fixe (pré-jet, coût, action)",
-    "perimetre": "interlude, hub de cité",
-    "verrou": "réflexe avant tout volet en-tête/corps/pied recodé"
-  },
-  {
-    "id": "qtyStepper",
-    "type": "primitives.manifest",
-    "label": "QtyStepper",
-    "fichier": "src/ui/QtyStepper.tsx",
-    "concept": "stepper de quantité moins / centre / plus",
-    "perimetre": "panier, quantité en stock, baisse de prix par cran",
-    "verrou": "—"
-  },
-  {
-    "id": "numberField",
-    "type": "primitives.manifest",
-    "label": "NumberField",
-    "fichier": "src/ui/NumberField.tsx",
-    "concept": "champ nombre : variantes complet/champ/nu, bornes optionnelles, commit à la frappe ou au geste",
-    "perimetre": "cascade, réglages de table, atelier du Codex, quantité de marché, dé forcé",
-    "verrou": "réflexe avant toute saisie de nombre brute ; cliquet (xvii) de src/ui/ui-ratchets.test.ts"
-  },
-  {
-    "id": "sourceRefField",
-    "type": "primitives.manifest",
-    "label": "SourceRefField",
-    "fichier": "src/ui/SourceRefField.tsx",
-    "concept": "édition d'une réf de source {book, page, note?} : livre choisi au registre (RefField), page, note ; seule une réf complète (livre et page ≥ 1) est émise, le brouillon incomplet reste à l'écran et, dès qu'une saisie l'a rendu différent de la valeur reçue, se dit incomplet (aria-invalid sur le seul champ manquant, décrit par le message) — une valeur reçue incomplète (livre amorcé), non touchée, ne signale rien ; exigée, ou facultative : « aucun » au livre retire alors la source en un geste ; `identite` REQUISE (entité + chemin du champ) : la changer repart de la valeur, jamais du brouillon d'un autre porteur ; une saisie non enregistrée remonte au porteur du geste d'enregistrement (SuiviDesSaisies / useSuiviDesSaisies côté porteur, useSaisieEnCours côté champ), qui s'en bloque",
-    "perimetre": "atelier du Codex (champ source, emplacements secondaires, variantes), éditeur narratif (document) ; à travers ProvenanceDuTexte : ouverture, stade, PNJ, réplique, journal, terrain, introduction, refus de route, sous-titres, objectif, faveur, enjeu, narration d'op et invite de choix",
-    "verrou": "src/ui/SourceRefField.test.tsx"
-  },
-  {
-    "id": "alsoInField",
-    "type": "primitives.manifest",
-    "label": "AlsoInField",
-    "fichier": "src/ui/AlsoInField.tsx",
-    "concept": "liste des emplacements SECONDAIRES d'une valeur réimprimée ailleurs (alsoIn: SecondaryRef[]) : une rangée = SourceRefField + sa citation verbatim (quote, preuve du span quand le libellé n'y est pas imprimé) ; la liste n'émet que ses rangées COMPLÈTES, les brouillons restant à l'écran remontent au porteur du geste d'enregistrement",
-    "perimetre": "enveloppe d'une entrée du Codex (alsoIn de document()), rangée de Trait posé (TraitListField/OptionalsListField)",
-    "verrou": "src/ui/SourceRefField.test.tsx, src/ui/compendium/refField/saisie-suggeree.test.tsx"
-  },
-  {
-    "id": "provenanceDuTexte",
-    "type": "primitives.manifest",
-    "label": "ProvenanceDuTexte",
-    "fichier": "src/ui/editor/ProvenanceDuTexte.tsx",
-    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie ; en copie avec adresse embarquée (adresseEmbarquee), « Détacher » reporte source sur adapteDe",
-    "perimetre": "éditeur narratif (ouverture, sous-titres, stade, PNJ), réplique (DialogueDetail), journal, objectif, faveur et terrain (EffectFields), introduction (Inspector), refus (WorldMapRoutePanel), enjeu et choix (FlowEditor), narration (GameOpEditor)",
-    "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
-  },
-  {
-    "id": "provenanceDeValeur",
-    "type": "primitives.manifest",
-    "label": "ProvenanceDeValeur",
-    "fichier": "src/ui/editor/ProvenanceDeValeur.tsx",
-    "concept": "provenance d'une VALEUR d'auteur : sa source (SourceRefField facultative) ou sa raison maison (ProseField courte), dans un panneau creux posé à côté de la valeur ; une valeur exigée sans l'une ni l'autre porte son refus (ChipDeRefus), miroir de refuserSansProvenance au chargement",
-    "perimetre": "billet d'auteur, dé de péril, vitesse et distance d'une route (WorldMapRoutePanel), rangée de Trait posé (TraitListField/OptionalsListField : la valeur que l'entrée porteuse ne fonde pas)",
-    "verrou": "src/ui/editor/worldmap-gating-editable.test.tsx, src/ui/editor/WorldMapEditor.test.tsx"
-  },
-  {
-    "id": "couvreField",
-    "type": "primitives.manifest",
-    "label": "CouvreField / SelecteurDEntreeDeFiche",
-    "fichier": "src/ui/editor/CouvreField.tsx",
-    "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
-    "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
-    "verrou": "src/ui/editor/CouvreField.test.tsx"
-  },
-  {
     "id": "freeAttackWeapon",
     "type": "primitives.manifest",
     "label": "freeAttackWeapon",
@@ -1003,15 +538,6 @@
     "concept": "arme et NOM d’une attaque gratuite de créature : label, Compétence et dégâts de sa manœuvre (`attaqueNaturelle`), lus par la modale d’attaque, la modale de défense et le réticule",
     "perimetre": "toute attaque gratuite jouée ou affichée",
     "verrou": "src/noyau/gratuite-nom-unique.hors-store.test.ts"
-  },
-  {
-    "id": "gameOpChips",
-    "type": "primitives.manifest",
-    "label": "GameOpChips",
-    "fichier": "src/ui/GameOpChips.tsx",
-    "concept": "rendu JOUEUR d’une liste de GameOp : chips codex-liées et phrase humanisée",
-    "perimetre": "passifs d’entité, effets de signe astral",
-    "verrou": "jamais le résumeur d’atelier opSummary"
   },
   {
     "id": "opRows",
@@ -1050,584 +576,6 @@
     "verrou": "src/noyau/chute-a-la-porte.hors-store.test.ts, src/noyau/roll-seam-exclusivity-guard.test.ts"
   },
   {
-    "id": "creatorDice",
-    "type": "primitives.manifest",
-    "label": "CreatorDice",
-    "fichier": "src/ui/creator/CreatorDice.tsx",
-    "concept": "cérémonie de tirage du créateur : attente, roulant, rendu, gain de PX en direct",
-    "perimetre": "Race, Carrière, Caractéristiques, Signe astral",
-    "verrou": "—"
-  },
-  {
-    "id": "gatedAction",
-    "type": "primitives.manifest",
-    "label": "GatedAction / classeBouton",
-    "fichier": "src/ui/GatedAction.tsx",
-    "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap ; `classeBouton(ton)` compose la classe de tout bouton d'action (`btn`, ton primaire, variantes nue et tactile, classe de l'appelant), lue par `GatedAction`, `OptionChooser` et `RollShell`",
-    "perimetre": "toute action refusable de la console et des écrans",
-    "verrou": "aria-disabled et jamais disabled ; raison inline seulement sur opt-in"
-  },
-  {
-    "id": "chipDeRefus",
-    "type": "primitives.manifest",
-    "label": "ChipDeRefus",
-    "fichier": "src/ui/ChipDeRefus.tsx",
-    "concept": "message d'un REFUS ou d'un état perdu (donnée d'un autre format retirée, geste refusé) en `role=\"alert\"`, en `role=\"status\"` pour l'état permanent d'un champ (`fixe`) : la phrase en `.chip.tone-danger.chip-phrase`, pastille ajustée à son texte, le rapport technique replié en `.fold` ; `id` nomme le message que désigne l'`aria-describedby` d'un champ ; ramenée EN VUE par la primitive (`useRamenerEnVue`) au montage et à chaque changement de `message` / `detail`, jamais à un simple rendu de l'hôte ; `cle` remplace ce déclencheur (refus neuf au texte identique, modales Ouvrir / Enregistrer le projet) ; `fixe` le coupe et pose `role=\"status\"` pour l'état permanent d'un champ en saisie (inspecteur : porte secrète, allège, décor ; narratif : motif d'écart ; carte du monde : raison du refus ; spécimens de galerie)",
-    "perimetre": "témoins de format (save, roster, import de héros, calque, bibliothèque de campagnes, « Ouvrir » de l'éditeur), retraits d'élagage (save chargée, roster, import de héros, règles maison), refus des gestes de projet, refus de saisie de l'éditeur (inspecteur, narratif, carte du monde, places assises), erreur de connexion du lobby coop",
-    "verrou": "src/ui/ChipDeRefus.test.tsx, src/ui/editor/ProjectModals.test.tsx, src/ui/saveload-message-obsolete.test.tsx ; src/ui/ui-ratchets.test.ts (xxiv) — aucun `chip` + `tone-danger` hors de la primitive, exclusions au site"
-  },
-  {
-    "id": "roseAxes",
-    "type": "primitives.manifest",
-    "label": "RoseAxes",
-    "fichier": "src/ui/RoseAxes.tsx",
-    "css": "src/ui/styles/rose.css",
-    "concept": "rose des forces : mini-radar gravé à N axes paramétrables",
-    "perimetre": "glyphe de carte, médaillon, rendu plein",
-    "verrou": "axes calculés par axisScore et axesProfile (src/engine/axes.ts)"
-  },
-  {
-    "id": "metalStatus",
-    "type": "primitives.manifest",
-    "label": "MetalStatus",
-    "fichier": "src/ui/MetalStatus.tsx",
-    "concept": "chip de statut métallisé Bronze/Argent/Or avec son échelon",
-    "perimetre": "tout affichage de statut social",
-    "verrou": "libellé par libelleDuStatut (src/engine/money.ts)"
-  },
-  {
-    "id": "champDeStatut",
-    "type": "primitives.manifest",
-    "label": "ChampDeStatut",
-    "fichier": "src/ui/editor/ChampDeStatut.tsx",
-    "concept": "saisie d’un Statut en ids : choix d’Échelon puis Standing",
-    "perimetre": "tout champ `statutSchema` d’un éditeur web",
-    "verrou": "options lues sur le nœud `statutSchema.shape.tier` (optionsDuNoeud)"
-  },
-  {
-    "id": "waxSeal",
-    "type": "primitives.manifest",
-    "label": "WaxSeal/SealedPlaque",
-    "fichier": "src/ui/WaxSeal.tsx",
-    "concept": "sceau de cire et plaque d’élu scellée",
-    "perimetre": "tuiles de sélection, plaques d’élu",
-    "verrou": "—"
-  },
-  {
-    "id": "careerPath",
-    "type": "primitives.manifest",
-    "label": "CareerPath",
-    "fichier": "src/ui/CareerPath.tsx",
-    "concept": "chemin d’évolution d’une carrière en médaillons de niveau",
-    "perimetre": "fiche, créateur, Codex des carrières",
-    "verrou": "—"
-  },
-  {
-    "id": "figTile",
-    "type": "primitives.manifest",
-    "label": "FigTile/FigZoneBadges",
-    "fichier": "src/ui/FigTile.tsx",
-    "css": "src/ui/styles/frames.css",
-    "concept": "tuile unique : nom et compte, sceau optionnel ; badges nommés par HitLocation composés par CharacterSheet (l'appelant fournit la donnée par zone)",
-    "perimetre": "GroupedPickGrid, créateur, ouverture de campagne et galerie ; badges de Localisation de la colonne aside de la fiche",
-    "verrou": "seule définition des classes fig-tile (src/ui/styles/frames.css) ; réflexe avant tout cadre dans un cadre"
-  },
-  {
-    "id": "groupesDeChoix",
-    "type": "primitives.manifest",
-    "label": "Listbox/RadioGroup",
-    "fichier": "src/ui/composites/GroupesDeChoix.tsx",
-    "concept": "conteneurs role listbox (items role option) et radiogroup (items role radio, variante svg) au clavier rovingKeyDown ; la listbox d'une liste qui se referme au choix ne déplace que le focus",
-    "perimetre": "tout groupe de sélection exclusive : grilles de choix, services d'un lieu, liste de MediaSelect, lignées et talents du créateur, chemin de carrière, roue céleste",
-    "verrou": "murs/roles-composites d'oxlint.config.mjs (listbox, radiogroup, tablist, menu, grid posés hors src/ui/composites refusés, banc scripts/guards/lib/lint-parite.test.mjs)"
-  },
-  {
-    "id": "menu",
-    "type": "primitives.manifest",
-    "label": "Menu",
-    "fichier": "src/ui/composites/Menu.tsx",
-    "concept": "liste role menu d'entrées menuitem et de séparateurs, flèches qui déplacent le focus ; déclencheur, ouverture et fermeture par `useBoutonAPopup`",
-    "perimetre": "menu Fichier de l'éditeur",
-    "verrou": "murs/roles-composites d'oxlint.config.mjs"
-  },
-  {
-    "id": "boutonAPopup",
-    "type": "primitives.manifest",
-    "label": "useBoutonAPopup",
-    "fichier": "src/ui/composites/boutonAPopup.ts",
-    "concept": "déclencheur et son popup (menu, liste déroulante) : flèches, Home/End et ouverture au clavier entrent dans le popup, la fermeture rend le focus au déclencheur, le focus qui sort de la racine ferme",
-    "perimetre": "menu Fichier de l'éditeur (`Menu`), `MediaSelect` (`Listbox`)",
-    "verrou": "boutonAPopup.test.tsx"
-  },
-  {
-    "id": "groupedPickGrid",
-    "type": "primitives.manifest",
-    "label": "GroupedPickGrid",
-    "fichier": "src/ui/GroupedPickGrid.tsx",
-    "concept": "grille de sélection en sections par famille ou classe, compose Listbox",
-    "perimetre": "tout picker groupé",
-    "verrou": "—"
-  },
-  {
-    "id": "detailFrame",
-    "type": "primitives.manifest",
-    "label": "DetailFrame",
-    "fichier": "src/ui/DetailFrame.tsx",
-    "concept": "cadre de détail de l’élue : nom, chips méta, rubriques, prose scrollable",
-    "perimetre": "créateur, pickers, Codex",
-    "verrou": "—"
-  },
-  {
-    "id": "plaqueRow",
-    "type": "primitives.manifest",
-    "label": "PlaqueRow/PlaqueGrid",
-    "fichier": "src/ui/PlaqueRow.tsx",
-    "css": "src/ui/styles/plaque-row.css",
-    "concept": "rangée-plaque sombre à rivets : préfixe codex, méta centrale, valeur à droite, états élu et roulant",
-    "perimetre": "registre de caractéristiques, rangées d’allocation",
-    "verrou": "réflexe avant toute rangée de registre recodée"
-  },
-  {
-    "id": "creatorStepFrame",
-    "type": "primitives.manifest",
-    "label": "CreatorStepFrame",
-    "fichier": "src/ui/creator/CreatorStepFrame.tsx",
-    "css": "src/ui/styles/creator-step.css",
-    "concept": "gabarit d’étape du créateur : bande d’action requise, zone de choix, zone de description",
-    "perimetre": "toutes les étapes du créateur",
-    "verrou": "src/ui/creator/creator-ossature.test.tsx"
-  },
-  {
-    "id": "band",
-    "type": "primitives.manifest",
-    "label": "Band",
-    "fichier": "src/ui/Band.tsx",
-    "css": "src/ui/styles/band.css",
-    "concept": "bande titrée de rubrique : titre, compteur ou jauge ancrés à droite, contenu dessous",
-    "perimetre": "étapes du créateur, bandes de section du registre État de la fiche",
-    "verrou": "réflexe avant tout bandeau de rubrique recodé"
-  },
-  {
-    "id": "reglagesApparence",
-    "type": "primitives.manifest",
-    "label": "ReglagesApparence/ApparencesObjetsField",
-    "fichier": "src/ui/editor/ReglagesApparence.tsx",
-    "css": "src/ui/styles/reglages-apparence.css",
-    "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
-    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif et du Codex",
-    "verrou": "apparence-une-rubrique.test.tsx"
-  },
-  {
-    "id": "objetDonneField",
-    "type": "primitives.manifest",
-    "label": "ObjetDonneField",
-    "fichier": "src/ui/editor/ObjetDonneField.tsx",
-    "concept": "écrivain partagé de l’objet donné et de son apparence ; résolution campagne puis catalogue, admission canonique, absence du défaut",
-    "perimetre": "effets de scène et ops mécaniques giveTrapping",
-    "verrou": "src/ui/editor/ReglagesApparence.test.tsx"
-  },
-  {
-    "id": "heroSheet",
-    "type": "primitives.manifest",
-    "label": "HeroSheet",
-    "fichier": "src/ui/HeroSheet.tsx",
-    "css": "src/ui/styles/hero-sheet.css",
-    "concept": "corps de fiche héros : en-tête d’identité, caractéristiques et dérivées, forces seuillées, chips codex",
-    "perimetre": "résumé du créateur, écran de groupe",
-    "verrou": "réflexe avant toute fiche de personnage recodée"
-  },
-  {
-    "id": "designGallery",
-    "type": "primitives.manifest",
-    "label": "DesignGallery",
-    "fichier": "src/ui/gallery/DesignGallery.tsx",
-    "concept": "galerie du design system in-app (DEV) : chaque primitive montée vivante avec des données réelles",
-    "perimetre": "référence de goût des primitives d’UI",
-    "verrou": "—"
-  },
-  {
-    "id": "layout",
-    "type": "primitives.manifest",
-    "label": "Stack/Row/Grid/Split",
-    "fichier": "src/ui/Layout.tsx",
-    "concept": "placement d'écran : pile, rangée, grille, split — gap/pad sur l'échelle, cassure canon",
-    "perimetre": "tout écran",
-    "verrou": "ui-ratchets (xxi)/(xxii)"
-  },
-  {
-    "id": "ornaments",
-    "type": "primitives.manifest",
-    "label": "Fleuron/RuleDivider/CornerFlourish/OrnateFrame",
-    "fichier": "src/ui/Ornaments.tsx",
-    "css": "src/ui/styles/ornaments.css",
-    "concept": "textures maison (parchemin/fer/encre), filets titrés et fleurons de coin",
-    "perimetre": "cartes de menu, sections titrées, cadres de planche",
-    "verrou": "—"
-  },
-  {
-    "id": "notchGauge",
-    "type": "primitives.manifest",
-    "label": "NotchGauge",
-    "fichier": "src/ui/NotchGauge.tsx",
-    "css": "src/ui/styles/gauges.css",
-    "concept": "jauge à CRANS (N/M) avec repère de seuil — quotas, Destin, avaries",
-    "perimetre": "registre État, dossier de navire, bandes de quota",
-    "verrou": "—"
-  },
-  {
-    "id": "windRose",
-    "type": "primitives.manifest",
-    "label": "WindRose",
-    "fichier": "src/ui/WindRose.tsx",
-    "css": "src/ui/styles/gauges.css",
-    "concept": "rose des vents : direction + force du vent",
-    "perimetre": "voyage en mer, dossier de navire",
-    "verrou": "—"
-  },
-  {
-    "id": "rollLine",
-    "type": "primitives.manifest",
-    "label": "RollLine",
-    "fichier": "src/ui/RollLine.tsx",
-    "css": "src/ui/styles/roll-line.css",
-    "concept": "ligne d’un jet : nom + Difficulté, calcul, dé, DR, chips de modificateurs, états (pré-jet, masqué, sur table)",
-    "perimetre": "toute ligne de jet — rangée de RollShell, panneau de RollPanel, pile de MultiRollList, révélation",
-    "verrou": "roll-display-contract.test.ts"
-  },
-  {
-    "id": "rollPanel",
-    "type": "primitives.manifest",
-    "label": "RollPanel",
-    "fichier": "src/ui/RollPanel.tsx",
-    "css": "src/ui/styles/roll-panel.css",
-    "poseurs": [
-      "src/ui/RollRow.tsx"
-    ],
-    "concept": "panneau de jet unique : même géométrie avant et après le jet (portrait, ligne, note de conséquence)",
-    "perimetre": "jet mono d’une modale ou d’une étape de cascade ; accent du gagnant d’un Test opposé",
-    "verrou": "—"
-  },
-  {
-    "id": "diceRoll",
-    "type": "primitives.manifest",
-    "label": "DiceRoll",
-    "fichier": "src/ui/DiceRoll.tsx",
-    "css": "src/ui/styles/dice-roll.css",
-    "poseurs": [
-      "src/ui/Dice.tsx",
-      "src/ui/creator/CharacterCreator.tsx"
-    ],
-    "concept": "le DÉ comme matière : gemme, chiffre gravé, roulis, matière dorée, scène centrale qui voile son hôte",
-    "perimetre": "roulis d’une fenêtre de jet, encrier du créateur, d100 textuel d’une ligne de jet",
-    "verrou": "aucune face de dé redessinée hors de ce module (tone=\"gold\" couvre l’Atelier)"
-  },
-  {
-    "id": "forcedRollPicker",
-    "type": "primitives.manifest",
-    "label": "ForcedRollPicker",
-    "fichier": "src/ui/ForcedRollPicker.tsx",
-    "css": "src/ui/styles/forced-roll-picker.css",
-    "concept": "sélecteur du dé d’une rangée de jet : options de dé + saisie libre de la valeur",
-    "perimetre": "toute modale de jet (« Je ne faillirai pas ! », option « Dés fixés »)",
-    "verrou": "forcedDieRow.ts — aucune modale ne dérive son propre sélecteur"
-  },
-  {
-    "id": "recapLine",
-    "type": "primitives.manifest",
-    "label": "RecapLine",
-    "fichier": "src/ui/RecapLine.tsx",
-    "css": "src/ui/styles/recap-line.css",
-    "concept": "ligne de récap structurée : Row sans enroulement, icône et prose compacte, trio de tons ok/bad/info et étiquette de phase",
-    "perimetre": "issue d’une fenêtre de jet, chronique d’un écran, carte-parchemin",
-    "verrou": "noyau/recapLine.ts — un site fournit la DONNÉE, jamais le markup (#1078)"
-  },
-  {
-    "id": "multiRollList",
-    "type": "primitives.manifest",
-    "label": "MultiRollList",
-    "fichier": "src/ui/MultiRollList.tsx",
-    "css": "src/ui/styles/multi-roll-list.css",
-    "concept": "bilan MULTI-JETS d’un même temps : portrait, libellé, ligne de jet, note",
-    "perimetre": "nuit de repos, journée de voyage, conseil de bord, cascade globalisée",
-    "verrou": "—"
-  },
-  {
-    "id": "revealBody",
-    "type": "primitives.manifest",
-    "label": "RevealBody",
-    "fichier": "src/ui/RevealBody.tsx",
-    "css": "src/ui/styles/reveal-body.css",
-    "concept": "corps d’une RÉVÉLATION tirée sur table : valeurs du coup, États infligés, chaque effet avec son explication RAW",
-    "perimetre": "Coup Critique, Imparfaite, Mutation — étape d’affichage comme étape de choix de déviation",
-    "verrou": "—"
-  },
-  {
-    "id": "teamSegments",
-    "type": "primitives.manifest",
-    "label": "TeamSegments",
-    "fichier": "src/ui/TeamSegments.tsx",
-    "concept": "segments tonés par camp réunis en Markdown complet, rendu compact par Prose avec annotations allié ou ennemi",
-    "perimetre": "journal de combat, ligne de récap, fil d’événements",
-    "verrou": "les deux vocabulaires de segments (NarratedSegment, RecapSegment) passent par ce rendu"
-  },
-  {
-    "id": "combatBanner",
-    "type": "primitives.manifest",
-    "label": "CombatBanner",
-    "fichier": "src/ui/CombatBanner.tsx",
-    "css": "src/ui/styles/combat-banner.css",
-    "concept": "fil d’ÉVÉNEMENTS du combat : le beat courant, ligne nue posée sur le terrain, toné par sa gravité",
-    "perimetre": "refus du geste tenté, intention télégraphiée de l’IA, dernier résultat du journal",
-    "verrou": "projection de sources existantes — zéro état dédié"
-  },
-  {
-    "id": "combatConsole",
-    "type": "primitives.manifest",
-    "label": "CombatConsole",
-    "fichier": "src/ui/console/CombatConsole.tsx",
-    "css": "src/ui/styles/combat-console.css",
-    "nature": "organisme",
-    "concept": "LE PONT de combat, en FLUX dans la rangée basse du plateau : deux travées d’alvéoles à compte FIXE autour de l’arche du combattant actif, conduit d’Avantage, coin de fin de tour — et, hors du tour de ce siège, la forme SPECTATRICE, l’arche seule sur une bande éteinte",
-    "perimetre": "HUD de combat plein-champ, dimensionné sur la FENÊTRE — la galerie en montre les deux formes de bureau, les formes étroites s’observent en recette",
-    "verrou": "src/ui/console/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
-  },
-  {
-    "id": "combatStartSplash",
-    "type": "primitives.manifest",
-    "label": "CombatStartSplash",
-    "fichier": "src/ui/CombatStartSplash.tsx",
-    "css": "src/ui/styles/combat-start-splash.css",
-    "nature": "organisme",
-    "concept": "beat plein-champ d’OUVERTURE du combat : le mot de la surprise réellement résolue, posé sur le terrain et effacé tout seul",
-    "perimetre": "entrée en combat (round 1), après la clôture de la cascade de Surprise — décoratif, il ne bloque aucun geste",
-    "verrou": "src/ui/CombatStartSplash.test.tsx — le beat attend la cascade d’ouverture et dit le bon mot"
-  },
-  {
-    "id": "fxChip",
-    "type": "primitives.manifest",
-    "label": "FxChip/EffectChips",
-    "fichier": "src/ui/FxChip.tsx",
-    "css": "src/ui/styles/fx-chip.css",
-    "poseurs": [
-      "src/ui/EffectChips.tsx"
-    ],
-    "concept": "pastille d’une conséquence mécanique : État (malus), buff avec sa durée, effet nommé, « +N » de débord",
-    "perimetre": "rack de la tuile de portrait, panneau Perso, cartes, récapitulatifs d’interlude",
-    "verrou": "le routage vers la règle est une donnée (`chipCodex`) — aucune analyse de texte"
-  },
-  {
-    "id": "spectatorChip",
-    "type": "primitives.manifest",
-    "label": "SpectatorChip",
-    "fichier": "src/ui/SpectatorChip.tsx",
-    "css": "src/ui/styles/spectator-chip.css",
-    "concept": "puce qui NOMME le siège attendu quand le geste n’appartient pas au siège local (coop)",
-    "perimetre": "arbitre de modales, travée d’attente de la console, zone de choix d’un dialogue",
-    "verrou": "le siège attendu vient de `spectatorSeatOfModal` (src/noyau/combatAuto.ts), source unique"
-  },
-  {
-    "id": "gearAssignList",
-    "type": "primitives.manifest",
-    "label": "GearAssignList",
-    "fichier": "src/ui/GearAssignList.tsx",
-    "css": "src/ui/styles/gear-assign-list.css",
-    "concept": "liste de butin ATTRIBUABLE : une ligne par objet — nom, aura magique, qualités révélées, actions de révélation, attribution par portrait",
-    "perimetre": "écran de victoire, fenêtre de butin hors combat",
-    "verrou": "Évaluer (LDB 59 l.41) et Détecter (LDB 10 l.336) sont des ACTIONS de l'appelant — la liste ne résout aucun Test"
-  },
-  {
-    "id": "rewardRecap",
-    "type": "primitives.manifest",
-    "label": "RewardRecap",
-    "fichier": "src/ui/RewardRecap.tsx",
-    "css": "src/ui/styles/reward-recap.css",
-    "poseurs": [
-      "src/ui/VictoryScreen.tsx",
-      "src/ui/LootModal.tsx"
-    ],
-    "concept": "récapitulatif de GAIN : messages d’ambiance, récompenses chiffrées, rubriques titrées, geste de sortie",
-    "perimetre": "fin de combat (victoire), fouille hors combat (butin)",
-    "verrou": "un compteur à ZÉRO ne s’affiche jamais nu (#377) — l’appelant ne passe que ce qui est gagné"
-  },
-  {
-    "id": "errorBoundary",
-    "type": "primitives.manifest",
-    "label": "SceneErrorBoundary",
-    "fichier": "src/ui/SceneErrorBoundary.tsx",
-    "css": "src/ui/styles/error-boundary.css",
-    "poseurs": [
-      "src/ui/App.tsx",
-      "src/ui/CampaignView.tsx",
-      "src/ui/editor/Editor.tsx"
-    ],
-    "concept": "filet d’un crash de RENDU : capture, journalise, et montre un panneau de reprise en français au lieu de l’écran noir",
-    "perimetre": "autour du stage (scène iso/POV), autour de tout l’écran de jeu (#225)",
-    "verrou": "seule forme possible est une classe React (`componentDidCatch`) ; l’erreur part à `recordError`, source unique du bandeau DEV"
-  },
-  {
-    "id": "logDrawer",
-    "type": "primitives.manifest",
-    "label": "LogDrawer",
-    "fichier": "src/ui/LogDrawer.tsx",
-    "css": "src/ui/styles/log-drawer.css",
-    "poseurs": [
-      "src/ui/NarratedLine.tsx"
-    ],
-    "concept": "tiroir du JOURNAL : l’historique complet, une ligne = gouttière d’icône + texte",
-    "perimetre": "journal de combat du HUD ; la ligne narrée est partagée avec le cadre d’issue d’une fenêtre de jet",
-    "verrou": "—"
-  },
-  {
-    "id": "inspectPanel",
-    "type": "primitives.manifest",
-    "label": "InspectPanel",
-    "fichier": "src/ui/InspectPanel.tsx",
-    "css": "src/ui/styles/inspect-panel.css",
-    "poseurs": [
-      "src/ui/editor/Inspector.tsx"
-    ],
-    "nature": "organisme",
-    "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, puis onglets « Profil » (statbloc) et « Description » (prose de la fiche, avec son porteur) — sans prose, ni onglet ni barre",
-    "perimetre": "clic sur l’ordre de bataille ; l’en-tête est partagé avec l’inspecteur de l’éditeur",
-    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/noyau/codex/registry.ts)"
-  },
-  {
-    "id": "equipmentPanel",
-    "type": "primitives.manifest",
-    "label": "EquipmentPanel",
-    "fichier": "src/ui/EquipmentPanel.tsx",
-    "css": "src/ui/styles/equipment-panel.css",
-    "nature": "organisme",
-    "concept": "panneau d’ÉQUIPEMENT : emplacements en cellules (localisation × couche) + cartes de set d’armes + récap en main",
-    "perimetre": "onglet Possessions de la fiche de personnage",
-    "verrou": "aucun mannequin (mort, #492)"
-  },
-  {
-    "id": "gameStage",
-    "type": "primitives.manifest",
-    "label": "MondeDeCampagne",
-    "fichier": "src/gameIso/stage/MondeDeCampagne.tsx",
-    "css": "src/gameIso/anim.css",
-    "poseurs": [
-      "src/gameIso/stage/",
-      "src/gameIso/fx/",
-      "src/gameIso/SurcoucheIso.tsx",
-      "src/gameIso/TokenChromeMarks.tsx",
-      "src/gameIso/catalog/decor/defs/"
-    ],
-    "nature": "organisme",
-    "concept": "les ANIMATIONS de ce qui vit sur le plateau : keyframes des FX, des gabarits, de la faune et de l’ambiance, et les teintes du chrome des jetons",
-    "perimetre": "campagne, arène, plan top-down — halos de décor, chiffres de dégâts, fourmis de gabarit",
-    "verrou": "gameIso/stage/anim-css-branchee.test.ts — les keyframes sont importées par l’hôte du monde"
-  },
-  {
-    "id": "isoStage",
-    "type": "primitives.manifest",
-    "label": "GameStage3D/SurcoucheIso",
-    "fichier": "src/gameIso/stage/GameStage3D.tsx",
-    "css": "src/gameIso/stage/iso-stage.css",
-    "poseurs": [
-      "src/gameIso/stage/GameStage3D.tsx",
-      "src/gameIso/SurcoucheIso.tsx"
-    ],
-    "nature": "organisme",
-    "concept": "la BOÎTE du plateau : le rectangle commun au canevas 3D et au SVG de surcouche",
-    "perimetre": "campagne (canevas et surcouche), éditeur (canevas)",
-    "verrou": "gameIso/stage/anim-css-branchee.test.ts, volet « mise en page `.iso-stage` » — tout module qui rend `.iso-stage` importe `stage/iso-stage.css`"
-  },
-  {
-    "id": "plaquesDeNom",
-    "type": "primitives.manifest",
-    "label": "PlaquesDeNom",
-    "fichier": "src/gameIso/stage/PlaquesDeNom.tsx",
-    "css": "src/gameIso/stage/plaque-nom.css",
-    "nature": "organisme",
-    "concept": "le NOM d’un utilisable révélé (Alt maintenu) ou survolé, posé au-dessus de lui dans le SVG du plateau (#1687)",
-    "perimetre": "campagne, arène — surcouche du plateau",
-    "verrou": "gameIso/stage/anim-css-branchee.test.ts — `.plaque-nom` est posée par son seul rendeur, qui importe `stage/plaque-nom.css`"
-  },
-  {
-    "id": "pastilleEntite",
-    "type": "primitives.manifest",
-    "label": "PastilleEntite",
-    "fichier": "src/gameIso/stage/PastilleEntite.tsx",
-    "css": "src/gameIso/stage/pastille-entite.css",
-    "nature": "organisme",
-    "concept": "le GESTE qu’une chose du champ offre, posé au-dessus de son porteur dans le SVG du plateau (#1411 P2-C)",
-    "perimetre": "campagne, arène — monture, pièce, tas au sol",
-    "verrou": "gameIso/stage/anim-css-branchee.test.ts — `.pastille-entite` est posée par son seul rendeur, qui importe `stage/pastille-entite.css`"
-  },
-  {
-    "id": "stateChips",
-    "type": "primitives.manifest",
-    "label": "StateChips",
-    "fichier": "src/ui/StateChips.tsx",
-    "css": "src/ui/styles/state-chips.css",
-    "concept": "colonne d'États d'un combattant : pastilles informatives ou actionnables, alvéoles RÉSERVÉES (le compte ne dépend jamais des États portés), indice chiffré",
-    "perimetre": "tuile de portrait, bande de groupe, rangée de liste — partout où un État se lit",
-    "verrou": "src/ui/determination-reachability.test.tsx — la pastille actionnable garde sa cible de 44px au doigt"
-  },
-  {
-    "id": "initiativeStrip",
-    "type": "primitives.manifest",
-    "label": "InitiativeStrip",
-    "fichier": "src/ui/InitiativeStrip.tsx",
-    "css": "src/ui/styles/initiative-strip.css",
-    "concept": "frise d'initiative : colonne de bois à cartouche de Round collé, une entrée par combattant, badges de premier coup et de pré-emption en débord",
-    "perimetre": "HUD de combat (colonne à gauche ; bande horizontale défilable ≤700)",
-    "verrou": "scripts/recette/hud-clickables.mjs — la bande défile, va jusqu'au bord, garde sa tête (cartouche collé couvrant la boîte de rembourrage) et son acteur au trait dans le champ, à pas d'entrée CONSTANT et relief de l'unité au trait réservé"
-  },
-  {
-    "id": "partyDock",
-    "type": "primitives.manifest",
-    "label": "PartyDock",
-    "fichier": "src/ui/PartyDock.tsx",
-    "css": "src/ui/styles/party-dock.css",
-    "concept": "bande de groupe : une rangée de cartes IDENTITAIRES qui défile à tuiles pleines, repliée sur sa poignée ≤560",
-    "perimetre": "HUD plein-champ (exploration et combat) — elle ne marque jamais l’acteur du tour",
-    "verrou": "src/ui/PartyDock.test.tsx — aucune plomberie de marqueur d’actif"
-  },
-  {
-    "id": "objectiveBanner",
-    "type": "primitives.manifest",
-    "label": "ObjectiveBanner",
-    "fichier": "src/ui/ObjectiveBanner.tsx",
-    "css": "src/ui/styles/objective-banner.css",
-    "concept": "objectif courant : tête repliable (texte, compte, échéance) et liste dépliée",
-    "perimetre": "pile de contexte d'exploration du HUD",
-    "verrou": "—"
-  },
-  {
-    "id": "viewControls",
-    "type": "primitives.manifest",
-    "label": "ViewControls",
-    "fichier": "src/ui/ViewControls.tsx",
-    "css": "src/ui/styles/view-controls.css",
-    "concept": "rangée de commandes de CAMÉRA : orientation, affichage, zoom — chacune vissée sur la peau partagée « tôle »",
-    "perimetre": "éditeur de scène et galerie QC — sur l'écran de jeu la caméra se pilote au geste et au clavier, sans plaque",
-    "verrou": "src/ui/camera-sans-plaque.test.ts — montée dans l'éditeur, jamais dans le HUD de jeu"
-  },
-  {
-    "id": "drBar",
-    "type": "primitives.manifest",
-    "label": "DrBar",
-    "fichier": "src/ui/DrBar.tsx",
-    "css": "src/ui/styles/dr-bar.css",
-    "concept": "barre de Test ÉTENDU (LDB 154) : DR cumulés vers la cible, cran de seuil, valeur gravée",
-    "perimetre": "toute épreuve étendue (rituel, poursuite, jeu de taverne)",
-    "verrou": "—"
-  },
-  {
-    "id": "coins",
-    "type": "primitives.manifest",
-    "label": "Coins",
-    "fichier": "src/ui/Coins.tsx",
-    "css": "src/ui/styles/coins.css",
-    "concept": "montant en monnaie impériale (LDB 57), coloré par dénomination et épelé en `title` — miroir JSX de `formatMoney`",
-    "perimetre": "tout prix AFFICHÉ : négoce, soins, repos, conseil, bourse d'en-tête",
-    "verrou": "—"
-  },
-  {
     "id": "suiteDuCoup",
     "type": "primitives.manifest",
     "label": "applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense",
@@ -1635,15 +583,6 @@
     "concept": "un COUP = application + après-coup, une écriture : l'après-coup est une liste ordonnée de temps (`APRES_COUP` : Maladresses, réaction, suite) ; ce qu'un site fera APRÈS son coup est déclaré en DONNÉE à l'entrée, et une fenêtre ouverte emporte le TEMPS où reprendre — y compris quand une fenêtre de défense s'interpose",
     "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation, Maladresse, casse d'arme",
     "verrou": "src/noyau/apres-coup.hors-store.test.ts"
-  },
-  {
-    "id": "indexedDb",
-    "type": "primitives.manifest",
-    "label": "accesBase / brancherBasesSimulees",
-    "fichier": "src/web/indexedDb.ts",
-    "concept": "base locale IndexedDB DÉCLARÉE `{ nom, magasins: { [nom]: { keyPath } } }`, ouverte sans version : base neuve créée depuis la déclaration, base existante qui s'en écarte (magasins, `keyPath`) supprimée puis recréée une fois, `BaseIdbNonConforme` au second écart (#2404) ; disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/web/indexedDb.testkit.ts`) route toute ouverture et toute suppression sur une base simulée par nom, à `keyPath` observable, transactions atomiques et pannes ciblées, derrière la seule couture `__setFabriqueIdbForTest`",
-    "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
-    "verrou": "src/web/indexedDb.test.ts"
   },
   {
     "id": "coupeAuMot",
@@ -1655,31 +594,13 @@
     "verrou": "coupeAuMot.test.ts ; src/coupe-au-caractere-guard.test.ts — aucune coupe au caractère ellipsée"
   },
   {
-    "id": "posePartagee",
-    "type": "primitives.manifest",
-    "label": "posePartagee",
-    "fichier": "src/lib/posePartagee.ts",
-    "concept": "écouteurs posés à la PREMIÈRE prise (`poser` rend leur retrait) et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures",
-    "perimetre": "porte d'Échap de la pile (`src/ui/clavier/couches/porteEchap.ts`), délégation de la couche d'infobulle (`Infobulle`)",
-    "verrou": "posePartagee.test.ts ; Infobulle.test.tsx — DÉLÉGATION, un seul jeu d'écouteurs"
-  },
-  {
-    "id": "ecouterClavier",
-    "type": "primitives.manifest",
-    "label": "ecouterClavier / ModeClavier",
-    "fichier": "src/ui/clavier/interne/ecouterClavier.ts",
-    "concept": "SEULE pose d'un écouteur `keydown`/`keyup`, sur quelque receveur que ce soit (un élément écoute par son `onKeyDown` JSX) ; le MODE (`registre`, `couche`, `remap`, `piege`) fixe la cible et la phase, donc la place de l'écouteur dans la propagation d'un appui ; rend le retrait. INTERNE à `src/ui/clavier/` : hors de ce dossier, un geste clavier passe par un hook qui nomme son geste (`src/ui/clavier/couches/` pour les touches NOMMÉES, lues par `e.key` ; `useRemapDeTouche` pour la POSITION d'un raccourci, lue par `e.code`) et ne prend aucun gestionnaire ; un ancrage écoute ses touches par son `onKeyDown`/`onKeyDownCapture` JSX",
-    "perimetre": "lecteur du registre (`useGameKeyboard`) ; couches à touches nommées : porte d'Échap de la pile (`prendrePorteEchap`, composée par `useDismissLayer`), piège du dialogue (`usePiegeDeDialogue`, composé par `useModalA11y`) ; remap d'un raccourci du registre, par position (`useRemapDeTouche`, composé par `KeyBindingsPanel`)",
-    "verrou": "murs `murs/clavier-global`, `murs/interne` et `murs/clavier-positions` (`oxlint.config.mjs`, banc `scripts/guards/lib/lint-parite.test.mjs`) ; echap-pile-lifo.test.tsx — la pile tranche avant le registre ; remapDeTouche.test.tsx — Échap annule le remap seul ; infobulle-epinglage-dialogue.test.tsx — ↓ épingle avant le piège du dialogue ; clavier-virtuel-couches.test.tsx — Entrée et Échap sans position répondent"
-  },
-  {
     "id": "gelerProfond",
     "type": "primitives.manifest",
     "label": "gelerProfond/estUneDonneeGelee/GELER_LA_DONNEE/gelerLaConstante",
     "fichier": "src/lib/gelerProfond.ts",
     "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`)",
     "perimetre": "clés de `memoByRef` (`noyau/monde/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`scenes/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
-    "verrou": "garde de partage après chaque test (`src/test-setup.ts`, #2097)"
+    "verrou": "garde de partage après chaque test (src/test-setup-noyau.ts, #2097)"
   },
   {
     "id": "memoByRef",
@@ -1727,24 +648,6 @@
     "verrou": "regex.test.ts"
   },
   {
-    "id": "vuesDeLArtOriente",
-    "type": "primitives.manifest",
-    "label": "VIEWS",
-    "fichier": "src/gameIso/facing.ts",
-    "concept": "identifiant et ordre canonique des trois vues (`View` en dérive)",
-    "perimetre": "tout art orienté, toute table ou liste de vues",
-    "verrou": "unions-canon.test.ts"
-  },
-  {
-    "id": "lectureDUneVue",
-    "type": "primitives.manifest",
-    "label": "ViewArt/nearestView",
-    "fichier": "src/gameIso/catalog/viewArt.ts",
-    "concept": "lecture d'un art orienté : son format par vue (ViewArt) et le repli vers la vue la plus proche (nearestView)",
-    "perimetre": "tout lecteur d'un art orienté (décor)",
-    "verrou": "src/gameIso/catalog/viewArt.test.ts"
-  },
-  {
     "id": "tableTotale",
     "type": "primitives.manifest",
     "label": "tableTotale",
@@ -1752,15 +655,6 @@
     "concept": "table TOTALE keyée par les éléments d'une liste, clés dans l'ordre de la liste, rappel (clé, indice) ; le seul cast du concept",
     "perimetre": "toute couche, src/engine et .mjs compris",
     "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
-  },
-  {
-    "id": "fxGradientIds",
-    "type": "primitives.manifest",
-    "label": "FX_GRADIENT_IDS",
-    "fichier": "src/gameIso/fx/fxGradients.ts",
-    "concept": "registre des dégradés FIXES `g_…` des FX",
-    "perimetre": "tout art qui peint un dégradé fixe",
-    "verrou": "—"
   },
   {
     "id": "cleDeSite",
@@ -1774,10 +668,10 @@
   {
     "id": "porteDesComptes",
     "type": "primitives.manifest",
-    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/sitesDeDetteDOps/COLLECTIONS_A_COMPTE/DETTE_OPS/FEUILLES_D_ID/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
+    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/sitesDeDetteDOps/STRUCTURES_REDECLARATIONS/DETTE_OPS/FEUILLES_D_ID/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
     "fichier": "scripts/guards/lib/corpusDesComptes.mts",
-    "concept": "porte des comptes : collection à compte STRUCTURES_REDECLARATIONS, volet de un par site mesuré au schéma seul (DETTE_OPS : `OPS_NON_TYPEES` et refs à plat de `OP_DEFS`), volet STRUCTURES_LOCALES, volet SOURCE_FORMAT et plancher FEUILLES_D_ID (un chemin de schéma de document `idDe` à la base qui ne l’est plus à la tête, valeurs closes comprises, ou dont une alternative admet une valeur libre, refusé sans ligne de message qui l’admette), images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
-    "perimetre": "tout stock dont chaque entrée porte un compte d'occurrences, et toute porte qui juge un compte entre deux commits",
+    "concept": "porte des comptes : volet STRUCTURES_REDECLARATIONS mesuré sur l’AST des defs, volet de un par site mesuré au schéma seul (DETTE_OPS : `OPS_NON_TYPEES` et refs à plat de `OP_DEFS`), volet STRUCTURES_LOCALES, volet SOURCE_FORMAT et plancher FEUILLES_D_ID (un chemin de schéma de document `idDe` à la base qui ne l’est plus à la tête, valeurs closes comprises, ou dont une alternative admet une valeur libre, refusé sans ligne de message qui l’admette), images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
+    "perimetre": "évolution des redéclarations dans les defs, des structures locales, des feuilles idDe, des ops et du format du Source entre deux images Git",
     "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
   },
   {
@@ -2064,9 +958,9 @@
     "type": "primitives.manifest",
     "label": "surfaceTientLaMain/SURFACES_HORS_PENDING",
     "fichier": "src/noyau/modalArbiter.ts",
-    "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modaleDuDessus)",
-    "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (refus du choix dialogue.reponse dans OUVERTS_DU_CHOIX, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
-    "verrou": "src/noyau/dialogue-surface-tient-la-main.hors-store.test.ts (un contrat par surface partagée, document partagé en coop compris) ; src/state/dialogue-surface-tient-la-main.test.ts (contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
+    "concept": "Verdict de l’arbitre sur les surfaces de jeu partagées qui tiennent la main, dérivé du registre des modales, des fenêtres et des surfaces hors des attentes de jeu.",
+    "perimetre": "Refus d’une réponse de dialogue quand une autre surface partagée tient la main.",
+    "verrou": "src/noyau/dialogue-surface-tient-la-main.hors-store.test.ts"
   },
   {
     "id": "ordreTotal",
@@ -2164,7 +1058,7 @@
     "label": "apparencesCandidates/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
     "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
-    "perimetre": "tout lecteur d’une apparence ou de sa racine : dessin (`armeDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `poserLApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : dessin (`armeDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `poserLApparence` via `choisirApparenceDObjet`",
     "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {
@@ -2175,15 +1069,6 @@
     "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; apparences choisissables d’un objet (admises hors sa forme par défaut), seules à recevoir une référence d’auteur ; objets d’armes dont l’apparence se choisit ; refus commun aux références d’auteur",
     "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, sélecteurs d’apparence de la fiche et des éditeurs, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets (éditeur web et formulaire de l’éditeur Godot), contrôles d’auteur d’objets non nés",
     "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
-  },
-  {
-    "id": "useVersionDesDatasets",
-    "type": "primitives.manifest",
-    "label": "useVersionDesDatasets",
-    "fichier": "src/ui/useVersionDesDatasets.ts",
-    "concept": "version des catalogues pour un composant React : re-rend à chaque écriture au seam des datasets, dépendance des mémos qui dessinent depuis un catalogue",
-    "perimetre": "tout composant `.tsx` qui dessine depuis un catalogue, et tout écran qui projette un catalogue (Codex)",
-    "verrou": "src/ui/useVersionDesDatasets.test.tsx"
   },
   {
     "id": "processusBorne",
@@ -2389,7 +1274,7 @@
     "label": "hash32/hash32AuMillieme",
     "fichier": "src/lib/hash.ts",
     "concept": "empreinte FNV-1a 32 bits déterministe (Math.imul) : de parts textuelles ou numériques, séparées ; d’un tableau numérique pris au millième, sa longueur comprise, poursuivie depuis une empreinte de départ, sans passer par son texte",
-    "perimetre": "toute couche : graines de détail de surface (src/gameIso), empreintes des morceaux, nappes et couronnes du volume du monde (src/noyau/monde/volume/volume.ts), clés du plateau (src/noyau/monde/aretes.ts)",
+    "perimetre": "toute couche : empreintes des morceaux, nappes et couronnes du volume du monde (src/noyau/monde/volume/volume.ts), clés du plateau (src/noyau/monde/aretes.ts)",
     "verrou": "src/lib/hash.test.ts"
   }
 ]

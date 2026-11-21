@@ -95,7 +95,7 @@ describe('#3059 — chantier naval : un seul devis pour l’écran et le geste',
 
   it('bourse vide : le devis refuse la réparation et le carénage, le geste dit le même refus', () => {
     const vide = { gold: 0, silver: 0, brass: 0 };
-    const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 } }), vide);
+    const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastTestDay: 0 } }), vide);
     try {
       const devis = devisDeChantier(partie.etat().vessel!, vide, null, partie.etat().party);
       // MDG 13 l.643 : 1 CO par Blessure → 4 CO. MDG 13 l.152-159 : Salissures niveau 2 → 10 % du coût de base
@@ -214,7 +214,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
 describe('#3059 — siège invité : les dépenses du chantier sont à l’hôte', () => {
   it('réparation, carénage, Amélioration et embauche envoyés se refusent (`coop.hoteSeul`), rien de débité ni posé ; l’écran dit le refus de groupe', () => {
     const trait = NAVAL_TRAITS.find((tr) => tr.kind === 'amelioration' && tr.install && (installCost(tr.install, COGUE.ship!.lengthM, 1).gold ?? 0) > 0)!;
-    const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 } }), { gold: 10000, silver: 0, brass: 0 }, 'invite');
+    const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastTestDay: 0 } }), { gold: 10000, silver: 0, brass: 0 }, 'invite');
     try {
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'reparerLeNavire', args: [] });
@@ -415,7 +415,7 @@ describe('#4214 — un geste à quai porte sur le navire à quai au lieu du grou
     },
     lieu: 'D',
   });
-  const navireAbime = { wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 }, waterLitres: 0 };
+  const navireAbime = { wounds: { current: B - 4, max: B }, fouling: { level: 2, lastTestDay: 0 }, waterLitres: 0 };
   const role = rolesRecrutables()[0].id;
   const gestes = [
     ['installerLAmelioration', ['blindage-fer', 1]], ['reparerLeNavire', []], ['carenerLeNavire', []],

@@ -29,6 +29,8 @@ export interface Construction {
   readonly nom: string;
   /** Faux quand la construction ne peut pas apparaître dans le texte du fichier : le scan ne parse pas. */
   readonly indice?: (texte: string) => boolean;
+  /** Autorise le prédicat à lire les nœuds JSDoc, ignorés par défaut. */
+  readonly avecJSDoc?: boolean;
   /** La phrase de la trouvaille sur ce nœud, ou `null`. */
   readonly reconnait: (noeud: ts.Node, sf: ts.SourceFile, contexte: ContexteImports) => string | null;
 }

@@ -1,11 +1,10 @@
 ---
 paths:
   - "src/engine/**"
-  - "src/state/**"
   - "src/noyau/**"
 ---
 
-# Moteur et flux de state
+# Moteur et flux du noyau
 
 - Avant d'ajouter un champ, un drapeau ou une capacité à une op ou à une entité, lis ses champs : lequel le dit déjà ? Un drapeau ou une capacité neuve est suspect par défaut. Un cas propre à un porteur d'un concept général est un trou de socle à remonter, jamais une garde de donnée. `src/engine/ops.ts`, `docs/vocabulaire-mecanique.md`
 - Mesure une duplication à une question : un appelant peut-il VIOLER l'invariant ? Si oui, extrais la primitive ET retire le geste optionnel qui permettait la faute (le paramètre devient la valeur déjà résolue, la fonction ne re-tire rien). `docs/doctrines.md` (verrou par construction)

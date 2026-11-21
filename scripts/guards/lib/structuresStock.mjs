@@ -1,18 +1,4 @@
-// STOCK des structures de donnée (#1463, #2705, #3021) : les deux collections que la donnée ne fait pas bouger.
-// `STRUCTURES_CIBLES` fige les signatures `cible` du lexique (`CONCEPTS`, `scripts/docs/lib/structures-lexique.mts`) ;
-// `STRUCTURES_REDECLARATIONS` porte les littéraux zod d'un module de schéma de document (`DOSSIERS_DE_DEFS`, les dossiers
-// des registres de `SchemaDef`) qui redéclarent un concept, mesurés sur l'AST (`scannerRedeclarations`,
-// `scripts/docs/lib/structures-scan.mts`) et comptés sous la porte des comptes
-// (`COLLECTIONS_A_COMPTE`, `scripts/guards/lib/occurrencesStock.mjs`). Contrat : `src/data/structures-contrat.test.ts` ;
-// rendu : `docs/structures-donnees.md` (`npm run docs:structures`).
-//
-// La dette que la DONNÉE révèle (formes, orphelines, homonymes, défauts, slots) n'a pas de stock : elle s'INVENTORIE
-// (`scripts/guards/lib/inventaireDeDette.mts`), hors de la porte.
-//
-// COMMENT UNE LIGNE DE REDÉCLARATION SE SOLDE — jamais en la retirant seule : on compose le nœud commun de la grammaire
-// dans le def, dans le LOT porté par la ligne (champ `lot`, testé contre `LOTS_CONNUS`) ; la mesure ne l'observe plus,
-// le contrat rougit sur « ligne périmée », et la ligne se retire dans le MÊME commit. Une BAISSE de compte s'écrit
-// (`occurrences-structures.mts --write`) ; une HAUSSE n'a que la migration pour remède.
+// Signatures cibles du lexique des structures de données (#1463).
 
 /** Signatures de statut `cible` du lexique, FIGÉES ici : l'égalité stricte avec
  *  `CONCEPTS` est testée. Faire passer une graphie en `cible` (donc hors du dénominateur)
@@ -191,23 +177,4 @@ export const STRUCTURES_CIBLES = [
   { concept: "effet-d-etat", signature: "etat,invite,type+…", date: "2026-10-16" },
   { concept: "effet-narratif", signature: "documentId,type", date: "2026-10-17" },
   { concept: "effet-narratif", signature: "indiceId,stade,type", date: "2026-10-17" },
-];
-
-/** Littéral d'objet zod d'un module de `DOSSIERS_DE_DEFS` qui REDÉCLARE localement un concept du lexique (ou la
- *  signature exacte d'un littéral de la grammaire, `src/data/schemas/grammaire/`). Keyé par `def | champ | concept | signature` :
- *  sans le CHAMP, 13 lignes agrégeaient 2 à 4 champs distincts. Pas de numéro de ligne ici : une
- *  ligne bouge à chaque édition du def et ferait rougir la garde sans qu'aucune structure n'ait
- *  changé — le `fichier:ligne` vit dans `docs/structures-donnees.md` §4, régénéré à chaque build.
- *  `oups.ts | plage` NE PEUT PAS sortir par le geste des autres bandes, et sa ligne se tient ICI
- *  plutôt que dans un rendu (refus MOTIVÉ, #1463 L-gram-1) : le dataset
- *  porte les 7 bandes d100 du Tableau des Oups ! ET l'Incident de Tir, section DISTINCTE du livre
- *  (`LDB 14 l.21-30` / `l.32-34`), qui n'a AUCUNE borne. Ses deux bornes sont donc OPTIONNELLES,
- *  disjointes par un refine ⟺ — composer `plageSchema` (bornes REQUISES) rendrait la donnée
- *  invalide, et `bornesSchema` dirait un RÉGLAGE là où le lexique a séparé `plage` et `bornes`. La
- *  ligne sort quand `misfire` sort du dataset : c'est la question #1544 (découpage produit), pas une
- *  adoption de forme. */
-export const STRUCTURES_REDECLARATIONS = [
-  { def: "oups.ts", champ: "", concept: "plage", signature: "max,min+…", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "tavernGames.ts", champ: "rows", concept: "plage", signature: "max,min+…", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-09-01" },
-  { def: "water-exposure.ts", champ: "", concept: "", signature: "kind,op,value", statut: "hors lexique", commun: "conditionSchema", occurrences: 2, lot: "L1a #1466", date: "2026-08-23" },
 ];

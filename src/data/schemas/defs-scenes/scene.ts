@@ -60,6 +60,7 @@ import { estUnNavireAPonts, findCreatureById, findSiegeEngineById, findTrappingB
 import { porteurDuProfil } from '../../../engine/trappingChoices';
 import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
+import { refusDePoseDesPonts } from '../../poseDesPonts';
 import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../../materials.types';
 import { posteSideSchema } from '../defs/vehicles';
@@ -947,14 +948,10 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
   ambientLight: ouReserve(idDe('lightLevel', undefined, { nue: true }), 'auto').optional(),
   /** NORD de la carte — rotation horaire en degrés `[0,360[` du nord réel (posé par `setNorthDeg`). */
   northDeg: z.number().optional(),
-  rest: nommerChamps(z
-    .strictObject({
-      auberge: z.boolean().optional(),
-      maison: z.boolean().optional(),
-      camp: z.boolean().optional(),
-      quality: qualiteDeReposSchema.optional(),
-    }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" }, quality: { label: "qualité"  } })
-    .optional(),
+  rest: nommerChamps(
+    z.strictObject({ ...restPlacesSchema.shape, quality: qualiteDeReposSchema.optional() }),
+    { ...metaDesChamps(restPlacesSchema, { exigees: true }), quality: { label: "qualité" } },
+  ).optional(),
   /** Offre de repos PAR ZONE — prioritaire sur `rest` là où le groupe se tient. */
   restZones: z
     .array(
@@ -1007,6 +1004,11 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
         message: `\`${champ}\` porte ${n} entrée(s) pour une grille ${scene.dimensions.w}×${scene.dimensions.h} — il en faut EXACTEMENT ${attendu}`,
       });
     }
+  });
+  (scene.entities ?? []).forEach((entite, i) => {
+    if (entite.kind !== 'personnage') return;
+    const message = refusDePoseDesPonts(scene, entite);
+    if (message) ctx.addIssue({ code: 'custom', path: ['entities', i, 'pos'], message });
   });
   const zone = scene.zoneJouable;
   if (zone && (zone.x + zone.w > scene.dimensions.w || zone.y + zone.h > scene.dimensions.h)) {

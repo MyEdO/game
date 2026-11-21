@@ -210,7 +210,7 @@ function rendu() {
   for (const [mesure, budget] of BUDGETS_DE_TEMPS) out += `| ${mesure} | ${budget} |\n`
   out += `\nLa recette et la CI jouent un scénario bref.\n\n`
 
-  out += `## Le chargement\n\n\`scripts/hote-texte.mjs\` charge, dans un seul graphe de modules, le gel du catalogue (\`src/data/overrides.ts\`) puis l'hôte (\`src/hoteTexte/serveur.ts\`), par \`runnerImport\` de Vite avec le greffon \`proseSource()\` : la porte de la suite du noyau (\`vitest.noyau.config.ts\`), où \`import.meta.env.DEV\` est vrai. Il inscrit les outils de \`${OUTILS}\` auprès du serveur MCP du SDK (\`@modelcontextprotocol/sdk\`), qui valide leurs entrées, et garde stdout au protocole : toute écriture de console part sur stderr. Une partie ouverte à la fois par serveur : les singletons de module du noyau (branchement, intention locale, règles) n'admettent pas deux parties dans un même contexte JS ; la partie précédente se ferme avant la suivante.\n`
+  out += `## Le chargement\n\n\`scripts/hote-texte.mjs\` charge, dans un seul graphe de modules, le gel du catalogue (\`src/data/overrides.ts\`) puis l'hôte (\`src/hoteTexte/serveur.ts\`), par \`runnerImport\` de Vite avec le greffon \`proseSource()\` : la même porte que la suite Vitest (\`vitest.config.ts\`), où \`import.meta.env.DEV\` est vrai. Il inscrit les outils de \`${OUTILS}\` auprès du serveur MCP du SDK (\`@modelcontextprotocol/sdk\`), qui valide leurs entrées, et garde stdout au protocole : toute écriture de console part sur stderr. Une partie ouverte à la fois par serveur : les singletons de module du noyau (branchement, intention locale, règles) n'admettent pas deux parties dans un même contexte JS ; la partie précédente se ferme avant la suivante.\n`
 
   return {
     out,

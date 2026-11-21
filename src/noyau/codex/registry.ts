@@ -127,6 +127,7 @@ import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
 import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
+import { dureeEnJours } from '../../engine/clock';
 import { formatDiseaseTime, sujetDeContraction } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
@@ -197,9 +198,9 @@ export type CodexRow =
    *  verdict juge vision : une Possession rendue en PARAGRAPHE inversait la hiérarchie de la section
    *  et fondait « Presse à imprimer » et « Chapeau impressionnant » en un seul objet). */
   | { t: 'chip'; label: string; badge?: string }
-  /** CHOIX « A ou B » / « n parmi » d'un emplacement d'avancement (`{pick}`), rendu par `EntityChoice` sur
+  /** CHOIX « A ou B » / « n parmi » d'un emplacement d'avancement (`{pick, of}`), rendu par `EntityChoice` sur
    *  la STRUCTURE : une option référence = un lien cross-réf par son `id`, une option sans id = une pastille. */
-  | { t: 'choice'; category: 'skills' | 'talents'; advancement: Extract<AdvancementRef, { pick: number }> }
+  | { t: 'choice'; category: 'skills' | 'talents'; advancement: Extract<AdvancementRef, { of: unknown }> }
   /** Mini sous-en-tête à l'intérieur d'une section (« Compétences », « Talents »…). */
   | { t: 'sub'; label: string }
   /** Bloc REPLIABLE (`<details class="fold">`) : `summary` visible, `text` (Markdown) dévoilé au clic.
@@ -271,10 +272,6 @@ export interface CodexCategory {
   items: CodexItem[];
   /** Facettes de filtre — DÉRIVÉES des items dans la même re-projection (livre partout, groupe là où porté). */
   facets?: CodexFacet[];
-  /** La prose de cette catégorie suit la convention d'ÉPIGRAPHE WFRP (`careers`, LDB 2 : citation
-   *  `« … »` + attribution) — `<Prose exergues>` les rend en carte-parchemin à leur place. DONNÉE de
-   *  catégorie, jamais un test de catégorie au rendu. */
-  exergues?: boolean;
 }
 
 const src = (s: { book?: string; page?: number } | null | undefined): CodexSource | null =>
@@ -382,9 +379,9 @@ const regleChips = (foyer: FoyerDeRegle | undefined) => chips(tr('codex.fiche.re
 /** Rangées d'une `TraitList` par id, libellé joueur (`traitLisible`, l'individu nommé par `nomDIndividu`). */
 const traitRefRows = (traits?: readonly TraitPose[] | null, nomDIndividu?: NomDIndividu): CodexRow[] =>
   (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, traitLisible(t, nomDIndividu)));
-/** Rangée d'un `AdvancementRef` : `{pick}` → rangée de choix, référence → par id, `{random}` → pastille. */
+/** Rangée d'un `AdvancementRef` : choix en liste, référence par id, tirage en pastille. */
 const advancementRow = (category: 'skills' | 'talents', a: AdvancementRef): CodexRow => {
-  if ('pick' in a) return { t: 'choice', category, advancement: a };
+  if ('of' in a) return { t: 'choice', category, advancement: a };
   if ('id' in a) return idRefRow(category, a.id, a.spec, advancementLabel(category, a));
   return { t: 'chip', label: advancementLabel(category, a) };
 };
@@ -686,8 +683,6 @@ interface CodexCategorySpec {
   cluster?: MsgKey;
   /** Réf de source de la table (« LDB 18 ») — hors du libellé, cf. `CodexCategory.sourceRef`. */
   sourceRef?: string;
-  /** cf. `CodexCategory.exergues`. */
-  exergues?: boolean;
   build: () => CodexItem[];
 }
 
@@ -703,7 +698,6 @@ function makeCategory(key: CleCodex, spec: CodexCategorySpec): CodexCategory {
     group: spec.group,
     get cluster() { return spec.cluster && tr(spec.cluster); },
     sourceRef: spec.sourceRef,
-    exergues: spec.exergues,
     get items() { return projection().items; },
     get facets() { return projection().facets; },
   };
@@ -1435,7 +1429,7 @@ const CODEX_SPECS = {
   careers: {
     // Les desc de Carrière (LDB 2) suivent la convention d'épigraphe WFRP : leurs couples
     // citation+attribution se rendent en carte-parchemin, à LEUR place dans le corps.
-    label: 'codex.fiche.carrieres', group: 'personnage', exergues: true,
+    label: 'codex.fiche.carrieres', group: 'personnage',
     build: () => careers.map((c) => {
       const levels = levelsForCareer(c.id);
       const className = libelleDeClasse(c.class.id);
@@ -1636,7 +1630,7 @@ const CODEX_SPECS = {
               title: tr('codex.fiche.cycleQuotidien'), layout: 'list',
               rows: [
                 { t: 'kv', k: tr('codex.fiche.difficulte'), v: s.onTick.test?.test.difficulty ? DIFFICULTY_LABELS[s.onTick.test.test.difficulty] : tr('codex.fiche.inconditionnel') } as CodexRow,
-                s.onTick.afterDays ? ({ t: 'kv', k: tr('codex.fiche.declenchement'), v: tr('codex.fiche.jourDePhaseActive', { v: s.onTick.once ? tr('codex.fiche.uneFoisAu') : tr('codex.fiche.aPartirDu'), afterDays: s.onTick.afterDays }) } as CodexRow) : null,
+                s.onTick.afterDays ? ({ t: 'kv', k: tr('codex.fiche.declenchement'), v: tr('codex.fiche.jourDePhaseActive', { v: s.onTick.once ? tr('codex.fiche.uneFoisAu') : tr('codex.fiche.aPartirDu'), afterDays: dureeEnJours(s.onTick.afterDays) }) } as CodexRow) : null,
                 // Conséquence : branche `echec` du nœud `test`, ou ops CERTAINES d'un cycle sans jet (ops
                 // directes ou `rollTable` : table EXPANSÉE en rangées lisibles).
                 ...opRows(s.onTick.test ? spellOps(s.onTick.test.echec, 'target') : (s.onTick.ops ?? [])),

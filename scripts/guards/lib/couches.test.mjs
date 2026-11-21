@@ -68,22 +68,13 @@ test('ORACLE : `outillageAtteint` nomme l’outillage qu’un module de la zone 
   assert.deepEqual(cas.map(([de, imp, cible]) => outillageAtteint(de, imp, cible)), cas.map(([, , , v]) => v))
 })
 
-test('ORACLE : `fermeParLaSurvie` ferme à une zone qui survit chaque zone de la table qui n’y survit pas, et rien d’autre', () => {
-  const cas = [
-    ['noyau', 'state', true],
-    ['engine', 'ui', true],
-    ['hotes', 'web', true],
-    ['scenes', 'racine', true], // les fichiers posés à même `src/`
-    ['noyau', 'scenes', false], // survit
-    ['lib', 'lib', false],
-    ['state', 'ui', false], // `state` ne survit pas
-    ['racine', 'state', false],
-    ['noyau', 'src/zz-inconnue', false], // hors de la table : `murs/zone`
-    ['noyau', null, false], // hors des zones : sa clôture, `scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`
-    ['noyau', 'constructor', false],
-    ['constructor', 'state', false],
-  ]
-  assert.deepEqual(cas.map(([de, vers]) => fermeParLaSurvie(de, vers)), cas.map(([, , v]) => v))
+test('MUR : les dossiers retirés sont refusés par la table, même pour une suite', () => {
+  const fixtures = ['state', 'ui', 'web', 'gameIso', 'audio', 'net'].map((z) => ({
+    filePath: `src/${z}/zz-frontiere.test.ts`, code: 'export const mesure = 1;',
+  }))
+  assert.deepEqual(verdicts(fixtures, 'Zone (#2882)'), fixtures.map(() => 'murs/zone'))
+  assert.equal(fermeParLaSurvie('noyau', 'scenes'), false)
+  assert.equal(fermeParLaSurvie('noyau', null), false)
 })
 
 /** Le verdict de chaque fixture pour les messages qui contiennent `marque` : la règle, ou `passe`. */
@@ -110,13 +101,10 @@ test('MUR : un module de `hotes/` hors du dossier de l’évaluateur ne l’impo
   assert.deepEqual(verdicts(fixtures, 'Outillage atteint'), ['murs/purete-imports', 'murs/purete-imports', 'passe', 'passe'])
 })
 
-test('ORACLE : `porteeDeGarde` rend les dossiers des zones qui survivent puis ceux des zones web ; une zone inconnue, `racine` ou du mauvais bord lève', () => {
-  const survivent = Object.keys(COUCHES).filter((z) => COUCHES[z].survit === true)
-  const web = Object.keys(COUCHES).filter((z) => COUCHES[z].survit !== true && z !== 'racine')
-  assert.ok(survivent.length > 0 && web.length > 0, 'la table n’a plus deux bords : l’oracle ne mesure rien')
-  assert.deepEqual(porteeDeGarde(survivent, web), [...survivent, ...web].map(dossierDe))
-  assert.deepEqual(porteeDeGarde(survivent), survivent.map(dossierDe))
-  for (const [s, w] of [[[web[0]], []], [[], [survivent[0]]], [['racine'], []], [[], ['racine']], [['zz-inconnue'], []], [['constructor'], []]]) {
-    assert.throws(() => porteeDeGarde(s, w), /porteeDeGarde/, `${s} | ${w}`)
+test('ORACLE : `porteeDeGarde` rend les dossiers des zones déclarées et refuse les portées inconnues', () => {
+  const zones = Object.keys(COUCHES).filter((z) => z !== 'racine')
+  assert.deepEqual(porteeDeGarde(zones), zones.map(dossierDe))
+  for (const z of ['racine', 'zz-inconnue', 'constructor']) {
+    assert.throws(() => porteeDeGarde([z]), /porteeDeGarde/, z)
   }
 })

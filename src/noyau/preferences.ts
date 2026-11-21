@@ -105,11 +105,6 @@ export function valeurDEntree(id: IdDePreference, v: unknown): PrefValue | undef
   return valeurConforme(def, v) ? v : undefined;
 }
 
-/** Valeur effective d'une préférence (`undefined` si l'id est inconnu). */
-export function pref(id: string): PrefValue | undefined {
-  return preferenceDef(id)?.get();
-}
-
 /** Les préférences qui s'écartent de leur défaut, par id : ce qu'un hôte persiste. */
 export function preferencesAPersister(): Record<string, PrefValue> {
   return Object.fromEntries(PREFERENCES.filter((p) => p.get() !== p.default).map((p) => [p.id, p.get()]));

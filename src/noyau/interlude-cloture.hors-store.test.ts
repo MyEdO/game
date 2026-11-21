@@ -79,8 +79,8 @@ describe('Clôture — le devis est ce que le geste applique', () => {
       commandes: ['dague'],
       ouvrages: [],
       lots: [{ heroId: c, lots: [{ ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], ctx: { label: 'Faire jaser la cour' } }] }],
-      jours: 14,
-      reprise: 19020, // aube (05:00) du 13ᵉ jour après Hexenstag 2512, 02:00
+      jours: 16,
+      reprise: 21900, // aube (05:00) au terme de la seizième nuit
     });
     banc.actions.fenetreValider('interlude');
     const s = banc.getState();
@@ -88,7 +88,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     expect(bourses(banc), 'bourses : gaspillées, puis les seuls Revenus').toEqual([120, 0, 0]);
     expect(s.party.map((h) => h.careerLevel), 'Niveaux : ceux du devis').toEqual([3, 4, 2]);
     expect(s.bank, 'le dépôt survit à la clôture').toEqual([{ uid: expect.any(String), heroId: a, kind: 'mecenat', brass: 1200, rate: 0 }]);
-    expect(s.gameTime, 'reprise : celle du devis').toBe(19020);
+    expect(s.gameTime, 'reprise : celle du devis').toBe(21900);
     expect(hasCondition(s.party[2], 'extenue'), 'l’issue différée est posée après le repos').toBe(true);
   });
 
@@ -159,7 +159,7 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
     expect({ gaspille: devis.gaspille, retro: devis.retrogradations.map((r) => r.heroId), reprise: devis.reprise, conserve: devis.conserve, lots: devis.lots.map((l) => l.heroId) }).toEqual({
       gaspille: s0.party.reduce((a, h) => a + toBrass(bourseOf(h)), 0),
       retro: vivants.filter((h) => (h.careerLevel ?? 1) >= 3 && !s0.interlude!.perHero[h.id].didRevenus).map((h) => h.id),
-      reprise: gameTime + premiereNuit(gameTime) + (weeks * 7 - 1) * MINUTES_PER_DAY,
+      reprise: gameTime + premiereNuit(gameTime) + (weeks * 8 - 1) * MINUTES_PER_DAY,
       conserve: s0.bank.reduce((a, b) => a + b.brass, 0),
       lots: vivants.filter((h) => s0.interlude!.perHero[h.id].closeOps).map((h) => h.id),
     });

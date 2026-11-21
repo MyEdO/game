@@ -60,7 +60,7 @@ const estUnPrefixeDeDe = (texte, n) => {
 
 /**
  * Sites d'un fichier : `{ ligne, texte }` de chaque bande recomposée en ligne.
- * @param {{ rel: string, text: string }} f
+ * @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} f
  * @param {import('typescript/unstable/ast').SourceFile} [sourceFile]
  * @returns {{ ligne: number, texte: string }[]}
  */

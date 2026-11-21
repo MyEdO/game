@@ -301,22 +301,10 @@ export function weeklyCrewWageBrass(crew: CrewHire[] | undefined): number {
 /** État de Moral PERSISTANT d'un navire (porté par l'instance de navire en campagne ; recalc hebdomadaire). */
 export interface ShipMoraleState {
   score: number;
-  /** Dernière semaine (jour ÷ 7) où le Moral a été recalculé — garde anti-double-comptage (cf. lastUpkeepDay). */
+  /** Dernière semaine d’entretien réglée depuis l’époque de l’horloge. */
   lastMoraleWeek: number;
   /** Facteurs de Moral ACTIFS cette semaine (ids), édités par le MJ / l'éditeur. */
   factors: string[];
-}
-
-/**
- * RECALCUL HEBDOMADAIRE gardé (MDG 14) : recalcule le Moral une seule fois par semaine calendaire
- * (jour ÷ 7), sur le modèle de `lastUpkeepDay`. PUR — prêt à être appelé par l'entretien quotidien quand
- * un navire vit dans l'état de campagne. Renvoie un nouvel état (jamais muté en place).
- */
-export function tickShipMorale(state: ShipMoraleState, currentDay: number, rng: RNG): { state: ShipMoraleState; recalced: boolean; lines: string[] } {
-  const week = Math.floor(currentDay / 7);
-  if (week <= state.lastMoraleWeek) return { state, recalced: false, lines: [] };
-  const r = recalcMorale(state.score, state.factors, rng);
-  return { state: { ...state, score: r.score, lastMoraleWeek: week }, recalced: true, lines: r.lines };
 }
 
 /** Delta de MORAL d'un Test d'équipage de RUDE ÉPREUVE (MDG 14 l.110 : « Si le total de ce Test donne

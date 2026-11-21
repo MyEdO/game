@@ -65,12 +65,12 @@ import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from './data/schemas/
 import { noeudDeLEntree, noeudsDesEntrees } from './data/schemas/validate';
 import { coDescendre, defDe, noeudsAuChemin, ouverts } from './data/schemas/grammaire/descente';
 import { adressesDe } from './noyau/edition/adresseDeProse';
-import { datasetObject, entreesDuDataset, type DatasetKey } from './data/overrides';
-import { editableDataset, editableObjectDataset } from './data/atelierDuCodex';
+import { datasetArray, datasetObject, entreesDuDataset, type DatasetKey } from './data/overrides';
+import { editableDataset, editableObjectDataset, enregistrerEntree } from './data/atelierDuCodex';
 import { allBuiltinCampaigns } from './scenes/campaign';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { cheminsCreditesJoues, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
-// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
+// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/prose-source-plugin.mjs';
 
 /** Les PANNES de la catégorie mesurée : chaque geste que la session lève, au lieu de l'écrire ou de le refuser, dit
@@ -581,6 +581,20 @@ function mesurerLaCategorie(categorie: string): MesureDeLaCategorie {
   return { categorie, perimetre, requis, credites, issues, jouees, pannes: [...new Set(pannes)] };
 }
 
+/** La référence de tirage d'espèce peut s'écrire quand le catalogue offre deux tables. */
+function mesurerLesRaces(): MesureDeLaCategorie {
+  const [imprimee] = datasetArray('talentsAleatoires');
+  const ajout = enregistrerEntree('talentsAleatoires', {
+    ...imprimee, id: 'table-de-talents-du-banc', label: 'Autre table de Talents du banc',
+  }, -1);
+  if (!ajout.ok) throw new Error(ajout.erreurs.join('\n'));
+  try {
+    return mesurerLaCategorie('races');
+  } finally {
+    ajout.reprendre();
+  }
+}
+
 /** Les catégories éditables du Compendium : ses datasets-listes, puis ses datasets-objets. */
 const CATEGORIES_EDITABLES: readonly string[] = [...Object.keys(CATEGORY_DATASET_DERIVE), ...Object.keys(OBJECT_CATEGORY_DERIVE)];
 
@@ -622,7 +636,7 @@ function garderLesCategories(rang: number): void {
   });
   for (const categorie of CATEGORIES_EDITABLES.filter((_, i) => i % TRANCHES.length === rang)) {
     it(`aucun champ de ${categorie} n’est orphelin, aucun geste ne lève`, { timeout: DELAI_D_UNE_CATEGORIE }, () => {
-      const m = mesurerLaCategorie(categorie);
+      const m = categorie === 'races' ? mesurerLesRaces() : mesurerLaCategorie(categorie);
       mesures.push(m);
       expect(m.perimetre.size, `périmètre de ${categorie} vide`).toBeGreaterThan(0);
       expect({ orphelins: orphelinsDe(m), pannes: m.pannes }, `entrées jouées : ${m.jouees.join(', ')}`).toEqual({ orphelins: [], pannes: [] });

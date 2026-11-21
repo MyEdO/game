@@ -37,9 +37,3 @@
 .ou .l b{font-family:"Spectral";font-weight:600;font-size:15px;color:#2a1d12}
 .ou .plaques.confirme .plaque{flex:0 0 210px}
 #f-sections p.livre{margin:0;font-size:15px;line-height:21px;color:#2a1d12}
-/* la Chanson de marin : ses chansons en cartes, à droite du Test */
-.rangees.chansons{max-width:330px}
-.rangees.chansons .plaque.carte{width:100%;max-width:none;height:auto;margin-bottom:6px}
-.rangees.chansons .plaque.carte>div{padding:5px 11px}
-.rangees.chansons .plaque.carte .n{font-size:15px;line-height:18px;white-space:normal}
-.rangees.chansons .plaque.carte .c{font-size:12px;line-height:15px;white-space:normal}

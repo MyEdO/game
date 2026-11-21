@@ -9,6 +9,7 @@ from mathutils import Vector
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, HAUT, X, Repere, noeud
 from maille import poutre, tour
+from menuiserie import echelle
 
 BARREAU, TRAVERSE, FERRURE = "barreau", "traverse", "ferrure"
 
@@ -89,7 +90,7 @@ def grille(abattue, position=None):
                 poutre(m, X * x + depart, X * x + arrivee, section, section, X, BARREAU)
                 depart = arrivee
             pan_couche(m, alea, D)
-            geometrie.eboulis(m, R, alea, B["gravats"], demi, lambda tirage: tirage.choice((BARREAU, TRAVERSE)))
+            geometrie.eboulis(m, R, alea, B["gravats"], demi)
     return batir
 
 
@@ -97,6 +98,7 @@ BATIR = {
     **{noeud(piece, position): grille(abattue, position)
        for piece, abattue in (("mur", False), ("breche", True)) for position in (None, GAUCHE, DROITE)},
     **{piece: grille(False) for piece in ("porte-fermee", "porte-ouverte", "fenetre", "fenetre-close")},
+    "echelle": echelle,
 }
 
 

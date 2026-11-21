@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /** Commande EXACTE du step final « Arbre inchangé » de `ci.yml` et `canari.yml` — le filet des
- *  écrivains par nature (`genererCode` de `build` et de la suite) : l'arbre du runner reste le commit. */
+ *  écrivains par nature : l'arbre du runner reste le commit. */
 export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git status --porcelain)"'
 
 /** Commande EXACTE du step `python-3d` de `ci.yml` (#3145) : la version de CPython de la chaîne 3D, lue à sa seule source
@@ -78,7 +78,7 @@ export const LANE_LOCALE_DE_JOB = {
   godot: {
     lane: 'types',
     raison:
-      '`godot:sonde` et `personnage-3d:tests` ont leur job pour raccourcir le chemin critique de la CI (#3412) ; le ' +
+      '`godot:sonde`, `godot:web` et `personnage-3d:tests` ont leur job pour raccourcir le chemin critique de la CI (#3412) ; le ' +
       'rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
   },
   'godot-rendus': {

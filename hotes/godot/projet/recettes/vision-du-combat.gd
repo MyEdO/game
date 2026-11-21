@@ -159,7 +159,7 @@ func _grimpant() -> void:
 	_verifier(volume.part_du_fondu() == 1.0, "grimpant : le fondu atteint %s, attendu 1" % volume.part_du_fondu())
 	await _sans_auteur(plateau, actif)
 	await _en_cours(plateau, actif, ennemi)
-	_autre_scene(combat, volume)
+	_autre_scene(combat, volume, pont)
 	await _clore(combat)
 
 
@@ -208,14 +208,18 @@ func _en_cours(plateau: Plateau, actif: String, ennemi: String) -> void:
 	_verifier(arrivees == [ennemi], "en cours : arrivées %s, attendu [%s]" % [arrivees, ennemi])
 
 
-## La vision d'une autre scène, de même taille, posée par le combat (`_poser_la_vision_de`) : sans fondu ; puis celle de
-## la scène de la partie, sans fondu de même.
-func _autre_scene(combat: Node, volume: VolumeDeScene) -> void:
+## La vision d'une autre scène, de même taille, lue puis posée par le combat : sans fondu ; puis celle de la scène de
+## la partie, sans fondu de même.
+func _autre_scene(combat: Node, volume: VolumeDeScene, pont: PontEspion) -> void:
 	var vue: Dictionary = combat.get("_vue")
-	combat.call("_poser_la_vision_de", {id = "autre-scene"}, vue.vision)
+	var depuis := pont.appels.size()
+	var autre: Dictionary = combat.call("_lire_la_vision", "autre-scene", vue.vision)
+	combat.call("_poser_la_vision_de", autre)
 	_verifier(volume.part_du_fondu() == 1.0, "autre scène : sa première vision se fond depuis l'ancienne (part %s)" % volume.part_du_fondu())
-	combat.call("_poser_la_vision_de", vue.projection.scene, vue.vision)
+	var retour: Dictionary = combat.call("_lire_la_vision", vue.projection.scene.id, vue.vision)
+	combat.call("_poser_la_vision_de", retour)
 	_verifier(volume.part_du_fondu() == 1.0, "retour de scène : sa première vision se fond depuis l'autre (part %s)" % volume.part_du_fondu())
+	_verifier(pont.appels.slice(depuis) == ["vision", "vision"], "changement et retour de scène : appels au pont %s" % [pont.appels.slice(depuis)])
 
 
 func _arene() -> void:

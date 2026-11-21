@@ -26,8 +26,6 @@
     },
     "window": {
       "glass": "#7d95a1",
-      "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -64,8 +62,6 @@
     },
     "window": {
       "glass": "#7d95a1",
-      "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -102,8 +98,6 @@
     },
     "window": {
       "glass": "#7d95a1",
-      "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -141,8 +135,6 @@
     },
     "window": {
       "glass": "#7d95a1",
-      "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -173,9 +165,7 @@
     },
     "door": {
       "openingFrac": 0.52,
-      "lintelPx": 4,
       "jamb": "#6e5940",
-      "jambCap": "#8a7048",
       "leaf": "#5a4632",
       "plank": "#3b2e1f",
       "handle": "#b9902f"
@@ -208,9 +198,7 @@
     },
     "door": {
       "openingFrac": 0.52,
-      "lintelPx": 4,
       "jamb": "#6e5940",
-      "jambCap": "#8a7048",
       "leaf": "#5a4632",
       "plank": "#3b2e1f",
       "handle": "#b9902f"
@@ -259,19 +247,13 @@
       "merlonCount": 5,
       "merlonStep": 2,
       "merlonHeightPx": 6,
-      "bands": [
-        0.28,
-        0.56,
-        0.82
-      ],
       "bandThickPx": 2.4,
       "parapetBandFrac": 0.72,
       "arasePx": 3
     },
     "window": {
       "glass": "#8ea2ad",
-      "lit": "#ffc271",
-      "frame": "#888d95",
+      "frame": "#5a4632",
       "mullion": "#34373c"
     }
   },
@@ -301,24 +283,19 @@
     "cap": "#888d95",
     "rubble": "#463f35",
     "rubbleHi": "#6a6253",
-    "recess": "#241a10",
     "parapet": {
       "heightLevelFrac": 0.32,
       "merlonCount": 5,
       "merlonStep": 2,
       "merlonHeightPx": 6,
-      "bands": [
-        0.28,
-        0.56,
-        0.82
-      ],
       "bandThickPx": 2.4,
       "parapetBandFrac": 0.72,
       "arasePx": 3
     },
     "door": {
       "openingFrac": 1,
-      "lintelPx": 4,
+      "leaf": "#5a4632",
+      "plank": "#3b2e1f",
       "herse": {
         "bars": 6,
         "topFrac": 0.9,
@@ -369,11 +346,11 @@
     "kit": "herse",
     "face": "#4a4d54",
     "post": "#2b2d30",
+    "band": "#34373c",
+    "rubble": "#2b2d30",
     "door": {
       "openingFrac": 0.85,
-      "lintelPx": 4,
       "jamb": "#4a4d54",
-      "jambCap": "#6b6f76",
       "leaf": "#3a3d42",
       "plank": "#24262a",
       "handle": "#7c828c"
@@ -448,14 +425,12 @@
       "merlonCount": 6,
       "merlonStep": 2,
       "merlonHeightPx": 8,
-      "bands": [
-        0.3,
-        0.6,
-        0.85
-      ],
       "bandThickPx": 2.6,
       "parapetBandFrac": 0.74,
       "arasePx": 3.5
+    },
+    "window": {
+      "frame": "#5a4632"
     }
   },
   {
@@ -489,14 +464,12 @@
       "merlonCount": 5,
       "merlonStep": 2,
       "merlonHeightPx": 10,
-      "bands": [
-        0.3,
-        0.6,
-        0.88
-      ],
       "bandThickPx": 3,
       "parapetBandFrac": 0.76,
       "arasePx": 4
+    },
+    "window": {
+      "frame": "#5a4632"
     }
   },
   {
@@ -524,7 +497,10 @@
     "band": "#3a362e",
     "cap": "#928c7d",
     "rubble": "#4a4136",
-    "rubbleHi": "#665c4c"
+    "rubbleHi": "#665c4c",
+    "window": {
+      "frame": "#5a4632"
+    }
   },
   {
     "id": "mur-en-pierres-seches",
@@ -550,7 +526,10 @@
     "face": "#6a6252",
     "post": "#3c362a",
     "rubble": "#463f31",
-    "rubbleHi": "#5b5240"
+    "rubbleHi": "#5b5240",
+    "window": {
+      "frame": "#5a4632"
+    }
   },
   {
     "id": "palissade-de-pieux",
@@ -642,9 +621,7 @@
     },
     "door": {
       "openingFrac": 0.5,
-      "lintelPx": 4,
       "jamb": "#4a3a28",
-      "jambCap": "#6b5638",
       "leaf": "#3f3122",
       "plank": "#231a10",
       "handle": "#8a7038"

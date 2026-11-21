@@ -8,8 +8,9 @@ import random
 import geometrie
 from geometrie import DEHORS, DROITE, GAUCHE, X, Repere, noeud
 from maille import lineaire, tube
+from menuiserie import echelle
 
-CLAIE, PIEUX, MENUISERIE, FER = "clayonnage", "pieux", "menuiserie", "ferrure"
+CLAIE, PIEUX, MENUISERIE, BARRES, FER = "clayonnage", "pieux", "menuiserie", "barres", "ferrure"
 
 
 class Cloture:
@@ -117,7 +118,7 @@ def barriere(m, R, largeur, h, B):
         R.boite(m, (montant, largeur - montant), (axe - haut_l / 2, axe + haut_l / 2), (retrait, epais - retrait),
                 MENUISERIE)
     large_e, epais_e = B["echarpe"]
-    R.poutre(m, (montant, axes[0]), (largeur - montant, axes[-1]), large_e, (-epais_e, retrait), MENUISERIE)
+    R.poutre(m, (montant, axes[0]), (largeur - montant, axes[-1]), large_e, (-epais_e, retrait), BARRES)
     long, haut_p, epais_p, depasse = B["pentures"]
     for axe in (axes[0], axes[-1]):
         R.boite(m, (-depasse, long), (axe - haut_p / 2, axe + haut_p / 2), (epais, epais + epais_p), FER)
@@ -187,15 +188,15 @@ def breche(D, m, alea):
     for depart, arrivee in B["claie"]["bouts"]:
         C.R.poutre(m, (x(depart[0]), epais / 2), (x(arrivee[0]), epais / 2), epais, (-large / 2, large / 2), CLAIE)
         m.v[-8:] = [(px, py + (depart[1] if k < 4 else arrivee[1]), pz) for k, (px, py, pz) in enumerate(m.v[-8:])]
-    G = B["gravats"]
-    geometrie.eboulis(m, C.R, alea, G, C.demi, lambda a: CLAIE if a.random() < G["eclisses"] else PIEUX)
+    geometrie.eboulis(m, C.R, alea, B["gravats"], C.demi)
 
 
 BATIR = {"mur": mur, "porte-fermee": porte(False), "porte-ouverte": porte(True), "fenetre": mur, "fenetre-close": mur,
          "breche": breche,
          **{noeud(piece, position): porte(ouverte, position)
             for piece, ouverte in (("porte-fermee", False), ("porte-ouverte", True))
-            for position in (GAUCHE, DROITE)}}
+            for position in (GAUCHE, DROITE)},
+         "echelle": echelle}
 
 
 def elements(D):

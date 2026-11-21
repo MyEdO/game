@@ -14,8 +14,15 @@
 import { describe, expect, it } from 'vitest';
 import { avecLeSaisonnier, avecLesSeulsDecors, enSaison, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
 import type { DecorServi, MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
-import { UNITES_DU_PLAN_DE_CARTE, type AreteDessinee, type RetraitDuMonde, type Scene } from '../../../src/noyau/index';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
+import {
+  UNITES_DU_PLAN_DE_CARTE,
+  cotesDeMarchesDeLaCouche,
+  type AreteDessinee,
+  type CoteDeMarches,
+  type RetraitDuMonde,
+  type Scene,
+} from '../../../src/noyau/index';
+import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -41,6 +48,7 @@ interface Edition {
   monde?: NonNullable<MondeDuPont['monde']>;
   retrait?: RetraitDuMonde;
   aretes?: AreteDessinee[];
+  cotesDeMarches?: CoteDeMarches[];
   navires?: Record<string, NavireServi>;
   decors?: Record<string, DecorServi>;
   depot?: { id: string; texte: string };
@@ -179,6 +187,15 @@ describe('l’éditeur de carte par le pont', () => {
     const retiree = presser(boutonDe(presser(boutonDe(auRez, `couche/${z}`)), 'couche/retirer'));
     expect([boutonDe(retiree, 'couche/0').presse, retiree.vue.couche]).toEqual([true, 0]);
     expect(() => boutonDe(retiree, `couche/${z}`)).toThrow();
+  });
+});
+
+describe('l’éditeur de carte par le pont, les côtés de marches (#4471)', () => {
+  it('l’ouverture rend avec le monde les côtés des cases de marches de la couche éditée', () => {
+    const { appel } = table();
+    const ouverte = editionDe(appel('editer', { ouvrir: 'la-diligence' }));
+    expect(ouverte.cotesDeMarches!.length, 'les volées de la cour du relais').toBeGreaterThan(0);
+    expect(ouverte.cotesDeMarches).toEqual(cotesDeMarchesDeLaCouche(paquetDuJeu(diligenceCampaign).scenes[0], ouverte.vue.couche));
   });
 });
 
@@ -1685,8 +1702,16 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(valeursDe(outil, 'navires').map((b) => [b.id, b.libelle, b.refus])).toEqual([['navire/caraque', 'Caraque', null], ['navire/barge-fluviale', 'Barge fluviale', null]]);
     expect(valeursDe(outil, 'navire/cap').map((b) => b.id)).toEqual(['navire/cap/N', 'navire/cap/E', 'navire/cap/S', 'navire/cap/O']);
     presser(boutonDe(outil, 'navire/cap/E'));
-    const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
+    const essayer = (x: number) => editionDe(appel('editer', { edition: { geste: 'appui', point: point(x, 6) } }));
+    const refusee = essayer(6);
+    expect(refusee.monde).toBeUndefined();
+    expect(boutonDe(refusee, 'annuler').refus).toBe('Rien à annuler');
+    const posee = essayer(7);
     expect(Object.keys(posee.navires!)).toEqual(['navire-0']);
+    expect(posee.navires!['navire-0'].centre).toEqual({ x: 8.5, y: 8 });
+    const capNord = boutonDe(posee, 'entite/cap/N');
+    expect(capNord.refus).toMatch(/ponts du navire hors de la carte/);
+    expect(erreurDe(appel('editer', capNord.jeu)).categorie).toBe('regle');
     expect(posee.navires!['navire-0']).toMatchObject({ corps: { element: 'vehicule--caraque', cap: 'E', taille: 'reelle' } });
     const surfaces = morceauxDe(appel, 'edition', posee.monde!).flatMap((m) => m.surfaces);
     expect(surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
@@ -1695,7 +1720,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(couches.valeurs.map((b) => b.id)).toEqual(['couche/0', 'couche/1', 'couche/2', 'couche/3']);
     const pont = presser(boutonDe(posee, 'couche/2'));
     expect([pont.vue.couche, boutonDe(pont, 'couche/retirer').refus]).toEqual([2, 'Seuls les ponts d’un navire posent cette couche']);
-    expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 3 && x <= 20 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
+    expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 0 && x <= 17 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
   });
 
   it('la réponse sert les décors de la scène dont un élément `decor` est servi, comme la vue (#4335)', () => {
@@ -1713,11 +1738,37 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(editionDe(appel('editer', { ouvrir: CAMPAGNE })).decors![prop], 'sans horloge, le décor saisonnier tel que bâti').toMatchObject(enSaison(null));
   });
 
+  it('une réindexation pendant le trait renouvelle le manifeste et ses décors au relâché', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const initial = morceauxDe(appel, 'edition', ouverte.monde!);
+    const prop = initial.flatMap((m) => m.surfaces).find((s) => s.decor)!.decor!;
+    editionDe(appel('editer', boutonDe(ouverte, 'outil/tile').jeu));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    servirLesModeles(appel, COMMITES, avecLesSeulsDecors(COMMITES, prop));
+
+    expect(jouer({ geste: 'glisse', point: point(2, 1) }).monde).toBeUndefined();
+    expect(morceauxDe(appel, 'edition', ouverte.monde!)).toEqual(initial);
+    const relachee = jouer({ geste: 'relache', point: point(2, 1) });
+    expect(Object.keys(relachee.decors!)).toEqual([prop]);
+    const manifeste = relachee.monde!;
+    expect(manifeste.secoursDecors).toMatchObject({ source: 'edition', revision: expect.any(Number) });
+    const volume = morceauxDe(appel, 'edition', manifeste);
+    expect(volume.map(({ cle, empreinte }) => ({ cle, empreinte }))).toEqual(manifeste.morceaux);
+    expect(volume.flatMap((m) => m.surfaces).some((s) => s.decor === prop && s.priseSeulement)).toBe(true);
+    const secours = appel('retablirDecors', { ...manifeste.secoursDecors, prop }) as unknown as MorceauxDuPont & { ok: boolean };
+    expect(secours.ok).toBe(true);
+    expect(secours.toits).toEqual([]);
+    expect(secours.volume.some((m) => m.surfaces.some((s) => s.decor === prop && !s.priseSeulement))).toBe(true);
+  });
+
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {
     const { appel } = table();
     servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
-    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
+    const outil = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
+    presser(boutonDe(outil, 'navire/barge-fluviale'));
     const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
     expect(valeursDeLInspecteur(posee, 'entite/cap').map((b) => [b.id, b.presse])).toEqual([['entite/cap/N', true], ['entite/cap/E', false], ['entite/cap/S', false], ['entite/cap/O', false]]);
     expect(posee.vue.zones['editeur.inspecteur'].some((el) => el.id === 'equipage'), 'son équipage exposé').toBe(true);

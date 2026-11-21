@@ -5024,6 +5024,7 @@
       "silver": 0,
       "brass": 3
     },
+    "maison": "Difficulté de consommation Intermédiaire retenue comme repère pour la bière ordinaire (LDB 09 l.475).",
     "source": {
       "book": "livre-de-base",
       "page": 302
@@ -5034,7 +5035,8 @@
         "skill": {
           "id": "resistance-a-l-alcool"
         },
-        "label": "Bière — Résistance à l'alcool"
+        "label": "Bière — Résistance à l'alcool",
+        "difficulty": "intermediaire"
       },
       "reussite": {
         "kind": "sequence",
@@ -5305,6 +5307,7 @@
       "silver": 0,
       "brass": 4
     },
+    "maison": "Difficulté de consommation Difficile conservée pour le verre de vin ou de spiritueux (LDB 09 l.475).",
     "source": {
       "book": "livre-de-base",
       "page": 302
@@ -5425,7 +5428,7 @@
     "damage": null,
     "qualities": [],
     "price": null,
-    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.411) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17). Arbitrage du 2026-11-16 (#4202) : « Un Test, l'échec vaut deux verres ».",
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.411) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17). Arbitrage du 2026-11-16 (#4202) : « Un Test, l'échec vaut deux verres ». Difficulté de consommation Intermédiaire retenue pour le Test unique (LDB 09 l.475, MDG 16 l.411).",
     "source": {
       "book": "mer-des-griffes",
       "page": 152,
@@ -5451,7 +5454,8 @@
         "skill": {
           "id": "resistance-a-l-alcool"
         },
-        "label": "Rhum tord-boyaux — Résistance à l'alcool"
+        "label": "Rhum tord-boyaux — Résistance à l'alcool",
+        "difficulty": "intermediaire"
       },
       "reussite": {
         "kind": "sequence",
@@ -12162,6 +12166,10 @@
     "shape": {
       "id": "pertuisane"
     },
+    "formChoices": [
+      "pertuisane_lance",
+      "fauchard"
+    ],
     "rangement": {
       "id": "dos"
     },
@@ -13413,6 +13421,129 @@
     ]
   },
   {
+    "id": "lance-de-fortune",
+    "type": "trappings",
+    "label": "Lance de fortune",
+    "categorie": "melee",
+    "subType": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 15,
+      "note": "ZI 01 l.153"
+    }
+  },
+  {
+    "id": "baton-de-la-deesse-araignee",
+    "type": "trappings",
+    "label": "Bâton de la Déesse-araignée",
+    "categorie": "melee",
+    "subType": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 15,
+      "note": "ZI 01 l.167"
+    }
+  },
+  {
+    "id": "merlin-grossier",
+    "type": "trappings",
+    "label": "Merlin grossier",
+    "categorie": "melee",
+    "subType": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 49,
+      "note": "ZI 05 l.122"
+    }
+  },
+  {
+    "id": "baton-en-bois-mort",
+    "type": "trappings",
+    "label": "Bâton en bois mort",
+    "categorie": "melee",
+    "subType": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 49,
+      "note": "ZI 05 l.138"
+    }
+  },
+  {
+    "id": "enorme-epieu",
+    "type": "trappings",
+    "label": "Énorme épieu",
+    "categorie": "melee",
+    "subType": {
+      "id": "armes-d-hast"
+    },
+    "sizeFor": "enorme",
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 174,
+      "note": "VDM 13 l.24, l.26"
+    }
+  },
+  {
+    "id": "grosse-chope",
+    "type": "trappings",
+    "label": "Grosse chope lourdement renforcée",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "sizeFor": "enorme",
+    "availability": null,
+    "reach": "Moyenne",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 4
+    },
+    "qualities": [],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 35,
+      "note": "ZI 04 l.46, l.48 ; LDB 62 l.32, l.127"
+    }
+  },
+  {
     "id": "jezail-a-malepierre",
     "type": "trappings",
     "label": "Jezaïl à malepierre",
@@ -14428,6 +14559,53 @@
     },
     "capabilities": {
       "detruitAuLancer": true
+    }
+  },
+  {
+    "id": "griffes-de-poing",
+    "type": "trappings",
+    "label": "Griffes de Poing",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": "Très courte",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 2
+    },
+    "qualities": [
+      {
+        "id": "defensive"
+      },
+      {
+        "id": "rapide"
+      }
+    ],
+    "manieAussi": {
+      "bagarre": {}
+    },
+    "passive": [
+      {
+        "op": "skillMod",
+        "skill": {
+          "id": "escalade"
+        },
+        "mod": 10
+      }
+    ],
+    "price": null,
+    "reserveeA": {
+      "id": "clan-eshin"
+    },
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 32,
+      "note": "The Horned Rat Companion 04 l.40, l.43, l.77"
     }
   },
   {
@@ -16600,15 +16778,6 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "passive": [
-      {
-        "op": "skillDRBonus",
-        "skill": {
-          "id": "orientation"
-        },
-        "bonus": 2
-      }
-    ],
     "desc": "Vous dessinez une carte qui peut être reproduite et vendue pour faire un bénéfice, mais aussi servir d'outil pour s'orienter. En cas de succès, vous produisez une carte ayant une valeur en CO égale au nombre de DR obtenus sur le Test. Quand vous voyagez entre les deux ports désignés, la carte fournit +2 DR sur les Tests d'Orientation.",
     "price": null,
     "source": {

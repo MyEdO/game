@@ -51,7 +51,14 @@ func _recetter() -> void:
 	var lumiere: Lumiere = load("res://scenes/Lumiere.tscn").instantiate()
 	scene.add_child(lumiere)
 	var penombre := Color(PENOMBRE)
+	var matiere: String = LUMIERE.horsCarte.sol.matiere
+	var textures := await TexturesDeMatiere.preparer(root, {matiere: false})
+	var chemin := VolumeDeScene.texture_de(matiere)
+	var relief := VolumeDeScene.relief_de(matiere)
 	lumiere.eclairer(LUMIERE, PLATEAU)
+	var shader := lumiere.sol_hors_carte
+	_verifier(textures.has(chemin) and shader.get_shader_parameter("albedo_texture") == textures[chemin], "le hors-carte ne montre pas l'albédo préparé de l'herbe")
+	_verifier(textures.has(relief) and shader.get_shader_parameter("normal_enabled") and shader.get_shader_parameter("normal_texture") == textures[relief], "le hors-carte ne montre pas le relief préparé de l'herbe")
 	var image: Image = await PIXELS.image(self)
 	_verifier(_ecart(image, camera, AU_BORD, penombre) > SOL_VU, "avec un fondu, le sol ne se voit pas au bord du plateau")
 	_verifier(_ecart(image, camera, AU_LOIN, penombre) <= MEME_COULEUR, "avec un fondu, le sol ne se perd pas dans la pénombre au-delà de lui")
@@ -60,6 +67,7 @@ func _recetter() -> void:
 	image = await PIXELS.image(self)
 	_verifier(_ecart(image, camera, AU_LOIN, penombre) > SOL_VU, "sans fondu, le sol ne se voit pas au loin")
 	lumiere.eclairer(LUMIERE.merged({horsCarte = LUMIERE.horsCarte.merged({sol = null}, true)}, true), PLATEAU)
+	_verifier(shader.get_shader_parameter("albedo_texture") == null and shader.get_shader_parameter("normal_texture") == null and not shader.get_shader_parameter("normal_enabled"), "sans sol, le shader du hors-carte garde l'albédo ou le relief")
 	image = await PIXELS.image(self)
 	_verifier(_ecart(image, camera, AU_BORD, penombre) <= MEME_COULEUR, "sans sol, le bord du plateau ne montre pas le fond")
 	for faute in _fautes:

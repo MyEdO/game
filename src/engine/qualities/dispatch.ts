@@ -63,19 +63,17 @@ export function resolveQualities(w: QualityCarrier | undefined): ResolvedQuality
   const ownIds = new Set(own.map((q) => q.id));
   const familyQualities = w.noFamilyQualities ? [] : (findWeaponGroupById(groupeDeLArme(w))?.qualities ?? []);
   const merged = [...own, ...familyQualities.filter((q) => !ownIds.has(q.id)).map(qualityInstance)];
+  // VDM 05 ; ZI 13 l.224, l.240
+  const removedIds = w.removedQualities?.length ? new Set(w.removedQualities) : undefined;
+  const removedTypes = w.removedTypes?.length ? new Set(w.removedTypes) : undefined;
   const out: ResolvedQuality[] = [];
   for (const q of merged) {
     const data = findQualityById(q.id);
+    if (removedIds?.has(q.id) || (data?.polarite != null && removedTypes?.has(data.polarite))) continue;
     out.push({ def: { key: data?.label ?? q.id }, id: q.id, data, caps: data?.capabilities, indice: q.value, instance: { ...q } });
   }
   const beaten = new Set<string>(out.flatMap((r) => r.caps?.beats ?? []));
-  // Neutralisations d'une ALTÉRATION (op `augmentWeapon`) : par id, et par POLARITÉ lue dans le REGISTRE
-  // (`QualityData.polarite`) — jamais une liste d'ids en dur. Appliquées APRÈS la fusion de famille : le RAW
-  // (« Tous les Atouts de l'arme disparaissent », VDM 05) ne distingue pas propre et famille.
-  const removedIds = w.removedQualities?.length ? new Set(w.removedQualities) : null;
-  const removedTypes = w.removedTypes?.length ? new Set<string>(w.removedTypes) : null;
-  if (!beaten.size && !removedIds && !removedTypes) return out;
-  return out.filter((r) => !beaten.has(r.id) && !removedIds?.has(r.id) && !(r.data?.polarite != null && removedTypes?.has(r.data.polarite)));
+  return beaten.size ? out.filter((r) => !beaten.has(r.id)) : out;
 }
 
 /** L'objet possède-t-il la qualité d'`id` STABLE (`QualityId`) ? Compare par id (≠ littéral FR). */

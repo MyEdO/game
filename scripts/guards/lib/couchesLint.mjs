@@ -53,7 +53,7 @@ import {
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { estFichierVitest, estSuiteVitest } from './fichierVitest.mjs';
 import { correspondGlob } from './lister.mjs';
-import { estDeLaSuiteDuNoyau, estDeLaSuiteVitest } from './racinesDeLaSuite.mjs';
+import { estDeLaSuiteVitest } from './racinesDeLaSuite.mjs';
 
 const TABLE = 'la table `COUCHES` (`scripts/guards/lib/couches.mjs`)';
 
@@ -233,8 +233,8 @@ const suiteJouee = {
     const rel = posix(relative(context.cwd, context.filename));
     return {
       Program: (node) => {
-        if (!estSuiteVitest(rel) || estDeLaSuiteVitest(rel) || estDeLaSuiteDuNoyau(rel)) return;
-        context.report({ node, message: `Suite jouée (#2882, #2928) : \`${rel}\` n’est jouée ni par la suite principale ni par celle du noyau (\`scripts/guards/lib/racinesDeLaSuite.mjs\`) — hors de \`src/\`, une suite se nomme \`*.hors-store.test.ts\` sous un hôte du noyau.` });
+        if (!estSuiteVitest(rel) || estDeLaSuiteVitest(rel)) return;
+        context.report({ node, message: `Suite jouée (#2882, #2928) : \`${rel}\` n’est pas jouée par Vitest (\`scripts/guards/lib/racinesDeLaSuite.mjs\`).` });
       },
     };
   },

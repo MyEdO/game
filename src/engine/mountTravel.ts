@@ -37,7 +37,6 @@ import type * as monturesDef from '../data/schemas/defs/montures';
 import { datasetDe, type EntreeDe } from '../data/datasets';
 
 export type Allure = 'pas' | 'trot' | 'galop';
-export const ALLURES: readonly Allure[] = ['pas', 'trot', 'galop'];
 const ALLURE_KEY: Record<Allure, MsgKey> = { pas: 'mt.allurePas', trot: 'mt.allureTrot', galop: 'mt.allureGalop' };
 /** Libellé JOUEUR d'une allure — fonction, jamais carte de phrases figée à l'évaluation du module
  *  (elle ne suivrait pas `setLocale`, dette nommée de `src/i18n/index.ts`). */

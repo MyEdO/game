@@ -66,7 +66,7 @@ function rendu() {
     ['Maladies : exposer, contracter, guérir, symptômes', /maladies?\b|sympt[ôo]me|infect/i],
     ['Mort, retrait du jeu, bannissement', /\bmort\b|mourr|banni|retrait du jeu|[àa] la mort/i],
     ['Monnaie, bourse, argent', /monnaie|bourse|sous? de cuivre|pistole|couronne d'or/i],
-    ['Mouvement, allonge, terrain', /mouvement|\bterrain\b/i],
+    ['Mouvement, allonge, terrain', /mouvement|\bterrain\b|\bfuite\b|\bforbidFlee\b/i],
     ['Narration de campagne', /narrati/i],
     ['Navire, coque, équipage, poste d\'artillerie', /navire|coque|[ée]quipage|pi[èe]ce d'artillerie|commandant d'[ée]quipe|\bposte\b/i],
     ['Objets, possessions, inventaire', /\bobjets?\b|possession|inventaire|cr[ée]e un objet/i],

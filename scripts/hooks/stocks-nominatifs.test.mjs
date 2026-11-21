@@ -1020,9 +1020,8 @@ test('image — une extension hors de `DIALECTE` n’a pas d’image : `entreesN
 
 test('porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne', (t) => {
   const porteurs = [
-    'scripts/guards/lib/structuresStock.mjs',
     'scripts/guards/lib/legacyVocabStock.mjs',
-    'scripts/hooks/ecrans-ui.json',
+    'scripts/guards/balayages-non-resolus-stock.json',
   ]
   for (const rel of porteurs) {
     const contenu = readFileSync(join(RACINE, rel), 'utf8')

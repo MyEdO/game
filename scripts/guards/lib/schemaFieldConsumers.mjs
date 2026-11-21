@@ -90,7 +90,9 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   // { … as … }` du Program, à point fixe. Un appel sous un autre nom ne la résout pas : le symbole n'est
   // demandé qu'aux appels qui portent l'un de ces noms.
   const nomsDeLaPorte = new Set(Object.keys(PORTES))
-  const renommages = program.getSourceFileNames().map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
+  const renommages = program.getSourceFileNames()
+    .filter(file => !/\.d\.[cm]?ts$/.test(file))
+    .map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
     .flatMap(n => (ts.isImportDeclaration(n) ? n.importClause?.namedBindings?.elements : ts.isExportDeclaration(n) ? n.exportClause?.elements : undefined) ?? [])
     .flatMap(e => e.propertyName ? [[e.propertyName.text, e.name.text]] : [])
   for (let taille = -1; taille !== nomsDeLaPorte.size;) {
@@ -194,8 +196,10 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
         }
       }
       if (ts.isParameterDeclaration(d)) {
-        const typed = typedOrigins.get(checker.getTypeAtLocation(node).id)
-        if (typed) return typed
+        if (typedOrigins.size > 0) {
+          const typed = typedOrigins.get(checker.getTypeAtLocation(node).id)
+          if (typed) return typed
+        }
         const fn = d.parent
         const name = fn.name ?? (ts.isVariableDeclaration(fn.parent) ? fn.parent.name : null)
         if (name && ts.isIdentifier(name)) {
@@ -214,8 +218,9 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
     }
     if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
       const o = origin(node.expression, seen)
+      if (!o) return null
       const key = ts.isPropertyAccessExpression(node) ? node.name.text : stringOf(node.argumentExpression) ?? finiteKeys(node.argumentExpression) ?? (ts.isNumericLiteral(node.argumentExpression) ? '[]' : '{}')
-      return o && { ...o, path: [...o.path, key] }
+      return { ...o, path: [...o.path, key] }
     }
     if (ts.isArrayLiteralExpression(node) && node.elements.length === 1 && ts.isSpreadElement(node.elements[0])) return origin(node.elements[0].expression, seen)
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
@@ -240,10 +245,10 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
       if (porte) return porte.rendJson ? { file: porte.file, path: porte.path } : null
       const fn = functionOf(node.expression)
       const body = fn?.body && (ts.isBlock(fn.body) ? fn.body.statements.find(ts.isReturnStatement)?.expression : fn.body)
-      const bindings = new Map((fn?.parameters ?? []).map((p, i) => [checker.getSymbolAtLocation(p.name), stringOf(node.arguments[i])]))
       if (body && ts.isCallExpression(body) && body.expression.getText() === 'JSON.parse') {
         const load = body.arguments[0]
         if (load && ts.isCallExpression(load) && isReadFile(load.expression)) {
+          const bindings = new Map(fn.parameters.map((p, i) => [checker.getSymbolAtLocation(p.name), stringOf(node.arguments[i])]))
           const file = datasetAt(stringOf(load.arguments[0], new Set(), bindings))
           if (file) return { file, path: [] }
         }

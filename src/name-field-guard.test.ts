@@ -97,15 +97,10 @@ function scanNameFieldSites(): string[] {
 const porteurs = (sites: string[], cle: string) => sites.filter((at) => at === cle).length;
 
 /**
- * Deux porteurs SEULS exemptés — jamais un porteur de donnée, toujours une STRUCTURE DE PARSING :
- *  - `StatEntry.name` (`src/engine/statEntry.ts`) : sortie du parseur de ligne de statbloc, jamais
- *    persistée, jamais affichée telle quelle (le champ existant AVANT toute doctrine id/label).
- *  - `splitLabel` (même fichier) : SOURCE UNIQUE du split nom↔spécialisation, son retour `{ name,
- *    spec? }` est un couple de parsing interne, pas une identité d'objet.
+ * `StatEntry.name` est la sortie du parseur de ligne de statbloc, sans stockage ni affichage direct.
  */
 const ALLOWLIST: string[] = [
   'src/engine/statEntry.ts#StatEntry', // sortie de PARSEUR runtime, jamais persistée
-  'src/engine/statEntry.ts#splitLabel', // couple de parsing { name, spec? }, jamais un porteur
 ];
 
 describe('garde-fou champ `name` (doctrine 2026-07-19)', () => {

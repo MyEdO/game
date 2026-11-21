@@ -35,6 +35,7 @@
 // l’inventaire sous les deux détecteurs, hors porte. Une composition ajoutée dans un second def, sans donnée, fait
 // sortir un nœud G1 sous les deux détecteurs ; c’est une forme partagée réelle, pas un re-classement (#3012).
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -48,8 +49,8 @@ import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
 import { GitIndisponible, INDEX, TRONC, baseCommune, fusionnesEnCours, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import {
-  COLLECTIONS_A_COMPTE, DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, motifAPlat,
-  type CorpusDesComptes, type EntreeDeCompte, type SiteDeDetteDOp,
+  DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, STRUCTURES_REDECLARATIONS, motifAPlat,
+  type EntreeDeCompte, type SiteDeDetteDOp,
 } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
@@ -68,23 +69,16 @@ export const sitesDeDetteDOps = (nonTypees: Iterable<string>, opDefs: Readonly<R
   ...Object.entries(refsAPlat(opDefs)).flatMap(([op, cles]) => cles.map((cle) => ({ op, motif: motifAPlat(cle) }))),
 ];
 
-/** Le corpus des comptes de la racine `root` : les redéclarations de l'AST de ses defs. */
-export const corpusDesComptes = (root: string): CorpusDesComptes => ({ redeclarations: scannerRedeclarations(root).redeclarations });
-
 /** Les entrées mesurées de chaque collection sous la porte, par nom. */
 export type Comptes = ReadonlyMap<string, readonly EntreeDeCompte[]>;
-
-/** Les comptes d'un corpus, collection par collection (`COLLECTIONS_A_COMPTE`). */
-export const comptesDuCorpus = (corpus: CorpusDesComptes): Comptes => new Map(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c.mesure(corpus)]));
 
 /** Une liste de sites comme entrées de compte. */
 const enEntrees = (sites: readonly object[]): EntreeDeCompte[] => sites as unknown as EntreeDeCompte[];
 
-/** Les comptes de la racine `root` (le répertoire courant pour `Source/`) : ses collections à compte, les volets
- *  `DETTE_OPS`, `FEUILLES_D_ID` et `STRUCTURES_LOCALES` (le code de l'image) et `SOURCE_FORMAT`. */
+/** Les comptes de la racine `root` (le répertoire courant pour `Source/`) mesurés sur le code de l'image. */
 const comptesDeLaRacine = (root: string): Comptes =>
   new Map([
-    ...comptesDuCorpus(corpusDesComptes(root)),
+    [STRUCTURES_REDECLARATIONS.nom, STRUCTURES_REDECLARATIONS.mesure(scannerRedeclarations(root).redeclarations)],
     [DETTE_OPS.nom, enEntrees(sitesDeDetteDOps(OPS_NON_TYPEES, OP_DEFS))],
     [FEUILLES_D_ID.nom, enEntrees(sitesEnEntrees(cheminsDeDocument()))],
     [STRUCTURES_LOCALES.nom, enEntrees(sitesEnEntrees(sitesDeStructure()))],
@@ -148,10 +142,21 @@ class ImageDansUnDepot extends Error {}
 
 /** Les fichiers texte de `dossiers` dans l'image `arbre` que `retenir` garde (chemin, texte), écrits sous `dossier`. */
 function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[], retenir = (_rel: string, _texte: string): boolean => true): void {
-  for (const [rel, texte] of lireEnLot(depot, arbre, listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c)))) {
-    if (texte === null || !retenir(rel, texte)) continue;
-    mkdirSync(dirname(join(dossier, rel)), { recursive: true });
-    writeFileSync(join(dossier, rel), texte);
+  ecrireLesFichiers(dossier, fichiersDeLImage(depot, arbre, dossiers, retenir));
+}
+
+/** Les chemins et textes effectivement posés, dans l'ordre de l'image git. */
+function fichiersDeLImage(depot: Depot, arbre: string, dossiers: readonly string[], retenir: (rel: string, texte: string) => boolean): [string, string][] {
+  const chemins = listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c));
+  return [...lireEnLot(depot, arbre, chemins)].flatMap(([rel, texte]) =>
+    texte !== null && retenir(rel, texte) ? [[rel, texte]] : []);
+}
+
+function ecrireLesFichiers(dossier: string, fichiers: readonly [string, string][]): void {
+  for (const [rel, texte] of fichiers) {
+    const cible = join(dossier, rel);
+    mkdirSync(dirname(cible), { recursive: true });
+    writeFileSync(cible, texte);
   }
 }
 
@@ -162,19 +167,37 @@ function poserLesDeclarations(depot: Depot, sha: string, dossier: string): void 
 }
 
 /** Un DÉTECTEUR : son nom, sa clé de mémo, et la pose de son code (`DU_DETECTEUR`, son classement) dans une image. */
-type Detecteur = { readonly nom: string; readonly cle: string; readonly poser: (dossier: string) => void };
+type Detecteur = {
+  readonly nom: string;
+  readonly cle: string;
+  readonly empreinte: () => string;
+  readonly poser: (dossier: string) => void;
+};
 
 /** Le détecteur du commit `sha` : son `scripts/`, son `package.json`, son `tsconfig.json`, ses modules de classement
  *  (`MARQUE_DE_CLASSEMENT`) et ses modules partagés (`LIB_DU_DETECTEUR`), lus par git. */
-export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
-  nom: `détecteur de la base (${sha.slice(0, 9)})`,
-  cle: sha,
-  poser: (dossier) => {
-    ecrireDeLImage(depot, sha, dossier, DU_DETECTEUR);
-    ecrireDeLImage(depot, sha, dossier, [RACINE_DU_CLASSEMENT], estDuClassement);
-    ecrireDeLImage(depot, sha, dossier, [LIB_DU_DETECTEUR], estModulePartage);
-  },
-});
+export function detecteurDuCommit(depot: Depot, sha: string): Detecteur {
+  let fichiers: [string, string][] | undefined;
+  let empreinte: string | undefined;
+  const lireFichiers = () => fichiers ??= [
+    ...fichiersDeLImage(depot, sha, DU_DETECTEUR, () => true),
+    ...fichiersDeLImage(depot, sha, [RACINE_DU_CLASSEMENT], estDuClassement),
+    ...fichiersDeLImage(depot, sha, [LIB_DU_DETECTEUR], estModulePartage),
+  ];
+  return {
+    nom: `détecteur de la base (${sha.slice(0, 9)})`,
+    cle: sha,
+    empreinte: () => {
+      if (empreinte === undefined) {
+        const hachage = createHash('sha256');
+        for (const fichier of lireFichiers()) hachage.update(JSON.stringify(fichier));
+        empreinte = hachage.digest('hex');
+      }
+      return empreinte;
+    },
+    poser: (dossier) => ecrireLesFichiers(dossier, lireFichiers()),
+  };
+}
 
 /** La première ligne d'erreur d'un processus enfant : la première `…Error`, sinon la dernière ligne de son stderr. */
 const premiereErreur = (vu: SpawnSyncReturns<string>): string =>
@@ -219,22 +242,23 @@ function mesurerImage(dossier: string, configuration: string): Comptes {
 
 /** L'image de chaque commit, générée par son propre code, une fois par processus : son dossier, ou la raison de son
  *  échec. Les dossiers s'effacent à la sortie du processus. */
-const IMAGES_GENEREES = new Map<string, string | MesureImpossible>();
+type ImageGeneree = { dossier: string; derniereMesure?: { empreinte: string; comptes: Comptes } };
+const IMAGES_GENEREES = new Map<string, ImageGeneree | MesureImpossible>();
 let sortieObservee = false;
 const effacerLesImages = (): void => {
-  for (const image of IMAGES_GENEREES.values()) if (typeof image === 'string') rmSync(image, { recursive: true, force: true });
+  for (const image of IMAGES_GENEREES.values()) if (!(image instanceof MesureImpossible)) rmSync(image.dossier, { recursive: true, force: true });
 };
 
 /** Le dossier de l'image de `sha` : `DE_L_IMAGE` et `DU_DETECTEUR` de `sha`, ses cibles de code produites par SON
  *  `genererCode` (`genererLesCibles`). */
-function imageGeneree(depot: Depot, sha: string, configuration: string): string {
+function imageGeneree(depot: Depot, sha: string, configuration: string): ImageGeneree {
   if (!IMAGES_GENEREES.has(sha)) {
     if (!sortieObservee) { process.once('exit', effacerLesImages); sortieObservee = true; }
     const dossier = dossierDImage();
     try {
       ecrireDeLImage(depot, sha, dossier, [...DE_L_IMAGE, ...DU_DETECTEUR]);
       genererLesCibles(dossier, configuration);
-      IMAGES_GENEREES.set(sha, dossier);
+      IMAGES_GENEREES.set(sha, { dossier });
     } catch (e) {
       rmSync(dossier, { recursive: true, force: true });
       if (!(e instanceof MesureImpossible)) throw e;
@@ -251,11 +275,18 @@ function imageGeneree(depot: Depot, sha: string, configuration: string): string 
 function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
   const configuration = `${sha.slice(0, 9)} sous les cibles de l’image`;
   const image = imageGeneree(depot, sha, configuration);
-  rmSync(join(image, 'scripts'), { recursive: true, force: true });
-  ecrireDeLImage(depot, sha, image, [RACINE_DU_CLASSEMENT]);
-  detecteur.poser(image);
-  poserLesDeclarations(depot, sha, image);
-  return mesurerImage(image, configuration);
+  const empreinte = detecteur.empreinte();
+  // Seule la dernière pose réussie est réutilisable : une pose intermédiaire peut laisser d’autres fichiers dans l’image.
+  if (image.derniereMesure?.empreinte === empreinte) return image.derniereMesure.comptes;
+  delete image.derniereMesure;
+  const { dossier } = image;
+  rmSync(join(dossier, 'scripts'), { recursive: true, force: true });
+  ecrireDeLImage(depot, sha, dossier, [RACINE_DU_CLASSEMENT]);
+  detecteur.poser(dossier);
+  poserLesDeclarations(depot, sha, dossier);
+  const comptes = mesurerImage(dossier, configuration);
+  image.derniereMesure = { empreinte, comptes };
+  return comptes;
 }
 
 /** Les comptes de `sha` sous les cibles des générateurs du `detecteur` : `DE_L_IMAGE` de `sha`, le code du `detecteur`. */

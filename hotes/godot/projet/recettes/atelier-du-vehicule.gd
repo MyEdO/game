@@ -34,7 +34,7 @@ const CADRE_D_UNE_COQUE := 5.0
 const ECLATS_ETEINTS_S := 4.0
 ## Le clip de la liste choisi pendant une attaque du trébuchet.
 const CLIP_CHOISI := "marche"
-## Les images au plus qu'attend la base posée à l'ouverture.
+## Les images au plus qu'attend la pose de la base à l'ouverture et du véhicule après un geste.
 const IMAGES_DE_L_OUVERTURE := 600
 var _fautes: Array[String] = []
 
@@ -157,7 +157,8 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	var foyers := atelier.get_node("Cible").get_children().filter(func(n: Node) -> bool: return n is Foyer)
 	_verifier(foyers.size() == 1 and foyers[0].get_node_or_null("feu") != null and foyers[0].get_node_or_null("son-crepitement") != null, "la flamme de la vitrine : un seul foyer, son feu et son crépitement attendus sur la cible, posés %s" % [foyers.map(func(f: Node) -> Array: return f.get_children().map(func(n: Node) -> String: return n.name))])
 	_choisir(atelier, "modele/vehicule", "trebuchet-ade2")
-	await _etape(atelier, pont, cles, 7, "trébuchet choisi")
+	if not await _etape(atelier, pont, cles, 7, "trébuchet choisi"):
+		return
 	_verifier(actions.visible and "animation" in pont.ecran.atelier.onglets, "le trébuchet posé attaque, l'onglet Animation doit offrir « Attaquer »")
 	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
 	var etats := atelier.get_node("Etats") as EtatsDuCorps
@@ -286,15 +287,43 @@ func _images(n: int) -> void:
 		await process_frame
 
 
-## Après le geste `geste`, l'entrée `cles[rang]` envoyée en dernier, et le véhicule de l'atelier conforme à sa réponse.
-func _etape(atelier: Node, pont: PontFige, cles: Array, rang: int, geste: String) -> void:
-	await _images(2)
+## Après le geste, l'entrée envoyée et la publication du corps effectivement monté sous cette entrée.
+func _etape(atelier: Node, pont: PontFige, cles: Array, rang: int, geste: String) -> bool:
 	var cle: String = cles[rang]
 	if pont.entrees.is_empty() or pont.entrees.back() != cle:
 		_fautes.append("%s : entrée %s, attendu %s" % [geste, "aucune" if pont.entrees.is_empty() else pont.entrees.back(), cle])
-		return
-	_conforme(atelier, pont, pont.fige.vehicule[cle], geste)
-	print("[atelier-du-vehicule] %s : %s" % [geste, JSON.stringify(pont.ecran.get("atelier", {}).get("vehicule"))])
+		return false
+	var reponse: Dictionary = pont.fige.vehicule[cle]
+	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
+	var avant := pont.ecran
+	for image in IMAGES_DE_L_OUVERTURE:
+		var publie: Variant = pont.ecran.get("atelier", {}).get("vehicule")
+		if montage.scene != null and not is_same(pont.ecran, avant) and _corps_publie(publie, reponse.vehicule):
+			_conforme(atelier, pont, reponse, geste)
+			print("[atelier-du-vehicule] %s : %s" % [geste, JSON.stringify(publie)])
+			return true
+		await process_frame
+	var dernier: Variant = pont.ecran.get("atelier", {}).get("vehicule")
+	print("[atelier-du-vehicule] %s : %s" % [geste, JSON.stringify(dernier)])
+	if montage.scene == null:
+		_fautes.append("%s : aucune scène posée" % geste)
+	else:
+		_fautes.append("%s : corps %s non republié après le montage" % [geste, reponse.vehicule.element])
+	return false
+
+
+## Le corps affiché par la publication, y compris le résultat d'une modification qui garde le même élément.
+static func _corps_publie(publie: Variant, corps: Dictionary) -> bool:
+	if not publie is Dictionary or publie.element != corps.element or publie.embleme != corps.get("embleme", {}).get("id"):
+		return false
+	if Array(publie.postes) != corps.postes.map(func(p: Dictionary) -> String: return p.element):
+		return false
+	if Array(publie.ameliorations) != corps.ameliorations.map(func(a: Dictionary) -> String: return a.element):
+		return false
+	for surface in MontageDeComposition.modeles.surfaces[corps.element]:
+		if corps.palette.has(surface.palette) and String(publie.couleurs.get(surface.nom, "")).to_lower() != String(corps.palette[surface.palette]).to_lower():
+			return false
+	return true
 
 
 ## Le montage du véhicule de `atelier` porte la réponse `reponse` de `vehicule`, et l'écran publié par `pont` offre

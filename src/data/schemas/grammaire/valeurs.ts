@@ -61,8 +61,8 @@ export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string
  * partagé entre defs (`actorRefSchema`) se nomme UNE fois, ici, comme un champ de racine.
  *
  * Une valeur peut porter, EN PLUS de son libellé, un HINT mécanique (`hints`, même porteur : le nœud) :
- * ce que la règle FAIT quand cette valeur est choisie, lu par `hintDeValeur` (`grammaire/meta.ts`) et
- * rendu en infobulle d'option. Une réf nue, jamais une prose de source (règle stricte 5).
+ * ce que la règle FAIT quand cette valeur est choisie. Une réf nue, jamais une prose de source
+ * (règle stricte 5).
  *
  * `.extract`/`.exclude` sont REFUSÉS sur un enum nommé : zod 4.4.3 rend un NOUVEAU nœud dont la
  * `.meta()` est vide (mesuré) — le sous-univers perdrait ses libellés EN SILENCE. Un sous-univers se
@@ -845,6 +845,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 const LIBELLES_DES_SLOTS = {
   peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Étoffe principale', vet2: 'Étoffe secondaire', cuir: 'Cuir', metal: 'Métal',
   metal2: 'Métal secondaire', corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume', vegetal: 'Végétal',
+  planche: 'Planche', joint: 'Joint', gravats: 'Gravats', barreau: 'Barreau', traverse: 'Traverse', vitre: 'Vitre',
 } as const satisfies Readonly<Record<Slot, string>>;
 
 /** Un emplacement de palette. */
@@ -1368,6 +1369,13 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
  *  cargaison/valeur liée/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<Formula> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<Formula>, ...z.ZodType<Formula>[]]));
+
+/** MDG 12 l.230, l.293 ; MSRC 16 l.88, l.142 */
+export const dureeEnJoursSchema = z.union([
+  nommerNoeud(z.number(), { label: 'Jours' }),
+  nommerChamps(z.strictObject({ semaines: z.number() }), { semaines: { label: 'Semaines' } }),
+]);
+export type DureeEnJours = z.infer<typeof dureeEnJoursSchema>;
 
 /** `ConsumableDuration` (`src/engine/consumables.ts`) — UNE durée par objet (minutes/heures/jours). */
 export const consumableDurationSchema = nommerChamps(z.strictObject({

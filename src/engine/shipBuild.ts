@@ -41,6 +41,7 @@ import type { Combatant, NavalTraitRef, VehicleData } from './types';
 import type { ShipRig } from './combat';
 import { navalTraitsDe, shipHasNavalTrait } from './navalTraits';
 import { COMPETENCE_DU_MODE, type PropulsionKind } from './propulsion';
+import { dureeEnJours } from './clock';
 
 /** Milieu du FLUX qui meut le navire (voyage maritime ou fluvial) — MDG 12 l.311 ; MSRC 12 l.255. */
 export type MilieuDeNavigation = 'maritime' | 'fluvial';
@@ -214,12 +215,12 @@ export function buildShip(spec: ShipBuildSpec): ShipBuildResult {
 
 type CoqueAEquiper = { id: string; ship: Pick<NonNullable<VehicleData['ship']>, 'lengthM' | 'fluvialLengthM'> };
 
-/** MDG 12 l.195-364 ; MSRC 12 l.54-135. */
+/** MDG 12 l.195-364 ; MSRC 12 l.54-135 */
 function bandValue(bands: InstallBand[], lengthM: number, vehicleId: string | undefined): number {
-  const parType = bands.find((b) => b.vehicules?.some((id) => id === vehicleId));
-  if (parType) return parType.value;
-  for (const b of bands) if (b.maxLengthM != null && lengthM <= b.maxLengthM) return b.value;
-  return bands.length ? bands[bands.length - 1].value : 0;
+  const bande = bands.find((b) => b.vehicules?.some((id) => id === vehicleId))
+    ?? bands.find((b) => b.maxLengthM != null && lengthM <= b.maxLengthM)
+    ?? bands[bands.length - 1];
+  return dureeEnJours(bande?.value ?? 0);
 }
 
 /** Coût (CO), poids (Enc) ou durée de pose (jours) : bande du type ou de la longueur, × multiplicateur

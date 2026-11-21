@@ -15,7 +15,6 @@
  */
 import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
-import { facingToward } from '../geometry/dir8';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, CHAR_LABELS } from '../engine/types';
 import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
@@ -29,7 +28,6 @@ import {
   DEFENSE_LABEL,
   baseTestModLines,
   weaponSkillId,
-  GRAPPLE_TEST_CTX,
 } from '../engine/combat';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, evaluateTest, type TestResult } from '../engine/tests';
@@ -491,7 +489,7 @@ export function resolveManeuver(
   const faceTarget = (tgt?: Combatant | null): void => {
     const from = attacker.pos!, to = tgt?.pos;
     if (!to || tgt!.id === attacker.id || (to.x === from.x && to.y === from.y)) return;
-    set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(from, to) } }));
+    get().orienterVers(attacker.id, from, to);
   };
   emitCreatureAttackAnim(attacker, def.kind);
   const flushLog = () => {
@@ -707,15 +705,6 @@ export function ligneDeCorpsACorpsBrut(c: Combatant): RollLineParts {
   return rollLine({
     actor: c, combat: { kind: 'melee', weapon: c.weapons[0] }, difficulty: 'intermediaire',
     surLaCible: baseTestModLines(c, 'capacite-de-combat', { skill: weaponSkillId('melee') }),
-  });
-}
-
-/** Ligne du Test de Force d'Empoignade (`rollLine`, mêmes valeur et modificateurs que `rollGrappleForce`)
- *  — LDB 14 l.161. */
-export function ligneDeForceDEmpoignade(c: Combatant): RollLineParts {
-  return rollLine({
-    actor: c, test: { characteristic: 'force' }, valeur: effectiveChar(c, 'force'), valeurEtrangere: true, difficulty: 'intermediaire',
-    surLaCible: baseTestModLines(c, 'force', GRAPPLE_TEST_CTX),
   });
 }
 

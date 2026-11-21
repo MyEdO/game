@@ -7,7 +7,7 @@ import { fr } from './i18n/messages/fr';
 
 /**
  * CLIQUET LEXICAL du LIBELLÉ D'ACTION d'un jet (#1078 LOT C1) — « un signe, un sens »
- * (`docs/charte-ui.md`, section « Contrat d'affichage d'un jet ») : dans le libellé d'étape composé
+ * (`docs/ajouter-un-flux-de-jet.md`, section « Contrat d'affichage d'un jet ») : dans le libellé d'étape composé
  * par `composeRollLabel` (`src/noyau/rollSeam.ts`), la PARENTHÈSE est le détail DÉRIVÉ par le moteur
  * (la compétence) et le TIRET LONG le séparateur acteur/action. Un libellé d'action qui porte
  * lui-même l'un de ces deux signes rend la même ligne ambiguë : « Ilsa — Mal de mer — mauvais temps
@@ -69,7 +69,7 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
     }
     expect(
       offenders,
-      'Libellé d’action à signe réservé : la parenthèse est la compétence DÉRIVÉE, le tiret long le séparateur acteur/action — écrire un groupe nominal capitalisé (docs/charte-ui.md) :\n' + offenders.join('\n'),
+      'Libellé d’action à signe réservé : la parenthèse est la compétence DÉRIVÉE, le tiret long le séparateur acteur/action — écrire un groupe nominal capitalisé (docs/ajouter-un-flux-de-jet.md) :\n' + offenders.join('\n'),
     ).toEqual([]);
   });
 
@@ -105,7 +105,7 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
 
 /**
  * VOLET 2 (#1109) — le LIBELLÉ DE LIGNE d'un pas qui lance (`CascadeStep.rollLabel`) nomme la
- * COMPÉTENCE lancée, jamais la SITUATION : zone Z5 du contrat (`docs/charte-ui.md`). « Mal de mer »,
+ * COMPÉTENCE lancée, jamais la SITUATION : zone Z5 du contrat (`docs/ajouter-un-flux-de-jet.md`). « Mal de mer »,
  * « Scorbut », « Tonneau contaminé » sont des situations — la ligne du jet, elle, dit « Résistance »
  * (précédent mesuré : `noyau/approach-fear.hors-store.test.ts`).
  *
@@ -159,7 +159,7 @@ export function scanRollLabels(src: string): ActionLabelHit[] {
 describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#1109)', () => {
   const situationSites = (): string[] => {
     const out: string[] = [];
-    for (const { rel, text } of readCorpus(porteeDeGarde(['noyau'], ['state']))) {
+    for (const { rel, text } of readCorpus(porteeDeGarde(['noyau']))) {
       for (const h of scanRollLabels(text)) out.push(`${rel}:${h.line} — « ${h.text} »`);
     }
     return out;
@@ -169,7 +169,7 @@ describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#11
     const sites = situationSites();
     expect(
       sites,
-      '`rollLabel` qui nomme une SITUATION — la ligne du jet dit la Compétence lancée (Z5, docs/charte-ui.md) :\n' + sites.join('\n'),
+      '`rollLabel` qui nomme une SITUATION — la ligne du jet dit la Compétence lancée (Z5, docs/ajouter-un-flux-de-jet.md) :\n' + sites.join('\n'),
     ).toEqual([]);
   });
 
@@ -247,7 +247,7 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
   // PÉRIMÈTRE ÉTENDU (#1117) : le FABRICANT de rangées-participants (`buildParticipantRows`) vit dans le
   // code d'écran et dérivait son libellé d'un `part.label` CALCULÉ — il échappait donc au scan des
   // littéraux du code de règle. Le trou est celui-là : `files` balaie aussi le code d'écran.
-  const files = () => readCorpus(porteeDeGarde(['noyau'], ['state', 'ui']));
+  const files = () => readCorpus(porteeDeGarde(['noyau']));
 
   it('aucun libellé de ligne LITTÉRAL qui ne soit une Compétence/Caractéristique du catalogue', () => {
     const bad: string[] = [];
@@ -257,7 +257,7 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
         bad.push(`${rel}:${h.line} — « ${h.text} »`);
       }
     }
-    expect(bad, ['Libellé de LIGNE de jet qui ne nomme pas la Compétence lancée (Z5, docs/charte-ui.md) :', ...bad].join('\n')).toEqual([]);
+    expect(bad, ['Libellé de LIGNE de jet qui ne nomme pas la Compétence lancée (Z5, docs/ajouter-un-flux-de-jet.md) :', ...bad].join('\n')).toEqual([]);
   });
 
   it('aucun libellé de ligne RÉSOLU depuis le catalogue des rôles d’équipage (crew-roles)', () => {
@@ -282,7 +282,7 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
 });
 
 /**
- * VOLET 4 (#1111) — la forme « Action (Compétence) » du sous-titre Z1 (`docs/charte-ui.md`, « Contrat
+ * VOLET 4 (#1111) — la forme « Action (Compétence) » du sous-titre Z1 (`docs/ajouter-un-flux-de-jet.md`, « Contrat
  * d'affichage d'un jet ») n'a qu'un composeur, `composeRollLabel` (`src/noyau/rollSeam.ts`). Une
  * PARENTHÈSE remplie d'un libellé de Compétence ou de Caractéristique hors de lui est une seconde
  * source de la même forme (précédent : `riverVoyageFlow.ts`, étape `fleuve-navigation`, #1111).
@@ -427,7 +427,7 @@ export function scanCatalogueSkillParenthesis(catalogue: Record<string, string>)
 describe('CLIQUET — « Action (Compétence) » n’est composé que par `composeRollLabel` (#1111)', () => {
   it('aucune valeur du catalogue FR n’écrit « (Compétence) » en dur', () => {
     const bad = scanCatalogueSkillParenthesis(fr as Record<string, string>);
-    expect(bad, ['« (Compétence) » écrit en dur au catalogue — la Compétence se DÉRIVE (`composeRollLabel`, Z1, docs/charte-ui.md) :', ...bad].join('\n')).toEqual([]);
+    expect(bad, ['« (Compétence) » écrit en dur au catalogue — la Compétence se DÉRIVE (`composeRollLabel`, Z1, docs/ajouter-un-flux-de-jet.md) :', ...bad].join('\n')).toEqual([]);
   });
 
   it('fail-closed : une valeur SYNTHÉTIQUE à « (Compétence) » en dur est détectée, une parenthèse d’autre nature passe', () => {
@@ -448,7 +448,7 @@ describe('CLIQUET — « Action (Compétence) » n’est composé que par `compo
       }
     }
     expect([...PARENTHESE_HORS_ACTION.keys()].filter((k) => !exemptions.has(k)), 'exemption sans site vivant').toEqual([]);
-    expect(bad, ['« Action (Compétence) » composé hors de `composeRollLabel` (Z1, docs/charte-ui.md) :', ...bad].join('\n')).toEqual([]);
+    expect(bad, ['« Action (Compétence) » composé hors de `composeRollLabel` (Z1, docs/ajouter-un-flux-de-jet.md) :', ...bad].join('\n')).toEqual([]);
   });
 
   it('fail-closed : chaque porte SYNTHÉTIQUE est détectée, une parenthèse qui n’est pas une Compétence passe', () => {

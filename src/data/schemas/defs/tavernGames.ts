@@ -94,14 +94,12 @@ const doc = document(
       reserve: z.number().optional(),
       pick: z.enum(['reserve', 'choix']).optional(),
       rows: z.array(nommerChamps(z.strictObject({
-        min: z.number().optional(),
-        max: z.number().optional(),
+        ...plageSchema.partial().shape,
         difficulty: difficultySchema.optional(),
         points: z.number().optional(),
         label: z.string(),
       }), {
-        min: { label: 'Minimum' },
-        max: { label: 'Maximum' },
+        ...metaDesChamps(plageSchema, { exigees: true }),
         difficulty: { label: 'Difficulté' },
         points: { label: 'Points' },
         label: { label: 'Libellé' },

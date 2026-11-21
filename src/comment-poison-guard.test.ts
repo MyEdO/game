@@ -133,7 +133,7 @@ describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
     for (const racine of PERIMETRE_DES_GARDES.racines) expect(CORPUS.some((f) => f.rel.startsWith(`${racine}/`)), racine).toBe(true);
     expect(TESTS_SRC().length).toBeGreaterThan(0);
     expect(CORPUS.filter((f) => !estFichierScanne(f.rel)).map((f) => f.rel)).toEqual([]);
-    expect(estFichierScanne('src/vite-env.d.ts')).toBe(false);
+    expect(estFichierScanne('src/temoin.d.ts')).toBe(false);
   });
 
   it('un script GDScript de l’hôte Godot est lu par son dialecte : ses commentaires `#` portent le poison, ses chaînes non', () => {

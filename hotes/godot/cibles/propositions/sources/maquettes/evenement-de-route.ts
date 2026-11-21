@@ -5,7 +5,7 @@
  */
 import { avantLeDe, apresLeDe, reserves } from './dome.ts';
 import { combattants, groupe, RESERVES } from './compagnie.ts';
-import type { Arret, Ecran, Geste, Journee, Testeur, Trajet, Voyage } from './maquette.ts';
+import type { Arret, Centre, Ecran, Geste, Journee, Testeur, Trajet, Voyage } from './maquette.ts';
 
 const JOUR: Journee = { jour: 'Marktag', date: { jour: 14, mois: 'Pflugzeit' }, jourDeVoyage: 2, meteo: { temps: 'beau', ciel: 'Crépuscule, temps sec' }, lumiere: 'soir' };
 const TRAJET: Trajet = { titre: 'La route d’Altdorf', de: 'Sept Rayons', vers: 'Altdorf', part: 0.55 };
@@ -18,14 +18,14 @@ const SINON = 'Sinon tout le monde arrive un jour plus tard avec un État Extén
 /** Bjorn au Test de Survie en extérieur. */
 const BJORN: Testeur = { role: 'testeur', qui: 'bjorn', test: 'Survie en extérieur', seuil: 61, modificateurs: [{ nom: 'Accessible', valeur: 20 }] };
 /** La route arrêtée devant le pont effondré, le Test ouvert au bandeau du jet. */
-const arrete = (nom: string, heros: Testeur, centre: { dr?: number }, gestes: Geste[]): Voyage => ({
+const arrete = (nom: string, heros: Testeur, centre: Centre, gestes: Geste[]): Voyage => ({
   nom, gabarit: 'lieu-et-voyage', decor: 'route', titre: JOUR, trajet: TRAJET, arret: ERINTANT, combattants: combattants(),
-  fenetre: { titre: 'Test de Survie en extérieur', heros, centre: { role: 'simple', sur: 'Voyage éreintant !', ...centre, phrase: SINON }, gestes, reserves: reserves(RESERVES.bjorn) },
+  fenetre: { titre: 'Test de Survie en extérieur', heros, centre, gestes, reserves: reserves(RESERVES.bjorn) },
 });
 
 export default {
   etats: [
-    arrete('evenement-de-route', { ...BJORN, parmi: ['bjorn', 'mira', 'aldric', 'greta'] }, {}, avantLeDe(RESERVES.bjorn)),
+    arrete('evenement-de-route', { ...BJORN, parmi: ['bjorn', 'mira', 'aldric', 'greta'] }, { role: 'simple', sur: 'Voyage éreintant !', phrase: SINON }, avantLeDe(RESERVES.bjorn)),
     {
       nom: 'evenement-de-route-issue', gabarit: 'lieu-et-voyage', decor: 'route', titre: { ...JOUR, cadence: 'jourParJour' }, trajet: TRAJET,
       recit: { rubrique: 'Sur la route d’Altdorf · Voyage éreintant !', texte: 'Le pont a cédé sous la crue. Bjorn trouve un gué en amont, et la diligence repasse la rivière avant la nuit.' },
@@ -39,6 +39,9 @@ export default {
         greta: { texte: 'pousse à la roue, de l’eau jusqu’aux genoux' },
       }),
     },
-    arrete('evenement-de-route-echec', { ...BJORN, jet: { des: [70, 8], dr: -1, reussite: false } }, { dr: -1 }, apresLeDe(RESERVES.bjorn, { echec: true })),
+    arrete('evenement-de-route-echec', { ...BJORN, jet: { des: [70, 8], dr: -1, reussite: false } }, {
+      role: 'issue', sorte: 'simple', sur: 'Voyage éreintant !', verdict: 'echec', dr: -1, phrase: SINON,
+      consequences: [{ genre: 'retard', valeur: 1, ton: 'perte', detail: 'Tout le monde arrive un jour plus tard' }, { genre: 'etat', valeur: 1, ton: 'perte', detail: 'Exténué' }],
+    }, apresLeDe(RESERVES.bjorn, { echec: true })),
   ],
 } satisfies Ecran;

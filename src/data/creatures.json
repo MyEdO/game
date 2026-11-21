@@ -6027,7 +6027,7 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Lance de fortune"
+        "arg": "lance-de-fortune"
       },
       {
         "id": "venin"
@@ -6107,7 +6107,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Bâton de la Déesse-araignée"
+        "arg": "baton-de-la-deesse-araignee"
       },
       {
         "id": "venin"
@@ -6886,7 +6886,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Lames rouillées"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [
@@ -7200,7 +7200,7 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Grosse chope"
+        "arg": "grosse-chope"
       },
       {
         "id": "foulee"
@@ -7309,8 +7309,7 @@
     ],
     "trappings": [
       {
-        "id": "arme-simple",
-        "spec": "grosse chope lourdement renforcée"
+        "id": "grosse-chope"
       },
       {
         "monnaie": "silver",
@@ -7688,7 +7687,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Lame à dents"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [
@@ -8444,7 +8443,10 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Merlin grossier"
+        "arg": "merlin-grossier",
+        "profilDArme": {
+          "ajusteeAuPorteur": true
+        }
       },
       {
         "id": "morsure",
@@ -8560,7 +8562,10 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Bâton en bois mort"
+        "arg": "baton-en-bois-mort",
+        "profilDArme": {
+          "ajusteeAuPorteur": true
+        }
       },
       {
         "id": "morsure",
@@ -11715,7 +11720,14 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Lame spectrale"
+        "arg": "arme-simple",
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "empaleuse"
+            }
+          ]
+        }
       }
     ],
     "optionals": [
@@ -11802,7 +11814,12 @@
         "id": "a-distance",
         "value": 9,
         "arg": "pistolet-a-malepierre",
-        "range": 20
+        "range": 20,
+        "profilDArme": {
+          "retire": [
+            "dangereuse"
+          ]
+        }
       },
       {
         "id": "arme",
@@ -11884,13 +11901,27 @@
         "id": "a-distance",
         "value": 11,
         "arg": "canon-ratling",
-        "range": 40
+        "range": 40,
+        "profilDArme": {
+          "retire": [
+            "imprecise"
+          ]
+        }
       },
       {
         "id": "arme",
         "value": 12,
         "arg": "Poing à pistons",
-        "natural": true
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "assommante"
+            },
+            {
+              "id": "percutante"
+            }
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -13948,12 +13979,12 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "lance"
+        "arg": "lance-de-cavalerie"
       },
       {
         "id": "arme",
         "value": 9,
-        "arg": "Marteau de cavalier"
+        "arg": "marteau-a-bec-de-corbin"
       },
       {
         "id": "armure",
@@ -22831,7 +22862,7 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Énorme épieu"
+        "arg": "enorme-epieu"
       },
       {
         "id": "fabrique"
@@ -23479,7 +23510,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Plume"
+        "arg": "arme-improvisee"
       },
       {
         "id": "corruption",
@@ -31026,7 +31057,15 @@
       {
         "id": "arme",
         "value": 5,
-        "arg": "Nerf de Boeuf"
+        "arg": "matraque-2",
+        "profilDArme": {
+          "retire": [
+            "assommante",
+            "desequilibree",
+            "inoffensive"
+          ],
+          "allonge": "Courte"
+        }
       }
     ],
     "optionals": [],
@@ -31189,7 +31228,15 @@
       {
         "id": "arme",
         "value": 5,
-        "arg": "Nerf de Boeuf"
+        "arg": "matraque-2",
+        "profilDArme": {
+          "retire": [
+            "assommante",
+            "desequilibree",
+            "inoffensive"
+          ],
+          "allonge": "Courte"
+        }
       }
     ],
     "optionals": [],
@@ -36887,7 +36934,15 @@
       {
         "id": "arme",
         "value": 5,
-        "arg": "Nerf de Boeuf"
+        "arg": "matraque-2",
+        "profilDArme": {
+          "retire": [
+            "assommante",
+            "desequilibree",
+            "inoffensive"
+          ],
+          "allonge": "Courte"
+        }
       }
     ],
     "optionals": [],
@@ -37068,7 +37123,15 @@
       {
         "id": "arme",
         "value": 5,
-        "arg": "Nerf de Boeuf"
+        "arg": "matraque-2",
+        "profilDArme": {
+          "retire": [
+            "assommante",
+            "desequilibree",
+            "inoffensive"
+          ],
+          "allonge": "Courte"
+        }
       }
     ],
     "optionals": [],
@@ -37253,7 +37316,18 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Crochet / Grappin"
+        "arg": "arme-simple",
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "inoffensive"
+            }
+          ],
+          "allonge": "Courte",
+          "groupesDeManiement": [
+            "bagarre"
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -37407,7 +37481,18 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Crochet / Grappin"
+        "arg": "arme-simple",
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "inoffensive"
+            }
+          ],
+          "allonge": "Courte",
+          "groupesDeManiement": [
+            "bagarre"
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -37596,7 +37681,13 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "lance"
+        "arg": "lance",
+        "profilDArme": {
+          "retire": [
+            "empaleuse"
+          ],
+          "allonge": "Longue"
+        }
       },
       {
         "id": "a-distance",
@@ -37607,7 +37698,7 @@
       {
         "id": "a-distance",
         "value": 6,
-        "arg": "Lance",
+        "arg": "javelot",
         "range": 9
       }
     ],
@@ -37798,7 +37889,10 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "lance"
+        "arg": "lance",
+        "profilDArme": {
+          "allonge": "Longue"
+        }
       },
       {
         "id": "a-distance",
@@ -37809,7 +37903,7 @@
       {
         "id": "a-distance",
         "value": 6,
-        "arg": "Lance",
+        "arg": "javelot",
         "range": 9
       }
     ],
@@ -38008,7 +38102,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -38178,7 +38272,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -38371,7 +38465,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -38560,7 +38654,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -39127,7 +39221,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -39287,7 +39381,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -39611,7 +39705,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -39777,7 +39871,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -39942,7 +40036,10 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Faucille"
+        "arg": "arme-simple",
+        "profilDArme": {
+          "sansSpecialisation": true
+        }
       }
     ],
     "optionals": [],
@@ -40142,7 +40239,13 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épieu"
+        "arg": "lance",
+        "profilDArme": {
+          "allonge": "Moyenne",
+          "groupesDeManiement": [
+            "base"
+          ]
+        }
       },
       {
         "id": "a-distance",
@@ -40304,7 +40407,13 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épieu"
+        "arg": "lance",
+        "profilDArme": {
+          "allonge": "Moyenne",
+          "groupesDeManiement": [
+            "base"
+          ]
+        }
       },
       {
         "id": "a-distance",
@@ -50814,7 +50923,18 @@
       {
         "id": "arme",
         "value": 11,
-        "arg": "Grand Tranchoir à Deux Mains"
+        "arg": "grande-hache",
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "devastatrice"
+            }
+          ],
+          "retire": [
+            "epuisante",
+            "percutante"
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -51004,7 +51124,21 @@
       {
         "id": "arme",
         "value": 15,
-        "arg": "Grand Tranchoir à Deux Mains"
+        "arg": "grande-hache",
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "devastatrice"
+            },
+            {
+              "id": "magique"
+            }
+          ],
+          "retire": [
+            "epuisante",
+            "percutante"
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -51214,7 +51348,21 @@
       {
         "id": "arme",
         "value": 16,
-        "arg": "Grand Tranchoir à Deux Mains"
+        "arg": "grande-hache",
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "devastatrice"
+            },
+            {
+              "id": "magique"
+            }
+          ],
+          "retire": [
+            "epuisante",
+            "percutante"
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -55436,7 +55584,11 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Sceptre Ailé"
+        "arg": "arme-simple",
+        "profilDArme": {
+          "allonge": "Longue",
+          "ajusteeAuPorteur": true
+        }
       }
     ],
     "optionals": [],
@@ -55590,7 +55742,12 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Sceptre Ailé"
+        "arg": "arme-simple",
+        "profilDArme": {
+          "allonge": "Très longue",
+          "ajusteeAuPorteur": true,
+          "sansSpecialisation": true
+        }
       }
     ],
     "optionals": [],
@@ -58904,8 +59061,7 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Griffes de Poing",
-        "natural": true
+        "arg": "griffes-de-poing"
       }
     ],
     "optionals": [],
@@ -59024,7 +59180,8 @@
       "species": "skaven"
     },
     "grantGroups": [
-      "skaven"
+      "skaven",
+      "clan-eshin"
     ]
   },
   {
@@ -59074,8 +59231,7 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Griffes de Poing",
-        "natural": true
+        "arg": "griffes-de-poing"
       },
       {
         "id": "a-distance",
@@ -59237,7 +59393,8 @@
       "species": "skaven"
     },
     "grantGroups": [
-      "skaven"
+      "skaven",
+      "clan-eshin"
     ]
   },
   {
@@ -59290,8 +59447,7 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Griffes de Poing",
-        "natural": true
+        "arg": "griffes-de-poing"
       },
       {
         "id": "a-distance",
@@ -59494,7 +59650,8 @@
       "species": "skaven"
     },
     "grantGroups": [
-      "skaven"
+      "skaven",
+      "clan-eshin"
     ]
   },
   {
@@ -59550,8 +59707,7 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Griffes de Poing",
-        "natural": true
+        "arg": "griffes-de-poing"
       },
       {
         "id": "a-distance",
@@ -59780,7 +59936,8 @@
       "species": "skaven"
     },
     "grantGroups": [
-      "skaven"
+      "skaven",
+      "clan-eshin"
     ]
   },
   {
@@ -62693,8 +62850,15 @@
       {
         "id": "a-distance",
         "value": 2,
-        "arg": "Projectile Improvisé",
-        "range": 6
+        "arg": "rocher",
+        "range": 6,
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "inoffensive"
+            }
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -62846,8 +63010,15 @@
       {
         "id": "a-distance",
         "value": 3,
-        "arg": "Projectile Improvisé",
-        "range": 9
+        "arg": "rocher",
+        "range": 9,
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "inoffensive"
+            }
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -65179,8 +65350,15 @@
       {
         "id": "a-distance",
         "value": 2,
-        "arg": "Projectile Improvisé",
-        "range": 4
+        "arg": "rocher",
+        "range": 4,
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "inoffensive"
+            }
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -65352,8 +65530,15 @@
       {
         "id": "a-distance",
         "value": 3,
-        "arg": "Projectile Improvisé",
-        "range": 9
+        "arg": "rocher",
+        "range": 9,
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "inoffensive"
+            }
+          ]
+        }
       }
     ],
     "optionals": [],
@@ -66058,7 +66243,18 @@
       {
         "id": "arme",
         "value": 11,
-        "arg": "Tranchoir"
+        "arg": "arme-simple",
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "devastatrice"
+            },
+            {
+              "id": "taille"
+            }
+          ],
+          "allonge": "Longue"
+        }
       }
     ],
     "optionals": [],
@@ -66286,7 +66482,18 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Tranchoir"
+        "arg": "arme-simple",
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "devastatrice"
+            },
+            {
+              "id": "taille"
+            }
+          ],
+          "allonge": "Longue"
+        }
       }
     ],
     "optionals": [],
@@ -71959,7 +72166,12 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Faux"
+        "arg": "hallebarde",
+        "profilDArme": {
+          "retire": [
+            "empaleuse"
+          ]
+        }
       },
       {
         "id": "arme",
@@ -72323,7 +72535,12 @@
       {
         "id": "arme",
         "value": 13,
-        "arg": "Faux"
+        "arg": "hallebarde",
+        "profilDArme": {
+          "retire": [
+            "empaleuse"
+          ]
+        }
       },
       {
         "id": "arme",
