@@ -681,6 +681,12 @@ function opsDeLEtape(step: CascadeStep): GameOp[] | null {
   return v as GameOp[];
 }
 
+function appliquerLesOpsReprises(get: Get, set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx) {
+  const journal = applyOps(cible, ops, ctx);
+  set(touchActors(get()));
+  return { consequences: freeCons(journal) };
+}
+
 /** IDENTITÉ de la grappe de dés d'une étape : celle qu'elle DÉCLARE, sinon la SIENNE (elle l'ouvre). */
 const groupeDe = (s: CascadeStep): string => (typeof s.meta?.opsDeGroupe === 'string' ? s.meta.opsDeGroupe : s.id);
 
@@ -2597,11 +2603,9 @@ export const TABLES = {
       }
       const reste = demandesDeDes(ops, hero, ctx).filter((d) => !des.has(d.cle));
       if (reste.length) { ouvrirDesDOps(set, hero, ops, ctx, reste[0], groupe); return; }
-      const journal = applyOps(hero, ops, { ...ctx, des });
-      set(touchActors(get()));
       // La suite confiée à cette étape est rejouée par le GOULOT (`cascade.commitStep`), une fois cette
       // conséquence journalisée (`jouerLesClotures`).
-      return { consequences: freeCons(journal) };
+      return appliquerLesOpsReprises(get, set, hero, ops, { ...ctx, des });
     },
     choixDeTrait: (get, set, step, cible) => {
       const op = opsDeLEtape(step)?.[0];
@@ -2610,9 +2614,7 @@ export const TABLES = {
       if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
-      const lignes = applyOps(cible, [resoudreLeChoixDuTrait(op, choix.key)], ctx);
-      set(touchActors(get()));
-      return { consequences: freeCons(lignes) };
+      return appliquerLesOpsReprises(get, set, cible, [resoudreLeChoixDuTrait(op, choix.key)], ctx);
     },
     /** Décision d'un nœud `choix` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
      *  continuation du Flow, sous le libellé et le DR du Flow qui l'a ouverte. */
