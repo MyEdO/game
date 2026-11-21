@@ -8,10 +8,9 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const ICI = fileURLToPath(new URL('.', import.meta.url))
-const MAQUETTES = join(ICI, 'maquettes')
 const DEFAUT = fileURLToPath(new URL('../../../../../dist/maquettes-passe', import.meta.url))
 
 const dossier = resolve(process.argv[2] ?? DEFAUT)
@@ -20,12 +19,10 @@ else if (existsSync(dossier) && readdirSync(dossier).length) throw new Error(`${
 const contenus = join(dossier, 'contenus')
 for (const d of ['png', 'log', 'contenus']) mkdirSync(join(dossier, d), { recursive: true })
 
-/** Les écrans : chaque `maquettes/<écran>.ts` dont l'export par défaut porte des états, dans l'ordre des noms. */
-const ecrans = []
-for (const f of readdirSync(MAQUETTES).filter((f) => f.endsWith('.ts')).sort()) {
-  const { default: ecran } = await import(pathToFileURL(join(MAQUETTES, f)).href)
-  if (ecran?.etats) ecrans.push(f.slice(0, -3))
-}
+/** Les écrans : ceux que `rendre.mjs --ecrans` liste, chaque `maquettes/<écran>.ts` qui porte des états. */
+const liste = spawnSync(process.execPath, [...process.execArgv, join(ICI, 'rendre.mjs'), '--ecrans'], { encoding: 'utf8' })
+if (liste.status !== 0) throw new Error(`rendre.mjs --ecrans : code ${liste.status}\n${liste.stderr}`)
+const ecrans = liste.stdout.split('\n').filter(Boolean)
 
 let etats = 0
 const rouges = []

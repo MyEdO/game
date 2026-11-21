@@ -27,6 +27,7 @@
 // `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
 // `<écran>--<état>.json`, que `contenus.mjs <dossier>` agrège. Le rendu sort en code 1 si une page a une erreur, un
 // relevé non vide ou du défilement de la page ; `passe.mjs` rend tous les écrans et agrège :
+//   node rendre.mjs --ecrans                                    les écrans de `maquettes/` qui portent des états, un par ligne
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
@@ -271,6 +272,12 @@ const releve = ([largeur, hauteur]) => {
 }
 
 const [, , cible, png, ...reste] = process.argv
+if (cible === '--ecrans') {
+  const modules = await Promise.all(listerEntrees(MAQUETTES).entrees.filter((f) => f.nom.endsWith('.ts'))
+    .map((f) => import(pathToFileURL(join(MAQUETTES, f.nom)).href).then((m) => [f.nom.slice(0, -3), m.default])))
+  console.log(modules.filter(([, ecran]) => ecran?.etats).map(([nom]) => nom).sort().join('\n'))
+  process.exit(0)
+}
 const option = (nom) => (reste.includes(nom) ? reste[reste.indexOf(nom) + 1] : undefined)
 const page = cible.endsWith('.html')
 const format = page ? { ...FORMATS['16:9'], facteur: Number(reste[0] ?? FORMATS['16:9'].facteur) } : FORMATS[option('--format')]
