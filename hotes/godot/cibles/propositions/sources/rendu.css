@@ -95,12 +95,15 @@
    coin haut-droit, jusqu'à la ligne basse puis elle défile ; la carte du port et ses départs en colonne de 360 */
 /* en coop, qui tient la main prend la place de la rumeur, sous le rail */
 #scene-du-commerce{position:absolute}
-#scene-du-commerce>.defile{height:100%;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+#scene-du-commerce>.defile{height:100%;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 #scene-du-commerce.en-deux>.defile{flex-direction:row;flex-wrap:wrap;align-content:flex-start;column-gap:16px}
 #scene-du-commerce .hote{position:relative;left:auto !important;top:auto !important}
-/* en colonne, chaque hôte à sa case, trois en vue et la suite qui défile : sa largeur et sa hauteur, le corps qui défile,
-   les gestes au pied */
-#scene-du-commerce:not(.en-deux) .hote{flex:none;height:152px}
+/* chaque hôte à la case de son genre, en colonne comme en deux colonnes : l'enseigne (son nom seul), le porteur et ce
+   qu'il porte, l'offre dépliée, l'accueil ou le constructeur (le corps qui défile, les gestes au pied) ; la colonne en
+   montre quatre, deux enseignes et deux porteurs (la halle à la vente), la suite défile */
+#scene-du-commerce .hote{flex:none;height:196px}
+#scene-du-commerce .hote.enseigne{height:76px}
+#scene-du-commerce .hote.charge{height:152px}
 #page .porteur{padding-top:5px;padding-bottom:6px}
 #page .porteur span{margin-bottom:4px}
 /* une ligne à régler : son complément sous son nom, le prix et la quantité à droite des deux */

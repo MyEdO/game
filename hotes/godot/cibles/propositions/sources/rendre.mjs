@@ -16,10 +16,13 @@
 // la bulle qui n'a aucune pose libre (`data-sans-pose`, `gestes.js`) est `recouvert` ; ce
 // dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
 // `rogne` que le haut et le bas, et cache à ses ancêtres ce qui défile hors de lui. Le relevé `contenu` (#4585) relève
-// le rect de chaque enfant d'une place (`data-place`), ou du fond d'une pièce sans place, sous la clé porteur + rôle, et
+// le rect de chaque enfant d'une place (`data-place` : la table `PLACES` de `rendu.js`, dont la grille des colonnes,
+// `colonne` de `gestes.js` : tête, corps qui défile, ou plein sans tête, geste au pied, note sous lui), ou du fond d'une
+// pièce sans place, sous la clé porteur + rôle (pièce, place, première classe, `data-texte`, `data-cle` : l'id stable de
+// ce qu'il désigne, puis le rang parmi ceux du même rôle), et
 // les entrées de ce qui y défile en une liste (départ, x, écarts, jamais leur rang) ; il classe l'écart d'un état à
 // l'autre du même gabarit (`classe`, `contenus.mjs` : A boîte déplacée, B longueur de texte, C contenu de liste). Un A
-// d'un gabarit de `PILOTES` (`fenetre-du-bas`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`) est BLOQUANT, contre les états déjà rendus de la passe et, sous
+// d'un gabarit de `PILOTES` (`fenetre-du-bas`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`, `consultation`) est BLOQUANT, contre les états déjà rendus de la passe et, sous
 // `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe), les autres écrans du gabarit qui y ont écrit leur
 // `<écran>--<état>.json` ; les autres gabarits restent en RAPPORT, que `contenus.mjs <dossier>` agrège :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)

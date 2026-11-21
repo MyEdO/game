@@ -9,6 +9,8 @@ Sources au dépôt : trois écrans de `sources/maquettes/`, chacun la liste de s
 `port-avitaillement`). Les décors de la halle et du quai et la carte du port vivent dans `sources/commerce/commerce.js` ;
 le Marchandage prend le jet opposé de `sources/combat/` (`jet.css`, `jet.js`).
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
+  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 
 Cible écrite suivie : `../ecrites/lieu.md` (halle : ligne par denrée, chargement, lots, billet de rumeur ; port : un
 lieu ; Marchandage : le bandeau de jet du combat à sa place). Règles du 2026-11-16 appliquées par-dessus : un choix
@@ -43,9 +45,10 @@ bandeau de jet opposé est celui du combat.
   « une ligne par denrée ») ; le rail des services du lieu gardé ouvert à gauche pendant le commerce ; les porteurs
   dessinés dans la scène et choisis sur la page ; la page de droite pour composer l'achat ; le billet de rumeur cloué
   sous le rail ; « mènera le Marchandage » dit sous le héros qui marchande.
-- À valider (#4585) : chaque hôte de la scène dans une case de 340 × 152 ; la colonne en montre trois et fait défiler
-  la suite (la mule de la vente sous la charrette) ; le corps d'une offre dépliée défile sous son cartouche, ses
-  gestes au pied de la case ; la page du service sur la grille commune des colonnes : la tête, le corps qui défile
+- À valider (#4585) : chaque hôte de la scène dans la case de son genre, 340 de large (226 devant la carte du port) :
+  l'enseigne (son nom seul) haute de 76, le porteur ou le navire et ce qu'il porte de 152, l'offre dépliée, l'accueil
+  ou le constructeur de 196, 8 px entre deux ; la colonne montre les quatre hôtes de la vente (deux enseignes, la
+  charrette et la mule) ; le corps d'une offre dépliée défile sous son cartouche, ses gestes au pied de la case ; la page du service sur la grille commune des colonnes : la tête, le corps qui défile
   (entrées à 6 px), le geste au pied, la note sous lui.
 
 ## halle-vente

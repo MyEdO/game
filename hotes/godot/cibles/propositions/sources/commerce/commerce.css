@@ -11,7 +11,7 @@
 .offre .gestes{display:flex;gap:8px;margin-top:9px}
 .offre .gestes .plaque>div{font-size:13.5px;gap:7px;padding:0 6px}
 .offre.choisie{box-shadow:0 14px 34px rgba(0,0,0,.6),0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.75),0 0 22px rgba(255,214,140,.38)}
-.offre.enseigne>.fond{padding:8px 14px 9px 10px}
+.hote:is(.enseigne,.charge)>.fond{padding:8px 14px 9px 10px}
 
 /* un porteur : sa ligne d'Encombrement */
 .porteur-ligne{display:flex;justify-content:space-between;align-items:baseline;margin-top:7px;font-size:12px;color:#e6dabd;white-space:nowrap}

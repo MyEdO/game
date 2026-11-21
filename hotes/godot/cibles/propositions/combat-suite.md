@@ -12,6 +12,8 @@ décor (`sources/combat-suite/decors.js`, la carte de `sources/lieux-et-nuit/car
 ou la fenêtre du bas qui prend sa place ; le Test spectaculaire de Puissance et l'issue de la bataille, un carton
 au-dessus du bandeau (gabarit 7). `bataille-de-masse-preparation` est un état de l'écran `interlude`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
+  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Surincantation », « {restant} pas sur {budget} »,
 « Cibles supplémentaires : … à cliquer sur la carte », « Contrer seul », « S’unir », « Passer », « Déclarer »,

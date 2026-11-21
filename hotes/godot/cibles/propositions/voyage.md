@@ -12,6 +12,8 @@ chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dess
 `meuble-piece-de-bord`), `dossier` (`dossier-du-navire`, `dossier-du-navire-cargaison`, `dossier-de-la-bete`,
 `dossier-du-vehicule`) et `arrivee` (`arrivee-aucune`, `arrivee-palissade`, `arrivee-rempart`). La compagnie est celle de `sources/maquettes/compagnie.ts`.
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
+- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
+  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 
 La carte du monde n'est pas redessinée : elle existe (`exploration-et-recit/carte-du-monde.jpg`) et sert de modèle ;
 les états d'ici gardent ses lieux et ses distances (La Diligence, 75 km, Sept Rayons, 115 km, Altdorf).

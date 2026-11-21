@@ -8,6 +8,8 @@ Compte rendu des huit écrans, sans cible écrite. Contenu lu au code, pas le de
 porte l'instant et la séance qu'ils partagent. Les décors (la crête au couchant, la salle commune, l'auberge-relais,
 Altdorf au matin, le jeu assombri) et les feuilles de la famille vivent dans `sources/accueil-et-systeme/`.
 Premières maquettes : chaque « À valider » attend l'utilisateur.
+- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
+  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 
 Pièces neuves : registre relié et ses signets ; contrôles de réglage (oui/non, réglette, segments, pas-à-pas) ;
 affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé laiton ; case à cocher et son octroi

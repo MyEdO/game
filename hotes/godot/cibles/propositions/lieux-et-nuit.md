@@ -12,6 +12,10 @@ Directions de l'utilisateur (verbatims au 2026-11-16, fiche `user-doctrine-la-ci
 image autour d'un feu de camp et une quand on dort à l'auberge ; affectations à des postes dans la lignée du voyage ;
 interludes liés à des lieux et à des PNJ, jamais une fenêtre à cinquante choix ; un PNJ qui donne un service ouvre la
 page des services de son lieu.
+- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
+  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
+- À valider (#4585) : à l'auberge, les avis de l'aubergiste au pied du corps de sa colonne, toujours en vue : la
+  grille des offres se resserre (3 px entre deux lignes) et le corps prend la hauteur de la colonne sous sa tête.
 
 Choix transverses à valider : le poste (médaillon ou portrait, étiquette de chêne à pointe) est la pièce unique
 d'affectation (bivouac, auberge, table de jeu), geste supposé « choisir un héros au bandeau, puis cliquer un poste » ;

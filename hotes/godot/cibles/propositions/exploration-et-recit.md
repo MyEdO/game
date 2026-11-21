@@ -11,6 +11,8 @@ format de `sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html`
 ses trois regards et la route d'Altdorf (`scene.js`), le Reikland (`carte.js`) ; les pièces propres à la famille dans
 `recit.css` et `carte.css`. Les valeurs affichées sont des exemples non relus au livre. Premières maquettes : rien
 n'est validé.
+- À valider (#4585) : le cartouche de titre range sa figure dans une case de 56 de large et son texte dans un bloc
+  haut de 70, la même grille pour le lieu et le temps du voyage (`dispositions.md`, « La grille intérieure »).
 
 Pièces : la fenêtre du bas du kit pour le dialogue, le jet, le butin, la désignation et le départ de nuit ; le
 journal au bord droit ; les gestes du groupe en colonne au bord gauche, les écrans à ouvrir au bord droit ; le

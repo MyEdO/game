@@ -29,18 +29,30 @@ Gestes, Rapides, de même largeur active ou non, trois places de plaque et cinq 
 du tour (`ordre/actif`) ; les onglets des sections de la fiche, des dossiers et de la progression (cinq places, la
 fiche du héros dans l'ordre Attaques, Compétences, Talents, Sorts, Possessions) et ceux du panneau de bord ; la colonne du choix de la création (quatre rangées, la haute des deuxième
 et troisième, la liste et son pied : `heros.md`, « Grille du choix ») ; le pied de
-l'identité qui progresse ; le pied du rail des services, sous le dernier service que la colonne peut porter, quel qu'en
-soit le nombre, et au carnet les documents remis sous lui ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
+l'identité qui progresse ; la grille des colonnes (`colonne`, `sources/gestes.js` : la tête, le corps qui défile sous
+elle, ou le plein, le corps sur la bande de la tête quand le panneau n'en a pas, le geste au pied, la note sous lui ;
+à gauche sous le cartouche, le corps prend la hauteur que la note laisse au plein du rail des services, dont la note
+se pose sous le dernier service que la colonne peut porter, quel qu'en soit le nombre, et au carnet les documents remis
+sous elle) ; les hôtes d'une scène de commerce, chacun à la case de son genre (`commerce.md`) ; le carton d'un arrêt (vignette, titre, texte, choix ou paies et parts, geste) ; le camp d'un testeur dans la fenêtre
 (portrait, identité, rangée des dés, issue). Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
 `habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
 premier état du même rôle. Le relevé `contenu` (`sources/contenus.mjs`) compare d'un état à l'autre du même gabarit
-le rect de ce que chaque place porte, et classe chaque écart : **A** une boîte déplacée (son coin bouge, ou la taille
+le rect de ce que chaque place porte, sous la clé porteur + rôle (le rôle : la pièce, la place, la première classe, le
+`data-texte` et le `data-cle`, l'id stable de ce qu'un élément désigne quand le markup en porte un, puis le rang parmi
+ceux du même rôle), et classe chaque écart : **A** une boîte déplacée (son coin bouge, ou la taille
 d'un contenu qui n'est pas un texte en ligne, ou le départ, les x ou les écarts des entrées d'une liste qui défile),
 **B** la seule longueur d'un texte dont le coin reste fixe, **C** le seul nombre des entrées d'une liste qui défile
 (une liste d'une seule entrée n'a pas d'écart à comparer).
-Un A d'un gabarit pilote (`PILOTES` : `fenetre-du-bas`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`) fait échouer le rendu, contre les autres écrans du gabarit
+Un A d'un gabarit pilote (`PILOTES` : `fenetre-du-bas`, `combat`, `gestion`, `fiche`, `lieu-et-voyage`, `consultation`) fait échouer le rendu, contre les autres écrans du gabarit
 déjà rendus sous `RELEVE_CONTENUS=<dossier>` (un dossier neuf par passe) et les autres états de la même passe ; les
 autres gabarits restent en rapport (`node sources/contenus.mjs <dossier>`, code 1 sur un A d'un pilote).
+
+- À valider (#4585) : le cartouche de titre (`#titre`, tout écran qui en porte un) range ses deux primitives (le
+  cartouche du lieu, l'objet du temps du voyage) sur une même grille : la figure dans une case de 56 de large, le
+  bloc du texte haut de 70.
+- À valider (#4585) : un corps qui défile ne cache rien de ce qu'un état montre quand une place visible peut le porter ;
+  à l'auberge, les avis de l'aubergiste (« méfiez-vous des voleurs ») tiennent au pied du corps de la colonne de
+  gauche, la grille des offres resserrée.
 
 **Le contenu s'adapte au cadre, jamais l'inverse.** Aucun panneau ne prend la hauteur de son contenu, aucune fenêtre
 ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile ou passe en onglets ; seules la prose d'un

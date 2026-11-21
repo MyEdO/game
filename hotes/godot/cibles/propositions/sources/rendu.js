@@ -129,14 +129,15 @@
     ...Object.fromEntries(['sections', 'progression-droite'].flatMap((c) => Array.from({ length: 5 }, (_, k) => [`${c}/onglet-${k + 1}`, [8 + 128 * k, -18, 124, 32]]))),
     /* les onglets du panneau de bord : le bord, la station du héros choisi */
     'colonne-droite/onglet-1': [8, -18, 160, 32], 'colonne-droite/onglet-2': [174, -18, 160, 32],
-    /* le pied du rail des services, sous le dernier qu'il peut porter ; au carnet, les documents remis sous lui */
     /* la grille des colonnes du lieu et de la route, et de la page d'un service (`colonne`, `gestes.js`) : la tête, le
-       corps, ou le corps sur la bande de la tête quand le panneau n'en a pas, le geste au pied, la note sous lui */
+       corps, ou le corps sur la bande de la tête quand le panneau n'en a pas, le geste au pied, la note sous lui ; à
+       gauche, le corps prend la hauteur que la note laisse au plein (le rail des services, sa note sous lui) */
     'colonne-droite/tete': [14, 20, 314, 48], 'colonne-droite/corps': [14, 74, 314, 262], 'colonne-droite/plein': [14, 20, 314, 316], 'colonne-droite/geste': [14, 346, 314, 40],
     'colonne-droite-basse/plein': [14, 16, 314, 106], 'colonne-droite-basse/geste': [14, 130, 314, 56],
-    'colonne-gauche/tete': [15, 20, 324, 50], 'colonne-gauche/corps': [15, 76, 324, 196],
+    'colonne-gauche/tete': [15, 20, 324, 50], 'colonne-gauche/corps': [15, 76, 324, 204], 'colonne-gauche/plein': [15, 20, 324, 232], 'colonne-gauche/note': [15, 258, 324, 17],
     'page/tete': [20, 16, 422, 44], 'page/corps': [20, 66, 422, 302], 'page/geste': [20, 376, 422, 44], 'page/note': [20, 426, 422, 22],
-    'colonne-gauche/pied': [12, 258, 330, 17], 'colonne-gestion/pied': [12, 254, 330, 17], 'colonne-gestion/documents': [12, 278, 330, 252],
+    /* le rail d'un panneau de gestion, sur la même grille ; au carnet, les documents remis sous sa note */
+    'colonne-gestion/plein': [15, 20, 324, 228], 'colonne-gestion/note': [15, 254, 324, 17], 'colonne-gestion/documents': [12, 278, 330, 252],
     /* le geste qui commet un feuillet de la gestion, au pied fixe de son cadre */
     'colonne-gestion/geste': [12, 490, 330, 40],
     /* le carton d'un arrêt : la vignette, le titre, le texte jusqu'au geste, les cartes du choix (ou les paies et les
@@ -1176,9 +1177,9 @@
       sous: o.depliee ? echapper(o.negociant) : `${o.disponible} Enc · ${prix(o.prixDeBase)} / Enc`, pointe: 40,
       corps: o.depliee ? mesures([['Disponible', `${o.disponible} Enc`], ['Prix de base', `${prix(o.prixDeBase)} / Enc`], ...(o.estimation === undefined ? [] : [['Estimation avant Marchandage', prix(o.estimation)]])]) : '',
       pied: o.depliee && o.gestes ? gestesDeLOffre(o.gestes) : '' }),
-    porteur: (p, l) => hote({ id: `porteur-${p.id}`, classe: `offre enseigne${p.choisi ? ' choisie' : ''}`, x: 0, y: 0, l, icone: PICTO_DU_PORTEUR[p.id], nom: echapper(p.nom), sous: echapper(p.sous), pointe: 40,
+    porteur: (p, l) => hote({ id: `porteur-${p.id}`, classe: `offre charge${p.choisi ? ' choisie' : ''}`, x: 0, y: 0, l, icone: PICTO_DU_PORTEUR[p.id], nom: echapper(p.nom), sous: echapper(p.sous), pointe: 40,
       corps: `${p.vivres ? `${ligneDePorteur('Vivres', `${p.vivres.rations} rations-jour`)}${ligneDePorteur('Eau douce', `${p.vivres.eau} litres`)}` : ''}${ligneDePorteur(p.porte === 0 ? 'Vide' : p.porte === p.charge ? 'Pleine' : 'Chargée', libres(p.porte, p.charge))}${jauge(p.porte / p.charge, { teinte: 'or', taille: 'forte', ajout: (p.ajout ?? 0) / p.charge })}${p.lot ? lotDu(p.lot) : ''}` }),
-    navire: (n, l) => hote({ id: 'navire', classe: 'offre enseigne', x: 0, y: 0, l, icone: 'navire', nom: echapper(n.nom), sous: echapper(n.sous), pointe: 40,
+    navire: (n, l) => hote({ id: 'navire', classe: 'offre charge', x: 0, y: 0, l, icone: 'navire', nom: echapper(n.nom), sous: echapper(n.sous), pointe: 40,
       corps: [n.coque && `${ligneDePorteur('Coque', `${n.coque.blessures} / ${n.coque.max}`)}${jauge(n.coque.blessures / n.coque.max)}`, n.salissures !== undefined && ligneDePorteur('Salissures', `niveau ${n.salissures}`),
         n.cale && `${ligneDePorteur('Cale', libres(n.cale.porte, n.cale.charge))}${jauge(n.cale.porte / n.cale.charge, { teinte: 'or', taille: 'forte' })}`,
         n.equipage && `${ligneDePorteur('Équipage', `${n.equipage.abord} sur ${n.equipage.sur}`)}${jauge(n.equipage.abord / n.equipage.sur, { teinte: 'or', taille: 'forte', ajout: n.equipage.ajout / n.equipage.sur })}`].filter(Boolean).join('') }),
