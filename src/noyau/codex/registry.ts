@@ -2034,7 +2034,9 @@ const CODEX_SPECS = {
     // libellé — l'affichage se lit sur le document, sans lookup transverse.
     build: () => names.map((pool) => ({
       id: pool.id, label: pool.label,
-      sub: tr('codex.fiche.noms2', { length: pool.maleFirstNames.length, length2: pool.femaleFirstNames.length, length3: pool.lastNames.length }),
+      sub: pool.firstNamePrefixes && pool.firstNameSuffixes
+        ? tr('codex.fiche.composantesDePrenoms', { racines: pool.firstNamePrefixes.length, terminaisons: pool.firstNameSuffixes.length })
+        : tr('codex.fiche.noms2', { length: pool.maleFirstNames.length, length2: pool.femaleFirstNames.length, length3: pool.lastNames.length }),
       sections: sections(
         // RESTE ASSUMÉ : une rangée porte la LISTE entière (`join(', ')`), pas un nom — en pastille
         // elle ferait une pastille géante. Éclater la donnée en une pastille par nom est un chantier
@@ -2042,6 +2044,8 @@ const CODEX_SPECS = {
         pool.maleFirstNames.length ? { title: tr('codex.fiche.prenomsMasculins'), layout: 'chips', rows: [{ t: 'text', text: pool.maleFirstNames.join(', ') }] } : null,
         pool.femaleFirstNames.length ? { title: tr('codex.fiche.prenomsFeminins'), layout: 'chips', rows: [{ t: 'text', text: pool.femaleFirstNames.join(', ') }] } : null,
         pool.lastNames.length ? { title: tr('codex.fiche.nomsDeFamille'), layout: 'chips', rows: [{ t: 'text', text: pool.lastNames.join(', ') }] } : null,
+        pool.firstNamePrefixes ? { title: tr('codex.fiche.racinesDePrenoms'), layout: 'chips', rows: [{ t: 'text', text: pool.firstNamePrefixes.join(', ') }] } : null,
+        pool.firstNameSuffixes ? { title: tr('codex.fiche.terminaisonsDePrenoms'), layout: 'chips', rows: [{ t: 'text', text: pool.firstNameSuffixes.join(', ') }] } : null,
       ),
     })),
   },

@@ -832,9 +832,9 @@ export function withSexeSuivant(d: CreatorDraft): CreatorDraft {
 }
 /** Nom tiré au générateur de l'espèce (`generateName`) avec la graine `graine` ; sans espèce ni table de noms, le
  *  brouillon est INCHANGÉ. */
-export function rollDraftName(d: CreatorDraft, graine: number): CreatorDraft {
+export function rollDraftName(d: CreatorDraft, graine: number, style?: 'humain'): CreatorDraft {
   const sp = draftSpecies(d);
-  const label = sp ? generateName(sp.refChar, d.apparence.sex, makeRNG(graine)) : null;
+  const label = sp ? generateName(sp.refChar, d.apparence.sex, makeRNG(graine), style) : null;
   return label ? withEtatCivil(d, { label }) : d;
 }
 /** Geste « Aux dés » du physique ; sans espèce, le brouillon est INCHANGÉ. */

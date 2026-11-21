@@ -691,6 +691,13 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
     expect(pool('nain').lastNameSuffixes!.M.some((x) => nain.endsWith(x)), 'patronyme nain, LDB 05 l.627-633').toBe(true);
   });
 
+  it('la fiche de l’Ogre anonyme porte le nom traditionnel tiré par id et respecte le nom d’auteur', () => {
+    const ogre = humain('ogre-anonyme', { creature: { id: 'ogre' } });
+    expect(nomDEntite(ogre, sansPreset)).toBe('Gegtag');
+    expect(ficheDEntite(ogre, sansPreset).label).toBe('Gegtag');
+    expect(ficheDEntite({ ...ogre, label: 'Gustav Bauer' }, sansPreset).label).toBe('Gustav Bauer');
+  });
+
   it('le sexe que pose l’auteur fait le nom, le corps et le libellé de Carrière (#3724)', () => {
     const villageoise = ficheDEntite(humain('villageoise', { appearance: { sex: 'F' } }), sansPreset);
     expect(pool('humain').femaleFirstNames).toContain(villageoise.label.split(' ')[0]);
