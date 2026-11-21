@@ -79,6 +79,14 @@ describe('Magie des Arcanes et Traits de lanceur : rien d’office, l’auteur c
     expect(sortsDuPnj(pyromancien(), choisis)).toEqual(choisis);
   });
 
+  it('un Trait natif spécialisé conserve les choix d’auteur de sa fiche', () => {
+    const c = pnj([], [{ id: 'lanceur-de-sorts', arg: 'sorcellerie' }]);
+    const choisis = ['alerte', 'arme-aethyrique', 'aspect-sublime'];
+    expect(refusDesSortsChoisis(c, choisis)).toBeUndefined();
+    expect(sortsDuPnj(c, choisis)).toEqual(choisis);
+    expect(sortsDisponibles(c)).toEqual([]);
+  });
+
   it('Lanceur de Sorts ouvre les Sorts ; Miracles (Taal), les Miracles de Taal', () => {
     expect(refusDesSortsChoisis(pnj([], [{ id: 'lanceur-de-sorts', arg: 'chaos' }]), ['flechette', 'cauteriser', 'aspect-sublime'])).toBeUndefined();
     expect(refusDesSortsChoisis(pnj([], [{ id: 'miracles', arg: 'taal' }]), ['bondissant-comme-un-cerf'])).toBeUndefined();
@@ -174,6 +182,28 @@ describe('le choix du Domaine d’un Trait octroyé', () => {
     endOfRound(c, ctx.rng, ctx.idNeuf);
     expect(c.traits).toEqual([]);
     expect(sortsDisponibles(c)).toEqual(c.spells);
+  });
+
+  it('le Domaine du Trait octroyé survit à une sérialisation auprès d’un Trait natif', () => {
+    const c = pnj([], [{ id: 'lanceur-de-sorts', arg: 'feu' }]);
+    const ctx = {
+      rng: makeRNG(73), idNeuf: idsDeTest, defaultDurationRounds: 1,
+      source: { kind: 'sort', id: 'allure-demoniaque' },
+    } as const;
+    applyOps(c, [resoudreLeChoixDuTrait(choix, 'feu')], ctx);
+    const relu = JSON.parse(JSON.stringify(c)) as Combatant;
+
+    const listes = listesDeSorts(relu);
+    expect(listes).toHaveLength(2);
+    expect(listes.map((liste) => liste.admet(findSpellById('alerte')!))).toEqual([true, false]);
+    expect(listes.map((liste) => liste.admet(findSpellById('couronne-de-flammes')!))).toEqual([true, true]);
+    expect(sortsDisponibles(relu)).toContain('couronne-de-flammes');
+    expect(sortsDisponibles(relu)).not.toContain('destrier-d-ombre');
+
+    endOfRound(relu, ctx.rng, ctx.idNeuf);
+    expect(relu.traits).toEqual(c.traits?.slice(0, 1));
+    expect(listesDeSorts(relu)[0].admet(findSpellById('alerte')!)).toBe(true);
+    expect(sortsDisponibles(relu)).toEqual([]);
   });
 
   it('un Domaine du Chaos désigne ses sorts et son libellé sans ajouter une allégeance', () => {

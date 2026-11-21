@@ -10,6 +10,7 @@ import type { PorteurDeFiche } from './statblock';
 import { arcaneDomainsOf, casterTalents, talentOuvre } from './grimoire';
 import { pettySpellQuotaFor } from './creation';
 import { hashSeed, makeRNG } from './dice';
+import { sameInstance } from './grantedTraits';
 import { dataLabel, findCreatureById, findDomainById, findGodById, findSpellById, findTraitById, gods, refLabel, spells, type SpellData } from '../data';
 import type { TraitInstance } from './statEntry';
 import { traitLisible } from './traits/dispatch';
@@ -65,12 +66,16 @@ export function sortDeDomaineAccessibleParTrait(sp: SpellData): boolean {
     : domaines.length > 0;
 }
 
+function traitsOctroyesTemporairement(c: Combatant): TraitInstance[] {
+  return (c.activeEffects ?? []).flatMap(({ grantedTrait, duration }) =>
+    grantedTrait && duration.scale !== 'permanent' ? [grantedTrait] : []);
+}
+
 /** EDOC 13 l.245, l.276 ; LDB 85 l.207. */
 export function sortsDisponibles(c: Combatant): string[] {
   const connus = c.spells ?? [];
-  const domaines = (c.activeEffects ?? []).flatMap((effet) => {
-    if (!effet.grantedTrait || effet.duration.scale === 'permanent') return [];
-    const admet = ouvertureDuDomaine(effet.grantedTrait);
+  const domaines = traitsOctroyesTemporairement(c).flatMap((trait) => {
+    const admet = ouvertureDuDomaine(trait);
     return admet ? [admet] : [];
   });
   if (!domaines.length) return connus;
@@ -92,11 +97,14 @@ export function listesDeSorts(c: Combatant): ListeDeSorts[] {
       admet: (sp) => talentOuvre(ct, sp) && (quota === undefined || !sp.ritual),
     };
   });
+  const temporaires = traitsOctroyesTemporairement(c);
   const parTrait = (c.traits ?? []).flatMap((tr): ListeDeSorts[] => {
     const cap = findTraitById(tr.id)?.capabilities;
     const kind = cap?.castingKind;
+    const ouverture = cap?.spellcaster && temporaires.some((temporaire) => sameInstance(temporaire, tr))
+      ? ouvertureDuDomaine(tr) : undefined;
     const admet = cap?.spellcaster
-      ? ouvertureDuDomaine(tr) ?? ((sp: SpellData) => sp.family === 'mineure' || sp.family === 'arcane' || sp.family === 'chaos')
+      ? ouverture ?? ((sp: SpellData) => sp.family === 'mineure' || sp.family === 'arcane' || sp.family === 'chaos')
       : kind ? (sp: SpellData) => talentOuvre({ kind, spec: tr.arg }, sp)
       : undefined;
     const libelle = cap?.spellcaster ? dataLabel(traitLisible(tr)) : refLabel('traits', { id: tr.id, spec: tr.arg });
