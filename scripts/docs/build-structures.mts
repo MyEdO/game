@@ -33,6 +33,7 @@ import {
   ROLES_ENVELOPPE,
   TERMES_COLLECTION_A_CLE,
   clesDuRole,
+  type Strate,
 } from './lib/structures-lexique.mjs';
 import { champsJoints, champsSansSlot, registreDesSlots, slotsDuParse } from './lib/slots-registre.mjs';
 import { collectionsDesDocuments } from '../../src/data/schemas/grammaire/collection-cle';
@@ -311,6 +312,8 @@ function rendu() {
   out += 'Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUCTURES_CIBLES`) ·\n';
   out += '**historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement\n';
   out += 'conservée · **divergente** = graphie inconnue du lexique.\n\n';
+  out += 'Le rang suit l’ordre de déclaration dans chaque strate. Pour la reconnaissance par forme, la pose prime.\n';
+  out += 'À défaut de pose, le premier concept admissible dans l’ordre du registre l’emporte.\n\n';
   {
     const tally: Record<string, number> = {};
     for (const f of scan.formes) tally[f.statut] = (tally[f.statut] ?? 0) + 1;
@@ -323,7 +326,10 @@ function rendu() {
     out += `Dont, NOMMÉES, celles qu’un concept de valeur revendiquerait sans la clause \`horsDesignation\` du lexique : `;
     out += (scan.objets.racinesDisqualifiees.map((d) => `\`${d.dataset}\` ${d.entrees}`).join(' · ') || 'aucune') + `.\n\n`;
   }
+  const rangsParStrate = new Map<Strate, number>();
   for (const c of CONCEPTS) {
+    const rang = (rangsParStrate.get(c.strate) ?? 0) + 1;
+    rangsParStrate.set(c.strate, rang);
     const lignes = scan.formes.filter((f) => f.concept === c.id);
     const total = lignes.reduce((a, f) => a + f.occurrences, 0);
     out += `### ${SECTION.concept(c)} ${c.label} — \`${c.id}\` (strate ${c.strate})\n\n`;
@@ -334,10 +340,16 @@ function rendu() {
       : c.noyau?.length
         ? `son noyau ${c.noyau.map((k) => `\`${k}\``).join(' ')}${c.noyauMin ? ` (≥ ${c.noyauMin})` : ''}`
         : '';
-    const reconnaissances = [...(posesDuConcept.length ? [`sa pose ${posesDuConcept.join(' ')}`] : []), ...(parCles ? [parCles] : [])];
+    const conditions: string[] = [];
+    if (c.coPresence) conditions.push(`porte au moins une clé parmi ${c.coPresence.map((k) => `\`${k}\``).join(', ')}`);
+    if (c.horsDesignation) conditions.push('ne porte ni clé d’identité ni clé dont le nom annonce une référence');
+    const reconnaissances: string[] = [];
+    if (posesDuConcept.length) reconnaissances.push(`sa pose ${posesDuConcept.join(' ')}`);
+    if (parCles) reconnaissances.push(conditions.length ? `${parCles} (si l’objet ${conditions.join(' et ')})` : parCles);
     if (c.reconnaitProseNommee) reconnaissances.push('la déclaration `PROSES_NOMMEES` au schéma de projet pour les porteurs sans forme');
     const parForme = reconnaissances.join(', sinon ');
-    out += `Reconnu par : ${c.resolvables ? 'RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou GRAPHIE du lexique sous un champ porteur mesuré' : c.listeIdsNus ? 'tableau de chaînes dont au moins un élément résout' : parForme}${c.datasets ? `, dans ${c.datasets.map((x) => `\`${x}\``).join(' ')}` : ''}\n\n`;
+    out += `Reconnu par : ${c.resolvables ? 'RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou GRAPHIE du lexique sous un champ porteur mesuré' : c.listeIdsNus ? 'tableau de chaînes dont au moins un élément résout' : parForme}${c.datasets ? `, dans ${c.datasets.map((x) => `\`${x}\``).join(' ')}` : ''}.`;
+    out += ` Rang dans la strate **${rang}**.\n\n`;
     if (!lignes.length) {
       out += '_aucune occurrence observée._\n\n';
       continue;
