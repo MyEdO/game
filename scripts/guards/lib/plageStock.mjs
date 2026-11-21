@@ -500,16 +500,20 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
  * La plage lue (`lectureDeLaPlage`) et les refus qu'elle porte : chaque commit jugé par la porte de son
  * ère (`jugeesParLeurEre`), le cumul lu par l'arbre qui juge. `indisponible` nomme une panne de git.
  * @param {Parameters<typeof lectureDeLaPlage>[0]} p
+ * @param {(lecture: ReturnType<typeof lectureDeLaPlage>) => void} [observerLecture] reçoit la lecture avant le jugement
  * @returns {Promise<{ refus: object[], reclassements: object[], eres?: { ere: string | null, commits: string[], note: string | null }[], notes: string[], plage: string, indisponible: string|null, commits?: number }>}
  */
-export async function croissancesDeLaPlage(p = {}) {
-  const { depot, commits, cumul, projectionDuTronc, notes, plage, pannes, troncDesEres, sauverLesMemos } = lectureDeLaPlage(p)
+export async function croissancesDeLaPlage(p = {}, observerLecture) {
+  const lecture = lectureDeLaPlage(p)
+  observerLecture?.(lecture)
+  const { depot, commits, cumul, projectionDuTronc, notes, plage, pannes, troncDesEres, sauverLesMemos } = lecture
   if (!commits) return { refus: [], reclassements: [], notes, plage, indisponible: pannes[0] ?? null }
   try {
     const { refus, reclassements, eres } = await jugeesParLeurEre(depot, commits, { cumul, projectionDuTronc }, troncDesEres)
     sauverLesMemos()
-    for (const { note } of eres) if (note) notes.push(note)
-    return { refus, reclassements, eres, notes, commits: commits.length, plage, indisponible: pannes[0] ?? null }
+    const notesDuVerdict = [...notes]
+    for (const { note } of eres) if (note) notesDuVerdict.push(note)
+    return { refus, reclassements, eres, notes: notesDuVerdict, commits: commits.length, plage, indisponible: pannes[0] ?? null }
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
     return { refus: [], reclassements: [], notes, plage, indisponible: [refusDeGit(e), ...pannes].join(' — ') }
