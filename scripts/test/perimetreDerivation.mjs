@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { lstatSync, readFileSync } from 'node:fs'
 import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MessageChannel, Worker, receiveMessageOnPort } from 'node:worker_threads'
@@ -34,6 +34,7 @@ import { ancetresDe, LECTURES_DES_DEPENDANCES } from '../git-hooks/selection-des
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { memosDe, PAQUETS_VERSIONNANTS, texteSiPresent } from '../guards/lib/memosDAnalyse.mjs'
 import { empreinteDe, fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
+import { cheminAbsent } from '../guards/lib/lister.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Les fichiers dont un changement invalide toute dérivation : la suite entière est retenue. */
 const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vitest.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
@@ -62,6 +63,24 @@ const blobDe = (texte) => {
 
 /** La racine `r` couvre-t-elle `chemin` (égalité, ou ANCÊTRE : `ancetresDe`) ? */
 const couvre = (r, chemin) => chemin === r || ancetresDe(chemin).includes(r)
+
+const normaliserIdentite = sep === '\\' ? (chemin) => chemin.toLowerCase() : (chemin) => chemin
+
+/** Une identité change au chemin touché, ou lorsqu’un premier/dernier descendant matérialise un dossier. */
+function changementsDIdentite(touches, avant, post) {
+  const dossiersDe = (image) => new Set(image.flatMap((f) => ancetresDe(normaliserIdentite(f))))
+  const dossiersAvant = dossiersDe(avant)
+  const dossiersApres = dossiersDe(post)
+  const changements = new Map()
+  for (const touche of touches) {
+    const chemin = normaliserIdentite(touche)
+    changements.set(chemin, touche)
+    for (const dossier of ancetresDe(chemin))
+      if (dossier && dossiersAvant.has(dossier) !== dossiersApres.has(dossier) && !changements.has(dossier))
+        changements.set(dossier, touche)
+  }
+  return changements
+}
 
 /**
  * Les fichiers touchés et les images d'un diff. `tete` absente : l'arbre de travail contre la base
@@ -99,14 +118,14 @@ function setupFilesDe(texte, analyser) {
 /** @typedef {{ site: string, fichier: string, helper: string, raison: string, moduleBalaieLeDepot: boolean }} NonResolu */
 
 /**
- * DÉRIVATION du périmètre. PURE hormis `lire` et les mémos. Chaque lot s'évalue par `evaluerLot` sur la
+ * DÉRIVATION du périmètre. PURE hormis les lecteurs et les mémos. Chaque lot s'évalue par `evaluerLot` sur la
  * clôture de ses lectures. `tailleLot` (questions par lot d'évaluation), `analyser`, `evaluerLot` et
  * `limiteIR` valent ceux de la production par défaut. `analyser` sert aussi la clôture d'imports (`clotureDImports`) ;
  * `stade` observe aussi chaque certification (`certifierLecture`) et chaque lot (`evaluerLot`).
- * @param {{ racine: string, touches: string[], post: string[], avant: string[], lire: (rels: string[]) => Map<string, string | null>, memos?: ReturnType<typeof memosDeDerivation> }} entree
+ * @param {{ racine: string, touches: string[], post: string[], avant: string[], lire: (rels: string[]) => Map<string, string | null>, lienOuIllisible?: (rel: string) => boolean, memos?: ReturnType<typeof memosDeDerivation> }} entree
  * @returns {{ retenus: Map<string, Lien>, toolchain: string[], nonResolus: NonResolu[], vitest: string[], node: string[], modules: number }}
  */
-export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos, stade = () => {},
+export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, lienOuIllisible, memos, stade = () => {},
   tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots, evaluerLot = evaluerLotDuDepot, limiteIR = LIMITE_IR }) {
   stade('graphe', null)
   const base = resolve(racine).split(sep).join('/')
@@ -167,7 +186,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     return atteints
   }
 
-  /** @typedef {{ nature: 'touché' | 'toolchain' | 'import' | 'racine balayée' | 'setup', distance: number, rang?: number, chaine?: string[], racine?: string, specificite?: number, site?: string, touche: string }} Lien */
+  /** @typedef {{ nature: 'touché' | 'toolchain' | 'import' | 'racine balayée' | 'setup', distance: number, rang?: number, chaine?: string[], racine?: string, identite?: true, specificite?: number, site?: string, touche: string }} Lien */
   /** @type {Map<string, Lien>} */
   const retenus = new Map()
   const retenir = (test, lien) => {
@@ -362,17 +381,32 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   const nonResolus = []
   /** Les modules dont un site balaie la RACINE du dépôt : tout fichier touché retient les tests qui les atteignent. */
   const balaientLeDepot = new Set()
+  let identitesChangees
+  const toucheDIdentite = (chemin) => {
+    if (!touches.length) return undefined
+    identitesChangees ??= changementsDIdentite(touches, avant, post)
+    const prefixes = [chemin, ...ancetresDe(chemin)].slice(0, -1)
+    for (const prefixe of prefixes) {
+      const touche = identitesChangees.get(normaliserIdentite(prefixe))
+      if (touche) return touche
+    }
+    // Un lien peut faire dépendre l’identité d’un chemin situé hors de ses préfixes lexicaux.
+    if (lienOuIllisible && prefixes.reverse().some(lienOuIllisible)) return touches[0]
+  }
   const tries = [...lecteurs].sort()
   for (const [f, sites] of evaluationsEnLots('sitesDe', tries)) {
     for (const site of sites) {
       const ici = `${f}:${site.ligne}`
       for (const v of site.valeurs) if ('non' in v) nonResolus.push({ site: ici, fichier: f, helper: site.appel, raison: v.non })
       for (const v of site.valeurs) {
-        if (!('chemin' in v)) continue
-        if (v.chemin === '') balaientLeDepot.add(f)
-        const touche = touches.find((t) => couvre(v.chemin, t))
+        const identite = 'identite' in v
+        if (!identite && !('chemin' in v)) continue
+        const chemin = identite ? v.identite : v.chemin
+        if (chemin === '') balaientLeDepot.add(f)
+        const touche = identite ? toucheDIdentite(chemin) : touches.find((t) => couvre(chemin, t))
         if (!touche) continue
-        const lien = { racine: v.chemin || '.', specificite: specificiteDe(v.chemin), site: `${ici} ${site.appel}`, touche }
+        const lien = { racine: chemin || '.', specificite: identite ? 1 : specificiteDe(chemin),
+          site: `${ici} ${site.appel}`, touche, ...(identite ? { identite: true } : {}) }
         for (const [test, { distance }] of remonter(f)) retenir(test, { nature: 'racine balayée', distance, ...lien })
         if (clotureSetup.has(f)) parSetup(lien)
       }
@@ -655,13 +689,19 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
   const chemins = [...new Set([...images.post, ...images.avant])].filter(estModule)
   const persistables = entreesDe(depot, 'HEAD', chemins)
   const imagesVivantes = new Map()
+  const liensGit = new Set()
   const garder = (rel, sha) => {
     if (!imagesVivantes.has(rel)) imagesVivantes.set(rel, new Set())
     imagesVivantes.get(rel).add(sha)
   }
   for (const [rel, { sha }] of persistables) garder(rel, sha)
-  for (const [borne, fichiers] of [[images.base, images.avant], [images.tete, images.post]])
-    if (borne) for (const [rel, { sha }] of entreesDe(depot, borne, fichiers.filter(estModule))) garder(rel, sha)
+  for (const [borne, fichiers] of [[images.base, images.avant], [images.tete, images.post]]) {
+    if (!borne) continue
+    for (const [rel, { sha, mode }] of entreesDe(depot, borne, fichiers)) {
+      if (mode === '120000') liensGit.add(normaliserIdentite(rel))
+      if (estModule(rel)) garder(rel, sha)
+    }
+  }
   if (!images.tete) for (const rel of images.post.filter(estModule)) {
     const texte = lire([rel]).get(rel)
     if (texte !== null && texte !== undefined) garder(rel, blobDe(texte))
@@ -669,7 +709,18 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
   stade('version', null)
   const memos = memosDeDerivation(dossierDesMemos, versionDesMemosDeDerivation(racine, { dossierDesMemos, lectureSeule, stade }), { lectureSeule, imagesVivantes, diagnostic: (famille, raison) => console.log(`[mémo] ${famille} : ${raison}`) })
   const lireAvant = images.base ? (rels) => lireEnLot(depot, images.base, rels) : undefined
-  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos, stade })
+  const liensDuDisque = new Map()
+  const lienOuIllisible = (rel) => {
+    if (liensGit.has(normaliserIdentite(rel))) return true
+    if (images.tete) return false
+    if (!liensDuDisque.has(rel)) {
+      try { liensDuDisque.set(rel, lstatSync(join(racine, rel)).isSymbolicLink()) }
+      catch (e) { liensDuDisque.set(rel, !cheminAbsent(e)) }
+    }
+    return liensDuDisque.get(rel)
+  }
+  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant,
+    lire, lireAvant, lienOuIllisible, memos, stade })
   stade('sauvegarde', null)
   memos.sauver()
   return enDTO(images, derive)

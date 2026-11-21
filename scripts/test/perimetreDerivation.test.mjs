@@ -2,7 +2,7 @@ import { test, mock } from 'node:test'
 import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import assert from 'node:assert/strict'
-import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, statSync, rmSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, statSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,6 +32,7 @@ import { encoderLecture, evaluerLotDuDepot } from '../guards/lib/racinesBalayees
 import { analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots } from '../guards/lib/importGraph.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { gitDe } from './gitDeBanc.mjs'
 
 const dossierDe = (t) => {
   const d = mkdtempSync(join(tmpdir(), 'derivation-contrat-'))
@@ -118,6 +119,134 @@ test('signature native : EOF, JSDoc, tokens complets, LF et texte JSX', () => {
     assert.ok(analyse.diagnostics.length > 0)
     assert.deepEqual(signature(analyse.fichier.text, analyse), { signature: 'const =', persistable: false })
   }
+})
+
+test('sondes d’identité : changement au chemin ou de ses préfixes, et conservation des vraies lectures', (t) => {
+  const racine = dossierDe(t)
+  const ancetre = 'scripts/ancetre.test.mjs'
+  const canon = 'scripts/canon.test.mjs'
+  const memo = 'scripts/canon-memo.test.mjs'
+  const controle = 'scripts/controle.test.mjs'
+  const opaque = 'scripts/opaque.test.mjs'
+  const lecteur = 'scripts/lecteur.test.mjs'
+  const balayeur = 'scripts/balayeur.test.mjs'
+  const testVitest = 'src/jeu.test.ts'
+  const canonisation = 'scripts/docs/lib/chemin-mesure.mjs'
+  const cible = 'donnees/actif/fiche.data'
+  const alias = 'donnees/actif'
+  const lu = 'donnees/lues/fiche.data'
+  const modifier = (touche, operation = 'modifie') => {
+    const fichiers = [...textes.keys(), 'donnees/compagnon.data', 'inventaire/connu.data', 'metier/connu.data']
+    const avant = operation === 'ajout' ? fichiers : [...fichiers, touche]
+    const post = operation === 'retrait' ? fichiers : [...fichiers, touche]
+    return deriverPerimetre({
+      racine, touches: [touche], avant: [...new Set(avant)], post: [...new Set(post)],
+      lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])),
+    }).retenus
+  }
+  const textes = new Map([
+    [canonisation, readFileSync(new URL('../docs/lib/chemin-mesure.mjs', import.meta.url), 'utf8')],
+    ['scripts/guards/lib/lister.mjs', `
+      import { readdirSync } from 'node:fs'
+      export const cheminAbsent = () => true
+      export function listerDossier(dossier) { return readdirSync(dossier) }
+    `],
+    ['scripts/docs/lib/cache-fraicheur.mjs', "export const CACHE_FRAICHEUR = 'cache'"],
+    [memo, `
+      import { canoniserParDossier, memoireDeCanonisation } from './docs/lib/chemin-mesure.mjs'
+      canoniserParDossier('donnees/compagnon.data', memoireDeCanonisation())
+    `],
+    [ancetre, `import { ancetreExistant } from './docs/lib/chemin-mesure.mjs'; ancetreExistant('${cible}')`],
+    [canon, `import { canoniser } from './docs/lib/chemin-mesure.mjs'; canoniser('${cible}')`],
+    [opaque, "import { canoniser } from './docs/lib/chemin-mesure.mjs'; canoniser(process.env.CIBLE)"],
+    ['vitest.config.ts', "export default { test: { setupFiles: ['src/setup.ts'] } }"],
+    ['src/setup.ts', "import { canoniser } from '../scripts/docs/lib/chemin-mesure.mjs'; canoniser(process.cwd())"],
+    [testVitest, 'export {}'],
+    [balayeur, "import { readdirSync } from 'node:fs'; readdirSync(process.cwd())"],
+    [lecteur, `import { readFileSync } from 'node:fs'; import { canoniser } from './docs/lib/chemin-mesure.mjs'; readFileSync(canoniser('${lu}'))`],
+    [controle, "import { controler } from './controle.mjs'; controler('donnees/autre.data')"],
+    ['scripts/controle.mjs', `
+      import fs from 'node:fs'
+      export function controler(chemin) {
+        const estFichier = fs.statSync('metier/connu.data').isFile()
+        fs.readdirSync('inventaire')
+        if (fs.existsSync('metier/drapeau.data') && estFichier) return null
+        const special = 'metier/special.data'
+        if (fs.existsSync(special)) return special
+        const strict = 'metier/strict.data'
+        try { fs.statSync(strict); return strict } catch {}
+        if (fs.existsSync(chemin)) return chemin
+        return null
+      }
+      export const CONTRATS_DE_DERIVATION = [{ fonction: controler, identite: 0 }]
+    `],
+  ])
+
+  const solde = modifier('.claude/soldes/999.md', 'ajout')
+  for (const seulSonde of [ancetre, canon, memo, opaque, testVitest]) assert.equal(solde.has(seulSonde), false, seulSonde)
+  assert.equal(solde.get(balayeur)?.racine, '.', 'un vrai listage de la racine lit aussi le solde')
+  assert.equal(solde.get(balayeur)?.identite, undefined)
+  assert.equal(solde.get(lecteur)?.racine, '.', 'une lecture du chemin physique conserve son repli')
+  const voisin = modifier('donnees/etranger.data', 'ajout').get(memo)
+  assert.equal(voisin?.racine, 'donnees', 'le listage mémoïsé retient un nouveau voisin du chemin canonisé')
+  assert.equal(voisin?.identite, undefined, 'la racine lue et la sonde du même préfixe restent distinctes')
+  for (const banc of [ancetre, canon]) {
+    assert.equal(modifier('donnees/etranger.data', 'ajout').has(banc), false, 'dossier déjà présent')
+    for (const [touche, operation] of [[cible, 'ajout'], [alias, 'modifie'], ['donnees/actif/sibling.data', 'ajout'], ['donnees/actif/sibling.data', 'retrait']]) {
+      const lien = modifier(touche, operation).get(banc)
+      assert.deepEqual([lien?.racine, lien?.identite, lien?.touche], [cible, true, touche], banc)
+    }
+  }
+  assert.equal(modifier(lu, 'ajout').has(lecteur), true)
+  for (const [touche, operation] of [['inventaire/ajoute.data', 'ajout'], ['metier/connu.data', 'modifie'],
+    ['metier/drapeau.data', 'ajout'], ['metier/special.data', 'ajout'], ['metier/strict.data', 'ajout']]) {
+    const lien = modifier(touche, operation).get(controle)
+    assert.equal(lien?.nature, 'racine balayée', touche)
+    assert.equal(lien?.identite, undefined, touche)
+  }
+  assert.equal(modifier(canon).get(canon)?.nature, 'touché')
+})
+
+test('sondes d’identité : un lien versionné ou une jonction inchangée peut masquer la cible touchée', (t) => {
+  const alias = 'donnees/alias'
+  const jonction = 'donnees/jonction'
+  const bancGit = 'scripts/git.test.mjs'
+  const bancDisque = 'scripts/disque.test.mjs'
+  const cible = 'cible/neuf.data'
+  const fonction = `import { canoniser } from './docs/lib/chemin-mesure.mjs'; canoniser`
+  const { racine } = instanceDeDepot({ fichiers: {
+    '.gitignore': `/${jonction}\n`,
+    [alias]: '../cible',
+    'cible/temoin.data': 'témoin',
+    'scripts/docs/lib/chemin-mesure.mjs': readFileSync(new URL('../docs/lib/chemin-mesure.mjs', import.meta.url), 'utf8'),
+    'scripts/guards/lib/lister.mjs': 'export const cheminAbsent = () => true; export const listerDossier = () => []',
+    'scripts/docs/lib/cache-fraicheur.mjs': "export const CACHE_FRAICHEUR = 'cache'",
+    [bancGit]: `${fonction}('${alias}/neuf.data')`,
+    [bancDisque]: `${fonction}('${jonction}/neuf.data')`,
+  } })
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const git = gitDe(racine, { net: true })
+  const blob = git('rev-parse', `HEAD:${alias}`)
+  git('update-index', '--cacheinfo', `120000,${blob},${alias}`)
+  git('commit', '-qm', 'Alias versionné')
+  const base = git('rev-parse', 'HEAD')
+  symlinkSync(join(racine, 'cible'), join(racine, jonction), 'junction')
+  writeFileSync(join(racine, cible), 'ajout')
+  git('add', '--', cible)
+  git('commit', '-qm', 'Ajout sous la cible de l’alias')
+  const tete = git('rev-parse', 'HEAD')
+  const dossierDesMemos = join(dossierDe(t), 'memos')
+
+  const commis = depuisDTO(produireDTO({ racine, base, tete, dossierDesMemos }))
+  assert.deepEqual(commis.touches, [cible])
+  assert.equal(commis.retenus.get(bancGit)?.identite, true)
+  assert.equal(commis.retenus.get(bancGit)?.touche, cible)
+  assert.equal(commis.retenus.has(bancDisque), false, 'le cliché Git ne lit pas la jonction du disque')
+
+  writeFileSync(join(racine, cible), 'modification locale')
+  const travail = depuisDTO(produireDTO({ racine, base: tete, dossierDesMemos }))
+  assert.equal(travail.retenus.get(bancDisque)?.identite, true)
+  assert.equal(travail.retenus.get(bancDisque)?.touche, cible)
 })
 
 test('acquisition déclarée : cible précise, clôture transitive et invalidation par un module importé (#3400)', (t) => {
