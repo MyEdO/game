@@ -7,7 +7,7 @@ import { markSchema } from '../../../src/data/schemas/defs/progression-schemas-d
 import { enfantsDe } from '../../../src/data/schemas/grammaire/descente'
 import * as valeurs from '../../../src/data/schemas/grammaire/valeurs'
 import * as reference from '../../../src/data/schemas/grammaire/reference'
-import { avancement } from '../../../src/data/schemas/grammaire/avancement'
+import { talentDEspece } from '../../../src/data/schemas/grammaire/avancement'
 import * as mecanique from '../../../src/data/schemas/grammaire/mecanique'
 import { critEscalationSchema, amputationSchema } from '../../../src/data/schemas/defs/criticals'
 import {
@@ -28,7 +28,7 @@ export const CIBLES_DE_GRAMMAIRE = [
   { schema: valeurs.castingNumberModSchema, type: 'CastingNumberMod', home: 'src/engine/castingNumber.ts' },
   { schema: valeurs.countSpecSchema, type: 'CountSpec', home: 'src/data/schemas/grammaire/valeurs.ts' },
   { schema: reference.trappingRefSchema, type: 'TrappingRef', home: 'src/data/schemas/grammaire/reference.ts' },
-  { schema: avancement('talent'), type: 'AdvancementRef', home: 'src/data/index.ts' },
+  { schema: talentDEspece, type: 'AdvancementRef', home: 'src/data/index.ts' },
   { schema: valeurs.entityAppearanceSchema, type: 'EntityAppearance', home: 'src/engine/authoringAppearance.ts' },
   { schema: mecanique.flowTestSchema, type: 'FlowTest', home: 'src/engine/flowCore.ts' },
   { schema: mecanique.travelTableEntrySchema, type: 'TravelTableEntry', home: 'src/engine/travelTables.ts' },

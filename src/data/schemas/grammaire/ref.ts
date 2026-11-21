@@ -846,7 +846,7 @@ type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id
  *  `{ id }` d'une entrée du catalogue ou de la collection de sa portée. */
 export function ref(portee: PorteeLocale): ReturnType<typeof objetDeRef<z.ZodString, Record<never, never>>>;
 export function ref<T extends TypeEntite>(feuille: FeuilleOuReservee<T>): ReturnType<typeof objetDeRef<FeuilleOuReservee<T>, Record<never, never>>>;
-export function ref(feuille: z.ZodType<string, string>): ReturnType<typeof objetDeRef<z.ZodType<string, string>, Record<never, never>>>;
+export function ref<F extends z.ZodType<string, string>>(feuille: F): ReturnType<typeof objetDeRef<F, Record<never, never>>>;
 export function ref<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, extra?: undefined, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, Record<never, never>>>;
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>, S extends SousListe | undefined = undefined>(type: T, extra: E, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, E>>;
 export function ref(cible: TypeEntite | PorteeLocale | FeuilleOuReservee<TypeEntite> | z.ZodType<string, string>, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {

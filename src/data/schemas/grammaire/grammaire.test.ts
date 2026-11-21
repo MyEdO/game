@@ -35,7 +35,7 @@ import type { DescRef as DescRefParseur } from '../../source/decoupe';
 import { ref, refs, specRef, refOuSpec, pick, tirageSurTable, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
 import { flowTestSchema } from './mecanique';
 import { byId, skills, talents, traits, type SkillData, type TypeResolu } from '../../index';
-import { avancement } from './avancement';
+import { avancement, talentDEspece } from './avancement';
 import { SANS_LIVRE_DEFINITIF } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
 import { entreePartielle as creaturePartielle } from '../defs/creatures';
@@ -1279,14 +1279,15 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
 
 /**
  * `avancement(type)` (`avancement.ts`) — la PORTE des champs `skills`/`talents` d'un Niveau de
- * Carrière et d'une espèce, composée de `refOuSpec(type)` | `pick(type, [tirage])` | `tirage`. Ce
+ * Carrière et d'une espèce, composée de `refOuSpec(type)` et `pick(type)`, avec tirage pour les Talents d'espèce. Ce
  * qu'elle ferme se mesure sur les DEUX régimes de spécialisation (`spec` arrêtée, `choix` libre ou
  * borné), sur l'imbrication (`pick`/`of`), sur les trois graphies MORTES de l'avancement d'avant
  * L2 #1548 (`{ref}`, `{wildcard}`, `{choice}` — la donnée ne peut plus régresser vers elles), et sur
  * la séparation des TYPES (un id de Talent n'entre pas dans un emplacement de Compétence).
  */
 describe('avancement() — l’emplacement d’avancement, vocabulaire CLOS', () => {
-  const t = avancement('talent');
+  const t = talentDEspece;
+  const c = avancement('talent');
   const s = avancement('skill');
   const CAS: [string, unknown, ReturnType<typeof avancement>, boolean][] = [
     ['spéc arrêtée en ID', { id: 'sens-aiguise', spec: 'ouie' }, t, true],
@@ -1301,6 +1302,8 @@ describe('avancement() — l’emplacement d’avancement, vocabulaire CLOS', ()
     ['tirage « n aléatoires »', { pick: 2, table: { id: 'talents-aleatoires' } }, t, true],
     ['tirage de ZÉRO', { pick: 0, table: { id: 'talents-aleatoires' } }, t, false],
     ['tirage sur une table inconnue', { pick: 1, table: { id: 'table-fantome' } }, t, false],
+    ['tirage dans les Talents de carrière', { pick: 1, table: { id: 'talents-aleatoires' } }, c, false],
+    ['tirage en option des Talents de carrière', { pick: 1, of: [{ pick: 1, table: { id: 'talents-aleatoires' } }] }, c, false],
     ['tirage de Talents dans les Compétences', { pick: 1, table: { id: 'talents-aleatoires' } }, s, false],
     ['graphie MORTE `{random}`', { random: 2 }, t, false],
     ['graphie MORTE `{ref}`', { ref: { id: 'sens-aiguise' } }, t, false],
