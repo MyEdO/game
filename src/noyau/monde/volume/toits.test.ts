@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  boundarySegs,
   buildRoofs,
   clearedSpace,
-  depthToEave,
   fieldHeightAt,
   gableEnds,
   roofPans,
@@ -13,11 +11,9 @@ import {
   resolveMass,
   resolveNappes,
   riseAt,
-  ROOF_SLOPE_M,
   type RoofShapeSpec,
 } from './toits';
 import { massFootprintCells } from '../buildings';
-import type { RoofLine } from './types';
 import type { Face, GP } from './types';
 import { WALL_H_M } from '../iso';
 import { roofMaterial } from './matieres';
@@ -26,18 +22,19 @@ import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../scen
 import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../sceneEdit';
 import { encloseRect, perimeterWallSegs } from '../../sceneEdit.testkit';
 import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
-import { buildings } from '../../../data';
+import { ornementsDuBati } from './ornements';
 
 /**
  * Builder de TOITS du pivot : on teste la FUSION EN PANS CONTINUS (le fix de la cause racine « toit
  * mosaïque/zigzag ») — un polygone par pan, cellules-selles scindées en triangles PLANS le long de
- * l'arêtier —, les lignes sémantiques (faîte/arêtier/égout/rangs), les hauteurs en MÈTRES, les vérités
+ * l'arêtier, faîte et arêtiers en arêtes COMMUNES de deux pans —, les hauteurs en MÈTRES, les vérités
  * de scène (visible, roofOccupied), et la dérivation par MASSE (#823) : `hip` par BFS (noues/croupes
  * automatiques sur un corps en L, jamais une boîte englobante) et `roomZoneIds` DÉRIVÉS des zones
  * intérieures que l'emprise recouvre (jamais un champ authoré).
  */
 
-const S = ROOF_SLOPE_M;
+/** Pente (m par case de profondeur) des fixtures de pavage brut. */
+const S = 0.5;
 
 function rect(x0: number, y0: number, w: number, h: number): Set<string> {
   const out = new Set<string>();
@@ -46,7 +43,7 @@ function rect(x0: number, y0: number, w: number, h: number): Set<string> {
 }
 
 /** Pose une COTE métrique de relief sur une couche (toute la couche, ou les seules `cells`) — la
- *  vérité que `heightAt` porte et sur laquelle `buildWalls` assoit ses murs. */
+ *  vérité que `heightAt` porte et d'où se dressent les murs (`piedDeLArete`). */
 function coter(scene: Scene, z: number, metres: number, cells?: readonly { x: number; y: number }[]): void {
   const layer = scene.layers.find((l) => l.z === z)!;
   const { w, h } = scene.dimensions;
@@ -56,13 +53,25 @@ function coter(scene: Scene, z: number, metres: number, cells?: readonly { x: nu
 }
 
 /** Forme HIP par défaut des tests de pavage bruts — reproduit le pavage « sans shape »
- *  (profondeur BFS × `ROOF_SLOPE_M`, la même formule pour toute forme y compris un L). */
+ *  (profondeur BFS × `S`, la même formule pour toute forme y compris un L). */
 const hip = (eaveHeightM = 0, pitch = S): RoofShapeSpec => ({ profile: 'hip', ridge: 'x', pitch, eaveHeightM });
 
 /** Sommets d'un polygone, triés (x,y,h) — compare des boucles sans dépendre du point de départ. */
 const vertsOf = (f: Face) => [...f.poly].sort((a, b) => a.x - b.x || a.y - b.y || a.h - b.h);
 const partsOf = (faces: Face[]) => faces.map((f) => f.material.part).sort();
-const ofKind = (lines: RoofLine[], kind: RoofLine['kind']) => lines.filter((l) => l.kind === kind);
+/** Arêtes COMMUNES à deux pans (faîte, arêtiers, noues) : un côté de polygone que deux faces portent. */
+function sharedEdges(faces: Face[]): [GP, GP][] {
+  const k = (p: GP) => `${p.x},${p.y},${p.h}`;
+  const seen = new Map<string, { edge: [GP, GP]; n: number }>();
+  for (const f of faces)
+    f.poly.forEach((a, i) => {
+      const b = f.poly[(i + 1) % f.poly.length];
+      const key = [k(a), k(b)].sort().join('|');
+      const e = seen.get(key) ?? seen.set(key, { edge: [a, b], n: 0 }).get(key)!;
+      e.n++;
+    });
+  return [...seen.values()].filter((e) => e.n === 2).map((e) => e.edge);
+}
 
 /** Le polygone est-il PLAN ? (fit du plan sur 3 sommets non colinéaires, résidu nul partout). */
 function isPlanar(f: Face): boolean {
@@ -81,7 +90,7 @@ function isPlanar(f: Face): boolean {
 }
 
 describe('roofPans — rectangle 4×2 : 4 pans EXACTS + faîte (hip, distance BFS = pyramide)', () => {
-  const { faces, lines } = roofPans(rect(0, 0, 4, 2), 'tuile', undefined, undefined, hip());
+  const { faces } = roofPans(rect(0, 0, 4, 2), 'tuile', undefined, hip());
 
   it('4 pans, un par orientation, tous PLANS', () => {
     expect(faces).toHaveLength(4);
@@ -108,30 +117,20 @@ describe('roofPans — rectangle 4×2 : 4 pans EXACTS + faîte (hip, distance BF
     ]);
   });
 
-  it('UN faîte fusionné (colinéaire), 4 arêtiers, 4 égouts (un par façade)', () => {
-    const faites = ofKind(lines, 'faite');
+  it('UN faîte d’une seule arête, et 4 arêtiers, en arêtes COMMUNES de deux pans', () => {
+    const communes = sharedEdges(faces);
+    const faites = communes.filter(([a, b]) => a.h === b.h);
     expect(faites).toHaveLength(1);
-    expect([faites[0].a, faites[0].b].sort((p, q) => p.x - q.x)).toEqual([
+    expect([...faites[0]].sort((p, q) => p.x - q.x)).toEqual([
       { x: 0.5, y: 0.5, h: S },
       { x: 2.5, y: 0.5, h: S },
     ]);
-    expect(ofKind(lines, 'aretier')).toHaveLength(4);
-    expect(ofKind(lines, 'egout')).toHaveLength(4);
-  });
-
-  it('rangs : `courses` rangs PAR CRAN de montée, par pan (tuile = 3 → 12), à niveau constant', () => {
-    const rangs = ofKind(roofPans(rect(0, 0, 4, 2), 'tuile', 3, undefined, hip()).lines, 'rang');
-    expect(rangs).toHaveLength(12);
-    for (const r of rangs) {
-      expect(r.a.h).toBeCloseTo(r.b.h, 12); // courbe de niveau du pan
-      expect(r.a.h).toBeGreaterThan(0);
-      expect(r.a.h).toBeLessThan(S);
-    }
+    expect(communes.filter(([a, b]) => a.h !== b.h)).toHaveLength(4);
   });
 });
 
 describe('roofPans — pyramide 4×4 : selles du centre TRIANGULÉES, apex partagé', () => {
-  const { faces, lines } = roofPans(rect(0, 0, 4, 4), 'tuile', undefined, undefined, hip());
+  const { faces } = roofPans(rect(0, 0, 4, 4), 'tuile', undefined, hip());
 
   it('4 pans TRIANGLES nets (aucune selle émise), apex unique à 2 crans', () => {
     expect(faces).toHaveLength(4);
@@ -143,70 +142,66 @@ describe('roofPans — pyramide 4×4 : selles du centre TRIANGULÉES, apex parta
     }
   });
 
-  it('aucun faîte (apex ponctuel), 4 arêtiers pleine diagonale (coin → apex, fusionnés), 4 égouts', () => {
-    expect(ofKind(lines, 'faite')).toHaveLength(0);
-    const aretiers = ofKind(lines, 'aretier');
+  it('aucun faîte (apex ponctuel) : 4 arêtiers pleine diagonale, chacun une seule arête coin → apex', () => {
+    const aretiers = sharedEdges(faces);
     expect(aretiers).toHaveLength(4);
     for (const a of aretiers) {
-      const [lo, hi] = [a.a, a.b].sort((p, q) => p.h - q.h);
+      const [lo, hi] = [...a].sort((p, q) => p.h - q.h);
       expect(lo.h).toBe(0); // du coin d'égout…
       expect(hi).toMatchObject({ x: 1.5, y: 1.5 }); // …jusqu'à l'apex
     }
-    expect(ofKind(lines, 'egout')).toHaveLength(4);
   });
 });
 
 describe('roofPans — forme en L : arêtiers/noue triangulés SANS selle (hip BFS, croupes ET noues automatiques)', () => {
   const L = new Set([...rect(0, 0, 4, 2), ...rect(0, 2, 2, 2)]);
-  const { faces, lines } = roofPans(L, 'tuile', undefined, undefined, hip());
+  const { faces } = roofPans(L, 'tuile', undefined, hip());
 
   it('6 pans TOUS PLANS (N, O, 2×E, 2×S) — plus aucune quad-selle', () => {
     expect(partsOf(faces)).toEqual(['E', 'E', 'N', 'O', 'S', 'S']);
     for (const f of faces) expect(isPlanar(f)).toBe(true);
   });
 
-  it('la NOUE du coin rentrant est un arêtier net : (1.5,1.5) au faîte → (1.5,1.5)+1 au creux', () => {
-    const noue = ofKind(lines, 'aretier').find(
-      (a) => [a.a, a.b].some((p) => p.x === 0.5 && p.y === 0.5) && [a.a, a.b].some((p) => p.x === 1.5 && p.y === 1.5),
+  it('la NOUE du coin rentrant est une arête commune nette : (0.5,0.5) au faîte → (1.5,1.5) au creux', () => {
+    const noue = sharedEdges(faces).find(
+      (a) => a.some((p) => p.x === 0.5 && p.y === 0.5) && a.some((p) => p.x === 1.5 && p.y === 1.5),
     )!;
     expect(noue).toBeTruthy();
-    const [lo, hi] = [noue.a, noue.b].sort((p, q) => p.h - q.h);
+    const [lo, hi] = [...noue].sort((p, q) => p.h - q.h);
     expect(hi).toMatchObject({ x: 0.5, y: 0.5, h: S }); // haut de la noue (sommet intérieur)
     expect(lo).toMatchObject({ x: 1.5, y: 1.5, h: 0 }); // creux au coin rentrant
   });
 
   it('2 faîtes (bras long + bras court)', () => {
-    expect(ofKind(lines, 'faite')).toHaveLength(2);
+    expect(sharedEdges(faces).filter(([a, b]) => a.h === b.h)).toHaveLength(2);
   });
 });
 
 describe('roofPans — cas limites', () => {
-  it('1×1 : un pan PLAT unique à la base (profil `flat`), pas de faîte/arêtier/rang', () => {
-    const { faces, lines } = roofPans(rect(2, 3, 1, 1), 'tuile', 3, undefined, { profile: 'flat', ridge: 'x', pitch: S, eaveHeightM: 0 });
+  it('1×1 : un pan PLAT unique à la base (profil `flat`)', () => {
+    const { faces } = roofPans(rect(2, 3, 1, 1), 'tuile', undefined, { profile: 'flat', ridge: 'x', pitch: S, eaveHeightM: 0 });
     expect(faces).toHaveLength(1);
     expect(faces[0].material.part).toBe('N');
     expect(faces[0].poly.every((p) => p.h === 0)).toBe(true);
-    expect(ofKind(lines, 'egout')).toHaveLength(4);
-    expect(lines).toHaveLength(4); // rien d'autre
   });
 
   it('1×1 en `hip` : PAS un pan plat — la pyramide dégénère en 4 triangles, apex au centre à 0,5 cran', () => {
-    const { faces } = roofPans(rect(2, 3, 1, 1), 'tuile', undefined, undefined, hip());
+    const { faces } = roofPans(rect(2, 3, 1, 1), 'tuile', undefined, hip());
     expect(faces).toHaveLength(4);
     expect(faces.every((f) => f.poly.some((p) => Math.abs(p.h - 0.5 * S) < 1e-9))).toBe(true);
   });
 
   it('aucune cellule → vide ; déterministe (deux appels identiques)', () => {
-    expect(roofPans(new Set(), 'tuile', undefined, undefined, hip())).toEqual({ faces: [], lines: [] });
-    const a = roofPans(rect(0, 0, 3, 3), 'toit-ardoise', 3, undefined, hip(1));
-    const b = roofPans(rect(0, 0, 3, 3), 'toit-ardoise', 3, undefined, hip(1));
+    expect(roofPans(new Set(), 'tuile', undefined, hip())).toEqual({ faces: [], pans: [] });
+    const a = roofPans(rect(0, 0, 3, 3), 'toit-ardoise', undefined, hip(1));
+    const b = roofPans(rect(0, 0, 3, 3), 'toit-ardoise', undefined, hip(1));
     expect(a).toEqual(b);
   });
 });
 
 describe('roofPans — VOLUME d’avant-toit (soffite débordant + fascia par ÉGOUT)', () => {
   const eave = { overhang: 0.3, fasciaDrop: 0.2 };
-  const { faces } = roofPans(rect(0, 0, 4, 2), 'tuile', undefined, eave, hip());
+  const { faces } = roofPans(rect(0, 0, 4, 2), 'tuile', eave, hip());
   const soffites = faces.filter((f) => f.material.part === 'soffite');
   const fascias = faces.filter((f) => f.material.part === 'fascia');
 
@@ -235,18 +230,18 @@ describe('roofPans — VOLUME d’avant-toit (soffite débordant + fascia par É
   });
 
   it('SANS EaveSpec (appels historiques) : aucun débord, juste les pans', () => {
-    const f = roofPans(rect(0, 0, 4, 2), 'tuile', undefined, undefined, hip()).faces;
+    const f = roofPans(rect(0, 0, 4, 2), 'tuile', undefined, hip()).faces;
     expect(f.every((x) => ['N', 'E', 'S', 'O'].includes(x.material.part!))).toBe(true);
   });
 
   it('fasciaDrop 0 (chaume, bord mou) : soffite SEUL, pas de fascia dure', () => {
-    const f = roofPans(rect(0, 0, 4, 2), 'chaume', undefined, { overhang: 0.36, fasciaDrop: 0 }, hip()).faces;
+    const f = roofPans(rect(0, 0, 4, 2), 'chaume', { overhang: 0.36, fasciaDrop: 0 }, hip()).faces;
     expect(f.some((x) => x.material.part === 'soffite')).toBe(true);
     expect(f.some((x) => x.material.part === 'fascia')).toBe(false);
   });
 
   it('pyramide (hip) : débord sur les 4 ÉGOUTS SEULEMENT, jamais sur les arêtiers', () => {
-    const { faces: pf } = roofPans(rect(0, 0, 4, 4), 'tuile', undefined, eave, hip());
+    const { faces: pf } = roofPans(rect(0, 0, 4, 4), 'tuile', eave, hip());
     expect(pf.filter((f) => f.material.part === 'soffite')).toHaveLength(4);
     expect(pf.filter((f) => f.material.part === 'fascia')).toHaveLength(4);
   });
@@ -275,25 +270,6 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     }];
     return scene;
   };
-
-  /** Le `label` d'une pièce de nappe est PEINT sur le plan (`authoring/roofsSvg`) : sans libellé
-   *  authoré, il vaut le nom FR du TYPE de bâtiment du corps ; l'id technique n'est le repli que
-   *  lorsque le corps n'a NI libellé NI type. */
-  it('sans libellé authoré, la nappe porte le LIBELLÉ du type de bâtiment — l’id du corps n’est que le dernier repli', () => {
-    const type = buildings.find((b) => b.label !== b.id)!;
-    expect(type, 'aucun bâtiment dont le libellé diffère de l’id : le test ne distinguerait rien.').toBeTruthy();
-    // Une scène PAR cas : les nappes se mémoïsent par IDENTITÉ de scène (`memoByRef`).
-    const sansLabel = (style: { id: string } | undefined): Scene => {
-      const scene = sceneWithMasses(mass());
-      const corps = scene.architecture![0];
-      delete corps.label;
-      corps.style = style;
-      return scene;
-    };
-
-    expect(new Set(buildRoofs(sansLabel({ id: type.id })).map((el) => el.label))).toEqual(new Set([type.label]));
-    expect(new Set(buildRoofs(sansLabel(undefined)).map((el) => el.label))).toEqual(new Set(['corps-principal']));
-  });
 
   it.each(['x', 'y'] as const)('respecte le faîtage authoré %s', (ridge) => {
     const footprint = [ridge === 'x' ? { x: 2, y: 2, w: 4, h: 2 } : { x: 2, y: 2, w: 2, h: 4 }];
@@ -356,7 +332,6 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
       { bodyId: 'corps-principal', sectionId: 'toit-nef' },
       { bodyId: 'corps-principal', sectionId: 'toit-nef' },
     ]);
-    expect(out.map((pan) => pan.span)).toEqual([{ w: 4, h: 1 }, { w: 4, h: 1 }]);
     const slopes = out.flatMap((pan) => pan.faces
       .filter((face) => ['N', 'E', 'S', 'O'].includes(face.material.part!))
       .flatMap((face) => face.poly.map((point) => point.h)));
@@ -376,7 +351,7 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
   });
 
   it('une masse sur une case COTÉE pose sa nappe AU-DESSUS des murs de cette case, jamais en dessous', () => {
-    // Bâtiment sur une butte / une terrasse : le mur s'assoit sur le relief de SA case (`buildWalls`
+    // Bâtiment sur une butte / une terrasse : le mur se dresse du relief de SA case (`piedDeLArete`
     // lit `heightAt`), l'égout doit lire la MÊME cote — sinon la nappe passe sous le sommet des murs.
     const scene = sceneWithMasses(mass());
     const butteM = 6;
@@ -442,8 +417,8 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     const again = buildRoofs(scene);
     expect(out).toHaveLength(4);
     expect(new Set(out.map((pan) => pan.faces[0].material.part))).toEqual(new Set(['N', 'E', 'S', 'O']));
-    expect(out.map(({ key, cell, span }) => ({ key, cell, span })))
-      .toEqual(again.map(({ key, cell, span }) => ({ key, cell, span })));
+    expect(out.map(({ key, cell }) => ({ key, cell })))
+      .toEqual(again.map(({ key, cell }) => ({ key, cell })));
   });
 
   it.each([
@@ -475,7 +450,6 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     const shaped = roofPans(
       rect(0, 0, 4, 2),
       'tuile',
-      3,
       { overhang: 0.3, fasciaDrop: 0.2 },
       { profile: 'gable', ridge: 'x', pitch: 0.5, eaveHeightM: 4 },
     );
@@ -485,22 +459,12 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     expect(Math.max(...slopes.flatMap((face) => face.poly.map((point) => point.h)))).toBeCloseTo(4.5);
   });
 
-  it('chaque pan authoré porte ses rangs et son volume de bord matériel', () => {
+  it('chaque pan authoré porte son volume de bord matériel', () => {
     const out = buildRoofs(sceneWithMasses(mass()));
     for (const pan of out) {
-      expect(pan.lines.some((line) => line.kind === 'rang')).toBe(true);
       expect(pan.faces.some((face) => face.material.part === 'soffite')).toBe(true);
       expect(pan.faces.some((face) => face.material.part === 'fascia')).toBe(true);
     }
-  });
-
-  it('désactive le détail SVG coûteux d’une grande masse sans supprimer sa géométrie', () => {
-    const out = buildRoofs(sceneWithMasses(mass({
-      footprint: [{ x: 1, y: 1, w: 10, h: 8 }],
-    })));
-    expect(out).toHaveLength(2);
-    expect(out.every((pan) => pan.simplifiedCourses)).toBe(true);
-    expect(out.every((pan) => pan.lines.some((line) => line.kind === 'rang'))).toBe(true);
   });
 
   // ── DÉGAGEMENT (#818) à l'échelle de l'ESPACE HABITÉ ────────────────────────────────────────────
@@ -633,6 +597,16 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
   it('visible : une masse de toit est l’ENVELOPPE du bâtiment, TOUJOURS visible (#818)', () => {
     const scene = sceneWithMasses(mass());
     expect(buildRoofs(scene).every((pan) => pan.states.visible)).toBe(true);
+  });
+
+  it.each([1, 2])('le débord d’avant-toit est en MÈTRES : %s m par case, le soffite déborde de `eaveOverhangM`', (metresPerTile) => {
+    const scene = sceneWithMasses(mass());
+    scene.metresPerTile = metresPerTile;
+    const soffites = buildRoofs(scene).flatMap((pan) => pan.faces.filter((f) => f.material.part === 'soffite'));
+    expect(soffites.length).toBeGreaterThan(0);
+    // Soffite [a, b, b', a'] : le bord extérieur a' = a + normale × débord, en cases.
+    for (const { poly: [a, , , aO] } of soffites)
+      expect(Math.hypot(aO.x - a.x, aO.y - a.y) * metresPerTile).toBeCloseTo(roofMaterial('tuile').eaveOverhangM!, 9);
   });
 
   it('résout le matériau du catalogue par id : la RECETTE du def pilote la géométrie, l’élément porte l’id authoré', () => {
@@ -924,27 +898,27 @@ describe('roofPans — le faîtage d’une portée IMPAIRE ne s’aplatit pas en
     ({ profile, ridge: 'x', pitch: S, eaveHeightM: 0 });
 
   it('le faîte atteint la DEMI-portée réelle, pas le sommet de grille en dessous', () => {
-    const hs = roofPans(enL, 'tuile', undefined, undefined, forme('hip')).faces.flatMap((f) => f.poly.map((p) => p.h));
+    const hs = roofPans(enL, 'tuile', undefined, forme('hip')).faces.flatMap((f) => f.poly.map((p) => p.h));
     expect(Math.max(...hs)).toBeCloseTo(2.5 * S, 9);
   });
 
   it('aucune face de la nappe n’est HORIZONTALE — chaque pan suit une pente, et reste PLAN', () => {
     for (const profile of ['hip', 'gable'] as const) {
-      const { faces } = roofPans(enL, 'tuile', undefined, undefined, forme(profile));
+      const { faces } = roofPans(enL, 'tuile', undefined, forme(profile));
       expect(faces.filter((f) => f.poly.every((p) => Math.abs(p.h - f.poly[0].h) < 1e-9))).toEqual([]);
       for (const f of faces) expect(isPlanar(f)).toBe(true);
     }
   });
 
   it('la lecture CONTINUE de la profondeur de croupe est celle du BFS aux sommets ENTIERS', () => {
-    // Une seule vérité de croupe : le pavage insère les sommets qu'il veut, il lit le MÊME toit.
+    // Une seule vérité de croupe : le pavage insère les sommets qu'il veut, il lit le MÊME toit. Un index
+    // BFS vide force la lecture continue (distance à l'égout) sur chaque sommet entier.
     const shape = forme('hip');
-    const segs = boundarySegs(enL);
     for (const key of enL) {
       const [x, y] = key.split(',').map(Number);
       for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) {
         const v = { x: x + dx, y: y + dy };
-        expect(depthToEave(v, segs) * S).toBeCloseTo(riseAt(v, enL, shape), 9);
+        expect(riseAt(v, enL, shape, { dep: new Map() })).toBeCloseTo(riseAt(v, enL, shape), 9);
       }
     }
   });
@@ -1113,18 +1087,19 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
     expect(auDessus).toBeGreaterThan(coins.length / 2); // la double-retombée à l'égout a disparu
   });
 
-  it('la NOUE s’ouvre au coin rentrant du joint — un arêtier qui descend jusqu’à l’égout', () => {
+  it('la NOUE s’ouvre au coin rentrant du joint — une arête commune qui descend jusqu’à l’égout', () => {
     const scene = trio();
     const egout = nappeOf(scene, 'centre').field.shape.eaveHeightM;
-    const aretiers = buildRoofs(scene).flatMap((el) => el.lines.map((l) => ({ ...l, section: el.sectionId })))
-      .filter((l) => l.kind === 'aretier');
+    const pansDe = (section: string) => buildRoofs(scene).filter((el) => el.sectionId === section && !el.panId?.startsWith('pignon-'))
+      .flatMap((el) => el.faces.filter((f) => ['N', 'E', 'S', 'O'].includes(f.material.part!)));
     // Coin rentrant NORD-OUEST du joint : sommet de grille (8,4), soit le point GP (7.5, 3.5). La noue
     // appartient au CENTRE, dont le versant s'y prolonge : seul, il n'aurait là qu'un égout.
-    const noue = aretiers.filter((l) => [l.a, l.b].some((p) =>
+    const auCoin = (edges: [GP, GP][]) => edges.filter((e) => e.some((p) =>
       Math.abs(p.x - 7.5) < 1e-9 && Math.abs(p.y - 3.5) < 1e-9 && Math.abs(p.h - egout) < 1e-9));
+    const noue = auCoin(sharedEdges(pansDe('centre')));
     expect(noue.length).toBeGreaterThan(0);
-    expect(new Set(noue.map((l) => l.section))).toEqual(new Set(['centre']));
-    for (const l of noue) expect(Math.max(l.a.h, l.b.h)).toBeGreaterThan(egout); // elle REMONTE dans la nappe
+    expect(auCoin(sharedEdges(pansDe('aile-o')))).toEqual([]);
+    for (const e of noue) expect(Math.max(e[0].h, e[1].h)).toBeGreaterThan(egout); // elle REMONTE dans la nappe
   });
 
   it('UNE pente par groupe, refittée sur le domaine — le comble tient sous la borne de comble (#947)', () => {
@@ -1156,8 +1131,8 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
     expect(n.field.domain.size).toBe(n.cells.size);
     expect(n.field.shape).toEqual(n.shape);
     const eave = { overhang: 0.3, fasciaDrop: 0.1 };
-    const historique = roofPans(n.cells, 'tuile', 3, eave, n.shape);
-    expect(roofPans(n.cells, 'tuile', 3, eave, n.field.shape, n.field)).toEqual(historique);
+    const historique = roofPans(n.cells, 'tuile', eave, n.shape);
+    expect(roofPans(n.cells, 'tuile', eave, n.field.shape, n.field)).toEqual(historique);
   });
 
   it('égouts DIFFÉRENTS ⇒ pas de groupe : deux nappes indépendantes, chacune sur son emprise', () => {
@@ -1370,11 +1345,50 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
     expect(new Set(trois.map((m) => resolveMass(scene, m).shape.pitch)).size).toBe(3);
   });
 
-  it('elles GROUPENT quand même : un seul groupe, et LE même champ — la noue de la maquette', () => {
+  it('elles GROUPENT quand même : un seul groupe, sur LE même champ commun — la noue de la maquette', () => {
     const nappes = masses().map((m) => nappeOf(m.id));
     expect(new Set(nappes.map((n) => n.groupId)).size).toBe(1);
-    expect(new Set(nappes.map((n) => n.field)).size).toBe(1);
-    expect(new Set(nappes.map((n) => n.field.shape.eaveHeightM)).size).toBe(1);
+    expect(new Set(nappes.map((n) => n.field.domain)).size).toBe(1);
+    expect(new Set(nappes.map((n) => n.field.shape)).size).toBe(1);
+    // Seule la masse dont le profil n'est pas celui du champ commun y ajoute le sien, en enveloppe.
+    expect(nappes.filter((n) => n.field.propre).map((n) => n.mass.profile)).toEqual(['gable']);
+  });
+
+  /** La masse à deux rampants du groupe, son champ propre (la même masse SEULE), et ses pans émis. */
+  const pignonDuGroupe = () => {
+    const m = masses().find((x) => x.profile === 'gable')!;
+    const { cells, shape } = nappeOf(m.id);
+    const els = buildRoofs(scene).filter((el) => el.sectionId === m.id);
+    const pans = els.filter((el) => !el.panId?.startsWith('pignon-'))
+      .flatMap((el) => el.faces.filter((f) => ['N', 'E', 'S', 'O'].includes(f.material.part!)));
+    return { m, cells, shape, pans, pignons: els.filter((el) => el.panId?.startsWith('pignon-')) };
+  };
+
+  it('la fixture EXERCE l’enveloppe : un `gable` à 45° dans un champ `hip` plus plat que lui', () => {
+    const { m, shape } = pignonDuGroupe();
+    expect(m.pitchDeg).toBe(45);
+    expect(nappeOf(m.id).field.shape.profile).toBe('hip');
+    expect(nappeOf(m.id).field.shape.pitch).toBeLessThan(shape.pitch);
+  });
+
+  it('ses pignons se ferment à SA pleine hauteur : ceux de la même masse posée seule', () => {
+    const { cells, shape, pignons } = pignonDuGroupe();
+    const seule = gableEnds(cells, shape).map((end) => end.poly);
+    expect(seule).toHaveLength(2);
+    expect(pignons.map((el) => el.faces[0].poly)).toEqual(seule);
+  });
+
+  it('la NOUE entre le pignon et la croupe est DROITE : une seule arête de l’égout au faîtage, par versant et par bout', () => {
+    const { shape, pans, pignons } = pignonDuGroupe();
+    const faite = Math.max(...pignons[0].faces[0].poly.map((p) => p.h)); // le faîtage PROPRE de la masse
+    expect(pans).toHaveLength(6); // à chaque bout, ses deux versants propres et le pan du champ commun qui les sépare
+    const noues = sharedEdges(pans).filter(([a, b]) => a.h !== b.h);
+    expect(noues).toHaveLength(4);
+    for (const noue of noues) {
+      const [bas, haut] = [...noue].sort((p, q) => p.h - q.h);
+      expect(bas.h).toBeCloseTo(shape.eaveHeightM, 9);
+      expect(haut.h).toBeCloseTo(faite, 9);
+    }
   });
 
   it('la masse en `gable` ferme DEUX pignons, les croupes n’en ferment aucun', () => {
@@ -1383,5 +1397,154 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
     const pignons = buildRoofs(scene).filter((el) => el.cell.z === 1 && el.panId?.startsWith('pignon-'));
     expect(pignons).toHaveLength(2);
     expect(new Set(pignons.map((el) => el.sectionId))).toEqual(new Set([gables[0].id]));
+  });
+});
+
+/**
+ * #4471 — ÉTANCHÉITÉ d'un groupe de nappes : toute la couverture qu'émettent ses masses (pans et pignons) se
+ * recoud. Chaque arête de pan intérieure au domaine du groupe est portée par DEUX faces : un sommet partagé par
+ * deux nappes n'a qu'une hauteur, ou la marche entre elles est fermée par un pignon émergent (`gableEnds`,
+ * `voisine`). Les arêtes se comparent ATOMISÉES (coupées à chaque sommet de toutes les faces) : un pan qui
+ * coupe une arête au demi-pas quand sa voisine ne la coupe pas laisse deux demi-arêtes seules (fente).
+ */
+describe('groupe de nappes — étanchéité de la couverture (#4471)', () => {
+  type P = { x: number; y: number; h: number };
+  /** Arêtes intérieures au domaine portées par UNE seule face, et arêtes portées par plus de deux. */
+  const fuites = (scene: Scene, bodyId: string, groupId: string) => {
+    const nappes = [...resolveNappes(scene).values()].filter((n) => n.bodyId === bodyId && n.groupId === groupId);
+    const domaine = new Set(nappes.flatMap((n) => [...n.cells]));
+    const ids = new Set(nappes.map((n) => n.mass.id));
+    const polys: P[][] = buildRoofs(scene).filter((el) => el.bodyId === bodyId && ids.has(el.sectionId!))
+      .flatMap((el) => el.faces.filter((f) => f.material.part !== 'soffite' && f.material.part !== 'fascia'))
+      .map((f) => f.poly.map((p) => ({ x: p.x + 0.5, y: p.y + 0.5, h: p.h })));
+    const tous = polys.flat();
+    const cle = (p: P) => `${p.x.toFixed(6)},${p.y.toFixed(6)},${p.h.toFixed(6)}`;
+    const aretes = new Map<string, { a: P; b: P; n: number }>();
+    for (const poly of polys)
+      poly.forEach((a, i) => {
+        const b = poly[(i + 1) % poly.length];
+        const l2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2 + (b.h - a.h) ** 2;
+        const at = (t: number): P => ({ x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y), h: a.h + t * (b.h - a.h) });
+        const ts = [0, 1, ...tous.map((c) => ((c.x - a.x) * (b.x - a.x) + (c.y - a.y) * (b.y - a.y) + (c.h - a.h) * (b.h - a.h)) / l2)
+          .filter((t, k) => t > 1e-7 && t < 1 - 1e-7 && Math.hypot(at(t).x - tous[k].x, at(t).y - tous[k].y, at(t).h - tous[k].h) < 1e-6)]
+          .sort((u, v) => u - v);
+        for (let j = 0; j + 1 < ts.length; j++) {
+          if (ts[j + 1] - ts[j] < 1e-9) continue;
+          const [p, q] = [at(ts[j]), at(ts[j + 1])];
+          const k = [cle(p), cle(q)].sort().join('|');
+          const e = aretes.get(k) ?? aretes.set(k, { a: p, b: q, n: 0 }).get(k)!;
+          e.n++;
+        }
+      });
+    /** Arête sur le BORD du domaine : une droite de grille avec une case du domaine d'un seul côté. */
+    const auBord = ({ a, b }: { a: P; b: P }) => {
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const entier = (v: number) => Math.abs(v - Math.round(v)) < 1e-9;
+      if (Math.abs(a.x - b.x) < 1e-9 && entier(a.x)) return domaine.has(`${Math.round(a.x) - 1},${Math.floor(my)}`) !== domaine.has(`${Math.round(a.x)},${Math.floor(my)}`);
+      if (Math.abs(a.y - b.y) < 1e-9 && entier(a.y)) return domaine.has(`${Math.floor(mx)},${Math.round(a.y) - 1}`) !== domaine.has(`${Math.floor(mx)},${Math.round(a.y)}`);
+      return false;
+    };
+    const liste = [...aretes.values()];
+    return {
+      faces: polys.length,
+      seules: liste.filter((e) => e.n === 1 && !auBord(e)).map((e) => `${cle(e.a)} → ${cle(e.b)}`),
+      triples: liste.filter((e) => e.n > 2).length,
+    };
+  };
+  const groupeDe = (scene: Scene, bodyId: string) => {
+    const g = [...resolveNappes(scene).values()].find((n) => n.bodyId === bodyId && n.groupId.includes('+'));
+    expect(g, 'la fixture ne groupe aucune nappe : rien à recoudre').toBeTruthy();
+    return g!.groupId;
+  };
+  /** Corps à deux niveaux et aile d'étage étroite posée sur un passage, DÉRIVÉS : la croupe du corps et le
+   *  pignon de l'aile groupent, et le bout de faîtage de l'aile BUTE contre le corps. */
+  const aileDEtage = (): Scene => {
+    const SIZE = 30, CORPS = { x: 1, y: 1, w: 14, h: 6 }, AILE = { x: 6, y: 7, w: 4, h: 8 };
+    const dans = (r: typeof CORPS, x: number, y: number) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+    let sc = emptyScene('scene-test', SIZE, SIZE);
+    const rez: string[] = [], etage: string[] = [];
+    for (let y = 0; y < SIZE; y++)
+      for (let x = 0; x < SIZE; x++) {
+        rez.push(dans(CORPS, x, y) ? 'pierre' : 'herbe');
+        etage.push(dans(CORPS, x, y) || dans(AILE, x, y) ? 'pierre' : 'vide');
+      }
+    sc = putLayer(putLayer(sc, 0, rez), 1, etage);
+    sc.walls = perimeterWallSegs([CORPS]);
+    sc.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }];
+    return sc;
+  };
+  const gable = (id: string, footprint: { x: number; y: number; w: number; h: number }, ridge: 'x' | 'y'): BuildingMass =>
+    ({ id, z: 0, footprint: [footprint], levels: 1, profile: 'gable', ridge, pitchDeg: 45, material: { id: 'tuile' } });
+  /** Deux `gable` AUTHORÉS de même pente, faîtages croisés : l'aile bute par son bout contre le flanc du corps. */
+  const tAuthore = (): Scene => {
+    const CORPS = { x: 2, y: 2, w: 8, h: 6 }, AILE = { x: 5, y: 8, w: 2, h: 4 };
+    const sc = emptyScene('scene-test', 14, 14);
+    sc.walls = perimeterWallSegs([CORPS, AILE]);
+    sc.architecture = [{ id: 'corps', style: { id: 'forge' }, storeys: [], facades: [], masses: [gable('corps', CORPS, 'x'), gable('aile', AILE, 'y')] }];
+    return sc;
+  };
+  /** Deux travées `gable` AUTHORÉES accolées par leur long côté, de même faîtage. */
+  const deuxTravees = (): Scene => {
+    const NORD = { x: 2, y: 2, w: 6, h: 2 }, SUD = { x: 2, y: 4, w: 6, h: 2 };
+    const sc = emptyScene('scene-test', 12, 12);
+    sc.walls = perimeterWallSegs([{ x: 2, y: 2, w: 6, h: 4 }]);
+    sc.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [gable('nord', NORD, 'x'), gable('sud', SUD, 'x')] }];
+    return sc;
+  };
+
+  it.each([
+    ['La Diligence (demi-pas d’un groupe)', () => paquetDuJeu(diligenceCampaign).scenes[0], 'diligence'],
+    ['aile d’étage dérivée qui bute contre une croupe', aileDEtage, 'corps'],
+    ['deux `gable` authorés à faîtages croisés', tAuthore, 'corps'],
+    ['deux `gable` authorés de même faîtage', deuxTravees, 'corps'],
+  ] as const)('%s : aucune arête intérieure n’est vue d’un seul côté', (_cas, scene, bodyId) => {
+    const sc = scene();
+    const { faces, seules, triples } = fuites(sc, bodyId, groupeDe(sc, bodyId));
+    expect(faces).toBeGreaterThan(0);
+    expect(seules).toEqual([]);
+    expect(triples).toBe(0);
+  });
+
+  it('le bout de faîtage qui bute contre une voisine plus basse se ferme par un pignon ÉMERGENT limité à la marche', () => {
+    const sc = aileDEtage();
+    const aile = [...resolveNappes(sc).values()].find((n) => n.bodyId === 'corps' && n.mass.profile === 'gable')!;
+    const corps = [...resolveNappes(sc).values()].find((n) => n.bodyId === 'corps' && n.mass.profile === 'hip')!;
+    const ys = [...aile.cells].map((k) => Number(k.split(',')[1]));
+    const joint = Math.min(...ys); // le bout NORD de l'aile, contre le corps
+    const emergent = buildRoofs(sc).find((el) => el.sectionId === aile.mass.id && el.panId?.startsWith('pignon-')
+      && el.faces[0].poly.every((p) => Math.abs(p.y + 0.5 - joint) < 1e-9))!;
+    expect(emergent, 'aucune fermeture sur le bout jointif').toBeTruthy();
+    // Son bas suit la nappe VOISINE, son haut la sienne : ni plus bas que le corps, ni plus haut que l'aile.
+    for (const p of emergent.faces[0].poly) {
+      const v = { x: p.x + 0.5, y: p.y + 0.5 };
+      expect(p.h).toBeGreaterThanOrEqual(fieldHeightAt(corps.field, v) - 1e-9);
+      expect(p.h).toBeLessThanOrEqual(fieldHeightAt(aile.field, v) + 1e-9);
+    }
+    expect(Math.max(...emergent.faces[0].poly.map((p) => p.h))).toBeGreaterThan(Math.min(...emergent.faces[0].poly.map((p) => p.h)));
+  });
+
+  it('deux `gable` de même faîtage lisent un champ `gable` : un seul grand pignon par bout, à la pente de leurs masses', () => {
+    const sc = deuxTravees();
+    const nappes = [...resolveNappes(sc).values()];
+    expect(new Set(nappes.map((n) => n.groupId)).size).toBe(1);
+    expect(nappes.map((n) => [n.field.shape.profile, n.field.shape.ridge, !!n.field.propre])).toEqual([['gable', 'x', false], ['gable', 'x', false]]);
+    // L'union posée SEULE en une masse : la toiture que les deux travées doivent former ensemble.
+    const union = new Set(nappes.flatMap((n) => [...n.cells]));
+    const seule = gableEnds(union, { ...nappes[0].shape, ridge: 'x' }).map((e) => Math.max(...e.poly.map((p) => p.h)));
+    const pignons = buildRoofs(sc).filter((el) => el.panId?.startsWith('pignon-')).map((el) => Math.max(...el.faces[0].poly.map((p) => p.h)));
+    expect(pignons).toHaveLength(4); // deux bouts × deux travées
+    expect(new Set(pignons.map((h) => h.toFixed(9)))).toEqual(new Set(seule.map((h) => h.toFixed(9))));
+  });
+
+  it('une masse en enveloppe porte SA forme : faîtage et pente de ses éléments, cap de son ornement de faîte', () => {
+    const sc = tAuthore();
+    const corps = resolveNappes(sc).get(nappeKey('corps', 'corps'))!;
+    expect(corps.field.shape.profile).toBe('hip'); // faîtages croisés : le champ commun est une croupe
+    expect(corps.field.propre).toBeTruthy();
+    const els = buildRoofs(sc).filter((el) => el.sectionId === 'corps');
+    expect(els.length).toBeGreaterThan(0);
+    for (const el of els) expect([el.profile, el.ridge, el.pitch]).toEqual(['gable', 'x', corps.shape.pitch]);
+    const caps = ornementsDuBati(sc).filter((o) => o.id.startsWith('corps:corps:')).map((o) => o.cap);
+    expect(caps).toEqual(['E']); // le faîtage du corps court selon x
   });
 });

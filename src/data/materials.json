@@ -442,25 +442,11 @@
     "S": "#531b13",
     "O": "#8a3527",
     "line": "#411409",
-    "eaveOverhangM": 0.32,
+    "eaveOverhangM": 0.64,
     "soffite": "#3d130c",
     "fasciaDropM": 0.2,
     "fascia": "#2e0e07",
-    "ridgeCap": "#bf5e46",
-    "detail": {
-      "seedScope": "instance",
-      "courses": {
-        "hM": 0.24,
-        "joint": "#5a1f17",
-        "jointW": 0.03,
-        "stagger": 0.5,
-        "blockWM": [
-          0.35,
-          0.6
-        ],
-        "paletteVar": 0.05
-      }
-    }
+    "ridgeCap": "#bf5e46"
   },
   {
     "id": "chaume",
@@ -473,28 +459,8 @@
     "S": "#59461a",
     "O": "#997c3c",
     "line": "#463714",
-    "eaveOverhangM": 0.36,
-    "soffite": "#4a3a16",
-    "detail": {
-      "seedScope": "instance",
-      "courses": {
-        "hM": 0.35,
-        "joint": "#6a531f",
-        "jointW": 0.045,
-        "edgeWobble": 0.05
-      },
-      "tufts": {
-        "perM2": 0.7,
-        "hM": [
-          0.3,
-          0.5
-        ],
-        "colors": [
-          "#63501f",
-          "#c4a55e"
-        ]
-      }
-    }
+    "eaveOverhangM": 0.72,
+    "soffite": "#4a3a16"
   },
   {
     "id": "toit-ardoise",
@@ -507,35 +473,17 @@
     "S": "#283037",
     "O": "#4d5964",
     "line": "#20272d",
-    "eaveOverhangM": 0.24,
+    "eaveOverhangM": 0.48,
     "soffite": "#222831",
     "fasciaDropM": 0.16,
     "fascia": "#171c22",
-    "ridgeCap": "#788896",
-    "detail": {
-      "seedScope": "instance",
-      "courses": {
-        "hM": 0.24,
-        "joint": "#2a323a",
-        "jointW": 0.026,
-        "stagger": 0.5,
-        "blockWM": [
-          0.3,
-          0.5
-        ],
-        "paletteVar": 0.06
-      }
-    }
+    "ridgeCap": "#788896"
   },
   {
     "id": "plan",
     "type": "materials",
     "label": "Plan (vue de dessus)",
     "domain": "roof",
-    "planBody": "#6e4f3a",
-    "planEdge": "#241a12",
-    "planInner": "#8a6a4a",
-    "planText": "#f2e6cc",
     "vueDeDessus": true
   },
   {

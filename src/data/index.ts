@@ -1338,15 +1338,6 @@ export const matieresDe = <D extends MaterialDomain>(domain: D): MatiereDe<D>[] 
  *  s'importer l'une l'autre. Lecture VIVANTE, comme `matieresDe`. */
 export const matieresCouvrantes = (): RoofMaterialDef[] => matieresDe('roof').filter((m) => m.couverture);
 
-/** L'entrée du PLAN vu du dessus — celle que la DONNÉE marque `vueDeDessus` (#1691), jamais un id
- *  littéral au call-site. Le schéma en garantit l'unicité (`schemas/defs/materials.ts`,
- *  `affinerDataset`) ; le premier marqué est donc LE plan. Lecture VIVANTE, comme `matieresCouvrantes`. */
-export const matierePlan = (): RoofMaterialDef => {
-  const plan = matieresDe('roof').find((m) => m.vueDeDessus);
-  if (!plan) throw new Error('matierePlan() : aucune entrée `roof` ne porte `vueDeDessus` — materials.json');
-  return plan;
-};
-
 /** Les tables de Localisation des coups (`localisation.json`) : personnage par forme de corps, navire, navire fluvial. */
 export const tablesDeLocalisation = datasetDe<typeof localisationDef>(localisationJson);
 /** Lumière, visibilité et météo des regards Godot. */

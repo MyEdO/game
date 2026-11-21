@@ -302,7 +302,7 @@ const SKILL_LABEL_CALL_RX = /^(?:refLabel\(\s*['"]skills['"]|testSkillLabel\(|sk
 function isSkillLabelExpr(expr: string): boolean {
   const e = expr.trim();
   if (SKILL_LABEL_CALL_RX.test(e)) return true;
-  const literal = /^(['"`])((?:\.|(?!\1)[\s\S])*)\1$/.exec(e);
+  const literal = /^(['"`])((?:\\.|(?!\1)[\s\S])*?)\1$/.exec(e);
   if (literal) return !literal[2].includes('${') && isCompetenceLabel(literal[2]);
   const key = /^t\s*r?\(\s*'([^']+)'\s*\)$/.exec(e);
   if (key) {
