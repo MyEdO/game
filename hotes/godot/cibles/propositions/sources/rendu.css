@@ -243,9 +243,8 @@
 /* 4. Lieu, l'arrivée : le service entre le cartouche et la carte du trajet, en colonne de 360 au coin haut-droit avec
    les départs dessous */
 
-/* 3. Fiche, le dossier d'une possession : l'identité 26 / 20, 340 de large jusqu'à 24 du bas ; le profil tendu jusqu'à
-   la croix ; la silhouette et les sections dessous, jusqu'à 24 du bas et au-dessus du journal et du système */
-#f-figure.dossier .niche svg{width:100%;height:100%}
+/* 3. Fiche, le dossier d'une possession : l'identité, le profil et la figure sont ceux de la fiche du héros
+   (`heros/heros.css`) ; les sections dessous */
 #f-sections.dossier .fond{display:flex;flex-direction:column}
 #f-sections.dossier .arme{padding:8px;margin-bottom:8px}
 #f-sections.dossier .vignette{width:64px;height:64px}

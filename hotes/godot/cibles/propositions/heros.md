@@ -130,6 +130,10 @@ prix en fer, figure dont la sanguine descend d'étape en étape.
 Section « Possessions » de la fiche jugée (`../maquettes/fiche-du-heros.jpg`), écran `fiche-du-heros` ; quatre états du
 cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObjet.ts`
 (« Porter », « Main principale », « Main secondaire », « Ranger dans », « Donner à », « Poser au sol »).
+- À valider (#4585) : le profil en douze colonnes fixes, chacune l'abréviation de LDB (M, CC, CT, F, E, I, Ag, Dex,
+  Int, FM, Soc, B ; `docs/raw/4e/combat.md:2707`), le nom entier au survol, le même pour les dossiers des possessions
+  (`voyage.md`) ; l'identité pose sa tête, ses mesures (Blessures) et ses réserves aux mêmes places que celle d'un
+  dossier, les réserves sous un filet à hauteur fixe.
 - `fiche-possessions` (état `arme`) : la rangée des sets d'armes, celui en main cerné ; « + » crée un set
   (`creerLaPanoplie(heroId)`), une main pressée se garnit (`garnirLaPanoplie(heroId, loadoutId, slot, uid)`), la croix
   le supprime (`supprimerLaPanoplie(heroId, loadoutId)`), presser un set le prend (`prendreLaPanoplie`). Refus au

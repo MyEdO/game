@@ -115,8 +115,10 @@
     ...Object.fromEntries(Array.from({ length: 5 }, (_, k) => [`socle/geste-${k + 1}`, [470 + 90 * k, 24, 90, 72]])),
     /* l'actif au pied de l'ordre du tour, haut d'une ligne d'état qu'il porte ou non */
     'ordre/actif': [0, 458, 134, 158],
-    /* le pied de l'identité qui progresse : ses gestes, ou le niveau achevé */
+    /* le pied de l'identité qui progresse : ses gestes, ou le niveau achevé ; l'identité d'un héros ou d'une possession :
+       sa tête, ses mesures, ses réserves sous le filet */
     'identite/pied': [19, 389, 284, 126],
+    'identite/tete': [19, 15, 284, 168], 'identite/mesures': [19, 183, 284, 100], 'identite/reserves': [19, 283, 284, 221],
     /* les onglets des sections de la fiche, des dossiers et de la progression : cinq places, une section absente laisse
        la sienne vide */
     ...Object.fromEntries(['sections', 'progression-droite'].flatMap((c) => Array.from({ length: 5 }, (_, k) => [`${c}/onglet-${k + 1}`, [8 + 128 * k, -18, 124, 32]]))),
@@ -124,6 +126,8 @@
     'colonne-droite/onglet-1': [8, -18, 160, 32], 'colonne-droite/onglet-2': [174, -18, 160, 32],
     /* le pied du rail des services, sous le dernier qu'il peut porter ; au carnet, les documents remis sous lui */
     'colonne-gauche/pied': [12, 258, 330, 17], 'colonne-gestion/pied': [12, 254, 330, 17], 'colonne-gestion/documents': [12, 278, 330, 252],
+    /* le geste qui commet un feuillet de la gestion, au pied fixe de son cadre */
+    'colonne-gestion/geste': [12, 490, 330, 40],
     /* le carton d'un arrêt : la vignette, le titre, le texte jusqu'au geste, les cartes du choix (ou les paies et les
        parts qui les règlent) posées sur le bas du texte quand l'arrêt en ouvre un, le geste qui commet */
     'carton/vignette': [20, 24, 140, 140], 'carton/tete': [184, 22, 734, 34], 'carton/texte': [184, 60, 654, 154],
@@ -739,9 +743,9 @@
   const coop = (c) => [fondDeTable(),
     cartouche({ icone: 'reseau', nom: echapper(c.titre.nom), sous: echapper(c.titre.sous), taille: 'titre' }),
     ...(c.rejoindre ? [feuilletCoop('rejoindre', 'colonne-gestion', 'Rejoindre une partie', `<label class="champ"><span class="rubrique">Code de la partie</span><div class="cases chiffres">${[...c.rejoindre.code].map((x) => `<b>${echapper(x)}</b>`).join('')}</div></label>
-      <div class="indice">${echapper(c.rejoindre.indice)}</div>${champ('Votre nom', echapper(c.rejoindre.nom))}${plaque(echapper(c.rejoindre.geste), { armee: true, icone: 'reseau' })}`)] : []),
+      <div class="indice">${echapper(c.rejoindre.indice)}</div>${champ('Votre nom', echapper(c.rejoindre.nom))}${places('colonne-gestion', { geste: plaque(echapper(c.rejoindre.geste), { armee: true, icone: 'reseau' }) })}`)] : []),
     ...(c.invitation ? [cadre('invitation', null, null, null, null, 'bois', `<div class="code parchemin chiffres" data-texte="code">${echapper(c.invitation.code)}</div>
-      <div class="r rubrique">Joueurs connectés</div><div>${c.invitation.joueurs.map(joueurDe).join('')}</div><div class="trait"></div>${plaque(echapper(c.invitation.quitter), { icone: 'sortie' })}`, { ruban: 'Inviter — partagez le code', piece: 'colonne-gestion' })] : []),
+      <div class="r rubrique">Joueurs connectés</div><div>${c.invitation.joueurs.map(joueurDe).join('')}</div>${places('colonne-gestion', { geste: plaque(echapper(c.invitation.quitter), { icone: 'sortie' }) })}`, { ruban: 'Inviter — partagez le code', piece: 'colonne-gestion' })] : []),
     tableeDe(c),
     ...(c.heberger ? [feuilletCoop('heberger', 'volet-droit', 'Héberger une partie', `<p data-texte="aide">${echapper(c.heberger.aide)}</p>${champ('Votre nom', '', { attente: echapper(c.heberger.attente) })}
       ${plaque(echapper(c.heberger.geste), { fermee: true })}<div class="refus">${sceau('disque', 'menu')}<span>${echapper(c.heberger.refus)}</span></div>`)] : []),
@@ -1255,18 +1259,14 @@
         <div class="quantite"><span class="rubrique">${echapper(d.possession.nom)} et sa charge · ${b.charge} Enc</span>${plaque(`Embarquer sur ${echapper(n.nom)}`, { armee: true })}</div></div>`; },
     abandon: (b) => `${titreDeBloc(`Abandonner ${echapper(b.nom)}`)}<div class="plaques confirme">${plaque('Confirmer l’abandon', { armee: true })}${plaque('Annuler')}</div>`,
   };
-  const valeurDuProfil = (c) => (c.valeur === null ? '–' : c.signe ? signe(c.valeur) : c.unite ? `${c.valeur} ${echapper(c.unite)}` : c.valeur);
   const dossier = (d) => {
     const p = d.possession;
-    const lignes = [echapper(p.modele), `${echapper(p.nature)}${p.de ? ` ${de(prenomDe(p.de))}` : ''}`, [p.longueur && `${p.longueur} mètres`, prix(p.prix)].filter(Boolean).join(' · ')];
+    const lignes = [echapper(p.modele), `${echapper(p.nature)}${p.de ? ` ${de(prenomDe(p.de))}` : ''}`, [p.longueur && `${p.longueur} mètres`, prix(p.prix)].filter(Boolean).join(' · '),
+      `<div class="renommer${p.saisie ? ' en-saisie' : ''}">${rond('plume', 'menu', { arme: !!p.saisie })}<span class="rubrique">Renommer</span></div>`];
     return [
-      `<div id="f-identite" class="cadre bois dossier" data-piece="identite"><div class="fond parchemin">
-        <div class="tete">${portrait(p.genre, { taille: 'affiche' })}<div>${p.saisie ? champ('', echapper(p.nom)) : `<div class="n gothique">${echapper(p.nom)}</div>`}${lignes.map((l) => `<div class="c rubrique">${l}</div>`).join('')}
-          <div class="renommer${p.saisie ? ' en-saisie' : ''}">${rond('plume', 'menu', { arme: !!p.saisie })}<span class="rubrique">Renommer</span></div></div></div>
-        <div class="mesures">${d.mesures.map(mesureDu).join('')}</div>${filet({ losange: true })}<div class="reserves">${d.compteurs.map((c) => compteur(c.valeur, echapper(c.nom))).join('')}</div>
-      </div>${ferrures}</div>`,
-      `<div id="f-profil" class="cadre bois dossier" data-piece="profil"><div class="fond parchemin" style="grid-template-columns:repeat(${d.profil.caracs.length},1fr)">${d.profil.caracs.map((c) => `<div class="carac"><span class="rubrique">${echapper(c.nom)}</span><b class="chiffres">${valeurDuProfil(c)}</b></div>`).join('')}</div>${ruban(echapper(d.profil.titre), { gothique: true })}${ferrures}</div>`,
-      `<div id="f-figure" class="cadre bois dossier" data-piece="figure"><div class="fond bois"><div class="niche laiton"><div>${SILHOUETTES[p.genre]}</div></div></div>${ferrures}</div>`,
+      identiteDe(p.genre, p.saisie ? champ('', echapper(p.nom)) : echapper(p.nom), lignes, d.mesures, d.compteurs),
+      bandeDu(d.profil.caracs, (c) => caseDuProfil(c.ab, c.valeur === null ? '–' : c.signe ? signe(c.valeur) : c.valeur, `${echapper(c.nom)}${c.unite ? ` : ${pluriel(c.valeur, echapper(c.unite))}` : ''}`), echapper(d.profil.titre)),
+      figureDe(SILHOUETTES[p.genre]),
       `<div id="f-sections" class="cadre bois dossier" data-piece="sections"><div class="fond parchemin">${defile(d.blocs.map((b) => BLOCS_DU_DOSSIER[b.bloc](b, d)).join(''))}</div>${onglets(d.sections.map(echapper), echapper(d.ouverte), 'sections')}${ferrures}</div>`,
       bandeauDu(d.groupe), croix(), coins(),
     ];
@@ -1572,8 +1572,19 @@
   };
 
   /* la tête d'une identité : le portrait, le nom, ce qu'il est */
-  const teteDe = (id, nom, lignes) => `<div class="tete">${portrait(id, { taille: 'affiche' })}<div class="q"><div class="nom" data-texte="nom">${echapper(nom)}</div>${lignes.map((l) => `<div class="l">${l}</div>`).join('')}</div></div>`;
-  const bandeDu = (profil, caseDe) => cadre('bande', null, null, null, null, 'parchemin', profil.map(caseDe).join(''), { ruban: 'Caractéristiques', classe: 'bande', piece: 'profil' });
+  const teteDe = (id, nom, lignes) => `<div class="tete">${portrait(id, { taille: 'affiche' })}<div class="q"><div class="nom" data-texte="nom">${nom}</div>${lignes.map((l) => `<div class="l">${l}</div>`).join('')}</div></div>`;
+  /* l'identité d'un héros ou d'une possession, chaque bloc à sa place : la tête, ses mesures (une jauge chacune), ses
+     réserves sous le filet */
+  const mesureDeLIdentite = (m) => `<div class="bl">${rub(echapper(m.nom))}<span class="chiffres">${m.sur === undefined ? m.valeur : `${m.valeur} / ${m.sur}`}</span></div>${jauge(m.valeur / (m.sur ?? 100), { teinte: m.teinte, taille: 'forte' })}`;
+  const identiteDe = (id, nom, lignes, mesures, reserves) => cadre('identite', null, null, null, null, 'parchemin', places('identite', {
+    tete: teteDe(id, nom, lignes), mesures: mesures.map(mesureDeLIdentite).join(''),
+    reserves: `${filet({ fondu: true, losange: true })}<div class="reserves">${reserves.map(RESERVE).join('')}</div>`,
+  }), { classe: 'pan ident' });
+  /* la figure dans sa niche : celle du héros, ou la silhouette d'une possession */
+  const figureDe = (dessin) => cadre('figure', null, null, null, null, 'bois', `<div class="niche laiton"><div>${dessin}</div></div>`, { classe: 'pan figure' });
+  /* le profil : douze colonnes fixes, chacune l'abréviation et la valeur ; le nom entier au survol */
+  const caseDuProfil = (ab, valeur, nom) => `<div class="c"${nom ? ` title="${nom}"` : ''}><span class="ab">${ab}</span><span class="v">${valeur}</span></div>`;
+  const bandeDu = (profil, caseDe, titre = 'Caractéristiques') => cadre('bande', null, null, null, null, 'parchemin', profil.map(caseDe).join(''), { ruban: titre, classe: 'bande', piece: 'profil' });
 
   /* la fiche du héros : l'identité, le profil, la figure, les sections ; les possessions ouvertes, la ligne pressée */
   const mainDu = (libelle, m, prise) => `<div class="main${m ? '' : ' vide'}${prise ? ' refusee' : ''}"><i>${libelle}</i>${m ? `${picto(m.id, 16, undefined, 1.5)}<b data-texte="main ${echapper(m.nom)}">${echapper(m.nom)}</b>` : `<b>${prise ? 'Prise' : 'Vide'}</b>`}</div>`;
@@ -1596,11 +1607,9 @@
     const h = f.identite;
     return [
       '<div id="mur" class="bois"></div>',
-      cadre('identite', null, null, null, null, 'parchemin', `${teteDe(h.id, h.nom, [echapper(h.espece), echapper(h.carriere)])}
-        <div class="bl">${rub('Blessures')}<span class="chiffres">${h.blessures.n} / ${h.blessures.sur}</span></div>${jauge(h.blessures.n / h.blessures.sur, { taille: 'forte' })}
-        ${filet({ fondu: true, losange: true })}<div class="reserves">${h.reserves.map(RESERVE).join('')}</div>`, { classe: 'pan ident' }),
-      bandeDu(f.profil, (x) => `<div class="c"><span class="ab">${x.carac}</span><span class="v">${x.valeur}</span></div>`),
-      cadre('figure', null, null, null, null, 'bois', `<div class="niche laiton"><div>${figure(1)}</div></div>`, { classe: 'pan figure' }),
+      identiteDe(h.id, echapper(h.nom), [echapper(h.espece), echapper(h.carriere)], [{ nom: 'Blessures', valeur: h.blessures.n, sur: h.blessures.sur, teinte: 'cire' }], h.reserves),
+      bandeDu(f.profil, (x) => caseDuProfil(x.carac, x.valeur)),
+      figureDe(figure(1)),
       cadre('sections', null, null, null, null, 'parchemin', `${rub('Panoplies', 'celle que le héros tient est cernée de laiton')}
         <div class="sets">${f.sets.map(setDu).join('')}<div class="set neuf">${picto('plus', 18, undefined, 1.8)}</div></div>
         <div class="inventaire"><div class="liste">${rub('Porté')}<div class="lignes">${f.porte.map(objetDu).join('')}</div>
@@ -1613,7 +1622,7 @@
 
   /* la progression : l'identité qui porte les PX et ce que le niveau exige ; ses gestes, ou le niveau achevé */
   const exigence = (e) => `<div class="exige">${e.fait ? rond('coche', 'menu', { arme: true }) : '<i class="trou"></i>'}<span data-texte="${echapper(e.texte)}">${echapper(e.texte)}</span>${e.compte ? `<span class="cpt chiffres">${e.compte.n} / ${e.compte.sur}</span>` : ''}</div>`;
-  const identiteQuiProgresse = (h) => cadre('identite', null, null, null, null, 'parchemin', `${teteDe(h.id, h.nom, [echapper(h.espece), echapper(h.niveau), `${echapper(h.classe)} · niveau ${h.rang}`])}
+  const identiteQuiProgresse = (h) => cadre('identite', null, null, null, null, 'parchemin', `${teteDe(h.id, echapper(h.nom), [echapper(h.espece), echapper(h.niveau), `${echapper(h.classe)} · niveau ${h.rang}`])}
     <div class="bourse-px"><div class="px laiton"><div>${h.px}</div></div><div><b>PX à dépenser</b>${h.apres === undefined ? '' : rub('', `${h.apres} après cet achat`)}</div></div>
     ${filet({ fondu: true, losange: true })}${rub(`Pour achever ${echapper(h.niveau)}`)}<div class="exigences">${h.exigences.map(exigence).join('')}</div>
     ${places('identite', { pied: `<div class="pied">${h.acheve ? `<div class="acheve">${jeton('Niveau achevé', 'or')}${rub('', echapper(h.note))}</div>`
@@ -1680,7 +1689,7 @@
   };
   /* 3. Fiche : le dossier d'une possession sur la mer, ou le héros sur le mur */
   GABARITS.fiche = 'possession' in etat
-    ? { feuilles: ['lieux-et-nuit/commun.css', 'combat/combat.css', 'voyage/navale.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'combat/jet.js', 'combat/socle.js', 'voyage/voyage.js', 'voyage/navale.js'], poser: dossier, tracer: peindreLeDossier }
+    ? { feuilles: ['lieux-et-nuit/commun.css', 'combat/combat.css', 'voyage/navale.css', 'heros/heros.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'combat/jet.js', 'combat/socle.js', 'voyage/voyage.js', 'voyage/navale.js'], poser: dossier, tracer: peindreLeDossier }
     : { feuilles: ['lieux-et-nuit/commun.css', 'heros/heros.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'heros/heros.js'], poser: (e) => HEROS_EN_FICHE(e)[0](e), tracer: (e) => HEROS_EN_FICHE(e)[1]?.() };
   /* 4. Lieu et voyage : un décor par lieu, ses feuilles et ses scripts */
   const LIEU = { feuilles: ['lieux-et-nuit/commun.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js'] };

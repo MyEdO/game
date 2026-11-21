@@ -203,8 +203,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   (MDG 15 l.294-300) : écart à trancher, hors de ce lot.
 
 ## dossier-du-navire
-- Modèle : la fiche lue en combat (`combat/fiche-au-clic`), mêmes quatre panneaux : identité, profil, figure,
-  sections à onglets ; fermé par la croix. Atteignable depuis la traversée et les postes de bord (pastille
+- Modèle : la fiche du héros (`heros.md`, `fiche-possessions`), mêmes quatre panneaux aux mêmes places (#4585) :
+  identité (tête, mesures, réserves sous le filet), profil en douze colonnes fixes, figure, sections à onglets ;
+  fermé par la croix. Atteignable depuis la traversée et les postes de bord (pastille
   « Dossier du navire »), et, par la charte « Voir une fiche », d'un clic sur le pion ou le cartouche du navire
   en combat naval et au port (`commerce/port.jpg`, « Votre cogue »).
 - Le navire porte son nom : nom de l'instance en titre (`Possession.label`), modèle en sous-titre, « Renommer »
@@ -216,6 +217,11 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : onglets « État », « Équipage », « Cargaison », « Améliorations » ; Moral en barre d'or sous la Coque ;
   trois médaillons (Équipage, Aux voiles, Héros à un poste) ; les traits sur le gabarit des armes de la fiche ;
   « Salissures » et « Avaries » écrits « aucune » quand rien n'est à dire.
+- À valider (#4585) : le profil d'une possession prend les douze colonnes fixes de la fiche, chacune l'abréviation, le
+  nom entier au survol. Abréviations du livre : M, E, B, Man (Mer de Griffe 06 l.226), Enc (EDOC 07 l.233), la bête
+  celles de LDB (`docs/raw/4e/combat.md:2707`). Sans abréviation au livre, libellés courts à valider : « Éq »
+  (Équipage), « Cap » (Capacité ; le livre dit « Contenance »), « Ch » (Chargement), « Att » (Attelage, « 1 bête »
+  au survol).
 
 ## dossier-du-navire-cargaison
 - Même écran que `dossier-du-navire`, onglet « Cargaison » : la cale (130 / 300), ses lots

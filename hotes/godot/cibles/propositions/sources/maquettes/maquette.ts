@@ -1226,7 +1226,7 @@ export interface Dossier {
   possession: { genre: 'navire' | 'mule' | 'charrette'; nom: string; saisie?: true; modele: string; nature: string; de?: string; longueur?: number; prix: Sous };
   mesures: { nom: string; valeur: number; sur?: number; teinte: 'cire' | 'or' }[];
   compteurs: { nom: string; valeur: number }[];
-  profil: { titre: string; caracs: { nom: string; valeur: number | null; signe?: true; unite?: string }[] };
+  profil: { titre: string; caracs: { ab: string; nom: string; valeur: number | null; signe?: true; unite?: string }[] };
   sections: string[];
   ouverte: string;
   blocs: BlocDuDossier[];

@@ -190,9 +190,9 @@
 .plaques{display:flex;gap:8px;margin-top:5px}
 .plaques .plaque{flex:1}
 .physique{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:6px}
-.mesure{display:flex;align-items:center;gap:11px}
-.mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
-.mesure .rub .note{font-size:11.5px}
+.physique .mesure{display:flex;align-items:center;gap:11px}
+.physique .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
+.physique .mesure .rub .note{font-size:11.5px}
 .ligne-ecrite{align-self:stretch;margin-top:9px}
 .ligne-ecrite .ecrit{margin-top:2px;height:30px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid var(--trait-encre);font-family:"Fell";font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
 .ligne-ecrite.saisi .ecrit{border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour);padding:0 8px 2px}
@@ -208,6 +208,9 @@
 .ident .tete .faits{margin-top:10px}
 .ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 5px}
 .ident .bl .chiffres{font-size:14px;color:var(--encre)}
+.ident [data-place="identite/reserves"]{display:flex;flex-direction:column}
+.ident [data-place="identite/reserves"]>.reserves{flex:1;align-content:start}
+.ident .reserve .rub{white-space:normal}
 .reserves{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
 .reserve{display:flex;align-items:center;gap:9px}
 .motivation{margin-top:2px;font-family:"Fell";font-style:italic;font-size:16px;line-height:21px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
@@ -231,7 +234,7 @@
 .acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 
 /* ───────── la fiche : le profil, la figure, les sections ───────── */
-.bande>.fond{display:grid;grid-template-columns:repeat(12,1fr);padding:0 6px}
+.bande>.fond{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));padding:0 6px}
 .bande .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:14px}
 .bande .c+.c{border-left:1px solid var(--filet-encre)}
 .bande .c .ab{font-family:"Fell SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
