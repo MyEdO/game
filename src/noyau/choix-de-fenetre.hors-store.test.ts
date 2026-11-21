@@ -215,7 +215,7 @@ describe('fenetreChoisir', () => {
     /** Le butin de victoire et hors combat, l'échoppe et la nuit ouverts ensemble, une ligne de chaque. */
     function tout(banc: Banc): { a: string; b: string } {
       const { a, b } = hoteEtUnInvite(banc);
-      const gear = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee' } }];
+      const gear = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', objet: { id: 'epee' } } }];
       banc.setState({
         pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] },
         pendingLoot: { title: 'Coffre', gear },
@@ -273,7 +273,7 @@ describe('fenetreChoisir', () => {
     it('l’évaluation en cours suit sa ligne quand une autre ligne part avant elle', () => {
       const banc = ouvrirLeBanc();
       const { a } = tout(banc);
-      const ligne = (uid: string, trappingId: string) => ({ uid, label: trappingId, magic: true, effect: { type: 'giveTrapping', trappingId, identified: false } });
+      const ligne = (uid: string, trappingId: string) => ({ uid, label: trappingId, magic: true, effect: { type: 'giveTrapping', objet: { id: trappingId }, identified: false } });
       banc.setState({ pendingVictory: null, merchant: null, pendingRest: null, pendingLoot: { title: 'Coffre', gear: [ligne('L0', 'epee'), ligne('L1', 'dague')] } } as never);
       banc.getState().evaluerLObjet('L1');
       const pa = banc.getState().pendingAppraise!;

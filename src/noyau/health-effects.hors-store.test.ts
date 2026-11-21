@@ -230,7 +230,7 @@ describe('Effet setVessel (navire de campagne, MDG 13-15)', () => {
   beforeEach(() => banc.setState({ vessel: undefined }));
 
   it('dote le groupe du navire choisi (state.vessel posé, Moral par défaut, coque intacte)', () => {
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' } }]);
     const v = banc.getState().vessel;
     expect(v?.vehicleId).toBe('cogue');
     expect(v?.morale.score).toBe(75); // moraleBase() (nouvel équipage)
@@ -239,42 +239,42 @@ describe('Effet setVessel (navire de campagne, MDG 13-15)', () => {
   });
 
   it('Moral et coque INITIAUX authorés sont appliqués', () => {
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', morale: 60, hullMax: 50, hullCurrent: 20 }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' }, morale: 60, hullMax: 50, hullCurrent: 20 }]);
     const v = banc.getState().vessel;
     expect(v?.morale.score).toBe(60);
     expect(v?.wounds).toEqual({ current: 20, max: 50 });
   });
 
   it('ref invalide (véhicule non-navire / inexistant) → no-op (aucun navire posé)', () => {
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'charrette' }]); // pas de facette ship
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'charrette' } }]); // pas de facette ship
     expect(banc.getState().vessel).toBeUndefined();
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'zzz-inconnu' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'zzz-inconnu' } }]);
     expect(banc.getState().vessel).toBeUndefined();
   });
 
   it('saboteurDR authoré initial (#214) est posé sur le navire de campagne', () => {
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', saboteurDR: -3 }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' }, saboteurDR: -3 }]);
     expect(banc.getState().vessel?.saboteurDR).toBe(-3);
   });
 
   it('#241 — waterLitres authoré initial est posé sur le navire de campagne, clampé à ≥0', () => {
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', waterLitres: -10 }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' }, waterLitres: -10 }]);
     expect(banc.getState().vessel?.waterLitres).toBe(0);
     banc.setState({ vessel: undefined });
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', waterLitres: 200 }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' }, waterLitres: 200 }]);
     expect(banc.getState().vessel?.waterLitres).toBe(200);
   });
 
   it('#230 — nom d\'instance authoré : posé sur le navire ET interpolé au journal', () => {
     banc.setState({ journal: [] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', label: 'Le Cormoran' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' }, label: 'Le Cormoran' }]);
     expect(banc.getState().vessel?.label).toBe('Le Cormoran');
     expect(banc.getState().journal.some((l) => l.includes('Le Cormoran'))).toBe(true);
   });
 
   it('#230 — sans nom d\'instance : name absent, le journal porte le label du TYPE', () => {
     banc.setState({ journal: [] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' } }]);
     expect(banc.getState().vessel?.label).toBeUndefined();
     expect(banc.getState().journal.some((l) => l.includes(findVehicleById('cogue')!.label))).toBe(true);
   });

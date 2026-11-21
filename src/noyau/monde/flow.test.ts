@@ -41,15 +41,21 @@ describe('evalCondition — algèbre close (flags/time/all/any/not)', () => {
 
 describe('evalCondition — état VIVANT du groupe (hasItem / money / partyDead)', () => {
   const base = { flags: {}, gameTime: 0 };
-  it('hasItem : compte les exemplaires de l’objet dans le groupe (id catalogue + repli nom custom)', () => {
-    // Objet catalogué → match par trappingId stable ; objet CUSTOM (sans trappingId) → repli sur le nom.
-    const party = [{ items: [{ label: 'Corde', trappingId: 'corde' }, { label: 'Clé en fer' }] }, { items: [{ label: 'Clé en fer' }] }];
-    expect(evalCondition({ kind: 'hasItem', trappingId: 'corde' }, { ...base, party })).toBe(true); // par id de catalogue
-    expect(evalCondition({ kind: 'hasItem', trappingId: 'Clé en fer' }, { ...base, party })).toBe(true); // custom → repli nom
-    expect(evalCondition({ kind: 'hasItem', trappingId: 'Clé en fer', count: 2 }, { ...base, party })).toBe(true);
-    expect(evalCondition({ kind: 'hasItem', trappingId: 'Clé en fer', count: 3 }, { ...base, party })).toBe(false);
-    expect(evalCondition({ kind: 'hasItem', trappingId: 'Amulette' }, { ...base, party })).toBe(false);
-    expect(evalCondition({ kind: 'hasItem', trappingId: 'Clé en fer' }, base)).toBe(false); // pas de groupe → false
+  it('hasItem compte par référence pour un objet répertorié et par nom pour un objet hors catalogue', () => {
+    const party = [
+      { items: [{ label: 'Corde', trappingId: 'corde' }, { label: 'Clé en fer' }] },
+      { items: [{ label: 'corde' }, { label: 'Clé en fer' }, { label: 'Clé en fer', trappingId: 'talisman-de-campagne' }] },
+    ];
+    const corde = { kind: 'hasItem', objet: { reference: { id: 'corde' } } } as const;
+    const cle = { kind: 'hasItem', objet: { nomHorsCatalogue: 'Clé en fer' } } as const;
+    expect(evalCondition(corde, { ...base, party })).toBe(true);
+    expect(evalCondition({ ...corde, count: 2 }, { ...base, party })).toBe(false);
+    expect(evalCondition({ ...corde, objet: { reference: { id: 'talisman-de-campagne' } } }, { ...base, party })).toBe(true);
+    expect(evalCondition(cle, { ...base, party })).toBe(true);
+    expect(evalCondition({ ...cle, count: 2 }, { ...base, party })).toBe(true);
+    expect(evalCondition({ ...cle, count: 3 }, { ...base, party })).toBe(false);
+    expect(evalCondition({ ...cle, objet: { nomHorsCatalogue: 'Amulette' } }, { ...base, party })).toBe(false);
+    expect(evalCondition(cle, base)).toBe(false);
   });
   it('money : bourse comparée en sous de cuivre (1 CO = 240 sc, 1 pistole = 12 sc)', () => {
     const ctx = { ...base, money: { gold: 1, silver: 2, brass: 0 } }; // 264 sb

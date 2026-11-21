@@ -51,7 +51,7 @@ import {
   secretAuteur,
   segmentDeLaSelection,
   structureAppearances,
-  structuresCrenelables,
+  apparencesCrenelables,
   structuresDeLArete,
   crenellatedAt,
   terrainIds,
@@ -313,8 +313,8 @@ export interface ZonesDeLEditeur {
   'editeur.outils': Choix[];
   /**
    * les options de l'outil actif : la taille du pinceau, le rectangle du terrain, chaque terrain en liste, chaque
-   * hauteur de `HAUTEURS` ; au crénelage, le pinceau et, en liste, chaque structure crénelable
-   * (`structuresCrenelables`) et la gomme de sa marque ; la gomme, qui efface la chose de sa case, n'en a aucune, ni le
+   * hauteur de `HAUTEURS` ; au crénelage, le pinceau et, en liste, chaque apparence à parapet
+   * (`apparencesCrenelables`) et la gomme de sa marque ; la gomme, qui efface la chose de sa case, n'en a aucune, ni le
    * départ ni l'entrée ; au décor, chaque décor du catalogue (`props`) en liste ; au personnage, chaque fiche du
    * bestiaire qui a des Blessures, les profils standard en tête (`fichesDePersonnage`), en liste ; à l'emplacement de
    * siège, chaque engin (`siegeEngines`) en liste ; au navire, chaque type de navire à ponts (`TYPES_DE_NAVIRE`) en
@@ -827,7 +827,7 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   }
   if (outil.mode === 'crenelage') {
     const parapets = [
-      ...structuresCrenelables().map((st) => boutonDEdition(`crenelage/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'crenelage', structure: st.id } }, outil.structure === st.id)),
+      ...apparencesCrenelables().map((st) => boutonDEdition(`crenelage/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'crenelage', structure: st.id } }, outil.structure === st.id)),
       boutonDEdition('crenelage/gomme', t('ecran.editeur.crenelage.gomme'), { geste: 'outil', outil: { mode: 'crenelage', structure: null } }, outil.structure === null),
     ];
     return [choix('pinceau', t('ecran.editeur.pinceau'), pinceaux), choix('parapets', t('ecran.editeur.crenelage'), parapets, 'liste')];
@@ -1082,7 +1082,7 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
   const parId = new Map(sceneEditee(s).entities.map((e) => [e.id, e]));
   const nom = (id: string) => { const e = parId.get(id); return e ? nomALEcran(s, e) : id; };
   return [
-    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => boutonDEdition(`poste/engin/${e.id}`, libelleDAuteur(e), { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
+    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => boutonDEdition(`poste/engin/${e.id}`, libelleDAuteur(e), { geste: 'poste', patch: { engin: e.id } }, p.engin.id === e.id)), 'liste'),
     choix('poste/arc', t('ecran.editeur.poste.arc'), [
       boutonDEdition('poste/arc/omni', t('ecran.editeur.poste.arc.omni'), { geste: 'poste', patch: { arc: null } }, !p.side),
       ...FIRE_ARCS.map((a) => boutonDEdition(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),
@@ -2010,7 +2010,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
 function ligneDuParapet(s: SessionDEdition): Ligne[] {
   const p = s.pointee;
   const parapet = p ? crenellatedAt(sceneEditee(s), p.x, p.y, p.z) : null;
-  return parapet === null ? [] : [ligne('crenelage', t('ecran.editeur.pointee.crenelage', { structure: libelleDeStructure(parapet) ?? parapet }))];
+  return parapet === null ? [] : [ligne('crenelage', t('ecran.editeur.pointee.crenelage', { structure: structureAppearances.find((apparence) => apparence.id === parapet)?.label ?? parapet }))];
 }
 
 /** Le pas de la réglette d'opacité du calque. */
@@ -2162,7 +2162,7 @@ function zonesDeLaScene(s: SessionDEdition): Partial<ZonesDeLEditeur> {
     boutonDEdition('outil/height', t('ecran.editeur.outil.height'), { geste: 'outil', outil: { mode: 'hauteur', metres: HAUTEURS[0].metres } }, s.outil.mode === 'hauteur'),
     boutonDEdition('outil/wall', t('ecran.editeur.outil.wall'), { geste: 'outil', outil: { mode: 'arete', paint: 'wall' } }, s.outil.mode === 'arete'),
     boutonDEdition('outil/stair', t('ecran.editeur.outil.stair'), { geste: 'outil', outil: { mode: 'escalier', toZ: etages.find((z) => z > s.z) ?? s.z } }, s.outil.mode === 'escalier'),
-    boutonDEdition('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenelage', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenelage'),
+    boutonDEdition('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenelage', structure: apparencesCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenelage'),
     boutonDEdition('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entite', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
     boutonDEdition('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
     boutonDEdition('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene)),

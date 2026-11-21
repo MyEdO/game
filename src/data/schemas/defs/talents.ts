@@ -1,4 +1,4 @@
-import { nommerChamps, nommerNoeud } from '../grammaire/meta';
+import { metaDesChamps, nommerChamps, nommerNoeud } from '../grammaire/meta';
 /** LDB 05 l.484 */
 import { z } from 'zod';
 import { combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema, termeBonusDe, maxiSortsDuDomaine } from '../grammaire/valeurs';
@@ -10,33 +10,34 @@ import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 export const file = 'talents.json';
 export const famille = 'entite';
 
-// ── TestMatch / TalentTest (src/data/index.ts) ──────────────────────────────────────────────────
-/** Un `TestMatch` désigne la spec visée d'UNE façon : `skill.spec` FIXE, `specFromInstance` (la spec
- *  élue du talent) ou `exceptSpec` (toutes SAUF). Les combiner ne se résout pas — `matchApplies`
- *  (`src/engine/magic.ts`) laisse `specFromInstance` ÉCRASER `skill.spec`, et rend `exceptSpec`
- *  inerte dès que la spec est épinglée : la donnée mentirait sur ce qu'elle déclare. */
+/** LDB 10 l.636-644 */
 const testMatchSchema = nommerChamps(z.strictObject({
   ...sujetDuJetSchema.shape,
   specFromInstance: z.boolean().optional(),
-  exceptSpec: z.string().optional(),
+  sauf: z.literal(true).optional(),
   when: conditionSchema.optional(),
   manual: z.boolean().optional(),
 }).superRefine((v, ctx) => {
-  const spec = (v.skill as { spec?: string } | undefined)?.spec;
-  if (spec == null) return;
-  for (const [cle, pose] of [['specFromInstance', v.specFromInstance === true], ['exceptSpec', v.exceptSpec != null]] as const) {
-    if (!pose) continue;
+  const skill = v.skill;
+  if (v.sauf && skill?.spec === undefined) {
     ctx.addIssue({
       code: 'custom',
-      path: [cle],
-      message: `TestMatch « ${String((v.skill as { id?: string }).id)} (${spec}) » : « ${cle} » et « skill.spec » désignent tous deux la spécialisation — un seul régime à la fois (matchApplies, src/engine/magic.ts).`,
+      path: ['sauf'],
+      message: 'Choisir la spécialisation à exclure.',
+    });
+  }
+  if (skill?.spec !== undefined && v.specFromInstance) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['specFromInstance'],
+      message: `« ${skill.id} (${skill.spec}) » : la spécialisation de l’instance (« specFromInstance ») et « skill.spec » désignent toutes deux la spécialisation.`,
     });
   }
 }), {
-  skill: { label: 'Compétence' },
+  ...metaDesChamps(sujetDuJetSchema, { exigees: true }),
   characteristic: { label: 'Caractéristique' },
   specFromInstance: { label: 'Spécialisation de l’instance' },
-  exceptSpec: { label: 'Spécialisation exclue' },
+  sauf: { label: 'Exclure la spécialisation' },
   when: { label: 'Condition' },
   manual: { label: 'Manuel' },
 });

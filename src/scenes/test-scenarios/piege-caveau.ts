@@ -31,13 +31,10 @@ const CAVEAU_Z0 = [
 ].join('\n');
 
 function construireScene(): Scene {
-  // La herse du trésor : ouverte si (on TIENT la clé OU on a tiré le levier) ET NON alarme — composition
-  // ET/OU/NON + lecture de l'inventaire VIVANT (`hasItem`), toute authorée dans `ConditionEditor`.
   const HERSE_WHEN: Condition = {
     kind: 'all',
     of: [
-      // « Clé en fer » est un objet CUSTOM (giveTrapping custom, sans id de catalogue) → match par nom (repli).
-      { kind: 'any', of: [{ kind: 'hasItem', trappingId: 'Clé en fer' }, { kind: 'flag', expr: 'levier_tire' }] },
+      { kind: 'any', of: [{ kind: 'hasItem', objet: { nomHorsCatalogue: 'Clé en fer' } }, { kind: 'flag', expr: 'levier_tire' }] },
       { kind: 'not', of: { kind: 'flag', expr: 'alarme' } },
     ],
   };
@@ -69,7 +66,7 @@ function construireScene(): Scene {
       { id: 'tresor', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 12, y: 5 }, label: 'Coffre du trésor',
         usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([
           { type: 'giveMoney', montant: { gold: 5 } },
-          { type: 'giveTrapping', trappingId: 'arme-simple', qualities: ['precise'], identified: false },
+          { type: 'giveTrapping', objet: { id: 'arme-simple' }, qualities: ['precise'], identified: false },
           { type: 'journal', desc: 'Le coffre regorge d’or et d’une lame finement ouvragée.' },
         ]) }] } },
     ],

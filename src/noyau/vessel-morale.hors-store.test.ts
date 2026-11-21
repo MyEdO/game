@@ -358,7 +358,7 @@ describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque sema
   it('un navire posé par `setVessel` ne doit rien des semaines d’avant sa pose (MDG 14 l.143)', () => {
     setCadence('rapide');
     banc.setState({ gameTime: campaignStart(), lastUpkeepDay: dayIndex(campaignStart()) });
-    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', crew: [{ roleId: 'mousse', count: 2 }] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' }, crew: [{ roleId: 'mousse', count: 2 }] }]);
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5000, silver: 0, brass: 0 });
     const avant = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().avancerLeTemps(1 * MINUTES_PER_DAY);

@@ -415,8 +415,8 @@ function matchApplies(
   if (m.skill != null) {
     if (m.skill.id !== q.skill?.id) return false;
     const wantSpec = m.specFromInstance ? inst.spec : m.skill.spec;
-    if (wantSpec != null && wantSpec !== q.skill.spec) return false;
-    if (m.exceptSpec != null && m.exceptSpec === q.skill.spec) return false; // Linguistique : toute Langue SAUF Magick
+    const memeSpec = wantSpec === q.skill.spec;
+    if (m.sauf ? memeSpec : wantSpec != null && !memeSpec) return false;
   } else if (m.characteristic != null) {
     if (m.characteristic !== q.characteristic) return false;
   } else return false;

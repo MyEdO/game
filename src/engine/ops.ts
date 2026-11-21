@@ -894,11 +894,10 @@ export type GameOp =
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête) tant que le Sort dure — Peau de loup
    *  d'hiver (Ulric), Protection contre la pluie. Lu par `exposureNight` (engine/exposure). */
   | { op: 'weatherWard' }
-  /** Crée un objet (`trapping`) dans l'inventaire de la cible — nom RÉEL de la base → objet à stats,
-   *  nom inconnu → objet CUSTOM (misc). Même vocabulaire que l'Effet de scène `giveTrapping`.
+  /** Crée un objet catalogué ou personnalisé dans l'inventaire de la cible.
    *  Alimente tout sort qui DONNE du matériel : Rations (Générosité de Manann, Récolte de Rhya →
    *  système de provisions/Faim), etc. `count`/`perSL` : « +1 par +2 DR ». */
-  | { op: 'giveTrapping'; trappingId?: string; custom?: string; count?: number; perSL?: PerSL; apparence?: { id: string } }
+  | { op: 'giveTrapping'; objet?: { id: string }; custom?: string; count?: number; perSL?: PerSL; apparence?: { id: string } }
   /** Crédite (positif) ou débite (négatif) la bourse PERSONNELLE de la cible, en SOUS DE CUIVRE
    *  (`brass` — unité de compte unique, `engine/money.ts`). La Bourse est un trapping (doctrine
    *  utilisateur 2026-07-16 : « Pour la bourse, c'est personnel et par défaut ça doit être dans… la
@@ -2935,7 +2934,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, ctx.idNeuf, source, ctx.resolveTrapping, contexteDeNaissanceDObjet(target));
+          const it = itemFromGive({ ...o, trappingId: o.objet?.id }, ctx.idNeuf, source, ctx.resolveTrapping, contexteDeNaissanceDObjet(target));
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }

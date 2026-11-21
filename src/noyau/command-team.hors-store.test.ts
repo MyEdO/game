@@ -59,7 +59,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 7, y: 7 }): Combatant =>
     wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  hydratePoste({ trappingId: engineId, crewIds }, idsDeTest('it'));
+  hydratePoste({ engin: { id: engineId }, crewIds }, idsDeTest('it'));
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,

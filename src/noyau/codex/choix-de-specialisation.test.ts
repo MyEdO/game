@@ -6,10 +6,21 @@
  * de Standing entier de 0, écrits en ids. LDB 08 l.9, l.101
  */
 import { describe, expect, it } from 'vitest';
-import { menaceSchema, testDeSceneSchema } from '../../data/schemas/grammaire/mecanique';
-import { catalogueSpecs, entreeOuverte } from '../../data/schemas/grammaire/ref';
+import { conditionSchema, menaceSchema, testDeSceneSchema } from '../../data/schemas/grammaire/mecanique';
+import { talents } from '../../data';
+import { recast } from '../../data/valeursNeuves';
+import { projetSchema } from '../../data/schemas/defs-scenes/projet';
+import { schema as talentsSchema } from '../../data/schemas/defs/talents';
+import { noeudsAuChemin } from '../../data/schemas/grammaire/descente';
+import { catalogueSpecs, entreeOuverte, mesureDuParse } from '../../data/schemas/grammaire/ref';
+import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
+import { emptyNarratif } from '../monde/campaignNarratif';
+import { emptyScene } from '../monde/scene';
+import { addTrigger, avecLaValeurDuPorteur } from '../sceneEdit';
+import { choixDuChamp } from '../sceneEditLecture';
+import { variantesAChoisir } from '../valeursNeuves';
 import { avecLaValeur } from '../edition/formulaire';
-import { champsOfferts, choixDuNoeud, bornesDuNoeud } from './editFields';
+import { champsOfferts, choixDuNoeud, bornesDuNoeud, formeAuPoint } from './editFields';
 
 const donnee = { skill: { id: 'art' }, stake: { authored: 'x' } };
 
@@ -40,6 +51,110 @@ describe('choix des spécialisations fermées', () => {
     const spec = champsOfferts(skill.noeud, ouverte.skill).find((f) => f.key === 'spec')!;
     expect(choixDuNoeud(spec.noeud)).toBeUndefined();
     expect(avecLaValeur(testDeSceneSchema, ouverte, ['skill', 'spec'], 'tonnelier-de-marienburg')).toMatchObject({ ok: true });
+  });
+});
+
+describe('les Conditions et le Test de Talent offrent les choix de leur schéma', () => {
+  it.each([
+    ['skill', 'id', 'crochetage', 'braveheart'],
+    ['career', 'id', 'soldat', 'crochetage'],
+    ['species', 'id', 'halflings', 'soldat'],
+    ['attackKind', 'is', 'morsure', 'halflings'],
+    ['capability', 'id', 'braveheart', 'lockpicks'],
+    ['casterChaosDomain', 'is', 'indivisible', 'sigmar'],
+  ])('la Condition %s offre ses valeurs et refuse une valeur du mauvais espace', (kind, champ, valeur, inconnue) => {
+    const condition = kind === 'capability' ? { kind, who: 'target', [champ]: valeur } : { kind, [champ]: valeur };
+    const forme = formeAuPoint(conditionSchema, condition)!;
+    const champOffert = champsOfferts(forme.noeud, condition, forme.tenus).find((field) => field.key === champ)!;
+    const choix = choixDuNoeud(champOffert.noeud)?.map((option) => option.valeur) ?? [];
+    expect(choix).toContain(valeur);
+    expect(choix).not.toContain(inconnue);
+    expect(avecLaValeur(conditionSchema, condition, [champ], valeur)).toMatchObject({ ok: true });
+    expect(avecLaValeur(conditionSchema, condition, [champ], inconnue)).toMatchObject({ ok: false });
+    expect(conditionSchema.safeParse(condition).success).toBe(true);
+    expect(conditionSchema.safeParse({ ...condition, [champ]: inconnue }).success).toBe(false);
+  });
+
+  it('ne présente pas un champ de CombatFeature qui ne peut valoir vrai', () => {
+    const condition = { kind: 'capability', who: 'target', id: 'braveheart' };
+    expect(conditionSchema.safeParse({ ...condition, id: 'offHandPenalty' }).success).toBe(false);
+  });
+
+  it('écrit l’exclusion de Magick après avoir choisi la spécialisation de Langue', () => {
+    const match = { skill: { id: 'langue', spec: 'magick' }, sauf: true };
+    const document = [{ test: { raw: 'Langue (toutes)', matches: [match] } }];
+    const [noeud] = noeudsAuChemin(talentsSchema, document, [0, 'test', 'matches', 0]);
+    const { skill } = match;
+    const correspondance = champsOfferts(noeud, match);
+    const champSkill = correspondance.find((field) => field.key === 'skill')!;
+    const champs = champsOfferts(champSkill.noeud, skill);
+    expect(choixDuNoeud(champs.find((field) => field.key === 'spec')!.noeud)?.map((option) => option.valeur))
+      .toEqual(catalogueSpecs('skill', 'langue'));
+    expect(correspondance.find((field) => field.key === 'sauf')?.label).toBe('Exclure la spécialisation');
+    const nouvelle = { skill: { id: 'langue' } };
+    expect(avecLaValeur(noeud, nouvelle, ['skill', 'spec'], 'bagarre')).toMatchObject({ ok: false });
+    const specialisee = avecLaValeur(noeud, nouvelle, ['skill', 'spec'], 'magick');
+    expect(specialisee).toEqual({ ok: true, valeur: { skill: { id: 'langue', spec: 'magick' } } });
+    if (!specialisee.ok) throw new Error('La spécialisation Magick doit pouvoir être posée.');
+    expect(avecLaValeur(noeud, specialisee.valeur, ['sauf'], true)).toEqual({ ok: true, valeur: match });
+  });
+});
+
+describe('Condition de possession d’un objet', () => {
+  const condition = (id: string) => ({ kind: 'hasItem', objet: { reference: { id } } } as const);
+
+  it('dans le Compendium, une référence désigne un objet instanciable du catalogue', () => {
+    const linguistique = talents.find((talent) => talent.id === 'linguistique')!;
+    const essai = (id: string) => talentsSchema.safeParse([{
+      ...linguistique,
+      test: { ...linguistique.test, matches: [{ skill: { id: 'langue' }, when: condition(id) }] },
+    }]);
+    expect(essai('corde').success).toBe(true);
+    expect(essai('chambre-commune-nuit').error?.issues[0].message).toMatch(/service/);
+    expect(essai('objet-inconnu').error?.issues[0].message).toMatch(/absent du catalogue des objets/);
+    expect(conditionSchema.safeParse(recast({ kind: 'always' }, 'hasItem')).success).toBe(true);
+  });
+
+  it('le projet valide les deux porteurs, et l’éditeur permet de passer de la référence au nom puis de revenir', () => {
+    const objet = objetDeCampagne();
+    const scene = addTrigger({ ...emptyScene('sonde', 4, 4), desc: 'Scène de sonde.' }, { x: 0, y: 0, w: 1, h: 1 }).scene;
+    const when = condition(objet.id);
+    const declencheur = { ...scene.triggers[0], when };
+    const narratif = { ...emptyNarratif(), objets: [objet], cloture: { when, titre: 'Fin du chapitre' } };
+    const projet = { type: 'projet', id: 'sonde', label: 'Projet de sonde', maison: 'Sonde', versionContenu: 1, scenes: [{ ...scene, triggers: [declencheur] }], narratif };
+    const cadre = { scene, projet, source: { manifeste: null, chapitres: {} } };
+
+    expect(projetSchema.safeParse(projet).success).toBe(true);
+    expect(mesureDuParse(projetSchema, projet).reperes.filter((r) => r.type === 'local:narratif.objets').map((r) => r.path)).toEqual([
+      ['scenes', 0, 'triggers', 0, 'when', 'objet', 'reference', 'id'],
+      ['narratif', 'cloture', 'when', 'objet', 'reference', 'id'],
+    ]);
+    expect(projetSchema.safeParse({ ...projet, narratif: { ...narratif, objets: [] } }).error?.issues).toEqual([
+      expect.objectContaining({ path: ['scenes', 0, 'triggers', 0, 'when', 'objet', 'reference', 'id'] }),
+      expect.objectContaining({ path: ['narratif', 'cloture', 'when', 'objet', 'reference', 'id'] }),
+    ]);
+
+    const chemin = ['when', 'objet'];
+    const reference = [...chemin, 'reference'];
+    expect(choixDuChamp('declencheur', declencheur, chemin, cadre)).toBeUndefined();
+    const choix = choixDuChamp('declencheur', declencheur, reference, cadre)!;
+    expect(choix).toContainEqual({ valeur: { id: objet.id }, libelle: objet.label, refus: null });
+    expect(choix).toContainEqual({ valeur: { id: 'corde' }, libelle: 'Corde', refus: null });
+    expect(avecLaValeurDuPorteur('declencheur', declencheur, reference, { id: 'objet-inconnu' }, cadre).ok).toBe(false);
+
+    const forme = formeAuPoint(conditionSchema, when)!;
+    const noeud = champsOfferts(forme.noeud, when).find((champ) => champ.key === 'objet')!.noeud;
+    const variantes = variantesAChoisir(noeud, when.objet)!;
+    expect(variantes.map(({ libelle }) => libelle)).toEqual(['Objet du catalogue ou de la campagne', 'Objet hors catalogue']);
+    const libre = avecLaValeurDuPorteur('declencheur', declencheur, chemin, variantes[1].valeur, cadre);
+    if (!libre.ok) throw new Error('Le formulaire doit permettre de passer à l’objet hors catalogue.');
+    expect(avecLaValeurDuPorteur('declencheur', libre.valeur, [...chemin, 'nomHorsCatalogue'], 'Clé en fer', cadre))
+      .toMatchObject({ ok: true, valeur: { when: { objet: { nomHorsCatalogue: 'Clé en fer' } } } });
+
+    const retour = avecLaValeurDuPorteur('declencheur', libre.valeur, chemin, variantes[0].valeur, cadre);
+    if (!retour.ok) throw new Error('Le formulaire doit permettre de revenir à la référence d’objet.');
+    expect(avecLaValeurDuPorteur('declencheur', retour.valeur, reference, { id: objet.id }, cadre))
+      .toMatchObject({ ok: true, valeur: { when } });
   });
 });
 

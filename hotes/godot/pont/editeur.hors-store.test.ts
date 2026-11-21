@@ -2334,8 +2334,8 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     expect([(inspecte(e, 'valeur/label') as Formulaire).champs[2], valeursDeLInspecteur(e, 'valeur/categorie').find((b) => b.presse)?.libelle, liste(e, 'objets').includes('lumignon')]).toEqual([expect.objectContaining({ valeur: 'Lanterne' }), 'Munitions', true]);
     e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
     e = choisir(choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === 'giveTrapping');
-    e = choisir(e, 'valeur/flow/effet/trappingId', (v) => v === 'lumignon');
-    const choisi = (e: Edition) => { const b = valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((v) => v.presse); return [b?.libelle, (b?.jeu as { args: unknown[] } | undefined)?.args[2]]; };
+    e = choisir(e, 'valeur/flow/effet/objet/ajouter', (v) => (v as { id?: string })?.id === 'lumignon');
+    const choisi = (e: Edition) => { const b = valeursDeLInspecteur(e, 'valeur/flow/effet/objet/id').find((v) => v.presse); return [b?.libelle, (b?.jeu as { args: unknown[] } | undefined)?.args[2]]; };
     expect(choisi(e), 'l’objet de campagne, offert au choix sous son libellé, choisi').toEqual(['Lanterne', 'lumignon']);
     presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/lumignon'));
     e = nommer('falot');

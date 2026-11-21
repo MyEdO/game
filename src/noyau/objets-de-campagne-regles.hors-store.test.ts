@@ -34,7 +34,7 @@ function ouvrir(banc: Banc, objets: NarratifBlock['objets'], scene: Scene = empt
 const porteur = (banc: Banc) => banc.getState().party[0];
 
 function donner(banc: Banc, trappingId: string) {
-  applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId, heroId: porteur(banc).id }]);
+  applyEffects(banc.getState, banc.setState, [{ type: 'giveTrapping', objet: { id: trappingId }, heroId: porteur(banc).id }]);
   return porteur(banc).items!.find((it) => it.trappingId === trappingId)!;
 }
 

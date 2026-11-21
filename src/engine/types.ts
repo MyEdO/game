@@ -1218,10 +1218,10 @@ export type CoverClass = 'none' | DeckCoverClass;
 export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/schemas/defs-scenes/scene').authoredShipPosteSchema>;
 
 /** Pièce d'artillerie MONTÉE — forme VIVANTE (runtime, sur le Combattant-coque). Étend `AuthoredShipPoste`
- *  avec l'arme HYDRATÉE (`item`, base résolue de `trappingId` au spawn par `hydratePoste`). Au spawn, le chef
+ *  avec l'arme HYDRATÉE (`item`, base résolue de `engin.id` au spawn par `hydratePoste`). Au spawn, le chef
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `noyau/monde/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
-export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId' | 'ammo' | 'selectedAmmo'> {
+export interface ShipPoste extends Omit<AuthoredShipPoste, 'engin' | 'ammo' | 'selectedAmmo'> {
   /** L'arme HYDRATÉE (instance complète, profil d’engin via `trappingId`). Re-résolue à chaque spawn
    *  depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;

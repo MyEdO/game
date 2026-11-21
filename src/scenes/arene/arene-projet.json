@@ -507,7 +507,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "hallebarde"
+            "objet": {
+             "id": "hallebarde"
+            }
            }
           },
           {
@@ -7459,7 +7461,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "bouclier"
+            "objet": {
+             "id": "bouclier"
+            }
            }
           },
           {
@@ -9625,7 +9629,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "chemise-de-mailles"
+            "objet": {
+             "id": "chemise-de-mailles"
+            }
            }
           },
           {
@@ -10572,7 +10578,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "lance-de-cavalerie"
+            "objet": {
+             "id": "lance-de-cavalerie"
+            }
            }
           },
           {
@@ -11852,7 +11860,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "faxtoryll"
+            "objet": {
+             "id": "faxtoryll"
+            }
            }
           },
           {
@@ -12891,7 +12901,9 @@
             "kind": "effet",
             "effet": {
              "type": "giveTrapping",
-             "trappingId": "potion-de-guerison"
+             "objet": {
+              "id": "potion-de-guerison"
+             }
             }
            },
            {
@@ -13013,7 +13025,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "bonnet-de-fou"
+            "objet": {
+             "id": "bonnet-de-fou"
+            }
            }
           },
           {
@@ -13096,7 +13110,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "arc"
+            "objet": {
+             "id": "arc"
+            }
            }
           },
           {
@@ -15203,7 +15219,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "potion-de-vitalite"
+            "objet": {
+             "id": "potion-de-vitalite"
+            }
            }
           },
           {
@@ -15260,7 +15278,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "grande-hache"
+            "objet": {
+             "id": "grande-hache"
+            }
            }
           },
           {
@@ -16572,7 +16592,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "lotus-noir"
+            "objet": {
+             "id": "lotus-noir"
+            }
            }
           },
           {
@@ -17946,14 +17968,18 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "grimoire"
+            "objet": {
+             "id": "grimoire"
+            }
            }
           },
           {
            "kind": "effet",
            "effet": {
             "type": "learnSpell",
-            "spell": "eblouissant"
+            "sort": {
+             "id": "eblouissant"
+            }
            }
           },
           {
@@ -19134,7 +19160,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "epee-batarde",
+            "objet": {
+             "id": "epee-batarde"
+            },
             "qualities": [
              "magique",
              "de-plaies-atroces"
@@ -20812,7 +20840,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "arc-elfique"
+            "objet": {
+             "id": "arc-elfique"
+            }
            }
           },
           {
@@ -22371,7 +22401,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "racine-de-terre"
+            "objet": {
+             "id": "racine-de-terre"
+            }
            }
           },
           {
@@ -22410,7 +22442,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "faxtoryll"
+            "objet": {
+             "id": "faxtoryll"
+            }
            }
           },
           {
@@ -22504,7 +22538,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "rapiere",
+            "objet": {
+             "id": "rapiere"
+            },
             "qualities": [
              "raffine"
             ]
@@ -24009,7 +24045,9 @@
            "kind": "effet",
            "effet": {
             "type": "giveTrapping",
-            "trappingId": "corde"
+            "objet": {
+             "id": "corde"
+            }
            }
           },
           {

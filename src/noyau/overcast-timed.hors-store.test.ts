@@ -79,7 +79,7 @@ describe('États récurrents (« un par Round »)', () => {
     const c = pair().ally;
     c.items = [];
     // Durée 1 Round portée à 3 par Surincantation de Durée → 3 Rations (1 par Round actif).
-    applyOps(c, [{ op: 'perRound', ops: [{ op: 'giveTrapping', trappingId: 'ration' }] }],
+    applyOps(c, [{ op: 'perRound', ops: [{ op: 'giveTrapping', objet: { id: 'ration' } }] }],
       { idNeuf: idsDeTest, rng: desDuTest, label: 'Récolte de Rhya', defaultDurationRounds: 3 });
     expect((c.items ?? []).filter((it) => it.trappingId === 'ration').length).toBe(0); // rien à l'incantation
     endOfRound(c, makeRNG(1), idsDeTest);

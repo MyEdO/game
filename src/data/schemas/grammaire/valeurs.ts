@@ -1168,9 +1168,11 @@ export const OBJETS_DU_PROJET = {
   retient: [INSTANCIABLE_PAR_ID],
 } as const satisfies PorteeLocale;
 
+export const objetDonneSchema = ref(idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET, nue: true }));
+
 type FauteDApparence = { readonly path: readonly (string | number)[]; readonly message: string };
 
-/** #2948 — l'apparence `apparence` de l'objet `trappingId` (absent : objet `custom`), résolu par `resoudre`, au `path`. */
+/** #2948 — l'apparence `apparence` de l'objet (absent : objet `custom`), résolu par `resoudre`, au `path`. */
 function fautesDApparence(trappingId: string | undefined, apparence: string, resoudre: TrappingResolver, path: readonly (string | number)[]): FauteDApparence[] {
   const message = messageDApparenceDObjet(trappingId, apparence, resoudre);
   return message ? [{ path, message }] : [];
@@ -1185,14 +1187,15 @@ const signaler = (ctx: z.RefinementCtx, fautes: readonly FauteDApparence[]): voi
 
 /** OBJET DONNÉ (Effet et GameOp `giveTrapping`) : l'apparence d'un objet du catalogue ou `custom` se juge au catalogue ;
  *  celle d'un objet de la campagne, sous `OBJETS_DU_PROJET` (`controlerSousPortee`). */
-export function avecApparenceDObjetDonne<N extends z.ZodType<{ trappingId?: string; apparence?: { id: string } }>>(noeud: N): N {
+export function avecApparenceDObjetDonne<N extends z.ZodType<{ objet?: { id: string }; apparence?: { id: string } }>>(noeud: N): N {
   const jugee = noeud.superRefine((v, ctx) => {
-    if (v.apparence && (v.trappingId === undefined || findTrappingById(v.trappingId))) signaler(ctx, fautesDApparence(v.trappingId, v.apparence.id, findTrappingById, ['apparence', 'id']));
+    const id = v.objet?.id;
+    if (v.apparence && (id === undefined || findTrappingById(id))) signaler(ctx, fautesDApparence(id, v.apparence.id, findTrappingById, ['apparence', 'id']));
   });
   return controlerSousPortee(jugee, OBJETS_DU_PROJET, (valeur, entree) => {
-    if (!estObjet(valeur) || typeof valeur.trappingId !== 'string' || entree(valeur.trappingId) === undefined) return [];
+    if (!estObjet(valeur) || !estObjet(valeur.objet) || typeof valeur.objet.id !== 'string' || entree(valeur.objet.id) === undefined) return [];
     const apparence = idDApparence(valeur.apparence);
-    return apparence === undefined ? [] : fautesDApparence(valeur.trappingId, apparence, objetDeLaCampagne(entree), ['apparence', 'id']);
+    return apparence === undefined ? [] : fautesDApparence(valeur.objet.id, apparence, objetDeLaCampagne(entree), ['apparence', 'id']);
   });
 }
 

@@ -33,7 +33,7 @@ const mkHull = (poste: ShipPoste, pos = { x: 5, y: 10 }): Combatant =>
   }) as unknown as Combatant;
 
 const mkPoste = (crewIds: string[] = []): ShipPoste =>
-  hydratePoste({ trappingId: 'belier-ade2', crewIds }, idsDeTest('it'));
+  hydratePoste({ engin: { id: 'belier-ade2' }, crewIds }, idsDeTest('it'));
 
 const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
   (blessuresSurLeProfil({

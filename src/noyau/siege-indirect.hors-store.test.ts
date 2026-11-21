@@ -51,7 +51,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 0, y: 0 }): Combatant =>
     wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  hydratePoste({ trappingId: engineId, crewIds }, idsDeTest('it'));
+  hydratePoste({ engin: { id: engineId }, crewIds }, idsDeTest('it'));
 
 /** Scène terrestre minimale (40×40 d'herbe, 2 m/case). */
 const groundScene = (): Scene =>
@@ -60,7 +60,7 @@ const groundScene = (): Scene =>
 
 /** Mortier + bombe Explosion 5 (Dégâts 12) = arme EFFECTIVE (qualité a-explosion fusionnée). */
 function mortarWithBomb(chef: Combatant): Weapon {
-  const mortier = mannedPosteWeapon(chef, hydratePoste({ trappingId: 'mortier', crewIds: ['chef'] }, idsDeTest('it')))!;
+  const mortier = mannedPosteWeapon(chef, hydratePoste({ engin: { id: 'mortier' }, crewIds: ['chef'] }, idsDeTest('it')))!;
   const bomb = itemFromTrappingById('bombe-de-mortier', idsDeTest)!;
   return weaponWithAmmo(mortier, bomb);
 }

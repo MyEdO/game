@@ -16,6 +16,7 @@
 import { readFileSync } from 'node:fs';
 import { listerProjetsLivres, PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { join } from 'node:path';
+import { auChemin } from '../../../src/lib/objet.mjs';
 import {
   talents, tableDeTalents, spells, careerLevels, species, creatures, mutations, stars, trappingsInstanciables, gods, effectTables,
   findTalentById, specPoolOf,
@@ -74,7 +75,10 @@ export function computeObtainability(root: string): ObtainabilityResult {
     try { json = JSON.parse(text); } catch { continue; }
     walkNode(json, (n) => {
       if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `scene:${f}`);
-      if (n.type === 'learnSpell' && typeof n.spell === 'string') learnSpellIds.add(n.spell);
+      if (n.type === 'learnSpell') {
+        const id = auChemin(n, ['sort', 'id']);
+        if (typeof id === 'string') learnSpellIds.add(id);
+      }
     });
   }
 

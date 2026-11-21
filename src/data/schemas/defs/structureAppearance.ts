@@ -175,6 +175,7 @@ const doc = document(
     },
     edit: { none: 'apparences de structure éditées au fichier' },
   },
+  { espace: { marqueurs: ['parapet'] } },
 );
 
 export const schema = doc.schema;

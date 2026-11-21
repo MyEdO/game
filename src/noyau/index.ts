@@ -306,7 +306,7 @@ export {
   sameSel,
   segmentDeLaSelection,
   selRect,
-  structuresCrenelables,
+  apparencesCrenelables,
   structuresDeLArete,
   type Sel,
   type WallPaint,

@@ -18,7 +18,7 @@ const GUNNERS = [idDuHerosDeScenario('soldat'), idDuHerosDeScenario('chasseur')]
  * `applyShipPostes` la sert au chef (`mannedPoste`) → l'attaque dédiée « Servir le pierrier ».
  */
 function pierrierPoste(chefId: string): AuthoredShipPoste {
-  return { trappingId: 'pierrier', side: 'tribord', crewIds: [chefId], ammo: { 'balles-et-poudre-pierrier': 10, 'petites-munitions-et-poudre-pierrier': 6 }, selectedAmmo: { id: 'balles-et-poudre-pierrier' } };
+  return { engin: { id: 'pierrier' }, side: 'tribord', crewIds: [chefId], ammo: { 'balles-et-poudre-pierrier': 10, 'petites-munitions-et-poudre-pierrier': 6 }, selectedAmmo: { id: 'balles-et-poudre-pierrier' } };
 }
 
 /**

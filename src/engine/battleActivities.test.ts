@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import activitesDuCatalogue from '../data/activities.json';
+import { schema as activitesSchema } from '../data/schemas/defs/activities';
+import { versDisque } from '../data/schemas/grammaire/prose';
 import {
   activityById, activitiesFor, matchBattleOutcomes, battleOutcomeAmount, battleCondMet, testsDeLActivite,
   type ActivityDef, type BattleResolution,
@@ -85,6 +88,31 @@ describe('Activités de préparation de bataille (ADE II 08 l.79-110) — donné
     expect(matchBattleOutcomes(ras, testRes(false, -6)).flatMap((b) => b.battle!)).toEqual([{ side: 'allie', target: 'startMight', scale: 'fixed', amount: -10 }]);
     // Échec ordinaire : aucun effet.
     expect(matchBattleOutcomes(ras, testRes(false, -2)).flatMap((b) => b.battle ?? [])).toEqual([]);
+  });
+});
+
+describe('références des enchaînements de bataille', () => {
+  const doc = versDisque(activitesDuCatalogue);
+  const enchainement = (cible: string) => doc.map((a) => a.id === 'compte-a-rebours'
+    ? { ...a, outcomes: [{ on: 'echec', chains: [cible] }] }
+    : a);
+
+  it('un enchaînement désigne une Scène de Round au parse', () => {
+    expect(activitesSchema.safeParse(enchainement('motivation')).success).toBe(true);
+    for (const id of ['activite-inconnue-1615', 'planification']) {
+      const r = activitesSchema.safeParse(enchainement(id));
+      expect(r.error?.issues).toEqual([
+        expect.objectContaining({ path: [expect.any(Number), 'outcomes', 0, 'chains', 0], message: expect.stringContaining(id) }),
+      ]);
+    }
+  });
+
+  it('le contexte de Round et la nature de Scène déclarent le même domaine', () => {
+    const sansNature = doc.map((a) => a.id === 'compte-a-rebours' ? { ...a, sceneKind: undefined } : a);
+    const r = activitesSchema.safeParse(sansNature);
+    expect(r.error?.issues).toEqual([
+      expect.objectContaining({ path: [expect.any(Number), 'sceneKind'], message: expect.stringContaining('compte-a-rebours') }),
+    ]);
   });
 });
 

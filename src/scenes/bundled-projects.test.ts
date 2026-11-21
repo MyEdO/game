@@ -165,7 +165,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
         }
       }
       if (eff.type === 'setVessel') {
-        if (!findVehicleById(eff.vehicleId)) fautifs.push(`${sceneId} : setVessel « ${eff.vehicleId} » absent de vehicles.json`);
+        if (!findVehicleById(eff.navire.id)) fautifs.push(`${sceneId} : setVessel « ${eff.navire.id} » absent de vehicles.json`);
         for (const hire of eff.crew ?? []) {
           if (!findCrewRoleById(hire.roleId)) fautifs.push(`${sceneId} : rôle d’équipage « ${hire.roleId} » absent de crew-roles.json`);
           if (hire.count <= 0) fautifs.push(`${sceneId} : rôle d’équipage « ${hire.roleId} » embauché à ${hire.count}`);
