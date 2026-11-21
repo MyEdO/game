@@ -2,7 +2,7 @@
  * LES MATIÈRES DU VOLUME (#3476) : la résolution d'une matière de terrain, de relief, de décor, de couverture ou de mur
  * en sa def, sa couleur de base et sa recette de détail, depuis la donnée (`src/data/terrains.json`, domaines `relief`,
  * `prop` et `roof` de `src/data/materials.json`, `src/data/structureAppearance.json` par `./structures`), avec le repli
- * VISIBLE d'un id absent (`./missing`). Une seule résolution, que lisent le rendu web et tout hôte du noyau.
+ * VISIBLE d'un id absent (`./missing`). Une seule résolution, que lit tout hôte du noyau.
  */
 import { terrainEntree } from '../terrain';
 import { matieresDe } from '../../../data';
@@ -15,9 +15,8 @@ import { facadeStructureAppearance, wallPartColor } from './structures';
 import type { WallPart } from '../../../data/structureAppearance.types';
 
 /** Entrée de REPLI VISIBLE (#877) : un terrain au ton d'alarme, jamais l'apparence d'un autre terrain.
- *  `stops` VIDE : le dégradé peint du repli est `MISSING_GRADIENT`, émis par `defsGlobaux()` — une
- *  rampe recopiée ici en serait une seconde définition. Infranchissable et de priorité nulle : le repli ne déborde sur
- *  aucun voisin et n'ouvre aucun passage que la donnée n'a pas authorisé. */
+ *  `stops` VIDE : le repli ne porte aucun dégradé, son ton d'alarme suffit. Infranchissable et de priorité nulle : le
+ *  repli ne déborde sur aucun voisin et n'ouvre aucun passage que la donnée n'a pas authorisé. */
 const TERRAIN_MANQUANT: EntreeVivante<TerrainDef> = {
   id: MISSING_ID,
   type: 'terrains',
@@ -73,8 +72,8 @@ export function propMaterial(id: string): EntreeVivante<PropMaterialData> {
   return catalogEntry((cle) => matieresDe('prop').find((m) => m.id === cle), id, 'matière de décor', DECOR_MANQUANT);
 }
 
-/** Entrée de REPLI VISIBLE (#877) : une couverture au ton d'alarme sur tous ses pans et sur son plan vu
- *  du dessus, jamais l'apparence d'un autre matériau. */
+/** Entrée de REPLI VISIBLE (#877) : une couverture au ton d'alarme sur tous ses pans, jamais l'apparence d'un
+ *  autre matériau. */
 const COUVERTURE_MANQUANTE: EntreeVivante<RoofMaterialDef> = {
   id: MISSING_ID,
   type: 'materials',
@@ -85,10 +84,6 @@ const COUVERTURE_MANQUANTE: EntreeVivante<RoofMaterialDef> = {
   S: MISSING_TONE,
   O: MISSING_TONE,
   line: MISSING_TONE_DARK,
-  planBody: MISSING_TONE,
-  planEdge: MISSING_TONE_DARK,
-  planInner: MISSING_TONE_DARK,
-  planText: MISSING_TONE,
 };
 
 /** Matériau de toit par id ; id absent du registre → repli VISIBLE + avertissement DEV. Résolution
@@ -103,7 +98,7 @@ export function roofMaterial(id: string): EntreeVivante<RoofMaterialDef> {
  *  carte d'ombre le plus large des scènes-témoins (0,2118 m à l'opéra), marge comprise. */
 export const FASCIA_THICK_M = 0.26;
 
-/** ÉPAISSEUR MONDE (m) de la planche de rive d'une couverture — SOURCE UNIQUE du backend volumique. */
+/** ÉPAISSEUR MONDE (m) de la planche de rive d'une couverture — SOURCE UNIQUE de la profondeur des faces (`./profondeur.ts`). */
 export function roofFasciaThickM(mat: EntreeVivante<RoofMaterialDef>): number {
   return mat.fasciaThickM ?? FASCIA_THICK_M;
 }

@@ -3,7 +3,7 @@
  * façades (`FacadeSection.features` d'une sorte de `KINDS_DE_DECOR`, vignette `facadeFeatureViz`) et ceux de
  * l'identité de ses bâtiments (`buildingFeatures`, un jeu par masse de `effectiveArchitecture`), et le dehors du
  * bâti d'où une arête tire son côté sortant (`dehorsDeScene`, `outwardSide`). Le volume du monde les pose
- * (`posesDuVolume`, `./volume.ts`), le rendu web les dessine (`buildProps`, `src/gameIso/builders/props.ts`). PUR.
+ * (`posesDuVolume`, `./volume.ts`). PUR.
  */
 import type { RectDeCases } from '../../../data/schemas/grammaire/valeurs';
 import { heightAt, porteNonSecrete, wallEnds, type SceneDesToits, type WallSeg } from '../scene';
@@ -14,14 +14,14 @@ import { memoByRef } from '../sceneMemo';
 import { edgeKey, facadeFeatureViz } from '../facades';
 import { WALL_H_M } from '../iso';
 import { DIR8_DELTA, type Dir4, type Dir8 } from '../../../geometry/dir8';
-import { fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './toits';
+import { fieldHeightAt, formeDeLaNappe, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './toits';
 
 type Point = { x: number; y: number };
 
 const xyKey = (x: number, y: number) => `${x},${y}`;
 
-/** Le DEHORS d'une case, par étage — SEULE définition du dépôt, lue par l'ENVELOPPE des murs
- *  (`envelopeEdgesOf`, `src/gameIso/builders/walls.ts`) comme par le CÔTÉ SORTANT d'une arête (`outwardSide`).
+/** Le DEHORS d'une case, par étage — SEULE définition du dépôt, lue par le CÔTÉ SORTANT d'une arête
+ *  (`outwardSide`).
  *  Le dehors = case n'appartenant à AUCUNE case INTÉRIEURE (`interiorCells`, `noyau/planDefects.ts`,
  *  #881 — closes par les murs ET non déclarées à ciel ouvert, jamais la seule notion
  *  `SceneEffectZone.presentation: 'interior'` : une enceinte close n'est pas un bâtiment couvert) ET
@@ -206,7 +206,8 @@ function ornementsDeFacade(scene: SceneDesToits, nappes: ReturnType<typeof resol
 
 /** Les ornements d'identité de `scene` : pour chaque masse d'un corps typé (`buildingFeatures(body.style)`), chaque
  *  ornement de son type. Un ornement de faîte (`ridge`) s'ancre au milieu de l'empreinte, à 60 % de la pente du
- *  champ de sa nappe (`fieldHeightAt`) entre l'égout et l'apex, au cap du faîtage (`capDuFaite`) ; un ornement de
+ *  champ de sa nappe (`fieldHeightAt`) entre l'égout et l'apex, au cap du faîtage de la forme que suit sa nappe
+ *  (`capDuFaite`, `formeDeLaNappe`) ; un ornement de
  *  façade (`facade`) ou de devant (`front`) s'ancre à la case juste à l'extérieur de la porte (`buildingDoor`),
  *  l'enseigne une demi-case plus au large et haut sur la façade, l'étal au sol, tournés vers le dehors. */
 function ornementsDIdentite(scene: SceneDesToits, nappes: ReturnType<typeof resolveNappes>): OrnementDuBati[] {
@@ -236,7 +237,7 @@ function ornementsDIdentite(scene: SceneDesToits, nappes: ReturnType<typeof reso
             ...commun,
             case: { x: f.x, y: f.y, z },
             ancre: { x: f.x + (f.w - 1) / 2, y: f.y + (f.h - 1) / 2 },
-            cap: capDuFaite(field.shape),
+            cap: capDuFaite(formeDeLaNappe(field)),
             solM,
             sureleveM: eaveM - solM + 0.6 * (apexM - eaveM),
             nappe: cleDeNappe,
