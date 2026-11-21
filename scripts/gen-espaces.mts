@@ -25,10 +25,10 @@
  * est remplacé par une table vide AVANT que les modules qui l'importent (`_registry.generated` → defs →
  * `grammaire/ref.ts`) ne se chargent.
  *
- * Jouée par `genAll` (`scripts/gen-registry.mjs`), après la phase 1 : `genererCode`
- * (scripts/docs/build-all.mjs) ; `--check` compare sans écrire (`npm run docs:check`).
+ * La production du registre (`scripts/gen-registry.mjs`) enchaîne cette phase après les registres.
+ * Sa porte `--check` compare les cibles sans écrire (`npm run docs:check`).
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
 import type { AccesAuxDocuments, CollectionDeFichier, MarqueDeCollection } from '../src/data/schemas/grammaire/collection-cle';
@@ -51,8 +51,8 @@ import {
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
-import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
-import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
+import type { CibleRendue } from './docs/lib/ecriture-derives.mjs';
+import { SORTIES_DES_ESPACES } from './docs/lib/cibles-registres.mjs';
 import { estObjet } from '../src/lib/objet.mjs';
 
 const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES, atelier: SORTIE_ATELIER } = SORTIES_DES_ESPACES;
@@ -308,11 +308,6 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
   };
 }
 
-/** Écrit `chemin` seulement si son contenu change — en `check`, compare sans écrire ; rend `true` s'il a changé. */
-function ecrire(chemin: string, body: string, check: boolean): boolean {
-  return !ecrireOuVerifier({ out: body, path: chemin, check, ...MESSAGES_DE(chemin) });
-}
-
 /** Spécificateur d'import de `chemin` (sous le dépôt) depuis le module généré `sortie`. */
 function specificateur(sortie: string, chemin: string): string {
   const rel = relative(dirname(sortie), chemin).split('\\').join('/');
@@ -411,11 +406,8 @@ function indexSurDisque(): string {
 }
 
 /**
- * EXCEPTION NOMMÉE au contrat `rendre()` PUR de `GENERATORS` (#2203 A2) : la phase 2 IMPORTE les defs
- * (`_registry.generated`, sortie de la phase 1) et `grammaire/ref.ts`, qui importe l'index qu'elle rend.
- * `rendre()` exige donc l'index sur disque ; seul `genEspaces` l'amorce par `TABLE_VIDE`. Mesure du
- * 2026-09-30 : 90 importeurs de `grammaire/ref`, 55 de `schemas/_registry.generated` — l'injection
- * de la table ne rendrait pas la phase 2 pure (la phase 1 reste importée).
+ * La phase 2 importe les registres de phase 1 et `grammaire/ref.ts`, qui dépend de l'index qu'elle
+ * rend. En écriture, le lanceur pose les amorces nécessaires avant ces imports.
  */
 export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TABLE_VIDE, puis rendu)';
 
@@ -439,45 +431,50 @@ export function moduleChargeable(texte: string, amorce: string, existe: (relatif
     && [...texte.matchAll(/^import \w+ from '([^']+\.json)';$/gm)].every((m) => existe(m[1]));
 }
 
-/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs), phase 2 : module → texte, sans
- *  écrire. LÈVE sur un index illisible (`AMORCAGE_EN_DEUX_TEMPS`). */
+function amorcesNecessaires(): [string, string][] {
+  const amorces: [string, string][] = [];
+  if (!indexChargeable(indexSurDisque())) amorces.push([SORTIE, TABLE_VIDE]);
+  for (const [chemin, amorce] of AMORCES_DES_MODULES) {
+    const present = existsSync(chemin) && moduleChargeable(readFileSync(chemin, 'utf8'), amorce, (relatif) => existsSync(join(dirname(chemin), relatif)));
+    if (!present) amorces.push([chemin, amorce]);
+  }
+  return amorces;
+}
+
+/** Le rendu seul exige que les modules importés soient déjà chargeables. */
 export async function rendre(): Promise<Map<string, string>> {
-  if (!indexChargeable(indexSurDisque())) throw new Error(`gen-espaces — ${SORTIE} est illisible ou absent, ${AMORCAGE_EN_DEUX_TEMPS} : relancer \`npm run gen\`.`);
+  const amorces = amorcesNecessaires();
+  if (amorces.length) {
+    const chemins = amorces.map(([chemin]) => chemin).join(', ');
+    throw new Error(`gen-espaces — modules illisibles ou absents : ${chemins}. ${AMORCAGE_EN_DEUX_TEMPS} : relancer \`npm run gen\`.`);
+  }
   return (await rendu()).textes;
 }
 
-/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET, les RACINES VIVANTES et les FICHIERS DE L'ATELIER — seulement si leur contenu change.
- *  Un index illisible est d'abord remplacé par la table vide ; en `check`, il est un rouge et rien ne se calcule. */
-async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number } | null> {
-  if (!indexChargeable(indexSurDisque())) {
-    if (check) {
-      console.error(`gen-espaces — ${SORTIE} est illisible (conflit ou sans IDS_PAR_ESPACE) : relancer \`npm run gen\`.`);
-      process.exitCode = (Number(process.exitCode) || 0) | 1;
-      return null;
-    }
-    writeFileSync(SORTIE, TABLE_VIDE);
+export async function* produire(
+  { check }: { check: boolean },
+  messagesDe: (chemin: string) => Pick<CibleRendue, 'staleMsg' | 'rerunMsg'>,
+): AsyncGenerator<CibleRendue, void, boolean> {
+  const amorces = amorcesNecessaires();
+  for (const [path, out] of amorces) {
+    yield {
+      path,
+      out,
+      amorce: true,
+      staleMsg: `gen-espaces — ${path} est illisible ou absent (${AMORCAGE_EN_DEUX_TEMPS}).`,
+      rerunMsg: messagesDe(path).rerunMsg,
+    };
   }
-  for (const [chemin, amorce] of AMORCES_DES_MODULES) {
-    const present = existsSync(chemin) && moduleChargeable(readFileSync(chemin, 'utf8'), amorce, (relatif) => existsSync(join(dirname(chemin), relatif)));
-    if (!present) writeFileSync(chemin, amorce);
-  }
+  if (check && amorces.length) return;
+
   const { textes, table, clesDeDataset, racines } = await rendu();
   let changed = false;
-  for (const [chemin, texte] of textes) changed = ecrire(chemin, texte, check) || changed;
-  return {
-    changed,
-    espaces: table.size,
-    ids: [...table.values()].reduce((n, l) => n + l.length, 0),
-    clesDeDataset: clesDeDataset.length,
-    racines: racines.length,
-  };
-}
-
-// Point d'entrée seulement. `--silencieux` (appel de `buildStart`) : n'imprime que si l'index change.
-if (import.meta.main) {
-  const r = await genEspaces(process.argv.includes('--check'));
-  if (r && (r.changed || !process.argv.includes('--silencieux')))
-    console.log(
-      `gen-espaces: IDS_PAR_ESPACE ← ${r.ids} ids / ${r.espaces} espaces (${SORTIE}), CLES_DE_DATASET ← ${r.clesDeDataset} clés (${SORTIE_CLES}), RACINES_VIVANTES ← ${r.racines} documents (${SORTIE_RACINES})${r.changed ? '' : ' [inchangé]'}`,
-    );
+  for (const [path, out] of textes) {
+    const aJour = yield { path, out, ...messagesDe(path) };
+    changed = !aJour || changed;
+  }
+  const ids = [...table.values()].reduce((n, l) => n + l.length, 0);
+  console.log(
+    `gen-espaces: IDS_PAR_ESPACE ← ${ids} ids / ${table.size} espaces (${SORTIE}), CLES_DE_DATASET ← ${clesDeDataset.length} clés (${SORTIE_CLES}), RACINES_VIVANTES ← ${racines.length} documents (${SORTIE_RACINES})${changed ? '' : ' [inchangé]'}`,
+  );
 }

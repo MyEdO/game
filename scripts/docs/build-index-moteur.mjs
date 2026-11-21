@@ -1,7 +1,7 @@
 // Index du MOTEUR — GÉNÉRÉ depuis les exports publics de `src/engine` (AST TypeScript, jamais une
 // recopie à la main). Sortie : docs/index-moteur.md. Re-run : node scripts/docs/build-index-moteur.mjs
 // (npm run docs:index-moteur).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 //
 // Incident fondateur (#903bis) : `rollCareer` (src/engine/creation.ts) porte depuis 2026-06-18 un
 // JSDoc en français qui explique que plusieurs Carrières peuvent partager une borne de tirage — deux
@@ -9,16 +9,16 @@
 // de recherche par SENS entre une question en français et un symbole en anglais. Cet index EST cette
 // surface : une ligne par export, indexée par concept français.
 //
-// Socle PARTAGÉ : scripts/docs/lib/ecriture-derives.mjs (`ecrireOuVerifier`) et
+// Socle PARTAGÉ : scripts/docs/lib/ecriture-derives.mjs et
 // scripts/docs/lib/engineExports.mjs (`allEngineExports` — MÊME mesure que le cliquet
 // src/data/index-moteur-ratchet.test.ts, jamais deux comptages qui pourraient diverger).
 // Lexique : scripts/docs/lib/engineConcepts.mjs (`FILE_CONCEPTS` + `CROSS_CONCEPTS`).
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { allEngineExports, fichiersMoteur, ENGINE_ROOT } from './lib/engineExports.mjs'
 import { FILE_CONCEPTS, CROSS_CONCEPTS } from './lib/engineConcepts.mjs'
 import { parLibelle } from '../guards/lib/lister.mjs'
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const OUT = 'docs/index-moteur.md'
   const TOOL = 'build-index-moteur'
@@ -149,4 +149,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

@@ -14,13 +14,13 @@
  * des jetons, les budgets de temps mesurés) vit ICI, en dur — patron « éditorial EN DUR dans le générateur » de
  * build-reprise.mjs. Aucun nom de verbe n'y est écrit : la table des verbes les dérive.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  *   node scripts/docs/build-hote-texte.mjs
  */
 import { readFileSync } from 'node:fs'
 import { ast, typescript } from '../guards/lib/dialecte.mjs'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { verbesDeLaPartie } from './lib/verbesDeLaPartie.mjs'
 import { parametresEcrits } from '../../src/hote/formes.ts'
 import { DOSSIER_DES_PARTIES, GESTES_PAR_APPEL, INSTRUCTIONS, outils } from '../../src/hoteTexte/outils.ts'
@@ -144,7 +144,7 @@ function typeEcrit(js) {
   return js.type ?? 'valeur'
 }
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+/** Le corps rendu et les messages du lanceur, sans rien écrire. */
 function rendu() {
   const bornes = constante(VUE, 'BORNES')
   const categories = unionDeChaines(COMMUN, 'CategorieDErreur')
@@ -228,4 +228,8 @@ export function rendre() {
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+export function* produire() {
+  yield rendu()
+}
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

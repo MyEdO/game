@@ -36,8 +36,13 @@ Après tout commit, toute fusion ou tout rebase : les hooks examinent l'attestat
 (`scripts/git-hooks/reconstruction.mjs`) une fois l'arbre libre de toute opération Git.
 Les sources, sondes, listings, outils et sorties mesurés décident de la fraîcheur. Tout mode
 d'écriture mesure et certifie ; une sortie identique laisse son lecteur frais.
-Les écrivains partagent `scripts/docs/lib/ecrivain-derives.mjs` : une production de code préempte
-la passe courante, dont toute écriture suivante est refusée, puis la passe est rejouée.
+Les générateurs rendent leurs textes pour les lecteurs et proposent leurs sorties au lanceur commun
+`scripts/docs/lib/ecriture-derives.mjs`. Les commandes individuelles et `build-all` passent par ce port.
+Il vérifie les destinations déclarées dans `targets` et `injecte`, applique les rendus et les amorces
+sous époque, et compare les sorties en `--check` sans écrire de cible. Une amorce sert au chargement
+du registre sur un arbre neuf. Seul le rendu final compte comme cible produite. Les écrivains
+partagent `scripts/docs/lib/ecrivain-derives.mjs` : une production de code préempte la passe courante,
+dont toute écriture suivante est refusée, puis la passe est rejouée.
 
 **Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
 l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les

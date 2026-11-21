@@ -1,7 +1,7 @@
 /**
  * Rapport des CONSOMMATEURS PAR CHAMP — GÉNÉRÉ. Sortie : docs/consommateurs-de-champs.md.
  * Re-run : `npx tsx scripts/docs/build-field-consumers.mts` (`npm run docs:field-consumers`).
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
+ * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  * Objet (#903) — « qui LIT ce CHAMP d'un TYPE de donnée structuré ? ».
  * Question fondatrice : « qui lit le champ `spec` sur une référence de dotation (`TrappingRef`) ? » —
@@ -65,7 +65,7 @@
  */
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
 import { CIBLES_DE_GRAMMAIRE, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
 import { ciblesDeCatalogue } from '../guards/lib/schemaFieldConsumers.mjs'
@@ -312,17 +312,17 @@ export function rendre(files?: string[]): Map<string, string> {
   return new Map([[OUT, buildFieldConsumersMd(files).md]]);
 }
 
-/** CLI : écriture du `.md`, ou `--check` : `ecrireOuVerifier`, rejoué par `build-all.mjs`. */
-if (import.meta.main) {
+export function* produire() {
   const { md, totalFields, totalUnread, zeros, absents, cibles } = buildFieldConsumersMd()
   const cliquets = `${zeros.length} « 0 lecteur » et ${absents.length} absents hors enveloppe sous cliquet`
-  ecrireOuVerifier({
+  yield {
     out: md,
     path: OUT,
-    check: process.argv.includes('--check'),
     staleMsg: `docs:field-consumers — ${OUT} est PÉRIMÉ (les schémas/le code source ont changé).`,
     rerunMsg: '  → relancer `npm run docs:field-consumers` (dérivé jamais commité, #2203).',
     okMsg: `docs:field-consumers — OK (${OUT} à jour, ${totalUnread}/${totalFields} champs « 0 lecteur » PROPRES ; ${cliquets})`,
     writeMsg: `${OUT} — ${totalUnread}/${totalFields} champs « 0 lecteur » PROPRES sur ${cibles.length} types ; ${cliquets}.`,
-  })
+  }
 }
+
+if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

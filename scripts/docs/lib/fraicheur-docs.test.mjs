@@ -755,13 +755,17 @@ for (const [nom, changer] of [
 }
 
 test('certificat local divergent : doc local conservé et autre producteur copié', () => {
-  const primitive = new URL('./ecriture-derives.mjs', import.meta.url).href
   const generateurs = ['a', 'b'].map(nom => ({ runner: 'node', script: `g/${nom}.mjs`, targets: [doc(nom)] }))
   const { racine } = instanceDeDepot({ fichiers: {
     '.gitignore': 'docs/\n.wt-local/\n',
     ...Object.fromEntries(['a', 'b'].flatMap(nom => [
       [`data/${nom}.txt`, nom],
-      [`g/${nom}.mjs`, `import { readFileSync } from 'node:fs'\nimport { ecrireOuVerifier } from ${JSON.stringify(primitive)}\necrireOuVerifier({ out: readFileSync('data/${nom}.txt', 'utf8'), path: ${JSON.stringify(doc(nom))}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer' })\n`],
+      [`g/${nom}.mjs`, [
+        "import { readFileSync } from 'node:fs'",
+        'export function* produire() {',
+        `  yield { out: readFileSync('data/${nom}.txt', 'utf8'), path: ${JSON.stringify(doc(nom))}, staleMsg: 'périmé', rerunMsg: 'relancer' }`,
+        '}',
+      ].join('\n')],
     ])),
   } })
   const cible = path.join(racine, '.wt-local')
