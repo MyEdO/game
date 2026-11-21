@@ -4245,6 +4245,8 @@ Les armes de base sont maniées à une main et nécessitent relativement peu d'e
 
 Notes : le **marteau de guerre** porte un Atout au CHOIX (*Assommante* — tête plate — OU *Perforante* — pointes) en plus de *Déséquilibrée* (`AA 08 l.140-142+245`). Le **cimeterre** a une Allonge Courte malgré une longueur comparable à l'épée (forme courbe → estoc réduit). Une **épée brisée** sert de dague mais reçoit le Défaut *Dangereuse* si elle n'a plus de garde complète. La **massue** peut être ramassée gratuitement en milieu boisé via un Test étendu de Survie en extérieur Intermédiaire (+0), total 7 DR. (`AA 08 l.130-153`)
 
+La **Pique d'armes** est une pioche du groupe des Armes de Base (`AA 08 l.145,153`). La **Pique** est une lance très longue et lourde du groupe des Armes d'Hast (`AA 08 l.305,335`).
+
 ### [AA 01] Règles du Pavois et Tableau des Boucliers
 
 Les boucliers s'utilisent avec la Compétence **Corps à Corps (Base)**. L'Atout *Protectrice (Indice)* a été révisé dans AA : chaque opposition avec Capacité de Combat / Corps à Corps ajoute un nombre de PA égal à l'Indice ; avec un Indice ≥ 2, le bouclier peut aussi s'opposer aux tirs de projectiles dans la ligne de vue. (`AA 08 l.100-104`)
@@ -4347,6 +4349,10 @@ Beaucoup d'armes de bagarre peuvent être bricolées à partir d'objets adéquat
 | (2M) Serpe de guerre | 2 CO | 3 | Limitée | Longue | +BF +4 | Défensive, Taille ou Déstabilisante |
 
 Notes : la **hache d'armes** choisit **Taille OU Empaleuse OU Assommante** (+ *Défensive*) ; **hallebarde**, **pertuisane/fauchard** et **serpe de guerre** offrent un choix d'Atout au moment de l'attaque ; le **bâton** peut être ramassé gratuitement en milieu boisé (Survie en extérieur Intermédiaire (+0), total 20 DR). **Attrape-coquin** : certains modèles à **mécanisme à ressort** coûtent **4 CO** et donnent **+20 sur tous les Tests de Force** pour empêtrer une cible. (`AA 08 l.294-306+406-433`)
+
+La ligne **Pertuisane/Fauchard** donne un profil commun. La pertuisane est une lance à lame épaisse en forme de feuille. Le fauchard est une arme d'hast à lame de coupe ou d'épée (`AA 08 l.304,333`).
+
+La **Hallebarde** a son propre profil et peut s'employer comme une lance ou comme une hache (`AA 08 l.302,329`).
 
 ### [AA 01] Tableau des Armes à Deux Mains
 
